@@ -23,7 +23,7 @@ path = "src/bin/conduit-tongues-analysis.rs"
 
 [dependencies]
 conduit-audio = { path = "../audio" }
-conduit-ai = { path = "../ai" }
+conduit-ai = { path = "../ai", features = ["form-catalog"] }
 conduit-core = { path = "../../architecture/core" }
 conduit-data = { path = "../data" }
 conduit-form = { path = "../../architecture/form" }

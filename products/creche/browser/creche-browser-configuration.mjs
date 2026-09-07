@@ -17,6 +17,7 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
       selected = new Set(checked.selected_implementations);
     } catch (error) {
       diagnostic = error instanceof Error ? error.message : String(error);
+      selected = new Set([...selected].filter((identity) => catalog.entries.some((entry) => entry.implementation_id === identity)));
     }
   }
 
@@ -27,86 +28,73 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
       root.className = "browser-configuration";
       const presentation = presentationFor(root);
       if (checked) {
-        root.innerHTML = '<div data-application-slot="browser-configuration-review"></div>';
-        presentReview(presentation, checked, ++presentationRevision, () => {
-          checked = null;
-          onChange();
+        const slot = presentationSlot(root, "browser-configuration-review");
+        presentView(presentation, slot.dataset.applicationSlot, "review", null, (event) => {
+          if (event.action === "configuration.edit") {
+            checked = null;
+            onChange();
+          }
         });
         return root;
       }
-      root.innerHTML = '<div data-application-slot="browser-configuration-actions"></div>';
       const groups = [...new Set(catalog.entries.map((entry) => entry.group))];
-      groups.forEach((_, index) => root.insertAdjacentHTML("beforeend", `<div data-application-slot="browser-configuration-group-${index}"></div>`));
-      presentActions(presentation, ++presentationRevision);
-      groups.forEach((group, index) => presentGroup(presentation, group, index, ++presentationRevision));
-      return root;
-
-      function presentActions(view, viewRevision) {
-        const presets = [
-          ["Minimal", ["browser/dom@1", "browser/dom-presentation@1"]],
-          ["Interactive", catalog.defaults],
-          ["Custom", [...selected]],
-        ];
-        view.present("browser-configuration-actions", {
-          revision: viewRevision,
-          actions: [
-            ...presets.map((_, index) => ({ id: `preset.${index}`, event: "activate" })),
-            { id: "configuration.review", event: "activate" },
-          ],
-          nodes: [
-            { parent: null, component: "stack", action: null, key: "browser-configuration", text: "" },
-            { parent: 0, component: "heading", action: null, key: "configuration-heading", text: "Browser Host capabilities" },
-            { parent: 0, component: "action-group", action: null, key: "configuration-presets", text: "Configuration presets" },
-            ...presets.map(([label], index) => ({ parent: 2, component: "button", action: index, key: `preset-${index}`, text: label })),
-            { parent: 0, component: "button", action: 3, key: "review-browser-configuration", text: "Review Host" },
-            ...(diagnostic ? [{ parent: 0, component: "failure-status", action: null, key: "configuration-diagnostic", text: diagnostic }] : []),
-          ],
-        }, { onEvent(event) {
-          view.nextEvent("browser-configuration-actions");
-          if (event.action.startsWith("preset.")) {
-            selected = new Set(presets[Number(event.action.slice(-1))][1]);
-            checked = null;
-            diagnostic = null;
-            onChange();
-          }
-          if (event.action === "configuration.review") {
-            try { checked = review(host.runtime, selection()); diagnostic = null; }
-            catch (error) { diagnostic = error instanceof Error ? error.message : String(error); }
-            onChange();
-          }
-        } });
-      }
-
-      function presentGroup(view, group, groupIndex, viewRevision) {
-        const entries = catalog.entries.filter((entry) => entry.group === group);
-        const slot = `browser-configuration-group-${groupIndex}`;
-        const nodes = [
-          { parent: null, component: "choice-group", action: null, key: `configuration-group-${groupIndex}`, text: `browser_capabilities_${groupIndex}` },
-          { parent: 0, component: "choice-group-label", action: null, key: `configuration-group-${groupIndex}-legend`, text: group },
-        ];
-        entries.forEach((entry, index) => {
-          const label = nodes.length;
-          nodes.push({ parent: 0, component: "choice-option-label", action: null, key: `implementation-label-${index}`, text: `${entry.label} · ${entry.implementation_id}` });
-          nodes.push({ parent: label, component: "independent-choice", action: index, key: `implementation-${index}`, text: entry.implementation_id, value: String(selected.has(entry.implementation_id)), valueCapacity: 5 });
-          entry.runtime_prerequisites.forEach((item, prerequisiteIndex) => nodes.push({
-            parent: 0,
-            component: "paragraph",
-            action: null,
-            key: `prerequisite-${index}-${prerequisiteIndex}`,
-            text: `Future runtime condition: ${item.detail}. Not claimed satisfied here.`,
-          }));
-        });
-        view.present(slot, {
-          revision: viewRevision,
-          actions: entries.map((_, index) => ({ id: `implementation.change-${index}`, event: "change" })),
-          nodes,
-        }, { onEvent(event) {
-          view.nextEvent(slot);
-          const entry = entries[Number(event.action.split("-").at(-1))];
+      const actionsSlot = presentationSlot(root, "browser-configuration-actions");
+      presentView(presentation, actionsSlot.dataset.applicationSlot, "actions", null, (event) => {
+        const presets = new Map([
+          ["configuration.preset.minimal", ["browser/dom@1", "browser/dom-presentation@1"]],
+          ["configuration.preset.interactive", catalog.defaults],
+          ["configuration.preset.custom", [...selected]],
+        ]);
+        if (presets.has(event.action)) {
+          selected = new Set(presets.get(event.action));
+          checked = null;
+          diagnostic = null;
+          onChange();
+        } else if (event.action === "configuration.review") {
+          try { checked = review(host.runtime, selection()); diagnostic = null; }
+          catch (error) { diagnostic = error instanceof Error ? error.message : String(error); }
+          onChange();
+        }
+      });
+      groups.forEach((group, index) => {
+        const groupSlot = presentationSlot(root, `browser-configuration-group-${index}`);
+        presentView(presentation, groupSlot.dataset.applicationSlot, "group", group, (event) => {
+          const match = /^implementation\.change-(\d+)$/u.exec(event.action);
+          const entry = match ? catalog.entries[Number(match[1])] : null;
+          if (!entry) throw new Error("browser configuration event is not admitted");
           if (decoder.decode(event.value) === "true") selected.add(entry.implementation_id);
           else selected.delete(entry.implementation_id);
           diagnostic = null;
           onChange();
+        });
+      });
+      return root;
+
+      function presentView(view, slot, mode, group, onEvent) {
+        const request = encoder.encode(JSON.stringify({
+          revision: ++presentationRevision,
+          mode,
+          catalog_generation: mode === "review" ? checked.catalog_generation : catalog.generation,
+          implementations: [...selected].sort(),
+          group,
+          diagnostic: mode === "actions" ? diagnostic : null,
+        }));
+        if (request.length > host.runtime.conduit_creche_input_capacity()) {
+          throw new Error("browser configuration presentation request exceeds its bound");
+        }
+        new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), request.length).set(request);
+        const code = host.runtime.conduit_creche_browser_configuration_view(request.length);
+        if (code < 0) {
+          throw outputError(host.runtime, "browser configuration presentation", code);
+        }
+        const encodedView = new Uint8Array(
+          host.runtime.memory.buffer,
+          host.runtime.conduit_creche_output_ptr(),
+          host.runtime.conduit_creche_output_len(),
+        ).slice();
+        view.present(slot, encodedView, { onEvent(event) {
+          view.nextEvent(slot);
+          onEvent(event);
         } });
       }
     },
@@ -120,6 +108,13 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
       implementations: Object.freeze([...selected].sort()),
     });
   }
+}
+
+function presentationSlot(root, identity) {
+  const slot = root.ownerDocument.createElement("div");
+  slot.dataset.applicationSlot = identity;
+  root.append(slot);
+  return slot;
 }
 
 export function prepareCheckedBrowserSpore({ host, checked, selection, imageDigest, nowMillis, entropy }) {
@@ -150,28 +145,6 @@ function review(runtime, selection) {
   const value = readOutput(runtime);
   if (value.schema !== REVIEW_SCHEMA) throw new TypeError("browser Host review schema is incompatible");
   return Object.freeze(value);
-}
-
-function presentReview(presentation, checked, revision, edit) {
-  const values = [
-    ["Target", checked.target_id],
-    ["Implementations", checked.selected_implementations.join(", ") || "none"],
-    ["PROFILE", checked.profile_id],
-    ["BrowserBundle output", checked.output],
-    ["Body/Spore join", checked.join_mode],
-  ];
-  presentation.present("browser-configuration-review", {
-    revision,
-    actions: [{ id: "configuration.edit", event: "activate" }],
-    nodes: [
-      { parent: null, component: "successful-evidence", action: null, key: "configuration-review", text: "Reviewed browser Host configuration" },
-      { parent: 0, component: "definition-table", action: null, key: "configuration-review-values", text: "Exact configuration identities" },
-      ...values.map(([term, value], index) => ({ parent: 1, component: "definition", action: null, key: `review-${index}`, text: term, value, valueCapacity: 65_536 })),
-      { parent: 0, component: "code-block", action: null, key: "configuration-source", text: "conduit", value: checked.canonical_source, valueCapacity: 65_536 },
-      { parent: 0, component: "paragraph", action: null, key: "configuration-absent", text: `Configuration creates no ${checked.does_not_create.join(", ")}.` },
-      { parent: 0, component: "button", action: 0, key: "edit-browser-configuration", text: "Back / Edit" },
-    ],
-  }, { onEvent() { presentation.nextEvent("browser-configuration-review"); edit(); } });
 }
 
 function requireCatalog(catalog) {

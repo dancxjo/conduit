@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub const MAXIMUM_RECORD_TRANSCRIPT_ITEMS: usize = 32;
+pub const MAXIMUM_RECORD_TRANSCRIPT_EVENTS: usize = 128;
 pub const MAXIMUM_RECORD_TRANSCRIPT_BYTES: usize =
     MAXIMUM_RECORD_TRANSCRIPT_ITEMS * MAXIMUM_TYPED_RECORD_FRAME_BYTES;
 
@@ -20,6 +21,8 @@ pub enum RecordTranscriptDirection {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RecordTranscriptTerminal {
     Completed,
+    Cancelled,
+    TransportUnavailable,
     Disconnected,
     TimedOut,
     Refused(u16),
@@ -62,6 +65,53 @@ pub enum RecordTranscriptRefusal {
     FrameTooLarge,
     EventExceedsByteLimit,
     SequenceExhausted,
+    MalformedTerminal,
+    OutputTooSmall,
+}
+
+pub const RECORD_TRANSCRIPT_TERMINAL_WIRE_VERSION: u8 = 1;
+pub const RECORD_TRANSCRIPT_TERMINAL_WIRE_BYTES: usize = 4;
+
+pub fn encode_record_transcript_terminal(
+    terminal: RecordTranscriptTerminal,
+) -> [u8; RECORD_TRANSCRIPT_TERMINAL_WIRE_BYTES] {
+    let (tag, code) = match terminal {
+        RecordTranscriptTerminal::Completed => (0, 0),
+        RecordTranscriptTerminal::Cancelled => (1, 0),
+        RecordTranscriptTerminal::TransportUnavailable => (2, 0),
+        RecordTranscriptTerminal::Disconnected => (3, 0),
+        RecordTranscriptTerminal::TimedOut => (4, 0),
+        RecordTranscriptTerminal::Refused(code) => (5, code),
+        RecordTranscriptTerminal::Failed(code) => (6, code),
+    };
+    let code = code.to_le_bytes();
+    [
+        RECORD_TRANSCRIPT_TERMINAL_WIRE_VERSION,
+        tag,
+        code[0],
+        code[1],
+    ]
+}
+
+pub fn decode_record_transcript_terminal(
+    wire: &[u8],
+) -> Result<RecordTranscriptTerminal, RecordTranscriptRefusal> {
+    if wire.len() != RECORD_TRANSCRIPT_TERMINAL_WIRE_BYTES
+        || wire[0] != RECORD_TRANSCRIPT_TERMINAL_WIRE_VERSION
+    {
+        return Err(RecordTranscriptRefusal::MalformedTerminal);
+    }
+    let code = u16::from_le_bytes([wire[2], wire[3]]);
+    match (wire[1], code) {
+        (0, 0) => Ok(RecordTranscriptTerminal::Completed),
+        (1, 0) => Ok(RecordTranscriptTerminal::Cancelled),
+        (2, 0) => Ok(RecordTranscriptTerminal::TransportUnavailable),
+        (3, 0) => Ok(RecordTranscriptTerminal::Disconnected),
+        (4, 0) => Ok(RecordTranscriptTerminal::TimedOut),
+        (5, code) => Ok(RecordTranscriptTerminal::Refused(code)),
+        (6, code) => Ok(RecordTranscriptTerminal::Failed(code)),
+        _ => Err(RecordTranscriptRefusal::MalformedTerminal),
+    }
 }
 
 /// Finite, oldest-first retained history. Retention pressure evicts complete

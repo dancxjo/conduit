@@ -1,6 +1,8 @@
 mod cpu;
+mod ftdi_line;
 mod gdt;
 mod hid;
+mod hid_pointer;
 mod idt;
 mod io;
 mod irq;
@@ -15,10 +17,18 @@ mod usb;
 mod xhci;
 
 pub use cpu::{boot_entropy, deterministic_exit, feature_basis};
+pub use ftdi_line::{
+    FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS, FtdiLineError, FtdiLineReady,
+    FtdiLineSession, prepare_ftdi_line, start_ftdi_line_session,
+};
 pub use hid::{
     HidError, HidKeyTransition, HidKeyboardSession, HidProof, finish_boot_keyboard,
     prepare_boot_keyboard, receive_boot_keyboard, receive_first_boot_keyboard_report,
     run_boot_keyboard, start_boot_keyboard_session,
+};
+pub use hid_pointer::{
+    HidPointerError, HidPointerReady, HidPointerSession, prepare_boot_pointer,
+    start_pointer_session,
 };
 pub use opl2::Opl2;
 pub use pc_speaker::PcSpeaker;
@@ -30,8 +40,8 @@ pub const fn pc_speaker_input_hz() -> u64 {
 pub use reboot::{RebootBase, RebootError, local_reboot_base};
 pub use serial::early_write;
 pub use usb::{
-    UsbDevice, enumerate_one as enumerate_usb, enumerate_one_at_epoch, retire_removed_device,
-    wait_for_attachment_state,
+    UsbDevice, enumerate_attached_at_epochs, enumerate_one as enumerate_usb,
+    enumerate_one_at_epoch, retire_removed_device, wait_for_attachment_state,
 };
 pub use xhci::{XhciReady, initialize_xhci};
 

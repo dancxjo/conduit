@@ -6,7 +6,7 @@
 use core::ptr::{read_volatile, write_volatile};
 
 use super::{
-    usb::{USB_DMA, UsbDevice, UsbError, select_boot_protocol},
+    usb::{UsbDevice, UsbError, dma::device_dma_pointer, select_boot_protocol},
     xhci::{Event, XhciError, XhciReady},
 };
 
@@ -323,6 +323,7 @@ fn configure_interrupt_endpoint(
     dci: u8,
     dma_physical: u64,
 ) -> Result<(), HidError> {
+    let usb_dma = device_dma_pointer(device).map_err(|_| HidError::DmaAddressInvalid)?;
     let context = controller.context_bytes();
     let input_physical = dma_physical + core::mem::offset_of!(HidDma, input_context) as u64;
     let ring_physical = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
@@ -331,7 +332,7 @@ fn configure_interrupt_endpoint(
         write_input_u32(4, 1 | (1 << dci));
         for offset in (0..context).step_by(4) {
             let value = read_volatile(
-                core::ptr::addr_of!(USB_DMA.device_context)
+                core::ptr::addr_of!((*usb_dma).device_context)
                     .cast::<u8>()
                     .add(offset)
                     .cast::<u32>(),
@@ -349,7 +350,8 @@ fn configure_interrupt_endpoint(
             (slot_context & !(0x1f << 27)) | (u32::from(dci) << 27),
         );
         let slot_speed =
-            (read_volatile(core::ptr::addr_of!(USB_DMA.device_context).cast::<u32>()) >> 20) & 0xf;
+            (read_volatile(core::ptr::addr_of!((*usb_dma).device_context).cast::<u32>()) >> 20)
+                & 0xf;
         let interval = match slot_speed {
             1 | 2 => endpoint
                 .interval

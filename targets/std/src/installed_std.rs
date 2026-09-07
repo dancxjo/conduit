@@ -1,3 +1,4 @@
+mod address_detect_operation;
 mod alife_host;
 mod alife_operations;
 mod audio_play_operation;
@@ -20,6 +21,7 @@ mod final_normalized_pattern_operation;
 mod flow_gate_operation;
 mod flow_state_operations;
 mod generate_text;
+mod house_prompt_operation;
 mod http;
 mod http_host;
 mod image_text_operation;
@@ -40,6 +42,7 @@ mod math_operations;
 mod midi_input_operation;
 mod midi_output_operation;
 mod model_host;
+mod model_text_operation;
 mod operation;
 mod operation_cancellation;
 mod operation_capacity;
@@ -60,6 +63,13 @@ mod pulse_observation_operation;
 #[cfg(test)]
 mod pulse_observation_sink;
 mod quantity_mapping;
+mod recognition_text_operation;
+mod record_delivery_operation;
+mod record_queue_operation;
+mod record_temporal_operation;
+mod record_transcript_operation;
+#[cfg(any(test, feature = "local-model-proof"))]
+pub(crate) mod recorded_speech_operation;
 mod recurrence_codec;
 mod recurrence_encoding;
 mod recurrence_operation;
@@ -385,7 +395,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
     let mut image_text_hosts = image_text_operation::prepare_hosts(fragment);
     let mut image_text_record_hosts = image_text_record_operation::prepare_hosts(fragment);
+    let mut address_detect_hosts = address_detect_operation::prepare_hosts(fragment);
+    #[cfg(any(test, feature = "local-model-proof"))]
+    let mut recorded_speech_hosts = recorded_speech_operation::prepare_hosts(fragment)?;
+    let mut house_prompt_hosts = house_prompt_operation::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
+    let mut record_delivery_hosts = record_delivery_operation::prepare_hosts(fragment)?;
     let mut structured_presentation_host =
         structured_presentation_host::StructuredPresentationHost::prepare(
             fragment,
@@ -606,11 +621,18 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if contract.as_str() == conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION {
+            if [
+                conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION,
+                conduit_std_offers::TYPED_RECORD_DEFRAME_HOST_OPERATION,
+                conduit_std_offers::TEXT_TO_TYPED_RECORD_HOST_OPERATION,
+                conduit_std_offers::TYPED_RECORD_TO_TEXT_HOST_OPERATION,
+            ]
+            .contains(&contract.as_str())
+            {
                 let completion = typed_record_hosts
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
-                    .ok_or_else(|| "typed-record frame request has no admitted host".to_string())?
+                    .ok_or_else(|| "typed-record codec request has no admitted host".to_string())?
                     .execute(input);
                 let (disposition, output, failure) = match completion {
                     Ok(encoded) => {
@@ -629,7 +651,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         None,
                         Some(conduit_kernel::Failure {
                             code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: refusal as u16,
+                            detail: refusal,
                         }),
                     ),
                 };
@@ -644,7 +666,50 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             failure,
                         },
                     )
-                    .map_err(|error| format!("complete typed-record frame: {error:?}"))?;
+                    .map_err(|error| format!("complete typed-record codec: {error:?}"))?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::RECORD_DELIVERY_STATUS_HOST_OPERATION {
+                let completion = record_delivery_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "record delivery request has no admitted status codec".to_string()
+                    })?
+                    .execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store delivery status: {error:?}"))?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map_err(|error| format!("bound delivery status: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output), None)
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: record_delivery_operation::refusal_detail(refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete delivery status: {error:?}"))?;
                 continue;
             }
             if contract.as_str() == conduit_std_offers::IMAGE_TEXT_RECORD_OPERATION {
@@ -1340,6 +1405,174 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete proof PCM source yield: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == "conduit.host/proof-recorded-speech-recognize@1" {
+                #[cfg(any(test, feature = "local-model-proof"))]
+                {
+                    let encoded = recorded_speech_hosts
+                        .get_mut(usize::from(request.node.0))
+                        .and_then(Option::as_mut)
+                        .ok_or_else(|| {
+                            "recorded-speech request has no admitted proof Host".to_string()
+                        })?
+                        .execute(input)?;
+                    let value = scheduler
+                        .store_host_value(encoded)
+                        .map_err(|error| format!("store recorded recognition: {error:?}"))?;
+                    let output =
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                            .map_err(|error| format!("bound recorded recognition: {error:?}"))?;
+                    requests.push(request);
+                    scheduler
+                        .complete_host_operation(
+                            request.node,
+                            request.request,
+                            HostOperationOutcome {
+                                disposition: HostOperationDisposition::Completed,
+                                output: Some(output),
+                                failure: None,
+                            },
+                        )
+                        .map_err(|error| format!("complete recorded recognition: {error:?}"))?;
+                    continue;
+                }
+                #[cfg(not(any(test, feature = "local-model-proof")))]
+                return Err("proof-only recorded-speech contract is unavailable".into());
+            } else if contract.as_str() == conduit_std_offers::RECOGNITION_TO_TEXT_OPERATION {
+                let (disposition, output) = match conduit_tongues::project_recognized_text(input) {
+                    Ok(text) => {
+                        let value = scheduler
+                            .store_host_value(&text)
+                            .map_err(|error| format!("store bounded recognized text: {error:?}"))?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u32,
+                        )
+                        .map_err(|error| format!("bound recognized text: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output))
+                    }
+                    Err(_) => (HostOperationDisposition::Denied, None),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete recognition-to-text: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION {
+                let (disposition, output) = match conduit_ai::project_generated_text(input) {
+                    Ok(text) => {
+                        let value = scheduler
+                            .store_host_value(&text)
+                            .map_err(|error| format!("store bounded model text: {error:?}"))?;
+                        let output =
+                            BoundedValueRef::new(value, conduit_ai::MAXIMUM_MODEL_TEXT_BYTES)
+                                .map_err(|error| {
+                                    format!("bound projected model text: {error:?}")
+                                })?;
+                        (HostOperationDisposition::Completed, Some(output))
+                    }
+                    Err(_) => (HostOperationDisposition::Denied, None),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete model-text projection: {error:?}"))?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::ADDRESS_DETECT_RECOGNIZED_OPERATION
+                    | conduit_std_offers::ADDRESS_DETECT_ADDRESSES_OPERATION
+            ) {
+                let completion = address_detect_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "address-detect request has no admitted host".to_string())?
+                    .execute(contract.as_str(), input)?;
+                let output = match completion {
+                    address_detect_operation::HostCompletion::Stored => None,
+                    address_detect_operation::HostCompletion::Output(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store address detection: {error:?}"))?;
+                        Some(
+                            BoundedValueRef::new(
+                                value,
+                                conduit_text::MAX_ADDRESS_DETECTION_VALUE_BYTES as u32,
+                            )
+                            .map_err(|error| format!("bound address detection: {error:?}"))?,
+                        )
+                    }
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete address detection: {error:?}"))?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::HOUSE_PROMPT_DETECTION_OPERATION
+                    | conduit_std_offers::HOUSE_PROMPT_CONTEXT_OPERATION
+            ) {
+                let completion = house_prompt_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "House prompt request has no admitted host".to_string())?
+                    .execute(contract.as_str(), input)?;
+                let (disposition, output) = match completion {
+                    house_prompt_operation::HostCompletion::Stored => {
+                        (HostOperationDisposition::Completed, None)
+                    }
+                    house_prompt_operation::HostCompletion::Output(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store bounded House prompt: {error:?}"))?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map_err(|error| format!("bound House prompt: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output))
+                    }
+                    house_prompt_operation::HostCompletion::NotAddressed => {
+                        (HostOperationDisposition::Denied, None)
+                    }
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete House prompt operation: {error:?}"))?;
                 continue;
             } else if matches!(
                 contract.as_str(),

@@ -3,6 +3,7 @@
 mod button_indicator;
 mod delay;
 mod factory;
+pub(crate) mod historical;
 mod input;
 mod inventory;
 pub(crate) mod json;
@@ -21,11 +22,18 @@ pub(crate) mod pointer_selector;
 mod presentation;
 mod quantity;
 mod quantity_output;
+pub(crate) mod record_delivery;
+pub(crate) mod record_queue;
+mod record_temporal;
+mod record_transcript;
+pub(crate) mod replay_control;
+pub(crate) mod replay_source;
 pub(crate) mod resource;
 mod state_time;
 mod text;
 mod tick;
 pub(crate) mod timing;
+pub(crate) mod typed_record;
 mod values;
 
 #[cfg(test)]
@@ -51,6 +59,23 @@ pub(crate) use normalized_quantity::{
     transform as normalize_quantity, HOST_OPERATION as NORMALIZE_QUANTITY_OPERATION,
 };
 pub(crate) use operation::BrowserOperation;
+
+fn record_delivery_refusal_detail(refusal: conduit_net::RecordDeliveryRefusal) -> u16 {
+    use conduit_net::RecordDeliveryRefusal::*;
+    match refusal {
+        EmptyCorrelation => 1,
+        CorrelationTooLong => 2,
+        EmptyFrame => 3,
+        FrameTooLarge => 4,
+        InvalidTransition => 5,
+        InvalidPartialProgress => 6,
+        EmptyReceipt => 7,
+        ReceiptTooLong => 8,
+        OutputTooSmall => 9,
+        MalformedWire => 10,
+        ObservationIdentityMismatch => 11,
+    }
+}
 pub(crate) use pointer::HOST_OPERATION as POINTER_EVENT_OPERATION;
 pub(crate) use quantity::{
     configuration as prepare_quantity_mapping, transform as transform_quantity,
@@ -67,6 +92,9 @@ pub(crate) mod test_json;
 
 #[cfg(test)]
 pub(crate) mod test_timing_sink;
+
+#[cfg(test)]
+pub(crate) mod test_replay_sink;
 
 pub(crate) mod button_attempt;
 

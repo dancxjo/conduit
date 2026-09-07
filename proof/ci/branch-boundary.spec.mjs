@@ -50,6 +50,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(integration, /cancel-in-progress: true/);
   assert.match(promotion, /branches: \[main\]/);
   assert.match(promotion, /full_suite: true/g);
+  assert.match(promotion, /group: promotion-\$\{\{ github\.event\.pull_request\.number \}\}/);
+  assert.match(promotion, /cancel-in-progress: true/);
   const check = readFileSync(".github/workflows/check.yml", "utf8");
   const classification = check.split("      - name: Classify exact change set\n")[1]
     .split("      - name:")[0];
@@ -75,6 +77,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(request, /workflow_dispatch/);
   assert.match(request, /workflow_run:/);
   assert.match(request, /workflows: \[dev-integration\]/);
+  assert.match(request, /Record a superseded development integration/);
+  assert.match(request, /A newer development head owns the next release decision/);
   assert.match(request, /already-running/);
   assert.match(request, /already-current/);
   assert.match(request, /release\/\$dev_sha/);

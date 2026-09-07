@@ -1,5 +1,46 @@
+# Reusable exact adaptation at the typed-record communication waist.
+form text-record (
+    text: Text > record: TypedRecord
+) {
+    wrap: record/text-to-typed
+    text > wrap.text
+    wrap.record > record
+}
+
+# A non-text record refuses here instead of becoming presentation text.
+form text-from-record (
+    record: TypedRecord > text: Text
+) {
+    unwrap: record/typed-to-text
+    record > unwrap.record
+    unwrap.text > text
+}
+
+# One completed framed record becomes an explicitly finite ordered queue flow,
+# then closes back to exactly one value for an ordinary planned Line.
+form bounded-record-send (
+    maximum-items: Count = 4
+    maximum-frame-bytes: Count = 4096
+    frame: FramedTypedRecord > queued: FramedTypedRecord
+) {
+    submit: record/singleton-stream
+    queue: record/ordered-send-queue(maximum-items, maximum-frame-bytes)
+    finish: record/exactly-one
+
+    frame > submit > queue > finish > queued
+}
+
+# The first honest local Desk Telegraph vertical. The queued remote Line,
+# receipt/status, and transcript branches are added only with their executable
+# closing-flow realization; local framing is not called remote delivery.
 form desk_telegraph {
     message: text/literal("CALLING")
+    encode: text-record
+    frame: record/frame-typed
+    send: bounded-record-send(4, 4096)
+    deframe: record/deframe-typed
+    decode: text-from-record
     show: presentation/text
-    message > show
+
+    message > encode > frame > send > deframe > decode > show
 }

@@ -48,6 +48,34 @@ pub struct FrontDoor {
     lifecycle_authority_admitted: bool,
     details_page: u8,
     journey: Option<JourneyProjection>,
+    connectivity: Option<ConnectivityProjection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConnectivityProjection {
+    pub line_id: String,
+    pub status: ConnectivityStatus,
+    pub value: Option<String>,
+    pub body_id: conduit_body::BodyId,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ConnectivityStatus {
+    Current,
+    PeerAttached,
+    ValueVisible,
+    Lost,
+}
+
+impl ConnectivityStatus {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Current => "USB LINE CURRENT",
+            Self::PeerAttached => "PEER ATTACHED / MEMBERSHIP NOT REQUESTED",
+            Self::ValueVisible => "LINE VALUE VISIBLE",
+            Self::Lost => "USB LINE LOST / STALE SESSION REFUSED",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -111,6 +139,7 @@ impl FrontDoor {
             lifecycle_authority_admitted,
             details_page: 0,
             journey: None,
+            connectivity: None,
         }
     }
 
@@ -130,6 +159,23 @@ impl FrontDoor {
         }
         self.form_open = projection.status == JourneyStatus::FormOpened;
         self.journey = Some(projection);
+        self.advance()
+    }
+
+    pub fn observe_connectivity(
+        &mut self,
+        projection: ConnectivityProjection,
+    ) -> Result<(), Error> {
+        if self
+            .journey
+            .as_ref()
+            .and_then(|journey| journey.body_id.as_ref())
+            != Some(&projection.body_id)
+            || projection.line_id.is_empty()
+        {
+            return Err(Error::Presentation);
+        }
+        self.connectivity = Some(projection);
         self.advance()
     }
 
@@ -293,6 +339,36 @@ impl FrontDoor {
                     &host,
                     "semantic-result",
                     PresentationPropertyValue::Text(result.clone()),
+                ));
+            }
+        }
+        if let Some(line) = &self.connectivity {
+            subjects.push(PresentationSubject {
+                identity: line.line_id.clone(),
+                role: PresentationRole::Line,
+                label: "USB-backed Conduit Line".into(),
+                accessibility_name: line.status.label().into(),
+            });
+            relationships.push(PresentationRelationship {
+                source: host.clone(),
+                target: line.line_id.clone(),
+                kind: PresentationRelationshipKind::Connects,
+            });
+            properties.push(property(
+                &line.line_id,
+                "status",
+                PresentationPropertyValue::Text(line.status.label().into()),
+            ));
+            properties.push(property(
+                &line.line_id,
+                "body-id-unchanged",
+                identity(line.body_id.as_str()),
+            ));
+            if let Some(value) = &line.value {
+                properties.push(property(
+                    &line.line_id,
+                    "received-value",
+                    PresentationPropertyValue::Text(value.clone()),
                 ));
             }
         }

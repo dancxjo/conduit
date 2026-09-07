@@ -94,6 +94,98 @@ test("one semantic ProductMasthead composition replaces product-private global c
   expect(pages).not.toMatch(/<nav[^>]*>[^]*?(?:Tour|Crèche|Patchbay)[^]*?<\/nav>/);
 });
 
+test("Tour Form Gallery ordinary controls use the shared presentation vocabulary", async () => {
+  const gallery = await readFile(join(repository, "products/tour/browser/tour-inventory-presentation.mjs"), "utf8");
+  const galleryComposition = gallery.slice(
+    gallery.indexOf("export function createReviewedFormGallery"),
+    gallery.indexOf("export function presentTourInventory"),
+  );
+  for (const tag of ["input", "output", "button", "a"]) {
+    expect(galleryComposition, `Gallery must not directly construct generic ${tag} controls`).not.toContain(
+      `createElement("${tag}")`,
+    );
+  }
+  expect(galleryComposition, "Gallery must not construct low-level component arrays").not.toContain("component:");
+  expect(galleryComposition, "Gallery must request the product-owned semantic view").toContain(
+    "conduit_browser_form_reviewed_gallery_view",
+  );
+  const model = await readFile(join(repository, "products/tour/model/src/gallery.rs"), "utf8");
+  for (const mechanism of ["FormField", "Status", "Action", "Link", "Grid"]) {
+    expect(model, `Gallery must describe ${mechanism} through the shared semantic vocabulary`).toContain(
+      `PresentationMechanism::${mechanism}`,
+    );
+  }
+});
+
+test("Tour page navigation uses product-owned semantic presentation", async () => {
+  const navigation = await readFile(join(repository, "products/tour/browser/tour-navigation.mjs"), "utf8");
+  const composition = navigation.slice(
+    navigation.indexOf("export function createTourNavigation"),
+    navigation.indexOf("export function createTourWorkspace"),
+  );
+  expect(composition, "Tour navigation must not construct low-level component arrays").not.toContain(
+    "component:",
+  );
+  expect(composition, "Tour navigation must request its product-owned semantic view").toContain(
+    "conduit_tour_navigation_view",
+  );
+  const model = await readFile(join(repository, "products/tour/model/src/navigation.rs"), "utf8");
+  for (const mechanism of ["Navigation", "Status", "Action"]) {
+    expect(model, `Tour navigation must describe ${mechanism} through shared semantics`).toContain(
+      `PresentationMechanism::${mechanism}`,
+    );
+  }
+});
+
+test("Crèche browser configuration ordinary controls use product-owned semantics", async () => {
+  const configuration = await readFile(
+    join(repository, "products/creche/browser/creche-browser-configuration.mjs"),
+    "utf8",
+  );
+  const composition = configuration.slice(
+    configuration.indexOf("export function createBrowserConfigurationOutfitter"),
+    configuration.indexOf("export function prepareCheckedBrowserSpore"),
+  );
+  expect(composition, "Crèche configuration must not construct low-level component arrays").not.toContain(
+    "component:",
+  );
+  expect(composition, "Crèche configuration must request its product-owned semantic view").toContain(
+    "conduit_creche_browser_configuration_view",
+  );
+  const model = await readFile(join(repository, "products/creche/model/src/lib.rs"), "utf8");
+  for (const mechanism of ["ChoiceGroup", "Evidence", "DefinitionTable", "CodeBlock", "Action"]) {
+    expect(model, `Crèche configuration must describe ${mechanism} through shared semantics`).toContain(
+      `PresentationMechanism::${mechanism}`,
+    );
+  }
+});
+
+test("Crèche graduation controls and evidence use product-owned semantics", async () => {
+  const graduation = await readFile(
+    join(repository, "products/creche/browser/creche-graduation.mjs"),
+    "utf8",
+  );
+  const composition = graduation.slice(
+    graduation.indexOf("function presentGraduationControls"),
+    graduation.indexOf("export function renderBiography"),
+  );
+  expect(composition, "Crèche graduation must not construct low-level component arrays").not.toContain(
+    "component:",
+  );
+  expect(composition, "Crèche graduation must request its product-owned semantic view").toContain(
+    "conduit_creche_graduation_view",
+  );
+  const model = await readFile(
+    join(repository, "products/creche/model/src/graduation_presentation.rs"),
+    "utf8",
+  );
+  for (const mechanism of ["Grid", "Status", "Action", "Evidence", "DefinitionTable", "CodeBlock"]) {
+    expect(model, `Crèche graduation must describe ${mechanism} through shared semantics`).toContain(
+      `PresentationMechanism::${mechanism}`,
+    );
+  }
+});
+
 test("all four web surfaces inherit one product-owned browser design system", async () => {
   const shared = await readFile(join(repository, "products/shared/browser/conduit.css"), "utf8");
   expect(shared).toContain("--conduit-font-body:");

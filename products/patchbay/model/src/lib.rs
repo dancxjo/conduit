@@ -35,6 +35,7 @@ mod debugger_watch_tests;
 mod degradation_explanation;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
+mod execution_disposition_explanation;
 mod face_configuration;
 mod face_controls;
 mod form_editor;
@@ -180,6 +181,9 @@ pub use degraded_profile_explanation::{
 pub use dormant_readmission_explanation::{
     explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
     MAX_DORMANT_READMISSION_EXPLANATION_BYTES,
+};
+pub use execution_disposition_explanation::{
+    explain_execution_disposition, ExecutionDispositionExplanation,
 };
 pub use face_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use form_editor::{

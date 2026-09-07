@@ -58,6 +58,10 @@ mod structured_offers;
 mod syntax_projection;
 mod text_lab_live;
 pub mod text_lab_split;
+#[cfg(feature = "tour-surface")]
+mod tour_navigation;
+#[cfg(feature = "tour-surface")]
+mod tour_workspace;
 mod webchat;
 mod webrtc_session;
 

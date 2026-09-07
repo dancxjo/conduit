@@ -16,6 +16,26 @@ fn inventory_form() -> InventoryForm {
 }
 
 #[test]
+fn quiet_check_suppresses_human_output_without_hiding_json() {
+    assert_eq!(
+        check_output_mode(&GlobalOpts {
+            quiet: true,
+            ..GlobalOpts::default()
+        }),
+        None
+    );
+    assert_eq!(
+        check_output_mode(&GlobalOpts {
+            quiet: true,
+            json: true,
+            ..GlobalOpts::default()
+        }),
+        Some(true)
+    );
+    assert_eq!(check_output_mode(&GlobalOpts::default()), Some(false));
+}
+
+#[test]
 fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
     let root = crate::workspace::workspace_root().unwrap();
     let report = build_report(&root, false, &GlobalOpts::default()).unwrap();
@@ -24,7 +44,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "check")
         .collect();
-    assert_eq!(checks.len(), 62);
+    assert_eq!(checks.len(), 65);
     assert!(checks.iter().all(|result| result.status == "passed"));
     let measurement_window = checks
         .iter()
@@ -56,7 +76,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-check")
         .collect();
-    assert_eq!(reusable.len(), 16);
+    assert_eq!(reusable.len(), 19);
     assert!(reusable.iter().all(|result| {
         result.status == "passed"
             && result.source_document_id.is_some()
@@ -75,13 +95,13 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "composition-check")
         .collect();
-    assert_eq!(composition.len(), 16);
+    assert_eq!(composition.len(), 19);
     assert_eq!(
         composition
             .iter()
             .filter(|result| result.status == "passed")
             .count(),
-        14
+        17
     );
     assert_eq!(
         composition
@@ -104,7 +124,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-deterministic")
         .collect();
-    assert_eq!(reusable_deterministic.len(), 16);
+    assert_eq!(reusable_deterministic.len(), 19);
     assert!(reusable_deterministic
         .iter()
         .all(|result| result.status == "unavailable"));
@@ -133,6 +153,15 @@ fn composition_check_refuses_an_inexact_occurrence_declaration() {
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].status, "failed");
     assert!(results[0].reason.contains("expected {\"invented\"}"));
+}
+
+#[test]
+fn standard_catalog_checks_the_current_house_model_contract() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let source = fs::read_to_string(root.join("forms/house-conversation/main.conduit")).unwrap();
+    let (startup, _) = catalogs().unwrap();
+    conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(&source), &startup)
+        .unwrap();
 }
 
 #[test]

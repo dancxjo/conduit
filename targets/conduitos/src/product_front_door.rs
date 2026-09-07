@@ -3,22 +3,33 @@
 use alloc::{format, string::String};
 
 use conduit_human::KeyTransition;
+use conduit_presentation::{
+    ApplicationEvent, ApplicationEventKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
+    GraphicsShapeStyle, LayoutRect,
+};
+use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID};
 
 use crate::{
-    arch::{self, HidKeyTransition, HidKeyboardSession, UsbDevice, XhciReady},
+    arch::{self, HidKeyTransition, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
     fabrication::FabricationRecord,
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::{self, BootIdentities},
-    keyboard_input::{self, ProductInputEvent},
+    keyboard_input::{self, ProductInputControl, ProductInputEvent},
     local_rescue::LocalRescueMatcher,
     offer::CAPABILITY_COUNT,
     offer_fabrication::ImageBoundHostOffer,
     product_bindings::binding_for_usage,
     product_journey::{JourneyAction, JourneyProjection, JourneyStatus, ProductJourney},
     rescue_guest,
+    tour_product::{TourProduct, TourProductUpdate},
 };
 
 const ENTER: u8 = 40;
+const ESCAPE: u8 = 41;
+const F9: u8 = 66;
+const F10: u8 = 67;
+const F11: u8 = 68;
+const F12: u8 = 69;
 
 #[allow(clippy::too_many_arguments)]
 pub fn run(
@@ -29,7 +40,11 @@ pub fn run(
     display: &mut impl crate::display::PixelTarget,
     hid_session: &mut HidKeyboardSession,
     controller: &mut XhciReady,
+    controller_id: [u8; 32],
     usb: &UsbDevice,
+    pointer_session: Option<&mut HidPointerSession>,
+    pointer_usb: Option<&UsbDevice>,
+    usb_line_device: Option<&UsbDevice>,
     rescue_matcher: &mut LocalRescueMatcher,
 ) -> Result<(), &'static str> {
     let host_id = conduit_core::HostId::from(identity::hex(&identities.host));
@@ -49,6 +64,7 @@ pub fn run(
         form.checked_form_id,
         u64::try_from(CAPABILITY_COUNT).unwrap_or(u64::MAX)
             + u64::from(offer.keyboard.is_some())
+            + u64::from(offer.pointer.is_some())
             + u64::from(offer.pc_speaker.is_some()),
         true,
     );
@@ -66,85 +82,280 @@ pub fn run(
         .present(&front_door, display)
         .map_err(|error| error.as_str())?;
     arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
-    keyboard_input::run_product(hid_session, controller, usb, |input| {
-        let transition = match input {
-            ProductInputEvent::Transition(transition) => transition,
-            ProductInputEvent::Lost(_) => {
-                if matches!(
-                    journey.status(),
-                    JourneyStatus::Planned | JourneyStatus::Playing
-                ) {
-                    journey.input_lost().map_err(|error| error.as_str())?;
+    let mut tour = TourProduct::canonical(1);
+    let mut tour_open = false;
+    let mut clock = arch::Clock::new();
+    let mut serial = arch::Serial::new();
+    let mut interrupts = arch::Interrupts::new();
+    let mut idle = arch::Idle::new();
+    loop {
+        let mut line_requested = false;
+        keyboard_input::run_product(hid_session, controller, usb, |input| {
+            let transition = match input {
+                ProductInputEvent::Transition(transition) => transition,
+                ProductInputEvent::Lost(_) => {
+                    if matches!(
+                        journey.status(),
+                        JourneyStatus::Planned | JourneyStatus::Playing
+                    ) {
+                        journey.input_lost().map_err(|error| error.as_str())?;
+                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                    }
+                    return Ok(ProductInputControl::Continue);
+                }
+            };
+            rescue_guest::observe(
+                identities,
+                rescue_matcher,
+                transition.into_local_rescue(),
+                true,
+            );
+            let event = crate::keyboard_bridge::portable_key_event(
+                transition.usage(),
+                transition.pressed(),
+                transition.modifiers(),
+            )
+            .map_err(|_| "front-door-key-event-invalid")?;
+            if event.usage() == F12 && usb_line_device.is_some() {
+                if event.transition() == KeyTransition::Released {
+                    line_requested = true;
+                    return Ok(ProductInputControl::Yield);
+                }
+                return Ok(ProductInputControl::Continue);
+            }
+            if event.transition() == KeyTransition::Pressed && event.usage() == F9 && !tour_open {
+                tour_open = true;
+                render_tour(&tour, display)?;
+                emit_tour_sign(&tour, None, identities, fabrication);
+                arch::early_write(b"CONDUIT_TOUR_CHECKPOINT workspace-opened\n");
+                return Ok(ProductInputControl::Continue);
+            }
+            if tour_open && event.transition() == KeyTransition::Pressed {
+                if event.usage() == ESCAPE {
+                    tour_open = false;
+                    presenter
+                        .present(&front_door, display)
+                        .map_err(|error| error.as_str())?;
+                    arch::early_write(b"CONDUIT_TOUR_CHECKPOINT world-returned\n");
+                    return Ok(ProductInputControl::Continue);
+                }
+                if let Some(action) = tour_action(event.usage()) {
+                    let event = ApplicationEvent {
+                        revision: tour.controller().state().revision,
+                        action: action.into(),
+                        kind: ApplicationEventKind::Activate,
+                        value: alloc::vec::Vec::new(),
+                    };
+                    let update = tour
+                        .accept(
+                            &event,
+                            identities,
+                            offer,
+                            fabrication.build_id,
+                            &mut clock,
+                            &mut serial,
+                            &mut interrupts,
+                            &mut idle,
+                        )
+                        .map_err(|error| error.as_str())?;
+                    render_tour(&tour, display)?;
+                    if update.play.is_some() {
+                        arch::early_write(b"\n");
+                    }
+                    emit_tour_sign(&tour, Some(&update), identities, fabrication);
+                    return Ok(
+                        if action == OPEN_PATCHBAY_ACTION_ID && pointer_session.is_some() {
+                            ProductInputControl::Yield
+                        } else {
+                            ProductInputControl::Continue
+                        },
+                    );
+                }
+            }
+            if journey.status() == JourneyStatus::Playing && !is_control_transition(transition) {
+                if journey
+                    .accept_play_input(event)
+                    .map_err(|error| error.as_str())?
+                {
                     let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
                     emit_journey_sign(&journey.projection(), fabrication, &receipt);
                 }
-                return Ok(());
+                return Ok(ProductInputControl::Continue);
             }
-        };
-        rescue_guest::observe(
-            identities,
-            rescue_matcher,
-            transition.into_local_rescue(),
-            true,
-        );
-        let event = crate::keyboard_bridge::portable_key_event(
-            transition.usage(),
-            transition.pressed(),
-            transition.modifiers(),
-        )
-        .map_err(|_| "front-door-key-event-invalid")?;
-        if journey.status() == JourneyStatus::Playing && !is_control_transition(transition) {
-            if journey
-                .accept_play_input(event)
-                .map_err(|error| error.as_str())?
+            if event.transition() == KeyTransition::Pressed
+                && let Some(action) = action_for(transition.usage(), &front_door, &journey)
             {
+                let semantic_action = front_door
+                    .resolve_action(action, front_door.revision())
+                    .map_err(|error| error.as_str())?;
+                let request = journey
+                    .next_request(action, semantic_action.target, front_door.revision())
+                    .map_err(|error| error.as_str())?;
+                journey
+                    .apply(
+                        request,
+                        identities,
+                        offer,
+                        fabrication.build_id,
+                        front_door.revision(),
+                    )
+                    .map_err(|error| error.as_str())?;
                 let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
                 emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                return Ok(ProductInputControl::Continue);
             }
-            return Ok(());
-        }
-        if event.transition() == KeyTransition::Pressed
-            && let Some(action) = action_for(transition.usage(), &front_door, &journey)
-        {
-            let semantic_action = front_door
-                .resolve_action(action, front_door.revision())
-                .map_err(|error| error.as_str())?;
-            let request = journey
-                .next_request(action, semantic_action.target, front_door.revision())
-                .map_err(|error| error.as_str())?;
-            journey
-                .apply(
-                    request,
-                    identities,
-                    offer,
-                    fabrication.build_id,
-                    front_door.revision(),
-                )
-                .map_err(|error| error.as_str())?;
-            let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-            emit_journey_sign(&journey.projection(), fabrication, &receipt);
-            return Ok(());
-        }
-        let revision = front_door.revision();
-        if front_door
-            .accept(event, revision)
-            .map_err(|error| error.as_str())?
-        {
-            presenter
-                .present(&front_door, display)
-                .map_err(|error| error.as_str())?;
-            if front_door.exact_details_open() {
-                let (label, value) = front_door.current_detail();
-                arch::early_write(
+            let revision = front_door.revision();
+            if front_door
+                .accept(event, revision)
+                .map_err(|error| error.as_str())?
+            {
+                presenter
+                    .present(&front_door, display)
+                    .map_err(|error| error.as_str())?;
+                if front_door.exact_details_open() {
+                    let (label, value) = front_door.current_detail();
+                    arch::early_write(
                     format!(
                         "CONDUIT_FRONT_DOOR_SIGN {{\"status\":\"details-opened\",\"label\":\"{label}\",\"value\":\"{value}\"}}\n"
                     )
                     .as_bytes(),
                 );
+                }
             }
+            Ok(ProductInputControl::Continue)
+        })?;
+        if !line_requested {
+            break;
         }
-        Ok(())
-    })
+        let body_id = journey
+            .projection()
+            .body_id
+            .ok_or("product-usb-line-body-absent")?;
+        let line_device = usb_line_device.ok_or("product-usb-line-realization-absent")?;
+        let ready = crate::arch::prepare_ftdi_line(
+            controller,
+            line_device,
+            crate::boot::executable_physical_address,
+        )
+        .map_err(|error| error.as_str())?;
+        let mut line =
+            crate::product_usb_line::prepare(identities, controller_id, line_device, ready)?;
+        line.run(
+            controller,
+            line_device,
+            body_id.as_str(),
+            |status, line_id, value| {
+                front_door
+                    .observe_connectivity(crate::front_door::ConnectivityProjection {
+                        line_id: line_id.into(),
+                        status,
+                        value: value.map(Into::into),
+                        body_id: body_id.clone(),
+                    })
+                    .map_err(|error| error.as_str())?;
+                presenter
+                    .present(&front_door, display)
+                    .map_err(|error| error.as_str())?;
+                Ok(())
+            },
+        )?;
+    }
+    let (pointer_session, pointer_usb) = pointer_session
+        .zip(pointer_usb)
+        .ok_or("front-door-pointer-realization-missing")?;
+    crate::product_pointer::run(
+        identities,
+        fabrication,
+        &mut tour,
+        display,
+        pointer_session,
+        controller,
+        pointer_usb,
+    )
+}
+
+fn tour_action(usage: u8) -> Option<&'static str> {
+    match usage {
+        F10 => Some(RUN_ACTION_ID),
+        F11 => Some(OPEN_PATCHBAY_ACTION_ID),
+        _ => None,
+    }
+}
+
+pub(crate) fn render_tour(
+    tour: &TourProduct,
+    display: &mut impl crate::display::PixelTarget,
+) -> Result<(), &'static str> {
+    let format = display
+        .format()
+        .validate()
+        .map_err(crate::display::DisplayError::as_str)?;
+    let scene = tour
+        .scene(
+            u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
+            u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
+        )
+        .map_err(|error| error.as_str())?;
+    let bounds = LayoutRect {
+        x: 0,
+        y: 0,
+        width: u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
+        height: u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
+    };
+    let mut background = GraphicsScene::empty();
+    background
+        .push(
+            GraphicsCommand::rect(
+                bounds,
+                bounds,
+                GraphicsPaintRole::Background,
+                GraphicsShapeStyle::Fill,
+            )
+            .map_err(|_| "tour-background-scene-refused")?,
+        )
+        .map_err(|_| "tour-background-scene-refused")?;
+    crate::display::render_scene(display, &background)
+        .map_err(crate::display::DisplayError::as_str)?;
+    crate::display::render_scene(display, &scene)
+        .map(|_| ())
+        .map_err(crate::display::DisplayError::as_str)
+}
+
+fn emit_tour_sign(
+    tour: &TourProduct,
+    update: Option<&TourProductUpdate>,
+    identities: &BootIdentities,
+    fabrication: &FabricationRecord,
+) {
+    let state = tour.controller().state();
+    let play = update.and_then(|value| value.play.as_ref());
+    let line = format!(
+        "CONDUIT_TOUR_SIGN {{\"schema\":\"conduit.conduitos.tour/v1\",\"status\":\"{}\",\"revision\":{},\"specimen_id\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"source_document_id\":{},\"checked_form_id\":{},\"expanded_form_id\":{},\"plan_id\":{},\"active_play_id\":{},\"result\":{},\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
+        match state.phase {
+            conduit_tour_model::TourWorkspacePhase::LessonReady => "tour-opened",
+            conduit_tour_model::TourWorkspacePhase::ResultVisible => "result-visible",
+            conduit_tour_model::TourWorkspacePhase::PatchbayOpen => "patchbay-open",
+        },
+        state.revision,
+        state.specimen_id,
+        fabrication.profile_id,
+        fabrication.build_id,
+        fabrication.image_binding,
+        identity::hex(&identities.host),
+        identity::hex(&identities.boot),
+        json_optional(play.map(|value| value.source_document_id.as_str())),
+        json_optional(play.map(|value| value.checked_form_id.as_str())),
+        json_optional(play.map(|value| value.expanded_form_id.as_str())),
+        json_optional(play.map(|value| value.plan_id.as_str())),
+        json_optional(play.map(|value| value.active_play_id.as_str())),
+        json_optional(state.result.as_deref()),
+    );
+    arch::early_write(line.as_bytes());
+}
+
+fn json_optional(value: Option<&str>) -> String {
+    value.map_or_else(|| "null".into(), |value| format!("\"{value}\""))
 }
 
 fn action_for(

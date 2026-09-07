@@ -4,9 +4,11 @@ use alloc::{string::String, vec::Vec};
 
 mod structure;
 
-pub const APPLICATION_VIEW_VERSION: u8 = 8;
-/// Version 7 omitted semantic grouped choices and admitted navigation links.
-pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 7;
+pub(crate) use structure::valid_same_site_link;
+
+pub const APPLICATION_VIEW_VERSION: u8 = 10;
+/// Version 9 omitted renderer-neutral separators.
+pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 9;
 pub const MAX_APPLICATION_VIEW_NODES: usize = 40;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
@@ -71,6 +73,8 @@ pub enum ApplicationComponent {
     IndependentChoice = 43,
     ExclusiveChoice = 44,
     NavigationLink = 45,
+    Link = 46,
+    Separator = 47,
 }
 
 /// Renderer-neutral state for an interactive presentation node.
@@ -168,6 +172,8 @@ impl ApplicationView {
                     | ApplicationComponent::IndependentChoice
                     | ApplicationComponent::ExclusiveChoice
                     | ApplicationComponent::NavigationLink
+                    | ApplicationComponent::Link
+                    | ApplicationComponent::Separator
                     | ApplicationComponent::Progress
             ) && node.text.is_empty()
             {
@@ -186,6 +192,7 @@ impl ApplicationView {
                     | ApplicationComponent::IndependentChoice
                     | ApplicationComponent::ExclusiveChoice
                     | ApplicationComponent::NavigationLink
+                    | ApplicationComponent::Link
             );
             let value_capacity = usize::try_from(node.value_capacity)
                 .map_err(|_| ApplicationViewRefusal::InvalidControlValue)?;
@@ -216,6 +223,11 @@ impl ApplicationView {
                     node.value.as_str(),
                     "home" | "tour" | "creche" | "patchbay" | "source"
                 )
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
+            if node.component == ApplicationComponent::Link
+                && !structure::valid_same_site_link(&node.value)
             {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
             }
@@ -264,7 +276,11 @@ impl ApplicationView {
             {
                 return Err(ApplicationViewRefusal::UnknownAction);
             }
-            if node.component == ApplicationComponent::NavigationLink && node.action.is_some() {
+            if matches!(
+                node.component,
+                ApplicationComponent::NavigationLink | ApplicationComponent::Link
+            ) && node.action.is_some()
+            {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
             }
             if matches!(
@@ -525,6 +541,8 @@ fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRe
         43 => Ok(ApplicationComponent::IndependentChoice),
         44 => Ok(ApplicationComponent::ExclusiveChoice),
         45 => Ok(ApplicationComponent::NavigationLink),
+        46 => Ok(ApplicationComponent::Link),
+        47 => Ok(ApplicationComponent::Separator),
         _ => Err(ApplicationViewRefusal::MalformedEncoding),
     }
 }

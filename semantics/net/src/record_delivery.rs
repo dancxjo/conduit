@@ -1,11 +1,36 @@
 //! Correlated, evidence-honest lifecycle for one finite record delivery.
 
-use alloc::vec::Vec;
-
 use crate::MAXIMUM_TYPED_RECORD_FRAME_BYTES;
+#[cfg(feature = "form-catalog")]
+use alloc::vec::Vec;
 
 pub const MAXIMUM_RECORD_CORRELATION_BYTES: usize = 128;
 pub const MAXIMUM_RECORD_RECEIPT_BYTES: usize = 128;
+pub const MAXIMUM_RECORD_DELIVERY_OBSERVATIONS: u16 = 16;
+pub const MAXIMUM_RECORD_DELIVERY_CANONICAL_BYTES: usize = 1_024;
+pub const MAXIMUM_RECORD_DELIVERY_WIRE_BYTES: usize =
+    7 + MAXIMUM_RECORD_CORRELATION_BYTES + 1 + MAXIMUM_RECORD_RECEIPT_BYTES;
+pub const RECORD_DELIVERY_WIRE_VERSION: u8 = 1;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum RecordDeliveryObservationEvent<'a> {
+    LocallyAccepted,
+    FramedQueued { queue_sequence: u64 },
+    PartiallySent { sent_bytes: u32 },
+    RemoteAccepted { receipt: &'a [u8] },
+    TransportUnavailable { code: u16 },
+    Disconnected { code: u16 },
+    TimedOut { code: u16 },
+    Refused { code: u16 },
+    Failed { code: u16 },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct RecordDeliveryObservationRef<'a> {
+    pub correlation: &'a [u8],
+    pub frame_bytes: u32,
+    pub event: RecordDeliveryObservationEvent<'a>,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RecordDeliveryStateRef<'a> {
@@ -57,16 +82,127 @@ pub enum RecordDeliveryRefusal {
     InvalidPartialProgress,
     EmptyReceipt,
     ReceiptTooLong,
+    OutputTooSmall,
+    MalformedWire,
+    ObservationIdentityMismatch,
 }
 
 /// Allocation-stable after construction. This tracker reports observations;
 /// it owns neither a Line nor retry, timeout, or reconnection policy.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordDeliveryTracker {
-    correlation: Vec<u8>,
-    receipt: Vec<u8>,
+    correlation: [u8; MAXIMUM_RECORD_CORRELATION_BYTES],
+    correlation_len: u8,
+    receipt: [u8; MAXIMUM_RECORD_RECEIPT_BYTES],
+    receipt_len: u8,
     frame_bytes: u32,
     state: RecordDeliveryState,
+}
+
+#[cfg(feature = "form-catalog")]
+pub struct BoundedRecordDeliveryStatusCodec {
+    tracker: Option<RecordDeliveryTracker>,
+    observation_type: Vec<u8>,
+    status_type: Vec<u8>,
+    wire: [u8; MAXIMUM_RECORD_DELIVERY_WIRE_BYTES],
+    output: Vec<u8>,
+}
+
+#[cfg(feature = "form-catalog")]
+impl BoundedRecordDeliveryStatusCodec {
+    pub fn prepare() -> Result<Self, RecordDeliveryRefusal> {
+        Ok(Self {
+            tracker: None,
+            observation_type: crate::delivery_observation_type()
+                .canonical_bytes()
+                .map_err(|_| RecordDeliveryRefusal::MalformedWire)?,
+            status_type: crate::delivery_status_type()
+                .canonical_bytes()
+                .map_err(|_| RecordDeliveryRefusal::MalformedWire)?,
+            wire: [0; MAXIMUM_RECORD_DELIVERY_WIRE_BYTES],
+            output: Vec::with_capacity(MAXIMUM_RECORD_DELIVERY_CANONICAL_BYTES),
+        })
+    }
+
+    pub fn execute(&mut self, canonical: &[u8]) -> Result<&[u8], RecordDeliveryRefusal> {
+        let wire = exact_leaf(canonical, &self.observation_type)?;
+        let observation = decode_record_delivery_observation(wire)?;
+        match self.tracker.as_mut() {
+            None => {
+                if observation.event != RecordDeliveryObservationEvent::LocallyAccepted {
+                    return Err(RecordDeliveryRefusal::InvalidTransition);
+                }
+                self.tracker = Some(RecordDeliveryTracker::locally_accepted(
+                    observation.correlation,
+                    usize::try_from(observation.frame_bytes)
+                        .map_err(|_| RecordDeliveryRefusal::FrameTooLarge)?,
+                )?);
+            }
+            Some(tracker) => tracker.apply(observation)?,
+        }
+        let tracker = self
+            .tracker
+            .as_ref()
+            .expect("tracker was initialized above");
+        let written =
+            encode_record_delivery_observation_into(tracker.observation(), &mut self.wire)?;
+        write_exact_leaf(&mut self.output, &self.status_type, &self.wire[..written])?;
+        Ok(&self.output)
+    }
+
+    pub fn is_terminal(&self) -> bool {
+        self.tracker
+            .as_ref()
+            .is_some_and(RecordDeliveryTracker::is_terminal)
+    }
+}
+
+#[cfg(feature = "form-catalog")]
+fn exact_leaf<'a>(
+    canonical: &'a [u8],
+    value_type: &[u8],
+) -> Result<&'a [u8], RecordDeliveryRefusal> {
+    let node = canonical
+        .strip_prefix(value_type)
+        .ok_or(RecordDeliveryRefusal::MalformedWire)?;
+    if node.first() != Some(&0) || node.len() < 5 {
+        return Err(RecordDeliveryRefusal::MalformedWire);
+    }
+    let length = usize::try_from(u32::from_le_bytes(
+        node[1..5]
+            .try_into()
+            .map_err(|_| RecordDeliveryRefusal::MalformedWire)?,
+    ))
+    .map_err(|_| RecordDeliveryRefusal::MalformedWire)?;
+    (node.len() == 5 + length)
+        .then_some(&node[5..])
+        .ok_or(RecordDeliveryRefusal::MalformedWire)
+}
+
+#[cfg(feature = "form-catalog")]
+fn write_exact_leaf(
+    output: &mut Vec<u8>,
+    value_type: &[u8],
+    bytes: &[u8],
+) -> Result<(), RecordDeliveryRefusal> {
+    let required = value_type
+        .len()
+        .checked_add(5)
+        .and_then(|length| length.checked_add(bytes.len()))
+        .ok_or(RecordDeliveryRefusal::OutputTooSmall)?;
+    if required > output.capacity() {
+        return Err(RecordDeliveryRefusal::OutputTooSmall);
+    }
+    output.clear();
+    output.extend_from_slice(value_type);
+    output.push(0);
+    output.extend_from_slice(
+        &u32::try_from(bytes.len())
+            .map_err(|_| RecordDeliveryRefusal::OutputTooSmall)?
+            .to_le_bytes(),
+    );
+    output.extend_from_slice(bytes);
+    Ok(())
 }
 
 impl RecordDeliveryTracker {
@@ -87,11 +223,13 @@ impl RecordDeliveryTracker {
             return Err(RecordDeliveryRefusal::FrameTooLarge);
         }
         let frame_bytes = frame_bytes as u32;
-        let mut owned_correlation = Vec::with_capacity(MAXIMUM_RECORD_CORRELATION_BYTES);
-        owned_correlation.extend_from_slice(correlation);
+        let mut owned_correlation = [0; MAXIMUM_RECORD_CORRELATION_BYTES];
+        owned_correlation[..correlation.len()].copy_from_slice(correlation);
         Ok(Self {
             correlation: owned_correlation,
-            receipt: Vec::with_capacity(MAXIMUM_RECORD_RECEIPT_BYTES),
+            correlation_len: correlation.len() as u8,
+            receipt: [0; MAXIMUM_RECORD_RECEIPT_BYTES],
+            receipt_len: 0,
             frame_bytes,
             state: RecordDeliveryState::LocallyAccepted,
         })
@@ -132,8 +270,8 @@ impl RecordDeliveryTracker {
         if receipt.len() > MAXIMUM_RECORD_RECEIPT_BYTES {
             return Err(RecordDeliveryRefusal::ReceiptTooLong);
         }
-        self.receipt.clear();
-        self.receipt.extend_from_slice(receipt);
+        self.receipt[..receipt.len()].copy_from_slice(receipt);
+        self.receipt_len = receipt.len() as u8;
         self.state = RecordDeliveryState::RemoteAccepted;
         Ok(())
     }
@@ -175,7 +313,7 @@ impl RecordDeliveryTracker {
     }
 
     pub fn correlation(&self) -> &[u8] {
-        &self.correlation
+        &self.correlation[..usize::from(self.correlation_len)]
     }
 
     pub const fn frame_bytes(&self) -> u32 {
@@ -199,7 +337,7 @@ impl RecordDeliveryTracker {
                 }
             }
             RecordDeliveryState::RemoteAccepted => RecordDeliveryStateRef::RemoteAccepted {
-                receipt: &self.receipt,
+                receipt: &self.receipt[..usize::from(self.receipt_len)],
             },
             RecordDeliveryState::TransportUnavailable { code } => {
                 RecordDeliveryStateRef::TransportUnavailable { code }
@@ -213,7 +351,220 @@ impl RecordDeliveryTracker {
         }
     }
 
-    pub fn allocated_capacities(&self) -> (usize, usize) {
-        (self.correlation.capacity(), self.receipt.capacity())
+    pub fn observation(&self) -> RecordDeliveryObservationRef<'_> {
+        let event = match self.state() {
+            RecordDeliveryStateRef::LocallyAccepted => {
+                RecordDeliveryObservationEvent::LocallyAccepted
+            }
+            RecordDeliveryStateRef::FramedQueued { queue_sequence } => {
+                RecordDeliveryObservationEvent::FramedQueued { queue_sequence }
+            }
+            RecordDeliveryStateRef::PartiallySent { sent_bytes, .. } => {
+                RecordDeliveryObservationEvent::PartiallySent { sent_bytes }
+            }
+            RecordDeliveryStateRef::RemoteAccepted { receipt } => {
+                RecordDeliveryObservationEvent::RemoteAccepted { receipt }
+            }
+            RecordDeliveryStateRef::TransportUnavailable { code } => {
+                RecordDeliveryObservationEvent::TransportUnavailable { code }
+            }
+            RecordDeliveryStateRef::Disconnected { code } => {
+                RecordDeliveryObservationEvent::Disconnected { code }
+            }
+            RecordDeliveryStateRef::TimedOut { code } => {
+                RecordDeliveryObservationEvent::TimedOut { code }
+            }
+            RecordDeliveryStateRef::Refused { code } => {
+                RecordDeliveryObservationEvent::Refused { code }
+            }
+            RecordDeliveryStateRef::Failed { code } => {
+                RecordDeliveryObservationEvent::Failed { code }
+            }
+        };
+        RecordDeliveryObservationRef {
+            correlation: self.correlation(),
+            frame_bytes: self.frame_bytes,
+            event,
+        }
     }
+
+    pub fn apply(
+        &mut self,
+        observation: RecordDeliveryObservationRef<'_>,
+    ) -> Result<(), RecordDeliveryRefusal> {
+        if observation.correlation != self.correlation()
+            || observation.frame_bytes != self.frame_bytes
+        {
+            return Err(RecordDeliveryRefusal::ObservationIdentityMismatch);
+        }
+        match observation.event {
+            RecordDeliveryObservationEvent::LocallyAccepted => {
+                Err(RecordDeliveryRefusal::InvalidTransition)
+            }
+            RecordDeliveryObservationEvent::FramedQueued { queue_sequence } => {
+                self.framed_queued(queue_sequence)
+            }
+            RecordDeliveryObservationEvent::PartiallySent { sent_bytes } => {
+                self.partially_sent(sent_bytes as usize)
+            }
+            RecordDeliveryObservationEvent::RemoteAccepted { receipt } => {
+                self.remote_accepted(receipt)
+            }
+            RecordDeliveryObservationEvent::TransportUnavailable { code } => {
+                self.transport_unavailable(code)
+            }
+            RecordDeliveryObservationEvent::Disconnected { code } => self.disconnected(code),
+            RecordDeliveryObservationEvent::TimedOut { code } => self.timed_out(code),
+            RecordDeliveryObservationEvent::Refused { code } => self.refused(code),
+            RecordDeliveryObservationEvent::Failed { code } => self.failed(code),
+        }
+    }
+
+    pub fn allocated_capacities(&self) -> (usize, usize) {
+        (self.correlation.len(), self.receipt.len())
+    }
+}
+
+pub fn encode_record_delivery_observation_into(
+    observation: RecordDeliveryObservationRef<'_>,
+    output: &mut [u8],
+) -> Result<usize, RecordDeliveryRefusal> {
+    validate_identity(observation.correlation, observation.frame_bytes)?;
+    let event_bytes = match observation.event {
+        RecordDeliveryObservationEvent::LocallyAccepted => 0,
+        RecordDeliveryObservationEvent::FramedQueued { .. } => 8,
+        RecordDeliveryObservationEvent::PartiallySent { .. } => 4,
+        RecordDeliveryObservationEvent::RemoteAccepted { receipt } => {
+            if receipt.is_empty() {
+                return Err(RecordDeliveryRefusal::EmptyReceipt);
+            }
+            if receipt.len() > MAXIMUM_RECORD_RECEIPT_BYTES {
+                return Err(RecordDeliveryRefusal::ReceiptTooLong);
+            }
+            1 + receipt.len()
+        }
+        _ => 2,
+    };
+    let length = 7 + observation.correlation.len() + event_bytes;
+    if output.len() < length {
+        return Err(RecordDeliveryRefusal::OutputTooSmall);
+    }
+    output[0] = RECORD_DELIVERY_WIRE_VERSION;
+    output[1] = observation.correlation.len() as u8;
+    output[2..6].copy_from_slice(&observation.frame_bytes.to_le_bytes());
+    output[6] = event_tag(observation.event);
+    let event_start = 7 + observation.correlation.len();
+    output[7..event_start].copy_from_slice(observation.correlation);
+    match observation.event {
+        RecordDeliveryObservationEvent::FramedQueued { queue_sequence } => {
+            output[event_start..event_start + 8].copy_from_slice(&queue_sequence.to_le_bytes());
+        }
+        RecordDeliveryObservationEvent::PartiallySent { sent_bytes } => {
+            output[event_start..event_start + 4].copy_from_slice(&sent_bytes.to_le_bytes());
+        }
+        RecordDeliveryObservationEvent::RemoteAccepted { receipt } => {
+            output[event_start] = receipt.len() as u8;
+            output[event_start + 1..length].copy_from_slice(receipt);
+        }
+        RecordDeliveryObservationEvent::TransportUnavailable { code }
+        | RecordDeliveryObservationEvent::Disconnected { code }
+        | RecordDeliveryObservationEvent::TimedOut { code }
+        | RecordDeliveryObservationEvent::Refused { code }
+        | RecordDeliveryObservationEvent::Failed { code } => {
+            output[event_start..event_start + 2].copy_from_slice(&code.to_le_bytes());
+        }
+        RecordDeliveryObservationEvent::LocallyAccepted => {}
+    }
+    Ok(length)
+}
+
+pub fn decode_record_delivery_observation(
+    input: &[u8],
+) -> Result<RecordDeliveryObservationRef<'_>, RecordDeliveryRefusal> {
+    if input.len() < 7 || input[0] != RECORD_DELIVERY_WIRE_VERSION {
+        return Err(RecordDeliveryRefusal::MalformedWire);
+    }
+    let correlation_len = usize::from(input[1]);
+    let event_start = 7_usize
+        .checked_add(correlation_len)
+        .ok_or(RecordDeliveryRefusal::CorrelationTooLong)?;
+    let correlation = input
+        .get(7..event_start)
+        .ok_or(RecordDeliveryRefusal::CorrelationTooLong)?;
+    let frame_bytes = u32::from_le_bytes(
+        input[2..6]
+            .try_into()
+            .map_err(|_| RecordDeliveryRefusal::MalformedWire)?,
+    );
+    validate_identity(correlation, frame_bytes)?;
+    let rest = input
+        .get(event_start..)
+        .ok_or(RecordDeliveryRefusal::MalformedWire)?;
+    let event = decode_event(input[6], rest)?;
+    Ok(RecordDeliveryObservationRef {
+        correlation,
+        frame_bytes,
+        event,
+    })
+}
+
+fn validate_identity(correlation: &[u8], frame_bytes: u32) -> Result<(), RecordDeliveryRefusal> {
+    if correlation.is_empty() {
+        return Err(RecordDeliveryRefusal::EmptyCorrelation);
+    }
+    if correlation.len() > MAXIMUM_RECORD_CORRELATION_BYTES {
+        return Err(RecordDeliveryRefusal::CorrelationTooLong);
+    }
+    if frame_bytes == 0 {
+        return Err(RecordDeliveryRefusal::EmptyFrame);
+    }
+    if usize::try_from(frame_bytes).map_or(true, |bytes| bytes > MAXIMUM_TYPED_RECORD_FRAME_BYTES) {
+        return Err(RecordDeliveryRefusal::FrameTooLarge);
+    }
+    Ok(())
+}
+
+fn event_tag(event: RecordDeliveryObservationEvent<'_>) -> u8 {
+    match event {
+        RecordDeliveryObservationEvent::LocallyAccepted => 0,
+        RecordDeliveryObservationEvent::FramedQueued { .. } => 1,
+        RecordDeliveryObservationEvent::PartiallySent { .. } => 2,
+        RecordDeliveryObservationEvent::RemoteAccepted { .. } => 3,
+        RecordDeliveryObservationEvent::TransportUnavailable { .. } => 4,
+        RecordDeliveryObservationEvent::Disconnected { .. } => 5,
+        RecordDeliveryObservationEvent::TimedOut { .. } => 6,
+        RecordDeliveryObservationEvent::Refused { .. } => 7,
+        RecordDeliveryObservationEvent::Failed { .. } => 8,
+    }
+}
+
+fn decode_event(
+    tag: u8,
+    bytes: &[u8],
+) -> Result<RecordDeliveryObservationEvent<'_>, RecordDeliveryRefusal> {
+    Ok(match tag {
+        0 if bytes.is_empty() => RecordDeliveryObservationEvent::LocallyAccepted,
+        1 if bytes.len() == 8 => RecordDeliveryObservationEvent::FramedQueued {
+            queue_sequence: u64::from_le_bytes(bytes.try_into().unwrap()),
+        },
+        2 if bytes.len() == 4 => RecordDeliveryObservationEvent::PartiallySent {
+            sent_bytes: u32::from_le_bytes(bytes.try_into().unwrap()),
+        },
+        3 if bytes.len() > 1 && usize::from(bytes[0]) + 1 == bytes.len() => {
+            RecordDeliveryObservationEvent::RemoteAccepted {
+                receipt: &bytes[1..],
+            }
+        }
+        4..=8 if bytes.len() == 2 => {
+            let code = u16::from_le_bytes(bytes.try_into().unwrap());
+            match tag {
+                4 => RecordDeliveryObservationEvent::TransportUnavailable { code },
+                5 => RecordDeliveryObservationEvent::Disconnected { code },
+                6 => RecordDeliveryObservationEvent::TimedOut { code },
+                7 => RecordDeliveryObservationEvent::Refused { code },
+                _ => RecordDeliveryObservationEvent::Failed { code },
+            }
+        }
+        _ => return Err(RecordDeliveryRefusal::MalformedWire),
+    })
 }

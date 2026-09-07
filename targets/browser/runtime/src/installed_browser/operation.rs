@@ -29,6 +29,23 @@ impl BrowserOperation {
         }))
     }
 
+    pub(crate) fn singleton_stream(maximum_bytes: u32) -> Self {
+        Self(Box::new(SingletonStreamOperation {
+            maximum_bytes,
+            emitted: false,
+        }))
+    }
+
+    pub(crate) fn exactly_one(maximum_bytes: u32) -> Self {
+        Self(Box::new(ExactlyOneOperation {
+            maximum_bytes,
+            held: None,
+            released: None,
+            emitted: false,
+            retain_resumed: false,
+        }))
+    }
+
     pub(crate) fn presentation(maximum_input_bytes: u32, maximum_values: u32) -> Self {
         Self(Box::new(PresentationOperation {
             maximum_input_bytes,
@@ -118,6 +135,93 @@ impl Operation for BrowserOperation {
 struct SourceOperation {
     value: ValueRef,
     emitted: bool,
+}
+
+struct SingletonStreamOperation {
+    maximum_bytes: u32,
+    emitted: bool,
+}
+
+impl Operation for SingletonStreamOperation {
+    fn start(&mut self) -> OperationAction {
+        OperationAction::Await
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::Value {
+                port: PortId(0),
+                value,
+            } if !self.emitted && value.byte_len <= self.maximum_bytes => {
+                self.emitted = true;
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value,
+                }
+            }
+            _ => fail(40),
+        }
+    }
+
+    fn advance(&mut self) -> OperationAction {
+        OperationAction::Complete
+    }
+}
+
+struct ExactlyOneOperation {
+    maximum_bytes: u32,
+    held: Option<ValueRef>,
+    released: Option<ValueRef>,
+    emitted: bool,
+    retain_resumed: bool,
+}
+
+impl Operation for ExactlyOneOperation {
+    fn start(&mut self) -> OperationAction {
+        OperationAction::Await
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        self.retain_resumed = false;
+        match input {
+            OperationInput::Value {
+                port: PortId(0),
+                value,
+            } if self.held.is_none() && value.byte_len <= self.maximum_bytes => {
+                self.held = Some(value);
+                self.retain_resumed = true;
+                OperationAction::Await
+            }
+            OperationInput::Closed { port: PortId(0) } if !self.emitted => {
+                let Some(value) = self.held.take() else {
+                    return fail(41);
+                };
+                self.emitted = true;
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value,
+                }
+            }
+            _ => fail(41),
+        }
+    }
+
+    fn retains_resumed_value(&self) -> bool {
+        self.retain_resumed
+    }
+
+    fn advance(&mut self) -> OperationAction {
+        OperationAction::Complete
+    }
+
+    fn take_released_value(&mut self) -> Option<ValueRef> {
+        self.released.take()
+    }
+
+    fn cancel(&mut self) {
+        self.released = self.held.take();
+        self.retain_resumed = false;
+    }
 }
 
 impl Operation for SourceOperation {

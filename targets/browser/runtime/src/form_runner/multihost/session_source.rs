@@ -47,6 +47,25 @@ impl Session {
                     .host_value(offer.value)
                     .map_err(debug_error)?
                     .to_vec();
+                if self.deliveries.len()
+                    >= usize::from(conduit_net::MAXIMUM_RECORD_DELIVERY_OBSERVATIONS)
+                {
+                    return Err("multi-Host delivery observation bound exhausted".into());
+                }
+                if self.deliveries.len() != usize::try_from(offer.sequence).map_err(debug_error)? {
+                    return Err("multi-Host delivery correlation sequence is not contiguous".into());
+                }
+                let correlation = offer.sequence.to_le_bytes();
+                self.retain_line_record(conduit_net::RecordTranscriptDirection::Sent, &payload)?;
+                let mut delivery = conduit_net::RecordDeliveryTracker::locally_accepted(
+                    &correlation,
+                    payload.len(),
+                )
+                .map_err(debug_error)?;
+                delivery
+                    .framed_queued(offer.sequence)
+                    .map_err(debug_error)?;
+                self.deliveries.push(delivery);
                 self.stage = Stage::Offered;
                 return Ok(Output::Line {
                     schema: "conduit.tour/browser-memory-line-effect@1",
@@ -65,6 +84,14 @@ impl Session {
                     .host_operations
                     .get(usize::from(request.operation.0))
                     .ok_or("multi-Host input has no planned Host operation")?;
+                if engine::transforms::complete_transform(
+                    &mut self.scheduler,
+                    placement,
+                    operation,
+                    request,
+                )? {
+                    continue;
+                }
                 if operation.contract_id.as_str()
                     != crate::installed_browser::BUTTON_EVENT_OPERATION
                 {

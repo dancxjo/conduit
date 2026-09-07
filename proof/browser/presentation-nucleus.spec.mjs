@@ -70,7 +70,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
         disclosureOpen: true,
         disclosureEvents: 0,
         staleRefusal: "stale-revision",
-        retiredVersion: 7,
+        retiredVersion: 9,
         retiredRefusal: "unsupported-version",
       },
     },
@@ -130,7 +130,7 @@ test("shared forms and navigation preserve exact keyboard interaction across rev
   await expect(page.locator('[data-application-key="page-two"]')).toBeFocused();
 });
 
-test("semantic product links retain their visible label and current destination", async ({ page }) => {
+test("semantic product and same-site links retain exact bounded destinations without actions", async ({ page }) => {
   await page.goto("/proof/browser/presentation-nucleus.test.html");
   await page.evaluate(async () => {
     const { encodeApplicationView, manifestApplicationView } = await import(
@@ -148,11 +148,38 @@ test("semantic product links retain their visible label and current destination"
         { parent: 1, component: "navigation-link", key: "tour", text: "Tour", value: "tour", valueCapacity: 16, action: null },
       ],
     }), root);
+    const handoff = document.createElement("div");
+    handoff.id = "same-site-link-proof";
+    document.body.append(handoff);
+    manifestApplicationView(encodeApplicationView({
+      revision: 1,
+      actions: [],
+      nodes: [{
+        parent: null, component: "link", key: "handoff", text: "Add to new Body",
+        value: "/conduit/creche/?form=memory_lantern", valueCapacity: 2_048, action: null,
+      }],
+    }), handoff);
+    let externalRefusal = "";
+    try {
+      encodeApplicationView({
+        revision: 1,
+        actions: [],
+        nodes: [{
+          parent: null, component: "link", key: "external", text: "External",
+          value: "https://example.invalid/", valueCapacity: 2_048, action: null,
+        }],
+      });
+    } catch (error) { externalRefusal = error.code; }
+    globalThis.__sameSiteLinkRefusal = externalRefusal;
   });
   const link = page.locator('#navigation-link-proof [data-application-key="tour"]');
   await expect(link).toHaveText("Tour");
   await expect(link).toHaveAttribute("href", "/conduit/tour/");
   await expect(link).toHaveAttribute("aria-current", "page");
+  const handoff = page.locator('#same-site-link-proof [data-application-key="handoff"]');
+  await expect(handoff).toHaveAttribute("href", /\/conduit\/creche\/\?form=memory_lantern$/u);
+  expect(await handoff.evaluate((element) => element.onclick)).toBeNull();
+  expect(await page.evaluate(() => globalThis.__sameSiteLinkRefusal)).toBe("invalid-control-value");
 });
 
 test("one finite theme mechanism preserves contrast and responsive layout across products", async ({ page }) => {

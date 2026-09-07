@@ -17,6 +17,7 @@ body { margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); backgr
 .tour-layout-controls[open] { flex-basis: 100%; display: grid; grid-template-columns: max-content minmax(8rem, 1fr); gap: .55rem .8rem; align-items: center; }
 .tour-layout-controls[open] summary { grid-column: 1 / -1; }
 .tour-layout-controls input { accent-color: var(--amber); }
+.tour-layout-controls button { grid-column: 1 / -1; justify-self: end; }
 .tour-content {
   --tour-narrative-percent: 46%; min-width: 0; min-height: 0; display: grid;
   grid-template-columns: minmax(18rem, var(--tour-narrative-percent)) 2.5rem minmax(24rem, 1fr);
@@ -31,10 +32,8 @@ body { margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); backgr
 .chapter-copy:empty { display: none; }
 [data-application-slot="tour-navigation"] { width: 100%; min-height: 4.2rem; max-width: 96rem; margin-right: auto; margin-left: auto; padding: 0 clamp(1rem, 2.5vw, 2rem); }
 body[data-tour-mode="gallery"] [data-application-slot="tour-navigation"] { display: none; }
-.tour-divider { position: relative; z-index: 3; min-height: 0; display: grid; place-items: center; align-content: center; gap: .65rem; overflow: hidden; color: var(--muted); background: var(--paper); }
-.tour-divider label { font-size: .66rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; writing-mode: vertical-rl; }
-.tour-divider input { width: 8rem; transform: rotate(-90deg); accent-color: var(--amber); }
-.tour-divider button { position: absolute; right: .15rem; bottom: .25rem; padding: .35rem; border: 1px solid var(--line); border-radius: .45rem; color: var(--muted); background: var(--panel); font-size: .58rem; writing-mode: vertical-rl; }
+.tour-divider { position: relative; z-index: 3; min-height: 0; display: grid; place-items: stretch; overflow: hidden; background: var(--paper); }
+.tour-divider [data-application-component="separator"] { width: 1px; height: 100%; margin: 0 auto; border: 0; background: var(--line); }
 .tour-view-switcher { display: none; }
 #laboratory-slot { min-width: 0; min-height: 0; overflow: hidden; }
 .tour-workbench { width: 100%; height: 100%; min-width: 0; min-height: 0; margin: 0; overflow: hidden; }
@@ -43,23 +42,6 @@ body[data-tour-mode="gallery"] [data-application-slot="tour-navigation"] { displ
   border-radius: 9px; background: var(--panel); color: var(--ink); text-align: left; cursor: pointer;
 }
 .tour-stage-selector[aria-pressed="true"] { border-color: var(--amber); box-shadow: inset .25rem 0 var(--amber); }
-.form-gallery { display: grid; gap: 1rem; }
-.form-gallery header { padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
-.form-gallery h1 { font-size: clamp(2rem, 5vw, 3.5rem); }
-.form-gallery-search { display: grid; gap: .35rem; }
-.form-gallery-search input { min-height: 2.75rem; padding: .65rem .8rem; border: 1px solid var(--line); border-radius: .55rem; color: var(--ink); background: var(--panel); font: inherit; }
-.form-gallery-list { display: grid; gap: .8rem; padding: 0; list-style: none; }
-.form-gallery-card { padding: 1rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--panel); }
-.form-gallery-card[aria-current="true"] { border-color: var(--amber); box-shadow: inset .25rem 0 var(--amber); }
-.form-gallery-card h2 { margin: 0 0 .35rem; }
-.form-gallery-card p { margin: .35rem 0; }
-.form-gallery-availability { color: var(--ink); font-weight: 750; }
-.form-gallery-realization { margin: .55rem 0; padding-left: 1.25rem; color: var(--muted); font-size: .86rem; line-height: 1.55; }
-.form-gallery-authority { font-size: .86rem; }
-.form-gallery-card code { overflow-wrap: anywhere; font-size: .68rem; }
-.form-gallery-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
-.form-gallery-actions button, .form-gallery-actions a { padding: .55rem .8rem; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); background: var(--paper); font-weight: 700; text-decoration: none; }
-.form-gallery-empty { color: var(--muted); }
 .conceptual-laboratory { display: grid; gap: 1rem; }
 .conceptual-patchbay { min-height: 12rem; display: grid; place-items: center; padding: 1rem; color: var(--muted); text-align: center; }
 h1 { margin: 0 0 .65rem; color:var(--amber); font: 750 clamp(2.35rem, 7vw, 5rem)/.95 var(--conduit-font-editorial); letter-spacing: -.045em; }

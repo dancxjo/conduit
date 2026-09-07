@@ -16,6 +16,7 @@ pub(super) fn run(arguments: &[String]) -> Result<(), String> {
         Some("standalone-locks") => standalone_locks(arguments),
         Some("monitor") => monitor(arguments),
         Some("storage-report") => crate::local_storage::run(arguments),
+        Some("storage-reclaim") => crate::local_storage::reclaim::run(arguments),
         Some("pages-resolver-proof") => pages_resolver::run(arguments),
         Some(command) => Err(format!("unsupported ci command: {command}")),
         None => Err("missing ci command".to_owned()),

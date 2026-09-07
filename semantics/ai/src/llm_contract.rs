@@ -21,8 +21,8 @@ pub const MAXIMUM_LLM_WORK_UNITS: u64 = 1_000_000;
 pub const MAXIMUM_LLM_HISTORY_ITEMS: u64 = 64;
 pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 8;
 
-const GENERATION_REQUEST: &str = "llm/generation-request@1";
-const GENERATED_RESULT: &str = "llm/generated-result@1";
+pub const GENERATION_REQUEST_VALUE_KIND: &str = "llm/generation-request@1";
+pub const GENERATED_RESULT_VALUE_KIND: &str = "llm/generated-result@1";
 const CLASSIFICATION_REQUEST: &str = "llm/classification-request@1";
 const CLASSIFICATION_RESULT: &str = "llm/classification-result@1";
 const EXTRACTION_REQUEST: &str = "llm/extraction-request@1";
@@ -133,7 +133,11 @@ impl LlmSemanticContract {
 
 pub fn llm_semantic_catalog() -> [LlmSemanticContract; MAXIMUM_LLM_CATALOG_KINDS] {
     [
-        contract(LLM_GENERATE_KIND, GENERATION_REQUEST, GENERATED_RESULT),
+        contract(
+            LLM_GENERATE_KIND,
+            GENERATION_REQUEST_VALUE_KIND,
+            GENERATED_RESULT_VALUE_KIND,
+        ),
         contract(
             LLM_CLASSIFY_KIND,
             CLASSIFICATION_REQUEST,

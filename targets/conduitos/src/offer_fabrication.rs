@@ -88,6 +88,22 @@ impl<'a> ImageBoundHostOffer<'a> {
     }
 
     #[cfg(target_arch = "x86_64")]
+    pub fn with_pointer(
+        mut self,
+        fabrication: &FabricationRecord,
+        realization: crate::pointer_offer::PointerRealization,
+    ) -> Result<Self, ImageBoundOfferError> {
+        if !fabrication.includes(crate::fabrication::IMPL_POINTER) {
+            return Err(ImageBoundOfferError::ImplementationNotInImage);
+        }
+        self.offer = self
+            .offer
+            .with_pointer(realization, fabrication.build_id)
+            .map_err(|_| ImageBoundOfferError::InvalidDeviceOffer)?;
+        Ok(self)
+    }
+
+    #[cfg(target_arch = "x86_64")]
     pub fn with_pc_speaker(
         mut self,
         fabrication: &FabricationRecord,

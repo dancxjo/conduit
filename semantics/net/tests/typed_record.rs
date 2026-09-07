@@ -90,6 +90,31 @@ fn declared_form_values_wrap_frame_and_deframe_exact_structured_info() {
 }
 
 #[test]
+fn text_adapter_preserves_exact_text_and_refuses_other_record_types() {
+    let text = StructuredInfoValue::leaf(text_type(), b"CALLING".to_vec()).unwrap();
+    let record = typed_record_from_text(&text).unwrap();
+    assert_eq!(text_from_typed_record(&record).unwrap(), text);
+
+    let quantity = StructuredInfoValue::leaf(
+        StructuredInfoType::leaf(kind_id(QUANTITY_INFO_ID)).unwrap(),
+        Quantity::new(42, QuantityUnit::Millivolt).encode().to_vec(),
+    )
+    .unwrap();
+    assert_eq!(
+        typed_record_from_text(&quantity),
+        Err(TextRecordRefusal::WrongTextValueType)
+    );
+    assert_eq!(
+        text_from_typed_record(&typed_record_value(&quantity).unwrap()),
+        Err(TextRecordRefusal::WrongTextValueType)
+    );
+    assert_eq!(
+        text_from_typed_record(&text),
+        Err(TextRecordRefusal::WrongTypedRecordValueType)
+    );
+}
+
+#[test]
 fn every_maximum_frame_fits_its_declared_structured_leaf() {
     assert_eq!(
         MAXIMUM_TYPED_RECORD_FRAME_BYTES,
@@ -225,6 +250,8 @@ fn framing_and_deframing_are_independent_reusable_checked_forms() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
+    install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
+    install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
     for (name, source, kind) in [
         (
             "typed-record-frame",
@@ -246,4 +273,72 @@ fn framing_and_deframing_are_independent_reusable_checked_forms() {
             assert!(!source.contains(forbidden));
         }
     }
+}
+
+#[test]
+fn desk_telegraph_uses_reusable_text_record_faces_around_exact_framing() {
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
+    install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
+    install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
+    conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
+    startup
+        .insert(conduit_form::KindSignature {
+            kind: "presentation/text".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    profile
+        .insert(conduit_form::KindDefinition {
+            kind_id: kind_id("presentation/text"),
+            kind_contract_revision: "test/presentation-text@1".into(),
+            inputs: vec![conduit_core::PortDescriptor {
+                port_id: conduit_core::port_id("text"),
+                value_kind: kind_id(TEXT_INFO_ID),
+                direction: conduit_core::PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+            }],
+            outputs: vec![],
+            configuration: vec![],
+        })
+        .unwrap();
+    let source = include_str!("../../../forms/desk-telegraph/main.conduit");
+    let checked =
+        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+            .unwrap();
+    for (entry, expected_kind) in [
+        ("text-record", TEXT_TO_TYPED_RECORD_KIND),
+        ("text-from-record", TYPED_RECORD_TO_TEXT_KIND),
+    ] {
+        let expanded =
+            conduit_form::expand_canonical_form_for_authoring(&checked, entry, &profile).unwrap();
+        assert_eq!(expanded.expanded.gears.len(), 1);
+        assert_eq!(expanded.expanded.gears[0].kind_id.as_str(), expected_kind);
+    }
+    let send = conduit_form::expand_canonical_form_for_authoring(
+        &checked,
+        "bounded-record-send",
+        &profile,
+    )
+    .unwrap();
+    assert_eq!(send.expanded.gears.len(), 3);
+    assert_eq!(send.input_bindings.len(), 1);
+    assert_eq!(send.output_bindings.len(), 1);
+    let telegraph =
+        conduit_form::expand_canonical_form_for_authoring(&checked, "desk_telegraph", &profile)
+            .unwrap();
+    let kinds: Vec<_> = telegraph
+        .expanded
+        .gears
+        .iter()
+        .map(|gear| gear.kind_id.as_str())
+        .collect();
+    assert!(kinds.contains(&TYPED_RECORD_FRAME_KIND));
+    assert!(kinds.contains(&TYPED_RECORD_DEFRAME_KIND));
+    assert!(kinds.contains(&TEXT_TO_TYPED_RECORD_KIND));
+    assert!(kinds.contains(&TYPED_RECORD_TO_TEXT_KIND));
+    assert!(kinds.contains(&RECORD_SINGLETON_STREAM_KIND));
+    assert!(kinds.contains(&ORDERED_RECORD_QUEUE_KIND));
+    assert!(kinds.contains(&RECORD_EXACTLY_ONE_KIND));
 }

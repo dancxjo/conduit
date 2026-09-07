@@ -179,7 +179,11 @@ fn insufficient_memory_timer_and_sign_reserves_fail_before_play() {
 fn undersized_cord_reserve_and_stale_planned_boot_fail_closed() {
     let (identities, offer) = fixture();
     let advertisement = advertisement(&identities, &offer, "build").unwrap();
-    let form = crate::ordinary_form::checked_expanded_text_form(ORDINARY_FORM_SOURCE).unwrap();
+    let form = crate::ordinary_form::checked_expanded_text_form_named(
+        ORDINARY_FORM_SOURCE,
+        "conduitos-text-upper",
+    )
+    .unwrap();
     let hosts = [advertisement];
     let placements = default_expanded_placements(&form, &hosts).unwrap();
     assert_eq!(

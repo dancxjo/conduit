@@ -136,6 +136,40 @@ impl FormCandidate {
         })
     }
 
+    pub fn from_source_form(
+        label: impl Into<String>,
+        source_name: impl Into<String>,
+        source: impl Into<String>,
+        form_name: &str,
+        provenance: impl Into<String>,
+        evidence_sign: SignId,
+        freshness_sequence: u64,
+    ) -> Result<Self, String> {
+        let mut candidate = Self::from_source(
+            label,
+            source_name,
+            source,
+            provenance,
+            evidence_sign,
+            freshness_sequence,
+        )?;
+        candidate
+            .editor
+            .open_back(form_name)
+            .map_err(|error| error.to_string())?;
+        candidate.checked_form_id = candidate
+            .editor
+            .view()
+            .checked
+            .forms
+            .iter()
+            .find(|form| form.name == form_name)
+            .ok_or_else(|| format!("Form source contains no '{form_name}' Form"))?
+            .checked_form_id
+            .clone();
+        Ok(candidate)
+    }
+
     pub(super) fn editor(&self) -> Result<FormEditor, String> {
         Ok(self.editor.clone())
     }

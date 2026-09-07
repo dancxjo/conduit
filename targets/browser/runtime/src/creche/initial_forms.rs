@@ -21,6 +21,7 @@ struct BundledForm {
 pub(super) struct CheckedInventoryEntry {
     pub(super) source: String,
     pub(super) checked: conduit_form::CheckedSyntaxDocument,
+    pub(super) entry_name: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -55,7 +56,12 @@ pub(super) fn reviewed_inventory(source: &str) -> Result<ReviewedFormInventory, 
         .to_string();
     let mut forms = Vec::new();
     for entry in &checked_documents {
-        for form in &entry.checked.forms {
+        for form in entry.checked.forms.iter().filter(|form| {
+            entry
+                .entry_name
+                .as_ref()
+                .is_none_or(|name| name == &form.name)
+        }) {
             let mut required_kinds: Vec<String> =
                 form.gears.iter().map(|gear| gear.kind.clone()).collect();
             required_kinds.sort();
@@ -99,7 +105,13 @@ pub(super) fn checked_workset(
                     .checked
                     .forms
                     .iter()
-                    .find(|form| form.name == selection.name)
+                    .find(|form| {
+                        form.name == selection.name
+                            && entry
+                                .entry_name
+                                .as_ref()
+                                .is_none_or(|name| name == &form.name)
+                    })
                     .map(|form| (&entry.checked, form))
             })
             .ok_or_else(|| {
@@ -137,6 +149,7 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
             vec![CheckedInventoryEntry {
                 source: source.to_owned(),
                 checked,
+                entry_name: None,
             }]
         });
     };
@@ -154,16 +167,18 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
             return Err("reviewed Form bundle entry is malformed".into());
         }
         let document = check_source(&entry.source)?;
-        if document.forms.len() != 1 {
-            return Err(format!(
-                "reviewed Form bundle entry {:?} must own exactly one Form",
-                entry.slug
-            ));
-        }
-        let form = &document.forms[0];
         let expected_entry = entry.entry.unwrap_or_else(|| entry.slug.replace('-', "_"));
-        if expected_entry != form.name
-            || !names.insert(form.name.clone())
+        let form = document
+            .forms
+            .iter()
+            .find(|form| form.name == expected_entry)
+            .ok_or_else(|| {
+                format!(
+                    "reviewed Form bundle entry {:?} has mismatched declared entry {:?}",
+                    entry.slug, expected_entry
+                )
+            })?;
+        if !names.insert(form.name.clone())
             || !identities.insert(form.checked_form_id.as_str().to_string())
         {
             return Err(format!(
@@ -174,6 +189,7 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
         checked.push(CheckedInventoryEntry {
             source: entry.source,
             checked: document,
+            entry_name: Some(expected_entry),
         });
     }
     Ok(checked)

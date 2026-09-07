@@ -51,7 +51,7 @@ fn fifo_sequence_and_slot_capacities_remain_exact_across_wraparound() {
 }
 
 #[test]
-fn full_malformed_oversize_closed_and_sequence_exhaustion_are_distinct() {
+fn slow_receiver_pressure_malformed_oversize_closed_and_sequence_exhaustion_are_distinct() {
     let valid = frame(b"one");
     let mut full = BoundedOrderedRecordQueue::new(1, valid.len(), 0).unwrap();
     full.enqueue(&valid).unwrap();

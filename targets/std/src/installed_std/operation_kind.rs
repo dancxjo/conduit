@@ -12,6 +12,7 @@ use super::final_normalized_pattern_operation::FinalNormalizedPatternOperation;
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
+use super::house_prompt_operation::HousePromptOperation;
 use super::http::{HttpClientOperation, HttpServerOperation};
 use super::image_text_operation::ImageTextOperation;
 use super::image_text_record_operation::ImageTextRecordOperation;
@@ -27,11 +28,16 @@ use super::logic_operations::{
 use super::math_operations::MathScalarOperation;
 use super::midi_input_operation::MidiInputOperation;
 use super::midi_output_operation::MidiOutputOperation;
+use super::model_text_operation::ModelTextOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
 use super::pattern_comparison_operation::PatternComparisonOperation;
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
+use super::record_delivery_operation::RecordDeliveryStatusOperation;
+use super::record_queue_operation::RecordQueueOperation;
+use super::record_temporal_operation::{RecordExactlyOneOperation, RecordSingletonStreamOperation};
+use super::record_transcript_operation::RecordTranscriptOperation;
 use super::recurrence_operation::RecurrenceOperation;
 use super::render_demand_operation::AudioRenderDemandOperation;
 use super::rhythm_compare_operation::RhythmCompareOperation;
@@ -64,11 +70,15 @@ use super::timed_button_attempt_operation::TimedButtonAttemptOperation;
 use super::timed_pattern_operation::TimedPatternOperation;
 use super::timing_operations::{DebounceOperation, TimeoutOperation};
 use super::toggle_operation::StateToggleOperation;
-use super::typed_record_operation::TypedRecordFrameOperation;
+use super::typed_record_operation::TypedRecordOperation;
 use super::vector_search_operation::VectorSearchOperation;
 use conduit_kernel::{Failure, FailureCode, OperationAction};
 
 pub(super) enum InstalledOperation {
+    #[cfg(any(test, feature = "local-model-proof"))]
+    RecordedSpeech(super::recorded_speech_operation::RecordedSpeechOperation),
+    AddressDetect(super::address_detect_operation::AddressDetectOperation),
+    RecognitionText(super::recognition_text_operation::RecognitionTextOperation),
     TypedState(Box<crate::state_value::TypedStateOperation>),
     KeyboardInput(KeyboardInputOperation),
     ButtonInput(super::keyboard_input_operation::button::ButtonOperation),
@@ -131,14 +141,21 @@ pub(super) enum InstalledOperation {
     MidiInput(Box<MidiInputOperation>),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
+    HousePrompt(HousePromptOperation),
     LocalModel(LocalModelOperation),
+    ModelText(ModelTextOperation),
     VectorSearch(VectorSearchOperation),
     HttpClient(HttpClientOperation),
     HttpServer(HttpServerOperation),
     Json(JsonOperation),
     ImageText(ImageTextOperation),
     ImageTextRecord(ImageTextRecordOperation),
-    TypedRecordFrame(TypedRecordFrameOperation),
+    TypedRecord(TypedRecordOperation),
+    RecordSingletonStream(RecordSingletonStreamOperation),
+    RecordExactlyOne(RecordExactlyOneOperation),
+    RecordQueue(RecordQueueOperation),
+    RecordDeliveryStatus(RecordDeliveryStatusOperation),
+    RecordTranscript(RecordTranscriptOperation),
     StructuredSelector(StructuredSelectorOperation),
     StructuredLiteral(StructuredLiteralOperation),
     StructuredPresentation(StructuredPresentationOperation),

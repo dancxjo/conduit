@@ -5,6 +5,8 @@ use std::process::Command;
 
 use serde::Serialize;
 
+pub(super) mod reclaim;
+
 #[derive(Default, Serialize)]
 struct Usage {
     logical_bytes: u64,

@@ -235,6 +235,52 @@ fn navigation_links_admit_destinations_without_becoming_actions() {
 }
 
 #[test]
+fn same_site_links_admit_bounded_paths_without_actions_or_external_authority() {
+    let link = ApplicationView {
+        revision: 9,
+        actions: vec![],
+        nodes: vec![ApplicationViewNode {
+            parent: None,
+            component: ApplicationComponent::Link,
+            key: "handoff".into(),
+            text: "Add to new Body".into(),
+            value: "/conduit/creche/?form=memory_lantern&checked_form_id=sha256%3A01".into(),
+            value_capacity: 2_048,
+            action: None,
+            state: ApplicationNodeState::Ready,
+        }],
+    };
+    assert_eq!(
+        ApplicationView::decode(&link.encode().unwrap()),
+        Ok(link.clone())
+    );
+
+    for destination in [
+        "https://example.invalid/",
+        "//example.invalid/",
+        "relative/path",
+    ] {
+        let mut invalid = link.clone();
+        invalid.nodes[0].value = destination.into();
+        assert_eq!(
+            invalid.validate(),
+            Err(ApplicationViewRefusal::InvalidControlValue)
+        );
+    }
+
+    let mut actionable = link;
+    actionable.actions.push(ApplicationAction {
+        id: "handoff.activate".into(),
+        event: ApplicationEventKind::Activate,
+    });
+    actionable.nodes[0].action = Some(0);
+    assert_eq!(
+        actionable.validate(),
+        Err(ApplicationViewRefusal::InvalidControlValue)
+    );
+}
+
+#[test]
 fn malformed_oversized_and_noncanonical_views_refuse() {
     let encoded = view().encode().unwrap();
     assert_eq!(
