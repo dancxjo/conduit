@@ -361,18 +361,18 @@ slug = "bounded-record-transcript"
 title = "Bounded Record Transcript"
 entry = "bounded-record-transcript"
 deterministic = { package = "conduit-net", test = "record_transcript", case = "transcript_is_an_ordinary_reusable_closing_flow_form" }
-browser_safe_not_applicable = "portable record semantics have no installed browser execution oracle"
+browser_safe_not_applicable = "open reusable face is exercised inside the Desk Telegraph browser oracle"
 
 [[forms]]
 slug = "ordered-record-send-queue"
 title = "Ordered Record Send Queue"
 entry = "ordered-record-send-queue"
 deterministic = { package = "conduit-net", test = "ordered_record_queue", case = "ordered_queue_is_a_reusable_closing_flow_form" }
-browser_safe_not_applicable = "portable record semantics have no installed browser execution oracle"
+browser_safe_not_applicable = "open reusable face is exercised inside the Desk Telegraph browser oracle"
 
 [[forms]]
 slug = "record-delivery-status"
 title = "Record Delivery Status"
 entry = "record-delivery-status"
 deterministic = { package = "conduit-net", test = "record_delivery", case = "delivery_projection_is_an_ordinary_reusable_closing_flow_form" }
-browser_safe_not_applicable = "portable record semantics have no installed browser execution oracle"
+browser_safe_not_applicable = "open reusable face is exercised inside the Desk Telegraph browser oracle"
