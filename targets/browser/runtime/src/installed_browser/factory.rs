@@ -37,6 +37,7 @@ pub(crate) struct BrowserInstallation {
 
 static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::historical::INSTALLATION,
+    &super::replay_source::INSTALLATION,
     &super::pattern_comparison::INSTALLATION,
     &super::button_attempt::INSTALLATION,
     &super::timing::INTERVALS,
@@ -214,8 +215,8 @@ pub(crate) fn factory(
         return Some(&super::test_timing_sink::SINK);
     }
     #[cfg(test)]
-    if implementation_id.as_str() == super::test_history_sink::KIND {
-        return Some(&super::test_history_sink::SINK);
+    if implementation_id.as_str() == super::test_replay_sink::KIND {
+        return Some(&super::test_replay_sink::SINK);
     }
     if implementation_id.as_str() == super::comparison_presentation::IMPLEMENTATION {
         return Some(&super::comparison_presentation::PRESENTATION);

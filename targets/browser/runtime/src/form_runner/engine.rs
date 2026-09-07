@@ -61,6 +61,8 @@ pub(super) struct TourScheduler {
     deliveries: [Option<conduit_net::BoundedRecordDeliveryStatusCodec>; MAXIMUM_BROWSER_GEARS],
     histories:
         [Option<crate::installed_browser::historical::PreparedHistory>; MAXIMUM_BROWSER_GEARS],
+    replay_sources: [Option<crate::installed_browser::replay_source::PreparedReplaySource>;
+        MAXIMUM_BROWSER_GEARS],
 }
 
 impl core::ops::Deref for TourScheduler {
