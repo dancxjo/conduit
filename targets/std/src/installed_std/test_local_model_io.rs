@@ -9,8 +9,10 @@ use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueSto
 
 const SOURCE_KIND: &str = "conduit-test/local-model-request";
 const SOURCE_REVISION: &str = "conduit-test/local-model-request@1";
-pub(crate) const HOUSE_DETECTION_SOURCE_KIND: &str = "conduit-test/house-detection-source";
-const HOUSE_DETECTION_SOURCE_REVISION: &str = "conduit-test/house-detection-source@1";
+pub(crate) const HOUSE_RECOGNIZED_SOURCE_KIND: &str = "conduit-test/house-recognized-source";
+const HOUSE_RECOGNIZED_SOURCE_REVISION: &str = "conduit-test/house-recognized-source@1";
+pub(crate) const HOUSE_ADDRESSES_SOURCE_KIND: &str = "conduit-test/house-addresses-source";
+const HOUSE_ADDRESSES_SOURCE_REVISION: &str = "conduit-test/house-addresses-source@1";
 pub(crate) const HOUSE_CONTEXT_SOURCE_KIND: &str = "conduit-test/house-context-source";
 const HOUSE_CONTEXT_SOURCE_REVISION: &str = "conduit-test/house-context-source@1";
 const SOURCE_IMPLEMENTATION: &str = "conduit-test/local-model-request-kernel@1";
@@ -88,13 +90,20 @@ pub(crate) fn source_offer(value_kind: &str) -> CapabilityOffer {
     )
 }
 
-pub(crate) fn house_source_offers() -> [CapabilityOffer; 2] {
+pub(crate) fn house_source_offers() -> [CapabilityOffer; 3] {
     [
         offer(
-            HOUSE_DETECTION_SOURCE_KIND,
-            HOUSE_DETECTION_SOURCE_REVISION,
+            HOUSE_RECOGNIZED_SOURCE_KIND,
+            HOUSE_RECOGNIZED_SOURCE_REVISION,
             SOURCE_IMPLEMENTATION,
-            conduit_text::ADDRESS_DETECTION_VALUE_KIND,
+            conduit_text::TEXT_VALUE_KIND,
+            PortDirection::Output,
+        ),
+        offer(
+            HOUSE_ADDRESSES_SOURCE_KIND,
+            HOUSE_ADDRESSES_SOURCE_REVISION,
+            SOURCE_IMPLEMENTATION,
+            conduit_text::ADDRESS_SET_VALUE_KIND,
             PortDirection::Output,
         ),
         offer(
@@ -224,9 +233,14 @@ fn install_offer(
 fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), String> {
     let (kind, revision, implementation) = if direction == PortDirection::Output {
         match placement.kind_id.as_str() {
-            HOUSE_DETECTION_SOURCE_KIND => (
-                HOUSE_DETECTION_SOURCE_KIND,
-                HOUSE_DETECTION_SOURCE_REVISION,
+            HOUSE_RECOGNIZED_SOURCE_KIND => (
+                HOUSE_RECOGNIZED_SOURCE_KIND,
+                HOUSE_RECOGNIZED_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
+            HOUSE_ADDRESSES_SOURCE_KIND => (
+                HOUSE_ADDRESSES_SOURCE_KIND,
+                HOUSE_ADDRESSES_SOURCE_REVISION,
                 SOURCE_IMPLEMENTATION,
             ),
             HOUSE_CONTEXT_SOURCE_KIND => (
@@ -283,14 +297,14 @@ fn prepare_source(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement, PortDirection::Output)?;
-    let request = if placement.outputs[0].value_kind.as_str()
-        == conduit_text::ADDRESS_DETECTION_VALUE_KIND
-    {
-        conduit_tongues::encode_address_detection(&conduit_text::AddressDetection::Addressed {
-            matched_name_index: 0,
-            utterance: "what is the temperature upstairs?".into(),
-        })
-        .map_err(|error| format!("encode House address detection: {error:?}"))?
+    let request = if placement.kind_id.as_str() == HOUSE_RECOGNIZED_SOURCE_KIND {
+        b"Rosehip House, what is the temperature upstairs?".to_vec()
+    } else if placement.kind_id.as_str() == HOUSE_ADDRESSES_SOURCE_KIND {
+        conduit_text::encode_address_set(
+            &conduit_text::AddressSet::new(&["Rosehip House", "Rosehip"])
+                .map_err(|error| format!("build House address set: {error:?}"))?,
+        )
+        .map_err(|error| format!("encode House address set: {error:?}"))?
     } else if placement.outputs[0].value_kind.as_str()
         == conduit_tongues::WIRED_HOUSE_CONTEXT_VALUE_KIND
     {

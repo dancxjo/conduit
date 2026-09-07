@@ -3,9 +3,10 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_text::{
+    decode_address_detection, decode_address_set, encode_address_detection, encode_address_set,
     install_text_catalogs, AddressConfigurationError, AddressDetection, AddressDetectionError,
-    AddressSet, ADDRESS_DETECTION_VALUE_KIND, ADDRESS_DETECT_KIND, ADDRESS_SET_VALUE_KIND,
-    MAX_ADDRESS_NAMES, MAX_ADDRESS_NAME_BYTES, MAX_TEXT_BYTES,
+    AddressSet, AddressValueError, ADDRESS_DETECTION_VALUE_KIND, ADDRESS_DETECT_KIND,
+    ADDRESS_SET_VALUE_KIND, MAX_ADDRESS_NAMES, MAX_ADDRESS_NAME_BYTES, MAX_TEXT_BYTES,
 };
 
 #[test]
@@ -27,6 +28,30 @@ fn primary_name_and_alias_produce_only_the_post_address_utterance() {
             utterance: "status".into(),
         }
     );
+}
+
+#[test]
+fn address_values_have_one_bounded_canonical_encoding() {
+    let addresses = AddressSet::new(&["Rosehip House", "Rosehip"]).unwrap();
+    let encoded_addresses = encode_address_set(&addresses).unwrap();
+    assert_eq!(decode_address_set(&encoded_addresses).unwrap(), addresses);
+
+    for detection in [
+        AddressDetection::NotAddressed,
+        AddressDetection::Addressed {
+            matched_name_index: 0,
+            utterance: "status".into(),
+        },
+    ] {
+        let encoded = encode_address_detection(&detection).unwrap();
+        assert_eq!(decode_address_detection(&encoded).unwrap(), detection);
+        let mut noncanonical = encoded;
+        noncanonical.push(b' ');
+        assert_eq!(
+            decode_address_detection(&noncanonical),
+            Err(AddressValueError::NonCanonical)
+        );
+    }
 }
 
 #[test]

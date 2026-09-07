@@ -107,6 +107,7 @@ fn canonical_house_conversation_is_an_ordinary_checked_form() {
     let mut profile = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
+    conduit_ai::install_model_text_catalog(&mut startup, &mut profile).unwrap();
     install_house_conversation_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
@@ -114,7 +115,7 @@ fn canonical_house_conversation_is_an_ordinary_checked_form() {
     let expanded = authored.expanded;
     assert_eq!(authored.input_bindings.len(), 2);
     assert_eq!(authored.output_bindings.len(), 1);
-    assert_eq!(expanded.gears.len(), 2);
+    assert_eq!(expanded.gears.len(), 3);
     assert!(expanded
         .gears
         .iter()
@@ -123,6 +124,10 @@ fn canonical_house_conversation_is_an_ordinary_checked_form() {
         .gears
         .iter()
         .any(|gear| gear.kind_id.as_str() == conduit_ai::LLM_GENERATE_KIND));
+    assert!(expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == conduit_ai::MODEL_RESULT_TO_TEXT_KIND));
     let contract = house_prompt_contract();
     assert_eq!(contract.inputs.len(), 2);
     for forbidden in ["ollama", "http", "microphone", "speaker", "actuator"] {
