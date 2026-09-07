@@ -22,7 +22,7 @@ test("product proof begins after cheap PR entry while promotion stays privileged
 });
 
 test("every browser product admits the complete shared presentation theme", () => {
-  const themeBytes = readFileSync("targets/browser/host/assets/application-theme.css").byteLength;
+  const themeBytes = readFileSync("products/shared/browser/conduit.css").byteLength;
   for (const path of [
     "products/tour/browser/tour.application.template.json",
     "products/creche/browser/creche.application.template.json",

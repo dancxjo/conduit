@@ -54,6 +54,7 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "products/tour/",
             "products/creche/",
             "products/patchbay/",
+            "products/shared/browser/",
             "semantics/presentation/assets/",
             "site/",
             "products/tour/browser/",
@@ -143,6 +144,7 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
         ],
         input_prefixes: &[
             "site/",
+            "products/shared/browser/",
             "products/tour/browser/",
             "products/creche/browser/",
             "products/tour/tools/stage-tour-product",
@@ -214,6 +216,7 @@ mod product_source_tests {
     #[test]
     fn product_owned_browser_source_requires_carrier_and_browser_proof() {
         for path in [
+            "products/shared/browser/conduit.css",
             "products/tour/browser/tour.mjs",
             "products/creche/browser/creche-lifecycle.mjs",
         ] {

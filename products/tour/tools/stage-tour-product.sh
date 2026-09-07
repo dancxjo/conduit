@@ -28,7 +28,7 @@ cp targets/browser/host/assets/browser-application-loader.mjs "$destination/brow
 cp targets/browser/host/assets/browser-application-storage.mjs "$destination/browser-application-storage.mjs"
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"
 cp targets/browser/host/assets/application-theme.mjs "$destination/application-theme.mjs"
-cp targets/browser/host/assets/application-theme.css "$destination/application-theme.css"
+cp products/shared/browser/conduit.css "$destination/conduit.css"
 cp semantics/presentation/assets/product-masthead.mjs "$destination/product-masthead.mjs"
 cp "$runtime" "$destination/runtime.wasm"
 for asset in react.min.js react-dom.min.js react-flow.min.js react-flow.css flow.css flow.js flow-scene.js flow-layout.js flow-faceplate.js portable-navigation.js; do
