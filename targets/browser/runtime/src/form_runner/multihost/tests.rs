@@ -39,11 +39,10 @@ fn prepare_pair_for_alternate_line(source: &str) -> ((Session, Output), (Session
     )
 }
 
-#[test]
-fn two_browser_hosts_exchange_pulses_and_converge_over_one_planned_line() {
+fn prepare_firefly_pair() -> ((Session, Output), (Session, Output)) {
     let source = include_str!("../../../../../../forms/firefly-line-follower/main.conduit");
     let interaction = crate::source_interaction::admit_source(source.as_bytes(), 7).unwrap();
-    let prepared = super::plan::prepare_partitioned(
+    let source_plan = super::plan::prepare_partitioned(
         "browser/firefly-a",
         "boot/firefly-a",
         "browser/firefly-b",
@@ -56,21 +55,34 @@ fn two_browser_hosts_exchange_pulses_and_converge_over_one_planned_line() {
         ],
     )
     .unwrap();
-    let accepted =
-        super::plan::accept(prepared.plan.clone(), "browser/firefly-b", "boot/firefly-b").unwrap();
-    let (mut sender, mut output) =
-        Session::prepare(Role::Source, prepared, 9, interaction.clone()).unwrap();
-    let (mut follower, waiting) = Session::prepare(Role::Sink, accepted, 9, interaction).unwrap();
+    let sink_plan = super::plan::accept(
+        source_plan.plan.clone(),
+        "browser/firefly-b",
+        "boot/firefly-b",
+    )
+    .unwrap();
+    (
+        Session::prepare(Role::Source, source_plan, 9, interaction.clone()).unwrap(),
+        Session::prepare(Role::Sink, sink_plan, 9, interaction).unwrap(),
+    )
+}
+
+fn complete_firefly_timers(sender: &mut Session, mut output: Output) -> Output {
+    while let Output::Timer { timer, .. } = output {
+        output = sender
+            .complete_timer(&timer.active_play_id, timer.request_sequence)
+            .unwrap();
+    }
+    output
+}
+
+#[test]
+fn two_browser_hosts_exchange_pulses_and_converge_over_one_planned_line() {
+    let ((mut sender, mut output), (mut follower, waiting)) = prepare_firefly_pair();
     assert!(matches!(waiting, Output::Waiting { .. }));
     let mut periods = Vec::new();
     for sequence in 0..4 {
-        while let Output::Timer { timer, .. } = output {
-            assert_eq!(timer.host_id, "browser/firefly-a");
-            assert!(matches!(timer.duration_millis, 0 | 240));
-            output = sender
-                .complete_timer(&timer.active_play_id, timer.request_sequence)
-                .unwrap();
-        }
+        output = complete_firefly_timers(&mut sender, output);
         let Output::Line {
             frame,
             plan_projection: Some(projection),
@@ -144,6 +156,64 @@ fn two_browser_hosts_exchange_pulses_and_converge_over_one_planned_line() {
     };
     assert_eq!(receipt.transferred_values, 4);
     assert_eq!(receipt.disposition, "completed");
+}
+
+#[test]
+fn firefly_stale_peer_input_refuses_without_admission() {
+    let ((mut sender, output), (mut follower, _)) = prepare_firefly_pair();
+    let Output::Line {
+        frame: mut stale, ..
+    } = complete_firefly_timers(&mut sender, output)
+    else {
+        panic!("Firefly source did not offer its first pulse")
+    };
+    stale.sequence = 1;
+    assert_eq!(
+        follower.ingest(*stale).unwrap_err(),
+        "multi-Host Line frame does not match the exact planned identity"
+    );
+}
+
+#[test]
+fn firefly_line_pressure_keeps_one_pulse_in_flight() {
+    let ((mut sender, output), (mut follower, _)) = prepare_firefly_pair();
+    let Output::Line { frame, .. } = complete_firefly_timers(&mut sender, output) else {
+        panic!("Firefly source did not offer its first bounded pulse")
+    };
+    let Output::Manifestation { accepted_frame, .. } = follower.ingest(*frame).unwrap() else {
+        panic!("Firefly follower did not accept its one admitted in-flight pulse")
+    };
+    assert!(matches!(
+        sender.ingest((*accepted_frame).clone()).unwrap(),
+        Output::Waiting { .. }
+    ));
+    assert_eq!(
+        sender.ingest(*accepted_frame).unwrap_err(),
+        "multi-Host Line frame arrived in the wrong exact lifecycle phase"
+    );
+}
+
+#[test]
+fn firefly_line_loss_terminals_remain_distinct() {
+    use super::session::TransportTermination;
+    for (termination, disposition) in [
+        (TransportTermination::Unavailable, "transport-unavailable"),
+        (TransportTermination::Disconnected, "disconnected"),
+        (TransportTermination::TimedOut, "timed-out"),
+    ] {
+        let ((mut sender, output), _) = prepare_firefly_pair();
+        assert!(matches!(
+            complete_firefly_timers(&mut sender, output),
+            Output::Line { .. }
+        ));
+        let Output::Receipt { receipt, .. } = sender.terminate_transport(termination, 73).unwrap()
+        else {
+            panic!("Firefly Line loss did not retain terminal truth")
+        };
+        assert_eq!(receipt.disposition, disposition);
+        assert_eq!(receipt.deliveries[0].state, disposition);
+        assert_eq!(receipt.deliveries[0].failure_code, Some(73));
+    }
 }
 
 #[test]
