@@ -126,6 +126,14 @@ pub const BROWSER_HUMAN_PRESENTATION_REALIZATIONS: &[BrowserRealizationDescripto
     ),
     realization(
         "browser/dom-presentation@1",
+        "presentation/garden-state",
+        "browser/presentation-garden-state@1",
+        "conduit-browser-runtime/installed-presentation@1",
+        "conduit.host/browser-present-garden-state@1",
+        limits(1, 1, 4_096),
+    ),
+    realization(
+        "browser/dom-presentation@1",
         "presentation/patchbay",
         "browser/patchbay-surface@1",
         "conduit-browser-runtime/installed-presentation@1",

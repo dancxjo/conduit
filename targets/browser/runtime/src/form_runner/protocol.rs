@@ -342,6 +342,21 @@ pub(super) fn decode_manifestation(
                 )),
             ))
         }
+        conduit_semantic_catalog::GARDEN_STATE_PRESENTATION_KIND => {
+            let state =
+                conduit_semantic_catalog::decode_garden_state(&manifestation.canonical_value)
+                    .map_err(|_| "decode Garden state manifestation: malformed exact state")?;
+            Ok((
+                state.step,
+                Vec::new(),
+                Some(format!(
+                    "garden step {} · vitality {} · activity {}",
+                    state.step,
+                    format_scalar(state.vitality),
+                    format_scalar(state.activity)
+                )),
+            ))
+        }
         _ => Err("browser manifestation Kind is not installed in the Tour surface".into()),
     }
 }

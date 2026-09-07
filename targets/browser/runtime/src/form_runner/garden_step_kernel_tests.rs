@@ -1,5 +1,6 @@
 //! Canonical reusable Garden reducer through the installed browser kernel.
 
+use super::super::protocol::decode_manifestation;
 use super::*;
 use conduit_core::{
     process_owned_line_offer_with_limits, BaseImplementationId, CapabilityOffer, LinkLimits,
@@ -58,25 +59,8 @@ fn source_offer(interactive: bool) -> CapabilityOffer {
 
 fn fragment(interactive: bool) -> PlanFragment {
     let (mut startup, mut catalog) = crate::installed_browser::catalogs().unwrap();
-    let mut browser =
+    let browser =
         crate::installed_browser::advertisement("garden-browser".into(), "garden-boot".into());
-    let sink = crate::installed_browser::test_garden_sink::offer();
-    startup
-        .insert(KindSignature {
-            kind: sink.kind_id.as_str().into(),
-            startup_parameters: Vec::new(),
-        })
-        .unwrap();
-    catalog
-        .insert(KindDefinition {
-            kind_id: sink.kind_id.clone(),
-            kind_contract_revision: sink.kind_contract_revision.clone(),
-            inputs: sink.inputs.clone(),
-            outputs: Vec::new(),
-            configuration: Vec::new(),
-        })
-        .unwrap();
-    browser.capabilities.push(sink);
 
     let source = source_offer(interactive);
     startup
@@ -114,7 +98,7 @@ fn fragment(interactive: bool) -> PlanFragment {
         include_str!("../../../../../forms/signal-garden/main.conduit"),
         SOURCE_KIND,
         evolve_form,
-        crate::installed_browser::test_garden_sink::KIND,
+        conduit_semantic_catalog::GARDEN_STATE_PRESENTATION_KIND,
         contact_cord,
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
@@ -264,6 +248,10 @@ fn canonical_minimal_reducer_executes_through_the_production_kernel() {
     assert_eq!(next.vitality.raw_microunits(), 500_000);
     assert_eq!(next.activity.raw_microunits(), 400_000);
     assert_eq!(next.step, 1);
+    assert_eq!(
+        decode_manifestation(output).unwrap().2.as_deref(),
+        Some("garden step 1 · vitality 0.500000 · activity 0.400000")
+    );
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
@@ -348,6 +336,10 @@ fn canonical_interactive_reducer_composes_contact_through_one_production_kernel(
     assert_eq!(next.vitality.raw_microunits(), 600_000);
     assert_eq!(next.activity.raw_microunits(), 400_000);
     assert_eq!(next.step, 1);
+    assert_eq!(
+        decode_manifestation(output).unwrap().2.as_deref(),
+        Some("garden step 1 · vitality 0.600000 · activity 0.400000")
+    );
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
