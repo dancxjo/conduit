@@ -250,6 +250,8 @@ fn framing_and_deframing_are_independent_reusable_checked_forms() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
+    install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
+    install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
     for (name, source, kind) in [
         (
             "typed-record-frame",
@@ -278,6 +280,8 @@ fn desk_telegraph_uses_reusable_text_record_faces_around_exact_framing() {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
+    install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
+    install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
     conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
     startup
         .insert(conduit_form::KindSignature {
@@ -312,6 +316,15 @@ fn desk_telegraph_uses_reusable_text_record_faces_around_exact_framing() {
         assert_eq!(expanded.expanded.gears.len(), 1);
         assert_eq!(expanded.expanded.gears[0].kind_id.as_str(), expected_kind);
     }
+    let send = conduit_form::expand_canonical_form_for_authoring(
+        &checked,
+        "bounded-record-send",
+        &profile,
+    )
+    .unwrap();
+    assert_eq!(send.expanded.gears.len(), 3);
+    assert_eq!(send.input_bindings.len(), 1);
+    assert_eq!(send.output_bindings.len(), 1);
     let telegraph =
         conduit_form::expand_canonical_form_for_authoring(&checked, "desk_telegraph", &profile)
             .unwrap();
@@ -325,4 +338,7 @@ fn desk_telegraph_uses_reusable_text_record_faces_around_exact_framing() {
     assert!(kinds.contains(&TYPED_RECORD_DEFRAME_KIND));
     assert!(kinds.contains(&TEXT_TO_TYPED_RECORD_KIND));
     assert!(kinds.contains(&TYPED_RECORD_TO_TEXT_KIND));
+    assert!(kinds.contains(&RECORD_SINGLETON_STREAM_KIND));
+    assert!(kinds.contains(&ORDERED_RECORD_QUEUE_KIND));
+    assert!(kinds.contains(&RECORD_EXACTLY_ONE_KIND));
 }

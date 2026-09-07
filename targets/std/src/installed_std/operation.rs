@@ -79,6 +79,9 @@ impl Operation for InstalledOperation {
             Self::ImageText(operation) => operation.start(),
             Self::ImageTextRecord(operation) => operation.start(),
             Self::TypedRecord(operation) => operation.start(),
+            Self::RecordSingletonStream(operation) => operation.start(),
+            Self::RecordExactlyOne(operation) => operation.start(),
+            Self::RecordQueue(operation) => operation.start(),
             Self::StructuredSelector(operation) => operation.start(),
             Self::StructuredLiteral(operation) => operation.start(),
             Self::StructuredPresentation(operation) => operation.start(),
@@ -202,6 +205,9 @@ impl Operation for InstalledOperation {
             (Self::ImageText(operation), input) => operation.resume(input),
             (Self::ImageTextRecord(operation), input) => operation.resume(input),
             (Self::TypedRecord(operation), input) => operation.resume(input),
+            (Self::RecordSingletonStream(operation), input) => operation.resume(input),
+            (Self::RecordExactlyOne(operation), input) => operation.resume(input),
+            (Self::RecordQueue(operation), input) => operation.resume(input),
             (Self::StructuredSelector(operation), input) => operation.resume(input),
             (Self::StructuredLiteral(_), _) => Self::fail(153),
             (Self::StructuredPresentation(operation), input) => operation.resume(input),
@@ -265,6 +271,7 @@ impl Operation for InstalledOperation {
             Self::LogicSelectScalar(operation) => operation.resume_value(port, value, canonical),
             Self::StateSelectScalar(operation) => operation.resume_value(port, value, canonical),
             Self::RoboticsDrive(operation) => operation.resume_value(port, value, canonical),
+            Self::RecordQueue(operation) => operation.resume_value(port, value, canonical),
             #[cfg(test)]
             Self::TestLogicSink(operation) => operation.resume_value(port, value, canonical),
             #[cfg(test)]
@@ -375,6 +382,9 @@ impl Operation for InstalledOperation {
             Self::ImageText(_) => OperationAction::Await,
             Self::ImageTextRecord(_) => OperationAction::Await,
             Self::TypedRecord(_) => OperationAction::Await,
+            Self::RecordSingletonStream(operation) => operation.advance(),
+            Self::RecordExactlyOne(operation) => operation.advance(),
+            Self::RecordQueue(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestTextSource(operation) => {
                 operation.next += 1;
@@ -437,6 +447,7 @@ impl Operation for InstalledOperation {
             Self::TimeDebounce(operation) => operation.retains_resumed_value(),
             Self::TimeDelay(operation) => operation.retains_resumed_value(),
             Self::FinalNormalizedPattern(operation) => operation.retains_resumed_value(),
+            Self::RecordExactlyOne(operation) => operation.retains_resumed_value(),
             Self::TimedButtonAttempt(operation) => operation.retains_resumed_value(),
             Self::MusicSynth(operation) => operation.retains_resumed_value(),
             _ => false,
@@ -456,6 +467,7 @@ impl Operation for InstalledOperation {
             Self::TimeDelay(operation) => operation.take_released_value(),
             Self::TimeThrottle(operation) => operation.take_released_value(),
             Self::FinalNormalizedPattern(operation) => operation.take_released_value(),
+            Self::RecordExactlyOne(operation) => operation.take_released_value(),
             Self::TimedButtonAttempt(operation) => operation.take_released_value(),
             Self::MusicSynth(operation) => operation.take_released_value(),
             Self::HttpServer(operation) => operation.take_released_value(),

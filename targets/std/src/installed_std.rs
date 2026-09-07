@@ -60,6 +60,8 @@ mod pulse_observation_operation;
 #[cfg(test)]
 mod pulse_observation_sink;
 mod quantity_mapping;
+mod record_queue_operation;
+mod record_temporal_operation;
 mod recurrence_codec;
 mod recurrence_encoding;
 mod recurrence_operation;

@@ -13,6 +13,8 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_net::install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_net::install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
     let syntax = parse_syntax_document(SOURCE);
     assert_eq!(syntax.round_trip(), SOURCE);
     let checked = check_syntax_document(&syntax, &startup).expect("Desk Telegraph checks");
@@ -57,6 +59,9 @@ fn canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play() {
         conduit_net::TYPED_RECORD_FRAME_KIND,
         conduit_net::TYPED_RECORD_DEFRAME_KIND,
         conduit_net::TYPED_RECORD_TO_TEXT_KIND,
+        conduit_net::RECORD_SINGLETON_STREAM_KIND,
+        conduit_net::ORDERED_RECORD_QUEUE_KIND,
+        conduit_net::RECORD_EXACTLY_ONE_KIND,
         "presentation/text",
     ] {
         assert!(kinds.contains(&kind), "missing expanded {kind}");
@@ -65,7 +70,7 @@ fn canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play() {
     let mut host = StdHost::new();
     let plan = plan(&host, &expanded);
     assert_eq!(plan.fragments.len(), 1);
-    assert_eq!(plan.fragments[0].placements.len(), 6);
+    assert_eq!(plan.fragments[0].placements.len(), 9);
 
     let mut output = Vec::with_capacity(4_096);
     let mut timer = ThreadTimer;

@@ -63,8 +63,8 @@ fn offer(definition: conduit_form::KindDefinition, implementation: &str) -> Capa
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM,
+            max_queue_items: 4,
+            max_queue_bytes: MAXIMUM * 4,
         },
     }
 }

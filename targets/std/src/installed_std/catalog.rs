@@ -51,6 +51,10 @@ use super::presentation_composition::{
 };
 #[cfg(test)]
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
+use super::record_queue_operation::FACTORY as RECORD_QUEUE_FACTORY;
+use super::record_temporal_operation::{
+    EXACTLY_ONE as RECORD_EXACTLY_ONE_FACTORY, SINGLETON as RECORD_SINGLETON_STREAM_FACTORY,
+};
 use super::recurrence_operation::FACTORY as RECURRENCE_FACTORY;
 use super::render_demand_operation::AUDIO_RENDER_DEMAND_FACTORY;
 use super::rhythm_compare_operation::FACTORY as RHYTHM_COMPARE_FACTORY;
@@ -224,6 +228,9 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TYPED_RECORD_DEFRAME_FACTORY,
     &TEXT_TO_TYPED_RECORD_FACTORY,
     &TYPED_RECORD_TO_TEXT_FACTORY,
+    &RECORD_SINGLETON_STREAM_FACTORY,
+    &RECORD_EXACTLY_ONE_FACTORY,
+    &RECORD_QUEUE_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]
