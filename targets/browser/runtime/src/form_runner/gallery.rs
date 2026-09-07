@@ -57,7 +57,7 @@ struct GalleryRequirement {
 }
 
 pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
-    let (startup, _) = crate::installed_browser::catalogs()?;
+    let (startup, profile) = crate::installed_browser::catalogs()?;
     let host_inventory = crate::installed_browser::inventory();
     let mut forms = Vec::with_capacity(REVIEWED_SOURCES.len());
     for (name, title, source) in REVIEWED_SOURCES {
@@ -75,10 +75,12 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
             .iter()
             .find(|form| form.name == name)
             .ok_or_else(|| format!("reviewed Gallery source does not define {name}"))?;
-        let mut required_kinds = form
+        let expanded = conduit_form::expand_canonical_form(&checked, name, &profile)
+            .map_err(|error| format!("expand reviewed Gallery Form {name}: {error:?}"))?;
+        let mut required_kinds = expanded
             .gears
             .iter()
-            .map(|gear| gear.kind.clone())
+            .map(|gear| gear.kind_id.as_str().to_owned())
             .collect::<Vec<_>>();
         required_kinds.sort();
         required_kinds.dedup();

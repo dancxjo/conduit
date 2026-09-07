@@ -153,12 +153,8 @@ fn request_from_sources(sources: &[&str]) -> BodyStartRequest {
                 &startup,
             )
             .unwrap();
-            let form = conduit_form::expand_canonical_form(
-                &checked,
-                &checked.forms.last().unwrap().name,
-                &catalog,
-            )
-            .unwrap();
+            let entry = super::executable_entry(&checked).unwrap();
+            let form = conduit_form::expand_canonical_form(&checked, &entry, &catalog).unwrap();
             let placements = default_expanded_placements(&form, &hosts).unwrap();
             plan_expanded_canonical_with_options(
                 &form,

@@ -89,7 +89,7 @@ reusable_entries = [
   { entry = "text-from-record", title = "Text from Record", composition = { parent = "desk_telegraph", occurrences = ["decode"] } },
 ]
 deterministic = { package = "conduit-std-host", test = "desk_telegraph", case = "canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play", plan_play_evidence = true }
-browser_safe_not_applicable = "typed-record codecs have no installed browser realization yet"
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form desk-telegraph runs browser-safe" }
 [[forms]]
 slug = "garden-state-step"
 title = "Garden State Step"
