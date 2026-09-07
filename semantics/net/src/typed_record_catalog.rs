@@ -11,7 +11,10 @@ use crate::{FRAMED_TYPED_RECORD_INFO_ID, TYPED_RECORD_INFO_ID};
 
 pub const TYPED_RECORD_FRAME_KIND: &str = "record/frame-typed";
 pub const TYPED_RECORD_DEFRAME_KIND: &str = "record/deframe-typed";
+pub const TEXT_TO_TYPED_RECORD_KIND: &str = "record/text-to-typed";
+pub const TYPED_RECORD_TO_TEXT_KIND: &str = "record/typed-to-text";
 pub const TYPED_RECORD_CONTRACT_REVISION: &str = "conduit.net/typed-record-frame@1";
+pub const TEXT_RECORD_CONTRACT_REVISION: &str = "conduit.net/text-record@1";
 
 pub fn install_typed_record_catalogs(
     startup: &mut StartupCatalog,
@@ -23,7 +26,10 @@ pub fn install_typed_record_catalogs(
     startup
         .insert_structured_type("FramedTypedRecord", framed_typed_record_type())
         .map_err(|error| error.to_string())?;
-    for definition in typed_record_definitions() {
+    for definition in typed_record_definitions()
+        .into_iter()
+        .chain(text_record_definitions())
+    {
         startup.insert(KindSignature {
             kind: definition.kind_id.as_str().to_string(),
             startup_parameters: vec![],
@@ -33,6 +39,35 @@ pub fn install_typed_record_catalogs(
             .map_err(|error| error.to_string())?;
     }
     Ok(())
+}
+
+fn text_record_definitions() -> [KindDefinition; 2] {
+    let record = typed_record_type();
+    [
+        KindDefinition {
+            kind_id: kind_id(TEXT_TO_TYPED_RECORD_KIND),
+            kind_contract_revision: KindContractRevision::from(TEXT_RECORD_CONTRACT_REVISION),
+            inputs: vec![text_port("text", PortDirection::Input)],
+            outputs: vec![port("record", &record, PortDirection::Output)],
+            configuration: vec![],
+        },
+        KindDefinition {
+            kind_id: kind_id(TYPED_RECORD_TO_TEXT_KIND),
+            kind_contract_revision: KindContractRevision::from(TEXT_RECORD_CONTRACT_REVISION),
+            inputs: vec![port("record", &record, PortDirection::Input)],
+            outputs: vec![text_port("text", PortDirection::Output)],
+            configuration: vec![],
+        },
+    ]
+}
+
+fn text_port(name: &str, direction: PortDirection) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id(crate::TEXT_INFO_ID),
+        direction,
+        temporal: PortTemporal::Value,
+    }
 }
 
 pub fn typed_record_type() -> StructuredInfoType {

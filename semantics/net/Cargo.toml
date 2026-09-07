@@ -15,4 +15,5 @@ form-catalog = ["dep:conduit-form"]
 [dev-dependencies]
 conduit-form = { path = "../../architecture/form" }
 conduit-planner = { path = "../../architecture/planner" }
+conduit-text = { path = "../text", features = ["form-catalog"] }
 serde_json = "1"
