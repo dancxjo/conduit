@@ -141,3 +141,12 @@ pub(super) fn valid_progress(value: &str) -> bool {
             .is_some_and(|(current, total)| total > 0 && current <= total)
     })
 }
+
+pub(crate) fn valid_same_site_link(value: &str) -> bool {
+    value.starts_with('/')
+        && !value.starts_with("//")
+        && value.len() <= 2_048
+        && !value
+            .bytes()
+            .any(|byte| byte <= b' ' || byte == 0x7f || byte == b'\\')
+}

@@ -166,7 +166,11 @@ function renderGallery() {
   chapter.replaceChildren();
   const crecheUrl = document.querySelector('meta[name="conduit-creche-url"]')?.content;
   if (!crecheUrl) throw new Error("Crèche product handoff is unavailable");
-  const gallerySurface = createReviewedFormGallery(document, gallery, crecheUrl, (form, action) => {
+  const surface = document.createElement("section");
+  surface.className = "form-gallery";
+  surface.dataset.applicationSlot = "tour-form-gallery";
+  chapter.append(surface);
+  const gallerySurface = createReviewedFormGallery(document, hostPresentation, surface, gallery, crecheUrl, (form, action) => {
     selectLaboratoryStage(reviewedFormStage(form), [], true);
     gallerySurface.select(form.checked_form_id);
     if (action === "inspect") {
@@ -175,8 +179,7 @@ function renderGallery() {
       patchbay.focus({ preventScroll: true });
     }
   });
-  const { surface, heading } = gallerySurface;
-  chapter.append(surface);
+  const { heading } = gallerySurface;
   selectLaboratoryStage(reviewedFormStage(gallery.forms[0]), []);
   gallerySurface.select(gallery.forms[0].checked_form_id);
   document.querySelector("#laboratory-slot").replaceChildren(laboratory);

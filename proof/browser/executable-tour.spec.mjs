@@ -914,19 +914,18 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await page.getByRole("button", { name: "Form Gallery" }).click();
   await expect(page).toHaveTitle("Form Gallery · Tour");
   await expect(page.getByRole("heading", { level: 1, name: "Form Gallery" })).toBeFocused();
-  const cards = page.locator(".form-gallery-card");
+  const cards = page.locator("[data-gallery-card]");
   await expect(cards).toHaveCount(4);
-  await expect(cards.locator('[data-status="runnable-on-current-browser-host"]')).toHaveCount(4);
-  await expect(cards.first().locator(".form-gallery-realization li")).toHaveCount(2);
-  await expect(cards.first()).toContainText("current offer · local/kernel");
-  await expect(cards.first()).toContainText("Browsing acquires no resource or authority");
+  await expect(page.locator('[data-gallery-card][data-status="runnable-on-current-browser-host"]')).toHaveCount(4);
+  await expect(cards.first()).toContainText("=current/local");
+  await expect(page.locator('[data-application-key="gallery-purpose"]')).toContainText("Browsing acquires no resource or authority");
   await expect(page.locator(".tour-workbench")).toHaveCount(1);
   await expect(page.locator(".runner")).toHaveCount(1);
   await expect(page.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
 
-  const search = page.getByRole("searchbox", { name: "Search reviewed Forms" });
+  const search = page.getByRole("textbox", { name: "Search reviewed Forms" });
   await search.fill("memory presentation/text");
-  await expect(page.locator(".form-gallery-card:visible")).toHaveCount(1);
+  await expect(page.locator("[data-gallery-card]:visible")).toHaveCount(1);
   await expect(page.getByRole("status").filter({ hasText: "1 reviewed Form" })).toBeVisible();
   await search.fill("🌀".repeat(40));
   await expect(page.getByRole("status").filter({ hasText: "outside the admitted 128-byte bound" })).toBeVisible();

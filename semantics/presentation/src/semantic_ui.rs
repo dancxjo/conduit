@@ -40,6 +40,7 @@ pub enum PresentationMechanismKind {
     ChoiceGroup,
     Navigation,
     NavigationLink,
+    Link,
     Stepper,
     Progress,
     Artifact,
@@ -66,6 +67,7 @@ impl PresentationMechanismKind {
             Self::ChoiceGroup => "conduit.presentation/choice-group@1",
             Self::Navigation => "conduit.presentation/navigation@1",
             Self::NavigationLink => "conduit.presentation/navigation-link@1",
+            Self::Link => "conduit.presentation/link@1",
             Self::Stepper => "conduit.presentation/stepper@1",
             Self::Progress => "conduit.presentation/progress@1",
             Self::Artifact => "conduit.presentation/artifact@1",
@@ -224,6 +226,10 @@ pub enum PresentationMechanism {
         label: String,
         destination: AdmittedNavigationDestination,
     },
+    Link {
+        label: String,
+        destination: String,
+    },
     Stepper {
         label: String,
         current: u16,
@@ -260,6 +266,7 @@ impl PresentationMechanism {
             Self::ChoiceGroup { .. } => PresentationMechanismKind::ChoiceGroup,
             Self::Navigation { .. } => PresentationMechanismKind::Navigation,
             Self::NavigationLink { .. } => PresentationMechanismKind::NavigationLink,
+            Self::Link { .. } => PresentationMechanismKind::Link,
             Self::Stepper { .. } => PresentationMechanismKind::Stepper,
             Self::Progress { .. } => PresentationMechanismKind::Progress,
             Self::Artifact(_) => PresentationMechanismKind::Artifact,
@@ -529,6 +536,19 @@ fn lower_mechanism(
                 label.clone(),
                 identity.into(),
                 u32::try_from(identity.len()).unwrap_or(u32::MAX),
+                None,
+                ApplicationNodeState::Ready,
+            )
+        }
+        PresentationMechanism::Link { label, destination } => {
+            if label.is_empty() || !crate::application_view::valid_same_site_link(destination) {
+                return Err(SemanticPresentationRefusal::InvalidNavigation);
+            }
+            (
+                ApplicationComponent::Link,
+                label.clone(),
+                destination.clone(),
+                u32::try_from(destination.len()).unwrap_or(u32::MAX),
                 None,
                 ApplicationNodeState::Ready,
             )

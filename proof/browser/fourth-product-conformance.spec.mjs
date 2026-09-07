@@ -94,6 +94,20 @@ test("one semantic ProductMasthead composition replaces product-private global c
   expect(pages).not.toMatch(/<nav[^>]*>[^]*?(?:Tour|Crèche|Patchbay)[^]*?<\/nav>/);
 });
 
+test("Tour Form Gallery ordinary controls use the shared presentation vocabulary", async () => {
+  const gallery = await readFile(join(repository, "products/tour/browser/tour-inventory-presentation.mjs"), "utf8");
+  for (const tag of ["input", "output", "button", "a"]) {
+    expect(gallery, `Gallery must not directly construct generic ${tag} controls`).not.toContain(
+      `createElement("${tag}")`,
+    );
+  }
+  for (const component of ["form-field", "text-input", "status", "button", "link"]) {
+    expect(gallery, `Gallery must describe ${component} through the shared vocabulary`).toContain(
+      `component: "${component}"`,
+    );
+  }
+});
+
 test("all four web surfaces inherit one product-owned browser design system", async () => {
   const shared = await readFile(join(repository, "products/shared/browser/conduit.css"), "utf8");
   expect(shared).toContain("--conduit-font-body:");
