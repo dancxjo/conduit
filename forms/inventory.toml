@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 91
+maximum_forms = 92
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -164,6 +164,12 @@ title = "Memory Lantern"
 entry = "memory_lantern"
 initial_body_order = 2
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form memory-lantern runs browser-safe" }
+[[forms]]
+slug = "measurement-plot"
+title = "Measurement Plot"
+entry = "measurement-plot"
+deterministic = { package = "conduit-data", test = "measurement_plot", case = "reusable_plot_projection_has_an_exact_checked_form_contract" }
+browser_safe_not_applicable = "portable plot-series projection has no reviewed browser Host execution oracle"
 [[forms]]
 slug = "measurement-summary"
 title = "Measurement Summary"

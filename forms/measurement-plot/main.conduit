@@ -1,0 +1,7 @@
+form measurement-plot (
+    window: MeasurementWindow > series: MeasurementPlotSeries
+) {
+    project: data/measurement-plot(points = 8, when-full = "evenly-spaced")
+    window > project.window
+    project.series > series
+}
