@@ -65,74 +65,12 @@ fn test_extraction_narrowing_retains_workspace_proof_only() {
 }
 
 #[test]
-fn candidate_retirement_controller_changes_run_only_their_exact_proof() {
-    let root = crate::workspace::workspace_root().unwrap();
-    let packages = discover(&root).unwrap();
-    let plan = plan_for_paths(
-        &root,
-        vec![
-            ".github/workflows/retire-superseded-candidates.yml".to_owned(),
-            "proof/ci/retire-superseded-candidates.spec.mjs".to_owned(),
-            "tools/ci/retire-superseded-candidates.mjs".to_owned(),
-        ],
-        &packages,
-    )
-    .unwrap();
-
-    assert_eq!(plan.ci_controller_proofs, ["ci.candidate-retirement"]);
-    assert!(!plan.full_fallback);
-    assert!(!plan.browser_required);
-    assert!(!plan.esp32_required);
-    assert!(!plan.conduitos_required);
-    assert!(plan.workspace_shards.values().all(|required| !required));
-
-    let mixed = plan_for_paths(
-        &root,
-        vec![
-            "tools/ci/retire-superseded-candidates.mjs".to_owned(),
-            "unclassified-controller-neighbor.bin".to_owned(),
-        ],
-        &packages,
-    )
-    .unwrap();
-    assert!(mixed.full_fallback);
-    assert_eq!(mixed.ci_controller_proofs, ["ci.candidate-retirement"]);
-}
-
-#[test]
-fn current_controller_reconciliation_changes_run_only_their_exact_proof() {
-    let root = crate::workspace::workspace_root().unwrap();
-    let packages = discover(&root).unwrap();
-    let plan = plan_for_paths(
-        &root,
-        vec![
-            ".github/workflows/reconcile-candidate.yml".to_owned(),
-            "proof/ci/reconcile-candidate-request.spec.mjs".to_owned(),
-            "tools/ci/reconcile-candidate-request.mjs".to_owned(),
-        ],
-        &packages,
-    )
-    .unwrap();
-
-    assert_eq!(
-        plan.ci_controller_proofs,
-        ["ci.current-controller-reconciliation"]
-    );
-    assert!(!plan.full_fallback);
-    assert!(!plan.browser_required);
-    assert!(!plan.esp32_required);
-    assert!(!plan.conduitos_required);
-    assert!(plan.workspace_shards.values().all(|required| !required));
-}
-
-#[test]
 fn exact_integration_resolver_changes_run_only_the_controller_proof() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let plan = plan_for_paths(
         &root,
         vec![
-            ".github/workflows/reconcile-candidate.yml".to_owned(),
             "tools/xtask-dispatch/src/ci_dispatch.rs".to_owned(),
             "tools/xtask-dispatch/src/main.rs".to_owned(),
             "tools/xtask/src/commands/ci.rs".to_owned(),
@@ -147,13 +85,7 @@ fn exact_integration_resolver_changes_run_only_the_controller_proof() {
     )
     .unwrap();
 
-    assert_eq!(
-        plan.ci_controller_proofs,
-        [
-            "ci.current-controller-reconciliation",
-            "ci.exact-integration"
-        ]
-    );
+    assert_eq!(plan.ci_controller_proofs, ["ci.exact-integration"]);
     assert!(!plan.full_fallback);
     assert!(!plan.browser_required);
     assert!(!plan.esp32_required);
@@ -252,42 +184,6 @@ fn actions_monitor_bootstrap_is_controller_work_not_product_fabrication() {
     )
     .unwrap();
     assert!(ambiguous.full_fallback);
-}
-
-#[test]
-fn merged_branch_retirement_is_controller_work_not_machine_fabrication() {
-    let root = crate::workspace::workspace_root().unwrap();
-    let packages = discover(&root).unwrap();
-    let plan = plan_for_paths(
-        &root,
-        vec![
-            ".github/workflows/reconcile-candidate.yml".to_owned(),
-            ".github/workflows/retire-merged-pr-branch.yml".to_owned(),
-            "proof/ci/reconcile-candidate-request.spec.mjs".to_owned(),
-            "proof/ci/retire-merged-pr-branch.spec.mjs".to_owned(),
-            "tools/ci/reconcile-candidate-request.mjs".to_owned(),
-            "tools/ci/retire-merged-pr-branch.mjs".to_owned(),
-            "tools/xtask/src/commands/ci/impact.rs".to_owned(),
-            "tools/xtask/src/commands/ci/impact/tests.rs".to_owned(),
-            "tools/xtask/tests/ci_workflow_contract.rs".to_owned(),
-        ],
-        &packages,
-    )
-    .unwrap();
-
-    assert_eq!(
-        plan.ci_controller_proofs,
-        [
-            "ci.current-controller-reconciliation",
-            "ci.merged-branch-retirement",
-        ]
-    );
-    assert!(!plan.full_fallback);
-    assert!(!plan.pages_products_required);
-    assert!(!plan.browser_required);
-    assert!(!plan.esp32_required);
-    assert!(!plan.conduitos_required);
-    assert_eq!(plan.changed_packages, ["xtask"]);
 }
 
 #[test]

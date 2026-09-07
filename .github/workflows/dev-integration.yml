@@ -10,24 +10,11 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: dev-integration-${{ github.sha }}
-  cancel-in-progress: false
+  group: dev-integration
+  cancel-in-progress: true
 
 jobs:
-  boundary:
-    runs-on: ubuntu-slim
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-      - name: Verify the development integration boundary
-        env:
-          CONDUIT_EVENT_NAME: push
-          CONDUIT_REF_NAME: ${{ github.ref_name }}
-        run: node tools/ci/branch-boundary.mjs dev
-
   check:
-    needs: boundary
     uses: ./.github/workflows/check.yml
     with:
       base_sha: ${{ github.event.before }}
@@ -35,7 +22,6 @@ jobs:
       development_admission: true
 
   products:
-    needs: boundary
     uses: ./.github/workflows/tour-products.yml
     with:
       base_sha: ${{ github.event.before }}
@@ -43,16 +29,14 @@ jobs:
       development_admission: true
 
   dev-integration:
-    needs: [boundary, check, products]
+    needs: [check, products]
     if: always() && !cancelled()
     runs-on: ubuntu-slim
     steps:
       - name: Keep the construction site usable
         env:
-          BOUNDARY_RESULT: ${{ needs.boundary.result }}
           CHECK_RESULT: ${{ needs.check.result }}
           PRODUCTS_RESULT: ${{ needs.products.result }}
         run: |
-          test "$BOUNDARY_RESULT" = success
           test "$CHECK_RESULT" = success
           test "$PRODUCTS_RESULT" = success

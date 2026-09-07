@@ -321,7 +321,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
         );
     }
     assert!(products.contains(
-        "if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true'"
+        "if: always() && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true'"
     ));
 }
 
@@ -362,31 +362,6 @@ fn browser_release_installs_its_exact_wasm_target() {
         .and_then(|tail| tail.split("\n  tour-patchbay-proof:\n").next())
         .expect("locate browser release job");
     assert!(browser_release.contains("targets: wasm32-unknown-unknown"));
-}
-
-#[test]
-fn legacy_merged_branch_retirement_is_manual_only_and_keeps_its_safe_order() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/retire-merged-pr-branch.yml"))
-        .expect("read merged branch retirement workflow");
-    assert!(workflow.contains("workflow_dispatch:"));
-    assert!(!workflow.contains("pull_request_target:"));
-    assert!(workflow.contains("actions: write"));
-    assert!(workflow.contains("pull-requests: write"));
-    assert!(workflow.contains("contents: write"));
-    assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
-    assert!(workflow.contains("persist-credentials: false"));
-    assert!(workflow.contains("node tools/ci/retire-merged-pr-branch.mjs"));
-    let controller = fs::read_to_string(root.join("tools/ci/retire-merged-pr-branch.mjs"))
-        .expect("read merged branch retirement controller");
-    let retarget = controller.find("/pulls/${dependent.number}").unwrap();
-    let dispatch = controller
-        .find("/actions/workflows/reconcile-candidate.yml/dispatches")
-        .unwrap();
-    let deletion = controller
-        .find("/git/refs/heads/${encodeRef(branch)}")
-        .unwrap();
-    assert!(retarget < dispatch && dispatch < deletion);
 }
 
 #[test]
@@ -580,177 +555,6 @@ fn controller_changes_run_the_dependency_light_planner_test_target() {
 }
 
 #[test]
-fn legacy_candidate_reconciliation_is_manual_only_and_least_privilege() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
-        .expect("read candidate reconciliation workflow");
-    let check =
-        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
-
-    assert!(workflow.contains(
-        "group: reconcile-candidate-${{ inputs.pr_number || github.event.pull_request.number }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
-    ));
-    assert!(workflow.contains("workflow_dispatch:"));
-    assert!(!workflow.contains("pull_request_target:"));
-    assert!(
-        workflow.contains("github.event.action == 'edited' && github.event.changes.base.ref != ''")
-    );
-    assert!(workflow.contains("github.event.label.name == 'ci:reconcile'"));
-    assert!(workflow.contains("name: Consume the bounded on-demand reconciliation request"));
-    assert!(workflow.contains(
-        "name: Consume the bounded on-demand reconciliation request\n        if: github.event_name == 'pull_request_target' && github.event.action == 'labeled'\n        continue-on-error: true"
-    ));
-    assert!(workflow.contains("labels/ci%3Areconcile"));
-    assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
-    assert!(workflow.contains("issues: write"));
-    assert!(workflow.contains("integration_sha: ${{ steps.integration.outputs.integration_sha }}"));
-    assert!(workflow.contains("ci integration \"$base_sha\" \"$CANDIDATE_SHA\" --locked"));
-    assert!(workflow.contains("status=$(jq -r '.status' integration.json)"));
-    assert!(workflow.contains("effective_merge_base_sha=$(jq -r '.effective_merge_base_sha'"));
-    assert!(workflow.contains("merge_base_method=$(jq -r '.merge_base_method'"));
-    assert!(workflow
-        .contains("git commit-tree \"$integration_tree\" -p \"$base_sha\" -p \"$CANDIDATE_SHA\""));
-    assert!(workflow.contains("git push origin \"$INTEGRATION_SHA:$INTEGRATION_REF\""));
-    assert!(workflow.contains("git push origin \":$INTEGRATION_REF\""));
-    let toolchain = workflow
-        .find("name: Install the repository Rust toolchain for the impact controller")
-        .expect("reconciliation installs the controller toolchain");
-    let exact = workflow
-        .find("name: Reconcile exact proof keys with the trusted controller")
-        .expect("reconciliation computes exact proof keys");
-    assert!(
-        toolchain < exact,
-        "the dependency-light proof controller cannot be built before Rust is installed"
-    );
-    assert!(!workflow.contains("reconciliation-impact.json"));
-    assert_eq!(
-        workflow
-            .matches("candidate_sha: ${{ needs.resolve.outputs.integration_sha }}")
-            .count(),
-        3
-    );
-    assert!(workflow.contains(
-        "CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
-    ));
-    assert!(
-        workflow.contains("CONDUIT_INTEGRATION_SHA: ${{ needs.resolve.outputs.integration_sha }}")
-    );
-    assert!(workflow.contains("cancel-in-progress: false"));
-    assert!(workflow.contains("resolve:\n    if:"));
-    assert!(workflow.contains("runs-on: ubuntu-slim\n    timeout-minutes: 5"));
-    assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
-    assert!(workflow.contains("uses: ./.github/workflows/tour-products.yml"));
-    assert!(workflow.contains("shared_compile_result: ${{ needs.shared-compile.result }}"));
-    assert!(
-        workflow.contains("shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}")
-    );
-    assert_eq!(workflow.matches("set -o pipefail").count(), 2);
-    assert_eq!(workflow.matches("checks: write").count(), 2);
-    assert!(workflow.contains("published: ${{ steps.locate.outputs.published }}"));
-    assert!(workflow.contains("ci reconcile \"$BASE_SHA\" \"$CANDIDATE_SHA\""));
-    assert!(workflow.contains("--impact-plan \"${impact_plans[0]}\""));
-    assert!(workflow.contains("reconcile-candidate-request.mjs classify"));
-    assert!(workflow.contains("&& 'admission' || 'ignored-reconciliation-event'"));
-    assert!(workflow.contains("if: always() && needs.resolve.outputs.integration_ref != ''"));
-    assert!(!workflow.contains(
-        "needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
-    ));
-    assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
-    assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
-    assert!(workflow.contains(
-        "CONDUIT_PUBLISH_REQUIRED_ADMISSION: ${{ github.event_name == 'workflow_dispatch' }}"
-    ));
-    assert_eq!(workflow.matches("contents: write").count(), 2);
-    assert!(workflow.contains("candidate-check:\n    needs: [resolve, shared-compile]"));
-    assert!(workflow.contains(
-        "candidate-check:\n    needs: [resolve, shared-compile]\n    if: always() && !cancelled() && needs.resolve.result == 'success' && needs.resolve.outputs.check_inherited != 'true'\n    permissions:\n      actions: read\n      contents: read\n      pull-requests: read"
-    ));
-    assert!(workflow.contains("candidate-products:\n    needs: [resolve, shared-compile]"));
-    assert!(workflow.contains(
-        "candidate-products:\n    needs: [resolve, shared-compile]\n    if: always() && !cancelled() && needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'\n    permissions:\n      contents: read\n      pull-requests: read"
-    ));
-
-    assert!(check.contains("workflow_call:"));
-    assert!(check.contains(
-        "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha"
-    ));
-    assert!(!check.contains("name: conduitos-limine-${{ github.sha }}"));
-}
-
-#[test]
-fn candidate_shared_compile_is_one_causal_prerequisite_for_both_proof_worlds() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let controller = fs::read_to_string(root.join(".github/workflows/candidate.yml"))
-        .expect("read candidate controller");
-    let prerequisite =
-        fs::read_to_string(root.join(".github/workflows/candidate-shared-compile.yml"))
-            .expect("read shared compile workflow");
-    let check = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
-    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml")).unwrap();
-
-    assert_eq!(
-        controller
-            .matches("uses: ./.github/workflows/candidate-shared-compile.yml")
-            .count(),
-        1
-    );
-    assert!(controller.contains("check:\n    needs: shared-compile"));
-    assert!(controller.contains("products:\n    needs: shared-compile"));
-    assert_eq!(
-        controller
-            .matches("if: always() && !cancelled() && needs.shared-compile.outputs.stack_role != 'intermediate'")
-            .count(),
-        2
-    );
-    assert_eq!(
-        controller
-            .matches("shared_compile_result: ${{ needs.shared-compile.result }}")
-            .count(),
-        2
-    );
-    assert!(controller.contains("blocked-by: workspace.shared-compile"));
-    assert!(controller.contains("conduit.ci.causal-block/v1"));
-    assert_eq!(
-        prerequisite
-            .matches("cargo check --locked \"${args[@]}\"")
-            .count(),
-        1
-    );
-    assert!(prerequisite.contains("shared_compile_packages"));
-    assert!(
-        check.contains("shared_compile_result:\n        required: false\n        default: success")
-    );
-    assert!(products
-        .contains("shared_compile_result:\n        required: false\n        default: success"));
-    assert!(check.contains(
-        "CONDUIT_SHARED_COMPILE_RESULT: ${{ inputs.shared_compile_result || 'success' }}"
-    ));
-    assert!(products.contains(
-        "CONDUIT_SHARED_COMPILE_RESULT: ${{ inputs.shared_compile_result || 'success' }}"
-    ));
-    assert!(check.contains("workspace-check:\n    needs: classify\n    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success')"));
-    assert!(check.contains("esp32-firmware:\n    needs: [classify, standalone-locks]\n    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success')"));
-    assert!(check.contains("blocked_by\":\"workspace.shared-compile"));
-    assert!(products.contains(
-        "browser-runtimes:\n    needs: plan\n    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success')"
-    ));
-    assert!(products.contains("blocked_by\":\"workspace.shared-compile"));
-    assert!(!check.contains(
-        "conduitos-limine:\n    needs: classify\n    if: always() && inputs.shared_compile_result"
-    ));
-    assert!(!check.contains(
-        "conduitos-tools:\n    needs: classify\n    if: always() && inputs.shared_compile_result"
-    ));
-    assert!(!check.contains(
-        "standalone-locks:\n    needs: classify\n    if: always() && inputs.shared_compile_result"
-    ));
-    assert!(!products
-        .contains("standalone-locks:\n    needs: plan\n    if: inputs.shared_compile_result"));
-    assert!(!check.contains("  pull_request:\n"));
-    assert!(!products.contains("  pull_request:\n"));
-}
-
-#[test]
 fn new_product_proofs_are_attested_by_the_trusted_controller_against_candidate_bytes() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
@@ -763,25 +567,6 @@ fn new_product_proofs_are_attested_by_the_trusted_controller_against_candidate_b
     ));
     assert!(workflow.contains("\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci attest-success \"$CONDUIT_CANDIDATE_SHA\""));
     assert!(!workflow.contains("cargo xtask ci attest-success \"$CONDUIT_CANDIDATE_SHA\"\n          browser.patchbay-debugger"));
-}
-
-#[test]
-fn candidate_lifecycle_controllers_use_the_lightweight_automation_lane() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let reconciliation = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
-        .expect("read candidate reconciliation workflow");
-    let retirement =
-        fs::read_to_string(root.join(".github/workflows/retire-superseded-candidates.yml"))
-            .expect("read candidate retirement workflow");
-
-    assert_eq!(reconciliation.matches("runs-on: ubuntu-slim").count(), 2);
-    assert!(!reconciliation.contains("runs-on: ubuntu-latest"));
-    assert_eq!(retirement.matches("runs-on: ubuntu-slim").count(), 1);
-    assert!(!retirement.contains("runs-on: ubuntu-latest"));
-    assert_eq!(reconciliation.matches("checks: write").count(), 2);
-    assert_eq!(reconciliation.matches("contents: write").count(), 2);
-    assert!(reconciliation.contains("timeout-minutes: 2"));
-    assert!(retirement.contains("timeout-minutes: 2"));
 }
 
 #[test]
@@ -856,54 +641,4 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
     assert!(x86.contains("ci-proof-conduitos.x86.batch-${{ env.CONDUIT_CHECKOUT_SHA }}"));
     assert!(x86.contains("name: Preserve the exact x86 batch as the proof gate"));
     assert!(x86.contains("if: always()\n        uses: actions/upload-artifact@v7"));
-}
-
-#[test]
-fn reconciliation_passes_exact_novel_proofs_into_internal_check_selection() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let reconciliation = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
-        .expect("read reconciliation workflow");
-    let check =
-        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
-    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
-        .expect("read product workflow");
-
-    assert!(reconciliation
-        .contains("execute_proofs: ${{ needs.resolve.outputs.check_execute_proofs }}"));
-    assert!(reconciliation
-        .contains("execute_proofs: ${{ needs.resolve.outputs.products_execute_proofs }}"));
-    assert!(check.contains("execute_proofs:\n"));
-    assert!(check.contains("ci execution-plan --proof-ids-json \"$EXECUTE_PROOFS\" --locked"));
-    assert!(check.contains(
-        "steps.execution.outputs.workspace_matrix || steps.impact.outputs.workspace_matrix"
-    ));
-    assert!(check.contains(
-        "steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix"
-    ));
-    assert!(check.contains(
-        "inputs.execute_proofs == '' || contains(inputs.execute_proofs, '\"conduitos.limine\"')"
-    ));
-    assert!(check.contains(
-        "inputs.execute_proofs == '' || contains(inputs.execute_proofs, '\"conduitos.tools\"')"
-    ));
-    assert!(products.contains("execute_proofs:\n"));
-    assert!(products
-        .contains("ci product-execution-plan --proof-ids-json \"$EXECUTE_PROOFS\" --locked"));
-    assert!(products.contains(
-        "inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)"
-    ));
-    assert!(products
-        .contains("Complete the exact Tour proposition without entering the carrier pipeline"));
-    assert!(products.contains("needs.plan.outputs.pages_carrier_required == 'true'"));
-    assert!(products.contains(
-        "exact_execution: ${{ inputs.development_admission || inputs.execute_proofs != '' }}"
-    ));
-    assert!(products.contains(
-        "inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)"
-    ));
-    assert!(products.contains(
-        "inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')"
-    ));
-    assert!(!products
-        .contains("steps.exact.outputs.pages_carrier_required || steps.slice.outputs.required"));
 }

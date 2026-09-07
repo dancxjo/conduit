@@ -27,14 +27,16 @@ export function validateBoundary(mode, environment) {
     requireExact(environment.CONDUIT_EVENT_NAME, "pull_request", "event");
     requireExact(environment.CONDUIT_BASE_REF, "main", "promotion base");
     requireExact(environment.CONDUIT_HEAD_REPOSITORY, environment.CONDUIT_REPOSITORY, "promotion repository");
-    requireCommitSha(environment.CONDUIT_HEAD_SHA, "promotion snapshot identity");
-    const expectedRef = `promote/${environment.CONDUIT_HEAD_SHA}`;
-    requireExact(environment.CONDUIT_HEAD_REF, expectedRef, "promotion snapshot ref");
+    const match = /^release\/([0-9a-f]{40})$/.exec(environment.CONDUIT_HEAD_REF || "");
+    if (!match) {
+      throw new Error(`promotion head must be release/<full-dev-sha>; received ${environment.CONDUIT_HEAD_REF || "<empty>"}`);
+    }
+    requireCommitSha(match[1], "captured development identity");
     return {
       mode,
       admission: "exhaustive",
-      source: "frozen-dev-snapshot",
-      snapshot: environment.CONDUIT_HEAD_SHA,
+      source: "repairable-release-branch",
+      snapshot: match[1],
       target: "main",
     };
   }
