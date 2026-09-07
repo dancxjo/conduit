@@ -80,6 +80,16 @@ jobs:
               --body "Automatically returns the accepted release fixes from \`$MERGE_SHA\` to development.")
           fi
           printf 'url=%s\n' "$pr_url" >> "$GITHUB_OUTPUT"
+          printf 'number=%s\n' "$(gh pr view "$pr_url" --json number --jq .number)" >> "$GITHUB_OUTPUT"
+          printf 'head_sha=%s\n' "$(gh pr view "$pr_url" --json headRefOid --jq .headRefOid)" >> "$GITHUB_OUTPUT"
+      - name: Monitor the trusted synchronization without relying on recursive events
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pull-request.outputs.number }}
+          HEAD_SHA: ${{ steps.pull-request.outputs.head_sha }}
+        run: >-
+          gh workflow run monitor-trusted-pr.yml --ref main
+          -f kind=sync -f pr_number="$PR_NUMBER" -f head_sha="$HEAD_SHA"
       - name: Summarize the development sync
         env:
           PR_URL: ${{ steps.pull-request.outputs.url }}
