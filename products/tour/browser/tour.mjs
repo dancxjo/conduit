@@ -189,8 +189,9 @@ function renderGallery() {
       patchbay.focus({ preventScroll: true });
     }
   });
-  selectLaboratoryStage(reviewedFormStage(gallery.forms[0]), []);
-  gallerySurface.select(gallery.forms[0].checked_form_id);
+  const initialForm = gallery.forms.find((form) => form.name === "morse_network") ?? gallery.forms[0];
+  selectLaboratoryStage(reviewedFormStage(initialForm), []);
+  gallerySurface.select(initialForm.checked_form_id);
   document.querySelector("#laboratory-slot").replaceChildren(laboratory);
   chapter.scrollTop = 0;
   gallerySurface.heading().focus({ preventScroll: true });
