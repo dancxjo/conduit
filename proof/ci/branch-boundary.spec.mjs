@@ -100,7 +100,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(devIntegration, /permissions:\n  actions: write/);
   assert.match(devIntegration, /Continue the release train after an explicitly dispatched integration/);
   assert.match(devIntegration, /if: github\.event_name == 'workflow_dispatch'/);
-  assert.match(devIntegration, /gh workflow run promote-dev\.yml --ref main/);
+  assert.match(devIntegration, /gh workflow run promote-dev\.yml --repo "\$GITHUB_REPOSITORY" --ref main/);
   const finalizer = readFileSync(".github/workflows/finalize-release.yml", "utf8");
   assert.match(finalizer, /types: \[completed\]/);
   assert.match(finalizer, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
