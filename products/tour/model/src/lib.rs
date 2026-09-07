@@ -10,9 +10,11 @@ use conduit_presentation::{
 };
 
 mod controller;
+mod gallery;
 mod layout;
 mod pointer;
 pub use controller::*;
+pub use gallery::*;
 pub use layout::*;
 pub use pointer::*;
 
