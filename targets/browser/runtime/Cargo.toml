@@ -24,6 +24,7 @@ conduit-language = { path = "../../../semantics/language" }
 conduit-net = { path = "../../../semantics/net", features = ["form-catalog"] }
 conduit-planner = { path = "../../../architecture/planner" }
 conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
+conduit-tour-model = { path = "../../../products/tour/model" }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false }
 conduit-signal = { path = "../../../semantics/signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../../proof/conformance/signal" }

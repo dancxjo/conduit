@@ -99,6 +99,7 @@ package_test_shard!(
         "conduit-composite",
         "conduit-pete",
         "conduit-tongues",
+        "conduit-tour-model",
         "patchbay-control",
         "conduit",
         "conduit-xtask-dispatch",
