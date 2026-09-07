@@ -107,6 +107,56 @@ fn selected_uf2_content_is_bound_before_spore_creation() {
 }
 
 #[test]
+fn reviewed_conduitos_description_is_retained_instead_of_reconstructed() {
+    use conduit_host_browser_fabrication::BrowserFabricationPackage;
+    use conduit_host_conduitos_fabrication::ConduitOsFabricationPackage;
+    use conduit_host_fabrication::{
+        build_host_image, BuildInputs, FabricationCatalog, FabricationPackageSet, HostProfile,
+    };
+    use conduit_linear_framebuffer_fabrication::LinearFramebufferFabricationExtension;
+
+    born();
+    let profile: HostProfile = serde_json::from_str(include_str!(
+        "../../../../conduitos/profiles/conduitos-native.profile.json"
+    ))
+    .unwrap();
+    let packages = FabricationPackageSet::compose(&[
+        &BrowserFabricationPackage,
+        &ConduitOsFabricationPackage,
+        &LinearFramebufferFabricationExtension,
+    ])
+    .unwrap();
+    let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let (image, bytes) = build_host_image(
+        profile,
+        &catalog,
+        &packages,
+        &SporeOutputKind::DiskImage,
+        &BuildInputs {
+            source_identity: "git:reviewed-product-head".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    let digest = format!("sha256:{}", "7".repeat(64));
+    let prepared = prepare_selected_for_target_with_image(
+        [24; 32],
+        7_500,
+        spore_target::CONDUITOS_X86_64_TARGET_ID,
+        &digest,
+        &bytes,
+    )
+    .unwrap();
+    assert_eq!(
+        prepared.spore_manifest.profile_id,
+        image.manifest.profile_id
+    );
+    assert_eq!(prepared.spore_manifest.build_id, image.manifest.build_id);
+    assert_eq!(prepared.image_id, image.manifest.image_id);
+    assert_eq!(prepared.image_content_digest, digest);
+}
+
+#[test]
 fn exact_esp32_targets_bind_in_c3_s3_wroom_order_without_family_widening() {
     let targets = [
         "esp32/riscv32imc/usb-dcf8355d-esp32-c3",
@@ -257,7 +307,9 @@ fn canonical_browser_join_crosses_the_creche_abi_with_bounded_receipts() {
     assert!(envelope.len() <= abi::conduit_creche_input_capacity());
     let before = session::current().unwrap().raw_membership;
     assert_eq!(
-        abi::conduit_creche_admit_physical_spore(abi::conduit_creche_input_capacity() + 1),
+        abi::spore_abi::conduit_creche_admit_physical_spore(
+            abi::conduit_creche_input_capacity() + 1
+        ),
         abi::ERROR_INPUT
     );
     assert_eq!(session::current().unwrap().raw_membership, before);
@@ -269,7 +321,10 @@ fn canonical_browser_join_crosses_the_creche_abi_with_bounded_receipts() {
             envelope.len(),
         );
     }
-    assert_eq!(abi::conduit_creche_admit_physical_spore(envelope.len()), 0);
+    assert_eq!(
+        abi::spore_abi::conduit_creche_admit_physical_spore(envelope.len()),
+        0
+    );
     // Output remains valid until the next ABI call on this thread.
     let output = unsafe {
         std::slice::from_raw_parts(

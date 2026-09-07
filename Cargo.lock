@@ -580,6 +580,7 @@ dependencies = [
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
+ "conduit-linear-framebuffer-fabrication",
  "conduit-net",
  "conduit-plan-lowering",
  "conduit-planner",

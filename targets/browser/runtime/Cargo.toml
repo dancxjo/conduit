@@ -40,6 +40,7 @@ conduit-host-orange-pi = { path = "../../orange-pi/fabrication" }
 conduit-host-browser-fabrication = { path = "../fabrication" }
 conduit-host-raspberry-pi = { path = "../../raspberry-pi/fabrication" }
 conduit-host-conduitos-fabrication = { path = "../../conduitos/fabrication" }
+conduit-linear-framebuffer-fabrication = { path = "../../../mechanisms/implementations/linear-framebuffer-fabrication" }
 ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
