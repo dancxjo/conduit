@@ -2,6 +2,16 @@ use std::fs;
 use std::path::PathBuf;
 
 #[test]
+fn explicit_dev_integration_dispatch_bootstraps_across_the_trusted_main_schema() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/dev-integration.yml"))
+        .expect("read development integration workflow");
+    assert!(workflow.contains("contents/.github/workflows/promote-dev.yml?ref=main"));
+    assert!(workflow.contains("grep -q 'integrated_sha:'"));
+    assert!(workflow.contains("workflow_run trigger owns this completed integration"));
+}
+
+#[test]
 fn required_check_waits_for_every_selectable_proof_aggregate() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow =
