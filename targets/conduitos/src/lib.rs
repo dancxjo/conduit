@@ -96,6 +96,8 @@ pub mod planned_kernel;
 pub mod pointer_offer;
 #[path = "presentation_nucleus/offers.rs"]
 mod presentation_offers;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod usb_line_offer;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
 #[cfg(any(
