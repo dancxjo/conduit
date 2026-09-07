@@ -22,6 +22,7 @@ mod pointer;
 pub(crate) mod pointer_selector;
 mod presentation;
 mod pulse_observation;
+mod pulse_presentation;
 mod quantity;
 mod quantity_output;
 pub(crate) mod record_delivery;

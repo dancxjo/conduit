@@ -49,10 +49,7 @@ fn prepare(
 ) -> Result<super::BrowserOperation, String> {
     let installed = offer();
     super::factory::validate_placement(placement, &installed)?;
-    if placement.limits != installed.limits
-        || !placement.resources.is_empty()
-        || !placement.authority.is_empty()
-    {
+    if !placement.resources.is_empty() || !placement.authority.is_empty() {
         return Err("pulse observation admission differs from installation".into());
     }
     let configuration =

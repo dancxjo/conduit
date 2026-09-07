@@ -1,0 +1,21 @@
+# A finite local pulse path for the Firefly Choir proving composition. Peer
+# exchange and phase following extend this Form through ordinary Lines; they
+# are not hidden inside this browser-independent authored meaning.
+form firefly-choir {
+    clock: time/every(240ms)
+    observe: pulse-manifestation
+
+    clock > observe.tick
+}
+
+# Reusable pulse-to-presentation composition. A Host may realize the
+# manifestation as light, sound, or another exact admitted presentation.
+form pulse-manifestation (
+    > tick: value/tick@1...|
+) {
+    observe: time/pulse-observe(period-ms = 240, maximum-pulses = 4)
+    manifest: presentation/pulse(maximum-values = 4)
+
+    tick > observe.tick
+    observe.observation > manifest.pulse
+}
