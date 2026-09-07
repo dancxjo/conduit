@@ -32,6 +32,27 @@ function startLearnedServer() {
   return { child, lines, url };
 }
 
+async function openRelatedSubjects(page) {
+  const disclosure = page.locator("details:has(#subjects)");
+  if (!(await disclosure.evaluate(element => element.open))) {
+    await disclosure.locator("summary").click();
+  }
+}
+
+async function openInspector(page) {
+  const toggle = page.locator("#toggle-inspector");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+}
+
+async function selectSubject(page, subject) {
+  await openRelatedSubjects(page);
+  await page.locator(`#subjects input[type="radio"][data-subject="${subject}"]`).click();
+  await openInspector(page);
+  await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(subject);
+}
+
 test("the real Patchbay shows one bounded Tongues system across signals, belief, state, loss, and dynamics", async ({ page }) => {
   const server = startLearnedServer();
   try {
@@ -94,7 +115,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     await expect(page.locator('script[src="/assets/app.js"]')).toHaveCount(0);
     await expect(page.locator('[data-application-slot="product-masthead"]')).toHaveAttribute("data-application-revision", /^\d+$/);
     await expect(page.locator('[data-application-key="product-status"]')).toContainText("Presentation revision");
-    await page.locator("#toggle-palette").click();
+    await openRelatedSubjects(page);
     const subject = page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`);
     await subject.focus();
     await subject.press("Space");
@@ -116,9 +137,9 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     const afterReload = await (await fetch(`${url}/api/snapshot`)).json();
     expect(afterReload.watches.watches.map(item => item.subject)).toEqual([cord]);
-    await page.locator("#toggle-palette").click();
+    await openRelatedSubjects(page);
     await expect(page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`)).toBeChecked();
-    await page.locator("#toggle-inspector").click();
+    await openInspector(page);
     await expect(page.getByRole("button", { name: `Watch ${cord}`, exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Clear Watch history", exact: true }).click();
@@ -143,8 +164,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(url);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
-    await page.locator("#toggle-palette").click();
-    await page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`).click();
+    await selectSubject(page, cord);
     await page.getByRole("button", { name: "Watch", exact: true }).click();
 
     await expect(page.locator(".timeline-status")).toContainText("Following live observations");
@@ -160,9 +180,10 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
 
     await page.locator(".timeline-events button").filter({ hasText: "seq 41" }).click();
     await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(port);
-    await page.locator("#toggle-palette").click();
-    await page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`).click();
+    await selectSubject(page, cord);
     await page.getByRole("button", { name: "Focus events for exact subject" }).click();
+    await expect(page.locator(".timeline-events")).toContainText("seq 39");
+    await expect(page.locator(".timeline-events")).toContainText("seq 42");
     await expect(page.locator('.timeline-events [data-application-component="artifact"]')).toHaveCount(2);
     await page.getByRole("button", { name: "Show all events" }).click();
     await expect(page.locator('.timeline-events [data-application-component="artifact"]')).toHaveCount(4);
@@ -187,8 +208,7 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(url);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
-    await page.locator("#toggle-palette").click();
-    await page.locator(`#subjects input[type="radio"][data-subject="${gear}"]`).click();
+    await selectSubject(page, gear);
     await page.getByRole("button", { name: "Watch", exact: true }).click();
     await page.getByRole("button", { name: "Break here", exact: true }).click();
     await expect(page.locator(".control-status")).toContainText("Execution actually suspended");
