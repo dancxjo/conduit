@@ -7,7 +7,7 @@ fn pci_coordinates_are_exact() {
 
 #[test]
 fn admitted_limits_do_not_follow_hardware_maxima() {
-    assert_eq!(ADMITTED_DEVICE_SLOTS, 1);
+    assert_eq!(ADMITTED_DEVICE_SLOTS, 3);
     assert_eq!(MAX_PENDING_COMMANDS, 1);
 }
 
@@ -16,6 +16,7 @@ fn dma_shape_is_fixed_and_aligned() {
     assert_eq!(core::mem::align_of::<DmaStorage>(), 64);
     assert_eq!(core::mem::size_of::<DmaStorage>(), 640);
     assert_eq!(core::mem::offset_of!(DmaStorage, dcbaa) % 64, 0);
+    assert_eq!(core::mem::size_of::<[u64; DCBAA_ENTRIES]>(), 32);
     assert_eq!(core::mem::offset_of!(DmaStorage, command_ring) % 64, 0);
     assert_eq!(core::mem::offset_of!(DmaStorage, event_ring) % 64, 0);
     assert_eq!(core::mem::offset_of!(DmaStorage, erst) % 64, 0);
@@ -61,6 +62,7 @@ fn all_refusals_remain_machine_readable() {
         XhciError::WrongClass,
         XhciError::InvalidBar,
         XhciError::InvalidLayout,
+        XhciError::InsufficientDeviceSlots,
         XhciError::UnsupportedPageSize,
         XhciError::ScratchpadsUnsupported,
         XhciError::ResetTimeout,
