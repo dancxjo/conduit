@@ -123,7 +123,7 @@ fn offer(profiles: Vec<LocalModelKindProfile>) -> LocalModelOffer {
             work: LlmWorkBounds {
                 maximum_input_bytes: 4_096,
                 maximum_context_items: 1,
-                maximum_output_bytes: 1_024,
+                maximum_output_bytes: 4_096,
                 maximum_work_units: 4_096,
                 maximum_history_items: 0,
             },
@@ -324,7 +324,7 @@ fn plan_and_play(profile: LocalModelKindProfile) {
         contract.outputs[0].value_kind.as_str(),
     );
     let source = format!(
-        "form run {{\n source: conduit-test/local-model-request\n model: {}(4096, 1, 1024, 4096, 0)\n sink: conduit-test/local-model-result\n source.value > model.request\n model.result > sink.value\n}}\n",
+        "form run {{\n source: conduit-test/local-model-request\n model: {}(4096, 1, 4096, 4096, 0)\n sink: conduit-test/local-model-result\n source.value > model.request\n model.result > sink.value\n}}\n",
         profile.kind()
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
