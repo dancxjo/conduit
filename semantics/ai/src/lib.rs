@@ -19,6 +19,8 @@ pub use embodiment::*;
 mod effect_runtime;
 mod grounded_answer;
 pub use grounded_answer::*;
+mod house_context;
+pub use house_context::*;
 mod grounded_answer_contract;
 pub use grounded_answer_contract::*;
 mod llm_contract;
