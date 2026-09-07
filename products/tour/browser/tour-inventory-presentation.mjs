@@ -18,6 +18,7 @@ export function readReviewedGallery(api) {
   for (const form of projected.forms) {
     if (typeof form?.name !== "string" || typeof form.title !== "string" || typeof form.source !== "string"
       || typeof form.source_document_id !== "string" || typeof form.checked_form_id !== "string"
+      || !Number.isInteger(form.presentation_profile) || form.presentation_profile < 0 || form.presentation_profile > 3
       || !Array.isArray(form.required_kinds)
       || !Number.isSafeInteger(form.realizability?.current_offer_count)
       || form.realizability?.required_kind_count !== form.required_kinds.length
@@ -41,6 +42,7 @@ export function reviewedFormStage(form) {
     showPlan: false,
     sourceDocumentId: form.source_document_id,
     checkedFormId: form.checked_form_id,
+    outputProfile: form.presentation_profile,
   });
 }
 
