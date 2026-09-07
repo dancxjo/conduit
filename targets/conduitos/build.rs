@@ -16,6 +16,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=CONDUITOS_BUILD_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_FABRICATION_RECORD");
+    generate_unifont_subset();
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"))
         .join("fabrication_record.rs");
     if let Some(source) = env::var_os("CONDUITOS_FABRICATION_RECORD") {
@@ -118,4 +119,58 @@ fn main() {
             "cargo:rustc-link-arg-bin=conduitos-armv6-rpi-b-plus-a3=-T{manifest}/proof/appliances/armv6-rpi-b-plus/linker/a3.ld"
         );
     }
+}
+
+fn generate_unifont_subset() {
+    use std::fmt::Write as _;
+    use std::{env, fs, path::PathBuf};
+
+    const SOURCE: &str =
+        "../../products/patchbay/native/assets/unifont/unifont-17.0.04-patchbay.hex";
+    println!("cargo:rerun-if-changed={SOURCE}");
+    let source = fs::read_to_string(SOURCE).expect("read pinned GNU Unifont subset");
+    let mut generated = String::from("static GLYPHS: &[GlyphRecord] = &[\n");
+    let mut count = 0_usize;
+    let mut previous = None;
+    for (line_index, line) in source.lines().enumerate() {
+        let (codepoint, bitmap) = line
+            .split_once(':')
+            .unwrap_or_else(|| panic!("{SOURCE}:{}: missing ':'", line_index + 1));
+        let codepoint =
+            u32::from_str_radix(codepoint, 16).expect("Unifont subset has valid codepoints");
+        assert!(
+            previous.is_none_or(|value| codepoint > value),
+            "{SOURCE}:{}: glyphs must be sorted and unique",
+            line_index + 1
+        );
+        previous = Some(codepoint);
+        assert!(
+            bitmap.len() == 32 || bitmap.len() == 64,
+            "{SOURCE}:{}: admitted glyph must be 8x16 or 16x16",
+            line_index + 1
+        );
+        let width = bitmap.len() / 4;
+        write!(
+            generated,
+            "GlyphRecord {{ codepoint: 0x{codepoint:04X}, width: {width}, bitmap: ["
+        )
+        .unwrap();
+        let mut bytes = 0_usize;
+        for pair in bitmap.as_bytes().as_chunks::<2>().0 {
+            let pair = std::str::from_utf8(pair).expect("Unifont bitmap is ASCII");
+            let byte = u8::from_str_radix(pair, 16).expect("Unifont bitmap is hexadecimal");
+            write!(generated, "0x{byte:02X},").unwrap();
+            bytes += 1;
+        }
+        for _ in bytes..32 {
+            generated.push_str("0x00,");
+        }
+        generated.push_str("] },\n");
+        count += 1;
+    }
+    assert_eq!(count, 929, "the pinned Unifont subset must be exact");
+    generated.push_str("];\n");
+    let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"));
+    fs::write(output.join("conduitos_unifont_subset.rs"), generated)
+        .expect("write fixed ConduitOS Unifont table");
 }
