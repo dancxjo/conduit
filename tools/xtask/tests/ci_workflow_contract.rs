@@ -321,7 +321,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
         );
     }
     assert!(products.contains(
-        "if: always() && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true'"
+        "if: always() && !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true'"
     ));
 }
 
@@ -380,9 +380,10 @@ fn product_descendants_use_explicit_direct_result_admission() {
         .and_then(|tail| tail.split("\n  products-proof:\n").next())
         .expect("locate Pages carrier job");
 
-    assert!(browser.contains("if: always() && needs.products-stage.result == 'success'"));
+    assert!(browser
+        .contains("if: always() && !cancelled() && needs.products-stage.result == 'success'"));
     assert!(carrier.contains(
-        "if: always() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'"
+        "if: always() && !cancelled() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'"
     ));
 }
 
