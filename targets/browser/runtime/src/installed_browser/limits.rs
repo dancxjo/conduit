@@ -8,9 +8,9 @@ pub(crate) const MAXIMUM_BROWSER_VALUE_BYTES: usize = 4_096;
 pub(crate) const BROWSER_PORTS_PER_GEAR: usize =
     conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 pub(crate) const BROWSER_QUEUE_SLOTS: usize = 96;
-pub(crate) const BROWSER_ROUTE_SLOTS: usize = MAXIMUM_BROWSER_GEARS * BROWSER_PORTS_PER_GEAR;
+pub(crate) const BROWSER_ROUTE_SLOTS: usize = 96;
 pub(crate) const BROWSER_ROUTE_TARGETS: usize = 96;
-pub(crate) const BROWSER_HOST_OPERATIONS_PER_GEAR: u16 = 2;
+pub(crate) const BROWSER_HOST_OPERATIONS_PER_GEAR: u16 = 3;
 pub(crate) const BROWSER_HOST_OPERATION_BINDINGS: usize =
     MAXIMUM_BROWSER_GEARS * BROWSER_HOST_OPERATIONS_PER_GEAR as usize;
 pub(crate) const BROWSER_PENDING_REQUESTS: usize = MAXIMUM_BROWSER_GEARS;

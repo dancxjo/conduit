@@ -13,7 +13,7 @@ pub const MAX_INGRESS_REFUSALS: usize = 16;
 // The installed browser membership profile has 81 offers and encodes to about 80 KiB before
 // transport framing. Keep a finite bound that admits that real catalog plus its
 // framing, instead of silently hiding installed capabilities at membership.
-pub const MAX_CANDIDATE_ADVERTISEMENT_BYTES: u32 = 96 * 1024;
+pub const MAX_CANDIDATE_ADVERTISEMENT_BYTES: u32 = 100 * 1024;
 pub const MAX_CANDIDATE_TOTAL_BYTES: u32 = 4 * MAX_CANDIDATE_ADVERTISEMENT_BYTES;
 pub const MAX_CANDIDATE_LABEL_BYTES: usize = 128;
 pub const MAX_CANDIDATE_RESOURCES: usize = 32;

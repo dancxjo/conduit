@@ -56,13 +56,13 @@ pub fn install_signal_garden_catalog(
     profile
         .insert(garden_minimal_step_definition())
         .map_err(|error| error.to_string())?;
-    insert_kind(
-        startup,
-        profile,
-        GARDEN_ENRICHED_STEP_KIND,
-        reducer_inputs(true),
-        vec![port("next", &garden_state_type(), PortDirection::Output)],
-    )
+    startup.insert(KindSignature {
+        kind: GARDEN_ENRICHED_STEP_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(garden_enriched_step_definition())
+        .map_err(|error| error.to_string())
 }
 
 pub fn garden_minimal_step_definition() -> KindDefinition {
@@ -70,6 +70,16 @@ pub fn garden_minimal_step_definition() -> KindDefinition {
         kind_id: kind_id(GARDEN_MINIMAL_STEP_KIND),
         kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
         inputs: reducer_inputs(false),
+        outputs: vec![port("next", &garden_state_type(), PortDirection::Output)],
+        configuration: vec![],
+    }
+}
+
+pub fn garden_enriched_step_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(GARDEN_ENRICHED_STEP_KIND),
+        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        inputs: reducer_inputs(true),
         outputs: vec![port("next", &garden_state_type(), PortDirection::Output)],
         configuration: vec![],
     }

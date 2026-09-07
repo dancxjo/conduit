@@ -106,6 +106,17 @@ pub fn garden_clock_observation_value(
     )
 }
 
+pub fn garden_contact_observation_value(
+    observation: GardenContactObservation,
+) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
+    validate_scalar(observation.intensity)
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    StructuredInfoValue::record(
+        garden_contact_observation_type(),
+        vec![scalar_field("intensity", observation.intensity)?],
+    )
+}
+
 pub fn decode_garden_state(encoded: &[u8]) -> Result<GardenState, GardenEvolutionRefusal> {
     let value = StructuredInfoValue::from_canonical_bytes(encoded)
         .map_err(|_| GardenEvolutionRefusal::MalformedState)?;
@@ -139,6 +150,20 @@ pub fn decode_garden_clock_observation(
         .map_err(|_| GardenEvolutionRefusal::MalformedClockObservation)?;
     validate_scalar(phase).map_err(|_| GardenEvolutionRefusal::MalformedClockObservation)?;
     Ok(GardenClockObservation { phase })
+}
+
+pub fn decode_garden_contact_observation(
+    encoded: &[u8],
+) -> Result<GardenContactObservation, GardenEvolutionRefusal> {
+    let value = StructuredInfoValue::from_canonical_bytes(encoded)
+        .map_err(|_| GardenEvolutionRefusal::MalformedContactObservation)?;
+    if value.value_type() != &garden_contact_observation_type() {
+        return Err(GardenEvolutionRefusal::MalformedContactObservation);
+    }
+    let intensity = scalar_record_field(&value, "intensity")
+        .map_err(|_| GardenEvolutionRefusal::MalformedContactObservation)?;
+    validate_scalar(intensity).map_err(|_| GardenEvolutionRefusal::MalformedContactObservation)?;
+    Ok(GardenContactObservation { intensity })
 }
 
 fn scalar_field(name: &str, value: Scalar) -> Result<StructuredFieldValue, StructuredInfoRefusal> {
@@ -300,9 +325,20 @@ mod tests {
             .unwrap()
             .canonical_bytes()
             .unwrap();
+        let contact = GardenContactObservation {
+            intensity: Scalar::from_raw_microunits(300_000),
+        };
+        let encoded_contact = garden_contact_observation_value(contact)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
 
         assert_eq!(decode_garden_state(&encoded_state), Ok(prior));
         assert_eq!(decode_garden_clock_observation(&encoded_clock), Ok(clock));
+        assert_eq!(
+            decode_garden_contact_observation(&encoded_contact),
+            Ok(contact)
+        );
         assert_eq!(
             decode_garden_state(&encoded_clock),
             Err(GardenEvolutionRefusal::MalformedState)

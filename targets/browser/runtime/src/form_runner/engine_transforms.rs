@@ -433,7 +433,10 @@ pub(in crate::form_runner) fn complete_transform(
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if crate::installed_browser::garden_step::OPERATIONS.contains(&operation.contract_id.as_str()) {
+    if crate::installed_browser::garden_step::OPERATIONS.contains(&operation.contract_id.as_str())
+        || crate::installed_browser::garden_step::CONTACT_OPERATIONS
+            .contains(&operation.contract_id.as_str())
+    {
         let input = scheduler
             .kernel
             .host_value(request.input.value)
