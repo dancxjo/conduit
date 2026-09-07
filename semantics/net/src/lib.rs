@@ -18,6 +18,8 @@ mod external_websocket;
 pub use external_websocket::*;
 mod typed_record;
 pub use typed_record::*;
+mod text_record;
+pub use text_record::*;
 mod ordered_record_queue;
 pub use ordered_record_queue::*;
 mod record_transcript;
