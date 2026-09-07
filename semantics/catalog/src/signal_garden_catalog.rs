@@ -49,13 +49,13 @@ pub fn install_signal_garden_catalog(
             ),
         ],
     )?;
-    insert_kind(
-        startup,
-        profile,
-        GARDEN_MINIMAL_STEP_KIND,
-        reducer_inputs(false),
-        vec![port("next", &garden_state_type(), PortDirection::Output)],
-    )?;
+    startup.insert(KindSignature {
+        kind: GARDEN_MINIMAL_STEP_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(garden_minimal_step_definition())
+        .map_err(|error| error.to_string())?;
     insert_kind(
         startup,
         profile,
@@ -63,6 +63,16 @@ pub fn install_signal_garden_catalog(
         reducer_inputs(true),
         vec![port("next", &garden_state_type(), PortDirection::Output)],
     )
+}
+
+pub fn garden_minimal_step_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(GARDEN_MINIMAL_STEP_KIND),
+        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        inputs: reducer_inputs(false),
+        outputs: vec![port("next", &garden_state_type(), PortDirection::Output)],
+        configuration: vec![],
+    }
 }
 
 fn reducer_inputs(enriched: bool) -> Vec<PortDescriptor> {

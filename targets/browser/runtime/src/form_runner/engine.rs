@@ -75,6 +75,8 @@ pub(super) struct TourScheduler {
     measurement_hysteresis: [Option<
         Box<crate::installed_browser::measurement_hysteresis::PreparedHysteresis>,
     >; MAXIMUM_BROWSER_GEARS],
+    garden_steps: [Option<Box<crate::installed_browser::garden_step::PreparedGardenStep>>;
+        MAXIMUM_BROWSER_GEARS],
 }
 
 impl core::ops::Deref for TourScheduler {

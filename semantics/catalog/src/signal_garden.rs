@@ -1,7 +1,10 @@
 //! Finite, deterministic observation-driven state for Signal Garden compositions.
 
-use alloc::{vec, vec::Vec};
-use conduit_core::{kind_id, Scalar, StructuredFieldType, StructuredInfoType, SCALAR_INFO_ID};
+use alloc::{string::ToString, vec, vec::Vec};
+use conduit_core::{
+    kind_id, Scalar, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal,
+    StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape, SCALAR_INFO_ID,
+};
 
 pub const GARDEN_STATE_TYPE: &str = "GardenState";
 pub const GARDEN_CLOCK_OBSERVATION_TYPE: &str = "GardenClockObservation";
@@ -76,6 +79,105 @@ pub fn evolve_garden_enriched(
         .min(Scalar::SCALE);
     next.vitality = Scalar::from_raw_microunits(boosted);
     Ok(next)
+}
+
+pub fn garden_state_value(
+    state: GardenState,
+) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
+    validate_state(state).map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    StructuredInfoValue::record(
+        garden_state_type(),
+        vec![
+            scalar_field("activity", state.activity)?,
+            count_field("step", u64::from(state.step))?,
+            scalar_field("vitality", state.vitality)?,
+        ],
+    )
+}
+
+pub fn garden_clock_observation_value(
+    observation: GardenClockObservation,
+) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
+    validate_scalar(observation.phase)
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    StructuredInfoValue::record(
+        garden_clock_observation_type(),
+        vec![scalar_field("phase", observation.phase)?],
+    )
+}
+
+pub fn decode_garden_state(encoded: &[u8]) -> Result<GardenState, GardenEvolutionRefusal> {
+    let value = StructuredInfoValue::from_canonical_bytes(encoded)
+        .map_err(|_| GardenEvolutionRefusal::MalformedState)?;
+    if value.value_type() != &garden_state_type() {
+        return Err(GardenEvolutionRefusal::MalformedState);
+    }
+    let state = GardenState {
+        activity: scalar_record_field(&value, "activity")
+            .map_err(|_| GardenEvolutionRefusal::MalformedState)?,
+        step: u16::try_from(
+            count_record_field(&value, "step")
+                .map_err(|_| GardenEvolutionRefusal::MalformedState)?,
+        )
+        .map_err(|_| GardenEvolutionRefusal::MalformedState)?,
+        vitality: scalar_record_field(&value, "vitality")
+            .map_err(|_| GardenEvolutionRefusal::MalformedState)?,
+    };
+    validate_state(state)?;
+    Ok(state)
+}
+
+pub fn decode_garden_clock_observation(
+    encoded: &[u8],
+) -> Result<GardenClockObservation, GardenEvolutionRefusal> {
+    let value = StructuredInfoValue::from_canonical_bytes(encoded)
+        .map_err(|_| GardenEvolutionRefusal::MalformedClockObservation)?;
+    if value.value_type() != &garden_clock_observation_type() {
+        return Err(GardenEvolutionRefusal::MalformedClockObservation);
+    }
+    let phase = scalar_record_field(&value, "phase")
+        .map_err(|_| GardenEvolutionRefusal::MalformedClockObservation)?;
+    validate_scalar(phase).map_err(|_| GardenEvolutionRefusal::MalformedClockObservation)?;
+    Ok(GardenClockObservation { phase })
+}
+
+fn scalar_field(name: &str, value: Scalar) -> Result<StructuredFieldValue, StructuredInfoRefusal> {
+    StructuredFieldValue::new(
+        name,
+        StructuredInfoValue::leaf(
+            leaf(SCALAR_INFO_ID),
+            value.raw_microunits().to_string().into_bytes(),
+        )?,
+    )
+}
+
+fn count_field(name: &str, value: u64) -> Result<StructuredFieldValue, StructuredInfoRefusal> {
+    StructuredFieldValue::new(
+        name,
+        StructuredInfoValue::leaf(leaf("value/count@1"), value.to_string().into_bytes())?,
+    )
+}
+
+fn scalar_record_field(value: &StructuredInfoValue, name: &str) -> Result<Scalar, ()> {
+    let raw = record_leaf_text(value, name)?
+        .parse::<i64>()
+        .map_err(|_| ())?;
+    Ok(Scalar::from_raw_microunits(raw))
+}
+
+fn count_record_field(value: &StructuredInfoValue, name: &str) -> Result<u64, ()> {
+    record_leaf_text(value, name)?.parse().map_err(|_| ())
+}
+
+fn record_leaf_text<'a>(value: &'a StructuredInfoValue, name: &str) -> Result<&'a str, ()> {
+    let StructuredInfoValueShape::Record(fields) = value.shape() else {
+        return Err(());
+    };
+    let field = fields.iter().find(|field| field.name() == name).ok_or(())?;
+    let StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
+        return Err(());
+    };
+    core::str::from_utf8(bytes).map_err(|_| ())
 }
 
 fn validate_state(state: GardenState) -> Result<(), GardenEvolutionRefusal> {
@@ -182,6 +284,29 @@ mod tests {
         assert_eq!(enriched.vitality.raw_microunits(), 600_000);
         assert_eq!(enriched.activity, minimal.activity);
         assert_eq!(enriched.step, minimal.step);
+    }
+
+    #[test]
+    fn canonical_state_and_clock_values_round_trip_with_exact_types() {
+        let prior = state(3);
+        let clock = GardenClockObservation {
+            phase: Scalar::from_raw_microunits(700_000),
+        };
+        let encoded_state = garden_state_value(prior)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        let encoded_clock = garden_clock_observation_value(clock)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+
+        assert_eq!(decode_garden_state(&encoded_state), Ok(prior));
+        assert_eq!(decode_garden_clock_observation(&encoded_clock), Ok(clock));
+        assert_eq!(
+            decode_garden_state(&encoded_clock),
+            Err(GardenEvolutionRefusal::MalformedState)
+        );
     }
 
     #[test]
