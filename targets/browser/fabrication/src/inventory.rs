@@ -114,7 +114,7 @@ pub const BROWSER_HUMAN_PRESENTATION_REALIZATIONS: &[BrowserRealizationDescripto
         "browser/dom-indicator@2",
         "conduit-browser-runtime/installed-presentation@1",
         "conduit.host/browser-present-indicator@1",
-        limits(1, 1, 4_096),
+        limits(1, 4, 4_096),
     ),
     realization(
         "browser/dom-presentation@1",
