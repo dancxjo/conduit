@@ -149,8 +149,11 @@ function setupTourModes() {
   const guided = document.querySelector('button[data-tour-mode="guided"]');
   const galleryButton = document.querySelector('button[data-tour-mode="gallery"]');
   if (!guided || !galleryButton) throw new Error("Tour entrances are incomplete");
-  guided.addEventListener("click", () => renderPage(currentPage).catch(showTourFailure));
-  galleryButton.addEventListener("click", () => renderGallery());
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-tour-mode]");
+    if (button?.dataset.tourMode === "guided") renderPage(currentPage).catch(showTourFailure);
+    else if (button?.dataset.tourMode === "gallery") renderGallery();
+  });
 }
 
 function setTourMode(mode) {

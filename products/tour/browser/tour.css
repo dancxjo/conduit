@@ -78,6 +78,12 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
 .birth-editor .select-field { position: relative; min-width: 0; }
 .birth-editor .select-field::after { content: ""; position: absolute; right: .9rem; top: 50%; width: .5rem; height: .5rem; border-right: 2px solid #c9d7cf; border-bottom: 2px solid #c9d7cf; transform: translateY(-65%) rotate(45deg); pointer-events: none; }
 .birth-editor .select-field select { appearance: none; padding-right: 2.6rem; }
+.structured-output-profile {
+  background-image: linear-gradient(45deg, transparent 50%, var(--amber) 50%), linear-gradient(135deg, var(--amber) 50%, transparent 50%);
+  background-position: calc(100% - 1rem) 50%, calc(100% - .7rem) 50%;
+  background-size: .36rem .36rem, .36rem .36rem;
+  background-repeat: no-repeat;
+}
 .birth-editor .form-source { position: relative; clear: both; width: 100%; min-width: 0; margin: 0; border: 1px solid #52655b; border-radius: .65rem; overflow: hidden; color: #c9d7cf; }
 .birth-editor .form-source summary { padding: .8rem; cursor: pointer; }
 .birth-editor .form-source .editor-label { display: block; padding: 0 .8rem; }
