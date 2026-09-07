@@ -43,6 +43,7 @@ mod midi_input_operation;
 mod midi_output_operation;
 mod model_host;
 mod model_text_operation;
+mod morse_operations;
 mod operation;
 mod operation_cancellation;
 mod operation_capacity;
@@ -352,6 +353,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         conduit_std_offers::TEXT_JOIN_HOST_OPERATION_CONTRACT,
     );
     let join_target_kind = kind_id(conduit_std_offers::TEXT_JOIN_HOST_OPERATION_TARGET);
+    let morse_contract_id = conduit_core::HostOperationContractId::from(
+        conduit_std_offers::TEXT_MORSE_HOST_OPERATION_CONTRACT,
+    );
+    let morse_target_kind = kind_id(conduit_std_offers::TEXT_MORSE_HOST_OPERATION_TARGET);
     let gate_bool_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_offers::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT,
     );
@@ -365,7 +370,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut math_host = math_host::MathHost::prepare(fragment)?;
     let presentation_construction =
         presentation_construction_host::PresentationConstructionHost::prepare();
-    let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
+    let mut text_output_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     let mut input_keymaps = [conduit_human::ConduitIntlKeymap::new(); MAX_NODES];
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
@@ -1782,9 +1787,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             } else if contract == &upper_contract_id
                 && lowered_operation.target_kind.as_ref() == Some(&upper_target_kind)
             {
-                text_operations::uppercase_utf8(input, &mut uppercase_buffer)?;
+                text_operations::uppercase_utf8(input, &mut text_output_buffer)?;
                 let value = scheduler
-                    .store_host_value(&uppercase_buffer)
+                    .store_host_value(&text_output_buffer)
                     .map_err(|error| format!("store uppercase text output: {error:?}"))?;
                 requests.push(request);
                 scheduler
@@ -1803,9 +1808,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .get(usize::from(request.node.0))
                     .ok_or_else(|| "text/join request has no exact placement".to_string())?;
                 let prefix = text_operations::join_prefix(placement)?;
-                text_operations::prefix_utf8(prefix, input, &mut uppercase_buffer)?;
+                text_operations::prefix_utf8(prefix, input, &mut text_output_buffer)?;
                 let value = scheduler
-                    .store_host_value(&uppercase_buffer)
+                    .store_host_value(&text_output_buffer)
                     .map_err(|error| format!("store joined text output: {error:?}"))?;
                 requests.push(request);
                 scheduler
@@ -1815,6 +1820,26 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         text_operations::completed_with_output(value),
                     )
                     .map_err(|error| format!("complete text/join host operation: {error:?}"))?;
+                continue;
+            } else if contract == &morse_contract_id
+                && lowered_operation.target_kind.as_ref() == Some(&morse_target_kind)
+            {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or_else(|| "text/morse request has no exact placement".to_string())?;
+                morse_operations::encode(placement, input, &mut text_output_buffer)?;
+                let value = scheduler
+                    .store_host_value(&text_output_buffer)
+                    .map_err(|error| format!("store Morse pattern output: {error:?}"))?;
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        morse_operations::completed_with_output(value),
+                    )
+                    .map_err(|error| format!("complete text/morse host operation: {error:?}"))?;
                 continue;
             } else if contract == &gate_bool_contract_id
                 && lowered_operation.target_kind.as_ref() == Some(&gate_bool_target_kind)

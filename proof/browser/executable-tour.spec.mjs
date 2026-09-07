@@ -931,6 +931,17 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(page.locator(".runner")).toHaveCount(1);
   await expect(page.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
 
+  const laboratory = page.locator(".tour-workbench");
+  const morse = cards.filter({ has: page.getByRole("heading", { name: "Morse Network" }) });
+  const canonicalMorse = await readFile(new URL("../../forms/morse-network/main.conduit", import.meta.url), "utf8");
+  await expect(laboratory.locator("textarea")).toHaveValue(canonicalMorse);
+  await expect(laboratory.locator(".compact-patchbay")).toContainText("text/morse");
+  await expect(laboratory.locator(".compact-patchbay")).toContainText("presentation/indicator");
+  await morse.getByRole("button", { name: "Open in laboratory" }).click();
+  await laboratory.getByRole("button", { name: "Run" }).click();
+  await expect(laboratory.locator(".morse")).toHaveText("··· ——— ···");
+  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
+
   const search = page.getByRole("textbox", { name: "Search reviewed Forms" });
   await search.fill("memory presentation/text");
   await expect(cards).toHaveCount(1);
@@ -942,7 +953,6 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   const memory = cards.filter({ has: page.getByRole("heading", { name: "Memory Lantern" }) });
   const reviewedIdentity = await memory.locator("code").textContent();
   await memory.getByRole("button", { name: "Inspect Patchbay" }).click();
-  const laboratory = page.locator(".tour-workbench");
   await expect(laboratory).toHaveAttribute("data-specimen-id", reviewedIdentity);
   await expect(memory.getByRole("status").filter({ hasText: "Selected" })).toBeVisible();
   await expect(cards.first().getByRole("status")).not.toContainText("Selected");

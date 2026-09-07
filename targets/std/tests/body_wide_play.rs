@@ -105,6 +105,10 @@ fn canonical_constituent(
     let mut profiles = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)
         .expect("the installed text pipeline catalogs are disjoint");
+    conduit_text::install_morse_catalogs(&mut startup, &mut profiles)
+        .expect("the installed Morse catalogs are disjoint");
+    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)
+        .expect("the installed indicator catalog is disjoint");
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profiles)
         .expect("the installed typed-record catalogs are disjoint");
     conduit_net::install_record_temporal_catalogs(&mut startup, &mut profiles)

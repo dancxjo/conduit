@@ -32,6 +32,17 @@ pub(super) fn present<W: Write>(
         Some(conduit_std_offers::BOOL_PRESENTATION_TARGET) => {
             super::bool_presentation::present_stdout(output, input)?;
         }
+        Some(conduit_std_offers::INDICATOR_PRESENTATION_TARGET) => {
+            let pattern = conduit_text::MorsePattern::decode(input)
+                .map_err(|error| format!("decode indicator Morse pattern: {error:?}"))?;
+            writeln!(
+                output,
+                "indicator unit-ms={} segments={}",
+                pattern.unit_millis,
+                pattern.segments.len()
+            )
+            .map_err(|error| error.to_string())?;
+        }
         _ => return Ok(false),
     }
     Ok(true)
