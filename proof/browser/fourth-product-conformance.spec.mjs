@@ -328,7 +328,7 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
     const entrance = await start();
     try {
       await page.goto(entrance.url);
-      if (name === "Patchbay") await page.getByRole("button", { name: "Exact truth", exact: true }).click();
+      if (name === "Patchbay") await page.getByText("Advanced evidence and linear presentation", { exact: true }).click();
       try { await expectSharedComponents(page, components); }
       catch (error) { throw new Error(`${name}: ${error.message}`); }
       const masthead = page.locator('[data-application-key="product-masthead"]');

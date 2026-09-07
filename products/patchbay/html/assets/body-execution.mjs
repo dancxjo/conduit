@@ -1,6 +1,8 @@
 import { acquireBrowserBodyHost } from "./browser-body-host.mjs";
 import { presentBodyPlan } from "./body-plan-inspection.mjs";
 
+const MAX_BODY_EXECUTION_CAPABILITIES = 96;
+
 // Product orchestration only: the admitted WASM instance and shared Host
 // adapters own execution. Claims and reports are self-reported loopback facts.
 export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
@@ -123,7 +125,7 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
       const length = api.conduit_browser_form_output_len(), pointer = api.conduit_browser_form_output_ptr();
       if (!Number.isSafeInteger(length) || length < 1 || length > 16 * 1024) throw new Error("Body capability output bound exceeded");
       const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(api.memory.buffer, pointer, length)));
-      if (value.schema !== "conduit.browser/body-capabilities@1" || !Array.isArray(value.capability_ids) || value.capability_ids.length > 70 || value.capability_ids.some(id => typeof id !== "string" || id.length < 1 || id.length > 256)) throw new Error("invalid Body execution capabilities");
+      if (value.schema !== "conduit.browser/body-capabilities@1" || !Array.isArray(value.capability_ids) || value.capability_ids.length > MAX_BODY_EXECUTION_CAPABILITIES || value.capability_ids.some(id => typeof id !== "string" || id.length < 1 || id.length > 256)) throw new Error("invalid Body execution capabilities");
       return new Set(value.capability_ids);
     },
     configureHost(current) { host = current;update(); },
