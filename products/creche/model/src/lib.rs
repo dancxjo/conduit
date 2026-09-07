@@ -9,6 +9,9 @@ use conduit_presentation::{
     SemanticApplicationView, SemanticPresentationNode, SemanticPresentationRefusal, StatusKind,
 };
 
+mod graduation_presentation;
+pub use graduation_presentation::*;
+
 pub const MINIMAL_PRESET_ACTION: &str = "configuration.preset.minimal";
 pub const INTERACTIVE_PRESET_ACTION: &str = "configuration.preset.interactive";
 pub const CUSTOM_PRESET_ACTION: &str = "configuration.preset.custom";

@@ -4,6 +4,7 @@ mod abi;
 mod browser_configuration;
 mod durable;
 mod graduation;
+mod graduation_presentation;
 mod initial_forms;
 mod protocol;
 mod review;

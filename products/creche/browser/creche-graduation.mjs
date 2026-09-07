@@ -1,4 +1,5 @@
 const decoder = new TextDecoder();
+const encoder = new TextEncoder();
 const MAX_BODY_EVIDENCE_EXPORT_BYTES = 65_536;
 
 export function createGraduationRunner({ host, presentationFor, nextSequence, onBodyChanged, onEnd }) {
@@ -19,7 +20,7 @@ export function createGraduationRunner({ host, presentationFor, nextSequence, on
     state.status = error.message;
     state.outcome = "failure-status";
   }
-  const present = () => presentGraduationControls(runner, presentation, state, {
+  const present = () => presentGraduationControls(runner, host.runtime, presentation, state, {
     onChoice(choice) {
       const receipt = call(host.runtime, "conduit_creche_graduate", choice, BigInt(nextSequence()));
       renderGraduation(runner, receipt, host.runtime, presentation, state, present);
@@ -33,32 +34,19 @@ export function createGraduationRunner({ host, presentationFor, nextSequence, on
   return runner;
 }
 
-function presentGraduationControls(runner, presentation, state, { onChoice, onEnd }) {
+function presentGraduationControls(runner, runtime, presentation, state, { onChoice, onEnd }) {
   const ready = state.readiness?.ready === true;
-  const choiceActions = ready && !state.graduated;
-  const actions = [
-    ...(choiceActions ? [{ id: "graduate.host-patchbay", event: "activate" }, { id: "graduate.without-patchbay", event: "activate" }] : []),
-    ...(state.graduated ? [{ id: "graduate.end", event: "activate" }] : []),
-  ];
-  const choiceOne = choiceActions ? 0 : null;
-  const choiceTwo = choiceActions ? 1 : null;
-  const endAction = state.graduated ? actions.length - 1 : null;
   const readiness = state.readiness ?? {};
-  presentation.present("graduation-controls", {
+  presentGraduationView(runtime, presentation, "graduation-controls", {
+    mode: "controls",
     revision: ++state.revision,
-    actions,
-    nodes: [
-      { parent: null, component: "stack", action: null, key: "graduation", text: "" },
-      { parent: 0, component: "grid", action: null, key: "graduation-criteria", text: "" },
-      { parent: 1, component: "panel", action: null, key: "durable-identity", text: `Durable Body identity · ${readiness.durable_identity ? "ready" : "waiting"}` },
-      { parent: 1, component: "panel", action: null, key: "birth-evidence", text: `Bound BIRTH evidence · ${readiness.birth_evidence ? "ready" : "waiting"}` },
-      { parent: 1, component: "panel", action: null, key: "current-part", text: `Current admitted Part · ${readiness.current_admitted_part ? "ready" : "waiting"}` },
-      { parent: 0, component: state.outcome, action: null, key: "graduation-status", text: state.status },
-      { parent: 0, component: "action-group", action: null, key: "graduation-actions", text: "Graduation actions" },
-      { parent: 6, component: "button", action: choiceOne, key: "host-patchbay", text: "Host Patchbay on this Body" },
-      { parent: 6, component: "button", action: choiceTwo, key: "without-patchbay", text: "Finish without hosted Patchbay" },
-      { parent: 6, component: "button", action: endAction, key: "end-creche", text: "End the Crèche" },
-    ],
+    durable_identity: readiness.durable_identity === true,
+    birth_evidence: readiness.birth_evidence === true,
+    current_admitted_part: readiness.current_admitted_part === true,
+    ready,
+    graduated: state.graduated,
+    status: state.status,
+    status_kind: state.outcome === "failure-status" ? "failure" : state.outcome === "success-status" ? "success" : "ordinary",
   }, { onEvent(event) {
     presentation.nextEvent("graduation-controls");
     if (event.action === "graduate.host-patchbay") onChoice(1);
@@ -76,25 +64,35 @@ function renderGraduation(runner, receipt, api, presentation, state, present) {
     ? "Graduated: an ordinary immutable Plan places Patchbay on the current browser Host."
     : "Graduated: no Patchbay was hosted; a compatible reader may project this Body later.";
   present();
-  const values = [
-    ["Body", receipt.body_id], ["Choice", evidence.choice], ["Graduation Sign", evidence.sign_id],
-    ["Patchbay Plan", evidence.patchbay_plan_id ?? "not hosted"],
-    ["Patchbay implementation", evidence.patchbay_implementation_id ?? "not hosted"],
-    ["Crèche required", String(evidence.creche_required)],
-  ];
   const rawEvidence = JSON.stringify(evidence, null, 2);
-  presentation.present("graduation-evidence", {
+  presentGraduationView(api, presentation, "graduation-evidence", {
+    mode: "evidence",
     revision: ++state.revision,
-    actions: [],
-    nodes: [
-      { parent: null, component: "successful-evidence", action: null, key: "graduation-evidence", text: "Graduation evidence" },
-      { parent: 0, component: "definition-table", action: null, key: "graduation-identities", text: "Exact graduation identities" },
-      ...values.map(([label, value], index) => ({ parent: 1, component: "definition", action: null, key: `graduation-${index}`, text: label, value, valueCapacity: 256 })),
-      { parent: 0, component: "disclosure", action: null, key: "graduation-raw", text: "Raw graduation evidence" },
-      { parent: values.length + 2, component: "code-block", action: null, key: "graduation-raw-json", text: "json", value: rawEvidence, valueCapacity: 65_536 },
-    ],
+    body_id: receipt.body_id,
+    choice: evidence.choice,
+    sign_id: evidence.sign_id,
+    patchbay_plan_id: evidence.patchbay_plan_id ?? null,
+    patchbay_implementation_id: evidence.patchbay_implementation_id ?? null,
+    creche_required: evidence.creche_required,
+    canonical_json: rawEvidence,
   });
   renderBiography(presentation, "graduation-biography", call(api, "conduit_creche_biography"), ++state.revision);
+}
+
+function presentGraduationView(runtime, presentation, slot, request, options = {}) {
+  const encoded = encoder.encode(JSON.stringify(request));
+  if (encoded.length > runtime.conduit_creche_input_capacity()) {
+    throw new Error("Crèche graduation presentation request exceeds its bound");
+  }
+  new Uint8Array(runtime.memory.buffer, runtime.conduit_creche_input_ptr(), encoded.length).set(encoded);
+  const code = runtime.conduit_creche_graduation_view(encoded.length);
+  if (code < 0) {
+    let message = `Crèche graduation presentation refused (${code})`;
+    try { message = readOutput(runtime).message ?? message; } catch {}
+    throw new Error(message);
+  }
+  const view = new Uint8Array(runtime.memory.buffer, runtime.conduit_creche_output_ptr(), runtime.conduit_creche_output_len()).slice();
+  presentation.present(slot, view, options);
 }
 
 export function renderBiography(presentation, slot, biography, revision) {
