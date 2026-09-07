@@ -7,7 +7,7 @@ pub(super) mod preparation;
 #[path = "resource_effect.rs"]
 pub(super) mod resource_effect;
 #[path = "engine_transforms.rs"]
-mod transforms;
+pub(super) mod transforms;
 use preparation::{prepare_scheduler, validate_envelope};
 
 #[cfg(test)]
