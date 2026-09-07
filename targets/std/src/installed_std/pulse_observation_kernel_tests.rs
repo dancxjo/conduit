@@ -182,7 +182,7 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
     let Fixture::Pulse(InstalledOperation::PulseObserve(observer)) = observer.operation() else {
         panic!("installed observer");
     };
-    let staged_sequence = observer.next;
+    let staged_sequence = observer.next_sequence();
     assert!(staged_sequence > 0 && staged_sequence < 3);
     for _ in 0..16 {
         scheduler.step().unwrap();
@@ -194,7 +194,8 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
         panic!("installed observer");
     };
     assert_eq!(
-        observer.next, staged_sequence,
+        observer.next_sequence(),
+        staged_sequence,
         "pressure cannot consume more input"
     );
     let request = scheduler.next_host_request().unwrap();
