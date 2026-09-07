@@ -45,12 +45,16 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "proof/browser/playwright.config.mjs",
             "proof/browser/static-server.mjs",
             "proof/browser/creche-browser-configuration.spec.mjs",
+            "proof/browser/creche-workload.spec.mjs",
+            "proof/browser/creche-naming.spec.mjs",
+            "proof/browser/creche-body-execution.spec.mjs",
         ],
         input_prefixes: &[
             "proof/browser/fourth-product/",
             "products/tour/",
             "products/creche/",
             "products/patchbay/",
+            "products/shared/browser/",
             "semantics/presentation/assets/",
             "site/",
             "products/tour/browser/",
@@ -140,6 +144,7 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
         ],
         input_prefixes: &[
             "site/",
+            "products/shared/browser/",
             "products/tour/browser/",
             "products/creche/browser/",
             "products/tour/tools/stage-tour-product",
@@ -161,6 +166,27 @@ pub(super) fn browser_presentation_proofs_for_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn creche_body_contract_changes_select_the_product_carrier_proof() {
+        let root = crate::workspace::workspace_root().unwrap();
+        let packages = super::super::discover(&root).unwrap();
+        for path in [
+            "proof/browser/creche-workload.spec.mjs",
+            "proof/browser/creche-naming.spec.mjs",
+            "proof/browser/creche-body-execution.spec.mjs",
+        ] {
+            assert_eq!(
+                super::proofs_for_paths(&[path.into()]),
+                ["products.pages-carrier"],
+                "{path}"
+            );
+            let plan = super::super::plan_for_paths(&root, vec![path.into()], &packages).unwrap();
+            assert!(plan.pages_products_required, "{path}");
+            assert!(plan.browser_required, "{path}");
+            assert!(!plan.full_fallback, "{path}");
+        }
+    }
 
     #[test]
     fn shared_presentation_contract_and_fixture_changes_select_the_product_carrier() {
@@ -190,6 +216,7 @@ mod product_source_tests {
     #[test]
     fn product_owned_browser_source_requires_carrier_and_browser_proof() {
         for path in [
+            "products/shared/browser/conduit.css",
             "products/tour/browser/tour.mjs",
             "products/creche/browser/creche-lifecycle.mjs",
         ] {

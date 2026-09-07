@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-test("the PR product controller owns applicability while promotion stays privileged", () => {
+test("product proof begins after cheap PR entry while promotion stays privileged", () => {
   const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
   const candidateWorkflow = readFileSync(".github/workflows/candidate.yml", "utf8");
+  const integrationWorkflow = readFileSync(".github/workflows/dev-integration.yml", "utf8");
   assert.match(candidateWorkflow, /^  pull_request:\s*$/m);
-  assert.match(candidateWorkflow, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.doesNotMatch(candidateWorkflow, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.match(integrationWorkflow, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
   assert.doesNotMatch(productWorkflow, /^  pull_request:\s*$/m);
   assert.doesNotMatch(productWorkflow, /paths:\s*&product-paths/);
   assert.match(productWorkflow, /jobs:\n  plan:/);
@@ -20,7 +22,7 @@ test("the PR product controller owns applicability while promotion stays privile
 });
 
 test("every browser product admits the complete shared presentation theme", () => {
-  const themeBytes = readFileSync("targets/browser/host/assets/application-theme.css").byteLength;
+  const themeBytes = readFileSync("products/shared/browser/conduit.css").byteLength;
   for (const path of [
     "products/tour/browser/tour.application.template.json",
     "products/creche/browser/creche.application.template.json",
@@ -96,6 +98,13 @@ test("product jobs build the immutable PR head and deployments queue", () => {
     deployWorkflow,
     /github\.event\.pull_request\.merged == true && github\.event\.pull_request\.base\.ref == 'main'/,
   );
+  assert.match(deployWorkflow, /carrier_name: \$\{\{ steps\.resolve\.outputs\.carrier_name \}\}/);
+  assert.match(deployWorkflow, /name: \$\{\{ needs\.resolve\.outputs\.carrier_name \}\}/);
+
+  const promotionWorkflow = readFileSync(".github/workflows/promotion.yml", "utf8");
+  assert.match(promotionWorkflow, /pages-carrier-with-conduitos:\n    needs: \[products, conduitos-spore-acceptance\]/);
+  assert.match(promotionWorkflow, /stage-conduitos-pages-evidence\.mjs/);
+  assert.match(promotionWorkflow, /name: conduit-pages-carrier-with-conduitos/);
 });
 
 test("standalone locks fail before ESP32 fabrication fans out", () => {

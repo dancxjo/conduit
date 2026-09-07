@@ -1,6 +1,8 @@
-use super::{session, spore};
+use super::session;
 use crate::source_interaction::SourceInteractionEvidence;
 use std::cell::RefCell;
+
+pub(super) mod spore_abi;
 
 #[derive(serde::Serialize)]
 struct CrecheRefusal {
@@ -9,9 +11,9 @@ struct CrecheRefusal {
     message: String,
 }
 
-// A join carries one finite HostAdvertisement (bounded at 24 KiB by Body
-// admission) plus exact invitation and signature fields.
-pub(super) const INPUT_BYTES: usize = 32 * 1_024;
+// Admit the canonical Body advertisement plus bounded invitation/signature framing.
+pub(super) const INPUT_BYTES: usize =
+    conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize + 8 * 1_024;
 const OUTPUT_BYTES: usize = 32 * 1_024;
 const STATUS_READY: i32 = 0;
 pub(super) const ERROR_INPUT: i32 = -451;
@@ -27,7 +29,14 @@ const ERROR_INVENTORY: i32 = -459;
 const ERROR_REVIEW: i32 = -460;
 
 thread_local! {
+    // WASM callers may capture memory.buffer before asking for the input pointer.
+    // Preallocate there so pointer access cannot grow memory and detach that view.
+    #[cfg(target_arch = "wasm32")]
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
+    // Native static TLS consumes thread-stack headroom; allocate the same fixed
+    // capacity once on ABI entry, before admission, without a large stack array.
+    #[cfg(not(target_arch = "wasm32"))]
+    static INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; INPUT_BYTES].into_boxed_slice());
     static OUTPUT: RefCell<[u8; OUTPUT_BYTES]> = const { RefCell::new([0; OUTPUT_BYTES]) };
     static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };
     static SOURCE_INTERACTION: RefCell<Option<SourceInteractionEvidence>> = const { RefCell::new(None) };
@@ -397,121 +406,6 @@ pub extern "C" fn conduit_creche_graduate(choice: u32, sequence: u64) -> i32 {
             .unwrap_or(ERROR_OUTPUT),
         Err(message) => refuse(message, ERROR_GRADUATION),
     }
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_creche_prepare_physical_spore(now_millis: u64) -> i32 {
-    clear_output();
-    let entropy = INPUT.with(|input| {
-        let mut input = input.borrow_mut();
-        let mut entropy = [0u8; 32];
-        entropy.copy_from_slice(&input[..32]);
-        input[..32].fill(0);
-        entropy
-    });
-    match spore::prepare(entropy, now_millis) {
-        Ok(receipt) => write_output(&receipt)
-            .map(|()| STATUS_READY)
-            .unwrap_or(ERROR_OUTPUT),
-        Err(message) => refuse(message, ERROR_SPORE),
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_creche_prepare_selected_physical_spore(
-    digest_length: usize,
-    now_millis: u64,
-) -> i32 {
-    clear_output();
-    if digest_length == 0 || 32usize.saturating_add(digest_length) > INPUT_BYTES {
-        return ERROR_INPUT;
-    }
-    INPUT.with(|input| {
-        let mut input = input.borrow_mut();
-        let mut entropy = [0u8; 32];
-        entropy.copy_from_slice(&input[..32]);
-        let result = core::str::from_utf8(&input[32..32 + digest_length])
-            .map_err(|_| "selected IMAGE content digest is not UTF-8".to_string())
-            .and_then(|digest| spore::prepare_selected(entropy, now_millis, Some(digest)));
-        input[..32 + digest_length].fill(0);
-        match result {
-            Ok(receipt) => write_output(&receipt)
-                .map(|()| STATUS_READY)
-                .unwrap_or(ERROR_OUTPUT),
-            Err(message) => refuse(message, ERROR_SPORE),
-        }
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_creche_prepare_selected_physical_spore_for_target(
-    target_length: usize,
-    digest_length: usize,
-    now_millis: u64,
-) -> i32 {
-    clear_output();
-    let total_length = 32usize
-        .checked_add(target_length)
-        .and_then(|length| length.checked_add(digest_length));
-    if target_length == 0
-        || digest_length == 0
-        || total_length.is_none_or(|length| length > INPUT_BYTES)
-    {
-        return ERROR_INPUT;
-    }
-    let total_length = total_length.expect("validated bounded input length");
-    INPUT.with(|input| {
-        let mut input = input.borrow_mut();
-        let mut entropy = [0u8; 32];
-        entropy.copy_from_slice(&input[..32]);
-        let target_end = 32 + target_length;
-        let result = core::str::from_utf8(&input[32..target_end])
-            .map_err(|_| "selected physical Host target is not UTF-8".to_string())
-            .and_then(|target| {
-                core::str::from_utf8(&input[target_end..total_length])
-                    .map_err(|_| "selected IMAGE content digest is not UTF-8".to_string())
-                    .and_then(|digest| {
-                        spore::prepare_selected_for_target(
-                            entropy,
-                            now_millis,
-                            target,
-                            Some(digest),
-                        )
-                    })
-            });
-        input[..total_length].fill(0);
-        match result {
-            Ok(receipt) => write_output(&receipt)
-                .map(|()| STATUS_READY)
-                .unwrap_or(ERROR_OUTPUT),
-            Err(message) => refuse(message, ERROR_SPORE),
-        }
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn conduit_creche_admit_physical_spore(length: usize) -> i32 {
-    clear_output();
-    if length == 0 || length > INPUT_BYTES {
-        return ERROR_INPUT;
-    }
-    INPUT.with(|input| {
-        let mut input = input.borrow_mut();
-        let observation = serde_json::from_slice::<spore::JoinObservation>(&input[..length]);
-        input[..length].fill(0);
-        match observation {
-            Ok(observation) => match spore::admit(observation) {
-                Ok(receipt) => write_output(&receipt)
-                    .map(|()| STATUS_READY)
-                    .unwrap_or(ERROR_OUTPUT),
-                Err(message) => refuse(message, ERROR_ADMISSION),
-            },
-            Err(error) => refuse(
-                format!("decode physical join request: {error}"),
-                ERROR_INPUT,
-            ),
-        }
-    })
 }
 
 pub(super) fn refuse(message: String, code: i32) -> i32 {

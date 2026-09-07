@@ -1,0 +1,83 @@
+name: Promote dev to main
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [dev-integration]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: promote-dev-to-main
+  cancel-in-progress: false
+
+jobs:
+  request:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    name: Create release branch
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    steps:
+      - name: Check out everything currently in development
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+          fetch-depth: 0
+      - name: Create or reuse the repairable release pull request
+        id: pull-request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dev_sha=$(git rev-parse HEAD)
+          git fetch --no-tags origin main
+          current_release=$(gh pr list --state open --base main --json url,headRefName \
+            --jq '[.[] | select((.headRefName | startswith("release/")) or (.headRefName | startswith("promote/")))][0].url // empty')
+          if test -n "$current_release"; then
+            printf 'status=already-running\n' >> "$GITHUB_OUTPUT"
+            printf 'url=%s\n' "$current_release" >> "$GITHUB_OUTPUT"
+            printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if test "$(git rev-parse "$dev_sha^{tree}")" = "$(git rev-parse origin/main^{tree})"; then
+            printf 'status=already-current\n' >> "$GITHUB_OUTPUT"
+            printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          branch="release/$dev_sha"
+          git push origin "$dev_sha:refs/heads/$branch"
+          pr_url=$(gh pr list --state open --base main --head "$branch" --json url --jq '.[0].url // empty')
+          if test -z "$pr_url"; then
+            pr_url=$(gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "Promote dev $dev_sha" \
+              --body "Release candidate containing everything through dev \`$dev_sha\`. Fix failures on this branch; the exact final head must pass the exhaustive promotion gate. Successful release fixes are synchronized back to dev automatically.")
+          fi
+          printf 'url=%s\n' "$pr_url" >> "$GITHUB_OUTPUT"
+          printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
+          printf 'status=created\n' >> "$GITHUB_OUTPUT"
+          gh pr merge "$pr_url" --auto --rebase
+      - name: Summarize the release candidate
+        env:
+          PR_URL: ${{ steps.pull-request.outputs.url }}
+          DEV_SHA: ${{ steps.pull-request.outputs.dev_sha }}
+          STATUS: ${{ steps.pull-request.outputs.status }}
+        run: |
+          printf '## Release train\n\n' >> "$GITHUB_STEP_SUMMARY"
+          case "$STATUS" in
+            created)
+              printf -- '- Opened a release containing development through `%s`.\n' "$DEV_SHA" >> "$GITHUB_STEP_SUMMARY"
+              printf -- '- Pull request: %s\n' "$PR_URL" >> "$GITHUB_STEP_SUMMARY"
+              printf -- '- Fix exhaustive-proof failures on the release branch; merge is automatic when green.\n' >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            already-running)
+              printf -- '- A release is already running: %s\n' "$PR_URL" >> "$GITHUB_STEP_SUMMARY"
+              printf -- '- Current development remains queued for the next release.\n' >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            already-current)
+              printf -- '- Development and main already have the same tree; no release is needed.\n' >> "$GITHUB_STEP_SUMMARY"
+              ;;
+          esac

@@ -15,6 +15,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::FormCandidate;
 
+mod continuity;
+mod execution;
+pub use execution::{BodyExecutionClaim, BodyExecutionClaimError, BodyExecutionPhase};
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BodyPlanningRequirements {
     pub kind_ids: Vec<KindId>,
@@ -30,6 +34,10 @@ pub struct BodyPlanningTransition {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BodyPlanningSessionSnapshot {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub execution_claims: Vec<BodyExecutionClaim>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unavailable_proposal_sign_id: Option<SignId>,
     pub body_id: BodyId,
     pub wake_id: WakeId,
     pub lifecycle: WakeLifecycle,
@@ -50,6 +58,8 @@ pub enum BodyPlanningSessionError {
     Plan(BodyPlanError),
     MissingUnsatisfiedSign,
     StaleCurrentPlan,
+    OutstandingExecution,
+    ExecutionTerminationAbsent,
     MissingForm,
     InvalidForm(String),
     Planning(String),
@@ -81,9 +91,62 @@ pub fn plan_body_workset_on_host(
             let hosts = [host.clone()];
             let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
                 .map_err(|error| BodyPlanningSessionError::Planning(error.to_string()))?;
-            let plan =
-                conduit_planner::plan_expanded_canonical(&expanded, &hosts, &placements, bases)
-                    .map_err(|error| BodyPlanningSessionError::Planning(error.to_string()))?;
+            let mut limits = std::collections::BTreeMap::new();
+            for cord in &expanded.connections {
+                let selected = |gear| {
+                    placements
+                        .by_gear
+                        .get(gear)
+                        .and_then(|choice| {
+                            host.capabilities
+                                .iter()
+                                .find(|offer| offer.capability_id == choice.capability_id)
+                        })
+                        .ok_or_else(|| {
+                            BodyPlanningSessionError::Planning(
+                                "Body Cord has no exact selected capability".into(),
+                            )
+                        })
+                };
+                let source = selected(&cord.source_gear_id)?;
+                let sink = selected(&cord.sink_gear_id)?;
+                limits.insert(
+                    (
+                        cord.source_gear_id.clone(),
+                        cord.source_port_id.clone(),
+                        cord.sink_gear_id.clone(),
+                        cord.sink_port_id.clone(),
+                    ),
+                    conduit_planner::ConnectionQueueLimits {
+                        item_capacity: source
+                            .limits
+                            .max_queue_items
+                            .min(sink.limits.max_queue_items)
+                            .min(4),
+                        byte_capacity: source
+                            .limits
+                            .max_queue_bytes
+                            .min(sink.limits.max_queue_bytes),
+                    },
+                );
+            }
+            let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
+                &expanded,
+                &hosts,
+                &placements,
+                bases,
+                conduit_planner::PlanningOptions {
+                    connection_bases: &Default::default(),
+                    line_candidates: &Default::default(),
+                    connection_item_capacity: 1,
+                    connection_byte_capacity: 1,
+                    authority_grants: &[],
+                    protected_resource_grants: &[],
+                    line_offers: &[],
+                },
+                &limits,
+            )
+            .map_err(|error| BodyPlanningSessionError::Planning(error.to_string()))?;
             Ok(BodyFormPlan {
                 form: resident,
                 plan,
@@ -136,12 +199,60 @@ fn expand_workset(
 
 #[derive(Debug, Clone)]
 pub struct BodyPlanningSession {
+    execution_claims: Vec<BodyExecutionClaim>,
+    unavailable_proposal_sign_id: Option<SignId>,
     body: Body,
     wake: Wake,
     plans: Vec<BodyPlan>,
 }
 
 impl BodyPlanningSession {
+    /// Plan the current workset without claiming Host admission or Play start.
+    pub fn prepare(
+        body: &Body,
+        wake_sequence: u64,
+        wake_sign_id: SignId,
+        forms: Vec<BodyFormPlan>,
+    ) -> Result<Self, BodyPlanningSessionError> {
+        let (body, wake) = body
+            .wake(wake_sequence, wake_sign_id)
+            .map_err(BodyPlanningSessionError::Lifecycle)?;
+        let plan = BodyPlan::seal(&wake, forms).map_err(BodyPlanningSessionError::Plan)?;
+        Ok(Self {
+            execution_claims: Vec::new(),
+            body,
+            wake,
+            plans: vec![plan],
+            unavailable_proposal_sign_id: None,
+        })
+    }
+
+    /// Refresh an unstarted proposal. Retiring a running Play needs a separate
+    /// attributable lifecycle event; offer availability alone cannot do it.
+    pub fn replace_proposal(
+        &mut self,
+        forms: Vec<BodyFormPlan>,
+    ) -> Result<&BodyPlan, BodyPlanningSessionError> {
+        if self.has_outstanding_execution_claim()
+            || self.wake.lifecycle != WakeLifecycle::AwaitingPlan
+            || !self.wake.plans.is_empty()
+        {
+            return Err(BodyPlanningSessionError::StaleCurrentPlan);
+        }
+        if self.plans.len() >= conduit_body::MAX_WAKE_PLANS {
+            return Err(BodyPlanningSessionError::Lifecycle(
+                BodyLifecycleError::PlanCapacityExhausted,
+            ));
+        }
+        let plan = BodyPlan::seal(&self.wake, forms).map_err(BodyPlanningSessionError::Plan)?;
+        if plan.plan_id == self.current_plan().plan_id {
+            return Err(BodyPlanningSessionError::StaleCurrentPlan);
+        }
+        self.plans.push(plan);
+        self.unavailable_proposal_sign_id = None;
+        Ok(self.current_plan())
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn start(
         body: &Body,
@@ -164,9 +275,11 @@ impl BodyPlanningSession {
             .body_play_started(&plan, &play, play_started_sign_id)
             .map_err(BodyPlanningSessionError::Lifecycle)?;
         Ok(Self {
+            execution_claims: Vec::new(),
             body,
             wake,
             plans: vec![plan],
+            unavailable_proposal_sign_id: None,
         })
     }
 
@@ -175,6 +288,9 @@ impl BodyPlanningSession {
         forms: Vec<BodyFormPlan>,
         transition: BodyPlanningTransition,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
+        if self.has_outstanding_execution_claim() {
+            return Err(BodyPlanningSessionError::StaleCurrentPlan);
+        }
         let mut wake = self.wake.clone();
         if wake.lifecycle == WakeLifecycle::Playing {
             let sign = transition
@@ -204,6 +320,10 @@ impl BodyPlanningSession {
         &mut self,
         sign_id: SignId,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
+        if self.wake.lifecycle == WakeLifecycle::AwaitingPlan {
+            self.unavailable_proposal_sign_id = Some(sign_id);
+            return Ok(self.current_plan());
+        }
         let plan_id = self.current_plan().plan_id.clone();
         self.wake = self
             .wake
@@ -242,6 +362,8 @@ impl BodyPlanningSession {
         current_hosts.sort();
         current_hosts.dedup();
         BodyPlanningSessionSnapshot {
+            execution_claims: self.execution_claims.clone(),
+            unavailable_proposal_sign_id: self.unavailable_proposal_sign_id.clone(),
             body_id: self.body.body_id.clone(),
             wake_id: self.wake.wake_id.clone(),
             lifecycle: self.wake.lifecycle,

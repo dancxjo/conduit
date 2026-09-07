@@ -211,3 +211,156 @@ fn altered_prior_biography_refuses_without_mutating_current_evidence() {
     assert!(server.apply_body_membership_evidence(&encoded).is_err());
     assert_eq!(server.body_workload.as_ref().unwrap().evidence(), &prior);
 }
+
+#[test]
+fn stale_observer_membership_updates_preserve_local_wake_and_resequence_only_new_records() {
+    let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
+    let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+    let observer = server.body_workload.as_ref().unwrap().evidence().clone();
+    let (body, wake) = observer
+        .body
+        .wake(1, SignId::from("sign/local-woke"))
+        .unwrap();
+    let sequence = observer.records.last().unwrap().sequence + 1;
+    server
+        .body_workload
+        .as_mut()
+        .unwrap()
+        .retain_wake(body.clone(), wake.clone(), sequence)
+        .unwrap();
+    let retained = server.body_workload.as_ref().unwrap().evidence().clone();
+    let admitted = admission_extension(&observer);
+    server
+        .apply_body_membership_evidence(&serde_json::to_vec(&admitted).unwrap())
+        .unwrap();
+    let local = server.body_workload.as_ref().unwrap().evidence();
+    assert_eq!(local.body, body);
+    assert_eq!(local.wakes, vec![wake.clone()]);
+    assert_eq!(&local.records[..retained.records.len()], retained.records);
+    assert_eq!(
+        local.records.last().unwrap().sequence,
+        admitted.records.last().unwrap().sequence + 1
+    );
+    assert_eq!(
+        local.records.last().unwrap().sign_id,
+        admitted.records.last().unwrap().sign_id
+    );
+
+    // The observer has not received local Wake history or sequence reassignment.
+    let left = leave_extension(&admitted);
+    server
+        .apply_body_membership_evidence(&serde_json::to_vec(&left).unwrap())
+        .unwrap();
+    let part_id = left.membership.parts.last().unwrap().part_id.clone();
+    let returned = return_extension(
+        &left,
+        last_joined_host(&left, &part_id),
+        BootId::from("browser-boot/post-birth-return"),
+    );
+    let bytes = serde_json::to_vec(&returned).unwrap();
+    server.apply_body_membership_evidence(&bytes).unwrap();
+    let local = server.body_workload.as_ref().unwrap().evidence().clone();
+    assert_eq!(local.body, body);
+    assert_eq!(local.wakes, vec![wake]);
+    assert_eq!(local.membership, returned.membership);
+    local.validate().unwrap();
+    let snapshot = server.encoded_snapshot.clone();
+    assert!(server.apply_body_membership_evidence(&bytes).is_err());
+    assert_eq!(server.encoded_snapshot, snapshot);
+    assert_eq!(server.body_workload.as_ref().unwrap().evidence(), &local);
+}
+
+#[test]
+fn membership_only_adoption_refuses_an_unknown_body_or_wake_extension() {
+    let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
+    let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+    let prior = server.body_workload.as_ref().unwrap().evidence().clone();
+    let mut altered = prior.clone();
+    let (body, wake) = prior
+        .body
+        .wake(1, SignId::from("sign/unknown-wake"))
+        .unwrap();
+    altered
+        .append_wake(body, wake, prior.records.last().unwrap().sequence + 1)
+        .unwrap();
+    let candidate = admission_extension(&altered);
+    candidate.validate().unwrap();
+    let snapshot = server.encoded_snapshot.clone();
+    assert!(server
+        .apply_body_membership_evidence(&serde_json::to_vec(&candidate).unwrap())
+        .is_err());
+    assert_eq!(server.encoded_snapshot, snapshot);
+    assert_eq!(server.body_workload.as_ref().unwrap().evidence(), &prior);
+}
+
+#[test]
+fn reconciliation_compares_exact_wake_events_not_only_their_record_references() {
+    let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
+    let server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+    let prior = server.body_workload.as_ref().unwrap().evidence().clone();
+    let sequence = prior.records.last().unwrap().sequence + 1;
+    let (body, wake) = prior.body.wake(1, SignId::from("sign/woke")).unwrap();
+    let lulled = wake.lull(SignId::from("sign/terminal")).unwrap();
+    let failed = wake.fail(SignId::from("sign/terminal")).unwrap();
+    let mut local = prior.clone();
+    let mut observer = prior;
+    local.append_wake(body.clone(), lulled, sequence).unwrap();
+    observer.append_wake(body, failed, sequence).unwrap();
+    assert_eq!(local.records, observer.records);
+    let candidate = admission_extension(&observer);
+    candidate.validate().unwrap();
+    assert!(reconciliation::merge_membership_extension(&local, &candidate).is_err());
+}
+
+#[test]
+fn selected_host_departure_retains_unsatisfied_wake_without_rewriting_the_plan() {
+    let mut server = crate::server::body_execution_proposal::tests::proposed_server();
+    let observer = server.body_workload.as_ref().unwrap().evidence().clone();
+    let forms = server
+        .body_planning
+        .as_ref()
+        .unwrap()
+        .current_plan()
+        .forms
+        .clone();
+    let planning = patchbay_model::BodyPlanningSession::start(
+        &observer.body,
+        1,
+        "sign/running-wake".into(),
+        forms,
+        "sign/plan".into(),
+        1,
+        "sign/play".into(),
+    )
+    .unwrap();
+    let plan = planning.current_plan().clone();
+    let sequence = observer.records.last().unwrap().sequence + 1;
+    server
+        .body_workload
+        .as_mut()
+        .unwrap()
+        .retain_wake(planning.body().clone(), planning.wake().clone(), sequence)
+        .unwrap();
+    server.body_planning = Some(planning);
+    let left = leave_extension(&observer);
+    server
+        .apply_body_membership_evidence(&serde_json::to_vec(&left).unwrap())
+        .unwrap();
+    let planning = server.body_planning.as_ref().unwrap();
+    assert_eq!(planning.current_plan(), &plan);
+    assert_eq!(
+        planning.wake().lifecycle,
+        conduit_body::WakeLifecycle::Unsatisfied
+    );
+    let retained = server.body_workload.as_ref().unwrap().evidence();
+    assert_eq!(retained.wakes, vec![planning.wake().clone()]);
+    assert_eq!(retained.membership, left.membership);
+    assert_eq!(&retained.body, planning.body());
+    retained.validate().unwrap();
+    let signs: std::collections::BTreeSet<_> = retained
+        .records
+        .iter()
+        .map(|record| &record.sign_id)
+        .collect();
+    assert_eq!(signs.len(), retained.records.len());
+}

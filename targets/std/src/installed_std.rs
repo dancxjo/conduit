@@ -1,6 +1,7 @@
 mod alife_host;
 mod alife_operations;
 mod audio_play_operation;
+pub(crate) mod body_kernel;
 mod bool_presentation;
 mod calendar_proposal_codec;
 pub(super) mod calendar_proposal_encoding;
@@ -23,6 +24,7 @@ mod http;
 mod http_host;
 mod image_text_operation;
 mod image_text_record_operation;
+mod indicator_host;
 mod input_semantic_operations;
 mod instrument_map_operation;
 mod json_operations;
@@ -67,6 +69,7 @@ mod rhythm_compare_operation;
 mod robotics_effect;
 mod robotics_operations;
 mod sequence_normalization_operation;
+mod simple_presentation_host;
 mod state_select_operation;
 mod structured_presentation_host;
 mod structured_selector_operation;
@@ -181,9 +184,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     next_sign_sequence: &mut u64,
     _output: &mut W,
     timer: &mut T,
-    lifecycle: RunLifecycle<'_>,
+    lifecycle: RunLifecycle<'_, '_>,
 ) -> Result<crate::state_value::RetainedStdRun, String> {
-    let RunLifecycle { control, retained } = lifecycle;
+    let RunLifecycle {
+        control,
+        retained,
+        indicator,
+    } = lifecycle;
     let InstalledRunHost {
         advertisement,
         playback,
@@ -324,11 +331,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         conduit_std_offers::NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT,
     );
     let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
-    let text_target_kind = kind_id("presentation/stdout-text");
     let graphics_presentation_target_kind = kind_id("presentation/graphics-scene");
-    let tick_target_kind = kind_id(conduit_std_offers::TICK_PRESENTATION_TARGET);
-    let count_target_kind = kind_id(conduit_std_offers::COUNT_PRESENTATION_TARGET);
-    let bool_target_kind = kind_id(conduit_std_offers::BOOL_PRESENTATION_TARGET);
     let structured_presentation_target_kind =
         kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET);
     let upper_contract_id = conduit_core::HostOperationContractId::from(
@@ -479,6 +482,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .collect::<Result<Vec<_>, String>>()?;
     let mut midi_input_requests = vec![None; active_nodes];
     let mut keyboard_host = keyboard_input_host::KeyboardInputHost::new(keyboard);
+    let mut indicator_host = indicator_host::IndicatorHost::prepare(
+        indicator,
+        advertisement,
+        fragment,
+        &lowered.identity,
+        &active_play,
+    )?;
     let mut midi_output_sessions = fragment
         .placements
         .iter()
@@ -1653,6 +1663,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     &mut requests,
                 )?;
                 continue;
+            } else if contract.as_str() == conduit_std_offers::indicator_resource::OPERATION {
+                let outcome = indicator_host.present(request, input);
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete indicator operation: {error:?}"))?;
+                continue;
             } else if lowered_operation.target_kind.as_ref()
                 == Some(&graphics_presentation_target_kind)
             {
@@ -1670,28 +1687,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 == Some(&structured_presentation_target_kind)
             {
                 structured_presentation_host.capture(request, input)?;
-            } else if lowered_operation.target_kind.as_ref() == Some(&text_target_kind) {
-                let text = std::str::from_utf8(input)
-                    .map_err(|_| "text presentation input is not valid UTF-8".to_string())?;
-                write!(_output, "PRESENTATION-TEXT bytes={} hex=", input.len())
-                    .map_err(|error| error.to_string())?;
-                for byte in input {
-                    write!(_output, "{byte:02x}").map_err(|error| error.to_string())?;
-                }
-                writeln!(_output).map_err(|error| error.to_string())?;
-                writeln!(_output, "{text}").map_err(|error| error.to_string())?;
-            } else if lowered_operation.target_kind.as_ref() == Some(&tick_target_kind) {
-                let tick = decode_tick(input).map_err(|error| error.to_string())?;
-                writeln!(_output, "tick sequence={tick}").map_err(|error| error.to_string())?;
-            } else if lowered_operation.target_kind.as_ref() == Some(&count_target_kind) {
-                let count = count_operations::decode_count(input)?;
-                writeln!(_output, "count value={count}").map_err(|error| error.to_string())?;
-            } else if lowered_operation.target_kind.as_ref() == Some(&bool_target_kind) {
-                let value = conduit_core::InfoBool::decode(input)
-                    .map_err(|error| format!("Boolean presentation input is invalid: {error:?}"))?;
-                writeln!(_output, "bool value={}", value.get())
-                    .map_err(|error| error.to_string())?;
-            } else {
+            } else if !simple_presentation_host::present(
+                lowered_operation.target_kind.as_ref(),
+                input,
+                _output,
+            )? {
                 #[cfg(test)]
                 {
                     if contract != &observer_contract_id

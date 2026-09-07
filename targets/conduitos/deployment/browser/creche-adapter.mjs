@@ -110,10 +110,13 @@ export function createConduitOsAdapter({ host, profile, loader } = {}) {
     if (!release?.bytes || release.digest !== obtainment.evidence?.image_sha256) refuse(profile, mode, "bind", "MissingArtifact", "exact ConduitOS IMAGE truth is missing before Body binding");
     const entropy = crypto.getRandomValues(new Uint8Array(32));
     const targetBytes = encoder.encode(profile.target.id); const digestBytes = encoder.encode(release.digest);
+    const resolvedImageBytes = encoder.encode(JSON.stringify(release.manifest.resolved_image));
     try {
-      const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
-      input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length);
-      const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
+      const inputLength = entropy.length + targetBytes.length + digestBytes.length + resolvedImageBytes.length;
+      if (inputLength > host.runtime.conduit_creche_input_capacity()) refuse(profile, mode, "bind", "ArtifactBound", "resolved ConduitOS IMAGE description exceeds the bounded Crèche handoff");
+      const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), inputLength);
+      input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length); input.set(resolvedImageBytes, entropy.length + targetBytes.length + digestBytes.length);
+      const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target_with_image(targetBytes.length, digestBytes.length, resolvedImageBytes.length, BigInt(nowMillis));
       if (code < 0) throw outputError(host.runtime, "ConduitOS spore preparation", code);
       const prepared = readOutput(host.runtime);
       if (prepared.target_id !== profile.target.id || prepared.image_content_digest !== release.digest || prepared.output !== "disk-image" || prepared.fabrication_package_id !== "conduitos-image@1" || prepared.deployment_adapter !== profile.deploymentAdapter) {

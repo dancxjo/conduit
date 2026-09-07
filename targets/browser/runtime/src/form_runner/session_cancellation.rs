@@ -8,10 +8,7 @@ impl TourSession {
         let Some(cancellation) = &self.cancellation else {
             return Ok(None);
         };
-        let placement = self
-            .fragment
-            .placements
-            .get(usize::from(cancellation.node.0))
+        let (_, placement) = super::placement_in_fragments(&self.fragments, cancellation.node)
             .ok_or("cancellation placement is absent")?;
         Ok(Some(TourProgress::Cancellation {
             schema: "conduit.browser/cancel-effect@1",
@@ -35,10 +32,8 @@ impl TourSession {
             .as_ref()
             .ok_or("no kernel cancellation awaits acknowledgement")?;
         if cancellation.request.0 != request
-            || self.fragment.placements[usize::from(cancellation.node.0)]
-                .placement_id
-                .as_str()
-                != placement
+            || !super::placement_in_fragments(&self.fragments, cancellation.node)
+                .is_some_and(|(_, gear)| gear.placement_id.as_str() == placement)
         {
             return Err("cancellation identity differs from kernel request".into());
         }

@@ -120,6 +120,37 @@ impl ResourceAdmissionOwner {
         &self.assignments
     }
 
+    /// Atomically admit a finite set of exact placement requests using the
+    /// same current observations and resource law as `admit`. A late refusal
+    /// preserves all prior admissions and lane assignments, without rollback.
+    /// This reserves resources only: capability-instance admission, BodyPlan
+    /// validation, and Play start remain the caller's separate obligations.
+    pub fn admit_batch(
+        &mut self,
+        requests: Vec<ResourceAdmissionRequest>,
+        observations: &[ResourceObservation],
+    ) -> Result<&[ResourceAdmission], ResourceAdmissionRefusal> {
+        if requests.is_empty() {
+            return Err(ResourceAdmissionRefusal::Empty);
+        }
+        let first = self.admissions.len();
+        if requests.len() > MAXIMUM_RESOURCE_ADMISSIONS.saturating_sub(first)
+            || requests
+                .iter()
+                .any(|request| request.items.len() > MAXIMUM_BINDINGS_PER_ADMISSION)
+        {
+            return Err(ResourceAdmissionRefusal::CapacityExceeded);
+        }
+        // Staging is bounded pre-Play work. Commit only after every request
+        // has passed the existing owner checks against cumulative demand.
+        let mut candidate = self.clone();
+        for request in requests {
+            candidate.admit(request, observations)?;
+        }
+        self.admissions = candidate.admissions;
+        Ok(&self.admissions[first..])
+    }
+
     /// Atomically admits the exact resource bindings already sealed into one
     /// planned placement. The owner rechecks them against the capability NEED
     /// and current observations; it never edits or substitutes Plan truth.

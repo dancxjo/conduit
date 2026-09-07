@@ -113,38 +113,48 @@ impl PatchbayHtmlServer {
         };
         let next_planning = if let Some(current) = &self.body_planning {
             let mut next = current.clone();
-            next.replan(
-                forms,
-                patchbay_model::BodyPlanningTransition {
-                    unsatisfied_sign_id: Some(sign("prior-unsatisfied")),
-                    plan_ready_sign_id: sign("replacement-ready"),
-                    play_sequence: sequence,
-                    play_started_sign_id: sign("replacement-playing"),
-                },
-            )
-            .map_err(|error| ServerError::Interaction(format!("Body replan: {error:?}")))?;
+            if current.wake().lifecycle == conduit_body::WakeLifecycle::Lulled {
+                next.prepare_next_wake(&biography.body, sequence, sign("wake"), forms)
+                    .map_err(|error| {
+                        ServerError::Interaction(format!("Body next Wake: {error:?}"))
+                    })?;
+            } else {
+                next.replace_proposal(forms)
+                    .map_err(|error| ServerError::Interaction(format!("Body replan: {error:?}")))?;
+            }
             next
         } else {
-            patchbay_model::BodyPlanningSession::start(
+            patchbay_model::BodyPlanningSession::prepare(
                 &biography.body,
                 sequence,
                 sign("wake"),
                 forms,
-                sign("initial-ready"),
-                sequence,
-                sign("initial-playing"),
             )
             .map_err(|error| ServerError::Interaction(format!("Body initial plan: {error:?}")))?
         };
-        self.snapshot.body_host_planning_offer = Some(evidence);
-        self.snapshot.body_planning = Some(next_planning.snapshot());
-        self.body_planning = Some(next_planning);
-        self.snapshot.interaction.revision = self.snapshot.interaction.revision.saturating_add(1);
-        self.snapshot.interaction.last_request_id =
-            Some("body-host-offer/admit-for-planning".into());
-        self.snapshot.interaction.last_disposition =
+        let session = self
+            .body_workload
+            .as_ref()
+            .ok_or_else(|| ServerError::Interaction("Body workload session is absent".into()))?;
+        let (session, mut snapshot) =
+            super::body_execution::history::retain(&self.snapshot, session, &next_planning)?;
+        snapshot.body_host_planning_offer = Some(evidence);
+        snapshot.body_planning = Some(next_planning.snapshot());
+        snapshot.interaction.revision = snapshot
+            .interaction
+            .revision
+            .checked_add(1)
+            .ok_or_else(|| ServerError::Interaction("Body planning revision exhausted".into()))?;
+        snapshot.interaction.last_request_id = Some("body-host-offer/admit-for-planning".into());
+        snapshot.interaction.last_disposition =
             Some("Succeeded(PlanningInputAdmitted;BodyReplanned)".into());
-        self.encoded_snapshot = self.snapshot.encode()?;
+        let encoded = snapshot.encode()?;
+        let navigation = super::navigation_state(&snapshot)?;
+        self.body_workload = Some(session);
+        self.body_planning = Some(next_planning);
+        self.snapshot = snapshot;
+        self.navigation = navigation;
+        self.encoded_snapshot = encoded;
         Ok(self.encoded_snapshot.clone())
     }
 }
@@ -359,6 +369,23 @@ mod tests {
         assert_eq!(admitted.body_host_planning_offer.as_ref(), Some(&planning));
         assert_eq!(admitted.body_workbench.as_ref().unwrap().body_id, body_id);
         assert!(admitted.body_planning.is_some());
+        let retained: conduit_body::BodyBiographyEvidence =
+            serde_json::from_slice(&server.current_body_evidence().unwrap()).unwrap();
+        retained.validate().unwrap();
+        let planning_session = server.body_planning.as_ref().unwrap();
+        assert_eq!(&retained.body, planning_session.body());
+        assert_eq!(retained.wakes, vec![planning_session.wake().clone()]);
+        assert_eq!(
+            admitted.body_planning.as_ref().unwrap().lifecycle,
+            conduit_body::WakeLifecycle::AwaitingPlan
+        );
+        assert!(server
+            .body_planning
+            .as_ref()
+            .unwrap()
+            .wake()
+            .plans
+            .is_empty());
         assert_eq!(
             admitted.body_planning.as_ref().unwrap().body_id.as_str(),
             body_id

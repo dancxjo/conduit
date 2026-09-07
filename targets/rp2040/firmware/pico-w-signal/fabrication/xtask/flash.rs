@@ -40,7 +40,9 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
     }
 
     let actual_mode = read_firmware_mode(&root)?;
-    let expected_mode = if args.pete_capstone {
+    let expected_mode = if args.indicator_resource {
+        "indicator-resource"
+    } else if args.pete_capstone {
         "pete-capstone"
     } else if args.distributed_lenia {
         "distributed-lenia"
@@ -67,6 +69,10 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
             actual_mode
         )
         .into());
+    }
+
+    if args.indicator_resource {
+        super::indicator_build::verify_artifact(&root)?;
     }
 
     if discover_bootsel_mounts()?.is_empty() {

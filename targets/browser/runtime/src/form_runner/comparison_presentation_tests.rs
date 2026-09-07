@@ -23,7 +23,7 @@ fn timed_input_compares_through_canonical_nested_forms_and_completes() {
     .unwrap();
     assert_eq!(
         projection.checked_form_id,
-        session.fragment.checked_form_id.as_str()
+        session.fragments[0].checked_form_id.as_str()
     );
     let mut transition = 0_u64;
     let mut clock = 0;
@@ -73,7 +73,7 @@ fn timed_input_compares_through_canonical_nested_forms_and_completes() {
                     _ => panic!("completed input must not require firing a deadline"),
                 };
                 let play = session.active_play_id.as_str().to_owned();
-                let placement = session.fragment.placements[usize::from(effect.request.node.0)]
+                let placement = session.fragments[0].placements[usize::from(effect.request.node.0)]
                     .placement_id
                     .as_str()
                     .to_owned();
@@ -133,8 +133,7 @@ fn admitted_comparison_adapter_presents_a_distinct_non_match() {
         PresentationProfile::PatternComparison,
     )
     .unwrap();
-    let placement = session
-        .fragment
+    let placement = session.fragments[0]
         .placements
         .iter()
         .find(|placement| {

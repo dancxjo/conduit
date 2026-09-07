@@ -204,6 +204,98 @@ pub fn seal_prebuilt_body_spore_with_content_digest(
     })
 }
 
+/// Seal a Body binding around one reviewed target-built IMAGE description.
+///
+/// Unlike [`seal_prebuilt_body_spore_with_content_digest`], this entrance does
+/// not reconstruct a richer product PROFILE from the Crèche's target picker.
+/// It validates and retains the exact resolved description distributed beside
+/// the reviewed artifact, while the target picker still bounds the target,
+/// output, package, and maximum resources that may be selected.
+pub fn seal_reviewed_prebuilt_body_spore_with_content_digest(
+    body: &CheckedBodyDescription,
+    host_name: &str,
+    source_identity: &str,
+    image: &HostImage,
+    selected: SelectedPrebuiltContent<'_>,
+    packages: &FabricationPackageSet,
+) -> Result<BuiltSpore, BodyBuildDiagnostic> {
+    if source_identity.trim().is_empty() {
+        return Err(BodyBuildDiagnostic::SourceIdentityMissing);
+    }
+    if !valid_sha256_digest(selected.image_content_digest) {
+        return Err(BodyBuildDiagnostic::ImageContentDigestInvalid);
+    }
+    let host = body
+        .hosts()
+        .iter()
+        .find(|host| host.description.name == host_name)
+        .ok_or_else(|| BodyBuildDiagnostic::UnknownHost {
+            name: host_name.into(),
+        })?;
+    let profile = host.configuration.profile();
+    if profile.target.key() != image.manifest.target
+        || !bounds_fit(&image.manifest.bounds, &profile.bounds)
+    {
+        return Err(BodyBuildDiagnostic::SelectedImageMismatch {
+            host: host_name.into(),
+            detail: "reviewed IMAGE target or bounds do not match the checked Host selection"
+                .into(),
+        });
+    }
+    conduit_host_fabrication::verify_image_binding(image, selected.image_manifest_bytes).map_err(
+        |diagnostic| BodyBuildDiagnostic::SelectedImageMismatch {
+            host: host_name.into(),
+            detail: format!("{diagnostic:?}"),
+        },
+    )?;
+    let fabrication = packages
+        .derive_build_selection(profile, &host.description.spore.output)
+        .map_err(|error| BodyBuildDiagnostic::Fabrication {
+            host: host_name.into(),
+            detail: format!("{error:?}"),
+        })?;
+    if image.manifest.fabrication_package_id != fabrication.fabrication_package_id
+        || image.manifest.fabrication_package_revision != fabrication.fabrication_package_revision
+        || image.manifest.builder_adapter != fabrication.builder_adapter
+        || image.manifest.deployment_adapter != fabrication.deployment_adapter
+        || image.manifest.output != fabrication.output
+        || image.manifest.toolchain_identity != fabrication.toolchain_identity
+    {
+        return Err(BodyBuildDiagnostic::SelectedImageMismatch {
+            host: host_name.into(),
+            detail: "reviewed IMAGE does not match the selected fabrication package".into(),
+        });
+    }
+    let manifest = seal_spore_manifest(
+        body,
+        host,
+        source_identity,
+        image,
+        selected.image_content_digest,
+        fabrication,
+    )?;
+    Ok(BuiltSpore {
+        manifest,
+        image: image.clone(),
+        image_bytes: selected.image_manifest_bytes.to_vec(),
+    })
+}
+
+fn bounds_fit(
+    requested: &conduit_host_fabrication::HostBounds,
+    maximum: &conduit_host_fabrication::HostBounds,
+) -> bool {
+    requested.static_memory_bytes <= maximum.static_memory_bytes
+        && requested.heap_arena_bytes <= maximum.heap_arena_bytes
+        && requested.queue_items <= maximum.queue_items
+        && requested.buffered_bytes <= maximum.buffered_bytes
+        && requested.active_instances <= maximum.active_instances
+        && requested.operation_slots <= maximum.operation_slots
+        && requested.timer_slots <= maximum.timer_slots
+        && requested.line_sessions <= maximum.line_sessions
+        && requested.evidence_items <= maximum.evidence_items
+}
+
 pub fn build_body_spores(
     body: &CheckedBodyDescription,
     selected_host: Option<&str>,

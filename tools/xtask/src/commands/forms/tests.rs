@@ -150,7 +150,24 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
     assert!(source.contains("form desk_telegraph"));
     let bundle: serde_json::Value = serde_json::from_str(&source).unwrap();
     assert_eq!(bundle["schema"], "conduit.creche/reviewed-form-bundle@1");
-    assert_eq!(bundle["forms"].as_array().unwrap().len(), 3);
+    let forms = bundle["forms"].as_array().unwrap();
+    let expected = [
+        ("morse-network", "morse_network"),
+        ("memory-lantern", "memory_lantern"),
+        ("desk-telegraph", "desk_telegraph"),
+        ("button-across-room", "button_across_room"),
+        ("clock", "clock-demo"),
+    ];
+    assert_eq!(forms.len(), expected.len());
+    for (form, (slug, entry)) in forms.iter().zip(expected) {
+        assert_eq!(form["slug"], slug);
+        assert_eq!(form["entry"], entry);
+        assert_eq!(
+            form["source"].as_str().unwrap(),
+            fs::read_to_string(root.join(format!("forms/{slug}/main.conduit"))).unwrap(),
+            "the bundled source for {slug} must retain its canonical bytes"
+        );
+    }
 }
 
 #[test]

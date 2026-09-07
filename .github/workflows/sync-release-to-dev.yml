@@ -1,0 +1,47 @@
+name: Sync release fixes to dev
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-release-to-dev
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+      - name: Open the automatic development sync
+        id: pull-request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          branch="sync-release/$MERGE_SHA"
+          git push origin "$MERGE_SHA:refs/heads/$branch"
+          pr_url=$(gh pr list --state open --base dev --head "$branch" --json url --jq '.[0].url // empty')
+          if test -z "$pr_url"; then
+            pr_url=$(gh pr create \
+              --base dev \
+              --head "$branch" \
+              --title "Sync release fixes back to dev" \
+              --body "Automatically returns the accepted release fixes from \`$MERGE_SHA\` to development.")
+          fi
+          printf 'url=%s\n' "$pr_url" >> "$GITHUB_OUTPUT"
+          gh pr merge "$pr_url" --auto --rebase
+      - name: Summarize the development sync
+        env:
+          PR_URL: ${{ steps.pull-request.outputs.url }}
+        run: printf 'Release fixes are returning to development through %s.\n' "$PR_URL" >> "$GITHUB_STEP_SUMMARY"

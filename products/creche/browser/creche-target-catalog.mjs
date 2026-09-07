@@ -173,7 +173,7 @@ function requireContribution(contribution, generation) {
   }
   const adapterBounds = contribution.bounds;
   if (!adapterBounds || !boundedInteger(adapterBounds.maximumOperations, 1, 16)
-    || !boundedInteger(adapterBounds.maximumOperationEvidenceBytes, 256, 32 * 1024)
+    || !boundedInteger(adapterBounds.maximumOperationEvidenceBytes, 256, 80 * 1024)
     || !boundedInteger(adapterBounds.maximumRetainedEvidenceBytes, 1024, 128 * 1024)) {
     refuse("IncompatibleContribution", "physical Host target contribution workflow bounds are missing or invalid", generation, { target_id: target.id });
   }

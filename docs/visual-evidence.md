@@ -101,6 +101,29 @@ previous raster as runtime truth.
 
 ## ConduitOS console evidence
 
+## Accepted ConduitOS visual journey
+
+These stable links are published only after the frozen promotion boots the exact
+Crèche-produced spore and the main-only Pages carrier accepts its complete,
+correlated 1280 by 800 RGBA8 visual journey.
+
+The journey retains all eight checkpoints. Each link opens a provenance page
+with the full-size screenshot and exact manifest correlation:
+
+- [Front door ready](https://dancxjo.github.io/conduit/current/conduitos/x86_64/front-door-ready/) — the ordinary product entrance after the exact Crèche artifact boots.
+- [Form opened](https://dancxjo.github.io/conduit/current/conduitos/x86_64/form-opened/) — the selected product Form before Body birth or execution.
+- [Born, lulled](https://dancxjo.github.io/conduit/current/conduitos/x86_64/born-lulled/) — the newly born Body retained without an active Play.
+- [Awake](https://dancxjo.github.io/conduit/current/conduitos/x86_64/awake/) — the same Body after Wake and before planning.
+- [Planned](https://dancxjo.github.io/conduit/current/conduitos/x86_64/planned/) — the exact admitted Plan before it becomes active.
+- [Playing](https://dancxjo.github.io/conduit/current/conduitos/x86_64/playing/) — the admitted Plan executing as an active Play.
+- [Result visible](https://dancxjo.github.io/conduit/current/conduitos/x86_64/result-visible/) — the visible result correlated with guest runtime records.
+- [Lulled](https://dancxjo.github.io/conduit/current/conduitos/x86_64/lulled/) — the completed journey returned to Lulled with the same Body retained.
+
+Each image links to a provenance page containing the exact accepted commit and
+the manifest correlation context. The gallery also retains all eight named
+checkpoints under the commit-addressed journey index. Emulator pixels remain
+documentary evidence and never imply physical hardware acceptance.
+
 `cargo xtask conduitos prove --arch x86-64 --evidence-root <directory>` can
 emit one bounded UTF-8 console transcript after the existing x86_64 proof has
 validated its boot Sign, kernel Sign, Observatory snapshot, exact semantic

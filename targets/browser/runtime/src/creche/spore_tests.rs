@@ -107,6 +107,56 @@ fn selected_uf2_content_is_bound_before_spore_creation() {
 }
 
 #[test]
+fn reviewed_conduitos_description_is_retained_instead_of_reconstructed() {
+    use conduit_host_browser_fabrication::BrowserFabricationPackage;
+    use conduit_host_conduitos_fabrication::ConduitOsFabricationPackage;
+    use conduit_host_fabrication::{
+        build_host_image, BuildInputs, FabricationCatalog, FabricationPackageSet, HostProfile,
+    };
+    use conduit_linear_framebuffer_fabrication::LinearFramebufferFabricationExtension;
+
+    born();
+    let profile: HostProfile = serde_json::from_str(include_str!(
+        "../../../../conduitos/profiles/conduitos-native.profile.json"
+    ))
+    .unwrap();
+    let packages = FabricationPackageSet::compose(&[
+        &BrowserFabricationPackage,
+        &ConduitOsFabricationPackage,
+        &LinearFramebufferFabricationExtension,
+    ])
+    .unwrap();
+    let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let (image, bytes) = build_host_image(
+        profile,
+        &catalog,
+        &packages,
+        &SporeOutputKind::DiskImage,
+        &BuildInputs {
+            source_identity: "git:reviewed-product-head".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    let digest = format!("sha256:{}", "7".repeat(64));
+    let prepared = prepare_selected_for_target_with_image(
+        [24; 32],
+        7_500,
+        spore_target::CONDUITOS_X86_64_TARGET_ID,
+        &digest,
+        &bytes,
+    )
+    .unwrap();
+    assert_eq!(
+        prepared.spore_manifest.profile_id,
+        image.manifest.profile_id
+    );
+    assert_eq!(prepared.spore_manifest.build_id, image.manifest.build_id);
+    assert_eq!(prepared.image_id, image.manifest.image_id);
+    assert_eq!(prepared.image_content_digest, digest);
+}
+
+#[test]
 fn exact_esp32_targets_bind_in_c3_s3_wroom_order_without_family_widening() {
     let targets = [
         "esp32/riscv32imc/usb-dcf8355d-esp32-c3",
@@ -207,6 +257,87 @@ fn exact_join_is_admitted_once_after_boot_and_offer_observation() {
     let restored = session::restore_durable(snapshot).unwrap();
     assert_eq!(restored.membership_revision, 2);
     assert!(prepare([14; 32], 3_002).is_ok());
+}
+
+#[test]
+fn canonical_browser_join_crosses_the_creche_abi_with_bounded_receipts() {
+    use crate::creche::abi;
+
+    born();
+    let prepared = prepare_selected_for_target(
+        [43; 32],
+        11_000,
+        spore_target::BROWSER_PAGE_TARGET_ID,
+        Some(&format!("sha256:{}", "b".repeat(64))),
+    )
+    .unwrap();
+    let advertisement = crate::installed_browser::membership_advertisement(
+        HostId::from("browser/creche-abi-join"),
+        BootId::from("browser-boot/creche-abi-join"),
+    );
+    let claim = SpawnInvitationClaim {
+        invitation_id: typed::<SpawnInvitationId>(&prepared.invitation_id),
+        body_id: typed::<BodyId>(&prepared.body_id),
+        nonce: prepared.invitation_nonce,
+        expires_at_millis: prepared.invitation_expires_at_millis,
+    };
+    let secret = SpawnInvitationSecret::from_csprng_bytes(
+        prepared.invitation_secret.clone().try_into().unwrap(),
+    )
+    .unwrap();
+    let signature = secret.sign(&claim.signing_transcript(
+        &advertisement.host_id,
+        &advertisement.boot_id,
+        advertisement.offer_generation,
+    ));
+    let envelope = serde_json::to_vec(&serde_json::json!({
+        "spore_id": prepared.spore_id,
+        "image_id": prepared.image_id,
+        "invitation_id": claim.invitation_id,
+        "body_id": claim.body_id,
+        "host_id": advertisement.host_id,
+        "boot_id": advertisement.boot_id,
+        "nonce": claim.nonce,
+        "signature": signature.to_vec(),
+        "observed_at_millis": 11_001,
+        "advertisement": advertisement,
+    }))
+    .unwrap();
+    assert!(envelope.len() > 32 * 1024);
+    assert!(envelope.len() <= abi::conduit_creche_input_capacity());
+    let before = session::current().unwrap().raw_membership;
+    assert_eq!(
+        abi::spore_abi::conduit_creche_admit_physical_spore(
+            abi::conduit_creche_input_capacity() + 1
+        ),
+        abi::ERROR_INPUT
+    );
+    assert_eq!(session::current().unwrap().raw_membership, before);
+    // The ABI owns this thread-local buffer; copy only the admitted input length.
+    unsafe {
+        std::ptr::copy_nonoverlapping(
+            envelope.as_ptr(),
+            abi::conduit_creche_input_ptr() as *mut u8,
+            envelope.len(),
+        );
+    }
+    assert_eq!(
+        abi::spore_abi::conduit_creche_admit_physical_spore(envelope.len()),
+        0
+    );
+    // Output remains valid until the next ABI call on this thread.
+    let output = unsafe {
+        std::slice::from_raw_parts(
+            abi::conduit_creche_output_ptr() as *const u8,
+            abi::conduit_creche_output_len(),
+        )
+    };
+    let receipt: serde_json::Value = serde_json::from_slice(output).unwrap();
+    assert_eq!(receipt["disposition"], "admitted");
+    assert_eq!(receipt["ready"], true);
+    assert_eq!(session::current().unwrap().raw_membership.parts.len(), 1);
+    assert_eq!(abi::conduit_creche_current(), 0);
+    assert_eq!(abi::conduit_creche_durable_snapshot(), 0);
 }
 
 #[test]

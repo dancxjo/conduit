@@ -3,6 +3,7 @@
 use std::{
     collections::BTreeMap,
     fs,
+    path::Path,
     process::{Command, Stdio},
     thread,
     time::Duration,
@@ -22,6 +23,10 @@ struct JourneyProof {
     schema: &'static str,
     base_commit: String,
     image_sha256: String,
+    profile_id: String,
+    build_id: String,
+    image_id: String,
+    host_id: String,
     profile: &'static str,
     boot_id: String,
     source_document_id: String,
@@ -48,6 +53,14 @@ struct JourneyProof {
     stopped_by_harness: bool,
 }
 
+pub(super) struct JourneyIdentity {
+    pub profile_id: String,
+    pub build_id: String,
+    pub image_id: String,
+    pub host_id: String,
+    pub boot_id: String,
+}
+
 pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(ConduitosError::refusal(
@@ -57,6 +70,35 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
     let image = image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
+    let image_path = paths.iso.clone();
+    execute_image(opts, paths, &image_path, image.iso_sha256).map(|_| ())
+}
+
+pub(super) fn execute_supplied(
+    opts: &GlobalOpts,
+    image_path: &Path,
+    image_sha256: String,
+) -> Result<JourneyIdentity, ConduitosError> {
+    if opts.dry_run {
+        return Err(ConduitosError::refusal(
+            "dry-run-has-no-spore-acceptance",
+            "Crèche spore acceptance requires a real supplied artifact and QEMU lifecycle",
+        ));
+    }
+    execute_image(
+        opts,
+        Paths::new(ConduitosArch::X86_64)?,
+        image_path,
+        image_sha256,
+    )
+}
+
+fn execute_image(
+    opts: &GlobalOpts,
+    paths: Paths,
+    image_path: &Path,
+    image_sha256: String,
+) -> Result<JourneyIdentity, ConduitosError> {
     let monitor_socket = paths.target.join("journey-monitor.sock");
     let serial_path = paths.target.join("journey-serial.log");
     let proof_path = paths.target.join("journey-proof.json");
@@ -96,7 +138,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "-device",
             "usb-kbd,bus=conduitos-xhci.0,port=1",
             "-cdrom",
-            paths.iso.to_str().ok_or_else(|| {
+            image_path.to_str().ok_or_else(|| {
                 ConduitosError::refusal("product-journey-image-path-invalid", "non-UTF-8 ISO path")
             })?,
             "-boot",
@@ -112,7 +154,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let mut artifacts = super::qemu_artifacts::Artifacts::new(
         paths.target.join("journey-frames"),
         serial_path.clone(),
-        serde_json::json!({"source_commit":git_head(&paths.root)?,"image_sha256":image.iso_sha256,
+        serde_json::json!({"source_commit":git_head(&paths.root)?,"image_sha256":image_sha256.clone(),
             "qemu_argv":command.get_args().map(|value|value.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
     )?;
     let mut child = command
@@ -300,7 +342,11 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         let proof = JourneyProof {
             schema: "conduit.conduitos/product-journey-proof@1",
             base_commit: git_head(&paths.root)?,
-            image_sha256: image.iso_sha256,
+            image_sha256,
+            profile_id: text(opened, "profile_id")?,
+            build_id: text(opened, "build_id")?,
+            image_id: text(opened, "image_id")?,
+            host_id: text(opened, "host_id")?,
             profile: super::demo::DEMO_PROFILE,
             boot_id: text(opened, "boot_id")?,
             source_document_id: text(opened, "source_document_id")?,
@@ -338,7 +384,13 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         if !opts.quiet && !opts.json {
             println!("ConduitOS product journey proof: {}", proof_path.display());
         }
-        Ok(())
+        Ok(JourneyIdentity {
+            profile_id: proof.profile_id.clone(),
+            build_id: proof.build_id.clone(),
+            image_id: proof.image_id.clone(),
+            host_id: proof.host_id.clone(),
+            boot_id: proof.boot_id.clone(),
+        })
     })();
     if result.is_err() {
         if let Some(status) = child.try_wait().ok().flatten() {

@@ -13,7 +13,8 @@ When these sources differ, do not improvise a synthesis. Current executable trut
 
 ## Before starting
 
-- Start ordinary work from an explicit, current `dev` commit and record it in the issue or PR. Only the PR shepherd prepares frozen-`dev` promotion work for `main`.
+- Start ordinary work from current `dev`. Git and CI retain the exact identity;
+  do not copy it into issue or PR prose unless a failure investigation needs it.
 - State the one outcome being attempted, its non-goals, and the proof needed to accept it.
 - Identify the files and contracts the work is expected to own.
 - Check open PRs for overlapping files or architectural surfaces.
@@ -53,7 +54,7 @@ Parallel work is encouraged only when ownership is clear.
 
 Agents must assess the actual environment, ownership, active processes, and storage pressure when deciding when and how to clean. A `.local` hostname suffix is not required and does not by itself establish ownership.
 
-On Dan's machines `forebrain` and `victus` (including their fully qualified hostnames), agents are responsible for proactively maintaining usable disk space. Check headroom before substantial builds and recover space from verified disposable artifacts when needed; do not wait for disk exhaustion or ask again for routine cleanup permission. This responsibility does not authorize deleting uncommitted work, unique evidence, or personal data.
+On Dan's machines `forebrain`, `victus`, and `envie` (including their fully qualified hostnames), agents are responsible for proactively maintaining usable disk space. Check headroom before substantial builds and recover space from verified disposable artifacts when needed; do not wait for disk exhaustion or ask again for routine cleanup permission. This responsibility does not authorize deleting uncommitted work, unique evidence, or personal data. These hosts own their workspaces; agents may manage workspace lifecycle according to the host's local policy.
 
 In cloud, CI, hosted runner, and other managed environments, the agent's own environment-specific rules, permissions, and cleanup lifecycle govern. This repository imposes no blanket prohibition on cloud cleanup and grants no additional privilege there. Follow those environment rules for workspace and cache retention, shared resources, and disposal. If the environment or ownership is uncertain, investigate and limit cleanup to verified disposable artifacts within the agent's authority; report any remaining blocker.
 
@@ -63,15 +64,17 @@ On user-owned machines, recover space in this order:
 2. Remove regenerable build outputs such as inactive Rust `target` directories and tool caches. Preserve outputs used by a running process. Do not delete source trees, repositories, credentials, downloads, virtual-machine images, or other user data merely because they are large.
 3. Empty desktop trash and remove stale user-owned temporary artifacts. Do not disturb active sockets, sessions, system-owned temporary paths, or recent artifacts whose ownership is unclear.
 4. Use package-native cleanup for package caches and bounded journal retention when available. Do not bypass missing privileges or turn a cleanup into an operating-system reconfiguration.
-5. Before deleting a Git worktree, fetch and prune `origin`, verify that the worktree is not the active checkout, verify `git status --porcelain` is empty including untracked files, and verify its exact `HEAD` is reachable from at least one current `origin/*` ref. Retain and report every dirty, untracked, unpushed, unreachable, or unverifiable worktree. Remove qualifying worktrees through `git worktree remove`, then run `git worktree prune`; do not delete their directories directly.
-6. Report the before/after free space, what classes of data were removed, what large candidates were deliberately preserved, and any cleanup blocked by permissions.
+5. Report the before/after free space, what classes of data were removed, what large candidates were deliberately preserved, and any cleanup blocked by permissions.
 
 Disk cleanup is machine maintenance, not permission to change Conduit source or enlarge an issue's implementation scope.
 
 ## Change discipline
 
-- Do not push directly to `main`. Stable `main` accepts only an immutable `promote/<full-promotion-sha>` commit whose exact tree and second parent identify the frozen `dev` snapshot, through a promotion PR whose exhaustive gate succeeded.
-- Do not open feature, documentation, maintenance, or CI PRs directly against `main`. The sole routine `main` PR is a frozen `dev` snapshot promotion.
+- Do not push directly to `main`. Stable `main` accepts the current repairable
+  `release/<captured-dev-sha>` branch only after its exact final head passes the
+  exhaustive promotion gate.
+- Do not open feature, documentation, maintenance, or CI PRs directly against
+  `main`. The sole routine `main` PR is the automatic release train.
 - Keep PRs reviewable. A large milestone may use several small PRs, but closing the parent issue requires the complete acceptance proof.
 - Do not introduce broad renames, compatibility layers, dependencies, generated files, or cleanup unrelated to the owned outcome.
 - Do not rebuild archived subsystems wholesale. Recover the smallest reviewed concept demanded by a working vertical slice and record its provenance in `docs/reuse-ledger.md`.
@@ -119,30 +122,35 @@ A green check proves only the commands and environments it actually ran.
 
 ### Integration and promotion
 
-- `dev` is the construction site. Feature PRs receive focused impact-based proof sufficient to admit them into integration; one PR never cancels another.
-- A push to `dev` proves the combined development tree with integration smoke. A red `dev` blocks further admission until repaired.
-- `main` is stable and releasable. A same-repository frozen `promote/<full-promotion-sha>` snapshot PR to `main` runs the exhaustive workspace, product, browser, firmware, and ConduitOS gate against its exact head. Its tree equals the chosen `dev` snapshot, with current `main` and that snapshot as its two parents. `dev` remains open for product admission while it is proved.
-- Candidate evidence answers whether a change is sound enough for `dev`. Development evidence answers whether the current combined tree basically works. Promotion evidence alone answers whether an exact tree may become `main`.
-- Merging or advancing `dev` does not require old feature heads to negotiate with future CI. Refresh stale candidates onto current `dev` when they approach admission.
-- Pages deployment consumes the already-proven carrier from the successful frozen-snapshot promotion and runs only after that promotion merges. Privileged deployment code never executes untrusted PR-controlled code.
-- Emergency consolidation is exceptional recovery: snapshot every open head, combine only reviewed deltas on a branch from current `dev`, resolve fallout once, prove the combined tree, merge it to `dev`, verify every absorbed head or patch is represented, then close superseded PRs with signed evidence. Never force an unproven recovery tree into `main`.
+- `dev` is deliberately easy to enter. A feature PR runs formatting, patch
+  integrity, and lightweight controller checks, not product fabrication or
+  machine proof.
+- The newest combined `dev` tree runs affected integration proof. Newer `dev`
+  updates cancel obsolete integration runs; repair failures through ordinary
+  PRs without reconciling old heads.
+- After successful integration, the release controller starts a release only
+  when none is open and `dev` differs from `main`. New work accumulates for the
+  next release while the current one runs.
+- A release branch may receive bug fixes discovered by exhaustive proof. Its
+  exact final head—not its initial snapshot—must pass before `main` accepts it.
+- After merge, automation returns release fixes to `dev`. Pages deploys only
+  the carrier produced by the accepted promotion.
+- Do not manually manage proof receipts, candidate retirement, integration
+  refs, reconciliation labels, or promotion commits. See
+  [CI for contributors and agents](docs/contributing/ci.md).
 
 ### PR shepherd
 
-The named PR shepherd keeps the queue moving and the branch boundaries truthful. They monitor open PRs and Actions, redirect PRs aimed at the wrong branch, refresh old product deltas onto current `dev`, sequence overlapping work, resolve integration failures before accepting more changes, close absorbed or obsolete PRs with evidence, and open periodic frozen-snapshot promotions to `main`. They simplify avoidable process rather than adding ceremonial bytes or compatibility layers. They do not weaken proof classes, cross privilege boundaries, or claim a deployment before exact promotion evidence exists.
+The PR shepherd resolves actual failures and overlapping changes. They do not
+poll healthy child jobs, narrate machine identities, retire superseded runs, or
+manually create promotions. Automation owns that bookkeeping.
 
 ## PR contract
 
-Every PR description should state:
-
-- the exact `dev` base commit (or exact `main` base for the single promotion PR);
-- what changed and why;
-- the owning issue and acceptance slice;
-- architectural invariants touched;
-- explicit non-goals and stop line;
-- successful and negative demonstrations;
-- commands or workflow runs used for validation;
-- what remains open after merge.
+Every PR description should state what changed and why, its owning issue when
+one exists, the relevant architectural boundary, and any meaningful proof gap
+or remaining work. GitHub already records commits, checks, and run identities;
+do not duplicate that metadata as prose.
 
 Implementation and acceptance-record changes should normally be separate when claims depend on stable promotion evidence. Update `README.md`, `STATUS.md`, the roadmap, and audit records only after the implementation reaches accepted exact-main evidence.
 

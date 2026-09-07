@@ -54,6 +54,16 @@ export function validateConduitOsReleaseManifest(manifest, profile) {
     || !/^sha256:[0-9a-f]{64}$/.test(manifest.artifact?.sha256)
     || manifest.image_id !== `image:${manifest.artifact.sha256}`
     || typeof manifest.profile_id !== "string" || typeof manifest.build_id !== "string"
+    || typeof manifest.resolved_description_binding !== "string"
+    || manifest.resolved_image?.manifest?.image_id !== manifest.resolved_description_binding
+    || manifest.resolved_image?.manifest?.profile_id !== manifest.profile_id
+    || manifest.resolved_image?.manifest?.build_id !== manifest.build_id
+    || manifest.resolved_image?.manifest?.target !== profile.target.id
+    || manifest.resolved_image?.manifest?.source_identity !== manifest.source_identity
+    || manifest.resolved_image?.manifest?.toolchain_identity !== manifest.toolchain_identity
+    || manifest.resolved_image?.payload?.profile_id !== manifest.profile_id
+    || manifest.resolved_image?.payload?.build_id !== manifest.build_id
+    || manifest.resolved_image?.payload?.target !== profile.target.id
     || typeof manifest.source_identity !== "string" || typeof manifest.toolchain_identity !== "string"
     || JSON.stringify(manifest.expected_offers) !== JSON.stringify(["conduit.host/present@1"])
     || JSON.stringify(manifest.bounds) !== JSON.stringify(profile.bounds)

@@ -338,10 +338,14 @@ test("Crèche refuses changed admitted code before application manifestation", a
   entrance = await startStaticProduct("target/creche-product", "/conduit/creche/");
   await page.route("**/creche.mjs", async (route) => {
     const response = await route.fetch();
-    await route.fulfill({ response, body: `${await response.text()}\n// changed after packaging` });
+    const body = await response.text();
+    const changed = `${body.slice(0, -1)}${body.endsWith("\n") ? " " : "\n"}`;
+    expect(new TextEncoder().encode(changed)).toHaveLength(new TextEncoder().encode(body).length);
+    await route.fulfill({ response, body: changed });
   }, { times: 1 });
   await page.goto(entrance.url);
-  await expect(page.locator("body")).toHaveText("application resource application-module changed identity");
+  await expect(page.locator("#host-state")).toHaveText("Browser application refused");
+  await expect(page.locator("#workspace")).toHaveText("application resource application-module changed identity");
   expect(await page.evaluate(() => globalThis.__conduitCrecheHost)).toBeUndefined();
 });
 

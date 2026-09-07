@@ -1,5 +1,7 @@
 //! Bounded WASM boundary for the single executable-tour Play.
 
+#[path = "abi_body.rs"]
+mod body;
 #[path = "abi_effects.rs"]
 mod effects;
 #[path = "abi_profiles.rs"]
@@ -290,11 +292,6 @@ fn start(
         ));
         return ERROR_INTERACTION;
     };
-    SESSION.with(|slot| {
-        if let Some(previous) = slot.borrow_mut().take() {
-            let _ = previous.cancel();
-        }
-    });
     INPUT.with(|input| {
         let mut input = input.borrow_mut();
         let result = (|| {
@@ -342,6 +339,20 @@ fn start(
             };
             session.attach_source_interaction(&mut effect, source_interaction);
             write_output(&effect).map_err(|_| ERROR_OUTPUT)?;
+            // A refused proposal must not retire the current Play. Preparation
+            // and effect serialization precede the explicit replacement step.
+            SESSION.with(|slot| -> Result<(), i32> {
+                if let Some(previous) = slot.borrow_mut().take() {
+                    previous.cancel().map_err(|message| {
+                        clear_output();
+                        let _ = write_output(&super::refusal(format!(
+                            "replacement refused after prior Play cancellation failed: {message}"
+                        )));
+                        ERROR_CANCEL
+                    })?;
+                }
+                Ok(())
+            })?;
             SESSION.with(|slot| *slot.borrow_mut() = Some(session));
             Ok(STATUS_READY)
         })();
@@ -457,6 +468,10 @@ fn write_output_bytes(encoded: &[u8]) -> Result<(), ()> {
 fn clear_output() {
     OUTPUT_LEN.with(|length| *length.borrow_mut() = 0);
 }
+
+#[cfg(test)]
+#[path = "abi_replacement_tests.rs"]
+mod replacement_tests;
 
 #[cfg(test)]
 mod tests {

@@ -23,7 +23,7 @@ const ERROR_SPAWN_SECRET: i32 = -264;
 thread_local! {
     static IDENTITY: RefCell<Option<BrowserAdmissionIdentity>> = const { RefCell::new(None) };
     static INPUT: RefCell<[u8; INPUT_CAPACITY]> = const { RefCell::new([0; INPUT_CAPACITY]) };
-    static OUTPUT: RefCell<[u8; OUTPUT_CAPACITY]> = const { RefCell::new([0; OUTPUT_CAPACITY]) };
+    static OUTPUT: RefCell<Vec<u8>> = RefCell::new(vec![0; OUTPUT_CAPACITY]);
     static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };
 }
 

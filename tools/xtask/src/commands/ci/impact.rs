@@ -56,29 +56,8 @@ struct ControllerProofSpec {
 
 const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
     ControllerProofSpec {
-        id: "ci.candidate-retirement",
-        implementation_inputs: &[
-            ".github/workflows/retire-superseded-candidates.yml",
-            "proof/ci/retire-superseded-candidates.spec.mjs",
-            "tools/ci/retire-superseded-candidates.mjs",
-        ],
-        required_inputs: &[],
-        workspace_packages: &[],
-    },
-    ControllerProofSpec {
-        id: "ci.current-controller-reconciliation",
-        implementation_inputs: &[
-            ".github/workflows/reconcile-candidate.yml",
-            "proof/ci/reconcile-candidate-request.spec.mjs",
-            "tools/ci/reconcile-candidate-request.mjs",
-        ],
-        required_inputs: &[],
-        workspace_packages: &[],
-    },
-    ControllerProofSpec {
         id: "ci.exact-integration",
         implementation_inputs: &[
-            ".github/workflows/reconcile-candidate.yml",
             "tools/xtask-dispatch/src/ci_dispatch.rs",
             "tools/xtask-dispatch/src/main.rs",
             "tools/xtask/src/commands/ci.rs",
@@ -111,25 +90,6 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         // test-target manifest is the dependency-light slice anchor.
         required_inputs: &["tools/xtask-dispatch/Cargo.toml"],
         workspace_packages: &["conduit-xtask-dispatch", "xtask"],
-    },
-    ControllerProofSpec {
-        id: "ci.merged-branch-retirement",
-        implementation_inputs: &[
-            ".github/workflows/retire-merged-pr-branch.yml",
-            "proof/ci/retire-merged-pr-branch.spec.mjs",
-            "tools/ci/retire-merged-pr-branch.mjs",
-            "tools/xtask/src/commands/ci/impact.rs",
-            "tools/xtask/src/commands/ci/impact/tests.rs",
-            "tools/xtask/tests/ci_workflow_contract.rs",
-        ],
-        // Planner/test files are bounded to this controller only when its
-        // complete executable slice anchors the same change.
-        required_inputs: &[
-            ".github/workflows/retire-merged-pr-branch.yml",
-            "proof/ci/retire-merged-pr-branch.spec.mjs",
-            "tools/ci/retire-merged-pr-branch.mjs",
-        ],
-        workspace_packages: &["xtask"],
     },
     ControllerProofSpec {
         id: "ci.actions-monitor",

@@ -9,14 +9,6 @@ on:
       candidate_sha:
         required: true
         type: string
-      shared_compile_result:
-        required: false
-        default: success
-        type: string
-      shared_compile_packages:
-        required: false
-        default: '[]'
-        type: string
       execute_proofs:
         description: Exact product proof IDs selected by trusted reconciliation; empty keeps ordinary impact planning
         required: false
@@ -50,8 +42,6 @@ permissions:
 env:
   CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
   CONDUIT_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}
-  CONDUIT_SHARED_COMPILE_RESULT: ${{ inputs.shared_compile_result || 'success' }}
-  CONDUIT_SHARED_COMPILE_PACKAGES: ${{ inputs.shared_compile_packages || '[]' }}
 concurrency:
   group: tour-and-creche-products-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
   cancel-in-progress: false
@@ -178,7 +168,7 @@ jobs:
 
   browser-runtimes:
     needs: plan
-    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.browser_runtime_required == 'true'
+    if: needs.plan.outputs.browser_runtime_required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -204,6 +194,8 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
           cargo build --locked -p patchbay-html --bin patchbay-static-assets
           cp target/debug/patchbay-static-assets target/browser-product-runtimes/patchbay-static-assets
+          cargo build --locked -p patchbay-html --bin patchbay-html -p conduit-std-host --bin browser-admission-probe
+          cp target/debug/patchbay-html target/debug/browser-admission-probe target/browser-product-runtimes/
       - uses: actions/upload-artifact@v7
         with:
           name: conduit-browser-product-runtimes
@@ -357,7 +349,7 @@ jobs:
 
   avr-release:
     needs: plan
-    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -386,7 +378,7 @@ jobs:
 
   browser-release:
     needs: plan
-    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -410,7 +402,7 @@ jobs:
 
   host-releases:
     needs: plan
-    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -454,7 +446,7 @@ jobs:
 
   raspberry-pi-release:
     needs: plan
-    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -488,7 +480,7 @@ jobs:
 
   orange-pi-release:
     needs: plan
-    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -521,7 +513,7 @@ jobs:
 
   conduitos-release-images:
     needs: plan
-    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -620,7 +612,7 @@ jobs:
 
   esp32-release-images:
     needs: [plan, standalone-locks]
-    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -748,6 +740,9 @@ jobs:
         run: |
           mkdir -p target/debug
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
+          cp target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-admission-probe target/debug/
+          mkdir -p target/wasm32-unknown-unknown/release
+          cp target/browser-product-runtimes/patchbay-runtime.wasm target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
           chmod 755 target/debug/conduit-browser-host
           chmod 755 target/browser-product-runtimes/patchbay-static-assets
           cp target/browser-product-runtimes/tour-runtime.wasm target/conduit_tour_runtime.wasm
@@ -763,6 +758,9 @@ jobs:
           name: conduit-staged-browser-products
           path: |
             target/debug/conduit-browser-host
+            target/debug/patchbay-html
+            target/debug/browser-admission-probe
+            target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
             target/pages-root
             target/tour-product
             target/creche-product
@@ -789,7 +787,7 @@ jobs:
           - shard: browser-host
             specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
           - shard: creche-machines
-            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs
+            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs
           - shard: pages
             specs: proof/browser/pages-front-door.spec.mjs
     name: browser-proof-${{ matrix.shard }}
@@ -809,11 +807,12 @@ jobs:
           name: conduit-staged-browser-products
           path: target
       - name: Restore executable Host permission
-        run: chmod 755 target/debug/conduit-browser-host
+        run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-admission-probe
       - name: Prove the ${{ matrix.shard }} surface in pinned Chromium
         if: matrix.shard != 'tour'
         env:
           BROWSER_PROOF_SPECS: ${{ matrix.specs }}
+          CONDUIT_CRECHE_SPORE_OUTPUT: ${{ runner.temp }}/creche-export.iso
         run: >-
           node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
@@ -821,6 +820,15 @@ jobs:
           --project chromium
           --workers 1
           --retries 0
+      - name: Retain the exact Crèche-exported ConduitOS spore
+        if: matrix.shard == 'creche-machines'
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduit-creche-conduitos-spore-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/creche-export.iso
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
       - name: Prove the remaining Tour surface in pinned Chromium
         if: matrix.shard == 'tour'
         run: >-
@@ -979,8 +987,6 @@ jobs:
     steps:
       - name: Preserve the stable required product gate
         env:
-          SHARED_COMPILE_RESULT: ${{ env.CONDUIT_SHARED_COMPILE_RESULT }}
-          SHARED_COMPILE_PACKAGES: ${{ env.CONDUIT_SHARED_COMPILE_PACKAGES }}
           PRODUCT_REQUIRED: ${{ needs.plan.outputs.required }}
           PRODUCT_PROOFS: ${{ needs.plan.outputs.proofs }}
           TOUR_REQUIRED: ${{ needs.plan.outputs.tour_required }}
@@ -992,12 +998,6 @@ jobs:
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
           RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
         run: |
-          if test "${SHARED_COMPILE_RESULT:-success}" != success; then
-            printf '{"schema":"conduit.ci.causal-block/v1","blocked_by":"workspace.shared-compile","packages":%s,"dependents":["products-proof"]}\n' \
-              "${SHARED_COMPILE_PACKAGES:-[]}" | tee causal-block.json
-            printf 'blocked-by: workspace.shared-compile (%s)\n' "${SHARED_COMPILE_PACKAGES:-[]}" >&2
-            exit 1
-          fi
           if test "$PRODUCT_REQUIRED" != true; then
             echo "No Pages product proof inputs changed: $PRODUCT_PROOFS"
             exit 0

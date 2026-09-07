@@ -37,7 +37,7 @@ pub extern "C" fn conduit_browser_webrtc_session_start_granted(role: u32, length
         {
             return Err(WireError::InvalidBase);
         }
-        let mut canonical = [0; FRAME_CAPACITY];
+        let mut canonical = vec![0; FRAME_CAPACITY];
         let canonical_length = encode_session_frame_into(
             binding.hello_frame(),
             &mut canonical,

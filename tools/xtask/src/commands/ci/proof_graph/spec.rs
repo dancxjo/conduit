@@ -78,9 +78,11 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         kind: ProofKind::Workspace,
         inputs: &[
             ".github/workflows/check.yml",
-            ".github/workflows/reconcile-candidate.yml",
-            ".github/workflows/retire-merged-pr-branch.yml",
-            ".github/workflows/retire-superseded-candidates.yml",
+            ".github/workflows/candidate.yml",
+            ".github/workflows/dev-integration.yml",
+            ".github/workflows/promote-dev.yml",
+            ".github/workflows/promotion.yml",
+            ".github/workflows/sync-release-to-dev.yml",
             "tools",
             "proof/ci",
         ],
@@ -89,7 +91,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         environment: "ubuntu-rust-1.98.1-node-v1",
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::CiController,
-        command: "cargo test --locked --package conduit-xtask-dispatch && node --test proof/ci/check-result-gate.spec.mjs proof/ci/retire-superseded-candidates.spec.mjs proof/ci/reconcile-candidate-request.spec.mjs proof/ci/classify-pr-stack.spec.mjs proof/ci/browser-product-ownership.test.mjs proof/ci/tour-compatibility.test.mjs",
+        command: "cargo test --locked --package conduit-xtask-dispatch && node --test proof/ci/check-result-gate.spec.mjs proof/ci/branch-boundary.spec.mjs proof/ci/browser-product-ownership.test.mjs proof/ci/tour-compatibility.test.mjs",
     },
     ProofSpec {
         id: "workspace.shared-compile",

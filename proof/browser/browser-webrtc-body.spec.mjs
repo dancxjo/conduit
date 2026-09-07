@@ -245,7 +245,13 @@ test("two admitted product clients compose Body grants into one exact ready sess
   const replacementStates = await Promise.all([source, sink].map(
     (page) => page.evaluate(() => globalThis.__browserPresence.webRtcSessions()),
   ));
-  await sourcePage.evaluate(() => globalThis.__browserPresence.close());
+  // Close the selected Line explicitly, then lose the presence transport without
+  // sending the distinct acknowledged PresenceLeave protocol. These are separate
+  // observations; do not rely on an unbounded ICE failure-detection interval.
+  await sourcePage.evaluate(
+    (id) => globalThis.__browserPresence.closeWebRtcLine(id),
+    replacementNegotiationId,
+  );
   await sourcePage.close();
   await expect.poll(probe.output).toContain("peer-lost");
   await expect.poll(() => probe.output().match(/^host_loss=(\{.*\})$/m)?.[1]).toBeDefined();
@@ -275,9 +281,8 @@ test("two admitted product clients compose Body grants into one exact ready sess
   const restartMatch = probe.output().match(/^restart=(\{.*\})$/m);
   expect(restartMatch, probe.output()).not.toBeNull();
   const restart = JSON.parse(restartMatch[1]);
-  await restartedPage.evaluate(() => globalThis.__browserPresence.close());
+  // This probe observes transport loss, not acknowledged voluntary departure.
   await restartedContext.close();
-  await sinkPage.evaluate(() => globalThis.__browserPresence.close());
   await sourceContext.close();
   await sinkContext.close();
   await expect.poll(() => {

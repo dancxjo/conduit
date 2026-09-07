@@ -10,6 +10,7 @@ const execute = promisify(execFile);
 const repository = new URL("../..", import.meta.url).pathname;
 const fixtureSource = join(repository, "proof/browser/fourth-product");
 const sharedAssets = join(repository, "targets/browser/host/assets");
+const sharedDesignSystem = join(repository, "products/shared/browser/conduit.css");
 const tourProduct = process.env.CONDUIT_TOUR_PRODUCT_ROOT ?? "target/tour-product";
 const patchbayProduct = process.env.CONDUIT_PATCHBAY_PRODUCT_ROOT ?? "target/patchbay-product";
 const crecheProduct = process.env.CONDUIT_CRECHE_PRODUCT_ROOT ?? "target/creche-product";
@@ -19,8 +20,9 @@ async function stageFixture() {
   stagedFixture = await mkdtemp(join(tmpdir(), "conduit-fourth-product-"));
   for (const path of [
     "application.html", "application-presentation.mjs", "application-theme.mjs",
-    "application-theme.css", "browser-application-loader.mjs", "browser-application-storage.mjs",
+    "browser-application-loader.mjs", "browser-application-storage.mjs",
   ]) await cp(join(sharedAssets, path), join(stagedFixture, path));
+  await cp(sharedDesignSystem, join(stagedFixture, "conduit.css"));
   await cp(join(repository, "semantics/presentation/assets/product-masthead.mjs"), join(stagedFixture, "product-masthead.mjs"));
   await cp(join(stagedFixture, "application.html"), join(stagedFixture, "index.html"));
   for (const path of ["application.mjs", "state.mjs"]) {
@@ -43,6 +45,31 @@ async function expectSharedComponents(page, names) {
 test.beforeAll(stageFixture);
 test.afterAll(async () => { if (stagedFixture) await rm(stagedFixture, { recursive: true, force: true }); });
 
+test("hosted applications cover unstyled content until admitted presentation is ready", async ({ page }) => {
+  const entrance = await startStaticProduct(stagedFixture);
+  let releaseTheme;
+  const themeReleased = new Promise((resolve) => { releaseTheme = resolve; });
+  await page.route("**/conduit.css", async (route) => {
+    await themeReleased;
+    await route.continue();
+  });
+  try {
+    await page.goto(entrance.url, { waitUntil: "commit" });
+    const suspense = page.locator("#conduit-suspense");
+    await expect(suspense).toBeVisible();
+    await expect(suspense).toHaveAttribute("aria-busy", "true");
+    await expect(suspense).toHaveCSS("position", "fixed");
+    await expect(suspense).toHaveCSS("background-color", "rgb(5, 7, 11)");
+    releaseTheme();
+    await expect(page.getByRole("heading", { name: "Field Notes" })).toBeVisible();
+    await expect(suspense).toHaveCount(0);
+    await expect(page.locator("html")).toHaveAttribute("data-conduit-load-state", "ready");
+  } finally {
+    releaseTheme();
+    entrance.child.kill();
+  }
+});
+
 test("one semantic ProductMasthead composition replaces product-private global chrome", async () => {
   const productSurfaces = [
     ["Tour", "products/tour/browser/tour.html", "products/tour/browser/tour.css", "products/tour/browser/tour.mjs"],
@@ -59,15 +86,52 @@ test("one semantic ProductMasthead composition replaces product-private global c
     expect(html, `${name} private global chrome`).not.toMatch(/class="(?:topbar|site-header|global-nav|wordmark)"/);
     expect(css, `${name} private global chrome CSS`).not.toMatch(/\.(?:topbar|site-header|global-nav|wordmark)\b/);
     expect(module, `${name} shared composition consumer`).toContain("createProductMasthead");
+    expect(html, `${name} bootstrap suspense`).toContain('id="conduit-suspense"');
+    expect(html, `${name} inline bootstrap style`).toContain("data-conduit-bootstrap");
   }
   const pages = await readFile(join(repository, "site/index.html"), "utf8");
   expect(pages).toContain("<!-- conduit-product-masthead -->");
   expect(pages).not.toMatch(/<nav[^>]*>[^]*?(?:Tour|Crèche|Patchbay)[^]*?<\/nav>/);
 });
 
+test("all four web surfaces inherit one product-owned browser design system", async () => {
+  const shared = await readFile(join(repository, "products/shared/browser/conduit.css"), "utf8");
+  expect(shared).toContain("--conduit-font-body:");
+  expect(shared).toContain("--conduit-font-editorial:");
+  expect(shared).toContain("--conduit-font-mono:");
+  expect(shared).toContain('[data-application-key="product-masthead"]');
+  expect(shared).toContain('button[data-application-component]');
+
+  for (const path of [
+    "site/site.css",
+    "products/tour/browser/tour.css",
+    "products/creche/browser/creche.css",
+    "products/patchbay/html/assets/app.css",
+  ]) {
+    const css = await readFile(join(repository, path), "utf8");
+    expect(css, `${path} must not mint a private root design system`).not.toMatch(/:root\s*\{/);
+    expect(css, `${path} must not select its own body typeface`).not.toMatch(/\b(?:Inter|DejaVu Sans)\b/);
+  }
+  const tour = await readFile(join(repository, "products/tour/browser/tour.css"), "utf8");
+  expect(tour, "Tour editorial typography must be an explicit shared token").toContain("var(--conduit-font-editorial)");
+
+  const pages = await readFile(join(repository, "site/index.html"), "utf8");
+  expect(pages).toContain('href="./conduit.css"');
+  for (const path of [
+    "products/tour/browser/tour.application.template.json",
+    "products/creche/browser/creche.application.template.json",
+    "products/patchbay/html/assets/patchbay.application.template.json",
+  ]) {
+    const manifest = JSON.parse(await readFile(join(repository, path), "utf8"));
+    const resource = manifest.resources.find(({ role }) => role === "shared-presentation-style");
+    expect(resource?.path, `${path} shared design system`).toMatch(/(?:^|\/)conduit\.css$/);
+  }
+});
+
 test("fourth application is admitted without product HTML, CSS, DOM, or browser effects", async ({ page }) => {
   const entrance = await startStaticProduct(stagedFixture);
   try {
+    await page.emulateMedia({ colorScheme: "dark" });
     await page.goto(entrance.url);
     await expect(page.getByRole("heading", { name: "Field Notes" })).toBeVisible();
     const application = page.locator('[data-application-slot="application"]');
