@@ -44,20 +44,23 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "check")
         .collect();
-    assert_eq!(checks.len(), 68);
+    assert_eq!(checks.len(), 65);
     assert!(checks.iter().all(|result| result.status == "passed"));
-    let measurement_window = checks
+    let little_seismograph = checks
         .iter()
-        .find(|result| result.slug == "measurement-window")
-        .expect("measurement-window is explicitly reviewed");
-    assert_eq!(measurement_window.title, "Measurement Window");
-    assert_eq!(measurement_window.form_entry, "measurement-window");
+        .find(|result| result.slug == "little-seismograph")
+        .expect("Little Seismograph is explicitly reviewed");
+    assert_eq!(little_seismograph.title, "Little Seismograph");
     assert_eq!(
-        measurement_window.source_path,
-        "forms/measurement-window/main.conduit"
+        little_seismograph.form_entry,
+        "little-seismograph-processing"
     );
-    assert!(measurement_window.source_document_id.is_some());
-    assert!(measurement_window.checked_form_id.is_some());
+    assert_eq!(
+        little_seismograph.source_path,
+        "forms/little-seismograph/main.conduit"
+    );
+    assert!(little_seismograph.source_document_id.is_some());
+    assert!(little_seismograph.checked_form_id.is_some());
     let button = checks
         .iter()
         .find(|result| result.slug == "button-across-room")
@@ -76,7 +79,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-check")
         .collect();
-    assert_eq!(reusable.len(), 23);
+    assert_eq!(reusable.len(), 29);
     assert!(reusable.iter().all(|result| {
         result.status == "passed"
             && result.source_document_id.is_some()
@@ -95,13 +98,13 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "composition-check")
         .collect();
-    assert_eq!(composition.len(), 23);
+    assert_eq!(composition.len(), 29);
     assert_eq!(
         composition
             .iter()
             .filter(|result| result.status == "passed")
             .count(),
-        21
+        27
     );
     assert_eq!(
         composition
@@ -124,7 +127,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-deterministic")
         .collect();
-    assert_eq!(reusable_deterministic.len(), 23);
+    assert_eq!(reusable_deterministic.len(), 29);
     assert!(reusable_deterministic
         .iter()
         .all(|result| result.status == "unavailable"));

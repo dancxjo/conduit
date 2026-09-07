@@ -80,6 +80,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             ".github/workflows/check.yml",
             ".github/workflows/candidate.yml",
             ".github/workflows/dev-integration.yml",
+            ".github/workflows/finalize-release.yml",
             ".github/workflows/promote-dev.yml",
             ".github/workflows/promotion.yml",
             ".github/workflows/sync-release-to-dev.yml",

@@ -1,0 +1,61 @@
+# Reusable count-bounded measurement retention. The full policy is semantic and
+# explicit; no renderer or acquisition mechanism owns this state.
+form measurement-window (
+    measurement: MeasurementSample...| > window: MeasurementWindow
+) {
+    retain: data/measurement-count-window(count = 8, when-full = "drop-oldest")
+    measurement > retain.measurement
+    retain.window > window
+}
+
+form measurement-summary (
+    window: MeasurementWindow > summary: MeasurementSummary
+) {
+    summarize: data/measurement-summary
+    window > summarize.window
+    summarize.summary > summary
+}
+
+form measurement-threshold (
+    > summary: MeasurementSummary
+    > policy: MeasurementThresholdPolicy
+    decision: MeasurementThresholdDecision >
+) {
+    threshold: data/measurement-hysteresis
+    summary > threshold.summary
+    policy > threshold.policy
+    threshold.decision > decision
+}
+
+form measurement-plot (
+    window: MeasurementWindow > series: MeasurementPlotSeries
+) {
+    project: data/measurement-plot(points = 8, when-full = "evenly-spaced")
+    window > project.window
+    project.series > series
+}
+
+# The processing waist accepts any compatible exact typed measurement flow.
+form little-seismograph-processing (
+    > measurement: MeasurementSample...|
+    > policy: MeasurementThresholdPolicy
+    window: MeasurementWindow >
+    summary: MeasurementSummary >
+    decision: MeasurementThresholdDecision >
+    series: MeasurementPlotSeries >
+) {
+    samples: measurement-window
+    summarize: measurement-summary
+    decide: measurement-threshold
+    plot: measurement-plot
+
+    measurement > samples.measurement
+    samples.window > window
+    samples.window > summarize.window
+    samples.window > plot.window
+    summarize.summary > summary
+    summarize.summary > decide.summary
+    policy > decide.policy
+    decide.decision > decision
+    plot.series > series
+}

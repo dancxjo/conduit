@@ -230,7 +230,7 @@ fn text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<(), Er
         x,
         y,
         width: 610,
-        height: 12,
+        height: 16,
     };
     scene
         .push(

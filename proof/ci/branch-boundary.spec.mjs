@@ -82,11 +82,31 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(request, /already-running/);
   assert.match(request, /already-current/);
   assert.match(request, /release\/\$dev_sha/);
-  assert.match(request, /gh pr merge "\$pr_url" --auto --rebase/);
+  assert.doesNotMatch(request, /gh pr merge/);
   const sync = readFileSync(".github/workflows/sync-release-to-dev.yml", "utf8");
   assert.match(sync, /Sync release fixes to dev/);
+  assert.match(sync, /workflow_dispatch:/);
+  assert.match(sync, /Resolve the exact accepted release/);
   assert.match(sync, /--base dev/);
-  assert.match(sync, /--auto --rebase/);
+  assert.doesNotMatch(sync, /gh pr merge/);
+  const devIntegration = readFileSync(".github/workflows/dev-integration.yml", "utf8");
+  assert.match(devIntegration, /workflow_dispatch:/);
+  assert.match(devIntegration, /inputs\.base_sha/);
+  assert.match(devIntegration, /inputs\.candidate_sha/);
+  const finalizer = readFileSync(".github/workflows/finalize-release.yml", "utf8");
+  assert.match(finalizer, /types: \[completed\]/);
+  assert.match(finalizer, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
+  assert.match(finalizer, /test "\$\(git rev-parse "\$merge_sha\^2"\)" = "\$HEAD_SHA"/);
+  assert.match(finalizer, /gh workflow run tour-and-creche-pages --ref main/);
+  assert.match(finalizer, /gh workflow run sync-release-to-dev\.yml --ref main/);
+  assert.match(finalizer, /gh workflow run dev-integration\.yml --ref dev/);
+  const approval = readFileSync(".github/workflows/approve-release-automation.yml", "utf8");
+  assert.match(approval, /workflows: \[promotion, candidate\]/);
+  assert.match(approval, /actor\.login == 'github-actions\[bot\]'/);
+  assert.match(approval, /startsWith\(github\.event\.workflow_run\.head_branch, 'release\/'\)/);
+  assert.match(approval, /startsWith\(github\.event\.workflow_run\.head_branch, 'sync-release\/'\)/);
+  assert.match(approval, /test "\$HEAD_REPOSITORY" = "\$GITHUB_REPOSITORY"/);
+  assert.match(approval, /actions\/runs\/\$RUN_ID\/approve/);
   for (const retired of [
     "candidate-shared-compile.yml",
     "reconcile-candidate.yml",
@@ -94,6 +114,22 @@ test("workflow topology keeps fast development separate from stable promotion", 
     "retire-superseded-candidates.yml",
   ]) {
     assert.equal(existsSync(`.github/workflows/${retired}`), false, retired);
+  }
+});
+
+test("cancelled exact heads cannot start more reusable proof jobs", () => {
+  for (const path of [".github/workflows/check.yml", ".github/workflows/tour-products.yml"]) {
+    const workflow = readFileSync(path, "utf8");
+    assert.doesNotMatch(
+      workflow,
+      /^    if: (?:\$\{\{ )?always\(\) && (?!\!cancelled\(\))/m,
+      `${path} has a cancellation-resistant job condition`,
+    );
+    assert.doesNotMatch(
+      workflow,
+      /^      always\(\) && (?!\!cancelled\(\))/m,
+      `${path} has a cancellation-resistant multiline job condition`,
+    );
   }
 });
 
