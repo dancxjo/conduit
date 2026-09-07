@@ -418,6 +418,15 @@ impl StdHost {
         composition: StdHostComposition,
         adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
     ) -> Result<Self, String> {
+        Self::new_with_local_model_capabilities(config, composition, adapter, Vec::new())
+    }
+
+    pub(crate) fn new_with_local_model_capabilities(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
+        additional_capabilities: Vec<conduit_core::CapabilityOffer>,
+    ) -> Result<Self, String> {
         let offer = adapter.offer();
         offer
             .validate()
@@ -435,6 +444,7 @@ impl StdHost {
         advertisement
             .capabilities
             .push(conduit_std_offers::house_prompt_std_offer());
+        advertisement.capabilities.extend(additional_capabilities);
         advertisement.resources.sort();
         advertisement.capabilities.sort_by(|left, right| {
             left.capability_id

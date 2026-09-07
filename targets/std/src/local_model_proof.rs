@@ -35,15 +35,7 @@ pub fn run(
     adapter: OllamaLocalModelAdapter,
 ) -> Result<LocalModelLiveProofReceipt, Box<dyn std::error::Error>> {
     let model_content_identity = adapter.offer().identity.model_content_identity.clone();
-    let mut host = StdHost::new_with_local_model(
-        StdHostConfig {
-            host_id: HostId::from("host/local-ollama-proof"),
-            boot_id: BootId::from("boot/local-ollama-proof"),
-            offer_generation: OfferGeneration(1),
-        },
-        StdHostComposition::minimal(),
-        Box::new(adapter),
-    )?;
+    let mut additional_capabilities = Vec::new();
     for profile in [
         LocalModelKindProfile::Generate,
         LocalModelKindProfile::ClassifyFiniteLabels,
@@ -51,7 +43,7 @@ pub fn run(
         LocalModelKindProfile::InterpretSignEvidence,
     ] {
         let contract = conduit_ai::llm_contract(profile.kind()).expect("proof profiles are L0");
-        host.advertisement.capabilities.extend([
+        additional_capabilities.extend([
             crate::installed_std::test_local_model_io::source_offer(
                 contract.inputs[0].value_kind.as_str(),
             ),
@@ -60,6 +52,16 @@ pub fn run(
             ),
         ]);
     }
+    let mut host = StdHost::new_with_local_model_capabilities(
+        StdHostConfig {
+            host_id: HostId::from("host/local-ollama-proof"),
+            boot_id: BootId::from("boot/local-ollama-proof"),
+            offer_generation: OfferGeneration(1),
+        },
+        StdHostComposition::minimal(),
+        Box::new(adapter),
+        additional_capabilities,
+    )?;
     let generate = run_profile(&mut host, LocalModelKindProfile::Generate)?;
     let classify = run_profile(&mut host, LocalModelKindProfile::ClassifyFiniteLabels)?;
     let extract = run_profile(&mut host, LocalModelKindProfile::ExtractValidatedInfo)?;
