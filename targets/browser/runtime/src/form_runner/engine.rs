@@ -438,6 +438,10 @@ mod measurement_window_kernel_tests;
 mod measurement_hysteresis_kernel_tests;
 
 #[cfg(test)]
+#[path = "little_seismograph_kernel_tests.rs"]
+mod little_seismograph_kernel_tests;
+
+#[cfg(test)]
 #[path = "concurrent_effect_tests.rs"]
 mod concurrent_effect_tests;
 #[cfg(test)]
