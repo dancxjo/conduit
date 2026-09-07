@@ -160,6 +160,32 @@ test("Crèche browser configuration ordinary controls use product-owned semantic
   }
 });
 
+test("Crèche graduation controls and evidence use product-owned semantics", async () => {
+  const graduation = await readFile(
+    join(repository, "products/creche/browser/creche-graduation.mjs"),
+    "utf8",
+  );
+  const composition = graduation.slice(
+    graduation.indexOf("function presentGraduationControls"),
+    graduation.indexOf("export function renderBiography"),
+  );
+  expect(composition, "Crèche graduation must not construct low-level component arrays").not.toContain(
+    "component:",
+  );
+  expect(composition, "Crèche graduation must request its product-owned semantic view").toContain(
+    "conduit_creche_graduation_view",
+  );
+  const model = await readFile(
+    join(repository, "products/creche/model/src/graduation_presentation.rs"),
+    "utf8",
+  );
+  for (const mechanism of ["Grid", "Status", "Action", "Evidence", "DefinitionTable", "CodeBlock"]) {
+    expect(model, `Crèche graduation must describe ${mechanism} through shared semantics`).toContain(
+      `PresentationMechanism::${mechanism}`,
+    );
+  }
+});
+
 test("all four web surfaces inherit one product-owned browser design system", async () => {
   const shared = await readFile(join(repository, "products/shared/browser/conduit.css"), "utf8");
   expect(shared).toContain("--conduit-font-body:");
