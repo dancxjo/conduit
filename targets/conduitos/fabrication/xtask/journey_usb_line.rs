@@ -1,132 +1,206 @@
-//! Bounded QEMU FTDI peer topology and its ordinary-product Line evidence.
+//! Host peer for the QEMU FTDI-backed canonical Line session.
 
 use std::{
+    io::{Read, Write},
     os::unix::net::UnixStream,
     path::Path,
-    process::Child,
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
-use serde_json::Value;
+use conduit_wire::{
+    decode_session_frame, encode_session_frame_into, encode_stream_frame, SessionBinding,
+    SessionMachine, SessionMessage, SessionRole, WireError,
+};
 
-use super::{journey_records, ConduitosError};
+use super::ConduitosError;
 
-pub(super) const QEMU_CONTROLLER: &str = "qemu-xhci,id=conduitos-xhci,p2=3,p3=0";
-pub(super) const QEMU_DEVICE: &str =
-    "usb-serial,id=conduitos-usb-line,chardev=conduitos-usb-line,bus=conduitos-xhci.0,port=3";
-const EXPECTED_PEER_HOST: &str = "host/qemu-product-journey-ftdi-peer";
-const EXPECTED_PEER_BOOT: &str = "boot/qemu-product-journey-ftdi-peer/1";
+const MAXIMUM_FRAME_BYTES: usize = conduitos::usb_line_offer::USB_LINE_MAXIMUM_FRAME_BYTES as usize;
+const MAXIMUM_PAYLOAD_BYTES: u32 = conduitos::usb_line_offer::USB_LINE_MAXIMUM_PAYLOAD_BYTES;
+const CONNECT_ATTEMPTS: usize = 200;
 
-pub(super) struct ConnectedPeer {
-    _stream: UnixStream,
+pub(super) struct Peer {
+    stream: UnixStream,
+    binding: SessionBinding,
+    machine: SessionMachine,
 }
 
-pub(super) struct Evidence {
-    pub line_id: String,
-    pub binding_id: String,
-    pub base_instance_id: String,
-    pub state_sign_id: String,
-    pub lost_state_sign_id: String,
-    pub peer_host_id: String,
-    pub peer_boot_id: String,
+pub(super) struct PendingPeer {
+    stream: UnixStream,
 }
 
-pub(super) fn chardev(socket: &Path) -> String {
-    format!(
-        "socket,id=conduitos-usb-line,path={},server=on,wait=on",
-        socket.to_string_lossy()
-    )
+impl PendingPeer {
+    pub(super) fn connect(path: &Path) -> Result<Self, ConduitosError> {
+        Ok(Self {
+            stream: connect(path)?,
+        })
+    }
+
+    pub(super) fn activate(mut self) -> Result<Peer, ConduitosError> {
+        Peer::activate(&mut self.stream)
+    }
 }
 
-pub(super) fn connect(socket: &Path, child: &mut Child) -> Result<ConnectedPeer, ConduitosError> {
-    let deadline = Instant::now() + Duration::from_secs(10);
-    loop {
-        match UnixStream::connect(socket) {
-            Ok(stream) => return Ok(ConnectedPeer { _stream: stream }),
-            Err(_error) if Instant::now() < deadline => {
-                if child
-                    .try_wait()
-                    .map_err(|status| {
-                        ConduitosError::refusal(
-                            "product-journey-qemu-wait-failed",
-                            status.to_string(),
-                        )
-                    })?
-                    .is_some()
-                {
-                    return Err(ConduitosError::refusal(
-                        "product-journey-usb-line-peer-unavailable",
-                        "QEMU exited before publishing its FTDI peer socket",
-                    ));
-                }
-                thread::sleep(Duration::from_millis(25));
-            }
-            Err(error) => {
-                return Err(ConduitosError::refusal(
-                    "product-journey-usb-line-peer-unavailable",
-                    error.to_string(),
-                ));
-            }
+impl Peer {
+    fn activate(stream: &mut UnixStream) -> Result<Self, ConduitosError> {
+        let mut frame_bytes = [0; MAXIMUM_FRAME_BYTES];
+        let length = read_frame(stream, &mut frame_bytes)?;
+        let hello = decode_session_frame(
+            &frame_bytes[..length],
+            MAXIMUM_PAYLOAD_BYTES,
+            MAXIMUM_FRAME_BYTES as u32,
+        )
+        .map_err(wire)?;
+        let binding = SessionBinding::from_hello_frame(hello).map_err(wire)?;
+        let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).map_err(wire)?;
+        machine.admit_inbound(hello).map_err(wire)?;
+        send(
+            stream,
+            &mut machine,
+            &binding,
+            binding.hello_frame().message,
+        )?;
+        receive_expected(stream, &mut machine, &binding, |message| {
+            matches!(message, SessionMessage::Ready)
+        })?;
+        send(stream, &mut machine, &binding, SessionMessage::Ready)?;
+        if !machine.is_active() {
+            return Err(ConduitosError::refusal(
+                "product-journey-usb-line-not-active",
+                "canonical Hello/Ready exchange did not activate the peer session",
+            ));
         }
+        Ok(Self {
+            stream: stream.try_clone().map_err(|error| {
+                ConduitosError::refusal("product-journey-usb-line-peer-clone", error.to_string())
+            })?,
+            binding,
+            machine,
+        })
+    }
+
+    pub(super) fn receive_value_and_acknowledge(&mut self) -> Result<(), ConduitosError> {
+        receive_expected(
+            &mut self.stream,
+            &mut self.machine,
+            &self.binding,
+            |message| {
+                matches!(
+                    message,
+                    SessionMessage::Offered { sequence: 0, payload }
+                        if payload == conduitos::product_usb_line::LINE_VALUE
+                )
+            },
+        )?;
+        send(
+            &mut self.stream,
+            &mut self.machine,
+            &self.binding,
+            SessionMessage::Accepted { sequence: 0 },
+        )?;
+        send(
+            &mut self.stream,
+            &mut self.machine,
+            &self.binding,
+            SessionMessage::Delivered { sequence: 0 },
+        )
     }
 }
 
-pub(super) fn evidence(serial: &str) -> Result<Evidence, ConduitosError> {
-    let records = journey_records::usb_line(serial)?;
-    if records.len() != 2 {
+fn connect(path: &Path) -> Result<UnixStream, ConduitosError> {
+    let mut last = None;
+    for _ in 0..CONNECT_ATTEMPTS {
+        match UnixStream::connect(path) {
+            Ok(stream) => return Ok(stream),
+            Err(error) => last = Some(error),
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+    Err(ConduitosError::refusal(
+        "product-journey-usb-line-peer-connect",
+        last.map_or_else(|| "socket absent".into(), |error| error.to_string()),
+    ))
+}
+
+fn send(
+    stream: &mut UnixStream,
+    machine: &mut SessionMachine,
+    binding: &SessionBinding,
+    message: SessionMessage<'_>,
+) -> Result<(), ConduitosError> {
+    let frame = binding.frame(message);
+    let mut admitted = machine.clone();
+    admitted.admit_outbound(frame).map_err(wire)?;
+    let mut frame_bytes = [0; MAXIMUM_FRAME_BYTES];
+    let length = encode_session_frame_into(
+        frame,
+        &mut frame_bytes,
+        MAXIMUM_PAYLOAD_BYTES,
+        MAXIMUM_FRAME_BYTES as u32,
+    )
+    .map_err(wire)?;
+    let mut stream_bytes = [0; MAXIMUM_FRAME_BYTES + 2];
+    let stream_length = encode_stream_frame(
+        &frame_bytes[..length],
+        MAXIMUM_FRAME_BYTES,
+        &mut stream_bytes,
+    )
+    .map_err(|error| {
+        ConduitosError::refusal("product-journey-usb-line-frame", format!("{error:?}"))
+    })?;
+    stream
+        .write_all(&stream_bytes[..stream_length])
+        .map_err(|error| {
+            ConduitosError::refusal("product-journey-usb-line-write", error.to_string())
+        })?;
+    *machine = admitted;
+    Ok(())
+}
+
+fn receive_expected(
+    stream: &mut UnixStream,
+    machine: &mut SessionMachine,
+    binding: &SessionBinding,
+    matches: impl FnOnce(SessionMessage<'_>) -> bool,
+) -> Result<(), ConduitosError> {
+    let mut frame_bytes = [0; MAXIMUM_FRAME_BYTES];
+    let length = read_frame(stream, &mut frame_bytes)?;
+    let frame = decode_session_frame(
+        &frame_bytes[..length],
+        MAXIMUM_PAYLOAD_BYTES,
+        MAXIMUM_FRAME_BYTES as u32,
+    )
+    .map_err(wire)?;
+    if frame.identity != binding.identity() || !matches(frame.message) {
         return Err(ConduitosError::refusal(
-            "product-journey-usb-line-record-count",
-            "ordinary product must publish one current and one lost FTDI Line state",
+            "product-journey-usb-line-message",
+            "unexpected canonical session identity or message",
         ));
     }
-    let record = &records[0];
-    let lost = &records[1];
-    if record.get("status").and_then(Value::as_str) != Some("current")
-        || text(record, "sink_host_id")? != EXPECTED_PEER_HOST
-        || text(record, "sink_boot_id")? != EXPECTED_PEER_BOOT
-        || lost.get("status").and_then(Value::as_str) != Some("lost")
-        || lost.get("line_id") != record.get("line_id")
-        || lost.get("binding_id") != record.get("binding_id")
-        || lost.get("source_boot_id") != record.get("source_boot_id")
-        || lost.get("stale_current_refused").and_then(Value::as_bool) != Some(true)
-    {
+    machine.admit_inbound(frame).map_err(wire)
+}
+
+fn read_frame(
+    stream: &mut UnixStream,
+    output: &mut [u8; MAXIMUM_FRAME_BYTES],
+) -> Result<usize, ConduitosError> {
+    let mut header = [0; 2];
+    stream.read_exact(&mut header).map_err(|error| {
+        ConduitosError::refusal("product-journey-usb-line-read", error.to_string())
+    })?;
+    let length = usize::from(u16::from_be_bytes(header));
+    if length == 0 || length > output.len() {
         return Err(ConduitosError::refusal(
-            "product-journey-usb-line-not-current",
-            "FTDI Line current/lost lifecycle or connected peer identity is invalid",
+            "product-journey-usb-line-frame-length",
+            length.to_string(),
         ));
     }
-    Ok(Evidence {
-        line_id: text(record, "line_id")?,
-        binding_id: text(record, "binding_id")?,
-        base_instance_id: text(record, "base_instance_id")?,
-        state_sign_id: text(record, "state_sign_id")?,
-        lost_state_sign_id: text(lost, "state_sign_id")?,
-        peer_host_id: text(record, "sink_host_id")?,
-        peer_boot_id: text(record, "sink_boot_id")?,
-    })
+    stream.read_exact(&mut output[..length]).map_err(|error| {
+        ConduitosError::refusal("product-journey-usb-line-read", error.to_string())
+    })?;
+    Ok(length)
 }
 
-fn text(record: &Value, field: &str) -> Result<String, ConduitosError> {
-    record
-        .get(field)
-        .and_then(Value::as_str)
-        .map(ToOwned::to_owned)
-        .ok_or_else(|| ConduitosError::refusal("product-journey-usb-line-identity-missing", field))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn evidence_requires_one_current_exact_peer() {
-        let serial = format!(concat!(
-            "CONDUIT_USB_LINE_SIGN {{\"status\":\"current\",\"line_id\":\"line/1\",\"binding_id\":\"binding/1\",\"base_instance_id\":\"base/1\",\"state_sign_id\":\"sign/1\",\"source_boot_id\":\"boot/source\",\"sink_host_id\":\"{}\",\"sink_boot_id\":\"{}\"}}\n",
-            "CONDUIT_USB_LINE_SIGN {{\"status\":\"lost\",\"line_id\":\"line/1\",\"binding_id\":\"binding/1\",\"source_boot_id\":\"boot/source\",\"state_sign_id\":\"sign/lost/1\",\"stale_current_refused\":true}}\n"
-        ), EXPECTED_PEER_HOST, EXPECTED_PEER_BOOT);
-        let record = evidence(&serial).unwrap();
-        assert_eq!(record.line_id, "line/1");
-        assert!(evidence(&serial.replace("current", "lost")).is_err());
-    }
+fn wire(error: WireError) -> ConduitosError {
+    ConduitosError::refusal("product-journey-usb-line-wire", format!("{error:?}"))
 }
