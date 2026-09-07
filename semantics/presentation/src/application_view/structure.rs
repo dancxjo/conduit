@@ -7,6 +7,9 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
             .iter()
             .filter(|child| child.parent == Some(index as u8));
         match node.component {
+            ApplicationComponent::Separator if children.clone().count() != 0 => {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
             ApplicationComponent::FormField => {
                 let children = children.collect::<Vec<_>>();
                 let count = |component| {

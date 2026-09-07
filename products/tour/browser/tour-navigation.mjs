@@ -18,6 +18,20 @@ export function createTourNavigation(runtime, presentation, navigate) {
   });
 }
 
+export function presentTourWorkspaceSeparator(presentation) {
+  presentation.present("tour-workspace-separator", {
+    revision: 1,
+    actions: [],
+    nodes: [{
+      parent: null,
+      component: "separator",
+      key: "lesson-laboratory-boundary",
+      text: "Lesson and laboratory boundary",
+      action: null,
+    }],
+  });
+}
+
 export function createTourWorkspace(root, readingState) {
   const content = root.querySelector(".tour-content");
   const laboratory = root.querySelector("#laboratory-slot");

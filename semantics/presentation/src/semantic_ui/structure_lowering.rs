@@ -19,6 +19,9 @@ pub(super) fn structural_node(mechanism: &PresentationMechanism) -> Option<Struc
         }
         PresentationMechanism::Panel { title } => (ApplicationComponent::Panel, title.clone()),
         PresentationMechanism::Heading { text } => (ApplicationComponent::Heading, text.clone()),
+        PresentationMechanism::Separator { label } => {
+            (ApplicationComponent::Separator, label.clone())
+        }
         _ => return None,
     };
     Some((

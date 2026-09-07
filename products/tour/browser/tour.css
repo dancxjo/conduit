@@ -17,6 +17,7 @@ body { margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); backgr
 .tour-layout-controls[open] { flex-basis: 100%; display: grid; grid-template-columns: max-content minmax(8rem, 1fr); gap: .55rem .8rem; align-items: center; }
 .tour-layout-controls[open] summary { grid-column: 1 / -1; }
 .tour-layout-controls input { accent-color: var(--amber); }
+.tour-layout-controls button { grid-column: 1 / -1; justify-self: end; }
 .tour-content {
   --tour-narrative-percent: 46%; min-width: 0; min-height: 0; display: grid;
   grid-template-columns: minmax(18rem, var(--tour-narrative-percent)) 2.5rem minmax(24rem, 1fr);
@@ -31,10 +32,8 @@ body { margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); backgr
 .chapter-copy:empty { display: none; }
 [data-application-slot="tour-navigation"] { width: 100%; min-height: 4.2rem; max-width: 96rem; margin-right: auto; margin-left: auto; padding: 0 clamp(1rem, 2.5vw, 2rem); }
 body[data-tour-mode="gallery"] [data-application-slot="tour-navigation"] { display: none; }
-.tour-divider { position: relative; z-index: 3; min-height: 0; display: grid; place-items: center; align-content: center; gap: .65rem; overflow: hidden; color: var(--muted); background: var(--paper); }
-.tour-divider label { font-size: .66rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; writing-mode: vertical-rl; }
-.tour-divider input { width: 8rem; transform: rotate(-90deg); accent-color: var(--amber); }
-.tour-divider button { position: absolute; right: .15rem; bottom: .25rem; padding: .35rem; border: 1px solid var(--line); border-radius: .45rem; color: var(--muted); background: var(--panel); font-size: .58rem; writing-mode: vertical-rl; }
+.tour-divider { position: relative; z-index: 3; min-height: 0; display: grid; place-items: stretch; overflow: hidden; background: var(--paper); }
+.tour-divider [data-application-component="separator"] { width: 1px; height: 100%; margin: 0 auto; border: 0; background: var(--line); }
 .tour-view-switcher { display: none; }
 #laboratory-slot { min-width: 0; min-height: 0; overflow: hidden; }
 .tour-workbench { width: 100%; height: 100%; min-width: 0; min-height: 0; margin: 0; overflow: hidden; }
