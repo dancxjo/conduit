@@ -32,6 +32,7 @@ async function current(page) {
 }
 
 async function selectRole(page, role, name = null) {
+  await page.locator("#structured-navigator").evaluate(element => { element.closest("details").open = true; });
   const candidates = page.locator('#structured-navigator [data-application-component="choice-option-label"]')
     .filter({ has: page.locator(`input[type="radio"][data-role="${role}"]`) });
   const target = name?.startsWith("subject:")
@@ -62,7 +63,7 @@ async function clickInteraction(page, locator) {
 async function clickNavigation(page, locator) {
   const response = page.waitForResponse(candidate =>
     candidate.url().endsWith("/api/navigation") && candidate.request().method() === "POST");
-  await locator.click();
+  await locator.press("Enter");
   const snapshot = await (await response).json();
   expect(snapshot.interaction.last_disposition).toBe("Succeeded");
   return snapshot;
@@ -73,14 +74,11 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
   const server = await startAuthoringEntrance();
   try {
     await page.goto(server.url);
-    await page.getByRole("button", { name: "Forms", exact: true }).click();
     await page.getByRole("button", { name: "Open Form Empty Form" }).click();
-    await expect(page.getByRole("button", { name: "Gears", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Gears", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Gears · reusable Kinds" })).toBeVisible();
-    await expect(page.locator("#gear-results-status")).toContainText("69 of 69 Gears");
+    await expect(page.locator("#gear-results-status")).toContainText("71 of 71 Gears");
 
-    const search = page.getByRole("searchbox", { name: "Find a Gear" });
+    const search = page.getByRole("searchbox", { name: "Find Forms, Gears, and Parts" });
     await search.fill("text literal");
     const literal = page.getByRole("button", { name: "Place Text literal Gear" });
     await clickEdit(page, literal);
@@ -94,7 +92,6 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     expect(new Set(gears.map(gear => gear.label)).size).toBe(3);
     expect(snapshot.presentation.subjects.filter(subject => subject.role === "Port")).toHaveLength(3);
 
-    await page.getByRole("button", { name: "Subjects", exact: true }).click();
     await selectRole(page, "Gear", "making/literal Gear");
     const configure = page.locator('#authoring-actions [data-application-component="form-field"]').filter({ hasText: "Configure value" });
     await configure.locator("input").fill("Browser-authored truth");
@@ -132,18 +129,19 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     expect(saved).not.toContain("literal-2:");
     expect(saved).toContain("literal.text > text.text");
 
-    await page.getByRole("button", { name: "Inspector", exact: true }).click();
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
     await expect(page.locator("body")).toHaveAttribute("data-inspector-open", "false");
     await expect.poll(async () => (await current(page)).navigation.cursor.depth).toBe("Primary");
     await clickNavigation(page, page.getByRole("button", { name: "Entrance", exact: true }));
     await expect(page.locator("body")).toHaveAttribute("data-place", "Entrance");
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
     await selectRole(page, "Form", "Empty Form");
     await clickInteraction(page, page.getByRole("button", { name: "BIRTH", exact: true }));
     await expect.poll(async () => Boolean((await current(page)).presentation.basis.body_id)).toBe(true);
     await selectRole(page, "Form", "Current checked and expanded Form");
     await clickInteraction(page, page.getByRole("button", { name: "WAKE", exact: true }));
     await expect.poll(async () => Boolean((await current(page)).presentation.basis.wake_id)).toBe(true);
-    await page.getByRole("button", { name: "Subjects", exact: true }).click();
+    await page.locator("#structured-navigator").evaluate(element => { element.closest("details").open = true; });
     await clickInteraction(page, page.getByRole("button", { name: "Plan current Form" }));
     await expect(page.locator("#front-door-feedback")).toContainText("Plan Succeeded");
     await clickInteraction(page, page.getByRole("button", { name: "Play current Plan" }));
@@ -159,7 +157,6 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     const reopened = await spawnEntrance(server.source);
     server.child = reopened.child;
     await page.goto(reopened.url);
-    await page.getByRole("button", { name: "Forms", exact: true }).click();
     await page.getByRole("button", { name: "Open Form Empty Form" }).click();
     const restored = await current(page);
     expect(restored.presentation.subjects.filter(subject => subject.role === "Gear").map(subject => subject.label).sort()).toEqual(["making/literal", "making/text"]);

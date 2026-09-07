@@ -9,6 +9,7 @@ function startServer() {
   const url=new Promise((resolve,reject)=>{lines.once("line",line=>resolve(line.replace("PATCHBAY_HTML_URL=","")));process.once("exit",code=>reject(new Error(`Patchbay HTML exited ${code}: ${errors.join("")}`)));});
   return {process,lines,url};
 }
+const openRelatedSubjects=page=>page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
 
 test("exact Gear realization FOLLOW crosses Program and Body then returns",async({page})=>{
   const server=startServer();
@@ -16,12 +17,12 @@ test("exact Gear realization FOLLOW crosses Program and Body then returns",async
     const url=await server.url;await page.goto(url);
     const before=await(await fetch(`${url}/api/snapshot`)).json();
     await page.locator("#toggle-palette").click();
+    await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     const gear=page.locator('#subjects [data-application-component="choice-option-label"]')
       .filter({hasText:"hello/upper"}).locator('input[type="radio"][data-role="Gear"]');
     const gearIdentity=await gear.getAttribute("data-subject");
     await gear.click();
     await page.getByRole("button",{name:"Plan",exact:true}).click();
-    await page.locator("#toggle-structured").click();
     await page.locator(`#structured-navigator input[type="radio"][data-subject="${gearIdentity.replaceAll('"','\\"')}"]`).click();
     const follow=page.locator("#structured-navigator").getByRole("radio",{name:/Follow Realizes to Host:/}).first();
     await expect(follow).toBeVisible();
@@ -58,6 +59,7 @@ test("a delayed navigation response cannot replace a newer cursor",async({page})
   try {
     const url=await server.url;
     await page.goto(url);
+    await openRelatedSubjects(page);
     await page.route("**/api/navigation",async route=>{
       const operation=route.request().postDataJSON().operation;
       const response=await route.fetch();
@@ -68,6 +70,7 @@ test("a delayed navigation response cannot replace a newer cursor",async({page})
       await route.fulfill({response});
     });
     await page.locator("#toggle-palette").click();
+    await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     await page.locator('#subjects [data-application-component="choice-option-label"]')
       .filter({hasText:"hello/upper"}).locator('input[type="radio"][data-role="Gear"]').click();
     await responseCaptured;
@@ -107,6 +110,7 @@ test("a refused navigation response releases its pending controls",async({page})
   page.on("pageerror",error=>errors.push(error.message));
   try {
     await page.goto(await server.url);
+    await openRelatedSubjects(page);
     await page.route("**/api/navigation",async route=>{
       observed();await held;
       await route.fulfill({status:409,body:"diagnostic navigation refusal"});

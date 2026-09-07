@@ -10,12 +10,13 @@ function startServer() {
   return {process,lines,url};
 }
 
-test("Inspector and Exact truth enact portable Depth and Back",async({page})=>{
+test("Inspect and advanced evidence preserve portable identity and Back",async({page})=>{
   const server=startServer();
   try {
     const url=await server.url;await page.goto(url);
     const original=await(await fetch(`${url}/api/snapshot`)).json();
     await page.locator("#toggle-palette").click();
+    await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     const gear=page.locator('#subjects input[type="radio"][data-role="Gear"]').first();
     const identity=await gear.getAttribute("data-subject");
     await gear.click();
@@ -26,20 +27,18 @@ test("Inspector and Exact truth enact portable Depth and Back",async({page})=>{
     await expect(page.locator("body")).toHaveAttribute("data-inspector-open","true");
     await expect(page.locator("#inspector .selected-summary")).not.toContainText("source-port");
 
-    await page.locator("#toggle-truth").click();
+    await page.locator("#deep-inspection > summary").click();
     const exact=await(await fetch(`${url}/api/snapshot`)).json();
-    expect(exact.navigation.cursor.depth).toBe("Exact");
+    expect(exact.navigation.cursor.depth).toBe("Detail");
     expect(exact.presentation.identity).toBe(original.presentation.identity);
     expect(exact.presentation.basis).toEqual(original.presentation.basis);
     await expect(page.locator("#deep-inspection")).toBeVisible();
 
-    await page.keyboard.press("Escape");
-    await expect(page.locator("#deep-inspection")).toBeHidden();
+    await page.locator("#deep-inspection > summary").click();
+    await expect(page.locator("#deep-inspection #plan")).toBeHidden();
     expect((await(await fetch(`${url}/api/snapshot`)).json()).navigation.cursor.depth).toBe("Detail");
-    await page.locator("#toggle-inspector").click();
-    await expect(page.locator("#inspector")).toBeVisible();
-    await expect.poll(async()=>(await(await fetch(`${url}/api/snapshot`)).json()).navigation.cursor.depth).toBe("Detail");
-    await page.locator("#toggle-inspector").click();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#inspector")).toBeHidden();
     const returned=await(await fetch(`${url}/api/snapshot`)).json();
     expect(returned.navigation.cursor.depth).toBe(original.navigation.cursor.depth);
     expect(returned.navigation.cursor.focus).toBe(original.navigation.cursor.focus);
