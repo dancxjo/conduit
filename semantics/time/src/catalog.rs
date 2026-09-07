@@ -229,7 +229,7 @@ pub fn install_replay_control_catalog(
             StartupParameterSignature {
                 name: "mode".to_string(),
                 value_type: "Text".to_string(),
-                default: Some(crate::REPLAY_MODE_ORIGINAL_TIMING.to_string()),
+                default: Some("\"original-timing\"".to_string()),
             },
             StartupParameterSignature {
                 name: "rate-numerator".to_string(),

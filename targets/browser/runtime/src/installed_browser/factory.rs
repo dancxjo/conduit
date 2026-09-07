@@ -38,6 +38,7 @@ pub(crate) struct BrowserInstallation {
 static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::historical::INSTALLATION,
     &super::replay_source::INSTALLATION,
+    &super::replay_control::INSTALLATION,
     &super::pattern_comparison::INSTALLATION,
     &super::button_attempt::INSTALLATION,
     &super::timing::INTERVALS,
