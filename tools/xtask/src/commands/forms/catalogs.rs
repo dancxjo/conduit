@@ -47,6 +47,7 @@ pub(super) fn catalogs(
     conduit_net::install_application_network_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_ordered_record_queue_catalog(&mut startup, &mut profile)?;
+    conduit_net::install_record_temporal_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_record_transcript_catalog(&mut startup, &mut profile)?;
     conduit_net::install_record_delivery_status_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_robotics_catalogs(&mut startup, &mut profile)?;

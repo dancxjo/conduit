@@ -116,6 +116,35 @@ fn four_gear_text_form_runs_without_a_topology_special_case() {
 }
 
 #[test]
+fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
+    let source = r#"form queued-record {
+    message: text/literal("CALLING")
+    encode: record/text-to-typed
+    frame: record/frame-typed
+    submit: record/singleton-stream
+    queue: record/ordered-send-queue(4, 4096)
+    receive: record/exactly-one
+    deframe: record/deframe-typed
+    decode: record/typed-to-text
+    show: presentation/text
+
+    message.text > encode.text
+    encode.record > frame.record
+    frame.frame > submit.record
+    submit.stream > queue.frame
+    queue.queued > receive.stream
+    receive.record > deframe.frame
+    deframe.record > decode.record
+    decode.text > show.text
+}"#;
+    let (session, effect) =
+        TourSession::prepare("browser/queue", "browser-boot/queue", source, 3).unwrap();
+    let effect = manifestation(effect);
+    assert_eq!(effect.text.as_deref(), Some("CALLING"));
+    assert_eq!(session.complete().unwrap().disposition, "completed");
+}
+
+#[test]
 fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
     let source = r#"form language-lab {
     tokens: language/tokenize-four("Bright stars shine.")
