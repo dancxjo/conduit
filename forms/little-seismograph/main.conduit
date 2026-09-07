@@ -19,13 +19,13 @@ form measurement-summary (
 }
 
 form measurement-threshold (
+    > profile: MeasurementHysteresisProfile
     > summary: MeasurementSummary
-    > policy: MeasurementThresholdPolicy
     decision: MeasurementThresholdDecision >
 ) {
     threshold: data/measurement-hysteresis
+    profile > threshold.profile
     summary > threshold.summary
-    policy > threshold.policy
     threshold.decision > decision
 }
 
@@ -41,7 +41,7 @@ form measurement-plot (
 form little-seismograph-processing (
     > profile: MeasurementWindowProfile
     > measurement: MeasurementSample...|
-    > policy: MeasurementThresholdPolicy
+    > threshold-profile: MeasurementHysteresisProfile
     window: MeasurementWindow >
     summary: MeasurementSummary >
     decision: MeasurementThresholdDecision >
@@ -59,7 +59,7 @@ form little-seismograph-processing (
     samples.window > plot.window
     summarize.summary > summary
     summarize.summary > decide.summary
-    policy > decide.policy
+    threshold-profile > decide.profile
     decide.decision > decision
     plot.series > series
 }

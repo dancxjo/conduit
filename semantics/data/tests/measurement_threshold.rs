@@ -108,6 +108,34 @@ fn threshold_is_a_reusable_form_independent_of_presentation() {
         authored.expanded.gears[0].kind_id.as_str(),
         MEASUREMENT_HYSTERESIS_KIND
     );
+    assert_eq!(
+        authored.expanded.gears[0].inputs[0].port_id.as_str(),
+        "profile"
+    );
     assert!(!source.contains("presentation"));
     assert!(!source.contains("indicator"));
+}
+
+#[test]
+fn hysteresis_profile_and_decision_payloads_round_trip_exactly() {
+    let profile = MeasurementHysteresisProfile {
+        policy: policy(),
+        initial_state: MeasurementThresholdState::Below,
+    };
+    assert_eq!(
+        decode_measurement_hysteresis_profile(
+            &encode_measurement_hysteresis_profile(profile).unwrap()
+        ),
+        Ok(profile)
+    );
+    let mut hysteresis = MeasurementHysteresis::new(profile.policy, profile.initial_state).unwrap();
+    let decision = hysteresis
+        .evaluate(&summary(60, QuantityUnit::Millivolt, 2))
+        .unwrap();
+    assert_eq!(
+        decode_measurement_threshold_decision(
+            &encode_measurement_threshold_decision(&decision).unwrap()
+        ),
+        Ok(decision)
+    );
 }

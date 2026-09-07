@@ -8,17 +8,23 @@ use conduit_core::{
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::{
-    measurement_summary_type, MEASUREMENT_THRESHOLD_DECISION_INFO_ID,
-    MEASUREMENT_THRESHOLD_POLICY_INFO_ID,
+    measurement_summary_type, MEASUREMENT_HYSTERESIS_PROFILE_INFO_ID,
+    MEASUREMENT_THRESHOLD_DECISION_INFO_ID, MEASUREMENT_THRESHOLD_POLICY_INFO_ID,
 };
 
 pub const MEASUREMENT_HYSTERESIS_KIND: &str = "data/measurement-hysteresis";
-pub const MEASUREMENT_HYSTERESIS_CONTRACT_REVISION: &str = "conduit.data/measurement-hysteresis@1";
+pub const MEASUREMENT_HYSTERESIS_CONTRACT_REVISION: &str = "conduit.data/measurement-hysteresis@2";
 
 pub fn install_measurement_threshold_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
+    startup
+        .insert_structured_type(
+            "MeasurementHysteresisProfile",
+            measurement_hysteresis_profile_type(),
+        )
+        .map_err(|error| error.to_string())?;
     startup
         .insert_structured_type(
             "MeasurementThresholdPolicy",
@@ -47,12 +53,12 @@ pub fn measurement_hysteresis_kind_definition() -> KindDefinition {
             MEASUREMENT_HYSTERESIS_CONTRACT_REVISION,
         ),
         inputs: vec![
-            port("summary", &measurement_summary_type(), PortDirection::Input),
             port(
-                "policy",
-                &measurement_threshold_policy_type(),
+                "profile",
+                &measurement_hysteresis_profile_type(),
                 PortDirection::Input,
             ),
+            port("summary", &measurement_summary_type(), PortDirection::Input),
         ],
         outputs: vec![port(
             "decision",
@@ -61,6 +67,11 @@ pub fn measurement_hysteresis_kind_definition() -> KindDefinition {
         )],
         configuration: vec![],
     }
+}
+
+pub fn measurement_hysteresis_profile_type() -> StructuredInfoType {
+    StructuredInfoType::leaf(kind_id(MEASUREMENT_HYSTERESIS_PROFILE_INFO_ID))
+        .expect("the measurement hysteresis profile leaf identity is finite")
 }
 
 pub fn measurement_threshold_policy_type() -> StructuredInfoType {
