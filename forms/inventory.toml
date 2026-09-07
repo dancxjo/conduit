@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 93
+maximum_forms = 94
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -97,12 +97,6 @@ reusable_entries = [
 ]
 deterministic = { package = "conduit-std-host", test = "desk_telegraph", case = "canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play", plan_play_evidence = true }
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form desk-telegraph runs browser-safe" }
-[[forms]]
-slug = "garden-state-step"
-title = "Garden State Step"
-entry = "garden-state-step"
-deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "signal_garden_forms", case = "minimal_and_enriched_forms_preserve_distinct_mandatory_source_types" }
-browser_safe_not_applicable = "portable Garden state evolution has no reviewed browser Host execution oracle"
 [[forms]]
 slug = "generalized-input"
 title = "Generalized Input"
@@ -307,7 +301,11 @@ deterministic = { package = "conduit", test = "two_std_line", case = "installed_
 slug = "signal-garden"
 title = "Signal Garden"
 entry = "signal-garden-interactive"
-reusable_entries = [{ entry = "signal-garden-minimal", title = "Signal Garden Minimal" }]
+reusable_entries = [
+  { entry = "signal-garden-minimal", title = "Signal Garden Minimal" },
+  { entry = "garden-state-step", title = "Garden State Step", composition = { parent = "signal-garden-minimal", occurrences = ["evolve"] } },
+  { entry = "garden-state-step-contact", title = "Garden State Step with Contact", composition = { parent = "signal-garden-interactive", occurrences = ["evolve"] } },
+]
 deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "signal_garden_forms", case = "minimal_and_enriched_forms_preserve_distinct_mandatory_source_types" }
 browser_safe_not_applicable = "portable Garden state evolution has no reviewed browser Host execution oracle"
 [[forms]]

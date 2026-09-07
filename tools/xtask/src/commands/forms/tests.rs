@@ -44,7 +44,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "check")
         .collect();
-    assert_eq!(checks.len(), 66);
+    assert_eq!(checks.len(), 65);
     assert!(checks.iter().all(|result| result.status == "passed"));
     let little_seismograph = checks
         .iter()
@@ -79,7 +79,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-check")
         .collect();
-    assert_eq!(reusable.len(), 27);
+    assert_eq!(reusable.len(), 29);
     assert!(reusable.iter().all(|result| {
         result.status == "passed"
             && result.source_document_id.is_some()
@@ -98,13 +98,13 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "composition-check")
         .collect();
-    assert_eq!(composition.len(), 27);
+    assert_eq!(composition.len(), 29);
     assert_eq!(
         composition
             .iter()
             .filter(|result| result.status == "passed")
             .count(),
-        25
+        27
     );
     assert_eq!(
         composition
@@ -127,7 +127,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-deterministic")
         .collect();
-    assert_eq!(reusable_deterministic.len(), 27);
+    assert_eq!(reusable_deterministic.len(), 29);
     assert!(reusable_deterministic
         .iter()
         .all(|result| result.status == "unavailable"));

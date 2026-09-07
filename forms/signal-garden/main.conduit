@@ -1,9 +1,35 @@
+# Reusable minimal evolution from explicit prior state and clock observation.
+form garden-state-step (
+    > prior: GardenState
+    > clock: GardenClockObservation
+    next: GardenState >
+) {
+    evolve: state/garden-step
+    prior > evolve.prior
+    clock > evolve.clock
+    evolve.next > next
+}
+
+# Contact enrichment is a second exact Face, not an optional or erased input.
+form garden-state-step-contact (
+    > prior: GardenState
+    > clock: GardenClockObservation
+    > contact: GardenContactObservation
+    next: GardenState >
+) {
+    evolve: state/garden-step-contact
+    prior > evolve.prior
+    clock > evolve.clock
+    contact > evolve.contact
+    evolve.next > next
+}
+
 # A meaningful minimal Garden has only its explicitly required clock source.
 form signal-garden-minimal (
     state: GardenState >
 ) {
     observations: garden/deterministic-observations
-    evolve: state/garden-step
+    evolve: garden-state-step
     observations.prior > evolve.prior
     observations.clock > evolve.clock
     evolve.next > state
@@ -14,7 +40,7 @@ form signal-garden-interactive (
     state: GardenState >
 ) {
     observations: garden/deterministic-observations
-    evolve: state/garden-step-contact
+    evolve: garden-state-step-contact
     observations.prior > evolve.prior
     observations.clock > evolve.clock
     observations.contact > evolve.contact
