@@ -239,6 +239,56 @@ fn tracker_applies_only_matching_ordered_observations_and_projects_exact_status(
 }
 
 #[test]
+fn bounded_status_codec_projects_an_ordered_flow_without_changing_evidence() {
+    use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
+
+    fn canonical(event: RecordDeliveryObservationEvent<'_>) -> Vec<u8> {
+        let mut wire = [0_u8; MAXIMUM_RECORD_DELIVERY_WIRE_BYTES];
+        let written = encode_record_delivery_observation_into(
+            RecordDeliveryObservationRef {
+                correlation: b"message/13",
+                frame_bytes: 60,
+                event,
+            },
+            &mut wire,
+        )
+        .unwrap();
+        StructuredInfoValue::leaf(delivery_observation_type(), wire[..written].to_vec())
+            .unwrap()
+            .canonical_bytes()
+            .unwrap()
+    }
+
+    let mut codec = BoundedRecordDeliveryStatusCodec::prepare().unwrap();
+    for event in [
+        RecordDeliveryObservationEvent::LocallyAccepted,
+        RecordDeliveryObservationEvent::FramedQueued { queue_sequence: 2 },
+        RecordDeliveryObservationEvent::PartiallySent { sent_bytes: 30 },
+        RecordDeliveryObservationEvent::RemoteAccepted {
+            receipt: b"remote/13",
+        },
+    ] {
+        let output = codec.execute(&canonical(event)).unwrap();
+        let status = StructuredInfoValue::from_canonical_bytes(output).unwrap();
+        assert_eq!(status.value_type(), &delivery_status_type());
+        let StructuredInfoValueShape::Leaf(wire) = status.shape() else {
+            panic!("delivery status must remain an exact leaf")
+        };
+        assert_eq!(
+            decode_record_delivery_observation(wire).unwrap().event,
+            event
+        );
+    }
+    assert!(codec.is_terminal());
+    assert_eq!(
+        codec.execute(&canonical(RecordDeliveryObservationEvent::Failed {
+            code: 9
+        })),
+        Err(RecordDeliveryRefusal::InvalidTransition)
+    );
+}
+
+#[test]
 fn delivery_projection_is_an_ordinary_reusable_closing_flow_form() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();

@@ -46,6 +46,8 @@ mod record_temporal;
 pub use record_temporal::*;
 mod record_queue;
 pub use record_queue::*;
+mod record_delivery;
+pub use record_delivery::*;
 mod structured_selector;
 pub use structured_selector::*;
 mod keyboard;
