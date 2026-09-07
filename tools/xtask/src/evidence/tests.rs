@@ -299,7 +299,9 @@ fn complete_conduitos_evidence(root: &Path, commit: &str) {
                 architecture_rung: Some("conduitos/x86_64/P5-observatory-patchbay".into()),
                 emulator: Some("qemu-system-x86_64".into()),
                 emulator_version: Some("QEMU emulator version 10.0.0".into()),
-                machine: Some("q35-single-cpu-64m-headless-xhci-usb-kbd-adlib".into()),
+                machine: Some(
+                    "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib".into(),
+                ),
                 firmware: Some("limine".into()),
                 host_id: Some("a".repeat(64)),
                 boot_id: Some("b".repeat(64)),
@@ -463,7 +465,9 @@ fn conduitos_console_requires_emulator_provenance_and_semantic_markers() {
                 architecture_rung: Some("conduitos/x86_64/P5-observatory-patchbay".into()),
                 emulator: Some("qemu-system-x86_64".into()),
                 emulator_version: Some("QEMU emulator version 10.0.0".into()),
-                machine: Some("q35-single-cpu-64m-headless-xhci-usb-kbd-adlib".into()),
+                machine: Some(
+                    "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib".into(),
+                ),
                 firmware: Some("limine".into()),
                 host_id: Some("a".repeat(64)),
                 boot_id: Some("b".repeat(64)),
