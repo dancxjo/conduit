@@ -72,6 +72,9 @@ pub(super) struct TourScheduler {
         MAXIMUM_BROWSER_GEARS],
     measurement_windows: [Option<Box<crate::installed_browser::measurement_window::PreparedWindow>>;
         MAXIMUM_BROWSER_GEARS],
+    measurement_hysteresis: [Option<
+        Box<crate::installed_browser::measurement_hysteresis::PreparedHysteresis>,
+    >; MAXIMUM_BROWSER_GEARS],
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -429,6 +432,10 @@ mod measurement_plot_kernel_tests;
 #[cfg(test)]
 #[path = "measurement_window_kernel_tests.rs"]
 mod measurement_window_kernel_tests;
+
+#[cfg(test)]
+#[path = "measurement_hysteresis_kernel_tests.rs"]
+mod measurement_hysteresis_kernel_tests;
 
 #[cfg(test)]
 #[path = "concurrent_effect_tests.rs"]

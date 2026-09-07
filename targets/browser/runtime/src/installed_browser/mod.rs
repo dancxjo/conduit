@@ -13,6 +13,7 @@ mod limits;
 mod linguistics;
 mod logic;
 mod math;
+pub(crate) mod measurement_hysteresis;
 pub(crate) mod measurement_plot;
 pub(crate) mod measurement_summary;
 pub(crate) mod measurement_window;
@@ -109,6 +110,9 @@ pub(crate) mod test_replay_sink;
 
 #[cfg(test)]
 pub(crate) mod test_measurement_sink;
+
+#[cfg(test)]
+pub(crate) mod test_measurement_decision_sink;
 
 pub(crate) mod button_attempt;
 

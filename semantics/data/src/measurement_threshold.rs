@@ -5,6 +5,7 @@ use conduit_core::{Quantity, TemporalInstant};
 use crate::MeasurementSummary;
 
 pub const MEASUREMENT_THRESHOLD_POLICY_INFO_ID: &str = "data/measurement-threshold-policy@1";
+pub const MEASUREMENT_HYSTERESIS_PROFILE_INFO_ID: &str = "data/measurement-hysteresis-profile@1";
 pub const MEASUREMENT_THRESHOLD_DECISION_INFO_ID: &str = "data/measurement-threshold-decision@1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -17,6 +18,12 @@ pub struct MeasurementThresholdPolicy {
 pub enum MeasurementThresholdState {
     Below,
     Above,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct MeasurementHysteresisProfile {
+    pub policy: MeasurementThresholdPolicy,
+    pub initial_state: MeasurementThresholdState,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

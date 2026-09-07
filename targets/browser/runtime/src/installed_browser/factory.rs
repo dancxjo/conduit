@@ -57,6 +57,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::json::SUMMARY,
     &super::measurement_plot::INSTALLATION,
     &super::measurement_summary::INSTALLATION,
+    &super::measurement_hysteresis::INSTALLATION,
     &super::measurement_window::INSTALLATION,
     &super::typed_record::TEXT_TO_RECORD,
     &super::typed_record::FRAME,
@@ -236,6 +237,10 @@ pub(crate) fn factory(
     #[cfg(test)]
     if implementation_id.as_str() == super::test_measurement_sink::KIND {
         return Some(&super::test_measurement_sink::SINK);
+    }
+    #[cfg(test)]
+    if implementation_id.as_str() == super::test_measurement_decision_sink::KIND {
+        return Some(&super::test_measurement_decision_sink::SINK);
     }
     if implementation_id.as_str() == super::comparison_presentation::IMPLEMENTATION {
         return Some(&super::comparison_presentation::PRESENTATION);
