@@ -8,6 +8,16 @@ const CHECKPOINTS = [
   "front-door-ready", "form-opened", "born-lulled", "awake",
   "planned", "playing", "result-visible", "lulled",
 ];
+const DESCRIPTIONS = Object.freeze({
+  "front-door-ready": "The ordinary ConduitOS front door after the exact Crèche artifact has booted and exposed its bounded product entrance.",
+  "form-opened": "The selected product Form opened in the same guest, before Body birth or Play execution.",
+  "born-lulled": "The newly born Body retained in its Lulled state, with no active execution claimed.",
+  "awake": "The same Body after Wake, ready for planning while preserving the boot and manifestation context.",
+  "planned": "The product after an exact immutable Plan has been admitted, before that Plan becomes an active Play.",
+  "playing": "The admitted Plan running as an active Play through the ordinary ConduitOS product path.",
+  "result-visible": "The visible product result after guest semantic records report the correlated runtime outcome.",
+  "lulled": "The completed journey returned to Lulled while retaining the same Body and exact journey evidence.",
+});
 const [evidenceRoot, siteRoot, commit] = process.argv.slice(2);
 if (!evidenceRoot || !siteRoot || !/^[0-9a-f]{40}$/.test(commit ?? "")) {
   throw new Error("usage: stage-conduitos-pages-evidence.mjs EVIDENCE SITE 40_HEX_COMMIT");
@@ -63,13 +73,13 @@ await writeIndex(path.join(commitRoot, "index.html"), commit, "../../../../index
 await writeIndex(path.join(currentRoot, "index.html"), commit, "../../../index.html", `../../../commits/${commit}/conduitos/x86_64/manifest.json`);
 
 async function writeIndex(destination, exactCommit, home, manifestLink) {
-  const links = CHECKPOINTS.map((name) => `<li><a href="${name}/">${label(name)}</a></li>`).join("\n");
+  const links = CHECKPOINTS.map((name) => `<li><a href="${name}/">${label(name)}</a> — ${DESCRIPTIONS[name]}</li>`).join("\n");
   await html(destination, "ConduitOS visual journey", `<nav><a href="${home}">Gallery home</a></nav><h1>ConduitOS visual journey</h1><p><strong>FREESTANDING EMULATOR EVIDENCE, NOT PHYSICAL HARDWARE EVIDENCE.</strong></p><p>Exact accepted commit: <code>${exactCommit}</code></p><ul>${links}</ul><p><a href="${manifestLink}">Correlated journey manifest</a></p>`);
 }
 
 async function writePage(destination, name, exactCommit, imageRoot, home, context) {
   const escapedContext = escapeHtml(JSON.stringify(context, null, 2));
-  await html(destination, label(name), `<nav><a href="${home}">Gallery home</a> · <a href="../">ConduitOS journey</a></nav><h1>${label(name)}</h1><p><strong>FREESTANDING EMULATOR EVIDENCE, NOT PHYSICAL HARDWARE EVIDENCE.</strong></p><img src="${imageRoot}${name}.png" alt="ConduitOS ${label(name)} at accepted commit ${exactCommit}"><h2>Exact correlation</h2><pre>${escapedContext}</pre>`);
+  await html(destination, label(name), `<nav><a href="${home}">Gallery home</a> · <a href="../">ConduitOS journey</a></nav><h1>${label(name)}</h1><p>${DESCRIPTIONS[name]}</p><p><strong>FREESTANDING EMULATOR EVIDENCE, NOT PHYSICAL HARDWARE EVIDENCE.</strong></p><img src="${imageRoot}${name}.png" alt="ConduitOS ${label(name)} at accepted commit ${exactCommit}"><h2>Exact correlation</h2><pre>${escapedContext}</pre>`);
 }
 
 async function html(destination, title, body) {
