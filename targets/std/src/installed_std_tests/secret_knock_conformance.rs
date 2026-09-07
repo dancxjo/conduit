@@ -64,7 +64,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         &template,
         &template,
         conduit_semantic_catalog::MAXIMUM_ABSOLUTE_METRIC,
-        1,
+        150_000,
     )
     .unwrap();
     let button_offer = sequence_source_offer(&transitions[0], BUTTON_SOURCE, 5);

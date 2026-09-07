@@ -44,7 +44,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "check")
         .collect();
-    assert_eq!(checks.len(), 65);
+    assert_eq!(checks.len(), 68);
     assert!(checks.iter().all(|result| result.status == "passed"));
     let measurement_window = checks
         .iter()
@@ -76,7 +76,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-check")
         .collect();
-    assert_eq!(reusable.len(), 19);
+    assert_eq!(reusable.len(), 23);
     assert!(reusable.iter().all(|result| {
         result.status == "passed"
             && result.source_document_id.is_some()
@@ -95,13 +95,13 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "composition-check")
         .collect();
-    assert_eq!(composition.len(), 19);
+    assert_eq!(composition.len(), 23);
     assert_eq!(
         composition
             .iter()
             .filter(|result| result.status == "passed")
             .count(),
-        17
+        21
     );
     assert_eq!(
         composition
@@ -124,7 +124,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-deterministic")
         .collect();
-    assert_eq!(reusable_deterministic.len(), 19);
+    assert_eq!(reusable_deterministic.len(), 23);
     assert!(reusable_deterministic
         .iter()
         .all(|result| result.status == "unavailable"));

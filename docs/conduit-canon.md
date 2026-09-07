@@ -343,6 +343,32 @@ the durable Body and membership evidence. Any future irreversible destruction
 protocol requires its own explicit authority and semantics; it is not an
 ordinary `delete Body` operation.
 
+The minimum continuity law is one surviving Part: a Body remains the same Body
+while at least one admitted Part retains sufficient bounded durable continuity
+truth. That truth binds the exact Body, surviving membership relationship and
+generation, workload revision where lifecycle law requires it, and durable
+authority or revocation provenance needed to reject a stale or copied claim.
+Reboot and replacement rotate current Boot, resource, Line, offer, authority,
+Plan, and Play truth without replacing the Body. After the final continuity-
+bearing Part and its evidence are destroyed, Conduit makes no promise of
+same-identity resurrection. SOUL, where used, names only this material and
+protocol rather than supernatural recovery after total extinction.
+
+Workload revision is atomic with realization truth. One serialized lifecycle
+checks the proposed complete workset, plans and admits it, prepares replacement,
+quiesces affected old work, and commits a new immutable revision and Plan. A
+refused attempt preserves the coherent prior state or an explicit LULLED state;
+it never publishes a hybrid or starts another scheduler. Planned failure
+disposition may terminate an exact scope, select a checked degraded path, wait
+under finite admission, request this same replacement lifecycle, or lull. It
+never implies a hidden retry or a parallel supervisor runtime.
+
+Signs may carry bounded exact causal relationships. These relationships record
+what caused, requested, admitted, realized, observed, superseded, corrected, or
+terminated exact evidence across exact sessions. Temporal adjacency is not
+causality, missing evidence remains unknown, and presentation never owns the
+causal history.
+
 A Form contains configured Gears and may require Roles. A Cast binds Roles to exact capabilities. A Body-wide Plan binds every Form's Gears to exact implementation, Part, Host, Boot, Base, authority, resource, route, and bound facts. A Play starts that complete Plan. A later Soul policy may prove continuity across restarts without pretending a restarted Boot is the same execution session or changing what Part membership means.
 
 ConduitOS is a native Host substrate for this same admitted Plan and kernel. It

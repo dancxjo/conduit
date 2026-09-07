@@ -55,6 +55,7 @@ mod layout;
 mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
+mod lifecycle_explanation;
 mod llm_documentary;
 mod llm_embodiment_presentation;
 mod llm_presentation;
@@ -98,6 +99,7 @@ mod route_demo;
 mod route_presentation;
 mod survival_policy_explanation;
 mod text_lab_explanation;
+pub use lifecycle_explanation::*;
 mod text_lab_explanation_loss;
 mod topology;
 mod topology_hosts;
