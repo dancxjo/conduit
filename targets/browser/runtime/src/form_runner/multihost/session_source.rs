@@ -2,8 +2,32 @@
 
 use super::*;
 use crate::form_runner::protocol::TourButtonTransitionEffect;
+use crate::form_runner::protocol::TourTimerEffect;
 
 impl Session {
+    pub(in super::super) fn complete_timer(
+        &mut self,
+        active_play_id: &str,
+        request: u32,
+    ) -> Result<Output, String> {
+        if active_play_id != self.source_active_play_id.as_str() {
+            return Err("multi-Host timer completion has a stale Play identity".into());
+        }
+        if self.role != Role::Source || self.stage != Stage::Timing {
+            return Err("multi-Host timer completion arrived in the wrong phase".into());
+        }
+        let pending = self
+            .pending
+            .take()
+            .ok_or("multi-Host timer request is missing")?;
+        if pending.request.request.0 != request {
+            self.pending = Some(pending);
+            return Err("multi-Host timer completion has a stale request identity".into());
+        }
+        engine::complete_host_effect(&mut self.scheduler, &pending)?;
+        self.source_offer()
+    }
+
     pub(in super::super) fn observe_partial_send(
         &mut self,
         sent_bytes: usize,
@@ -110,6 +134,43 @@ impl Session {
                     request,
                 )? {
                     continue;
+                }
+                if matches!(
+                    operation.contract_id.as_str(),
+                    conduit_core::WAIT_HOST_OPERATION_CONTRACT
+                        | conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
+                ) {
+                    let input = self
+                        .scheduler
+                        .host_value(request.input.value)
+                        .map_err(debug_error)?;
+                    let duration_millis = u64::from_le_bytes(
+                        input
+                            .try_into()
+                            .map_err(|_| "multi-Host timer duration is not an exact u64")?,
+                    );
+                    let pending = PendingHostEffect {
+                        request,
+                        effect: BrowserHostEffect::Timer { duration_millis },
+                    };
+                    let effect = TourTimerEffect {
+                        schema: "conduit.tour/timer-effect@1",
+                        effect_kind: "timer",
+                        active_play_id: self.source_active_play_id.as_str().into(),
+                        placement_id: placement.placement_id.as_str().into(),
+                        host_id: self.fragment.host_id.as_str().into(),
+                        boot_id: self.fragment.boot_id.as_str().into(),
+                        request_sequence: request.request.0,
+                        duration_millis,
+                        source_interaction: Some(self.source_interaction.clone()),
+                    };
+                    self.pending = Some(pending);
+                    self.stage = Stage::Timing;
+                    return Ok(Output::Timer {
+                        schema: "conduit.tour/multi-host-timer@1",
+                        timer: Box::new(effect),
+                        plan_projection: Box::new(self.projection.clone()),
+                    });
                 }
                 if operation.contract_id.as_str()
                     != crate::installed_browser::BUTTON_EVENT_OPERATION

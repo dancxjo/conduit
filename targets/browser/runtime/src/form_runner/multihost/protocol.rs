@@ -77,6 +77,12 @@ pub(super) struct CordProjection {
 #[derive(Debug, Serialize)]
 #[serde(tag = "effect_kind")]
 pub(super) enum Output {
+    #[serde(rename = "timer")]
+    Timer {
+        schema: &'static str,
+        timer: Box<super::super::protocol::TourTimerEffect>,
+        plan_projection: Box<PlanProjection>,
+    },
     #[serde(rename = "input")]
     Input {
         schema: &'static str,
