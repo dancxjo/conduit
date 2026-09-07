@@ -118,6 +118,7 @@ fn every_vocabulary_identity_is_distinct_and_versioned() {
         PresentationMechanismKind::ChoiceGroup,
         PresentationMechanismKind::Navigation,
         PresentationMechanismKind::NavigationLink,
+        PresentationMechanismKind::Link,
         PresentationMechanismKind::Stepper,
         PresentationMechanismKind::Progress,
         PresentationMechanismKind::Artifact,

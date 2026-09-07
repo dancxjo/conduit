@@ -44,112 +44,97 @@ export function reviewedFormStage(form) {
   });
 }
 
-export function createReviewedFormGallery(document, gallery, crecheUrl, onOpen) {
-  const surface = document.createElement("section");
-  surface.className = "form-gallery";
-  const header = document.createElement("header");
-  const heading = document.createElement("h1");
-  heading.tabIndex = -1;
-  heading.textContent = "Form Gallery";
-  const explanation = document.createElement("p");
-  explanation.textContent = "Open a reviewed canonical Form in the same laboratory, inspect its exact Patchbay projection, and run it through this browser Host.";
-  const search = document.createElement("label");
-  search.className = "form-gallery-search";
-  search.textContent = "Search reviewed Forms";
-  const input = document.createElement("input");
-  input.type = "search";
-  input.maxLength = 128;
-  input.autocomplete = "off";
-  const status = document.createElement("output");
-  status.setAttribute("role", "status");
-  status.setAttribute("aria-live", "polite");
-  search.append(input, status);
-  header.append(heading, explanation, search);
-  const list = document.createElement("ul");
-  list.className = "form-gallery-list";
-  for (const form of gallery.forms) list.append(createGalleryCard(document, form, crecheUrl, onOpen));
-  surface.append(header, list);
+export function createReviewedFormGallery(document, presentation, surface, gallery, crecheUrl, onOpen) {
+  let query = "";
+  let selected = null;
+  const actions = [{ id: "gallery.search", event: "input" }];
+  for (const [index] of gallery.forms.entries()) {
+    actions.push(
+      { id: `gallery.open.${index}`, event: "activate" },
+      { id: `gallery.inspect.${index}`, event: "activate" },
+    );
+  }
 
-  const filter = () => {
-    if (encoder.encode(input.value).length > 128) {
-      status.textContent = "Search is outside the admitted 128-byte bound.";
-      return;
+  const render = () => {
+    const overCapacity = encoder.encode(query).length > 128;
+    const terms = query.trim().toLocaleLowerCase().split(/\s+/u).filter(Boolean);
+    const visible = gallery.forms.filter((form) => !overCapacity && terms.every((term) => (
+      `${form.title} ${form.name} ${form.required_kinds.join(" ")}`.toLocaleLowerCase().includes(term)
+    )));
+    const nodes = [
+      { parent: null, component: "stack", key: "gallery", text: "", action: null },
+      { parent: 0, component: "heading", key: "gallery-heading", text: "Form Gallery", action: null },
+      { parent: 0, component: "paragraph", key: "gallery-purpose", text: "Open a reviewed canonical Form in the same laboratory. Browsing acquires no resource or authority; Run admits work separately.", action: null },
+      { parent: 0, component: "form-field", key: "gallery-search", text: "", action: null },
+      { parent: 3, component: "field-label", key: "search-label", text: "Search reviewed Forms", action: null },
+      { parent: 3, component: "field-help", key: "search-help", text: "Title, Form name, or required kind; 128-byte bound.", action: null },
+      { parent: 3, component: "text-input", key: "search-input", text: "Search reviewed Forms", value: query, valueCapacity: 512, action: 0 },
+      { parent: 0, component: "status", key: "gallery-status", text: overCapacity ? "Search is outside the admitted 128-byte bound." : `${visible.length} reviewed ${visible.length === 1 ? "Form" : "Forms"}`, action: null },
+      { parent: 0, component: "grid", key: "gallery-cards", text: "", action: null },
+    ];
+    for (const [index, form] of gallery.forms.entries()) {
+      const card = nodes.length;
+      const available = form.realizability.status === "runnable-on-current-browser-host";
+      const realization = form.realizability.requirements.map((requirement) => {
+        const realizationClass = requirement.realization_class === "pure-kernel-or-local"
+          ? "local"
+          : requirement.realization_class === "bounded-browser-host-operation"
+            ? "browser Host"
+            : "unrealized";
+        return `${requirement.kind_id}=${requirement.offer_state === "current-host-offer" ? "current" : "missing"}/${realizationClass}`;
+      }).join("; ");
+      nodes.push(
+        { parent: 8, component: "artifact", key: `form-${index}`, text: form.title, action: null },
+        { parent: card, component: "paragraph", key: `form-detail-${index}`, text: `Kinds and realization: ${realization}. Offers ${form.realizability.current_offer_count}/${form.realizability.required_kind_count}; ${available ? "runnable here" : "not runnable here"}.`, action: null },
+        { parent: card, component: "code", key: `form-id-${index}`, text: form.checked_form_id, action: null },
+        { parent: card, component: "action-group", key: `form-actions-${index}`, text: `${form.title} actions`, action: null },
+        { parent: card + 3, component: "button", key: `form-open-${index}`, text: "Open in laboratory", valueCapacity: 0, action: 1 + index * 2 },
+        { parent: card + 3, component: "button", key: `form-inspect-${index}`, text: "Inspect Patchbay", valueCapacity: 0, action: 2 + index * 2 },
+        { parent: card + 3, component: "link", key: `form-add-${index}`, text: "Add to new Body", value: formHandoff(document, crecheUrl, form), valueCapacity: 2_048, action: null },
+      );
     }
-    const terms = input.value.trim().toLocaleLowerCase().split(/\s+/u).filter(Boolean);
-    let visible = 0;
-    for (const card of list.children) {
-      const matches = terms.every((term) => card.dataset.searchText.includes(term));
-      card.hidden = !matches;
-      if (matches) visible += 1;
+    presentation.present("tour-form-gallery", { revision: ++revision, actions, nodes }, { onEvent(event) {
+      presentation.nextEvent("tour-form-gallery");
+      if (event.action === "gallery.search") query = decoder.decode(event.value);
+      else {
+        const match = /^gallery\.(open|inspect)\.(\d+)$/u.exec(event.action);
+        if (!match || !gallery.forms[Number(match[2])]) return;
+        onOpen(gallery.forms[Number(match[2])], match[1]);
+      }
+      render();
+    } });
+    for (const [index, form] of gallery.forms.entries()) {
+      const card = surface.querySelector(`[data-application-key="form-${index}"]`);
+      card.dataset.galleryCard = "";
+      card.dataset.checkedFormId = form.checked_form_id;
+      card.dataset.status = form.realizability.status;
+      card.hidden = !visible.includes(form);
+      if (form.checked_form_id === selected) card.setAttribute("aria-current", "true");
     }
-    status.textContent = `${visible} reviewed ${visible === 1 ? "Form" : "Forms"}`;
   };
-  input.addEventListener("input", filter);
-  filter();
+  render();
   return Object.freeze({
     surface,
-    heading,
+    heading: surface.querySelector('[data-application-key="gallery-heading"]'),
     select(checkedFormId) {
-      for (const card of list.children) {
-        if (card.dataset.checkedFormId === checkedFormId) card.setAttribute("aria-current", "true");
+      selected = checkedFormId;
+      for (const card of surface.querySelectorAll("[data-gallery-card]")) {
+        if (card.dataset.checkedFormId === selected) card.setAttribute("aria-current", "true");
         else card.removeAttribute("aria-current");
       }
     },
   });
 }
 
-function createGalleryCard(document, form, crecheUrl, onOpen) {
-  const item = document.createElement("li");
-  item.className = "form-gallery-card";
-  item.dataset.checkedFormId = form.checked_form_id;
-  item.dataset.searchText = `${form.title} ${form.name} ${form.required_kinds.join(" ")}`.toLocaleLowerCase();
-  const heading = document.createElement("h2");
-  heading.textContent = form.title;
-  const requirements = document.createElement("p");
-  requirements.textContent = `Semantic requirements: ${form.required_kinds.join(", ")}.`;
-  const availability = document.createElement("p");
-  availability.className = "form-gallery-availability";
-  availability.dataset.status = form.realizability.status;
-  availability.textContent = form.realizability.status === "runnable-on-current-browser-host"
-    ? `Runnable here now · ${form.realizability.current_offer_count} of ${form.realizability.required_kind_count} checked kinds have current browser Host offers.`
-    : `Not runnable here · ${form.realizability.required_kind_count - form.realizability.current_offer_count} checked kind offer(s) are missing.`;
-  const realization = document.createElement("ul");
-  realization.className = "form-gallery-realization";
-  for (const requirement of form.realizability.requirements) {
-    const entry = document.createElement("li");
-    const realizationClass = requirement.realization_class === "pure-kernel-or-local"
-      ? "local/kernel"
-      : requirement.realization_class === "bounded-browser-host-operation"
-        ? "bounded Host operation"
-        : "no current realization";
-    entry.textContent = `${requirement.kind_id} · ${requirement.offer_state === "current-host-offer" ? "current offer" : "missing offer"} · ${realizationClass}`;
-    realization.append(entry);
-  }
-  const authority = document.createElement("p");
-  authority.className = "form-gallery-authority";
-  authority.textContent = "Browsing acquires no resource or authority; Run admits work separately.";
-  const identity = document.createElement("code");
-  identity.textContent = form.checked_form_id;
-  const actions = document.createElement("div");
-  actions.className = "form-gallery-actions";
-  const open = document.createElement("button");
-  open.type = "button";
-  open.textContent = "Open in laboratory";
-  open.addEventListener("click", () => onOpen(form, "open"));
-  const inspect = document.createElement("button");
-  inspect.type = "button";
-  inspect.textContent = "Inspect Patchbay";
-  inspect.addEventListener("click", () => onOpen(form, "inspect"));
-  const add = document.createElement("a");
+function formHandoff(document, crecheUrl, form) {
   const handoff = new URL(crecheUrl, document.baseURI);
+  if (handoff.origin !== new URL(document.baseURI).origin || !handoff.pathname.startsWith("/")) {
+    throw new Error("Crèche product handoff is outside the admitted site boundary");
+  }
   handoff.searchParams.set("form", form.name);
   handoff.searchParams.set("source_document_id", form.source_document_id);
   handoff.searchParams.set("checked_form_id", form.checked_form_id);
-  add.href = handoff.href;
-  add.textContent = "Add to new Body";
-  actions.append(open, inspect, add);
-  item.append(heading, requirements, availability, realization, authority, identity, actions);
-  return item;
+  return `${handoff.pathname}${handoff.search}`;
 }
 
 export function presentTourInventory(presentation, inventory) {
