@@ -67,7 +67,7 @@ pub fn accepted(
     let mut output = FixedText::new();
     write!(
         output,
-        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_binding\":\"{}\",\"offer_generation\":{},\"limine\":\"12.5.2\",\"qemu_profile\":\"q35-single-cpu-64m-headless-xhci-usb-kbd-adlib\",\"host_id\":\"",
+        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_binding\":\"{}\",\"offer_generation\":{},\"limine\":\"12.5.2\",\"qemu_profile\":\"q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib\",\"host_id\":\"",
         crate::arch::ARCHITECTURE,
         record.firmware.as_str(),
         fabrication.profile_id,
@@ -251,6 +251,9 @@ mod tests {
         .unwrap();
         let text = core::str::from_utf8(output.as_bytes()).unwrap();
         assert!(text.contains("\"status\":\"accepted\""));
+        assert!(text.contains(
+            "\"qemu_profile\":\"q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib\""
+        ));
         assert!(text.contains(&"aa".repeat(32)));
         assert!(text.len() <= MAX_BOOT_SIGN_BYTES);
     }

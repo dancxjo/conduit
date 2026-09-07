@@ -453,7 +453,7 @@ fn validate_xhci(boot: &GuestBootSign, sign: &GuestXhciSign) -> Result<(), Condu
         || sign.device_id != 0x000d
         || sign.bar_physical == 0
         || sign.hardware_slots < sign.admitted_slots
-        || sign.admitted_slots != 1
+        || sign.admitted_slots != 3
         || sign.command_trbs != 16
         || sign.event_trbs != 16
         || sign.dma_bytes != 640

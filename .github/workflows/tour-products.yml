@@ -940,7 +940,7 @@ jobs:
       needs.tour-patchbay-proof.result == 'success' &&
       (needs.plan.outputs.exact_execution == 'true' || needs.browser-proof.result == 'success')
     runs-on: ubuntu-slim
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
         with:

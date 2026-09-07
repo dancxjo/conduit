@@ -5,7 +5,6 @@ const EFFECT_CLOSE = 4;
 const EFFECT_PRESENT = 5;
 const STATUS_COMPLETE = 1;
 const INPUT_CAPACITY = 4096;
-const MAXIMUM_MEMBERSHIP_OUTPUT_BYTES = 72 * 1024;
 
 function requireApi(api) {
   const names = [
@@ -33,6 +32,7 @@ function requireApi(api) {
     "conduit_browser_membership_input_ptr",
     "conduit_browser_membership_input_capacity",
     "conduit_browser_membership_output_ptr",
+    "conduit_browser_membership_output_capacity",
     "conduit_browser_membership_output_len",
     "conduit_browser_membership_initialize",
     "conduit_browser_membership_prove",
@@ -47,7 +47,7 @@ function requireApi(api) {
 }
 
 function readBytes(api, pointer, length) {
-  if (length < 0 || length > MAXIMUM_MEMBERSHIP_OUTPUT_BYTES) {
+  if (length < 0 || length > api.conduit_browser_membership_output_capacity()) {
     throw new Error("CND-CHAT-002 invalid WASM frame length");
   }
   return new Uint8Array(api.memory.buffer, pointer, length).slice();

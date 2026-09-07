@@ -121,7 +121,7 @@ test("Tour page navigation uses product-owned semantic presentation", async () =
   const navigation = await readFile(join(repository, "products/tour/browser/tour-navigation.mjs"), "utf8");
   const composition = navigation.slice(
     navigation.indexOf("export function createTourNavigation"),
-    navigation.indexOf("export function createTourWorkspace"),
+    navigation.indexOf("export function presentTourWorkspaceSeparator"),
   );
   expect(composition, "Tour navigation must not construct low-level component arrays").not.toContain(
     "component:",
