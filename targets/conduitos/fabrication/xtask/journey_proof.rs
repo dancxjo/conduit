@@ -60,6 +60,13 @@ struct JourneyProof {
     pointer_selected_subject: String,
     pointer_press_sequence: u64,
     pointer_release_sequence: u64,
+    usb_line_id: String,
+    usb_line_binding_id: String,
+    usb_line_base_instance_id: String,
+    usb_line_state_sign_id: String,
+    usb_line_peer_host_id: String,
+    usb_line_peer_boot_id: String,
+    usb_line_peer_connected_before_boot: bool,
     open_effects: u8,
     body_retained_after_lull: bool,
     remained_alive: bool,
@@ -113,15 +120,18 @@ fn execute_image(
     image_sha256: String,
 ) -> Result<JourneyIdentity, ConduitosError> {
     let monitor_socket = paths.target.join("journey-monitor.sock");
+    let usb_line_socket = paths.target.join("journey-usb-line.sock");
     let serial_path = paths.target.join("journey-serial.log");
     let proof_path = paths.target.join("journey-proof.json");
     let _ = fs::remove_file(&monitor_socket);
+    let _ = fs::remove_file(&usb_line_socket);
     let _ = fs::remove_file(&serial_path);
     let monitor = format!(
         "unix:{},server=on,wait=off",
         monitor_socket.to_string_lossy()
     );
     let serial = format!("file:{}", serial_path.to_string_lossy());
+    let usb_line_chardev = super::journey_usb_line::chardev(&usb_line_socket);
     let mut command = Command::new("qemu-system-x86_64");
     command
         .args([
@@ -147,11 +157,15 @@ fn execute_image(
             "-net",
             "none",
             "-device",
-            "qemu-xhci,id=conduitos-xhci,p2=2,p3=0",
+            super::journey_usb_line::QEMU_CONTROLLER,
             "-device",
             "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
             "-device",
             "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+            "-chardev",
+            &usb_line_chardev,
+            "-device",
+            super::journey_usb_line::QEMU_DEVICE,
             "-cdrom",
             image_path.to_str().ok_or_else(|| {
                 ConduitosError::refusal("product-journey-image-path-invalid", "non-UTF-8 ISO path")
@@ -177,6 +191,7 @@ fn execute_image(
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
 
     let result = (|| {
+        let _usb_line_peer = super::journey_usb_line::connect(&usb_line_socket, &mut child)?;
         let interaction = (|| {
             let (mut qmp, mut reader) = super::qmp::connect_traced(
                 &monitor_socket,
@@ -300,6 +315,7 @@ fn execute_image(
         let records = journey_records(&serial)?;
         let tour_records = super::journey_records::tour(&serial)?;
         let pointer_records = super::journey_records::pointer(&serial)?;
+        let usb_line = super::journey_usb_line::evidence(&serial)?;
         let by_status = records
             .iter()
             .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
@@ -486,7 +502,7 @@ fn execute_image(
             build_id: text(opened, "build_id")?,
             image_id: text(opened, "image_id")?,
             host_id: text(opened, "host_id")?,
-            profile: "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-adlib",
+            profile: "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib",
             boot_id: text(opened, "boot_id")?,
             source_document_id: text(opened, "source_document_id")?,
             checked_form_id: text(opened, "checked_form_id")?,
@@ -517,6 +533,13 @@ fn execute_image(
             pointer_selected_subject: text(pointer_press, "subject")?,
             pointer_press_sequence: number(pointer_press, "sequence")?,
             pointer_release_sequence: number(pointer_release, "sequence")?,
+            usb_line_id: usb_line.line_id,
+            usb_line_binding_id: usb_line.binding_id,
+            usb_line_base_instance_id: usb_line.base_instance_id,
+            usb_line_state_sign_id: usb_line.state_sign_id,
+            usb_line_peer_host_id: usb_line.peer_host_id,
+            usb_line_peer_boot_id: usb_line.peer_boot_id,
+            usb_line_peer_connected_before_boot: true,
             open_effects: 0,
             body_retained_after_lull: true,
             remained_alive: true,

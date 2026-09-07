@@ -4,6 +4,7 @@ use serde_json::Value;
 const PREFIX: &str = "CONDUIT_PRODUCT_JOURNEY ";
 const TOUR_PREFIX: &str = "CONDUIT_TOUR_SIGN ";
 const POINTER_PREFIX: &str = "CONDUIT_POINTER_SIGN ";
+const USB_LINE_PREFIX: &str = "CONDUIT_USB_LINE_SIGN ";
 pub(super) fn decode(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     serial
         .split_inclusive('\n')
@@ -23,6 +24,10 @@ pub(super) fn tour(serial: &str) -> Result<Vec<Value>, ConduitosError> {
 
 pub(super) fn pointer(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     decode_prefix(serial, POINTER_PREFIX, "conduitos-pointer-sign-invalid")
+}
+
+pub(super) fn usb_line(serial: &str) -> Result<Vec<Value>, ConduitosError> {
+    decode_prefix(serial, USB_LINE_PREFIX, "conduitos-usb-line-sign-invalid")
 }
 
 pub(super) fn latest_checkpoint(serial: &str) -> Result<Option<Value>, ConduitosError> {
@@ -116,5 +121,17 @@ mod tests {
             latest_checkpoint(serial).unwrap().unwrap()["status"],
             "selected"
         );
+    }
+
+    #[test]
+    fn usb_line_records_are_complete_and_separate_from_product_checkpoints() {
+        let serial = concat!(
+            "CONDUIT_USB_LINE_SIGN {\"status\":\"current\",\"line_id\":\"line/1\"}\n",
+            "CONDUIT_USB_LINE_SIGN {\"status\":\"lost\"",
+        );
+        let records = usb_line(serial).unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0]["line_id"], "line/1");
+        assert!(decode(serial).unwrap().is_empty());
     }
 }
