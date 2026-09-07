@@ -46,6 +46,7 @@ export default defineConfig({
     "quantity-controller.spec.mjs",
     "reviewed-form-conformance.spec.mjs",
     "pages-front-door.spec.mjs",
+    "web-accessibility.spec.mjs",
     "creche-avr.spec.mjs",
     "creche-orange-pi.spec.mjs",
     "creche-raspberry-pi.spec.mjs",

@@ -203,9 +203,12 @@ test("all four web surfaces inherit one product-owned browser design system", as
     const css = await readFile(join(repository, path), "utf8");
     expect(css, `${path} must not mint a private root design system`).not.toMatch(/:root\s*\{/);
     expect(css, `${path} must not select its own body typeface`).not.toMatch(/\b(?:Inter|DejaVu Sans)\b/);
+    expect(css, `${path} must not redefine generic browser furniture`).not.toMatch(
+      /(?:^|})\s*(?:button|select|input|textarea|summary|a:focus-visible)(?:\b|:|,)[^{]*\{/m,
+    );
   }
   const tour = await readFile(join(repository, "products/tour/browser/tour.css"), "utf8");
-  expect(tour, "Tour editorial typography must be an explicit shared token").toContain("var(--conduit-font-editorial)");
+  expect(tour.match(/h1\s*\{[^}]*font:[^}]*var\(--conduit-font-body\)/), "Tour heading uses the shared application family").not.toBeNull();
 
   const pages = await readFile(join(repository, "site/index.html"), "utf8");
   expect(pages).toContain('href="./conduit.css"');
