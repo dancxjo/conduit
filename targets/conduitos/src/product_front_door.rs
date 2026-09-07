@@ -116,6 +116,7 @@ pub fn run(
             tour_open = true;
             render_tour(&tour, display)?;
             emit_tour_sign(&tour, None, identities, fabrication);
+            arch::early_write(b"CONDUIT_TOUR_CHECKPOINT workspace-opened\n");
             return Ok(ProductInputControl::Continue);
         }
         if tour_open && event.transition() == KeyTransition::Pressed {

@@ -3,6 +3,7 @@ use super::ConduitosError;
 use serde_json::Value;
 const PREFIX: &str = "CONDUIT_PRODUCT_JOURNEY ";
 const TOUR_PREFIX: &str = "CONDUIT_TOUR_SIGN ";
+const POINTER_PREFIX: &str = "CONDUIT_POINTER_SIGN ";
 pub(super) fn decode(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     serial
         .split_inclusive('\n')
@@ -20,6 +21,10 @@ pub(super) fn tour(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     decode_prefix(serial, TOUR_PREFIX, "conduitos-tour-sign-invalid")
 }
 
+pub(super) fn pointer(serial: &str) -> Result<Vec<Value>, ConduitosError> {
+    decode_prefix(serial, POINTER_PREFIX, "conduitos-pointer-sign-invalid")
+}
+
 pub(super) fn latest_checkpoint(serial: &str) -> Result<Option<Value>, ConduitosError> {
     serial
         .split_inclusive('\n')
@@ -30,6 +35,10 @@ pub(super) fn latest_checkpoint(serial: &str) -> Result<Option<Value>, Conduitos
                 .or_else(|| {
                     line.strip_prefix(TOUR_PREFIX)
                         .map(|json| (json, "conduitos-tour-sign-invalid"))
+                })
+                .or_else(|| {
+                    line.strip_prefix(POINTER_PREFIX)
+                        .map(|json| (json, "conduitos-pointer-sign-invalid"))
                 })
         })
         .map(|(json, reason)| {
@@ -93,6 +102,19 @@ mod tests {
         assert_eq!(
             latest_checkpoint(serial).unwrap().unwrap()["status"],
             "result-visible"
+        );
+    }
+
+    #[test]
+    fn latest_checkpoint_includes_complete_pointer_records() {
+        let serial = concat!(
+            "CONDUIT_TOUR_SIGN {\"status\":\"patchbay-open\"}\n",
+            "CONDUIT_POINTER_SIGN {\"status\":\"selected\",\"sequence\":2}\n",
+        );
+        assert_eq!(pointer(serial).unwrap().len(), 1);
+        assert_eq!(
+            latest_checkpoint(serial).unwrap().unwrap()["status"],
+            "selected"
         );
     }
 }
