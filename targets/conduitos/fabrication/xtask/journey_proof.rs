@@ -64,6 +64,7 @@ struct JourneyProof {
     usb_line_binding_id: String,
     usb_line_base_instance_id: String,
     usb_line_state_sign_id: String,
+    usb_line_lost_state_sign_id: String,
     usb_line_peer_host_id: String,
     usb_line_peer_boot_id: String,
     usb_line_peer_connected_before_boot: bool,
@@ -197,6 +198,24 @@ fn execute_image(
                 &monitor_socket,
                 &mut child,
                 Some(&paths.target.join("journey-qmp.log")),
+            )?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_BOOT_STAGE usb-line-current",
+                "product-journey-usb-line-current-timeout",
+            )?;
+            super::qmp::request(
+                &mut qmp,
+                &mut reader,
+                b"{\"execute\":\"device_del\",\"arguments\":{\"id\":\"conduitos-usb-line\"}}\r\n",
+                "usb-line-device-del",
+            )?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_BOOT_STAGE usb-line-lost",
+                "product-journey-usb-line-lost-timeout",
             )?;
             hid_qmp::wait_for_stage(
                 &serial_path,
@@ -537,6 +556,7 @@ fn execute_image(
             usb_line_binding_id: usb_line.binding_id,
             usb_line_base_instance_id: usb_line.base_instance_id,
             usb_line_state_sign_id: usb_line.state_sign_id,
+            usb_line_lost_state_sign_id: usb_line.lost_state_sign_id,
             usb_line_peer_host_id: usb_line.peer_host_id,
             usb_line_peer_boot_id: usb_line.peer_boot_id,
             usb_line_peer_connected_before_boot: true,
