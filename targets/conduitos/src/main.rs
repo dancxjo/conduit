@@ -57,6 +57,7 @@ extern "C" fn conduitos_start() -> ! {
                 None => emit_machine_refusal("usb-primary-device-absent"),
             };
             let pointer_usb = usb_devices[1].take();
+            let ftdi_usb = usb_devices[2].take();
             arch::early_write(b"CONDUIT_BOOT_STAGE usb-configured\n");
             let Some(arena_virtual_start) = record
                 .hhdm_offset
@@ -168,6 +169,22 @@ extern "C" fn conduitos_start() -> ! {
                 xhci.sign_slots,
             );
             arch::early_write(xhci_sign.as_bytes());
+            if !cfg!(feature = "scripted-keyboard-proof") {
+                if let Some(ftdi) = ftdi_usb.as_ref() {
+                    let ready =
+                        arch::prepare_ftdi_line(&mut xhci, ftdi, boot::executable_physical_address)
+                            .unwrap_or_else(|error| emit_machine_refusal(error.as_str()));
+                    let line_sign = conduitos::product_usb_line::current_offer_sign(
+                        &identities,
+                        xhci_base,
+                        ftdi,
+                        ready,
+                    )
+                    .unwrap_or_else(|error| emit_machine_refusal(error));
+                    arch::early_write(line_sign.as_bytes());
+                    arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-current\n");
+                }
+            }
             let device_id = identity::derive_usb_device(
                 &identities.boot,
                 &xhci_base,

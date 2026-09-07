@@ -138,6 +138,8 @@ pub mod product_front_door;
 pub mod product_journey;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
 pub mod product_pointer;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod product_usb_line;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;
 pub mod sign_format;
