@@ -152,7 +152,11 @@ function setupTourModes() {
   guided.addEventListener("click", () => renderPage(currentPage).catch(showTourFailure));
   galleryButton.addEventListener("click", () => {
     try { renderGallery(); }
-    catch (error) { showTourFailure(error); }
+    catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      document.title = `Form Gallery refused: ${detail}`;
+      showTourFailure(error);
+    }
   });
 }
 
