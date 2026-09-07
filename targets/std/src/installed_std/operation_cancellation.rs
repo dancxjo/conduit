@@ -68,6 +68,7 @@ impl InstalledOperation {
             Self::GenerateText(operation) => operation.cancel(),
             Self::HousePrompt(operation) => operation.cancel(),
             Self::LocalModel(operation) => operation.cancel(),
+            Self::ModelText(operation) => operation.cancel(),
             Self::VectorSearch(operation) => operation.cancel(),
             Self::HttpClient(operation) => operation.cancel(),
             Self::HttpServer(operation) => operation.cancel(),

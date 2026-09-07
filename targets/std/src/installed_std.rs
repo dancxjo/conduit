@@ -41,6 +41,7 @@ mod math_operations;
 mod midi_input_operation;
 mod midi_output_operation;
 mod model_host;
+mod model_text_operation;
 mod operation;
 mod operation_cancellation;
 mod operation_capacity;
@@ -1397,6 +1398,34 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete proof PCM source yield: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION {
+                let (disposition, output) = match conduit_ai::project_generated_text(input) {
+                    Ok(text) => {
+                        let value = scheduler
+                            .store_host_value(&text)
+                            .map_err(|error| format!("store bounded model text: {error:?}"))?;
+                        let output =
+                            BoundedValueRef::new(value, conduit_ai::MAXIMUM_MODEL_TEXT_BYTES)
+                                .map_err(|error| {
+                                    format!("bound projected model text: {error:?}")
+                                })?;
+                        (HostOperationDisposition::Completed, Some(output))
+                    }
+                    Err(_) => (HostOperationDisposition::Denied, None),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete model-text projection: {error:?}"))?;
                 continue;
             } else if matches!(
                 contract.as_str(),

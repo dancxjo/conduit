@@ -28,6 +28,7 @@ use super::logic_operations::{
 use super::math_operations::MathScalarOperation;
 use super::midi_input_operation::MidiInputOperation;
 use super::midi_output_operation::MidiOutputOperation;
+use super::model_text_operation::ModelTextOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
 use super::pattern_comparison_operation::PatternComparisonOperation;
 use super::presentation_composition::{
@@ -138,6 +139,7 @@ pub(super) enum InstalledOperation {
     GenerateText(GenerateTextOperation),
     HousePrompt(HousePromptOperation),
     LocalModel(LocalModelOperation),
+    ModelText(ModelTextOperation),
     VectorSearch(VectorSearchOperation),
     HttpClient(HttpClientOperation),
     HttpServer(HttpServerOperation),

@@ -16,6 +16,8 @@ const HOUSE_CONTEXT_SOURCE_REVISION: &str = "conduit-test/house-context-source@1
 const SOURCE_IMPLEMENTATION: &str = "conduit-test/local-model-request-kernel@1";
 const SINK_KIND: &str = "conduit-test/local-model-result";
 const SINK_REVISION: &str = "conduit-test/local-model-result@1";
+pub(crate) const HOUSE_TEXT_SINK_KIND: &str = "conduit-test/house-text-sink";
+const HOUSE_TEXT_SINK_REVISION: &str = "conduit-test/house-text-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduit-test/local-model-result-kernel@1";
 const PROFILE: &str = "conduit-test/local-model-io-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/test-local-model-io@1";
@@ -115,6 +117,16 @@ pub(crate) fn sink_offer(value_kind: &str) -> CapabilityOffer {
     )
 }
 
+pub(crate) fn house_text_sink_offer() -> CapabilityOffer {
+    offer(
+        HOUSE_TEXT_SINK_KIND,
+        HOUSE_TEXT_SINK_REVISION,
+        SINK_IMPLEMENTATION,
+        conduit_ai::TEXT_VALUE_KIND,
+        PortDirection::Input,
+    )
+}
+
 fn offer(
     kind: &str,
     revision: &str,
@@ -180,6 +192,13 @@ pub(crate) fn install_house_source_catalog(
     }
 }
 
+pub(crate) fn install_house_text_sink_catalog(
+    startup: &mut StartupCatalog,
+    catalog: &mut ProfileCatalog,
+) {
+    install_offer(startup, catalog, house_text_sink_offer());
+}
+
 fn install_offer(
     startup: &mut StartupCatalog,
     catalog: &mut ProfileCatalog,
@@ -217,6 +236,12 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
             ),
             _ => (SOURCE_KIND, SOURCE_REVISION, SOURCE_IMPLEMENTATION),
         }
+    } else if placement.kind_id.as_str() == HOUSE_TEXT_SINK_KIND {
+        (
+            HOUSE_TEXT_SINK_KIND,
+            HOUSE_TEXT_SINK_REVISION,
+            SINK_IMPLEMENTATION,
+        )
     } else {
         (SINK_KIND, SINK_REVISION, SINK_IMPLEMENTATION)
     };

@@ -56,6 +56,8 @@ pub fn run(
     }
     additional_capabilities
         .extend(crate::installed_std::test_local_model_io::house_source_offers());
+    additional_capabilities
+        .push(crate::installed_std::test_local_model_io::house_text_sink_offer());
     let mut host = StdHost::new_with_local_model_capabilities(
         StdHostConfig {
             host_id: HostId::from("host/local-ollama-proof"),
@@ -95,6 +97,7 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
+    conduit_ai::install_model_text_catalog(&mut startup, &mut profiles)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profiles)?;
     crate::installed_std::test_local_model_io::install_catalog(
         &mut startup,
@@ -106,11 +109,16 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
         &mut startup,
         &mut profiles,
     );
+    crate::installed_std::test_local_model_io::install_house_text_sink_catalog(
+        &mut startup,
+        &mut profiles,
+    );
     let source = format!(
-        "{}\nform house-live-proof {{\n detection: {}\n context: {}\n house: house-conversation\n sink: conduit-test/local-model-result\n detection.value > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
+        "{}\nform house-live-proof {{\n detection: {}\n context: {}\n house: house-conversation\n sink: {}\n detection.value > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
         include_str!("../../../forms/house-conversation/main.conduit"),
         crate::installed_std::test_local_model_io::HOUSE_DETECTION_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_CONTEXT_SOURCE_KIND,
+        crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,
     );
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|error| {

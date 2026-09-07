@@ -27,7 +27,7 @@ impl HostedLocalModelAdapter for FakeLocalModel {
     ) -> LocalModelAdapterTerminal {
         output.clear();
         let encoded = match placement.kind_id.as_str() {
-            conduit_ai::LLM_GENERATE_KIND => input.to_vec(),
+            conduit_ai::LLM_GENERATE_KIND => b"The upstairs temperature is 21 C.".to_vec(),
             conduit_ai::LLM_CLASSIFY_KIND => {
                 serde_json::to_vec(&conduit_ai::FiniteClassification {
                     label: "conduit".into(),
@@ -71,7 +71,37 @@ impl HostedLocalModelAdapter for FakeLocalModel {
             }
             _ => return LocalModelAdapterTerminal::Refused,
         };
-        output.extend_from_slice(&encoded);
+        let contract = conduit_ai::llm_contract(placement.kind_id.as_str()).unwrap();
+        let result = conduit_ai::ModelDerivedResult {
+            provenance: conduit_ai::ModelResultProvenance::ModelDerived,
+            payload_kind: contract.result_payload_kind.as_str().into(),
+            payload: encoded,
+            implementation_identity: "fixture-runtime/fixture-model".into(),
+            request_identity: "request/fixture".into(),
+            run_identity: "run/fixture".into(),
+            confidence: None,
+            disposition: match self.terminal {
+                LocalModelAdapterTerminal::Produced => conduit_ai::ModelResultDisposition::Produced,
+                LocalModelAdapterTerminal::Truncated => {
+                    conduit_ai::ModelResultDisposition::Truncated
+                }
+                _ => {
+                    self.calls.push(placement.kind_id.as_str().into());
+                    return self.terminal;
+                }
+            },
+            determinism: self.offer.determinism,
+            accounting: conduit_ai::ModelWorkAccounting {
+                input_bytes: input.len() as u64,
+                context_items: 1,
+                output_bytes: 0,
+                work_units: 1,
+                history_items: 0,
+            },
+        };
+        let mut result = result;
+        result.accounting.output_bytes = result.payload.len() as u64;
+        output.extend_from_slice(&serde_json::to_vec(&result).unwrap());
         self.calls.push(placement.kind_id.as_str().into());
         self.terminal
     }
@@ -339,12 +369,9 @@ fn all_five_l3_profiles_execute_through_ordinary_plan_and_play() {
 #[cfg(feature = "local-model-proof")]
 #[test]
 fn checked_house_form_executes_through_the_ordinary_local_model_play() {
-    let contract = conduit_ai::llm_contract(conduit_ai::LLM_GENERATE_KIND).unwrap();
     let mut capabilities =
         crate::installed_std::test_local_model_io::house_source_offers().to_vec();
-    capabilities.push(crate::installed_std::test_local_model_io::sink_offer(
-        contract.outputs[0].value_kind.as_str(),
-    ));
+    capabilities.push(crate::installed_std::test_local_model_io::house_text_sink_offer());
     let mut host = StdHost::new_with_local_model_capabilities(
         config(),
         StdHostComposition::minimal(),

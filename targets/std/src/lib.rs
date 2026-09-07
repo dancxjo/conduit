@@ -444,6 +444,9 @@ impl StdHost {
         advertisement
             .capabilities
             .push(conduit_std_offers::house_prompt_std_offer());
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::model_result_to_text_std_offer());
         advertisement.capabilities.extend(additional_capabilities);
         advertisement.resources.sort();
         advertisement.capabilities.sort_by(|left, right| {

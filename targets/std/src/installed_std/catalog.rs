@@ -42,6 +42,7 @@ use super::logic_operations::{
 use super::math_operations::{MATH_CLAMP_FACTORY, MATH_DEADBAND_FACTORY, MATH_SCALE_FACTORY};
 use super::midi_input_operation::MIDI_INPUT_FACTORY;
 use super::midi_output_operation::MIDI_OUTPUT_FACTORY;
+use super::model_text_operation::FACTORY as MODEL_TEXT_FACTORY;
 use super::operation::InstalledFactory;
 use super::pacing_operations::{TIME_DELAY_FACTORY, TIME_THROTTLE_FACTORY};
 use super::pattern_comparison_operation::FACTORY as PATTERN_COMPARISON_FACTORY;
@@ -174,6 +175,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &LOGIC_NOT_FACTORY,
     &LOGIC_SELECT_SCALAR_FACTORY,
     &LOCAL_MODEL_FACTORY,
+    &MODEL_TEXT_FACTORY,
     &EXACT_VECTOR_SEARCH_FACTORY,
     &HNSW_FACTORY,
     &MATH_CLAMP_FACTORY,
