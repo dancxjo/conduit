@@ -120,6 +120,24 @@ impl BoundedMeasurementWindow {
         self.discarded_samples
     }
 
+    /// Restores an already-bounded retained snapshot without inventing the
+    /// samples that were explicitly discarded before the snapshot was taken.
+    pub fn from_retained(
+        profile: MeasurementWindowProfile,
+        samples: Vec<MeasurementSample>,
+        discarded_samples: u64,
+    ) -> Result<Self, MeasurementWindowRefusal> {
+        let mut window = Self::new(profile)?;
+        if samples.len() > window.profile.capacity {
+            return Err(MeasurementWindowRefusal::Full);
+        }
+        for sample in samples {
+            window.push(sample)?;
+        }
+        window.discarded_samples = discarded_samples;
+        Ok(window)
+    }
+
     fn validate_sample(&self, sample: &MeasurementSample) -> Result<(), MeasurementWindowRefusal> {
         sample
             .observed_at
