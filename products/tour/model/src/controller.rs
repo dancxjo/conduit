@@ -59,6 +59,15 @@ impl TourWorkspaceController {
         self.last_run.as_ref()
     }
 
+    pub fn dismiss_inspector(&mut self) -> Result<bool, TourWorkspaceRefusal> {
+        if self.state.selected_patchbay_subject.is_none() {
+            return Ok(false);
+        }
+        self.state.selected_patchbay_subject = None;
+        self.state.revision = self.next_revision()?;
+        Ok(true)
+    }
+
     pub(crate) const fn last_pointer_sequence(&self) -> Option<u64> {
         self.last_pointer_sequence
     }

@@ -327,6 +327,44 @@ fn retained_surfaces_update_independently_and_compose_by_geometry_and_z() {
     assert_eq!(compositor.receipts().count(), 2);
 }
 
+#[test]
+fn removed_and_resized_surfaces_reuse_finite_backing_storage() {
+    let (_, _, manifestation) = specimen();
+    let admission = CompositorAdmission::new(
+        manifestation.host_id,
+        manifestation.boot_id,
+        manifestation.offer_generation,
+        manifestation.presenter_implementation_id,
+        HostBaseId::from("display/base/0"),
+        vec![manifestation.placement_id],
+        vec!["surface/main".into()],
+    )
+    .unwrap();
+    let mut compositor = NativeCompositor::admitted(admission);
+    compositor
+        .admit_surface("surface/main", surface_bounds(), 0)
+        .unwrap();
+    assert_eq!(compositor.allocated_pixels(), 32 * 16);
+
+    compositor.remove_surface("surface/main").unwrap();
+    compositor
+        .admit_surface("surface/main", surface_bounds(), 0)
+        .unwrap();
+    assert_eq!(compositor.allocated_pixels(), 32 * 16);
+
+    let wide = LayoutRect {
+        width: 64,
+        height: 8,
+        ..surface_bounds()
+    };
+    compositor.place_surface("surface/main", wide, 0).unwrap();
+    assert_eq!(compositor.allocated_pixels(), 2 * 32 * 16);
+    compositor
+        .place_surface("surface/main", surface_bounds(), 0)
+        .unwrap();
+    assert_eq!(compositor.allocated_pixels(), 2 * 32 * 16);
+}
+
 fn surface_bounds() -> LayoutRect {
     LayoutRect {
         x: 0,

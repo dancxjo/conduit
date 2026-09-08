@@ -484,7 +484,7 @@ fn validate_boot(sign: &GuestBootSign) -> Result<(), ConduitosError> {
         || sign.host_id.len() != 64
         || sign.boot_id.len() != 64
         || sign.memory_regions == 0
-        || sign.runtime_arena_bytes != 8_388_608
+        || sign.runtime_arena_bytes != 16_777_216
     {
         return Err(ConduitosError::refusal(
             "invalid-boot-sign",

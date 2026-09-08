@@ -29,7 +29,7 @@ export const CONDUITOS_X86_64_PROFILE = product({
   id: "conduitos/x86_64/pc", label: "x86_64 PC · product Host", architecture: "x86_64", machine: "q35",
   profileId: "conduitos-native", releaseName: "x86_64-pc", firmware: "OVMF_CODE.fd", bootEntry: "BOOTX64.EFI",
   presenter: "presenter/native-graphical@1",
-  bounds: { static_memory_bytes: 8_388_608, heap_arena_bytes: 16_777_216, queue_items: 1_024, buffered_bytes: 4_194_304, active_instances: 128, operation_slots: 64, timer_slots: 32, line_sessions: 8, evidence_items: 1_024 },
+  bounds: { static_memory_bytes: 8_388_608, heap_arena_bytes: 16_777_216, queue_items: 1_024, buffered_bytes: 8_388_608, active_instances: 128, operation_slots: 64, timer_slots: 32, line_sessions: 8, evidence_items: 1_024 },
 });
 export const CONDUITOS_AARCH64_PROFILE = product({
   id: "conduitos/aarch64/virt", label: "AArch64 virt · product Host", architecture: "aarch64", machine: "virt",

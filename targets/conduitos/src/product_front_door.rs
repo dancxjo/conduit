@@ -3,11 +3,8 @@
 use alloc::{format, string::String};
 
 use conduit_human::KeyTransition;
-use conduit_presentation::{
-    ApplicationEvent, ApplicationEventKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
-    GraphicsShapeStyle, LayoutRect,
-};
-use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID};
+use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
+use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID, TourTransientKind};
 
 use crate::{
     arch::{self, HidKeyTransition, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
@@ -23,6 +20,7 @@ use crate::{
     product_journey::{JourneyAction, JourneyProjection, JourneyStatus, ProductJourney},
     rescue_guest,
     tour_product::{TourProduct, TourProductUpdate},
+    tour_shell::TourShellPresenter,
 };
 
 const ENTER: u8 = 40;
@@ -84,6 +82,16 @@ pub fn run(
         .map_err(|error| error.as_str())?;
     arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
     let mut tour = TourProduct::canonical(1);
+    let mut shell = TourShellPresenter::prepare(
+        conduit_core::HostId::from(identity::hex(&identities.host)),
+        conduit_core::BootId::from(identity::hex(&identities.boot)),
+        generation,
+        fabrication.profile_id,
+        fabrication.image_binding,
+        framebuffer_basis.base_id.clone(),
+        fabrication.presentation_surface_slots,
+    )
+    .map_err(|error| error.as_str())?;
     let mut tour_open = false;
     let mut clock = arch::Clock::new();
     let mut serial = arch::Serial::new();
@@ -118,10 +126,12 @@ pub fn run(
                 transition.modifiers(),
             )
             .map_err(|_| "front-door-key-event-invalid")?;
-            if matches!(
-                presenter.route_keyboard().map_err(|error| error.as_str())?,
-                InputRoute::NoTarget
-            ) {
+            let keyboard_route = if tour_open {
+                shell.route_keyboard().map_err(|error| error.as_str())?
+            } else {
+                presenter.route_keyboard().map_err(|error| error.as_str())?
+            };
+            if matches!(keyboard_route, InputRoute::NoTarget) {
                 return Ok(ProductInputControl::Continue);
             }
             if event.usage() == F12 && usb_line_device.is_some() {
@@ -132,15 +142,39 @@ pub fn run(
                 return Ok(ProductInputControl::Continue);
             }
             if event.transition() == KeyTransition::Pressed && event.usage() == F9 && !tour_open {
+                presenter.suspend().map_err(|error| error.as_str())?;
                 tour_open = true;
-                render_tour(&tour, display)?;
+                shell
+                    .present_with_lifecycle(&tour, &journey.projection(), display)
+                    .map_err(|error| error.as_str())?;
                 emit_tour_sign(&tour, None, identities, fabrication);
                 arch::early_write(b"CONDUIT_TOUR_CHECKPOINT workspace-opened\n");
                 return Ok(ProductInputControl::Continue);
             }
             if tour_open && event.transition() == KeyTransition::Pressed {
                 if event.usage() == ESCAPE {
+                    if shell.has_transient() {
+                        shell
+                            .dismiss_transient(display)
+                            .map_err(|error| error.as_str())?;
+                        arch::early_write(b"CONDUIT_TOUR_CHECKPOINT transient-dismissed\n");
+                        return Ok(ProductInputControl::Continue);
+                    }
+                    if tour
+                        .controller()
+                        .state()
+                        .selected_patchbay_subject
+                        .is_some()
+                    {
+                        tour.dismiss_inspector().map_err(|error| error.as_str())?;
+                        shell
+                            .present_with_lifecycle(&tour, &journey.projection(), display)
+                            .map_err(|error| error.as_str())?;
+                        arch::early_write(b"CONDUIT_TOUR_CHECKPOINT gear-inspector-dismissed\n");
+                        return Ok(ProductInputControl::Continue);
+                    }
                     tour_open = false;
+                    shell.suspend().map_err(|error| error.as_str())?;
                     presenter
                         .present(&front_door, display)
                         .map_err(|error| error.as_str())?;
@@ -166,9 +200,19 @@ pub fn run(
                             &mut idle,
                         )
                         .map_err(|error| error.as_str())?;
-                    render_tour(&tour, display)?;
+                    shell
+                        .present_with_lifecycle(&tour, &journey.projection(), display)
+                        .map_err(|error| error.as_str())?;
                     if update.play.is_some() {
                         arch::early_write(b"\n");
+                        shell
+                            .show_transient(
+                                &tour,
+                                TourTransientKind::Confirmation,
+                                "Play completed",
+                                display,
+                            )
+                            .map_err(|error| error.as_str())?;
                     }
                     emit_tour_sign(&tour, Some(&update), identities, fabrication);
                     return Ok(
@@ -275,7 +319,7 @@ pub fn run(
         identities,
         fabrication,
         &mut tour,
-        &mut presenter,
+        &mut shell,
         display,
         pointer_session,
         controller,
@@ -289,45 +333,6 @@ fn tour_action(usage: u8) -> Option<&'static str> {
         F11 => Some(OPEN_PATCHBAY_ACTION_ID),
         _ => None,
     }
-}
-
-pub(crate) fn render_tour(
-    tour: &TourProduct,
-    display: &mut impl crate::display::PixelTarget,
-) -> Result<(), &'static str> {
-    let format = display
-        .format()
-        .validate()
-        .map_err(crate::display::DisplayError::as_str)?;
-    let scene = tour
-        .scene(
-            u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
-            u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
-        )
-        .map_err(|error| error.as_str())?;
-    let bounds = LayoutRect {
-        x: 0,
-        y: 0,
-        width: u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
-        height: u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
-    };
-    let mut background = GraphicsScene::empty();
-    background
-        .push(
-            GraphicsCommand::rect(
-                bounds,
-                bounds,
-                GraphicsPaintRole::Background,
-                GraphicsShapeStyle::Fill,
-            )
-            .map_err(|_| "tour-background-scene-refused")?,
-        )
-        .map_err(|_| "tour-background-scene-refused")?;
-    crate::display::render_scene(display, &background)
-        .map_err(crate::display::DisplayError::as_str)?;
-    crate::display::render_scene(display, &scene)
-        .map(|_| ())
-        .map_err(crate::display::DisplayError::as_str)
 }
 
 fn emit_tour_sign(

@@ -14,11 +14,13 @@ mod gallery;
 mod layout;
 mod navigation;
 mod pointer;
+mod shell_presentations;
 pub use controller::*;
 pub use gallery::*;
 pub use layout::*;
 pub use navigation::*;
 pub use pointer::*;
+pub use shell_presentations::*;
 
 pub const CANONICAL_SPECIMEN_ID: &str = "canonical-form:meet-one-gear";
 pub const CANONICAL_LITERAL: &str = "hello";

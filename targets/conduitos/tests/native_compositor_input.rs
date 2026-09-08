@@ -110,6 +110,60 @@ fn stale_manifestation_routes_refuse_distinctly_from_no_target() {
 }
 
 #[test]
+fn resizing_invalidates_pixels_and_input_until_a_fresh_manifestation_revision() {
+    let (presentation, plan, main, _top, mut compositor) = fixture(1);
+    update(&mut compositor, &presentation, &plan, &main, MAIN);
+    assert!(matches!(
+        compositor.route_pointer(2, 2, true).unwrap(),
+        InputRoute::Delivered(_)
+    ));
+
+    compositor
+        .place_surface(
+            MAIN,
+            LayoutRect {
+                x: 1,
+                y: 1,
+                width: 8,
+                height: 6,
+            },
+            0,
+        )
+        .unwrap();
+    assert_eq!(
+        compositor.route_pointer(2, 2, false).unwrap(),
+        InputRoute::NoTarget
+    );
+    assert_eq!(
+        compositor.route_keyboard(&main.manifestation_id).unwrap(),
+        InputRoute::NoTarget
+    );
+    assert_eq!(compositor.receipts().count(), 0);
+    assert_eq!(
+        compositor.update_surface(
+            &presentation,
+            &main,
+            &plan,
+            MAIN,
+            &conduit_core::HostBaseId::from(fixture_support::BASE),
+            &conduit_presentation::GraphicsScene::empty(),
+        ),
+        Err(NativeCompositorError::StaleSurfaceRevision)
+    );
+
+    let (next_presentation, next_plan, next_main, _, _) = fixture(2);
+    update(
+        &mut compositor,
+        &next_presentation,
+        &next_plan,
+        &next_main,
+        MAIN,
+    );
+    let routed = delivered(compositor.route_pointer(2, 2, true).unwrap());
+    assert_eq!(routed.manifestation_id, next_main.manifestation_id);
+}
+
+#[test]
 fn damage_is_bounded_partial_clean_clipped_and_retryable() {
     let (presentation, plan, main, _top, mut compositor) = fixture(1);
     update(&mut compositor, &presentation, &plan, &main, MAIN);

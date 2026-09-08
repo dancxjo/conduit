@@ -16,7 +16,7 @@ use conduit_presentation::{
     ManifestationLifecycle, Presentation, PresentationContentId,
 };
 use damage::{DamageState, RawDamageRect};
-use surface_buffer::{SurfaceBuffer, surface_pixels};
+use surface_buffer::{SurfaceBuffer, SurfaceBufferPool, surface_pixels};
 
 pub use damage::{DamageRect, MAX_DAMAGE_RECTS};
 pub use input_routing::{InputRoute, RoutedKeyboard, RoutedPointer};
@@ -25,7 +25,7 @@ pub const NATIVE_COMPOSITOR_FACILITY: &str = "compositor/native@1";
 pub const NATIVE_PRESENTER_IMPLEMENTATION: &str = "presenter/native-graphical@1";
 pub const MAX_COMPOSITOR_SURFACES: usize = 8;
 pub const MAX_SURFACE_ID_BYTES: usize = 160;
-pub const MAX_COMPOSITOR_PIXELS: usize = 8 * 1024 * 1024;
+pub const MAX_COMPOSITOR_PIXELS: usize = 2 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompositorAdmission {
@@ -182,12 +182,23 @@ pub(super) struct CompositorSurface {
     receipt: Option<CompositionReceipt>,
 }
 
+impl CompositorSurface {
+    /// A binding is routable and composable only while pixels for that exact
+    /// Manifestation revision inhabit the current surface extent. Resizing
+    /// retains the binding's revision fence but invalidates those pixels until
+    /// a newer Presentation revision is manifested.
+    pub(super) const fn is_ready(&self) -> bool {
+        self.binding.is_some() && self.receipt.is_some()
+    }
+}
+
 pub struct NativeCompositor {
     admission: CompositorAdmission,
     surfaces: Vec<CompositorSurface>,
     focused_surface: Option<String>,
     frame_sequence: u64,
     admitted_pixels: usize,
+    buffer_pool: SurfaceBufferPool,
     damage: DamageState,
 }
 
@@ -199,6 +210,7 @@ impl NativeCompositor {
             focused_surface: None,
             frame_sequence: 0,
             admitted_pixels: 0,
+            buffer_pool: SurfaceBufferPool::new(),
             damage: DamageState::new(),
         }
     }
@@ -207,6 +219,9 @@ impl NativeCompositor {
     }
     pub const fn frame_sequence(&self) -> u64 {
         self.frame_sequence
+    }
+    pub const fn allocated_pixels(&self) -> usize {
+        self.buffer_pool.allocated_pixels()
     }
     pub fn focused_surface(&self) -> Option<&str> {
         self.focused_surface.as_deref()
@@ -240,12 +255,13 @@ impl NativeCompositor {
         {
             return Err(NativeCompositorError::SurfaceCapacityExceeded);
         }
+        let buffer = self.buffer_pool.take(bounds)?;
         self.surfaces.push(CompositorSurface {
             surface_id: surface_id.into(),
             bounds,
             z,
             visible: true,
-            buffer: SurfaceBuffer::new(bounds.width, bounds.height)?,
+            buffer,
             binding: None,
             receipt: None,
         });
@@ -355,19 +371,26 @@ impl NativeCompositor {
             self.damage.add_layout(old_bounds)?;
             self.damage.add_layout(bounds)?;
         }
-        let surface = &mut self.surfaces[index];
+        let old_pixels = self.surfaces[index].buffer.pixels.len();
         let admitted_pixels = self
             .admitted_pixels
-            .checked_sub(surface.buffer.pixels.len())
+            .checked_sub(old_pixels)
             .and_then(|value| value.checked_add(pixels))
             .ok_or(NativeCompositorError::SurfaceCapacityExceeded)?;
         if admitted_pixels > MAX_COMPOSITOR_PIXELS {
             return Err(NativeCompositorError::SurfaceCapacityExceeded);
         }
-        if bounds.width != surface.bounds.width || bounds.height != surface.bounds.height {
-            surface.buffer = SurfaceBuffer::new(bounds.width, bounds.height)?;
-            surface.receipt = None;
+        let dimensions_changed = bounds.width != self.surfaces[index].bounds.width
+            || bounds.height != self.surfaces[index].bounds.height;
+        let replacement = dimensions_changed
+            .then(|| self.buffer_pool.take(bounds))
+            .transpose()?;
+        if let Some(buffer) = replacement {
+            let invalidated = core::mem::replace(&mut self.surfaces[index].buffer, buffer);
+            self.buffer_pool.retain(invalidated);
+            self.surfaces[index].receipt = None;
         }
+        let surface = &mut self.surfaces[index];
         surface.bounds = bounds;
         surface.z = z;
         self.admitted_pixels = admitted_pixels;
@@ -393,7 +416,7 @@ impl NativeCompositor {
     }
     pub fn focus_surface(&mut self, surface_id: &str) -> Result<(), NativeCompositorError> {
         let surface = self.surface_mut(surface_id)?;
-        if !surface.visible || surface.binding.is_none() {
+        if !surface.visible || !surface.is_ready() {
             return Err(NativeCompositorError::SurfaceNotAdmitted);
         }
         self.focused_surface = Some(surface_id.into());
@@ -410,6 +433,7 @@ impl NativeCompositor {
             self.damage.add_layout(removed.bounds)?;
         }
         self.admitted_pixels -= removed.buffer.pixels.len();
+        self.buffer_pool.retain(removed.buffer);
         if self.focused_surface.as_deref() == Some(surface_id) {
             self.focused_surface = None;
         }

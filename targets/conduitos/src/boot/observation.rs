@@ -2,6 +2,9 @@ pub const MAX_MEMORY_REGIONS: usize = 128;
 pub const MAX_ARTIFACTS: usize = 16;
 pub const MAX_FRAMEBUFFERS: usize = 8;
 pub const MAX_COMMAND_LINE_BYTES: usize = 256;
+#[cfg(feature = "native-compositor")]
+pub const MIN_RUNTIME_ARENA_BYTES: u64 = 16 * 1024 * 1024;
+#[cfg(not(feature = "native-compositor"))]
 pub const MIN_RUNTIME_ARENA_BYTES: u64 = 8 * 1024 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -278,6 +281,14 @@ const fn checked_end(start: u64, length: u64) -> Option<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn runtime_arena_matches_the_compiled_presentation_shape() {
+        #[cfg(feature = "native-compositor")]
+        assert_eq!(MIN_RUNTIME_ARENA_BYTES, 16 * 1024 * 1024);
+        #[cfg(not(feature = "native-compositor"))]
+        assert_eq!(MIN_RUNTIME_ARENA_BYTES, 8 * 1024 * 1024);
+    }
 
     fn normalizer() -> BootNormalizer {
         BootNormalizer::new(
