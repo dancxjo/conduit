@@ -36,7 +36,7 @@ inputs:
 outputs:
   download-path:
     description: Path populated by the successful download
-    value: ${{ steps.retry.outputs.download-path || steps.primary.outputs.download-path }}
+    value: ${{ steps.fallback.outputs.download-path || steps.retry.outputs.download-path || steps.primary.outputs.download-path }}
 
 runs:
   using: composite
@@ -60,6 +60,7 @@ runs:
       run: sleep 5
     - id: retry
       if: steps.primary.outcome == 'failure'
+      continue-on-error: true
       uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.name }}
@@ -72,3 +73,18 @@ runs:
         run-id: ${{ inputs.run-id }}
         skip-decompress: ${{ inputs.skip-decompress }}
         digest-mismatch: ${{ inputs.digest-mismatch }}
+    - id: fallback
+      if: steps.primary.outcome == 'failure' && steps.retry.outcome == 'failure' && inputs.name != ''
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.name }}-retry
+        path: ${{ inputs.path }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ inputs.repository }}
+        run-id: ${{ inputs.run-id }}
+        skip-decompress: ${{ inputs.skip-decompress }}
+        digest-mismatch: ${{ inputs.digest-mismatch }}
+    - if: steps.primary.outcome == 'failure' && steps.retry.outcome == 'failure' && inputs.name == ''
+      shell: bash
+      run: exit 1

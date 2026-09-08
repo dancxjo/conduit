@@ -60,11 +60,11 @@ runs:
       if: steps.primary.outcome == 'failure'
       uses: actions/upload-artifact@v7
       with:
-        name: ${{ inputs.name }}
+        name: ${{ inputs.name }}-retry
         path: ${{ inputs.path }}
         if-no-files-found: ${{ inputs.if-no-files-found }}
         retention-days: ${{ inputs.retention-days }}
         compression-level: ${{ inputs.compression-level }}
-        overwrite: true
+        overwrite: ${{ inputs.overwrite }}
         include-hidden-files: ${{ inputs.include-hidden-files }}
         archive: ${{ inputs.archive }}

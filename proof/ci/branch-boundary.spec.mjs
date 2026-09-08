@@ -201,12 +201,15 @@ test("artifact transport gets one bounded retry without hiding repeated failure"
   const upload = readFileSync(".github/actions/upload-artifact-retry/action.yml", "utf8");
   const download = readFileSync(".github/actions/download-artifact-retry/action.yml", "utf8");
   assert.equal((upload.match(/uses: actions\/upload-artifact@v7/g) ?? []).length, 2);
-  assert.equal((download.match(/uses: actions\/download-artifact@v8/g) ?? []).length, 2);
+  assert.equal((download.match(/uses: actions\/download-artifact@v8/g) ?? []).length, 3);
   assert.match(upload, /continue-on-error: true/);
   assert.match(upload, /if: steps\.primary\.outcome == 'failure'/);
-  assert.match(upload, /overwrite: true/);
+  assert.match(upload, /name: \$\{\{ inputs\.name \}\}-retry/);
   assert.match(download, /continue-on-error: true/);
   assert.match(download, /if: steps\.primary\.outcome == 'failure'/);
+  assert.match(download, /steps\.retry\.outcome == 'failure' && inputs\.name != ''/);
+  assert.match(download, /name: \$\{\{ inputs\.name \}\}-retry/);
+  assert.match(download, /steps\.retry\.outcome == 'failure' && inputs\.name == ''/);
 });
 
 test("cancelled exact heads cannot start more reusable proof jobs", () => {
