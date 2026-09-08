@@ -327,7 +327,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                 .complete_host_operation(request.node, request.request, result)
                 .unwrap();
         }
-        if kernel.step().unwrap() == SchedulerStatus::Complete {
+        if kernel.step().unwrap() == SchedulerStatus::Drained {
             completed = true;
             break;
         }

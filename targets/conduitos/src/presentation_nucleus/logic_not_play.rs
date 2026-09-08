@@ -181,7 +181,7 @@ pub fn run_not(prepared: &PreparedLogicNot) -> Result<LogicNotProof, LogicNotErr
         }
         match scheduler.kernel.step().map_err(|_| LogicNotError::Kernel)? {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
                 return Err(LogicNotError::Kernel);
             }

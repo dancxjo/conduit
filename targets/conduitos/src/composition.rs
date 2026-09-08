@@ -124,7 +124,7 @@ where
                 idle.wait_for_interrupt()
                     .map_err(|_| MachineRunError::InterruptBaseFailure)?;
             }
-            SchedulerStatus::Complete => {
+            SchedulerStatus::Drained => {
                 let ended = clock.now();
                 return Ok(MachineRunReceipt {
                     logical_operations: 2,

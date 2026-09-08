@@ -416,7 +416,7 @@ impl Source {
             .scheduler
             .step()
             .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?;
-        if status != SchedulerStatus::Complete
+        if status != SchedulerStatus::Drained
             || self.scheduler.values().used_items() != 0
             || self
                 .scheduler

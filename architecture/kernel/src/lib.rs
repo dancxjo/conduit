@@ -18,7 +18,7 @@ mod execution_disposition;
 mod failure;
 pub mod fault_disposition;
 mod operation;
-pub use execution_disposition::ExecutionDisposition;
+pub use execution_disposition::{DrainedPlayDisposition, ExecutionDisposition};
 pub use failure::{Failure, FailureCode};
 pub mod scheduler;
 pub mod shared_flow;

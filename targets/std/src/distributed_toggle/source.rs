@@ -407,7 +407,7 @@ impl DistributedToggleSource {
                 .map_err(|error| format!("{error:?}"))?
             {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => return Ok(None),
+                SchedulerStatus::Drained => return Ok(None),
                 SchedulerStatus::Idle => {
                     return Err("std source became idle before remote terminal".to_string())
                 }
@@ -470,7 +470,7 @@ impl DistributedToggleSource {
                 .map_err(|error| format!("{error:?}"))?
             {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => return Ok(None),
+                SchedulerStatus::Drained => return Ok(None),
                 SchedulerStatus::Idle if !press && self.scheduler.next_host_request().is_some() => {
                     return Err("planned light switch awaits a physical press".to_owned())
                 }

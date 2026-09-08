@@ -207,7 +207,7 @@ impl Sink {
                 .scheduler
                 .step()
                 .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?
-                == SchedulerStatus::Complete
+                == SchedulerStatus::Drained
             {
                 completed = true;
                 break;

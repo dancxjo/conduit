@@ -182,7 +182,7 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
         }
         match scheduler.step().map_err(debug_error)? {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle => return Err("browser text kernel became idle".into()),
             SchedulerStatus::Cancelled => return Err("browser text kernel was cancelled".into()),
         }

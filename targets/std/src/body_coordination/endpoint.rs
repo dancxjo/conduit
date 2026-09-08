@@ -316,7 +316,7 @@ impl CoordinationEndpoint {
                 SchedulerStatus::Idle => {
                     return Err("coordination endpoint idle before offer".into())
                 }
-                SchedulerStatus::Complete => {
+                SchedulerStatus::Drained => {
                     return Err("coordination endpoint completed before offer".into())
                 }
                 SchedulerStatus::Cancelled => return Err("coordination endpoint cancelled".into()),
@@ -369,7 +369,7 @@ impl CoordinationEndpoint {
                 .map_err(|error| format!("{error:?}"))?
             {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => break,
+                SchedulerStatus::Drained => break,
                 SchedulerStatus::Idle => return Err("coordination kernel idle at terminal".into()),
                 SchedulerStatus::Cancelled => return Err("coordination kernel cancelled".into()),
             }
@@ -440,7 +440,7 @@ impl CoordinationEndpoint {
             {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle => return Err("coordination presentation idle".into()),
-                SchedulerStatus::Complete => {
+                SchedulerStatus::Drained => {
                     return Err("coordination presentation completed too early".into())
                 }
                 SchedulerStatus::Cancelled => return Err("coordination endpoint cancelled".into()),

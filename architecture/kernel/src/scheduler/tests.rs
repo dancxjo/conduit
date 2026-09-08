@@ -989,7 +989,7 @@ where
             continue;
         }
         match scheduler.step().unwrap() {
-            SchedulerStatus::Complete => {
+            SchedulerStatus::Drained => {
                 complete = true;
                 break;
             }
@@ -1958,7 +1958,7 @@ where
         .unwrap();
 
     scheduler.run(128).unwrap();
-    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Complete);
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
     let Driver::Sink { seen, len, .. } = &scheduler.drivers()[4] else {
         panic!("show-a sink");
     };
@@ -2166,7 +2166,7 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
     sink.close_remote_input(endpoint, CordId(0)).unwrap();
     sink.step().unwrap();
     sink.step().unwrap();
-    assert_eq!(sink.step().unwrap(), SchedulerStatus::Complete);
+    assert_eq!(sink.step().unwrap(), SchedulerStatus::Drained);
     assert_eq!(sink.values().used_items(), 0);
     assert_eq!(sink.cord_usage(CordId(0)).unwrap(), (0, 0));
     assert!(source

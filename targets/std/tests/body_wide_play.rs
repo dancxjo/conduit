@@ -267,7 +267,7 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
     .unwrap();
 
     scheduler.run(16).unwrap();
-    assert_eq!(scheduler.step(), Ok(SchedulerStatus::Complete));
+    assert_eq!(scheduler.step(), Ok(SchedulerStatus::Drained));
     assert!(matches!(
         scheduler.drivers()[1].work,
         Work::Sink { received: true }

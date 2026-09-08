@@ -166,7 +166,7 @@ fn two_real_clock_partitions_complete_through_the_shared_kernel_installation() {
                 )
                 .unwrap();
         }
-        if kernel.step().unwrap() == SchedulerStatus::Complete {
+        if kernel.step().unwrap() == SchedulerStatus::Drained {
             completed = true;
             break;
         }

@@ -381,7 +381,7 @@ pub fn run<B: ToneBase>(
                 .complete(request)
                 .map_err(|_| PreparationError::KernelRejected)?;
         }
-        if matches!(status, SchedulerStatus::Complete) {
+        if matches!(status, SchedulerStatus::Drained) {
             if realized_count != EVENTS || realized[EVENTS - 1].gate_open {
                 let _ = base.silence();
                 return Err(PreparationError::KernelRejected);

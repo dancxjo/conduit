@@ -308,7 +308,7 @@ fn run_kernel(
         }
         elapsed = elapsed.saturating_add(offer.maximum_kernel_step_us);
         match kernel.step() {
-            Ok(SchedulerStatus::Complete) => {
+            Ok(SchedulerStatus::Drained) => {
                 if injection == Injection::Overrun {
                     elapsed = deadline_us.saturating_add(1);
                 }

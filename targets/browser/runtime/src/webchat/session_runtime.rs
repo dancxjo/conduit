@@ -327,7 +327,7 @@ impl BrowserChatSession {
                     }
                     return Ok(());
                 }
-                SchedulerStatus::Complete => {
+                SchedulerStatus::Drained => {
                     self.complete = true;
                     return Ok(());
                 }

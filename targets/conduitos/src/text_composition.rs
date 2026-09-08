@@ -81,7 +81,7 @@ where
                 idle.wait_for_interrupt()
                     .map_err(|_| MachineRunError::InterruptBaseFailure)?;
             }
-            SchedulerStatus::Complete => {
+            SchedulerStatus::Drained => {
                 return Ok(MachineRunReceipt {
                     logical_operations: 3,
                     decisions: kernel.decisions(),

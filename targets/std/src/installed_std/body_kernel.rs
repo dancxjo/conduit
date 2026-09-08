@@ -423,7 +423,7 @@ impl BodyKernel {
                     .step()
                     .map_err(|error| format!("Body kernel: {error:?}"))?
                 {
-                    SchedulerStatus::Complete => return Ok(TerminalDisposition::Completed),
+                    SchedulerStatus::Drained => return Ok(TerminalDisposition::Completed),
                     SchedulerStatus::Cancelled => {
                         return Ok(TerminalDisposition::Cancelled {
                             reason: CancellationReason::OperatorRequested,

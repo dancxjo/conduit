@@ -115,7 +115,7 @@ pub fn run_portable_state_input(
             .map_err(|_| PortableStateInputError::Kernel)?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
                 return Err(PortableStateInputError::Kernel);
             }

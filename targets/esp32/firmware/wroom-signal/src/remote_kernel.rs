@@ -182,7 +182,7 @@ impl Esp32RemoteSignalKernel {
             match self.scheduler.step().map_err(|_| "kernel-step")? {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle => return Err("kernel-idle"),
-                SchedulerStatus::Complete => return Err("kernel-completed-early"),
+                SchedulerStatus::Drained => return Err("kernel-completed-early"),
                 SchedulerStatus::Cancelled => return Err("kernel-cancelled"),
             }
         }
@@ -198,7 +198,7 @@ impl Esp32RemoteSignalKernel {
         loop {
             match self.scheduler.step().map_err(|_| "kernel-step")? {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => break,
+                SchedulerStatus::Drained => break,
                 SchedulerStatus::Idle => return Err("kernel-idle"),
                 SchedulerStatus::Cancelled => return Err("kernel-cancelled"),
             }

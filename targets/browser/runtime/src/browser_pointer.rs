@@ -286,7 +286,7 @@ pub fn execute_browser_pointer(
             .map_err(|error| format!("run browser pointer Play: {error:?}"))?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle => return Err("browser pointer Play became idle".into()),
             SchedulerStatus::Cancelled => return Err("browser pointer Play was cancelled".into()),
         }

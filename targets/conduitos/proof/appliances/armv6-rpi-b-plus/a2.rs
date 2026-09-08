@@ -85,7 +85,7 @@ pub extern "C" fn conduitos_armv6_rpi_b_plus_a2_start() -> ! {
     arch::disable_interrupts();
     lane.complete_timer(interest)
         .unwrap_or_else(|_| refuse("stale-timer-identity"));
-    if !matches!(lane.step(), Ok(SchedulerStatus::Complete)) || lane.pending() != 0 {
+    if !matches!(lane.step(), Ok(SchedulerStatus::Drained)) || lane.pending() != 0 {
         refuse("kernel-terminal-progress-absent");
     }
     arch::present(b"CONDUIT_ARMV6_RPI_MACHINE_SIGN {\"schema\":\"conduit.conduitos.armv6-rpi-a2/v1\",\"status\":\"completed\",\"architecture\":\"armv6\",\"machine\":\"BCM2835/ARM1176JZF-S\",\"lane_id\":\"");

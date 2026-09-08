@@ -2003,7 +2003,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         };
         match status {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break TerminalDisposition::Completed,
+            SchedulerStatus::Drained => break TerminalDisposition::Completed,
             SchedulerStatus::Idle => {
                 if keyboard_host.poll(&mut scheduler)? {
                     continue;

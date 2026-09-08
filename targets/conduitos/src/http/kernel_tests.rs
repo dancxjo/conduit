@@ -546,7 +546,7 @@ fn run_ordinary_form() {
             }
         }
         match kernel.step().unwrap() {
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Progress { .. } | SchedulerStatus::Idle => {}
             SchedulerStatus::Cancelled => panic!("unexpected cancellation"),
         }

@@ -433,7 +433,7 @@ impl ToggleDistributedSink {
             match self.scheduler.step() {
                 Ok(SchedulerStatus::Progress { .. }) => {}
                 Ok(SchedulerStatus::Idle) => return Ok(()),
-                Ok(SchedulerStatus::Complete) => {
+                Ok(SchedulerStatus::Drained) => {
                     let (_, cord) = self.remote();
                     if !self.input_closed
                         || self.receipts != MAXIMUM_RECEIPTS

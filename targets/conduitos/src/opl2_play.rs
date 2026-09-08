@@ -407,7 +407,7 @@ pub fn run<B: Opl2Base>(
                 .ok_or(PreparationError::KernelRejected)?;
             complete(&mut execution.scheduler, request)?;
         }
-        if matches!(status, SchedulerStatus::Complete) {
+        if matches!(status, SchedulerStatus::Drained) {
             let quiesce_writes = base
                 .quiesce()
                 .map_err(|_| PreparationError::KernelRejected)?;

@@ -436,7 +436,7 @@ impl DistributedSource {
                 .map_err(|error| format!("{error:?}"))?
             {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => return Ok(None),
+                SchedulerStatus::Drained => return Ok(None),
                 SchedulerStatus::Idle => {
                     return Err("std source became idle before remote terminal".to_string())
                 }

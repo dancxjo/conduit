@@ -122,8 +122,8 @@ pub(super) fn execute(plan: &Plan) {
     let mut b_complete = false;
 
     for _turn in 0..128 {
-        a_complete |= matches!(a.step().unwrap(), SchedulerStatus::Complete);
-        b_complete |= matches!(b.step().unwrap(), SchedulerStatus::Complete);
+        a_complete |= matches!(a.step().unwrap(), SchedulerStatus::Drained);
+        b_complete |= matches!(b.step().unwrap(), SchedulerStatus::Drained);
 
         if let Some(offer) = a.remote_egress_offer(a_to_b.0, a_to_b.1).unwrap() {
             if !pressure_observed {

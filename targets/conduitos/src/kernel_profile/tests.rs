@@ -23,13 +23,13 @@ fn production_kernel_owns_timer_to_serial_progress() {
             serial = Some(request);
             break;
         }
-        assert!(!matches!(status, SchedulerStatus::Complete));
+        assert!(!matches!(status, SchedulerStatus::Drained));
     }
     let serial = serial.expect("serial presentation request");
     assert_eq!(profile.host_value(serial.input.value).unwrap(), TIMER_VALUE);
     profile.complete_serial(serial).unwrap();
     for _ in 0..4 {
-        if profile.step().unwrap() == SchedulerStatus::Complete {
+        if profile.step().unwrap() == SchedulerStatus::Drained {
             break;
         }
     }

@@ -222,7 +222,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
         }
         match scheduler.step().map_err(debug_error)? {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle => return Err("browser education kernel became idle".into()),
             SchedulerStatus::Cancelled => {
                 return Err("browser education kernel was cancelled".into())

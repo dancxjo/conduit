@@ -393,7 +393,7 @@ pub fn finish_speaker_execution<S: CreateSpeakerSerial>(
     }
     for _ in 0..32 {
         match execution.scheduler.step() {
-            Ok(SchedulerStatus::Complete) => {
+            Ok(SchedulerStatus::Drained) => {
                 return report(
                     execution,
                     SpeakerTerminal::Completed,

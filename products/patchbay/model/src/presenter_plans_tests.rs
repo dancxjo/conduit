@@ -390,7 +390,7 @@ fn execute<const NODES: usize, const CORDS: usize>(
             .step()
             .map_err(|error| format!("step: {error:?}"))?
         {
-            SchedulerStatus::Complete => {
+            SchedulerStatus::Drained => {
                 return Ok(scheduler.signs().events().map(|event| event.kind).collect())
             }
             SchedulerStatus::Progress { .. } | SchedulerStatus::Idle => {}
