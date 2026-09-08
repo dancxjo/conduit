@@ -103,7 +103,11 @@ fn execute_profile_for_role(
 }
 
 fn runtime_arena_ceiling(manifest: &BuildManifest) -> u64 {
-    manifest.bounds.heap_arena_bytes
+    if manifest.bounds.heap_arena_bytes == 0 {
+        manifest.bounds.static_memory_bytes
+    } else {
+        manifest.bounds.heap_arena_bytes
+    }
 }
 
 pub(super) fn execute_hotplug(
@@ -461,6 +465,29 @@ mod tests {
         .unwrap();
         assert_eq!(runtime_arena_ceiling(&checked.manifest), 16 * 1024 * 1024);
         assert_ne!(
+            runtime_arena_ceiling(&checked.manifest),
+            checked.manifest.bounds.static_memory_bytes
+        );
+    }
+
+    #[test]
+    fn headless_fabrication_retains_its_static_arena_ceiling() {
+        let profile: HostProfile = serde_json::from_str(include_str!(
+            "../../profiles/conduitos-aarch64-headless.profile.json"
+        ))
+        .unwrap();
+        let (checked, _) = build_default_host_image(
+            profile,
+            &conduit_workspace_fabrication::catalog(),
+            &conduit_workspace_fabrication::package_set(),
+            &BuildInputs {
+                source_identity: "test-source".into(),
+                toolchain_available: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(checked.manifest.bounds.heap_arena_bytes, 0);
+        assert_eq!(
             runtime_arena_ceiling(&checked.manifest),
             checked.manifest.bounds.static_memory_bytes
         );
