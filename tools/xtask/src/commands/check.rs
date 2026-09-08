@@ -51,6 +51,8 @@ pub enum CheckSuite {
     HostedBaseIsolation,
     /// Prove directional external mappings and exact reflection fencing.
     InteropMembrane,
+    /// Prove mutually authenticated, replay-fenced, non-transitive federation.
+    FederationSecurity,
     All,
 }
 
@@ -89,6 +91,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::HostedBaseIsolation => run_suite(HOSTED_BASE_ISOLATION_STEPS, &root, opts),
         CheckSuite::InteropMembrane => run_suite(INTEROP_MEMBRANE_STEPS, &root, opts),
+        CheckSuite::FederationSecurity => run_suite(FEDERATION_SECURITY_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -136,6 +139,19 @@ const INTEROP_MEMBRANE_STEPS: &[Step] = &[Step::new(
     "Prove directional mapping, sibling exclusion, and origin reflection fencing",
     "cargo",
     &["test", "-p", "conduit-core", "interop::tests", "--locked"],
+)];
+
+const FEDERATION_SECURITY_STEPS: &[Step] = &[Step::new(
+    "federation-security.loopback",
+    "Prove mutual peer attribution, receiver authority, replay fencing, and A-B-C containment",
+    "cargo",
+    &[
+        "test",
+        "-p",
+        "conduit-body",
+        "federation::tests",
+        "--locked",
+    ],
 )];
 
 const QUANTITY_MAPPING_STEPS: &[Step] = &[
