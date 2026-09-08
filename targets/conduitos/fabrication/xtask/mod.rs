@@ -64,6 +64,7 @@ mod prove_many;
 mod qemu_artifacts;
 mod qmp;
 mod qmp_display;
+mod removable_media;
 mod report;
 mod rescue_proof;
 mod riscv64_a0;
@@ -181,7 +182,7 @@ struct TargetArgs {
 
 #[derive(Args, Debug, Clone)]
 struct FlashArgs {
-    /// Architecture image to write; ARMv6 Raspberry Pi is currently supported.
+    /// Architecture image to write; IA-32 live media and ARMv6 Raspberry Pi are supported.
     #[arg(long, value_enum)]
     arch: ConduitosArch,
 
@@ -427,21 +428,23 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::OrangePi5Image => orange_pi_5_image::execute(opts),
         ConduitosCommand::Flash(flash) => {
             require_fabrication_target(flash.arch, flash.board)?;
-            if flash.arch == ConduitosArch::Armv6 {
-                armv6_rpi_flash::execute(
+            match flash.arch {
+                ConduitosArch::Armv6 => armv6_rpi_flash::execute(
                     flash.board.unwrap_or_default(),
                     &flash.device,
                     &flash.confirm_device,
                     opts,
-                )
-            } else {
-                Err(ConduitosError::refusal(
+                ),
+                ConduitosArch::Ia32 => {
+                    live_media::flash_ia32(&flash.device, &flash.confirm_device, opts)
+                }
+                _ => Err(ConduitosError::refusal(
                     "unsupported-flash-target",
                     format!(
                         "{} has no guarded physical flash backend",
                         flash.arch.as_str()
                     ),
-                ))
+                )),
             }
         }
         ConduitosCommand::RpiPhysicalProof(proof) => armv6_rpi_physical::execute(
@@ -547,6 +550,33 @@ mod tests {
             let parsed = Cli::try_parse_from(arguments).unwrap();
             assert!(matches!(parsed.command, Command::Conduitos(_)));
         }
+    }
+
+    #[test]
+    fn ia32_flash_requires_one_explicit_repeated_whole_device() {
+        let parsed = Cli::try_parse_from([
+            "xtask",
+            "conduitos",
+            "flash",
+            "--arch",
+            "ia32",
+            "--device",
+            "/dev/sdz",
+            "--confirm-device",
+            "/dev/sdz",
+        ]);
+        assert!(parsed.is_ok());
+
+        let missing_confirmation = Cli::try_parse_from([
+            "xtask",
+            "conduitos",
+            "flash",
+            "--arch",
+            "ia32",
+            "--device",
+            "/dev/sdz",
+        ]);
+        assert!(missing_confirmation.is_err());
     }
 
     #[test]
