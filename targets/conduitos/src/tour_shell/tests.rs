@@ -92,6 +92,29 @@ fn transient_is_an_independent_related_surface_and_dismissal_exposes_parent() {
 }
 
 #[test]
+fn suspending_shell_releases_all_retained_surface_targets() {
+    let (tour, mut shell, mut display) = fixture();
+    shell.present(&tour, &mut display).unwrap();
+    shell
+        .show_transient(
+            &tour,
+            TourTransientKind::Chooser,
+            "Choose an action",
+            &mut display,
+        )
+        .unwrap();
+
+    shell.suspend().unwrap();
+
+    assert!(!shell.has_transient());
+    assert_eq!(
+        shell.route_pointer(10, 10, false).unwrap(),
+        InputRoute::NoTarget
+    );
+    assert_eq!(shell.route_keyboard().unwrap(), InputRoute::NoTarget);
+}
+
+#[test]
 fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
     let identities = BootIdentities {
         host: [1; 32],

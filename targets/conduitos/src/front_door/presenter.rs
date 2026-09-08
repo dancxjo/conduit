@@ -177,6 +177,20 @@ impl FrontDoorPresenter {
             .map_err(PresenterError::Compositor)
     }
 
+    /// Relinquish retained scanout storage before another shell presentation
+    /// becomes the active owner of the finite native display service.
+    pub fn suspend(&mut self) -> Result<(), PresenterError> {
+        if self.surface_admitted {
+            self.compositor
+                .remove_surface(SURFACE_ID)
+                .map_err(PresenterError::Compositor)?;
+            self.surface_admitted = false;
+            self.last_manifestation_id = None;
+            self.last_revision = 0;
+        }
+        Ok(())
+    }
+
     pub fn present(
         &mut self,
         front_door: &FrontDoor,
@@ -384,6 +398,10 @@ mod tests {
                 NativeCompositorError::StaleSurfaceBinding
             ))
         );
+
+        presenter.suspend().unwrap();
+        assert_eq!(presenter.route_keyboard(), Err(PresenterError::Identity));
+        presenter.present(&door, &mut display).unwrap();
     }
 
     #[test]
