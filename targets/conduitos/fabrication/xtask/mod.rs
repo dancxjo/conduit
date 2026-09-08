@@ -30,6 +30,7 @@ mod ia32_a2;
 mod ia32_product_boot;
 mod image;
 mod journey_input;
+mod journey_pointer;
 mod journey_proof;
 mod journey_records;
 mod journey_tour;
