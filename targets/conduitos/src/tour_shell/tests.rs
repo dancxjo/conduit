@@ -1,6 +1,6 @@
 use alloc::{format, vec, vec::Vec};
 
-use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
+use conduit_presentation::{ApplicationEvent, ApplicationEventKind, GraphicsClipClass};
 use conduit_semantic_catalog::NormalizedPointerSample;
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, TourPointerOutcome, TourTransientKind};
 
@@ -105,6 +105,122 @@ fn transient_is_an_independent_related_surface_and_dismissal_exposes_parent() {
         delivered(shell.route_pointer(320, 240, false).unwrap()).surface_id,
         WORKSPACE_SURFACE
     );
+}
+
+#[test]
+fn chooser_scroll_is_finite_and_off_viewport_rows_are_clipped() {
+    let (tour, mut shell, mut display) = fixture();
+    shell.present(&tour, &mut display).unwrap();
+    shell
+        .show_transient(
+            &tour,
+            TourTransientKind::Chooser,
+            "Choose a Patchbay Gear",
+            &mut display,
+        )
+        .unwrap();
+    delivered(shell.route_pointer(320, 240, true).unwrap());
+    let ScrollOutcome::Updated(receipt) = shell
+        .scroll_focused(ScrollDirection::End, &mut display)
+        .unwrap()
+    else {
+        panic!("focused chooser must reach its finite end");
+    };
+    assert_eq!(receipt.surface_id, TRANSIENT_SURFACE);
+    let state = shell
+        .surfaces
+        .iter()
+        .find(|state| state.slot == Slot::Transient)
+        .unwrap();
+    assert_eq!(state.scroll.offset(), state.scroll.maximum_offset());
+    let scene = transient_scene(
+        state.bounds.unwrap(),
+        state.presentation.as_ref().unwrap(),
+        state.scroll.offset(),
+    )
+    .unwrap();
+    assert!(
+        scene
+            .commands()
+            .iter()
+            .any(|command| command.clip_class() == GraphicsClipClass::FullyClipped)
+    );
+    assert_eq!(
+        shell
+            .scroll_focused(ScrollDirection::End, &mut display)
+            .unwrap(),
+        ScrollOutcome::Boundary
+    );
+}
+
+#[test]
+fn focused_scrolling_revises_only_that_surface_and_translates_clipped_hits() {
+    let (mut tour, mut shell, mut display) = fixture();
+    tour.accept_pointer(pointer(), 640, 480).unwrap();
+    let presented = shell.present(&tour, &mut display).unwrap();
+    let workspace_manifestation = presented.workspace.manifestation_id;
+    let before = delivered(shell.route_pointer(500, 80, true).unwrap());
+    assert_eq!(shell.scroll_hit_subject(&before).unwrap(), Some(0));
+
+    let ScrollOutcome::Updated(scrolled) = shell
+        .scroll_focused(ScrollDirection::Forward, &mut display)
+        .unwrap()
+    else {
+        panic!("focused inspector must scroll");
+    };
+    assert_eq!(scrolled.surface_id, INSPECTOR_SURFACE);
+    assert_eq!(scrolled.previous_offset, 0);
+    assert_eq!(scrolled.current_offset, 48);
+    assert_eq!(
+        shell.validate_pointer_route(&before),
+        Err(TourShellError::Compositor(
+            NativeCompositorError::StaleSurfaceBinding
+        ))
+    );
+    assert_eq!(
+        shell
+            .surfaces
+            .iter()
+            .find(|state| state.slot == Slot::Workspace)
+            .unwrap()
+            .manifestation_id
+            .as_ref(),
+        Some(&workspace_manifestation)
+    );
+    let after = delivered(shell.route_pointer(500, 32, false).unwrap());
+    assert_eq!(shell.scroll_hit_subject(&after).unwrap(), Some(0));
+    shell.present(&tour, &mut display).unwrap();
+    assert_eq!(
+        shell
+            .surfaces
+            .iter()
+            .find(|state| state.slot == Slot::Inspector)
+            .unwrap()
+            .scroll
+            .offset(),
+        48
+    );
+
+    assert!(matches!(
+        shell
+            .scroll_focused(ScrollDirection::End, &mut display)
+            .unwrap(),
+        ScrollOutcome::Updated(_)
+    ));
+    assert_eq!(
+        shell
+            .scroll_focused(ScrollDirection::End, &mut display)
+            .unwrap(),
+        ScrollOutcome::Boundary
+    );
+    let relayout = shell.relayout_inspector(&tour, &mut display).unwrap();
+    let inspector = shell
+        .surfaces
+        .iter()
+        .find(|state| state.slot == Slot::Inspector)
+        .unwrap();
+    assert!(inspector.scroll.offset() <= inspector.scroll.maximum_offset());
+    assert_eq!(relayout.current.surface_id, INSPECTOR_SURFACE);
 }
 
 #[test]

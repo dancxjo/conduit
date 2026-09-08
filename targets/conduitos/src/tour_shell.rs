@@ -3,24 +3,25 @@
 mod lifecycle;
 mod relayout;
 mod scene;
+mod scroll;
+mod surface_presentation;
 #[cfg(test)]
 mod tests;
 mod transient;
 
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{string::String, vec, vec::Vec};
 
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
     HostBaseId, HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    OfferGeneration, PROTOCOL_VERSION, PlacementId, Plan, SignId, bind_active_play, kind_id,
-    resource_offer, resource_requirement,
+    OfferGeneration, PROTOCOL_VERSION, PlacementId, Plan, kind_id, resource_offer,
+    resource_requirement,
 };
 use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    GraphicsScene, LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationId,
-    ManifestationLifecycle, Presentation, PresentationBasis, RendererRealizationOffer,
-    renderer_kind_definition, renderer_offer,
+    LayoutRect, MAX_RENDERER_VALUE_BYTES, ManifestationId, Presentation, PresentationBasis,
+    RendererRealizationOffer, renderer_kind_definition, renderer_offer,
 };
 use conduit_tour_model::{TOUR_WORKSPACE_SUBJECT, TourTransientKind};
 
@@ -35,6 +36,7 @@ use crate::{
 };
 use lifecycle::empty_lifecycle_basis;
 use scene::{ShellLayout, inspector_scene, status_scene, transient_scene};
+pub use scroll::{ScrollDirection, ScrollOutcome, ScrollState};
 
 pub const WORKSPACE_SURFACE: &str = "conduitos/shell/workspace";
 pub const INSPECTOR_SURFACE: &str = "conduitos/shell/inspector";
@@ -92,6 +94,9 @@ struct SurfaceState {
     admitted: bool,
     face_subject: Option<String>,
     manifestation_id: Option<ManifestationId>,
+    scroll: ScrollState,
+    bounds: Option<LayoutRect>,
+    presentation: Option<Presentation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -233,6 +238,9 @@ impl TourShellPresenter {
                 admitted: false,
                 face_subject: None,
                 manifestation_id: None,
+                scroll: ScrollState::empty(),
+                bounds: None,
+                presentation: None,
             });
         }
         let admission = CompositorAdmission::new(
@@ -309,6 +317,11 @@ impl TourShellPresenter {
             .inspector_presentation()
             .map_err(|_| TourShellError::Identity)?
         {
+            let scroll_offset = self
+                .surfaces
+                .iter()
+                .find(|state| state.slot == Slot::Inspector)
+                .map_or(0, |state| state.scroll.offset());
             let face = presentation
                 .subjects
                 .iter()
@@ -322,7 +335,7 @@ impl TourShellPresenter {
                 &face,
                 layout.inspector,
                 2,
-                &inspector_scene(layout.inspector, &presentation)?,
+                &inspector_scene(layout.inspector, &presentation, scroll_offset)?,
             )?)
         } else {
             self.dismiss(Slot::Inspector)?;
@@ -379,88 +392,6 @@ impl TourShellPresenter {
             .map_err(TourShellError::Compositor)
     }
 
-    fn present_surface(
-        &mut self,
-        slot: Slot,
-        presentation: &Presentation,
-        face_subject: &str,
-        bounds: LayoutRect,
-        z: u8,
-        scene: &GraphicsScene,
-    ) -> Result<CompositionReceipt, TourShellError> {
-        let index = self
-            .surfaces
-            .iter()
-            .position(|state| state.slot == slot)
-            .ok_or(TourShellError::Identity)?;
-        if self.surfaces[index]
-            .face_subject
-            .as_deref()
-            .is_some_and(|current| current != face_subject)
-        {
-            self.dismiss(slot)?;
-        }
-        if !self.surfaces[index].admitted {
-            self.compositor
-                .admit_surface(slot.surface(), bounds, z)
-                .map_err(TourShellError::Compositor)?;
-            self.surfaces[index].admitted = true;
-        } else {
-            self.compositor
-                .place_surface(slot.surface(), bounds, z)
-                .map_err(TourShellError::Compositor)?;
-        }
-        self.play_sequence = self
-            .play_sequence
-            .checked_add(1)
-            .ok_or(TourShellError::Identity)?;
-        let active = bind_active_play(
-            &self.plan.plan_id,
-            &self.host_id,
-            &self.boot_id,
-            self.play_sequence,
-        );
-        let manifestation = Manifestation::prepared(
-            presentation,
-            &self.plan,
-            active,
-            self.surfaces[index].placement_id.clone(),
-            face_subject.into(),
-            slot.surface().into(),
-            SignId::from(format!(
-                "conduitos/shell/{}/prepared/{}",
-                slot.gear(),
-                self.play_sequence
-            )),
-        )
-        .and_then(|value| {
-            value.transition(
-                ManifestationLifecycle::Available,
-                SignId::from(format!(
-                    "conduitos/shell/{}/available/{}",
-                    slot.gear(),
-                    self.play_sequence
-                )),
-            )
-        })
-        .map_err(|_| TourShellError::Identity)?;
-        let receipt = self
-            .compositor
-            .update_surface(
-                presentation,
-                &manifestation,
-                &self.plan,
-                slot.surface(),
-                &self.display_base_id,
-                scene,
-            )
-            .map_err(TourShellError::Compositor)?
-            .clone();
-        self.surfaces[index].face_subject = Some(face_subject.into());
-        self.surfaces[index].manifestation_id = Some(receipt.manifestation_id.clone());
-        Ok(receipt)
-    }
-
     fn dismiss(&mut self, slot: Slot) -> Result<(), TourShellError> {
         let state = self
             .surfaces
@@ -474,6 +405,9 @@ impl TourShellPresenter {
             state.admitted = false;
             state.face_subject = None;
             state.manifestation_id = None;
+            state.bounds = None;
+            state.presentation = None;
+            state.scroll = ScrollState::empty();
         }
         Ok(())
     }
