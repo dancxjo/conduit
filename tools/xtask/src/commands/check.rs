@@ -55,6 +55,8 @@ pub enum CheckSuite {
     FederationSecurity,
     /// Prove bounded no-WASI execution and capability-scoped hostile Gear refusal.
     ConfinedGear,
+    /// Prove generic attended last-mile consequential-effect gating.
+    ConsequentialEffect,
     All,
 }
 
@@ -95,6 +97,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::InteropMembrane => run_suite(INTEROP_MEMBRANE_STEPS, &root, opts),
         CheckSuite::FederationSecurity => run_suite(FEDERATION_SECURITY_STEPS, &root, opts),
         CheckSuite::ConfinedGear => run_suite(CONFINED_GEAR_STEPS, &root, opts),
+        CheckSuite::ConsequentialEffect => run_suite(CONSEQUENTIAL_EFFECT_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -169,6 +172,20 @@ const CONFINED_GEAR_STEPS: &[Step] = &[Step::new(
         "confined-gear",
         "--test",
         "confined_gear_security",
+        "--locked",
+    ],
+)];
+
+const CONSEQUENTIAL_EFFECT_STEPS: &[Step] = &[Step::new(
+    "consequential-effect.contract",
+    "Prove attended possession, last-mile bounds, no retry, and safe loss disposition",
+    "cargo",
+    &[
+        "test",
+        "-p",
+        "conduit-core",
+        "--test",
+        "consequential_effect",
         "--locked",
     ],
 )];
