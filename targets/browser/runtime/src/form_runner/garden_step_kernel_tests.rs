@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 
 const SOURCE_KIND: &str = "fixture/garden-observations";
 
-fn source_offer() -> CapabilityOffer {
+fn source_offer(interactive: bool) -> CapabilityOffer {
     let reducer = conduit_semantic_catalog::garden_minimal_step_definition();
     let output = |name: &str, input: &PortDescriptor| PortDescriptor {
         port_id: conduit_core::port_id(name),
@@ -38,6 +38,17 @@ fn source_offer() -> CapabilityOffer {
         output("prior", &reducer.inputs[0]),
         output("clock", &reducer.inputs[1]),
     ];
+    if interactive {
+        let enriched = crate::installed_browser::catalogs()
+            .unwrap()
+            .1
+            .get(&conduit_core::kind_id(
+                conduit_semantic_catalog::GARDEN_ENRICHED_STEP_KIND,
+            ))
+            .unwrap()
+            .clone();
+        offer.outputs.push(output("contact", &enriched.inputs[2]));
+    }
     offer.host_operations.clear();
     offer.implementation.implementation_id = SOURCE_KIND.into();
     offer.implementation.execution_profile_id = SOURCE_KIND.into();
@@ -45,7 +56,7 @@ fn source_offer() -> CapabilityOffer {
     offer
 }
 
-fn fragment() -> PlanFragment {
+fn fragment(interactive: bool) -> PlanFragment {
     let (mut startup, mut catalog) = crate::installed_browser::catalogs().unwrap();
     let mut browser =
         crate::installed_browser::advertisement("garden-browser".into(), "garden-boot".into());
@@ -67,7 +78,7 @@ fn fragment() -> PlanFragment {
         .unwrap();
     browser.capabilities.push(sink);
 
-    let source = source_offer();
+    let source = source_offer(interactive);
     startup
         .insert(KindSignature {
             kind: SOURCE_KIND.into(),
@@ -88,11 +99,23 @@ fn fragment() -> PlanFragment {
     source_host.boot_id = "fixture/garden-source-boot".into();
     source_host.capabilities = vec![source];
 
+    let contact_cord = if interactive {
+        " source.contact > evolve.contact\n"
+    } else {
+        ""
+    };
+    let evolve_form = if interactive {
+        "garden-state-step-contact"
+    } else {
+        "garden-state-step"
+    };
     let source = format!(
-        "{}\nform garden-kernel-proof {{\n source: {}\n evolve: garden-state-step\n result: {}\n source.prior > evolve.prior\n source.clock > evolve.clock\n evolve.next > result.state\n}}\n",
+        "{}\nform garden-kernel-proof {{\n source: {}\n evolve: {}\n result: {}\n source.prior > evolve.prior\n source.clock > evolve.clock\n{} evolve.next > result.state\n}}\n",
         include_str!("../../../../../forms/signal-garden/main.conduit"),
         SOURCE_KIND,
+        evolve_form,
         crate::installed_browser::test_garden_sink::KIND,
+        contact_cord,
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "garden-kernel-proof", &catalog).unwrap();
@@ -129,7 +152,7 @@ fn fragment() -> PlanFragment {
         .iter()
         .filter(|cord| cord.source_gear_id.as_str().ends_with("/source"))
         .collect::<Vec<_>>();
-    assert_eq!(crossings.len(), 2);
+    assert_eq!(crossings.len(), if interactive { 3 } else { 2 });
     let lines = crossings
         .iter()
         .enumerate()
@@ -187,7 +210,7 @@ fn fragment() -> PlanFragment {
 
 #[test]
 fn canonical_minimal_reducer_executes_through_the_production_kernel() {
-    let fragment = fragment();
+    let fragment = fragment(false);
     let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&fragment).unwrap();
     assert_eq!(lowered.remote_endpoints.len(), 2);
     let mut scheduler = prepare_scheduler(&fragment, &lowered).unwrap();
@@ -239,6 +262,90 @@ fn canonical_minimal_reducer_executes_through_the_production_kernel() {
     };
     let next = conduit_semantic_catalog::decode_garden_state(&output.canonical_value).unwrap();
     assert_eq!(next.vitality.raw_microunits(), 500_000);
+    assert_eq!(next.activity.raw_microunits(), 400_000);
+    assert_eq!(next.step, 1);
+    complete_host_effect(&mut scheduler, &pending).unwrap();
+    assert!(matches!(
+        drive(&mut scheduler, &fragment).unwrap(),
+        DriveStatus::Complete
+    ));
+}
+
+#[test]
+fn canonical_interactive_reducer_composes_contact_through_one_production_kernel() {
+    let fragment = fragment(true);
+    assert!(fragment.placements.iter().any(|placement| {
+        placement.kind_id.as_str() == conduit_semantic_catalog::GARDEN_OBSERVATION_COMBINE_KIND
+    }));
+    assert!(fragment.placements.iter().any(|placement| {
+        placement.kind_id.as_str() == conduit_semantic_catalog::GARDEN_ENRICHED_REDUCER_KIND
+    }));
+    assert!(fragment
+        .placements
+        .iter()
+        .all(|placement| placement.host_operations.len() <= 2));
+
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&fragment).unwrap();
+    assert_eq!(lowered.remote_endpoints.len(), 3);
+    let mut scheduler = prepare_scheduler(&fragment, &lowered).unwrap();
+    let prior =
+        conduit_semantic_catalog::garden_state_value(conduit_semantic_catalog::GardenState {
+            vitality: Scalar::from_raw_microunits(400_000),
+            activity: Scalar::ZERO,
+            step: 0,
+        })
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    let clock = conduit_semantic_catalog::garden_clock_observation_value(
+        conduit_semantic_catalog::GardenClockObservation {
+            phase: Scalar::from_raw_microunits(800_000),
+        },
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let contact = conduit_semantic_catalog::garden_contact_observation_value(
+        conduit_semantic_catalog::GardenContactObservation {
+            intensity: Scalar::from_raw_microunits(800_000),
+        },
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let state_kind = conduit_semantic_catalog::garden_state_type()
+        .profile()
+        .unwrap()
+        .value_kind()
+        .clone();
+    let clock_kind = conduit_semantic_catalog::garden_clock_observation_type()
+        .profile()
+        .unwrap()
+        .value_kind()
+        .clone();
+    for endpoint in &lowered.remote_endpoints {
+        let value = if endpoint.value_kind == state_kind {
+            &prior
+        } else if endpoint.value_kind == clock_kind {
+            &clock
+        } else {
+            &contact
+        };
+        scheduler
+            .admit_remote_input(endpoint.endpoint, endpoint.cord, 0, value)
+            .unwrap();
+        scheduler
+            .close_remote_input(endpoint.endpoint, endpoint.cord)
+            .unwrap();
+    }
+    let DriveStatus::Effect(pending) = drive(&mut scheduler, &fragment).unwrap() else {
+        panic!("expected enriched Garden state manifestation")
+    };
+    let BrowserHostEffect::Manifestation(output) = &pending.effect else {
+        panic!("expected enriched Garden state manifestation")
+    };
+    let next = conduit_semantic_catalog::decode_garden_state(&output.canonical_value).unwrap();
+    assert_eq!(next.vitality.raw_microunits(), 600_000);
     assert_eq!(next.activity.raw_microunits(), 400_000);
     assert_eq!(next.step, 1);
     complete_host_effect(&mut scheduler, &pending).unwrap();

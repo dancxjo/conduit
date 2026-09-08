@@ -1,5 +1,7 @@
 form morse_network {
     message: text/literal("SOS")
-    show: presentation/text
-    message > show
+    morse: text/morse(120)
+    light: presentation/indicator
+
+    message > morse > light
 }

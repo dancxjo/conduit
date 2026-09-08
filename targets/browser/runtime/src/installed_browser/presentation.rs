@@ -176,7 +176,7 @@ fn prepare(
     validate_placement(placement, &indicator_offer())?;
     Ok(BrowserOperation::presentation(
         placement.host_operations[0].maximum_input_bytes,
-        1,
+        4,
     ))
 }
 

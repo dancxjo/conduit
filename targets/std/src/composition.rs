@@ -211,6 +211,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::text_literal_offer(),
             conduit_std_offers::text_upper_offer(),
             conduit_std_offers::text_join_offer(),
+            conduit_std_offers::text_morse_offer(),
             conduit_std_offers::address_detect_offer(),
             conduit_std_offers::recognition_to_text_std_offer(),
             installed_std::text_offer(),
@@ -282,6 +283,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::graphics_icon_offer(),
             conduit_std_offers::graphics_presentation_offer(),
             conduit_std_offers::bitmap_presentation_offer(),
+            conduit_std_offers::indicator_presentation_offer(),
         ]);
     }
     if composition.robotics {

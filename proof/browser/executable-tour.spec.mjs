@@ -931,6 +931,17 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(page.locator(".runner")).toHaveCount(1);
   await expect(page.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
 
+  const laboratory = page.locator(".tour-workbench");
+  const morse = cards.filter({ has: page.getByRole("heading", { name: "Morse Network" }) });
+  const canonicalMorse = await readFile(new URL("../../forms/morse-network/main.conduit", import.meta.url), "utf8");
+  await expect(laboratory.locator("textarea")).toHaveValue(canonicalMorse);
+  await expect(laboratory.locator(".compact-patchbay")).toContainText("text/morse");
+  await expect(laboratory.locator(".compact-patchbay")).toContainText("presentation/indicator");
+  await morse.getByRole("button", { name: "Open in laboratory" }).click();
+  await laboratory.getByRole("button", { name: "Run" }).click();
+  await expect(laboratory.locator(".morse")).toHaveText("··· ——— ···");
+  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
+
   const search = page.getByRole("textbox", { name: "Search reviewed Forms" });
   await search.fill("memory presentation/text");
   await expect(cards).toHaveCount(1);
@@ -942,7 +953,6 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   const memory = cards.filter({ has: page.getByRole("heading", { name: "Memory Lantern" }) });
   const reviewedIdentity = await memory.locator("code").textContent();
   await memory.getByRole("button", { name: "Inspect Patchbay" }).click();
-  const laboratory = page.locator(".tour-workbench");
   await expect(laboratory).toHaveAttribute("data-specimen-id", reviewedIdentity);
   await expect(memory.getByRole("status").filter({ hasText: "Selected" })).toBeVisible();
   await expect(cards.first().getByRole("status")).not.toContainText("Selected");
@@ -1031,6 +1041,44 @@ test("Form Gallery remains a bounded two-pane workspace without horizontal or ne
     await expect(lastCard.getByRole("button", { name: "Inspect Patchbay" })).toBeFocused();
     await expect(lastCard.getByRole("button", { name: "Inspect Patchbay" })).toBeInViewport();
   }
+});
+
+test("Form Gallery source is a labeled full-height workspace that resizes without overlap", async ({ page }) => {
+  const measure = async () => page.locator(".editor").evaluate((editor) => {
+    const label = editor.querySelector('[data-application-key="source-label"]');
+    const syntax = editor.querySelector(".syntax-editor");
+    const profile = editor.querySelector(".source-output-controls");
+    const actions = editor.querySelector('[data-application-slot^="tour-runner-actions-"]');
+    const textarea = editor.querySelector("textarea");
+    const box = (element) => {
+      const rect = element.getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom, height: rect.height };
+    };
+    return {
+      editor: box(editor), label: box(label), syntax: box(syntax),
+      profile: box(profile), actions: box(actions),
+      textareaClientHeight: textarea.clientHeight,
+      textareaScrollHeight: textarea.scrollHeight,
+      textareaOverflow: getComputedStyle(textarea).overflowY,
+    };
+  });
+
+  await page.setViewportSize({ width: 1366, height: 720 });
+  await openStep(page, 0);
+  await page.getByRole("button", { name: "Form Gallery" }).click();
+  const compact = await measure();
+  expect(compact.label.bottom).toBeLessThanOrEqual(compact.syntax.top);
+  expect(compact.syntax.bottom).toBeLessThanOrEqual(compact.profile.top);
+  expect(compact.profile.bottom).toBeLessThanOrEqual(compact.actions.top);
+  expect(compact.actions.bottom).toBeLessThanOrEqual(compact.editor.bottom);
+  expect(compact.syntax.height).toBeGreaterThan(75);
+
+  await page.setViewportSize({ width: 1366, height: 900 });
+  const expanded = await measure();
+  expect(expanded.syntax.height).toBeGreaterThan(compact.syntax.height + 70);
+  expect(expanded.textareaOverflow).toBe("auto");
+  expect(expanded.textareaScrollHeight).toBeGreaterThan(expanded.textareaClientHeight);
+  expect(expanded.actions.bottom).toBeLessThanOrEqual(expanded.editor.bottom);
 });
 
 test("the Tour opens with one logical Body premise and keeps Crèche machinery later", async ({ page }) => {

@@ -53,6 +53,7 @@ pub(super) struct TextTransformOperation {
     pending: Option<RequestId>,
     next: u32,
     maximum_values: u32,
+    maximum_input_bytes: u32,
 }
 
 pub(super) struct TextPresentationOperation {
@@ -84,6 +85,19 @@ impl TextLiteralOperation {
 }
 
 impl TextTransformOperation {
+    pub(super) fn bounded(maximum_values: u32) -> Self {
+        Self::bounded_input(maximum_values, MAX_TEXT_BYTES)
+    }
+
+    pub(super) fn bounded_input(maximum_values: u32, maximum_input_bytes: u32) -> Self {
+        Self {
+            pending: None,
+            next: 0,
+            maximum_values,
+            maximum_input_bytes,
+        }
+    }
+
     pub(super) fn start(&mut self) -> OperationAction {
         OperationAction::Await
     }
@@ -99,7 +113,7 @@ impl TextTransformOperation {
                 OperationAction::RequestHostOperation {
                     request,
                     operation: HostOperationId(0),
-                    input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
+                    input: match BoundedValueRef::new(value, self.maximum_input_bytes) {
                         Ok(input) => input,
                         Err(_) => return InstalledOperation::fail(8),
                     },
@@ -133,6 +147,14 @@ impl TextTransformOperation {
 }
 
 impl TextPresentationOperation {
+    pub(super) fn bounded(maximum_values: u32) -> Self {
+        Self {
+            pending: None,
+            next: 0,
+            maximum_values,
+        }
+    }
+
     pub(super) fn start(&mut self) -> OperationAction {
         OperationAction::Await
     }
@@ -219,11 +241,9 @@ fn prepare_text_upper(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_text_upper(placement)?;
-    Ok(InstalledOperation::TextUpper(TextTransformOperation {
-        pending: None,
-        next: 0,
-        maximum_values: MAX_TEXT_VALUES as u32,
-    }))
+    Ok(InstalledOperation::TextUpper(
+        TextTransformOperation::bounded(MAX_TEXT_VALUES as u32),
+    ))
 }
 
 fn text_join_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
@@ -242,11 +262,9 @@ fn prepare_text_join(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_text_join(placement)?;
-    Ok(InstalledOperation::TextJoin(TextTransformOperation {
-        pending: None,
-        next: 0,
-        maximum_values: MAX_TEXT_VALUES as u32,
-    }))
+    Ok(InstalledOperation::TextJoin(
+        TextTransformOperation::bounded(MAX_TEXT_VALUES as u32),
+    ))
 }
 
 fn text_presentation_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {

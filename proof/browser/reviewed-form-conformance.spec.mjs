@@ -2,13 +2,13 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
 const cases = [
-  ["morse-network", "SOS"],
-  ["memory-lantern", "READY"],
-  ["desk-telegraph", "CALLING"],
+  ["morse-network", { presentationKind: "presentation/indicator", morseSegments: 17 }],
+  ["memory-lantern", { presentationKind: "presentation/text", text: "READY" }],
+  ["desk-telegraph", { presentationKind: "presentation/text", text: "CALLING" }],
 ];
 const selectedCases = new Set(JSON.parse(process.env.CONDUIT_FORM_CASES_JSON ?? "null") ?? cases.map(([slug]) => `reviewed Form ${slug} runs browser-safe`));
 
-for (const [slug, expectedText] of cases) {
+for (const [slug, expected] of cases) {
   const caseName = `reviewed Form ${slug} runs browser-safe`;
   test(caseName, async ({ page }) => {
     test.skip(!selectedCases.has(caseName), "not selected by the admitted Form batch");
@@ -55,8 +55,13 @@ for (const [slug, expectedText] of cases) {
 
       expect(evidence.effect).toMatchObject({
         effect_kind: "manifestation",
-        text: expectedText,
+        presentation_kind: expected.presentationKind,
       });
+      if (expected.text) expect(evidence.effect.text).toBe(expected.text);
+      if (expected.morseSegments) {
+        expect(evidence.effect.text).toBeNull();
+        expect(evidence.effect.segments).toHaveLength(expected.morseSegments);
+      }
       expect(evidence.receipt).toMatchObject({
         disposition: "completed",
         active_play_id: evidence.effect.active_play_id,

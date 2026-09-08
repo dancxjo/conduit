@@ -44,6 +44,7 @@ use super::math_operations::{MATH_CLAMP_FACTORY, MATH_DEADBAND_FACTORY, MATH_SCA
 use super::midi_input_operation::MIDI_INPUT_FACTORY;
 use super::midi_output_operation::MIDI_OUTPUT_FACTORY;
 use super::model_text_operation::FACTORY as MODEL_TEXT_FACTORY;
+use super::morse_operations::{INDICATOR_PRESENTATION_FACTORY, TEXT_MORSE_FACTORY};
 use super::operation::InstalledFactory;
 use super::pacing_operations::{TIME_DELAY_FACTORY, TIME_THROTTLE_FACTORY};
 use super::pattern_comparison_operation::FACTORY as PATTERN_COMPARISON_FACTORY;
@@ -161,6 +162,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEXT_UPPER_FACTORY,
     &TEXT_JOIN_FACTORY,
     &TEXT_PRESENTATION_FACTORY,
+    &TEXT_MORSE_FACTORY,
+    &INDICATOR_PRESENTATION_FACTORY,
     &STATE_COUNT_FACTORY,
     &STATE_TOGGLE_FACTORY,
     &COUNT_PRESENTATION_FACTORY,
