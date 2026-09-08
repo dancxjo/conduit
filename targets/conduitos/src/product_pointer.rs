@@ -7,6 +7,7 @@ use conduit_tour_model::TourPointerOutcome;
 use crate::{
     arch::{self, HidPointerReady, HidPointerSession, UsbDevice, XhciReady},
     fabrication::FabricationRecord,
+    front_door::FrontDoorPresenter,
     identity::{self, BootIdentities},
     pointer_offer::PointerRealization,
     tour_product::TourProduct,
@@ -45,10 +46,12 @@ pub fn realization(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     identities: &BootIdentities,
     fabrication: &FabricationRecord,
     tour: &mut TourProduct,
+    presenter: &mut FrontDoorPresenter,
     display: &mut impl crate::display::PixelTarget,
     session: &mut HidPointerSession,
     controller: &mut XhciReady,
@@ -63,8 +66,22 @@ pub fn run(
             .format()
             .validate()
             .map_err(crate::display::DisplayError::as_str)?;
+        let display_x = display_coordinate(sample.position_x, format.width)?;
+        let display_y = display_coordinate(sample.position_y, format.height)?;
+        let route = presenter
+            .route_pointer(display_x, display_y, sample.primary_pressed)
+            .map_err(|error| error.as_str())?;
+        let crate::native_compositor::InputRoute::Delivered(route) = route else {
+            return Err("compositor-pointer-no-target");
+        };
+        presenter
+            .validate_pointer_route(&route)
+            .map_err(|error| error.as_str())?;
+        let mut local_sample = sample;
+        local_sample.position_x = normalized_local(route.local_x, format.width)?;
+        local_sample.position_y = normalized_local(route.local_y, format.height)?;
         let outcome = tour.accept_pointer(
-            sample,
+            local_sample,
             u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
             u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
         )?;
@@ -72,6 +89,27 @@ pub fn run(
         emit_sign(&outcome, sample, tour, identities, fabrication);
         arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
     }
+}
+
+fn normalized_local(value: u16, extent: u32) -> Result<i64, &'static str> {
+    if extent == 0 || u32::from(value) >= extent {
+        return Err("compositor-pointer-local-coordinate-invalid");
+    }
+    i64::try_from(u64::from(value) * 1_000_000 / u64::from(extent))
+        .map_err(|_| "compositor-pointer-local-coordinate-invalid")
+}
+
+fn display_coordinate(value: i64, extent: u32) -> Result<u32, &'static str> {
+    if !(0..=1_000_000).contains(&value) || extent == 0 {
+        return Err("compositor-pointer-coordinate-invalid");
+    }
+    let coordinate = u64::try_from(value)
+        .ok()
+        .and_then(|value| value.checked_mul(u64::from(extent)))
+        .map(|value| value / 1_000_000)
+        .ok_or("compositor-pointer-coordinate-invalid")?;
+    u32::try_from(coordinate.min(u64::from(extent - 1)))
+        .map_err(|_| "compositor-pointer-coordinate-invalid")
 }
 
 fn emit_sign(

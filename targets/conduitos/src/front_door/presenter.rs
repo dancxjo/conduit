@@ -12,16 +12,16 @@ use conduit_core::{
 use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle, PresentationRole,
-    RendererRealizationOffer, renderer_kind_definition, renderer_offer,
+    LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationId, ManifestationLifecycle,
+    PresentationRole, RendererRealizationOffer, renderer_kind_definition, renderer_offer,
 };
 
 use super::{Error as FrontDoorError, FrontDoor};
 use crate::{
     display::PixelTarget,
     native_compositor::{
-        CompositionReceipt, CompositorAdmission, NATIVE_PRESENTER_IMPLEMENTATION, NativeCompositor,
-        NativeCompositorError,
+        CompositionReceipt, CompositorAdmission, InputRoute, NATIVE_PRESENTER_IMPLEMENTATION,
+        NativeCompositor, NativeCompositorError, RoutedKeyboard, RoutedPointer,
     },
 };
 
@@ -38,6 +38,7 @@ pub struct FrontDoorPresenter {
     last_revision: u64,
     compositor: NativeCompositor,
     surface_admitted: bool,
+    last_manifestation_id: Option<ManifestationId>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -145,7 +146,35 @@ impl FrontDoorPresenter {
             last_revision: 0,
             compositor: NativeCompositor::admitted(admission),
             surface_admitted: false,
+            last_manifestation_id: None,
         })
+    }
+
+    pub fn route_pointer(
+        &mut self,
+        display_x: u32,
+        display_y: u32,
+        activate: bool,
+    ) -> Result<InputRoute<RoutedPointer>, PresenterError> {
+        self.compositor
+            .route_pointer(display_x, display_y, activate)
+            .map_err(PresenterError::Compositor)
+    }
+
+    pub fn validate_pointer_route(&self, route: &RoutedPointer) -> Result<(), PresenterError> {
+        self.compositor
+            .validate_pointer_route(route)
+            .map_err(PresenterError::Compositor)
+    }
+
+    pub fn route_keyboard(&self) -> Result<InputRoute<RoutedKeyboard>, PresenterError> {
+        let expected = self
+            .last_manifestation_id
+            .as_ref()
+            .ok_or(PresenterError::Identity)?;
+        self.compositor
+            .route_keyboard(expected)
+            .map_err(PresenterError::Compositor)
     }
 
     pub fn present(
@@ -227,6 +256,12 @@ impl FrontDoorPresenter {
         self.compositor
             .compose_frame(display)
             .map_err(PresenterError::Compositor)?;
+        if self.compositor.focused_surface().is_none() {
+            self.compositor
+                .focus_surface(SURFACE_ID)
+                .map_err(PresenterError::Compositor)?;
+        }
+        self.last_manifestation_id = Some(receipt.manifestation_id.clone());
         self.last_revision = presentation.revision;
         Ok(receipt)
     }
@@ -321,6 +356,16 @@ mod tests {
         assert_eq!(receipt.display_base_id.as_str(), "display/base");
         assert!(receipt.display.pixels_written > 0);
         assert_eq!(presenter.compositor_frame_sequence(), 1);
+        let pointer = match presenter.route_pointer(100, 50, true).unwrap() {
+            InputRoute::Delivered(route) => route,
+            InputRoute::NoTarget => panic!("front-door surface must receive pointer input"),
+        };
+        assert_eq!((pointer.local_x, pointer.local_y), (100, 50));
+        presenter.validate_pointer_route(&pointer).unwrap();
+        assert!(matches!(
+            presenter.route_keyboard().unwrap(),
+            InputRoute::Delivered(_)
+        ));
         assert_eq!(
             presenter.present(&door, &mut display),
             Err(PresenterError::StaleRevision)
@@ -333,6 +378,12 @@ mod tests {
         let next = presenter.present(&door, &mut display).unwrap();
         assert_ne!(next.manifestation_id, receipt.manifestation_id);
         assert_eq!(presenter.compositor_frame_sequence(), 2);
+        assert_eq!(
+            presenter.validate_pointer_route(&pointer),
+            Err(PresenterError::Compositor(
+                NativeCompositorError::StaleSurfaceBinding
+            ))
+        );
     }
 
     #[test]

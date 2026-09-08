@@ -16,6 +16,7 @@ use crate::{
     identity::{self, BootIdentities},
     keyboard_input::{self, ProductInputControl, ProductInputEvent},
     local_rescue::LocalRescueMatcher,
+    native_compositor::InputRoute,
     offer::CAPABILITY_COUNT,
     offer_fabrication::ImageBoundHostOffer,
     product_bindings::binding_for_usage,
@@ -117,6 +118,12 @@ pub fn run(
                 transition.modifiers(),
             )
             .map_err(|_| "front-door-key-event-invalid")?;
+            if matches!(
+                presenter.route_keyboard().map_err(|error| error.as_str())?,
+                InputRoute::NoTarget
+            ) {
+                return Ok(ProductInputControl::Continue);
+            }
             if event.usage() == F12 && usb_line_device.is_some() {
                 if event.transition() == KeyTransition::Released {
                     line_requested = true;
@@ -268,6 +275,7 @@ pub fn run(
         identities,
         fabrication,
         &mut tour,
+        &mut presenter,
         display,
         pointer_session,
         controller,
@@ -381,7 +389,8 @@ fn action_for(
 fn is_control_transition(transition: HidKeyTransition) -> bool {
     binding_for_usage(transition.usage()).is_some()
 }
-
+#[cfg(test)]
+mod input_routing_tests;
 fn refresh(
     front_door: &mut FrontDoor,
     journey: &ProductJourney,

@@ -1,8 +1,10 @@
 //! Persistent finite native compositor service above the scanout mechanism.
 
+mod frame_composition;
+mod input_routing;
 mod surface_buffer;
 
-use crate::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget, render_scene};
+use crate::display::{DisplayError, DisplayReceipt, PixelTarget, render_scene};
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
     ActivePlayId, ArtifactId, BootId, CapabilityId, HostBaseId, HostId, ImplementationId,
@@ -12,7 +14,10 @@ use conduit_presentation::{
     GraphicsScene, LayoutRect, Manifestation, ManifestationError, ManifestationId,
     ManifestationLifecycle, Presentation, PresentationContentId,
 };
+use frame_composition::{blit_surface, clear_target};
 use surface_buffer::{SurfaceBuffer, surface_pixels};
+
+pub use input_routing::{InputRoute, RoutedKeyboard, RoutedPointer};
 
 pub const NATIVE_COMPOSITOR_FACILITY: &str = "compositor/native@1";
 pub const NATIVE_PRESENTER_IMPLEMENTATION: &str = "presenter/native-graphical@1";
@@ -73,6 +78,7 @@ pub enum NativeCompositorError {
     SurfaceAlreadyAdmitted,
     SurfaceNotAdmitted,
     SurfaceAlreadyBound,
+    StaleSurfaceBinding,
     StaleSurfaceRevision,
     StaleIdentity,
     ManifestationInvalid,
@@ -95,6 +101,7 @@ impl NativeCompositorError {
             Self::SurfaceAlreadyAdmitted => "compositor-surface-already-admitted",
             Self::SurfaceNotAdmitted => "compositor-surface-not-admitted",
             Self::SurfaceAlreadyBound => "compositor-surface-already-bound",
+            Self::StaleSurfaceBinding => "compositor-surface-binding-stale",
             Self::StaleSurfaceRevision => "compositor-surface-revision-stale",
             Self::StaleIdentity => "compositor-identity-stale",
             Self::ManifestationInvalid => "compositor-manifestation-invalid",
@@ -154,12 +161,13 @@ impl CompositorAdmission {
 
 #[derive(Clone)]
 struct SurfaceBinding {
+    manifestation_id: ManifestationId,
     plan_id: PlanId,
     placement_id: PlacementId,
     face_subject: String,
     last_revision: u64,
 }
-struct CompositorSurface {
+pub(super) struct CompositorSurface {
     surface_id: String,
     bounds: LayoutRect,
     z: u8,
@@ -273,6 +281,7 @@ impl NativeCompositor {
         surface.buffer.clear();
         let display = render_scene(&mut surface.buffer, scene)?;
         surface.binding = Some(SurfaceBinding {
+            manifestation_id: manifestation.manifestation_id.clone(),
             plan_id: manifestation.plan_id.clone(),
             placement_id: manifestation.placement_id.clone(),
             face_subject: manifestation.face_subject.clone(),
@@ -444,51 +453,6 @@ impl NativeCompositor {
     }
 }
 
-fn clear_target(
-    target: &mut impl PixelTarget,
-    format: DisplayFormat,
-) -> Result<u32, NativeCompositorError> {
-    let mut count = 0_u32;
-    for y in 0..format.height {
-        for x in 0..format.width {
-            target.write_pixel(x, y, 0)?;
-            count = count
-                .checked_add(1)
-                .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
-        }
-    }
-    Ok(count)
-}
-fn blit_surface(
-    target: &mut impl PixelTarget,
-    target_format: DisplayFormat,
-    surface: &CompositorSurface,
-) -> Result<u32, NativeCompositorError> {
-    let mut count = 0_u32;
-    for local_y in 0..u32::from(surface.bounds.height) {
-        let y = i32::from(surface.bounds.y) + i32::try_from(local_y).unwrap_or(i32::MAX);
-        if y < 0 || y >= i32::try_from(target_format.height).unwrap_or(i32::MAX) {
-            continue;
-        }
-        for local_x in 0..u32::from(surface.bounds.width) {
-            let x = i32::from(surface.bounds.x) + i32::try_from(local_x).unwrap_or(i32::MAX);
-            if x < 0 || x >= i32::try_from(target_format.width).unwrap_or(i32::MAX) {
-                continue;
-            }
-            let index = usize::try_from(local_y * u32::from(surface.bounds.width) + local_x)
-                .map_err(|_| NativeCompositorError::InvalidBounds)?;
-            target.write_pixel(
-                u32::try_from(x).map_err(|_| NativeCompositorError::InvalidBounds)?,
-                u32::try_from(y).map_err(|_| NativeCompositorError::InvalidBounds)?,
-                surface.buffer.pixels[index],
-            )?;
-            count = count
-                .checked_add(1)
-                .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
-        }
-    }
-    Ok(count)
-}
 fn map_manifestation_error(error: ManifestationError) -> NativeCompositorError {
     match error {
         ManifestationError::StaleIdentity => NativeCompositorError::StaleIdentity,
