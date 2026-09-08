@@ -77,6 +77,8 @@ pub(super) struct TourScheduler {
     >; MAXIMUM_BROWSER_GEARS],
     garden_steps: [Option<Box<crate::installed_browser::garden_step::PreparedGardenStep>>;
         MAXIMUM_BROWSER_GEARS],
+    stroke_captures: [Option<Box<crate::installed_browser::stroke_capture::PreparedStrokeCapture>>;
+        MAXIMUM_BROWSER_GEARS],
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -434,6 +436,10 @@ mod measurement_plot_kernel_tests;
 #[cfg(test)]
 #[path = "measurement_window_kernel_tests.rs"]
 mod measurement_window_kernel_tests;
+
+#[cfg(test)]
+#[path = "stroke_capture_kernel_tests.rs"]
+mod stroke_capture_kernel_tests;
 
 #[cfg(test)]
 #[path = "garden_step_kernel_tests.rs"]

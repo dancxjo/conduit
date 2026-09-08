@@ -5,6 +5,11 @@ use conduit_core::{HostOperationRequirement, PlannedGear};
 use conduit_kernel::scheduler::HostOperationRequest;
 use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOutcome};
 
+#[path = "engine_transforms/measurement_window.rs"]
+mod measurement_window;
+#[path = "engine_transforms/stroke_capture.rs"]
+mod stroke_capture;
+
 pub(in crate::form_runner) fn complete_transform(
     scheduler: &mut TourScheduler,
     placement: &PlannedGear,
@@ -402,35 +407,7 @@ pub(in crate::form_runner) fn complete_transform(
     if crate::installed_browser::measurement_window::OPERATIONS
         .contains(&operation.contract_id.as_str())
     {
-        let input = scheduler
-            .kernel
-            .host_value(request.input.value)
-            .map_err(debug_error)?;
-        let result = scheduler.measurement_windows[usize::from(request.node.0)]
-            .as_mut()
-            .ok_or("measurement window was not prepared before Play")?
-            .execute(operation.contract_id.as_str(), input);
-        let outcome = match result {
-            Ok(output) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
-                output: output
-                    .map(|bytes| {
-                        let value = scheduler.store_host_value(&bytes).map_err(debug_error)?;
-                        BoundedValueRef::new(value, operation.maximum_output_bytes)
-                            .map_err(debug_error)
-                    })
-                    .transpose()?,
-                failure: None,
-            },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
-                output: None,
-                failure: Some(failure),
-            },
-        };
-        scheduler
-            .complete_host_operation(request.node, request.request, outcome)
-            .map_err(debug_error)?;
+        measurement_window::complete(scheduler, operation, request)?;
         return Ok(true);
     }
     if crate::installed_browser::garden_step::OPERATIONS.contains(&operation.contract_id.as_str()) {
@@ -466,6 +443,12 @@ pub(in crate::form_runner) fn complete_transform(
         scheduler
             .complete_host_operation(request.node, request.request, outcome)
             .map_err(debug_error)?;
+        return Ok(true);
+    }
+    if crate::installed_browser::stroke_capture::OPERATIONS
+        .contains(&operation.contract_id.as_str())
+    {
+        stroke_capture::complete(scheduler, operation, request)?;
         return Ok(true);
     }
     if crate::installed_browser::measurement_hysteresis::OPERATIONS

@@ -62,19 +62,47 @@ pub fn install_geometry_catalogs(
         vec![geometry_port("path", &path, PortDirection::Output)],
         Some(("transform", TRANSFORM2_TYPE, default_transform2()?)),
     )?;
-    let stroke = path2_type(4).expect("four-point stroke bound is reviewed");
     startup.insert(KindSignature {
         kind: CAPTURE_BOUNDED_STROKE_KIND.into(),
         startup_parameters: vec![],
     })?;
     profile
-        .insert(KindDefinition {
-            kind_id: kind_id(CAPTURE_BOUNDED_STROKE_KIND),
-            kind_contract_revision: KindContractRevision::from(GEOMETRY_REVISION),
-            inputs: vec![flow_geometry_port("point", &point, PortDirection::Input)],
-            outputs: vec![geometry_port("stroke", &stroke, PortDirection::Output)],
-            configuration: vec![],
+        .insert(capture_bounded_stroke_kind_definition())
+        .map_err(|error| error.to_string())
+}
+
+pub fn capture_bounded_stroke_kind_definition() -> KindDefinition {
+    let point = point2_type();
+    let stroke = path2_type(4).expect("four-point stroke bound is reviewed");
+    KindDefinition {
+        kind_id: kind_id(CAPTURE_BOUNDED_STROKE_KIND),
+        kind_contract_revision: KindContractRevision::from(GEOMETRY_REVISION),
+        inputs: vec![flow_geometry_port("point", &point, PortDirection::Input)],
+        outputs: vec![geometry_port("stroke", &stroke, PortDirection::Output)],
+        configuration: vec![],
+    }
+}
+
+/// Install only the reviewed four-point path and capture operation into a Host
+/// profile that already owns the canonical `Point2` type.
+pub fn install_bounded_stroke_capture_catalog(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), String> {
+    startup
+        .insert_structured_type(
+            PATH2_FOUR_TYPE,
+            path2_type(4).map_err(|error| format!("{error:?}"))?,
+        )
+        .map_err(|error| error.to_string())?;
+    startup
+        .insert(KindSignature {
+            kind: CAPTURE_BOUNDED_STROKE_KIND.into(),
+            startup_parameters: vec![],
         })
+        .map_err(|error| error.to_string())?;
+    profile
+        .insert(capture_bounded_stroke_kind_definition())
         .map_err(|error| error.to_string())
 }
 
