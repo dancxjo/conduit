@@ -154,6 +154,8 @@ test("release admission has one serialized trusted entry and a lost-wakeup recov
   assert.match(workflow, /group: promote-dev-to-main\n  cancel-in-progress: false/);
   assert.match(workflow, /cron: "\*\/10 \* \* \* \*"/);
   assert.match(workflow, /ref: main/);
+  assert.match(workflow, /if test ! -f tools\/ci\/release-request-github\.mjs/);
+  assert.match(workflow, /Deferred until the trusted main controller contains release-request-github\.mjs/);
   assert.match(workflow, /node tools\/ci\/release-request-github.mjs/);
   assert.doesNotMatch(workflow, /gh pr create|git push|gh run rerun/);
 });
