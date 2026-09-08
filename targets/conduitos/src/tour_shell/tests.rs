@@ -1,4 +1,4 @@
-use alloc::{vec, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
 use conduit_semantic_catalog::NormalizedPointerSample;
@@ -8,8 +8,10 @@ use super::*;
 use crate::{
     display::{DisplayError, DisplayFormat},
     identity::BootIdentities,
+    keyboard_offer::KeyboardRealization,
     machine::{BaseError, IdleBase, InterruptBase, InterruptState, MonotonicClockBase, SerialBase},
     offer::{CpuFeatures, HostOffer},
+    product_journey::{JourneyAction, JourneyError, ProductJourney},
 };
 
 #[test]
@@ -87,21 +89,73 @@ fn transient_is_an_independent_related_surface_and_dismissal_exposes_parent() {
     );
 }
 
+#[test]
+fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
+    let identities = BootIdentities {
+        host: [1; 32],
+        boot: [2; 32],
+    };
+    let offer = host_offer(&identities);
+    let mut journey = ProductJourney::new(
+        HostId::from(crate::identity::hex(&identities.host)),
+        BootId::from(crate::identity::hex(&identities.boot)),
+        OfferGeneration(offer.generation),
+    )
+    .unwrap();
+    let (tour, mut shell, mut display) = fixture();
+    shell
+        .present_with_lifecycle(&tour, &journey.projection(), &mut display)
+        .expect("a pre-Birth lifecycle must remain a valid status basis");
+    for action in [
+        JourneyAction::OpenBack,
+        JourneyAction::Birth,
+        JourneyAction::Wake,
+        JourneyAction::Plan,
+        JourneyAction::Play,
+    ] {
+        invoke_journey(&mut journey, action, &identities, &offer).unwrap();
+    }
+    let projection = journey.projection();
+    let (tour, mut shell, mut display) = fixture();
+    let receipt = shell
+        .present_with_lifecycle(&tour, &projection, &mut display)
+        .unwrap();
+
+    assert_eq!(receipt.status.surface_id, STATUS_SURFACE);
+    assert_eq!(shell.lifecycle_revision, projection.revision);
+    assert_eq!(shell.lifecycle_basis.body_id, projection.body_id);
+    assert_eq!(shell.lifecycle_basis.wake_id, projection.wake_id);
+    assert_eq!(shell.lifecycle_basis.plan_id, projection.plan_id);
+    assert_eq!(
+        shell.lifecycle_basis.active_play_id,
+        projection.active_play_id
+    );
+}
+
+fn invoke_journey(
+    journey: &mut ProductJourney,
+    action: JourneyAction,
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+) -> Result<(), JourneyError> {
+    let revision = journey.revision();
+    let projection = journey.projection();
+    let target = match action {
+        JourneyAction::OpenBack | JourneyAction::Birth => {
+            format!("form/{}", projection.checked_form_id.as_str())
+        }
+        _ => format!("body/{}", projection.body_id.unwrap().as_str()),
+    };
+    let request = journey.next_request(action, target, revision)?;
+    journey.apply(request, identities, offer, "build", revision)
+}
+
 fn fixture() -> (TourProduct, TourShellPresenter, MemoryDisplay) {
     let identities = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
     };
-    let offer = HostOffer::new(
-        &identities,
-        "build",
-        CpuFeatures {
-            sse2: true,
-            rdrand: true,
-            invariant_tsc: true,
-        },
-        256 * 1024,
-    );
+    let offer = host_offer(&identities);
     let mut tour = TourProduct::canonical(1);
     tour.accept(
         &ApplicationEvent {
@@ -130,6 +184,32 @@ fn fixture() -> (TourProduct, TourShellPresenter, MemoryDisplay) {
     )
     .unwrap();
     (tour, shell, MemoryDisplay::new())
+}
+
+fn host_offer(identities: &BootIdentities) -> HostOffer<'_> {
+    HostOffer::new(
+        identities,
+        "build",
+        CpuFeatures {
+            sse2: true,
+            rdrand: true,
+            invariant_tsc: true,
+        },
+        1_048_576,
+    )
+    .with_keyboard(
+        KeyboardRealization {
+            controller_id: [3; 32],
+            device_id: [4; 32],
+            interface_id: [5; 32],
+            endpoint_id: [6; 32],
+            report_buffers: 2,
+            transition_slots: 8,
+            operation_slots: 2,
+        },
+        "build",
+    )
+    .unwrap()
 }
 
 fn pointer() -> NormalizedPointerSample {

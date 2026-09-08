@@ -144,7 +144,7 @@ pub fn run(
             if event.transition() == KeyTransition::Pressed && event.usage() == F9 && !tour_open {
                 tour_open = true;
                 shell
-                    .present(&tour, display)
+                    .present_with_lifecycle(&tour, &journey.projection(), display)
                     .map_err(|error| error.as_str())?;
                 emit_tour_sign(&tour, None, identities, fabrication);
                 arch::early_write(b"CONDUIT_TOUR_CHECKPOINT workspace-opened\n");
@@ -160,7 +160,7 @@ pub fn run(
                     {
                         tour.dismiss_inspector().map_err(|error| error.as_str())?;
                         shell
-                            .present(&tour, display)
+                            .present_with_lifecycle(&tour, &journey.projection(), display)
                             .map_err(|error| error.as_str())?;
                         arch::early_write(b"CONDUIT_TOUR_CHECKPOINT gear-inspector-dismissed\n");
                         return Ok(ProductInputControl::Continue);
@@ -192,7 +192,7 @@ pub fn run(
                         )
                         .map_err(|error| error.as_str())?;
                     shell
-                        .present(&tour, display)
+                        .present_with_lifecycle(&tour, &journey.projection(), display)
                         .map_err(|error| error.as_str())?;
                     if update.play.is_some() {
                         arch::early_write(b"\n");

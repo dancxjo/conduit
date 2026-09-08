@@ -1,5 +1,6 @@
 //! Multi-surface native shell for the canonical Tour/Patchbay workspace.
 
+mod lifecycle;
 mod scene;
 #[cfg(test)]
 mod tests;
@@ -16,8 +17,8 @@ use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
     GraphicsScene, LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationId,
-    ManifestationLifecycle, Presentation, RendererRealizationOffer, renderer_kind_definition,
-    renderer_offer,
+    ManifestationLifecycle, Presentation, PresentationBasis, RendererRealizationOffer,
+    renderer_kind_definition, renderer_offer,
 };
 use conduit_tour_model::{TOUR_WORKSPACE_SUBJECT, TourTransientKind};
 
@@ -30,6 +31,7 @@ use crate::{
     },
     tour_product::TourProduct,
 };
+use lifecycle::empty_lifecycle_basis;
 use scene::{ShellLayout, inspector_scene, status_scene, transient_scene};
 
 pub const WORKSPACE_SURFACE: &str = "conduitos/shell/workspace";
@@ -127,6 +129,8 @@ pub struct TourShellPresenter {
     compositor: NativeCompositor,
     surfaces: Vec<SurfaceState>,
     play_sequence: u64,
+    lifecycle_revision: u64,
+    lifecycle_basis: PresentationBasis,
 }
 
 impl TourShellPresenter {
@@ -223,6 +227,8 @@ impl TourShellPresenter {
             compositor: NativeCompositor::admitted(admission),
             surfaces,
             play_sequence: 0,
+            lifecycle_revision: 0,
+            lifecycle_basis: empty_lifecycle_basis(),
         })
     }
 
@@ -255,7 +261,10 @@ impl TourShellPresenter {
             &workspace_scene,
         )?;
         let status_presentation = state
-            .status_presentation()
+            .status_presentation_with_basis(
+                self.lifecycle_revision.max(u64::from(state.revision)),
+                self.lifecycle_basis.clone(),
+            )
             .map_err(|_| TourShellError::Identity)?;
         let status = self.present_surface(
             Slot::Status,

@@ -121,31 +121,94 @@ impl TourWorkspaceState {
     /// Auxiliary lifecycle status meaning, independently revisable from the
     /// workspace and inspector surfaces.
     pub fn status_presentation(&self) -> Result<Presentation, &'static str> {
+        self.status_presentation_with_basis(u64::from(self.revision), empty_basis())
+    }
+
+    /// Lifecycle status backed by the exact identities owned by Conduit. The
+    /// shell may render this Presentation, but it does not synthesize lifecycle
+    /// truth from pixels or Patchbay selection state.
+    pub fn status_presentation_with_basis(
+        &self,
+        revision: u64,
+        basis: PresentationBasis,
+    ) -> Result<Presentation, &'static str> {
         let status = "tour/status";
+        let mut subjects = vec![
+            subject(
+                TOUR_WORKSPACE_SUBJECT,
+                PresentationRole::Form,
+                "Patchbay workspace",
+            ),
+            subject(
+                status,
+                PresentationRole::Status,
+                "Body / Wake / Plan / Play",
+            ),
+        ];
+        let mut relationships = vec![PresentationRelationship {
+            source: status.into(),
+            target: TOUR_WORKSPACE_SUBJECT.into(),
+            kind: PresentationRelationshipKind::Observes,
+        }];
+        let mut observed = Vec::new();
+        if let Some(body_id) = &basis.body_id {
+            push_lifecycle_subject(
+                &mut subjects,
+                &mut relationships,
+                &mut observed,
+                status,
+                body_id.as_str(),
+                PresentationRole::Body,
+                "Body",
+            );
+        }
+        if let Some(wake_id) = &basis.wake_id {
+            push_lifecycle_subject(
+                &mut subjects,
+                &mut relationships,
+                &mut observed,
+                status,
+                wake_id.as_str(),
+                PresentationRole::Status,
+                "Wake",
+            );
+        }
+        if let Some(plan_id) = &basis.plan_id {
+            push_lifecycle_subject(
+                &mut subjects,
+                &mut relationships,
+                &mut observed,
+                status,
+                plan_id.as_str(),
+                PresentationRole::Plan,
+                "Plan",
+            );
+        }
+        if let Some(play_id) = &basis.active_play_id {
+            push_lifecycle_subject(
+                &mut subjects,
+                &mut relationships,
+                &mut observed,
+                status,
+                play_id.as_str(),
+                PresentationRole::Play,
+                "Play",
+            );
+        }
+        let lifecycle = if observed.is_empty() {
+            "Body absent; Wake absent; Plan absent; Play inactive".into()
+        } else {
+            observed.join("; ")
+        };
         Presentation::new(
-            u64::from(self.revision),
-            empty_basis(),
-            vec![
-                subject(
-                    TOUR_WORKSPACE_SUBJECT,
-                    PresentationRole::Form,
-                    "Patchbay workspace",
-                ),
-                subject(
-                    status,
-                    PresentationRole::Status,
-                    "Body / Wake / Plan / Play",
-                ),
-            ],
-            vec![PresentationRelationship {
-                source: status.into(),
-                target: TOUR_WORKSPACE_SUBJECT.into(),
-                kind: PresentationRelationshipKind::Observes,
-            }],
+            revision,
+            basis,
+            subjects,
+            relationships,
             vec![],
             vec![PresentationText {
                 subject: status.into(),
-                text: workspace_summary(self),
+                text: lifecycle,
             }],
         )
         .map_err(|_| "tour-status-presentation-refused")
@@ -184,6 +247,24 @@ impl TourWorkspaceState {
         )
         .map_err(|_| "tour-transient-presentation-refused")
     }
+}
+
+fn push_lifecycle_subject(
+    subjects: &mut Vec<PresentationSubject>,
+    relationships: &mut Vec<PresentationRelationship>,
+    observed: &mut Vec<String>,
+    status: &str,
+    identity: &str,
+    role: PresentationRole,
+    label: &str,
+) {
+    subjects.push(subject(identity, role, label));
+    relationships.push(PresentationRelationship {
+        source: status.into(),
+        target: identity.into(),
+        kind: PresentationRelationshipKind::Observes,
+    });
+    observed.push(format!("{label} present"));
 }
 
 fn subject(identity: &str, role: PresentationRole, label: &str) -> PresentationSubject {
