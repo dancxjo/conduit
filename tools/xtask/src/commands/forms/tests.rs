@@ -44,7 +44,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "check")
         .collect();
-    assert_eq!(checks.len(), 66);
+    assert_eq!(checks.len(), 67);
     assert!(checks.iter().all(|result| result.status == "passed"));
     let little_seismograph = checks
         .iter()
@@ -61,6 +61,20 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
     );
     assert!(little_seismograph.source_document_id.is_some());
     assert!(little_seismograph.checked_form_id.is_some());
+    let normalized_control_measurement = checks
+        .iter()
+        .find(|result| result.slug == "normalized-control-measurement")
+        .expect("Normalized Control Measurement is explicitly reviewed");
+    assert_eq!(
+        normalized_control_measurement.form_entry,
+        "normalized-control-measurement"
+    );
+    assert_eq!(
+        normalized_control_measurement.source_path,
+        "forms/normalized-control-measurement/main.conduit"
+    );
+    assert!(normalized_control_measurement.source_document_id.is_some());
+    assert!(normalized_control_measurement.checked_form_id.is_some());
     let button = checks
         .iter()
         .find(|result| result.slug == "button-across-room")
