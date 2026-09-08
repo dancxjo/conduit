@@ -61,6 +61,31 @@ fn terminal_and_nonterminal_dispositions_remain_distinct() {
 }
 
 #[test]
+fn quiescent_lull_cancel_failure_and_completion_are_distinct() {
+    let mut lulled = specimen();
+    let mut cancelled = specimen();
+    let mut failed = specimen();
+    let mut completed = specimen();
+    assert_eq!(lulled.disposition, ContinuousDisposition::Quiescent);
+    assert_eq!(lulled.lull(), ContinuousDisposition::Lull);
+    assert_eq!(cancelled.cancel(), ContinuousDisposition::Cancelled);
+    assert_eq!(failed.fail(), ContinuousDisposition::Failed);
+    assert_eq!(
+        completed.complete(),
+        ContinuousDisposition::SemanticCompletion
+    );
+    let outcomes = [
+        lulled.disposition,
+        cancelled.disposition,
+        failed.disposition,
+        completed.disposition,
+    ];
+    for (index, outcome) in outcomes.iter().enumerate() {
+        assert!(outcomes[index + 1..].iter().all(|other| other != outcome));
+    }
+}
+
+#[test]
 fn admission_rejects_zero_capacity() {
     let mut resources = ContinuousResourceAdmission::specimen();
     resources.queue_slots = 0;

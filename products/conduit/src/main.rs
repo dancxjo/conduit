@@ -19,6 +19,7 @@ use clap::Parser;
 use conduit_observatory::{build_report, render_text_report};
 use std::ffi::OsString;
 use std::io;
+use std::io::{BufRead, Write};
 use std::path::Path;
 
 fn patchbay_process(
@@ -138,8 +139,33 @@ fn run_with_placements(
         None => product_execution::ProductExecutionContext::local_std()?,
     };
     let plan = context.plan(&form, placements_path)?;
+    let completion_policy = plan.completion_policy;
     let mut stdout = io::stdout().lock();
-    let execution = context.execute(plan, &mut stdout)?;
+    let control = conduit_std_host::RunControl::default();
+    let input_thread = if completion_policy == conduit_core::PlanCompletionPolicy::Live {
+        writeln!(
+            stdout,
+            "Play is live; press Enter or close standard input to cancel it explicitly"
+        )
+        .map_err(|error| error.to_string())?;
+        let input_control = control.clone();
+        Some(std::thread::spawn(move || {
+            let mut line = String::new();
+            let _ = io::stdin().lock().read_line(&mut line);
+            let _ = input_control.request_stop(
+                conduit_std_host::RunControlRequestId::new("conduct-run/operator-interrupt")
+                    .expect("static run-control identity is valid"),
+            );
+        }))
+    } else {
+        None
+    };
+    let execution = context.execute_attached(plan, &mut stdout, &control)?;
+    if let Some(input_thread) = input_thread {
+        input_thread
+            .join()
+            .map_err(|_| "interactive input thread failed".to_string())?;
+    }
     if let Some(report_path) = report_path {
         let snapshot = snapshot_from_execution(
             execution.advertisements,

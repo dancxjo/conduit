@@ -4,7 +4,7 @@ use super::*;
 fn canonical_little_seismograph_and_unrelated_text_complete_in_one_body_play() {
     let request = tests::request_from_sources(&[
         include_str!("../../../../../forms/little-seismograph/main.conduit"),
-        "form unrelated {\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
+        "form unrelated {\n complete\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
     ]);
     let original = request.plan.clone();
     let (mut session, started) = prepare(request).unwrap();

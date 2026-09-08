@@ -4,6 +4,7 @@ use super::*;
 #[test]
 fn timed_input_reaches_the_exact_normalized_presenter_and_completes() {
     let source = "form zz-timing {\n button: input/button(maximum-transitions = 5)\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: derive-intervals\n normalize: normalize-durations\n show: presentation/structured-info\n button.transition > attempt.transition\n attempt.events > derive.events\n derive.intervals > normalize.intervals\n normalize.normalized > show.input\n}\n";
+    let source = source.replacen("{\n", "{\n complete\n", 1);
     // Import the exact canonical reusable declarations, without the namesake's
     // storage-dependent root. This fixture does not claim full Secret Knock support.
     let canonical = include_str!("../../../../../forms/secret-knock/main.conduit");

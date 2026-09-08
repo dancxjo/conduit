@@ -186,7 +186,7 @@ fn deterministic_control_runs_the_authored_measurement_form_in_the_production_ke
     complete_host_effect(&mut scheduler, &effect).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
     assert_eq!(scheduler.values().allocation_capacities(), capacities);
     assert!(scheduler

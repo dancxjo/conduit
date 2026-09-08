@@ -62,6 +62,8 @@ form compare-pattern (
 # emits one bounded Put/Get command pair; storage remains an independently
 # selected and admitted realization rather than hidden UI state.
 form secret-knock-demo {
+    # Transactional demo: one bounded recognition attempt.
+    complete
     button: input/button(maximum-transitions = 5)
     template: storage/named-pattern-template-initializer(name = "gallery-knock", normalized-values = "333333,1000000")
     recognize: secret-knock

@@ -1,4 +1,6 @@
 form signal-demo {
+    # Transactional demo: emits its admitted sixteen-value sequence.
+    complete
     pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
     show: presentation/show
     pulse > show

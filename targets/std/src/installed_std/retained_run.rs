@@ -13,6 +13,7 @@ pub(crate) struct RunLifecycle<'a, 'indicator> {
     pub control: &'a super::RunControl,
     pub retained: Option<&'a mut Vec<crate::state_value::RetainedTypedState>>,
     pub indicator: Option<&'indicator mut dyn crate::hosted_indicator::HostedIndicatorAdapter>,
+    pub attach_live: bool,
 }
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
@@ -49,6 +50,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
             control,
             retained: None,
             indicator: None,
+            attach_live: false,
         },
     )
     .map(|run| run.report)
