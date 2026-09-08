@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use crate::installed_browser::PresentationProfile;
 
-const REVIEWED_SOURCES: [(&str, &str, &str, PresentationProfile); 7] = [
+const REVIEWED_SOURCES: [(&str, &str, &str, PresentationProfile); 8] = [
     (
         "firefly-choir",
         "Firefly Choir",
@@ -25,6 +25,12 @@ const REVIEWED_SOURCES: [(&str, &str, &str, PresentationProfile); 7] = [
         "desk_telegraph",
         "Desk Telegraph",
         include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+        PresentationProfile::Annotation,
+    ),
+    (
+        "night-radio",
+        "Night Radio",
+        include_str!("../../../../../forms/night-radio/main.conduit"),
         PresentationProfile::Annotation,
     ),
     (
@@ -311,8 +317,8 @@ mod tests {
     #[test]
     fn gallery_projects_exact_checked_canonical_sources() {
         let gallery = reviewed_gallery().unwrap();
-        assert_eq!(gallery.maximum_forms, 7);
-        assert_eq!(gallery.forms.len(), 7);
+        assert_eq!(gallery.maximum_forms, REVIEWED_SOURCES.len());
+        assert_eq!(gallery.forms.len(), REVIEWED_SOURCES.len());
         let morse = gallery
             .forms
             .iter()
@@ -374,7 +380,7 @@ mod tests {
                 .iter()
                 .filter(|node| node.component == conduit_presentation::ApplicationComponent::Panel)
                 .count(),
-            7
+            REVIEWED_SOURCES.len()
         );
         let handoff = view
             .nodes

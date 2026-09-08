@@ -1,0 +1,18 @@
+# The first finite Night Radio station: one portable text report becomes an
+# exact typed record, crosses an ordinary planned Line when placed remotely,
+# and is reconstructed for presentation. The Line session retains its sent,
+# received, and terminal events through the shared bounded transcript contract.
+# Transport, Host, storage, and renderer choices remain outside authored meaning.
+form night-radio {
+    report: text/literal("NIGHT REPORT")
+    encode: record/text-to-typed
+    frame: record/frame-typed
+    submit: record/singleton-stream
+    queue: record/ordered-send-queue(maximum-items = 4, maximum-frame-bytes = 4096)
+    finish: record/exactly-one
+    deframe: record/deframe-typed
+    decode: record/typed-to-text
+    show: presentation/text
+
+    report > encode > frame > submit > queue > finish > deframe > decode > show
+}
