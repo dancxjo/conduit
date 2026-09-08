@@ -61,6 +61,8 @@ pub enum CheckSuite {
     Ros2Base,
     /// Run the permanent cross-boundary adversarial security acceptance gate.
     SecurityAcceptance,
+    /// Run the attended low-energy physical-effect HIL proof.
+    PhysicalEffectHil,
     All,
 }
 
@@ -104,6 +106,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::ConsequentialEffect => run_suite(CONSEQUENTIAL_EFFECT_STEPS, &root, opts),
         CheckSuite::Ros2Base => run_suite(ROS2_BASE_STEPS, &root, opts),
         CheckSuite::SecurityAcceptance => run_suite(SECURITY_ACCEPTANCE_STEPS, &root, opts),
+        CheckSuite::PhysicalEffectHil => run_suite(PHYSICAL_EFFECT_HIL_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -327,6 +330,22 @@ const SECURITY_ACCEPTANCE_STEPS: &[Step] = &[
         &["xtask", "conduitos", "isolation-proof"],
     ),
 ];
+
+const PHYSICAL_EFFECT_HIL_STEPS: &[Step] = &[Step::new(
+    "physical-effect-hil.wifi",
+    "Require fresh attendance and independently observe one bounded physical transmission",
+    "cargo",
+    &[
+        "run",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "physical-effect-proof",
+        "--bin",
+        "conduit-physical-effect-proof",
+        "--locked",
+    ],
+)];
 
 const QUANTITY_MAPPING_STEPS: &[Step] = &[
     Step::new(

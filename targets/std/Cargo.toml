@@ -11,6 +11,7 @@ pete-create = ["dep:conduit-create-oi"]
 isolated-file-base = []
 isolated-base-proof = ["isolated-file-base"]
 confined-gear = ["dep:wasmi"]
+physical-effect-proof = []
 
 [dependencies]
 conduit-ai = { path = "../../semantics/ai", features = ["form-catalog"] }
@@ -84,6 +85,11 @@ required-features = ["isolated-base-proof"]
 name = "conduit-isolated-copy-base"
 path = "src/bin/conduit-isolated-copy-base.rs"
 required-features = ["isolated-file-base"]
+
+[[bin]]
+name = "conduit-physical-effect-proof"
+path = "src/bin/conduit-physical-effect-proof.rs"
+required-features = ["physical-effect-proof"]
 
 [dev-dependencies]
 conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
