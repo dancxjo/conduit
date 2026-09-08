@@ -61,7 +61,7 @@ jobs:
           test "$(jq -r .baseRefName <<<"$pull")" = main
           [[ "$(jq -r .headRefName <<<"$pull")" == release/* ]]
           test "$(jq -r .mergeCommit.oid <<<"$pull")" = "$merge_sha"
-          git fetch --no-tags origin main "$merge_sha"
+          git fetch --no-tags origin main dev "$merge_sha"
           git merge-base --is-ancestor "$merge_sha" origin/main
           printf 'merge_sha=%s\n' "$merge_sha" >> "$GITHUB_OUTPUT"
       - name: Open the automatic development sync
@@ -71,7 +71,14 @@ jobs:
           MERGE_SHA: ${{ steps.release.outputs.merge_sha }}
         run: |
           branch="sync-release/$MERGE_SHA"
-          git push origin "$MERGE_SHA:refs/heads/$branch"
+          git checkout --detach "$MERGE_SHA"
+          git -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            merge --no-ff --no-edit origin/dev
+          sync_head=$(git rev-parse HEAD)
+          git merge-base --is-ancestor "$MERGE_SHA" "$sync_head"
+          git merge-base --is-ancestor origin/dev "$sync_head"
+          git push origin "$sync_head:refs/heads/$branch"
           pr_url=$(gh pr list --state open --base dev --head "$branch" --json url --jq '.[0].url // empty')
           if test -z "$pr_url"; then
             pr_url=$(gh pr create \
@@ -83,6 +90,32 @@ jobs:
           printf 'url=%s\n' "$pr_url" >> "$GITHUB_OUTPUT"
           printf 'number=%s\n' "$(gh pr view "$pr_url" --json number --jq .number)" >> "$GITHUB_OUTPUT"
           printf 'head_sha=%s\n' "$(gh pr view "$pr_url" --json headRefOid --jq .headRefOid)" >> "$GITHUB_OUTPUT"
+      - name: Approve the exact bot-created sync admission when required
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pull-request.outputs.number }}
+          HEAD_SHA: ${{ steps.pull-request.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?event=pull_request&head_sha=$HEAD_SHA&per_page=100")
+            run=$(jq -c --argjson number "$PR_NUMBER" '
+              [.workflow_runs[] |
+               select(.name == "candidate" and any(.pull_requests[]?; .number == $number))] |
+              sort_by(.created_at) | last // empty
+            ' <<< "$runs")
+            if test -n "$run"; then
+              test "$(jq -r .actor.login <<< "$run")" = 'github-actions[bot]'
+              run_id=$(jq -r .id <<< "$run")
+              conclusion=$(jq -r '.conclusion // ""' <<< "$run")
+              if test "$conclusion" = action_required; then
+                gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/approve"
+              fi
+              exit 0
+            fi
+            test "$attempt" -lt 12
+            sleep 5
+          done
       - name: Summarize the development sync
         env:
           PR_URL: ${{ steps.pull-request.outputs.url }}
