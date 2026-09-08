@@ -1,0 +1,12 @@
+# A normalized semantic control becomes the exact measurement contract used by
+# processing Forms. Occurrence time is explicit; acquisition stays outside.
+form normalized-control-measurement (
+    control: Scalar > measurement: MeasurementSample
+) {
+    map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = "mV", range-policy = "refuse", quantization = "nearest")
+    observe: data/measurement-observation(clock-basis = "control-occurrence")
+
+    control > map.in
+    map.out > observe.quantity
+    observe.measurement > measurement
+}

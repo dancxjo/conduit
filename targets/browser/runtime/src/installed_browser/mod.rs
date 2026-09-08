@@ -17,6 +17,7 @@ mod little_seismograph_source;
 mod logic;
 mod math;
 pub(crate) mod measurement_hysteresis;
+mod measurement_observation;
 pub(crate) mod measurement_plot;
 mod measurement_presentation;
 pub(crate) mod measurement_summary;
@@ -120,6 +121,9 @@ pub(crate) mod test_stroke_sink;
 pub(crate) mod test_garden_sink;
 #[cfg(test)]
 pub(crate) mod test_measurement_sink;
+
+#[cfg(test)]
+pub(crate) mod test_measurement_observation_sink;
 
 #[cfg(test)]
 pub(crate) mod test_measurement_decision_sink;
