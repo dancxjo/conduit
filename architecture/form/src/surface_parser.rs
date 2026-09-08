@@ -5,8 +5,9 @@ use crate::surface_lex::{
 };
 use crate::syntax::{
     Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
-    FormFace, FormSyntax, Invocation, LocalValue, NamedGear, RuntimePort, RuntimePortDirection,
-    RuntimePortTemporal, ShorthandPair, SpannedText, StartupParameter, SyntaxDocument,
+    FormCompletionPolicy, FormFace, FormSyntax, Invocation, LocalValue, NamedGear, RuntimePort,
+    RuntimePortDirection, RuntimePortTemporal, ShorthandPair, SpannedText, StartupParameter,
+    SyntaxDocument,
 };
 use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
@@ -185,11 +186,12 @@ impl<'a> Parser<'a> {
             }
             self.index += 1;
         }
-        let back = self.parse_back()?;
+        let (back, completion) = self.parse_back()?;
         let close = self.lines[self.index - 1];
         Ok(FormSyntax {
             name,
             face,
+            completion,
             back,
             span: self.span(form_start, close.start + close.text.len()),
         })
@@ -312,20 +314,36 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_back(&mut self) -> Result<Vec<BackStatement>, (FormError, Span)> {
+    fn parse_back(
+        &mut self,
+    ) -> Result<(Vec<BackStatement>, FormCompletionPolicy), (FormError, Span)> {
         let mut statements = Vec::new();
+        let mut completion = FormCompletionPolicy::Live;
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
             let (text, start) = line.statement();
             if text == "}" {
                 self.index += 1;
-                return Ok(statements);
+                return Ok((statements, completion));
             }
             if text.is_empty() || text.starts_with('#') {
                 self.index += 1;
                 continue;
             }
             if text == "..." {
+                self.index += 1;
+                continue;
+            }
+            if text == "complete" {
+                if completion == FormCompletionPolicy::SemanticCompletion {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "a Form may declare semantic completion only once".into(),
+                        ),
+                        self.span(start, start + text.len()),
+                    ));
+                }
+                completion = FormCompletionPolicy::SemanticCompletion;
                 self.index += 1;
                 continue;
             }

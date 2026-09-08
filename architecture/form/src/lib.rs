@@ -110,6 +110,7 @@ pub struct CheckedForm {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     pub name: String,
+    pub completion: FormCompletionPolicy,
     pub gears: Vec<CheckedGear>,
     pub connections: Vec<CheckedConnection>,
     pub exports: Vec<CheckedExport>,
@@ -166,8 +167,13 @@ impl CheckedForm {
             }
         }
 
-        let expected_checked =
-            checked_form_id(&self.name, &self.gears, &self.connections, &self.exports);
+        let expected_checked = checked_form_id(
+            &self.name,
+            self.completion,
+            &self.gears,
+            &self.connections,
+            &self.exports,
+        );
         if self.checked_form_id != expected_checked {
             return Err(FormError::InvalidIdentity(
                 "checked form identity differs from its canonical semantic form".into(),
@@ -506,6 +512,7 @@ pub fn parse_with_startup(
     };
     let checked_form_id = checked_form_id(
         &expanded.name,
+        expanded.completion,
         &expanded.gears,
         &expanded.connections,
         &exports,
@@ -516,6 +523,7 @@ pub fn parse_with_startup(
         checked_form_id,
         expanded_form_id,
         name: expanded.name,
+        completion: expanded.completion,
         gears: expanded.gears,
         connections: expanded.connections,
         exports,
@@ -718,11 +726,16 @@ fn validate_export_faces(export: &CheckedExport, gears: &[CheckedGear]) -> Resul
 
 fn canonical_form_text(
     name: &str,
+    completion: FormCompletionPolicy,
     gears: &[CheckedGear],
     connections: &[CheckedConnection],
     exports: &[CheckedExport],
 ) -> String {
     let mut text = format!("form:{name}\n");
+    text.push_str(match completion {
+        FormCompletionPolicy::Live => "lifecycle:live|",
+        FormCompletionPolicy::SemanticCompletion => "lifecycle:complete|",
+    });
     for gear in gears {
         text.push_str(&format!(
             "op:{}:{}:{}|",
@@ -787,12 +800,14 @@ fn canonical_form_text(
 
 fn checked_form_id(
     name: &str,
+    completion: FormCompletionPolicy,
     gears: &[CheckedGear],
     connections: &[CheckedConnection],
     exports: &[CheckedExport],
 ) -> CheckedFormId {
     CheckedFormId::from(hash_string(&canonical_form_text(
         name,
+        completion,
         gears,
         connections,
         exports,

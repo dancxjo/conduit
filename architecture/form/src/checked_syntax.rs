@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::{RuntimePort, Span};
+use crate::{FormCompletionPolicy, RuntimePort, Span};
 use alloc::collections::BTreeMap;
 use conduit_core::{CheckedFace, CheckedFormId, ExpandedFormId, SourceDocumentId};
 
@@ -176,6 +176,7 @@ pub struct CheckedPoolDeclaration {
 pub struct CheckedCanonicalForm {
     pub checked_form_id: CheckedFormId,
     pub name: String,
+    pub completion: FormCompletionPolicy,
     pub startup_parameters: Vec<CheckedStartupParameter>,
     pub runtime_ports: Vec<RuntimePort>,
     pub runtime_face: CheckedFace,
@@ -207,6 +208,7 @@ pub struct ExpandedCanonicalForm {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     pub name: String,
+    pub completion: FormCompletionPolicy,
     pub gears: Vec<crate::CheckedGear>,
     pub connections: Vec<crate::CheckedConnection>,
     pub shared_pools: Vec<ExpandedSharedPool>,

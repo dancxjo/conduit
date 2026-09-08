@@ -66,8 +66,19 @@ pub struct ConstructionSyntax {
 pub struct FormSyntax {
     pub name: SpannedText,
     pub face: FormFace,
+    pub completion: FormCompletionPolicy,
     pub back: Vec<BackStatement>,
     pub span: Span,
+}
+
+/// Authored meaning for what a drained realization means.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum FormCompletionPolicy {
+    /// The Form remains alive and awaits later admitted work.
+    #[default]
+    Live,
+    /// Draining establishes that this Form's meaning is fulfilled.
+    SemanticCompletion,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

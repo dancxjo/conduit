@@ -236,7 +236,7 @@ fn check_form(
         .expect("every parsed form has a checked face")
         .clone();
     let checked_form_id = checked_identity(
-        &form.name.text,
+        (&form.name.text, form.completion),
         &parameters,
         &runtime_face,
         form.face.shorthand.as_ref().map(|pair| {
@@ -252,6 +252,7 @@ fn check_form(
     Ok(CheckedCanonicalForm {
         checked_form_id,
         name: form.name.text.clone(),
+        completion: form.completion,
         startup_parameters: parameters,
         runtime_ports: form.face.runtime_ports.clone(),
         runtime_face,
