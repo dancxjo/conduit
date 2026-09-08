@@ -480,7 +480,7 @@ test("long source and output remain inside their laboratory panes", async ({ pag
   const laboratory = page.locator("#laboratory-slot");
   const longText = "bounded ".repeat(24);
   const verticalPadding = "\n".repeat(80);
-  await laboratory.locator("textarea").fill(`form bounded-pane {\n  complete\n  words: text/literal("${longText}")\n  result: presentation/text\n  words > result${verticalPadding}\n}`);
+  await laboratory.locator("textarea").fill(`form bounded-pane {\n  words: text/literal("${longText}")\n  result: presentation/text\n  words > result${verticalPadding}\n}`);
   expect(await laboratory.locator("textarea").evaluate((field) => field.scrollHeight)).toBeGreaterThan(
     await laboratory.locator("textarea").evaluate((field) => field.clientHeight),
   );
