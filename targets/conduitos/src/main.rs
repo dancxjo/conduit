@@ -24,6 +24,8 @@ use conduitos::{
 extern "C" fn conduitos_start() -> ! {
     match boot::normalize_boot() {
         Ok(record) => {
+            #[cfg(feature = "conduitos-isolation-proof")]
+            run_isolation_proof(&record);
             let fabrication = &conduitos::fabrication::EMBEDDED_FABRICATION;
             if let Err(error) = fabrication.validate(record.runtime_arena.length) {
                 emit_machine_refusal(error.as_str());
@@ -751,6 +753,13 @@ extern "C" fn conduitos_start() -> ! {
         }
         Err(error) => emit_refusal(error.as_str()),
     }
+}
+
+#[cfg(all(target_os = "none", feature = "conduitos-isolation-proof"))]
+fn run_isolation_proof(record: &boot::BootRecord) {
+    let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
+    let identities = identity::derive(entropy, record.timestamp, record.image_physical_start);
+    arch::run_isolation_proof(record.hhdm_offset, identities.host, identities.boot);
 }
 
 #[cfg(target_os = "none")]

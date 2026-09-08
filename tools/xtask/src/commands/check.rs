@@ -49,6 +49,14 @@ pub enum CheckSuite {
     InputSemantics,
     /// Run the Linux Landlock/seccomp hosted Base confinement proof.
     HostedBaseIsolation,
+    /// Prove directional external mappings and exact reflection fencing.
+    InteropMembrane,
+    /// Prove mutually authenticated, replay-fenced, non-transitive federation.
+    FederationSecurity,
+    /// Prove bounded no-WASI execution and capability-scoped hostile Gear refusal.
+    ConfinedGear,
+    /// Prove generic attended last-mile consequential-effect gating.
+    ConsequentialEffect,
     All,
 }
 
@@ -86,6 +94,10 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::HostedBaseIsolation => run_suite(HOSTED_BASE_ISOLATION_STEPS, &root, opts),
+        CheckSuite::InteropMembrane => run_suite(INTEROP_MEMBRANE_STEPS, &root, opts),
+        CheckSuite::FederationSecurity => run_suite(FEDERATION_SECURITY_STEPS, &root, opts),
+        CheckSuite::ConfinedGear => run_suite(CONFINED_GEAR_STEPS, &root, opts),
+        CheckSuite::ConsequentialEffect => run_suite(CONSEQUENTIAL_EFFECT_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -95,18 +107,85 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
     }
 }
 
-const HOSTED_BASE_ISOLATION_STEPS: &[Step] = &[Step::new(
-    "hosted-base-isolation.linux",
-    "Prove capability-scoped file access and mechanical sibling/process/network denial",
+const HOSTED_BASE_ISOLATION_STEPS: &[Step] = &[
+    Step::new(
+        "hosted-base-isolation.linux",
+        "Prove capability-scoped file access and mechanical sibling/process/network denial",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--features",
+            "isolated-base-proof",
+            "--test",
+            "isolated_base_security",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "hosted-base-isolation.file-copy",
+        "Prove production file/copy semantics and hostile provider confinement",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--features",
+            "isolated-base-proof",
+            "--test",
+            "isolated_file_copy",
+            "--locked",
+        ],
+    ),
+];
+
+const INTEROP_MEMBRANE_STEPS: &[Step] = &[Step::new(
+    "interop-membrane.core",
+    "Prove directional mapping, sibling exclusion, and origin reflection fencing",
+    "cargo",
+    &["test", "-p", "conduit-core", "interop::tests", "--locked"],
+)];
+
+const FEDERATION_SECURITY_STEPS: &[Step] = &[Step::new(
+    "federation-security.loopback",
+    "Prove mutual peer attribution, receiver authority, replay fencing, and A-B-C containment",
+    "cargo",
+    &[
+        "test",
+        "-p",
+        "conduit-body",
+        "federation::tests",
+        "--locked",
+    ],
+)];
+
+const CONFINED_GEAR_STEPS: &[Step] = &[Step::new(
+    "confined-gear.wasmi",
+    "Prove no-WASI imports, finite execution, and exact Base capability mediation",
     "cargo",
     &[
         "test",
         "-p",
         "conduit-std-host",
         "--features",
-        "isolated-base-proof",
+        "confined-gear",
         "--test",
-        "isolated_base_security",
+        "confined_gear_security",
+        "--locked",
+    ],
+)];
+
+const CONSEQUENTIAL_EFFECT_STEPS: &[Step] = &[Step::new(
+    "consequential-effect.contract",
+    "Prove attended possession, last-mile bounds, no retry, and safe loss disposition",
+    "cargo",
+    &[
+        "test",
+        "-p",
+        "conduit-core",
+        "--test",
+        "consequential_effect",
         "--locked",
     ],
 )];

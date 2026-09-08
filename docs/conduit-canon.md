@@ -172,6 +172,33 @@ it. Confinement class is descriptive mechanism truth—such as cooperative,
 process-isolated, WASM-confined, OS-capability-mediated, ConduitOS-kernel-
 enforced, or hardware-gated—not an ordered score or `secure` boolean.
 
+Integration is not assimilation. An external resource keeps its external
+identity, semantics, lifecycle, and native security sovereignty when a Base
+maps it to or manifests a Conduit meaning. External identity, semantic Kind,
+directional mapping, adapter/Base, authority, and outward manifestation are
+never aliases. Import and export are independently configured and authorized;
+discovery supplies observation only and cannot fabricate a Host, Part,
+capability, membership, trust, or authority.
+
+An outward manifestation that may be observed again carries exact adapter,
+mapping, and manifestation origin. Default discovery fences that reflection;
+intentional re-import requires a fresh bounded directional mapping and
+authority decision. Mapping contracts retain material external type,
+lifecycle, ordering, and delivery limits rather than silently promising
+stronger Conduit semantics. This membrane is generic to every ecosystem and
+does not make ROS, an operating system, a browser, or a service namespace part
+of Conduit ontology.
+
+Remote authentication attributes a claim; it grants no membership, trust,
+planning eligibility, or effect authority. A remote effect receiver binds the
+current peer Host/Boot/offer generation and exact Line/session, fences replay,
+then independently validates current Body membership and an exact local Base
+capability at the receiving provider. Authority is non-transitive across
+peers: a capability on A→B does not authorize B→C, proxying, delegation, or
+failover unless each hop has its own explicit bounded contract and current
+authority. Transport confidentiality, peer authentication, membership/Line
+admission, and effect authorization remain separate inspection facts.
+
 ### Execution and presentation
 
 The DOM, stdout, LEDs, dashboards, and workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or Sign.

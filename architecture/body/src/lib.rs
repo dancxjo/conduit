@@ -16,6 +16,8 @@ mod candidate;
 mod continuity;
 mod durable_body;
 mod events;
+#[cfg(feature = "authenticated-admission")]
+mod federation;
 mod hold;
 mod identity;
 mod legacy;
@@ -41,6 +43,8 @@ pub use candidate::*;
 pub use continuity::*;
 pub use durable_body::*;
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
+#[cfg(feature = "authenticated-admission")]
+pub use federation::*;
 pub use hold::*;
 #[cfg(feature = "authenticated-admission")]
 pub use identity::{AdmissionId, MembershipCredentialId, SpawnInvitationId};

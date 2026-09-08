@@ -65,3 +65,32 @@ Future macOS providers can map the same universal contract to Sandbox/App
 Sandbox plus restricted descriptors. Windows providers can use AppContainer,
 restricted tokens, job objects, and exact transferred handles. Those mappings
 need their own executed proof before receiving an isolated enforcement class.
+
+## Production file/copy profile
+
+The `isolated-file-base` feature builds the separately installable
+`conduit-isolated-copy-base` provider. A target must explicitly construct an
+`IsolatedFileHost` with that executable, Base instance identity, and nonzero
+provider generation; `StdHostComposition::minimal()` and the ordinary Host do
+not install it. Planning keeps the canonical `file/copy` Form and Kind while
+selecting `std/isolated-file-copy@1`.
+
+The provider receives only the exact admitted source and destination paths at
+trusted bootstrap. Landlock grants read beneath the source directory and the
+write/create/remove operations needed for same-directory atomic commit beneath
+the destination directory. Seccomp blocks process and socket escape. The
+private #3072 capability is bound to Host, Boot, Base generation, Plan, Play,
+authority, implementation, operation, subject, composite resource generation,
+envelope, and finite chunk count, and is checked before every copy step.
+
+`cargo xtask check hosted-base-isolation` proves the production path as well as
+the lower-level fixture. Patchbay-safe inspection reports opaque resource
+handles, provider generation, enforcement class, attempt, and terminal result;
+it exposes neither paths nor capability bearer material.
+
+The original `std/copy-file@1` realization remains available only as an
+explicitly `Cooperative` compatibility profile. It must not be used for hostile
+confinement claims. Its removal path is: adopt the isolated provider in shipped
+Linux profiles, establish platform-specific equivalents where required, move
+the product copy entrance to those profiles, then remove the cooperative offer
+and implementation after compatibility evidence shows no remaining consumer.

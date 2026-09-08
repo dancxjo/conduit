@@ -34,6 +34,43 @@ test("only a repairable same-repository release branch can promote to main", () 
   assert.throws(() => validateBoundary("promotion", { ...valid, CONDUIT_HEAD_REPOSITORY: "fork/conduit" }), /promotion repository/);
 });
 
+test("x86 gates expensive checks and the release product pipeline without rebuilding proof", () => {
+  const source = readFileSync(".github/workflows/check.yml", "utf8");
+  const jobs = Object.fromEntries([...source.matchAll(/^  ([\w-]+):\n([\s\S]*?)(?=^  [\w-]+:\n|$(?![\s\S]))/gm)]
+    .map(([, name, body]) => [name, body]));
+  const prerequisites = name => (jobs[name].match(/^    needs: (.+)$/m)?.[1] ?? "")
+    .replace(/[\[\]]/g, "").split(/,\s*/).filter(Boolean);
+  const visit = (name, path = []) => {
+    assert.ok(!path.includes(name), `dependency cycle: ${[...path, name].join(" -> ")}`);
+    for (const parent of prerequisites(name)) visit(parent, [...path, name]);
+  };
+  for (const name of Object.keys(jobs)) visit(name);
+  assert.deepEqual(prerequisites("conduitos-x86"),
+    ["classify", "conduitos-limine", "conduitos-tools", "conduitos-proof-image"]);
+  for (const name of ["workspace-check", "esp32-firmware", "browser-host",
+    "conduitos-architecture", "conduitos-aarch64-product"]) {
+    assert.ok(prerequisites(name).includes("conduitos-x86"), name);
+    const guard = jobs[name].match(/\(needs\.conduitos-x86\.result == 'success' \|\| !inputs\.full_suite && needs\.conduitos-x86\.result == 'skipped'\)/)?.[0];
+    assert.ok(guard, `${name} must refuse failed/cancelled x86 even with always()`);
+    for (const full of [true, false]) {
+      for (const result of ["success", "failure", "cancelled", "skipped"]) {
+        const expression = guard.replaceAll("needs.conduitos-x86.result", JSON.stringify(result))
+          .replaceAll("inputs.full_suite", JSON.stringify(full));
+        assert.equal(Function(`return ${expression}`)(), result === "success" || (!full && result === "skipped"));
+      }
+    }
+  }
+  const promotion = readFileSync(".github/workflows/promotion.yml", "utf8");
+  const products = promotion.split("  products:\n")[1].split("\n  conduitos-spore-acceptance:")[0];
+  assert.match(products, /needs: \[boundary, check\]/);
+  assert.match(products, /full_suite: true/);
+  assert.doesNotMatch(products, /if:.*always\(/);
+  assert.equal(source.match(/run: cargo xtask conduitos prepare-proof-image --locked/g)?.length, 1);
+  assert.match(jobs["conduitos-x86"], /expected-digest: \$\{\{ needs.conduitos-proof-image.outputs.artifact_digest \}\}/);
+  assert.doesNotMatch(jobs["conduitos-x86"], /run: cargo xtask conduitos prepare-proof-image/);
+  assert.match(promotion, /--spore target\/conduitos\/x86_64\/creche-export.iso/);
+});
+
 test("workflow topology keeps fast development separate from stable promotion", () => {
   const candidate = readFileSync(".github/workflows/candidate.yml", "utf8");
   const integration = readFileSync(".github/workflows/dev-integration.yml", "utf8");
@@ -80,17 +117,9 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(request, /workflow_dispatch/);
   assert.match(request, /workflow_run:/);
   assert.match(request, /workflows: \[dev-integration\]/);
-  assert.match(request, /Record a superseded development integration/);
-  assert.match(request, /A newer development head owns the next release decision/);
-  assert.match(request, /Check out the exact successfully integrated development snapshot/);
+  assert.match(request, /Admit one batch from fresh successful integration evidence/);
   assert.match(request, /integrated_sha:/);
-  assert.match(request, /inputs\.integrated_sha \|\| 'dev'/);
-  assert.match(request, /test "\$dev_sha" = "\$INTEGRATION_SHA"/);
-  assert.match(request, /git merge-base --is-ancestor "\$dev_sha" origin\/dev/);
-  assert.doesNotMatch(request, /already-running/);
-  assert.match(request, /already-current/);
-  assert.match(request, /release\/\$dev_sha/);
-  assert.match(request, /gh workflow run release-lane\.yml --ref main/);
+  assert.match(request, /node tools\/ci\/release-request-github.mjs/);
   assert.doesNotMatch(request, /gh pr merge/);
   const sync = readFileSync(".github/workflows/sync-release-to-dev.yml", "utf8");
   assert.match(sync, /Sync release fixes to dev/);
@@ -100,7 +129,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.doesNotMatch(sync, /gh pr merge/);
   const devIntegration = readFileSync(".github/workflows/dev-integration.yml", "utf8");
   assert.match(devIntegration, /workflow_dispatch:/);
-  assert.match(devIntegration, /inputs\.base_sha/);
+  assert.match(devIntegration, /needs.baseline.outputs.base_sha/);
   assert.match(devIntegration, /inputs\.candidate_sha/);
   assert.match(devIntegration, /permissions:\n  actions: write/);
   assert.match(devIntegration, /Continue the release train after an explicitly dispatched integration/);
@@ -121,7 +150,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(finalizer, /gh workflow run sync-release-to-dev\.yml --ref main/);
   assert.match(finalizer, /gh workflow run dev-integration\.yml --ref dev/);
   const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
-  assert.match(request, /gh workflow run monitor-trusted-pr\.yml --ref main/);
+  const admission = readFileSync("tools/ci/release-request.mjs", "utf8");
+  assert.match(admission, /monitor-trusted-pr.yml\/dispatches/);
   assert.doesNotMatch(sync, /gh workflow run monitor-trusted-pr\.yml --ref main/);
   assert.match(sync, /actions\/runs\/\$run_id\/approve/);
   assert.match(sync, /\.actor\.login/);
@@ -155,11 +185,12 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(monitor, /comment_body=\$\(printf/);
   assert.doesNotMatch(monitor, /^Release attempt /m);
   assert.match(monitor, /sleep 30/);
-  assert.match(monitor, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
+  assert.doesNotMatch(monitor, /gh pr merge "\$pr_url" --merge/);
+  assert.match(monitor, /finalize-release owns acceptance and publication/);
   assert.match(monitor, /gh pr merge "\$pr_url" --squash --match-head-commit "\$HEAD_SHA"/);
   assert.match(monitor, /git merge-tree --write-tree "\$base_sha" "\$HEAD_SHA"/);
   assert.match(monitor, /test "\$\(git rev-parse "\$merge_sha\^\{tree\}"\)" = "\$expected_tree"/);
-  assert.match(monitor, /gh workflow run tour-and-creche-pages --ref main/);
+  assert.doesNotMatch(monitor, /gh workflow run tour-and-creche-pages/);
   assert.match(monitor, /gh workflow run dev-integration\.yml --ref dev/);
   const releaseLane = readFileSync(".github/workflows/release-lane.yml", "utf8");
   assert.match(releaseLane, /workflows: \[promotion\]/);

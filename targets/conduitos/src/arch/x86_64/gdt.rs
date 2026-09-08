@@ -3,6 +3,10 @@ use core::{arch::asm, cell::UnsafeCell, mem::size_of};
 const KERNEL_CODE_SELECTOR: u16 = 0x08;
 const KERNEL_DATA_SELECTOR: u16 = 0x10;
 const TSS_SELECTOR: u16 = 0x18;
+#[cfg(feature = "conduitos-isolation-proof")]
+pub(super) const USER_CODE_SELECTOR: u16 = 0x2b;
+#[cfg(feature = "conduitos-isolation-proof")]
+pub(super) const USER_DATA_SELECTOR: u16 = 0x33;
 const IST_STACK_BYTES: usize = 16 * 1024;
 
 #[repr(C, packed)]
@@ -35,7 +39,7 @@ struct InterruptStack([u8; IST_STACK_BYTES]);
 
 #[repr(C, align(16))]
 struct GdtState {
-    entries: [u64; 5],
+    entries: [u64; 7],
     tss: TaskStateSegment,
     interrupt_stack: InterruptStack,
 }
@@ -43,7 +47,15 @@ struct GdtState {
 impl GdtState {
     const fn new() -> Self {
         Self {
-            entries: [0, 0x00af_9a00_0000_ffff, 0x00cf_9200_0000_ffff, 0, 0],
+            entries: [
+                0,
+                0x00af_9a00_0000_ffff,
+                0x00cf_9200_0000_ffff,
+                0,
+                0,
+                0x00af_fa00_0000_ffff,
+                0x00cf_f200_0000_ffff,
+            ],
             tss: TaskStateSegment::new(),
             interrupt_stack: InterruptStack([0; IST_STACK_BYTES]),
         }
@@ -72,7 +84,7 @@ pub(super) fn initialize() {
             core::ptr::addr_of!((*state).tss) as u64,
         );
         let descriptor = Descriptor {
-            limit: (size_of::<[u64; 5]>() - 1) as u16,
+            limit: (size_of::<[u64; 7]>() - 1) as u16,
             base: core::ptr::addr_of!((*state).entries) as u64,
         };
         asm!("lgdt [{}]", in(reg) &descriptor, options(readonly, nostack));
@@ -94,7 +106,14 @@ pub(super) fn initialize() {
     }
 }
 
-fn install_tss_descriptor(entries: &mut [u64; 5], base: u64) {
+#[cfg(feature = "conduitos-isolation-proof")]
+pub(super) unsafe fn set_ring0_stack(stack_top: u64) {
+    unsafe {
+        (*STATE.0.get()).tss.rsp[0] = stack_top;
+    }
+}
+
+fn install_tss_descriptor(entries: &mut [u64; 7], base: u64) {
     let limit = (size_of::<TaskStateSegment>() - 1) as u64;
     entries[3] = (limit & 0xffff)
         | ((base & 0xffff) << 16)
