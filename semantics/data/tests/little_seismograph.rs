@@ -23,6 +23,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     install_measurement_summary_catalog(&mut startup, &mut profile).unwrap();
     install_measurement_threshold_catalog(&mut startup, &mut profile).unwrap();
     install_measurement_plot_catalog(&mut startup, &mut profile).unwrap();
+    conduit_data::install_little_seismograph_fixture_catalog(&mut startup, &mut profile).unwrap();
     (startup, profile)
 }
 
@@ -32,7 +33,7 @@ fn processing_composes_four_reusable_forms_without_source_copying() {
     let parsed = parse_syntax_document(SOURCE);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
-    assert_eq!(checked.forms.len(), 5);
+    assert_eq!(checked.forms.len(), 6);
     let authored =
         expand_canonical_form_for_authoring(&checked, "little-seismograph-processing", &profile)
             .unwrap();

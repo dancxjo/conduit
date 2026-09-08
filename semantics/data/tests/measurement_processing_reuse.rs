@@ -16,6 +16,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     install_measurement_summary_catalog(&mut startup, &mut profile).unwrap();
     install_measurement_threshold_catalog(&mut startup, &mut profile).unwrap();
     install_measurement_plot_catalog(&mut startup, &mut profile).unwrap();
+    conduit_data::install_little_seismograph_fixture_catalog(&mut startup, &mut profile).unwrap();
     install_measurement_plot_form_catalog(&mut startup, &mut profile).unwrap();
     (startup, profile)
 }

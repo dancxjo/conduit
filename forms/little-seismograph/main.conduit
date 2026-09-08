@@ -63,3 +63,18 @@ form little-seismograph-processing (
     decide.decision > decision
     plot.series > series
 }
+
+# Deterministic proving composition. Acquisition remains a replaceable source;
+# the manifestations consume the portable processing outputs.
+form little-seismograph-display {
+    source: measurement/deterministic-seismograph-inputs
+    processing: little-seismograph-processing
+    plot: presentation/measurement-plot
+    threshold: presentation/measurement-threshold
+
+    source.profile > processing.profile
+    source.measurement > processing.measurement
+    source.threshold-profile > processing.threshold-profile
+    processing.series > plot.series
+    processing.decision > threshold.decision
+}

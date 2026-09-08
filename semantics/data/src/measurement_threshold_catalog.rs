@@ -14,6 +14,9 @@ use crate::{
 
 pub const MEASUREMENT_HYSTERESIS_KIND: &str = "data/measurement-hysteresis";
 pub const MEASUREMENT_HYSTERESIS_CONTRACT_REVISION: &str = "conduit.data/measurement-hysteresis@2";
+pub const MEASUREMENT_THRESHOLD_PRESENTATION_KIND: &str = "presentation/measurement-threshold";
+pub const MEASUREMENT_THRESHOLD_PRESENTATION_REVISION: &str =
+    "conduit.data/presentation-measurement-threshold@1";
 
 pub fn install_measurement_threshold_catalog(
     startup: &mut StartupCatalog,
@@ -41,9 +44,32 @@ pub fn install_measurement_threshold_catalog(
         kind: MEASUREMENT_HYSTERESIS_KIND.to_string(),
         startup_parameters: vec![],
     })?;
+    startup.insert(KindSignature {
+        kind: MEASUREMENT_THRESHOLD_PRESENTATION_KIND.to_string(),
+        startup_parameters: vec![],
+    })?;
     profile
         .insert(measurement_hysteresis_kind_definition())
+        .map_err(|error| error.to_string())?;
+    profile
+        .insert(measurement_threshold_presentation_definition())
         .map_err(|error| error.to_string())
+}
+
+pub fn measurement_threshold_presentation_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(MEASUREMENT_THRESHOLD_PRESENTATION_KIND),
+        kind_contract_revision: KindContractRevision::from(
+            MEASUREMENT_THRESHOLD_PRESENTATION_REVISION,
+        ),
+        inputs: vec![port(
+            "decision",
+            &measurement_threshold_decision_type(),
+            PortDirection::Input,
+        )],
+        outputs: vec![],
+        configuration: vec![],
+    }
 }
 
 pub fn measurement_hysteresis_kind_definition() -> KindDefinition {

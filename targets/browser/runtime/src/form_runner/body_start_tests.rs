@@ -256,7 +256,7 @@ pub(in crate::form_runner) fn request() -> BodyStartRequest {
     ])
 }
 
-fn request_from_sources(sources: &[&str]) -> BodyStartRequest {
+pub(super) fn request_from_sources(sources: &[&str]) -> BodyStartRequest {
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
     let hosts = [crate::installed_browser::advertisement(
         "body-host".into(),
