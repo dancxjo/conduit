@@ -50,7 +50,7 @@ async function observe() {
   const [pulls, runResponse, issues] = await Promise.all([
     api("/pulls?state=open&base=main&per_page=100&sort=created&direction=asc"),
     api("/actions/workflows/promotion.yml/runs?per_page=100"),
-    api("/issues?state=open&labels=release-liveness%2Frepair-needed&per_page=100"),
+    api("/issues?state=all&labels=release-liveness%2Frepair-needed&per_page=100"),
   ]);
   const releases = pulls.filter((pull) =>
     pull.head.repo?.full_name === repository && /^release\/[0-9a-f]{40}$/.test(pull.head.ref),
