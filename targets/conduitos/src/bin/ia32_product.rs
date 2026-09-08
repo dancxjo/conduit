@@ -235,6 +235,17 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     arch::present(observatory::EXPORT_PREFIX.as_bytes());
     arch::present(observatory_export.as_bytes());
     arch::present(b"\n");
+    if firmware == conduitos::boot::Firmware::X86Bios {
+        let host = identity::hex(&identities.host);
+        let boot = identity::hex(&identities.boot);
+        arch::present_legacy_bios_receipt(
+            EMBEDDED_FABRICATION.profile_id.as_bytes(),
+            EMBEDDED_FABRICATION.build_id.as_bytes(),
+            EMBEDDED_FABRICATION.image_binding.as_bytes(),
+            host.as_bytes(),
+            boot.as_bytes(),
+        );
+    }
     loop {
         unsafe { core::arch::asm!("hlt", options(nomem, nostack)) }
     }

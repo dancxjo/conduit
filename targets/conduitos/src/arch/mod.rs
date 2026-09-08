@@ -24,10 +24,15 @@ pub use x86_64::{
 pub const ARCHITECTURE: &str = "x86_64";
 #[cfg(target_arch = "x86")]
 mod ia32;
+#[cfg(any(target_arch = "x86", all(test, target_arch = "x86_64")))]
+#[cfg_attr(all(test, target_arch = "x86_64"), allow(dead_code))]
+#[path = "ia32/vga_text.rs"]
+mod ia32_vga_text;
 #[cfg(target_arch = "x86")]
 pub use ia32::{
     Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_interrupts,
-    initialize_machine, interruptible_idle, pop_interrupt, present, read_counter, timer_arm,
+    initialize_machine, interruptible_idle, pop_interrupt, present, present_legacy_bios_receipt,
+    read_counter, timer_arm,
 };
 #[cfg(target_arch = "x86")]
 pub const ARCHITECTURE: &str = "ia32";

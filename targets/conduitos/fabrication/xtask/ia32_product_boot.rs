@@ -68,6 +68,7 @@ pub(super) fn boot_legacy_bios(
         "product": product,
         "observatory": observatory,
         "physical_machine_booted": false,
+        "legacy_bios_vga_text_receipt": true,
         "stopped_by_harness": true
     });
     fs::write(
@@ -156,6 +157,7 @@ pub(super) fn boot_twice(
         "fresh_boot_id": true,
         "uefi32_booted": true,
         "legacy_bios_booted": true,
+        "legacy_bios_vga_text_receipt": true,
         "same_immutable_image": true,
         "native_patchbay_consumed": true,
         "stopped_by_harness": true
@@ -223,8 +225,18 @@ fn boot_once(
 ) -> Result<(serde_json::Value, serde_json::Value), ConduitosError> {
     let paths = Paths::new(ConduitosArch::Ia32)?;
     let transcript_path = paths.target.join(format!("ia32-product-{run}.log"));
+    let monitor_path = paths
+        .target
+        .join(format!("ia32-product-{run}-monitor.sock"));
+    let vga_path = paths.target.join(format!("ia32-product-{run}-vga.bin"));
     fs::write(&transcript_path, [])
         .map_err(|error| refusal("ia32-product-boot-failed", error.to_string()))?;
+    for stale in [&monitor_path, &vga_path] {
+        if stale.exists() {
+            fs::remove_file(stale)
+                .map_err(|error| refusal("ia32-product-boot-failed", error.to_string()))?;
+        }
+    }
     let mut child = Command::new("qemu-system-i386");
     child
         .args([
@@ -238,8 +250,6 @@ fn boot_once(
             "1",
             "-display",
             "none",
-            "-monitor",
-            "none",
             "-serial",
             "none",
             "-net",
@@ -249,6 +259,13 @@ fn boot_once(
         ])
         .arg(format!("file:{}", transcript_path.display()))
         .args(["-global", "isa-debugcon.iobase=0xe9"]);
+    if matches!(firmware_mode, FirmwareMode::LegacyBios) {
+        child
+            .arg("-monitor")
+            .arg(format!("unix:{},server,nowait", monitor_path.display()));
+    } else {
+        child.args(["-monitor", "none"]);
+    }
     if matches!(firmware_mode, FirmwareMode::Uefi32) {
         let (firmware, vars_template) = ia32_a1::firmware_paths(&paths)?;
         let vars = paths.target.join(format!("ia32-product-{run}-vars.fd"));
@@ -292,6 +309,15 @@ fn boot_once(
             let observatory: serde_json::Value = serde_json::from_str(observatory_json)
                 .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
             validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
+            if matches!(firmware_mode, FirmwareMode::LegacyBios) {
+                if let Err(error) =
+                    super::ia32_vga_receipt::capture_and_validate(&monitor_path, &vga_path, &value)
+                {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(error);
+                }
+            }
             thread::sleep(Duration::from_millis(250));
             if child
                 .try_wait()
