@@ -369,7 +369,7 @@ fn drive_with_boundary<'a>(
         })?;
         match status {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => return Ok(DriveStatus::Complete),
+            SchedulerStatus::Drained => return Ok(DriveStatus::Complete),
             SchedulerStatus::Idle
                 if allow_remote_wait || scheduler.pending_host_operation_count() > 0 =>
             {

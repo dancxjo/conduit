@@ -1077,7 +1077,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             .map_err(|error| format!("kernel step: {error:?}"))?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle => {
                 let Some(request) = deferred_even_completion.take() else {
                     return Err("multi-value kernel became idle before completion".to_string());

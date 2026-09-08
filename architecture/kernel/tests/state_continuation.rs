@@ -142,7 +142,7 @@ fn input_wait_continued_operation_and_explicit_closure_are_distinct() {
         .unwrap();
     let mut completed = false;
     for _ in 0..8 {
-        if play.step().unwrap() == SchedulerStatus::Complete {
+        if play.step().unwrap() == SchedulerStatus::Drained {
             completed = true;
             break;
         }

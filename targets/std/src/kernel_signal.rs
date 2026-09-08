@@ -643,7 +643,7 @@ fn run_signal_profile<
             .map_err(|error| format!("kernel step: {error:?}"))?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle => return Err("kernel became idle before completion".to_string()),
             SchedulerStatus::Cancelled => return Err("kernel was cancelled".to_string()),
         }

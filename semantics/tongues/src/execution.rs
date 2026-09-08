@@ -293,7 +293,7 @@ pub fn run_speech(
         }
         let status = scheduler.step();
         match status {
-            Ok(SchedulerStatus::Complete | SchedulerStatus::Cancelled) => break,
+            Ok(SchedulerStatus::Drained | SchedulerStatus::Cancelled) => break,
             Ok(SchedulerStatus::Progress { .. }) => {}
             Ok(SchedulerStatus::Idle) => return Err("speech kernel became idle".into()),
             Err(SchedulerError::OperationFailed(_)) if outcome.is_some() => break,

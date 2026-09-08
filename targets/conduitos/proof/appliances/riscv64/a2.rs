@@ -52,7 +52,7 @@ pub extern "C" fn conduitos_riscv64_a2_start() -> ! {
     stage("timer-wake");
     lane.complete_timer(interest)
         .unwrap_or_else(|_| refuse("stale-timer-identity"));
-    if !matches!(lane.step(), Ok(SchedulerStatus::Complete)) || lane.pending() != 0 {
+    if !matches!(lane.step(), Ok(SchedulerStatus::Drained)) || lane.pending() != 0 {
         refuse("kernel-terminal-progress-absent");
     }
     machine_sign(nonce, &lane, idle_entries);

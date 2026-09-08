@@ -361,7 +361,7 @@ impl PicoWifiBootstrapSource {
                 .map_err(|error| format!("{error:?}"))?
             {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => return Ok(None),
+                SchedulerStatus::Drained => return Ok(None),
                 SchedulerStatus::Idle => {
                     return Err("credential source became idle early".to_owned())
                 }

@@ -211,7 +211,7 @@ fn execute(copy: bool) -> (Vec<u64>, u16) {
     let mut checksums = Vec::with_capacity(2);
     let mut complete = false;
     for _ in 0..64 {
-        if scheduler.step().unwrap() == SchedulerStatus::Complete {
+        if scheduler.step().unwrap() == SchedulerStatus::Drained {
             complete = true;
             break;
         }

@@ -173,7 +173,7 @@ pub fn run(
         }
         match scheduler.step().map_err(|_| PresentationRunError::Kernel)? {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
                 return Err(PresentationRunError::Kernel);
             }

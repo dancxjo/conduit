@@ -448,9 +448,16 @@ impl<const PORTS: usize> StepIo<PORTS> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SchedulerStatus {
-    Progress { node: NodeId },
+    Progress {
+        node: NodeId,
+    },
     Idle,
-    Complete,
+    /// Every Gear has settled and every Cord has drained.
+    ///
+    /// This is structural scheduler truth, not a claim that the Form's
+    /// meaning is complete. The Play lifecycle must separately classify a
+    /// drained scheduler as quiescent or semantically completed.
+    Drained,
     Cancelled,
 }
 
@@ -733,7 +740,7 @@ where
                     .iter()
                     .all(|cord| cord.len == 0)
             {
-                Ok(SchedulerStatus::Complete)
+                Ok(SchedulerStatus::Drained)
             } else {
                 Ok(SchedulerStatus::Idle)
             };
@@ -784,7 +791,7 @@ where
                 .iter()
                 .all(|cord| cord.len == 0)
         {
-            Ok(SchedulerStatus::Complete)
+            Ok(SchedulerStatus::Drained)
         } else {
             Ok(SchedulerStatus::Progress {
                 node: NodeId(as_u16(node)?),
@@ -798,7 +805,7 @@ where
         }
         for _ in 0..maximum_decisions {
             match self.step()? {
-                SchedulerStatus::Complete => return Ok(()),
+                SchedulerStatus::Drained => return Ok(()),
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle => return Err(SchedulerError::FalseProgress),
                 SchedulerStatus::Cancelled => return Err(SchedulerError::Cancelled),

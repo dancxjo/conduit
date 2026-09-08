@@ -120,7 +120,7 @@ fn exercise(consume: bool) {
             Err(error) => {
                 panic!("consumed reference must transfer while its queued alias remains: {error:?}")
             }
-            Ok(SchedulerStatus::Complete) => {
+            Ok(SchedulerStatus::Drained) => {
                 assert!(consume);
                 assert_eq!(requests, 2);
                 assert_eq!(scheduler.values().used_items(), 0);

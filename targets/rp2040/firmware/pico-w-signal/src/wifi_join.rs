@@ -259,7 +259,7 @@ impl JoinKernel {
             match self.scheduler.step().map_err(UsbLinkError::Kernel)? {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle => return Err(UsbLinkError::KernelIdle),
-                SchedulerStatus::Complete => return Err(UsbLinkError::KernelCompletedEarly),
+                SchedulerStatus::Drained => return Err(UsbLinkError::KernelCompletedEarly),
                 SchedulerStatus::Cancelled => return Err(UsbLinkError::KernelCancelled),
             }
         }
@@ -275,7 +275,7 @@ impl JoinKernel {
         loop {
             match self.scheduler.step().map_err(UsbLinkError::Kernel)? {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => return Ok(()),
+                SchedulerStatus::Drained => return Ok(()),
                 SchedulerStatus::Idle => return Err(UsbLinkError::KernelIdle),
                 SchedulerStatus::Cancelled => return Err(UsbLinkError::KernelCancelled),
             }

@@ -103,7 +103,7 @@ pub fn run_logic_multi(prepared: &PreparedLogicMulti) -> Result<LogicMultiProof,
             .map_err(|_| LogicMultiError::Kernel)?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
                 return Err(LogicMultiError::Kernel);
             }

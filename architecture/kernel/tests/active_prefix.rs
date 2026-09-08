@@ -216,7 +216,7 @@ fn one_scheduler_capacity_runs_two_different_active_shapes() {
     .expect("pair installs in larger fixed capacity");
     pair.run(32)
         .expect("pair completes under capacity-one pressure");
-    assert_eq!(pair.step(), Ok(SchedulerStatus::Complete));
+    assert_eq!(pair.step(), Ok(SchedulerStatus::Drained));
     assert!(pair.signs().events().all(|event| event.node.0 < 2));
     assert!(matches!(pair.drivers()[1].role, Role::Sink { seen: 2 }));
 

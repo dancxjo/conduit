@@ -136,7 +136,7 @@ pub async fn run_signal_demo(
     let mut error = false;
     loop {
         match scheduler.step() {
-            Ok(SchedulerStatus::Complete) => break,
+            Ok(SchedulerStatus::Drained) => break,
             Ok(SchedulerStatus::Cancelled) => {
                 error = true;
                 break;

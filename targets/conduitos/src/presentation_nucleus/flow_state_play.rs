@@ -92,7 +92,7 @@ pub fn run_flow_state(prepared: &PreparedFlowState) -> Result<FlowStateProof, Fl
             .map_err(|_| FlowStateError::Kernel)?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
                 return Err(FlowStateError::Kernel);
             }

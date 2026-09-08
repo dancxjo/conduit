@@ -79,7 +79,7 @@ pub(super) fn run_sink(
             } if final_sequence == MAXIMUM_VALUES as u64 => {
                 while !matches!(
                     kernel.step().map_err(|error| format!("{error:?}"))?,
-                    SchedulerStatus::Complete
+                    SchedulerStatus::Drained
                 ) {}
                 send(
                     &mut session,

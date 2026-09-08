@@ -197,7 +197,7 @@ where
                 }
             }
             match scheduler.step() {
-                Ok(SchedulerStatus::Complete) => break 'run ObligationVerdict::Completed,
+                Ok(SchedulerStatus::Drained) => break 'run ObligationVerdict::Completed,
                 Ok(SchedulerStatus::Progress { .. }) => {}
                 _ => break 'run ObligationVerdict::Failed,
             }

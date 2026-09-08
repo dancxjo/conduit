@@ -193,7 +193,7 @@ pub fn run_clamp(prepared: &PreparedMathClamp) -> Result<MathClampProof, MathCla
             .map_err(|_| MathClampError::Kernel)?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
                 return Err(MathClampError::Kernel);
             }
