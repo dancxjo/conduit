@@ -2,7 +2,7 @@
 
 mod tour_sign;
 
-use alloc::string::String;
+use alloc::{format, string::String};
 
 use conduit_human::KeyTransition;
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
@@ -21,7 +21,7 @@ use crate::{
     product_bindings::binding_for_usage,
     product_journey::{JourneyAction, JourneyProjection, JourneyStatus, ProductJourney},
     rescue_guest,
-    tour_product::{TourProduct, TourProductUpdate},
+    tour_product::TourProduct,
     tour_shell::TourShellPresenter,
 };
 use tour_sign::emit_tour_sign;
