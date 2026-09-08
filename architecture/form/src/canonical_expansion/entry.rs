@@ -139,6 +139,7 @@ pub fn expand_canonical_form_for_authoring_with_backs(
             checked_form_id: form.checked_form_id.clone(),
             expanded_form_id,
             name: form.name.clone(),
+            completion: form.completion,
             gears,
             connections,
             shared_pools,

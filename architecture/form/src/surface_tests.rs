@@ -1,8 +1,34 @@
 use crate::{
     parse_syntax_document, Argument, BackStatement, ConstructionRole, CordStage, CstTokenKind,
-    ExpressionSyntax, RuntimePortDirection, RuntimePortTemporal,
+    ExpressionSyntax, FormCompletionPolicy, RuntimePortDirection, RuntimePortTemporal,
 };
 use alloc::vec::Vec;
+
+#[test]
+fn forms_are_live_by_default_and_completion_is_explicit() {
+    let source = "form live {\n    source: text/literal(\"ready\")\n}\nform finite {\n    complete\n    source: text/literal(\"done\")\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.forms[0].completion, FormCompletionPolicy::Live);
+    assert_eq!(
+        document.forms[1].completion,
+        FormCompletionPolicy::SemanticCompletion
+    );
+    assert_eq!(document.round_trip(), source);
+}
+
+#[test]
+fn duplicate_completion_declarations_are_rejected() {
+    let document = parse_syntax_document("form invalid {\n    complete\n    complete\n}\n");
+    assert_eq!(document.diagnostics.len(), 1);
+    assert!(document.diagnostics[0]
+        .message
+        .contains("semantic completion only once"));
+}
 
 #[test]
 fn inline_comments_are_lossless_trivia_across_surface_roles() {

@@ -1,12 +1,12 @@
 use crate::prelude::*;
 use crate::{
     hash_string, CanonicalStartupValue, CheckedCanonicalCord, CheckedCanonicalGear,
-    CheckedCordStage, CheckedStartupParameter,
+    CheckedCordStage, CheckedStartupParameter, FormCompletionPolicy,
 };
 use conduit_core::CheckedFormId;
 
 pub(crate) fn checked_identity(
-    name: &str,
+    meaning: (&str, FormCompletionPolicy),
     parameters: &[CheckedStartupParameter],
     runtime_face: &conduit_core::CheckedFace,
     shorthand: Option<(&str, &str)>,
@@ -14,8 +14,16 @@ pub(crate) fn checked_identity(
     cords: &[CheckedCanonicalCord],
     pools: &[crate::CheckedPoolDeclaration],
 ) -> CheckedFormId {
+    let (name, completion) = meaning;
     let mut canonical = String::from("canonical-form");
     push_field(&mut canonical, name);
+    push_field(
+        &mut canonical,
+        match completion {
+            FormCompletionPolicy::Live => "live",
+            FormCompletionPolicy::SemanticCompletion => "complete",
+        },
+    );
     for parameter in parameters {
         canonical.push_str("param");
         push_field(&mut canonical, &parameter.name);

@@ -6,6 +6,7 @@ impl ExpandedCanonicalForm {
         let form = CheckedCanonicalForm {
             checked_form_id: self.checked_form_id.clone(),
             name: self.name.clone(),
+            completion: self.completion,
             startup_parameters: vec![],
             runtime_ports: Vec::new(),
             runtime_face: conduit_core::CheckedFace::new(vec![], vec![], vec![], None),

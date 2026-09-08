@@ -71,6 +71,7 @@ mod tests {
             checked_form_id: CheckedFormId::from("checked-1"),
             expanded_form_id: ExpandedFormId::from("expanded-1"),
             name: "demo".into(),
+            completion: conduit_form::FormCompletionPolicy::Live,
             gears: Vec::new(),
             connections: Vec::new(),
             exports: Vec::new(),

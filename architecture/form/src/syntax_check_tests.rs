@@ -51,6 +51,21 @@ fn check(source: &str) -> crate::CheckedSyntaxDocument {
 }
 
 #[test]
+fn completion_policy_is_exact_checked_meaning() {
+    let live = check("form example {\n tick: time/every(1s)\n}\n");
+    let finite = check("form example {\n complete\n tick: time/every(1s)\n}\n");
+    assert_eq!(live.forms[0].completion, crate::FormCompletionPolicy::Live);
+    assert_eq!(
+        finite.forms[0].completion,
+        crate::FormCompletionPolicy::SemanticCompletion
+    );
+    assert_ne!(
+        live.forms[0].checked_form_id,
+        finite.forms[0].checked_form_id
+    );
+}
+
+#[test]
 fn comment_only_edits_change_source_identity_but_not_checked_meaning() {
     let plain = check("form a {\n clock: time/every(1s)\n clock > sink\n}\n");
     let commented = check(
