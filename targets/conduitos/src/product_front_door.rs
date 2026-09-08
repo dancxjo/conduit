@@ -230,6 +230,13 @@ pub fn run(
                     let shell_receipt = shell
                         .present_with_lifecycle(&tour, &journey.projection(), display)
                         .map_err(|error| error.as_str())?;
+                    emit_tour_sign(
+                        &tour,
+                        Some(&update),
+                        &shell_receipt,
+                        identities,
+                        fabrication,
+                    );
                     if update.play.is_some() {
                         arch::early_write(b"\n");
                         let receipt = shell
@@ -256,13 +263,6 @@ pub fn run(
                         emit_shown_transient(&receipt, None, &shell, identities, fabrication)?;
                         arch::early_write(b"CONDUIT_TOUR_CHECKPOINT chooser-transient-shown\n");
                     }
-                    emit_tour_sign(
-                        &tour,
-                        Some(&update),
-                        &shell_receipt,
-                        identities,
-                        fabrication,
-                    );
                     return Ok(
                         if action == OPEN_PATCHBAY_ACTION_ID && pointer_session.is_some() {
                             ProductInputControl::Yield
