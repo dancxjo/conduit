@@ -188,6 +188,30 @@ test("workflow topology keeps fast development separate from stable promotion", 
   }
 });
 
+test("artifact transport gets one bounded retry without hiding repeated failure", () => {
+  for (const path of [
+    ".github/workflows/check.yml",
+    ".github/workflows/promotion.yml",
+    ".github/workflows/tour-products.yml",
+  ]) {
+    const workflow = readFileSync(path, "utf8");
+    assert.doesNotMatch(workflow, /uses: actions\/upload-artifact@v7/);
+    assert.doesNotMatch(workflow, /uses: actions\/download-artifact@v8/);
+  }
+  const upload = readFileSync(".github/actions/upload-artifact-retry/action.yml", "utf8");
+  const download = readFileSync(".github/actions/download-artifact-retry/action.yml", "utf8");
+  assert.equal((upload.match(/uses: actions\/upload-artifact@v7/g) ?? []).length, 2);
+  assert.equal((download.match(/uses: actions\/download-artifact@v8/g) ?? []).length, 3);
+  assert.match(upload, /continue-on-error: true/);
+  assert.match(upload, /if: steps\.primary\.outcome == 'failure'/);
+  assert.match(upload, /name: \$\{\{ inputs\.name \}\}-retry/);
+  assert.match(download, /continue-on-error: true/);
+  assert.match(download, /if: steps\.primary\.outcome == 'failure'/);
+  assert.match(download, /steps\.retry\.outcome == 'failure' && inputs\.name != ''/);
+  assert.match(download, /name: \$\{\{ inputs\.name \}\}-retry/);
+  assert.match(download, /steps\.retry\.outcome == 'failure' && inputs\.name == ''/);
+});
+
 test("cancelled exact heads cannot start more reusable proof jobs", () => {
   for (const path of [".github/workflows/check.yml", ".github/workflows/tour-products.yml"]) {
     const workflow = readFileSync(path, "utf8");
