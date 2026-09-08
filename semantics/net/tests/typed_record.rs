@@ -342,3 +342,63 @@ fn desk_telegraph_uses_reusable_text_record_faces_around_exact_framing() {
     assert!(kinds.contains(&ORDERED_RECORD_QUEUE_KIND));
     assert!(kinds.contains(&RECORD_EXACTLY_ONE_KIND));
 }
+
+#[test]
+fn night_radio_composes_existing_framing_queue_and_presentation() {
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
+    install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
+    install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
+    conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
+    startup
+        .insert(conduit_form::KindSignature {
+            kind: "presentation/text".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    profile
+        .insert(conduit_form::KindDefinition {
+            kind_id: kind_id("presentation/text"),
+            kind_contract_revision: "test/presentation-text@1".into(),
+            inputs: vec![conduit_core::PortDescriptor {
+                port_id: conduit_core::port_id("text"),
+                value_kind: kind_id(TEXT_INFO_ID),
+                direction: conduit_core::PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+            }],
+            outputs: vec![],
+            configuration: vec![],
+        })
+        .unwrap();
+
+    let source = include_str!("../../../forms/night-radio/main.conduit");
+    for forbidden in ["WebSocket", "WebRTC", "HostId", "BootId", "browser", "DOM"] {
+        assert!(!source.contains(forbidden));
+    }
+    let checked =
+        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+            .unwrap();
+    let expanded =
+        conduit_form::expand_canonical_form_for_authoring(&checked, "night-radio", &profile)
+            .unwrap();
+    let kinds = expanded
+        .expanded
+        .gears
+        .iter()
+        .map(|gear| gear.kind_id.as_str())
+        .collect::<Vec<_>>();
+    for required in [
+        TEXT_TO_TYPED_RECORD_KIND,
+        TYPED_RECORD_FRAME_KIND,
+        RECORD_SINGLETON_STREAM_KIND,
+        ORDERED_RECORD_QUEUE_KIND,
+        RECORD_EXACTLY_ONE_KIND,
+        TYPED_RECORD_DEFRAME_KIND,
+        TYPED_RECORD_TO_TEXT_KIND,
+        "presentation/text",
+    ] {
+        assert!(kinds.contains(&required), "Night Radio omitted {required}");
+    }
+    assert_eq!(expanded.expanded.connections.len(), kinds.len() - 1);
+}

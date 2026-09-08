@@ -924,8 +924,8 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(page).toHaveTitle("Form Gallery · Tour");
   await expect(page.getByRole("heading", { level: 1, name: "Form Gallery" })).toBeFocused();
   const cards = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]');
-  await expect(cards).toHaveCount(7);
-  await expect(cards.getByRole("status").filter({ hasText: "Runnable here" })).toHaveCount(7);
+  await expect(cards).toHaveCount(8);
+  await expect(cards.getByRole("status").filter({ hasText: "Runnable here" })).toHaveCount(8);
   await expect(cards.first()).toContainText("=current/local");
   await expect(page.locator('[data-application-key="gallery-status"]')).toContainText("Browsing acquires no resource or authority");
   await expect(page.locator(".tour-workbench")).toHaveCount(1);

@@ -329,7 +329,7 @@ impl KernelCompositeHost {
         if self
             .children
             .values()
-            .all(|child| child.status() == SchedulerStatus::Complete)
+            .all(|child| child.status() == SchedulerStatus::Drained)
             && self.links.iter().all(|link| link.closed)
         {
             Ok(KernelCompositeStatus::Complete)

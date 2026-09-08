@@ -263,7 +263,7 @@ fn execute_form(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core:
             .map_err(|error| format!("run browser presentation kernel: {error:?}"))?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle => return Err("browser presentation kernel became idle".into()),
             SchedulerStatus::Cancelled => {
                 return Err("browser presentation kernel was cancelled".into())

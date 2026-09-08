@@ -440,7 +440,7 @@ pub fn run_with_presentation(
                     return Err(PreparationError::KernelRejected);
                 }
             }
-            SchedulerStatus::Complete => {
+            SchedulerStatus::Drained => {
                 if event_index != events.len() {
                     return Err(PreparationError::KernelRejected);
                 }

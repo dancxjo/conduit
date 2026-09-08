@@ -440,7 +440,7 @@ impl NativeTextLabFragment {
                 SchedulerStatus::Idle => {
                     return Err("native Text Lab became idle before output".into())
                 }
-                SchedulerStatus::Complete => {
+                SchedulerStatus::Drained => {
                     return Err("native Text Lab completed before output".into())
                 }
                 SchedulerStatus::Cancelled => return Err("native Text Lab cancelled".into()),

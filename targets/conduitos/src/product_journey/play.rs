@@ -220,7 +220,7 @@ impl ProductJourney {
             {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle => return Err(JourneyError::Kernel),
-                SchedulerStatus::Complete => {
+                SchedulerStatus::Drained => {
                     self.status = JourneyStatus::ResultVisible;
                     return Ok(());
                 }

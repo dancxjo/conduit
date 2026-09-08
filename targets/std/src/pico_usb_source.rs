@@ -359,7 +359,7 @@ impl PicoUsbSource {
                 .map_err(|error| format!("{error:?}"))?
             {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => return Ok(None),
+                SchedulerStatus::Drained => return Ok(None),
                 SchedulerStatus::Idle => return Err("source kernel became idle early".to_owned()),
                 SchedulerStatus::Cancelled => return Err("source kernel cancelled".to_owned()),
             }

@@ -71,7 +71,7 @@ pub extern "C" fn conduitos_aarch64_a2_start() -> ! {
     if lane.complete_timer(interest).is_err() {
         refuse("stale-timer-identity");
     }
-    if !matches!(lane.step(), Ok(SchedulerStatus::Complete)) || lane.pending() != 0 {
+    if !matches!(lane.step(), Ok(SchedulerStatus::Drained)) || lane.pending() != 0 {
         refuse("kernel-terminal-progress-absent");
     }
     machine_sign(nonce, &lane, idle_entries, timer_wakes);

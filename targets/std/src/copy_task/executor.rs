@@ -442,7 +442,7 @@ fn execute_copy(
         };
         match status {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete | SchedulerStatus::Cancelled => break,
+            SchedulerStatus::Drained | SchedulerStatus::Cancelled => break,
             SchedulerStatus::Idle => return Err("copy kernel became idle".to_string()),
         }
     }

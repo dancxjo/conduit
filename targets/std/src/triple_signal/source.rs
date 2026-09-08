@@ -194,7 +194,7 @@ impl TripleSource {
                 .map_err(|error| format!("{error:?}"))?
             {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => return Ok(None),
+                SchedulerStatus::Drained => return Ok(None),
                 SchedulerStatus::Idle => return Err("triple source became idle early".to_owned()),
                 SchedulerStatus::Cancelled => return Err("triple source cancelled".to_owned()),
             }
@@ -244,7 +244,7 @@ impl TripleSource {
                 .map_err(|error| format!("{error:?}"))?
             {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => {
+                SchedulerStatus::Drained => {
                     return Err("kernel completed before stdout manifested".to_owned())
                 }
                 SchedulerStatus::Idle => return Err("stdout branch became idle".to_owned()),
@@ -274,7 +274,7 @@ impl TripleSource {
                         self.complete_host_operation(request)?;
                     }
                 }
-                SchedulerStatus::Complete => break,
+                SchedulerStatus::Drained => break,
                 SchedulerStatus::Idle => {
                     return Err("triple kernel idle before terminal".to_owned())
                 }

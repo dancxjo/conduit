@@ -123,7 +123,7 @@ where
                 idle.wait_for_interrupt()
                     .map_err(|_| MachineRunError::InterruptBaseFailure)?;
             }
-            SchedulerStatus::Complete => {
+            SchedulerStatus::Drained => {
                 if !overlap_witness || !timer_completed {
                     return Err(MachineRunError::KernelFailure);
                 }

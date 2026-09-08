@@ -83,7 +83,7 @@ pub fn run_robotics(prepared: &PreparedRobotics) -> Result<RoboticsProof, Roboti
         }
         match kernel.step().map_err(RoboticsError::Kernel)? {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle => {
                 return Err(RoboticsError::Idle(
                     kernel.drivers()[usize::from(drive.0)]

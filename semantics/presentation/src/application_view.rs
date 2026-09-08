@@ -14,7 +14,8 @@ pub const MAX_APPLICATION_VIEW_NODES: usize = 128;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
 pub const MAX_APPLICATION_VIEW_TEXT_BYTES: usize = 256;
-pub const MAX_APPLICATION_ACTIONS: usize = 16;
+/// Search plus two semantic actions per card, within the reviewed twelve-Form Gallery.
+pub const MAX_APPLICATION_ACTIONS: usize = 32;
 pub const MAX_APPLICATION_ACTION_ID_BYTES: usize = 48;
 pub const MAX_APPLICATION_CONTROL_VALUE_BYTES: usize = 65_536;
 pub const MAX_APPLICATION_EVENT_BYTES: usize = MAX_APPLICATION_CONTROL_VALUE_BYTES;

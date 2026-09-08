@@ -356,7 +356,7 @@ pub fn finish_create_observation_execution(
     }
     for _ in 0..32 {
         match execution.scheduler.step() {
-            Ok(SchedulerStatus::Complete) if sink_received(&execution.scheduler) => {
+            Ok(SchedulerStatus::Drained) if sink_received(&execution.scheduler) => {
                 return report(
                     execution,
                     CreateObservationTerminal::Completed,

@@ -471,7 +471,7 @@ impl BrowserSession {
             };
             match status {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => {
+                SchedulerStatus::Drained => {
                     if self.receipts != MAXIMUM_RECEIPTS
                         || self.next_projection != MAXIMUM_RECEIPTS
                         || self.scheduler.values().used_items() != 0
@@ -647,7 +647,7 @@ impl BrowserSession {
                     Ok(SchedulerStatus::Cancelled) | Err(SchedulerError::OperationFailed(_)) => {
                         return self.fail(ERROR_TERMINAL_FAILURE)
                     }
-                    Ok(SchedulerStatus::Complete | SchedulerStatus::Idle) | Err(_) => {
+                    Ok(SchedulerStatus::Drained | SchedulerStatus::Idle) | Err(_) => {
                         return self.fail(ERROR_TERMINAL_FAILURE)
                     }
                 }

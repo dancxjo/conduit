@@ -363,7 +363,7 @@ impl PatchbayInteraction {
                     .map_err(scheduler_error("complete interaction host operation"))?;
             }
             match scheduler.step() {
-                Ok(SchedulerStatus::Complete) => break,
+                Ok(SchedulerStatus::Drained) => break,
                 Ok(SchedulerStatus::Progress { .. }) => {}
                 Ok(SchedulerStatus::Idle) => {
                     return Err(InteractionError::Execution(

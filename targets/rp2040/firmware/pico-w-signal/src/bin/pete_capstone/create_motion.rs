@@ -414,7 +414,7 @@ fn next_kernel_request(scheduler: &mut CapstoneScheduler) -> Result<HostOperatio
         }
         match scheduler.step().map_err(|_| ())? {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Idle | SchedulerStatus::Complete | SchedulerStatus::Cancelled => {
+            SchedulerStatus::Idle | SchedulerStatus::Drained | SchedulerStatus::Cancelled => {
                 return Err(())
             }
         }

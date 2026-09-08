@@ -205,7 +205,7 @@ impl Session {
                 SchedulerStatus::Idle => {
                     return Err("multi-Host source became idle before offering its value".into())
                 }
-                SchedulerStatus::Complete => {
+                SchedulerStatus::Drained => {
                     if !self
                         .scheduler
                         .remote_egress_terminal(endpoint, cord)

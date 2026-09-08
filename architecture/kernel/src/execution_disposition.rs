@@ -6,6 +6,27 @@
 
 use crate::{Failure, FailureCode};
 
+/// Checked semantic policy for classifying a structurally drained scheduler.
+///
+/// Draining is not itself a terminal fact. Forms remain live by default; the
+/// exceptional policy is admitted only when checked semantics provide an exact
+/// completion witness.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum DrainedPlayDisposition {
+    #[default]
+    Quiescent,
+    SemanticCompletion,
+}
+
+impl DrainedPlayDisposition {
+    pub const fn execution_disposition(self) -> ExecutionDisposition {
+        match self {
+            Self::Quiescent => ExecutionDisposition::QuiescentAwaitingInput,
+            Self::SemanticCompletion => ExecutionDisposition::SemanticCompleted,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ExecutionDisposition {
     Continued,
@@ -123,5 +144,17 @@ mod tests {
             assert_eq!(failure.code, code);
             assert_eq!(failure.detail, 17);
         }
+    }
+
+    #[test]
+    fn drained_work_is_quiescent_unless_semantics_explicitly_complete() {
+        assert_eq!(
+            DrainedPlayDisposition::default().execution_disposition(),
+            ExecutionDisposition::QuiescentAwaitingInput
+        );
+        assert_eq!(
+            DrainedPlayDisposition::SemanticCompletion.execution_disposition(),
+            ExecutionDisposition::SemanticCompleted
+        );
     }
 }

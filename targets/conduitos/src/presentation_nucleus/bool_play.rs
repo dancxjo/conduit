@@ -169,7 +169,7 @@ pub fn run_bool(
             .map_err(|_| BoolPresentationError::Kernel)?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
                 return Err(BoolPresentationError::Kernel);
             }

@@ -217,7 +217,7 @@ mod tests {
             Err(SchedulerError::InvalidHostOperationAccess)
         );
         lane.complete_timer(interest).unwrap();
-        assert!(matches!(lane.step().unwrap(), SchedulerStatus::Complete));
+        assert!(matches!(lane.step().unwrap(), SchedulerStatus::Drained));
         assert_eq!(lane.pending(), 0);
     }
 }

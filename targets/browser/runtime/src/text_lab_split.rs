@@ -268,7 +268,7 @@ impl BrowserTextLabFragment {
                 SchedulerStatus::Idle => {
                     return Err("split Text Lab browser kernel became idle".into())
                 }
-                SchedulerStatus::Complete => {
+                SchedulerStatus::Drained => {
                     return Err("split Text Lab browser kernel completed before output".into())
                 }
                 SchedulerStatus::Cancelled => {
@@ -318,7 +318,7 @@ impl BrowserTextLabFragment {
                 SchedulerStatus::Idle => {
                     return Err("split Text Lab browser became idle at finish".into())
                 }
-                SchedulerStatus::Complete => break,
+                SchedulerStatus::Drained => break,
                 SchedulerStatus::Cancelled => return Err("split Text Lab browser cancelled".into()),
             }
         }

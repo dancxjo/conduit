@@ -215,7 +215,7 @@ impl RemoteSignalKernel {
             match self.scheduler.step().map_err(UsbLinkError::Kernel)? {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle => return Err(UsbLinkError::KernelIdle),
-                SchedulerStatus::Complete => return Err(UsbLinkError::KernelCompletedEarly),
+                SchedulerStatus::Drained => return Err(UsbLinkError::KernelCompletedEarly),
                 SchedulerStatus::Cancelled => return Err(UsbLinkError::KernelCancelled),
             }
         }
@@ -232,7 +232,7 @@ impl RemoteSignalKernel {
         loop {
             match self.scheduler.step().map_err(UsbLinkError::Kernel)? {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => break,
+                SchedulerStatus::Drained => break,
                 SchedulerStatus::Idle => return Err(UsbLinkError::KernelIdle),
                 SchedulerStatus::Cancelled => return Err(UsbLinkError::KernelCancelled),
             }

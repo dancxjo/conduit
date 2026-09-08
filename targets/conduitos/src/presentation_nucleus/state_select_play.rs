@@ -109,7 +109,7 @@ pub fn run_state_select(
             .map_err(StateSelectError::KernelDetail)?
         {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => break,
+            SchedulerStatus::Drained => break,
             SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
                 return Err(StateSelectError::Kernel);
             }

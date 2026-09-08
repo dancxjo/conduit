@@ -400,7 +400,7 @@ impl Session {
             }
             match self.scheduler.step().map_err(debug_error)? {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => return Ok(()),
+                SchedulerStatus::Drained => return Ok(()),
                 SchedulerStatus::Idle => {
                     return Err("multi-Host fragment became idle before terminal truth".into())
                 }

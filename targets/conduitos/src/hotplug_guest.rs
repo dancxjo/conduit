@@ -234,7 +234,7 @@ fn finish(kernel: &mut KeyboardTextKernel) -> Result<u8, &'static str> {
             .map_err(|_| "semantic-operation-refused")?;
         }
         match kernel.step() {
-            Ok(SchedulerStatus::Complete) => return Ok(presentations),
+            Ok(SchedulerStatus::Drained) => return Ok(presentations),
             Ok(SchedulerStatus::Progress { .. }) | Ok(SchedulerStatus::Idle) => {}
             _ => return Err("d2-kernel-terminal-invalid"),
         }

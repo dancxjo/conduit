@@ -130,7 +130,7 @@ fn two_distinct_values_release_in_one_terminal_transition() {
     .unwrap();
     let mut scheduler = scheduler_without_cords(driver, values).unwrap();
 
-    assert_eq!(scheduler.step(), Ok(SchedulerStatus::Complete));
+    assert_eq!(scheduler.step(), Ok(SchedulerStatus::Drained));
     assert_eq!(scheduler.values().used_items(), 0);
 }
 

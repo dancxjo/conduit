@@ -14,60 +14,18 @@ use conduit_presentation::{
     RendererRealizationOffer, renderer_kind_definition, renderer_offer,
 };
 use conduitos::{
-    display::{DisplayError, DisplayFormat, PixelTarget},
+    display::DisplayError,
     native_compositor::{
         CompositorAdmission, MAX_COMPOSITOR_SURFACES, NATIVE_PRESENTER_IMPLEMENTATION,
         NativeCompositor, NativeCompositorError,
     },
 };
 
+#[path = "common/native_compositor.rs"]
+mod support;
+use support::MemoryDisplay;
+
 const SURFACE_CLASS: &str = "presentation/surface";
-
-#[derive(Clone)]
-struct MemoryDisplay {
-    format: DisplayFormat,
-    pixels: Vec<u32>,
-    lost: bool,
-}
-
-impl MemoryDisplay {
-    fn new() -> Self {
-        Self {
-            format: DisplayFormat {
-                width: 32,
-                height: 16,
-                pitch: 128,
-                bits_per_pixel: 32,
-                red_shift: 16,
-                green_shift: 8,
-                blue_shift: 0,
-            },
-            pixels: vec![0; 32 * 16],
-            lost: false,
-        }
-    }
-
-    fn lost() -> Self {
-        let mut display = Self::new();
-        display.lost = true;
-        display
-    }
-}
-
-impl PixelTarget for MemoryDisplay {
-    fn format(&self) -> DisplayFormat {
-        self.format
-    }
-
-    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
-        if self.lost {
-            return Err(DisplayError::Lost);
-        }
-        let index = usize::try_from(y * self.format.width + x).unwrap();
-        self.pixels[index] = pixel;
-        Ok(())
-    }
-}
 
 #[test]
 fn admitted_native_compositor_binds_exact_manifestation_and_scanout() {
@@ -89,10 +47,22 @@ fn admitted_native_compositor_binds_exact_manifestation_and_scanout() {
         vec!["surface/main".into()],
     )
     .unwrap();
-    let mut compositor = NativeCompositor::admitted(admission, MemoryDisplay::new());
+    let mut compositor = NativeCompositor::admitted(admission);
+    compositor
+        .admit_surface(
+            "surface/main",
+            LayoutRect {
+                x: 0,
+                y: 0,
+                width: 32,
+                height: 16,
+            },
+            0,
+        )
+        .unwrap();
     let scene = scene();
     let receipt = compositor
-        .compose(
+        .update_surface(
             &presentation,
             &manifestation,
             &plan,
@@ -111,9 +81,13 @@ fn admitted_native_compositor_binds_exact_manifestation_and_scanout() {
     assert_eq!(receipt.display_base_id, base);
     assert_eq!(receipt.display.commands, 1);
     assert!(receipt.display.pixels_written > 0);
-
+    let mut display = MemoryDisplay::new();
+    let frame = compositor.compose_frame(&mut display).unwrap();
+    assert_eq!(frame.frame_sequence, 1);
+    assert_eq!(frame.surfaces_composed, 1);
+    assert_ne!(display.pixels[33], 0);
     assert_eq!(
-        compositor.compose(
+        compositor.update_surface(
             &presentation,
             &manifestation,
             &plan,
@@ -121,7 +95,7 @@ fn admitted_native_compositor_binds_exact_manifestation_and_scanout() {
             &HostBaseId::from("display/base/0"),
             &scene,
         ),
-        Err(NativeCompositorError::SurfaceOccupied)
+        Err(NativeCompositorError::StaleSurfaceRevision)
     );
 }
 
@@ -182,9 +156,12 @@ fn admission_and_exact_identity_fail_closed_before_scanout() {
             NativeCompositorError::StaleIdentity,
         ),
     ] {
-        let mut compositor = NativeCompositor::admitted(admission.clone(), MemoryDisplay::new());
+        let mut compositor = NativeCompositor::admitted(admission.clone());
+        compositor
+            .admit_surface("surface/main", surface_bounds(), 0)
+            .unwrap();
         assert_eq!(
-            compositor.compose(
+            compositor.update_surface(
                 &presentation,
                 &changed,
                 &plan,
@@ -194,11 +171,14 @@ fn admission_and_exact_identity_fail_closed_before_scanout() {
             ),
             Err(expected)
         );
-        assert!(compositor.receipts().is_empty());
+        assert_eq!(compositor.receipts().count(), 0);
     }
-    let mut compositor = NativeCompositor::admitted(admission.clone(), MemoryDisplay::new());
+    let mut compositor = NativeCompositor::admitted(admission.clone());
+    compositor
+        .admit_surface("surface/main", surface_bounds(), 0)
+        .unwrap();
     assert_eq!(
-        compositor.compose(
+        compositor.update_surface(
             &presentation,
             &manifestation,
             &plan,
@@ -209,7 +189,7 @@ fn admission_and_exact_identity_fail_closed_before_scanout() {
         Err(NativeCompositorError::UnadmittedSurface)
     );
     assert_eq!(
-        compositor.compose(
+        compositor.update_surface(
             &presentation,
             &manifestation,
             &plan,
@@ -226,19 +206,148 @@ fn admission_and_exact_identity_fail_closed_before_scanout() {
             SignId::from("manifestation/lost-display"),
         )
         .unwrap();
-    let mut lost = NativeCompositor::admitted(admission, MemoryDisplay::lost());
+    let mut lost = NativeCompositor::admitted(admission);
+    lost.admit_surface("surface/main", surface_bounds(), 0)
+        .unwrap();
+    lost.update_surface(
+        &presentation,
+        &available,
+        &plan,
+        "surface/main",
+        &base,
+        &scene,
+    )
+    .unwrap();
     assert_eq!(
-        lost.compose(
+        lost.compose_frame(&mut MemoryDisplay::lost()),
+        Err(NativeCompositorError::Display(DisplayError::Lost))
+    );
+    assert_eq!(lost.receipts().count(), 1);
+}
+
+#[test]
+fn retained_surfaces_update_independently_and_compose_by_geometry_and_z() {
+    let (presentation, plan, manifestation) = specimen();
+    let first = manifestation
+        .transition(
+            ManifestationLifecycle::Available,
+            SignId::from("available/first"),
+        )
+        .unwrap();
+    let active = bind_active_play(
+        &plan.plan_id,
+        &manifestation.host_id,
+        &manifestation.boot_id,
+        2,
+    );
+    let second = Manifestation::prepared(
+        &presentation,
+        &plan,
+        active,
+        manifestation.placement_id.clone(),
+        "face/main".into(),
+        "surface/overlay".into(),
+        SignId::from("prepared/second"),
+    )
+    .unwrap()
+    .transition(
+        ManifestationLifecycle::Available,
+        SignId::from("available/second"),
+    )
+    .unwrap();
+    let base = HostBaseId::from("display/base/0");
+    let admission = CompositorAdmission::new(
+        manifestation.host_id.clone(),
+        manifestation.boot_id.clone(),
+        manifestation.offer_generation,
+        manifestation.presenter_implementation_id.clone(),
+        base.clone(),
+        vec![manifestation.placement_id.clone()],
+        vec!["surface/main".into(), "surface/overlay".into()],
+    )
+    .unwrap();
+    let mut compositor = NativeCompositor::admitted(admission);
+    compositor
+        .admit_surface(
+            "surface/main",
+            LayoutRect {
+                x: 1,
+                y: 1,
+                width: 8,
+                height: 4,
+            },
+            0,
+        )
+        .unwrap();
+    compositor
+        .admit_surface(
+            "surface/overlay",
+            LayoutRect {
+                x: 5,
+                y: 2,
+                width: 8,
+                height: 4,
+            },
+            1,
+        )
+        .unwrap();
+    compositor
+        .update_surface(
             &presentation,
-            &available,
+            &first,
             &plan,
             "surface/main",
             &base,
-            &scene,
-        ),
-        Err(NativeCompositorError::Display(DisplayError::Lost))
-    );
-    assert!(lost.receipts().is_empty());
+            &colored_scene(GraphicsPaintRole::Accent),
+        )
+        .unwrap();
+    compositor
+        .update_surface(
+            &presentation,
+            &second,
+            &plan,
+            "surface/overlay",
+            &base,
+            &colored_scene(GraphicsPaintRole::Status),
+        )
+        .unwrap();
+
+    let mut display = MemoryDisplay::new();
+    let first_frame = compositor.compose_frame(&mut display).unwrap();
+    assert_eq!(first_frame.surfaces_composed, 2);
+    assert_eq!(display.pixels[1 + 32], 0x45ffbc);
+    assert_eq!(display.pixels[5 + 2 * 32], 0xffbe46);
+
+    compositor
+        .set_surface_visible("surface/overlay", false)
+        .unwrap();
+    let second_frame = compositor.compose_frame(&mut display).unwrap();
+    assert_eq!(second_frame.frame_sequence, 2);
+    assert_eq!(display.pixels[5 + 2 * 32], 0x45ffbc);
+    assert_eq!(compositor.receipts().count(), 2);
+}
+
+fn surface_bounds() -> LayoutRect {
+    LayoutRect {
+        x: 0,
+        y: 0,
+        width: 32,
+        height: 16,
+    }
+}
+
+fn colored_scene(paint: GraphicsPaintRole) -> GraphicsScene {
+    let rect = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 8,
+        height: 4,
+    };
+    let mut scene = GraphicsScene::empty();
+    scene
+        .push(GraphicsCommand::rect(rect, rect, paint, GraphicsShapeStyle::Fill).unwrap())
+        .unwrap();
+    scene
 }
 
 fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
