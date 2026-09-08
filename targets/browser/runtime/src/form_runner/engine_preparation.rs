@@ -89,6 +89,7 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
     let mut measurement_windows = core::array::from_fn(|_| None);
     let mut measurement_hysteresis = core::array::from_fn(|_| None);
     let mut garden_steps = core::array::from_fn(|_| None);
+    let mut stroke_captures = core::array::from_fn(|_| None);
     for (fragment, node) in partitions
         .iter()
         .flat_map(|(fragment, part)| part.nodes.iter().map(move |node| (*fragment, node)))
@@ -158,6 +159,11 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
         garden_steps[usize::from(node.node.0)] =
             crate::installed_browser::garden_step::PreparedGardenStep::for_placement(placement)?
                 .map(Box::new);
+        stroke_captures[usize::from(node.node.0)] =
+            crate::installed_browser::stroke_capture::PreparedStrokeCapture::for_placement(
+                placement,
+            )?
+            .map(Box::new);
         if placement.host_operations.iter().any(|operation| {
             operation.contract_id.as_str()
                 == crate::installed_browser::pointer_selector::HOST_OPERATION
@@ -270,6 +276,7 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
         measurement_windows,
         measurement_hysteresis,
         garden_steps,
+        stroke_captures,
         attempts,
         comparisons,
         snapshots,

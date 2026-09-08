@@ -44,6 +44,7 @@ pub(crate) mod resource;
 mod rhythm_presentation;
 mod rhythm_state;
 mod state_time;
+pub(crate) mod stroke_capture;
 pub(crate) mod structured_selector;
 pub(crate) mod template_storage;
 mod text;
@@ -111,6 +112,9 @@ pub(crate) mod test_timing_sink;
 
 #[cfg(test)]
 pub(crate) mod test_replay_sink;
+
+#[cfg(test)]
+pub(crate) mod test_stroke_sink;
 
 #[cfg(test)]
 pub(crate) mod test_garden_sink;
