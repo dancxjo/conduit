@@ -232,3 +232,8 @@ conduit-std-host = { path = "../std" }
 name = "native_compositor"
 path = "tests/native_compositor.rs"
 required-features = ["native-compositor"]
+
+[[test]]
+name = "native_compositor_input"
+path = "tests/native_compositor_input.rs"
+required-features = ["native-compositor"]
