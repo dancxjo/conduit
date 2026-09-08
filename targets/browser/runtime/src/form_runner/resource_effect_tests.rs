@@ -140,7 +140,7 @@ fn browser_todo_resource_requests_publish_then_restore_only_after_storage_acknow
     complete_host_effect(&mut writer, &output).unwrap();
     assert!(matches!(
         drive(&mut writer, &fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
     let (mut reader, fragment) = prepare(false, content.as_bytes(), true).unwrap();
     let DriveStatus::Effect(pending) = drive(&mut reader, &fragment).unwrap() else {
@@ -160,7 +160,7 @@ fn browser_todo_resource_requests_publish_then_restore_only_after_storage_acknow
     complete_host_effect(&mut reader, &pending).unwrap();
     assert!(matches!(
         drive(&mut reader, &fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
 }
 

@@ -77,7 +77,7 @@ pub(super) fn execute(input: &str, entry: &str) -> Result<String, String> {
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
     Ok(value)
 }

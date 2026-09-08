@@ -27,12 +27,17 @@ mod hotplug_qmp;
 mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
+mod ia32_physical_proof;
 mod ia32_product_boot;
+mod ia32_vga_receipt;
 mod image;
 mod journey_input;
+mod journey_pointer;
 mod journey_proof;
 mod journey_records;
+mod journey_resize;
 mod journey_tour;
+mod journey_transient;
 mod journey_usb_line;
 mod keyboard_proof;
 mod keyboard_run;
@@ -61,6 +66,7 @@ mod prove_many;
 mod qemu_artifacts;
 mod qmp;
 mod qmp_display;
+mod removable_media;
 mod report;
 mod rescue_proof;
 mod riscv64_a0;
@@ -112,6 +118,10 @@ enum ConduitosCommand {
     Live(LiveArgs),
     /// Boot the canonical live artifact without building a parallel demo image.
     LiveBoot(LiveArgs),
+    /// Prove the canonical IA-32 live artifact through legacy BIOS only.
+    Ia32LegacyBiosProof,
+    /// Seal two attended physical Mabel boots of one byte-verified IA-32 medium.
+    Ia32MabelPhysicalProof(ia32_physical_proof::Args),
     /// Report every current live artifact and every excluded capability gap.
     LiveMatrix,
     /// Build one exact bare-metal ConduitOS Orange Pi 5 RK3588S SD image.
@@ -176,7 +186,7 @@ struct TargetArgs {
 
 #[derive(Args, Debug, Clone)]
 struct FlashArgs {
-    /// Architecture image to write; ARMv6 Raspberry Pi is currently supported.
+    /// Architecture image to write; IA-32 live media and ARMv6 Raspberry Pi are supported.
     #[arg(long, value_enum)]
     arch: ConduitosArch,
 
@@ -417,25 +427,29 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         }
         ConduitosCommand::Live(args) => live_media::build(args.host, opts),
         ConduitosCommand::LiveBoot(args) => live_media::boot(args.host, opts),
+        ConduitosCommand::Ia32LegacyBiosProof => live_media::prove_ia32_legacy_bios(opts),
+        ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),
         ConduitosCommand::OrangePi5Image => orange_pi_5_image::execute(opts),
         ConduitosCommand::Flash(flash) => {
             require_fabrication_target(flash.arch, flash.board)?;
-            if flash.arch == ConduitosArch::Armv6 {
-                armv6_rpi_flash::execute(
+            match flash.arch {
+                ConduitosArch::Armv6 => armv6_rpi_flash::execute(
                     flash.board.unwrap_or_default(),
                     &flash.device,
                     &flash.confirm_device,
                     opts,
-                )
-            } else {
-                Err(ConduitosError::refusal(
+                ),
+                ConduitosArch::Ia32 => {
+                    live_media::flash_ia32(&flash.device, &flash.confirm_device, opts)
+                }
+                _ => Err(ConduitosError::refusal(
                     "unsupported-flash-target",
                     format!(
                         "{} has no guarded physical flash backend",
                         flash.arch.as_str()
                     ),
-                ))
+                )),
             }
         }
         ConduitosCommand::RpiPhysicalProof(proof) => armv6_rpi_physical::execute(
@@ -535,11 +549,68 @@ mod tests {
             vec!["xtask", "conduitos", "live", "x86_64"],
             vec!["xtask", "conduitos", "live", "riscv64"],
             vec!["xtask", "conduitos", "live-boot", "aarch64"],
+            vec!["xtask", "conduitos", "ia32-legacy-bios-proof"],
             vec!["xtask", "conduitos", "live-matrix"],
         ] {
             let parsed = Cli::try_parse_from(arguments).unwrap();
             assert!(matches!(parsed.command, Command::Conduitos(_)));
         }
+    }
+
+    #[test]
+    fn ia32_flash_requires_one_explicit_repeated_whole_device() {
+        let parsed = Cli::try_parse_from([
+            "xtask",
+            "conduitos",
+            "flash",
+            "--arch",
+            "ia32",
+            "--device",
+            "/dev/sdz",
+            "--confirm-device",
+            "/dev/sdz",
+        ]);
+        assert!(parsed.is_ok());
+
+        let missing_confirmation = Cli::try_parse_from([
+            "xtask",
+            "conduitos",
+            "flash",
+            "--arch",
+            "ia32",
+            "--device",
+            "/dev/sdz",
+        ]);
+        assert!(missing_confirmation.is_err());
+    }
+
+    #[test]
+    fn mabel_physical_proof_requires_two_attended_boots() {
+        let parsed = Cli::try_parse_from([
+            "xtask",
+            "conduitos",
+            "ia32-mabel-physical-proof",
+            "--flash-record",
+            "flash.json",
+            "--first-photo",
+            "first.jpg",
+            "--first-host-id",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "--first-boot-id",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "--second-photo",
+            "second.jpg",
+            "--second-host-id",
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "--second-boot-id",
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "--confirm-image-sha256",
+            "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "--confirm-specimen",
+            "mabel-copperbutton",
+            "--attest-exact-screens",
+        ]);
+        assert!(parsed.is_ok());
     }
 
     #[test]

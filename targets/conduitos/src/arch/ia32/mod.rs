@@ -1,4 +1,4 @@
-//! QEMU IA-32 mechanisms below the generic machine/Base seam.
+//! IA-32 PC mechanisms below the generic machine/Base seam.
 
 use crate::machine::{
     BaseError, FixedTimerSlots, IdleBase, InterruptBase, InterruptState, KernelInterest,
@@ -82,6 +82,10 @@ pub fn interruptible_idle() {
     unsafe { core::arch::asm!("hlt", options(nomem, nostack)) }
 }
 
+fn interruptible_idle_once() {
+    unsafe { core::arch::asm!("sti", "hlt", "cli", options(nomem, nostack)) }
+}
+
 pub fn pop_interrupt() -> Option<InterruptFact> {
     if FACT_OVERFLOW.swap(false, Ordering::AcqRel) {
         return Some(InterruptFact::Overflow);
@@ -95,6 +99,16 @@ pub fn present(bytes: &[u8]) {
     for byte in bytes {
         unsafe { outb(0xe9, *byte) };
     }
+}
+
+pub fn present_legacy_bios_receipt(
+    profile_id: &[u8],
+    build_id: &[u8],
+    image_id: &[u8],
+    host_id: &[u8],
+    boot_id: &[u8],
+) {
+    super::ia32_vga_text::present_boot_receipt(profile_id, build_id, image_id, host_id, boot_id);
 }
 
 pub fn read_counter() -> u64 {
@@ -261,9 +275,7 @@ impl IdleBase for Idle {
         if TIMER_ARM_PENDING.swap(false, Ordering::AcqRel) {
             timer_arm();
         }
-        enable_interrupts();
-        interruptible_idle();
-        disable_interrupts();
+        interruptible_idle_once();
         Ok(())
     }
     fn idle_count(&self) -> u32 {

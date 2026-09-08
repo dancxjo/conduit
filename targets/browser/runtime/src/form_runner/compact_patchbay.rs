@@ -102,12 +102,16 @@ pub(super) fn project_with_presentation(
         &checked,
         &mut catalog,
     )?;
-    let entry = checked
-        .forms
-        .last()
-        .ok_or_else(|| "compact Tour Patchbay source has no Form".to_owned())?
-        .name
-        .clone();
+    // Closed listings must show the exact root selected for Play, even when
+    // reusable open Forms follow it. A source containing only open Forms is
+    // still inspectable as an authoring surface.
+    let entry = super::executable_entry(&checked).or_else(|_| {
+        checked
+            .forms
+            .last()
+            .map(|form| form.name.clone())
+            .ok_or_else(|| "compact Tour Patchbay source has no Form".to_owned())
+    })?;
 
     // The visible graph is authored meaning. A recursive realization may have a
     // different expanded identity and Back evidence, but it cannot replace the
@@ -473,3 +477,7 @@ mod tests {
             .contains("Gear bound exceeded"));
     }
 }
+
+#[cfg(test)]
+#[path = "gallery_projection_tests.rs"]
+mod gallery_projection_tests;

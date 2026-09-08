@@ -3,7 +3,8 @@ use super::{qmp_display, ConduitosError};
 use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
-const MAX_CHECKPOINTS: usize = 17;
+// Twenty-three ordinary journey checkpoints plus one terminal diagnostic capture.
+const MAX_CHECKPOINTS: usize = 24;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
@@ -44,7 +45,7 @@ impl Artifacts {
         if self.entries.len() >= MAX_CHECKPOINTS {
             return Err(ConduitosError::refusal(
                 "qemu-display-checkpoint-bound",
-                "at most seventeen captures admitted",
+                "at most twenty-five captures admitted",
             ));
         }
         let mut serial = Vec::new();

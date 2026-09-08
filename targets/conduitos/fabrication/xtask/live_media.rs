@@ -1,13 +1,20 @@
 //! Canonical ConduitOS product media and boot entrances.
 
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use clap::ValueEnum;
 use serde::Serialize;
 
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
-use super::{demo, ConduitosError};
+use super::{
+    demo, removable_media,
+    report::{git_head, sha256_file},
+    ConduitosError,
+};
 
 #[derive(ValueEnum, Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum LiveHost {
@@ -136,6 +143,104 @@ pub(super) fn boot(host: LiveHost, opts: &GlobalOpts) -> Result<(), ConduitosErr
         crate::commands::host::host_target::boot_target(&output, &manifest, opts)
             .map_err(|error| ConduitosError::refusal("live-media-boot-failed", error.to_string()))
     }
+}
+
+pub(super) fn prove_ia32_legacy_bios(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    let root = root()?;
+    let output = output(&root, LiveHost::Ia32);
+    let manifest = crate::commands::host::host_target::verify_target(&output)
+        .map_err(|error| ConduitosError::refusal("live-media-invalid", error.to_string()))?;
+    super::ia32_product_boot::boot_legacy_bios(
+        &output.join(&manifest.image.file),
+        &manifest.profile_id,
+        &manifest.build_id,
+        &manifest.resolved_description_binding,
+        opts,
+    )
+}
+
+#[derive(Serialize)]
+struct Ia32FlashRecord {
+    schema: &'static str,
+    base_commit: String,
+    architecture: &'static str,
+    host: &'static str,
+    profile_id: String,
+    build_id: String,
+    image_id: String,
+    image_sha256: String,
+    image_bytes: u64,
+    carrier: &'static str,
+    device: String,
+    removable: bool,
+    device_bytes: u64,
+    write_completed: bool,
+    byte_verification_completed: bool,
+    physical_boot_claimed: bool,
+}
+
+pub(super) fn flash_ia32(
+    requested: &Path,
+    confirmed: &Path,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    let device = removable_media::inspect_confirmed(requested, confirmed)?;
+    if opts.dry_run {
+        println!(
+            "build canonical IA-32 live media; erase, write, and verify {}",
+            device.path.display()
+        );
+        return Ok(());
+    }
+
+    build(LiveHost::Ia32, opts)?;
+    let root = root()?;
+    let output = output(&root, LiveHost::Ia32);
+    let manifest = crate::commands::host::host_target::verify_target(&output)
+        .map_err(|error| ConduitosError::refusal("live-media-invalid", error.to_string()))?;
+    let image = output.join(&manifest.image.file);
+    let image_bytes = fs::metadata(&image)
+        .map_err(|error| ConduitosError::refusal("flash-image-unavailable", error.to_string()))?
+        .len();
+    removable_media::write_and_verify(&image, image_bytes, &device)?;
+
+    let record = Ia32FlashRecord {
+        schema: "conduit.conduitos.ia32-live-flash/v1",
+        base_commit: git_head(&root)?,
+        architecture: "ia32",
+        host: LiveHost::Ia32.row().host,
+        profile_id: manifest.profile_id,
+        build_id: manifest.build_id,
+        image_id: manifest.image_id,
+        image_sha256: sha256_file(&image)?,
+        image_bytes,
+        carrier: "removable-whole-device",
+        device: device.path.display().to_string(),
+        removable: true,
+        device_bytes: device.bytes,
+        write_completed: true,
+        byte_verification_completed: true,
+        physical_boot_claimed: false,
+    };
+    let encoded = serde_json::to_vec_pretty(&record)
+        .map_err(|error| ConduitosError::refusal("flash-record-failed", error.to_string()))?;
+    fs::write(output.join("ia32-live-flash.json"), &encoded)
+        .map_err(|error| ConduitosError::refusal("flash-record-failed", error.to_string()))?;
+    if opts.json {
+        println!(
+            "{}",
+            String::from_utf8(encoded).map_err(|error| {
+                ConduitosError::refusal("flash-record-failed", error.to_string())
+            })?
+        );
+    } else if !opts.quiet {
+        println!(
+            "Wrote and byte-verified {} on {}",
+            image.display(),
+            device.path.display()
+        );
+    }
+    Ok(())
 }
 
 pub(super) fn matrix(opts: &GlobalOpts) -> Result<(), ConduitosError> {

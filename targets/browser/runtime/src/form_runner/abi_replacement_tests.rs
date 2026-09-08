@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn valid_replacement_installs_a_fresh_play_and_rejects_old_completion() {
-    let original = "form original {\n message: text/literal(\"old\")\n result: presentation/text\n message > result\n}\n";
-    let replacement = "form replacement {\n message: text/literal(\"new\")\n result: presentation/text\n message > result\n}\n";
+    let original = "form original {\n complete\n message: text/literal(\"old\")\n result: presentation/text\n message > result\n}\n";
+    let replacement = "form replacement {\n complete\n message: text/literal(\"new\")\n result: presentation/text\n message > result\n}\n";
     let (session, _) = TourSession::prepare("h", "b", original, 1).unwrap();
     let old_play = session.active_play_id.clone();
     let old_request = session.pending[0].request;
@@ -48,7 +48,7 @@ fn valid_replacement_installs_a_fresh_play_and_rejects_old_completion() {
 
 #[test]
 fn invalid_replacement_preserves_the_original_play_and_pending_effect() {
-    let source = "form original {\n message: text/literal(\"hello\")\n result: presentation/text\n message > result\n}\n";
+    let source = "form original {\n complete\n message: text/literal(\"hello\")\n result: presentation/text\n message > result\n}\n";
     let (session, _) = TourSession::prepare("h", "b", source, 1).unwrap();
     let play = session.active_play_id.clone();
     let fragment = session.fragments[0].clone();

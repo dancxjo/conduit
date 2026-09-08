@@ -112,7 +112,8 @@ pub(super) enum BrowserHostEffect {
 
 pub(super) enum DriveStatus {
     Effect(PendingHostEffect),
-    Complete,
+    Quiescent,
+    SemanticCompleted,
     Waiting { pending_effects: usize },
 }
 
@@ -125,8 +126,11 @@ pub(super) fn prepare(
     let mut scheduler = prepare_scheduler(fragment, &lowered)?;
     let pending = match drive(&mut scheduler, fragment)? {
         DriveStatus::Effect(pending) => pending,
-        DriveStatus::Complete => {
-            return Err("Tour Play completed without a planned Host effect".into())
+        DriveStatus::Quiescent => {
+            return Err("Tour Play became quiescent without a planned Host effect".into())
+        }
+        DriveStatus::SemanticCompleted => {
+            return Err("Tour Play semantically completed without a planned Host effect".into())
         }
         DriveStatus::Waiting { .. } => {
             return Err("initial browser effect is already pending".into())
@@ -226,16 +230,17 @@ pub(super) fn drive(
     scheduler: &mut TourScheduler,
     fragment: &PlanFragment,
 ) -> Result<DriveStatus, String> {
-    drive_with_placement(scheduler, |node| {
+    drive_with_placement(scheduler, fragment.completion_policy, |node| {
         fragment.placements.get(usize::from(node.0))
     })
 }
 
 pub(super) fn drive_with_placement<'a>(
     scheduler: &mut TourScheduler,
+    completion_policy: conduit_core::PlanCompletionPolicy,
     placement_for: impl Fn(NodeId) -> Option<&'a conduit_core::PlannedGear>,
 ) -> Result<DriveStatus, String> {
-    drive_with_boundary(scheduler, placement_for, false, None)
+    drive_with_boundary(scheduler, completion_policy, placement_for, false, None)
 }
 
 /// The same installed effects, with an external Cord allowed to await traffic.
@@ -250,6 +255,7 @@ pub(super) fn drive_remote(
 ) -> Result<DriveStatus, String> {
     drive_with_boundary(
         scheduler,
+        fragment.completion_policy,
         |node| fragment.placements.get(usize::from(node.0)),
         true,
         egress.then_some((endpoint, cord)),
@@ -258,6 +264,7 @@ pub(super) fn drive_remote(
 
 fn drive_with_boundary<'a>(
     scheduler: &mut TourScheduler,
+    completion_policy: conduit_core::PlanCompletionPolicy,
     placement_for: impl Fn(NodeId) -> Option<&'a conduit_core::PlannedGear>,
     allow_remote_wait: bool,
     remote_egress: Option<(conduit_kernel::RemoteEndpointId, CordId)>,
@@ -369,14 +376,20 @@ fn drive_with_boundary<'a>(
         })?;
         match status {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Drained => return Ok(DriveStatus::Complete),
-            SchedulerStatus::Idle
-                if allow_remote_wait || scheduler.pending_host_operation_count() > 0 =>
-            {
+            SchedulerStatus::Drained => {
+                return Ok(match completion_policy {
+                    conduit_core::PlanCompletionPolicy::Live => DriveStatus::Quiescent,
+                    conduit_core::PlanCompletionPolicy::SemanticCompletion => {
+                        DriveStatus::SemanticCompleted
+                    }
+                })
+            }
+            SchedulerStatus::Idle if scheduler.pending_host_operation_count() > 0 => {
                 return Ok(DriveStatus::Waiting {
                     pending_effects: scheduler.pending_host_operation_count(),
                 });
             }
+            SchedulerStatus::Idle if allow_remote_wait => return Ok(DriveStatus::Quiescent),
             SchedulerStatus::Idle => return Err("Tour Play became idle".into()),
             SchedulerStatus::Cancelled => return Err("Tour Play was cancelled".into()),
         }

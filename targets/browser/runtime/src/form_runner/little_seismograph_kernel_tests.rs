@@ -364,7 +364,10 @@ fn canonical_processing_runs_window_summary_hysteresis_and_plot_in_one_play() {
                     assert_eq!(error, "Tour Play became idle");
                     break;
                 }
-                Ok(DriveStatus::Complete) => panic!("measurement flow closed before its source"),
+                Ok(DriveStatus::Quiescent) => panic!("measurement flow quiesced before its source"),
+                Ok(DriveStatus::SemanticCompleted) => {
+                    panic!("measurement flow completed before its source")
+                }
                 Ok(DriveStatus::Waiting { .. }) => panic!("no Host effect was left incomplete"),
             }
         }
@@ -384,7 +387,8 @@ fn canonical_processing_runs_window_summary_hysteresis_and_plot_in_one_play() {
                 }
                 complete_host_effect(&mut scheduler, &pending).unwrap();
             }
-            DriveStatus::Complete => break,
+            DriveStatus::Quiescent => break,
+            DriveStatus::SemanticCompleted => panic!("living measurement flow completed"),
             DriveStatus::Waiting { .. } => panic!("no Host effect was left incomplete"),
         }
     }

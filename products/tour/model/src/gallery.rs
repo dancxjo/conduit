@@ -12,6 +12,8 @@ pub const GALLERY_SEARCH_BYTES: usize = 128;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TourGalleryEntry {
     pub title: String,
+    pub category: String,
+    pub description: String,
     pub checked_form_id: String,
     pub realization: String,
     pub search_terms: String,
@@ -39,8 +41,12 @@ impl TourGalleryState {
                 !over_capacity
                     && terms.iter().all(|term| {
                         format!(
-                            "{} {} {}",
-                            entry.title, entry.checked_form_id, entry.search_terms
+                            "{} {} {} {} {}",
+                            entry.title,
+                            entry.checked_form_id,
+                            entry.search_terms,
+                            entry.category,
+                            entry.description
                         )
                         .to_ascii_lowercase()
                         .contains(term)
@@ -60,9 +66,18 @@ impl TourGalleryState {
             cards.push(node(
                 &format!("form-{index}"),
                 PresentationMechanism::Panel {
-                    title: entry.title.clone(),
+                    title: String::new(),
                 },
                 vec![
+                    node(
+                        &format!("form-intro-{index}"),
+                        PresentationMechanism::Status {
+                            kind: StatusKind::Ordinary,
+                            title: format!("{:02} / {}", index + 1, entry.category),
+                            detail: entry.description.clone(),
+                        },
+                        vec![],
+                    ),
                     node(
                         &format!("form-heading-{index}"),
                         PresentationMechanism::Heading {
@@ -85,17 +100,38 @@ impl TourGalleryState {
                             } else {
                                 "Not runnable here".into()
                             },
-                            detail: entry.realization.clone(),
+                            detail: if entry.runnable {
+                                "Ready to explore in your browser".into()
+                            } else {
+                                "Needs another Host implementation".into()
+                            },
                         },
                         vec![],
                     ),
                     node(
-                        &format!("form-id-{index}"),
-                        PresentationMechanism::CodeBlock {
-                            language: "checked-form-id".into(),
-                            code: entry.checked_form_id.clone(),
+                        &format!("form-details-{index}"),
+                        PresentationMechanism::Disclosure {
+                            summary: "Form details".into(),
                         },
-                        vec![],
+                        vec![
+                            node(
+                                &format!("form-requirements-{index}"),
+                                PresentationMechanism::Status {
+                                    kind: StatusKind::Ordinary,
+                                    title: "Current capabilities".into(),
+                                    detail: entry.realization.clone(),
+                                },
+                                vec![],
+                            ),
+                            node(
+                                &format!("form-id-{index}"),
+                                PresentationMechanism::CodeBlock {
+                                    language: "checked-form-id".into(),
+                                    code: entry.checked_form_id.clone(),
+                                },
+                                vec![],
+                            ),
+                        ],
                     ),
                     node(
                         &format!("form-actions-{index}"),
@@ -136,15 +172,29 @@ impl TourGalleryState {
                 vec![
                     node(
                         "gallery-heading",
-                        PresentationMechanism::Heading { text: "Form Gallery".into() },
+                        PresentationMechanism::Heading {
+                            text: "Form Gallery".into(),
+                        },
+                        vec![],
+                    ),
+                    node(
+                        "gallery-introduction",
+                        PresentationMechanism::Status {
+                            kind: StatusKind::Ordinary,
+                            title: "Small programs. Real possibilities.".into(),
+                            detail:
+                                "Eight little compositions to run, understand, and make your own."
+                                    .into(),
+                        },
                         vec![],
                     ),
                     node(
                         "gallery-search",
                         PresentationMechanism::FormField(FormField {
                             label: "Search reviewed Forms".into(),
-                            help: "Title, Form identity, or required kind; 128-byte bound.".into(),
-                            error: over_capacity.then(|| "Search is outside the admitted bound.".into()),
+                            help: "Find a title, an idea, or a kind of Gear.".into(),
+                            error: over_capacity
+                                .then(|| "Search is outside the admitted bound.".into()),
                             value: self.query.clone(),
                             value_capacity: 512,
                             input_action: SemanticAction {
@@ -160,9 +210,13 @@ impl TourGalleryState {
                     node(
                         "gallery-status",
                         PresentationMechanism::Status {
-                            kind: if over_capacity { StatusKind::Warning } else { StatusKind::Ordinary },
+                            kind: if over_capacity {
+                                StatusKind::Warning
+                            } else {
+                                StatusKind::Ordinary
+                            },
                             title: status,
-                            detail: "Browsing acquires no resource or authority; Run admits work separately.".into(),
+                            detail: "Choose something that sparks your curiosity.".into(),
                         },
                         vec![],
                     ),
@@ -198,6 +252,8 @@ mod tests {
             selected_checked_form_id: Some("checked/memory".into()),
             entries: vec![TourGalleryEntry {
                 title: "Memory Lantern".into(),
+                category: "A first small program".into(),
+                description: "Give a thought a place to glow.".into(),
                 checked_form_id: "checked/memory".into(),
                 realization: "presentation/text=current/local".into(),
                 search_terms: "presentation/text".into(),

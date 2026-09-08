@@ -269,6 +269,6 @@ fn planned_browser_hysteresis_uses_exact_profile_and_initial_state() {
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
 }

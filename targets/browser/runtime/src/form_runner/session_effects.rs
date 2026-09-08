@@ -61,7 +61,12 @@ impl TourSession {
         if let Some(cancellation) = self.poll_cancellation()? {
             return Ok(cancellation);
         }
-        match engine::drive_with_placement(&mut self.scheduler, |node| {
+        let completion_policy = self
+            .fragments
+            .first()
+            .ok_or_else(|| "browser session has no Plan fragments".to_string())?
+            .completion_policy;
+        match engine::drive_with_placement(&mut self.scheduler, completion_policy, |node| {
             super::placement_in_fragments(&self.fragments, node).map(|(_, gear)| gear)
         })? {
             engine::DriveStatus::Effect(effect) => {
@@ -82,14 +87,24 @@ impl TourSession {
                     disposition: "waiting",
                     active_play_id: self.active_play_id.as_str().into(),
                     pending_effects,
+                    timer_completions: self.timer_completions,
+                    manifestation_completions: self.manifestation_completions,
                 })
             }
-            engine::DriveStatus::Complete if self.pending.is_empty() => {
+            engine::DriveStatus::SemanticCompleted if self.pending.is_empty() => {
                 Ok(TourProgress::Receipt(Box::new(self.completed_receipt())))
             }
-            engine::DriveStatus::Complete => {
+            engine::DriveStatus::SemanticCompleted => {
                 Err("kernel completed with outstanding platform effects".into())
             }
+            engine::DriveStatus::Quiescent => Ok(TourProgress::Waiting {
+                schema: "conduit.browser/pending-effects@1",
+                disposition: "quiescent_awaiting_input",
+                active_play_id: self.active_play_id.as_str().into(),
+                pending_effects: self.pending.len(),
+                timer_completions: self.timer_completions,
+                manifestation_completions: self.manifestation_completions,
+            }),
         }
     }
 }

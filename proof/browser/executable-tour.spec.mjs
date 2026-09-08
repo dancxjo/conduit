@@ -6,6 +6,7 @@ import { reviewAndBirth, selectBirthForm } from "./creche-test-actions.mjs";
 import { installB7Devices } from "./b7-fixture.mjs";
 import { openTourStep, startTour, startStaticProduct } from "./tour-test-server.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
+import { registerTourGalleryExecutionTests } from "./tour-gallery-execution.cases.mjs";
 import { registerButtonMultiHostTests } from "./button-multihost.cases.mjs";
 import { registerFireflyMultiHostTests } from "./firefly-multihost.cases.mjs";
 import { PHYSICAL_HOST_EVIDENCE_MAXIMA } from "../../products/creche/browser/creche-target-catalog.mjs";
@@ -484,7 +485,7 @@ test("long source and output remain inside their laboratory panes", async ({ pag
     await laboratory.locator("textarea").evaluate((field) => field.clientHeight),
   );
   await laboratory.getByRole("button", { name: "Run" }).click();
-  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
   expect(await laboratory.locator(".result").evaluate((result) => result.scrollHeight)).toBeGreaterThan(
     await laboratory.locator(".result").evaluate((result) => result.clientHeight),
   );
@@ -909,6 +910,8 @@ form substituted-form {
   await expect(page.locator(".runner")).toHaveCount(0);
 });
 
+registerTourGalleryExecutionTests(openStep);
+
 test("Form Gallery browses exact canonical Forms in the one production laboratory", async ({ page }) => {
   await page.addInitScript(() => {
     globalThis.__galleryAuthorityRequests = 0;
@@ -925,9 +928,11 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(page.getByRole("heading", { level: 1, name: "Form Gallery" })).toBeFocused();
   const cards = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]');
   await expect(cards).toHaveCount(8);
-  await expect(cards.getByRole("status").filter({ hasText: "Runnable here" })).toHaveCount(8);
+  await expect(cards.locator('[data-application-key^="form-state-"]')).toHaveCount(8);
+  await expect(cards.first()).toContainText("A tiny chorus of light");
+  await cards.first().getByText("Form details", { exact: true }).click();
   await expect(cards.first()).toContainText("=current/local");
-  await expect(page.locator('[data-application-key="gallery-status"]')).toContainText("Browsing acquires no resource or authority");
+  await expect(page.locator('[data-application-key="gallery-status"]')).toContainText("Choose something that sparks your curiosity");
   await expect(page.locator(".tour-workbench")).toHaveCount(1);
   await expect(page.locator(".runner")).toHaveCount(1);
   await expect(page.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
@@ -956,20 +961,22 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await memory.getByRole("button", { name: "Inspect Patchbay" }).click();
   await expect(laboratory).toHaveAttribute("data-specimen-id", reviewedIdentity);
   await expect(memory.getByRole("status").filter({ hasText: "Selected" })).toBeVisible();
-  await expect(cards.first().getByRole("status")).not.toContainText("Selected");
+  await expect(cards.first().locator('[data-application-key^="form-state-"]')).not.toContainText("Selected");
   await expect(laboratory.locator(".compact-patchbay")).toBeFocused();
   await expect(laboratory.locator("textarea")).toHaveValue(await readFile(new URL("../../forms/memory-lantern/main.conduit", import.meta.url), "utf8"));
   await expect(laboratory.locator(".compact-patchbay")).toHaveAttribute("data-checked-form-id", reviewedIdentity);
   await laboratory.getByRole("button", { name: "Run" }).click();
   await expect(laboratory.locator(".morse")).toHaveText("READY");
-  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(laboratory.locator('[data-application-key="play-status"]')).toHaveText(
+    "Quiescent — same Play remains attached after 1 planned manifestations.",
+  );
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
   const reviewedSourceIdentity = await laboratory.locator(".compact-patchbay").getAttribute("data-source-document-id");
 
   const button = cards.filter({ has: page.getByRole("heading", { name: "Button Across the Room" }) });
   await button.getByRole("button", { name: "Inspect Patchbay" }).click();
   await laboratory.getByRole("button", { name: "Run" }).click();
-  const control = laboratory.getByRole("button", { name: "Hold to control indicator" });
+  const control = laboratory.getByRole("button", { name: "Hold to light" });
   await expect(control).toBeVisible();
   await control.hover();
   await page.mouse.down();
@@ -1044,42 +1051,34 @@ test("Form Gallery remains a bounded two-pane workspace without horizontal or ne
   }
 });
 
-test("Form Gallery source is a labeled full-height workspace that resizes without overlap", async ({ page }) => {
-  const measure = async () => page.locator(".editor").evaluate((editor) => {
-    const label = editor.querySelector('[data-application-key="source-label"]');
-    const syntax = editor.querySelector(".syntax-editor");
-    const profile = editor.querySelector(".source-output-controls");
-    const actions = editor.querySelector('[data-application-slot^="tour-runner-actions-"]');
-    const textarea = editor.querySelector("textarea");
-    const box = (element) => {
-      const rect = element.getBoundingClientRect();
-      return { top: rect.top, bottom: rect.bottom, height: rect.height };
-    };
-    return {
-      editor: box(editor), label: box(label), syntax: box(syntax),
-      profile: box(profile), actions: box(actions),
-      textareaClientHeight: textarea.clientHeight,
-      textareaScrollHeight: textarea.scrollHeight,
-      textareaOverflow: getComputedStyle(textarea).overflowY,
-    };
-  });
-
-  await page.setViewportSize({ width: 1366, height: 720 });
-  await openStep(page, 0);
-  await page.getByRole("button", { name: "Form Gallery" }).click();
-  const compact = await measure();
-  expect(compact.label.bottom).toBeLessThanOrEqual(compact.syntax.top);
-  expect(compact.syntax.bottom).toBeLessThanOrEqual(compact.profile.top);
-  expect(compact.profile.bottom).toBeLessThanOrEqual(compact.actions.top);
-  expect(compact.actions.bottom).toBeLessThanOrEqual(compact.editor.bottom);
-  expect(compact.syntax.height).toBeGreaterThan(75);
-
-  await page.setViewportSize({ width: 1366, height: 900 });
-  const expanded = await measure();
-  expect(expanded.syntax.height).toBeGreaterThan(compact.syntax.height + 70);
-  expect(expanded.textareaOverflow).toBe("auto");
-  expect(expanded.textareaScrollHeight).toBeGreaterThan(expanded.textareaClientHeight);
-  expect(expanded.actions.bottom).toBeLessThanOrEqual(expanded.editor.bottom);
+test("Form Gallery keeps source discoverable and usable at desktop and phone widths", async ({ page }) => {
+  for (const viewport of [{ width: 1366, height: 720 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await openStep(page, 0);
+    await page.getByRole("button", { name: "Form Gallery", exact: true }).click();
+    const card = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]')
+      .filter({ has: page.getByRole("heading", { name: "Morse Network", exact: true }) });
+    await card.getByRole("button", { name: "Open in laboratory", exact: true }).click();
+    const runner = page.locator(".gallery-runner");
+    await expect(runner.locator("textarea")).toBeHidden();
+    await runner.getByText("Open the wiring & source", { exact: true }).click();
+    await expect(runner.locator("textarea")).toBeVisible();
+    const geometry = await runner.locator(".editor").evaluate((editor) => {
+      const label = editor.querySelector('[data-application-key="source-label"]').getBoundingClientRect();
+      const syntax = editor.querySelector(".syntax-editor").getBoundingClientRect();
+      const profile = editor.querySelector(".source-output-controls").getBoundingClientRect();
+      return { labelBottom: label.bottom, syntaxTop: syntax.top, syntaxBottom: syntax.bottom,
+        syntaxHeight: syntax.height, profileTop: profile.top,
+        overflow: editor.scrollWidth - editor.clientWidth };
+    });
+    expect(geometry.labelBottom).toBeLessThanOrEqual(geometry.syntaxTop);
+    expect(geometry.syntaxBottom).toBeLessThanOrEqual(geometry.profileTop);
+    expect(geometry.syntaxHeight).toBeGreaterThan(150);
+    expect(geometry.overflow).toBeLessThanOrEqual(1);
+    await runner.locator("textarea").fill('form hello {\n    words: text/literal("HELLO")\n    show: presentation/text\n    words > show\n}');
+    await runner.getByRole("button", { name: "Run", exact: true }).click();
+    await expect(runner.locator(".morse")).toHaveText("HELLO");
+  }
 });
 
 test("the Tour opens with one logical Body premise and keeps Crèche machinery later", async ({ page }) => {
@@ -1939,21 +1938,21 @@ test("the first chapter builds from one Gear to branch, then hands off to Face/B
   await expect(runner.locator(".run, .stop")).toHaveCount(0);
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("MAKE THIS LOUD");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
 
   await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await page.getByRole("button", { name: "Load branch-a-cord in the laboratory" }).click();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("··· ——— ···");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
 
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("···· · ·—·· ·—·· ———");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
   expect(await page.evaluate(() => globalThis.__conduitTourHost.hostId)).toBe(hostId);
 });
 
@@ -1983,7 +1982,7 @@ test("the Face plate flips open its checked Back without replacing the runner", 
 
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("···· · ·—·· ·—·· ———");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
   await back.getByRole("button", { name: "Return to Face" }).click();
   await expect(back).toBeHidden();
   await expect(listing).toHaveValue(source);
@@ -2076,15 +2075,17 @@ test("state over time presents startup and current count through four admitted b
   await expect(runner.locator(".morse")).toHaveText("0");
   await expect(runner.locator(".morse")).toHaveText("4");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
-    "4 planned ticks, 5 presentations",
+    "4 planned ticks and 5 presentations",
   );
   await expect(runner.locator('[data-application-key="play-status"]'))
-    .toHaveAttribute("data-application-component", "success-status");
+    .toHaveAttribute("data-application-component", "status");
   await expect(runner.locator('[data-application-key="play-status"]'))
     .toHaveAttribute("aria-live", "polite");
   await expect(runner.locator(".run-identities")).toContainText("Timer completions4");
   await expect(runner.locator(".run-identities")).toContainText("Manifestation completions5");
-  await expect(runner.locator(".run-identities dd")).toHaveCount(15);
+  await expect(runner.locator(".run-identities")).toContainText("LifecycleQuiescentAwaitingInput");
+  await expect(runner.locator(".run-identities")).toContainText("Active Play");
+  await expect(runner.locator(".run-identities dd")).toHaveCount(16);
   await expect(runner.locator('.run-identities [data-application-component="definition-table"]')).toBeAttached();
 });
 

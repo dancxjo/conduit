@@ -123,6 +123,10 @@ test("workflow topology keeps fast development separate from stable promotion", 
   const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
   assert.match(request, /gh workflow run monitor-trusted-pr\.yml --ref main/);
   assert.doesNotMatch(sync, /gh workflow run monitor-trusted-pr\.yml --ref main/);
+  assert.match(sync, /actions\/runs\/\$run_id\/approve/);
+  assert.match(sync, /\.actor\.login/);
+  assert.match(sync, /merge --no-ff --no-edit origin\/dev/);
+  assert.match(sync, /git merge-base --is-ancestor origin\/dev "\$sync_head"/);
   assert.match(request, /permissions:\n  actions: write\n  contents: write/);
   assert.match(sync, /permissions:\n  actions: write\n  contents: write/);
   assert.match(monitor, /types?: choice/);
@@ -166,6 +170,9 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(releaseLane, /group: release-lane-controller/);
   assert.match(releaseLane, /cancel-in-progress: false/);
   assert.match(releaseLane, /node tools\/ci\/release-lane-github\.mjs --apply/);
+  const releaseLaneGithub = readFileSync("tools/ci/release-lane-github.mjs", "utf8");
+  assert.match(releaseLaneGithub, /\/actions\/runs\/\$\{run\.id\}\/jobs\?per_page=100&filter=latest/);
+  assert.doesNotMatch(releaseLaneGithub, /run\.status === "waiting"/);
   const approval = readFileSync(".github/workflows/approve-release-automation.yml", "utf8");
   assert.match(approval, /workflows: \[promotion, candidate\]/);
   assert.match(approval, /types: \[requested, completed\]/);

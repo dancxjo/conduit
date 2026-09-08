@@ -49,6 +49,11 @@ private capability-table entry, or an OS-protected handle delivered through an
 admitted channel. The mechanism references the existing Conduit authority
 contract; it does not introduce an independent policy system.
 
+The canonical common scope, opaque local handle, finite operation leases,
+revocation behavior, and mechanism mappings are specified in
+[Base capability possession](base-capabilities.md). Mechanism-specific providers
+must preserve that contract while keeping their bearer material private.
+
 A table entry binds the selected implementation and exact permitted operation,
 subject, Host/Boot, resource generation, and finite outstanding-work bounds.
 The trusted provider derives that entry from independently validated grants,
@@ -90,6 +95,20 @@ wrong resource generation, wrong Boot, replay where the contract forbids it,
 revocation, operation-capacity pressure, cancellation, and terminal disposition.
 Observe the protected sibling independently to establish that refusal prevented
 the effect. A refusal Sign alone cannot establish that no effect occurred.
+
+## Thin Host and Base registry waist
+
+The portable Host core owns coordination truth, not machine privilege. Its
+bounded Base registry records exact provider identity/generation, lifecycle,
+implementation, offers, resources, and descriptive enforcement class. Only a
+current ready provider contributes to the ordinary Host advertisement consumed
+by the shared planner. Registry membership is not an authority grant.
+
+Provider replacement advances generation and fences stale lifecycle updates;
+loss is local to the affected Base. This contract permits an effect-free Host
+core and disjoint Base providers without asserting that registry separation is
+hostile-code isolation. Unforgeable possession and mechanism-level confinement
+remain separate proof obligations.
 
 For WASM, demonstrate both missing-import refusal and denial through an allowed
 import when the caller requests an unauthorized sibling. Record the actual

@@ -2,7 +2,7 @@
 use super::*;
 
 #[test]
-fn canonical_button_clock_and_telegraph_complete_in_one_body_play() {
+fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
     let request = request_from_sources(&[
         include_str!("../../../../../forms/button-across-room/main.conduit"),
         include_str!("../../../../../forms/clock/main.conduit"),
@@ -64,8 +64,15 @@ fn canonical_button_clock_and_telegraph_complete_in_one_body_play() {
                     None => session.advance().unwrap(),
                 };
             }
-            TourProgress::Receipt(receipt) => {
-                assert_eq!(receipt.disposition, "completed");
+            TourProgress::Waiting {
+                disposition,
+                active_play_id,
+                pending_effects,
+                ..
+            } => {
+                assert_eq!(disposition, "quiescent_awaiting_input");
+                assert_eq!(active_play_id, started.play.active_play_id.as_str());
+                assert_eq!(pending_effects, 0);
                 break;
             }
             _ => panic!("unexpected progress"),
@@ -87,13 +94,14 @@ fn canonical_button_clock_and_telegraph_complete_in_one_body_play() {
             .map(|part| &part.plan.plan_id)
             .collect::<Vec<_>>()
     );
+    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
 }
 
 #[test]
 fn canonical_firefly_and_unrelated_text_complete_in_one_body_play() {
     let request = request_from_sources(&[
         include_str!("../../../../../forms/firefly-choir/main.conduit"),
-        "form unrelated {\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
+        "form unrelated {\n complete\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
     ]);
     let original = request.plan.clone();
     let (mut session, started) = prepare(request).unwrap();
@@ -154,7 +162,7 @@ fn canonical_firefly_and_unrelated_text_complete_in_one_body_play() {
 fn canonical_signal_garden_and_unrelated_text_complete_in_one_body_play() {
     let request = request_from_sources(&[
         include_str!("../../../../../forms/signal-garden/main.conduit"),
-        "form unrelated {\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
+        "form unrelated {\n complete\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
     ]);
     let original = request.plan.clone();
     let (mut session, started) = prepare(request).unwrap();
@@ -251,8 +259,8 @@ fn unchanged_canonical_clock_uses_installed_browser_tick_presentation() {
 
 pub(in crate::form_runner) fn request() -> BodyStartRequest {
     request_from_sources(&[
-        "form first {\n text: text/literal(\"first\")\n show: presentation/text\n text > show\n}\n",
-        "form second {\n text: text/literal(\"second\")\n show: presentation/text\n text > show\n}\n",
+        "form first {\n complete\n text: text/literal(\"first\")\n show: presentation/text\n text > show\n}\n",
+        "form second {\n complete\n text: text/literal(\"second\")\n show: presentation/text\n text > show\n}\n",
     ])
 }
 

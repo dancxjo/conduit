@@ -1,4 +1,6 @@
 form clock-demo {
+    # Transactional demo: emits its admitted finite tick sequence, then completes.
+    complete
     clock: time/every(1s)
     clock > presentation/tick
 }

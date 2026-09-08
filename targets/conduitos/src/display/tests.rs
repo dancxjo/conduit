@@ -114,6 +114,46 @@ fn pinned_unifont_subset_covers_ascii_and_multilingual_text() {
 }
 
 #[test]
+fn text_wraps_and_fallback_is_bounded_and_deterministic() {
+    let bounds = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 16,
+        height: 32,
+    };
+    let render = |value: &str| {
+        let mut scene = GraphicsScene::empty();
+        scene
+            .push(
+                GraphicsCommand::text(bounds, bounds, GraphicsPaintRole::Foreground, value)
+                    .unwrap(),
+            )
+            .unwrap();
+        let mut bytes = [0_u8; 32 * 24 * 4];
+        let receipt = {
+            let mut target = Buffer {
+                format: format(),
+                bytes: &mut bytes,
+                lost: false,
+            };
+            render_scene(&mut target, &scene).unwrap()
+        };
+        (bytes, receipt)
+    };
+
+    let (wrapped, wrapped_receipt) = render("ABCD");
+    let (explicit, explicit_receipt) = render("AB\nCD");
+    assert_eq!(wrapped, explicit);
+    assert_eq!(wrapped_receipt, explicit_receipt);
+
+    let (fallback, fallback_receipt) = render("🦀🦀🦀");
+    let (replacement, replacement_receipt) = render("���");
+    assert_eq!(fallback, replacement);
+    assert_eq!(fallback_receipt, replacement_receipt);
+    assert!(fallback_receipt.pixels_written > 0);
+}
+
+#[test]
 fn unsupported_format_and_small_buffer_refuse() {
     let mut invalid = format();
     invalid.bits_per_pixel = 24;

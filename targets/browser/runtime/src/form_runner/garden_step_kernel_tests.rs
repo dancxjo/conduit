@@ -255,7 +255,7 @@ fn canonical_minimal_reducer_executes_through_the_production_kernel() {
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
 }
 
@@ -343,6 +343,6 @@ fn canonical_interactive_reducer_composes_contact_through_one_production_kernel(
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
 }

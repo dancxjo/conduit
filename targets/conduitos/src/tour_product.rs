@@ -38,6 +38,13 @@ impl TourProductError {
             Self::Scene(_) => "tour-scene-refused",
         }
     }
+
+    pub const fn controller_refusal(self) -> Option<TourWorkspaceRefusal> {
+        match self {
+            Self::Controller(refusal) => Some(refusal),
+            _ => None,
+        }
+    }
 }
 
 pub struct TourProduct {

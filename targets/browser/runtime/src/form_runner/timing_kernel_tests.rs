@@ -180,7 +180,7 @@ fn planned_browser_timing_ingress_runs_both_host_operations_to_completion() {
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
     assert_eq!(scheduler.values().allocation_capacities(), capacity);
     assert_eq!(

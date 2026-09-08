@@ -64,6 +64,17 @@ struct JourneyProof {
     pointer_selected_subject: String,
     pointer_press_sequence: u64,
     pointer_release_sequence: u64,
+    inspector_presentation_id: String,
+    inspector_manifestation_id: String,
+    inspector_focused_manifestation_id: String,
+    transient_kinds: Vec<String>,
+    transient_refusal_cause: String,
+    chooser_manifestation_id: String,
+    transient_stale_input_refused: bool,
+    resized_surface_id: String,
+    resize_invalidated_manifestation_id: String,
+    resize_current_manifestation_id: String,
+    resize_input_refused_while_invalidated: bool,
     usb_line_id: String,
     usb_line_binding_id: String,
     usb_line_plan_id: String,
@@ -300,8 +311,35 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "f10", "tour-run")?;
             journey_input::wait_tour_status(&serial_path, &mut child, "result-visible")?;
             artifacts.capture(&mut qmp, &mut reader, "tour-result-visible", true)?;
+            journey_input::wait_transient_status(&serial_path, &mut child, "shown")?;
+            artifacts.capture(&mut qmp, &mut reader, "confirmation-transient", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-confirmation")?;
+            journey_input::wait_transient_status(&serial_path, &mut child, "dismissed")?;
+            artifacts.capture(&mut qmp, &mut reader, "confirmation-dismissed", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f10", "refused-repeat-run")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_TOUR_CHECKPOINT refusal-transient-shown",
+                "product-journey-refusal-transient-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "refusal-transient", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-refusal")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_TOUR_CHECKPOINT transient-dismissed",
+                "product-journey-refusal-dismissal-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "refusal-dismissed", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "f11", "tour-patchbay")?;
             journey_input::wait_tour_status(&serial_path, &mut child, "patchbay-open")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_TOUR_CHECKPOINT chooser-transient-shown",
+                "product-journey-chooser-transient-timeout",
+            )?;
             artifacts.capture(&mut qmp, &mut reader, "tour-patchbay-open", true)?;
             hid_qmp::wait_for_stage(
                 &serial_path,
@@ -309,6 +347,10 @@ fn execute_image(
                 "CONDUIT_BOOT_STAGE pointer-awaiting-report",
                 "product-journey-pointer-ready-timeout",
             )?;
+            journey_input::primary_button(&mut qmp, &mut reader, true, "pointer-chooser")?;
+            journey_input::wait_pointer_status(&serial_path, &mut child, "transient-focused")?;
+            artifacts.capture(&mut qmp, &mut reader, "chooser-pointer-focused", true)?;
+            journey_input::primary_button(&mut qmp, &mut reader, false, "pointer-chooser-release")?;
             journey_input::relative_motion(&mut qmp, &mut reader, 0, -100, "pointer-hover")?;
             journey_input::wait_pointer_status(&serial_path, &mut child, "hovered")?;
             artifacts.capture(&mut qmp, &mut reader, "pointer-hover-or-focus", true)?;
@@ -317,6 +359,16 @@ fn execute_image(
             artifacts.capture(&mut qmp, &mut reader, "pointer-selected", true)?;
             journey_input::primary_button(&mut qmp, &mut reader, false, "pointer-release")?;
             journey_input::wait_pointer_status_count(&serial_path, &mut child, "hovered", 2)?;
+            journey_input::relative_motion(&mut qmp, &mut reader, 120, 0, "pointer-inspector")?;
+            journey_input::primary_button(&mut qmp, &mut reader, true, "pointer-focus-inspector")?;
+            journey_input::wait_pointer_status(&serial_path, &mut child, "auxiliary-focused")?;
+            artifacts.capture(&mut qmp, &mut reader, "inspector-focused", true)?;
+            journey_input::primary_button(
+                &mut qmp,
+                &mut reader,
+                false,
+                "pointer-release-inspector",
+            )?;
             thread::sleep(Duration::from_millis(250));
             if child
                 .try_wait()
@@ -346,6 +398,8 @@ fn execute_image(
         let records = journey_records(&serial)?;
         let tour_records = super::journey_records::tour(&serial)?;
         let pointer_records = super::journey_records::pointer(&serial)?;
+        let transient_records = super::journey_records::transient(&serial)?;
+        let resize_records = super::journey_records::resize(&serial)?;
         let usb_line_records = super::journey_records::usb_line(&serial)?;
         let by_status = records
             .iter()
@@ -429,49 +483,17 @@ fn execute_image(
                 "value or unchanged Body correlation did not match",
             ));
         }
-        if pointer_records.len() != 3 {
-            return Err(ConduitosError::refusal(
-                "product-journey-pointer-record-count",
-                "hover, press, and release must produce exactly three pointer records",
-            ));
-        }
-        let pointer_hover = &pointer_records[0];
-        let pointer_press = &pointer_records[1];
-        let pointer_release = &pointer_records[2];
-        if pointer_hover.get("status").and_then(Value::as_str) != Some("hovered")
-            || pointer_hover
-                .get("primary_pressed")
-                .and_then(Value::as_bool)
-                != Some(false)
-            || pointer_press.get("status").and_then(Value::as_str) != Some("selected")
-            || pointer_press
-                .get("primary_pressed")
-                .and_then(Value::as_bool)
-                != Some(true)
-            || pointer_release.get("status").and_then(Value::as_str) != Some("hovered")
-            || pointer_release
-                .get("primary_pressed")
-                .and_then(Value::as_bool)
-                != Some(false)
-            || number(pointer_hover, "sequence")? >= number(pointer_press, "sequence")?
-            || number(pointer_press, "sequence")? >= number(pointer_release, "sequence")?
-        {
-            return Err(ConduitosError::refusal(
-                "product-journey-pointer-causality-invalid",
-                "portable hover, primary press, and primary release were not distinct and ordered",
-            ));
-        }
-        for identity in ["profile_id", "build_id", "image_id", "host_id", "boot_id"] {
-            if pointer_records
-                .iter()
-                .any(|record| record.get(identity) != opened.get(identity))
-            {
-                return Err(ConduitosError::refusal(
-                    "product-journey-pointer-identity-drift",
-                    identity,
-                ));
-            }
-        }
+        let ordinary_pointer_records = pointer_records
+            .iter()
+            .filter(|record| {
+                record.get("status").and_then(Value::as_str) != Some("transient-focused")
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let pointer = super::journey_pointer::validate(&ordinary_pointer_records, opened)?;
+        let transient =
+            super::journey_transient::validate(&transient_records, &pointer_records, opened)?;
+        let resize = super::journey_resize::validate(&resize_records, &pointer_records, opened)?;
         if opened.get("body_id") != Some(&Value::Null)
             || opened.get("wake_id") != Some(&Value::Null)
             || opened.get("plan_id") != Some(&Value::Null)
@@ -584,10 +606,21 @@ fn execute_image(
             tour_workspace_manifestation_id: text(tour_result, "workspace_manifestation_id")?,
             tour_status_presentation_id: text(tour_result, "status_presentation_id")?,
             tour_status_manifestation_id: text(tour_result, "status_manifestation_id")?,
-            pointer_hover_subject: text(pointer_hover, "subject")?,
-            pointer_selected_subject: text(pointer_press, "subject")?,
-            pointer_press_sequence: number(pointer_press, "sequence")?,
-            pointer_release_sequence: number(pointer_release, "sequence")?,
+            pointer_hover_subject: pointer.hover_subject,
+            pointer_selected_subject: pointer.selected_subject,
+            pointer_press_sequence: pointer.press_sequence,
+            pointer_release_sequence: pointer.release_sequence,
+            inspector_presentation_id: pointer.inspector_presentation_id,
+            inspector_manifestation_id: pointer.inspector_manifestation_id,
+            inspector_focused_manifestation_id: pointer.focused_manifestation_id,
+            transient_kinds: transient.kinds,
+            transient_refusal_cause: transient.refusal_cause,
+            chooser_manifestation_id: transient.chooser_manifestation_id,
+            transient_stale_input_refused: transient.stale_input_refused,
+            resized_surface_id: resize.surface_id,
+            resize_invalidated_manifestation_id: resize.invalidated_manifestation_id,
+            resize_current_manifestation_id: resize.current_manifestation_id,
+            resize_input_refused_while_invalidated: resize.input_refused_while_invalidated,
             usb_line_id: text(&usb_line_records[0], "line_id")?,
             usb_line_binding_id: text(&usb_line_records[0], "binding_id")?,
             usb_line_plan_id: text(&usb_line_records[0], "plan_id")?,
@@ -669,11 +702,4 @@ fn strings(record: &Value, field: &str) -> Result<Vec<String>, ConduitosError> {
                 .collect()
         })
         .ok_or_else(|| ConduitosError::refusal("product-journey-identity-missing", field))
-}
-
-fn number(record: &Value, field: &str) -> Result<u64, ConduitosError> {
-    record
-        .get(field)
-        .and_then(Value::as_u64)
-        .ok_or_else(|| ConduitosError::refusal("product-journey-value-missing", field))
 }

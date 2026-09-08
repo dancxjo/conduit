@@ -36,6 +36,23 @@ pub enum TourWorkspaceRefusal {
     RevisionExhausted,
 }
 
+impl TourWorkspaceRefusal {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Presentation => "presentation-refused",
+            Self::Event(ApplicationViewRefusal::StaleRevision) => "stale-revision",
+            Self::Event(ApplicationViewRefusal::UnknownAction) => "unknown-action",
+            Self::Event(_) => "application-event-refused",
+            Self::RunAlreadyPending => "run-already-pending",
+            Self::RunNotPending => "run-not-pending",
+            Self::WrongSpecimen => "wrong-specimen",
+            Self::WrongResult => "wrong-result",
+            Self::MissingIdentity => "missing-identity",
+            Self::RevisionExhausted => "revision-exhausted",
+        }
+    }
+}
+
 pub struct TourWorkspaceController {
     state: TourWorkspaceState,
     last_run: Option<TourRunProof>,
@@ -219,6 +236,12 @@ mod tests {
         assert_eq!(controller.state().phase, TourWorkspacePhase::ResultVisible);
         assert_eq!(controller.state().focused_key, "result");
         assert_eq!(controller.last_run().unwrap().plan_id.as_str(), "plan");
+        assert_eq!(
+            controller.request(&event(6, RUN_ACTION_ID)),
+            Err(TourWorkspaceRefusal::Event(
+                ApplicationViewRefusal::UnknownAction
+            ))
+        );
     }
 
     #[test]

@@ -216,7 +216,7 @@ fn planned_browser_capture_retains_four_ordered_points_without_new_allocations()
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
     assert_eq!(scheduler.values().allocation_capacities(), capacities);
     assert_eq!(

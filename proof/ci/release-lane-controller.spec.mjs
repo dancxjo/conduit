@@ -45,6 +45,26 @@ test("A remains healthy while B queues", () => {
   assert.deepEqual(decision.actions.cancel, []);
 });
 
+test("a waiting reusable-workflow boundary preserves materially started A", () => {
+  const waiting = run(101, "waiting", 20, { jobs: [{
+    id: 1001,
+    name: "products / products-proof",
+    status: "completed",
+    conclusion: "success",
+    startedAt: new Date(now - 5 * minute).toISOString(),
+    completedAt: new Date(now - minute).toISOString(),
+  }] });
+  const decision = decide([
+    candidate(1, waiting),
+    candidate(2, run(102, "queued", 1)),
+  ]);
+  assert.deepEqual(decision.actions.preserve.map(({ runId, state }) => [runId, state]), [
+    [101, "running-healthy"],
+    [102, "queued"],
+  ]);
+  assert.deepEqual(decision.actions.cancel, []);
+});
+
 test("B is superseded when C queues behind healthy A", () => {
   const decision = decide([
     candidate(1, run(101, "in_progress", 5)),
@@ -102,6 +122,17 @@ test("three unstarted candidates collapse to the newest", () => {
   ]);
   assert.equal(decision.actions.start.runId, 103);
   assert.deepEqual(decision.actions.cancel.map(({ runId }) => runId), [101, 102]);
+});
+
+test("an approval-gated unstarted candidate remains queued and may be superseded", () => {
+  const approvalGated = run(101, "completed", 3, { conclusion: "action_required", jobs: [] });
+  const decision = decide([
+    candidate(1, approvalGated),
+    candidate(2, run(102, "queued", 1)),
+  ]);
+  assert.equal(decision.classifications[0].state, "queued");
+  assert.deepEqual(decision.actions.close.map(({ prNumber }) => prNumber), [1]);
+  assert.equal(decision.actions.start.runId, 102);
 });
 
 test("stuck A escalates exactly once and retains only newest queued successor", () => {

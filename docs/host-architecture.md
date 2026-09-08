@@ -25,6 +25,10 @@ host core contract
   planning inputs, Play start/effect/completion protocol, and Sign correlation.
   It has no mandatory filesystem, process, socket, display, audio, GPIO, USB,
   Wi-Fi, Tokio, Embassy, DOM, or operating-system method.
+- **Thin Host supervisor:** the small realization of that core which owns
+  Host/Boot and offer-generation truth, aggregates a bounded registry of live
+  Bases, participates in the shared planner, accounts for Plays, and supervises
+  Base lifecycle. It does not receive the underlying authority of a Base.
 - **Catalog category:** an organizational namespace such as `text/`, `time/`, or
   `state/`. A category is neither a base nor a planner promise.
 - **Kind:** one reusable semantic callable face, such as `text/upper`. Compatibility
@@ -51,6 +55,8 @@ strict subset. The planner consumes only the resulting exact offers.
 | Surface | Classification | Current role and boundary |
 |---|---|---|
 | `conduit-core::HostAdvertisement` and capability/resource/authority/link facts | host core and planner advertisement | Portable, bounded facts; no platform methods |
+| `conduit-core::ThinHostSupervisor` and `BaseRegistry` | thin Host/Base registry contract | Bounded current provider identity, generation, lifecycle, enforcement class, capabilities, and resources; registration grants no authority and ready offers feed the ordinary `HostAdvertisement` |
+| `conduit-core::BaseCapabilityTable` | admitted Base possession contract | Opaque issuer-private handles bind exact Host/Boot/Base/Plan/Play/implementation/operation/subject/resource/envelope truth, finite leases, revocation, and non-secret inspection; it performs no effect itself |
 | `conduit-kernel` operation protocol | host core execution contract | Numeric admitted effects/completions; owns no platform implementation |
 | [`conduit-plan-lowering`](architecture/plan-kernel-lowering.md) | plan-to-kernel boundary | Lowers exact selected placements under an explicit fixed storage profile; not a host composition |
 | `conduit-planner` | planner | Matches canonical checked faces against current offers, then admits exact facts |
@@ -58,6 +64,7 @@ strict subset. The planner consumes only the resulting exact offers.
 | `conduit-signal` host-profile modules | capability contracts and profile fixtures | Shared Signal faces plus exact std/browser/Pico offers used by accepted vertical proofs |
 | `targets/std::StdHostComposition` | host composition | Selects explicitly enabled implementation families; `reference()` is broad and `minimal()` promises none of them |
 | `targets/std` timers, stdout, WebSocket, and USB code | bases/platform implementations | Real std effects and lines beneath selected plans; WebSocket/USB are not host-core methods |
+| feature-gated Linux isolated-file proof provider | hosted Base confinement specimen | Separate process with private bounded IPC capability slot, Landlock file-read boundary, seccomp process/network denial, and rlimits; not an ordinary std offer or a claim about other families/platforms |
 | `targets/browser/host` | browser Host product entrance and assets | Authoritative browser Host launcher, HTTP delivery, fabrication package, and generic browser adapters |
 | `targets/browser/runtime` | browser composition and bases | Exact browser/WASM offers with timer/DOM/WebSocket machinery; not a compatibility runtime |
 | `proof/browser` | browser conformance evidence | Playwright specifications, proof pages, proof-only adapters, configurations, and local proof server; not another browser Host |
@@ -90,6 +97,25 @@ The checked examples intentionally expose different sets:
 Resources and reachability remain separate from offers. Compiling or initializing
 a base does not authorize it, and selecting a family does not bypass resource,
 authority, policy, or link admission.
+
+## Base registry and lifecycle
+
+Each registry entry names one exact boot-scoped Base identity, initialized
+provider instance, monotonically advancing provider generation, implementation,
+mechanism family, descriptive enforcement class, lifecycle state, and finite
+offer/resource inventory. Only `Ready` entries contribute planner-visible
+offers. `Lost`, stopped, starting, or merely configured providers do not.
+
+Lifecycle mutation and replacement require the exact current Base, provider
+instance, and generation. Restart or replacement advances generation, so stale
+providers cannot mutate current truth. Loss of one Base removes only its offers;
+Host/Boot identity and unrelated Bases remain current. External discovery under
+a Base does not recursively create Hosts.
+
+The registry is neither a plugin manager nor an authority store. It performs no
+effects, chooses no placements, and makes no policy decisions. Pure capabilities
+can be advertised by the same thin Host with no effect Base installed, while all
+planning continues through the shared `HostAdvertisement` contract and planner.
 
 ## Public vocabulary and Rust names
 

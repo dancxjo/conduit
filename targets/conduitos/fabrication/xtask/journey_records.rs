@@ -4,6 +4,8 @@ use serde_json::Value;
 const PREFIX: &str = "CONDUIT_PRODUCT_JOURNEY ";
 const TOUR_PREFIX: &str = "CONDUIT_TOUR_SIGN ";
 const POINTER_PREFIX: &str = "CONDUIT_POINTER_SIGN ";
+const TRANSIENT_PREFIX: &str = "CONDUIT_TRANSIENT_SIGN ";
+const RESIZE_PREFIX: &str = "CONDUIT_RESIZE_SIGN ";
 const USB_LINE_PREFIX: &str = "CONDUIT_USB_LINE_SIGN ";
 pub(super) fn decode(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     serial
@@ -26,6 +28,14 @@ pub(super) fn pointer(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     decode_prefix(serial, POINTER_PREFIX, "conduitos-pointer-sign-invalid")
 }
 
+pub(super) fn transient(serial: &str) -> Result<Vec<Value>, ConduitosError> {
+    decode_prefix(serial, TRANSIENT_PREFIX, "conduitos-transient-sign-invalid")
+}
+
+pub(super) fn resize(serial: &str) -> Result<Vec<Value>, ConduitosError> {
+    decode_prefix(serial, RESIZE_PREFIX, "conduitos-resize-sign-invalid")
+}
+
 pub(super) fn usb_line(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     decode_prefix(serial, USB_LINE_PREFIX, "conduitos-usb-line-sign-invalid")
 }
@@ -37,6 +47,14 @@ pub(super) fn latest_checkpoint(serial: &str) -> Result<Option<Value>, Conduitos
         .filter_map(|line| {
             line.strip_prefix(PREFIX)
                 .map(|json| (json, "product-journey-sign-invalid"))
+                .or_else(|| {
+                    line.strip_prefix(RESIZE_PREFIX)
+                        .map(|json| (json, "conduitos-resize-sign-invalid"))
+                })
+                .or_else(|| {
+                    line.strip_prefix(TRANSIENT_PREFIX)
+                        .map(|json| (json, "conduitos-transient-sign-invalid"))
+                })
                 .or_else(|| {
                     line.strip_prefix(TOUR_PREFIX)
                         .map(|json| (json, "conduitos-tour-sign-invalid"))

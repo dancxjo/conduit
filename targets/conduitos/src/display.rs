@@ -309,20 +309,33 @@ fn text(
     let right = origin_x + u32::from(rect.width);
     let bottom = origin_y + u32::from(rect.height);
     let mut cell_x = origin_x;
+    let mut cell_y = origin_y;
     for character in value.chars() {
+        if character == '\n' {
+            cell_x = origin_x;
+            cell_y = cell_y.saturating_add(font::GLYPH_HEIGHT);
+            if cell_y >= bottom {
+                break;
+            }
+            continue;
+        }
         let (glyph, _) = font::glyph(character);
         let width = u32::from(glyph.width);
         if cell_x + width > right {
+            cell_x = origin_x;
+            cell_y = cell_y.saturating_add(font::GLYPH_HEIGHT);
+        }
+        if cell_y >= bottom || cell_x + width > right {
             break;
         }
         for row in 0..font::GLYPH_HEIGHT {
-            if origin_y + row >= bottom {
+            if cell_y + row >= bottom {
                 break;
             }
             for column in 0..width {
                 let byte = glyph.bitmap[row as usize * (width as usize / 8) + column as usize / 8];
                 if byte & (0x80 >> (column % 8)) != 0 {
-                    put(target, cell_x + column, origin_y + row, color, receipt)?;
+                    put(target, cell_x + column, cell_y + row, color, receipt)?;
                 }
             }
         }

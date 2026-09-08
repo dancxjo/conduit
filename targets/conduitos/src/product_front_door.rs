@@ -1,6 +1,8 @@
 //! Long-lived ordinary product service for the Patchbay lifecycle journey.
 
+mod scroll_input;
 mod tour_sign;
+pub(crate) mod transient_sign;
 
 use alloc::{format, string::String};
 
@@ -25,6 +27,7 @@ use crate::{
     tour_shell::TourShellPresenter,
 };
 use tour_sign::emit_tour_sign;
+use transient_sign::{emit_dismissed_transient, emit_shown_transient};
 
 const ENTER: u8 = 40;
 const ESCAPE: u8 = 41;
@@ -155,11 +158,15 @@ pub fn run(
                 return Ok(ProductInputControl::Continue);
             }
             if tour_open && event.transition() == KeyTransition::Pressed {
+                if scroll_input::accept(event.usage(), &mut shell, display)? {
+                    return Ok(ProductInputControl::Continue);
+                }
                 if event.usage() == ESCAPE {
                     if shell.has_transient() {
-                        shell
+                        let dismissal = shell
                             .dismiss_transient(display)
                             .map_err(|error| error.as_str())?;
+                        emit_dismissed_transient(&dismissal, false, identities, fabrication);
                         arch::early_write(b"CONDUIT_TOUR_CHECKPOINT transient-dismissed\n");
                         return Ok(ProductInputControl::Continue);
                     }
@@ -191,32 +198,42 @@ pub fn run(
                         kind: ApplicationEventKind::Activate,
                         value: alloc::vec::Vec::new(),
                     };
-                    let update = tour
-                        .accept(
-                            &event,
-                            identities,
-                            offer,
-                            fabrication.build_id,
-                            &mut clock,
-                            &mut serial,
-                            &mut interrupts,
-                            &mut idle,
-                        )
-                        .map_err(|error| error.as_str())?;
+                    let update = match tour.accept(
+                        &event,
+                        identities,
+                        offer,
+                        fabrication.build_id,
+                        &mut clock,
+                        &mut serial,
+                        &mut interrupts,
+                        &mut idle,
+                    ) {
+                        Ok(update) => update,
+                        Err(error) if error.controller_refusal().is_some() => {
+                            let refusal = error.controller_refusal().expect("matched refusal");
+                            let receipt = shell
+                                .show_transient(
+                                    &tour,
+                                    TourTransientKind::Refusal,
+                                    refusal.as_str(),
+                                    display,
+                                )
+                                .map_err(|error| error.as_str())?;
+                            emit_shown_transient(
+                                &receipt,
+                                Some(refusal.as_str()),
+                                &shell,
+                                identities,
+                                fabrication,
+                            )?;
+                            arch::early_write(b"CONDUIT_TOUR_CHECKPOINT refusal-transient-shown\n");
+                            return Ok(ProductInputControl::Continue);
+                        }
+                        Err(error) => return Err(error.as_str()),
+                    };
                     let shell_receipt = shell
                         .present_with_lifecycle(&tour, &journey.projection(), display)
                         .map_err(|error| error.as_str())?;
-                    if update.play.is_some() {
-                        arch::early_write(b"\n");
-                        shell
-                            .show_transient(
-                                &tour,
-                                TourTransientKind::Confirmation,
-                                "Play completed",
-                                display,
-                            )
-                            .map_err(|error| error.as_str())?;
-                    }
                     emit_tour_sign(
                         &tour,
                         Some(&update),
@@ -224,6 +241,32 @@ pub fn run(
                         identities,
                         fabrication,
                     );
+                    if update.play.is_some() {
+                        arch::early_write(b"\n");
+                        let receipt = shell
+                            .show_transient(
+                                &tour,
+                                TourTransientKind::Confirmation,
+                                "Play completed",
+                                display,
+                            )
+                            .map_err(|error| error.as_str())?;
+                        emit_shown_transient(&receipt, None, &shell, identities, fabrication)?;
+                        arch::early_write(
+                            b"CONDUIT_TOUR_CHECKPOINT confirmation-transient-shown\n",
+                        );
+                    } else if action == OPEN_PATCHBAY_ACTION_ID {
+                        let receipt = shell
+                            .show_transient(
+                                &tour,
+                                TourTransientKind::Chooser,
+                                "Choose a Patchbay Gear",
+                                display,
+                            )
+                            .map_err(|error| error.as_str())?;
+                        emit_shown_transient(&receipt, None, &shell, identities, fabrication)?;
+                        arch::early_write(b"CONDUIT_TOUR_CHECKPOINT chooser-transient-shown\n");
+                    }
                     return Ok(
                         if action == OPEN_PATCHBAY_ACTION_ID && pointer_session.is_some() {
                             ProductInputControl::Yield

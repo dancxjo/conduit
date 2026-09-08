@@ -89,11 +89,15 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     await expect(page.locator('[data-presentation-kind="presentation/indicator-state"]')).toHaveText("true");
     await page.mouse.up();
     await expect(page.locator('[data-presentation-kind="presentation/indicator-state"]')).toHaveText("false");
-    await expect(page.locator("#body-execution-status")).toContainText("Body Play completed", { timeout: 10_000 });
+    await expect(page.locator("#body-execution-status")).toContainText("Body Play quiescent", { timeout: 10_000 });
+    const quiescent = await snapshot();
+    expect(quiescent.body_planning.execution_claims[0].phase).toBe("Started");
+    await page.getByRole("button", { name: "Cancel Body Play", exact: true }).click();
+    await expect(page.locator("#body-execution-status")).toContainText("Body Play cancelled", { timeout: 10_000 });
     const terminal = await snapshot();
     expect(terminal.body_planning.body_id).toBe(bodyId);
     expect(terminal.body_planning.execution_claims).toHaveLength(1);
-    expect(terminal.body_planning.execution_claims[0].phase.Terminal.disposition).toBe("completed");
+    expect(terminal.body_planning.execution_claims[0].phase.Terminal.disposition).toBe("cancelled");
     const execution = JSON.parse(await page.locator("#body-execution-evidence").textContent());
     expect(execution.play.body_id).toBe(bodyId);
     expect(execution.receipt.active_play_id).toBe(terminal.body_planning.execution_claims[0].play.active_play_id);

@@ -64,6 +64,10 @@ pub(super) struct Gallery {
 struct GalleryForm {
     name: &'static str,
     title: &'static str,
+    category: &'static str,
+    description: &'static str,
+    instruction: &'static str,
+    note: &'static str,
     source: &'static str,
     source_document_id: String,
     checked_form_id: String,
@@ -158,9 +162,15 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
             .iter()
             .filter(|requirement| requirement.offer_state == "current-host-offer")
             .count();
+        let (category, description, instruction, note) =
+            conduit_tour_model::gallery_experience(name);
         forms.push(GalleryForm {
             name,
             title,
+            category,
+            description,
+            instruction,
+            note,
             source,
             source_document_id: checked.source_document_id.as_str().into(),
             checked_form_id: form.checked_form_id.as_str().into(),
@@ -225,6 +235,8 @@ pub(super) fn reviewed_gallery_view(
                 .collect::<Vec<_>>();
             conduit_tour_model::TourGalleryEntry {
                 title: form.title.into(),
+                category: form.category.into(),
+                description: form.description.into(),
                 checked_form_id: form.checked_form_id.clone(),
                 realization: bounded_realization_summary(
                     &requirements,

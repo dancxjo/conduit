@@ -19,6 +19,67 @@ use super::{
 const PREFIX: &str = "CONDUIT_IA32_PRODUCT ";
 const OBSERVATORY_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
 
+#[derive(Clone, Copy)]
+enum FirmwareMode {
+    Uefi32,
+    LegacyBios,
+}
+
+impl FirmwareMode {
+    const fn machine(self) -> &'static str {
+        match self {
+            Self::Uefi32 => "q35",
+            Self::LegacyBios => "pc",
+        }
+    }
+
+    const fn expected_firmware(self) -> &'static str {
+        match self {
+            Self::Uefi32 => "uefi32",
+            Self::LegacyBios => "x86-bios",
+        }
+    }
+}
+
+pub(super) fn boot_legacy_bios(
+    image: &std::path::Path,
+    expected_profile_id: &str,
+    expected_build_id: &str,
+    expected_image_binding: &str,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    let (product, observatory) = boot_once(
+        image,
+        expected_profile_id,
+        expected_build_id,
+        expected_image_binding,
+        opts,
+        "legacy-bios-only",
+        FirmwareMode::LegacyBios,
+    )?;
+    let paths = Paths::new(ConduitosArch::Ia32)?;
+    let proof = serde_json::json!({
+        "schema": "conduit.conduitos/ia32-legacy-bios-product-proof@1",
+        "proof_class": "freestanding-ia32-legacy-bios-emulator",
+        "base_commit": git_head(&paths.root)?,
+        "image_sha256": sha256_file(image)?,
+        "firmware_environment": "x86-bios",
+        "carrier": "limine-hybrid-iso-legacy-bios-entry",
+        "product": product,
+        "observatory": observatory,
+        "physical_machine_booted": false,
+        "legacy_bios_vga_text_receipt": true,
+        "stopped_by_harness": true
+    });
+    fs::write(
+        paths.target.join("ia32-legacy-bios-product-proof.json"),
+        serde_json::to_vec_pretty(&proof)
+            .map_err(|error| refusal("ia32-product-proof-invalid", error.to_string()))?,
+    )
+    .map_err(|error| refusal("ia32-product-proof-unavailable", error.to_string()))?;
+    Ok(())
+}
+
 pub(super) fn boot_twice(
     image: &std::path::Path,
     expected_profile_id: &str,
@@ -26,6 +87,7 @@ pub(super) fn boot_twice(
     expected_image_binding: &str,
     opts: &GlobalOpts,
 ) -> Result<(), ConduitosError> {
+    let image_sha256 = sha256_file(image)?;
     let (first, first_observatory) = boot_once(
         image,
         expected_profile_id,
@@ -33,6 +95,7 @@ pub(super) fn boot_twice(
         expected_image_binding,
         opts,
         "first",
+        FirmwareMode::Uefi32,
     )?;
     let (second, second_observatory) = boot_once(
         image,
@@ -41,11 +104,33 @@ pub(super) fn boot_twice(
         expected_image_binding,
         opts,
         "second",
+        FirmwareMode::Uefi32,
     )?;
-    if first["host_id"] == second["host_id"] || first["boot_id"] == second["boot_id"] {
+    let (legacy_bios, legacy_bios_observatory) = boot_once(
+        image,
+        expected_profile_id,
+        expected_build_id,
+        expected_image_binding,
+        opts,
+        "legacy-bios",
+        FirmwareMode::LegacyBios,
+    )?;
+    if first["host_id"] == second["host_id"]
+        || first["boot_id"] == second["boot_id"]
+        || legacy_bios["host_id"] == first["host_id"]
+        || legacy_bios["host_id"] == second["host_id"]
+        || legacy_bios["boot_id"] == first["boot_id"]
+        || legacy_bios["boot_id"] == second["boot_id"]
+    {
         return Err(refusal(
             "stale-ia32-product-identity",
             "independent product boots reused HostId or BootId",
+        ));
+    }
+    if sha256_file(image)? != image_sha256 {
+        return Err(refusal(
+            "ia32-product-image-changed",
+            "the product image changed between firmware-carrier boots",
         ));
     }
     let paths = Paths::new(ConduitosArch::Ia32)?;
@@ -58,15 +143,22 @@ pub(super) fn boot_twice(
     .map_err(|error| refusal("ia32-product-proof-unavailable", error.to_string()))?;
     prove_patchbay(&paths, &snapshot_path, &first)?;
     let proof = serde_json::json!({
-        "schema": "conduit.conduitos/ia32-product-proof@1",
+        "schema": "conduit.conduitos/ia32-product-proof@2",
+        "proof_class": "freestanding-ia32-emulator-dual-firmware-carrier",
         "base_commit": git_head(&paths.root)?,
-        "image_sha256": sha256_file(image)?,
+        "image_sha256": image_sha256,
         "first": first,
         "second": second,
+        "legacy_bios": legacy_bios,
         "first_observatory": first_observatory,
         "second_observatory": second_observatory,
+        "legacy_bios_observatory": legacy_bios_observatory,
         "fresh_host_id": true,
         "fresh_boot_id": true,
+        "uefi32_booted": true,
+        "legacy_bios_booted": true,
+        "legacy_bios_vga_text_receipt": true,
+        "same_immutable_image": true,
         "native_patchbay_consumed": true,
         "stopped_by_harness": true
     });
@@ -129,20 +221,27 @@ fn boot_once(
     expected_image_binding: &str,
     opts: &GlobalOpts,
     run: &str,
+    firmware_mode: FirmwareMode,
 ) -> Result<(serde_json::Value, serde_json::Value), ConduitosError> {
     let paths = Paths::new(ConduitosArch::Ia32)?;
-    let (firmware, vars_template) = ia32_a1::firmware_paths(&paths)?;
-    let vars = paths.target.join(format!("ia32-product-{run}-vars.fd"));
     let transcript_path = paths.target.join(format!("ia32-product-{run}.log"));
-    fs::copy(vars_template, &vars)
-        .map_err(|error| refusal("unavailable-ia32-firmware", error.to_string()))?;
+    let monitor_path = paths
+        .target
+        .join(format!("ia32-product-{run}-monitor.sock"));
+    let vga_path = paths.target.join(format!("ia32-product-{run}-vga.bin"));
     fs::write(&transcript_path, [])
         .map_err(|error| refusal("ia32-product-boot-failed", error.to_string()))?;
+    for stale in [&monitor_path, &vga_path] {
+        if stale.exists() {
+            fs::remove_file(stale)
+                .map_err(|error| refusal("ia32-product-boot-failed", error.to_string()))?;
+        }
+    }
     let mut child = Command::new("qemu-system-i386");
     child
         .args([
             "-machine",
-            "q35",
+            firmware_mode.machine(),
             "-cpu",
             "qemu32",
             "-m",
@@ -150,8 +249,6 @@ fn boot_once(
             "-smp",
             "1",
             "-display",
-            "none",
-            "-monitor",
             "none",
             "-serial",
             "none",
@@ -161,13 +258,29 @@ fn boot_once(
             "-debugcon",
         ])
         .arg(format!("file:{}", transcript_path.display()))
-        .args(["-global", "isa-debugcon.iobase=0xe9", "-drive"])
-        .arg(format!(
-            "if=pflash,format=raw,readonly=on,file={}",
-            firmware.display()
-        ))
-        .arg("-drive")
-        .arg(format!("if=pflash,format=raw,file={}", vars.display()))
+        .args(["-global", "isa-debugcon.iobase=0xe9"]);
+    if matches!(firmware_mode, FirmwareMode::LegacyBios) {
+        child
+            .arg("-monitor")
+            .arg(format!("unix:{},server,nowait", monitor_path.display()));
+    } else {
+        child.args(["-monitor", "none"]);
+    }
+    if matches!(firmware_mode, FirmwareMode::Uefi32) {
+        let (firmware, vars_template) = ia32_a1::firmware_paths(&paths)?;
+        let vars = paths.target.join(format!("ia32-product-{run}-vars.fd"));
+        fs::copy(vars_template, &vars)
+            .map_err(|error| refusal("unavailable-ia32-firmware", error.to_string()))?;
+        child
+            .arg("-drive")
+            .arg(format!(
+                "if=pflash,format=raw,readonly=on,file={}",
+                firmware.display()
+            ))
+            .arg("-drive")
+            .arg(format!("if=pflash,format=raw,file={}", vars.display()));
+    }
+    child
         .arg("-cdrom")
         .arg(image)
         .args(["-boot", "d"])
@@ -195,7 +308,16 @@ fn boot_once(
             )?;
             let observatory: serde_json::Value = serde_json::from_str(observatory_json)
                 .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
-            validate_observatory(&observatory, &value)?;
+            validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
+            if matches!(firmware_mode, FirmwareMode::LegacyBios) {
+                if let Err(error) =
+                    super::ia32_vga_receipt::capture_and_validate(&monitor_path, &vga_path, &value)
+                {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(error);
+                }
+            }
             thread::sleep(Duration::from_millis(250));
             if child
                 .try_wait()
@@ -246,6 +368,7 @@ fn complete_line<'a>(transcript: &'a str, prefix: &str) -> Option<&'a str> {
 fn validate_observatory(
     value: &serde_json::Value,
     product: &serde_json::Value,
+    expected_firmware: &str,
 ) -> Result<(), ConduitosError> {
     let hosts = value["hosts"]
         .as_array()
@@ -271,7 +394,7 @@ fn validate_observatory(
         || plays[0]["boot_id"] != product["boot_id"]
         || sealed[0]["host_id"] != product["host_id"]
         || sealed[0]["boot_id"] != product["boot_id"]
-        || sealed[0]["firmware_environment"] != "uefi32"
+        || sealed[0]["firmware_environment"] != expected_firmware
         || sealed[0]["build_id"] != product["build_id"]
         || sealed[0]["image_id"] != product["image_id"]
         || sealed[0]["proof_class"] != "FreestandingEmulator"

@@ -152,6 +152,8 @@ pub(super) enum TourProgress {
         disposition: &'static str,
         active_play_id: String,
         pending_effects: usize,
+        timer_completions: u32,
+        manifestation_completions: u32,
     },
 }
 

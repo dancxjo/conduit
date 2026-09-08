@@ -14,6 +14,7 @@ struct HostRunInputs<'a> {
     keyboard: Option<&'a mut dyn hosted_keyboard::HostedKeyboardAdapter>,
     indicator: Option<&'a mut dyn hosted_indicator::HostedIndicatorAdapter>,
     retained: Option<&'a mut Vec<state_value::RetainedTypedState>>,
+    attach_live: bool,
 }
 
 impl StdHost {
@@ -73,6 +74,7 @@ impl StdHost {
                 keyboard: adapters.keyboard,
                 indicator: adapters.indicator,
                 retained: None,
+                attach_live: false,
             },
         )
         .map(|run| run.report)
@@ -95,8 +97,32 @@ impl StdHost {
                 keyboard: None,
                 indicator: None,
                 retained: None,
+                attach_live: false,
             },
         )
+    }
+
+    /// Execute one product Play without treating drained work as completion.
+    pub fn run_fragment_attached_controlled_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        output: &mut W,
+        timer: &mut T,
+        control: &RunControl,
+    ) -> Result<StdRunReport, String> {
+        self.run_fragment_owned_with_keyboard_to(
+            fragment,
+            output,
+            timer,
+            control,
+            HostRunInputs {
+                keyboard: None,
+                indicator: None,
+                retained: None,
+                attach_live: true,
+            },
+        )
+        .map(|run| run.report)
     }
 
     fn run_fragment_owned_with_keyboard_to<W: Write, T: TimerAdapter>(
@@ -111,6 +137,7 @@ impl StdHost {
             keyboard,
             indicator,
             retained,
+            attach_live,
         } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
@@ -159,6 +186,7 @@ impl StdHost {
                         control,
                         retained,
                         indicator,
+                        attach_live,
                     },
                 )
             } else {

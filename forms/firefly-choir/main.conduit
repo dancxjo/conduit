@@ -2,6 +2,8 @@
 # exchange and phase following extend this Form through ordinary Lines; they
 # are not hidden inside this browser-independent authored meaning.
 form firefly-choir {
+    # Transactional demo: four admitted pulses, then completion.
+    complete
     clock: time/every(240ms)
     observe: pulse-manifestation
     peer_observe: time/pulse-observe(period-ms = 240, maximum-pulses = 4)
