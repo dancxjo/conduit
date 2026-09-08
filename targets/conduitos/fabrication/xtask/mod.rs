@@ -28,6 +28,7 @@ mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
 mod ia32_product_boot;
+mod ia32_vga_receipt;
 mod image;
 mod journey_input;
 mod journey_pointer;

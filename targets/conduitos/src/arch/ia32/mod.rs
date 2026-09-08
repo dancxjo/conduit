@@ -1,4 +1,4 @@
-//! QEMU IA-32 mechanisms below the generic machine/Base seam.
+//! IA-32 PC mechanisms below the generic machine/Base seam.
 
 use crate::machine::{
     BaseError, FixedTimerSlots, IdleBase, InterruptBase, InterruptState, KernelInterest,
@@ -95,6 +95,16 @@ pub fn present(bytes: &[u8]) {
     for byte in bytes {
         unsafe { outb(0xe9, *byte) };
     }
+}
+
+pub fn present_legacy_bios_receipt(
+    profile_id: &[u8],
+    build_id: &[u8],
+    image_id: &[u8],
+    host_id: &[u8],
+    boot_id: &[u8],
+) {
+    super::ia32_vga_text::present_boot_receipt(profile_id, build_id, image_id, host_id, boot_id);
 }
 
 pub fn read_counter() -> u64 {
