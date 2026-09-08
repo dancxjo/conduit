@@ -2,7 +2,7 @@ use alloc::{vec, vec::Vec};
 
 use crate::display::{DisplayError, DisplayFormat, PixelTarget};
 
-use super::NativeCompositorError;
+use super::{MAX_COMPOSITOR_PIXELS, MAX_COMPOSITOR_SURFACES, NativeCompositorError};
 use conduit_presentation::LayoutRect;
 
 pub(super) fn surface_pixels(bounds: LayoutRect) -> Result<usize, NativeCompositorError> {
@@ -17,6 +17,54 @@ pub(super) fn surface_pixels(bounds: LayoutRect) -> Result<usize, NativeComposit
 pub(super) struct SurfaceBuffer {
     format: DisplayFormat,
     pub(super) pixels: Vec<u32>,
+}
+
+pub(super) struct SurfaceBufferPool {
+    allocated_pixels: usize,
+    available: Vec<SurfaceBuffer>,
+}
+
+impl SurfaceBufferPool {
+    pub(super) fn new() -> Self {
+        Self {
+            allocated_pixels: 0,
+            available: Vec::with_capacity(MAX_COMPOSITOR_SURFACES),
+        }
+    }
+
+    pub(super) const fn allocated_pixels(&self) -> usize {
+        self.allocated_pixels
+    }
+
+    pub(super) fn take(
+        &mut self,
+        bounds: LayoutRect,
+    ) -> Result<SurfaceBuffer, NativeCompositorError> {
+        if let Some(index) = self
+            .available
+            .iter()
+            .position(|buffer| buffer.matches(bounds.width, bounds.height))
+        {
+            return Ok(self.available.swap_remove(index));
+        }
+        let pixels = surface_pixels(bounds)?;
+        let allocated_pixels = self
+            .allocated_pixels
+            .checked_add(pixels)
+            .ok_or(NativeCompositorError::SurfaceCapacityExceeded)?;
+        if allocated_pixels > MAX_COMPOSITOR_PIXELS {
+            return Err(NativeCompositorError::SurfaceCapacityExceeded);
+        }
+        let buffer = SurfaceBuffer::new(bounds.width, bounds.height)?;
+        self.allocated_pixels = allocated_pixels;
+        Ok(buffer)
+    }
+
+    pub(super) fn retain(&mut self, buffer: SurfaceBuffer) {
+        if self.available.len() < MAX_COMPOSITOR_SURFACES {
+            self.available.push(buffer);
+        }
+    }
 }
 
 impl SurfaceBuffer {
@@ -44,6 +92,10 @@ impl SurfaceBuffer {
 
     pub(super) fn clear(&mut self) {
         self.pixels.fill(0);
+    }
+
+    pub(super) fn matches(&self, width: u16, height: u16) -> bool {
+        self.format.width == u32::from(width) && self.format.height == u32::from(height)
     }
 }
 
