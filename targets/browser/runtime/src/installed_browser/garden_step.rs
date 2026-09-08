@@ -23,7 +23,6 @@ pub(crate) const OPERATIONS: [&str; 6] = [
 const MINIMAL_IMPLEMENTATION: &str = "browser/kernel-garden-step@1";
 const OBSERVATION_IMPLEMENTATION: &str = "browser/kernel-garden-observation@1";
 const ENRICHED_IMPLEMENTATION: &str = "browser/kernel-garden-enriched-step@1";
-
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
     implementation_id: MINIMAL_IMPLEMENTATION,
     offer: minimal_offer,

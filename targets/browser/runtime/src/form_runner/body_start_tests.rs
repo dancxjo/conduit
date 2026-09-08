@@ -151,6 +151,62 @@ fn canonical_firefly_and_unrelated_text_complete_in_one_body_play() {
 }
 
 #[test]
+fn canonical_signal_garden_and_unrelated_text_complete_in_one_body_play() {
+    let request = request_from_sources(&[
+        include_str!("../../../../../forms/signal-garden/main.conduit"),
+        "form unrelated {\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
+    ]);
+    let original = request.plan.clone();
+    let (mut session, started) = prepare(request).unwrap();
+    assert!(started.play.validate_for(&original));
+    assert_eq!(original.forms.len(), 2);
+
+    let mut progress = started.progress;
+    let mut garden = false;
+    let mut unrelated = false;
+    loop {
+        match progress {
+            TourProgress::Effect(effect) => {
+                let TourHostEffect::Manifestation(value) = *effect else {
+                    panic!("deterministic Garden source must not request a Host effect")
+                };
+                assert_eq!(value.active_play_id, started.play.active_play_id.as_str());
+                assert!(original
+                    .forms
+                    .iter()
+                    .any(|part| part.plan.plan_id.as_str() == value.plan_id));
+                match value.presentation_kind.as_str() {
+                    conduit_semantic_catalog::GARDEN_STATE_PRESENTATION_KIND => {
+                        assert_eq!(
+                            value.text.as_deref(),
+                            Some("garden step 1 · vitality 0.600000 · activity 0.400000")
+                        );
+                        garden = true;
+                    }
+                    "presentation/text" => {
+                        assert_eq!(value.text.as_deref(), Some("unrelated workload"));
+                        unrelated = true;
+                    }
+                    _ => panic!("unexpected manifestation"),
+                }
+                progress = session.advance().unwrap();
+            }
+            TourProgress::Receipt(receipt) => {
+                assert_eq!(receipt.disposition, "completed");
+                assert_eq!(receipt.active_play_id, started.play.active_play_id.as_str());
+                assert_eq!(receipt.manifestation_completions, 2);
+                break;
+            }
+            _ => panic!("unexpected progress"),
+        }
+    }
+
+    assert!(garden);
+    assert!(unrelated);
+    assert_eq!(session.fragments.len(), 2);
+}
+
+#[test]
 fn unchanged_canonical_clock_uses_installed_browser_tick_presentation() {
     let source = include_str!("../../../../../forms/clock/main.conduit");
     let (mut session, effect) =

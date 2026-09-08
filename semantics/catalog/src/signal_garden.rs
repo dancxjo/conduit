@@ -31,6 +31,26 @@ pub struct GardenContactObservation {
     pub intensity: Scalar,
 }
 
+pub fn deterministic_garden_observations() -> (
+    GardenState,
+    GardenClockObservation,
+    GardenContactObservation,
+) {
+    (
+        GardenState {
+            vitality: Scalar::from_raw_microunits(400_000),
+            activity: Scalar::ZERO,
+            step: 0,
+        },
+        GardenClockObservation {
+            phase: Scalar::from_raw_microunits(800_000),
+        },
+        GardenContactObservation {
+            intensity: Scalar::from_raw_microunits(800_000),
+        },
+    )
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GardenEvolutionRefusal {
     MalformedState,
@@ -319,6 +339,34 @@ mod tests {
             decode_garden_state(&encoded_clock),
             Err(GardenEvolutionRefusal::MalformedState)
         );
+    }
+
+    #[test]
+    fn deterministic_observations_preserve_exact_types_and_enriched_result() {
+        let (prior, clock, contact) = deterministic_garden_observations();
+        let prior_bytes = garden_state_value(prior)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        let clock_bytes = garden_clock_observation_value(clock)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        let contact_bytes = crate::garden_contact_observation_value(contact)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+
+        assert_eq!(decode_garden_state(&prior_bytes), Ok(prior));
+        assert_eq!(decode_garden_clock_observation(&clock_bytes), Ok(clock));
+        assert_eq!(
+            crate::decode_garden_contact_observation(&contact_bytes),
+            Ok(contact)
+        );
+        let next = evolve_garden_enriched(prior, clock, contact).unwrap();
+        assert_eq!(next.vitality.raw_microunits(), 600_000);
+        assert_eq!(next.activity.raw_microunits(), 400_000);
+        assert_eq!(next.step, 1);
     }
 
     #[test]
