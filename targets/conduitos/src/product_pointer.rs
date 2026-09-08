@@ -125,9 +125,18 @@ pub fn run(
             u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
             u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
         )?;
-        let shell = presenter
+        let mut shell = presenter
             .present(tour, display)
             .map_err(|error| error.as_str())?;
+        if !sample.primary_pressed && shell.inspector.is_some() {
+            let relayout = presenter
+                .relayout_inspector(tour, display)
+                .map_err(|error| error.as_str())?;
+            emit_relayout_sign(&relayout, identities, fabrication);
+            shell.inspector = Some(relayout.current);
+            shell.frame = relayout.frame;
+            arch::early_write(b"CONDUIT_TOUR_CHECKPOINT inspector-relayout\n");
+        }
         emit_sign(
             &outcome,
             &route,
@@ -257,4 +266,36 @@ fn emit_auxiliary_focus_sign(
 
 fn json_optional(value: Option<&str>) -> alloc::string::String {
     value.map_or_else(|| "null".into(), |value| format!("\"{value}\""))
+}
+
+fn emit_relayout_sign(
+    receipt: &crate::tour_shell::ShellRelayoutReceipt,
+    identities: &BootIdentities,
+    fabrication: &FabricationRecord,
+) {
+    let line = format!(
+        "CONDUIT_RESIZE_SIGN {{\"schema\":\"conduit.conduitos.surface-relayout/v1\",\"status\":\"current\",\"surface_id\":\"{}\",\"previous_x\":{},\"previous_y\":{},\"previous_width\":{},\"previous_height\":{},\"current_x\":{},\"current_y\":{},\"current_width\":{},\"current_height\":{},\"invalidated_manifestation_id\":\"{}\",\"current_presentation_id\":\"{}\",\"current_manifestation_id\":\"{}\",\"input_refused_while_invalidated\":{},\"frame_sequence\":{},\"damage_count\":{},\"pixels_written\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"bounded\":true}}\n",
+        receipt.surface_id,
+        receipt.previous_bounds.x,
+        receipt.previous_bounds.y,
+        receipt.previous_bounds.width,
+        receipt.previous_bounds.height,
+        receipt.current_bounds.x,
+        receipt.current_bounds.y,
+        receipt.current_bounds.width,
+        receipt.current_bounds.height,
+        receipt.invalidated_manifestation_id.as_str(),
+        receipt.current.presentation_id.as_str(),
+        receipt.current.manifestation_id.as_str(),
+        receipt.input_refused_while_invalidated,
+        receipt.frame.frame_sequence,
+        receipt.frame.damage_count,
+        receipt.frame.pixels_written,
+        fabrication.profile_id,
+        fabrication.build_id,
+        fabrication.image_binding,
+        identity::hex(&identities.host),
+        identity::hex(&identities.boot),
+    );
+    arch::early_write(line.as_bytes());
 }

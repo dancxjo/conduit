@@ -1,5 +1,7 @@
 use conduit_presentation::LayoutRect;
-use conduitos::native_compositor::{DamageRect, InputRoute, NativeCompositorError};
+use conduitos::native_compositor::{
+    DamageRect, InputRoute, MAX_COMPOSITOR_PIXELS, NativeCompositorError, SurfacePlacementReceipt,
+};
 
 #[path = "common/native_compositor.rs"]
 mod support;
@@ -20,7 +22,7 @@ fn pointer_routing_obeys_z_geometry_visibility_removal_and_empty_space() {
     let main_identity = main.manifestation_id.clone();
     let top_identity = top.manifestation_id.clone();
 
-    compositor
+    let moved = compositor
         .place_surface(
             MAIN,
             LayoutRect {
@@ -32,6 +34,7 @@ fn pointer_routing_obeys_z_geometry_visibility_removal_and_empty_space() {
             2,
         )
         .unwrap();
+    assert!(matches!(moved, SurfacePlacementReceipt::Moved { .. }));
     let route = delivered(compositor.route_pointer(7, 4, false).unwrap());
     assert_eq!(route.surface_id, MAIN);
     assert_eq!(route.manifestation_id, main_identity);
@@ -118,7 +121,7 @@ fn resizing_invalidates_pixels_and_input_until_a_fresh_manifestation_revision() 
         InputRoute::Delivered(_)
     ));
 
-    compositor
+    let resized = compositor
         .place_surface(
             MAIN,
             LayoutRect {
@@ -130,6 +133,12 @@ fn resizing_invalidates_pixels_and_input_until_a_fresh_manifestation_revision() 
             0,
         )
         .unwrap();
+    assert!(matches!(
+        resized,
+        SurfacePlacementReceipt::RasterInvalidated {
+            manifestation_id: Some(ref id), ..
+        } if id == &main.manifestation_id
+    ));
     assert_eq!(
         compositor.route_pointer(2, 2, false).unwrap(),
         InputRoute::NoTarget
@@ -161,6 +170,99 @@ fn resizing_invalidates_pixels_and_input_until_a_fresh_manifestation_revision() 
     );
     let routed = delivered(compositor.route_pointer(2, 2, true).unwrap());
     assert_eq!(routed.manifestation_id, next_main.manifestation_id);
+}
+
+#[test]
+fn invalidated_top_surface_blocks_input_fallthrough() {
+    let (presentation, plan, main, top, mut compositor) = fixture(1);
+    update(&mut compositor, &presentation, &plan, &main, MAIN);
+    update(&mut compositor, &presentation, &plan, &top, TOP);
+    compositor
+        .place_surface(
+            TOP,
+            LayoutRect {
+                x: 5,
+                y: 2,
+                width: 9,
+                height: 7,
+            },
+            1,
+        )
+        .unwrap();
+    assert_eq!(
+        compositor.route_pointer(7, 4, true).unwrap(),
+        InputRoute::NoTarget
+    );
+    assert_ne!(compositor.focused_surface(), Some(MAIN));
+}
+
+#[test]
+fn over_capacity_resize_preserves_the_last_current_surface_transactionally() {
+    let (presentation, plan, main, _top, mut compositor) = fixture(1);
+    update(&mut compositor, &presentation, &plan, &main, MAIN);
+    let mut display = MemoryDisplay::new();
+    compositor.compose_frame(&mut display).unwrap();
+    let before = delivered(compositor.route_pointer(2, 2, true).unwrap());
+
+    assert_eq!(
+        compositor.place_surface(
+            MAIN,
+            LayoutRect {
+                x: 0,
+                y: 0,
+                width: u16::MAX,
+                height: u16::MAX,
+            },
+            0,
+        ),
+        Err(NativeCompositorError::SurfaceCapacityExceeded)
+    );
+    assert_eq!(
+        delivered(compositor.route_pointer(2, 2, false).unwrap()),
+        before
+    );
+    assert_eq!(compositor.receipts().count(), 1);
+    assert_eq!(
+        compositor.compose_frame(&mut display).unwrap().damage_count,
+        0
+    );
+}
+
+#[test]
+fn repeated_resize_and_relayout_reuses_one_finite_pool() {
+    let (presentation, plan, main, _top, mut compositor) = fixture(1);
+    update(&mut compositor, &presentation, &plan, &main, MAIN);
+    for revision in 2..=18 {
+        let width = if revision % 2 == 0 { 8 } else { 12 };
+        assert!(matches!(
+            compositor
+                .place_surface(
+                    MAIN,
+                    LayoutRect {
+                        x: 1,
+                        y: 1,
+                        width,
+                        height: 8,
+                    },
+                    0,
+                )
+                .unwrap(),
+            SurfacePlacementReceipt::RasterInvalidated { .. }
+        ));
+        let (next_presentation, next_plan, next_main, _, _) = fixture(revision);
+        update(
+            &mut compositor,
+            &next_presentation,
+            &next_plan,
+            &next_main,
+            MAIN,
+        );
+    }
+    assert!(compositor.allocated_pixels() <= MAX_COMPOSITOR_PIXELS);
+    assert!(matches!(
+        compositor.route_pointer(2, 2, false).unwrap(),
+        InputRoute::Delivered(_)
+    ));
 }
 
 #[test]

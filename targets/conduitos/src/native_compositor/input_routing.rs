@@ -35,12 +35,15 @@ impl NativeCompositor {
             .surfaces
             .iter()
             .enumerate()
-            .filter(|(_, surface)| surface.visible && surface.is_ready())
+            .filter(|(_, surface)| surface.visible)
             .filter(|(_, surface)| contains(surface.bounds, display_x, display_y))
             .max_by_key(|(index, surface)| (surface.z, *index));
         let Some((_, surface)) = candidate else {
             return Ok(InputRoute::NoTarget);
         };
+        if !surface.is_ready() {
+            return Ok(InputRoute::NoTarget);
+        }
         let binding = surface
             .binding
             .as_ref()

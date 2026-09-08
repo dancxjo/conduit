@@ -33,6 +33,7 @@ mod journey_input;
 mod journey_pointer;
 mod journey_proof;
 mod journey_records;
+mod journey_resize;
 mod journey_tour;
 mod journey_transient;
 mod journey_usb_line;
