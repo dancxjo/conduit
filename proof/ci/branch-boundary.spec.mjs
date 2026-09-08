@@ -123,6 +123,10 @@ test("workflow topology keeps fast development separate from stable promotion", 
   const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
   assert.match(request, /gh workflow run monitor-trusted-pr\.yml --ref main/);
   assert.doesNotMatch(sync, /gh workflow run monitor-trusted-pr\.yml --ref main/);
+  assert.match(sync, /actions\/runs\/\$run_id\/approve/);
+  assert.match(sync, /\.actor\.login/);
+  assert.match(sync, /merge --no-ff --no-edit origin\/dev/);
+  assert.match(sync, /git merge-base --is-ancestor origin\/dev "\$sync_head"/);
   assert.match(request, /permissions:\n  actions: write\n  contents: write/);
   assert.match(sync, /permissions:\n  actions: write\n  contents: write/);
   assert.match(monitor, /types?: choice/);
