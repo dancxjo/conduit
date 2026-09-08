@@ -81,7 +81,7 @@ fn execute_profile_for_role(
         proof_instrumentation = lowering.proof_instrumentation,
         surface_slots = lowering.presentation_surface_slots,
         surface_bytes = lowering.presentation_surface_bytes,
-        arena = manifest.bounds.static_memory_bytes,
+        arena = runtime_arena_ceiling(manifest),
         operations = manifest.bounds.operation_slots,
         timers = manifest.bounds.timer_slots,
         evidence = manifest.bounds.evidence_items,
@@ -100,6 +100,10 @@ fn execute_profile_for_role(
         artifact_role,
         product_artifact,
     )
+}
+
+fn runtime_arena_ceiling(manifest: &BuildManifest) -> u64 {
+    manifest.bounds.heap_arena_bytes
 }
 
 pub(super) fn execute_hotplug(
@@ -439,6 +443,28 @@ fn dry_record(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_fabrication_uses_the_admitted_heap_arena_ceiling() {
+        let profile: HostProfile =
+            serde_json::from_str(include_str!("../../profiles/conduitos-native.profile.json"))
+                .unwrap();
+        let (checked, _) = build_default_host_image(
+            profile,
+            &conduit_workspace_fabrication::catalog(),
+            &conduit_workspace_fabrication::package_set(),
+            &BuildInputs {
+                source_identity: "test-source".into(),
+                toolchain_available: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(runtime_arena_ceiling(&checked.manifest), 16 * 1024 * 1024);
+        assert_ne!(
+            runtime_arena_ceiling(&checked.manifest),
+            checked.manifest.bounds.static_memory_bytes
+        );
+    }
 
     #[test]
     fn aarch64_architecture_build_is_typed_as_a_proof_appliance() {
