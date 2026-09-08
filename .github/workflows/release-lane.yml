@@ -1,0 +1,32 @@
+name: Reconcile release lane
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [promotion]
+    types: [requested, in_progress, completed]
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release-lane-controller
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - name: Preserve the running train and collapse its queue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/ci/release-lane-github.mjs --apply

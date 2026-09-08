@@ -10,8 +10,12 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: promotion-${{ github.event.pull_request.head.ref }}
-  cancel-in-progress: true
+  # One materially started release owns the lane. GitHub preserves that run
+  # and keeps at most one pending successor, replacing an older pending run
+  # when a newer release arrives. The trusted release-lane controller records
+  # and closes superseded PRs and handles failure/liveness explicitly.
+  group: promotion-release-lane
+  cancel-in-progress: false
 
 jobs:
   boundary:

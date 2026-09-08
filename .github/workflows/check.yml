@@ -229,6 +229,7 @@ jobs:
           node --test
           proof/ci/branch-boundary.spec.mjs
           proof/ci/browser-product-ownership.test.mjs
+          proof/ci/release-lane-controller.spec.mjs
           proof/ci/tour-compatibility.test.mjs
       - name: Verify the dependency-light typed CI planner contracts
         if: steps.stack.outputs.role != 'intermediate' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true'))
