@@ -34,6 +34,7 @@ mod journey_pointer;
 mod journey_proof;
 mod journey_records;
 mod journey_tour;
+mod journey_transient;
 mod journey_usb_line;
 mod keyboard_proof;
 mod keyboard_run;

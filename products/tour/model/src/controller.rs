@@ -36,6 +36,23 @@ pub enum TourWorkspaceRefusal {
     RevisionExhausted,
 }
 
+impl TourWorkspaceRefusal {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Presentation => "presentation-refused",
+            Self::Event(ApplicationViewRefusal::StaleRevision) => "stale-revision",
+            Self::Event(ApplicationViewRefusal::UnknownAction) => "unknown-action",
+            Self::Event(_) => "application-event-refused",
+            Self::RunAlreadyPending => "run-already-pending",
+            Self::RunNotPending => "run-not-pending",
+            Self::WrongSpecimen => "wrong-specimen",
+            Self::WrongResult => "wrong-result",
+            Self::MissingIdentity => "missing-identity",
+            Self::RevisionExhausted => "revision-exhausted",
+        }
+    }
+}
+
 pub struct TourWorkspaceController {
     state: TourWorkspaceState,
     last_run: Option<TourRunProof>,

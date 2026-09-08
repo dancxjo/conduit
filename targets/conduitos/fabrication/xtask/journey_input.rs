@@ -118,6 +118,26 @@ pub(super) fn wait_pointer_status(
     )
 }
 
+pub(super) fn wait_transient_status(
+    serial: &Path,
+    child: &mut Child,
+    status: &str,
+) -> Result<(), ConduitosError> {
+    wait_for_record(
+        serial,
+        child,
+        "product-journey-transient-stage-timeout",
+        status,
+        |text| {
+            journey_records::transient(text).map(|records| {
+                records
+                    .iter()
+                    .any(|record| record.get("status").and_then(Value::as_str) == Some(status))
+            })
+        },
+    )
+}
+
 pub(super) fn wait_pointer_status_count(
     serial: &Path,
     child: &mut Child,

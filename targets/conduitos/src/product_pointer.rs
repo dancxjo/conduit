@@ -8,10 +8,13 @@ use crate::{
     arch::{self, HidPointerReady, HidPointerSession, UsbDevice, XhciReady},
     fabrication::FabricationRecord,
     identity::{self, BootIdentities},
-    native_compositor::RoutedPointer,
+    native_compositor::{NativeCompositorError, RoutedPointer},
     pointer_offer::PointerRealization,
     tour_product::TourProduct,
-    tour_shell::{ShellPresentationReceipt, TourShellPresenter, WORKSPACE_SURFACE},
+    tour_shell::{
+        ShellPresentationReceipt, TRANSIENT_SURFACE, TourShellError, TourShellPresenter,
+        WORKSPACE_SURFACE,
+    },
 };
 
 pub fn realization(
@@ -59,6 +62,7 @@ pub fn run(
     usb: &UsbDevice,
 ) -> Result<(), &'static str> {
     arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+    let mut suppress_dismissal_release = false;
     loop {
         let sample = session
             .receive(controller, usb)
@@ -78,10 +82,37 @@ pub fn run(
         presenter
             .validate_pointer_route(&route)
             .map_err(|error| error.as_str())?;
+        if suppress_dismissal_release && !sample.primary_pressed {
+            suppress_dismissal_release = false;
+            arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+            continue;
+        }
         if route.surface_id != WORKSPACE_SURFACE {
             if sample.primary_pressed {
                 emit_auxiliary_focus_sign(&route, sample, tour, identities, fabrication);
                 arch::early_write(b"CONDUIT_TOUR_CHECKPOINT auxiliary-surface-focused\n");
+                if route.surface_id == TRANSIENT_SURFACE {
+                    let dismissal = presenter
+                        .dismiss_transient(display)
+                        .map_err(|error| error.as_str())?;
+                    let stale_input_refused = matches!(
+                        presenter.validate_pointer_route(&route),
+                        Err(TourShellError::Compositor(
+                            NativeCompositorError::StaleSurfaceBinding
+                        ))
+                    );
+                    if !stale_input_refused {
+                        return Err("dismissed-transient-route-remained-current");
+                    }
+                    crate::product_front_door::transient_sign::emit_dismissed_transient(
+                        &dismissal,
+                        true,
+                        identities,
+                        fabrication,
+                    );
+                    suppress_dismissal_release = true;
+                    arch::early_write(b"CONDUIT_TOUR_CHECKPOINT transient-pointer-dismissed\n");
+                }
             }
             arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
             continue;
@@ -197,8 +228,13 @@ fn emit_auxiliary_focus_sign(
     identities: &BootIdentities,
     fabrication: &FabricationRecord,
 ) {
+    let status = if route.surface_id == TRANSIENT_SURFACE {
+        "transient-focused"
+    } else {
+        "auxiliary-focused"
+    };
     let line = format!(
-        "CONDUIT_POINTER_SIGN {{\"schema\":\"conduit.conduitos.pointer-interaction/v1\",\"status\":\"auxiliary-focused\",\"subject\":null,\"sequence\":{},\"position_x\":{},\"position_y\":{},\"delta_x\":{},\"delta_y\":{},\"primary_pressed\":true,\"queue_capacity\":{},\"revision\":{},\"routed_surface_id\":\"{}\",\"routed_manifestation_id\":\"{}\",\"local_x\":{},\"local_y\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
+        "CONDUIT_POINTER_SIGN {{\"schema\":\"conduit.conduitos.pointer-interaction/v1\",\"status\":\"{status}\",\"subject\":null,\"sequence\":{},\"position_x\":{},\"position_y\":{},\"delta_x\":{},\"delta_y\":{},\"primary_pressed\":true,\"queue_capacity\":{},\"revision\":{},\"routed_surface_id\":\"{}\",\"routed_manifestation_id\":\"{}\",\"local_x\":{},\"local_y\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
         sample.sequence,
         sample.position_x,
         sample.position_y,

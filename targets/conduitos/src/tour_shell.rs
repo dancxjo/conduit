@@ -4,6 +4,7 @@ mod lifecycle;
 mod scene;
 #[cfg(test)]
 mod tests;
+mod transient;
 
 use alloc::{format, string::String, vec, vec::Vec};
 
@@ -97,6 +98,22 @@ pub struct ShellPresentationReceipt {
     pub workspace: CompositionReceipt,
     pub inspector: Option<CompositionReceipt>,
     pub status: CompositionReceipt,
+    pub frame: FrameReceipt,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShellTransientReceipt {
+    pub kind: TourTransientKind,
+    pub parent_presentation_id: conduit_presentation::PresentationContentId,
+    pub parent_manifestation_id: ManifestationId,
+    pub transient: CompositionReceipt,
+    pub frame: FrameReceipt,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShellTransientDismissalReceipt {
+    pub surface_id: String,
+    pub manifestation_id: ManifestationId,
     pub frame: FrameReceipt,
 }
 
@@ -314,54 +331,6 @@ impl TourShellPresenter {
             status,
             frame,
         })
-    }
-
-    pub fn show_transient(
-        &mut self,
-        tour: &TourProduct,
-        kind: TourTransientKind,
-        detail: &str,
-        display: &mut impl PixelTarget,
-    ) -> Result<CompositionReceipt, TourShellError> {
-        let format = display
-            .format()
-            .validate()
-            .map_err(NativeCompositorError::from)
-            .map_err(TourShellError::Compositor)?;
-        let layout = ShellLayout::new(
-            u16::try_from(format.width).map_err(|_| TourShellError::Identity)?,
-            u16::try_from(format.height).map_err(|_| TourShellError::Identity)?,
-        )?;
-        let presentation = tour
-            .controller()
-            .state()
-            .transient_presentation(kind, detail)
-            .map_err(|_| TourShellError::Identity)?;
-        let receipt = self.present_surface(
-            Slot::Transient,
-            &presentation,
-            kind.subject_identity(),
-            layout.transient,
-            3,
-            &transient_scene(layout.transient, &presentation)?,
-        )?;
-        self.compositor
-            .compose_frame(display)
-            .map_err(TourShellError::Compositor)?;
-        self.compositor
-            .focus_surface(TRANSIENT_SURFACE)
-            .map_err(TourShellError::Compositor)?;
-        Ok(receipt)
-    }
-
-    pub fn dismiss_transient(
-        &mut self,
-        display: &mut impl PixelTarget,
-    ) -> Result<FrameReceipt, TourShellError> {
-        self.dismiss(Slot::Transient)?;
-        self.compositor
-            .compose_frame(display)
-            .map_err(TourShellError::Compositor)
     }
 
     pub fn route_pointer(
