@@ -34,7 +34,8 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
   const planInspection = document.createElement("div");planInspection.id = "body-plan-inspection";
   selection.append(selectionTitle, planInspection);
   section.append(start, stop, status, input, output, selection, exact);root.append(section);
-  let host = null, planning = null, busy = false, owner = null, stopped = false, closed = null;
+  let host = null, planning = null, busy = false, owner = null, activePlay = null,
+    stopped = false, closed = null;
 
   const update = () => {
     start.disabled = busy || !host || planning?.lifecycle !== "AwaitingPlan" ||
@@ -57,13 +58,18 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
     if (owner && !closed) closed = owner.close();
     return closed;
   };
-  const cancel = () => {
+  const cancel = async () => {
     if (!busy) return;
     stopped = true;
-    // Close only once. The running task owns reporting, including uncertain
-    // outcomes while a claim/start response is still in flight.
-    try { close(); } catch (error) { status.textContent = `Body cleanup failed: ${error.message}`; }
-    update();
+    try {
+      const result = close();
+      if (activePlay && result?.receipt) await terminalReport(activePlay, result.receipt);
+      else if (activePlay) status.textContent = "Body cancellation outcome requires inspection.";
+    } catch (error) {
+      status.textContent = `Body cleanup failed: ${error.message}`;
+    } finally {
+      owner = null;activePlay = null;busy = false;update();
+    }
   };
   const terminalReport = async (play, receipt) => {
     if (receipt?.schema !== "conduit.tour/manifestation-receipt@3" || receipt.active_play_id !== play.active_play_id) {
@@ -77,7 +83,7 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
     if (start.disabled) return;
     const executingHost = host;
     busy = true;stopped = false;closed = null;update();
-    let play = null, terminalAttempted = false;
+    let play = null, terminalAttempted = false, retainQuiescentPlay = false;
     try {
       const response = await fetch(apiUrl("body-execution-proposal"), { cache: "no-store" });
       if (!response.ok) throw new Error(await response.text());
@@ -90,6 +96,7 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
       if (claim?.phase !== "Claimed" || claim.play.plan_id !== proposal.plan.plan_id ||
           claim.host_id !== executingHost.hostId || claim.boot_id !== executingHost.bootId) throw new Error("invalid coordinator start claim");
       play = claim.play;
+      activePlay = play;
       if (stopped) throw new Error("Body start cancelled before Play");
       const started = owner.start(play.play_sequence);
       if (Object.keys(play).some(key => started.play[key] !== play[key])) throw new Error("WASM started a different Body Play");
@@ -99,6 +106,15 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
       status.textContent = `Body Play running · ${play.active_play_id}`;
       input.focus();
       const receipt = await owner.run();
+      if (receipt?.schema === "conduit.browser/pending-effects@1" &&
+          receipt.disposition === "quiescent_awaiting_input" &&
+          receipt.active_play_id === play.active_play_id) {
+        retainQuiescentPlay = true;
+        evidence.textContent = JSON.stringify({ proof_class: "SelfReported", play, quiescence: receipt }, null, 2);
+        status.textContent = `Body Play quiescent · ${play.active_play_id} · same Play remains attached.`;
+        update();
+        return;
+      }
       terminalAttempted = true;await terminalReport(play, receipt);
     } catch (error) {
       status.textContent = `Body execution stopped: ${error.message}`;
@@ -112,12 +128,14 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
         }
       } catch (cleanupError) { status.textContent += ` · cleanup/report failed: ${cleanupError.message}; claim outcome requires inspection.`; }
     } finally {
-      try { close(); } catch (error) { status.textContent += ` · cleanup failed: ${error.message}`; }
-      owner = null;busy = false;update();
+      if (!retainQuiescentPlay) {
+        try { close(); } catch (error) { status.textContent += ` · cleanup failed: ${error.message}`; }
+        owner = null;activePlay = null;busy = false;update();
+      }
     }
   };
-  start.onclick = execute;stop.onclick = cancel;
-  document.defaultView.addEventListener("pagehide", cancel);
+  start.onclick = execute;stop.onclick = () => { void cancel(); };
+  document.defaultView.addEventListener("pagehide", () => { void cancel(); });
   return Object.freeze({
     capabilityIds() {
       const api = host?.api;

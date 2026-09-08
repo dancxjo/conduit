@@ -23,7 +23,7 @@ test("Tour and a normal browser Form session use one installed repertoire and eq
   await runner.locator("textarea").fill(FORM);
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("SAY: HELLO");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
   const tourEvidence = await runner.locator(".exact-evidence").textContent();
 
   const normal = await page.evaluate(async ({ source, runtimeUrl }) => {
@@ -68,7 +68,7 @@ test("Tour and a normal browser Form session use one installed repertoire and eq
     "browser/kernel-text-literal@1", "browser/kernel-text-join@1",
     "browser/kernel-text-upper@1", "browser/presentation-text@1",
   ].sort());
-  expect(normal.receipt).toMatchObject({ disposition: "completed", manifestation_completions: 1 });
+  expect(normal.receipt).toMatchObject({ disposition: "quiescent_awaiting_input", manifestation_completions: 1 });
   expect(tourEvidence).toContain("browser/kernel-text-upper@1");
   expect(tourEvidence).not.toContain(normal.effect.active_play_id);
   expect(new Set(normal.inventory.entries.map(({ family }) => family)).size).toBeGreaterThanOrEqual(6);
@@ -162,7 +162,7 @@ test("button input progresses alongside a pending timer and the Play can be canc
   await runner.locator("textarea").fill(FORM);
   await runner.getByRole("button", { name: "Run", exact: true }).click();
   await expect(runner.locator(".morse")).toHaveText("SAY: HELLO");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
 });
 
 test("a released timed attempt reaches its rearmed deadline and retires cleanly", async ({ page }) => {
@@ -193,7 +193,7 @@ test("a released timed attempt reaches its rearmed deadline and retires cleanly"
     await runner.locator("textarea").fill(FORM);
     await runner.getByRole("button", { name: "Run", exact: true }).click();
     await expect(runner.locator(".morse")).toHaveText("SAY: HELLO");
-    await expect(status).toContainText("Completed");
+    await expect(status).toContainText("Quiescent");
   } finally {
     await page.mouse.up();
   }
@@ -225,7 +225,7 @@ test("relative-duration output uses the selected profile for Patchbay and live t
     await page.mouse.down();
     await page.mouse.up();
     await page.mouse.down();
-    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
     await expect(runner.locator(".morse")).toContainText("1000000");
     await expect(runner.locator(".morse")).toContainText("values:");
   } finally {

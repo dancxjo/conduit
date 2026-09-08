@@ -484,7 +484,7 @@ test("long source and output remain inside their laboratory panes", async ({ pag
     await laboratory.locator("textarea").evaluate((field) => field.clientHeight),
   );
   await laboratory.getByRole("button", { name: "Run" }).click();
-  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
   expect(await laboratory.locator(".result").evaluate((result) => result.scrollHeight)).toBeGreaterThan(
     await laboratory.locator(".result").evaluate((result) => result.clientHeight),
   );
@@ -1941,21 +1941,21 @@ test("the first chapter builds from one Gear to branch, then hands off to Face/B
   await expect(runner.locator(".run, .stop")).toHaveCount(0);
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("MAKE THIS LOUD");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
 
   await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await page.getByRole("button", { name: "Load branch-a-cord in the laboratory" }).click();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("··· ——— ···");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
 
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("···· · ·—·· ·—·· ———");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
   expect(await page.evaluate(() => globalThis.__conduitTourHost.hostId)).toBe(hostId);
 });
 
@@ -1985,7 +1985,7 @@ test("the Face plate flips open its checked Back without replacing the runner", 
 
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("···· · ·—·· ·—·· ———");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
   await back.getByRole("button", { name: "Return to Face" }).click();
   await expect(back).toBeHidden();
   await expect(listing).toHaveValue(source);
@@ -2078,15 +2078,17 @@ test("state over time presents startup and current count through four admitted b
   await expect(runner.locator(".morse")).toHaveText("0");
   await expect(runner.locator(".morse")).toHaveText("4");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
-    "4 planned ticks, 5 presentations",
+    "4 planned ticks and 5 presentations",
   );
   await expect(runner.locator('[data-application-key="play-status"]'))
-    .toHaveAttribute("data-application-component", "success-status");
+    .toHaveAttribute("data-application-component", "status");
   await expect(runner.locator('[data-application-key="play-status"]'))
     .toHaveAttribute("aria-live", "polite");
   await expect(runner.locator(".run-identities")).toContainText("Timer completions4");
   await expect(runner.locator(".run-identities")).toContainText("Manifestation completions5");
-  await expect(runner.locator(".run-identities dd")).toHaveCount(15);
+  await expect(runner.locator(".run-identities")).toContainText("LifecycleQuiescentAwaitingInput");
+  await expect(runner.locator(".run-identities")).toContainText("Active Play");
+  await expect(runner.locator(".run-identities dd")).toHaveCount(16);
   await expect(runner.locator('.run-identities [data-application-component="definition-table"]')).toBeAttached();
 });
 
