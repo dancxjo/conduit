@@ -18,6 +18,7 @@ pub fn fragment() -> PlanFragment {
         temporal: PortTemporal::Value,
     };
     PlanFragment {
+        completion_policy: conduit_core::PlanCompletionPolicy::Live,
         plan_id: PlanId::from(""),
         fragment_id: FragmentId::from(""),
         source_document_id: SourceDocumentId::from("source"),

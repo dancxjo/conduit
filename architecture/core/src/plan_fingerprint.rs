@@ -17,6 +17,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     push_string(&mut canonical, fragment.source_document_id.as_str());
     push_string(&mut canonical, fragment.checked_form_id.as_str());
     push_string(&mut canonical, fragment.expanded_form_id.as_str());
+    canonical.push(fragment.completion_policy as u8);
     if !fragment.realization_backs.is_empty() {
         plan_realization::push_canonical(&mut canonical, &fragment.realization_backs);
     }

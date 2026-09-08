@@ -186,6 +186,7 @@ fn unavailable_host_must_be_exactly_sealed_by_the_same_plan() {
             expanded_form_id: conduit_core::ExpandedFormId::from("expanded"),
         },
         vec![conduit_core::PlanFragment {
+            completion_policy: conduit_core::PlanCompletionPolicy::Live,
             plan_id: PlanId::from(""),
             fragment_id: conduit_core::FragmentId::from(""),
             source_document_id: conduit_core::SourceDocumentId::from("source"),

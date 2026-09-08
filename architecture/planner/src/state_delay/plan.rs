@@ -2,7 +2,7 @@
 
 use alloc::vec::Vec;
 use conduit_core::{
-    seal_plan_with_realization_backs, state_resource_budget, verify_plan, Plan,
+    seal_plan_with_realization_backs_and_completion, state_resource_budget, verify_plan, Plan,
     PlannedStateBoundary, StatePlanError,
 };
 use conduit_form::CheckedForm;
@@ -70,8 +70,9 @@ pub fn seal_state_plan(
                 StatePlanError::ResourceOverflow,
             ))?;
     }
-    let sealed = seal_plan_with_realization_backs(
+    let sealed = seal_plan_with_realization_backs_and_completion(
         form.identity(),
+        plan.completion_policy,
         plan.realization_backs.clone(),
         fragments,
     );
