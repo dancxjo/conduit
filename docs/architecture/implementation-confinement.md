@@ -49,6 +49,11 @@ private capability-table entry, or an OS-protected handle delivered through an
 admitted channel. The mechanism references the existing Conduit authority
 contract; it does not introduce an independent policy system.
 
+The canonical common scope, opaque local handle, finite operation leases,
+revocation behavior, and mechanism mappings are specified in
+[Base capability possession](base-capabilities.md). Mechanism-specific providers
+must preserve that contract while keeping their bearer material private.
+
 A table entry binds the selected implementation and exact permitted operation,
 subject, Host/Boot, resource generation, and finite outstanding-work bounds.
 The trusted provider derives that entry from independently validated grants,
