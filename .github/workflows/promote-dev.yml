@@ -4,12 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       integrated_sha:
-        description: Exact successfully integrated dev commit, or empty for a manual current-dev snapshot
+        description: Optional exact successful integration; stale requests coalesce
         required: false
         type: string
   workflow_run:
     workflows: [dev-integration]
     types: [completed]
+  # Revisit fresh evidence after the release/sync owner closes, including
+  # bot actions without recursive events. This does not retry failed proof.
+  schedule:
+    - cron: "*/10 * * * *"
 
 permissions:
   actions: write
@@ -22,94 +26,16 @@ concurrency:
 
 jobs:
   request:
-    name: Route release request
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-slim
     timeout-minutes: 3
     steps:
-      - name: Record a superseded development integration
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
-        env:
-          INTEGRATION_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
-          INTEGRATION_URL: ${{ github.event.workflow_run.html_url }}
-        run: |
-          printf '## Release train\n\n' >> "$GITHUB_STEP_SUMMARY"
-          printf -- '- No release was requested because this development integration ended `%s`.\n' "$INTEGRATION_CONCLUSION" >> "$GITHUB_STEP_SUMMARY"
-          printf -- '- Superseded integration: %s\n' "$INTEGRATION_URL" >> "$GITHUB_STEP_SUMMARY"
-          printf -- '- A newer development head owns the next release decision.\n' >> "$GITHUB_STEP_SUMMARY"
-      - name: Check out the exact successfully integrated development snapshot
-        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && (inputs.integrated_sha || 'dev') || github.event.workflow_run.head_sha }}
+          ref: main
           fetch-depth: 0
-      - name: Create or reuse the repairable release pull request
-        id: pull-request
-        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+      - name: Admit one batch from fresh successful integration evidence
         env:
           GH_TOKEN: ${{ github.token }}
-          INTEGRATION_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.integrated_sha || github.event.workflow_run.head_sha }}
-        run: |
-          dev_sha=$(git rev-parse HEAD)
-          if test -n "$INTEGRATION_SHA"; then
-            test "$dev_sha" = "$INTEGRATION_SHA"
-          fi
-          git fetch --no-tags origin main
-          git fetch --no-tags origin dev
-          git merge-base --is-ancestor "$dev_sha" origin/dev
-          if test "$(git rev-parse "$dev_sha^{tree}")" = "$(git rev-parse origin/main^{tree})"; then
-            printf 'status=already-current\n' >> "$GITHUB_OUTPUT"
-            printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          branch="release/$dev_sha"
-          git push origin "$dev_sha:refs/heads/$branch"
-          pr_url=$(gh pr list --state open --base main --head "$branch" --json url --jq '.[0].url // empty')
-          status=existing
-          if test -z "$pr_url"; then
-            pr_url=$(gh pr create \
-              --base main \
-              --head "$branch" \
-              --title "Promote dev $dev_sha" \
-              --body "Release candidate containing everything through dev \`$dev_sha\`. Fix failures on this branch; the exact final head must pass the exhaustive promotion gate. Successful release fixes are synchronized back to dev automatically.")
-            status=created
-          fi
-          printf 'url=%s\n' "$pr_url" >> "$GITHUB_OUTPUT"
-          printf 'number=%s\n' "$(gh pr view "$pr_url" --json number --jq .number)" >> "$GITHUB_OUTPUT"
-          printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
-          printf 'status=%s\n' "$status" >> "$GITHUB_OUTPUT"
-      - name: Reconcile the single release lane
-        if: steps.pull-request.outputs.status == 'created'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run release-lane.yml --ref main
-      - name: Monitor the trusted release without relying on recursive events
-        if: steps.pull-request.outputs.status == 'created'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.pull-request.outputs.number }}
-          HEAD_SHA: ${{ steps.pull-request.outputs.dev_sha }}
-        run: >-
-          gh workflow run monitor-trusted-pr.yml --ref main
-          -f kind=release -f pr_number="$PR_NUMBER" -f head_sha="$HEAD_SHA"
-      - name: Summarize the release candidate
-        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
-        env:
-          PR_URL: ${{ steps.pull-request.outputs.url }}
-          DEV_SHA: ${{ steps.pull-request.outputs.dev_sha }}
-          STATUS: ${{ steps.pull-request.outputs.status }}
-        run: |
-          printf '## Release train\n\n' >> "$GITHUB_STEP_SUMMARY"
-          case "$STATUS" in
-            created)
-              printf -- '- Opened a release containing development through `%s`.\n' "$DEV_SHA" >> "$GITHUB_STEP_SUMMARY"
-              printf -- '- Pull request: %s\n' "$PR_URL" >> "$GITHUB_STEP_SUMMARY"
-              printf -- '- Fix exhaustive-proof failures on the release branch; merge is automatic when green.\n' >> "$GITHUB_STEP_SUMMARY"
-              ;;
-            existing)
-              printf -- '- The exact development release already exists: %s\n' "$PR_URL" >> "$GITHUB_STEP_SUMMARY"
-              printf -- '- No duplicate promotion or monitor was dispatched.\n' >> "$GITHUB_STEP_SUMMARY"
-              ;;
-            already-current)
-              printf -- '- Development and main already have the same tree; no release is needed.\n' >> "$GITHUB_STEP_SUMMARY"
-              ;;
-          esac
+          INTEGRATION_SHA: ${{ inputs.integrated_sha }}
+        run: node tools/ci/release-request-github.mjs

@@ -24,17 +24,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  baseline:
+    runs-on: ubuntu-slim
+    outputs:
+      base_sha: ${{ steps.base.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_sha || github.sha }}
+          fetch-depth: 0
+      - name: Include changes from coalesced development updates
+        id: base
+        env:
+          EVENT_SHA: ${{ github.sha }}
+          INPUT_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          # Dispatch run metadata must identify the same commit it proves.
+          test -z "$INPUT_SHA" || test "$INPUT_SHA" = "$EVENT_SHA"
+          git fetch --no-tags origin main
+          printf 'sha=%s\n' "$(git merge-base origin/main HEAD)" >> "$GITHUB_OUTPUT"
+
   check:
+    needs: baseline
     uses: ./.github/workflows/check.yml
     with:
-      base_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.base_sha || github.event.before }}
+      base_sha: ${{ needs.baseline.outputs.base_sha }}
       candidate_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_sha || github.sha }}
       development_admission: true
 
   products:
+    needs: baseline
     uses: ./.github/workflows/tour-products.yml
     with:
-      base_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.base_sha || github.event.before }}
+      base_sha: ${{ needs.baseline.outputs.base_sha }}
       candidate_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_sha || github.sha }}
       development_admission: true
 
