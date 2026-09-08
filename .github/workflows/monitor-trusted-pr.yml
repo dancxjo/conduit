@@ -19,6 +19,7 @@ on:
 
 permissions:
   actions: write
+  checks: write
   contents: write
   pull-requests: write
 
@@ -101,6 +102,14 @@ jobs:
               proof/ci/browser-product-ownership.test.mjs \
               proof/ci/pr-closing-intent.test.mjs \
               proof/ci/tour-compatibility.test.mjs
+            gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" \
+              -f name=candidate \
+              -f head_sha="$HEAD_SHA" \
+              -f status=completed \
+              -f conclusion=success \
+              -f details_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+              -f 'output[title]=Trusted sync candidate validation passed' \
+              -f 'output[summary]=The exact sync head passed the focused candidate contract.'
           else
             run_id=
             approved_run=
