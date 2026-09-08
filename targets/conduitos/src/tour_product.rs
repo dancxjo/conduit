@@ -73,6 +73,12 @@ impl TourProduct {
             .map_err(|_| "tour-pointer-refused")
     }
 
+    pub fn dismiss_inspector(&mut self) -> Result<bool, TourProductError> {
+        self.controller
+            .dismiss_inspector()
+            .map_err(TourProductError::Controller)
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn accept<C, S, I, D>(
         &mut self,

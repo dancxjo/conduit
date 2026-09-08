@@ -34,7 +34,7 @@ fn resolved_profiles_lower_to_distinct_exact_product_inputs() {
     assert_eq!(headless.presenters, 0);
     assert_eq!(headless.presentation_surface_slots, 0);
     assert_eq!(headless.presentation_surface_bytes, 0);
-    assert_eq!(native.presentation_surface_slots, 2);
+    assert_eq!(native.presentation_surface_slots, 4);
     assert_eq!(native.presentation_surface_bytes, 4_194_304);
     assert_eq!(native.proof_instrumentation, 0);
 }

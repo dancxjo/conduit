@@ -17,7 +17,7 @@ pub enum TourTransientKind {
 }
 
 impl TourTransientKind {
-    const fn identity(self) -> &'static str {
+    pub const fn subject_identity(self) -> &'static str {
         match self {
             Self::Chooser => "tour/transient/chooser",
             Self::Refusal => "tour/transient/refusal",
@@ -159,7 +159,7 @@ impl TourWorkspaceState {
         if detail.is_empty() {
             return Err("tour-transient-detail-refused");
         }
-        let transient = kind.identity();
+        let transient = kind.subject_identity();
         Presentation::new(
             u64::from(self.revision),
             empty_basis(),

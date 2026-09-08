@@ -7,10 +7,10 @@ use conduit_tour_model::TourPointerOutcome;
 use crate::{
     arch::{self, HidPointerReady, HidPointerSession, UsbDevice, XhciReady},
     fabrication::FabricationRecord,
-    front_door::FrontDoorPresenter,
     identity::{self, BootIdentities},
     pointer_offer::PointerRealization,
     tour_product::TourProduct,
+    tour_shell::{TourShellPresenter, WORKSPACE_SURFACE},
 };
 
 pub fn realization(
@@ -51,7 +51,7 @@ pub fn run(
     identities: &BootIdentities,
     fabrication: &FabricationRecord,
     tour: &mut TourProduct,
-    presenter: &mut FrontDoorPresenter,
+    presenter: &mut TourShellPresenter,
     display: &mut impl crate::display::PixelTarget,
     session: &mut HidPointerSession,
     controller: &mut XhciReady,
@@ -77,6 +77,11 @@ pub fn run(
         presenter
             .validate_pointer_route(&route)
             .map_err(|error| error.as_str())?;
+        if route.surface_id != WORKSPACE_SURFACE {
+            arch::early_write(b"CONDUIT_TOUR_CHECKPOINT auxiliary-surface-focused\n");
+            arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+            continue;
+        }
         let mut local_sample = sample;
         local_sample.position_x = normalized_local(route.local_x, format.width)?;
         local_sample.position_y = normalized_local(route.local_y, format.height)?;
@@ -85,7 +90,9 @@ pub fn run(
             u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
             u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
         )?;
-        crate::product_front_door::render_tour(tour, display)?;
+        presenter
+            .present(tour, display)
+            .map_err(|error| error.as_str())?;
         emit_sign(&outcome, sample, tour, identities, fabrication);
         arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
     }
