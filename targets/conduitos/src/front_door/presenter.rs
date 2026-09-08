@@ -12,7 +12,7 @@ use conduit_core::{
 use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle, PresentationRole,
+    LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle, PresentationRole,
     RendererRealizationOffer, renderer_kind_definition, renderer_offer,
 };
 
@@ -35,9 +35,9 @@ pub struct FrontDoorPresenter {
     display_base_id: HostBaseId,
     host_id: HostId,
     boot_id: BootId,
-    offer_generation: OfferGeneration,
-    implementation_id: ImplementationId,
     last_revision: u64,
+    compositor: NativeCompositor,
+    surface_admitted: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -64,6 +64,10 @@ impl PresenterError {
 }
 
 impl FrontDoorPresenter {
+    pub const fn compositor_frame_sequence(&self) -> u64 {
+        self.compositor.frame_sequence()
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn prepare(
         host_id: HostId,
@@ -122,15 +126,25 @@ impl FrontDoorPresenter {
             .ok_or(PresenterError::Plan)?
             .placement_id
             .clone();
+        let admission = CompositorAdmission::new(
+            host_id.clone(),
+            boot_id.clone(),
+            offer_generation,
+            implementation_id.clone(),
+            display_base_id.clone(),
+            vec![placement_id.clone()],
+            vec![SURFACE_ID.into()],
+        )
+        .map_err(PresenterError::Compositor)?;
         Ok(Self {
             plan,
             placement_id,
             display_base_id,
             host_id,
             boot_id,
-            offer_generation,
-            implementation_id,
             last_revision: 0,
+            compositor: NativeCompositor::admitted(admission),
+            surface_admitted: false,
         })
     }
 
@@ -174,22 +188,33 @@ impl FrontDoorPresenter {
             )
         })
         .map_err(|_| PresenterError::Identity)?;
-        let admission = CompositorAdmission::new(
-            self.host_id.clone(),
-            self.boot_id.clone(),
-            self.offer_generation,
-            self.implementation_id.clone(),
-            self.display_base_id.clone(),
-            vec![self.placement_id.clone()],
-            vec![SURFACE_ID.into()],
-        )
-        .map_err(PresenterError::Compositor)?;
         let scene = front_door
             .scene(display)
             .map_err(PresenterError::FrontDoor)?;
-        let mut compositor = NativeCompositor::admitted(admission, display);
-        let receipt = compositor
-            .compose(
+        let format = display
+            .format()
+            .validate()
+            .map_err(NativeCompositorError::from)
+            .map_err(PresenterError::Compositor)?;
+        let bounds = LayoutRect {
+            x: 0,
+            y: 0,
+            width: u16::try_from(format.width).map_err(|_| PresenterError::Identity)?,
+            height: u16::try_from(format.height).map_err(|_| PresenterError::Identity)?,
+        };
+        if self.surface_admitted {
+            self.compositor
+                .place_surface(SURFACE_ID, bounds, 0)
+                .map_err(PresenterError::Compositor)?;
+        } else {
+            self.compositor
+                .admit_surface(SURFACE_ID, bounds, 0)
+                .map_err(PresenterError::Compositor)?;
+            self.surface_admitted = true;
+        }
+        let receipt = self
+            .compositor
+            .update_surface(
                 &presentation,
                 &manifestation,
                 &self.plan,
@@ -199,6 +224,9 @@ impl FrontDoorPresenter {
             )
             .map_err(PresenterError::Compositor)?
             .clone();
+        self.compositor
+            .compose_frame(display)
+            .map_err(PresenterError::Compositor)?;
         self.last_revision = presentation.revision;
         Ok(receipt)
     }
@@ -207,6 +235,7 @@ impl FrontDoorPresenter {
 #[cfg(test)]
 mod tests {
     use conduit_core::{CheckedFormId, SourceDocumentId};
+    use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 
     use super::*;
     use crate::display::{DisplayError, DisplayFormat};
@@ -278,7 +307,7 @@ mod tests {
 
     #[test]
     fn zero_body_revision_crosses_exact_native_manifestation() {
-        let door = door();
+        let mut door = door();
         let mut presenter = presenter();
         let mut display = MemoryDisplay::available();
         let receipt = presenter.present(&door, &mut display).unwrap();
@@ -291,10 +320,19 @@ mod tests {
         assert_eq!(receipt.offer_generation, OfferGeneration(4));
         assert_eq!(receipt.display_base_id.as_str(), "display/base");
         assert!(receipt.display.pixels_written > 0);
+        assert_eq!(presenter.compositor_frame_sequence(), 1);
         assert_eq!(
             presenter.present(&door, &mut display),
             Err(PresenterError::StaleRevision)
         );
+        door.accept(
+            KeyEvent::new(43, KeyTransition::Pressed, KeyModifiers::from_bits(0)).unwrap(),
+            1,
+        )
+        .unwrap();
+        let next = presenter.present(&door, &mut display).unwrap();
+        assert_ne!(next.manifestation_id, receipt.manifestation_id);
+        assert_eq!(presenter.compositor_frame_sequence(), 2);
     }
 
     #[test]

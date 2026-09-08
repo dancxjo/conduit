@@ -1,21 +1,24 @@
-//! Optional finite native compositor facility above the scanout mechanism.
+//! Persistent finite native compositor service above the scanout mechanism.
 
+mod surface_buffer;
+
+use crate::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget, render_scene};
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
     ActivePlayId, ArtifactId, BootId, CapabilityId, HostBaseId, HostId, ImplementationId,
     OfferGeneration, PlacementId, Plan, PlanId,
 };
 use conduit_presentation::{
-    GraphicsScene, Manifestation, ManifestationError, ManifestationId, ManifestationLifecycle,
-    Presentation, PresentationContentId,
+    GraphicsScene, LayoutRect, Manifestation, ManifestationError, ManifestationId,
+    ManifestationLifecycle, Presentation, PresentationContentId,
 };
-
-use crate::display::{DisplayError, DisplayReceipt, PixelTarget, render_scene};
+use surface_buffer::{SurfaceBuffer, surface_pixels};
 
 pub const NATIVE_COMPOSITOR_FACILITY: &str = "compositor/native@1";
 pub const NATIVE_PRESENTER_IMPLEMENTATION: &str = "presenter/native-graphical@1";
 pub const MAX_COMPOSITOR_SURFACES: usize = 8;
 pub const MAX_SURFACE_ID_BYTES: usize = 160;
+pub const MAX_COMPOSITOR_PIXELS: usize = 8 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompositorAdmission {
@@ -45,19 +48,32 @@ pub struct CompositionReceipt {
     pub face_subject: String,
     pub display_base_id: HostBaseId,
     pub surface_id: String,
+    /// Work used to render this revision into its retained offscreen buffer.
     pub display: DisplayReceipt,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FrameReceipt {
+    pub frame_sequence: u64,
+    pub surfaces_composed: u8,
+    pub pixels_written: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NativeCompositorError {
     EmptyAdmission,
     TooManySurfaces,
+    SurfaceCapacityExceeded,
     InvalidSurface,
+    InvalidBounds,
     DuplicateSurface,
     DuplicatePlacement,
     UnadmittedSurface,
     UnadmittedPlacement,
-    SurfaceOccupied,
+    SurfaceAlreadyAdmitted,
+    SurfaceNotAdmitted,
+    SurfaceAlreadyBound,
+    StaleSurfaceRevision,
     StaleIdentity,
     ManifestationInvalid,
     Display(DisplayError),
@@ -67,20 +83,25 @@ impl NativeCompositorError {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::EmptyAdmission => "compositor-admission-empty",
-            Self::TooManySurfaces => "compositor-surface-capacity-exceeded",
+            Self::TooManySurfaces | Self::SurfaceCapacityExceeded => {
+                "compositor-surface-capacity-exceeded"
+            }
             Self::InvalidSurface => "compositor-surface-invalid",
+            Self::InvalidBounds => "compositor-surface-bounds-invalid",
             Self::DuplicateSurface => "compositor-surface-duplicate",
             Self::DuplicatePlacement => "compositor-placement-duplicate",
             Self::UnadmittedSurface => "compositor-surface-unadmitted",
             Self::UnadmittedPlacement => "compositor-placement-unadmitted",
-            Self::SurfaceOccupied => "compositor-surface-occupied",
+            Self::SurfaceAlreadyAdmitted => "compositor-surface-already-admitted",
+            Self::SurfaceNotAdmitted => "compositor-surface-not-admitted",
+            Self::SurfaceAlreadyBound => "compositor-surface-already-bound",
+            Self::StaleSurfaceRevision => "compositor-surface-revision-stale",
             Self::StaleIdentity => "compositor-identity-stale",
             Self::ManifestationInvalid => "compositor-manifestation-invalid",
             Self::Display(error) => error.as_str(),
         }
     }
 }
-
 impl From<DisplayError> for NativeCompositorError {
     fn from(value: DisplayError) -> Self {
         Self::Display(value)
@@ -131,30 +152,93 @@ impl CompositorAdmission {
     }
 }
 
-pub struct NativeCompositor<T> {
-    admission: CompositorAdmission,
-    target: T,
-    receipts: Vec<CompositionReceipt>,
+#[derive(Clone)]
+struct SurfaceBinding {
+    plan_id: PlanId,
+    placement_id: PlacementId,
+    face_subject: String,
+    last_revision: u64,
+}
+struct CompositorSurface {
+    surface_id: String,
+    bounds: LayoutRect,
+    z: u8,
+    visible: bool,
+    buffer: SurfaceBuffer,
+    binding: Option<SurfaceBinding>,
+    receipt: Option<CompositionReceipt>,
 }
 
-impl<T: PixelTarget> NativeCompositor<T> {
-    pub fn admitted(admission: CompositorAdmission, target: T) -> Self {
+pub struct NativeCompositor {
+    admission: CompositorAdmission,
+    surfaces: Vec<CompositorSurface>,
+    focused_surface: Option<String>,
+    frame_sequence: u64,
+    admitted_pixels: usize,
+}
+
+impl NativeCompositor {
+    pub fn admitted(admission: CompositorAdmission) -> Self {
         Self {
             admission,
-            target,
-            receipts: Vec::new(),
+            surfaces: Vec::new(),
+            focused_surface: None,
+            frame_sequence: 0,
+            admitted_pixels: 0,
         }
     }
-
     pub fn admission(&self) -> &CompositorAdmission {
         &self.admission
     }
-
-    pub fn receipts(&self) -> &[CompositionReceipt] {
-        &self.receipts
+    pub const fn frame_sequence(&self) -> u64 {
+        self.frame_sequence
+    }
+    pub fn focused_surface(&self) -> Option<&str> {
+        self.focused_surface.as_deref()
+    }
+    pub fn receipts(&self) -> impl Iterator<Item = &CompositionReceipt> {
+        self.surfaces
+            .iter()
+            .filter_map(|surface| surface.receipt.as_ref())
     }
 
-    pub fn compose(
+    pub fn admit_surface(
+        &mut self,
+        surface_id: &str,
+        bounds: LayoutRect,
+        z: u8,
+    ) -> Result<(), NativeCompositorError> {
+        self.validate_surface_id(surface_id)?;
+        if self
+            .surfaces
+            .iter()
+            .any(|surface| surface.surface_id == surface_id)
+        {
+            return Err(NativeCompositorError::SurfaceAlreadyAdmitted);
+        }
+        let pixels = surface_pixels(bounds)?;
+        let admitted_pixels = self
+            .admitted_pixels
+            .checked_add(pixels)
+            .ok_or(NativeCompositorError::SurfaceCapacityExceeded)?;
+        if self.surfaces.len() == MAX_COMPOSITOR_SURFACES || admitted_pixels > MAX_COMPOSITOR_PIXELS
+        {
+            return Err(NativeCompositorError::SurfaceCapacityExceeded);
+        }
+        self.surfaces.push(CompositorSurface {
+            surface_id: surface_id.into(),
+            bounds,
+            z,
+            visible: true,
+            buffer: SurfaceBuffer::new(bounds.width, bounds.height)?,
+            binding: None,
+            receipt: None,
+        });
+        self.admitted_pixels = admitted_pixels;
+        Ok(())
+    }
+
+    pub fn update_surface(
         &mut self,
         presentation: &Presentation,
         manifestation: &Manifestation,
@@ -163,43 +247,38 @@ impl<T: PixelTarget> NativeCompositor<T> {
         display_base_id: &HostBaseId,
         scene: &GraphicsScene,
     ) -> Result<&CompositionReceipt, NativeCompositorError> {
-        if !self
-            .admission
-            .surface_ids
-            .iter()
-            .any(|admitted| admitted == surface_id)
-        {
-            return Err(NativeCompositorError::UnadmittedSurface);
+        self.validate_manifestation(
+            presentation,
+            manifestation,
+            plan,
+            surface_id,
+            display_base_id,
+        )?;
+        let surface = self
+            .surfaces
+            .iter_mut()
+            .find(|surface| surface.surface_id == surface_id)
+            .ok_or(NativeCompositorError::SurfaceNotAdmitted)?;
+        if let Some(binding) = &surface.binding {
+            if binding.plan_id != manifestation.plan_id
+                || binding.placement_id != manifestation.placement_id
+                || binding.face_subject != manifestation.face_subject
+            {
+                return Err(NativeCompositorError::SurfaceAlreadyBound);
+            }
+            if presentation.revision <= binding.last_revision {
+                return Err(NativeCompositorError::StaleSurfaceRevision);
+            }
         }
-        if !self
-            .admission
-            .placement_ids
-            .contains(&manifestation.placement_id)
-        {
-            return Err(NativeCompositorError::UnadmittedPlacement);
-        }
-        if self
-            .receipts
-            .iter()
-            .any(|receipt| receipt.surface_id == surface_id)
-        {
-            return Err(NativeCompositorError::SurfaceOccupied);
-        }
-        if manifestation.host_id != self.admission.host_id
-            || manifestation.boot_id != self.admission.boot_id
-            || manifestation.offer_generation != self.admission.offer_generation
-            || manifestation.presenter_implementation_id
-                != self.admission.presenter_implementation_id
-            || display_base_id != &self.admission.display_base_id
-            || manifestation.lifecycle != ManifestationLifecycle::Available
-        {
-            return Err(NativeCompositorError::StaleIdentity);
-        }
-        manifestation
-            .validate_against(presentation, plan)
-            .map_err(map_manifestation_error)?;
-        let display = render_scene(&mut self.target, scene)?;
-        self.receipts.push(CompositionReceipt {
+        surface.buffer.clear();
+        let display = render_scene(&mut surface.buffer, scene)?;
+        surface.binding = Some(SurfaceBinding {
+            plan_id: manifestation.plan_id.clone(),
+            placement_id: manifestation.placement_id.clone(),
+            face_subject: manifestation.face_subject.clone(),
+            last_revision: presentation.revision,
+        });
+        surface.receipt = Some(CompositionReceipt {
             presentation_id: presentation.identity.clone(),
             manifestation_id: manifestation.manifestation_id.clone(),
             plan_id: manifestation.plan_id.clone(),
@@ -217,12 +296,199 @@ impl<T: PixelTarget> NativeCompositor<T> {
             surface_id: surface_id.into(),
             display,
         });
-        self.receipts
-            .last()
-            .ok_or(NativeCompositorError::TooManySurfaces)
+        surface
+            .receipt
+            .as_ref()
+            .ok_or(NativeCompositorError::SurfaceNotAdmitted)
+    }
+
+    pub fn place_surface(
+        &mut self,
+        surface_id: &str,
+        bounds: LayoutRect,
+        z: u8,
+    ) -> Result<(), NativeCompositorError> {
+        let pixels = surface_pixels(bounds)?;
+        let surface = self
+            .surfaces
+            .iter_mut()
+            .find(|surface| surface.surface_id == surface_id)
+            .ok_or(NativeCompositorError::SurfaceNotAdmitted)?;
+        let admitted_pixels = self
+            .admitted_pixels
+            .checked_sub(surface.buffer.pixels.len())
+            .and_then(|value| value.checked_add(pixels))
+            .ok_or(NativeCompositorError::SurfaceCapacityExceeded)?;
+        if admitted_pixels > MAX_COMPOSITOR_PIXELS {
+            return Err(NativeCompositorError::SurfaceCapacityExceeded);
+        }
+        if bounds.width != surface.bounds.width || bounds.height != surface.bounds.height {
+            surface.buffer = SurfaceBuffer::new(bounds.width, bounds.height)?;
+            surface.receipt = None;
+        }
+        surface.bounds = bounds;
+        surface.z = z;
+        self.admitted_pixels = admitted_pixels;
+        Ok(())
+    }
+
+    pub fn set_surface_visible(
+        &mut self,
+        surface_id: &str,
+        visible: bool,
+    ) -> Result<(), NativeCompositorError> {
+        self.surface_mut(surface_id)?.visible = visible;
+        Ok(())
+    }
+    pub fn focus_surface(&mut self, surface_id: &str) -> Result<(), NativeCompositorError> {
+        let surface = self.surface_mut(surface_id)?;
+        if !surface.visible || surface.binding.is_none() {
+            return Err(NativeCompositorError::SurfaceNotAdmitted);
+        }
+        self.focused_surface = Some(surface_id.into());
+        Ok(())
+    }
+    pub fn remove_surface(&mut self, surface_id: &str) -> Result<(), NativeCompositorError> {
+        let index = self
+            .surfaces
+            .iter()
+            .position(|surface| surface.surface_id == surface_id)
+            .ok_or(NativeCompositorError::SurfaceNotAdmitted)?;
+        let removed = self.surfaces.remove(index);
+        self.admitted_pixels -= removed.buffer.pixels.len();
+        if self.focused_surface.as_deref() == Some(surface_id) {
+            self.focused_surface = None;
+        }
+        Ok(())
+    }
+
+    pub fn compose_frame(
+        &mut self,
+        target: &mut impl PixelTarget,
+    ) -> Result<FrameReceipt, NativeCompositorError> {
+        let format = target.format().validate()?;
+        let mut pixels_written = clear_target(target, format)?;
+        let mut order: Vec<usize> = self
+            .surfaces
+            .iter()
+            .enumerate()
+            .filter(|(_, surface)| surface.visible && surface.binding.is_some())
+            .map(|(index, _)| index)
+            .collect();
+        order.sort_by_key(|index| (self.surfaces[*index].z, *index));
+        for index in &order {
+            pixels_written = pixels_written
+                .checked_add(blit_surface(target, format, &self.surfaces[*index])?)
+                .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
+        }
+        self.frame_sequence = self
+            .frame_sequence
+            .checked_add(1)
+            .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
+        Ok(FrameReceipt {
+            frame_sequence: self.frame_sequence,
+            surfaces_composed: u8::try_from(order.len())
+                .map_err(|_| NativeCompositorError::SurfaceCapacityExceeded)?,
+            pixels_written,
+        })
+    }
+
+    fn validate_surface_id(&self, surface_id: &str) -> Result<(), NativeCompositorError> {
+        if self.admission.surface_ids.iter().any(|id| id == surface_id) {
+            Ok(())
+        } else {
+            Err(NativeCompositorError::UnadmittedSurface)
+        }
+    }
+    fn validate_manifestation(
+        &self,
+        presentation: &Presentation,
+        manifestation: &Manifestation,
+        plan: &Plan,
+        surface_id: &str,
+        display_base_id: &HostBaseId,
+    ) -> Result<(), NativeCompositorError> {
+        self.validate_surface_id(surface_id)?;
+        if !self
+            .admission
+            .placement_ids
+            .contains(&manifestation.placement_id)
+        {
+            return Err(NativeCompositorError::UnadmittedPlacement);
+        }
+        if manifestation.host_id != self.admission.host_id
+            || manifestation.boot_id != self.admission.boot_id
+            || manifestation.offer_generation != self.admission.offer_generation
+            || manifestation.presenter_implementation_id
+                != self.admission.presenter_implementation_id
+            || display_base_id != &self.admission.display_base_id
+            || manifestation.target_subject != surface_id
+            || manifestation.lifecycle != ManifestationLifecycle::Available
+        {
+            return Err(NativeCompositorError::StaleIdentity);
+        }
+        manifestation
+            .validate_against(presentation, plan)
+            .map_err(map_manifestation_error)?;
+        Ok(())
+    }
+    fn surface_mut(
+        &mut self,
+        surface_id: &str,
+    ) -> Result<&mut CompositorSurface, NativeCompositorError> {
+        self.validate_surface_id(surface_id)?;
+        self.surfaces
+            .iter_mut()
+            .find(|surface| surface.surface_id == surface_id)
+            .ok_or(NativeCompositorError::SurfaceNotAdmitted)
     }
 }
 
+fn clear_target(
+    target: &mut impl PixelTarget,
+    format: DisplayFormat,
+) -> Result<u32, NativeCompositorError> {
+    let mut count = 0_u32;
+    for y in 0..format.height {
+        for x in 0..format.width {
+            target.write_pixel(x, y, 0)?;
+            count = count
+                .checked_add(1)
+                .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
+        }
+    }
+    Ok(count)
+}
+fn blit_surface(
+    target: &mut impl PixelTarget,
+    target_format: DisplayFormat,
+    surface: &CompositorSurface,
+) -> Result<u32, NativeCompositorError> {
+    let mut count = 0_u32;
+    for local_y in 0..u32::from(surface.bounds.height) {
+        let y = i32::from(surface.bounds.y) + i32::try_from(local_y).unwrap_or(i32::MAX);
+        if y < 0 || y >= i32::try_from(target_format.height).unwrap_or(i32::MAX) {
+            continue;
+        }
+        for local_x in 0..u32::from(surface.bounds.width) {
+            let x = i32::from(surface.bounds.x) + i32::try_from(local_x).unwrap_or(i32::MAX);
+            if x < 0 || x >= i32::try_from(target_format.width).unwrap_or(i32::MAX) {
+                continue;
+            }
+            let index = usize::try_from(local_y * u32::from(surface.bounds.width) + local_x)
+                .map_err(|_| NativeCompositorError::InvalidBounds)?;
+            target.write_pixel(
+                u32::try_from(x).map_err(|_| NativeCompositorError::InvalidBounds)?,
+                u32::try_from(y).map_err(|_| NativeCompositorError::InvalidBounds)?,
+                surface.buffer.pixels[index],
+            )?;
+            count = count
+                .checked_add(1)
+                .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
+        }
+    }
+    Ok(count)
+}
 fn map_manifestation_error(error: ManifestationError) -> NativeCompositorError {
     match error {
         ManifestationError::StaleIdentity => NativeCompositorError::StaleIdentity,
