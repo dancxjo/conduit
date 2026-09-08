@@ -93,6 +93,9 @@ export function classifyCandidate(candidate, options = {}) {
     const state = attempt.cancelReason === "bad" ? "cancelled-bad" : "cancelled-superseded";
     return { state, attempt, evidence: evidence(candidate, attempt) };
   }
+  if (attempt.conclusion === "action_required" && !materiallyStarted(attempt)) {
+    return { state: "queued", attempt, evidence: evidence(candidate, attempt) };
+  }
   if (!ACTIVE.has(attempt.status)) {
     return {
       state: "running-bad",
