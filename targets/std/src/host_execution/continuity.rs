@@ -39,6 +39,7 @@ impl StdHost {
                 keyboard: None,
                 indicator: None,
                 retained: Some(sources),
+                attach_live: false,
             },
         )
         .map_err(|reason| StateContinuationRunFailure {

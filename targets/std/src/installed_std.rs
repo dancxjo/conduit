@@ -54,6 +54,7 @@ mod preparation;
 pub(super) use preparation::{
     lower_fragment_with_continuity, state_storage_profile, validate_retained_inputs,
 };
+mod lifecycle;
 mod retained_run;
 #[cfg(test)]
 pub(super) use retained_run::run_fragment;
@@ -201,6 +202,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         control,
         retained,
         indicator,
+        attach_live,
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
@@ -2003,7 +2005,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         };
         match status {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Drained => break TerminalDisposition::Completed,
+            SchedulerStatus::Drained if lifecycle::drained_completes(fragment, attach_live) => {
+                break TerminalDisposition::Completed
+            }
+            SchedulerStatus::Drained => {
+                lifecycle::await_live_control(control);
+            }
             SchedulerStatus::Idle => {
                 if keyboard_host.poll(&mut scheduler)? {
                     continue;

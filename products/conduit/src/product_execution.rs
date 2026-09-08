@@ -43,11 +43,19 @@ impl ProductRuntime {
         &mut self,
         fragment: PlanFragment,
         output: &mut W,
+        control: Option<&conduit_std_host::RunControl>,
     ) -> Result<Vec<Observation>, String> {
         match self {
-            Self::Std(host) => host
-                .run_fragment_to(fragment, output, &mut ThreadTimer)
-                .map(|report| report.observations),
+            Self::Std(host) => match control {
+                Some(control) => host.run_fragment_attached_controlled_to(
+                    fragment,
+                    output,
+                    &mut ThreadTimer,
+                    control,
+                ),
+                None => host.run_fragment_to(fragment, output, &mut ThreadTimer),
+            }
+            .map(|report| report.observations),
         }
     }
 }
@@ -333,10 +341,29 @@ impl ProductExecutionContext {
             .min()
     }
 
+    #[cfg(test)]
     pub(crate) fn execute<W: Write>(
         &mut self,
         plan: Plan,
         output: &mut W,
+    ) -> Result<ProductExecution, String> {
+        self.execute_with_control(plan, output, None)
+    }
+
+    pub(crate) fn execute_attached<W: Write>(
+        &mut self,
+        plan: Plan,
+        output: &mut W,
+        control: &conduit_std_host::RunControl,
+    ) -> Result<ProductExecution, String> {
+        self.execute_with_control(plan, output, Some(control))
+    }
+
+    fn execute_with_control<W: Write>(
+        &mut self,
+        plan: Plan,
+        output: &mut W,
+        control: Option<&conduit_std_host::RunControl>,
     ) -> Result<ProductExecution, String> {
         self.validate_plan(&plan)?;
         let has_remote_line = plan
@@ -345,6 +372,14 @@ impl ProductExecutionContext {
             .flat_map(|fragment| &fragment.connections)
             .any(|connection| connection.selected_line.is_some());
         if has_remote_line {
+            if control.is_some()
+                && plan.completion_policy == conduit_core::PlanCompletionPolicy::Live
+            {
+                return Err(
+                    "interactive quiescent control is not yet available for a remote Line Plan"
+                        .into(),
+                );
+            }
             let mut matching = self
                 .line_runtimes
                 .iter_mut()
@@ -371,7 +406,7 @@ impl ProductExecutionContext {
                 .iter_mut()
                 .find(|runtime| runtime.advertisement().host_id == fragment.host_id)
                 .expect("every runtime was admitted before execution");
-            observations.extend(runtime.execute(fragment, output)?);
+            observations.extend(runtime.execute(fragment, output, control)?);
         }
         Ok(ProductExecution {
             advertisements: self.advertisements.clone(),

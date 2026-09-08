@@ -287,6 +287,6 @@ fn planned_browser_window_retains_exact_profile_samples_and_drop_evidence() {
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
 }

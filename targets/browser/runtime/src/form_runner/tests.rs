@@ -1,6 +1,7 @@
 use super::*;
 
 const HELLO_LIGHT: &str = r#"form hello-light {
+    complete
     message: text/literal("SOS")
     morse: text/morse(120)
     light: presentation/indicator
@@ -90,16 +91,25 @@ fn canonical_button_form_runs_press_and_release_without_device_identity() {
     assert_eq!(off.plan_id, on.plan_id);
     assert_eq!(off.active_play_id, on.active_play_id);
 
-    let TourProgress::Receipt(receipt) = session.advance().unwrap() else {
-        panic!("release manifestation must complete the bounded Play")
+    let TourProgress::Waiting {
+        disposition,
+        active_play_id,
+        pending_effects,
+        ..
+    } = session.advance().unwrap()
+    else {
+        panic!("living button Play must remain quiescent after its current events")
     };
-    assert_eq!(receipt.disposition, "completed");
-    assert_eq!(receipt.manifestation_completions, 2);
+    assert_eq!(disposition, "quiescent_awaiting_input");
+    assert_eq!(active_play_id, on.active_play_id);
+    assert_eq!(pending_effects, 0);
+    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
 }
 
 #[test]
 fn four_gear_text_form_runs_without_a_topology_special_case() {
     let source = r#"form text-chain {
+    complete
     source: text/literal("hello")
     prefix: text/join("say: ")
     upper: text/upper
@@ -118,6 +128,7 @@ fn four_gear_text_form_runs_without_a_topology_special_case() {
 #[test]
 fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
     let source = r#"form queued-record {
+    complete
     message: text/literal("CALLING")
     encode: record/text-to-typed
     frame: record/frame-typed
@@ -147,6 +158,7 @@ fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
 #[test]
 fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
     let source = r#"form language-lab {
+    complete
     tokens: language/tokenize-four("Bright stars shine.")
     annotate: language/annotate-four
     result: presentation/structured-info
@@ -171,6 +183,7 @@ fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
 #[test]
 fn math_and_logic_families_use_the_same_generic_host_path() {
     let math = r#"form math-lab {
+    complete
     source: scalar/literal(1.5)
     scale: math/scale(2.0)
     result: presentation/scalar
@@ -184,6 +197,7 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
     assert_eq!(math_session.complete().unwrap().disposition, "completed");
 
     let logic = r#"form logic-lab {
+    complete
     source: boolean/literal(true)
     invert: logic/not
     result: presentation/bool-value
@@ -200,6 +214,7 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
 #[test]
 fn typed_fanout_reconverges_without_tour_topology_code() {
     let source = r#"form fanout-lab {
+    complete
     source: scalar/literal(0.5)
     scaled: math/scale(2.0)
     quiet: math/deadband(0.6)
@@ -222,6 +237,7 @@ fn typed_fanout_reconverges_without_tour_topology_code() {
 #[test]
 fn finite_browser_timer_drives_current_count_through_one_kernel_play() {
     let source = r#"form count-over-time {
+    complete
     count: state/count(start = 0)
     show: presentation/count(maximum-values = 5)
     clock: time/every(freq = 100ms)
@@ -416,6 +432,7 @@ fn semantic_kind_without_browser_installation_refuses_before_play() {
 #[test]
 fn newly_installed_logic_select_executes_through_the_generic_host() {
     let select = r#"form browser-select {
+    complete
     selector: boolean/literal(true)
     when_false: scalar/literal(1.0)
     when_true: scalar/literal(2.0)

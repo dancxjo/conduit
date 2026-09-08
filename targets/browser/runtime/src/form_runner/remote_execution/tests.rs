@@ -156,10 +156,7 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
         &observations(&b),
     )
     .unwrap();
-    assert!(matches!(
-        sink.drive().unwrap(),
-        DriveStatus::Waiting { pending_effects: 0 }
-    ));
+    assert!(matches!(sink.drive().unwrap(), DriveStatus::Quiescent));
     assert!(sink.offer().is_err());
     assert!(source.admit(0, &[1]).is_err());
     for (sequence, pressed) in [(0_u64, true), (1, false)] {
@@ -211,11 +208,12 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
         );
         sink.complete_effect(&presentation, None).unwrap();
         source.delivered(sequence).unwrap();
+        assert!(matches!(sink.drive().unwrap(), DriveStatus::Quiescent));
     }
-    assert!(matches!(source.drive().unwrap(), DriveStatus::Complete));
+    assert!(matches!(source.drive().unwrap(), DriveStatus::Quiescent));
     assert!(source.terminal().unwrap());
     sink.close_input().unwrap();
-    assert!(matches!(sink.drive().unwrap(), DriveStatus::Complete));
+    assert!(matches!(sink.drive().unwrap(), DriveStatus::Quiescent));
     source.cancel().unwrap();
 }
 

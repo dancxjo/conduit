@@ -234,6 +234,7 @@ fn canonical_secret_knock_demo_runs_storage_and_recognizer_as_nested_forms() {
 
 fn comparison_source() -> String {
     let source = "form zz-timing {\n button: input/button(maximum-transitions = 5)\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: derive-intervals\n normalize: normalize-durations\n compare: compare-pattern(metric = \"maximum-absolute-millionths@1\", tolerance-millionths = 0)\n show: presentation/structured-info\n button.transition > attempt.transition\n attempt.events > derive.events\n derive.intervals > normalize.intervals\n normalize.normalized > compare.candidate\n normalize.normalized > compare.template\n compare.comparison > show.input\n}\n";
+    let source = source.replacen("{\n", "{\n complete\n", 1);
     // Import the exact canonical reusable declarations, without the namesake's
     // storage-dependent root. This fixture does not claim full Secret Knock support.
     let canonical = include_str!("../../../../../forms/secret-knock/main.conduit");

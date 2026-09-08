@@ -238,7 +238,7 @@ fn planned_browser_history_projects_replay_through_the_production_kernel() {
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
-        DriveStatus::Complete
+        DriveStatus::Quiescent
     ));
     assert_eq!(scheduler.values().allocation_capacities(), capacities);
     assert_eq!(

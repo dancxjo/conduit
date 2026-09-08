@@ -5,7 +5,7 @@ use conduit_plan_lowering::fragment_set::{lower_local_fragment_set, FragmentSetB
 use std::collections::BTreeMap;
 
 fn fragment(name: &str, message: &str) -> PlanFragment {
-    let source = format!("form {name} {{\n source: text/literal(\"{message}\")\n result: presentation/text\n source > result\n}}\n");
+    let source = format!("form {name} {{\n complete\n source: text/literal(\"{message}\")\n result: presentation/text\n source > result\n}}\n");
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, name, &catalog).unwrap();
@@ -60,15 +60,19 @@ fn distinct_plans_execute_in_one_browser_kernel_without_relabeling() {
     let mut outputs = Vec::new();
     let mut nodes = Vec::new();
     loop {
-        let status = drive_with_placement(&mut scheduler, |node| {
-            parts.iter().find_map(|(fragment, part)| {
-                let identity = part.identity.placement_for_node(node)?;
-                fragment
-                    .placements
-                    .iter()
-                    .find(|placement| &placement.placement_id == identity)
-            })
-        })
+        let status = drive_with_placement(
+            &mut scheduler,
+            conduit_core::PlanCompletionPolicy::SemanticCompletion,
+            |node| {
+                parts.iter().find_map(|(fragment, part)| {
+                    let identity = part.identity.placement_for_node(node)?;
+                    fragment
+                        .placements
+                        .iter()
+                        .find(|placement| &placement.placement_id == identity)
+                })
+            },
+        )
         .unwrap();
         match status {
             DriveStatus::Effect(pending) => {
@@ -79,7 +83,8 @@ fn distinct_plans_execute_in_one_browser_kernel_without_relabeling() {
                 nodes.push(pending.request.node);
                 complete_host_effect(&mut scheduler, &pending).unwrap();
             }
-            DriveStatus::Complete => break,
+            DriveStatus::SemanticCompleted => break,
+            DriveStatus::Quiescent => panic!("explicit finite Form became quiescent"),
             DriveStatus::Waiting { .. } => panic!("no pending effect was left incomplete"),
         }
     }

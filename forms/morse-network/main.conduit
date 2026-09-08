@@ -1,4 +1,6 @@
 form morse_network {
+    # Transactional demo: presents one finite encoded message.
+    complete
     message: text/literal("SOS")
     morse: text/morse(120)
     light: presentation/indicator

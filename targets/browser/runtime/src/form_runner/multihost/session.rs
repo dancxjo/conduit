@@ -303,7 +303,7 @@ impl Session {
         }
         let pending = match engine::drive(&mut self.scheduler, &self.fragment)? {
             DriveStatus::Effect(pending) => pending,
-            DriveStatus::Complete => {
+            DriveStatus::Quiescent | DriveStatus::SemanticCompleted => {
                 return Err("multi-Host sink completed before presentation".into())
             }
             DriveStatus::Waiting { .. } => {

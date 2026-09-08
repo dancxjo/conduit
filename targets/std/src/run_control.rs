@@ -1,5 +1,6 @@
 use conduit_core::ActivePlayId;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
+use std::time::Duration;
 
 const MAXIMUM_CONTROL_REQUEST_ID_BYTES: usize = 128;
 
@@ -41,13 +42,14 @@ pub struct RejectedRunControlRequest {
 
 #[derive(Debug, Clone, Default)]
 pub struct RunControl {
-    state: Arc<Mutex<RunControlState>>,
+    state: Arc<(Mutex<RunControlState>, Condvar)>,
 }
 
 #[derive(Debug, Default)]
 struct RunControlState {
     requested: Option<RunControlRequestId>,
     accepted: bool,
+    quiescent: bool,
 }
 
 impl RunControl {
@@ -55,7 +57,7 @@ impl RunControl {
         &self,
         request_id: RunControlRequestId,
     ) -> Result<(), RejectedRunControlRequest> {
-        let mut state = self.state.lock().expect("run control lock poisoned");
+        let mut state = self.state.0.lock().expect("run control lock poisoned");
         if state.requested.is_some() || state.accepted {
             return Err(RejectedRunControlRequest {
                 request_id,
@@ -67,12 +69,32 @@ impl RunControl {
     }
 
     pub(crate) fn requested_stop(&self) -> Option<RunControlRequestId> {
-        let mut state = self.state.lock().expect("run control lock poisoned");
+        let mut state = self.state.0.lock().expect("run control lock poisoned");
         let requested = state.requested.take();
         if requested.is_some() {
             state.accepted = true;
         }
         requested
+    }
+
+    pub(crate) fn mark_quiescent(&self) {
+        let mut state = self.state.0.lock().expect("run control lock poisoned");
+        state.quiescent = true;
+        self.state.1.notify_all();
+    }
+
+    /// Wait for exact runner evidence that this Play reached quiescence.
+    pub fn wait_until_quiescent(&self, timeout: Duration) -> bool {
+        let state = self.state.0.lock().expect("run control lock poisoned");
+        if state.quiescent {
+            return true;
+        }
+        self.state
+            .1
+            .wait_timeout_while(state, timeout, |state| !state.quiescent)
+            .expect("run control lock poisoned")
+            .0
+            .quiescent
     }
 }
 

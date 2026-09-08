@@ -51,6 +51,8 @@ form signal-garden-interactive (
 
 # Presentation consumes the semantic state after evolution and does not own the reducer.
 form signal-garden-interactive-display {
+    # Transactional display specimen: one admitted Garden transition.
+    complete
     observations: garden/deterministic-observations
     evolve: garden-state-step-contact
     show: presentation/garden-state

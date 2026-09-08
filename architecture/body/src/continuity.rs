@@ -161,4 +161,19 @@ impl ContinuousSpecimen {
         self.disposition = ContinuousDisposition::SemanticCompletion;
         self.disposition
     }
+
+    pub fn lull(&mut self) -> ContinuousDisposition {
+        self.disposition = ContinuousDisposition::Lull;
+        self.disposition
+    }
+
+    pub fn cancel(&mut self) -> ContinuousDisposition {
+        self.disposition = ContinuousDisposition::Cancelled;
+        self.disposition
+    }
+
+    pub fn fail(&mut self) -> ContinuousDisposition {
+        self.disposition = ContinuousDisposition::Failed;
+        self.disposition
+    }
 }

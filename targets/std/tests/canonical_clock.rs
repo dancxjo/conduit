@@ -8,8 +8,8 @@ use std::time::Duration;
 
 const POSITIONAL: &str = include_str!("../../../forms/clock/main.conduit");
 const NAMED: &str =
-    "form clock-demo {\n    clock: time/every(freq = 1s)\n    clock > presentation/tick\n}\n";
-const LOCAL: &str = "form clock-demo {\n    freq = 1s\n    clock: time/every(freq)\n    clock > presentation/tick\n}\n";
+    "form clock-demo {\n    complete\n    clock: time/every(freq = 1s)\n    clock > presentation/tick\n}\n";
+const LOCAL: &str = "form clock-demo {\n    complete\n    freq = 1s\n    clock: time/every(freq)\n    clock > presentation/tick\n}\n";
 
 #[derive(Default)]
 struct RecordingTimer {
