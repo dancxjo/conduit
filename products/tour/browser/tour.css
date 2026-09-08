@@ -83,7 +83,7 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
   white-space: pre; font: 500 .86rem/1.6 var(--conduit-font-mono); tab-size: 4;
 }
 .syntax-example:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
-[data-application-key="source-label"] { color: #f2bd71; font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; }
+[data-application-key="source-label"] { color: var(--conduit-warning); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; }
 [data-application-key="source-help"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .birth-editor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-content: start; padding: 1.25rem; }
 .birth-field { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; position: relative; }
