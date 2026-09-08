@@ -104,6 +104,17 @@ test("three unstarted candidates collapse to the newest", () => {
   assert.deepEqual(decision.actions.cancel.map(({ runId }) => runId), [101, 102]);
 });
 
+test("an approval-gated unstarted candidate remains queued and may be superseded", () => {
+  const approvalGated = run(101, "completed", 3, { conclusion: "action_required", jobs: [] });
+  const decision = decide([
+    candidate(1, approvalGated),
+    candidate(2, run(102, "queued", 1)),
+  ]);
+  assert.equal(decision.classifications[0].state, "queued");
+  assert.deepEqual(decision.actions.close.map(({ prNumber }) => prNumber), [1]);
+  assert.equal(decision.actions.start.runId, 102);
+});
+
 test("stuck A escalates exactly once and retains only newest queued successor", () => {
   const a = candidate(1, run(101, "in_progress", 20, { updatedAt: new Date(now - 20 * minute).toISOString() }));
   const b = candidate(2, run(102, "queued", 2));
