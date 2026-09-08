@@ -363,6 +363,7 @@ fn execute_image(
             journey_input::primary_button(&mut qmp, &mut reader, true, "pointer-focus-inspector")?;
             journey_input::wait_pointer_status(&serial_path, &mut child, "auxiliary-focused")?;
             artifacts.capture(&mut qmp, &mut reader, "inspector-focused", true)?;
+            artifacts.capture(&mut qmp, &mut reader, "inspector-long-text", false)?;
             journey_input::primary_button(
                 &mut qmp,
                 &mut reader,

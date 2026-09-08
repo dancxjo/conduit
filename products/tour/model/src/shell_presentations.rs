@@ -119,7 +119,7 @@ impl TourWorkspaceState {
             vec![],
             vec![PresentationText {
                 subject: inspection,
-                text: format!("BACK / {gear}"),
+                text: format!("BACK / {gear} / retained inspection surface"),
             }],
         )
         .map(Some)
@@ -331,6 +331,9 @@ mod tests {
                 && relationship.target == "meet-one-gear/change"
                 && relationship.kind == PresentationRelationshipKind::Describes
         }));
+        let detail = inspector.text.first().expect("inspection detail");
+        assert!(detail.text.len() > 48);
+        assert!(detail.text.contains("retained inspection surface"));
     }
 
     #[test]
