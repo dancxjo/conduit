@@ -82,6 +82,10 @@ pub fn interruptible_idle() {
     unsafe { core::arch::asm!("hlt", options(nomem, nostack)) }
 }
 
+fn interruptible_idle_once() {
+    unsafe { core::arch::asm!("sti", "hlt", "cli", options(nomem, nostack)) }
+}
+
 pub fn pop_interrupt() -> Option<InterruptFact> {
     if FACT_OVERFLOW.swap(false, Ordering::AcqRel) {
         return Some(InterruptFact::Overflow);
@@ -271,9 +275,7 @@ impl IdleBase for Idle {
         if TIMER_ARM_PENDING.swap(false, Ordering::AcqRel) {
             timer_arm();
         }
-        enable_interrupts();
-        interruptible_idle();
-        disable_interrupts();
+        interruptible_idle_once();
         Ok(())
     }
     fn idle_count(&self) -> u32 {
