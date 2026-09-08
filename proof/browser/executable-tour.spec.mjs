@@ -8,6 +8,7 @@ import { openTourStep, startTour, startStaticProduct } from "./tour-test-server.
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 import { registerButtonMultiHostTests } from "./button-multihost.cases.mjs";
 import { registerFireflyMultiHostTests } from "./firefly-multihost.cases.mjs";
+import { PHYSICAL_HOST_EVIDENCE_MAXIMA } from "../../products/creche/browser/creche-target-catalog.mjs";
 
 let entrance;
 
@@ -1428,7 +1429,12 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
   await runner.getByRole("button", { name: "Observe Boot and join" }).click();
   const admit = runner.getByRole("button", { name: "Admit Part and offers" });
-  await expect(admit).toBeEnabled({ timeout: 15_000 });
+  try {
+    await expect(admit).toBeEnabled({ timeout: 15_000 });
+  } catch (error) {
+    error.message += `\nPhysical Host status: ${await runner.locator('[data-application-key="physical-status"]').textContent()}`;
+    throw error;
+  }
   await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
   await admit.click();
   await expect(runner.locator('[data-application-key="physical-stage-admit"]')).not.toContainText("waiting");
@@ -1697,7 +1703,7 @@ test("the ESP32 Crèche adapter refuses a wrong serial port as its own terminal"
 test("the physical target catalog refuses stale, duplicate, overflowing, and incompatible contributions", async ({ page }) => {
   await birthStandaloneBody(page);
   const refusals = await page.evaluate(async () => {
-    const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
+    const { createPhysicalHostTargetCatalog, PHYSICAL_HOST_EVIDENCE_MAXIMA } = await import("/creche/creche-target-catalog.mjs");
     const entry = (suffix = "one", factory = null, suppliedBounds = {}) => {
       const target = {
         id: `fixture/target-${suffix}`,
@@ -1732,7 +1738,7 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         createAdapter: factory ?? (() => adapter),
       };
     };
-    const admittedBounds = { maximumOperationEvidenceBytes: 104 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 };
+    const admittedBounds = PHYSICAL_HOST_EVIDENCE_MAXIMA;
     const catalog = createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("boundary", null, admittedBounds)] });
     const accepted = catalog.createAdapter({ targetId: "fixture/target-boundary", host: globalThis.__conduitCrecheHost });
     const evidence = { acceptedBounds: accepted.bounds };
@@ -1744,8 +1750,8 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         bounds: { maximumEntries: 1 },
         contributions: [entry("one"), entry("two")],
       }),
-      operationBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("operation", null, { ...admittedBounds, maximumOperationEvidenceBytes: 104 * 1024 + 1 })] }),
-      retainedBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("retained", null, { ...admittedBounds, maximumRetainedEvidenceBytes: 128 * 1024 + 1 })] }),
+      operationBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("operation", null, { ...admittedBounds, maximumOperationEvidenceBytes: admittedBounds.maximumOperationEvidenceBytes + 1 })] }),
+      retainedBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("retained", null, { ...admittedBounds, maximumRetainedEvidenceBytes: admittedBounds.maximumRetainedEvidenceBytes + 1 })] }),
       incompatible: () => {
         const catalog = createPhysicalHostTargetCatalog({
           generation: 2,
@@ -1763,7 +1769,7 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
     }
     return evidence;
   });
-  expect(refusals.acceptedBounds).toMatchObject({ maximumOperationEvidenceBytes: 104 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 });
+  expect(refusals.acceptedBounds).toMatchObject(PHYSICAL_HOST_EVIDENCE_MAXIMA);
   expect(refusals.operationBound).toMatchObject({ terminal: "IncompatibleContribution" });
   expect(refusals.retainedBound).toMatchObject({ terminal: "IncompatibleContribution" });
   expect(refusals.stale).toMatchObject({ terminal: "StaleCatalogGeneration", catalog_generation: 2 });

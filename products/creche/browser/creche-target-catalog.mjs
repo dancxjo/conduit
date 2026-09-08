@@ -9,6 +9,13 @@ const MAXIMUM_CARRIERS_PER_CLASS = 8;
 const MAXIMUM_CATALOG_BYTES = 128 * 1024;
 const encoder = new TextEncoder();
 
+// Finite workflow ceilings shared by the catalog and its existing-computer adapter.
+// The release-ABI conformance test checks advertisement capacity plus join framing.
+export const PHYSICAL_HOST_EVIDENCE_MAXIMA = Object.freeze({
+  maximumOperationEvidenceBytes: 120 * 1024,
+  maximumRetainedEvidenceBytes: 144 * 1024,
+});
+
 export const PHYSICAL_HOST_INTENTIONS = Object.freeze([
   Object.freeze({ id: "fabricate-new", label: "Fabricate new machinery", resultKind: "artifact" }),
   Object.freeze({ id: "install-existing", label: "Install on an existing computer", resultKind: "installation" }),
@@ -173,8 +180,8 @@ function requireContribution(contribution, generation) {
   }
   const adapterBounds = contribution.bounds;
   if (!adapterBounds || !boundedInteger(adapterBounds.maximumOperations, 1, 16)
-    || !boundedInteger(adapterBounds.maximumOperationEvidenceBytes, 256, 104 * 1024)
-    || !boundedInteger(adapterBounds.maximumRetainedEvidenceBytes, 1024, 128 * 1024)) {
+    || !boundedInteger(adapterBounds.maximumOperationEvidenceBytes, 256, PHYSICAL_HOST_EVIDENCE_MAXIMA.maximumOperationEvidenceBytes)
+    || !boundedInteger(adapterBounds.maximumRetainedEvidenceBytes, 1024, PHYSICAL_HOST_EVIDENCE_MAXIMA.maximumRetainedEvidenceBytes)) {
     refuse("IncompatibleContribution", "physical Host target contribution workflow bounds are missing or invalid", generation, { target_id: target.id });
   }
   const entry = Object.freeze({
