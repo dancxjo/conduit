@@ -17,6 +17,7 @@ export function readReviewedGallery(api) {
   }
   for (const form of projected.forms) {
     if (typeof form?.name !== "string" || typeof form.title !== "string" || typeof form.source !== "string"
+      || [form.category, form.description, form.instruction, form.note].some((value) => typeof value !== "string")
       || typeof form.source_document_id !== "string" || typeof form.checked_form_id !== "string"
       || !Number.isInteger(form.presentation_profile) || form.presentation_profile < 0 || form.presentation_profile > 3
       || !Array.isArray(form.required_kinds)
@@ -143,5 +144,93 @@ export function presentTourInventory(presentation, inventory) {
       render();
     } });
   };
+  render();
+}
+
+
+// Compose the experience around the existing runner. Controls, source and
+// output retain their original handlers and their production runtime ownership.
+export function presentGalleryExperience(runner, form, presentation) {
+  runner.classList.add("gallery-runner");
+  runner.dataset.galleryForm = form.name;
+  const document = runner.ownerDocument;
+  const introduction = document.createElement("header");
+  const slot = `gallery-experience-${++revision}`;
+  introduction.dataset.applicationSlot = slot;
+  introduction.className = "gallery-experience";
+  runner.prepend(introduction);
+  presentation.present(slot, { revision, actions: [], nodes: [
+    { parent: null, component: "stack", key: "experience", text: "", action: null },
+    { parent: 0, component: "paragraph", key: "experience-category", text: form.category, action: null },
+    { parent: 0, component: "heading", key: "experience-title", text: form.title, action: null },
+    { parent: 0, component: "paragraph", key: "experience-description", text: form.description, action: null },
+    { parent: 0, component: "paragraph", key: "experience-instruction", text: form.instruction, action: null },
+    { parent: 0, component: "paragraph", key: "experience-note", text: form.note, action: null },
+  ] });
+  const inspector = document.createElement("details");
+  inspector.className = "gallery-inspector";
+  const summary = document.createElement("summary");
+  summary.textContent = "Open the wiring & source";
+  inspector.append(summary);
+  const result = runner.querySelector(".result");
+  const controls = runner.querySelector('[data-application-slot^="tour-runner-actions-"]');
+  result.prepend(controls);
+  presentGalleryMessage(runner, form, presentation, result, controls);
+  const inputButton = runner.querySelector(".input-button");
+  inputButton.textContent = form.name === "secret-knock-demo" ? "Knock here" : "Hold to light";
+  result.querySelector("h2").textContent = "Live result";
+  const indicator = result.querySelector(".indicator");
+  if (!["morse_network", "button_across_room", "firefly-choir"].includes(form.name)) indicator.hidden = true;
+  inspector.append(runner.querySelector(".compact-patchbay"), runner.querySelector(".editor"));
+  runner.append(inspector);
+  runner.addEventListener("click", (event) => {
+    if (event.target.closest('[data-application-key="run"]') && matchMedia("(max-width: 760px)").matches) {
+      result.querySelector(".morse").scrollIntoView({ block: "center" });
+    }
+  });
+}
+
+
+function presentGalleryMessage(runner, form, presentation, result, controls) {
+  const original = { morse_network: "SOS", memory_lantern: "READY", desk_telegraph: "CALLING", "night-radio": "NIGHT REPORT" }[form.name];
+  if (!original) return;
+  const token = JSON.stringify(original);
+  const offset = form.source.indexOf(token);
+  if (offset < 0 || form.source.indexOf(token, offset + token.length) !== -1) return;
+  const prefix = form.source.slice(0, offset);
+  const suffix = form.source.slice(offset + token.length);
+  const source = runner.querySelector("textarea");
+  const surface = runner.ownerDocument.createElement("div");
+  const slot = `gallery-message-${++revision}`;
+  surface.dataset.applicationSlot = slot;
+  surface.className = "gallery-message";
+  result.insertBefore(surface, controls);
+  const render = () => {
+    let value = null;
+    if (source.value.startsWith(prefix) && source.value.endsWith(suffix)) {
+      try { value = JSON.parse(source.value.slice(prefix.length, -suffix.length)); } catch { /* An edited source remains editable in the inspector. */ }
+    }
+    const available = typeof value === "string" && value.length <= 24;
+    presentation.present(slot, { revision: ++revision, actions: [{ id: "gallery.message", event: "input" }], nodes: [
+      { parent: null, component: "stack", key: "message-editor", text: "", action: null },
+      { parent: 0, component: "paragraph", key: "message-label", text: "Your message", action: null },
+      { parent: 0, component: "text-input", key: "message", text: "Your message", value: available ? value : "", valueCapacity: 96, action: available ? 0 : null },
+      { parent: 0, component: "paragraph", key: "message-help", text: available
+        ? form.name === "morse_network" ? "Up to 24 letters, numbers, or spaces. Press Run to send it in light." : "Up to 24 characters. Press Run to try your message."
+        : "This source has custom edits. Use the source editor, or restore the canonical source to use this field.", action: null },
+    ] }, { onEvent(event) {
+      presentation.nextEvent(slot);
+      const next = decoder.decode(event.value);
+      if (event.action !== "gallery.message" || !available || next.length > 24) { render(); return; }
+      source.value = `${prefix}${JSON.stringify(next)}${suffix}`;
+      source.dispatchEvent(new Event("input", { bubbles: true }));
+    } });
+    surface.querySelector("input").maxLength = 24;
+  };
+  source.addEventListener("input", render);
+  // Restore uses the runner's existing source change/refresh path.
+  runner.addEventListener("click", (event) => {
+    if (event.target.closest('[data-application-key="restore"]')) queueMicrotask(render);
+  });
   render();
 }
