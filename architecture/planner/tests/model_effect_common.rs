@@ -114,6 +114,7 @@ pub fn wired_plan() -> Plan {
             expanded_form_id: ExpandedFormId::from("expanded/effect-demo"),
         },
         vec![PlanFragment {
+            completion_policy: conduit_core::PlanCompletionPolicy::Live,
             plan_id: PlanId::from(""),
             fragment_id: FragmentId::from(""),
             source_document_id: SourceDocumentId::from(""),

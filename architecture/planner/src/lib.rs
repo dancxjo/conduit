@@ -41,13 +41,14 @@ mod prelude {
 
 use crate::prelude::*;
 use alloc::collections::{BTreeMap, BTreeSet};
+use completion::plan_completion_policy;
 use conduit_core::{
-    mandatory_sign_storage_requirement, seal_plan, AdmittedLine, AuthorityBinding, AuthorityGrant,
-    BaseImplementationId, CancellationPolicy, CapabilityId, ConnectionId, ExpectedSign,
-    ExpectedTerminal, FragmentId, GearId, HostAdvertisement, HostId, LineAvailability, LineId,
-    LineOffer, PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedGear,
-    ResourcePoolId, StartupDependency, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
-    DEFAULT_CONNECTION_ITEM_CAPACITY,
+    mandatory_sign_storage_requirement, seal_plan_with_completion, AdmittedLine, AuthorityBinding,
+    AuthorityGrant, BaseImplementationId, CancellationPolicy, CapabilityId, ConnectionId,
+    ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostAdvertisement, HostId,
+    LineAvailability, LineId, LineOffer, PlacementId, Plan, PlanFragment, PlanId,
+    PlannedConnection, PlannedGear, ResourcePoolId, StartupDependency, TerminalPolicy,
+    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
@@ -59,6 +60,7 @@ mod canonical;
 mod characteristic_policy;
 mod characteristic_sealing;
 mod characteristics;
+mod completion;
 mod compute_admission;
 mod contract;
 mod decision_evidence;
@@ -731,6 +733,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 source_document_id: form.source_document_id.clone(),
                 checked_form_id: form.checked_form_id.clone(),
                 expanded_form_id: form.expanded_form_id.clone(),
+                completion_policy: plan_completion_policy(form.completion),
                 realization_backs: Vec::new(),
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
@@ -756,7 +759,11 @@ pub(crate) fn plan_validated_form_with_connection_limits(
         .flatten()
         .collect::<Vec<_>>();
 
-    Ok(seal_plan(form.identity(), fragments))
+    Ok(seal_plan_with_completion(
+        form.identity(),
+        plan_completion_policy(form.completion),
+        fragments,
+    ))
 }
 
 fn connection_endpoints(connection: &conduit_form::CheckedConnection) -> ConnectionEndpoints {

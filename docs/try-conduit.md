@@ -31,6 +31,36 @@ For Pico W work:
 cargo xtask doctor pico
 ```
 
+## Boot ConduitOS live media
+
+The normal x86_64 ConduitOS experience is one canonical bootable product ISO,
+not a demo-only image:
+
+```bash
+just conduitos-live          # build target/conduitos/live/x86_64-pc/conduitos-x86_64.iso
+just conduitos-boot          # boot that exact ISO in visible QEMU
+```
+
+The owning repository entrances are `cargo xtask conduitos live x86_64` and
+`cargo xtask conduitos live-boot x86_64`. The live graphical session stays up
+until QEMU is closed and uses the normal front door, retained compositor,
+damage composition, and keyboard/pointer paths. Rebuilding is unnecessary
+before `live-boot`; it verifies and consumes the existing canonical artifact.
+
+Inspect the complete truthful media matrix with:
+
+```bash
+cargo xtask conduitos live-matrix
+```
+
+The current additional product media are `ia32`, `aarch64`, `riscv64`, and
+`loongarch64` serial-console ISOs. Their emulator boot checks consume those
+same artifacts and prove the highest current long-lived normal-product seam;
+they do not claim graphical or local-input support. Raspberry Pi and Orange Pi
+images remain explicitly classified as proof/appliance or artifact-only media,
+not ConduitOS live product disks. Guarded Raspberry Pi flashing remains under
+`cargo xtask host rpi ... flash` and still requires the exact device twice.
+
 ## First minute: enter the shared Patchbay
 
 For an installed product, choose the Host that will manifest the same semantic

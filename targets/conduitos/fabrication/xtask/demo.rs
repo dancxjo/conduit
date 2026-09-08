@@ -4,7 +4,7 @@ use std::process::{Command, Stdio};
 
 use crate::cli::GlobalOpts;
 
-use super::{image, profile::Paths, ConduitosArch, ConduitosError};
+use super::{live_media, ConduitosArch, ConduitosError};
 
 pub const DEMO_PROFILE: &str = "q35-single-cpu-64m-visible-gtk-xhci-usb-kbd";
 
@@ -25,9 +25,16 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
         ));
     }
 
-    let paths = Paths::new(arch)?;
-    let image = image::execute_architecture_proof(arch, opts)?;
-    let args = qemu_args(paths.iso.to_str().ok_or_else(|| {
+    live_media::build(live_media::LiveHost::X86_64, opts)?;
+    live_media::boot(live_media::LiveHost::X86_64, opts)
+}
+
+pub(crate) fn boot_visible_image(
+    image: &std::path::Path,
+    image_sha256: Option<&str>,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    let args = qemu_args(image.to_str().ok_or_else(|| {
         ConduitosError::refusal("demo-image-path-invalid", "image path is not UTF-8")
     })?);
     if opts.dry_run {
@@ -36,17 +43,19 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
     }
 
     if !opts.quiet {
-        println!("ConduitOS interactive demo");
-        println!("  architecture: {}", arch.as_str());
-        println!("  image: {}", paths.iso.display());
-        println!("  image-sha256: {}", image.iso_sha256);
+        println!("ConduitOS live system");
+        println!("  Host type: conduitos/x86_64/pc");
+        println!("  image: {}", image.display());
+        if let Some(image_sha256) = image_sha256 {
+            println!("  image-sha256: {image_sha256}");
+        }
         println!("  profile: {DEMO_PROFILE}");
         println!("Close the QEMU window or press Ctrl-C to exit.");
     }
 
     let status = Command::new("qemu-system-x86_64")
         .args(&args)
-        .current_dir(&paths.root)
+        .current_dir(image.parent().unwrap_or_else(|| std::path::Path::new(".")))
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())

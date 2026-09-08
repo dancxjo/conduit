@@ -231,6 +231,41 @@ fn nested_form_terminates_only_in_exact_planned_host_operation_leaves() {
 }
 
 #[test]
+fn explicit_form_completion_reaches_the_exact_plan() {
+    let source = r#"form finite {
+    complete
+    source: text/source
+    show: presentation/text
+    source > show
+}
+"#;
+    let (startup, profile) = catalogs();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup)
+        .expect("explicitly finite Form checks");
+    let expanded =
+        expand_canonical_form(&checked, "finite", &profile).expect("finite Form expands");
+    let host = host();
+    let placements = default_expanded_placements(&expanded, std::slice::from_ref(&host))
+        .expect("finite leaves have exact offers");
+    let plan = plan_expanded_canonical(
+        &expanded,
+        std::slice::from_ref(&host),
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .expect("finite Form plans");
+
+    assert_eq!(
+        plan.completion_policy,
+        conduit_core::PlanCompletionPolicy::SemanticCompletion
+    );
+    assert!(plan.fragments.iter().all(|fragment| {
+        fragment.completion_policy == conduit_core::PlanCompletionPolicy::SemanticCompletion
+    }));
+    assert!(conduit_core::verify_plan(&plan));
+}
+
+#[test]
 fn equal_face_with_different_name_and_revision_is_compatible() {
     let expanded = expanded();
     let mut wrong_kind = host();

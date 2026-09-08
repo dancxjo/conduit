@@ -530,6 +530,7 @@ impl KernelExecutionIdentityMap {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredPlanFragment {
+    pub completion_policy: conduit_core::PlanCompletionPolicy,
     pub identity: KernelIdentityMap,
     pub nodes: Vec<LoweredNode>,
     pub states: Vec<LoweredState>,
@@ -841,6 +842,7 @@ pub fn lower_plan_fragment_for_profile(
     let states = state::lower_states(fragment, &placement_nodes)?;
 
     Ok(LoweredPlanFragment {
+        completion_policy: fragment.completion_policy,
         identity: KernelIdentityMap {
             plan_id: fragment.plan_id.clone(),
             fragment_id: fragment.fragment_id.clone(),

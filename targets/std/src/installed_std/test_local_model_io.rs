@@ -92,6 +92,7 @@ pub(crate) fn source_offer(value_kind: &str) -> CapabilityOffer {
     )
 }
 
+#[cfg(feature = "local-model-proof")]
 pub(crate) fn house_source_offers() -> [CapabilityOffer; 4] {
     [
         offer(
@@ -135,6 +136,7 @@ pub(crate) fn sink_offer(value_kind: &str) -> CapabilityOffer {
     )
 }
 
+#[cfg(feature = "local-model-proof")]
 pub(crate) fn house_text_sink_offer() -> CapabilityOffer {
     offer(
         HOUSE_TEXT_SINK_KIND,
@@ -201,6 +203,7 @@ pub(crate) fn install_catalog(
     }
 }
 
+#[cfg(feature = "local-model-proof")]
 pub(crate) fn install_house_source_catalog(
     startup: &mut StartupCatalog,
     catalog: &mut ProfileCatalog,
@@ -210,6 +213,7 @@ pub(crate) fn install_house_source_catalog(
     }
 }
 
+#[cfg(feature = "local-model-proof")]
 pub(crate) fn install_house_text_sink_catalog(
     startup: &mut StartupCatalog,
     catalog: &mut ProfileCatalog,

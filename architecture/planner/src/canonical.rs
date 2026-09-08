@@ -6,8 +6,8 @@ use crate::{
 };
 use alloc::collections::BTreeMap;
 use conduit_core::{
-    seal_plan, AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement, Plan,
-    PlannedSharedPool, PoolMemberLimits, PoolRealizationEnvelope, ResourceBinding, SharedPoolId,
+    AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement, Plan, PlannedSharedPool,
+    PoolMemberLimits, PoolRealizationEnvelope, ResourceBinding, SharedPoolId,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
@@ -163,15 +163,18 @@ pub fn plan_expanded_canonical_with_options(
         nested_forms: Vec::new(),
     };
     let plan = plan_validated_form(&planning_form, hosts, placements, bases, options)?;
-    Ok(conduit_core::seal_plan_with_realization_backs(
-        conduit_core::FormIdentity {
-            source_document_id: form.source_document_id.clone(),
-            checked_form_id: form.checked_form_id.clone(),
-            expanded_form_id: form.expanded_form_id.clone(),
-        },
-        form.realization_backs.clone(),
-        plan.fragments,
-    ))
+    Ok(
+        conduit_core::seal_plan_with_realization_backs_and_completion(
+            conduit_core::FormIdentity {
+                source_document_id: form.source_document_id.clone(),
+                checked_form_id: form.checked_form_id.clone(),
+                expanded_form_id: form.expanded_form_id.clone(),
+            },
+            crate::plan_completion_policy(form.completion),
+            form.realization_backs.clone(),
+            plan.fragments,
+        ),
+    )
 }
 
 pub fn plan_expanded_canonical_with_connection_limits(
@@ -203,15 +206,18 @@ pub fn plan_expanded_canonical_with_connection_limits(
         options,
         connection_limits,
     )?;
-    Ok(conduit_core::seal_plan_with_realization_backs(
-        conduit_core::FormIdentity {
-            source_document_id: form.source_document_id.clone(),
-            checked_form_id: form.checked_form_id.clone(),
-            expanded_form_id: form.expanded_form_id.clone(),
-        },
-        form.realization_backs.clone(),
-        plan.fragments,
-    ))
+    Ok(
+        conduit_core::seal_plan_with_realization_backs_and_completion(
+            conduit_core::FormIdentity {
+                source_document_id: form.source_document_id.clone(),
+                checked_form_id: form.checked_form_id.clone(),
+                expanded_form_id: form.expanded_form_id.clone(),
+            },
+            crate::plan_completion_policy(form.completion),
+            form.realization_backs.clone(),
+            plan.fragments,
+        ),
+    )
 }
 
 pub fn plan_expanded_canonical_with_shared_pools(
@@ -418,12 +424,13 @@ pub fn plan_expanded_canonical_with_shared_pools(
     for fragment in &mut plan.fragments {
         fragment.shared_pools = planned_pools.clone();
     }
-    Ok(seal_plan(
+    Ok(conduit_core::seal_plan_with_completion(
         FormIdentity {
             source_document_id: form.source_document_id.clone(),
             checked_form_id: form.checked_form_id.clone(),
             expanded_form_id: form.expanded_form_id.clone(),
         },
+        crate::plan_completion_policy(form.completion),
         plan.fragments,
     ))
 }

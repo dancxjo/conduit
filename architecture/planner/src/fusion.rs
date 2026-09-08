@@ -4,10 +4,7 @@ use crate::{
     LocalityPlanningBasis, PlannerError, PlanningOptions,
 };
 use alloc::collections::BTreeSet;
-use conduit_core::{
-    seal_plan_with_realization_backs, BaseImplementationId, FusionId, GearId, HostAdvertisement,
-    PlannedFusion,
-};
+use conduit_core::{BaseImplementationId, FusionId, GearId, HostAdvertisement, PlannedFusion};
 use conduit_form::CheckedForm;
 mod model;
 pub use model::*;
@@ -178,8 +175,9 @@ pub fn plan_selected_optimization(
             .execution_fusions
             .sort_by(|left, right| left.fusion_id.cmp(&right.fusion_id));
     }
-    plan = seal_plan_with_realization_backs(
+    plan = conduit_core::seal_plan_with_realization_backs_and_completion(
         form.identity(),
+        plan.completion_policy,
         plan.realization_backs.clone(),
         plan.fragments,
     );
