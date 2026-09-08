@@ -1,15 +1,15 @@
 //! Browser-owned offer, factory, and host-operation installation catalog.
 
-use super::{
-    button_indicator, delay, input, layout, linguistics, logic, math, morse, morse_composition,
-    presentation, quantity, quantity_output, state_time, text, values,
-};
+mod installations;
+
+use super::{input, quantity_output};
 use conduit_core::{
     resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
     HostProfileId, ImplementationId, OfferGeneration, PlannerCapabilityOffer, PlannerLimits,
     PlannerProfileId, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use conduit_planner::BROWSER_PLANNER_PROFILE;
+use installations::INSTALLATIONS;
 
 pub(crate) const TOUR_LOCAL_BASE: &str = "conduit.base/local@1";
 pub(crate) struct BrowserManifestation {
@@ -34,90 +34,6 @@ pub(crate) struct BrowserInstallation {
     ) -> Result<super::BrowserOperation, String>,
     pub perform: Option<BrowserHostOperation>,
 }
-
-static INSTALLATIONS: &[&BrowserInstallation] = &[
-    &super::deterministic_garden_source::INSTALLATION,
-    &super::garden_step::INSTALLATION,
-    &super::garden_step::OBSERVATION_INSTALLATION,
-    &super::garden_step::ENRICHED_INSTALLATION,
-    &super::historical::INSTALLATION,
-    &super::replay_source::INSTALLATION,
-    &super::replay_control::INSTALLATION,
-    &super::template_storage::INSTALLATION,
-    &super::template_storage::INITIALIZER,
-    &super::final_normalized_pattern::INSTALLATION,
-    &super::pattern_comparison::INSTALLATION,
-    &super::phase_synchronization::INSTALLATION,
-    &super::button_attempt::INSTALLATION,
-    &super::pulse_observation::INSTALLATION,
-    &super::pulse_presentation::INSTALLATION,
-    &super::rhythm_state::INSTALLATION,
-    &super::rhythm_presentation::INSTALLATION,
-    &super::timing::INTERVALS,
-    &super::timing::NORMALIZE,
-    &super::json::ENCODE,
-    &super::json::DECODE,
-    &super::json::COLLECTION,
-    &super::json::SUMMARY,
-    &super::measurement_plot::INSTALLATION,
-    &super::measurement_summary::INSTALLATION,
-    &super::measurement_hysteresis::INSTALLATION,
-    &super::measurement_window::INSTALLATION,
-    &super::typed_record::TEXT_TO_RECORD,
-    &super::typed_record::FRAME,
-    &super::typed_record::DEFRAME,
-    &super::typed_record::RECORD_TO_TEXT,
-    &super::record_queue::INSTALLATION,
-    &super::record_delivery::INSTALLATION,
-    &super::record_transcript::INSTALLATION,
-    &super::record_temporal::SINGLETON,
-    &super::record_temporal::EXACTLY_ONE,
-    &text::LITERAL,
-    &text::UPPER,
-    &text::JOIN,
-    &text::PRESENTATION,
-    &linguistics::TOKENIZE,
-    &linguistics::ANNOTATE,
-    &linguistics::PRESENTATION,
-    &values::SCALAR_LITERAL,
-    &values::BOOL_LITERAL,
-    &values::SCALAR_PRESENTATION,
-    &values::BOOL_PRESENTATION,
-    &math::CLAMP,
-    &math::SCALE,
-    &math::DEADBAND,
-    &quantity::MAP,
-    &super::normalized_quantity::NORMALIZE,
-    &super::pointer::POINTER,
-    &super::pointer_selector::POSITION,
-    &super::pointer_selector::X,
-    &quantity_output::WRAP,
-    &logic::COMPARE,
-    &logic::NOT,
-    &logic::SELECT,
-    &morse::DIRECT,
-    &morse_composition::TEXT_CHARACTERS,
-    &morse_composition::LOOKUP,
-    &morse_composition::INTERSPERSE,
-    &morse_composition::FLATTEN,
-    &morse_composition::SYMBOLS_TO_PATTERN,
-    &morse_composition::PATTERN_TO_SYMBOLS,
-    &morse_composition::SYMBOLS_TO_TEXT,
-    &state_time::TIME_EVERY,
-    &delay::TIME_DELAY,
-    &state_time::STATE_COUNT,
-    &state_time::COUNT_PRESENTATION,
-    &super::tick::INSTALLATION,
-    &presentation::INDICATOR,
-    &presentation::BOOL,
-    &presentation::PATCHBAY,
-    &presentation::GARDEN,
-    &layout::VIEWPORT,
-    &input::KEYBOARD,
-    &input::BUTTON,
-    &button_indicator::MAPPER,
-    &button_indicator::INDICATOR,
-];
 
 pub(crate) const PRESENTATION_FABRICATION_ID: &str = "browser/dom-presentation@1";
 pub(crate) const KEYBOARD_FABRICATION_ID: &str = "browser/keyboard-events@1";

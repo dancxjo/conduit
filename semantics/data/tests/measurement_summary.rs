@@ -81,6 +81,7 @@ fn canonical_summary_is_a_reusable_exact_typed_form() {
     install_measurement_summary_catalog(&mut startup, &mut catalog).unwrap();
     install_measurement_threshold_catalog(&mut startup, &mut catalog).unwrap();
     install_measurement_plot_catalog(&mut startup, &mut catalog).unwrap();
+    conduit_data::install_little_seismograph_fixture_catalog(&mut startup, &mut catalog).unwrap();
     let source = include_str!("../../../forms/little-seismograph/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
