@@ -49,6 +49,8 @@ pub enum CheckSuite {
     InputSemantics,
     /// Run the Linux Landlock/seccomp hosted Base confinement proof.
     HostedBaseIsolation,
+    /// Prove directional external mappings and exact reflection fencing.
+    InteropMembrane,
     All,
 }
 
@@ -86,6 +88,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::HostedBaseIsolation => run_suite(HOSTED_BASE_ISOLATION_STEPS, &root, opts),
+        CheckSuite::InteropMembrane => run_suite(INTEROP_MEMBRANE_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -127,6 +130,13 @@ const HOSTED_BASE_ISOLATION_STEPS: &[Step] = &[
         ],
     ),
 ];
+
+const INTEROP_MEMBRANE_STEPS: &[Step] = &[Step::new(
+    "interop-membrane.core",
+    "Prove directional mapping, sibling exclusion, and origin reflection fencing",
+    "cargo",
+    &["test", "-p", "conduit-core", "interop::tests", "--locked"],
+)];
 
 const QUANTITY_MAPPING_STEPS: &[Step] = &[
     Step::new(
