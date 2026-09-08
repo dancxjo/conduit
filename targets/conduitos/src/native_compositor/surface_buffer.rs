@@ -48,6 +48,21 @@ impl SurfaceBufferPool {
             return Ok(self.available.swap_remove(index));
         }
         let pixels = surface_pixels(bounds)?;
+        if let Some(mut buffer) = self.available.pop() {
+            let previous = buffer.pixels.len();
+            let allocated_pixels = self
+                .allocated_pixels
+                .checked_sub(previous)
+                .and_then(|value| value.checked_add(pixels))
+                .ok_or(NativeCompositorError::SurfaceCapacityExceeded)?;
+            if allocated_pixels > MAX_COMPOSITOR_PIXELS {
+                self.available.push(buffer);
+                return Err(NativeCompositorError::SurfaceCapacityExceeded);
+            }
+            buffer.reconfigure(bounds.width, bounds.height)?;
+            self.allocated_pixels = allocated_pixels;
+            return Ok(buffer);
+        }
         let allocated_pixels = self
             .allocated_pixels
             .checked_add(pixels)
@@ -63,6 +78,8 @@ impl SurfaceBufferPool {
     pub(super) fn retain(&mut self, buffer: SurfaceBuffer) {
         if self.available.len() < MAX_COMPOSITOR_SURFACES {
             self.available.push(buffer);
+        } else {
+            self.allocated_pixels = self.allocated_pixels.saturating_sub(buffer.pixels.len());
         }
     }
 }
@@ -88,6 +105,12 @@ impl SurfaceBuffer {
             format,
             pixels: vec![0; len],
         })
+    }
+
+    fn reconfigure(&mut self, width: u16, height: u16) -> Result<(), NativeCompositorError> {
+        let replacement = Self::new(width, height)?;
+        *self = replacement;
+        Ok(())
     }
 
     pub(super) fn clear(&mut self) {

@@ -71,6 +71,10 @@ struct JourneyProof {
     transient_refusal_cause: String,
     chooser_manifestation_id: String,
     transient_stale_input_refused: bool,
+    resized_surface_id: String,
+    resize_invalidated_manifestation_id: String,
+    resize_current_manifestation_id: String,
+    resize_input_refused_while_invalidated: bool,
     usb_line_id: String,
     usb_line_binding_id: String,
     usb_line_plan_id: String,
@@ -395,6 +399,7 @@ fn execute_image(
         let tour_records = super::journey_records::tour(&serial)?;
         let pointer_records = super::journey_records::pointer(&serial)?;
         let transient_records = super::journey_records::transient(&serial)?;
+        let resize_records = super::journey_records::resize(&serial)?;
         let usb_line_records = super::journey_records::usb_line(&serial)?;
         let by_status = records
             .iter()
@@ -488,6 +493,7 @@ fn execute_image(
         let pointer = super::journey_pointer::validate(&ordinary_pointer_records, opened)?;
         let transient =
             super::journey_transient::validate(&transient_records, &pointer_records, opened)?;
+        let resize = super::journey_resize::validate(&resize_records, &pointer_records, opened)?;
         if opened.get("body_id") != Some(&Value::Null)
             || opened.get("wake_id") != Some(&Value::Null)
             || opened.get("plan_id") != Some(&Value::Null)
@@ -611,6 +617,10 @@ fn execute_image(
             transient_refusal_cause: transient.refusal_cause,
             chooser_manifestation_id: transient.chooser_manifestation_id,
             transient_stale_input_refused: transient.stale_input_refused,
+            resized_surface_id: resize.surface_id,
+            resize_invalidated_manifestation_id: resize.invalidated_manifestation_id,
+            resize_current_manifestation_id: resize.current_manifestation_id,
+            resize_input_refused_while_invalidated: resize.input_refused_while_invalidated,
             usb_line_id: text(&usb_line_records[0], "line_id")?,
             usb_line_binding_id: text(&usb_line_records[0], "binding_id")?,
             usb_line_plan_id: text(&usb_line_records[0], "plan_id")?,

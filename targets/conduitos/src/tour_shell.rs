@@ -1,6 +1,7 @@
 //! Multi-surface native shell for the canonical Tour/Patchbay workspace.
 
 mod lifecycle;
+mod relayout;
 mod scene;
 #[cfg(test)]
 mod tests;
@@ -114,6 +115,17 @@ pub struct ShellTransientReceipt {
 pub struct ShellTransientDismissalReceipt {
     pub surface_id: String,
     pub manifestation_id: ManifestationId,
+    pub frame: FrameReceipt,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShellRelayoutReceipt {
+    pub surface_id: String,
+    pub previous_bounds: LayoutRect,
+    pub current_bounds: LayoutRect,
+    pub invalidated_manifestation_id: ManifestationId,
+    pub current: CompositionReceipt,
+    pub input_refused_while_invalidated: bool,
     pub frame: FrameReceipt,
 }
 
