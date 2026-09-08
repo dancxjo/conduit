@@ -35,6 +35,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_data::install_measurement_threshold_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_plot_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_plot_form_catalog(&mut startup, &mut profile)?;
+    conduit_data::install_measurement_observation_catalog(&mut startup, &mut profile)?;
     conduit_data::install_little_seismograph_fixture_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_signal_garden_catalog(&mut startup, &mut profile)?;

@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 95
+maximum_forms = 96
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -175,7 +175,13 @@ reusable_entries = [
   { entry = "measurement-plot", title = "Measurement Plot", composition = { parent = "little-seismograph-processing", occurrences = ["plot"] }, deterministic = { package = "conduit-data", test = "measurement_plot", case = "reusable_plot_projection_has_an_exact_checked_form_contract" } },
 ]
 deterministic = { package = "conduit-data", test = "little_seismograph", case = "processing_composes_four_reusable_forms_without_source_copying" }
-browser_safe_not_applicable = "the portable processing waist has no reviewed browser source realization yet"
+browser_safe_not_applicable = "the complete processing waist is not yet a reviewed interactive browser Gallery entry"
+[[forms]]
+slug = "normalized-control-measurement"
+title = "Normalized Control Measurement"
+entry = "normalized-control-measurement"
+deterministic = { package = "conduit-browser-runtime", test = "lib", case = "deterministic_control_runs_the_authored_measurement_form_in_the_production_kernel", plan_play_evidence = true }
+browser_safe_not_applicable = "the reusable adapter has production-kernel conformance but is not a standalone Gallery experience"
 [[forms]]
 slug = "messaging-delivery"
 title = "Messaging Delivery"

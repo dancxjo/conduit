@@ -32,6 +32,7 @@ pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
     &crate::installed_browser::measurement_presentation::THRESHOLD,
     &crate::installed_browser::measurement_summary::INSTALLATION,
     &crate::installed_browser::measurement_hysteresis::INSTALLATION,
+    &crate::installed_browser::measurement_observation::INSTALLATION,
     &crate::installed_browser::measurement_window::INSTALLATION,
     &crate::installed_browser::stroke_capture::INSTALLATION,
     &crate::installed_browser::typed_record::TEXT_TO_RECORD,
