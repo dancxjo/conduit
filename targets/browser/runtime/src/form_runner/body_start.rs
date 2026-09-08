@@ -220,3 +220,7 @@ pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodySta
 #[cfg(test)]
 #[path = "body_start_tests.rs"]
 pub(in crate::form_runner) mod tests;
+
+#[cfg(test)]
+#[path = "little_seismograph_body_tests.rs"]
+mod little_seismograph_tests;

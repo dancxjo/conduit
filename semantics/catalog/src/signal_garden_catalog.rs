@@ -25,6 +25,7 @@ pub const GARDEN_MINIMAL_STEP_KIND: &str = "state/garden-step";
 pub const GARDEN_ENRICHED_STEP_KIND: &str = "state/garden-step-contact";
 pub const GARDEN_OBSERVATION_COMBINE_KIND: &str = "observation/garden-clock-contact";
 pub const GARDEN_ENRICHED_REDUCER_KIND: &str = "state/garden-step-enriched-reducer";
+pub const GARDEN_STATE_PRESENTATION_KIND: &str = "presentation/garden-state";
 pub const GARDEN_CONTRACT_REVISION: &str = "conduit.std/signal-garden-state@1";
 
 pub fn install_signal_garden_catalog(
@@ -36,24 +37,13 @@ pub fn install_signal_garden_catalog(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
+    let fixture = garden_fixture_definition();
     insert_kind(
         startup,
         profile,
         GARDEN_FIXTURE_KIND,
-        vec![],
-        vec![
-            port("prior", &garden_state_type(), PortDirection::Output),
-            port(
-                "clock",
-                &garden_clock_observation_type(),
-                PortDirection::Output,
-            ),
-            port(
-                "contact",
-                &garden_contact_observation_type(),
-                PortDirection::Output,
-            ),
-        ],
+        fixture.inputs,
+        fixture.outputs,
     )?;
     startup.insert(KindSignature {
         kind: GARDEN_MINIMAL_STEP_KIND.into(),
@@ -82,7 +72,47 @@ pub fn install_signal_garden_catalog(
         GARDEN_ENRICHED_REDUCER_KIND,
         garden_enriched_reducer_definition().inputs,
         garden_enriched_reducer_definition().outputs,
+    )?;
+    let presentation = garden_state_presentation_definition();
+    insert_kind(
+        startup,
+        profile,
+        GARDEN_STATE_PRESENTATION_KIND,
+        presentation.inputs,
+        presentation.outputs,
     )
+}
+
+pub fn garden_fixture_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(GARDEN_FIXTURE_KIND),
+        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        inputs: vec![],
+        outputs: vec![
+            port("prior", &garden_state_type(), PortDirection::Output),
+            port(
+                "clock",
+                &garden_clock_observation_type(),
+                PortDirection::Output,
+            ),
+            port(
+                "contact",
+                &garden_contact_observation_type(),
+                PortDirection::Output,
+            ),
+        ],
+        configuration: vec![],
+    }
+}
+
+pub fn garden_state_presentation_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(GARDEN_STATE_PRESENTATION_KIND),
+        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        inputs: vec![port("state", &garden_state_type(), PortDirection::Input)],
+        outputs: vec![],
+        configuration: vec![],
+    }
 }
 
 pub fn install_signal_garden_backs(

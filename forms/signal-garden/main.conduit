@@ -48,3 +48,14 @@ form signal-garden-interactive (
     observations.contact > evolve.contact
     evolve.next > state
 }
+
+# Presentation consumes the semantic state after evolution and does not own the reducer.
+form signal-garden-interactive-display {
+    observations: garden/deterministic-observations
+    evolve: garden-state-step-contact
+    show: presentation/garden-state
+    observations.prior > evolve.prior
+    observations.clock > evolve.clock
+    observations.contact > evolve.contact
+    evolve.next > show.state
+}

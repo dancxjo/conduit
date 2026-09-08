@@ -7,6 +7,7 @@ use conduit_semantic_catalog::{
     garden_clock_observation_type, garden_contact_observation_type, install_signal_garden_backs,
     install_signal_garden_catalog, GARDEN_ENRICHED_REDUCER_KIND, GARDEN_ENRICHED_STEP_KIND,
     GARDEN_FIXTURE_KIND, GARDEN_MINIMAL_STEP_KIND, GARDEN_OBSERVATION_COMBINE_KIND,
+    GARDEN_STATE_PRESENTATION_KIND,
 };
 
 const GARDEN: &str = include_str!("../../../forms/signal-garden/main.conduit");
@@ -29,7 +30,7 @@ fn minimal_and_enriched_forms_preserve_distinct_mandatory_source_types() {
     let enriched =
         expand_canonical_form_for_authoring(&garden, "signal-garden-interactive", &profile)
             .unwrap();
-    assert_eq!(garden.forms.len(), 4);
+    assert_eq!(garden.forms.len(), 5);
     assert_eq!(minimal.expanded.gears.len(), 2);
     assert_eq!(enriched.expanded.gears.len(), 3);
     assert!(minimal
@@ -83,6 +84,44 @@ fn minimal_and_enriched_forms_preserve_distinct_mandatory_source_types() {
     assert_ne!(
         minimal_step.inputs[1].value_kind,
         enriched_step.inputs[2].value_kind
+    );
+}
+
+#[test]
+fn displayed_garden_keeps_presentation_downstream_of_semantic_state() {
+    let (startup, profile) = catalogs();
+    let checked = check_syntax_document(&parse_syntax_document(GARDEN), &startup).unwrap();
+    let displayed = expand_canonical_form_for_authoring(
+        &checked,
+        "signal-garden-interactive-display",
+        &profile,
+    )
+    .unwrap()
+    .expanded;
+    assert_eq!(displayed.gears.len(), 4);
+    for expected in [
+        GARDEN_FIXTURE_KIND,
+        GARDEN_OBSERVATION_COMBINE_KIND,
+        GARDEN_ENRICHED_REDUCER_KIND,
+        GARDEN_STATE_PRESENTATION_KIND,
+    ] {
+        assert!(displayed
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == expected));
+    }
+    let presentation = profile
+        .get(&conduit_core::kind_id(GARDEN_STATE_PRESENTATION_KIND))
+        .unwrap();
+    assert_eq!(presentation.inputs.len(), 1);
+    assert!(presentation.outputs.is_empty());
+    assert_eq!(
+        presentation.inputs[0].value_kind,
+        conduit_semantic_catalog::garden_state_type()
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone()
     );
 }
 

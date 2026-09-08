@@ -11,8 +11,6 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Fo
         .map_err(FormEditorError::Catalog)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
     conduit_net::install_record_temporal_catalogs(&mut startup, &mut profile)
@@ -47,9 +45,29 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Fo
         .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
+    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
     Ok((startup, profile))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn standard_editor_catalog_checks_the_canonical_morse_network() {
+        let source = include_str!("../../../../forms/morse-network/main.conduit");
+        let editor = crate::FormEditor::from_source(
+            "forms/morse-network/main.conduit".into(),
+            source.into(),
+        )
+        .unwrap();
+        assert!(
+            editor.view().checked.source_document_id.is_some(),
+            "{:?}",
+            editor.view().checked.diagnostics
+        );
+    }
 }

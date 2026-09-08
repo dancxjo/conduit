@@ -2,6 +2,7 @@
 
 mod button_indicator;
 mod delay;
+mod deterministic_garden_source;
 mod factory;
 mod final_normalized_pattern;
 pub(crate) mod garden_step;
@@ -12,10 +13,12 @@ pub(crate) mod json;
 mod layout;
 mod limits;
 mod linguistics;
+mod little_seismograph_source;
 mod logic;
 mod math;
 pub(crate) mod measurement_hysteresis;
 pub(crate) mod measurement_plot;
+mod measurement_presentation;
 pub(crate) mod measurement_summary;
 pub(crate) mod measurement_window;
 mod membership_offer;

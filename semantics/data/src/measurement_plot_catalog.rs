@@ -16,6 +16,9 @@ use crate::{
 
 pub const MEASUREMENT_PLOT_KIND: &str = "data/measurement-plot";
 pub const MEASUREMENT_PLOT_CONTRACT_REVISION: &str = "conduit.data/measurement-plot@1";
+pub const MEASUREMENT_PLOT_PRESENTATION_KIND: &str = "presentation/measurement-plot";
+pub const MEASUREMENT_PLOT_PRESENTATION_REVISION: &str =
+    "conduit.data/presentation-measurement-plot@1";
 
 pub fn install_measurement_plot_catalog(
     startup: &mut StartupCatalog,
@@ -41,7 +44,28 @@ pub fn install_measurement_plot_catalog(
     })?;
     profile
         .insert(measurement_plot_kind_definition())
+        .map_err(|error| error.to_string())?;
+    startup.insert(KindSignature {
+        kind: MEASUREMENT_PLOT_PRESENTATION_KIND.to_string(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(measurement_plot_presentation_definition())
         .map_err(|error| error.to_string())
+}
+
+pub fn measurement_plot_presentation_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(MEASUREMENT_PLOT_PRESENTATION_KIND),
+        kind_contract_revision: KindContractRevision::from(MEASUREMENT_PLOT_PRESENTATION_REVISION),
+        inputs: vec![port(
+            "series",
+            &measurement_plot_series_type(),
+            PortDirection::Input,
+        )],
+        outputs: vec![],
+        configuration: vec![],
+    }
 }
 
 pub fn measurement_plot_kind_definition() -> KindDefinition {

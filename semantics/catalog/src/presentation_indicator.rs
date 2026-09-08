@@ -8,7 +8,8 @@ use conduit_core::{
 };
 
 pub const INDICATOR_PRESENTATION_KIND: &str = "presentation/indicator";
-pub const INDICATOR_PRESENTATION_CONTRACT_REVISION: &str = "conduit.presentation/indicator@1";
+pub const INDICATOR_PRESENTATION_CONTRACT_REVISION: &str = "conduit.presentation/indicator@2";
+pub const MAXIMUM_PENDING_INDICATOR_PATTERNS: u16 = 4;
 
 pub fn indicator_presentation_contract() -> StandardKindContract {
     StandardKindContract {
@@ -22,8 +23,9 @@ pub fn indicator_presentation_contract() -> StandardKindContract {
         configuration: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 1,
-            max_queue_items: 4,
-            max_queue_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32 * 4,
+            max_queue_items: MAXIMUM_PENDING_INDICATOR_PATTERNS,
+            max_queue_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32
+                * u32::from(MAXIMUM_PENDING_INDICATOR_PATTERNS),
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
@@ -78,10 +80,14 @@ mod tests {
         );
         assert_eq!(contract.inputs[0].temporal, PortTemporal::Value);
         assert!(contract.outputs.is_empty());
-        assert_eq!(contract.limits.max_queue_items, 4);
+        assert_eq!(
+            contract.limits.max_queue_items,
+            MAXIMUM_PENDING_INDICATOR_PATTERNS
+        );
         assert_eq!(
             contract.limits.max_queue_bytes,
-            conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32 * 4
+            conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32
+                * u32::from(MAXIMUM_PENDING_INDICATOR_PATTERNS)
         );
         assert!(contract.browser_manifestation_honest);
         assert!(!contract.pico_manifestation_honest);

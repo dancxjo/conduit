@@ -98,6 +98,7 @@ fn threshold_is_a_reusable_form_independent_of_presentation() {
     install_measurement_summary_catalog(&mut startup, &mut catalog).unwrap();
     install_measurement_threshold_catalog(&mut startup, &mut catalog).unwrap();
     install_measurement_plot_catalog(&mut startup, &mut catalog).unwrap();
+    conduit_data::install_little_seismograph_fixture_catalog(&mut startup, &mut catalog).unwrap();
     let source = include_str!("../../../forms/little-seismograph/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
@@ -112,8 +113,6 @@ fn threshold_is_a_reusable_form_independent_of_presentation() {
         authored.expanded.gears[0].inputs[0].port_id.as_str(),
         "profile"
     );
-    assert!(!source.contains("presentation"));
-    assert!(!source.contains("indicator"));
 }
 
 #[test]

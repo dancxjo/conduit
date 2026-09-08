@@ -221,6 +221,53 @@ pub(super) fn decode_manifestation(
                 .map_err(|_| "planned text manifestation is not UTF-8")?;
             Ok((0, Vec::new(), Some(text)))
         }
+        conduit_data::MEASUREMENT_PLOT_PRESENTATION_KIND => {
+            let value = conduit_core::StructuredInfoValue::from_canonical_bytes(
+                &manifestation.canonical_value,
+            )
+            .map_err(|error| format!("decode measurement plot manifestation: {error:?}"))?;
+            if value.value_type() != &conduit_data::measurement_plot_series_type() {
+                return Err("measurement plot manifestation has the wrong exact type".into());
+            }
+            let conduit_core::StructuredInfoValueShape::Leaf(payload) = value.shape() else {
+                return Err("measurement plot manifestation is not an exact leaf".into());
+            };
+            let series = conduit_data::decode_measurement_plot_series(payload)
+                .map_err(|error| format!("decode measurement plot manifestation: {error:?}"))?;
+            Ok((
+                0,
+                Vec::new(),
+                Some(format!(
+                    "plot {} samples · {} omitted",
+                    series.source_samples(),
+                    series.omitted_samples()
+                )),
+            ))
+        }
+        conduit_data::MEASUREMENT_THRESHOLD_PRESENTATION_KIND => {
+            let value = conduit_core::StructuredInfoValue::from_canonical_bytes(
+                &manifestation.canonical_value,
+            )
+            .map_err(|error| format!("decode measurement threshold manifestation: {error:?}"))?;
+            if value.value_type() != &conduit_data::measurement_threshold_decision_type() {
+                return Err("measurement threshold manifestation has the wrong exact type".into());
+            }
+            let conduit_core::StructuredInfoValueShape::Leaf(payload) = value.shape() else {
+                return Err("measurement threshold manifestation is not an exact leaf".into());
+            };
+            let decision =
+                conduit_data::decode_measurement_threshold_decision(payload).map_err(|error| {
+                    format!("decode measurement threshold manifestation: {error:?}")
+                })?;
+            Ok((
+                0,
+                Vec::new(),
+                Some(format!(
+                    "threshold {:?} · {:?}",
+                    decision.state, decision.transition
+                )),
+            ))
+        }
         conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(
                 &manifestation.canonical_value,
@@ -339,6 +386,21 @@ pub(super) fn decode_manifestation(
                     rhythm.next_pulse_at_ms,
                     rhythm.period_ms,
                     rhythm.expected_peer_sequence
+                )),
+            ))
+        }
+        conduit_semantic_catalog::GARDEN_STATE_PRESENTATION_KIND => {
+            let state =
+                conduit_semantic_catalog::decode_garden_state(&manifestation.canonical_value)
+                    .map_err(|_| "decode Garden state manifestation: malformed exact state")?;
+            Ok((
+                state.step,
+                Vec::new(),
+                Some(format!(
+                    "garden step {} · vitality {} · activity {}",
+                    state.step,
+                    format_scalar(state.vitality),
+                    format_scalar(state.activity)
                 )),
             ))
         }
