@@ -57,6 +57,8 @@ pub enum CheckSuite {
     ConfinedGear,
     /// Prove generic attended last-mile consequential-effect gating.
     ConsequentialEffect,
+    /// Prove the bounded ROS 2 topic Base against native ROS Jazzy.
+    Ros2Base,
     All,
 }
 
@@ -98,6 +100,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::FederationSecurity => run_suite(FEDERATION_SECURITY_STEPS, &root, opts),
         CheckSuite::ConfinedGear => run_suite(CONFINED_GEAR_STEPS, &root, opts),
         CheckSuite::ConsequentialEffect => run_suite(CONSEQUENTIAL_EFFECT_STEPS, &root, opts),
+        CheckSuite::Ros2Base => run_suite(ROS2_BASE_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -189,6 +192,35 @@ const CONSEQUENTIAL_EFFECT_STEPS: &[Step] = &[Step::new(
         "--locked",
     ],
 )];
+
+const ROS2_BASE_STEPS: &[Step] = &[
+    Step::new(
+        "ros2-base.contract",
+        "Prove exact direction, type, QoS, discovery, lifecycle, origin, and capability checks",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--test",
+            "ros2_base_security",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "ros2-base.native-jazzy",
+        "Run selected ROS input/output topics and a sibling sentinel on native rclpy",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--test",
+            "ros2_native_topic_proof",
+            "--locked",
+        ],
+    ),
+];
 
 const QUANTITY_MAPPING_STEPS: &[Step] = &[
     Step::new(
