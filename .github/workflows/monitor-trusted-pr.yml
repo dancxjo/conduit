@@ -35,6 +35,10 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@1.98.1
+        if: inputs.kind == 'sync'
+        with:
+          components: rustfmt
       - name: Admit, observe, and finalize the exact trusted pull request
         env:
           GH_TOKEN: ${{ github.token }}
@@ -78,34 +82,55 @@ jobs:
             git merge-base --is-ancestor "$release_merge" origin/main
             git merge-base --is-ancestor "$release_merge" "$HEAD_SHA"
           fi
-          run_id=
-          approved_run=
-          for attempt in $(seq 1 90); do
-            current=$(gh pr view "$PR_NUMBER" --json state,headRefOid)
-            test "$(jq -r .state <<<"$current")" = OPEN
-            test "$(jq -r .headRefOid <<<"$current")" = "$HEAD_SHA"
-            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?event=pull_request&head_sha=$HEAD_SHA&per_page=100")
-            run=$(jq -c --arg name "$expected_workflow" --argjson number "$PR_NUMBER" '
-              [.workflow_runs[] |
-               select(.name == $name and any(.pull_requests[]?; .number == $number))] |
-              sort_by(.created_at) | last // empty
-            ' <<<"$runs")
-            if test -n "$run"; then
-              run_id=$(jq -r .id <<<"$run")
-              status=$(jq -r .status <<<"$run")
-              conclusion=$(jq -r '.conclusion // ""' <<<"$run")
-              if test "$conclusion" = action_required && test "$approved_run" != "$run_id"; then
-                gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/approve"
-                approved_run=$run_id
-              elif test "$status" = completed; then
-                test "$conclusion" = success
-                break
+          if test "$KIND" = sync; then
+            event_path="$RUNNER_TEMP/trusted-sync-event.json"
+            jq -n --argjson pull_request "$pull" '{pull_request: $pull_request}' > "$event_path"
+            event_base_sha=$(jq -r .base.sha <<<"$pull")
+            git checkout --detach "$HEAD_SHA"
+            CONDUIT_EVENT_NAME=pull_request \
+              CONDUIT_BASE_REF=dev \
+              BASE_SHA="$event_base_sha" \
+              HEAD_SHA="$HEAD_SHA" \
+              node tools/ci/branch-boundary.mjs candidate
+            GITHUB_EVENT_PATH="$event_path" node tools/ci/pr-closing-intent.mjs
+            git diff --check "$event_base_sha" "$HEAD_SHA"
+            cargo fmt --all -- --check
+            cargo test --locked --package conduit-xtask-dispatch
+            node --test \
+              proof/ci/branch-boundary.spec.mjs \
+              proof/ci/browser-product-ownership.test.mjs \
+              proof/ci/pr-closing-intent.test.mjs \
+              proof/ci/tour-compatibility.test.mjs
+          else
+            run_id=
+            approved_run=
+            for attempt in $(seq 1 90); do
+              current=$(gh pr view "$PR_NUMBER" --json state,headRefOid)
+              test "$(jq -r .state <<<"$current")" = OPEN
+              test "$(jq -r .headRefOid <<<"$current")" = "$HEAD_SHA"
+              runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?event=pull_request&head_sha=$HEAD_SHA&per_page=100")
+              run=$(jq -c --arg name "$expected_workflow" --argjson number "$PR_NUMBER" '
+                [.workflow_runs[] |
+                 select(.name == $name and any(.pull_requests[]?; .number == $number))] |
+                sort_by(.created_at) | last // empty
+              ' <<<"$runs")
+              if test -n "$run"; then
+                run_id=$(jq -r .id <<<"$run")
+                status=$(jq -r .status <<<"$run")
+                conclusion=$(jq -r '.conclusion // ""' <<<"$run")
+                if test "$conclusion" = action_required && test "$approved_run" != "$run_id"; then
+                  gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/approve"
+                  approved_run=$run_id
+                elif test "$status" = completed; then
+                  test "$conclusion" = success
+                  break
+                fi
               fi
-            fi
-            test "$attempt" -lt 90
-            sleep 30
-          done
-          [[ "$run_id" =~ ^[1-9][0-9]*$ ]]
+              test "$attempt" -lt 90
+              sleep 30
+            done
+            [[ "$run_id" =~ ^[1-9][0-9]*$ ]]
+          fi
           current=$(gh pr view "$PR_NUMBER" --json state,headRefOid,url)
           test "$(jq -r .state <<<"$current")" = OPEN
           test "$(jq -r .headRefOid <<<"$current")" = "$HEAD_SHA"
