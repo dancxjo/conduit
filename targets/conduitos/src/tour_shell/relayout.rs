@@ -37,6 +37,18 @@ impl TourShellPresenter {
                 .ok_or(TourShellError::Identity)?,
             ..previous_bounds
         };
+        let stale_pointer = match self
+            .compositor
+            .route_pointer(
+                u32::try_from(previous_bounds.x).map_err(|_| TourShellError::Identity)?,
+                u32::try_from(previous_bounds.y).map_err(|_| TourShellError::Identity)?,
+                false,
+            )
+            .map_err(TourShellError::Compositor)?
+        {
+            InputRoute::Delivered(route) if route.surface_id == INSPECTOR_SURFACE => route,
+            _ => return Err(TourShellError::Identity),
+        };
         let placement = self
             .compositor
             .place_surface(INSPECTOR_SURFACE, current_bounds, 2)
@@ -49,16 +61,9 @@ impl TourShellPresenter {
             return Err(TourShellError::Identity);
         };
         let pointer_refused = matches!(
-            self.compositor
-                .route_pointer(
-                    u32::try_from(current_bounds.x).map_err(|_| TourShellError::Identity)?,
-                    u32::try_from(current_bounds.y).map_err(|_| TourShellError::Identity)?,
-                    false,
-                )
-                .map_err(TourShellError::Compositor)?,
-            InputRoute::NoTarget
+            self.compositor.validate_pointer_route(&stale_pointer),
+            Err(NativeCompositorError::StaleSurfaceBinding)
         );
-        let keyboard_refused = matches!(self.route_keyboard()?, InputRoute::NoTarget);
         let presentation = self
             .surfaces
             .iter()
@@ -113,7 +118,7 @@ impl TourShellPresenter {
             current_bounds,
             invalidated_manifestation_id,
             current,
-            input_refused_while_invalidated: pointer_refused && keyboard_refused,
+            input_refused_while_invalidated: pointer_refused,
             frame,
         })
     }

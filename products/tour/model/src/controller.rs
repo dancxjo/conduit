@@ -236,6 +236,12 @@ mod tests {
         assert_eq!(controller.state().phase, TourWorkspacePhase::ResultVisible);
         assert_eq!(controller.state().focused_key, "result");
         assert_eq!(controller.last_run().unwrap().plan_id.as_str(), "plan");
+        assert_eq!(
+            controller.request(&event(6, RUN_ACTION_ID)),
+            Err(TourWorkspaceRefusal::Event(
+                ApplicationViewRefusal::UnknownAction
+            ))
+        );
     }
 
     #[test]
