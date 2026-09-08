@@ -138,6 +138,20 @@ pub(super) fn boot(host: LiveHost, opts: &GlobalOpts) -> Result<(), ConduitosErr
     }
 }
 
+pub(super) fn prove_ia32_legacy_bios(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    let root = root()?;
+    let output = output(&root, LiveHost::Ia32);
+    let manifest = crate::commands::host::host_target::verify_target(&output)
+        .map_err(|error| ConduitosError::refusal("live-media-invalid", error.to_string()))?;
+    super::ia32_product_boot::boot_legacy_bios(
+        &output.join(&manifest.image.file),
+        &manifest.profile_id,
+        &manifest.build_id,
+        &manifest.resolved_description_binding,
+        opts,
+    )
+}
+
 pub(super) fn matrix(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     #[derive(Serialize)]
     struct Matrix {
