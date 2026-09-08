@@ -53,7 +53,7 @@ pub struct BaseCapabilityScope {
     pub maximum_operations: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityIssueRequest {
     pub scope: BaseCapabilityScope,
     pub authority: BaseCapabilityAuthority,
@@ -66,7 +66,7 @@ pub struct BaseCapabilityHandle {
     bearer: [u8; 32],
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BaseOperationClaim {
     pub host_id: HostId,
     pub boot_id: BootId,

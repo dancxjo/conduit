@@ -47,6 +47,8 @@ pub enum CheckSuite {
     /// Prove bounded Todo state transitions and recursive Form execution.
     TodoState,
     InputSemantics,
+    /// Run the Linux Landlock/seccomp hosted Base confinement proof.
+    HostedBaseIsolation,
     All,
 }
 
@@ -83,6 +85,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),
         CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
+        CheckSuite::HostedBaseIsolation => run_suite(HOSTED_BASE_ISOLATION_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -91,6 +94,22 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         }
     }
 }
+
+const HOSTED_BASE_ISOLATION_STEPS: &[Step] = &[Step::new(
+    "hosted-base-isolation.linux",
+    "Prove capability-scoped file access and mechanical sibling/process/network denial",
+    "cargo",
+    &[
+        "test",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "isolated-base-proof",
+        "--test",
+        "isolated_base_security",
+        "--locked",
+    ],
+)];
 
 const QUANTITY_MAPPING_STEPS: &[Step] = &[
     Step::new(

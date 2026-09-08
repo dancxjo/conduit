@@ -75,3 +75,6 @@ boundary. It does not itself prove that hostile native code cannot bypass that
 provider using ambient OS authority. Process, WASM, remote, kernel, and physical
 enforcement each require their own positive and adversarial proof against the
 actual last trusted effect seam.
+
+The first executed hosted mapping is the Linux
+[hosted Base confinement profile](hosted-base-confinement.md).
