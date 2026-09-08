@@ -45,6 +45,26 @@ test("A remains healthy while B queues", () => {
   assert.deepEqual(decision.actions.cancel, []);
 });
 
+test("a waiting reusable-workflow boundary preserves materially started A", () => {
+  const waiting = run(101, "waiting", 20, { jobs: [{
+    id: 1001,
+    name: "products / products-proof",
+    status: "completed",
+    conclusion: "success",
+    startedAt: new Date(now - 5 * minute).toISOString(),
+    completedAt: new Date(now - minute).toISOString(),
+  }] });
+  const decision = decide([
+    candidate(1, waiting),
+    candidate(2, run(102, "queued", 1)),
+  ]);
+  assert.deepEqual(decision.actions.preserve.map(({ runId, state }) => [runId, state]), [
+    [101, "running-healthy"],
+    [102, "queued"],
+  ]);
+  assert.deepEqual(decision.actions.cancel, []);
+});
+
 test("B is superseded when C queues behind healthy A", () => {
   const decision = decide([
     candidate(1, run(101, "in_progress", 5)),
