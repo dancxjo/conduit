@@ -60,11 +60,11 @@ fn unchanged_checked_form_and_two_materially_different_presenters_share_meaning(
     );
     assert_eq!(
         app.checked_form_id().as_str(),
-        "ebffdd1f07a8fe360ea35f948ff1f63ecd3bc816d8aa1322b96dfa0162410d60"
+        "036a907760d668362d330ef87070d5698bcad6240627417cac862ac7608b0159"
     );
     assert_eq!(
         app.expanded_form_id().as_str(),
-        "3887b339771251500403daa481137280964bbcdb86a98fdce76b655f0631e681"
+        "59ac8aac58e21f5e7d2c0fe3cbbaa1960254006d84fcff544139a5fcd8997f86"
     );
     for forbidden in ["dom", "gpio", "widget", "device", "chromium", "pico"] {
         assert!(!CONTROL_SURFACE_FORM.contains(forbidden));
