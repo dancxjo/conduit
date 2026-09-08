@@ -10,8 +10,12 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: promotion-${{ github.event.pull_request.head.ref }}
-  cancel-in-progress: true
+  # One materially started release owns the lane. GitHub preserves that run
+  # and keeps at most one pending successor, replacing an older pending run
+  # when a newer release arrives. The trusted release-lane controller records
+  # and closes superseded PRs and handles failure/liveness explicitly.
+  group: promotion-release-lane
+  cancel-in-progress: false
 
 jobs:
   boundary:
@@ -72,12 +76,12 @@ jobs:
           cache-on-failure: false
           shared-key: conduitos-spore-acceptance
       - name: Receive the exact Crèche-exported ConduitOS spore
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-artifact-retry
         with:
           name: conduit-creche-conduitos-spore-${{ github.event.pull_request.head.sha }}
           path: target/conduitos/x86_64
       - name: Receive the exact ConduitOS tool bundle
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-artifact-retry
         with:
           name: conduitos-tools-${{ github.event.pull_request.head.sha }}
           path: target/conduitos/tool-bundle
@@ -89,7 +93,7 @@ jobs:
           --spore target/conduitos/x86_64/creche-export.iso
       - name: Retain exact visual and failure evidence
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
           path: |
@@ -113,12 +117,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Receive the already-proven Pages carrier
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-artifact-retry
         with:
           name: conduit-pages-carrier
           path: target/pages-carrier-base
       - name: Receive the accepted ConduitOS visual journey
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-artifact-retry
         with:
           name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
           path: target/conduitos-acceptance
@@ -134,7 +138,7 @@ jobs:
           node tools/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier-with-conduitos "$source_commit" "$source_tree"
           node tools/ci/verify-pages-carrier.mjs target/pages-carrier-with-conduitos "$source_tree"
       - name: Retain the promotion-only Pages carrier with ConduitOS frames
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-pages-carrier-with-conduitos
           path: target/pages-carrier-with-conduitos

@@ -134,7 +134,7 @@ jobs:
             "$BASE_SHA" "$HEAD_SHA" '${{ steps.stack.outputs.tip_pr }}' '${{ steps.stack.outputs.tip_sha }}' >> "$GITHUB_STEP_SUMMARY"
       - name: Retain immutable intermediate slice provenance
         if: steps.stack.outputs.role == 'intermediate'
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: ci-slice-${{ github.event.pull_request.head.sha }}
           path: target/ci-plans/pr-stack-role.json
@@ -229,6 +229,7 @@ jobs:
           node --test
           proof/ci/branch-boundary.spec.mjs
           proof/ci/browser-product-ownership.test.mjs
+          proof/ci/release-lane-controller.spec.mjs
           proof/ci/tour-compatibility.test.mjs
       - name: Verify the dependency-light typed CI planner contracts
         if: steps.stack.outputs.role != 'intermediate' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true'))
@@ -262,7 +263,7 @@ jobs:
             --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Retain the trusted attestation controller once for proof jobs
         if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true') && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: ${{ runner.temp }}/conduit-ci-controller-target/debug/conduit-xtask-dispatch
@@ -271,7 +272,7 @@ jobs:
           compression-level: 0
       - name: Retain the trusted candidate proof and applicability plans
         if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true') && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: ci-plan-${{ steps.changes.outputs.head_sha }}
           path: target/ci-plans
@@ -295,7 +296,7 @@ jobs:
           --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Retain the exact CI impact plan
         if: steps.stack.outputs.role != 'intermediate' && steps.impact.outcome == 'success' && github.event_name == 'merge_group'
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: ci-plan-${{ steps.changes.outputs.head_sha }}
           path: target/ci-plans
@@ -345,7 +346,7 @@ jobs:
           echo '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055  target/conduitos/vendor/limine-binary-12.5.2.tar.gz' | sha256sum --check --strict
       - name: Distribute the verified pinned archive
         id: upload
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/vendor/limine-binary-12.5.2.tar.gz
@@ -426,7 +427,7 @@ jobs:
         run: targets/conduitos/tools/conduitos-tools.sh verify target/conduitos/tool-bundle
       - name: Distribute the exact ConduitOS tool bundle
         id: upload
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduitos-tools-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/tool-bundle
@@ -494,7 +495,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.98.1
       - name: Receive the trusted standalone-lock controller
         if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-artifact-retry
         with:
           name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: ${{ runner.temp }}/conduit-ci-attestation
@@ -584,7 +585,7 @@ jobs:
           evidence: esp32-${{ matrix.target }}-firmware-build
           candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - name: Retain the machine-only check receipt
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: esp32-firmware-${{ matrix.target }}-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/esp32-firmware/*.json
@@ -726,7 +727,7 @@ jobs:
         run: targets/browser/tools/browser-tools.sh verify target/browser-tools/tool-bundle
       - name: Distribute the exact browser-tool bundle
         id: upload
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: browser-tools-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/browser-tools/tool-bundle
@@ -793,7 +794,7 @@ jobs:
           --result complete
       - name: Upload complete exact-head visual evidence
         if: steps.browser-proof.outcome == 'success'
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-visual-evidence-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduit-evidence/browser-host
@@ -809,7 +810,7 @@ jobs:
           --result diagnostic-incomplete
       - name: Upload failed-run diagnostic evidence
         if: (github.event_name == 'pull_request' || inputs.candidate_sha != '') && steps.browser-proof.outcome == 'failure'
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-visual-evidence-diagnostic-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: |
@@ -858,7 +859,7 @@ jobs:
         run: cargo xtask conduitos prepare-proof-image --locked
       - name: Distribute the exact prepared proof image
         id: upload
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduitos-proof-image-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: |
@@ -942,7 +943,7 @@ jobs:
           ' "$CONDUIT_X86_BATCH_ROOT/summary.json"
       - name: Retain distinct bounded x86 proof evidence
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduitos-x86-batch-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: |
@@ -958,13 +959,13 @@ jobs:
           compression-level: 0
       - name: Receive the trusted candidate proof plan
         if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-artifact-retry
         with:
           name: ci-plan-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: ${{ runner.temp }}/conduit-ci-plan
       - name: Receive the trusted attestation controller
         if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-artifact-retry
         with:
           name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: ${{ runner.temp }}/conduit-ci-attestation
@@ -989,7 +990,7 @@ jobs:
           done
       - name: Retain immutable x86 proof receipts
         if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: ci-proof-conduitos.x86.batch-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/ci-receipts/conduitos.x86.*.json
@@ -1095,7 +1096,7 @@ jobs:
           cargo xtask host verify target/conduitos/aarch64-product-host --boot --locked
           cargo xtask conduitos product-readiness-matrix --locked > target/conduitos/product-readiness-matrix.json
       - name: Retain AArch64 product proof and final PROFILE artifacts
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduitos-aarch64-product-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: |

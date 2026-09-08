@@ -3,7 +3,9 @@ name: Approve trusted release automation
 on:
   workflow_run:
     workflows: [promotion, candidate]
-    types: [requested]
+    # Bot-created pull requests can arrive as an immediately terminal
+    # action_required run without emitting a usable requested event.
+    types: [requested, completed]
 
 permissions:
   actions: write
@@ -14,7 +16,9 @@ jobs:
   approve:
     if: >-
       github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.actor.login == 'github-actions[bot]'
+      github.event.workflow_run.actor.login == 'github-actions[bot]' &&
+      (github.event.workflow_run.status != 'completed' ||
+       github.event.workflow_run.conclusion == 'action_required')
     runs-on: ubuntu-slim
     timeout-minutes: 2
     steps:

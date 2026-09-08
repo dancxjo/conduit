@@ -41,6 +41,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   const deploy = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
   assert.match(candidate, /branches: \[dev\]/);
   assert.match(candidate, /cargo test --locked --package conduit-xtask-dispatch/);
+  assert.match(candidate, /proof\/ci\/release-lane-controller\.spec\.mjs/);
   assert.doesNotMatch(candidate, /tour-products\.yml/);
   assert.match(candidate, /group: candidate-\$\{\{ github\.event\.pull_request\.number \}\}/);
   assert.match(candidate, /cancel-in-progress: true/);
@@ -50,8 +51,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(integration, /cancel-in-progress: false/);
   assert.match(promotion, /branches: \[main\]/);
   assert.match(promotion, /full_suite: true/g);
-  assert.match(promotion, /group: promotion-\$\{\{ github\.event\.pull_request\.head\.ref \}\}/);
-  assert.match(promotion, /cancel-in-progress: true/);
+  assert.match(promotion, /group: promotion-release-lane/);
+  assert.match(promotion, /cancel-in-progress: false/);
   const check = readFileSync(".github/workflows/check.yml", "utf8");
   const classification = check.split("      - name: Classify exact change set\n")[1]
     .split("      - name:")[0];
@@ -70,7 +71,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(deploy, /github\.event\.pull_request\.merged == true/);
   assert.match(deploy, /github\.event\.pull_request\.base\.ref == 'main'/);
   assert.match(promotion, /Verify the captured development snapshot remains in the release/);
-  assert.match(promotion, /group: promotion-\$\{\{ github\.event\.pull_request\.head\.ref \}\}/);
+  assert.match(promotion, /group: promotion-release-lane/);
   assert.doesNotMatch(promotion, /group: promotion-\$\{\{ github\.event\.pull_request\.number \}\}/);
   assert.match(promotion, /fetch-depth: 0/);
   assert.match(promotion, /git merge-base --is-ancestor "\$snapshot" origin\/dev/);
@@ -86,9 +87,10 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(request, /inputs\.integrated_sha \|\| 'dev'/);
   assert.match(request, /test "\$dev_sha" = "\$INTEGRATION_SHA"/);
   assert.match(request, /git merge-base --is-ancestor "\$dev_sha" origin\/dev/);
-  assert.match(request, /already-running/);
+  assert.doesNotMatch(request, /already-running/);
   assert.match(request, /already-current/);
   assert.match(request, /release\/\$dev_sha/);
+  assert.match(request, /gh workflow run release-lane\.yml --ref main/);
   assert.doesNotMatch(request, /gh pr merge/);
   const sync = readFileSync(".github/workflows/sync-release-to-dev.yml", "utf8");
   assert.match(sync, /Sync release fixes to dev/);
@@ -111,13 +113,16 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(finalizer, /test "\$\(git rev-parse "\$merge_sha\^2"\)" = "\$HEAD_SHA"/);
   assert.match(finalizer, /gh pr merge "\$pr_url" --squash --match-head-commit "\$HEAD_SHA"/);
   assert.match(finalizer, /git merge-tree --write-tree "\$base_sha" "\$HEAD_SHA"/);
+  assert.match(finalizer, /if test "\$expected_tree" = "\$base_tree"/);
+  assert.match(finalizer, /Development already contains the accepted release tree/);
+  assert.match(finalizer, /if: steps\.merge\.outputs\.changed == 'true'/);
   assert.match(finalizer, /test "\$\(git rev-parse "\$merge_sha\^\{tree\}"\)" = "\$expected_tree"/);
   assert.match(finalizer, /gh workflow run tour-and-creche-pages --ref main/);
   assert.match(finalizer, /gh workflow run sync-release-to-dev\.yml --ref main/);
   assert.match(finalizer, /gh workflow run dev-integration\.yml --ref dev/);
   const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
   assert.match(request, /gh workflow run monitor-trusted-pr\.yml --ref main/);
-  assert.match(sync, /gh workflow run monitor-trusted-pr\.yml --ref main/);
+  assert.doesNotMatch(sync, /gh workflow run monitor-trusted-pr\.yml --ref main/);
   assert.match(request, /permissions:\n  actions: write\n  contents: write/);
   assert.match(sync, /permissions:\n  actions: write\n  contents: write/);
   assert.match(monitor, /types?: choice/);
@@ -129,11 +134,22 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(monitor, /GITHUB_EVENT_PATH="\$event_path" node tools\/ci\/pr-closing-intent\.mjs/);
   assert.match(monitor, /cargo test --locked --package conduit-xtask-dispatch/);
   assert.match(monitor, /proof\/ci\/tour-compatibility\.test\.mjs/);
+  assert.match(monitor, /proof\/ci\/release-lane-controller\.spec\.mjs/);
   assert.match(monitor, /repos\/\$GITHUB_REPOSITORY\/check-runs/);
   assert.match(monitor, /-f name=candidate/);
   assert.match(monitor, /-f head_sha="\$HEAD_SHA"/);
   assert.match(monitor, /-f conclusion=success/);
   assert.match(monitor, /actions\/runs\/\$run_id\/approve/);
+  assert.match(monitor, /actions\/runs\/\$run_id\/jobs/);
+  assert.match(monitor, /gh run cancel "\$run_id"/);
+  assert.match(monitor, /conduit-release-cancelled-bad/);
+  assert.match(monitor, /test "\$conclusion" = cancelled/);
+  assert.match(monitor, /release-lane reconciliation owns its terminal classification/);
+  assert.match(monitor, /test \$\(\(now - last_progress\)\) -ge 900/);
+  assert.match(monitor, /gh workflow run release-lane\.yml --ref main/);
+  assert.match(monitor, /group: monitor-trusted-pr-\$\{\{ inputs\.kind \}\}-\$\{\{ inputs\.pr_number \}\}\n  cancel-in-progress: false/);
+  assert.match(monitor, /comment_body=\$\(printf/);
+  assert.doesNotMatch(monitor, /^Release attempt /m);
   assert.match(monitor, /sleep 30/);
   assert.match(monitor, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
   assert.match(monitor, /gh pr merge "\$pr_url" --squash --match-head-commit "\$HEAD_SHA"/);
@@ -141,8 +157,19 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(monitor, /test "\$\(git rev-parse "\$merge_sha\^\{tree\}"\)" = "\$expected_tree"/);
   assert.match(monitor, /gh workflow run tour-and-creche-pages --ref main/);
   assert.match(monitor, /gh workflow run dev-integration\.yml --ref dev/);
+  const releaseLane = readFileSync(".github/workflows/release-lane.yml", "utf8");
+  assert.match(releaseLane, /workflows: \[promotion\]/);
+  assert.match(releaseLane, /types: \[requested, in_progress, completed\]/);
+  assert.match(releaseLane, /cron: "\*\/5 \* \* \* \*"/);
+  assert.match(releaseLane, /actions: write/);
+  assert.match(releaseLane, /issues: write/);
+  assert.match(releaseLane, /group: release-lane-controller/);
+  assert.match(releaseLane, /cancel-in-progress: false/);
+  assert.match(releaseLane, /node tools\/ci\/release-lane-github\.mjs --apply/);
   const approval = readFileSync(".github/workflows/approve-release-automation.yml", "utf8");
   assert.match(approval, /workflows: \[promotion, candidate\]/);
+  assert.match(approval, /types: \[requested, completed\]/);
+  assert.match(approval, /workflow_run\.conclusion == 'action_required'/);
   assert.match(approval, /actor\.login == 'github-actions\[bot\]'/);
   assert.doesNotMatch(approval, /workflow_run\.head_branch/);
   assert.match(approval, /actions\/runs\/\$RUN_ID/);
@@ -159,6 +186,30 @@ test("workflow topology keeps fast development separate from stable promotion", 
   ]) {
     assert.equal(existsSync(`.github/workflows/${retired}`), false, retired);
   }
+});
+
+test("artifact transport gets one bounded retry without hiding repeated failure", () => {
+  for (const path of [
+    ".github/workflows/check.yml",
+    ".github/workflows/promotion.yml",
+    ".github/workflows/tour-products.yml",
+  ]) {
+    const workflow = readFileSync(path, "utf8");
+    assert.doesNotMatch(workflow, /uses: actions\/upload-artifact@v7/);
+    assert.doesNotMatch(workflow, /uses: actions\/download-artifact@v8/);
+  }
+  const upload = readFileSync(".github/actions/upload-artifact-retry/action.yml", "utf8");
+  const download = readFileSync(".github/actions/download-artifact-retry/action.yml", "utf8");
+  assert.equal((upload.match(/uses: actions\/upload-artifact@v7/g) ?? []).length, 2);
+  assert.equal((download.match(/uses: actions\/download-artifact@v8/g) ?? []).length, 3);
+  assert.match(upload, /continue-on-error: true/);
+  assert.match(upload, /if: steps\.primary\.outcome == 'failure'/);
+  assert.match(upload, /name: \$\{\{ inputs\.name \}\}-retry/);
+  assert.match(download, /continue-on-error: true/);
+  assert.match(download, /if: steps\.primary\.outcome == 'failure'/);
+  assert.match(download, /steps\.retry\.outcome == 'failure' && inputs\.name != ''/);
+  assert.match(download, /name: \$\{\{ inputs\.name \}\}-retry/);
+  assert.match(download, /steps\.retry\.outcome == 'failure' && inputs\.name == ''/);
 });
 
 test("cancelled exact heads cannot start more reusable proof jobs", () => {

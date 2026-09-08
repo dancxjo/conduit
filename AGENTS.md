@@ -125,14 +125,16 @@ A green check proves only the commands and environments it actually ran.
 - `dev` is deliberately easy to enter. A feature PR runs formatting, patch
   integrity, and lightweight controller checks, not product fabrication or
   machine proof.
-- The newest combined `dev` tree runs affected integration proof. Newer `dev`
-  updates cancel obsolete integration runs; repair failures through ordinary
-  PRs without reconciling old heads.
+- Combined `dev` trees run affected integration proof in one finish-active lane.
+  A materially started healthy run finishes; newer development waits rather
+  than cancelling it. Repair failures through ordinary PRs.
 - After successful integration, the release controller starts a release only
   when none is open and `dev` differs from `main`. New work accumulates for the
   next release while the current one runs.
-- A release branch may receive bug fixes discovered by exhaustive proof. Its
-  exact final head—not its initial snapshot—must pass before `main` accepts it.
+- A release branch may receive bug fixes discovered by exhaustive proof only
+  after the failed attempt is terminal. Its exact final head—not its initial
+  snapshot—must pass before `main` accepts it. A healthy running attempt owns
+  the lane; only the newest unstarted successor remains queued.
 - After merge, automation returns release fixes to `dev`. Pages deploys only
   the carrier produced by the accepted promotion.
 - Do not manually manage proof receipts, candidate retirement, integration

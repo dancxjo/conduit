@@ -525,8 +525,8 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
         assert!(!source.contains("actions/download-artifact@v6"));
     }
     assert!(workflow.contains("actions/download-artifact@v8"));
-    assert!(products.contains("actions/upload-artifact@v7"));
-    assert!(products.contains("actions/download-artifact@v8"));
+    assert!(products.contains("./.github/actions/upload-artifact-retry"));
+    assert!(products.contains("./.github/actions/download-artifact-retry"));
 }
 
 #[test]
@@ -651,5 +651,5 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
     assert!(x86.contains("$CONDUIT_X86_BATCH_ROOT/results/$proof.json"));
     assert!(x86.contains("ci-proof-conduitos.x86.batch-${{ env.CONDUIT_CHECKOUT_SHA }}"));
     assert!(x86.contains("name: Preserve the exact x86 batch as the proof gate"));
-    assert!(x86.contains("if: always()\n        uses: actions/upload-artifact@v7"));
+    assert!(x86.contains("if: always()\n        uses: ./.github/actions/upload-artifact-retry"));
 }

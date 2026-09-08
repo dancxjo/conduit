@@ -25,7 +25,7 @@ permissions:
 
 concurrency:
   group: monitor-trusted-pr-${{ inputs.kind }}-${{ inputs.pr_number }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   monitor:
@@ -101,6 +101,7 @@ jobs:
               proof/ci/branch-boundary.spec.mjs \
               proof/ci/browser-product-ownership.test.mjs \
               proof/ci/pr-closing-intent.test.mjs \
+              proof/ci/release-lane-controller.spec.mjs \
               proof/ci/tour-compatibility.test.mjs
             gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" \
               -f name=candidate \
@@ -113,6 +114,9 @@ jobs:
           else
             run_id=
             approved_run=
+            last_progress=$(date +%s)
+            last_fingerprint=
+            started_at=
             for attempt in $(seq 1 90); do
               current=$(gh pr view "$PR_NUMBER" --json state,headRefOid)
               test "$(jq -r .state <<<"$current")" = OPEN
@@ -127,12 +131,46 @@ jobs:
                 run_id=$(jq -r .id <<<"$run")
                 status=$(jq -r .status <<<"$run")
                 conclusion=$(jq -r '.conclusion // ""' <<<"$run")
+                test -n "$started_at" || started_at=$(jq -r '.run_started_at // .created_at' <<<"$run")
+                jobs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100&filter=latest")
+                fingerprint=$(jq -c '[.jobs[] | {id,status,conclusion,started_at,completed_at}] | sort_by(.id)' <<<"$jobs")
+                now=$(date +%s)
+                if test "$fingerprint" != "$last_fingerprint"; then
+                  last_fingerprint=$fingerprint
+                  last_progress=$now
+                fi
+                failed=$(jq -c '[.jobs[] | select(.conclusion == "failure") | {id,name,html_url}]' <<<"$jobs")
+                if test "$(jq length <<<"$failed")" -gt 0; then
+                  marker="<!-- conduit-release-cancelled-bad:$run_id -->"
+                  if ! gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" \
+                    --jq '.[].body' | grep -Fq "$marker"; then
+                    summary=$(jq -r '.[] | "- " + .name + ": " + .html_url' <<<"$failed")
+                    comment_body=$(printf '%s\nRelease attempt `%s` for exact head `%s` is known bad and remaining work is being cancelled.\n\n%s' \
+                      "$marker" "$run_id" "$HEAD_SHA" "$summary")
+                    gh pr comment "$PR_NUMBER" --body "$comment_body"
+                  fi
+                  test "$status" = completed || gh run cancel "$run_id"
+                  exit 1
+                fi
+                start_epoch=$(date -d "$started_at" +%s)
+                if test $((now - last_progress)) -ge 900 || test $((now - start_epoch)) -ge 2700; then
+                  gh workflow run release-lane.yml --ref main
+                  printf 'Release %s run %s made no bounded progress; release-lane escalation dispatched.\n' "$PR_NUMBER" "$run_id" >&2
+                  exit 1
+                fi
                 if test "$conclusion" = action_required && test "$approved_run" != "$run_id"; then
                   gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/approve"
                   approved_run=$run_id
                 elif test "$status" = completed; then
+                  if test "$conclusion" = success; then
+                    break
+                  fi
+                  if test "$conclusion" = cancelled; then
+                    gh workflow run release-lane.yml --ref main
+                    printf 'Release run %s was cancelled before acceptance; release-lane reconciliation owns its terminal classification.\n' "$run_id" >> "$GITHUB_STEP_SUMMARY"
+                    exit 0
+                  fi
                   test "$conclusion" = success
-                  break
                 fi
               fi
               test "$attempt" -lt 90

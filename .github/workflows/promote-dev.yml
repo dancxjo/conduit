@@ -56,14 +56,6 @@ jobs:
           git fetch --no-tags origin main
           git fetch --no-tags origin dev
           git merge-base --is-ancestor "$dev_sha" origin/dev
-          current_release=$(gh pr list --state open --base main --json url,headRefName \
-            --jq '[.[] | select((.headRefName | startswith("release/")) or (.headRefName | startswith("promote/")))][0].url // empty')
-          if test -n "$current_release"; then
-            printf 'status=already-running\n' >> "$GITHUB_OUTPUT"
-            printf 'url=%s\n' "$current_release" >> "$GITHUB_OUTPUT"
-            printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           if test "$(git rev-parse "$dev_sha^{tree}")" = "$(git rev-parse origin/main^{tree})"; then
             printf 'status=already-current\n' >> "$GITHUB_OUTPUT"
             printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
@@ -72,17 +64,24 @@ jobs:
           branch="release/$dev_sha"
           git push origin "$dev_sha:refs/heads/$branch"
           pr_url=$(gh pr list --state open --base main --head "$branch" --json url --jq '.[0].url // empty')
+          status=existing
           if test -z "$pr_url"; then
             pr_url=$(gh pr create \
               --base main \
               --head "$branch" \
               --title "Promote dev $dev_sha" \
               --body "Release candidate containing everything through dev \`$dev_sha\`. Fix failures on this branch; the exact final head must pass the exhaustive promotion gate. Successful release fixes are synchronized back to dev automatically.")
+            status=created
           fi
           printf 'url=%s\n' "$pr_url" >> "$GITHUB_OUTPUT"
           printf 'number=%s\n' "$(gh pr view "$pr_url" --json number --jq .number)" >> "$GITHUB_OUTPUT"
           printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
-          printf 'status=created\n' >> "$GITHUB_OUTPUT"
+          printf 'status=%s\n' "$status" >> "$GITHUB_OUTPUT"
+      - name: Reconcile the single release lane
+        if: steps.pull-request.outputs.status == 'created'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release-lane.yml --ref main
       - name: Monitor the trusted release without relying on recursive events
         if: steps.pull-request.outputs.status == 'created'
         env:
@@ -106,9 +105,9 @@ jobs:
               printf -- '- Pull request: %s\n' "$PR_URL" >> "$GITHUB_STEP_SUMMARY"
               printf -- '- Fix exhaustive-proof failures on the release branch; merge is automatic when green.\n' >> "$GITHUB_STEP_SUMMARY"
               ;;
-            already-running)
-              printf -- '- A release is already running: %s\n' "$PR_URL" >> "$GITHUB_STEP_SUMMARY"
-              printf -- '- Current development remains queued for the next release.\n' >> "$GITHUB_STEP_SUMMARY"
+            existing)
+              printf -- '- The exact development release already exists: %s\n' "$PR_URL" >> "$GITHUB_STEP_SUMMARY"
+              printf -- '- No duplicate promotion or monitor was dispatched.\n' >> "$GITHUB_STEP_SUMMARY"
               ;;
             already-current)
               printf -- '- Development and main already have the same tree; no release is needed.\n' >> "$GITHUB_STEP_SUMMARY"

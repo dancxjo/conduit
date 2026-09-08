@@ -1,0 +1,90 @@
+name: Download artifact with one bounded retry
+description: Retry one transient GitHub artifact-service failure without hiding a repeated failure
+
+inputs:
+  name:
+    description: Exact artifact name
+    required: false
+  artifact-ids:
+    description: Comma-separated artifact identifiers
+    required: false
+  path:
+    description: Destination path
+    required: false
+  pattern:
+    description: Artifact-name glob
+    required: false
+  merge-multiple:
+    description: Whether matching artifacts share one destination directory
+    default: "false"
+  github-token:
+    description: Token for another repository or workflow run
+    required: false
+  repository:
+    description: Source repository
+    default: ${{ github.repository }}
+  run-id:
+    description: Source workflow run
+    default: ${{ github.run_id }}
+  skip-decompress:
+    description: Whether downloaded archives remain compressed
+    default: "false"
+  digest-mismatch:
+    description: Behavior when an artifact digest differs
+    default: error
+
+outputs:
+  download-path:
+    description: Path populated by the successful download
+    value: ${{ steps.fallback.outputs.download-path || steps.retry.outputs.download-path || steps.primary.outputs.download-path }}
+
+runs:
+  using: composite
+  steps:
+    - id: primary
+      continue-on-error: true
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.name }}
+        artifact-ids: ${{ inputs.artifact-ids }}
+        path: ${{ inputs.path }}
+        pattern: ${{ inputs.pattern }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ inputs.repository }}
+        run-id: ${{ inputs.run-id }}
+        skip-decompress: ${{ inputs.skip-decompress }}
+        digest-mismatch: ${{ inputs.digest-mismatch }}
+    - if: steps.primary.outcome == 'failure'
+      shell: bash
+      run: sleep 5
+    - id: retry
+      if: steps.primary.outcome == 'failure'
+      continue-on-error: true
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.name }}
+        artifact-ids: ${{ inputs.artifact-ids }}
+        path: ${{ inputs.path }}
+        pattern: ${{ inputs.pattern }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ inputs.repository }}
+        run-id: ${{ inputs.run-id }}
+        skip-decompress: ${{ inputs.skip-decompress }}
+        digest-mismatch: ${{ inputs.digest-mismatch }}
+    - id: fallback
+      if: steps.primary.outcome == 'failure' && steps.retry.outcome == 'failure' && inputs.name != ''
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.name }}-retry
+        path: ${{ inputs.path }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ inputs.repository }}
+        run-id: ${{ inputs.run-id }}
+        skip-decompress: ${{ inputs.skip-decompress }}
+        digest-mismatch: ${{ inputs.digest-mismatch }}
+    - if: steps.primary.outcome == 'failure' && steps.retry.outcome == 'failure' && inputs.name == ''
+      shell: bash
+      run: exit 1
