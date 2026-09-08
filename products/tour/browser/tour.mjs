@@ -6,8 +6,9 @@ import { createTourEvidenceTables, createTourPlanPresentation, createTourRunnerF
 import { createProductMasthead } from "../../../semantics/presentation/assets/product-masthead.mjs";
 import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "../../../targets/browser/host/assets/application-syntax-presentation.mjs";
 import { createTourRouting, parseTourPages } from "./tour-routing.mjs";
-import { createReviewedFormGallery, presentTourInventory, readReviewedGallery, reviewedFormStage } from "./tour-inventory-presentation.mjs";
+import { createReviewedFormGallery, presentGalleryExperience, presentTourInventory, readReviewedGallery, reviewedFormStage } from "./tour-inventory-presentation.mjs";
 import { openBrowserHumanInput } from "../../../targets/browser/host/assets/browser-human-input.mjs";
+import { createTourEffectPerformer } from "./tour-runner-effects.mjs";
 import { drainBrowserEffects } from "../../../targets/browser/host/assets/browser-form-effects.mjs";
 
 const encoder = new TextEncoder();
@@ -21,6 +22,7 @@ let runnerSlotSequence = 0;
 let activeRunner = null;
 const activeDelays = new Set();
 let humanInput = null;
+let openHumanInput;
 let currentPage = 0;
 let guidedPages = [];
 let patchbaySequence = 0;
@@ -64,8 +66,8 @@ try {
   if (selectedMachinery.schema !== "conduit.browser/selected-human-machinery@1") {
     throw new Error("browser Host selected machinery is malformed");
   }
-  humanInput = openBrowserHumanInput({
-    target: document,
+  openHumanInput = (target) => openBrowserHumanInput({
+    target,
     boot: {
       host_id: host.hostId,
       boot_id: host.bootId,
@@ -73,6 +75,7 @@ try {
       implementation_registry: selectedMachinery.implementations,
     },
   });
+  humanInput = openHumanInput(document);
   routing = createTourRouting({
     host,
     applicationId: application.manifest.applicationId,
@@ -183,8 +186,10 @@ function renderGallery() {
   chapter.append(surface);
   const gallerySurface = createReviewedFormGallery(host.runtime, hostPresentation, surface, gallery, crecheUrl, (form, action) => {
     selectLaboratoryStage(reviewedFormStage(form), [], true);
+    presentGalleryExperience(laboratory.querySelector(".runner"), form, hostPresentationFor(laboratory));
     gallerySurface.select(form.checked_form_id);
     if (action === "inspect") {
+      laboratory.querySelector(".gallery-inspector").open = true;
       const patchbay = laboratory.querySelector(".compact-patchbay");
       patchbay.tabIndex = -1;
       patchbay.focus({ preventScroll: true });
@@ -192,6 +197,7 @@ function renderGallery() {
   });
   const initialForm = gallery.forms.find((form) => form.name === "morse_network") ?? gallery.forms[0];
   selectLaboratoryStage(reviewedFormStage(initialForm), []);
+  presentGalleryExperience(laboratory.querySelector(".runner"), initialForm, hostPresentationFor(laboratory));
   gallerySurface.select(initialForm.checked_form_id);
   document.querySelector("#laboratory-slot").replaceChildren(laboratory);
   chapter.scrollTop = 0;
@@ -384,15 +390,11 @@ function selectLaboratoryStage(stage, stages, reveal = false) {
       faceBack: stage.faceBack,
       runLabel: stage.faceBack ? "Run this Form" : "Run",
       sourceKey: stage.identity,
+      outputProfile: stage.outputProfile,
+      reviewedStage: stage.checkedFormId ? stage : null,
     });
   laboratory.replaceChildren(runner);
-  if (stage.checkedFormId) {
-    const patchbay = runner.querySelector(".compact-patchbay");
-    if (patchbay.dataset.sourceDocumentId !== stage.sourceDocumentId
-      || patchbay.dataset.checkedFormId !== stage.checkedFormId) {
-      throw new Error("Gallery source does not project its exact reviewed Form identity");
-    }
-  }
+
 }
 
 function retireActiveLaboratory() {
@@ -486,6 +488,15 @@ function createRunner(source, recursive = false, presentation = {}) {
   );
   runner.evidence = createTourEvidenceTables(runnerPresentation, exactSlot, runSlot);
   queueMicrotask(() => runner.actionControls.render(false));
+  if (presentation.reviewedStage) {
+    refreshCompactPatchbay(runner, source, recursive);
+    const patchbay = runner.querySelector(".compact-patchbay");
+    if (patchbay.dataset.sourceDocumentId !== presentation.reviewedStage.sourceDocumentId
+      || patchbay.dataset.checkedFormId !== presentation.reviewedStage.checkedFormId) {
+      throw new Error("Gallery source does not project its exact reviewed Form identity");
+    }
+    runner.dataset.reviewedCheckedFormId = presentation.reviewedStage.checkedFormId;
+  }
   refreshCompactPatchbay(runner, textarea.value, recursive);
   return runner;
 }
@@ -1108,64 +1119,22 @@ async function runListing(runner, source, recursive) {
   runner.playStatus.ordinary("Playing through this browser Host…");
   runner.actionControls.render(true);
   try {
-    const perform = async (progress, signal) => {
-      if (progress.effect_kind === "clock-observation") {
-        const bytes = new Uint8Array(8);
-        new DataView(bytes.buffer).setBigUint64(0, BigInt(Math.floor(performance.now() * 1000)), true);
-        return bytes;
-      } else if (progress.effect_kind === "timer") {
-        runner.playStatus.ordinary(`Waiting for planned tick · ${progress.duration_millis} ms`);
-        if (!await delay(progress.duration_millis, current, signal)) return;
-      } else if (progress.effect_kind === "key-event") {
-        runner.playStatus.ordinary("Waiting for one admitted keyboard transition…");
-        const event = await humanInput.nextKeyboard();
-        if (current !== generation) return;
-        const encoded = event.canonical_bytes;
-        return encoded;
-      } else if (progress.effect_kind === "button-transition") {
-        runner.querySelector(".input-button").hidden = false;
-        runner.playStatus.ordinary("Waiting for one admitted button transition…");
-        const event = await humanInput.nextButton();
-        if (current !== generation) return;
-        const encodedCode = api.conduit_tour_encode_button_transition(
-          event.pressed ? 1 : 0,
-          BigInt(event.sequence),
-        );
-        if (encodedCode < 0) throw new Error(`button transition encoding refused (${encodedCode})`);
-        const encoded = new Uint8Array(
-          api.memory.buffer,
-          api.conduit_browser_form_output_ptr(),
-          api.conduit_browser_form_output_len(),
-        ).slice();
-        return encoded;
-      } else if (progress.effect_kind === "manifestation") {
-        runner.querySelector(".morse").textContent =
-          progress.text ?? renderMorse(progress.segments);
-        renderIdentities(runner, progress);
-        if (progress.presentation_kind === "presentation/indicator-state") {
-          setIndicator(runner, progress.text === "true");
-        } else {
-          for (const segment of progress.segments) {
-            if (current !== generation) return;
-            setIndicator(runner, segment.level);
-            if (!await delay(segment.units * progress.unit_millis, current)) return;
-          }
-          setIndicator(runner, false);
-        }
-        runner.playStatus.ordinary("Observed planned presentation; continuing the same Play…");
-      } else {
-        throw new Error(`unsupported browser Host effect ${progress.effect_kind}`);
-      }
-    };
+    const perform = createTourEffectPerformer({
+      api, runner, humanInput, openHumanInput, isCurrent: () => current === generation,
+      delay: (milliseconds, signal) => delay(milliseconds, current, signal),
+      renderIdentities, renderMorse, setIndicator,
+    });
     progress = await drainBrowserEffects({
       api, initialProgress: progress, readOutput, perform,
       isCurrent: () => current === generation,
       onWaiting: (pending) => {
         const timer = pending.find((effect) => effect.effect_kind === "timer");
         const button = pending.some((effect) => effect.effect_kind === "button-transition");
+        const pointer = pending.some((effect) => effect.effect_kind === "pointer-event");
         runner.playStatus.ordinary(timer
           ? `Waiting for planned tick · ${timer.duration_millis} ms${button ? " and button transition" : ""}`
-          : button ? "Waiting for one admitted button transition…"
+          : pointer ? "Click a horizontal position on the controller to choose a pitch."
+            : button ? "Waiting for one admitted button transition…"
             : `Waiting for ${pending.length} admitted Host effect(s)…`);
       },
     });
@@ -1190,6 +1159,8 @@ async function runListing(runner, source, recursive) {
       ["Timer completions", String(progress.timer_completions)],
       ["Manifestation completions", String(progress.manifestation_completions)],
     ]);
+    humanInput?.cancelPending();
+    runner.querySelector(".input-button").hidden = true;
     running = false;
     activeRunner = null;
     setNavigationDisabled(false);
@@ -1211,6 +1182,8 @@ async function runListing(runner, source, recursive) {
 
 function stopListing(runner) {
   generation += 1;
+  runner.cancelPointer?.();
+  runner.querySelector(".input-button")?.setAttribute("hidden", "");
   cancelDelay();
   humanInput?.cancelPending();
   if (running && runner.dataset.mode === "multi") cancelMultiSessions();

@@ -11,12 +11,14 @@ use conduit_presentation::{
 
 mod controller;
 mod gallery;
+mod gallery_experience;
 mod layout;
 mod navigation;
 mod pointer;
 mod shell_presentations;
 pub use controller::*;
 pub use gallery::*;
+pub use gallery_experience::gallery_experience;
 pub use layout::*;
 pub use navigation::*;
 pub use pointer::*;
