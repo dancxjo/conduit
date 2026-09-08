@@ -34,7 +34,7 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
 
   await page.goto(`${home}/`);
   await expect(page).toHaveURL(`${home}/`);
-  await expect(page.getByRole("heading", { name: /One logical computer/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
   await expect(page.getByRole("link", { name: "Learn Conduit" })).toHaveAttribute("href", "/conduit/tour");
   await expect(page.getByRole("link", { name: "Birth a Body", exact: true })).toHaveAttribute("href", "/conduit/creche");
