@@ -62,4 +62,13 @@ impl TourShellPresenter {
             .iter()
             .any(|surface| surface.slot == Slot::Transient && surface.admitted)
     }
+
+    /// Release retained shell storage before the WORLD front door resumes the
+    /// finite native display service.
+    pub fn suspend(&mut self) -> Result<(), TourShellError> {
+        for slot in Slot::ALL {
+            self.dismiss(slot)?;
+        }
+        Ok(())
+    }
 }

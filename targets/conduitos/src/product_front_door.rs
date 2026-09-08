@@ -142,6 +142,7 @@ pub fn run(
                 return Ok(ProductInputControl::Continue);
             }
             if event.transition() == KeyTransition::Pressed && event.usage() == F9 && !tour_open {
+                presenter.suspend().map_err(|error| error.as_str())?;
                 tour_open = true;
                 shell
                     .present_with_lifecycle(&tour, &journey.projection(), display)
@@ -173,6 +174,7 @@ pub fn run(
                         return Ok(ProductInputControl::Continue);
                     }
                     tour_open = false;
+                    shell.suspend().map_err(|error| error.as_str())?;
                     presenter
                         .present(&front_door, display)
                         .map_err(|error| error.as_str())?;
