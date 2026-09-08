@@ -148,12 +148,32 @@ jobs:
           base_sha=$(git rev-parse "origin/$base_branch")
           if test "$KIND" = release; then
             gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
+            merge_sha=$(gh pr view "$PR_NUMBER" --json state,mergeCommit --jq 'select(.state == "MERGED") | .mergeCommit.oid')
           else
             expected_tree=$(git merge-tree --write-tree "$base_sha" "$HEAD_SHA")
             [[ "$expected_tree" =~ ^[0-9a-f]{40}$ ]]
-            gh pr merge "$pr_url" --squash --match-head-commit "$HEAD_SHA"
+            base_tree=$(git rev-parse "$base_sha^{tree}")
+            if test "$expected_tree" = "$base_tree"; then
+              gh pr close "$pr_url" --comment "Development already contains the accepted release tree; no synchronization commit is required."
+              printf 'Synchronization %s is already represented by dev %s; no merge commit was created.\n' \
+                "$HEAD_SHA" "$base_sha" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            gh pr merge "$pr_url" --squash --match-head-commit "$HEAD_SHA" --auto
+            merge_sha=
+            for attempt in $(seq 1 12); do
+              current=$(gh pr view "$PR_NUMBER" --json state,headRefOid,mergeCommit)
+              test "$(jq -r .headRefOid <<<"$current")" = "$HEAD_SHA"
+              state=$(jq -r .state <<<"$current")
+              if test "$state" = MERGED; then
+                merge_sha=$(jq -r .mergeCommit.oid <<<"$current")
+                break
+              fi
+              test "$state" = OPEN
+              test "$attempt" -lt 12
+              sleep 5
+            done
           fi
-          merge_sha=$(gh pr view "$PR_NUMBER" --json state,mergeCommit --jq 'select(.state == "MERGED") | .mergeCommit.oid')
           [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags origin "$base_branch"
           test "$(git rev-parse "origin/$base_branch")" = "$merge_sha"
