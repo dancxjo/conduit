@@ -1,7 +1,7 @@
 # Implementation confinement and admitted authority
 
 Status: architectural contract and source audit, not hostile-isolation acceptance.
-Owner: [#2685](https://github.com/dancxjo/conduit/issues/2685).
+Origin: [#2685](https://github.com/dancxjo/conduit/issues/2685).
 Related: [#2682](https://github.com/dancxjo/conduit/issues/2682),
 [#2686](https://github.com/dancxjo/conduit/issues/2686),
 [#2688](https://github.com/dancxjo/conduit/issues/2688),
@@ -58,7 +58,9 @@ lookup that accepts arbitrary caller-created entries is not unforgeable.
 
 ## Source audit of std effect paths
 
-Audited against dev `0cf9fbe5f77594cfab572ec9a88b95737d28253e`.
+Historical source audit at dev `0cf9fbe5f77594cfab572ec9a88b95737d28253e`.
+The linked source owners remain useful entry points; the audit is not a fresh
+security assessment of every subsequent change.
 These are concrete effect paths, not an exhaustive transitive dependency or
 syscall audit. Test-only filesystem fixtures are not production effect paths.
 All native code linked into the cooperative std process must be treated as
@@ -112,10 +114,12 @@ loss, and Plan retirement distinct. A finite computation may exhaust its
 embodiment without completing its meaning. Neither exhaustion nor replan grants
 additional authority or permits automatic retry.
 
-## Stop line and remaining acceptance
+## Scope of this note
 
-This note establishes terminology, threat assumptions, and an initial source
-inventory. It does not implement isolation, claim a completed hostile negative
-proof, or close #2685. Mechanism-level effect enforcement, actual authorized and
-unauthorized execution, stale-Boot rejection, finite resource enforcement, and
-Patchbay projection still require executable acceptance and exact-main evidence.
+This note establishes terminology, threat assumptions, and a source inventory.
+It does not implement isolation or establish a completed hostile negative proof.
+Any stronger claim needs mechanism-level effect enforcement, actual authorized
+and unauthorized execution, stale-Boot rejection, finite resource enforcement,
+and inspectable evidence. Issue history records the original slice;
+[STATUS.md](../../STATUS.md) and the [roadmap](../roadmap.md) describe current
+proof and work without treating this old stop line as an open assignment.

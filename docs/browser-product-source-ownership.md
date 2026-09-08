@@ -1,6 +1,8 @@
 # Browser product source ownership
 
-Issue #2277 owns this source boundary. Exact release acceptance belongs in STATUS.md and the issue.
+This is the current source boundary, introduced by #2277. See
+[repository layout](repository-layout.md) for placement and [status](../STATUS.md)
+for executable coverage.
 
 Tour browser source, styles, routing, state and package descriptor live in `products/tour/browser/`; authored lessons remain in `products/tour/content/`. Crèche browser lifecycle, actions, routing, styles and descriptor live in `products/creche/browser/`. Patchbay keeps its existing browser manifestation and specialized graph renderer in `products/patchbay/html/`.
 

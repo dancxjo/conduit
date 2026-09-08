@@ -17,7 +17,13 @@ verticals. Each entrance requires exact Host, Boot, Base, and robot identities
 and retains machine evidence without promoting it into Pico W or human proof.
 
 The historical Netherwick project's Brainstem revision and its responsibility migration ledger
-remain recorded in `docs/architecture/pete-brainstem-migration.md`. The old
+remain recorded in the [migration ledger](../../docs/architecture/pete-brainstem-migration.md). The old
 describe-only fixture runtime and product-facing demo are intentionally absent.
 
 Pico W realization and physical safety HIL remain separate proof classes.
+
+The [Pete workstream](https://github.com/dancxjo/conduit/issues/2229) tracks the
+continuous multi-Form Body. Resident workload, memory, and the full physical
+capstone have separate prerequisites; individual observation or drive proofs
+do not establish that whole experience. See [STATUS](../../STATUS.md) for
+recorded evidence before attempting hardware work.

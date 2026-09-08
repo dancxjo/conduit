@@ -15,9 +15,8 @@ because its name is `target`; such directories can also contain retained proof
 evidence and active outputs.
 
 Use the working agreement's machine and ownership checks before any cleanup.
-The report is usable on every machine, including machines where destructive
-reclamation is prohibited. Shared compilation-cache selection, active-job
-leases, evidence separation and bounded reclamation remain tracked in #2516.
+The report is usable on every machine. It was introduced through #2516;
+read-only inventory and guarded reclamation are separate operations.
 Do not point every product build at a shared target directory until its staging
 paths and concurrent executable consumers have been checked.
 

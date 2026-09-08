@@ -72,13 +72,10 @@ visibility while remaining separately described in the retention explanation.
 Sealed boot provenance is historical input only. It is not projected as a
 live offer, Base, service, availability fact, or authority source.
 
-## Checkpoint commands
+## Working on this boundary
 
-```text
-cargo fmt --all --check
-cargo test -p conduit-observatory
-cargo check -p conduit-observatory --target thumbv6m-none-eabi
-cargo test -p conduit
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
-```
+The implementation and focused tests live in
+[`architecture/observatory`](../../architecture/observatory/). Use the
+[contribution guide](../../CONTRIBUTING.md) for repository checks. A saved
+snapshot remains historical input; inspecting it never makes its Boot or
+capabilities current.

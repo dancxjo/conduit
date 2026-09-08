@@ -11,8 +11,9 @@ Run the current deterministic proof with:
 cargo xtask check todo-state
 ```
 
-This checks and expands the authored Forms, plans their ordinary std offers,
-and runs add → toggle → remove through the production kernel. Each next request
+This checks and expands the authored Forms, plans their ordinary std and
+browser Host offers, and runs add → toggle → remove through the production
+kernel in Rust tests. Each next request
 uses the preceding kernel-produced snapshot. Source and stdout sink are explicit
 test fixtures; they do not perform the state transition. An unknown index refuses
 with detail `105` and produces no success snapshot.
@@ -25,10 +26,11 @@ capacity can be lower than 32 because records consume multiple JSON nodes and
 the command contributes to the request bounds.
 
 This is an executable state-transition slice, not the finished application.
-Snapshot encoding is not persistence. Admitted Resource write/restore,
-application-specific task validation and limits, semantic browser
-presentation, causal browser interaction, Patchbay inspection, and a manual
-application entrance remain open.
+The browser runtime also tests admitted Resource publish/read requests and
+restores only after a matching storage completion. Those Rust tests supply
+storage completions; they do not establish durable browser storage across
+reloads. A complete Todo interface, application-specific validation, causal
+user interaction, and a manual application entrance remain separate work.
 
 `todo/summary` configures the reusable `json/boolean-summary` operation with
 field `complete`. `todo/command-summary` composes an edit, summary, and encoding
@@ -41,5 +43,5 @@ operation counts an arbitrary configured Boolean field outside Todo.
 `todo/restore-summary` consumes it as a Gear and derives counts through the same
 summary Form. The deterministic proof supplies the actual preceding edit output
 to this restore Face and refuses corrupt JSON or invalid completion fields.
-This proves the semantic restore path only; durable storage and fresh-Boot
-Resource admission remain separate, unproved work.
+This proves semantic restore and the runtime Resource-operation boundary;
+durable storage across a real restart remains a separate acceptance claim.

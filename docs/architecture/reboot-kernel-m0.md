@@ -1,5 +1,8 @@
 # Reboot Kernel M0 Sign
 
+> Historical local validation record for the August 2026 reboot. Its commands, identities, and acceptance statements refer to that checkpoint, not the current implementation.
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
 This records the local validation for GitHub issue #349,
 `[Milestone M0] Reboot kernel exactness and adapter readiness`.
 
