@@ -492,9 +492,8 @@ impl NativeCompositor {
 }
 
 fn map_manifestation_error(error: ManifestationError) -> NativeCompositorError {
-    if error == ManifestationError::StaleIdentity {
-        NativeCompositorError::StaleIdentity
-    } else {
-        NativeCompositorError::ManifestationInvalid
+    match error {
+        ManifestationError::StaleIdentity => NativeCompositorError::StaleIdentity,
+        _ => NativeCompositorError::ManifestationInvalid,
     }
 }
