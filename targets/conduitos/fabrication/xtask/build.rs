@@ -323,6 +323,17 @@ fn execute_with_features(
     Ok(record)
 }
 
+pub(super) fn execute_isolation_proof(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    execute_with_features(
+        ConduitosArch::X86_64,
+        opts,
+        &["native-compositor", "conduitos-isolation-proof"],
+        None,
+        ArtifactRole::ArchitectureProofAppliance,
+        None,
+    )
+}
+
 #[derive(Clone, Copy)]
 struct ProfileFabrication<'a> {
     generated: &'a Path,

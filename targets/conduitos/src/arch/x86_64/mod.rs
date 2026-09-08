@@ -10,6 +10,8 @@ mod opl2;
 mod pc_speaker;
 mod pic;
 mod pit;
+#[cfg(feature = "conduitos-isolation-proof")]
+mod protected_execution;
 mod providers;
 mod reboot;
 mod serial;
@@ -32,6 +34,8 @@ pub use hid_pointer::{
 };
 pub use opl2::Opl2;
 pub use pc_speaker::PcSpeaker;
+#[cfg(feature = "conduitos-isolation-proof")]
+pub use protected_execution::run_isolation_proof;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer, initialize_machine};
 
 pub const fn pc_speaker_input_hz() -> u64 {

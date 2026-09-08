@@ -27,6 +27,7 @@ proposals do not override the current canon.
 - [General-purpose computation under explicit finite bounds](decidable-default-universal-extension.md)
 - [Deadline and WCET regions](deadline-wcet-regions.md)
 - [Implementation confinement and admitted authority](implementation-confinement.md)
+- [ConduitOS x86_64 protection domains](conduitos-protection-domains.md)
 - [Portable catalog and hosted std offer boundary](semantic-catalog.md)
 
 ## Body, resources, and effects
