@@ -444,8 +444,10 @@ jobs:
           candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
   workspace-check:
-    needs: classify
-    if: always() && !cancelled() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.workspace_matrix != '[]')
+    # Selected x86 proof is the early machine gate. A deliberately unselected
+    # dev proof may be skipped; failure/cancellation never admits later work.
+    needs: [classify, conduitos-x86]
+    if: always() && !cancelled() && (needs.conduitos-x86.result == 'success' || !inputs.full_suite && needs.conduitos-x86.result == 'skipped') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.workspace_matrix != '[]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -516,8 +518,8 @@ jobs:
           candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
   esp32-firmware:
-    needs: [classify, standalone-locks]
-    if: always() && !cancelled() && needs.classify.outputs.docs_only != 'true' && (needs.classify.outputs.standalone_locks_required != 'true' || needs.standalone-locks.result == 'success') && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.esp32_required == 'true')
+    needs: [classify, standalone-locks, conduitos-x86]
+    if: always() && !cancelled() && (needs.conduitos-x86.result == 'success' || !inputs.full_suite && needs.conduitos-x86.result == 'skipped') && needs.classify.outputs.docs_only != 'true' && (needs.classify.outputs.standalone_locks_required != 'true' || needs.standalone-locks.result == 'success') && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.esp32_required == 'true')
     runs-on: ubuntu-latest
     # A cold Xtensa row may install substantial pinned tooling. Each row owns
     # exactly one target, while exhaustive main runs retain all three rows.
@@ -737,10 +739,10 @@ jobs:
           overwrite: true
 
   browser-host:
-    needs: [classify, browser-tools]
+    needs: [classify, browser-tools, conduitos-x86]
     # Retain the broad proof definition for an explicit future decision, but do
     # not generate or upload repository-wide visual evidence automatically.
-    if: ${{ false && always() && !cancelled() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.browser_required == 'true') }}
+    if: ${{ false && always() && !cancelled() && (needs.conduitos-x86.result == 'success' || !inputs.full_suite && needs.conduitos-x86.result == 'skipped') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.browser_required == 'true') }}
     runs-on: ubuntu-24.04
     # One-job cold compilation plus evidence upload and cache post-processing
     # exceeded the old ceiling after the semantic proof had already passed.
@@ -1001,8 +1003,8 @@ jobs:
         run: exit 1
 
   conduitos-architecture:
-    needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && !cancelled() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_architecture_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    needs: [classify, conduitos-limine, conduitos-tools, conduitos-x86]
+    if: always() && !cancelled() && (needs.conduitos-x86.result == 'success' || !inputs.full_suite && needs.conduitos-x86.result == 'skipped') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_architecture_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
@@ -1057,8 +1059,8 @@ jobs:
           candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
   conduitos-aarch64-product:
-    needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && !cancelled() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_aarch64_product_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    needs: [classify, conduitos-limine, conduitos-tools, conduitos-x86]
+    if: always() && !cancelled() && (needs.conduitos-x86.result == 'success' || !inputs.full_suite && needs.conduitos-x86.result == 'skipped') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_aarch64_product_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:

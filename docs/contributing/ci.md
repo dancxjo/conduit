@@ -58,7 +58,22 @@ automatically for the same captured commit. Explicit abandonment requires a
 reviewed replacement decision.
 
 The release branch contains everything accumulated in `dev`. Exhaustive proof
-runs there. If it exposes a cross-product bug, the trusted monitor cancels the
+runs there. The x86 gate runs first after classification, pinned tools, and its
+prepared-image build. Other expensive check jobs wait for selected x86 proof;
+the product fabrication/browser/carrier pipeline waits for the check suite.
+This deliberately trades some green-run parallelism for early rejection of a
+known failing machine before spending a full release's build budget. A failure
+or cancellation cannot open the downstream gate. Unselected development proof
+may still be skipped; exhaustive release proof cannot omit x86.
+
+The prepared x86 proof image is built once and distributed with its exact digest
+to the five compatible hardware proofs. It is an architecture-proof appliance,
+not the differently configured product Host image. Product artifacts are also
+built once per target and shared by staging, browser proofs, sealing, and Pages;
+Crèche acceptance boots the exported artifact without rebuilding it. Neither a
+cache hit nor force-pushing replaces required execution proof.
+
+If proof exposes a cross-product bug, the trusted monitor cancels the
 known-bad attempt promptly while preserving its exact failure evidence. Only
 after that attempt is terminal may a repair advance the release branch and run
 as a fresh exact head. A healthy running attempt is never cancelled by newer
