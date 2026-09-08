@@ -53,6 +53,8 @@ pub enum CheckSuite {
     InteropMembrane,
     /// Prove mutually authenticated, replay-fenced, non-transitive federation.
     FederationSecurity,
+    /// Prove bounded no-WASI execution and capability-scoped hostile Gear refusal.
+    ConfinedGear,
     All,
 }
 
@@ -92,6 +94,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::HostedBaseIsolation => run_suite(HOSTED_BASE_ISOLATION_STEPS, &root, opts),
         CheckSuite::InteropMembrane => run_suite(INTEROP_MEMBRANE_STEPS, &root, opts),
         CheckSuite::FederationSecurity => run_suite(FEDERATION_SECURITY_STEPS, &root, opts),
+        CheckSuite::ConfinedGear => run_suite(CONFINED_GEAR_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -150,6 +153,22 @@ const FEDERATION_SECURITY_STEPS: &[Step] = &[Step::new(
         "-p",
         "conduit-body",
         "federation::tests",
+        "--locked",
+    ],
+)];
+
+const CONFINED_GEAR_STEPS: &[Step] = &[Step::new(
+    "confined-gear.wasmi",
+    "Prove no-WASI imports, finite execution, and exact Base capability mediation",
+    "cargo",
+    &[
+        "test",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "confined-gear",
+        "--test",
+        "confined_gear_security",
         "--locked",
     ],
 )];
