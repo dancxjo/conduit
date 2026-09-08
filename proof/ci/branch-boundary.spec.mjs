@@ -125,9 +125,14 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(monitor, /runs-on: ubuntu-24\.04/);
   assert.match(monitor, /timeout-minutes: 48/);
   assert.match(monitor, /if: inputs\.kind == 'sync'/);
+  assert.match(monitor, /checks: write/);
   assert.match(monitor, /GITHUB_EVENT_PATH="\$event_path" node tools\/ci\/pr-closing-intent\.mjs/);
   assert.match(monitor, /cargo test --locked --package conduit-xtask-dispatch/);
   assert.match(monitor, /proof\/ci\/tour-compatibility\.test\.mjs/);
+  assert.match(monitor, /repos\/\$GITHUB_REPOSITORY\/check-runs/);
+  assert.match(monitor, /-f name=candidate/);
+  assert.match(monitor, /-f head_sha="\$HEAD_SHA"/);
+  assert.match(monitor, /-f conclusion=success/);
   assert.match(monitor, /actions\/runs\/\$run_id\/approve/);
   assert.match(monitor, /sleep 30/);
   assert.match(monitor, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
