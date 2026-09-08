@@ -108,6 +108,14 @@ jobs:
           git merge-base --is-ancestor "$release_merge" "$HEAD_SHA"
           expected_tree=$(git merge-tree --write-tree "$base_sha" "$HEAD_SHA")
           [[ "$expected_tree" =~ ^[0-9a-f]{40}$ ]]
+          base_tree=$(git rev-parse "$base_sha^{tree}")
+          if test "$expected_tree" = "$base_tree"; then
+            gh pr close "$pr_url" --comment "Development already contains the accepted release tree; no synchronization commit is required."
+            printf 'base_sha=%s\n' "$base_sha" >> "$GITHUB_OUTPUT"
+            printf 'merge_sha=\n' >> "$GITHUB_OUTPUT"
+            printf 'changed=false\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           gh pr merge "$pr_url" --squash --match-head-commit "$HEAD_SHA"
           merge_sha=$(gh pr view "$pr_url" --json state,mergeCommit --jq 'select(.state == "MERGED") | .mergeCommit.oid')
           [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]]
@@ -117,7 +125,9 @@ jobs:
           test "$(git rev-parse "$merge_sha^{tree}")" = "$expected_tree"
           printf 'base_sha=%s\n' "$base_sha" >> "$GITHUB_OUTPUT"
           printf 'merge_sha=%s\n' "$merge_sha" >> "$GITHUB_OUTPUT"
+          printf 'changed=true\n' >> "$GITHUB_OUTPUT"
       - name: Dispatch the exact synchronized development integration
+        if: steps.merge.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           BASE_SHA: ${{ steps.merge.outputs.base_sha }}
