@@ -2,6 +2,12 @@
 
 Treat old code as source material, not inheritance.
 
+This is a historical provenance ledger. Each row records what was recovered and
+what its acceptance established at that time; older paths, limitations, and
+workflow identities are retained for traceability. Read [STATUS.md](../STATUS.md)
+for current capabilities and [repository layout](repository-layout.md) for
+current ownership.
+
 | Component | Source commit/file | Why retained | What was removed | New acceptance proof |
 |---|---|---|---|---|
 | Native Patchbay Unicode bitmap paint path | `dancxjo/thingos` `2f3330a60efc908f2d90e2b17bd41862d96c9440`: `thingos/bran/src/console.rs`, `tools/unifont-gen/src/main.rs`, `xtask/src/fetch.rs`, and `thingos/bran/Cargo.toml` | GNU Unifont `.hex` 8x16/16x16 decoding, codepoint lookup, explicit replacement, clipped framebuffer pixels, bounded subset generation, and the no-std-capable `embedded-graphics` seam are useful renderer mechanics | ThingOS framebuffer console, ANSI/terminal state, cursor, boot modules, growable `BTreeMap` glyph cache, desktop/widget/compositor ontology, Pistil atlas/typography stack, runtime parsing of the whole font, and any semantic or runtime ownership | `patchbay-native` build-validates a deterministic 929-glyph Unifont 17.0.04 subset into one sorted fixed table, performs allocation-free lookup and raster iteration through a slice-bounded `embedded-graphics` target, renders ASCII/Latin-1/Greek/Cyrillic/arrows/box drawing/shapes plus a double-width glyph, makes missing glyph replacement countable, and tests primitive/glyph clipping with guard pixels while retaining the existing software-surface palette |

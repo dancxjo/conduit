@@ -1,7 +1,7 @@
 # Functional compatibility: the face is the contract
 
 **Status:** canonical architecture direction  
-**Applies to:** Forms, catalog Kinds, Host offers, planning, reusable composition, and future shared pools
+**Applies to:** Forms, catalog Kinds, Host offers, planning, reusable composition, and shared pools
 **Related:** #507, #511, #512, #514, #515
 
 ## Rule
@@ -14,7 +14,7 @@ A catalog path, Form name, Kind ID, Gear ID, implementation name, artifact ident
 
 Names remain valuable for authorship, discovery, catalog organization, provenance, diagnostics, Sign, and exact realization records. They are not hidden nominal types.
 
-For the first implementation, compatibility is deliberately simple:
+Compatibility uses exact checked equality:
 
 ```text
 same canonical checked face     -> compatible
@@ -27,7 +27,7 @@ This is exact equality, not a width/depth/variance subtyping lattice.
 
 The checked face is the complete public callable boundary Conduit has admitted for the Form or Kind. Whatever the checked face model contains participates in compatibility.
 
-At minimum, the current language direction includes:
+The public boundary includes:
 
 ```text
 startup parameter signature
@@ -188,14 +188,14 @@ A name/revision may still appear in a diagnostic to identify the candidate being
 
 PRs #520 and #521 intentionally implemented the then-current nominal rule. That rule is now superseded.
 
-Follow-up work must remove or invert tests asserting that:
+The migration replaced the former expectations that:
 
 - a differently named form with the same face is incompatible;
 - an offer with the same face but a different Kind identity is ineligible;
 - a revision difference alone makes a candidate incompatible;
 - structural/face coincidence must be rejected.
 
-Replace them with positive and negative proofs:
+The current compatibility contract requires positive and negative proofs:
 
 1. differently named callables with exactly equal checked faces are compatible;
 2. a same-named callable with a changed face is incompatible;

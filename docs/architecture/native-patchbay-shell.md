@@ -1,5 +1,8 @@
 # Native Patchbay shell
 
+> Historical first native-shell slice for #555. Later editor, planning, input, file-copy and presentation work extends this shell; its initial empty composition is not the current product inventory.
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
 Issue #555 establishes only the native process boundary for parent #554.
 
 `patchbay-native` uses `winit` with its Wayland backend because it supplies a

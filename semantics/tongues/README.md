@@ -30,11 +30,10 @@ Run the focused repository proof with:
 cargo xtask demo tongues --json
 ```
 
-If the repository-wide `xtask` binary is blocked by an unrelated workspace dependency, the owned
-proof remains directly testable with `cargo test -p conduit-tongues --features speech`; that
-narrower Cargo command is diagnostic, not the documented repository entrance. The speech stack is
-opt-in so generic workspace tooling does not link the voice-model dependencies merely to expose
-the repository command.
+The speech stack is opt-in; generic workspace tooling does not link the
+voice-model dependencies merely to expose this command. The separate
+[paired-latent experiment](RESEARCH.md) documents its corpus, reproducibility,
+and deliberately limited research claims.
 
 The stop line remains one starter: no broader Tongues migration, voice marketplace, cloning, or
 studio/DAW surface belongs here.

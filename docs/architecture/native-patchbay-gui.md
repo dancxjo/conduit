@@ -1,5 +1,8 @@
 # Native Patchbay primitive GUI
 
+> Historical native GUI design spike and first composition for #685, dated August 9, 2026. Dependency versions, comparison judgments, and the original integration gate are retained as decision evidence, not current library recommendations or an instruction to keep a present branch in draft.
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
 Issue #685 replaces the native Form document as the only manifestation with a small graphical
 Patchbay composition. The deterministic document remains available with `F2`; both views consume
 the same checked/expanded Form facts.
@@ -37,11 +40,13 @@ exact expanded-Form identity from which its geometry was built. Applying a targe
 projection fails as `StaleGraphBasis`; a fabricated subject fails separately as `UnknownSubject`.
 These are pre-admission candidates for #694, not operation-success records.
 
-The selected-subject index and current action dispatch are provisional integration state, not an
-accepted semantic boundary. Issue #694 still owns the typed platform-neutral interaction path. This
-GUI branch must remain draft and must not merge while pointer/keyboard selection can change the
-inspector directly; completion requires rebasing onto #694 and proving selection plus at least one
-meaningful control through that ordinary admitted path. Hit success alone is not operation success.
+The initial spike used provisional selected-subject state. Its integration gate
+required the typed platform-neutral interaction path from #694: selection and
+meaningful control had to cross ordinary admitted operations before acceptance.
+The current shared implementation is
+[`PatchbayInteraction`](../../products/patchbay/model/src/interaction.rs), with
+[selection and refusal conformance](../../products/patchbay/model/src/interaction_tests.rs).
+Hit success alone remains distinct from operation success.
 
 ## Native composition
 

@@ -1,4 +1,17 @@
-# Patchbay application
+# Patchbay
+
+Patchbay lets you work with Forms and inspect their realized execution. Open it
+from a checkout with:
+
+```sh
+cargo xtask demo patchbay
+cargo xtask demo patchbay --on browser
+```
+
+The installed product entrance is `conduit patchbay`. See the
+[current graphical ConduitOS journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
+for native Patchbay in use, or the [visual evidence guide](../../docs/visual-evidence.md)
+for browser captures and provenance.
 
 Patchbay is a Conduit application and projection over authoritative Form,
 Plan, Play, Body, Host, Boot, Sign, and Observatory truth. It is not a Host,

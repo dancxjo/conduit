@@ -23,10 +23,10 @@ Host:
   network
 ```
 
-One logical scheduler sees the whole Body workload. One Wake is Body-wide. One current immutable Plan admits and places all currently carried Forms together against all current resources. At most one Body-wide Play is active at once, while many Gear instances from many Forms may execute concurrently inside that Play.
+One Body-wide admission model sees the whole workload. One Wake is Body-wide. One current immutable Plan admits and places all currently carried Forms together against all current resources. At most one Body-wide Play is active at once, while many Gear instances from many Forms may execute concurrently inside that Play.
 
 That is why two Forms cannot independently reserve the same last CPU lane or device. Admission is shared because realization is shared.
 
 Adding a Pico later changes topology, not ontology: a replacement Body-wide Plan may move compatible work there while the same Body and Form set continue.
 
-For the one-machine case, ConduitOS is the OS-shaped freestanding Host substrate. It offers processor lanes, memory, storage, and devices as finite truthful resources; Body scheduling still plans ordinary Forms against those offers. Current proof remains explicit: ConduitOS currently proves one cooperative execution lane, not yet SMP or preemption.
+For the one-machine case, ConduitOS is the freestanding Host substrate. Body scheduling plans ordinary Forms against the exact processor, memory, and device resources that the current Host can actually offer. Its cooperative kernel can make progress across two admitted execution regions; that is logical concurrency, with SMP and preemption still ahead. The eight-lane Host above illustrates the model rather than claiming an available ConduitOS machine profile.

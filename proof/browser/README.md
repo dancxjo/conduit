@@ -1,72 +1,62 @@
-# Browser conformance specimens
+# Browser conformance
 
-This directory owns browser conformance fixtures and proof-only launch support.
-It is not a third browser Host implementation. The authoritative product owners
-are `targets/browser/host` for the browser Host and assets and
-`targets/browser/runtime` for browser composition and Bases.
+This directory contains browser tests, fixtures, and proof-only launch support.
+The browser Host lives in `targets/browser/host/`, its WASM runtime in
+`targets/browser/runtime/`, and application code under `products/`. Start with
+[the contributor guide](../../CONTRIBUTING.md) for environment setup.
 
-The primary specimen parses and plans unchanged
-`proof/fixtures/forms/signal-demo.conduit`, lowers its exact local fragment through
-the shared plan-to-kernel contract, and executes it with `conduit-kernel`'s
-port-aware fixed scheduler compiled to `wasm32-unknown-unknown`. It has no
-alternate executor.
-JavaScript owns only the browser platform effects: real timers and DOM presentation.
-
-Each page host receives an independent WebAssembly instance, so its runtime state, host/boot
-identity, exact plan fragment, active play, scheduler, presentation/sign identities, fixed-size
-ABI buffers, and receipt count are not shared with the other page host. The runtime emits one host
-operation request through a 4,096-byte output frame and accepts one completion through a separate
-4,096-byte input frame. A completion advances execution only when its source, checked, expanded,
-plan, fragment, host, boot, active-play, node/request/operation, placement, presentation/sign,
-value-kind, and encoded-value fields are the exact bytes expected for the outstanding request.
-
-Run the proof with:
+## Run the suite
 
 ```sh
-rustup target add wasm32-unknown-unknown
 cargo xtask check browser-host
 ```
 
-All test pages, JavaScript adapters, Playwright configurations, and the static
-server here exist to establish their named proof classes. Product browser
-launch and runtime code must not be added here.
-
-The Chromium test has one pinned project, one worker, no retries, and no forced interaction. It
-runs two independent page hosts concurrently, waits on all fifteen 250 ms intervals per host,
-retains sixteen nine-byte signal receipts per host, and verifies duplicate, malformed, item-bound,
-byte-bound, cancellation, platform-failure, and mismatched-runtime-identity rejection. Rust seals
-numeric routes, operation slots, values, sign, identities, and capture capacities before its
-first scheduler step and checks that those capacities do not grow. This is a bounded-capacity proof,
-not a claim that browser allocation can be measured reliably from JavaScript.
-
-Independent browser proof processes use distinct bounded loopback ports and
-result identities. For example, two one-worker shards may run concurrently as:
+To run the proof with its evidence manifest:
 
 ```sh
-CONDUIT_BROWSER_HOST_PORT=4173 CONDUIT_BROWSER_PROOF_SHARD=tour node proof/browser/node_modules/@playwright/test/cli.js test --config proof/browser/playwright.config.mjs proof/browser/executable-tour.spec.mjs --workers=1 --retries=0
-CONDUIT_BROWSER_HOST_PORT=4174 CONDUIT_BROWSER_PROOF_SHARD=creche node proof/browser/node_modules/@playwright/test/cli.js test --config proof/browser/playwright.config.mjs proof/browser/creche-workload.spec.mjs --workers=1 --retries=0
+cargo xtask prove browser-host
 ```
 
-Both values are validated before a server starts. The port is always bound to
-`127.0.0.1`; the shard identity selects a child of `test-results/` and cannot
-escape that directory. CI may retain the deterministic defaults because each
-GitHub job already has an isolated runner.
+Both commands use the repository's browser tooling and build the required
+product artifacts. Inspect prerequisites with `cargo xtask doctor browser`.
+For reviewed canonical Forms specifically, use
+`cargo xtask forms run --browser`. See the [visual evidence guide](../../docs/visual-evidence.md)
+for capture and publication rules.
 
-## Explicit external-WebSocket webchat
+Browser acceptance uses pinned Chromium, one worker, zero retries, and ordinary
+interaction. A test should perform an action once, then assert its correlated
+semantic result. Screenshots document that result. Compatibility projects have
+separate roles and do not replace the canonical capture environment.
 
-`webchat.test.html` instantiates one independent WASM kernel per page. Rust
-checks and expands `forms/webchat/main.conduit`, plans the exact browser fragment,
-and surfaces correlated native socket and DOM host operations. JavaScript owns
-the browser `WebSocket`, input event, and list mutation only; it does not own
-chat history bounds, operation lifecycle, Plan identity, or terminal truth.
+## What the tests establish
 
-The focused Chromium proof opens two pages against `webchat-server`, sends
-`hello from A` and `hello from B` through real controls, disconnects A, and
-shows the remaining peer continues. History is limited to sixteen items,
-messages to 256 bytes, and input events to eight. Disconnect, malformed input,
-oversize input, and successful host completion stay distinct.
+The basic Signal specimen parses and plans unchanged
+`proof/fixtures/forms/signal-demo.conduit`, lowers the exact fragment, and runs
+`conduit-kernel` compiled to WASM. JavaScript supplies timers and DOM effects.
+Each page has its own WASM instance, Host/Boot identity, Plan, active Play,
+fixed ABI buffers, and receipts. Completion must match the outstanding
+operation and its exact runtime identity before execution advances.
 
-`net/websocket` is the authored external protocol operation. A Line using the
-exact `conduit.base/websocket-rfc6455@1` Base realization remains the unrelated
-carrier for Conduit sessions; the webchat does not use that Line or its session
-runtime.
+Other suites exercise Tour, Crèche, Patchbay, Body lifecycle, resource
+operations, remote execution, and transport-specific contracts. Keep the claim
+at the boundary actually exercised: a WASM build is not a browser test, and a
+local browser fixture does not establish physical hardware behavior.
+
+`webchat.test.html`, for example, runs one kernel per page over
+`forms/webchat/main.conduit`. The external-WebSocket proof sends messages through
+real controls and observes disconnect behavior with bounded history and input.
+Its authored `net/websocket` operation is separate from a Conduit session Line
+using the WebSocket Base.
+
+## Adding or debugging a proof
+
+Keep new product code with its product or Host owner; add only the test and its
+necessary fixture here. Reuse existing semantic assertions and fixtures before
+adding another server or runtime arrangement. The owning issue determines
+whether new browser proof is needed.
+
+Independent proof processes can use distinct bounded loopback ports and result
+identities. Internal launch support validates `CONDUIT_BROWSER_HOST_PORT` and
+`CONDUIT_BROWSER_PROOF_SHARD`, binds only `127.0.0.1`, and confines each shard to
+its result directory. These are harness details; the supported repository
+entrance remains `cargo xtask`.

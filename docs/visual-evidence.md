@@ -1,4 +1,46 @@
-# Proof-native visual evidence
+# Visual evidence
+
+**[Explore the current ConduitOS visual journey →](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)**
+
+Seventeen real QEMU screenshots show boot, Body and Play lifecycle, a
+hot-plugged Line, Tour, and Patchbay interaction. Each checkpoint explains the
+action, visible result, concepts, and asserted behavior, with links to the exact
+capture provenance. This is the published accepted journey, not a fresh capture
+from this documentation review. It demonstrates emulator execution; physical
+hardware has a separate proof boundary.
+
+## Reproduce the ConduitOS journey
+
+Publication verifies a complete, correlated 1280 by 800 RGBA8 journey from the
+exact Crèche-produced Spore, then includes it in the accepted Pages carrier.
+
+The journey page presents all seventeen real screenshots inline in transition
+order. Each checkpoint separately explains what a user can see, the action that
+led there, the semantic behavior the harness proved, and the Conduit concepts in
+view. Its image also links to a focused provenance page with exact manifest
+correlation.
+
+Refresh the source artifacts by running the ordinary repository-development
+entrance:
+
+```sh
+cargo xtask conduitos journey-proof
+```
+
+That proof replaces `target/conduitos/x86_64/journey-frames/manifest.json` and
+its checkpoint PNGs during one real QEMU journey. Publication runs
+`tools/ci/stage-conduitos-pages-evidence.mjs` against those same artifacts; it
+refuses an incomplete journey, a missing, duplicated, or renamed checkpoint,
+unexpected dimensions or pixel format, and PNG bytes that do not match the
+manifest. There is no separately maintained documentation screenshot set.
+
+The published walkthrough is available at the
+[current ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/).
+The gallery also retains the same narrated walkthrough and focused provenance
+pages under the commit-addressed journey index. Emulator pixels remain
+documentary evidence and never imply physical hardware acceptance.
+
+## Evidence manifests
 
 Visual evidence is a human-inspectable presentation of an already-established
 semantic proof. It is not an additional runtime and it does not turn a screenshot
@@ -26,20 +68,18 @@ manifest and fails evidence validation. Consumers must publish only `complete`
 manifests. The manifest format and validation belong to `xtask`; CI may transport
 the resulting directory but does not define its meaning.
 
-Issue #821 establishes this contract without declaring any captures. Issue #822
-owns the first deterministic Patchbay screenshot declarations and their browser
-provenance.
+The manifest contract originated in #821; the first Patchbay captures were
+added through #822.
 
 ## Canonical Patchbay camera
 
 The documentation renderer is only the `chromium` project in
-`patchbay-html.playwright.config.mjs`. It uses Playwright 1.62.0, matching the
-pinned `mcr.microsoft.com/playwright:v1.62.0-noble` CI image, a 1440 by 1000 CSS
+`proof/browser/patchbay-html.playwright.config.mjs`. It uses Playwright 1.62.0, matching the
+pinned `mcr.microsoft.com/playwright:v1.62.0-noble` CI image, a 1366 by 768 CSS
 pixel viewport, device scale factor 1, `en-US`, `UTC`, dark color scheme,
 reduced motion, and the named DejaVu Sans font supplied by that pinned image.
-The proof asserts that the font is loaded before capture. Firefox and WebKit
-continue to execute the semantic compatibility test but never write canonical
-evidence.
+The proof asserts that the font is loaded before capture. The current
+configuration runs Chromium with one worker and zero retries.
 
 The deterministic in-process Patchbay fixture supplies the rendered state.
 `overview.png`, `selected-gear.png`, `interaction.png`, `high-contrast.png`,
@@ -52,7 +92,7 @@ requires all five after a successful proof, and writes their exact identities,
 rendering inputs, semantic provenance, byte lengths, and SHA-256 digests into
 the ordinary evidence manifest.
 
-## Accepted current views
+## Accepted Patchbay views
 
 These stable links advance only when the trusted main-only publisher accepts a
 new exact commit. Each image links to its provenance page. The prose states the
@@ -87,7 +127,7 @@ its page to expose that commit's provenance before Pages can deploy.
 
 ## Human review, not pixel authority
 
-`patchbay-html.spec.mjs` produces the five canonical images above only after the
+`proof/browser/patchbay-html.spec.mjs` produces five canonical images, four shown above only after the
 corresponding semantic browser assertions pass. The images remain available for
 human inspection and exact-commit comparison, but their pixels are not an
 acceptance gate. Font rasterization, antialiasing, or other presentation-only
@@ -100,38 +140,6 @@ camera, fixture, scenario, and asserted semantic disposition without treating a
 previous raster as runtime truth.
 
 ## ConduitOS console evidence
-
-## Accepted ConduitOS visual journey
-
-These stable links are published only after the frozen promotion boots the exact
-Crèche-produced spore and the main-only Pages carrier accepts its complete,
-correlated 1280 by 800 RGBA8 visual journey.
-
-The journey page presents all seventeen real screenshots inline in transition
-order. Each checkpoint separately explains what a user can see, the action that
-led there, the semantic behavior the harness proved, and the Conduit concepts in
-view. Its image also links to a focused provenance page with exact manifest
-correlation.
-
-Refresh the source artifacts by running the ordinary repository-development
-entrance:
-
-```sh
-cargo xtask conduitos journey-proof
-```
-
-That proof replaces `target/conduitos/x86_64/journey-frames/manifest.json` and
-its checkpoint PNGs during one real QEMU journey. Publication runs
-`tools/ci/stage-conduitos-pages-evidence.mjs` against those same artifacts; it
-refuses an incomplete journey, a missing, duplicated, or renamed checkpoint,
-unexpected dimensions or pixel format, and PNG bytes that do not match the
-manifest. There is no separately maintained documentation screenshot set.
-
-The published walkthrough is available at the
-[current ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/).
-The gallery also retains the same narrated walkthrough and focused provenance
-pages under the commit-addressed journey index. Emulator pixels remain
-documentary evidence and never imply physical hardware acceptance.
 
 `cargo xtask conduitos prove --arch x86-64 --evidence-root <directory>` can
 emit one bounded UTF-8 console transcript after the existing x86_64 proof has
@@ -146,7 +154,7 @@ Host/Boot, Plan/Play, kernel artifact identity/digest, semantic trigger, output
 digest, and 256 KiB transcript ceiling. Its physical-evidence field is
 explicitly false. No width or height is invented for a console transcript.
 
-The complete x86_64 evidence set contains exactly one required transcript.
+The console-transcript evidence set contains exactly one required transcript.
 Verification rejects missing semantic markers, an incomplete terminal line,
 wrong proof/rung/machine facts, a physical claim, digest drift, extra files, or
 an oversized output. CI invokes the same `cargo xtask` entrance and retains the
@@ -156,6 +164,5 @@ The static gallery accepts this evidence only when its manifest commit equals
 the simultaneously verified Patchbay evidence commit. When supplied to the
 gallery command, it writes separate current and commit-addressed ConduitOS
 pages whose heading warns that the transcript is emulator evidence, not
-physical-hardware evidence. No framebuffer capture is claimed: the accepted
-x86_64 proof currently reports zero framebuffers, so console evidence is the
-truthful first specimen.
+physical-hardware evidence. This is the earlier console-only proof surface;
+its zero-framebuffer profile does not describe the graphical journey above.

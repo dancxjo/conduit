@@ -1,6 +1,6 @@
 # Browser Host fabrication inventory
 
-The authoritative configurable inventory is `BROWSER_IMPLEMENTATIONS` in the browser Host fabrication package. Crèche, BUILD validation, and other configurators consume that package contribution; product code must not maintain another browser implementation list.
+The authoritative configurable inventory is [`BROWSER_IMPLEMENTATIONS`](../../targets/browser/fabrication/src/inventory.rs) in the browser Host fabrication package. Crèche, BUILD validation, and other configurators consume that package contribution; product code must not maintain another browser implementation list.
 
 Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `conduit.browser/reviewed-distribution@1` / `browser-runtime-superset.wasm`, and carries finite instance and buffered-byte limits. The shared artifact may contain all implementations, but PROFILE admission and current runtime truth remain separate gates.
 
@@ -12,7 +12,7 @@ Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `condu
 | WebSocket | selectable Line Base | secure context plus endpoint and credential truth |
 | WebRTC DataChannel | selectable Line Base | secure context plus negotiated session/grant truth |
 | camera and microphone | selectable media Bases | secure context, user activation, permission, device acquisition |
-| Web Audio output | selectable audio Base | user activation and current audio context |
+| Web Audio output | no selectable reviewed realization | API presence alone is insufficient; intentionally unadvertised |
 | WebSerial and WebUSB | selectable device Bases | secure context, user activation, permission, explicit device acquisition |
 | browser Host identity and Body membership | Host mechanism, not a configurable semantic Base | durable profile and admitted membership authority |
 | application package loader/presentation bridge | Host operation and product substrate | exact admitted package bytes |

@@ -186,6 +186,8 @@ isolate effects. No generic secure flag or second authority system is justified.
 
 This is a documentation contract. It does not claim that all requested State,
 structured memory, parser/evaluator, continuous execution, migration, analysis,
-WCET, or confinement proof already exists. The linked implementation issues own
-those slices. #2687 owns this note's documentation acceptance and requires its
-corrected premise, issue links, and stable promotion evidence.
+WCET, or confinement proof already exists. The linked issues preserve the decisions and implementation history.
+[Explicit State](explicit-state-delay.md) describes the installed hosted State
+and owned-continuity path; the [roadmap](../roadmap.md) and
+[STATUS.md](../../STATUS.md) track current work and proof limits. This note's
+original acceptance record belongs to #2687.
