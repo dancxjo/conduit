@@ -92,12 +92,57 @@ pub(crate) fn source_offer(value_kind: &str) -> CapabilityOffer {
     )
 }
 
+#[cfg(feature = "local-model-proof")]
+pub(crate) fn house_source_offers() -> [CapabilityOffer; 4] {
+    [
+        offer(
+            HOUSE_AUDIO_SOURCE_KIND,
+            HOUSE_AUDIO_SOURCE_REVISION,
+            SOURCE_IMPLEMENTATION,
+            conduit_audio::AUDIO_PCM_INFO_ID,
+            PortDirection::Output,
+        ),
+        offer(
+            HOUSE_RECOGNIZED_SOURCE_KIND,
+            HOUSE_RECOGNIZED_SOURCE_REVISION,
+            SOURCE_IMPLEMENTATION,
+            conduit_text::TEXT_VALUE_KIND,
+            PortDirection::Output,
+        ),
+        offer(
+            HOUSE_ADDRESSES_SOURCE_KIND,
+            HOUSE_ADDRESSES_SOURCE_REVISION,
+            SOURCE_IMPLEMENTATION,
+            conduit_text::ADDRESS_SET_VALUE_KIND,
+            PortDirection::Output,
+        ),
+        offer(
+            HOUSE_CONTEXT_SOURCE_KIND,
+            HOUSE_CONTEXT_SOURCE_REVISION,
+            SOURCE_IMPLEMENTATION,
+            conduit_tongues::WIRED_HOUSE_CONTEXT_VALUE_KIND,
+            PortDirection::Output,
+        ),
+    ]
+}
+
 pub(crate) fn sink_offer(value_kind: &str) -> CapabilityOffer {
     offer(
         SINK_KIND,
         SINK_REVISION,
         SINK_IMPLEMENTATION,
         value_kind,
+        PortDirection::Input,
+    )
+}
+
+#[cfg(feature = "local-model-proof")]
+pub(crate) fn house_text_sink_offer() -> CapabilityOffer {
+    offer(
+        HOUSE_TEXT_SINK_KIND,
+        HOUSE_TEXT_SINK_REVISION,
+        SINK_IMPLEMENTATION,
+        conduit_ai::TEXT_VALUE_KIND,
         PortDirection::Input,
     )
 }
@@ -156,6 +201,24 @@ pub(crate) fn install_catalog(
     for offer in [source_offer(request_kind), sink_offer(result_kind)] {
         install_offer(startup, catalog, offer);
     }
+}
+
+#[cfg(feature = "local-model-proof")]
+pub(crate) fn install_house_source_catalog(
+    startup: &mut StartupCatalog,
+    catalog: &mut ProfileCatalog,
+) {
+    for offer in house_source_offers() {
+        install_offer(startup, catalog, offer);
+    }
+}
+
+#[cfg(feature = "local-model-proof")]
+pub(crate) fn install_house_text_sink_catalog(
+    startup: &mut StartupCatalog,
+    catalog: &mut ProfileCatalog,
+) {
+    install_offer(startup, catalog, house_text_sink_offer());
 }
 
 fn install_offer(
