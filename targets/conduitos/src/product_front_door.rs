@@ -1,6 +1,8 @@
 //! Long-lived ordinary product service for the Patchbay lifecycle journey.
 
-use alloc::{format, string::String};
+mod tour_sign;
+
+use alloc::string::String;
 
 use conduit_human::KeyTransition;
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
@@ -22,6 +24,7 @@ use crate::{
     tour_product::{TourProduct, TourProductUpdate},
     tour_shell::TourShellPresenter,
 };
+use tour_sign::emit_tour_sign;
 
 const ENTER: u8 = 40;
 const ESCAPE: u8 = 41;
@@ -144,10 +147,10 @@ pub fn run(
             if event.transition() == KeyTransition::Pressed && event.usage() == F9 && !tour_open {
                 presenter.suspend().map_err(|error| error.as_str())?;
                 tour_open = true;
-                shell
+                let shell_receipt = shell
                     .present_with_lifecycle(&tour, &journey.projection(), display)
                     .map_err(|error| error.as_str())?;
-                emit_tour_sign(&tour, None, identities, fabrication);
+                emit_tour_sign(&tour, None, &shell_receipt, identities, fabrication);
                 arch::early_write(b"CONDUIT_TOUR_CHECKPOINT workspace-opened\n");
                 return Ok(ProductInputControl::Continue);
             }
@@ -200,7 +203,7 @@ pub fn run(
                             &mut idle,
                         )
                         .map_err(|error| error.as_str())?;
-                    shell
+                    let shell_receipt = shell
                         .present_with_lifecycle(&tour, &journey.projection(), display)
                         .map_err(|error| error.as_str())?;
                     if update.play.is_some() {
@@ -214,7 +217,13 @@ pub fn run(
                             )
                             .map_err(|error| error.as_str())?;
                     }
-                    emit_tour_sign(&tour, Some(&update), identities, fabrication);
+                    emit_tour_sign(
+                        &tour,
+                        Some(&update),
+                        &shell_receipt,
+                        identities,
+                        fabrication,
+                    );
                     return Ok(
                         if action == OPEN_PATCHBAY_ACTION_ID && pointer_session.is_some() {
                             ProductInputControl::Yield
@@ -333,42 +342,6 @@ fn tour_action(usage: u8) -> Option<&'static str> {
         F11 => Some(OPEN_PATCHBAY_ACTION_ID),
         _ => None,
     }
-}
-
-fn emit_tour_sign(
-    tour: &TourProduct,
-    update: Option<&TourProductUpdate>,
-    identities: &BootIdentities,
-    fabrication: &FabricationRecord,
-) {
-    let state = tour.controller().state();
-    let play = update.and_then(|value| value.play.as_ref());
-    let line = format!(
-        "CONDUIT_TOUR_SIGN {{\"schema\":\"conduit.conduitos.tour/v1\",\"status\":\"{}\",\"revision\":{},\"specimen_id\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"source_document_id\":{},\"checked_form_id\":{},\"expanded_form_id\":{},\"plan_id\":{},\"active_play_id\":{},\"result\":{},\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
-        match state.phase {
-            conduit_tour_model::TourWorkspacePhase::LessonReady => "tour-opened",
-            conduit_tour_model::TourWorkspacePhase::ResultVisible => "result-visible",
-            conduit_tour_model::TourWorkspacePhase::PatchbayOpen => "patchbay-open",
-        },
-        state.revision,
-        state.specimen_id,
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
-        identity::hex(&identities.host),
-        identity::hex(&identities.boot),
-        json_optional(play.map(|value| value.source_document_id.as_str())),
-        json_optional(play.map(|value| value.checked_form_id.as_str())),
-        json_optional(play.map(|value| value.expanded_form_id.as_str())),
-        json_optional(play.map(|value| value.plan_id.as_str())),
-        json_optional(play.map(|value| value.active_play_id.as_str())),
-        json_optional(state.result.as_deref()),
-    );
-    arch::early_write(line.as_bytes());
-}
-
-fn json_optional(value: Option<&str>) -> String {
-    value.map_or_else(|| "null".into(), |value| format!("\"{value}\""))
 }
 
 fn action_for(

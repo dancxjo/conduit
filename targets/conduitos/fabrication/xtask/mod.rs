@@ -32,6 +32,7 @@ mod image;
 mod journey_input;
 mod journey_proof;
 mod journey_records;
+mod journey_tour;
 mod journey_usb_line;
 mod keyboard_proof;
 mod keyboard_run;
