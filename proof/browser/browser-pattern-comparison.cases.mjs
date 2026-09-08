@@ -15,14 +15,16 @@ test("canonical Secret Knock runs its stored template and nested recognizer", as
   await expect(control).toBeVisible();
   await control.hover();
   try {
+    // Keep both press intervals well above runner scheduling jitter while the
+    // longer interval remains comfortably below the admitted attempt timeout.
     await page.mouse.down();
-    await page.waitForTimeout(30);
+    await page.waitForTimeout(50);
     await page.mouse.up();
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(250);
     await page.mouse.down();
-    await page.waitForTimeout(30);
+    await page.waitForTimeout(50);
     await page.mouse.up();
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(650);
     await page.mouse.down();
     await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
     await expect(runner.locator(".morse")).toContainText("matched: true");
