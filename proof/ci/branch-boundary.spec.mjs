@@ -34,6 +34,43 @@ test("only a repairable same-repository release branch can promote to main", () 
   assert.throws(() => validateBoundary("promotion", { ...valid, CONDUIT_HEAD_REPOSITORY: "fork/conduit" }), /promotion repository/);
 });
 
+test("x86 gates expensive checks and the release product pipeline without rebuilding proof", () => {
+  const source = readFileSync(".github/workflows/check.yml", "utf8");
+  const jobs = Object.fromEntries([...source.matchAll(/^  ([\w-]+):\n([\s\S]*?)(?=^  [\w-]+:\n|$(?![\s\S]))/gm)]
+    .map(([, name, body]) => [name, body]));
+  const prerequisites = name => (jobs[name].match(/^    needs: (.+)$/m)?.[1] ?? "")
+    .replace(/[\[\]]/g, "").split(/,\s*/).filter(Boolean);
+  const visit = (name, path = []) => {
+    assert.ok(!path.includes(name), `dependency cycle: ${[...path, name].join(" -> ")}`);
+    for (const parent of prerequisites(name)) visit(parent, [...path, name]);
+  };
+  for (const name of Object.keys(jobs)) visit(name);
+  assert.deepEqual(prerequisites("conduitos-x86"),
+    ["classify", "conduitos-limine", "conduitos-tools", "conduitos-proof-image"]);
+  for (const name of ["workspace-check", "esp32-firmware", "browser-host",
+    "conduitos-architecture", "conduitos-aarch64-product"]) {
+    assert.ok(prerequisites(name).includes("conduitos-x86"), name);
+    const guard = jobs[name].match(/\(needs\.conduitos-x86\.result == 'success' \|\| !inputs\.full_suite && needs\.conduitos-x86\.result == 'skipped'\)/)?.[0];
+    assert.ok(guard, `${name} must refuse failed/cancelled x86 even with always()`);
+    for (const full of [true, false]) {
+      for (const result of ["success", "failure", "cancelled", "skipped"]) {
+        const expression = guard.replaceAll("needs.conduitos-x86.result", JSON.stringify(result))
+          .replaceAll("inputs.full_suite", JSON.stringify(full));
+        assert.equal(Function(`return ${expression}`)(), result === "success" || (!full && result === "skipped"));
+      }
+    }
+  }
+  const promotion = readFileSync(".github/workflows/promotion.yml", "utf8");
+  const products = promotion.split("  products:\n")[1].split("\n  conduitos-spore-acceptance:")[0];
+  assert.match(products, /needs: \[boundary, check\]/);
+  assert.match(products, /full_suite: true/);
+  assert.doesNotMatch(products, /if:.*always\(/);
+  assert.equal(source.match(/run: cargo xtask conduitos prepare-proof-image --locked/g)?.length, 1);
+  assert.match(jobs["conduitos-x86"], /expected-digest: \$\{\{ needs.conduitos-proof-image.outputs.artifact_digest \}\}/);
+  assert.doesNotMatch(jobs["conduitos-x86"], /run: cargo xtask conduitos prepare-proof-image/);
+  assert.match(promotion, /--spore target\/conduitos\/x86_64\/creche-export.iso/);
+});
+
 test("workflow topology keeps fast development separate from stable promotion", () => {
   const candidate = readFileSync(".github/workflows/candidate.yml", "utf8");
   const integration = readFileSync(".github/workflows/dev-integration.yml", "utf8");
