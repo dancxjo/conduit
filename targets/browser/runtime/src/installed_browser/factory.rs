@@ -36,6 +36,7 @@ pub(crate) struct BrowserInstallation {
 }
 
 static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &super::deterministic_garden_source::INSTALLATION,
     &super::garden_step::INSTALLATION,
     &super::garden_step::OBSERVATION_INSTALLATION,
     &super::garden_step::ENRICHED_INSTALLATION,

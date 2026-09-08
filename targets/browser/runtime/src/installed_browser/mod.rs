@@ -2,6 +2,7 @@
 
 mod button_indicator;
 mod delay;
+mod deterministic_garden_source;
 mod factory;
 mod final_normalized_pattern;
 pub(crate) mod garden_step;

@@ -37,24 +37,13 @@ pub fn install_signal_garden_catalog(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
+    let fixture = garden_fixture_definition();
     insert_kind(
         startup,
         profile,
         GARDEN_FIXTURE_KIND,
-        vec![],
-        vec![
-            port("prior", &garden_state_type(), PortDirection::Output),
-            port(
-                "clock",
-                &garden_clock_observation_type(),
-                PortDirection::Output,
-            ),
-            port(
-                "contact",
-                &garden_contact_observation_type(),
-                PortDirection::Output,
-            ),
-        ],
+        fixture.inputs,
+        fixture.outputs,
     )?;
     startup.insert(KindSignature {
         kind: GARDEN_MINIMAL_STEP_KIND.into(),
@@ -92,6 +81,28 @@ pub fn install_signal_garden_catalog(
         presentation.inputs,
         presentation.outputs,
     )
+}
+
+pub fn garden_fixture_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(GARDEN_FIXTURE_KIND),
+        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        inputs: vec![],
+        outputs: vec![
+            port("prior", &garden_state_type(), PortDirection::Output),
+            port(
+                "clock",
+                &garden_clock_observation_type(),
+                PortDirection::Output,
+            ),
+            port(
+                "contact",
+                &garden_contact_observation_type(),
+                PortDirection::Output,
+            ),
+        ],
+        configuration: vec![],
+    }
 }
 
 pub fn garden_state_presentation_definition() -> KindDefinition {
