@@ -1,6 +1,7 @@
 # Host core, families, bases, and compositions
 
-**Status:** accepted first host-architecture slice from issues #463 and #514
+**Scope:** Host composition contracts, originating in issues #463 and #514.
+The inventory below describes the current source; release proof is tracked separately.
 
 **Current proof boundary:** [STATUS.md](../STATUS.md)
 
@@ -55,9 +56,9 @@ strict subset. The planner consumes only the resulting exact offers.
 | `conduit-planner` | planner | Matches canonical checked faces against current offers, then admits exact facts |
 | `conduit-semantic-catalog` | host-neutral semantic catalog | Portable Kind/value contracts and deterministic semantic calculations; it owns no Host realization offers |
 | `conduit-signal` host-profile modules | capability contracts and profile fixtures | Shared Signal faces plus exact std/browser/Pico offers used by accepted vertical proofs |
-| `targets/std::StdHostComposition` | host composition | Selects existing Signal, time, text, and state implementation families; `reference()` is broad and `minimal()` promises none of them |
+| `targets/std::StdHostComposition` | host composition | Selects explicitly enabled implementation families; `reference()` is broad and `minimal()` promises none of them |
 | `targets/std` timers, stdout, WebSocket, and USB code | bases/platform implementations | Real std effects and lines beneath selected plans; WebSocket/USB are not host-core methods |
-| `targets/browser/host` | browser Host product entrance and assets | Authoritative browser Host launcher, HTTP delivery, fabrication package, and product-owned JavaScript adapters |
+| `targets/browser/host` | browser Host product entrance and assets | Authoritative browser Host launcher, HTTP delivery, fabrication package, and generic browser adapters |
 | `targets/browser/runtime` | browser composition and bases | Exact browser/WASM offers with timer/DOM/WebSocket machinery; not a compatibility runtime |
 | `proof/browser` | browser conformance evidence | Playwright specifications, proof pages, proof-only adapters, configurations, and local proof server; not another browser Host |
 | `targets/rp2040/firmware/pico-w-signal` and generated image | Pico W composition and bases | Selectable fixed Signal images; local-minimal omits Conduit session/lifecycle control, while physical-proof and remote modes include it explicitly; no general Pico capability claim |
@@ -73,7 +74,9 @@ runtime promise.
 
 The checked examples intentionally expose different sets:
 
-- std reference: Signal, time, text, and state operation families;
+- std reference: Signal, time, text, input, state, logic, math, layout,
+  presentation, robotics, files, HTTP, JSON, and ALife families. Optional
+  external WebSocket, raw MIDI, and audio resources have separate selections;
 - browser distributed sink: the exact presentation face required by that image;
 - Pico-local Signal image: the exact pulse and GPIO-backed presentation faces;
 - Pico-local-minimal image: the same exact Signal faces and Sign base,

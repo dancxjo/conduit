@@ -1,12 +1,14 @@
-# Browser application presentation boundary
+# Browser application presentation boundary (historical inventory)
 
-**Status:** Phase 0 inventory and migration boundary for [issue #2050](https://github.com/dancxjo/conduit/issues/2050)
+**Status:** Historical Phase 0 inventory and migration boundary for [issue #2050](https://github.com/dancxjo/conduit/issues/2050)
 
 **Observed base:** `b0f0e54c6900ec1459abf3d3a451d51a8b3fe0bf`
 
 **Scope:** Book, Crèche, Patchbay HTML, and the browser Host presentation mechanism
 
-This document records the boundary before code is moved. It is not evidence that
+This document preserves the boundary before the migration. Its paths, phase
+instructions, and branch targets describe that historical snapshot, not current
+contributor procedure. Follow [Contributing](../CONTRIBUTING.md) for new work. It is not evidence that
 the shared runtime or any application migration exists. Current executable truth
 continues to belong in [`STATUS.md`](../STATUS.md).
 

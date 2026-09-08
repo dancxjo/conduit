@@ -1,5 +1,8 @@
 # Salvage S1 kernel
 
+> Historical S1 kernel checkpoint. Production semantic implementations now use the shared kernel; statements below about an uninstalled catalog or a prototype runtime describe the migration at that time.
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
 Issue #349 replaces the reboot runtime rather than extending its broadcast
 operation API.
 

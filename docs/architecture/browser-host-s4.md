@@ -1,5 +1,8 @@
 # Actual browser kernel host checkpoint
 
+> Historical browser-local S4 proof record. Its browser-local scope remains the limit of this particular proof; later browser Host, membership, and Line work is described in the [architecture index](README.md).
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
 This S4 checkpoint is intentionally browser-local, not a restoration of the
 archived browser subsystem. Each independent Rust/WASM instance parses and
 plans unchanged `proof/fixtures/forms/signal-demo.conduit`, lowers its exact local fragment

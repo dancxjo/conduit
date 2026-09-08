@@ -1,4 +1,7 @@
-# CI impact planning benchmark
+# CI impact planning benchmark (historical)
+
+This note preserves a historical benchmark, not current CI timing or PR policy.
+Use [the CI guide](contributing/ci.md) for today's workflow.
 
 This note records the acceptance benchmark for issue [#1833]. It compares an
 exhaustive pre-change run with three marker-only pull requests. The marker
@@ -30,7 +33,7 @@ jobs:
   architecture proofs, and the AArch64 product proof. This is required by the
   kernel-dependent-claims self-test and is not a conservative full fallback.
 
-The kernel target band is not feasible with the current required proof set.
+The kernel target band was not feasible with that required proof set.
 The run's critical `conduitos-x86-kernel` job alone took 7m39s, browser took
 5m46s, and several additional exact machine claims ran independently. Reducing
 that result to 2–4 minutes would require weakening the explicit requirement

@@ -56,7 +56,7 @@ new `PlanId`; calling that mutation, retry, or failover is incorrect.
 
 ### Same-Plan Line selection
 
-The active Plan may seal several exact ordered `BoundLink` candidates for one
+The active Plan may seal several exact ordered `AdmittedLine` candidates for one
 connection. `LineMachine` may select another Ready member of that set. The
 result is `ControlLoopEvent::LineSelectionChanged` with the unchanged
 `plan_id`, exact connection, previous/selected binding identities, and the
