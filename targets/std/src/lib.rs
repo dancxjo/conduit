@@ -26,6 +26,8 @@ pub mod distributed_toggle;
 pub mod text_lab_live;
 pub mod text_lab_split;
 pub use composition::{reference_advertisement, supported_nucleus_offers, StdHostComposition};
+#[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
+pub use copy_task::prepare_isolated_copy_task;
 pub use copy_task::{
     prepare_copy_task, CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, PreparedCopyTask,
     ProtectedFileAvailability, ProtectedFileRegistry,
@@ -66,8 +68,12 @@ mod image_binding_tests;
 mod installed_std;
 #[cfg(test)]
 mod installed_std_tests;
-#[cfg(all(target_os = "linux", feature = "isolated-base-proof"))]
+#[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub mod isolated_base;
+#[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
+pub mod isolated_copy_base;
+#[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
+pub use isolated_copy_base::provider_main as isolated_copy_provider_main;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
@@ -185,6 +191,25 @@ pub struct StdHostConfig {
     pub host_id: HostId,
     pub boot_id: conduit_core::BootId,
     pub offer_generation: OfferGeneration,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IsolatedFileBaseConfig {
+    pub executable: std::path::PathBuf,
+    pub base_instance_id: conduit_core::BaseInstanceId,
+    pub provider_generation: u64,
+}
+
+impl IsolatedFileBaseConfig {
+    pub fn validate(&self) -> Result<(), String> {
+        if !self.executable.is_file()
+            || self.base_instance_id.as_str().is_empty()
+            || self.provider_generation == 0
+        {
+            return Err("isolated file Base configuration is not current and exact".into());
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone)]

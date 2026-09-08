@@ -95,21 +95,38 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
     }
 }
 
-const HOSTED_BASE_ISOLATION_STEPS: &[Step] = &[Step::new(
-    "hosted-base-isolation.linux",
-    "Prove capability-scoped file access and mechanical sibling/process/network denial",
-    "cargo",
-    &[
-        "test",
-        "-p",
-        "conduit-std-host",
-        "--features",
-        "isolated-base-proof",
-        "--test",
-        "isolated_base_security",
-        "--locked",
-    ],
-)];
+const HOSTED_BASE_ISOLATION_STEPS: &[Step] = &[
+    Step::new(
+        "hosted-base-isolation.linux",
+        "Prove capability-scoped file access and mechanical sibling/process/network denial",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--features",
+            "isolated-base-proof",
+            "--test",
+            "isolated_base_security",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "hosted-base-isolation.file-copy",
+        "Prove production file/copy semantics and hostile provider confinement",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--features",
+            "isolated-base-proof",
+            "--test",
+            "isolated_file_copy",
+            "--locked",
+        ],
+    ),
+];
 
 const QUANTITY_MAPPING_STEPS: &[Step] = &[
     Step::new(

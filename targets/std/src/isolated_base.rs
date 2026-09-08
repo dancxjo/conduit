@@ -317,7 +317,7 @@ fn apply_landlock(allowed: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn apply_seccomp() -> Result<(), String> {
+pub(crate) fn apply_seccomp() -> Result<(), String> {
     const BPF_LD_W_ABS: u16 = 0x20;
     const BPF_JMP_JEQ_K: u16 = 0x15;
     const BPF_RET_K: u16 = 0x06;

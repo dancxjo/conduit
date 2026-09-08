@@ -1,10 +1,12 @@
-use super::base::{CopyFiles, ExecutionFaults};
+use super::base::ExecutionFaults;
+use super::driver::CopyDriver;
 use super::model::{CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken};
 use super::registry::{ProtectedFileAvailability, ProtectedFileEntry, ProtectedFileRegistry};
 use super::scheduler::{prepare_copy_scheduler, CopyScheduler};
 use crate::{IssuedKernelPlay, StdHost};
 use conduit_core::{
-    PlanFragment, ProtectedResourceAccess, ProtectedResourceBinding, ProtectedResourceCommitPolicy,
+    ActivePlayIdentity, PlanFragment, ProtectedResourceAccess, ProtectedResourceBinding,
+    ProtectedResourceCommitPolicy,
 };
 use conduit_kernel::scheduler::{HostOperationRequest, SchedulerStatus};
 use conduit_kernel::{HostOperationDisposition, HostOperationOutcome, SignSink, ValueStorage};
@@ -67,6 +69,43 @@ impl StdHost {
         context: CopyRunContext<'_>,
         before_use: impl FnOnce(&mut ProtectedFileRegistry),
     ) -> Result<CopyRunReceipt, String> {
+        self.run_copy_fragment_internal(context, before_use, None)
+    }
+
+    #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
+    pub(crate) fn run_copy_fragment_isolated(
+        &mut self,
+        play: IssuedKernelPlay,
+        request_id: CopyRequestId,
+        fragment: PlanFragment,
+        registry: &mut ProtectedFileRegistry,
+        stop: &CopyStopToken,
+        provider: &crate::IsolatedFileBaseConfig,
+    ) -> Result<CopyRunReceipt, String> {
+        self.run_copy_fragment_internal(
+            CopyRunContext {
+                play,
+                request_id,
+                fragment,
+                registry,
+                stop,
+                faults: ExecutionFaults::default(),
+            },
+            |_| {},
+            Some(provider),
+        )
+    }
+
+    fn run_copy_fragment_internal(
+        &mut self,
+        context: CopyRunContext<'_>,
+        before_use: impl FnOnce(&mut ProtectedFileRegistry),
+        #[cfg_attr(
+            not(all(target_os = "linux", feature = "isolated-file-base")),
+            allow(unused_variables)
+        )]
+        provider: Option<&crate::IsolatedFileBaseConfig>,
+    ) -> Result<CopyRunReceipt, String> {
         let CopyRunContext {
             play,
             request_id,
@@ -120,6 +159,8 @@ impl StdHost {
             destination_binding,
             stop,
             faults,
+            active_play,
+            provider,
         );
         let release = self.kernel_resources.release(reservation);
         let (result, kernel_events, presented_result) = execution?;
@@ -128,6 +169,7 @@ impl StdHost {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn use_protected_copy_resources(
     fragment: &PlanFragment,
     registry: &ProtectedFileRegistry,
@@ -136,6 +178,12 @@ fn use_protected_copy_resources(
     destination_binding: &ProtectedResourceBinding,
     stop: &CopyStopToken,
     faults: ExecutionFaults,
+    active_play: &ActivePlayIdentity,
+    #[cfg_attr(
+        not(all(target_os = "linux", feature = "isolated-file-base")),
+        allow(unused_variables)
+    )]
+    provider: Option<&crate::IsolatedFileBaseConfig>,
 ) -> Result<(CopyResult, usize, Option<conduit_core::StructuredInfoValue>), String> {
     let source = match resolve_entry(registry, placement, source_binding) {
         Ok(entry) => entry,
@@ -182,6 +230,9 @@ fn use_protected_copy_resources(
         destination_binding.commit_policy,
         stop,
         faults,
+        placement,
+        active_play,
+        provider,
     )
 }
 
@@ -194,16 +245,22 @@ fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::Planne
         .iter()
         .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::COPY_FILE_KIND)
         .ok_or_else(|| "copy Plan has no copy placement".to_string())?;
+    let expected_offer = if placement.implementation_id.as_str()
+        == conduit_std_offers::ISOLATED_COPY_FILE_IMPLEMENTATION
+    {
+        conduit_std_offers::isolated_copy_file_offer()
+    } else {
+        conduit_std_offers::copy_file_offer()
+    };
     if placement.kind_id.as_str() != conduit_semantic_catalog::COPY_FILE_KIND
         || placement.kind_contract_revision.as_str()
             != conduit_semantic_catalog::COPY_FILE_CONTRACT_REVISION
-        || placement.execution_profile_id.as_str()
-            != conduit_std_offers::COPY_FILE_EXECUTION_PROFILE
-        || placement.implementation_id.as_str() != conduit_std_offers::COPY_FILE_IMPLEMENTATION
-        || placement.artifact_id.as_str() != conduit_std_offers::COPY_FILE_ARTIFACT
+        || placement.execution_profile_id != expected_offer.implementation.execution_profile_id
+        || placement.implementation_id != expected_offer.implementation.implementation_id
+        || placement.artifact_id != expected_offer.implementation.artifact_id
         || !placement.inputs.is_empty()
         || placement.outputs.len() != 1
-        || placement.host_operations != conduit_std_offers::copy_file_offer().host_operations
+        || placement.host_operations != expected_offer.host_operations
         || placement.resources.len() != 2
     {
         return Err(
@@ -304,6 +361,7 @@ fn resolve_entry<'a>(
     Ok(entry)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execute_copy(
     fragment: &PlanFragment,
     source: &ProtectedFileEntry,
@@ -312,18 +370,25 @@ fn execute_copy(
     policy: ProtectedResourceCommitPolicy,
     stop: &CopyStopToken,
     faults: ExecutionFaults,
+    placement: &conduit_core::PlannedGear,
+    active_play: &ActivePlayIdentity,
+    provider: Option<&crate::IsolatedFileBaseConfig>,
 ) -> Result<(CopyResult, usize, Option<conduit_core::StructuredInfoValue>), String> {
     let maximum_bytes = source
         .grant
         .maximum_bytes
         .min(destination.grant.maximum_bytes)
         .min(MAX_COPY_BYTES);
-    let mut files = match CopyFiles::prepare(
-        &source.path,
-        &destination.path,
+    let mut files = match CopyDriver::prepare(
+        fragment,
+        placement,
+        active_play,
+        source,
+        destination,
         policy,
         maximum_bytes,
         faults,
+        provider,
     ) {
         Ok(files) => files,
         Err(result) => return Ok((result, 0, None)),
@@ -370,23 +435,14 @@ fn execute_copy(
                 continue;
             }
             if stop.is_requested()
-                || files
-                    .faults
+                || faults
                     .stop_after_bytes
-                    .is_some_and(|limit| files.bytes_copied >= limit)
+                    .is_some_and(|limit| files.bytes_copied() >= limit)
             {
                 scheduler
                     .cancel()
                     .map_err(|error| format!("cancel copy kernel: {error:?}"))?;
-                result = Some(if files.cleanup() {
-                    CopyResult::Cancelled {
-                        bytes_copied: files.bytes_copied,
-                    }
-                } else {
-                    CopyResult::CleanupFailed {
-                        bytes_copied: files.bytes_copied,
-                    }
-                });
+                result = Some(files.cancel());
                 break;
             }
             match files.step() {
@@ -412,7 +468,7 @@ fn execute_copy(
                         )
                         .map_err(|error| format!("complete copy commit: {error:?}"))?;
                     result = Some(CopyResult::Success {
-                        bytes_copied: files.bytes_copied,
+                        bytes_copied: files.bytes_copied(),
                     });
                 }
                 Err(copy_result) => {

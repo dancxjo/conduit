@@ -1,5 +1,7 @@
 use crate::StdHost;
-use conduit_core::{BaseImplementationId, Plan, PlanFragment, ProtectedResourceGrant};
+use conduit_core::{
+    AuthorityGrant, BaseImplementationId, Plan, PlanFragment, ProtectedResourceGrant,
+};
 use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
@@ -16,6 +18,23 @@ pub struct PreparedCopyTask {
 pub fn prepare_copy_task(
     host: &StdHost,
     grants: &[ProtectedResourceGrant; 2],
+) -> Result<PreparedCopyTask, String> {
+    prepare_copy_task_with_authority(host, grants, &[])
+}
+
+#[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
+pub fn prepare_isolated_copy_task(
+    host: &StdHost,
+    grants: &[ProtectedResourceGrant; 2],
+    authority: &AuthorityGrant,
+) -> Result<PreparedCopyTask, String> {
+    prepare_copy_task_with_authority(host, grants, std::slice::from_ref(authority))
+}
+
+fn prepare_copy_task_with_authority(
+    host: &StdHost,
+    grants: &[ProtectedResourceGrant; 2],
+    authority_grants: &[AuthorityGrant],
 ) -> Result<PreparedCopyTask, String> {
     let mut catalog = conduit_form::ProfileCatalog::new();
     conduit_semantic_catalog::install_copy_file_catalog(&mut catalog)?;
@@ -34,7 +53,7 @@ pub fn prepare_copy_task(
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            authority_grants: &[],
+            authority_grants,
             protected_resource_grants: grants,
             line_offers: &[],
         },

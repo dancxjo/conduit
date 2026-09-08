@@ -9,3 +9,10 @@ Create-only commit uses a same-directory hard link so a concurrent destination c
 Every run returns a receipt naming the request, active Play, Plan, source handle, destination handle, structured result, copied byte count where applicable, and kernel Sign count. Raw paths remain base-private and are absent from the Form, Plan, receipt, and kernel protocol.
 
 The current std profile admits at most 16 MiB per run. The product entrance is `conduit copy SOURCE DESTINATION`; its positional paths become private protected-resource choices, not authored Form facts. Native Patchbay also has a [protected file chooser](native-file-base.md). This hosted contract alone establishes neither a browser copy realization nor a fresh human usability observation.
+
+Linux targets may instead explicitly install the `isolated-file-base` feature
+and `conduit-isolated-copy-base` binary. That realization preserves this Form,
+Kind, planner, kernel, commit, cancellation, result, and presentation contract;
+only the selected implementation and effect boundary differ. Minimal Host core
+does not include the provider, and provider failure returns a terminal failure
+without falling back to the cooperative implementation.
