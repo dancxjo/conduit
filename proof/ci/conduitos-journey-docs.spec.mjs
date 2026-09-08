@@ -9,8 +9,10 @@ import test from "node:test";
 const checkpoints = [
   "front-door-ready", "form-opened", "born-lulled", "awake", "planned", "playing",
   "result-visible", "lulled", "usb-line-current", "peer-attached", "line-value-visible",
-  "line-lost", "tour-opened", "tour-result-visible", "tour-patchbay-open",
-  "pointer-hover-or-focus", "pointer-selected",
+  "line-lost", "tour-opened", "tour-result-visible", "confirmation-transient",
+  "confirmation-dismissed", "refusal-transient", "refusal-dismissed",
+  "tour-patchbay-open", "chooser-pointer-focused", "pointer-hover-or-focus",
+  "pointer-selected", "inspector-focused",
 ];
 const commit = "1".repeat(40);
 const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1]);
@@ -26,6 +28,8 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.match(page, /What the harness proves/);
     assert.match(page, /Concepts in view/);
     assert.match(page, /src="front-door-ready\.png"/);
+    assert.match(page, /src="confirmation-transient\.png"/);
+    assert.match(page, /src="inspector-focused\.png"/);
     assert.ok(page.indexOf("Form opened") < page.indexOf("Tour opened"), "walkthrough is not in journey order");
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
