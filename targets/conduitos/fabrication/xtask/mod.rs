@@ -115,6 +115,8 @@ enum ConduitosCommand {
     Live(LiveArgs),
     /// Boot the canonical live artifact without building a parallel demo image.
     LiveBoot(LiveArgs),
+    /// Prove the canonical IA-32 live artifact through legacy BIOS only.
+    Ia32LegacyBiosProof,
     /// Report every current live artifact and every excluded capability gap.
     LiveMatrix,
     /// Build one exact bare-metal ConduitOS Orange Pi 5 RK3588S SD image.
@@ -420,6 +422,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         }
         ConduitosCommand::Live(args) => live_media::build(args.host, opts),
         ConduitosCommand::LiveBoot(args) => live_media::boot(args.host, opts),
+        ConduitosCommand::Ia32LegacyBiosProof => live_media::prove_ia32_legacy_bios(opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),
         ConduitosCommand::OrangePi5Image => orange_pi_5_image::execute(opts),
         ConduitosCommand::Flash(flash) => {
@@ -538,6 +541,7 @@ mod tests {
             vec!["xtask", "conduitos", "live", "x86_64"],
             vec!["xtask", "conduitos", "live", "riscv64"],
             vec!["xtask", "conduitos", "live-boot", "aarch64"],
+            vec!["xtask", "conduitos", "ia32-legacy-bios-proof"],
             vec!["xtask", "conduitos", "live-matrix"],
         ] {
             let parsed = Cli::try_parse_from(arguments).unwrap();
