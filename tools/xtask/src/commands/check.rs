@@ -59,6 +59,8 @@ pub enum CheckSuite {
     ConsequentialEffect,
     /// Prove the bounded ROS 2 topic Base against native ROS Jazzy.
     Ros2Base,
+    /// Run the permanent cross-boundary adversarial security acceptance gate.
+    SecurityAcceptance,
     All,
 }
 
@@ -101,6 +103,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::ConfinedGear => run_suite(CONFINED_GEAR_STEPS, &root, opts),
         CheckSuite::ConsequentialEffect => run_suite(CONSEQUENTIAL_EFFECT_STEPS, &root, opts),
         CheckSuite::Ros2Base => run_suite(ROS2_BASE_STEPS, &root, opts),
+        CheckSuite::SecurityAcceptance => run_suite(SECURITY_ACCEPTANCE_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -219,6 +222,109 @@ const ROS2_BASE_STEPS: &[Step] = &[
             "ros2_native_topic_proof",
             "--locked",
         ],
+    ),
+];
+
+const SECURITY_ACCEPTANCE_STEPS: &[Step] = &[
+    Step::new(
+        "security-acceptance.matrix",
+        "Validate finite complete secret-free blast-radius receipts",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--test",
+            "security_acceptance_matrix",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "security-acceptance.authority",
+        "Attack forged, broadened, stale, exhausted, and revoked Base capabilities",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-core",
+            "--test",
+            "base_capability",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "security-acceptance.gear",
+        "Attack the confined Gear engine and its sole capability import",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--features",
+            "confined-gear",
+            "--test",
+            "confined_gear_security",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "security-acceptance.base",
+        "Attack the Linux process-isolated file Base and independently observe its sibling",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--features",
+            "isolated-base-proof",
+            "--test",
+            "isolated_base_security",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "security-acceptance.federation",
+        "Attack authenticated A-B-C federation authority and replay fences",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-body",
+            "federation::tests",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "security-acceptance.ros2",
+        "Attack the ROS topic Base and run its native sibling sentinel",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--test",
+            "ros2_native_topic_proof",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "security-acceptance.consequential",
+        "Attack attended last-mile physical-effect authority and loss behavior",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-core",
+            "--test",
+            "consequential_effect",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "security-acceptance.conduitos",
+        "Attack x86_64 kernel memory, sibling domains, MMIO, I/O, and handles",
+        "cargo",
+        &["xtask", "conduitos", "isolation-proof"],
     ),
 ];
 

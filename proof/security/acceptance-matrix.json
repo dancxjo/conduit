@@ -1,0 +1,83 @@
+{
+  "schema": "conduit.security-acceptance/v1",
+  "maximum_receipts": 16,
+  "receipts": [
+    {
+      "principal": "hostile-wasm-gear",
+      "legitimate_scope": "bounded memory, typed I/O, one optional Base slot",
+      "attack": "forbidden imports, forged slot/resource, malformed memory, flood, replay",
+      "boundary": "no-WASI Wasmi import provider and BaseCapabilityTable",
+      "expected": "typed refusal or fuel exhaustion",
+      "observer": "authorized file changes; protected sibling content remains exact",
+      "survival": "Host process and capability table remain available",
+      "proof_class": "hosted deterministic adversarial execution",
+      "command": "cargo xtask check confined-gear"
+    },
+    {
+      "principal": "malicious-base-client",
+      "legitimate_scope": "one protected file capability",
+      "attack": "mutated frame, wrong scope, stale generation, revoked handle",
+      "boundary": "isolated file Base IPC and BaseCapabilityTable",
+      "expected": "machine-readable capability refusal",
+      "observer": "protected sibling file remains exact",
+      "survival": "replacement provider starts with a fresh generation",
+      "proof_class": "Linux process-isolated adversarial execution",
+      "command": "cargo xtask check hosted-base-isolation"
+    },
+    {
+      "principal": "compromised-base-provider",
+      "legitimate_scope": "one allowed file beneath one directory",
+      "attack": "raw sibling open, process spawn, arbitrary network socket",
+      "boundary": "Linux Landlock and seccomp",
+      "expected": "kernel denial",
+      "observer": "sibling content and network sentinel remain unchanged",
+      "survival": "supervisor and unrelated Host work remain live",
+      "proof_class": "Linux kernel-enforced process isolation",
+      "command": "cargo xtask check hosted-base-isolation"
+    },
+    {
+      "principal": "compromised-federation-part-b",
+      "legitimate_scope": "exact authenticated A-B and B-C relationships",
+      "attack": "peer minting, transposition, replay, non-transitive proxy",
+      "boundary": "receiver-owned federation authority and replay window",
+      "expected": "authentication, replay, or authority refusal",
+      "observer": "A and C membership/capability state remains exact",
+      "survival": "B retains only its legitimate admitted operation",
+      "proof_class": "authenticated loopback federation",
+      "command": "cargo xtask check federation-security"
+    },
+    {
+      "principal": "malicious-ros-client",
+      "legitimate_scope": "one selected input topic and one output topic",
+      "attack": "sibling topic, direction swap, type overflow, recursive reflection",
+      "boundary": "ROS topic Base mapping and BaseCapabilityTable",
+      "expected": "unconfigured, direction, type, or capability refusal",
+      "observer": "native ROS sibling-output subscriber receives no message",
+      "survival": "selected native ROS round trip completes",
+      "proof_class": "ROS 2 Jazzy native participant",
+      "command": "cargo xtask check ros2-base"
+    },
+    {
+      "principal": "hostile-conduitos-domain",
+      "legitimate_scope": "ring-3 code/data/stack and one serial Base handle",
+      "attack": "kernel/sibling memory, raw MMIO, I/O port, forged/stale handles",
+      "boundary": "x86_64 page tables, privilege rings, I/O bitmap, capability table",
+      "expected": "CPU fault or capability refusal",
+      "observer": "kernel capability and sibling state remain exact; authorized serial effect occurs",
+      "survival": "kernel records all hostile outcomes and reaches terminal proof",
+      "proof_class": "QEMU x86_64 protection-domain execution",
+      "command": "cargo xtask conduitos isolation-proof"
+    },
+    {
+      "principal": "consequential-effect-proposer",
+      "legitimate_scope": "proposal data only",
+      "attack": "missing/expired/forged attendance, stale resource, unsafe envelope, retry",
+      "boundary": "last-mile ConsequentialEffectGate",
+      "expected": "authority, attendance, safety, or envelope refusal",
+      "observer": "fixture physical state changes only for exact observed positive control",
+      "survival": "loss drives explicit safe disposition",
+      "proof_class": "deterministic contract; physical HIL pending",
+      "command": "cargo xtask check consequential-effect"
+    }
+  ]
+}
