@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn rendering_is_bounded_and_sanitizes_non_text() {
         let mut cells = [0u16; CELLS];
-        render(&mut cells, 0, &[b'A', b'\n', b'B']);
+        render(&mut cells, 0, b"A\nB");
         assert_eq!(cells[0] as u8, b'A');
         assert_eq!(cells[1] as u8, b'?');
         assert_eq!(cells[2] as u8, b'B');
