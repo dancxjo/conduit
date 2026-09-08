@@ -95,6 +95,8 @@ fn canonical_button_form_runs_press_and_release_without_device_identity() {
         disposition,
         active_play_id,
         pending_effects,
+        timer_completions,
+        manifestation_completions,
         ..
     } = session.advance().unwrap()
     else {
@@ -103,6 +105,8 @@ fn canonical_button_form_runs_press_and_release_without_device_identity() {
     assert_eq!(disposition, "quiescent_awaiting_input");
     assert_eq!(active_play_id, on.active_play_id);
     assert_eq!(pending_effects, 0);
+    assert_eq!(timer_completions, 0);
+    assert_eq!(manifestation_completions, 2);
     assert_eq!(session.cancel().unwrap().disposition, "cancelled");
 }
 

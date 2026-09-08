@@ -87,6 +87,8 @@ impl TourSession {
                     disposition: "waiting",
                     active_play_id: self.active_play_id.as_str().into(),
                     pending_effects,
+                    timer_completions: self.timer_completions,
+                    manifestation_completions: self.manifestation_completions,
                 })
             }
             engine::DriveStatus::SemanticCompleted if self.pending.is_empty() => {
@@ -100,6 +102,8 @@ impl TourSession {
                 disposition: "quiescent_awaiting_input",
                 active_play_id: self.active_play_id.as_str().into(),
                 pending_effects: self.pending.len(),
+                timer_completions: self.timer_completions,
+                manifestation_completions: self.manifestation_completions,
             }),
         }
     }
