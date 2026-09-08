@@ -2,11 +2,25 @@ import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth } from "./creche-test-actions.mjs";
+import { EXISTING_COMPUTER_BOUNDS } from "../../products/creche/browser/creche-existing-computer.mjs";
 
 let entrance;
 
 test.beforeEach(async () => { entrance = await startCreche(); });
 test.afterEach(() => entrance?.child.kill());
+
+test("Crèche evidence budgets cover the release runtime's canonical advertisement and join envelope", async () => {
+  const runtime = await readFile(new URL("../../target/creche-product/artifacts/runtime.wasm", import.meta.url));
+  const { instance: { exports: api } } = await WebAssembly.instantiate(runtime, {});
+  const advertisementBytes = api.conduit_browser_membership_output_capacity();
+  // Check the actual release ABI, not a second copy of the Rust catalog limit.
+  // Identity, invitation, signature, and observation framing need finite space too.
+  expect(EXISTING_COMPUTER_BOUNDS.maximumOperationEvidenceBytes).toBeGreaterThanOrEqual(advertisementBytes + 8 * 1024);
+  // The workflow retains earlier fabrication/binding/load evidence alongside the join.
+  expect(EXISTING_COMPUTER_BOUNDS.maximumRetainedEvidenceBytes).toBeGreaterThanOrEqual(
+    EXISTING_COMPUTER_BOUNDS.maximumOperationEvidenceBytes + 24 * 1024,
+  );
+});
 
 test("one reviewed distribution fabricates materially different, capability-enforcing browser Hosts", async ({ browser }) => {
   const viewerPage = await browser.newPage();

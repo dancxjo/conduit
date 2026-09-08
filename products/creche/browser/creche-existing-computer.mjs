@@ -1,6 +1,7 @@
 import { acquireHostRelease } from "./creche-release-bundle.mjs";
 import { createNativeSporeDownload } from "./creche-spore-bundle.mjs";
 import { createBodyBoundZip, readBodyBoundZip } from "./creche-native-zip.mjs";
+import { PHYSICAL_HOST_EVIDENCE_MAXIMA } from "./creche-target-catalog.mjs";
 
 const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const encoder = new TextEncoder();
@@ -12,9 +13,7 @@ const MODES = Object.freeze([
 ]);
 const BOUNDS = Object.freeze({
   maximumOperations: 12,
-  // Canonical Body advertisements admit 96 KiB; retain finite join-envelope space.
-  maximumOperationEvidenceBytes: 104 * 1024,
-  maximumRetainedEvidenceBytes: 128 * 1024,
+  ...PHYSICAL_HOST_EVIDENCE_MAXIMA,
 });
 
 export function createExistingComputerAdapter({ host, profile }) {
