@@ -10,7 +10,7 @@ use conduit_core::{BootId, HostId, OfferGeneration};
 use conduitos::{
     allocation::BootArena,
     arch,
-    boot::{BootRecord, Firmware, RuntimeArena},
+    boot::{BootRecord, RuntimeArena},
     dual_region_composition, dual_region_plan,
     fabrication::{EMBEDDED_FABRICATION, IMPL_LINEAR_PRESENTER},
     front_door::FrontDoor,
@@ -48,8 +48,10 @@ conduitos_ia32_product_stack:
 .global conduitos_ia32_product_start
 .type conduitos_ia32_product_start,@function
 conduitos_ia32_product_start:
+    mov esi, eax
+    mov edi, ebx
     lea esp, [conduitos_ia32_product_stack + 1048576]
-    sub esp, 4
+    sub esp, 8
     xor ebp, ebp
     mov eax, cr0
     and eax, 0xfffffffb
@@ -58,12 +60,24 @@ conduitos_ia32_product_start:
     mov eax, cr4
     or eax, 0x600
     mov cr4, eax
-    jmp conduitos_ia32_product_rust_entry
+    push edi
+    push esi
+    call conduitos_ia32_product_rust_entry
+1:
+    hlt
+    jmp 1b
 "#
 );
 
 #[unsafe(no_mangle)]
-extern "C" fn conduitos_ia32_product_rust_entry() -> ! {
+extern "C" fn conduitos_ia32_product_rust_entry(
+    multiboot_magic: u32,
+    multiboot_information: u32,
+) -> ! {
+    let firmware = unsafe {
+        conduitos::boot::firmware_from_multiboot1(multiboot_magic, multiboot_information)
+    }
+    .unwrap_or_else(|error| refuse(error.as_str()));
     unsafe {
         BOOT_ARENA
             .initialize(
@@ -154,7 +168,7 @@ extern "C" fn conduitos_ia32_product_rust_entry() -> ! {
     let image_start = core::ptr::addr_of!(__conduitos_image_start) as usize;
     let image_end = core::ptr::addr_of!(__conduitos_image_end) as usize;
     let boot_record = BootRecord {
-        firmware: Firmware::Uefi32,
+        firmware,
         timestamp: counter,
         hhdm_offset: 0,
         image_physical_start: image_start as u64,
