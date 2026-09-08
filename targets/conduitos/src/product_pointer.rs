@@ -8,9 +8,10 @@ use crate::{
     arch::{self, HidPointerReady, HidPointerSession, UsbDevice, XhciReady},
     fabrication::FabricationRecord,
     identity::{self, BootIdentities},
+    native_compositor::RoutedPointer,
     pointer_offer::PointerRealization,
     tour_product::TourProduct,
-    tour_shell::{TourShellPresenter, WORKSPACE_SURFACE},
+    tour_shell::{ShellPresentationReceipt, TourShellPresenter, WORKSPACE_SURFACE},
 };
 
 pub fn realization(
@@ -78,7 +79,10 @@ pub fn run(
             .validate_pointer_route(&route)
             .map_err(|error| error.as_str())?;
         if route.surface_id != WORKSPACE_SURFACE {
-            arch::early_write(b"CONDUIT_TOUR_CHECKPOINT auxiliary-surface-focused\n");
+            if sample.primary_pressed {
+                emit_auxiliary_focus_sign(&route, sample, tour, identities, fabrication);
+                arch::early_write(b"CONDUIT_TOUR_CHECKPOINT auxiliary-surface-focused\n");
+            }
             arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
             continue;
         }
@@ -90,10 +94,18 @@ pub fn run(
             u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
             u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
         )?;
-        presenter
+        let shell = presenter
             .present(tour, display)
             .map_err(|error| error.as_str())?;
-        emit_sign(&outcome, sample, tour, identities, fabrication);
+        emit_sign(
+            &outcome,
+            &route,
+            &shell,
+            sample,
+            tour,
+            identities,
+            fabrication,
+        );
         arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
     }
 }
@@ -121,6 +133,8 @@ fn display_coordinate(value: i64, extent: u32) -> Result<u32, &'static str> {
 
 fn emit_sign(
     outcome: &TourPointerOutcome,
+    route: &RoutedPointer,
+    shell: &ShellPresentationReceipt,
     sample: conduit_semantic_catalog::NormalizedPointerSample,
     tour: &TourProduct,
     identities: &BootIdentities,
@@ -131,7 +145,7 @@ fn emit_sign(
         TourPointerOutcome::Selected { subject } => ("selected", subject.as_str()),
     };
     let line = format!(
-        "CONDUIT_POINTER_SIGN {{\"schema\":\"conduit.conduitos.pointer-interaction/v1\",\"status\":\"{status}\",\"subject\":\"{subject}\",\"sequence\":{},\"position_x\":{},\"position_y\":{},\"delta_x\":{},\"delta_y\":{},\"primary_pressed\":{},\"queue_capacity\":{},\"revision\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
+        "CONDUIT_POINTER_SIGN {{\"schema\":\"conduit.conduitos.pointer-interaction/v1\",\"status\":\"{status}\",\"subject\":\"{subject}\",\"sequence\":{},\"position_x\":{},\"position_y\":{},\"delta_x\":{},\"delta_y\":{},\"primary_pressed\":{},\"queue_capacity\":{},\"revision\":{},\"routed_surface_id\":\"{}\",\"routed_manifestation_id\":\"{}\",\"local_x\":{},\"local_y\":{},\"workspace_presentation_id\":\"{}\",\"workspace_manifestation_id\":\"{}\",\"inspector_surface_id\":{},\"inspector_presentation_id\":{},\"inspector_manifestation_id\":{},\"frame_sequence\":{},\"surfaces_composed\":{},\"damage_count\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
         sample.sequence,
         sample.position_x,
         sample.position_y,
@@ -140,6 +154,33 @@ fn emit_sign(
         sample.primary_pressed,
         sample.queue_capacity,
         tour.controller().state().revision,
+        route.surface_id,
+        route.manifestation_id.as_str(),
+        route.local_x,
+        route.local_y,
+        shell.workspace.presentation_id.as_str(),
+        shell.workspace.manifestation_id.as_str(),
+        json_optional(
+            shell
+                .inspector
+                .as_ref()
+                .map(|value| value.surface_id.as_str())
+        ),
+        json_optional(
+            shell
+                .inspector
+                .as_ref()
+                .map(|value| value.presentation_id.as_str())
+        ),
+        json_optional(
+            shell
+                .inspector
+                .as_ref()
+                .map(|value| value.manifestation_id.as_str())
+        ),
+        shell.frame.frame_sequence,
+        shell.frame.surfaces_composed,
+        shell.frame.damage_count,
         fabrication.profile_id,
         fabrication.build_id,
         fabrication.image_binding,
@@ -147,4 +188,37 @@ fn emit_sign(
         identity::hex(&identities.boot),
     );
     arch::early_write(line.as_bytes());
+}
+
+fn emit_auxiliary_focus_sign(
+    route: &RoutedPointer,
+    sample: conduit_semantic_catalog::NormalizedPointerSample,
+    tour: &TourProduct,
+    identities: &BootIdentities,
+    fabrication: &FabricationRecord,
+) {
+    let line = format!(
+        "CONDUIT_POINTER_SIGN {{\"schema\":\"conduit.conduitos.pointer-interaction/v1\",\"status\":\"auxiliary-focused\",\"subject\":null,\"sequence\":{},\"position_x\":{},\"position_y\":{},\"delta_x\":{},\"delta_y\":{},\"primary_pressed\":true,\"queue_capacity\":{},\"revision\":{},\"routed_surface_id\":\"{}\",\"routed_manifestation_id\":\"{}\",\"local_x\":{},\"local_y\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
+        sample.sequence,
+        sample.position_x,
+        sample.position_y,
+        sample.delta_x,
+        sample.delta_y,
+        sample.queue_capacity,
+        tour.controller().state().revision,
+        route.surface_id,
+        route.manifestation_id.as_str(),
+        route.local_x,
+        route.local_y,
+        fabrication.profile_id,
+        fabrication.build_id,
+        fabrication.image_binding,
+        identity::hex(&identities.host),
+        identity::hex(&identities.boot),
+    );
+    arch::early_write(line.as_bytes());
+}
+
+fn json_optional(value: Option<&str>) -> alloc::string::String {
+    value.map_or_else(|| "null".into(), |value| format!("\"{value}\""))
 }
