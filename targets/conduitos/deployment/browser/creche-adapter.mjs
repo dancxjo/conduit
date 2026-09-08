@@ -29,7 +29,7 @@ export const CONDUITOS_X86_64_PROFILE = product({
   id: "conduitos/x86_64/pc", label: "x86_64 PC · product Host", architecture: "x86_64", machine: "q35",
   profileId: "conduitos-native", releaseName: "x86_64-pc", firmware: "OVMF_CODE.fd", bootEntry: "BOOTX64.EFI",
   presenter: "presenter/native-graphical@1",
-  bounds: { static_memory_bytes: 8_388_608, heap_arena_bytes: 16_777_216, queue_items: 1_024, buffered_bytes: 4_194_304, active_instances: 128, operation_slots: 64, timer_slots: 32, line_sessions: 8, evidence_items: 1_024 },
+  bounds: { static_memory_bytes: 8_388_608, heap_arena_bytes: 16_777_216, queue_items: 1_024, buffered_bytes: 8_388_608, active_instances: 128, operation_slots: 64, timer_slots: 32, line_sessions: 8, evidence_items: 1_024 },
 });
 export const CONDUITOS_AARCH64_PROFILE = product({
   id: "conduitos/aarch64/virt", label: "AArch64 virt · product Host", architecture: "aarch64", machine: "virt",
@@ -50,7 +50,7 @@ export const CONDUITOS_RISCV64_PROFILE = product({
   bounds: { static_memory_bytes: 1_048_576, heap_arena_bytes: 0, queue_items: 64, buffered_bytes: 16_384, active_instances: 16, operation_slots: 8, timer_slots: 4, line_sessions: 1, evidence_items: 64 },
 });
 export const CONDUITOS_LOONGARCH64_PROFILE = product({
-  id: "conduitos/loongarch64/virt", label: "LoongArch64 virt · product Host", architecture: "loongarch64", machine: "virt",
+  id: "conduitos/loongarch64/virt", label: "LoongArch6464 virt · product Host", architecture: "loongarch64", machine: "virt",
   profileId: "conduitos-loongarch64-headless", releaseName: "loongarch64-virt", firmware: "EDK2 QEMU_EFI.fd", bootEntry: "BOOTLOONGARCH64.EFI",
   presenter: "presenter/loongarch64-linear-uart@1",
   bounds: { static_memory_bytes: 1_048_576, heap_arena_bytes: 0, queue_items: 64, buffered_bytes: 16_384, active_instances: 16, operation_slots: 8, timer_slots: 4, line_sessions: 1, evidence_items: 64 },
