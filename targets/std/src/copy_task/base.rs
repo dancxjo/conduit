@@ -5,25 +5,25 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Default, Clone, Copy)]
-pub(super) struct ExecutionFaults {
+pub(crate) struct ExecutionFaults {
     pub(super) fail_after_bytes: Option<u64>,
     pub(super) stop_after_bytes: Option<u64>,
     pub(super) cleanup_failure: bool,
 }
 
-pub(super) struct CopyFiles {
+pub(crate) struct CopyFiles {
     source: File,
     temporary: Option<File>,
     temporary_path: PathBuf,
     destination_path: PathBuf,
     policy: ProtectedResourceCommitPolicy,
     maximum_bytes: u64,
-    pub(super) bytes_copied: u64,
+    pub(crate) bytes_copied: u64,
     pub(super) faults: ExecutionFaults,
 }
 
 impl CopyFiles {
-    pub(super) fn prepare(
+    pub(crate) fn prepare(
         source_path: &Path,
         destination_path: &Path,
         policy: ProtectedResourceCommitPolicy,
@@ -49,7 +49,7 @@ impl CopyFiles {
         })
     }
 
-    pub(super) fn step(&mut self) -> Result<bool, CopyResult> {
+    pub(crate) fn step(&mut self) -> Result<bool, CopyResult> {
         if self
             .faults
             .fail_after_bytes
@@ -93,7 +93,7 @@ impl CopyFiles {
         Ok(false)
     }
 
-    pub(super) fn cleanup(&mut self) -> bool {
+    pub(crate) fn cleanup(&mut self) -> bool {
         self.temporary.take();
         if self.faults.cleanup_failure {
             return false;

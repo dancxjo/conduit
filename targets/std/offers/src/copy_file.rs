@@ -2,22 +2,50 @@
 
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, protected_resource_requirement,
-    resource_requirement, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    PRESENTATION_RESOURCE_CLASS,
+    resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
+    PortDescriptor, PortDirection, PortTemporal, PRESENTATION_RESOURCE_CLASS,
 };
 
 pub const COPY_FILE_EXECUTION_PROFILE: &str = "conduit.std/file-copy-kernel-hosted@1";
 pub const COPY_FILE_IMPLEMENTATION: &str = "std/kernel-file-copy@1";
 pub const COPY_FILE_ARTIFACT: &str = "conduit-std-host/file-copy@1";
+pub const ISOLATED_COPY_FILE_EXECUTION_PROFILE: &str =
+    "conduit.std/file-copy-kernel-isolated-linux@1";
+pub const ISOLATED_COPY_FILE_IMPLEMENTATION: &str = "std/isolated-file-copy@1";
+pub const ISOLATED_COPY_FILE_ARTIFACT: &str = "conduit-base-files/linux-file-copy@1";
 pub const COPY_FILE_CAPABILITY: &str = "file-copy-v1";
 pub const COPY_FILE_HOST_OPERATION_CONTRACT: &str = "conduit.host/file-copy-step@1";
+pub const ISOLATED_COPY_FILE_AUTHORITY_CONTRACT: &str = "conduit.authority/file-copy@1";
 pub const COPY_COMMAND_BYTES: u32 = 1;
 pub const COPY_RESULT_PRESENTATION_IMPLEMENTATION: &str =
     "std/kernel-file-copy-result-presentation@1";
 
 pub fn copy_file_offer() -> CapabilityOffer {
+    copy_file_offer_for(
+        COPY_FILE_EXECUTION_PROFILE,
+        COPY_FILE_IMPLEMENTATION,
+        COPY_FILE_ARTIFACT,
+        false,
+    )
+}
+
+pub fn isolated_copy_file_offer() -> CapabilityOffer {
+    copy_file_offer_for(
+        ISOLATED_COPY_FILE_EXECUTION_PROFILE,
+        ISOLATED_COPY_FILE_IMPLEMENTATION,
+        ISOLATED_COPY_FILE_ARTIFACT,
+        true,
+    )
+}
+
+fn copy_file_offer_for(
+    execution_profile: &str,
+    implementation: &str,
+    artifact: &str,
+    isolated: bool,
+) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::copy_file_contract();
     CapabilityOffer {
         startup_parameters: Vec::new(),
@@ -28,9 +56,9 @@ pub fn copy_file_offer() -> CapabilityOffer {
             conduit_semantic_catalog::COPY_FILE_CONTRACT_REVISION,
         ),
         implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE),
-            implementation_id: ImplementationId::from(COPY_FILE_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(COPY_FILE_ARTIFACT),
+            execution_profile_id: ExecutionProfileId::from(execution_profile),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(artifact),
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
@@ -53,7 +81,17 @@ pub fn copy_file_offer() -> CapabilityOffer {
                 1,
             ),
         ],
-        authority_requirements: Vec::new(),
+        authority_requirements: if isolated {
+            vec![AuthorityRequirement {
+                contract_id: AuthorityContractId::from(ISOLATED_COPY_FILE_AUTHORITY_CONTRACT),
+                host_operation_contract_id: HostOperationContractId::from(
+                    COPY_FILE_HOST_OPERATION_CONTRACT,
+                ),
+                subject_kind: kind_id(conduit_semantic_catalog::COPY_FILE_KIND),
+            }]
+        } else {
+            Vec::new()
+        },
         limits: contract.limits,
     }
 }
