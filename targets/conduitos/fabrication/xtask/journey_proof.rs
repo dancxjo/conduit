@@ -316,7 +316,7 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-confirmation")?;
             journey_input::wait_transient_status(&serial_path, &mut child, "dismissed")?;
             artifacts.capture(&mut qmp, &mut reader, "confirmation-dismissed", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f8", "refused-unknown-action")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f10", "refused-repeat-run")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,

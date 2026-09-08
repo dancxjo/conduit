@@ -125,48 +125,6 @@ fn native_pointer_and_keyboard_cross_surface_routing_before_typed_tour_interacti
     assert_eq!(serial.0, [conduit_tour_model::CANONICAL_RESULT.as_bytes()]);
 }
 
-#[test]
-fn refusal_probe_routes_an_unknown_portable_action_to_the_controller() {
-    let mut tour = TourProduct::canonical(1);
-    let identities = BootIdentities {
-        host: [1; 32],
-        boot: [2; 32],
-    };
-    let offer = HostOffer::new(
-        &identities,
-        "build",
-        CpuFeatures {
-            sse2: true,
-            rdrand: true,
-            invariant_tsc: true,
-        },
-        256 * 1024,
-    );
-    let mut clock = Clock::default();
-    let mut serial = Serial::default();
-    let mut interrupts = Interrupts::default();
-    let mut idle = Idle::default();
-    let action = tour_action(F8).expect("F8 must retain the explicit refusal probe");
-
-    let refusal = tour
-        .accept(
-            &event(tour.controller().state().revision, action),
-            &identities,
-            &offer,
-            "build",
-            &mut clock,
-            &mut serial,
-            &mut interrupts,
-            &mut idle,
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        refusal.controller_refusal().map(|value| value.as_str()),
-        Some("unknown-action")
-    );
-}
-
 fn event(revision: u32, action: &str) -> ApplicationEvent {
     ApplicationEvent {
         revision,

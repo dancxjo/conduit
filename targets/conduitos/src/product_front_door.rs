@@ -31,12 +31,10 @@ use transient_sign::{emit_dismissed_transient, emit_shown_transient};
 
 const ENTER: u8 = 40;
 const ESCAPE: u8 = 41;
-const F8: u8 = 65;
 const F9: u8 = 66;
 const F10: u8 = 67;
 const F11: u8 = 68;
 const F12: u8 = 69;
-const REFUSAL_PROBE_ACTION_ID: &str = "tour.refusal-probe";
 
 #[allow(clippy::too_many_arguments)]
 pub fn run(
@@ -383,7 +381,6 @@ pub fn run(
 
 fn tour_action(usage: u8) -> Option<&'static str> {
     match usage {
-        F8 => Some(REFUSAL_PROBE_ACTION_ID),
         F10 => Some(RUN_ACTION_ID),
         F11 => Some(OPEN_PATCHBAY_ACTION_ID),
         _ => None,
