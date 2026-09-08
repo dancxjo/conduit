@@ -24,8 +24,11 @@ Run `cargo xtask check ros2-base`. Its deterministic tier attacks direction,
 type, bounds, sibling selection, revocation, and lifecycle. Its native tier
 runs the same production Base boundary against the pinned
 `ros:jazzy-ros-core` rclpy implementation with selected input/output topics and
-an independently observed sibling-output sentinel. Docker is an internal proof
-mechanism; `cargo xtask` remains the repository entrance.
+an independently observed sibling-output sentinel. The selected inbound value
+then becomes the literal input of an ordinary checked, ROS-independent text
+Form, runs through the shared planner and std kernel, and returns through the
+selected native ROS publisher. Docker is an internal proof mechanism;
+`cargo xtask` remains the repository entrance.
 
 The native fixture proves ROS topic transport, not physical actuation or DDS
 hostile-process confinement. It does not disable ROS security, expose arbitrary
