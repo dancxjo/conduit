@@ -31,6 +31,7 @@ mod ia32_physical_proof;
 mod ia32_product_boot;
 mod ia32_vga_receipt;
 mod image;
+mod isolation_proof;
 mod journey_input;
 mod journey_pointer;
 mod journey_proof;
@@ -164,6 +165,8 @@ enum ConduitosCommand {
     RescueProof(PreparedProofArgs),
     /// Prove one exact native OPL2 musical realization on QEMU AdLib.
     Opl2Proof,
+    /// Prove one x86_64 ring-3 protection domain and exact kernel capability gate.
+    IsolationProof,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -504,6 +507,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::HotplugProof => hotplug_proof::execute(opts),
         ConduitosCommand::RescueProof(args) => rescue_proof::execute(args.prepared_image, opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
+        ConduitosCommand::IsolationProof => isolation_proof::execute(opts),
     }
 }
 
