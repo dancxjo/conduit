@@ -148,6 +148,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(monitor, /test \$\(\(now - last_progress\)\) -ge 900/);
   assert.match(monitor, /gh workflow run release-lane\.yml --ref main/);
   assert.match(monitor, /group: monitor-trusted-pr-\$\{\{ inputs\.kind \}\}-\$\{\{ inputs\.pr_number \}\}\n  cancel-in-progress: false/);
+  assert.match(monitor, /comment_body=\$\(printf/);
+  assert.doesNotMatch(monitor, /^Release attempt /m);
   assert.match(monitor, /sleep 30/);
   assert.match(monitor, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
   assert.match(monitor, /gh pr merge "\$pr_url" --squash --match-head-commit "\$HEAD_SHA"/);
