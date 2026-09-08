@@ -27,6 +27,7 @@ mod hotplug_qmp;
 mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
+mod ia32_physical_proof;
 mod ia32_product_boot;
 mod ia32_vga_receipt;
 mod image;
@@ -119,6 +120,8 @@ enum ConduitosCommand {
     LiveBoot(LiveArgs),
     /// Prove the canonical IA-32 live artifact through legacy BIOS only.
     Ia32LegacyBiosProof,
+    /// Seal two attended physical Mabel boots of one byte-verified IA-32 medium.
+    Ia32MabelPhysicalProof(ia32_physical_proof::Args),
     /// Report every current live artifact and every excluded capability gap.
     LiveMatrix,
     /// Build one exact bare-metal ConduitOS Orange Pi 5 RK3588S SD image.
@@ -425,6 +428,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Live(args) => live_media::build(args.host, opts),
         ConduitosCommand::LiveBoot(args) => live_media::boot(args.host, opts),
         ConduitosCommand::Ia32LegacyBiosProof => live_media::prove_ia32_legacy_bios(opts),
+        ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),
         ConduitosCommand::OrangePi5Image => orange_pi_5_image::execute(opts),
         ConduitosCommand::Flash(flash) => {
@@ -578,6 +582,35 @@ mod tests {
             "/dev/sdz",
         ]);
         assert!(missing_confirmation.is_err());
+    }
+
+    #[test]
+    fn mabel_physical_proof_requires_two_attended_boots() {
+        let parsed = Cli::try_parse_from([
+            "xtask",
+            "conduitos",
+            "ia32-mabel-physical-proof",
+            "--flash-record",
+            "flash.json",
+            "--first-photo",
+            "first.jpg",
+            "--first-host-id",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "--first-boot-id",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "--second-photo",
+            "second.jpg",
+            "--second-host-id",
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "--second-boot-id",
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "--confirm-image-sha256",
+            "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "--confirm-specimen",
+            "mabel-copperbutton",
+            "--attest-exact-screens",
+        ]);
+        assert!(parsed.is_ok());
     }
 
     #[test]
