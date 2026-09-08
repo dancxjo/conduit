@@ -21,12 +21,12 @@ main { width: 100%; }
 }
 h1 {
   margin: 0;
-  max-width: 12ch;
+  max-width: 18ch;
   color: color-mix(in srgb, var(--conduit-text-primary) 72%, white);
-  font-size: clamp(3.4rem, 8vw, 8.4rem);
-  line-height: .92;
-  letter-spacing: -.065em;
-  font-weight: 760;
+  font-size: clamp(2.7rem, 5.5vw, 5.8rem);
+  line-height: 1;
+  letter-spacing: -.045em;
+  font-weight: 720;
 }
 .lede {
   max-width: 52rem;
@@ -124,7 +124,7 @@ footer a { color: var(--conduit-text-primary); }
   .model,
   .doors,
   footer { width: min(100% - 2rem, 112rem); }
-  h1 { font-size: clamp(3rem, 17vw, 5rem); }
+  h1 { font-size: clamp(2.6rem, 13vw, 4.25rem); }
   .concepts,
   .door-grid { grid-template-columns: 1fr; }
   .machine-grid { grid-template-columns: 1fr; }
