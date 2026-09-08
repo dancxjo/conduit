@@ -36,6 +36,7 @@ mod journey_usb_line;
 mod keyboard_proof;
 mod keyboard_run;
 mod keyboard_text_run;
+mod live_media;
 mod loongarch64_a0;
 #[allow(dead_code)]
 mod loongarch64_a1;
@@ -78,6 +79,7 @@ mod target_lowering;
 mod timing_profile;
 mod usb_proof;
 mod usb_run;
+mod x86_64_product_boot;
 mod xhci_proof;
 
 use std::{fmt, path::PathBuf};
@@ -105,6 +107,12 @@ enum ConduitosCommand {
     Build(TargetArgs),
     /// Package one bounded architecture proof appliance into its pinned boot image.
     Image(TargetArgs),
+    /// Build canonical bootable media for one normal ConduitOS product Host.
+    Live(LiveArgs),
+    /// Boot the canonical live artifact without building a parallel demo image.
+    LiveBoot(LiveArgs),
+    /// Report every current live artifact and every excluded capability gap.
+    LiveMatrix,
     /// Build one exact bare-metal ConduitOS Orange Pi 5 RK3588S SD image.
     OrangePi5Image,
     /// Erase, write, and byte-verify one explicitly confirmed removable device.
@@ -204,6 +212,13 @@ struct DemoArgs {
     /// Architecture with an implemented visible display and input entrance.
     #[arg(long, value_enum, default_value_t = ConduitosDemoArch::X86_64)]
     arch: ConduitosDemoArch,
+}
+
+#[derive(Args, Debug, Clone, Copy)]
+struct LiveArgs {
+    /// Exact current ConduitOS product Host type.
+    #[arg(value_enum, default_value_t = live_media::LiveHost::default())]
+    host: live_media::LiveHost,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -399,6 +414,9 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 image::execute_architecture_proof(target.arch, opts).map(|_| ())
             }
         }
+        ConduitosCommand::Live(args) => live_media::build(args.host, opts),
+        ConduitosCommand::LiveBoot(args) => live_media::boot(args.host, opts),
+        ConduitosCommand::LiveMatrix => live_media::matrix(opts),
         ConduitosCommand::OrangePi5Image => orange_pi_5_image::execute(opts),
         ConduitosCommand::Flash(flash) => {
             require_fabrication_target(flash.arch, flash.board)?;
@@ -507,6 +525,20 @@ mod tests {
         let error =
             Cli::try_parse_from(["xtask", "conduitos", "demo", "--arch", "aarch64"]).unwrap_err();
         assert!(error.to_string().contains("x86-64"));
+    }
+
+    #[test]
+    fn live_media_build_boot_and_matrix_are_memorable_typed_entrances() {
+        for arguments in [
+            vec!["xtask", "conduitos", "live"],
+            vec!["xtask", "conduitos", "live", "x86_64"],
+            vec!["xtask", "conduitos", "live", "riscv64"],
+            vec!["xtask", "conduitos", "live-boot", "aarch64"],
+            vec!["xtask", "conduitos", "live-matrix"],
+        ] {
+            let parsed = Cli::try_parse_from(arguments).unwrap();
+            assert!(matches!(parsed.command, Command::Conduitos(_)));
+        }
     }
 
     #[test]
