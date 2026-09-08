@@ -32,8 +32,8 @@ fn local_assigned_plan_has_a_deterministic_golden_round_trip() {
     assert_eq!(
         assigned_plan_payload_digest(&first),
         [
-            115, 213, 167, 23, 151, 182, 249, 237, 190, 209, 165, 178, 85, 133, 73, 223, 196, 80,
-            211, 171, 171, 104, 252, 174, 141, 142, 78, 150, 102, 242, 8, 5,
+            130, 230, 138, 243, 240, 56, 187, 174, 116, 241, 89, 213, 63, 114, 226, 8, 46, 156,
+            129, 206, 220, 145, 161, 163, 65, 28, 21, 14, 82, 147, 50, 167,
         ],
         "local assigned-plan golden changed"
     );
@@ -57,8 +57,8 @@ fn one_remote_assigned_plan_has_a_deterministic_golden_round_trip() {
     assert_eq!(
         assigned_plan_payload_digest(&bytes),
         [
-            66, 107, 141, 180, 130, 75, 185, 153, 68, 61, 136, 1, 89, 185, 203, 48, 210, 97, 3, 38,
-            218, 181, 249, 5, 77, 86, 55, 76, 140, 212, 109, 205,
+            174, 74, 113, 215, 147, 238, 76, 106, 238, 247, 15, 226, 121, 178, 143, 188, 141, 100,
+            214, 119, 145, 228, 55, 42, 169, 139, 104, 123, 1, 150, 164, 242,
         ],
         "remote assigned-plan golden changed"
     );

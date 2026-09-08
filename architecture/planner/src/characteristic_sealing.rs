@@ -1,5 +1,5 @@
 use crate::PlannerError;
-use conduit_core::{seal_plan, FormIdentity, Plan, RealizationAdvertisement};
+use conduit_core::{seal_plan_with_completion, FormIdentity, Plan, RealizationAdvertisement};
 
 pub(crate) fn seal_characteristics(
     mut plan: Plan,
@@ -18,12 +18,13 @@ pub(crate) fn seal_characteristics(
             }
         }
     }
-    Ok(seal_plan(
+    Ok(seal_plan_with_completion(
         FormIdentity {
             source_document_id: plan.source_document_id,
             checked_form_id: plan.checked_form_id,
             expanded_form_id: plan.expanded_form_id,
         },
+        plan.completion_policy,
         plan.fragments,
     ))
 }

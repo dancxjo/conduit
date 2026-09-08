@@ -3,7 +3,7 @@ use conduit_core::{
     ArchitectureBaseId, ArchitectureBaseKind, ComputeReservation, ComputeServiceGuarantee,
     ExecutionProfileId, ExecutionRegion, ExecutionRegionId, ExecutionRegionRequirements,
     ExecutionScheduling, FormIdentity, HostAdvertisement, HostBaseId, PlacementId, Plan,
-    PlanFragment, ResourceBinding, seal_plan,
+    PlanFragment, ResourceBinding, seal_plan_with_completion,
 };
 
 use crate::{
@@ -23,6 +23,7 @@ pub(super) fn seal_execution_region(
     let lane_base = exact_lane_base(fixed)?;
     let lane_offers = exact_lane_offers(advertisement)?;
     let lane_base_identity = hex_identity(&lane_base.id);
+    let completion_policy = plan.completion_policy;
     let mut fragments = plan.fragments;
     let fragment = &mut fragments[0];
     let mut admitted_placements = fragment
@@ -38,12 +39,13 @@ pub(super) fn seal_execution_region(
         lane_base_identity,
         fragment,
     )?];
-    Ok(seal_plan(
+    Ok(seal_plan_with_completion(
         FormIdentity {
             source_document_id: plan.source_document_id,
             checked_form_id: plan.checked_form_id,
             expanded_form_id: plan.expanded_form_id,
         },
+        completion_policy,
         fragments,
     ))
 }
@@ -58,6 +60,7 @@ pub(super) fn seal_two_execution_regions(
     }
     let lane_base_identity = hex_identity(&exact_lane_base(fixed)?.id);
     let lane_offers = exact_lane_offers(advertisement)?;
+    let completion_policy = plan.completion_policy;
     let mut fragments = plan.fragments;
     let fragment = &mut fragments[0];
     let (text, timer) = branch_placements(fragment)?;
@@ -77,12 +80,13 @@ pub(super) fn seal_two_execution_regions(
             fragment,
         )?,
     ];
-    Ok(seal_plan(
+    Ok(seal_plan_with_completion(
         FormIdentity {
             source_document_id: plan.source_document_id,
             checked_form_id: plan.checked_form_id,
             expanded_form_id: plan.expanded_form_id,
         },
+        completion_policy,
         fragments,
     ))
 }

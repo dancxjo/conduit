@@ -219,6 +219,7 @@ fn graph_plan(stage: usize) -> Plan {
     seal_plan(
         identity,
         vec![PlanFragment {
+            completion_policy: conduit_core::PlanCompletionPolicy::Live,
             plan_id: PlanId::from(""),
             fragment_id: FragmentId::from(""),
             source_document_id: SourceDocumentId::from(""),

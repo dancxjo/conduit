@@ -28,6 +28,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
         ExpectedSign::PlanTerminal,
     ];
     let fragment = PlanFragment {
+        completion_policy: conduit_core::PlanCompletionPolicy::Live,
         plan_id: PlanId::from(""),
         fragment_id: FragmentId::from(""),
         source_document_id: SourceDocumentId::from("source-a"),

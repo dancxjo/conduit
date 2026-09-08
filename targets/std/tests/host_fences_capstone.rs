@@ -90,6 +90,7 @@ fn exact_plan(hosts: &[HostAdvertisement], label: &str) -> Plan {
     let fragments = hosts
         .iter()
         .map(|host| PlanFragment {
+            completion_policy: conduit_core::PlanCompletionPolicy::Live,
             plan_id: conduit_core::PlanId::from(""),
             fragment_id: FragmentId::from(""),
             source_document_id: SourceDocumentId::from(""),
