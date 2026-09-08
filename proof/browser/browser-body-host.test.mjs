@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { acquireBrowserBodyHost } from "../../targets/browser/host/assets/browser-body-host.mjs";
 
-function fixture({ timer = false, text = "hello" } = {}) {
+function fixture({ timer = false, text = "hello", quiescent = false } = {}) {
   const memory = { buffer: new ArrayBuffer(512 * 1024) };
   let length = 0, starts = 0, cancels = 0, request;
   const output = value => {
@@ -23,8 +23,10 @@ function fixture({ timer = false, text = "hello" } = {}) {
     conduit_browser_form_pending_capacity: () => 16,
     conduit_browser_form_poll_effect() { output({ disposition: "waiting" });return 0; },
     conduit_browser_form_input_ptr: () => 128 * 1024, conduit_browser_form_input_capacity: () => 64 * 1024,
-    conduit_browser_form_complete_effect() { output({ disposition: "completed", active_play_id: "play" });return 0; },
-    conduit_tour_cancel() { cancels++;output({ disposition: "cancelled", active_play_id: "play" });return 0; },
+    conduit_browser_form_complete_effect() { output(quiescent
+      ? { schema: "conduit.browser/pending-effects@1", disposition: "quiescent_awaiting_input", active_play_id: "play" }
+      : { schema: "conduit.tour/manifestation-receipt@3", disposition: "completed", active_play_id: "play" });return 0; },
+    conduit_tour_cancel() { cancels++;output({ schema: "conduit.tour/manifestation-receipt@3", disposition: "cancelled", active_play_id: "play" });return 0; },
   };
   const window = { setTimeout, clearTimeout, performance, crypto };
   const document = { defaultView: window, createElement() { return { dataset: {}, setAttribute() {}, remove() { this.isConnected = false; } }; } };
@@ -88,6 +90,17 @@ test("closing pending timer work settles the dispatcher and releases the owner",
   assert.equal(f.count().cancels, 1);
   const replacement = acquireBrowserBodyHost(f);
   replacement.close();
+});
+
+test("closing a quiescent Play cancels it instead of mistaking pending effects for a terminal receipt", async () => {
+  const f = fixture({ quiescent: true }), owner = acquireBrowserBodyHost(f);
+  owner.start(1);
+  const pending = await owner.run();
+  assert.equal(pending.disposition, "quiescent_awaiting_input");
+  const closed = owner.close();
+  assert.equal(closed.receipt.schema, "conduit.tour/manifestation-receipt@3");
+  assert.equal(closed.receipt.disposition, "cancelled");
+  assert.equal(f.count().cancels, 1);
 });
 
 test("adapter failure is not converted into successful execution", async () => {

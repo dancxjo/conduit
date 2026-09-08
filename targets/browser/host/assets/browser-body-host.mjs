@@ -199,7 +199,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       assertCurrent();
       if (!started || completion) throw new Error("browser Body must be started exactly once before dispatch");
       completion = drainBrowserEffects({ api, initialProgress: started.progress, readOutput, perform })
-        .then(receipt => { terminal = receipt;return receipt; });
+        .then(receipt => {
+          if (receipt?.schema === "conduit.tour/manifestation-receipt@3") terminal = receipt;
+          return receipt;
+        });
       return completion;
     },
     close() {
