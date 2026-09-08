@@ -262,7 +262,9 @@ impl TourShellPresenter {
         )?;
         let status_presentation = state
             .status_presentation_with_basis(
-                self.lifecycle_revision.max(u64::from(state.revision)),
+                self.lifecycle_revision
+                    .checked_add(u64::from(state.revision))
+                    .ok_or(TourShellError::Identity)?,
                 self.lifecycle_basis.clone(),
             )
             .map_err(|_| TourShellError::Identity)?;
