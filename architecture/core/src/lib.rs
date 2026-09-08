@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod base_capability;
 mod base_registry;
 mod characteristic;
 mod completion;
@@ -47,6 +48,7 @@ mod temporal_civil_conversion;
 mod temporal_clock;
 mod temporal_quantity;
 
+pub use base_capability::*;
 pub use base_registry::*;
 pub use characteristic::*;
 pub use completion::*;
@@ -192,6 +194,11 @@ identity_type!(ResourceHandleId);
 // Immutable identity of one authority contract and one issued grant.
 identity_type!(AuthorityContractId);
 identity_type!(AuthorityGrantId);
+// Non-secret inspection identity for one issued Base capability. This is never
+// the bearer material accepted by a provider.
+identity_type!(CapabilityPossessionId);
+// Exact identity of a Base-owned, domain-specific parameter envelope.
+identity_type!(CapabilityEnvelopeId);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct OfferGeneration(pub u64);

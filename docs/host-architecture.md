@@ -56,6 +56,7 @@ strict subset. The planner consumes only the resulting exact offers.
 |---|---|---|
 | `conduit-core::HostAdvertisement` and capability/resource/authority/link facts | host core and planner advertisement | Portable, bounded facts; no platform methods |
 | `conduit-core::ThinHostSupervisor` and `BaseRegistry` | thin Host/Base registry contract | Bounded current provider identity, generation, lifecycle, enforcement class, capabilities, and resources; registration grants no authority and ready offers feed the ordinary `HostAdvertisement` |
+| `conduit-core::BaseCapabilityTable` | admitted Base possession contract | Opaque issuer-private handles bind exact Host/Boot/Base/Plan/Play/implementation/operation/subject/resource/envelope truth, finite leases, revocation, and non-secret inspection; it performs no effect itself |
 | `conduit-kernel` operation protocol | host core execution contract | Numeric admitted effects/completions; owns no platform implementation |
 | [`conduit-plan-lowering`](architecture/plan-kernel-lowering.md) | plan-to-kernel boundary | Lowers exact selected placements under an explicit fixed storage profile; not a host composition |
 | `conduit-planner` | planner | Matches canonical checked faces against current offers, then admits exact facts |
