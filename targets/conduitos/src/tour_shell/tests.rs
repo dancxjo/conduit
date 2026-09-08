@@ -157,6 +157,44 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
     );
 }
 
+#[test]
+fn status_revision_advances_when_tour_state_changes_under_one_lifecycle_basis() {
+    let identities = BootIdentities {
+        host: [1; 32],
+        boot: [2; 32],
+    };
+    let offer = host_offer(&identities);
+    let mut journey = ProductJourney::new(
+        HostId::from(crate::identity::hex(&identities.host)),
+        BootId::from(crate::identity::hex(&identities.boot)),
+        OfferGeneration(offer.generation),
+    )
+    .unwrap();
+    for action in [
+        JourneyAction::OpenBack,
+        JourneyAction::Birth,
+        JourneyAction::Wake,
+        JourneyAction::Plan,
+        JourneyAction::Play,
+    ] {
+        invoke_journey(&mut journey, action, &identities, &offer).unwrap();
+    }
+    let lifecycle = journey.projection();
+    let (mut tour, mut shell, mut display) = fixture();
+    let initial = shell
+        .present_with_lifecycle(&tour, &lifecycle, &mut display)
+        .unwrap();
+    tour.accept_pointer(pointer(), 640, 480).unwrap();
+    let updated = shell
+        .present_with_lifecycle(&tour, &lifecycle, &mut display)
+        .unwrap();
+    assert!(updated.status.display.commands > 0);
+    assert_ne!(
+        initial.status.presentation_id,
+        updated.status.presentation_id
+    );
+}
+
 fn invoke_journey(
     journey: &mut ProductJourney,
     action: JourneyAction,
