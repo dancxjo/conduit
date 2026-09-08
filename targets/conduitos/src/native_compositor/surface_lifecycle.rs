@@ -121,6 +121,9 @@ impl NativeCompositor {
         if let Some(bounds) = damage {
             self.damage.add_layout(bounds)?;
         }
+        if !visible && self.focused_surface.as_deref() == Some(surface_id) {
+            self.focused_surface = None;
+        }
         Ok(())
     }
 
@@ -129,7 +132,13 @@ impl NativeCompositor {
         if !surface.visible || !surface.is_ready() {
             return Err(NativeCompositorError::SurfaceNotAdmitted);
         }
-        self.focused_surface = Some(surface_id.into());
+        if self.focused_surface.as_deref() != Some(surface_id) {
+            if let Some(previous) = self.focused_surface.clone() {
+                self.damage_focus(&previous)?;
+            }
+            self.damage_focus(surface_id)?;
+            self.focused_surface = Some(surface_id.into());
+        }
         Ok(())
     }
 

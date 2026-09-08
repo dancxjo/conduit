@@ -23,6 +23,19 @@ pub(super) struct RawDamageRect {
 }
 
 impl RawDamageRect {
+    pub(super) fn new(
+        left: i32,
+        top: i32,
+        width: u16,
+        height: u16,
+    ) -> Result<Self, NativeCompositorError> {
+        Self::from_layout(LayoutRect {
+            x: i16::try_from(left).map_err(|_| NativeCompositorError::InvalidBounds)?,
+            y: i16::try_from(top).map_err(|_| NativeCompositorError::InvalidBounds)?,
+            width,
+            height,
+        })
+    }
     pub(super) fn from_layout(bounds: LayoutRect) -> Result<Self, NativeCompositorError> {
         if bounds.width == 0 || bounds.height == 0 {
             return Err(NativeCompositorError::InvalidBounds);

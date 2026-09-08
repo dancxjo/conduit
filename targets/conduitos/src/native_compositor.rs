@@ -3,6 +3,7 @@
 mod damage;
 mod frame_composition;
 mod input_routing;
+mod interaction_affordance;
 mod surface_buffer;
 mod surface_lifecycle;
 
@@ -82,6 +83,8 @@ pub struct FrameReceipt {
     pub damage_count: u8,
     pub damage_rects: [DamageRect; MAX_DAMAGE_RECTS],
     pub conservative_fallback: bool,
+    pub cursor_visible: bool,
+    pub focus_visible: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -211,6 +214,8 @@ pub struct NativeCompositor {
     admission: CompositorAdmission,
     surfaces: Vec<CompositorSurface>,
     focused_surface: Option<String>,
+    cursor: Option<(u32, u32)>,
+    cursor_hover: bool,
     frame_sequence: u64,
     admitted_pixels: usize,
     buffer_pool: SurfaceBufferPool,
@@ -223,6 +228,8 @@ impl NativeCompositor {
             admission,
             surfaces: Vec::new(),
             focused_surface: None,
+            cursor: None,
+            cursor_hover: false,
             frame_sequence: 0,
             admitted_pixels: 0,
             buffer_pool: SurfaceBufferPool::new(),
