@@ -1,5 +1,6 @@
 //! Long-lived ordinary product service for the Patchbay lifecycle journey.
 
+mod scroll_input;
 mod tour_sign;
 pub(crate) mod transient_sign;
 
@@ -157,6 +158,9 @@ pub fn run(
                 return Ok(ProductInputControl::Continue);
             }
             if tour_open && event.transition() == KeyTransition::Pressed {
+                if scroll_input::accept(event.usage(), &mut shell, display)? {
+                    return Ok(ProductInputControl::Continue);
+                }
                 if event.usage() == ESCAPE {
                     if shell.has_transient() {
                         let dismissal = shell

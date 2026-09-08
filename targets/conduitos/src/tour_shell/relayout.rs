@@ -12,7 +12,7 @@ use super::*;
 impl TourShellPresenter {
     pub fn relayout_inspector(
         &mut self,
-        tour: &TourProduct,
+        _tour: &TourProduct,
         display: &mut impl PixelTarget,
     ) -> Result<ShellRelayoutReceipt, TourShellError> {
         let format = display
@@ -59,11 +59,11 @@ impl TourShellPresenter {
             InputRoute::NoTarget
         );
         let keyboard_refused = matches!(self.route_keyboard()?, InputRoute::NoTarget);
-        let presentation = tour
-            .controller()
-            .state()
-            .inspector_presentation()
-            .map_err(|_| TourShellError::Identity)?
+        let presentation = self
+            .surfaces
+            .iter()
+            .find(|state| state.slot == Slot::Inspector)
+            .and_then(|state| state.presentation.clone())
             .ok_or(TourShellError::Identity)?;
         let face = presentation
             .subjects
@@ -84,13 +84,24 @@ impl TourShellPresenter {
             presentation.text,
         )
         .map_err(|_| TourShellError::Identity)?;
+        let scroll_offset = {
+            let state = self
+                .surfaces
+                .iter_mut()
+                .find(|state| state.slot == Slot::Inspector)
+                .ok_or(TourShellError::Identity)?;
+            state
+                .scroll
+                .configure(current_bounds.height, scene::SCROLL_CONTENT_HEIGHT)?;
+            state.scroll.offset()
+        };
         let current = self.present_surface(
             Slot::Inspector,
             &revised,
             &face,
             current_bounds,
             2,
-            &inspector_scene(current_bounds, &revised)?,
+            &inspector_scene(current_bounds, &revised, scroll_offset)?,
         )?;
         let frame = self
             .compositor

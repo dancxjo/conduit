@@ -89,6 +89,13 @@ pub fn run(
         }
         if route.surface_id != WORKSPACE_SURFACE {
             if sample.primary_pressed {
+                if presenter
+                    .scroll_hit_subject(&route)
+                    .map_err(|error| error.as_str())?
+                    .is_some()
+                {
+                    arch::early_write(b"CONDUIT_TOUR_CHECKPOINT scrolled-surface-subject-hit\n");
+                }
                 emit_auxiliary_focus_sign(&route, sample, tour, identities, fabrication);
                 arch::early_write(b"CONDUIT_TOUR_CHECKPOINT auxiliary-surface-focused\n");
                 if route.surface_id == TRANSIENT_SURFACE {

@@ -12,6 +12,9 @@ impl TourShellPresenter {
         detail: &str,
         display: &mut impl PixelTarget,
     ) -> Result<ShellTransientReceipt, TourShellError> {
+        if self.has_transient() {
+            self.dismiss(Slot::Transient)?;
+        }
         let format = display
             .format()
             .validate()
@@ -32,7 +35,7 @@ impl TourShellPresenter {
             kind.subject_identity(),
             layout.transient,
             3,
-            &transient_scene(layout.transient, &presentation)?,
+            &transient_scene(layout.transient, &presentation, 0)?,
         )?;
         let frame = self
             .compositor

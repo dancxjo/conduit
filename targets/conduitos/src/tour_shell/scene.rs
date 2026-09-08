@@ -4,6 +4,8 @@ use conduit_presentation::{
 
 use super::TourShellError;
 
+pub(super) const SCROLL_CONTENT_HEIGHT: u16 = 768;
+
 pub(super) struct ShellLayout {
     pub(super) workspace: LayoutRect,
     pub(super) inspector: LayoutRect,
@@ -120,12 +122,63 @@ pub(super) fn status_scene(
 pub(super) fn inspector_scene(
     bounds: LayoutRect,
     presentation: &Presentation,
+    scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
-    panel_scene(bounds, "GEAR BACK", first_text(presentation))
+    scroll_scene(bounds, "GEAR BACK", first_text(presentation), scroll_y)
 }
 pub(super) fn transient_scene(
     bounds: LayoutRect,
     presentation: &Presentation,
+    scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
-    panel_scene(bounds, "DETAIL", first_text(presentation))
+    scroll_scene(bounds, "DETAIL", first_text(presentation), scroll_y)
+}
+
+fn scroll_scene(
+    bounds: LayoutRect,
+    title: &str,
+    detail: &str,
+    scroll_y: u16,
+) -> Result<GraphicsScene, TourShellError> {
+    if scroll_y > SCROLL_CONTENT_HEIGHT {
+        return Err(TourShellError::Identity);
+    }
+    let viewport = LayoutRect {
+        x: 0,
+        y: 0,
+        width: bounds.width,
+        height: bounds.height,
+    };
+    let mut scene = panel_scene(bounds, title, detail)?;
+    for row in 0..5_u16 {
+        let content_y = 76_u16
+            .checked_add(row.checked_mul(140).ok_or(TourShellError::Identity)?)
+            .ok_or(TourShellError::Identity)?;
+        let visible_y = i32::from(content_y) - i32::from(scroll_y);
+        let Ok(y) = i16::try_from(visible_y) else {
+            continue;
+        };
+        let row_bounds = LayoutRect {
+            x: 12,
+            y,
+            width: viewport.width.saturating_sub(24),
+            height: 60,
+        };
+        scene
+            .push(
+                GraphicsCommand::rect(
+                    row_bounds,
+                    viewport,
+                    if row % 2 == 0 {
+                        GraphicsPaintRole::Status
+                    } else {
+                        GraphicsPaintRole::Background
+                    },
+                    GraphicsShapeStyle::Fill,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+    }
+    Ok(scene)
 }
