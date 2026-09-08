@@ -160,6 +160,10 @@ pub(crate) fn factory(
         return Some(&super::test_measurement_sink::SINK);
     }
     #[cfg(test)]
+    if implementation_id.as_str() == super::test_measurement_observation_sink::KIND {
+        return Some(&super::test_measurement_observation_sink::SINK);
+    }
+    #[cfg(test)]
     if implementation_id.as_str() == super::test_stroke_sink::KIND {
         return Some(&super::test_stroke_sink::SINK);
     }
