@@ -68,7 +68,7 @@ pub(super) fn compose_damage(
                 let selected = surfaces
                     .iter()
                     .enumerate()
-                    .filter(|(_, surface)| surface.visible && surface.binding.is_some())
+                    .filter(|(_, surface)| surface.visible && surface.is_ready())
                     .filter(|(_, surface)| contains(surface, x, y))
                     .max_by_key(|(index, surface)| (surface.z, *index));
                 let pixel = if let Some((index, surface)) = selected {

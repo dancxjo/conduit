@@ -6,7 +6,7 @@
   "fragments": ["profile-fragment/conduitos-scripted-keyboard-proof@1"],
   "capabilities": [],
   "host_operations": ["conduit.host/present@1"],
-  "resources": [{ "id": "surface/main", "class": "presentation/surface", "slots": 2, "bytes": 4194304 }],
+  "resources": [{ "id": "surface/main", "class": "presentation/surface", "slots": 4, "bytes": 4194304 }],
   "bases": [{ "id": "display/main", "kind": "display/scanout", "driver": "display/linear-framebuffer@1" }],
   "drivers": [{ "id": "driver/display", "kind": "display/linear-framebuffer@1" }],
   "lines": ["line/usb-cdc@1"],

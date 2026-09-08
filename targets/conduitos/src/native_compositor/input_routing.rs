@@ -35,7 +35,7 @@ impl NativeCompositor {
             .surfaces
             .iter()
             .enumerate()
-            .filter(|(_, surface)| surface.visible && surface.binding.is_some())
+            .filter(|(_, surface)| surface.visible && surface.is_ready())
             .filter(|(_, surface)| contains(surface.bounds, display_x, display_y))
             .max_by_key(|(index, surface)| (surface.z, *index));
         let Some((_, surface)) = candidate else {
@@ -73,7 +73,7 @@ impl NativeCompositor {
         else {
             return Ok(InputRoute::NoTarget);
         };
-        if !surface.visible {
+        if !surface.visible || !surface.is_ready() {
             return Ok(InputRoute::NoTarget);
         }
         let Some(binding) = surface.binding.as_ref() else {
@@ -101,7 +101,10 @@ impl NativeCompositor {
             .binding
             .as_ref()
             .ok_or(NativeCompositorError::StaleSurfaceBinding)?;
-        if !surface.visible || binding.manifestation_id != route.manifestation_id {
+        if !surface.visible
+            || !surface.is_ready()
+            || binding.manifestation_id != route.manifestation_id
+        {
             return Err(NativeCompositorError::StaleSurfaceBinding);
         }
         Ok(())

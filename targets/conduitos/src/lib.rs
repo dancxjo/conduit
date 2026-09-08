@@ -157,4 +157,6 @@ pub mod timing_profile;
 pub mod tour_play;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod tour_product;
+#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
+pub mod tour_shell;
 pub mod tour_workspace;

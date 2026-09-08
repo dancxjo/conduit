@@ -232,7 +232,7 @@ mod tests {
             drivers: crate::fabrication::DRIVER_LINEAR_FRAMEBUFFER,
             presenters: crate::fabrication::PRESENTER_NATIVE_GRAPHICAL,
             proof_instrumentation: 0,
-            presentation_surface_slots: 2,
+            presentation_surface_slots: 4,
             presentation_surface_bytes: 4 * 1024 * 1024,
             runtime_arena_ceiling: 262_144,
             operation_slot_ceiling: 64,

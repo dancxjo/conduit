@@ -182,6 +182,16 @@ pub(super) struct CompositorSurface {
     receipt: Option<CompositionReceipt>,
 }
 
+impl CompositorSurface {
+    /// A binding is routable and composable only while pixels for that exact
+    /// Manifestation revision inhabit the current surface extent. Resizing
+    /// retains the binding's revision fence but invalidates those pixels until
+    /// a newer Presentation revision is manifested.
+    pub(super) const fn is_ready(&self) -> bool {
+        self.binding.is_some() && self.receipt.is_some()
+    }
+}
+
 pub struct NativeCompositor {
     admission: CompositorAdmission,
     surfaces: Vec<CompositorSurface>,
@@ -393,7 +403,7 @@ impl NativeCompositor {
     }
     pub fn focus_surface(&mut self, surface_id: &str) -> Result<(), NativeCompositorError> {
         let surface = self.surface_mut(surface_id)?;
-        if !surface.visible || surface.binding.is_none() {
+        if !surface.visible || !surface.is_ready() {
             return Err(NativeCompositorError::SurfaceNotAdmitted);
         }
         self.focused_surface = Some(surface_id.into());
