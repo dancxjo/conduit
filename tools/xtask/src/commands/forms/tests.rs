@@ -38,13 +38,14 @@ fn quiet_check_suppresses_human_output_without_hiding_json() {
 #[test]
 fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
     let root = crate::workspace::workspace_root().unwrap();
+    let inventory = load_inventory(&root).unwrap();
     let report = build_report(&root, false, &GlobalOpts::default()).unwrap();
     let checks: Vec<_> = report
         .results
         .iter()
         .filter(|result| result.proof_mode == "check")
         .collect();
-    assert_eq!(checks.len(), 67);
+    assert_eq!(checks.len(), inventory.forms.len());
     assert!(checks.iter().all(|result| result.status == "passed"));
     let little_seismograph = checks
         .iter()
