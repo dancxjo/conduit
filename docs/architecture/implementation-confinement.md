@@ -91,6 +91,20 @@ revocation, operation-capacity pressure, cancellation, and terminal disposition.
 Observe the protected sibling independently to establish that refusal prevented
 the effect. A refusal Sign alone cannot establish that no effect occurred.
 
+## Thin Host and Base registry waist
+
+The portable Host core owns coordination truth, not machine privilege. Its
+bounded Base registry records exact provider identity/generation, lifecycle,
+implementation, offers, resources, and descriptive enforcement class. Only a
+current ready provider contributes to the ordinary Host advertisement consumed
+by the shared planner. Registry membership is not an authority grant.
+
+Provider replacement advances generation and fences stale lifecycle updates;
+loss is local to the affected Base. This contract permits an effect-free Host
+core and disjoint Base providers without asserting that registry separation is
+hostile-code isolation. Unforgeable possession and mechanism-level confinement
+remain separate proof obligations.
+
 For WASM, demonstrate both missing-import refusal and denial through an allowed
 import when the caller requests an unauthorized sibling. Record the actual
 module imports and memory/work limits. A malicious module must not escape by

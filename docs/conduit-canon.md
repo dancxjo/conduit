@@ -155,6 +155,23 @@ trust class; never collapse them into a generic security flag. The
 [confinement contract](architecture/implementation-confinement.md) records
 these boundaries and current evidence under #2685.
 
+The normal distributable unit of effect authority is a narrow **Base**, not a
+privileged universal Host. A thin Host supervisor owns Host/Boot identity,
+current offer truth, shared planning participation, finite Play accounting,
+capability issuance and revocation, Sign correlation, and Base lifecycle. It
+aggregates only the offers of Bases that are installed, configured, current,
+and ready. It does not inherit a Base's filesystem, network, process, device,
+service, or actuator authority merely because it supervises that Base.
+
+A Base is the last trusted Conduit seam for one bounded family of external
+reality. Its provider identity and generation remain distinct from Host, Boot,
+resource, Plan, and Play identity. Replacement invalidates stale provider
+truth. Registration and discovery communicate availability, never authority;
+the shared planner consumes independently valid authority and may only narrow
+it. Confinement class is descriptive mechanism truth—such as cooperative,
+process-isolated, WASM-confined, OS-capability-mediated, ConduitOS-kernel-
+enforced, or hardware-gated—not an ordered score or `secure` boolean.
+
 ### Execution and presentation
 
 The DOM, stdout, LEDs, dashboards, and workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or Sign.
