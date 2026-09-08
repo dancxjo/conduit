@@ -73,6 +73,7 @@ fn transient_is_an_independent_related_surface_and_dismissal_exposes_parent() {
             &mut display,
         )
         .unwrap();
+    assert!(shell.has_transient());
     assert_eq!(transient.surface_id, TRANSIENT_SURFACE);
     assert_eq!(
         delivered(shell.route_pointer(320, 240, true).unwrap()).surface_id,
@@ -83,6 +84,7 @@ fn transient_is_an_independent_related_surface_and_dismissal_exposes_parent() {
         InputRoute::Delivered(_)
     ));
     shell.dismiss_transient(&mut display).unwrap();
+    assert!(!shell.has_transient());
     assert_eq!(
         delivered(shell.route_pointer(320, 240, false).unwrap()).surface_id,
         WORKSPACE_SURFACE

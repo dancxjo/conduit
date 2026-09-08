@@ -4,7 +4,7 @@ use alloc::{format, string::String};
 
 use conduit_human::KeyTransition;
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
-use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID};
+use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID, TourTransientKind};
 
 use crate::{
     arch::{self, HidKeyTransition, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
@@ -152,6 +152,13 @@ pub fn run(
             }
             if tour_open && event.transition() == KeyTransition::Pressed {
                 if event.usage() == ESCAPE {
+                    if shell.has_transient() {
+                        shell
+                            .dismiss_transient(display)
+                            .map_err(|error| error.as_str())?;
+                        arch::early_write(b"CONDUIT_TOUR_CHECKPOINT transient-dismissed\n");
+                        return Ok(ProductInputControl::Continue);
+                    }
                     if tour
                         .controller()
                         .state()
@@ -196,6 +203,14 @@ pub fn run(
                         .map_err(|error| error.as_str())?;
                     if update.play.is_some() {
                         arch::early_write(b"\n");
+                        shell
+                            .show_transient(
+                                &tour,
+                                TourTransientKind::Confirmation,
+                                "Play completed",
+                                display,
+                            )
+                            .map_err(|error| error.as_str())?;
                     }
                     emit_tour_sign(&tour, Some(&update), identities, fabrication);
                     return Ok(

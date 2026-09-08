@@ -6,7 +6,7 @@ use conduit_presentation::PresentationBasis;
 
 use crate::{display::PixelTarget, product_journey::JourneyProjection, tour_product::TourProduct};
 
-use super::{ShellPresentationReceipt, TourShellError, TourShellPresenter};
+use super::{ShellPresentationReceipt, Slot, TourShellError, TourShellPresenter};
 
 pub(super) fn empty_lifecycle_basis() -> PresentationBasis {
     PresentationBasis {
@@ -55,5 +55,11 @@ impl TourShellPresenter {
         self.lifecycle_revision = lifecycle.revision;
         self.lifecycle_basis = basis_from_projection(lifecycle);
         self.present(tour, display)
+    }
+
+    pub fn has_transient(&self) -> bool {
+        self.surfaces
+            .iter()
+            .any(|surface| surface.slot == Slot::Transient && surface.admitted)
     }
 }
