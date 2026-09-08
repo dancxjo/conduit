@@ -962,7 +962,9 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(laboratory.locator(".compact-patchbay")).toHaveAttribute("data-checked-form-id", reviewedIdentity);
   await laboratory.getByRole("button", { name: "Run" }).click();
   await expect(laboratory.locator(".morse")).toHaveText("READY");
-  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await expect(laboratory.locator('[data-application-key="play-status"]')).toHaveText(
+    "Quiescent — same Play remains attached after 1 planned manifestations.",
+  );
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
   const reviewedSourceIdentity = await laboratory.locator(".compact-patchbay").getAttribute("data-source-document-id");
 
