@@ -375,6 +375,21 @@ impl TourShellPresenter {
             .map_err(TourShellError::Compositor)
     }
 
+    pub fn set_pointer_hover(&mut self, hovered: bool) -> Result<(), TourShellError> {
+        self.compositor
+            .set_cursor_hover(hovered)
+            .map_err(TourShellError::Compositor)
+    }
+
+    pub fn compose_affordances(
+        &mut self,
+        display: &mut impl PixelTarget,
+    ) -> Result<FrameReceipt, TourShellError> {
+        self.compositor
+            .compose_frame(display)
+            .map_err(TourShellError::Compositor)
+    }
+
     pub fn route_keyboard(&self) -> Result<InputRoute<RoutedKeyboard>, TourShellError> {
         let Some(surface) = self.compositor.focused_surface() else {
             return Ok(InputRoute::NoTarget);

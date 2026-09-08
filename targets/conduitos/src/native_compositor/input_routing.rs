@@ -31,6 +31,7 @@ impl NativeCompositor {
         display_y: u32,
         activate: bool,
     ) -> Result<InputRoute<RoutedPointer>, NativeCompositorError> {
+        self.move_cursor(display_x, display_y)?;
         let candidate = self
             .surfaces
             .iter()
@@ -39,9 +40,11 @@ impl NativeCompositor {
             .filter(|(_, surface)| contains(surface.bounds, display_x, display_y))
             .max_by_key(|(index, surface)| (surface.z, *index));
         let Some((_, surface)) = candidate else {
+            self.set_cursor_hover(false)?;
             return Ok(InputRoute::NoTarget);
         };
         if !surface.is_ready() {
+            self.set_cursor_hover(false)?;
             return Ok(InputRoute::NoTarget);
         }
         let binding = surface

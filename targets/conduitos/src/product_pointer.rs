@@ -88,7 +88,19 @@ pub fn run(
             continue;
         }
         if route.surface_id != WORKSPACE_SURFACE {
+            let hovered = presenter
+                .scroll_hit_subject(&route)
+                .map_err(|error| error.as_str())?
+                .is_some();
+            presenter
+                .set_pointer_hover(hovered)
+                .map_err(|error| error.as_str())?;
             if sample.primary_pressed {
+                if route.surface_id != TRANSIENT_SURFACE {
+                    presenter
+                        .compose_affordances(display)
+                        .map_err(|error| error.as_str())?;
+                }
                 if presenter
                     .scroll_hit_subject(&route)
                     .map_err(|error| error.as_str())?
@@ -121,6 +133,11 @@ pub fn run(
                     arch::early_write(b"CONDUIT_TOUR_CHECKPOINT transient-pointer-dismissed\n");
                 }
             }
+            if !sample.primary_pressed && route.surface_id != TRANSIENT_SURFACE {
+                presenter
+                    .compose_affordances(display)
+                    .map_err(|error| error.as_str())?;
+            }
             arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
             continue;
         }
@@ -132,6 +149,9 @@ pub fn run(
             u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
             u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
         )?;
+        presenter
+            .set_pointer_hover(true)
+            .map_err(|error| error.as_str())?;
         let mut shell = presenter
             .present(tour, display)
             .map_err(|error| error.as_str())?;

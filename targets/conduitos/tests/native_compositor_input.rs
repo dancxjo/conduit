@@ -83,6 +83,36 @@ fn activation_focuses_exact_surface_and_keyboard_never_falls_through() {
 }
 
 #[test]
+fn cursor_hover_and_focus_are_visible_bounded_and_clear_with_surface_loss() {
+    let (presentation, plan, main, top, mut compositor) = fixture(1);
+    update(&mut compositor, &presentation, &plan, &main, MAIN);
+    update(&mut compositor, &presentation, &plan, &top, TOP);
+    let mut display = MemoryDisplay::new();
+    compositor.compose_frame(&mut display).unwrap();
+    display.reset_writes();
+
+    compositor.route_pointer(7, 4, false).unwrap();
+    compositor.set_cursor_hover(true).unwrap();
+    let hover = compositor.compose_frame(&mut display).unwrap();
+    assert!(hover.cursor_visible);
+    assert!(!hover.focus_visible);
+    assert!(hover.pixels_written < display.format.width * display.format.height);
+    assert_eq!(display.pixels[4 * 32 + 7], 0x00ffcc33);
+
+    compositor.route_pointer(7, 4, true).unwrap();
+    let focused = compositor.compose_frame(&mut display).unwrap();
+    assert!(focused.focus_visible);
+    assert_eq!(compositor.focused_surface(), Some(TOP));
+    compositor.remove_surface(TOP).unwrap();
+    let removed = compositor.compose_frame(&mut display).unwrap();
+    assert!(!removed.focus_visible);
+    assert_eq!(
+        compositor.route_keyboard(&top.manifestation_id).unwrap(),
+        InputRoute::NoTarget
+    );
+}
+
+#[test]
 fn stale_manifestation_routes_refuse_distinctly_from_no_target() {
     let (presentation, plan, main, _top, mut compositor) = fixture(1);
     update(&mut compositor, &presentation, &plan, &main, MAIN);
@@ -203,6 +233,7 @@ fn over_capacity_resize_preserves_the_last_current_surface_transactionally() {
     let mut display = MemoryDisplay::new();
     compositor.compose_frame(&mut display).unwrap();
     let before = delivered(compositor.route_pointer(2, 2, true).unwrap());
+    compositor.compose_frame(&mut display).unwrap();
 
     assert_eq!(
         compositor.place_surface(
