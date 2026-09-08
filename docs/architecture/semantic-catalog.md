@@ -42,10 +42,9 @@ neutral catalog sources.
 No dynamic registry or runtime plugin mechanism is involved. Both composition
 and advertisement remain deterministic and finite.
 
-## Audit checks
+## Working on the catalog
 
-```text
-cargo test -p conduit-semantic-catalog
-cargo test -p conduit-std-offers
-cargo check -p conduit-semantic-catalog --no-default-features --target thumbv6m-none-eabi
-```
+Keep portable contracts and hosted offers in their respective owners, and run
+the relevant catalog/offer conformance checks through the repository development
+entrance. See the [contribution guide](../../CONTRIBUTING.md). Inventory counts
+are derived from code rather than maintained as a second table in this note.

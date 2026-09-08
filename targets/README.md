@@ -1,8 +1,8 @@
-# Target-family ownership
+# Target Hosts and fabrication
 
-Targets exist because an execution environment has concrete Host, fabrication, firmware, or deployment requirements. Normalize responsibility names, not hardware reality. The [repository layout](../docs/repository-layout.md) owns the general placement law; this page records the target-specific choices from #2279.
+Each target family contains the Host, firmware, fabrication, and deployment work needed for that execution environment. Start with [ConduitOS](conduitos/README.md), [RP2040/Pico W](rp2040/README.md), [ESP32](esp32/README.md), or the [repository layout](../docs/repository-layout.md) for the wider source map.
 
-Use only responsibilities the family actually has:
+Families use the responsibilities they need; there is no requirement to create an empty directory for every row below.
 
 | Responsibility | Contents |
 |---|---|
@@ -24,6 +24,6 @@ RP2040 `network-realization/` remains an independently packaged board-specific n
 
 ConduitOS `proof/appliances/<architecture>/` owns each bring-up appliance together with its appliance linker scripts. Product linker and boot configuration live under `firmware/`; the target build script names those exact resources. Repository-wide conformance remains under `proof/` at repository root.
 
-BrowserBundle, native bundles, UF2, ESP images, ConduitOS disk images, and SBC images keep distinct artifact, machine, architecture, toolchain, and deployment identities. Moving a path proves no new firmware execution or physical/HIL behavior. Public workflows remain `conduit ...`; repository development and hardware proof remain `cargo xtask ...`.
+Browser bundles, native bundles, UF2, ESP images, ConduitOS disk images, and SBC images retain their own artifact and deployment contracts. An image build does not establish firmware execution or physical/HIL behavior. Public workflows enter through `conduit`; repository development and hardware proof enter through `cargo xtask`.
 
 Published browser resource URLs retain their existing `targets/<family>/browser-deployment/` package paths. Staging reads source from `deployment/browser/` into those declared resources. Package identities and relative imports are distinct from repository source ownership; the path migration does not change these published resource contracts.

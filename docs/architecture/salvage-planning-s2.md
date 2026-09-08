@@ -1,5 +1,8 @@
 # Salvage S2 exact planning
 
+> Historical S2 planning checkpoint. Lowering, nested Forms, and kernel integration have since landed. The nominal Kind/revision matching and authored Base-preference discussion below are superseded by [checked Face equality](functional-compatibility.md) and the current [canon](../conduit-canon.md).
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
 Issue #363 replaces the reboot planner's single-value-kind capability claim
 with exact semantic and execution-profile bindings. This document records the
 accepted boundary of the completed S2 plan-fact slices. Lowering the hosted

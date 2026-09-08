@@ -1,25 +1,31 @@
 # Body biography: Crèche to Patchbay
 
-Conduit’s Book explains how meaning can outlive and span the machines realizing it. A separate Crèche births and provisions Bodies. A Body's biography begins with durable Body evidence, not with opening documentation.
+Conduit’s Tour explains how meaning can outlive and span the machines realizing it. A separate Crèche births and provisions Bodies. A Body's biography begins with durable Body evidence, not with opening documentation.
+
+This guide separates the intended product journey from its current evidence.
+Tour, Crèche, durable Body state, and Patchbay exist in the repository. The full
+self-sufficient, multi-host biography and management journey is a design goal;
+this guide does not claim it is complete on arbitrary machines. See
+[status](../STATUS.md) and [the roadmap](roadmap.md) for current limits.
 
 ## Product rule
 
-A new Body is created through the independently invokable **Crèche**. The Book's opening explains the Body and birth ideas and links into that same Crèche, but the Book remains readable without creating, attaching to, or mutating a Body.
+A new Body is created through the independently invokable **Crèche**. The Tour's opening explains the Body and birth ideas and links into that same Crèche, but the Tour remains readable without creating, attaching to, or mutating a Body.
 
-The Crèche helps create, provision, explain, and observe a new Body, but it is not part of the Body's identity and is never authoritative lifecycle state. Book launch and direct launch enter the same Crèche workflow.
+The Crèche helps create, provision, explain, and observe a new Body, but it is not part of the Body's identity and is never authoritative lifecycle state. Tour launch and direct launch enter the same Crèche workflow.
 
 The Crèche is temporary by design. Its normal successor is **Patchbay**.
 
 The product journey therefore has four phases:
 
-1. **Read the Book, optionally** — understand why Conduit exists and follow an explicit handoff when ready to create a Body.
+1. **Read the Tour, optionally** — understand why Conduit exists and follow an explicit handoff when ready to create a Body.
 2. **Guided birth in the Crèche** — the transient wizard explains each action while the Body acquires its first Hosts and capabilities.
 3. **Graduation from the Crèche** — once the Body is independently viable, the Crèche may place Patchbay on the Body or finish without a hosted management surface.
-4. **Ongoing biography** — Patchbay, or another compatible reader, projects readable Body history from durable evidence. Neither the Book nor original Crèche session is required.
+4. **Ongoing biography** — Patchbay, or another compatible reader, projects readable Body history from durable evidence. Neither the Tour nor original Crèche session is required.
 
 ## Narrative rule
 
-The Book should introduce terminology only when the reader encounters the problem that terminology solves. Its opening needs only Conduit, Body, and birth. The Crèche introduces program, name, and lifecycle actions when the reader chooses to create a Body.
+The Tour should introduce terminology only when the reader encounters the problem that terminology solves. Its opening needs only Conduit, Body, and birth. The Crèche introduces program, name, and lifecycle actions when the reader chooses to create a Body.
 
 The reader should always be able to answer two questions:
 
@@ -28,23 +34,26 @@ The reader should always be able to answer two questions:
 
 ## Birth a Body
 
-Conduit lets you build one computer out of several devices. The devices can be very different from one another: a browser, a laptop, a Raspberry Pi, a microcontroller, or anything, really.
+Conduit lets you build one computer out of several devices. Supported Hosts can be very different: a browser, a laptop, a Raspberry Pi, or a microcontroller. Each target still needs an implementation and its own evidence.
 
-We call a collection of devices working together as one computer a **Body**.
+A **Body** is the durable identity of that cooperating computer. Its Parts can
+be realized by different Hosts, and its identity survives changes in those Hosts.
 
 The Crèche birth step must:
 
-- choose an initial program, beginning with **Morse Network** for the Crèche;
+- choose a bounded initial workload from the reviewed Form inventory;
 - generate a friendly default name and allow editing before birth;
 - create a durable Body identity distinct from that mutable name;
 - birth the Body in its initial LULLED state;
-- retain that same Body independently of Book navigation or closure.
+- retain that same Body independently of Tour navigation or closure.
 
-A friendly-name generator such as the Rust `petname` crate is a good fit. Generated names are labels, never Body identity.
+The current Crèche uses its deterministic persona-name catalog in
+`products/creche/browser/creche-names.mjs`. Generated names are editable labels,
+never Body identity.
 
 ## The biography is stateful
 
-Crèche navigation changes transient wizard state. Book navigation changes documentation state. Neither recreates lifecycle truth. Returning to an earlier Crèche step must project the same Body and evidence that already exists; reopening the Book must not create or reset either.
+Crèche navigation changes transient wizard state. Tour navigation changes documentation state. Neither recreates lifecycle truth. Returning to an earlier Crèche step must project the same Body and evidence that already exists; reopening the Tour must not create or reset either.
 
 The biography should eventually be derivable from durable Body evidence. Guided prose may explain why an event matters, but lifecycle facts must come from the Body rather than from page-local fiction.
 
@@ -96,15 +105,15 @@ Destroying the Crèche, closing Patchbay, or moving the Host currently realizing
 
 ## UX direction
 
-The book should gradually change voice:
+The Tour should gradually change voice:
 
 - early: **“Next, give your Body somewhere to run.”**
 - middle: **“The Pico joined and offered a physical indicator.”**
 - graduation: **“Your Body can now continue without the Crèche. Would you like it to host Patchbay?”**
 - later in Patchbay: **“On August 29, this Body replanned after the browser Host departed.”**
 
-There is a deliberate ownership boundary between documentation and history. The Book teaches; the Crèche bootstraps; Patchbay or another compatible reader projects continuing biography after graduation.
+There is a deliberate ownership boundary between documentation and history. The Tour teaches; the Crèche bootstraps; Patchbay or another compatible reader projects continuing biography after graduation.
 
 ## Migration principle
 
-Do not preserve `tour` or the Book as lifecycle owner and merely rename headings. Stateful bootstrap machinery belongs to the Crèche, durable management belongs in Patchbay, and durable lifecycle truth belongs to the Body.
+Do not make Tour the lifecycle owner or mistake a heading change for a state migration. Stateful bootstrap machinery belongs to the Crèche, durable management belongs in Patchbay, and durable lifecycle truth belongs to the Body.

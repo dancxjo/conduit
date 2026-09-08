@@ -1,8 +1,11 @@
 # Conduit Host Specification
 
+> Historical CHS-0 draft for #347, superseded as a normative specification. Use [Hosts and execution](hosts.md), the [canon](../conduit-canon.md), and the current source contracts. In particular, Body is distinct from Host, Play has its own identity, compatibility uses checked Face equality, and authored Forms contain no realization facts. The original MUST/SHOULD language below records the proposal; it does not impose additional contributor requirements.
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
 **Document:** CHS-0  
-**Status:** Foundational draft  
-**Implementation issue:** [#347](../../issues/347)  
+**Status:** historical CHS-0 draft; superseded as a normative specification
+**Implementation issue:** [#347](https://github.com/dancxjo/conduit/issues/347)
 **Companion architecture:** [Portable Host Architecture](portable-hosts.md)  
 **Audience:** Implementers, reviewers, maintainers, and coding agents
 

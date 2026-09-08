@@ -56,6 +56,10 @@ struct JourneyProof {
     tour_plan_id: String,
     tour_active_play_id: String,
     tour_result: String,
+    tour_workspace_presentation_id: String,
+    tour_workspace_manifestation_id: String,
+    tour_status_presentation_id: String,
+    tour_status_manifestation_id: String,
     pointer_hover_subject: String,
     pointer_selected_subject: String,
     pointer_press_sequence: u64,
@@ -368,43 +372,9 @@ fn execute_image(
             .iter()
             .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
             .collect::<BTreeMap<_, _>>();
-        for status in ["tour-opened", "result-visible", "patchbay-open"] {
-            if !tour_by_status.contains_key(status) {
-                return Err(ConduitosError::refusal(
-                    "product-journey-tour-stage-missing",
-                    status,
-                ));
-            }
-        }
+        super::journey_tour::validate(&tour_records, opened)?;
         let tour_opened = tour_by_status["tour-opened"];
         let tour_result = tour_by_status["result-visible"];
-        let tour_patchbay = tour_by_status["patchbay-open"];
-        if text(tour_opened, "specimen_id")? != "canonical-form:meet-one-gear"
-            || tour_opened.get("plan_id") != Some(&Value::Null)
-            || text(tour_result, "result")? != "HELLO"
-            || tour_result.get("plan_id") == Some(&Value::Null)
-            || tour_result.get("active_play_id") == Some(&Value::Null)
-            || tour_patchbay.get("result") != tour_result.get("result")
-            || tour_patchbay.get("plan_id") != Some(&Value::Null)
-        {
-            return Err(ConduitosError::refusal(
-                "product-journey-tour-causality-invalid",
-                "Tour open, production Play, result, and Patchbay continuity did not match",
-            ));
-        }
-        for identity in ["profile_id", "build_id", "image_id", "host_id", "boot_id"] {
-            let expected = opened.get(identity);
-            if expected.is_none()
-                || tour_records
-                    .iter()
-                    .any(|record| record.get(identity) != expected)
-            {
-                return Err(ConduitosError::refusal(
-                    "product-journey-tour-identity-drift",
-                    identity,
-                ));
-            }
-        }
         if usb_line_records.len() != 4 {
             return Err(ConduitosError::refusal(
                 "product-journey-usb-line-record-count",
@@ -610,6 +580,10 @@ fn execute_image(
             tour_plan_id: text(tour_result, "plan_id")?,
             tour_active_play_id: text(tour_result, "active_play_id")?,
             tour_result: text(tour_result, "result")?,
+            tour_workspace_presentation_id: text(tour_result, "workspace_presentation_id")?,
+            tour_workspace_manifestation_id: text(tour_result, "workspace_manifestation_id")?,
+            tour_status_presentation_id: text(tour_result, "status_presentation_id")?,
+            tour_status_manifestation_id: text(tour_result, "status_manifestation_id")?,
             pointer_hover_subject: text(pointer_hover, "subject")?,
             pointer_selected_subject: text(pointer_press, "subject")?,
             pointer_press_sequence: number(pointer_press, "sequence")?,

@@ -1,11 +1,22 @@
-# Rust Pro Micro Host image
+# Pro Micro Host firmware
 
-This excluded firmware crate is the ATmega32U4 realization owned by #1926.
-It uses the existing `conduit-create-oi` `no_std` contract directly. Board code
-is limited to the SparkFun Pro Micro UART/GPIO mechanism and contains no Create
-opcodes, Conduit lifecycle, offers, Plan identities, or private execution
-protocol.
+This standalone Rust firmware realizes an ATmega32U4 SparkFun Pro Micro Host.
+It receives a bounded `AssignedPlan` and matching activation over its USB Line,
+validates their Host/Boot identities, and executes the admitted Create contact
+observation through the ordinary kernel's single-source executor. It returns
+a compact execution receipt; it does not introduce another scheduler.
 
-The current image is deliberately non-executing and transmitter-silent while
-the ordinary compact `AssignedPlan` consumer is installed. D4 remains an input;
-D5 is an input; UART construction alone emits no Create OI bytes.
+Create Open Interface commands come from `conduit-create-oi`. Board adapters
+supply UART/GPIO and USB mechanisms. D4 and D5 start as inputs, and constructing
+the UART does not transmit. An admitted contact observation can issue the
+bounded Create operation; the image is no longer a non-executing placeholder.
+
+Build through the repository entrance:
+
+```sh
+cargo xtask avr build
+```
+
+`cargo xtask avr --help` lists release, diagnostic, attended observation, and
+flash commands with their device and physical prerequisites. Compilation and
+image inspection do not establish execution on the attached robot.

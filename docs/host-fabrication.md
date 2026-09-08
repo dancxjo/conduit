@@ -98,8 +98,9 @@ validation write nothing. Canonicalization sorts declaration order before
 deriving the configuration identity, so equivalent structural meaning lowers
 to the same existing `HostProfile` identity.
 
-Checked examples live in `profiles/host-configurations/` for hosted Linux,
-Pico W, and a browser page. BUILD manifests and IMAGE payloads retain the exact
+Checked examples live in `targets/std/profiles/`,
+`targets/rp2040/profiles/`, and `targets/browser/profiles/` for hosted Linux,
+Pico W, and browser pages. BUILD manifests and IMAGE payloads retain the exact
 source-configuration identity together with the resolved target, Base/driver
 selections, resource budgets, and limits.
 

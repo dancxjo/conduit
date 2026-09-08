@@ -4,7 +4,7 @@ Issue [#1521](https://github.com/dancxjo/conduit/issues/1521) owns this ledger.
 The inventory is pinned to the historical Netherwick project commit
 `f43ff13846b47b05e133d0321bdbaafffd1bcdbe`, the historical revision from
 which this accounting was derived. `conduit-pete` does not depend on
-or executes it. It is historical input, not a second source of current Conduit
+or execute it. It is historical input, not a second source of current Conduit
 truth.
 
 The migration rule is:
@@ -205,7 +205,7 @@ The exact advertised event inventory has these dispositions:
 | `buttons_changed`, `ir_changed` | typed input and IR/beacon observations |
 | `heartbeat_expired`, `estop_latched`, `estop_cleared` | authority/control-liveness and E-stop safety Signs |
 | `imu_frame_received`, `imu_fault`, `tilt_changed`, `imu_calibration_changed`, `impact_detected` | typed inertial observations, calibration identity changes, and safety Signs |
-| `contact_withdrawal_started`, `contact_withdrawal_completed` | delete with the unretained reflex; contact produces exact observation, latch, stop, and clear-service Signs instead |
+| `contact_withdrawal_started`, `contact_withdrawal_completed` | replace private Brainstem events with exact `contact-withdrawal@1` preemption, progress, and terminal safety evidence; the bounded local reflex is retained under the safety contract above |
 | `audio_state_changed` | sound policy/Presentation observation; delete private global state |
 | `error` | delete generic bucket; retain the narrow typed Base/device/protocol/safety/action failure |
 
@@ -235,7 +235,12 @@ under #1551. Its pinned revision remains only as provenance for this ledger;
 it is not an accepted production realization. Rows whose physical or Pico W
 gates remain open are not promoted merely because the legacy runtime is gone.
 
-## Current replacement evidence
+## Replacement evidence inventory
+
+This table records the reviewed migration slices and their remaining proof
+classes. It is not a fresh hardware observation or a claim that every linked
+issue remains open; use [STATUS.md](../../STATUS.md) and the
+[roadmap](../roadmap.md) for current project status.
 
 | Slice | Current evidence | Remaining proof class |
 |---|---|---|

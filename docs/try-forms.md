@@ -1,88 +1,36 @@
-# Try canonical Conduit Forms
+# Try Forms
 
-The checked-in corpus executes canonical Form source through production
-boundaries. These are deterministic acceptance commands, not parser-only
-examples: each successful program reaches planning, `conduit-kernel`, host
-operation completion, a terminal result, and bounded Sign.
+Forms describe portable meaning. The reviewed examples live under
+[`forms/`](../forms/README.md), with explicit membership and proof declarations
+in [`forms/inventory.toml`](../forms/inventory.toml). A source example can be
+checked without having a live implementation of every operation it needs.
 
-Run commands from the repository root.
-
-The exact canonical sources are checked in one per stable owner under
-`forms/<name>/main.conduit`. Historical and proof-only specimens live under
-`proof/fixtures/forms/`. The acceptance tests below load those files directly,
-so the documented programs cannot drift into test-only string literals or be
-promoted merely because a directory scanner found them.
-
-## Program 1: text pipeline
+Run these commands from the repository root after
+[contributor setup](../CONTRIBUTING.md):
 
 ```bash
-cargo test -p conduit-std-host --test canonical_text_pipeline \
-  canonical_program_one_runs_through_the_planner_kernel_and_terminal_sign
+cargo xtask host std
+cargo xtask forms check
+cargo xtask forms report --output target/form-conformance.json
 ```
 
-The source in `forms/hello/main.conduit` sends the literal `"Hello, world."` to
-the real `text/upper` and
-`presentation/text` offers. Expected presented text:
+The first runs Hello on the native Host. The second parses and checks the
+reviewed inventory. The report describes available proof modes and limitations;
+it does not execute all those proofs.
 
-```text
-HELLO, WORLD.
-```
+## Read a small program
 
-The same test target also proves invalid literals and mutated selected
-realization/host-operation identities fail before presentation:
+| Form | What to look for | Current example result |
+| --- | --- | --- |
+| [Hello](../forms/hello/main.conduit) | A literal flows through `text/upper` to presentation | `HELLO, WORLD.` |
+| [Greet](../forms/greet/main.conduit) | A reusable Form with parameters and a checked face | Explicit positional binding produces `WelcomeTravis` |
+| [Clock](../forms/clock/main.conduit) | A finite time source and duration arguments | Four admitted ticks |
+| [Count](../forms/count/main.conduit) | Startup value, closing input flow, and current value | Values 2 through 6 |
+| [Webchat](../forms/webchat/main.conduit) | Bounded chat state and semantic WebSocket operations | A two-page browser proof exercises delivery and disconnect |
+| [Signal demo](../forms/signal-demo/main.conduit) | The same source can be planned across different Hosts | Native/browser proof produces sixteen receipts |
 
-```bash
-cargo test -p conduit-std-host --test canonical_text_pipeline
-```
-
-## Program 2: parameterized reusable form
-
-```bash
-cargo test -p conduit-std-host --test canonical_greet
-```
-
-The `greet` back in `forms/greet/main.conduit` expands recursively behind its
-checked face. Its primitive
-`text/literal`, `text/join`, and `presentation/text` leaves plan onto current
-host offers and execute through the ordinary kernel. The explicit positional
-case presents:
-
-```text
-WelcomeTravis
-```
-
-The target also proves omitted/default binding and rejects an oversized join or
-mutated selected realization before output.
-
-## Program 3: admitted time source
-
-```bash
-cargo test -p conduit-std-host --test canonical_clock
-```
-
-The positional specimen is `forms/clock/main.conduit`; named and lexical-local
-duration spellings remain explicit semantic-equivalence vectors in the same
-test. All three check and expand to the same semantic identity. Four admitted
-one-second waits produce:
-
-```text
-tick sequence=0
-tick sequence=1
-tick sequence=2
-tick sequence=3
-```
-
-No wall-clock sleep is needed in this deterministic test; the host adapter
-records the four exact requested durations.
-
-## Program 4: startup, closing flow, and current value
-
-```bash
-cargo test -p conduit-std-host --test canonical_count
-```
-
-The reusable face in `forms/count/main.conduit` distinguishes its startup value,
-finite normally closing tick flow, and current observation:
+The first four are a useful reading order. In particular, Count's `$Count`
+means a current observation, not an unbounded history:
 
 ```conduit
 form count (
@@ -95,84 +43,52 @@ form count (
 }
 ```
 
-With `start = 2`, the installed `state/count` and `presentation/count`
-operations present exactly:
+For an interactive authoring surface, open the native Text Lab:
 
-```text
-count value=2
-count value=3
-count value=4
-count value=5
-count value=6
+```bash
+cargo xtask demo text-lab
 ```
 
-All five values are admitted before Play start; `$Count` does not create an
-unbounded history. The negative corpus rejects open/closing temporal mismatch,
-non-admissible overflow, and selected-implementation mutation before effects.
+It begins with an effect-free rehearsal; inspect the selected environment and
+use the explicit execution controls when ready. The [Tour](https://dancxjo.github.io/conduit/tour/)
+and its Form Gallery provide another route through the examples.
 
-## Program 6: unchanged source across std and browser hosts
+## Run the declared proofs
+
+```bash
+cargo xtask forms run --deterministic
+```
+
+This runs the deterministic checks declared by the inventory. Those checks
+range from semantic conformance to complete Plan/Play execution, so read each
+result's proof mode and reason. A parsed Form is not automatically an executed
+program. The inventory also records reusable-Form and combined-workload checks.
+
+For the declared browser-safe cases:
+
+```bash
+cargo xtask doctor browser
+cargo xtask forms run --browser
+```
+
+This mode prepares the browser fixtures and executes eligible inventory cases.
+Cases needing devices, permission, credentials, or an unavailable realization
+remain explicitly unavailable rather than being counted as passing. The broader
+browser suite, including distributed and Webchat scenarios, is:
 
 ```bash
 cargo xtask prove browser-host --locked
 ```
 
-The software-gated distributed Signal case loads
-`forms/signal-demo/main.conduit`. That source contains no host, platform,
-address, Line, or WebSocket fact. Planning selects one std source fragment,
-one browser/WASM sink fragment, and the exact observed bounded WebSocket link.
+The suite owns its builds and browser setup; no separate package build or direct
+test-runner command is part of this guide. Its current output is the authority
+for test counts. A passing browser case proves the exercised browser behavior;
+it does not establish attached-board or physical acceptance.
 
-Expected software-suite result:
+## Find something to add
 
-```text
-6 passed
-2 skipped
-```
-
-The two skipped cases require an attached physical Pico and are not part of the
-Program 6 claim. The std/browser proof delivers 16 exact receipts, exercises
-capacity-one pressure, reaches terminal Sign on both kernels, and leaves no
-retained or in-flight value. Its link-break case remains a distinct failure.
-
-## Program 5 boundary
-
-Program 5 is the bounded local webchat in `forms/webchat/main.conduit`. Its source
-intentionally names the semantic `net/websocket` and `net/websocket/listen`
-operations. The checked client face uses `WebSocketMessage`, not a generic byte
-stream, so #522 compatibility remains exact face equality without relying on
-the operation name to carry protocol meaning.
-
-The browser plan combines portable `chat/state`, `presentation/tee`,
-`presentation/renderer`, `presentation/interaction`, and `chat/submit` with
-the native WebSocket capability. Authored labels, action availability, input
-type and byte bound, connection status, and the sixteen-item history bound are
-Presentation truth. JavaScript is only a generic semantic renderer and human
-input adapter; it does not own chat policy. The std plan selects the separately
-installed bounded listener. Both execute through fixed kernels. Two Chromium
-pages prove click and Enter gestures, A then B delivery, one-page disconnect,
-continued delivery to the remaining page, and a source-only label oracle.
-Presentation, Manifestation, interaction, Form, checked, expanded, Plan,
-fragment, Play, placement, and host-operation identities are retained without
-recording message content.
-
-This is mechanically distinct from a Conduit-session Line using the exact
-`conduit.base/websocket-rfc6455@1` Base realization identity. No Line, link
-binding, or session frame appears in the authored external-WebSocket plan.
-
-Focused proof:
-
-```bash
-cargo build -p conduit-browser-runtime --target wasm32-unknown-unknown --release
-cargo build -p conduit-std-host --bin webchat-server
-cargo xtask prove browser-host
-```
-
-## Aggregate validation
-
-```bash
-cargo xtask check workspace --locked
-cargo xtask prove browser-host --locked
-```
-
-A green run proves only the software environments and commands above. Thumb or
-WASM compilation is not physical device execution, and no command in this page
-claims Pico HIL acceptance.
+Use the inventory and `cargo xtask catalog matrix` to distinguish authored
+Forms, installed implementations, and missing realizations. A good contribution
+can improve an example, add a meaningful negative check, or complete one
+missing implementation. Follow the [contributor guide](../CONTRIBUTING.md) and
+[current roadmap](roadmap.md) to keep that change focused.

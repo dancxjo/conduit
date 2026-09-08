@@ -1,6 +1,6 @@
 # Repository ownership map
 
-Place material by the contract that owns it. File type, reuse count, and the activity that produced a file do not determine its owner. This guide defines placement; the [canon](conduit-canon.md) defines architecture, and [STATUS.md](../STATUS.md) records accepted executable proof. Issues #2275–#2279 and #2282 own this layout migration; candidate paths alone are not stable acceptance evidence.
+Place material by the contract that owns it. File type, reuse count, and the activity that produced a file do not determine its owner. This guide defines placement; the [canon](conduit-canon.md) defines architecture, and [STATUS.md](../STATUS.md) records accepted executable proof. The source layout is organized around these owners; historical migration issues are #2275–#2279 and #2282.
 
 ## Placement law
 
@@ -25,7 +25,7 @@ Root Cargo metadata, toolchain/configuration files, licensing and contributor gu
 
 The current products are `products/conduit`, `products/tour`, `products/creche`, and `products/patchbay`. Conduit owns the installed CLI entrance. Tour owns guided executable learning, its Form Gallery, and authored lessons under `content/`. Crèche owns reviewed Body creation and lifecycle interaction. Patchbay owns the workbench and its native/browser manifestations. There is no reserved empty `products/book`: historical Book routes and saved-state compatibility are explicit Tour migration boundaries.
 
-`bodies/pete` is a concrete robot Body, with its own composition and configurations. The embodied-house specimen in #2293 likewise belongs under `bodies/<specimen>` when implemented; this layout does not prebuild a house or turn that future specimen into a framework or product.
+`bodies/pete` is a concrete robot Body, with its own composition and configurations. The unfinished embodied-house specimen in #2293 belongs under `bodies/<specimen>` when its concrete composition is added; its existing semantic work does not establish a persistent live House.
 
 `forms/hello/main.conduit` is a canonical authored program. Each reviewed source has one `forms/<name>/` owner. A Form may own bounded assets, metadata, or fixtures, but these cannot duplicate semantic requirements or inject target/resource facts into authored meaning. Proof-only samples live in `proof/fixtures/forms/` or a narrowly owned package fixture.
 
