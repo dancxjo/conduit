@@ -63,6 +63,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
     super::pointer_selector::install_types(&mut startup, &mut profile)?;
+    conduit_presentation::install_bounded_stroke_capture_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timed_button_attempt_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
