@@ -33,7 +33,6 @@ function body(value) {
 }
 
 async function jobsFor(run) {
-  if (run.status === "queued" || run.status === "waiting" || run.status === "pending") return [];
   const response = await api(`/actions/runs/${run.id}/jobs?per_page=100&filter=latest`);
   return response.jobs.map((job) => ({
     id: job.id,

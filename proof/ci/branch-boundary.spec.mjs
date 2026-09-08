@@ -170,6 +170,9 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(releaseLane, /group: release-lane-controller/);
   assert.match(releaseLane, /cancel-in-progress: false/);
   assert.match(releaseLane, /node tools\/ci\/release-lane-github\.mjs --apply/);
+  const releaseLaneGithub = readFileSync("tools/ci/release-lane-github.mjs", "utf8");
+  assert.match(releaseLaneGithub, /\/actions\/runs\/\$\{run\.id\}\/jobs\?per_page=100&filter=latest/);
+  assert.doesNotMatch(releaseLaneGithub, /run\.status === "waiting"/);
   const approval = readFileSync(".github/workflows/approve-release-automation.yml", "utf8");
   assert.match(approval, /workflows: \[promotion, candidate\]/);
   assert.match(approval, /types: \[requested, completed\]/);
