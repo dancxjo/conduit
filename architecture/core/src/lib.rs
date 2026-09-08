@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod base_registry;
 mod characteristic;
 mod completion;
 mod configuration;
@@ -46,6 +47,7 @@ mod temporal_civil_conversion;
 mod temporal_clock;
 mod temporal_quantity;
 
+pub use base_registry::*;
 pub use characteristic::*;
 pub use completion::*;
 pub use conduit_assigned_plan::*;
