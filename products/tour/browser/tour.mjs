@@ -1170,6 +1170,18 @@ async function runListing(runner, source, recursive) {
       },
     });
     if (current !== generation) return;
+    if (progress.disposition === "quiescent_awaiting_input") {
+      runner.playStatus.ordinary(progress.timer_completions > 0
+        ? `Quiescent — same Play remains attached after ${progress.timer_completions} planned ticks and ${progress.manifestation_completions} presentations.`
+        : `Quiescent — same Play remains attached after ${progress.manifestation_completions} planned manifestations.`);
+      appendRunEvidence(runner, [
+        ["Lifecycle", "QuiescentAwaitingInput"],
+        ["Active Play", progress.active_play_id],
+        ["Timer completions", String(progress.timer_completions)],
+        ["Manifestation completions", String(progress.manifestation_completions)],
+      ]);
+      return;
+    }
     runner.playStatus.success(progress.timer_completions > 0
       ? `Completed — one bounded Play, ${progress.timer_completions} planned ticks, ${progress.manifestation_completions} presentations.`
       : `Completed — one bounded Play, ${progress.manifestation_completions} planned manifestations.`);
