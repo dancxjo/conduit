@@ -336,6 +336,7 @@ fn sealed_current_fragment() -> PlanFragment {
         expanded_form_id: ExpandedFormId::from("expanded/test"),
     };
     let fragment = PlanFragment {
+        completion_policy: conduit_core::PlanCompletionPolicy::Live,
         plan_id: PlanId::from(""),
         fragment_id: FragmentId::from(""),
         source_document_id: form_identity.source_document_id.clone(),

@@ -112,6 +112,7 @@ fn exact_plan(hosts: &[&str], label: &str) -> Plan {
     let fragments = hosts
         .iter()
         .map(|host| PlanFragment {
+            completion_policy: conduit_core::PlanCompletionPolicy::Live,
             plan_id: conduit_core::PlanId::from(""),
             fragment_id: FragmentId::from(""),
             source_document_id: SourceDocumentId::from("source"),
@@ -150,6 +151,34 @@ fn exact_plan(hosts: &[&str], label: &str) -> Plan {
         },
         fragments,
     )
+}
+
+#[test]
+fn completion_policy_is_sealed_into_plan_and_fragment_identity() {
+    let live = exact_plan(&["origin"], "completion-policy");
+    let semantic = conduit_core::seal_plan_with_completion(
+        FormIdentity {
+            source_document_id: live.source_document_id.clone(),
+            checked_form_id: live.checked_form_id.clone(),
+            expanded_form_id: live.expanded_form_id.clone(),
+        },
+        conduit_core::PlanCompletionPolicy::SemanticCompletion,
+        live.fragments.clone(),
+    );
+
+    assert_ne!(semantic.plan_id, live.plan_id);
+    assert_eq!(
+        semantic.completion_policy,
+        conduit_core::PlanCompletionPolicy::SemanticCompletion
+    );
+    assert!(semantic.fragments.iter().all(|fragment| {
+        fragment.completion_policy == conduit_core::PlanCompletionPolicy::SemanticCompletion
+    }));
+    assert!(conduit_core::verify_plan(&semantic));
+
+    let mut mutated = semantic.clone();
+    mutated.completion_policy = conduit_core::PlanCompletionPolicy::Live;
+    assert!(!conduit_core::verify_plan(&mutated));
 }
 
 #[test]

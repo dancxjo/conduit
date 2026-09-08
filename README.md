@@ -187,11 +187,19 @@ cargo xtask doctor browser
 cargo xtask host browser
 ```
 
-Run the x86-64 ConduitOS demo in QEMU:
+Build the canonical x86_64 PC live system, then boot that exact ISO in QEMU:
 
 ```sh
-cargo xtask conduitos demo --arch x86-64
+just conduitos-live
+just conduitos-boot
 ```
+
+`cargo xtask conduitos live x86_64 --locked` owns fabrication and writes the
+product artifact beneath `target/conduitos/live/x86_64-pc/`. The optional
+`just` recipes are thin aliases. List every currently honest product Host and
+artifact with `cargo xtask conduitos live-matrix`; IA-32, AArch64, RISC-V64,
+and LoongArch64 currently provide long-lived serial product media, while only
+x86_64 provides the graphical shell and local keyboard/pointer path.
 
 Machine-oriented ConduitOS proof remains separate:
 

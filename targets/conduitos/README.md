@@ -1,12 +1,44 @@
 # ConduitOS freestanding host
 
-This crate owns the first ConduitOS machine and production-kernel boundary
-funded by issue #588. It builds one `no_std`, `no_main` x86_64 executable,
-boots it through the pinned Limine protocol, normalizes bootloader observations
-into bounded ConduitOS data, and gives the sole cooperative execution lane to
-the production `conduit-kernel` scheduler. One real PIT interrupt wakes one
-exact kernel interest and the resulting value crosses one exact Cord to one
-bounded COM1 presentation.
+This crate owns the ConduitOS machine and production-kernel boundaries. Its
+canonical x86_64 PC product is a `no_std`, `no_main` graphical live system;
+IA-32 PC and AArch64, RISC-V64, and LoongArch64 virt Hosts provide distinct
+long-lived serial product images. Each normal product image preserves its
+checked PROFILE, boot protocol, bounded Host truth, and sole cooperative
+`conduit-kernel` execution lane. Architecture proof appliances remain separate
+from these product artifacts.
+
+## Canonical live media
+
+Build and boot the common graphical PC Host with:
+
+```console
+just conduitos-live
+just conduitos-boot
+```
+
+These delegate to `cargo xtask conduitos live x86_64 --locked` and
+`cargo xtask conduitos live-boot x86_64 --locked`. Both commands name the same
+canonical artifact:
+`target/conduitos/live/x86_64-pc/conduitos-x86_64.iso`. The compatibility
+`cargo xtask conduitos demo --arch x86-64` entrance now builds and boots this
+same product ISO; it no longer fabricates an architecture-proof image.
+
+Current live product media are:
+
+| Host type | Artifact | Current experience |
+| --- | --- | --- |
+| `conduitos/x86_64/pc` | `live/x86_64-pc/conduitos-x86_64.iso` | graphical front door, compositor, keyboard and pointer |
+| `conduitos/ia32/pc` | `live/ia32-pc/conduitos-ia32.iso` | long-lived serial product |
+| `conduitos/aarch64/virt` | `live/aarch64-virt/conduitos-aarch64.iso` | long-lived serial product |
+| `conduitos/riscv64/virt` | `live/riscv64-virt/conduitos-riscv64.iso` | long-lived serial product |
+| `conduitos/loongarch64/virt` | `live/loongarch64-virt/conduitos-loongarch64.iso` | long-lived serial product |
+
+All paths above are beneath `target/conduitos/`. Run
+`cargo xtask conduitos live-matrix` for machine-readable format, emulator, and
+capability-gap truth. ARMv6 Raspberry Pi media and Orange Pi 5 media are not in
+this table: their current contracts prove architecture appliances or
+deterministic image artifacts, not a normal live ConduitOS product Host.
 
 The Limine request and response types are confined to `src/boot/limine.rs`.
 Code outside that adapter consumes the boot-neutral types in

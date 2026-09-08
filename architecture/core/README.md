@@ -12,6 +12,7 @@ depends on semantic, application, target, or proof packages.
 | `lib.rs` | universal architecture | Exact identity types and the generic Form/Host/Boot/Plan/Play/Line/Sign records shared by the architecture. It is the crate facade, not a domain attic. |
 | `assigned_plan.rs` | universal architecture | Finite allocation-free validation of one exact Host-assigned Plan projection. |
 | `characteristic.rs` | universal architecture | Generic realization, resource, topology, Base, and observation characteristics. |
+| `completion.rs` | universal architecture | Exact live-versus-semantic-completion policy sealed from checked Form meaning into Plan and fragment identity. |
 | `configuration.rs` | universal architecture | Generic bounded configuration values carried by checked Forms and Plans. |
 | `control_loop.rs` | universal architecture | Generic Plan satisfaction, recovery, and replan decisions over current truth. |
 | `execution.rs` | universal architecture | Generic execution-region and admitted execution-profile records. |

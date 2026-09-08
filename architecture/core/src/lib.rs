@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 mod characteristic;
+mod completion;
 mod configuration;
 mod control_loop;
 mod deadline;
@@ -46,6 +47,7 @@ mod temporal_clock;
 mod temporal_quantity;
 
 pub use characteristic::*;
+pub use completion::*;
 pub use conduit_assigned_plan::*;
 pub use configuration::{ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue};
 pub use control_loop::*;
@@ -601,6 +603,8 @@ pub struct PlanFragment {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     #[serde(default)]
+    pub completion_policy: PlanCompletionPolicy,
+    #[serde(default)]
     pub realization_backs: Vec<RealizationBack>,
     pub host_id: HostId,
     pub boot_id: BootId,
@@ -632,6 +636,8 @@ pub struct Plan {
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
+    #[serde(default)]
+    pub completion_policy: PlanCompletionPolicy,
     /// Exact reusable Forms selected while expanding high-level Kinds.
     /// Empty means the checked Form reached primitive implementations directly.
     #[serde(default)]
@@ -640,11 +646,38 @@ pub struct Plan {
 }
 
 pub fn seal_plan(form_identity: FormIdentity, fragments: Vec<PlanFragment>) -> Plan {
-    seal_plan_with_realization_backs(form_identity, Vec::new(), fragments)
+    seal_plan_with_completion(form_identity, PlanCompletionPolicy::Live, fragments)
+}
+
+pub fn seal_plan_with_completion(
+    form_identity: FormIdentity,
+    completion_policy: PlanCompletionPolicy,
+    fragments: Vec<PlanFragment>,
+) -> Plan {
+    seal_plan_with_realization_backs_and_completion(
+        form_identity,
+        completion_policy,
+        Vec::new(),
+        fragments,
+    )
 }
 
 pub fn seal_plan_with_realization_backs(
     form_identity: FormIdentity,
+    realization_backs: Vec<RealizationBack>,
+    fragments: Vec<PlanFragment>,
+) -> Plan {
+    seal_plan_with_realization_backs_and_completion(
+        form_identity,
+        PlanCompletionPolicy::Live,
+        realization_backs,
+        fragments,
+    )
+}
+
+pub fn seal_plan_with_realization_backs_and_completion(
+    form_identity: FormIdentity,
+    completion_policy: PlanCompletionPolicy,
     mut realization_backs: Vec<RealizationBack>,
     mut fragments: Vec<PlanFragment>,
 ) -> Plan {
@@ -654,6 +687,7 @@ pub fn seal_plan_with_realization_backs(
         fragment.source_document_id = form_identity.source_document_id.clone();
         fragment.checked_form_id = form_identity.checked_form_id.clone();
         fragment.expanded_form_id = form_identity.expanded_form_id.clone();
+        fragment.completion_policy = completion_policy;
         fragment.realization_backs = realization_backs.clone();
         fragment.fragment_id = compute_fragment_id(fragment);
         fragment.plan_fragments.clear();
@@ -676,6 +710,7 @@ pub fn seal_plan_with_realization_backs(
         source_document_id: form_identity.source_document_id,
         checked_form_id: form_identity.checked_form_id,
         expanded_form_id: form_identity.expanded_form_id,
+        completion_policy,
         realization_backs,
         fragments,
     }
@@ -713,6 +748,7 @@ pub fn verify_plan(plan: &Plan) -> bool {
                 && fragment.source_document_id == plan.source_document_id
                 && fragment.checked_form_id == plan.checked_form_id
                 && fragment.expanded_form_id == plan.expanded_form_id
+                && fragment.completion_policy == plan.completion_policy
                 && fragment.realization_backs == plan.realization_backs
         })
         && plan

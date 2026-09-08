@@ -77,6 +77,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         ExpectedSign::PlanTerminal,
     ];
     PlanFragment {
+        completion_policy: conduit_core::PlanCompletionPolicy::Live,
         plan_id: PlanId::from(""),
         fragment_id: FragmentId::from(""),
         source_document_id: SourceDocumentId::from("source"),

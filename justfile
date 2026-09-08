@@ -73,6 +73,14 @@ proofs *args:
 conduitos *args:
     cargo xtask conduitos {{args}}
 
+# Canonical product media; x86_64 is the graphical default.
+conduitos-live host="x86_64":
+    cargo xtask conduitos live {{host}} --locked
+
+# Boot the exact artifact emitted by conduitos-live.
+conduitos-boot host="x86_64":
+    cargo xtask conduitos live-boot {{host}} --locked
+
 rpi-b-plus-image:
     cargo xtask conduitos image --arch armv6 --board rpi-b-plus-v1.2 --locked
 

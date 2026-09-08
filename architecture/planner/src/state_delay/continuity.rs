@@ -1,7 +1,7 @@
 //! Plan-level admission for an explicitly approved same-specialization handoff.
 use conduit_core::{
-    seal_plan_with_realization_backs, state_resource_budget, verify_plan, FormIdentity, Plan,
-    PlanId, RetainedStateProvenance, StateId,
+    state_resource_budget, verify_plan, FormIdentity, Plan, PlanId, RetainedStateProvenance,
+    StateId,
 };
 
 /// A decision supplied by the lifecycle owner, not authority minted by planning.
@@ -109,8 +109,9 @@ pub fn seal_state_continuity(
     state_resource_budget(core::slice::from_ref(&source_contract))
         .map_err(|_| R::SourceMismatch)?;
     next.retained = Some(retained);
-    let replacement = seal_plan_with_realization_backs(
+    let replacement = conduit_core::seal_plan_with_realization_backs_and_completion(
         identity(destination),
+        destination.completion_policy,
         destination.realization_backs.clone(),
         fragments,
     );
