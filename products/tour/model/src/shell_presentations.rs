@@ -17,6 +17,14 @@ pub enum TourTransientKind {
 }
 
 impl TourTransientKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Chooser => "chooser",
+            Self::Refusal => "refusal",
+            Self::Confirmation => "confirmation",
+        }
+    }
+
     pub const fn subject_identity(self) -> &'static str {
         match self {
             Self::Chooser => "tour/transient/chooser",

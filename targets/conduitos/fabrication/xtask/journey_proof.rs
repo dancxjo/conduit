@@ -67,6 +67,10 @@ struct JourneyProof {
     inspector_presentation_id: String,
     inspector_manifestation_id: String,
     inspector_focused_manifestation_id: String,
+    transient_kinds: Vec<String>,
+    transient_refusal_cause: String,
+    chooser_manifestation_id: String,
+    transient_stale_input_refused: bool,
     usb_line_id: String,
     usb_line_binding_id: String,
     usb_line_plan_id: String,
@@ -303,8 +307,35 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "f10", "tour-run")?;
             journey_input::wait_tour_status(&serial_path, &mut child, "result-visible")?;
             artifacts.capture(&mut qmp, &mut reader, "tour-result-visible", true)?;
+            journey_input::wait_transient_status(&serial_path, &mut child, "shown")?;
+            artifacts.capture(&mut qmp, &mut reader, "confirmation-transient", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-confirmation")?;
+            journey_input::wait_transient_status(&serial_path, &mut child, "dismissed")?;
+            artifacts.capture(&mut qmp, &mut reader, "confirmation-dismissed", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f10", "refused-repeat-run")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_TOUR_CHECKPOINT refusal-transient-shown",
+                "product-journey-refusal-transient-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "refusal-transient", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-refusal")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_TOUR_CHECKPOINT transient-dismissed",
+                "product-journey-refusal-dismissal-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "refusal-dismissed", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "f11", "tour-patchbay")?;
             journey_input::wait_tour_status(&serial_path, &mut child, "patchbay-open")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_TOUR_CHECKPOINT chooser-transient-shown",
+                "product-journey-chooser-transient-timeout",
+            )?;
             artifacts.capture(&mut qmp, &mut reader, "tour-patchbay-open", true)?;
             hid_qmp::wait_for_stage(
                 &serial_path,
@@ -312,6 +343,10 @@ fn execute_image(
                 "CONDUIT_BOOT_STAGE pointer-awaiting-report",
                 "product-journey-pointer-ready-timeout",
             )?;
+            journey_input::primary_button(&mut qmp, &mut reader, true, "pointer-chooser")?;
+            journey_input::wait_pointer_status(&serial_path, &mut child, "transient-focused")?;
+            artifacts.capture(&mut qmp, &mut reader, "chooser-pointer-focused", true)?;
+            journey_input::primary_button(&mut qmp, &mut reader, false, "pointer-chooser-release")?;
             journey_input::relative_motion(&mut qmp, &mut reader, 0, -100, "pointer-hover")?;
             journey_input::wait_pointer_status(&serial_path, &mut child, "hovered")?;
             artifacts.capture(&mut qmp, &mut reader, "pointer-hover-or-focus", true)?;
@@ -359,6 +394,7 @@ fn execute_image(
         let records = journey_records(&serial)?;
         let tour_records = super::journey_records::tour(&serial)?;
         let pointer_records = super::journey_records::pointer(&serial)?;
+        let transient_records = super::journey_records::transient(&serial)?;
         let usb_line_records = super::journey_records::usb_line(&serial)?;
         let by_status = records
             .iter()
@@ -442,7 +478,16 @@ fn execute_image(
                 "value or unchanged Body correlation did not match",
             ));
         }
-        let pointer = super::journey_pointer::validate(&pointer_records, opened)?;
+        let ordinary_pointer_records = pointer_records
+            .iter()
+            .filter(|record| {
+                record.get("status").and_then(Value::as_str) != Some("transient-focused")
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let pointer = super::journey_pointer::validate(&ordinary_pointer_records, opened)?;
+        let transient =
+            super::journey_transient::validate(&transient_records, &pointer_records, opened)?;
         if opened.get("body_id") != Some(&Value::Null)
             || opened.get("wake_id") != Some(&Value::Null)
             || opened.get("plan_id") != Some(&Value::Null)
@@ -562,6 +607,10 @@ fn execute_image(
             inspector_presentation_id: pointer.inspector_presentation_id,
             inspector_manifestation_id: pointer.inspector_manifestation_id,
             inspector_focused_manifestation_id: pointer.focused_manifestation_id,
+            transient_kinds: transient.kinds,
+            transient_refusal_cause: transient.refusal_cause,
+            chooser_manifestation_id: transient.chooser_manifestation_id,
+            transient_stale_input_refused: transient.stale_input_refused,
             usb_line_id: text(&usb_line_records[0], "line_id")?,
             usb_line_binding_id: text(&usb_line_records[0], "binding_id")?,
             usb_line_plan_id: text(&usb_line_records[0], "plan_id")?,

@@ -74,7 +74,11 @@ fn transient_is_an_independent_related_surface_and_dismissal_exposes_parent() {
         )
         .unwrap();
     assert!(shell.has_transient());
-    assert_eq!(transient.surface_id, TRANSIENT_SURFACE);
+    assert_eq!(transient.transient.surface_id, TRANSIENT_SURFACE);
+    assert_ne!(
+        transient.parent_presentation_id,
+        transient.transient.presentation_id
+    );
     assert_eq!(
         delivered(shell.route_pointer(320, 240, true).unwrap()).surface_id,
         TRANSIENT_SURFACE
@@ -83,8 +87,20 @@ fn transient_is_an_independent_related_surface_and_dismissal_exposes_parent() {
         shell.route_keyboard().unwrap(),
         InputRoute::Delivered(_)
     ));
-    shell.dismiss_transient(&mut display).unwrap();
+    let stale = delivered(shell.route_pointer(320, 240, true).unwrap());
+    let dismissal = shell.dismiss_transient(&mut display).unwrap();
     assert!(!shell.has_transient());
+    assert_eq!(
+        shell.validate_pointer_route(&stale),
+        Err(TourShellError::Compositor(
+            NativeCompositorError::StaleSurfaceBinding
+        ))
+    );
+    assert_eq!(dismissal.manifestation_id, stale.manifestation_id);
+    assert!(matches!(
+        shell.route_keyboard().unwrap(),
+        InputRoute::Delivered(RoutedKeyboard { surface_id, .. }) if surface_id == WORKSPACE_SURFACE
+    ));
     assert_eq!(
         delivered(shell.route_pointer(320, 240, false).unwrap()).surface_id,
         WORKSPACE_SURFACE
