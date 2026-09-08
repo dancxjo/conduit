@@ -1,10 +1,11 @@
 //! Persistent finite native compositor service above the scanout mechanism.
 
+mod damage;
 mod frame_composition;
 mod input_routing;
 mod surface_buffer;
 
-use crate::display::{DisplayError, DisplayReceipt, PixelTarget, render_scene};
+use crate::display::{DisplayError, DisplayReceipt, render_scene};
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
     ActivePlayId, ArtifactId, BootId, CapabilityId, HostBaseId, HostId, ImplementationId,
@@ -14,9 +15,10 @@ use conduit_presentation::{
     GraphicsScene, LayoutRect, Manifestation, ManifestationError, ManifestationId,
     ManifestationLifecycle, Presentation, PresentationContentId,
 };
-use frame_composition::{blit_surface, clear_target};
+use damage::{DamageState, RawDamageRect};
 use surface_buffer::{SurfaceBuffer, surface_pixels};
 
+pub use damage::{DamageRect, MAX_DAMAGE_RECTS};
 pub use input_routing::{InputRoute, RoutedKeyboard, RoutedPointer};
 
 pub const NATIVE_COMPOSITOR_FACILITY: &str = "compositor/native@1";
@@ -62,6 +64,9 @@ pub struct FrameReceipt {
     pub frame_sequence: u64,
     pub surfaces_composed: u8,
     pub pixels_written: u32,
+    pub damage_count: u8,
+    pub damage_rects: [DamageRect; MAX_DAMAGE_RECTS],
+    pub conservative_fallback: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -183,6 +188,7 @@ pub struct NativeCompositor {
     focused_surface: Option<String>,
     frame_sequence: u64,
     admitted_pixels: usize,
+    damage: DamageState,
 }
 
 impl NativeCompositor {
@@ -193,6 +199,7 @@ impl NativeCompositor {
             focused_surface: None,
             frame_sequence: 0,
             admitted_pixels: 0,
+            damage: DamageState::new(),
         }
     }
     pub fn admission(&self) -> &CompositorAdmission {
@@ -305,6 +312,9 @@ impl NativeCompositor {
             surface_id: surface_id.into(),
             display,
         });
+        if surface.visible {
+            self.damage.add_layout(surface.bounds)?;
+        }
         surface
             .receipt
             .as_ref()
@@ -318,11 +328,34 @@ impl NativeCompositor {
         z: u8,
     ) -> Result<(), NativeCompositorError> {
         let pixels = surface_pixels(bounds)?;
-        let surface = self
+        let index = self
             .surfaces
-            .iter_mut()
-            .find(|surface| surface.surface_id == surface_id)
+            .iter()
+            .position(|surface| surface.surface_id == surface_id)
             .ok_or(NativeCompositorError::SurfaceNotAdmitted)?;
+        let old_bounds = self.surfaces[index].bounds;
+        let old_z = self.surfaces[index].z;
+        let visible_bound = self.surfaces[index].visible && self.surfaces[index].binding.is_some();
+        if visible_bound && old_bounds == bounds && old_z != z {
+            let changed = RawDamageRect::from_layout(bounds)?;
+            for (other_index, other) in self.surfaces.iter().enumerate() {
+                if other_index == index || !other.visible || other.binding.is_none() {
+                    continue;
+                }
+                let crossed =
+                    (old_z < other.z && z >= other.z) || (old_z > other.z && z <= other.z);
+                if crossed
+                    && let Some(overlap) =
+                        changed.intersection(RawDamageRect::from_layout(other.bounds)?)
+                {
+                    self.damage.add(overlap);
+                }
+            }
+        } else if visible_bound && (old_bounds != bounds || old_z != z) {
+            self.damage.add_layout(old_bounds)?;
+            self.damage.add_layout(bounds)?;
+        }
+        let surface = &mut self.surfaces[index];
         let admitted_pixels = self
             .admitted_pixels
             .checked_sub(surface.buffer.pixels.len())
@@ -346,7 +379,16 @@ impl NativeCompositor {
         surface_id: &str,
         visible: bool,
     ) -> Result<(), NativeCompositorError> {
-        self.surface_mut(surface_id)?.visible = visible;
+        let damage = {
+            let surface = self.surface_mut(surface_id)?;
+            let damage =
+                (surface.visible != visible && surface.binding.is_some()).then_some(surface.bounds);
+            surface.visible = visible;
+            damage
+        };
+        if let Some(bounds) = damage {
+            self.damage.add_layout(bounds)?;
+        }
         Ok(())
     }
     pub fn focus_surface(&mut self, surface_id: &str) -> Result<(), NativeCompositorError> {
@@ -364,42 +406,14 @@ impl NativeCompositor {
             .position(|surface| surface.surface_id == surface_id)
             .ok_or(NativeCompositorError::SurfaceNotAdmitted)?;
         let removed = self.surfaces.remove(index);
+        if removed.visible && removed.binding.is_some() {
+            self.damage.add_layout(removed.bounds)?;
+        }
         self.admitted_pixels -= removed.buffer.pixels.len();
         if self.focused_surface.as_deref() == Some(surface_id) {
             self.focused_surface = None;
         }
         Ok(())
-    }
-
-    pub fn compose_frame(
-        &mut self,
-        target: &mut impl PixelTarget,
-    ) -> Result<FrameReceipt, NativeCompositorError> {
-        let format = target.format().validate()?;
-        let mut pixels_written = clear_target(target, format)?;
-        let mut order: Vec<usize> = self
-            .surfaces
-            .iter()
-            .enumerate()
-            .filter(|(_, surface)| surface.visible && surface.binding.is_some())
-            .map(|(index, _)| index)
-            .collect();
-        order.sort_by_key(|index| (self.surfaces[*index].z, *index));
-        for index in &order {
-            pixels_written = pixels_written
-                .checked_add(blit_surface(target, format, &self.surfaces[*index])?)
-                .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
-        }
-        self.frame_sequence = self
-            .frame_sequence
-            .checked_add(1)
-            .ok_or(NativeCompositorError::Display(DisplayError::InvalidExtent))?;
-        Ok(FrameReceipt {
-            frame_sequence: self.frame_sequence,
-            surfaces_composed: u8::try_from(order.len())
-                .map_err(|_| NativeCompositorError::SurfaceCapacityExceeded)?,
-            pixels_written,
-        })
     }
 
     fn validate_surface_id(&self, surface_id: &str) -> Result<(), NativeCompositorError> {
