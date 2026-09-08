@@ -38,4 +38,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION_SHA: ${{ inputs.integrated_sha }}
-        run: node tools/ci/release-request-github.mjs
+        run: |
+          if test ! -f tools/ci/release-request-github.mjs; then
+            printf '## Release admission\n\n' >> "$GITHUB_STEP_SUMMARY"
+            printf -- '- Deferred until the trusted main controller contains release-request-github.mjs.\n' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node tools/ci/release-request-github.mjs
