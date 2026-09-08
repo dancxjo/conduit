@@ -29,6 +29,10 @@ Every merge queues integration of that combined `dev` tree. This is where
 affected product, browser, firmware, and ConduitOS interactions may report bugs.
 A running integration finishes; newer development waits behind it
 instead of starving the lane by repeatedly cancelling healthy work.
+Only the newest pending update is needed. Both integration suites compare with
+the common ancestor of the candidate and accepted `main`, rather than the last
+push. Thus a docs-only update cannot hide a runtime change whose pending
+integration was coalesced. The captured candidate stays exact while it runs.
 
 A current integration failure is work to repair through an ordinary PR. It does
 not retroactively invalidate the history of every contributing PR.
@@ -37,23 +41,46 @@ not retroactively invalidate the history of every contributing PR.
 
 After development integration succeeds, automation asks:
 
-1. Does `dev` already have the same tree as `main`? If yes, stop.
-2. Otherwise, create `release/<captured-dev-sha>` and open its PR to `main`.
-3. Preserve one started healthy release and at most the newest
-   queued successor; close older unstarted releases as superseded.
+1. Is any release open, including one that failed and needs repair? If yes,
+   stop. Is release synchronization open? Wait for it too.
+2. Read the newest completed integration from GitHub. It must have succeeded;
+   a newer running integration can continue while that proven batch releases.
+3. Skip a batch already accepted by `main`. Require that it still belongs to
+   `dev` and includes all accepted release fixes. A delayed event is a wake-up,
+   not an instruction to recreate its old snapshot.
+4. Create exactly one `release/<captured-dev-sha>` PR. Later work accumulates
+   in `dev`, which is the next-batch queue. No successor release PR is created.
+
+Failure cancels the attempt, not ownership of the batch. Repair that same
+release after the attempt becomes terminal. An unrelated dev commit is not
+evidence that the release defect was fixed. A closed release is not reopened
+automatically for the same captured commit. Explicit abandonment requires a
+reviewed replacement decision.
 
 The release branch contains everything accumulated in `dev`. Exhaustive proof
 runs there. If it exposes a cross-product bug, the trusted monitor cancels the
 known-bad attempt promptly while preserving its exact failure evidence. Only
 after that attempt is terminal may a repair advance the release branch and run
 as a fresh exact head. A healthy running attempt is never cancelled by newer
-development or by a queued successor. A release with no progress for 15 minutes
+development. A release with no progress for 15 minutes
 or more than 45 minutes total is escalated once through a
 `release-liveness/repair-needed` issue. After merge, automation returns release fixes to `dev`.
-That successful development integration naturally starts the next waiting batch.
+The next successful development integration starts the next batch. A ten-minute
+admission check also revisits current evidence if completion occurred while the
+release or synchronization was still open; it never retries failed proof.
 
-**Promote dev to main** remains available as a manual escape hatch. It requests the same release workflow; the lane controller keeps one active
-attempt and coalesces queued successors.
+**Promote dev to main** runs this same admission check, including successful
+integration, open ownership, and accepted-fix checks. It cannot bypass proof.
+
+The existing lane watchdog still handles early failure, stuck-run escalation,
+and superseded unstarted runs left by the old multi-PR policy. New admission
+does not manufacture those queues. Installing this change does not authorize
+discarding existing release repairs; finish or explicitly resolve those PRs.
+
+Successful promotion has one finalization owner: `finalize-release.yml` verifies
+and merges the exact successful head, then dispatches Pages and synchronization.
+The long-running release monitor handles approval and early failure; it never
+competes to merge or dispatch duplicate publication work.
 
 ## Statuses
 
