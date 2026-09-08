@@ -19,6 +19,8 @@ pub mod browser_admission;
 mod composition;
 #[cfg(test)]
 mod composition_test_offers;
+#[cfg(feature = "confined-gear")]
+pub mod confined_gear;
 mod copy_task;
 mod deadline_reactor;
 pub mod distributed_signal;

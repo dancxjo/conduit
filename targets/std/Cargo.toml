@@ -10,6 +10,7 @@ local-model-proof = []
 pete-create = ["dep:conduit-create-oi"]
 isolated-file-base = []
 isolated-base-proof = ["isolated-file-base"]
+confined-gear = ["dep:wasmi"]
 
 [dependencies]
 conduit-ai = { path = "../../semantics/ai", features = ["form-catalog"] }
@@ -49,8 +50,10 @@ conduit-web = { path = "../../semantics/web", default-features = false }
 tungstenite = "0.30.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 instant-distance = "=0.6.1"
 ureq = { version = "3.4.0", default-features = false, features = ["rustls"] }
+wasmi = { version = "2.0.0", default-features = false, features = ["std", "validate", "extra-checks"], optional = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
@@ -85,3 +88,4 @@ required-features = ["isolated-file-base"]
 [dev-dependencies]
 conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
 ed25519-dalek = "2.2"
+wat = "1"
