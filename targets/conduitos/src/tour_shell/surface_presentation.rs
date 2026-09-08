@@ -114,14 +114,13 @@ impl TourShellPresenter {
             .clone();
         self.surfaces[index].face_subject = Some(face_subject.into());
         self.surfaces[index].manifestation_id = Some(receipt.manifestation_id.clone());
-        let content_height = if matches!(slot, Slot::Inspector | Slot::Transient) {
-            scene::SCROLL_CONTENT_HEIGHT
+        if matches!(slot, Slot::Inspector | Slot::Transient) {
+            self.surfaces[index]
+                .scroll
+                .configure(bounds.height, scene::SCROLL_CONTENT_HEIGHT)?;
         } else {
-            bounds.height
-        };
-        self.surfaces[index]
-            .scroll
-            .configure(bounds.height, content_height)?;
+            self.surfaces[index].scroll = ScrollState::empty();
+        }
         self.surfaces[index].bounds = Some(bounds);
         self.surfaces[index].presentation = Some(presentation.clone());
         Ok(receipt)

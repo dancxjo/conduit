@@ -290,6 +290,18 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
 }
 
 #[test]
+fn canonical_live_iso_dimensions_do_not_enter_the_scroll_contract() {
+    let (_, mut shell, _) = fixture();
+    let tour = TourProduct::canonical(1);
+    let mut display = MemoryDisplay::with_dimensions(1280, 800);
+
+    let receipt = shell.present(&tour, &mut display).unwrap();
+
+    assert_eq!(receipt.workspace.surface_id, WORKSPACE_SURFACE);
+    assert_eq!(receipt.status.surface_id, STATUS_SURFACE);
+}
+
+#[test]
 fn status_revision_advances_when_tour_state_changes_under_one_lifecycle_basis() {
     let identities = BootIdentities {
         host: [1; 32],
@@ -429,21 +441,29 @@ fn delivered<T>(route: InputRoute<T>) -> T {
 }
 
 struct MemoryDisplay {
+    width: u32,
+    height: u32,
     pixels: Vec<u32>,
 }
 impl MemoryDisplay {
     fn new() -> Self {
+        Self::with_dimensions(640, 480)
+    }
+
+    fn with_dimensions(width: u32, height: u32) -> Self {
         Self {
-            pixels: vec![0; 640 * 480],
+            width,
+            height,
+            pixels: vec![0; usize::try_from(width * height).unwrap()],
         }
     }
 }
 impl PixelTarget for MemoryDisplay {
     fn format(&self) -> DisplayFormat {
         DisplayFormat {
-            width: 640,
-            height: 480,
-            pitch: 2560,
+            width: self.width,
+            height: self.height,
+            pitch: self.width * 4,
             bits_per_pixel: 32,
             red_shift: 16,
             green_shift: 8,
@@ -451,7 +471,7 @@ impl PixelTarget for MemoryDisplay {
         }
     }
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
-        self.pixels[usize::try_from(y * 640 + x).unwrap()] = pixel;
+        self.pixels[usize::try_from(y * self.width + x).unwrap()] = pixel;
         Ok(())
     }
 }
