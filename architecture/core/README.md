@@ -12,6 +12,7 @@ depends on semantic, application, target, or proof packages.
 | `lib.rs` | universal architecture | Exact identity types and the generic Form/Host/Boot/Plan/Play/Line/Sign records shared by the architecture. It is the crate facade, not a domain attic. |
 | `base_registry.rs` | universal architecture | Bounded thin-Host truth for exact Base provider identity, generation, lifecycle, enforcement class, and ordinary capability/resource offer aggregation; no planning, authority issuance, or effects. |
 | `base_capability.rs` | universal architecture | Opaque issuer-private Base capability possession, exact per-Play scope narrowing, finite operation leases, revocation, and non-secret lifecycle inspection. |
+| `consequential_effect.rs` | universal architecture | Generic attended last-mile gating for bounded consequential physical effects, including exact resource generation, safety readiness, one-shot authority, uncertain outcomes, and safe disposition. |
 | `characteristic.rs` | universal architecture | Generic realization, resource, topology, Base, and observation characteristics. |
 | `completion.rs` | universal architecture | Exact live-versus-semantic-completion policy sealed from checked Form meaning into Plan and fragment identity. |
 | `configuration.rs` | universal architecture | Generic bounded configuration values carried by checked Forms and Plans. |
