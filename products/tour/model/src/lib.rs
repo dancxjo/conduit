@@ -196,6 +196,10 @@ impl TourWorkspaceState {
                                             ActionAvailability::Busy {
                                                 detail: "Canonical Play is active".into(),
                                             }
+                                        } else if self.phase == TourWorkspacePhase::ResultVisible {
+                                            ActionAvailability::Unavailable {
+                                                detail: "Canonical Play already completed".into(),
+                                            }
                                         } else {
                                             ActionAvailability::Available
                                         },
@@ -297,7 +301,19 @@ mod tests {
                     .iter()
                     .any(|node| node.key == state.focused_key)
             );
-            assert_eq!(lowered.actions.len(), 2);
+            let expected_actions = if phase == TourWorkspacePhase::ResultVisible {
+                1
+            } else {
+                2
+            };
+            assert_eq!(lowered.actions.len(), expected_actions);
+            assert_eq!(
+                lowered
+                    .actions
+                    .iter()
+                    .any(|action| action.id == RUN_ACTION_ID),
+                phase != TourWorkspacePhase::ResultVisible
+            );
         }
     }
 

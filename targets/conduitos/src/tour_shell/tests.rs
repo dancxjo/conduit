@@ -221,6 +221,7 @@ fn focused_scrolling_revises_only_that_surface_and_translates_clipped_hits() {
         .unwrap();
     assert!(inspector.scroll.offset() <= inspector.scroll.maximum_offset());
     assert_eq!(relayout.current.surface_id, INSPECTOR_SURFACE);
+    assert!(relayout.input_refused_while_invalidated);
 }
 
 #[test]
