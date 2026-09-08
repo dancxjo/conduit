@@ -1,9 +1,12 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use clap::{Args, Subcommand};
 use conduit_host_fabrication::{
     build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
-    BuildInputs, HostProfile,
+    BuildInputs, HostImage, HostProfile,
 };
 
 use crate::cli::GlobalOpts;
@@ -22,7 +25,7 @@ mod host_local_model;
 #[path = "host_release.rs"]
 mod host_release;
 #[path = "host_target.rs"]
-mod host_target;
+pub(crate) mod host_target;
 
 #[derive(Args, Debug)]
 pub struct HostArgs {
@@ -218,34 +221,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             let source_identity = source_identity
                 .map(Ok)
                 .unwrap_or_else(|| command_identity("git", &["rev-parse", "HEAD"]))?;
-            let source = fs::read_to_string(&profile_path)?;
-            let profile = if is_conduit_source(&profile_path, "host") {
-                let configuration =
-                    parse_host_configuration_conduit(&source).map_err(|diagnostic| {
-                        format!("Host configuration decode refused: {diagnostic:?}")
-                    })?;
-                check_host_configuration(
-                    configuration,
-                    &conduit_workspace_fabrication::catalog(),
-                    &conduit_workspace_fabrication::package_set(),
-                )
-                .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
-                .into_profile()
-            } else {
-                serde_json::from_str::<HostProfile>(&source)?
-            };
-            let inputs = BuildInputs {
-                source_identity,
-                toolchain_available: true,
-            };
-            let packages = conduit_workspace_fabrication::package_set();
-            let (image, bytes) = build_default_host_image(
-                profile,
-                &conduit_workspace_fabrication::catalog(),
-                &packages,
-                &inputs,
-            )
-            .map_err(|diagnostics| format!("Host BUILD refused: {diagnostics:?}"))?;
+            let (image, bytes) = resolve_profile(&profile_path, source_identity)?;
             if opts.dry_run {
                 println!(
                     "would BUILD {} from resolved binding {}",
@@ -338,6 +314,54 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             Ok(())
         }
     }
+}
+
+pub(crate) fn build_conduitos_live(
+    profile_path: &Path,
+    output: &std::path::Path,
+    opts: &GlobalOpts,
+) -> Result<host_target::TargetBuildManifest, Box<dyn std::error::Error>> {
+    let source_identity = command_identity("git", &["rev-parse", "HEAD"])?;
+    let (image, bytes) = resolve_profile(profile_path, source_identity)?;
+    if crate::commands::conduitos::target_backend::find(&image.manifest.target).is_none() {
+        return Err(format!(
+            "{} does not resolve to a bootable ConduitOS product target",
+            image.manifest.target
+        )
+        .into());
+    }
+    host_target::build_target(&image, &bytes, output, opts)
+}
+
+fn resolve_profile(
+    profile_path: &std::path::Path,
+    source_identity: String,
+) -> Result<(HostImage, Vec<u8>), Box<dyn std::error::Error>> {
+    let source = fs::read_to_string(profile_path)?;
+    let profile = if is_conduit_source(profile_path, "host") {
+        let configuration = parse_host_configuration_conduit(&source)
+            .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
+        check_host_configuration(
+            configuration,
+            &conduit_workspace_fabrication::catalog(),
+            &conduit_workspace_fabrication::package_set(),
+        )
+        .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
+        .into_profile()
+    } else {
+        serde_json::from_str::<HostProfile>(&source)?
+    };
+    let inputs = BuildInputs {
+        source_identity,
+        toolchain_available: true,
+    };
+    build_default_host_image(
+        profile,
+        &conduit_workspace_fabrication::catalog(),
+        &conduit_workspace_fabrication::package_set(),
+        &inputs,
+    )
+    .map_err(|diagnostics| format!("Host BUILD refused: {diagnostics:?}").into())
 }
 
 fn command_identity(

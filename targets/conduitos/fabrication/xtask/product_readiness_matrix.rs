@@ -86,12 +86,47 @@ fn row(arch: ConduitosArch) -> ProductRow {
             proof_class: "freestanding-emulator-linear-product",
             blocker: Some("aarch64-local-input-base-unavailable"),
         },
-        ConduitosArch::Ia32 => absent("ia32", "ia32-product-profile-unimplemented"),
+        ConduitosArch::Ia32 => linear_product(
+            "ia32",
+            "presenter/ia32-linear-debugcon@1",
+            "freestanding-emulator-linear-product",
+            "ia32-local-input-base-unavailable",
+        ),
         ConduitosArch::Armv6 => absent("armv6", "armv6-rpi-b-plus-physical-boot-unproven"),
-        ConduitosArch::Riscv64 => absent("riscv64", "riscv64-product-profile-unimplemented"),
-        ConduitosArch::Loongarch64 => {
-            absent("loongarch64", "loongarch64-product-profile-unimplemented")
-        }
+        ConduitosArch::Riscv64 => linear_product(
+            "riscv64",
+            "presenter/riscv64-linear-sbi-console@1",
+            "freestanding-emulator-linear-product",
+            "riscv64-local-input-base-unavailable",
+        ),
+        ConduitosArch::Loongarch64 => linear_product(
+            "loongarch64",
+            "presenter/loongarch64-linear-uart@1",
+            "freestanding-emulator-linear-product",
+            "loongarch64-local-input-base-unavailable",
+        ),
+    }
+}
+
+fn linear_product(
+    architecture: &'static str,
+    presenter: &'static str,
+    proof_class: &'static str,
+    blocker: &'static str,
+) -> ProductRow {
+    ProductRow {
+        architecture,
+        profile_built_artifact: true,
+        bootable_image_binding: true,
+        runtime_image_bound_host_offer: true,
+        long_lived_product_host: true,
+        zero_body_front_door: true,
+        interactive_local_control: false,
+        ordinary_body_lifecycle: false,
+        ordinary_plan_play_from_product: true,
+        presenter,
+        proof_class,
+        blocker: Some(blocker),
     }
 }
 
@@ -117,7 +152,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn product_matrix_keeps_aarch64_honest_and_a0_a4_out_of_scope() {
+    fn product_matrix_keeps_live_products_and_proof_appliances_distinct() {
         let matrix = matrix();
         let aarch64 = matrix
             .architectures
@@ -129,6 +164,22 @@ mod tests {
         assert!(!aarch64.interactive_local_control);
         assert!(!aarch64.ordinary_body_lifecycle);
         assert_eq!(aarch64.presenter, "presenter/linear-serial@1");
+        for architecture in ["ia32", "riscv64", "loongarch64"] {
+            let row = matrix
+                .architectures
+                .iter()
+                .find(|row| row.architecture == architecture)
+                .unwrap();
+            assert!(row.profile_built_artifact);
+            assert!(row.long_lived_product_host);
+            assert!(!row.interactive_local_control);
+        }
+        let armv6 = matrix
+            .architectures
+            .iter()
+            .find(|row| row.architecture == "armv6")
+            .unwrap();
+        assert!(!armv6.profile_built_artifact);
         assert_eq!(matrix.architectures.len(), ConduitosArch::ALL.len());
     }
 }
