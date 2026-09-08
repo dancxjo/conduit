@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 96
+maximum_forms = 97
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -203,6 +203,12 @@ slug = "network-resolution"
 title = "Network Resolution"
 entry = "network-resolution"
 deterministic = { package = "conduit-net", test = "application_network_forms", case = "ordinary_form_plans_dns_and_connection_with_explicit_resources_and_authority" }
+[[forms]]
+slug = "night-radio"
+title = "Night Radio"
+entry = "night-radio"
+deterministic = { package = "conduit-net", features = ["form-catalog"], test = "typed_record", case = "night_radio_composes_existing_framing_queue_and_presentation" }
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form night-radio runs browser-safe" }
 [[forms]]
 slug = "normalized-light-intensity"
 title = "Normalized Light Intensity"

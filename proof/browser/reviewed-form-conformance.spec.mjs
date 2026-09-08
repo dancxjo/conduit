@@ -5,6 +5,7 @@ const cases = [
   ["morse-network", { presentationKind: "presentation/indicator", morseSegments: 17 }],
   ["memory-lantern", { presentationKind: "presentation/text", text: "READY" }],
   ["desk-telegraph", { presentationKind: "presentation/text", text: "CALLING" }],
+  ["night-radio", { presentationKind: "presentation/text", text: "NIGHT REPORT" }],
 ];
 const selectedCases = new Set(JSON.parse(process.env.CONDUIT_FORM_CASES_JSON ?? "null") ?? cases.map(([slug]) => `reviewed Form ${slug} runs browser-safe`));
 
