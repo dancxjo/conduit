@@ -8,6 +8,7 @@ default = []
 bluetooth-bluez = ["dep:bluer", "dep:dbus", "dep:futures", "dep:tokio", "dep:uuid"]
 local-model-proof = []
 pete-create = ["dep:conduit-create-oi"]
+isolated-base-proof = []
 
 [dependencies]
 conduit-ai = { path = "../../semantics/ai", features = ["form-catalog"] }
@@ -69,6 +70,11 @@ required-features = ["bluetooth-bluez"]
 name = "distributed-lenia-probe"
 path = "src/bin/distributed-lenia-probe.rs"
 required-features = ["bluetooth-bluez"]
+
+[[bin]]
+name = "conduit-isolated-file-base"
+path = "src/bin/conduit-isolated-file-base.rs"
+required-features = ["isolated-base-proof"]
 
 [dev-dependencies]
 conduit-workspace-fabrication = { path = "../../fabrication/workspace" }

@@ -66,6 +66,8 @@ mod image_binding_tests;
 mod installed_std;
 #[cfg(test)]
 mod installed_std_tests;
+#[cfg(all(target_os = "linux", feature = "isolated-base-proof"))]
+pub mod isolated_base;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
