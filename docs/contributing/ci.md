@@ -1,6 +1,9 @@
 # CI for contributors and agents
 
-Conduit has one development entrance and one automatic release train.
+Open ordinary pull requests to `dev`. The release train handles publication
+to `main`; you do not need to operate it to contribute.
+
+The executable definitions live in [the workflow directory](../../.github/workflows/).
 
 ## Enter development
 
@@ -24,7 +27,7 @@ child job, or preserve an obsolete candidate run. The newest head owns the PR.
 
 Every merge queues integration of that combined `dev` tree. This is where
 affected product, browser, firmware, and ConduitOS interactions may report bugs.
-A materially started integration finishes; newer development waits behind it
+A running integration finishes; newer development waits behind it
 instead of starving the lane by repeatedly cancelling healthy work.
 
 A current integration failure is work to repair through an ordinary PR. It does
@@ -36,7 +39,7 @@ After development integration succeeds, automation asks:
 
 1. Does `dev` already have the same tree as `main`? If yes, stop.
 2. Otherwise, create `release/<captured-dev-sha>` and open its PR to `main`.
-3. Preserve one materially started healthy release and at most the newest
+3. Preserve one started healthy release and at most the newest
    queued successor; close older unstarted releases as superseded.
 
 The release branch contains everything accumulated in `dev`. Exhaustive proof
@@ -49,8 +52,8 @@ or more than 45 minutes total is escalated once through a
 `release-liveness/repair-needed` issue. After merge, automation returns release fixes to `dev`.
 That successful development integration naturally starts the next waiting batch.
 
-**Promote dev to main** remains available as a manual escape hatch. It performs
-the same coalescing check and never creates a second simultaneous release.
+**Promote dev to main** remains available as a manual escape hatch. It requests the same release workflow; the lane controller keeps one active
+attempt and coalesces queued successors.
 
 ## Statuses
 

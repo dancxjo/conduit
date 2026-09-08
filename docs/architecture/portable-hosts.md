@@ -1,7 +1,10 @@
 # Portable Host Architecture
 
-**Status:** Foundational architecture for the Conduit reboot  
-**Implementation issue:** [#347](../../issues/347)  
+> Historical reboot proposal for #347. The current Host overview is [Hosts and execution](hosts.md). The later canon supersedes the composite-Host/SOUL model, nominal revision matching, speculative grammar, and early browser-test policy below. This record preserves the original rationale, not current acceptance requirements.
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
+**Status:** historical reboot proposal
+**Implementation issue:** [#347](https://github.com/dancxjo/conduit/issues/347)
 **Audience:** Contributors, maintainers, coding agents, and reviewers
 
 ## Summary
@@ -54,7 +57,7 @@ A planning scope is the set of host instances currently visible to one planning 
 
 For the first implementation, planning scope membership may be explicit and development-oriented. A host can register with the local operator or planner and become available for placement.
 
-The current implementation checkpoint is recorded in [Planning scope membership readiness](planning scope-membership.md).
+The original development membership table was retired. Current durable membership is described in [Body lifecycle contracts](body-lifecycle-waists.md).
 
 The first read-only operational projection is recorded in [Host Observatory readiness](host-observatory.md).
 
@@ -999,4 +1002,4 @@ This document captures the following current decisions:
 11. Use machine-readable receipts as the cross-host correctness proof.
 12. Defer durable body and soul mechanics until the portable execution waist works.
 
-Issue [#347](../../issues/347) is the implementation vehicle for this architecture. Changes that contradict this document should either update the document through explicit review or explain why the architecture itself has changed.
+Issue [#347](https://github.com/dancxjo/conduit/issues/347) is the implementation vehicle for this architecture. Changes that contradict this document should either update the document through explicit review or explain why the architecture itself has changed.

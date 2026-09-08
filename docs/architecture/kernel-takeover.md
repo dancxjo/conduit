@@ -1,5 +1,8 @@
 # Kernel takeover integration gate
 
+> Historical std kernel-integration gate for #389. The gate is no longer a request to pause browser or firmware work. Current lowering and execution support are described in [Hosts and execution](hosts.md) and [STATUS.md](../../STATUS.md).
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
 Issue [#389](https://github.com/dancxjo/conduit/issues/389) blocks further
 browser, transport, and firmware expansion until the production std path runs
 exact plans through `conduit-kernel`.

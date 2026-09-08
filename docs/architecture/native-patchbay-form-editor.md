@@ -1,5 +1,8 @@
 # Native Patchbay canonical Form editor
 
+> Native source-editor checkpoint for #557. Its stop line describes that slice, not a permanent ban on graph editing or execution elsewhere in Patchbay.
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
 Issue #557 adds one revisioned, toolkit-independent editor state to native Patchbay. The UTF-8
 `.conduit` source buffer is authoritative. Each accepted edit increments its revision and passes
 through `conduit-form`'s lossless parser and canonical syntax checker. A result may be published

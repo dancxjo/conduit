@@ -1,5 +1,8 @@
 # Pete R23 carrier audit
 
+> Historical attended hardware investigation from August 23, 2026. References to installed hardware, current firmware, and the absence of an R24 refer to that session. This note neither establishes today's attachment state nor authorizes another physical run.
+> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+
 **Status:** diagnostic source note for the installed R23 carrier, not a physical acceptance record
 
 **Owning investigation:** [issue #1687](https://github.com/dancxjo/conduit/issues/1687)

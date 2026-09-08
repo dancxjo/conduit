@@ -1,166 +1,92 @@
-# ConduitOS freestanding host
+# ConduitOS
 
-This crate owns the ConduitOS machine and production-kernel boundaries. Its
-canonical x86_64 PC product is a `no_std`, `no_main` graphical live system;
-IA-32 PC and AArch64, RISC-V64, and LoongArch64 virt Hosts provide distinct
-long-lived serial product images. Each normal product image preserves its
-checked PROFILE, boot protocol, bounded Host truth, and sole cooperative
-`conduit-kernel` execution lane. Architecture proof appliances remain separate
-from these product artifacts.
+**[See the current ConduitOS visual journey →](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)**
 
-## Canonical live media
+The narrated gallery shows the actual QEMU graphical product: Tour, Forms,
+Patchbay inspection, pointer interaction, and USB Line delivery and loss. Its
+seventeen checkpoints link to their provenance. This is freestanding emulator
+evidence; physical laptop acceptance is separate.
 
-Build and boot the common graphical PC Host with:
+ConduitOS is Conduit's freestanding Host. The x86_64 PC image is a graphical
+`no_std`, `no_main` live system. IA-32 PC and AArch64, RISC-V64, and LoongArch64
+virt images offer long-lived serial experiences. Each realizes ordinary Forms
+through the production `conduit-kernel`, with a checked PROFILE and finite
+Host resources.
 
-```console
-just conduitos-live
-just conduitos-boot
+## Try the graphical system
+
+From a repository checkout:
+
+```sh
+cargo xtask conduitos live x86_64 --locked
+cargo xtask conduitos live-boot x86_64 --locked
 ```
 
-These delegate to `cargo xtask conduitos live x86_64 --locked` and
-`cargo xtask conduitos live-boot x86_64 --locked`. Both commands name the same
-canonical artifact:
-`target/conduitos/live/x86_64-pc/conduitos-x86_64.iso`. The compatibility
-`cargo xtask conduitos demo --arch x86-64` entrance now builds and boots this
-same product ISO; it no longer fabricates an architecture-proof image.
+The first command builds `target/conduitos/live/x86_64-pc/conduitos-x86_64.iso`;
+the second boots that artifact in QEMU. The build needs the Rust toolchain,
+`curl`, `make`, `tar`, and `xorriso`; boot also needs `qemu-system-x86_64`.
+The builder acquires pinned boot dependencies. An interactive boot is useful
+for exploration; the proof commands below validate specific behaviors.
 
-Current live product media are:
+## Available images
 
-| Host type | Artifact | Current experience |
+Paths below are relative to `target/conduitos/`.
+
+| Host | Artifact | Experience |
 | --- | --- | --- |
-| `conduitos/x86_64/pc` | `live/x86_64-pc/conduitos-x86_64.iso` | graphical front door, compositor, keyboard and pointer |
-| `conduitos/ia32/pc` | `live/ia32-pc/conduitos-ia32.iso` | long-lived serial product |
-| `conduitos/aarch64/virt` | `live/aarch64-virt/conduitos-aarch64.iso` | long-lived serial product |
-| `conduitos/riscv64/virt` | `live/riscv64-virt/conduitos-riscv64.iso` | long-lived serial product |
-| `conduitos/loongarch64/virt` | `live/loongarch64-virt/conduitos-loongarch64.iso` | long-lived serial product |
+| `conduitos/x86_64/pc` | `live/x86_64-pc/conduitos-x86_64.iso` | Graphical front door, compositor, keyboard and pointer |
+| `conduitos/ia32/pc` | `live/ia32-pc/conduitos-ia32.iso` | Serial product |
+| `conduitos/aarch64/virt` | `live/aarch64-virt/conduitos-aarch64.iso` | Serial product |
+| `conduitos/riscv64/virt` | `live/riscv64-virt/conduitos-riscv64.iso` | Serial product |
+| `conduitos/loongarch64/virt` | `live/loongarch64-virt/conduitos-loongarch64.iso` | Serial product |
 
-All paths above are beneath `target/conduitos/`. Run
-`cargo xtask conduitos live-matrix` for machine-readable format, emulator, and
-capability-gap truth. ARMv6 Raspberry Pi media and Orange Pi 5 media are not in
-this table: their current contracts prove architecture appliances or
-deterministic image artifacts, not a normal live ConduitOS product Host.
+`cargo xtask conduitos live-matrix` reports current formats, emulator profiles,
+and exclusions. Raspberry Pi and Orange Pi image fabrication has separate
+board contracts; presence of an image does not establish a usable physical
+Host. See [Raspberry Pi](../raspberry-pi/fabrication/README.md) and
+[Orange Pi](../orange-pi/README.md).
 
-The Limine request and response types are confined to `src/boot/limine.rs`.
-Code outside that adapter consumes the boot-neutral types in
-`src/boot/observation.rs`.
+## Reproduce and inspect the evidence
 
-Run the complete proof with:
+| Command | What it checks |
+| --- | --- |
+| `cargo xtask conduitos journey-proof` | Graphical Body/Wake/Plan/Play journey, pointer actions, USB Line state, and correlated screenshots |
+| `cargo xtask conduitos front-door-proof` | The normal image's initial surface and long-lived interaction |
+| `cargo xtask conduitos prove --arch x86-64 --locked` | Architecture appliance, image reproducibility, fresh boots, kernel execution, and Observatory evidence |
+| `cargo xtask conduitos architecture-matrix --locked` | Architecture backends and their earned proof rungs |
+| `cargo xtask conduitos product-readiness-matrix` | Product readiness independently of architecture bring-up |
+| `cargo xtask conduitos std-gap` | Portable catalog coverage and remaining ConduitOS implementation gaps |
 
-```console
-cargo xtask conduitos prove --arch x86-64 --locked
-```
+The journey writes PNGs and `manifest.json` under
+`target/conduitos/x86_64/journey-frames/`. The [visual evidence guide](../../docs/visual-evidence.md)
+explains publication and how images correlate with semantic assertions.
+USB Line attachment and delivery in that journey do not imply Body membership;
+the records explicitly retain `membership: not-requested`.
 
-Inspect the digest-verified architecture matrix and current earned proof rungs
-with:
+For device work, `cargo xtask conduitos --help` lists focused xHCI, USB,
+HID, keyboard/text, hotplug, rescue, and sound proofs. Each owns a smaller
+contract: controller readiness, device enumeration, HID reports, and a portable
+keyboard offer are different steps. These tests use real emulated device
+paths and retain failures and identity changes as distinct results.
 
-```console
-cargo xtask conduitos architecture-matrix --locked
-```
+## Where to contribute
 
-Prove the first bounded x86_64 xHCI controller Base separately:
+- `src/` owns machine adapters, Host composition, and kernel integration.
+  Limine-specific types stay in `src/boot/limine.rs`; other code consumes
+  boot-neutral observations.
+- `firmware/` owns product linker scripts and boot configuration.
+- `fabrication/` owns target descriptors; `fabrication/xtask/` builds images
+  and runs repository proofs.
+- `proof/appliances/` owns architecture bring-up programs. They are separate
+  from the normal live product images.
 
-```text
-cargo xtask conduitos xhci-proof
-```
-
-That command pins one QEMU `qemu-xhci` PCI function, performs real MMIO
-halt/reset/start and command/event-ring work, retains exact boot-scoped Base
-identity and finite storage/work limits, and separately proves that an absent
-controller refuses. It remains freestanding-emulator proof and does not by
-itself infer a device or semantic capability.
-
-Prove one bounded root-attached USB device separately:
-
-```text
-cargo xtask conduitos usb-proof --locked
-```
-
-That command attaches one deterministic QEMU `usb-kbd` below the admitted xHCI
-Base and performs real root-port reset, slot/address commands, bounded EP0
-control transfers, device/configuration descriptor reads, finite parsing, and
-`SET_CONFIGURATION`. The retained report carries exact boot-local
-device/interface/endpoint identities and limits. A second real boot with the
-controller present but no device must refuse, and deterministic malformed,
-oversized, topology, completion, disappearance, and stale-identity vectors must
-also pass. Enumeration retains structural HID-class facts for later matching;
-it does not parse HID or advertise `input/keyboard`.
-
-Prove one bounded HID boot-keyboard transition stream separately:
-
-```text
-cargo xtask conduitos hid-proof --locked
-```
-
-That command matches only the enumerated HID boot-keyboard interface and its
-single eight-byte interrupt-IN endpoint, selects Boot Protocol, configures the
-endpoint through xHCI, and admits exactly two report buffers and transfer TRBs.
-The harness waits for the armed guest transfer, then injects acknowledged QMP
-key-down and key-up actions through QEMU's input path. ConduitOS must retain
-usage `0x04` as one press and one release with exact controller, device,
-interface, and endpoint correlation. Deterministic malformed, rollover,
-duplicate, pressure, loss, and completion-identity vectors also pass. This
-layer performs no report-descriptor interpretation, layout or Unicode
-translation, and still does not advertise `input/keyboard`.
-
-Prove the exact portable keyboard realization separately:
-
-```text
-cargo xtask conduitos keyboard-proof --locked
-```
-
-That command requires the real bounded HID device path before ConduitOS offers
-`input/keyboard`, then checks an ordinary Plan, one production-kernel Play, and
-the exact portable values `[4, 0, 0]` (press) and `[4, 1, 0]` (release). The
-retained report correlates the boot-local controller, device, interface, and
-endpoint identities with the advertised implementation, finite resource
-reservations, Plan and active Play. The ordinary Observatory snapshot must
-contain the same exact capability for native Patchbay projection. A real boot
-without the USB device must refuse without emitting a keyboard offer, and the
-focused suite covers stale identity, incompatible or ambiguous devices,
-capacity, pressure, transfer failure, device loss, closure, and invalid-value
-cases as distinct outcomes. This slice does not add keymaps, text or Unicode
-translation, hotplug, multiple-device policy, browser proof, or physical/HIL
-proof.
-
-That report derives the five supported architecture names from the exact
-`BOOT*.EFI` artifacts in the pinned Limine archive and refuses if they disagree
-with the architecture-valued command contract. It does not make an unavailable
-backend executable.
-
-The command mechanically checks the executable, assembles the same hybrid
-BIOS/UEFI ISO twice, requires identical digests, and validates two real QEMU
-boots with fresh `HostId` and `BootId` values. Each boot must emit exactly one
-bounded boot Sign, one correlated kernel Sign, and one ordinary bounded
-Observatory v2 snapshot. The snapshot carries the exact Host offer, seven
-machine Bases, resources, Plan, placements, capacity-one Cord, terminal Play,
-current and historical Signs, retention accounting, and sealed Limine boot
-provenance. The proof feeds the first snapshot through the headless native
-Patchbay linear consumer and requires the same exact identities and
-distinctions. It writes the evidence record and consumable snapshot to
-`target/conduitos/x86_64/kernel-proof.json` and
-`target/conduitos/x86_64/observatory-snapshot.json`.
-
-The proof requires `curl`, `make`, `tar`, `xorriso`, and
-`qemu-system-x86_64`. Missing tools, unsupported architecture backends,
-malformed or absent boot/kernel responses, exceeded bounds, unavailable Bases,
-QEMU timeouts, and stale identities are explicit proof refusals.
-
-The production topology is the ordinary authored `time/tick` to
-`presentation/tick` Form in `src/ordinary_plan.rs`. Each boot checks that
-source, plans against the exact current Host/Boot offer, lowers the sealed
-fragment into numeric kernel tables, and binds a distinct active Play. A
-boot-scoped 256 KiB arena admits all semantic preparation before Play; the
-arena is sealed at Play start and the proof requires its usage to remain
-unchanged through terminal completion. The old hand-lowered P2/P3 profile is
-compiled only as a regression-test fixture.
-
-The snapshot is prepared inside the admitted arena before Play, bounded to 64
-KiB, and emitted only after the expected terminal kernel result is verified.
-Limine and firmware facts appear only under `BOOT PROVENANCE [SEALED]`; they
-are not live offers, Bases, services, or authority. Patchbay remains read-only
-and receives no QEMU-memory or ConduitOS-private inspection path.
-
-This slice adds no preemption, SMP, framebuffer implementation, network,
-Patchbay control, second runtime, or additional executable architecture
-backend. Each broader ConduitOS profile remains explicitly unavailable until a
-separate finite issue earns one architecture and one proof rung.
+The scheduler remains cooperative. Two admitted execution regions can make
+logical progress through one kernel; this does not establish SMP, physical
+parallelism, preemption, or hostile-code isolation. General physical laptop
+storage, networking, audio, and input acceptance remain in the
+[laptop workstream](https://github.com/dancxjo/conduit/issues/2300).
+Native shell work includes [retained compositor surfaces](https://github.com/dancxjo/conduit/issues/3043),
+[scrolling and clipping](https://github.com/dancxjo/conduit/issues/3047), and
+[rendering polish](https://github.com/dancxjo/conduit/issues/3049).
+Use [STATUS](../../STATUS.md) for recorded proof boundaries and the linked
+issues for the current scope of each contribution.

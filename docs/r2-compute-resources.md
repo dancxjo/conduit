@@ -46,7 +46,10 @@ sealing, and the exclusion of physical lane identifiers from serialized Plans.
 They do not claim operating-system scheduling quality, bare-metal interrupt
 behavior, firmware execution, or physical/HIL Sign.
 
-## Non-AI generality check
+## Illustrative applications (not implementation claims)
+
+The examples below explain how the contract can apply; they do not claim
+installed video-transcoding or network-storage implementations.
 
 The realization machinery above contains no AI-specific core concept. The same
 checked-face, offer, observation, hard-requirement, policy, reservation, and Plan

@@ -114,7 +114,7 @@ pixels, coordinates, typography, wrapping, toolkit nodes, or screenshots.
 
 `renderer_execution_tests::native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen`
 feeds one bounded Patchbay specimen to the native, browser, and deterministic
-linear paths. `presenter_capstone_tests` separately proves that one unchanged
+linear paths. `presenter_plans_tests` separately proves that one unchanged
 high-level Patchbay meaning selects distinct direct and recursive Plans, lowers
 both through production machinery, executes both with finite Signs, preserves
 the portable interaction seam, and reports realization-specific absence without

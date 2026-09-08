@@ -14,7 +14,9 @@ The command validates the exact derived corpus identity, checks the portable tra
 
 The source is PB2007, DOI `10.5281/zenodo.6390598`. The admitted archive is exactly 37,793,957 bytes with SHA-256 `123d3fc2f114ab37724c7f05e00a03ff21d7e815f7f957987e8255f56d73f243`. The deposit README says CC-BY-SA while Zenodo metadata says CC-BY-4.0; this experiment records both and applies the more restrictive README statement.
 
-The checked-in 58 KiB derived slice contains twelve paired utterances: eight train, two validation, and two test. It preserves the 16 kHz audio and 100 Hz EMA source clocks, six tongue coordinates in source centimetre microunits, missing-data masks, per-resource digests, and post-freeze probe labels. Reproduce it from a locally obtained exact archive with:
+The checked-in 58 KiB derived slice contains twelve paired utterances: eight train, two validation, and two test. It preserves the 16 kHz audio and 100 Hz EMA source clocks, six tongue coordinates in source centimetre microunits, missing-data masks, per-resource digests, and post-freeze probe labels. The experiment above consumes this checked-in slice; no archive download is needed to run it.
+
+For maintainers reproducing the dataset derivation, the internal preparation script takes a locally obtained exact archive:
 
 ```console
 python3 semantics/tongues/tools/prepare_pb2007.py PB2007.zip /tmp/pb2007-derived-slice.json

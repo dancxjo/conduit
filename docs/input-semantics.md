@@ -3,7 +3,7 @@
 This document records the exact first portable text and modifier-chord maps.
 Device, USB, DOM, toolkit, operating-system layout, locale, and product-action
 facts are deliberately absent. The executable source of truth is the finite
-allocator-free state in `conduit-core`.
+allocator-free state in [`conduit-human`](../semantics/human/src/lib.rs).
 
 ## Highest honest input seam
 
@@ -26,7 +26,7 @@ consume a separate projection and do not become the canonical semantic map.
 
 The shared conformance vectors are byte-identical across the ConduitOS USB
 bridge and native adapter. Both then reuse the exact `conduit-intl` and
-`conduit-core` state machines below; neither implementation owns a private
+`conduit-core` chord-map state machines below, both owned by `conduit-human`; neither implementation owns a private
 keymap or chord table. The unchanged K6 Form can therefore select either
 `conduitos/usb-hid-keyboard@1` or `patchbay-native/winit-keyboard@1` while its
 source, checked meaning, Gear/Port identities, and Info types remain unchanged.

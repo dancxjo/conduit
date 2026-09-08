@@ -3,11 +3,12 @@
 **Status:** durable project direction and architectural intent  
 **Audience:** maintainers, contributors, coding agents, reviewers, and future users  
 **Current executable truth:** [STATUS.md](../STATUS.md)  
-**Forward sequence:** [issue #1192](https://github.com/dancxjo/conduit/issues/1192)
+**Current work:** [roadmap](roadmap.md)
+**Architecture reference:** [topic index](architecture/README.md)
 
 This document exists so that good ideas do not have to become immediate code merely to avoid being forgotten. It records the project Conduit is trying to become, the distinctions it must preserve, the concepts already earned by executable proof, and the larger ideas that remain valuable without yet being current obligations.
 
-The archive, the August reboot, and the current salvage tree are all parts of one history. None is the entire project. Code may be replaced while an idea survives; an idea may be retained while its first implementation is retired.
+The archive, the August reboot, and the current implementation are parts of one history. Code may be replaced while an idea survives; an idea may be retained while its first implementation is retired.
 
 ## The center
 
@@ -24,7 +25,11 @@ The same form may therefore run:
 - on a constrained microcontroller;
 - across several connected hosts;
 - inside a robot composed of cooperating parts;
-- or eventually under a static ConduitOS execution image.
+- inside a native ConduitOS execution image.
+
+These are realization directions, not interchangeable acceptance claims. Current
+ConduitOS execution includes freestanding emulator proof; physical deployment
+and each target's supported operations have separate evidence in `STATUS.md`.
 
 Portability does not mean pretending those environments are identical. Their clocks, memory, implementations, links, physical effects, limits, and failures remain explicit in capabilities and plans.
 
@@ -152,7 +157,7 @@ these boundaries and current evidence under #2685.
 
 ### Execution and presentation
 
-The DOM, stdout, LEDs, dashboards, and future Workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or Sign.
+The DOM, stdout, LEDs, dashboards, and workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or Sign.
 
 A presentation may summarize or arrange runtime facts. It may not manufacture them.
 
@@ -289,11 +294,11 @@ All forms are conceptually composite. A form with one opaque implementation is s
 
 A BODY may later appear through a FACE inside another form without becoming a copy of that body.
 
-## The future BODY layer
+## Body identity and lifecycle
 
 The retired realm table is not the intended durable model.
 
-The forward vocabulary is:
+The vocabulary is:
 
 ```text
 HOST  a running or recoverable software environment
@@ -303,7 +308,7 @@ CAPABILITY  truthful finite current realization offer from a host boot
 ROLE  semantic requirement declared by a form
 CAST  exact binding of roles to capabilities
 LINK  communication path between parts
-BODY  durable top-level realization of a form
+BODY  durable logical computer with a bounded workset of Forms
 SOUL  durable continuity and recoverable identity of a body
 ```
 
@@ -373,12 +378,17 @@ A Form contains configured Gears and may require Roles. A Cast binds Roles to ex
 
 ConduitOS is a native Host substrate for this same admitted Plan and kernel. It
 does not supply an alternate scheduler or kernel semantics. Current ConduitOS
-proof is one cooperative execution lane; it does not yet prove SMP,
-preemption, or physical parallel execution.
+proof uses cooperative execution through the one kernel; it does not yet prove
+SMP, preemption, or physical parallel execution.
 
 Membership, reachability, authority, capability, placement, and link state remain separate.
 
-This layer waits until Host reports, live Links, the small standard catalog, and Signs are trustworthy. It must consume the kernel rather than invent a parallel distributed world.
+Body membership, continuity, administration, and workload-transition contracts
+now have dedicated implementations in `architecture/body`. Product integration
+and recovery proof remain distinct from those contracts. The layer consumes
+Host reports, Lines, planning, and the one kernel; it does not invent a parallel
+distributed runtime. See [Body lifecycle contracts](architecture/body-lifecycle-waists.md)
+and the [current roadmap](roadmap.md).
 
 ## Proof classes
 
@@ -394,23 +404,24 @@ The repository uses precise proof names:
 
 A Thumb build is not firmware execution. A WASM build is not browser execution. A browser test is not a live network link. A loopback socket is not installation security. An LED blink is not a machine-readable receipt.
 
-`STATUS.md` records the highest proof class currently established for each surface.
+These classes are distinct, not a ladder where one automatically substitutes
+for another. [The machine-readable proof catalog](architecture/proof-classes.md)
+defines the exact vocabulary; `STATUS.md` records the established classes and
+remaining gaps for each surface.
 
 ## Direction of travel
 
-The salvage sequence is intentionally layered:
+The dependency direction remains meaning and typed contracts → exact planning
+and admission → the execution kernel → Host effects → product presentation.
+Body lifecycle coordinates the current workset through those same boundaries.
+Domain applications consume them rather than introducing another runtime.
 
-1. trustworthy port-aware bounded kernel;
-2. exact planning over contracts, resources, authority, and observed links;
-3. lossless authored forms, nesting, and named faces;
-4. actual std, browser, and Pico hosts with bounded live links;
-5. a small executable `conduit.std` catalog;
-6. BODY, PART, CAPABILITY, ROLE, CAST, LINK, and SOUL;
-7. Observatory over real reports, then useful tasks and Workbench;
-8. domain proofs such as Tongues and the historical Netherwick project;
-9. deadline-bounded regions and ConduitOS only after the bounded execution image is mature.
-
-A later layer may inspire interfaces in an earlier one, but it may not bypass the earlier layer's acceptance gate.
+The early S1–S5 salvage sequence is historical. Conduit now has a semantic
+catalog, Body lifecycle, browser and native product surfaces, device work, and
+ConduitOS emulator execution. Those surfaces have different levels of proof;
+their existence is not a claim that every end-to-end journey is complete.
+[STATUS.md](../STATUS.md) describes those limits, and the [roadmap](roadmap.md)
+links the work currently being pursued.
 
 ## The idea vault
 
@@ -418,7 +429,7 @@ Ideas are classified so that deferral does not feel like erasure and preservatio
 
 ### Living core
 
-These ideas are current, load-bearing direction and have executable proof in the salvage tree:
+These ideas are current, load-bearing direction and have executable implementations and bounded proof surfaces in the repository:
 
 - semantic forms, host capability offers, and exact plans;
 - source, checked, expanded, plan, play, Sign, and presentation identity separation;
@@ -428,28 +439,31 @@ These ideas are current, load-bearing direction and have executable proof in the
 - exact resource, authority, and observed-link planning contracts;
 - lossless source retention and located diagnostics;
 - inline nested forms and named composite faces;
-- production std and browser-local Signal execution through the kernel;
+- hosted and browser execution through the kernel, with separately proved Lines;
+- the portable semantic catalog and Host-owned realization offers;
+- Body membership, workload and continuity contracts;
+- read-only Observatory and portable Presentation/Manifestation contracts;
+- CLI, Tour, Crèche, Patchbay, and ConduitOS product surfaces;
+- ConduitOS freestanding emulator execution and retained visual evidence;
 - honest proof-class boundaries.
 
 ### Dormant, not discarded
 
-These are valuable directions waiting on named prerequisites:
+These are valuable directions waiting on named prerequisites. An implemented
+slice belongs in the living project even when its larger ambition remains open:
 
-- actual Pico W firmware and physical LED receipts;
-- live std-browser and std-Pico links;
-- Zenoh as a later connection base, not an architectural foundation;
-- the small executable standard catalog;
-- later SOUL continuity policy beyond current Body lifecycle evidence;
-- a real Host Observatory over authoritative reports;
-- Copy a file as the first unfamiliar-user task;
-- the Workbench as an authoring client of forms and the runtime;
-- test receipts and resumable CI;
-- the Pico W AP, DHCP, DNS, and HTTP appliance after the smaller Pico proof;
-- Tongues as a speech/audio brownfield profile;
-- the historical Netherwick robotics experiment as provenance for Pete's
-  describe-only, then HIL-safe robotics profiles;
-- deadline-bounded regions and static ConduitOS execution images;
-- package and artifact distribution once exact installation and authority contracts are ready.
+- broader SOUL recovery and durable policy beyond bounded continuity evidence;
+- Zenoh as a possible later Line Base;
+- general package and artifact distribution beyond reviewed fabrication packages;
+- domain expansion beyond the current House, Laptop, and Pete slices.
+
+Hostile isolation, physical coverage, and product usability still have concrete
+proof gaps; their current scope belongs in the roadmap rather than being
+automatically classified as dormant.
+
+Pico firmware, the standard catalog, Observatory, file copy, speech/audio work,
+and ConduitOS are no longer dormant ideas. Their remaining proof and integration
+gaps belong in the roadmap, not in a list implying no implementation exists.
 
 Dormant ideas should have an owning issue, dependencies, and a future proof. They should not leak placeholder abstractions into the current layer.
 
@@ -474,8 +488,8 @@ A superseded experiment may contain an excellent algorithm, vocabulary lesson, c
 
 These remain intentionally open questions:
 
-- the final public spelling of the form language;
-- the durable admission and cryptographic model for bodies;
+- future language ergonomics beyond the current canonical `.conduit` syntax;
+- broader durable trust, delegation, and recovery beyond current Body admission protocols;
 - the exact package, artifact, and implementation installation workflow;
 - how much automatic placement and negotiation belongs above explicit planning;
 - how bodies gather on neutral ground without confusing discovery with trust;
@@ -512,7 +526,7 @@ Conduit should become useful from the outside inward:
 - then let an unfamiliar person complete one useful task;
 - only then grow the freeform Workbench and larger domains.
 
-The user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, Sign, and presentation.
+A user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, Sign, and presentation.
 
 The current product loop is:
 
@@ -570,9 +584,9 @@ the exact proof when curious.
 Product demonstrations are ordinary checked Forms travelling through
 the real checker, planner, kernel, Presentation, and Presenter. A bespoke demo
 appliance may diagnose a lower boundary, but it does not define the product
-experience. Until the golden enactment loop is understandable, additional
-architecture productization and broad domain expansion are paused rather than
-replicating an unstable interface.
+experience. The product priority is to make the enactment loop understandable before
+expanding the interface. The roadmap records the actual sequencing; this design
+principle is not a blanket declaration that all domain work is paused.
 
 ## Governance of this canon
 
