@@ -346,7 +346,8 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes: 0,
         host_requests: 0,
         sign_items: 16,
-        maximum_value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
+        maximum_value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES.max(MAX_GRAPHICS_SCENE_BYTES)
+            as u32,
     })
 }
 

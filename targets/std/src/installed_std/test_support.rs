@@ -234,7 +234,7 @@ pub(crate) fn test_graphics_sink_offer() -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES as u32,
+            max_queue_bytes: conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32,
         },
     }
 }
