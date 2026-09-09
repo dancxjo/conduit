@@ -13,17 +13,19 @@ pub(super) fn append(
 ) -> Result<(), TourWorkspaceSceneRefusal> {
     // Tiny synthetic viewports cannot display a glyph; the ordinary shell
     // admits at least 320x240. Retain their existing geometry-only behavior.
-    if bounds.width < 32 || bounds.height <= TOP {
+    let reserved = TOP.saturating_add(super::LESSON_CONTROL_BAR_HEIGHT);
+    if bounds.width < 32 || bounds.height <= reserved {
         return Ok(());
     }
     let clip = LayoutRect {
         y: bounds.y + TOP as i16,
-        height: bounds.height - TOP,
+        height: bounds.height - reserved,
         ..bounds
     };
     // This module owns the prose viewport. Clear it before placing the authored
     // blocks so stale generic lesson-status text or retained pixels cannot sit
-    // underneath the measured paragraph layout. The pane title above TOP stays.
+    // underneath the measured paragraph layout. The pane title above TOP and
+    // the control footer below the clip stay independently owned.
     scene
         .push(
             GraphicsCommand::rect(
