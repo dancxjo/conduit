@@ -20,7 +20,7 @@ fn proportional_prose_and_monospace_code_have_distinct_metrics() {
 fn admitted_unicode_and_secondary_face_have_real_coverage() {
     for character in "Crèche café Ω Ж 中 → ● ○".chars() {
         assert!(
-            profile::glyph(character, Role::Body).is_some() || !font::glyph(character).1,
+            profile::coverage(character, Role::Body) != profile::GlyphCoverage::Replacement,
             "{character}"
         );
     }
@@ -75,4 +75,30 @@ fn text_tokens_meet_normal_text_contrast() {
     ] {
         assert!((luminance(token) + 0.05) / (luminance(profile::BACKGROUND) + 0.05) >= 4.5);
     }
+}
+
+#[test]
+fn the_entire_admitted_corpus_never_uses_missing_glyph_replacement() {
+    let corpus = include_str!(
+        "../../../../products/patchbay/native/assets/unifont/unifont-17.0.04-patchbay.hex"
+    );
+    for line in corpus.lines() {
+        let cp = u32::from_str_radix(line.split_once(':').unwrap().0, 16).unwrap();
+        let character = char::from_u32(cp).unwrap();
+        for role in [Role::Body, Role::Heading, Role::Title, Role::Code] {
+            assert_ne!(
+                profile::coverage(character, role),
+                profile::GlyphCoverage::Replacement,
+                "{character}"
+            );
+        }
+    }
+    assert_eq!(
+        profile::coverage('中', Role::Body),
+        profile::GlyphCoverage::UnicodeFallback
+    );
+    assert_eq!(
+        profile::coverage('🦀', Role::Body),
+        profile::GlyphCoverage::Replacement
+    );
 }

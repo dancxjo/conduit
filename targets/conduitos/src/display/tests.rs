@@ -185,10 +185,24 @@ fn bounded_scene_renders_and_loss_remains_distinct() {
     assert!(bytes.iter().any(|byte| *byte != 0));
     // Coverage rendering includes both solid ink and intermediate edge pixels.
     let foreground = format().pixel(225, 232, 240).to_le_bytes();
-    assert!(bytes.chunks_exact(4).any(|pixel| pixel == foreground));
-    assert!(bytes.chunks_exact(4).any(|pixel| pixel != [0; 4]
-        && pixel != foreground
-        && pixel != paint(format(), GraphicsPaintRole::Accent).to_le_bytes()));
+    assert!(
+        bytes
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .copied()
+            .any(|pixel| pixel == foreground)
+    );
+    assert!(
+        bytes
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .copied()
+            .any(|pixel| pixel != [0; 4]
+                && pixel != foreground
+                && pixel != paint(format(), GraphicsPaintRole::Accent).to_le_bytes())
+    );
 
     let mut lost = Buffer {
         format: format(),

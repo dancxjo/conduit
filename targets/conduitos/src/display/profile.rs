@@ -26,6 +26,23 @@ pub const fn line_height(role: GraphicsTextRole) -> u32 {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GlyphCoverage {
+    Primary,
+    UnicodeFallback,
+    Replacement,
+}
+
+pub fn coverage(character: char, role: GraphicsTextRole) -> GlyphCoverage {
+    if lookup(character, role).is_some() {
+        GlyphCoverage::Primary
+    } else if !super::font::glyph(character).1 {
+        GlyphCoverage::UnicodeFallback
+    } else {
+        GlyphCoverage::Replacement
+    }
+}
+
 pub(super) fn glyph(character: char, role: GraphicsTextRole) -> Option<Glyph> {
     lookup(character, role).or_else(|| {
         if super::font::glyph(character).1 {
