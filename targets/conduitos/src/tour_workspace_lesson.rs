@@ -46,6 +46,9 @@ pub(super) fn append(
             let end = chunk_end(remaining);
             let chunk = &remaining[..end];
             let width = bounds.width - 16;
+            // Give each chunk exactly the vertical extent measured by the same
+            // text layout used by raster placement. The next chunk starts below
+            // that extent, so wrapped lines cannot overlap their neighbors.
             let height = crate::display::text_height(chunk, width)
                 .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?;
             let text_bounds = LayoutRect {
