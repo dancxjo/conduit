@@ -42,6 +42,7 @@ jobs:
         run: >-
           node --test
           proof/ci/branch-boundary.spec.mjs
+          proof/ci/development-receipts.spec.mjs
           proof/ci/browser-product-ownership.test.mjs
           proof/ci/pr-closing-intent.test.mjs
           proof/ci/release-lane-controller.spec.mjs
@@ -67,7 +68,7 @@ jobs:
   candidate:
     needs: [admission, check, products]
     if: always() && !cancelled()
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     steps:
       - name: Admit only a candidate whose affected integration passed
         env:
