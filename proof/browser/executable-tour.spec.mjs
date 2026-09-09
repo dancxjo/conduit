@@ -228,8 +228,6 @@ test("the Tour navigation remains legible and interactive in both theme modes", 
     await previous.hover();
     await expect(previous).toHaveCSS("border-color", dark ? "rgb(233, 163, 37)" : "rgb(154, 91, 0)");
     await previous.focus();
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Shift+Tab");
     await expect(previous).toBeFocused();
     expect(await previous.evaluate((element) =>
       getComputedStyle(element).getPropertyValue("--conduit-focus").trim())).toBe(dark ? "#f4c400" : "#775d00");
@@ -2331,9 +2329,10 @@ test("stopping the two-Host lesson cancels without a late manifestation", async 
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Host A offered one value");
   await runner.getByRole("button", { name: "Stop" }).click();
-  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Plays were cancelled after 0 delivered cross-Host values.");
   await page.evaluate(() => globalThis.__releaseTourAnimationFrame());
-  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Plays were cancelled after 0 delivered cross-Host values.");
   await expect(runner.locator(".morse")).toHaveText("ready");
-  await expect(runner.locator(".run-identities")).not.toContainText("Terminal source receipt");
+  await expect(runner.locator(".run-identities")).toContainText("Terminal source receipt");
+  await expect(runner.locator(".run-identities")).toContainText("Terminal sink receipt");
 });

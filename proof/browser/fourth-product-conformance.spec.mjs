@@ -318,7 +318,7 @@ test("fourth application keeps every required refusal and Host failure distinct"
 test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contracts", async ({ page }) => {
   const products = [
     ["Tour", "tour", () => startStaticProduct(tourProduct, "/conduit/tour/"), ["navigation", "form-field", "status"]],
-    ["Crèche", "creche", () => startStaticProduct(crecheProduct, "/conduit/creche/"), ["stepper", "form-field", "disclosure"]],
+    ["Crèche", "creche", () => startStaticProduct(crecheProduct, "/conduit/creche/"), ["stepper", "form-field", "choice-group"]],
     ["Patchbay", "patchbay", () => startStaticProduct(patchbayProduct, "/conduit/patchbay/"), ["navigation", "definition-table", "disclosure"]],
     ["Field Notes", null, () => startStaticProduct(stagedFixture), ["navigation", "artifact", "disclosure", "progress"]],
   ];
@@ -328,6 +328,7 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
     const entrance = await start();
     try {
       await page.goto(entrance.url);
+      if (name === "Crèche") await page.getByText("Hosts and provisioning", { exact: true }).click();
       if (name === "Patchbay") await page.getByText("Advanced evidence and linear presentation", { exact: true }).click();
       try { await expectSharedComponents(page, components); }
       catch (error) { throw new Error(`${name}: ${error.message}`); }
