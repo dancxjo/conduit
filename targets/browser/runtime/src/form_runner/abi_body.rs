@@ -56,6 +56,8 @@ pub extern "C" fn conduit_browser_body_start(length: usize) -> i32 {
             if write_output(&started).is_err() {
                 return ERROR_OUTPUT;
             }
+            #[cfg(feature = "creche-surface")]
+            super::super::workspace::record_start(&started.play);
             if !matches!(&started.progress, super::super::TourProgress::Receipt(_)) {
                 SESSION.with(|slot| *slot.borrow_mut() = Some(session));
             }
@@ -117,6 +119,13 @@ mod tests {
         });
         assert_eq!(receipt["active_play_id"], play.active_play_id.as_str());
         assert_eq!(receipt["disposition"], "completed");
+        #[cfg(feature = "creche-surface")]
+        {
+            // A terminal Play still has an actual, unacknowledged start receipt.
+            super::super::super::workspace::require_started(&play).unwrap();
+            super::super::super::workspace::acknowledge_start();
+            assert!(super::super::super::workspace::require_started(&play).is_err());
+        }
         assert_eq!(
             conduit_browser_body_start(BODY_INPUT_BYTES + 1),
             ERROR_INPUT

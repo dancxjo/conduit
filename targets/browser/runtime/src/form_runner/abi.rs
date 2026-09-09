@@ -23,7 +23,7 @@ const ERROR_INTERACTION: i32 = -407;
 const ERROR_PROJECTION: i32 = -408;
 
 thread_local! {
-    static SESSION: RefCell<Option<TourSession>> = const { RefCell::new(None) };
+    pub(super) static SESSION: RefCell<Option<TourSession>> = const { RefCell::new(None) };
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
     static OUTPUT: RefCell<[u8; OUTPUT_BYTES]> = const { RefCell::new([0; OUTPUT_BYTES]) };
     static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };

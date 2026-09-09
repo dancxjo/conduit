@@ -190,6 +190,8 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/tour-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface,form-runner
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/workspace-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
           cargo build --locked -p patchbay-html --bin patchbay-static-assets
@@ -747,10 +749,11 @@ jobs:
           chmod 755 target/browser-product-runtimes/patchbay-static-assets
           cp target/browser-product-runtimes/tour-runtime.wasm target/conduit_tour_runtime.wasm
           cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
-          rm -rf target/pages-root target/tour-product target/creche-product target/patchbay-product
+          rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product
           site/tools/stage-pages-root.sh target/pages-root
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
+          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
       - name: Retain the exact staged products once for parallel consumers
         uses: ./.github/actions/upload-artifact-retry
@@ -764,6 +767,7 @@ jobs:
             target/pages-root
             target/tour-product
             target/creche-product
+            target/workspace-product
             target/patchbay-product
           if-no-files-found: error
           include-hidden-files: true
@@ -787,7 +791,7 @@ jobs:
           - shard: browser-host
             specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
           - shard: creche-machines
-            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs
+            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
             specs: proof/browser/pages-front-door.spec.mjs proof/browser/web-accessibility.spec.mjs
     name: browser-proof-${{ matrix.shard }}
@@ -808,6 +812,9 @@ jobs:
           path: target
       - name: Restore executable Host permission
         run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-admission-probe
+      - name: Prove foreground input and Body retirement contracts
+        if: matrix.shard == 'creche-machines'
+        run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs
       - name: Prove the ${{ matrix.shard }} surface in pinned Chromium
         if: matrix.shard != 'tour'
         env:
@@ -869,10 +876,11 @@ jobs:
       - name: Seal the already-proven Pages carrier
         run: |
           rm -rf target/pages-site target/pages-carrier
-          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/patchbay
+          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/workspace target/pages-site/patchbay
           cp -a target/pages-root/. target/pages-site/
           cp -a target/tour-product/. target/pages-site/tour/
           cp -a target/creche-product/. target/pages-site/creche/
+          cp -a target/workspace-product/. target/pages-site/workspace/
           cp -a target/patchbay-product/. target/pages-site/patchbay/
           node products/tour/tools/stage-legacy-routes.mjs target/pages-site
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
@@ -880,6 +888,7 @@ jobs:
           test -f target/pages-site/book/index.html
           test -f target/pages-site/creche/index.html
           test -f target/pages-site/creche/creche.application.json
+          test -f target/pages-site/workspace/workspace.application.json
           test -f target/pages-site/creche/runtime.wasm
           test -f target/pages-site/patchbay/patchbay.application.json
           test -f target/pages-site/patchbay/api/snapshot

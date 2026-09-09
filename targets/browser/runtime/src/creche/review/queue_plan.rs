@@ -4,12 +4,12 @@ use conduit_form::ExpandedCanonicalForm;
 use conduit_planner::{ConnectionQueueLimits, PlanningOptions};
 use std::collections::BTreeMap;
 
-pub(super) fn review(
+pub(in crate::creche) fn plan(
     form: &ExpandedCanonicalForm,
     hosts: &[HostAdvertisement],
     placements: &conduit_planner::PlacementChoices,
     bases: &[BaseImplementationId],
-) -> Result<(), String> {
+) -> Result<conduit_core::Plan, String> {
     let mut limits = BTreeMap::new();
     for cord in &form.connections {
         let capability = |gear| {
@@ -65,6 +65,5 @@ pub(super) fn review(
         },
         &limits,
     )
-    .map(|_| ())
     .map_err(|error| error.to_string())
 }

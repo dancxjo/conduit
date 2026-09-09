@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { acquireBrowserBodyHost } from "../../targets/browser/host/assets/browser-body-host.mjs";
 
-function fixture({ timer = false, inputUnits = 0, text = "hello", quiescent = false } = {}) {
+function fixture({ timer = false, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
   const memory = { buffer: new ArrayBuffer(512 * 1024) };
   let length = 0, starts = 0, cancels = 0, request;
   const output = value => {
@@ -18,7 +18,8 @@ function fixture({ timer = false, inputUnits = 0, text = "hello", quiescent = fa
     conduit_browser_body_input_ptr: () => 256 * 1024, conduit_browser_body_input_capacity: () => 256 * 1024,
     conduit_browser_body_start(length) {
       starts++;request = JSON.parse(new TextDecoder().decode(new Uint8Array(memory.buffer, 256 * 1024, length)));
-      output({ schema: "conduit.browser/body-started@1", play: { active_play_id: "play" }, progress: effect });return 0;
+      output({ schema: "conduit.browser/body-started@1", play: { active_play_id: "play" }, progress: immediate
+        ? { schema: "conduit.tour/manifestation-receipt@3", disposition: "completed", active_play_id: "play" } : effect });return 0;
     },
     conduit_browser_form_pending_capacity: () => 16,
     conduit_browser_form_poll_effect() { output({ disposition: "waiting" });return 0; },
@@ -50,6 +51,15 @@ test("one acquired window-input adapter reports every admitted logical input uni
   const owner = acquireBrowserBodyHost(f);
   assert.equal(owner.observations()[0].unreserved_units, 16);
   owner.close();
+});
+
+test("a synchronously completed Body retains its receipt before dispatch or retirement", () => {
+  const f = fixture({ immediate: true }), owner = acquireBrowserBodyHost(f);
+  const started = owner.start(1);
+  const closed = owner.close();
+  assert.deepEqual(closed.receipt, started.progress);
+  assert.equal(closed.receipt.disposition, "completed");
+  assert.equal(f.count().cancels, 0);
 });
 
 test("acquisition reports owned slots without starting a Play or copying offer capacity", async () => {

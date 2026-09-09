@@ -41,3 +41,4 @@ pub mod r1_recovery;
 pub mod toggle;
 pub mod tongues;
 pub mod unifont_subset;
+pub mod workspace;

@@ -19,6 +19,20 @@ function latestAttempt(candidate) {
   return orderedAttempts(candidate).at(-1);
 }
 
+export function currentReleaseCandidates(releases, runs) {
+  return releases.map((pull) => {
+    const branchRuns = runs.filter((run) => run.branch === pull.head.ref);
+    const attempts = branchRuns.filter((run) => run.headSha === pull.head.sha);
+    return {
+      prNumber: pull.number,
+      branch: pull.head.ref,
+      headSha: pull.head.sha,
+      createdAt: attempts[0]?.createdAt ?? pull.created_at,
+      attempts,
+    };
+  });
+}
+
 function failedJobs(attempt) {
   return (attempt?.jobs ?? [])
     .filter((job) => job.conclusion === "failure")

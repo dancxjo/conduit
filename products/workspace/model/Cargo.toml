@@ -1,0 +1,13 @@
+[package]
+name = "conduit-workspace-model"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+conduit-body = { path = "../../../architecture/body", default-features = false }
+conduit-core = { path = "../../../architecture/core" }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+
+[dev-dependencies]
+serde_json = "1"
