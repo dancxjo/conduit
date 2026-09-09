@@ -1,4 +1,6 @@
 use alloc::{format, vec, vec::Vec};
+#[path = "transient_replacement_tests.rs"]
+mod transient_replacement_tests;
 
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
 use conduit_semantic_catalog::NormalizedPointerSample;
