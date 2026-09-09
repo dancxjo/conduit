@@ -140,10 +140,21 @@ fn wait(
     offset: usize,
 ) -> Result<(), ConduitosError> {
     journey_input::wait_for_record(serial, child, "run-control-event-timeout", marker, |text| {
-        Ok(text
-            .get(offset..)
-            .is_some_and(|tail| tail.lines().any(|line| line.contains(marker))))
+        Ok(marker_after(text, marker, offset))
     })
+}
+
+// File metadata measures bytes and can stop within a Unicode scalar. Search
+// the validated complete-record text by bytes without rounding the offset
+// backwards and accidentally accepting a marker from before the action.
+fn marker_after(text: &str, marker: &str, offset: usize) -> bool {
+    !marker.is_empty()
+        && text.as_bytes().get(offset..).is_some_and(|tail| {
+            tail.split(|byte| *byte == b'\n').any(|line| {
+                line.windows(marker.len())
+                    .any(|window| window == marker.as_bytes())
+            })
+        })
 }
 
 fn button(
@@ -196,6 +207,17 @@ fn io(error: impl std::fmt::Display) -> ConduitosError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn byte_offsets_inside_unicode_do_not_lose_later_markers() {
+        let text = "é中🦀\ncheckpoint\n";
+        for offset in 0.."é中🦀".len() {
+            assert!(marker_after(text, "checkpoint", offset));
+        }
+        assert!(!marker_after(text, "checkpoint", "é中🦀\nc".len()));
+        assert!(!marker_after(text, "checkpoint", text.len() + 1));
+        assert!(!marker_after(text, "", 0));
+        assert!(!marker_after("check\npoint\n", "checkpoint", 0));
+    }
     #[test]
     fn result_activation_and_release_are_ordered_and_unique() {
         let valid = format!("CONDUIT_SERIAL_PRESENT HELLO\n{RUN}\n{RELEASE}\n");
