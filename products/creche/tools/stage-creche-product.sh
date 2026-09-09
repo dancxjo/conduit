@@ -1,9 +1,15 @@
 #!/bin/sh
 set -eu
 
-runtime=${1:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS}
-destination=${2:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS}
-release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS}
+runtime=${1:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof]}
+destination=${2:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof]}
+release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof]}
+mode=${4:-release}
+
+case "$mode" in
+  release|browser-proof) ;;
+  *) echo "unsupported Crèche staging mode: $mode" >&2; exit 2 ;;
+esac
 
 test -f "$runtime"
 test ! -e "$destination"
@@ -44,28 +50,30 @@ cp targets/browser/host/assets/usb-device-base.mjs "$destination/usb-device-base
 cp "$runtime" "$destination/runtime.wasm"
 cp targets/browser/host/assets/artifacts/pico-w-signal-pico-local.json "$destination/artifacts/"
 cp targets/browser/host/assets/artifacts/pico-w-signal-pico-local.uf2 "$destination/artifacts/"
-for target in c3 s3 wroom; do
-  test -f "$release_artifacts/esp32-$target-generic-release.bin"
-  test -f "$release_artifacts/esp32-$target-generic-release.json"
-  cp "$release_artifacts/esp32-$target-generic-release.bin" "$destination/artifacts/"
-  cp "$release_artifacts/esp32-$target-generic-release.json" "$destination/artifacts/"
-done
-for artifact in hosted-linux-x86_64.json conduit-linux-x86_64 hosted-windows-x86_64.json conduit-windows-x86_64.exe hosted-macos-aarch64.json conduit-macos-aarch64 browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs browser-boot-profile.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
-  test -f "$release_artifacts/$artifact"
-  cp "$release_artifacts/$artifact" "$destination/artifacts/"
-done
-for artifact in avr-promicro-atmega32u4-5v-16mhz.json promicro-atmega32u4-5v-16mhz.hex; do
-  test -f "$release_artifacts/$artifact"
-  cp "$release_artifacts/$artifact" "$destination/artifacts/"
-done
-for artifact in orange-pi-5-image.json conduitos-orange-pi-5.img raspios-bookworm-pi4-model-b-rev-1.5-4gb.json raspios-bookworm-zero-2-w-rev-1.0.json raspios-bookworm-zero-2-wh-rev-1.0.json conduit-linux-aarch64 rpi-b-plus-image.json conduitos-rpi-b-plus.img rpi-zero-v1-image.json conduitos-rpi-zero-v1.img rpi-zero-w-v1.1-image.json conduitos-rpi-zero-w-v1.1.img rpi-zero-wh-v1.1-image.json conduitos-rpi-zero-wh-v1.1.img; do
-  test -f "$release_artifacts/$artifact"
-  cp "$release_artifacts/$artifact" "$destination/artifacts/"
-done
-for artifact in conduitos-x86_64-pc-release.json conduitos-x86_64-pc.iso conduitos-aarch64-virt-release.json conduitos-aarch64-virt.iso conduitos-ia32-pc-release.json conduitos-ia32-pc.iso conduitos-riscv64-virt-release.json conduitos-riscv64-virt.iso conduitos-loongarch64-virt-release.json conduitos-loongarch64-virt.iso; do
-  test -f "$release_artifacts/$artifact"
-  cp "$release_artifacts/$artifact" "$destination/artifacts/"
-done
+if test "$mode" = release; then
+  for target in c3 s3 wroom; do
+    test -f "$release_artifacts/esp32-$target-generic-release.bin"
+    test -f "$release_artifacts/esp32-$target-generic-release.json"
+    cp "$release_artifacts/esp32-$target-generic-release.bin" "$destination/artifacts/"
+    cp "$release_artifacts/esp32-$target-generic-release.json" "$destination/artifacts/"
+  done
+  for artifact in hosted-linux-x86_64.json conduit-linux-x86_64 hosted-windows-x86_64.json conduit-windows-x86_64.exe hosted-macos-aarch64.json conduit-macos-aarch64 browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs browser-boot-profile.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
+    test -f "$release_artifacts/$artifact"
+    cp "$release_artifacts/$artifact" "$destination/artifacts/"
+  done
+  for artifact in avr-promicro-atmega32u4-5v-16mhz.json promicro-atmega32u4-5v-16mhz.hex; do
+    test -f "$release_artifacts/$artifact"
+    cp "$release_artifacts/$artifact" "$destination/artifacts/"
+  done
+  for artifact in orange-pi-5-image.json conduitos-orange-pi-5.img raspios-bookworm-pi4-model-b-rev-1.5-4gb.json raspios-bookworm-zero-2-w-rev-1.0.json raspios-bookworm-zero-2-wh-rev-1.0.json conduit-linux-aarch64 rpi-b-plus-image.json conduitos-rpi-b-plus.img rpi-zero-v1-image.json conduitos-rpi-zero-v1.img rpi-zero-w-v1.1-image.json conduitos-rpi-zero-w-v1.1.img rpi-zero-wh-v1.1-image.json conduitos-rpi-zero-wh-v1.1.img; do
+    test -f "$release_artifacts/$artifact"
+    cp "$release_artifacts/$artifact" "$destination/artifacts/"
+  done
+  for artifact in conduitos-x86_64-pc-release.json conduitos-x86_64-pc.iso conduitos-aarch64-virt-release.json conduitos-aarch64-virt.iso conduitos-ia32-pc-release.json conduitos-ia32-pc.iso conduitos-riscv64-virt-release.json conduitos-riscv64-virt.iso conduitos-loongarch64-virt-release.json conduitos-loongarch64-virt.iso; do
+    test -f "$release_artifacts/$artifact"
+    cp "$release_artifacts/$artifact" "$destination/artifacts/"
+  done
+fi
 cp targets/avr/deployment/browser/*.mjs "$destination/targets/avr/browser-deployment/"
 cp targets/rp2040/deployment/browser/*.mjs "$destination/targets/rp2040/browser-deployment/"
 cp targets/esp32/deployment/browser/*.mjs "$destination/targets/esp32/browser-deployment/"
