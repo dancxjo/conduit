@@ -61,6 +61,7 @@ fn panel_scene(
     title: &str,
     detail: &str,
 ) -> Result<GraphicsScene, TourShellError> {
+    let inset = crate::display::style::NATIVE_STYLE.panel_inset;
     let local = LayoutRect {
         x: 0,
         y: 0,
@@ -80,9 +81,9 @@ fn panel_scene(
         )
         .map_err(|_| TourShellError::Scene)?;
     let title_bounds = LayoutRect {
-        x: 12,
-        y: 12,
-        width: local.width.saturating_sub(24),
+        x: inset as i16,
+        y: inset as i16,
+        width: local.width.saturating_sub(2 * inset),
         height: 24,
     };
     scene
@@ -98,9 +99,9 @@ fn panel_scene(
         return Ok(scene);
     }
     let detail_bounds = LayoutRect {
-        x: 12,
+        x: inset as i16,
         y: 38,
-        width: local.width.saturating_sub(24),
+        width: local.width.saturating_sub(2 * inset),
         height: local.height.saturating_sub(48).max(1),
     };
     scene
@@ -164,10 +165,15 @@ pub(super) fn status_scene(
             height: bounds.height,
         };
         let text_bounds = LayoutRect {
-            x: cell.x + 8,
-            y: 12,
-            width: column.saturating_sub(16).max(1),
-            height: bounds.height.saturating_sub(12).max(1),
+            x: cell.x + crate::display::style::NATIVE_STYLE.inset as i16,
+            y: crate::display::style::NATIVE_STYLE.panel_inset as i16,
+            width: column
+                .saturating_sub(2 * crate::display::style::NATIVE_STYLE.inset)
+                .max(1),
+            height: bounds
+                .height
+                .saturating_sub(crate::display::style::NATIVE_STYLE.panel_inset)
+                .max(1),
         };
         let text = alloc::format!("{}\n{}", subject.label, item.text);
         scene

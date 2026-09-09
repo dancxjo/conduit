@@ -196,11 +196,12 @@ fn graphics_rect(rect: TourRect) -> Result<LayoutRect, TourWorkspaceSceneRefusal
 }
 
 fn inset(rect: LayoutRect) -> LayoutRect {
+    let inset = crate::display::style::NATIVE_STYLE.inset;
     LayoutRect {
-        x: rect.x.saturating_add(8),
-        y: rect.y.saturating_add(8),
-        width: rect.width.saturating_sub(16).max(1),
-        height: rect.height.saturating_sub(16).max(1),
+        x: rect.x.saturating_add(inset as i16),
+        y: rect.y.saturating_add(inset as i16),
+        width: rect.width.saturating_sub(2 * inset).max(1),
+        height: rect.height.saturating_sub(2 * inset).max(1),
     }
 }
 

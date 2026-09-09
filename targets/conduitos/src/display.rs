@@ -1,6 +1,7 @@
 //! Finite framebuffer mechanism below portable graphics meaning.
 
 mod font;
+pub mod style;
 mod text_layout;
 #[cfg(feature = "native-compositor")]
 pub mod typography;
@@ -286,13 +287,13 @@ fn clipped(bounds: LayoutRect, clip: LayoutRect, format: DisplayFormat) -> Optio
 }
 
 fn paint(format: DisplayFormat, role: GraphicsPaintRole) -> u32 {
-    let (red, green, blue) = match role {
-        GraphicsPaintRole::Background => (15, 23, 32),
-        GraphicsPaintRole::Foreground => (225, 232, 240),
-        GraphicsPaintRole::Accent => (83, 178, 255),
-        GraphicsPaintRole::Status => (255, 190, 70),
+    let color = match role {
+        GraphicsPaintRole::Background => style::NATIVE_STYLE.background,
+        GraphicsPaintRole::Foreground => style::NATIVE_STYLE.foreground,
+        GraphicsPaintRole::Accent => style::NATIVE_STYLE.accent,
+        GraphicsPaintRole::Status => style::NATIVE_STYLE.warning,
     };
-    format.pixel(red, green, blue)
+    format.pixel(color.0, color.1, color.2)
 }
 
 fn fill(

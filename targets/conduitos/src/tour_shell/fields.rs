@@ -10,9 +10,10 @@ pub(super) fn project(
     scroll_y: u16,
     mut scene: Option<&mut GraphicsScene>,
 ) -> Result<u16, TourShellError> {
+    let tokens = &crate::display::style::NATIVE_STYLE;
     let width = bounds
         .width
-        .checked_sub(24)
+        .checked_sub(2 * tokens.panel_inset)
         .filter(|width| *width >= 16)
         .ok_or(TourShellError::Scene)?;
     let viewport = LayoutRect {
@@ -46,13 +47,13 @@ pub(super) fn project(
         let y = i32::from(next_y) - i32::from(scroll_y);
         next_y = next_y
             .checked_add(height)
-            .and_then(|end| end.checked_add(12))
+            .and_then(|end| end.checked_add(tokens.gap))
             .filter(|end| *end <= super::scroll::MAX_SCROLL_CONTENT_HEIGHT)
             .ok_or(TourShellError::Scene)?;
         // Validate the payload even when this field is currently off screen.
         let command = GraphicsCommand::text(
             LayoutRect {
-                x: 12,
+                x: tokens.panel_inset as i16,
                 y: i16::try_from(y).map_err(|_| TourShellError::Scene)?,
                 width,
                 height,
