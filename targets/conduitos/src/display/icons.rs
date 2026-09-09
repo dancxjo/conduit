@@ -1,6 +1,9 @@
-//! Original finite 16×16 shell icon vocabulary, independent of font coverage.
+//! Original fixed 24×24 native drawings for the semantic icon vocabulary.
+//! Geometry is rasterized directly from bounded compile-time shape rules.
 use super::{DisplayError, DisplayReceipt, PixelTarget, put};
 use conduit_presentation::{GraphicsCommand, LayoutRect, PresentationIconKey as Icon};
+
+const EDGE: i32 = 24;
 
 pub(super) fn draw(
     target: &mut impl PixelTarget,
@@ -10,8 +13,8 @@ pub(super) fn draw(
     receipt: &mut DisplayReceipt,
 ) -> Result<(), DisplayError> {
     let icon = Icon::from_token(command.payload()).ok_or(DisplayError::InvalidExtent)?;
-    for y in 0..16_i32 {
-        for x in 0..16_i32 {
+    for y in 0..EDGE {
+        for x in 0..EDGE {
             let px = i32::from(command.bounds.x) + x;
             let py = i32::from(command.bounds.y) + y;
             if ink(icon, x, y)
@@ -27,54 +30,149 @@ pub(super) fn draw(
     Ok(())
 }
 
-fn box_edge(x: i32, y: i32, left: i32, top: i32, right: i32, bottom: i32) -> bool {
-    x >= left
-        && x <= right
-        && y >= top
-        && y <= bottom
-        && (x == left || x == right || y == top || y == bottom)
+const fn line(x: i32, y: i32, ax: i32, ay: i32, bx: i32, by: i32) -> bool {
+    let dx = bx - ax;
+    let dy = by - ay;
+    let px = x - ax;
+    let py = y - ay;
+    let length = dx * dx + dy * dy;
+    let dot = px * dx + py * dy;
+    let cross = px * dy - py * dx;
+    dot >= 0 && dot <= length && cross * cross <= length
 }
 
-fn ink(icon: Icon, x: i32, y: i32) -> bool {
-    let distance = (x - 7) * (x - 7) + (y - 7) * (y - 7);
+const fn ring(x: i32, y: i32, cx: i32, cy: i32, radius: i32) -> bool {
+    let dx = x - cx;
+    let dy = y - cy;
+    let distance = dx * dx + dy * dy;
+    distance >= (radius - 1) * (radius - 1) && distance <= (radius + 1) * (radius + 1)
+}
+
+const fn frame(x: i32, y: i32, left: i32, top: i32, right: i32, bottom: i32) -> bool {
+    line(x, y, left, top, right, top)
+        || line(x, y, right, top, right, bottom)
+        || line(x, y, right, bottom, left, bottom)
+        || line(x, y, left, bottom, left, top)
+}
+
+const fn letter_a(x: i32, y: i32) -> bool {
+    line(x, y, 5, 20, 12, 3) || line(x, y, 12, 3, 19, 20) || line(x, y, 8, 14, 16, 14)
+}
+
+const fn ink(icon: Icon, x: i32, y: i32) -> bool {
+    use Icon::*;
     match icon {
-        Icon::Body => box_edge(x, y, 2, 2, 12, 12) || box_edge(x, y, 5, 5, 9, 9),
-        Icon::Wake | Icon::Clock => {
-            (30..=42).contains(&distance)
-                || (x == 7 && (3..=7).contains(&y))
-                || (y == 7 && (7..=10).contains(&x))
+        Clock => ring(x, y, 12, 12, 9)
+            || line(x, y, 12, 6, 12, 12)
+            || line(x, y, 12, 12, 17, 15),
+        Repeat2 => {
+            line(x, y, 5, 6, 19, 6)
+                || line(x, y, 19, 6, 19, 11)
+                || line(x, y, 19, 6, 16, 3)
+                || line(x, y, 5, 18, 19, 18)
+                || line(x, y, 5, 13, 5, 18)
+                || line(x, y, 5, 18, 8, 21)
         }
-        Icon::Plan => {
-            box_edge(x, y, 3, 1, 12, 14) || ((y == 5 || y == 8 || y == 11) && (5..=10).contains(&x))
+        Presentation => {
+            frame(x, y, 3, 3, 21, 16)
+                || line(x, y, 12, 16, 12, 21)
+                || line(x, y, 7, 21, 17, 21)
         }
-        Icon::Play | Icon::Confirm => (4..=12).contains(&x) && (y - 7).abs() <= (12 - x) / 2,
-        Icon::Host | Icon::Presentation => {
-            box_edge(x, y, 1, 2, 14, 10)
-                || (x == 7 && (11..=13).contains(&y))
-                || (y == 13 && (4..=10).contains(&x))
+        Type => line(x, y, 4, 4, 20, 4)
+            || line(x, y, 12, 4, 12, 20)
+            || line(x, y, 8, 20, 16, 20),
+        CaseUpper => letter_a(x, y),
+        Combine => {
+            line(x, y, 3, 5, 8, 5)
+                || line(x, y, 8, 5, 13, 12)
+                || line(x, y, 3, 19, 8, 19)
+                || line(x, y, 8, 19, 13, 12)
+                || line(x, y, 13, 12, 21, 12)
+                || line(x, y, 17, 8, 21, 12)
+                || line(x, y, 17, 16, 21, 12)
         }
-        Icon::Port => (8..=16).contains(&distance),
-        Icon::Line => {
-            (x == 3 && (3..=8).contains(&y))
-                || (y == 8 && (3..=12).contains(&x))
-                || (x == 12 && (8..=13).contains(&y))
+        Tally5 => {
+            line(x, y, 4, 4, 4, 20)
+                || line(x, y, 9, 4, 9, 20)
+                || line(x, y, 14, 4, 14, 20)
+                || line(x, y, 19, 4, 19, 20)
+                || line(x, y, 2, 17, 21, 7)
         }
-        Icon::Status => {
-            ((2..=6).contains(&x) && y == x + 4) || ((6..=13).contains(&x) && y == 16 - x)
+        ChartColumnsIncreasing => {
+            frame(x, y, 3, 15, 7, 21)
+                || frame(x, y, 10, 10, 14, 21)
+                || frame(x, y, 17, 3, 21, 21)
         }
-        Icon::Warning => {
-            y == 13 && (1..=13).contains(&x)
-                || (2..=13).contains(&y) && (x == 7 - (y - 1) / 2 || x == 7 + (y - 1) / 2)
-                || x == 7 && ((6..=9).contains(&y) || y == 11)
+        FileOutput => {
+            line(x, y, 4, 3, 14, 3)
+                || line(x, y, 4, 3, 4, 21)
+                || line(x, y, 4, 21, 14, 21)
+                || line(x, y, 14, 3, 18, 7)
+                || line(x, y, 18, 7, 18, 9)
+                || line(x, y, 10, 14, 22, 14)
+                || line(x, y, 18, 10, 22, 14)
+                || line(x, y, 18, 18, 22, 14)
         }
-        Icon::Close => (3..=12).contains(&x) && (y == x || y == 15 - x),
-        Icon::Back => {
-            (y == 7 && (2..=13).contains(&x))
-                || ((2..=7).contains(&x) && (y == 9 - x || y == x + 5))
+        Keyboard => {
+            frame(x, y, 2, 5, 22, 19)
+                || line(x, y, 7, 16, 17, 16)
+                || (y >= 8 && y <= 12 && y % 4 == 0 && x >= 5 && x <= 19 && x % 4 == 1)
         }
-        _ => {
-            (17..=30).contains(&distance)
-                || ((x == 7 || y == 7) && (2..=12).contains(&x) && (2..=12).contains(&y))
+        GenericGear => {
+            ring(x, y, 12, 12, 8)
+                || ring(x, y, 12, 12, 3)
+                || line(x, y, 12, 1, 12, 5)
+                || line(x, y, 12, 19, 12, 23)
+                || line(x, y, 1, 12, 5, 12)
+                || line(x, y, 19, 12, 23, 12)
         }
+        Body => ring(x, y, 12, 6, 3) || frame(x, y, 5, 13, 19, 21),
+        Wake => {
+            ring(x, y, 12, 12, 6)
+                || line(x, y, 12, 1, 12, 4)
+                || line(x, y, 12, 20, 12, 23)
+                || line(x, y, 1, 12, 4, 12)
+                || line(x, y, 20, 12, 23, 12)
+        }
+        Plan => {
+            frame(x, y, 3, 3, 8, 8)
+                || frame(x, y, 16, 16, 21, 21)
+                || line(x, y, 8, 6, 18, 6)
+                || line(x, y, 18, 6, 18, 16)
+        }
+        Play => x >= 6 && x <= 20 && y >= 3 && y <= 21 && (y - 12).abs() * 14 <= (20 - x) * 9,
+        Host => {
+            frame(x, y, 3, 3, 21, 16)
+                || line(x, y, 12, 16, 12, 21)
+                || line(x, y, 7, 21, 17, 21)
+        }
+        Port => {
+            ring(x, y, 8, 12, 5)
+                || line(x, y, 14, 12, 22, 12)
+                || line(x, y, 22, 12, 18, 8)
+                || line(x, y, 22, 12, 18, 16)
+        }
+        Line => {
+            frame(x, y, 1, 13, 7, 19)
+                || frame(x, y, 17, 5, 23, 11)
+                || line(x, y, 7, 16, 17, 8)
+        }
+        Status => {
+            ring(x, y, 12, 12, 10)
+                || line(x, y, 12, 10, 12, 18)
+                || ring(x, y, 12, 6, 1)
+        }
+        Warning => {
+            line(x, y, 12, 2, 2, 21)
+                || line(x, y, 2, 21, 22, 21)
+                || line(x, y, 22, 21, 12, 2)
+                || line(x, y, 12, 8, 12, 14)
+                || ring(x, y, 12, 18, 1)
+        }
+        Close => line(x, y, 5, 5, 19, 19) || line(x, y, 19, 5, 5, 19),
+        Back => line(x, y, 3, 12, 21, 12)
+            || line(x, y, 3, 12, 10, 5)
+            || line(x, y, 3, 12, 10, 19),
+        Confirm => line(x, y, 3, 12, 9, 18) || line(x, y, 9, 18, 21, 5),
     }
 }
