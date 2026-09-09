@@ -30,10 +30,8 @@ impl TextCursor {
         // Only the two combining marks in the pinned naming coverage are
         // supported. An orphan mark keeps an ordinary cell; never reach back
         // across a newline. The payload itself is neither normalized nor edited.
-        if matches!(character, '\u{0300}' | '\u{0301}') {
-            if let Some(position) = self.previous {
-                return Some(position);
-            }
+        if let ('\u{0300}' | '\u{0301}', Some(position)) = (character, self.previous) {
+            return Some(position);
         }
         let width = u32::from(font::glyph(character).0.width);
         if self.x + width > self.width {
