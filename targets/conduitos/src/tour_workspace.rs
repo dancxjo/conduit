@@ -130,6 +130,26 @@ pub(crate) fn scene_with_observations(
         } else {
             node.text.as_str()
         };
+        // Keep the portable panel titles visible instead of dropping them
+        // while lowering their children into the native pane rectangles.
+        let panel_key = match key {
+            "lesson-status" => Some("lesson"),
+            "source" => Some("source-panel"),
+            "result" => Some("result-panel"),
+            _ => None,
+        };
+        let labeled;
+        let label = if let Some(panel_key) = panel_key {
+            let panel = view
+                .nodes
+                .iter()
+                .find(|node| node.key == panel_key)
+                .ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
+            labeled = alloc::format!("{}\n\n{label}", panel.text);
+            labeled.as_str()
+        } else {
+            label
+        };
         scene
             .push(
                 GraphicsCommand::text(inset(bounds), bounds, paint, label)
@@ -240,7 +260,16 @@ mod tests {
             }
         );
         assert_eq!(frames[1].paint, GraphicsPaintRole::Accent);
-        assert_eq!(scene.commands()[5].payload(), CANONICAL_SOURCE);
+        assert_eq!(
+            scene.commands()[5].payload(),
+            alloc::format!("Source\n\n{CANONICAL_SOURCE}")
+        );
+        assert!(
+            scene.commands()[1]
+                .payload()
+                .starts_with("A first Form\n\n")
+        );
+        assert!(scene.commands()[7].payload().starts_with("Output\n\n"));
         assert!(scene.commands()[5].payload().ends_with("}"));
         assert!(scene.commands()[7].payload().contains("Patchbay open"));
         assert!(scene.commands().iter().all(|command| {
