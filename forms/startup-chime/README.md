@@ -72,7 +72,8 @@ cargo xtask demo workspace --check
 
 The pinned Chromium journey checks real audio-source start and completion,
 sound-only idle, later ordinary Wake, first-wake silence after fresh-Boot reload,
-and usable keyboard Forms with unavailable audio. Deterministic tests cover
+and usable keyboard Forms with unavailable or suspended audio. A failed Started
+save is also proved to cancel before any audio source starts. Deterministic tests cover
 exact source emissions, invalid history, replacement Play, new Body identity,
 correlated denial, bounded outcome retention, and equality with the shared DSP.
 Browser rendering proves browser execution; it does not measure a physical
