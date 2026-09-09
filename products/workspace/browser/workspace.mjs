@@ -3,6 +3,7 @@ import { createBodyBirthRunner, createFirstHostRunner } from "../../creche/brows
 import { readReviewedFormInventory, openFormSelection, persistedFormSelection } from "../../creche/browser/creche-form-selection.mjs";
 import { openWorkspaceSession } from "./workspace-session.mjs";
 import { openWorkspacePlay } from "./workspace-play.mjs";
+import { openWorkspaceLibrary } from "./workspace-library.mjs";
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
 
 export async function startApplication(application) {
@@ -38,6 +39,7 @@ export async function startApplication(application) {
     let selected = session.foreground()?.checked_form_id;
     let playback = { state: 'Lulled', detail: 'Its Forms can wake here.' };
     let play = null;
+    let library = null, editing = false;
     const bodyChanged = () => {
       saving = saving.then(() => session.save()).then(async () => {
         if (!session.current()?.here_part_id) {
@@ -51,6 +53,7 @@ export async function startApplication(application) {
       }).catch(fail);
     };
     const inspect = kind => {
+      library?.hide();
       const body = session.current();
       const form = inventory.forms.find(form => form.checked_form_id === selected);
       const evidence = session.evidence();
@@ -94,7 +97,7 @@ export async function startApplication(application) {
       const body = session.current();
       const arriving = !body || !body.here_part_id;
       nursery.hidden = !arriving;
-      surface.hidden = arriving || !inspection.hidden;
+      surface.hidden = arriving || !inspection.hidden || library?.isOpen();
       activities.hidden = arriving;
       strip.hidden = arriving;
       root.querySelector('[data-body-name]').textContent = body?.friendly_name ?? 'Your body starts here';
@@ -121,6 +124,7 @@ export async function startApplication(application) {
       root.dataset.bodyId = body.body_id;
       root.querySelector('[data-play-state]').textContent = playback.state;
       root.querySelector('#surface-guidance').textContent = playback.detail;
+      lullButton.hidden = !body.initial_forms.length;
       if (!body.initial_forms.length) {
         root.querySelector('#surface-guidance').textContent = 'This Body can remain lulled.';
         wakeButton.hidden = true;
@@ -133,14 +137,22 @@ export async function startApplication(application) {
         button.textContent = inventory.forms.find(item => item.checked_form_id === form.checked_form_id)?.title ?? form.name;
         button.dataset.checkedFormId = form.checked_form_id;
         button.addEventListener('click', () => {
+          if (editing) return;
           selected = form.checked_form_id;
           session.selectForm({ source_document_id: form.source_document_id, checked_form_id: form.checked_form_id }).catch(fail);
-          inspection.hidden = true; surface.hidden = false;
+          library?.hide(); inspection.hidden = true; surface.hidden = false;
           showSelected();
           if (!input.disabled) input.focus();
         });
         return button;
       }));
+      const browse = document.createElement('button'); browse.type = 'button';
+      browse.textContent = '+ Forms'; browse.dataset.openLibrary = '';
+      browse.addEventListener('click', () => {
+        if (editing) return;
+        surface.hidden = true; inspection.hidden = true; library.show();
+      });
+      activities.append(browse);
       if (!play) play = openWorkspacePlay({ host, session, source, foregroundForm: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-form-output]'), onState(state) {
         playback = state;
         root.querySelector('[data-play-state]').textContent = state.state;
@@ -158,6 +170,35 @@ export async function startApplication(application) {
       } });
       showSelected();
     }
+    const useForm = async (form, expectedRevision) => {
+      if (editing) throw new Error('A Body transition is already in progress');
+      editing = true;
+      try {
+        const identity = { source_document_id: form.source_document_id, checked_form_id: form.checked_form_id };
+        const installed = session.current().initial_forms.some(item => item.source_document_id === identity.source_document_id && item.checked_form_id === identity.checked_form_id);
+        if (installed) await session.selectForm(identity);
+        else await play.changeWorkset('Install', identity, expectedRevision);
+        selected = session.foreground()?.checked_form_id;
+        library.hide(); inspection.hidden = true;
+        render();
+        if (!installed || session.current().state === 'LULLED') await play.wake();
+        if (!input.disabled && !input.hidden) input.focus();
+      } finally { editing = false; }
+    };
+    const removeForm = async (form, expectedRevision) => {
+      if (editing) throw new Error('A Body transition is already in progress');
+      editing = true;
+      try {
+        await play.changeWorkset('Remove', { source_document_id: form.source_document_id, checked_form_id: form.checked_form_id }, expectedRevision);
+        selected = session.foreground()?.checked_form_id;
+        render();
+        if (session.current().initial_forms.length) await play.wake();
+      } finally { editing = false; }
+    };
+    library = openWorkspaceLibrary({ panel: root.querySelector('#workspace-library'), session, source, inventory,
+      presentationFor: application.presentationFor, onUse: useForm, onRemove: removeForm, onFailure: fail,
+      onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
+    });
     wakeButton.addEventListener('click', () => play?.wake().catch(fail));
     lullButton.addEventListener('click', () => play?.lull().catch(fail));
     if (session.current()?.here_part_id) await session.arrive();

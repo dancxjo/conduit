@@ -38,6 +38,10 @@
         {
           "role": "browser-body-continuity",
           "specifier": "../../../targets/browser/host/assets/browser-body-continuity.mjs"
+        },
+        {
+          "role": "workspace-library",
+          "specifier": "./workspace-library.mjs"
         }
       ]
     },
@@ -220,6 +224,13 @@
           "specifier": "./browser-human-input.mjs"
         }
       ]
+    },
+    {
+      "role": "workspace-library",
+      "kind": "module",
+      "path": "workspace-library.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": []
     }
   ]
 }

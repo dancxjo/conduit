@@ -83,6 +83,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                     "--retries",
                     "0",
                     "workspace-arrival.spec.mjs",
+                    "workspace-library.spec.mjs",
                 ],
             ),
             &root,

@@ -8,7 +8,7 @@ export function openWorkspaceSession({ host, storage }) {
   let write = Promise.resolve();
   let persistenceFailure = null;
   let workspace = null;
-  const request = (action, fields = {}) => {
+  const request = (action, fields = {}, binary = false) => {
     const bytes = encoder.encode(JSON.stringify({ action, ...fields }));
     if (bytes.length > api.conduit_workspace_input_capacity()) throw new Error('Workspace input exceeds its bound');
     const pointer = api.conduit_workspace_input_ptr();
@@ -16,7 +16,9 @@ export function openWorkspaceSession({ host, storage }) {
     const status = api.conduit_workspace_request(bytes.length);
     const length = api.conduit_workspace_output_len();
     if (length < 1 || length > 256 * 1024) throw new Error('Workspace output exceeds its bound');
-    const result = JSON.parse(decoder.decode(new Uint8Array(api.memory.buffer, api.conduit_workspace_output_ptr(), length)));
+    const output = new Uint8Array(api.memory.buffer, api.conduit_workspace_output_ptr(), length).slice();
+    if (status >= 0 && binary) return output;
+    const result = JSON.parse(decoder.decode(output));
     if (status < 0) throw Object.assign(new Error(result.message ?? 'Workspace refused'), { code: result.code, refusal: result });
     if (result.schema === 'conduit.workspace/body@1') workspace = result;
     return result;
@@ -74,6 +76,13 @@ export function openWorkspaceSession({ host, storage }) {
       return call('conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(at));
     },
     selectForm(form) { request('SelectForm', { form }); return save(); },
+    libraryView(source, query, revision) { return request('LibraryView', { source, query, revision }, true); },
+    async changeWorkset(edit, form, source, expected_revision) {
+      if (persistenceFailure) throw persistenceFailure;
+      await write;
+      request('ChangeWorkset', { ...here, edit, form, source, expected_revision });
+      await save();
+    },
     foreground: () => workspace ? request('Current').foreground : null,
     arrive() { if (!workspace) request('Arrive'); return save(); },
     evidence: () => workspace ? request('Current') : null,

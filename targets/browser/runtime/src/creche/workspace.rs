@@ -10,6 +10,42 @@ pub(crate) fn handoff_workspace() {
     super::session::forget_local();
 }
 
+pub(crate) fn require_workspace_form(
+    source: &str,
+    form: &conduit_body::ResidentForm,
+) -> Result<(), String> {
+    let inventory = super::initial_forms::reviewed_inventory(source)?;
+    if !inventory.forms.iter().any(|entry| {
+        entry.source_document_id == form.source_document_id.as_str()
+            && entry.checked_form_id == form.checked_form_id.as_str()
+    }) {
+        return Err("Form has a stale or missing reviewed identity".into());
+    }
+    Ok(())
+}
+
+pub(crate) fn workspace_library(
+    source: &str,
+) -> Result<conduit_workspace_model::library::FormLibrary, String> {
+    use conduit_workspace_model::library::{FormLibrary, LibraryEntry};
+    let inventory = super::initial_forms::reviewed_inventory(source)?;
+    FormLibrary::new(
+        inventory
+            .forms
+            .into_iter()
+            .map(|entry| LibraryEntry {
+                form: conduit_body::ResidentForm::new(
+                    entry.source_document_id.into(),
+                    entry.checked_form_id.into(),
+                ),
+                title: entry.title,
+                search_text: format!("{} {}", entry.name, entry.required_kinds.join(" ")),
+            })
+            .collect(),
+    )
+    .map_err(|error| format!("Form library refused: {error:?}"))
+}
+
 pub(crate) fn plan_workspace_forms(
     evidence: &BodyBiographyEvidence,
     source: &str,

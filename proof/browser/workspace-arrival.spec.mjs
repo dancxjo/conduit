@@ -20,7 +20,7 @@ test("Birth arrives in listening Forms; foreground changes and reload preserve t
   await expect(page.locator("[data-wake-body]")).toBeHidden();
   const identity = () => page.evaluate(() => globalThis.__conduitWorkspace.current());
   const first = await identity();
-  await expect(page.getByRole("navigation", { name: "Your Forms" }).getByRole("button")).toHaveCount(2);
+  await expect(page.getByRole("navigation", { name: "Your Forms" }).locator("[data-checked-form-id]")).toHaveCount(2);
   await page.getByRole("navigation", { name: "Your Forms" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
   const output = page.locator("[data-form-output] output:visible");
   await page.keyboard.press("h");
