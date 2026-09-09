@@ -110,3 +110,61 @@ fn first_and_repeated_frames_have_no_runtime_font_allocations() {
     assert!(written > 0);
     assert_eq!(ALLOCATIONS.with(Cell::get), 0);
 }
+
+#[test]
+fn symbols_and_rounded_shapes_have_no_frame_allocations() {
+    use conduit_presentation::{
+        GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsSymbol,
+    };
+    let mut surface = Surface {
+        pixels: [0; 256 * 128],
+    };
+    let bounds = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+    };
+    ALLOCATIONS.with(|count| count.set(0));
+    TRACK.with(|track| track.set(true));
+    let mut written = 0_u64;
+    for _ in 0..128 {
+        for symbol in GraphicsSymbol::ALL {
+            let mut scene = GraphicsScene::empty();
+            scene
+                .push(
+                    GraphicsCommand::rect(
+                        bounds,
+                        bounds,
+                        GraphicsPaintRole::Background,
+                        GraphicsShapeStyle::RoundedFill,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+            scene
+                .push(
+                    GraphicsCommand::rect(
+                        bounds,
+                        bounds,
+                        GraphicsPaintRole::Selected,
+                        GraphicsShapeStyle::RoundedStroke,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+            scene
+                .push(
+                    GraphicsCommand::symbol(bounds, bounds, GraphicsPaintRole::Foreground, symbol)
+                        .unwrap(),
+                )
+                .unwrap();
+            let receipt = conduitos::display::render_scene(&mut surface, &scene).unwrap();
+            assert!(receipt.pixels_written <= 3 * 24 * 24);
+            written += u64::from(receipt.pixels_written);
+        }
+    }
+    TRACK.with(|track| track.set(false));
+    assert!(written > 0);
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+}
