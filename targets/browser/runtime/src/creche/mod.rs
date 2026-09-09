@@ -10,6 +10,10 @@ mod initial_forms;
 mod protocol;
 mod review;
 mod session;
+#[cfg(feature = "form-runner")]
+mod workspace;
+#[cfg(feature = "form-runner")]
+pub(crate) use workspace::{handoff_workspace, plan_workspace_forms, workspace_evidence};
 mod spore;
 mod spore_target;
 

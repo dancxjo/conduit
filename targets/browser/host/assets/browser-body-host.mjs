@@ -1,3 +1,4 @@
+import { createBodyInputRouting } from "./browser-body-input.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 import { drainBrowserEffects } from "./browser-form-effects.mjs";
 
@@ -25,7 +26,7 @@ function readOutput(api) {
  * One owner per WASM instance prevents duplicate page-side resource ownership.
  */
 const owners = new WeakSet();
-export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot }) {
+export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundForm }) {
   const proposal = structuredClone(suppliedProposal);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
   if ([hostId, bootId].some(identity => typeof identity !== "string" || identity.length < 1 || identity.length > 256) ||
@@ -63,6 +64,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const machinery = readOutput(api);
   if (machinery.schema !== "conduit.browser/selected-human-machinery@1" || !Array.isArray(machinery.implementations) || machinery.implementations.length > 64) throw new Error("invalid browser machinery");
   const boot = { host_id: hostId, boot_id: bootId, offer_generation: 1, implementation_registry: machinery.implementations };
+  const routing = foregroundForm ? createBodyInputRouting({ forms: proposal.plan.forms, foreground: foregroundForm }) : null;
   const slots = new Map();
   const presentationTimers = new Map();
   const elements = [];
@@ -71,7 +73,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const window = outputRoot.ownerDocument.defaultView;
   owners.add(api);
   try {
-    if (demand.has(INPUT)) input = openBrowserHumanInput({ target: inputTarget, boot });
+    if (demand.has(INPUT)) {
+      input = openBrowserHumanInput({ target: inputTarget, boot, routeInput: routing?.capture });
+      routing?.attach(input);
+    }
     if (demand.has(TIMER) || demand.has(CLOCK)) {
       if (typeof window.setTimeout !== "function" || typeof window.performance?.now !== "function" ||
           !Number.isFinite(window.performance.now())) throw new Error("browser timer unavailable");
@@ -89,7 +94,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
     if (slots.size !== (demand.get(PRESENTATION) ?? 0)) throw new Error("presentation acquisition does not match demand");
   } catch (error) {
-    input?.close();elements.forEach(element => element.remove());owners.delete(api);throw error;
+    routing?.close();input?.close();elements.forEach(element => element.remove());owners.delete(api);throw error;
   }
 
   const assertCurrent = () => {
@@ -136,12 +141,12 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
     if (effect.effect_kind === "key-event" || effect.effect_kind === "button-transition") {
       if (!input) throw new Error("browser input not acquired");
-      const abort = () => input.cancelPending();
+      const abort = () => { if (!routing) input.cancelPending(); };
       signal.addEventListener("abort", abort, { once: true });
       try {
         if (signal.aborted) throw new Error("browser input cancelled");
-        if (effect.effect_kind === "key-event") return (await input.nextKeyboard()).canonical_bytes;
-        const event = await input.nextButton();
+        if (effect.effect_kind === "key-event") return (await (routing ? routing.next("keyboard", effect.placement_id, signal) : input.nextKeyboard())).canonical_bytes;
+        const event = await (routing ? routing.next("button", effect.placement_id, signal) : input.nextButton());
         assertCurrent();
         if (api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence)) < 0) throw new Error("button encoding refused");
         return new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
@@ -193,6 +198,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
           typeof started.play?.active_play_id !== "string" || !started.play.active_play_id ||
           started.play.plan_id !== proposal.plan.plan_id || started.play.wake_id !== proposal.wake.wake_id ||
           started.play.body_id !== proposal.plan.body_id) throw new Error("invalid browser Body start output");
+      if (started.progress?.schema === "conduit.tour/manifestation-receipt@3") terminal = started.progress;
       return started;
     },
     run() {
@@ -208,6 +214,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     close() {
       if (closed) return;
       closed = true;
+      routing?.close();
       input?.close();
       timer?.cancel?.();
       for (const timer of presentationTimers.values()) timer.cancel?.();
