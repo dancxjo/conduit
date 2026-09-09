@@ -2,10 +2,13 @@
 
 mod font;
 mod text_layout;
+mod tokens;
+pub use tokens::*;
 #[cfg(feature = "native-compositor")]
 pub mod typography;
-#[cfg(test)]
-pub(crate) use text_layout::text_height;
+pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> {
+    text_layout::text_height(value, width)
+}
 
 use conduit_presentation::{
     GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,

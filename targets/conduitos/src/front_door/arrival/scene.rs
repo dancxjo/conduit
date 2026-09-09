@@ -1,10 +1,10 @@
 //! Native layout of the shared Crèche state; geometry belongs to this renderer.
 use super::{Arrival, Error};
-use crate::display::{PixelTarget, tokens};
+use crate::display::{PixelTarget, SPACING};
 use alloc::format;
 use conduit_presentation::{
     ActionAvailability, FieldKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
-    GraphicsShapeStyle, GraphicsTextRole as TextRole, LayoutRect, PresentationMechanism,
+    GraphicsShapeStyle, GraphicsTextRole, LayoutRect, PresentationMechanism,
 };
 
 impl Arrival {
@@ -24,7 +24,7 @@ impl Arrival {
             width,
             height,
         };
-        let card_width = width.saturating_sub(tokens::SPACING[4] * 2).min(640);
+        let card_width = width.saturating_sub(SPACING[4] * 2).min(640);
         let x = i16::try_from((width - card_width) / 2).map_err(|_| Error::Scene)?;
         let y = i16::try_from((height - 448) / 2).map_err(|_| Error::Scene)?;
         let mut scene = GraphicsScene::empty();
@@ -39,26 +39,36 @@ impl Arrival {
                 .map_err(|_| Error::Scene)?,
             )
             .map_err(|_| Error::Scene)?;
-        let mut line = |row: i16, value: &str, focused: bool, role: TextRole| {
+        let mut line = |row: i16, value: &str, focused: bool, typography: GraphicsTextRole| {
             let bounds = LayoutRect {
                 x,
                 y: y + row,
                 width: card_width,
                 height: 32,
             };
+            let paint = match typography {
+                GraphicsTextRole::Heading | GraphicsTextRole::Action | GraphicsTextRole::Title => {
+                    GraphicsPaintRole::Accent
+                }
+                GraphicsTextRole::Code | GraphicsTextRole::Status | GraphicsTextRole::Warning => {
+                    GraphicsPaintRole::Status
+                }
+                _ => GraphicsPaintRole::Foreground,
+            };
+            let paint = if focused {
+                GraphicsPaintRole::Accent
+            } else {
+                paint
+            };
             scene
                 .push(
                     GraphicsCommand::text(
                         bounds,
                         screen,
-                        if focused {
-                            GraphicsPaintRole::Accent
-                        } else {
-                            GraphicsPaintRole::Foreground
-                        },
+                        paint,
                         value,
                     )
-                    .and_then(|command| command.with_text_role(role))
+                    .and_then(|command| command.with_text_role(typography))
                     .map_err(|_| Error::Scene)?,
                 )
                 .map_err(|_| Error::Scene)?;
@@ -83,18 +93,23 @@ impl Arrival {
             }
             Ok::<(), Error>(())
         };
-        line(0, "Conduit / Crèche", false, TextRole::Muted)?;
+        line(0, "Conduit / Crèche", false, GraphicsTextRole::Muted)?;
         let view = self.draft.presentation().map_err(|_| Error::Presentation)?;
         let mut choice_count = 0;
         for node in &view.root.children {
             match (&*node.key, &node.mechanism) {
                 ("creche-heading", PresentationMechanism::Heading { text }) => {
-                    line(30, text, false, TextRole::Title)?
+                    line(30, text, false, GraphicsTextRole::Title)?
                 }
                 ("body-name", PresentationMechanism::FormField(field)) => {
-                    line(72, &field.help, false, TextRole::Body)?;
-                    line(108, &field.label, false, TextRole::Label)?;
-                    line(132, &field.value, self.focus == 0, TextRole::Heading)?;
+                    line(72, &field.help, false, GraphicsTextRole::Body)?;
+                    line(108, &field.label, false, GraphicsTextRole::Label)?;
+                    line(
+                        132,
+                        &field.value,
+                        self.focus == 0,
+                        GraphicsTextRole::Heading,
+                    )?;
                 }
                 ("name-system", PresentationMechanism::FormField(field)) => {
                     let FieldKind::NamedSelect { options } = &field.kind else {
@@ -108,7 +123,7 @@ impl Arrival {
                         176,
                         &format!("{}: {}", field.label, selected.label),
                         self.focus == 1,
-                        TextRole::Label,
+                        GraphicsTextRole::Label,
                     )?;
                 }
                 ("suggest-name", PresentationMechanism::Action(action)) => {
@@ -116,16 +131,16 @@ impl Arrival {
                         208,
                         &format!("{}  ·  F2", action.label),
                         self.focus == 2,
-                        TextRole::Action,
+                        GraphicsTextRole::Action,
                     )?;
                 }
                 ("initial-forms", PresentationMechanism::ChoiceGroup { label, options, .. }) => {
-                    line(248, label, false, TextRole::Label)?;
+                    line(248, label, false, GraphicsTextRole::Label)?;
                     for (index, choice) in options.iter().enumerate() {
-                        line(
-                            276 + index as i16 * 24,
-                            &format!(
-                                "{}  {}{}",
+                            line(
+                                276 + index as i16 * 24,
+                                &format!(
+                                    "{}  {}{}",
                                 if choice.selected { "●" } else { "○" },
                                 choice.label,
                                 if matches!(
@@ -136,10 +151,10 @@ impl Arrival {
                                 } else {
                                     " / unavailable"
                                 }
-                            ),
-                            self.focus == index + 3,
-                            TextRole::Body,
-                        )?;
+                                ),
+                                self.focus == index + 3,
+                                GraphicsTextRole::Body,
+                            )?;
                     }
                     choice_count = options.len();
                 }
@@ -148,20 +163,20 @@ impl Arrival {
                         328,
                         &format!("{}  ·  Enter / F3", action.label),
                         self.focus == choice_count + 3,
-                        TextRole::Action,
+                        GraphicsTextRole::Action,
                     )?;
                 }
                 _ => return Err(Error::Scene),
             }
         }
         if let Some(refusal) = &self.refusal {
-            line(368, refusal, true, TextRole::Warning)?;
+            line(368, refusal, true, GraphicsTextRole::Warning)?;
         }
         line(
             416,
             "Tab moves  ·  Arrows choose  ·  F9 visits Tour",
             false,
-            TextRole::Muted,
+            GraphicsTextRole::Muted,
         )?;
         Ok(scene)
     }

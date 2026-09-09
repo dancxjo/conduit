@@ -2,7 +2,9 @@
 
 use crate::{LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT};
 mod path;
+mod typography;
 pub use path::{GraphicsPath, GraphicsPoint, MAX_GRAPHICS_PATH_POINTS};
+pub use typography::GraphicsTextRole;
 
 pub const GRAPHICS_SCENE_KIND: &str = "presentation/graphics-scene@1";
 pub const MAX_GRAPHICS_COMMANDS: usize = 32;
@@ -189,6 +191,21 @@ impl GraphicsCommand {
         }
         core::str::from_utf8(&self.payload[..usize::from(self.payload_len)])
             .expect("validated graphics payload")
+    }
+
+    /// Preserve compatibility with role-aware callers while retaining the
+    /// current wire format where text roles are interpreted by the renderer.
+    pub fn with_text_role(self, _role: GraphicsTextRole) -> Result<Self, GraphicsError> {
+        if self.kind == GraphicsCommandKind::Text {
+            Ok(self)
+        } else {
+            Err(GraphicsError::NonCanonicalEncoding)
+        }
+    }
+
+    /// Default rendering role when role metadata is unavailable.
+    pub const fn text_role(&self) -> GraphicsTextRole {
+        GraphicsTextRole::Body
     }
 
     pub fn clip_class(&self) -> GraphicsClipClass {
