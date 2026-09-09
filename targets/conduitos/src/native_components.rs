@@ -5,6 +5,50 @@ use conduit_presentation::{
     LayoutRect, MAX_GRAPHICS_COMMANDS,
 };
 
+/// Resolve a content-sized field into two bounded commands. Labels and values
+/// keep separate paint roles; the caller retains scrolling and semantic truth.
+#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
+pub(crate) fn labeled_field(
+    bounds: LayoutRect,
+    clip: LayoutRect,
+    label: &str,
+    value: &str,
+) -> Result<[GraphicsCommand; 2], GraphicsError> {
+    let label_height = crate::display::text_height(label, bounds.width)
+        .map_err(|_| GraphicsError::InvalidGeometry)?;
+    let value_height = bounds
+        .height
+        .checked_sub(label_height)
+        .filter(|height| *height > 0)
+        .ok_or(GraphicsError::InvalidGeometry)?;
+    Ok([
+        GraphicsCommand::text(
+            LayoutRect {
+                height: label_height,
+                ..bounds
+            },
+            clip,
+            GraphicsPaintRole::Accent,
+            label,
+        )?,
+        GraphicsCommand::text(
+            LayoutRect {
+                y: bounds
+                    .y
+                    .checked_add(
+                        i16::try_from(label_height).map_err(|_| GraphicsError::InvalidGeometry)?,
+                    )
+                    .ok_or(GraphicsError::InvalidGeometry)?,
+                height: value_height,
+                ..bounds
+            },
+            clip,
+            GraphicsPaintRole::Foreground,
+            value,
+        )?,
+    ])
+}
+
 /// Append one button atomically within the admitted scene budget.
 /// The caller owns its semantic action, hit target, and containing clip.
 pub(crate) fn button(
@@ -55,6 +99,52 @@ mod tests {
         width: 112,
         height: 28,
     };
+
+    #[test]
+    fn field_keeps_label_and_exact_value_separate_under_one_clip() {
+        let bounds = LayoutRect {
+            width: 80,
+            height: 64,
+            ..BOUNDS
+        };
+        let commands = labeled_field(bounds, bounds, "Current state", "\"hello\"").unwrap();
+        assert_eq!(commands[0].payload(), "Current state");
+        assert_eq!(commands[0].paint, GraphicsPaintRole::Accent);
+        assert_eq!(commands[0].bounds.height, 32);
+        assert_eq!(commands[1].payload(), "\"hello\"");
+        assert_eq!(commands[1].paint, GraphicsPaintRole::Foreground);
+        assert_eq!(commands[1].bounds.y, 32);
+        assert!(commands.iter().all(|command| command.clip == bounds));
+    }
+
+    #[test]
+    fn field_refuses_insufficient_height_and_coordinate_overflow() {
+        assert!(
+            labeled_field(
+                LayoutRect {
+                    height: 16,
+                    ..BOUNDS
+                },
+                BOUNDS,
+                "Kind",
+                "text/upper"
+            )
+            .is_err()
+        );
+        assert!(
+            labeled_field(
+                LayoutRect {
+                    y: i16::MAX,
+                    height: 32,
+                    ..BOUNDS
+                },
+                BOUNDS,
+                "Kind",
+                "text/upper"
+            )
+            .is_err()
+        );
+    }
 
     #[test]
     fn button_admission_is_atomic_for_capacity_and_invalid_text() {

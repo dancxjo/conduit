@@ -58,13 +58,26 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
         height: 320,
     };
     let top = inspector_scene(bounds, &presentation, 0).unwrap();
-    let fields: alloc::vec::Vec<_> = top
+    let kind = top
         .commands()
         .iter()
-        .filter(|command| command.payload().contains('\n'))
-        .collect();
-    assert_eq!(fields[0].bounds.height, 32);
-    assert_eq!(fields[1].bounds.y, fields[0].bounds.y + 44);
+        .find(|command| command.payload() == "Kind")
+        .unwrap();
+    let value = top
+        .commands()
+        .iter()
+        .find(|command| command.payload() == "text/upper")
+        .unwrap();
+    let face = top
+        .commands()
+        .iter()
+        .find(|command| command.payload() == "Face")
+        .unwrap();
+    assert_eq!(kind.bounds.height, 16);
+    assert_eq!(kind.paint, GraphicsPaintRole::Accent);
+    assert_eq!(value.paint, GraphicsPaintRole::Foreground);
+    assert_eq!(value.bounds.y, kind.bounds.y + 16);
+    assert_eq!(face.bounds.y, kind.bounds.y + 44);
     let narrow = LayoutRect {
         width: 180,
         ..bounds
@@ -75,7 +88,7 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
     assert!(
         top.commands()
             .iter()
-            .any(|command| command.payload() == "Kind\ntext/upper")
+            .any(|command| command.payload() == "text/upper")
     );
     assert!(
         !top.commands()
@@ -89,7 +102,13 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
         bottom
             .commands()
             .iter()
-            .any(|command| command.payload().starts_with("Documentation\nUppercase"))
+            .any(|command| command.payload() == "Documentation")
+    );
+    assert!(
+        bottom
+            .commands()
+            .iter()
+            .any(|command| command.payload().starts_with("Uppercase"))
     );
     assert!(
         bottom
