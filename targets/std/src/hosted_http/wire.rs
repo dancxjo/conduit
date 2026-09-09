@@ -10,7 +10,7 @@ const MAXIMUM_HEAD_BYTES: usize = HTTP_MAXIMUM_HEADERS
     * (HTTP_MAXIMUM_HEADER_NAME_BYTES + HTTP_MAXIMUM_HEADER_VALUE_BYTES + 4)
     + 4_096;
 
-pub(super) fn encode_request(request: &HttpRequest) -> Result<Vec<u8>, HttpExchangeFailure> {
+pub(crate) fn encode_request(request: &HttpRequest) -> Result<Vec<u8>, HttpExchangeFailure> {
     let body = inline_body(&request.body)?;
     let mut out = Vec::with_capacity(MAXIMUM_HEAD_BYTES.min(8_192) + body.len());
     out.extend_from_slice(method(request.method));
@@ -46,7 +46,7 @@ pub(super) fn encode_response(response: &HttpResponse) -> Result<Vec<u8>, HttpEx
     Ok(out)
 }
 
-pub(super) fn read_response(
+pub(crate) fn read_response(
     reader: &mut impl Read,
     transaction_id: HttpTransactionId,
 ) -> Result<HttpResponse, HttpExchangeFailure> {
