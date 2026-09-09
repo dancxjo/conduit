@@ -124,7 +124,7 @@ pub fn run(
         let mut line_requested = false;
         let mut workspace_dirty = false;
         let mut interact = |input| {
-            let transition = match input {
+            let event = match input {
                 ProductInputEvent::Service => {
                     if core::mem::take(&mut workspace_dirty) && !tour_open {
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
@@ -132,7 +132,11 @@ pub fn run(
                     }
                     return Ok(ProductInputControl::Continue);
                 }
-                ProductInputEvent::Transition(transition) => transition,
+                ProductInputEvent::LocalRescue(local) => {
+                    rescue_guest::observe(identities, rescue_matcher, local, true);
+                    return Ok(ProductInputControl::Continue);
+                }
+                ProductInputEvent::Key(event) => event,
                 ProductInputEvent::Lost(_) => {
                     if matches!(
                         journey.status(),
@@ -145,18 +149,6 @@ pub fn run(
                     return Ok(ProductInputControl::Continue);
                 }
             };
-            rescue_guest::observe(
-                identities,
-                rescue_matcher,
-                transition.into_local_rescue(),
-                true,
-            );
-            let event = crate::keyboard_bridge::portable_key_event(
-                transition.usage(),
-                transition.pressed(),
-                transition.modifiers(),
-            )
-            .map_err(|_| "front-door-key-event-invalid")?;
             if consumed_birth_key == Some(event.usage()) {
                 if event.transition() == KeyTransition::Released {
                     consumed_birth_key = None;
@@ -365,7 +357,7 @@ pub fn run(
                 }
             }
             if event.transition() == KeyTransition::Pressed
-                && let Some(action) = action_for(transition.usage(), &front_door, &journey)
+                && let Some(action) = action_for(event.usage(), &front_door, &journey)
             {
                 let semantic_action = front_door
                     .resolve_action(action, front_door.revision())
