@@ -244,8 +244,27 @@ fn normalized_local(value: u16, extent: u32) -> Result<i64, &'static str> {
     if extent == 0 || u32::from(value) >= extent {
         return Err("compositor-pointer-local-coordinate-invalid");
     }
-    i64::try_from(u64::from(value) * 1_000_000 / u64::from(extent))
+    // Round upward so the semantic decoder's floor maps back to this exact
+    // pixel, including the first pixel on a card edge.
+    i64::try_from((u64::from(value) * 1_000_000).div_ceil(u64::from(extent)))
         .map_err(|_| "compositor-pointer-local-coordinate-invalid")
+}
+
+#[cfg(test)]
+mod coordinate_tests {
+    use super::*;
+
+    #[test]
+    fn surface_local_pixels_survive_normalization_without_edge_drift() {
+        for extent in [320, 640, 800, 1280, 1920, u32::from(u16::MAX)] {
+            for pixel in 0..extent {
+                let normalized = normalized_local(pixel as u16, extent).unwrap();
+                assert_eq!(display_coordinate(normalized, extent).unwrap(), pixel);
+            }
+        }
+        assert!(normalized_local(0, 0).is_err());
+        assert!(normalized_local(640, 640).is_err());
+    }
 }
 
 fn display_coordinate(value: i64, extent: u32) -> Result<u32, &'static str> {

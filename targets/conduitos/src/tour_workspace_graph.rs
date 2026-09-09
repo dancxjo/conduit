@@ -119,6 +119,32 @@ mod tests {
     use super::*;
 
     #[test]
+    fn hit_regions_match_card_edges_and_exclude_headers_and_gaps() {
+        for selected in [false, true] {
+            let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
+            if selected {
+                state.selected_patchbay_subject = Some("meet-one-gear/change".into());
+            }
+            for (width, height) in [(640, 480), (1280, 800), (1920, 1080)] {
+                let layout = super::super::layout_for_state(width, height, &state).unwrap();
+                let bounds = graphics_rect(layout.patchbay).unwrap();
+                for index in 0..3 {
+                    let card = card_bounds(bounds, index);
+                    let x = card.x as u16;
+                    let y = card.y as u16;
+                    let hit = |x, y| super::super::hits_card(&layout, x, y).unwrap();
+                    assert!(hit(x, y));
+                    assert!(hit(x + card.width - 1, y + card.height - 1));
+                    assert!(!hit(x - 1, y));
+                    assert!(!hit(x + card.width, y));
+                    assert!(!hit(x, y - 1));
+                    assert!(!hit(x, y + card.height));
+                }
+            }
+        }
+    }
+
+    #[test]
     fn previews_distinguish_absence_empty_and_bounded_unicode() {
         assert_eq!(preview(None), "unobserved");
         assert_eq!(preview(Some("")), "\"\"");

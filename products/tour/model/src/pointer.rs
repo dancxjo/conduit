@@ -126,6 +126,18 @@ mod tests {
     }
 
     #[test]
+    fn leaving_at_revision_exhaustion_preserves_the_previous_state() {
+        let mut controller = TourWorkspaceController::canonical(u32::MAX);
+        let before = controller.state().clone();
+        assert!(matches!(
+            controller.leave_pointer(1),
+            Err(TourPointerRefusal::Workspace(_))
+        ));
+        assert_eq!(controller.state(), &before);
+        assert_eq!(controller.last_pointer_sequence(), None);
+    }
+
+    #[test]
     fn portable_pointer_hover_and_press_select_exact_canonical_gears() {
         let layout = TourWorkspaceLayout::default_for(640, 480).unwrap();
         let mut controller = opened();
