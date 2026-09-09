@@ -1,4 +1,31 @@
 use super::*;
+
+#[test]
+fn full_scene_round_trips_and_overflow_is_atomic() {
+    let command = GraphicsCommand::text(
+        rect(0, 10),
+        rect(0, 10),
+        GraphicsPaintRole::Foreground,
+        &"x".repeat(MAX_GRAPHICS_TEXT_BYTES),
+    )
+    .unwrap();
+    let mut scene = GraphicsScene::empty();
+    for _ in 0..MAX_GRAPHICS_COMMANDS {
+        scene.push(command).unwrap();
+    }
+    let before = scene;
+    assert_eq!(scene.push(command), Err(GraphicsError::TooManyCommands));
+    assert_eq!(scene, before);
+    assert_eq!(scene.encoded_len(), MAX_GRAPHICS_SCENE_BYTES);
+    let mut encoded = scene.encode();
+    assert_eq!(GraphicsScene::decode(&encoded), Ok(scene));
+    encoded[1] = (MAX_GRAPHICS_COMMANDS + 1) as u8;
+    assert_eq!(
+        GraphicsScene::decode(&encoded),
+        Err(GraphicsError::TooManyCommands)
+    );
+}
+
 fn rect(x: i16, width: u16) -> LayoutRect {
     LayoutRect {
         x,

@@ -1218,6 +1218,7 @@ dependencies = [
  "conduit-wire",
  "limine",
  "patchbay-control",
+ "patchbay-graph",
  "serde_json",
  "sha2 0.10.9",
 ]

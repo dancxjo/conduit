@@ -14,6 +14,12 @@ Adding or changing a canonical Form requires checker coverage and explicit
 consumer updates. Form source grants no Host, membership, authority, Plan, or
 Play truth.
 
+[Startup Chime](startup-chime/README.md) and
+[First Wake Chime](first-wake-chime/README.md) demonstrate non-graphical
+embodiment: a Body wakes its installed Forms, and a Form may simply make a
+sound. The first is an optional browser default; the second demonstrates the
+reusable Body-scoped first-wake source. Both use the same portable sound Kind.
+
 `inventory.toml` is the bounded reviewed-membership registry. `cargo xtask
 forms check` validates every declared entry and ratchets every canonical
 `forms/<name>/main.conduit` owner into the registry; it never promotes arbitrary

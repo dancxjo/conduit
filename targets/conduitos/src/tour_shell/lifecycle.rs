@@ -53,6 +53,79 @@ use crate::{display::PixelTarget, product_journey::JourneyProjection, tour_produ
 
 use super::{ShellPresentationReceipt, Slot, TourShellError, TourShellPresenter};
 
+/// Retained presentation input, copied only from the authoritative journey.
+pub(super) struct StatusSnapshot {
+    name: Option<alloc::string::String>,
+    status: crate::product_journey::JourneyStatus,
+}
+
+pub(super) fn with_status(
+    mut presentation: Presentation,
+    snapshot: Option<&StatusSnapshot>,
+) -> Result<Presentation, TourShellError> {
+    use crate::product_journey::JourneyStatus;
+    let Some(snapshot) = snapshot else {
+        return Ok(presentation);
+    };
+    let basis = &presentation.basis;
+    let body = if basis.body_id.is_some() {
+        snapshot.name.as_deref().unwrap_or("Retained")
+    } else {
+        "Absent"
+    };
+    let wake = if basis.wake_id.is_none() {
+        "Absent"
+    } else {
+        match snapshot.status {
+            JourneyStatus::BornLulled | JourneyStatus::Lulled => "Lulled",
+            _ => "Awake",
+        }
+    };
+    let plan = if basis.plan_id.is_none() {
+        "Absent"
+    } else {
+        match snapshot.status {
+            JourneyStatus::Planned => "Ready",
+            JourneyStatus::Playing => "In use",
+            _ => "Retained",
+        }
+    };
+    let play = if basis.active_play_id.is_none() {
+        "Inactive"
+    } else {
+        match snapshot.status {
+            JourneyStatus::Playing => "Running",
+            JourneyStatus::ResultVisible => "Completed",
+            JourneyStatus::Stopped => "Stopped",
+            JourneyStatus::Lulled => "Ended",
+            _ => "Recorded",
+        }
+    };
+    for (key, value) in [
+        ("body", body),
+        ("wake", wake),
+        ("plan", plan),
+        ("play", play),
+    ] {
+        let identity = alloc::format!("tour/status/{key}");
+        let item = presentation
+            .text
+            .iter_mut()
+            .find(|item| item.subject == identity)
+            .ok_or(TourShellError::Identity)?;
+        item.text = value.into();
+    }
+    Presentation::new(
+        presentation.revision,
+        presentation.basis,
+        presentation.subjects,
+        presentation.relationships,
+        presentation.properties,
+        presentation.text,
+    )
+    .map_err(|_| TourShellError::Identity)
+}
+
 pub(super) fn empty_lifecycle_basis() -> PresentationBasis {
     PresentationBasis {
         body_id: None,
@@ -99,6 +172,10 @@ impl TourShellPresenter {
     ) -> Result<ShellPresentationReceipt, TourShellError> {
         self.lifecycle_revision = lifecycle.revision;
         self.lifecycle_basis = basis_from_projection(lifecycle);
+        self.lifecycle_status = Some(StatusSnapshot {
+            name: lifecycle.friendly_name.clone(),
+            status: lifecycle.status,
+        });
         self.present(tour, display)
     }
 

@@ -14,6 +14,44 @@ pub(super) fn inspector_close_bounds(width: u16) -> LayoutRect {
 }
 
 impl TourShellPresenter {
+    pub fn chooser_open_hit(
+        &self,
+        route: &RoutedPointer,
+        tour: &TourProduct,
+    ) -> Result<bool, TourShellError> {
+        self.validate_pointer_route(route)?;
+        if route.surface_id != super::WORKSPACE_SURFACE {
+            return Ok(false);
+        }
+        let state = self
+            .surfaces
+            .iter()
+            .find(|state| state.slot == Slot::Workspace)
+            .ok_or(TourShellError::Identity)?;
+        let presentation = state
+            .presentation
+            .as_ref()
+            .ok_or(TourShellError::Identity)?;
+        if !presentation.subjects.iter().any(|subject| {
+            subject.identity == conduit_tour_model::OPEN_CHOOSER_ACTION_ID
+                && subject.role == PresentationRole::Action
+        }) {
+            return Ok(false);
+        }
+        let surface = state.bounds.ok_or(TourShellError::Identity)?;
+        let layout = crate::tour_workspace::layout_for_state(
+            surface.width,
+            surface.height,
+            tour.controller().state(),
+        )
+        .map_err(|_| TourShellError::Scene)?;
+        let bounds = crate::tour_workspace::chooser_bounds(&layout);
+        Ok(i32::from(route.local_x) >= i32::from(bounds.x)
+            && i32::from(route.local_x) < i32::from(bounds.x) + i32::from(bounds.width)
+            && i32::from(route.local_y) >= i32::from(bounds.y)
+            && i32::from(route.local_y) < i32::from(bounds.y) + i32::from(bounds.height))
+    }
+
     pub fn inspector_close_hit(&self, route: &RoutedPointer) -> Result<bool, TourShellError> {
         self.validate_pointer_route(route)?;
         if route.surface_id != INSPECTOR_SURFACE {
