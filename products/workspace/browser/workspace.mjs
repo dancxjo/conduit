@@ -77,9 +77,10 @@ export async function startApplication(application) {
     });
     const showSelected = () => {
       const form = inventory.forms.find(item => item.checked_form_id === selected);
-      root.querySelector('#surface-title').textContent = form?.title ?? 'Your Forms';
+      input.hidden = !form;
+      root.querySelector('#surface-title').textContent = form?.title ?? 'No Forms installed';
       root.querySelector('[data-surface-invitation]').textContent = form?.required_kinds.includes('text/submit-lines') ? 'Type a message. Press Enter to send.'
-        : form?.required_kinds.includes('input/keyboard') ? 'Type something. Your Form is listening.' : 'Watch this Form take shape.';
+        : form?.required_kinds.includes('input/keyboard') ? 'Type something. Your Form is listening.' : form ? 'Watch this Form take shape.' : 'Your Body is retained without running Forms.';
       root.querySelector('.current-form').textContent = form?.title ?? 'Your Forms';
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
       input.setAttribute('aria-label', `Interact with ${form?.title ?? 'your Form'}`);
@@ -87,6 +88,7 @@ export async function startApplication(application) {
       const partition = session.evidence()?.realization?.plan.forms.find(item => item.form.checked_form_id === selected);
       const visible = new Set(partition?.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id)) ?? []);
       for (const output of root.querySelectorAll('[data-form-output] output')) output.hidden = !visible.has(output.dataset.placementId);
+      for (const button of strip.querySelectorAll('[data-inspect="form"], [data-inspect="flow"]')) button.disabled = !form;
     };
     function render() {
       const body = session.current();
@@ -119,6 +121,11 @@ export async function startApplication(application) {
       root.dataset.bodyId = body.body_id;
       root.querySelector('[data-play-state]').textContent = playback.state;
       root.querySelector('#surface-guidance').textContent = playback.detail;
+      if (!body.initial_forms.length) {
+        root.querySelector('#surface-guidance').textContent = 'This Body can remain lulled.';
+        wakeButton.hidden = true;
+        lullButton.hidden = true;
+      }
       notice.textContent = `${body.initial_forms.length} Form${body.initial_forms.length === 1 ? '' : 's'} in ${body.friendly_name}.`;
       if (!body.initial_forms.some(form => form.checked_form_id === selected)) selected = body.initial_forms[0]?.checked_form_id;
       activities.replaceChildren(...body.initial_forms.map(form => {

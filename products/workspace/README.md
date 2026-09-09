@@ -21,7 +21,7 @@ cargo xtask demo workspace --check
 The journey births Memory Lantern and Desk Telegraph, interacts repeatedly with
 both, switches without replacing Play, and reopens the same Body with its last
 foreground Form. Separate cases exercise storage exhaustion, a competing window,
-and a narrow viewport. The product carrier also checks that the provisioning
+a narrow viewport, and an intentionally empty Body. The product carrier also checks that the provisioning
 Crèche respects the same live owner and returns an arrived Body to its Forms.
 
 ## Lifecycle and ownership

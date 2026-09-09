@@ -52,7 +52,7 @@ mod tests {
         wrong.active_play_id = "play/unstarted".into();
         assert!(require_started(&wrong).is_err());
         assert!(require_empty().is_err());
-        let mut session = super::super::abi::SESSION.with(|slot| slot.borrow_mut().take().unwrap());
+        let session = super::super::abi::SESSION.with(|slot| slot.borrow_mut().take().unwrap());
         let receipt = session.cancel().unwrap();
         assert_eq!(receipt.active_play_id, started.play.active_play_id.as_str());
         require_empty().unwrap();

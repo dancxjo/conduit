@@ -12,6 +12,7 @@ async function assemblePagesCarrier() {
   await cp("target/pages-root", pagesRoot, { recursive: true });
   await cp("target/tour-product", `${pagesRoot}/tour`, { recursive: true });
   await cp("target/creche-product", `${pagesRoot}/creche`, { recursive: true });
+  await cp("target/workspace-product", `${pagesRoot}/workspace`, { recursive: true });
   await cp("target/patchbay-product", `${pagesRoot}/patchbay`, { recursive: true });
   await stageLegacyTourRoutes(pagesRoot);
 }
@@ -26,6 +27,16 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
+test("Birth on the front page arrives directly in listening Forms", async ({ page }) => {
+  await page.goto(entrance.url);
+  await page.getByRole("link", { name: "Birth a Body", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "A Body of your own", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await page.keyboard.press("h");
+  await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
+});
+
 test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   const tour = `${home}/tour/`;
@@ -37,7 +48,7 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
   await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
   await expect(page.getByRole("link", { name: "Learn Conduit" })).toHaveAttribute("href", "/conduit/tour");
-  await expect(page.getByRole("link", { name: "Birth a Body", exact: true })).toHaveAttribute("href", "/conduit/creche");
+  await expect(page.getByRole("link", { name: "Birth a Body", exact: true })).toHaveAttribute("href", "/conduit/workspace/");
   await expect(page.getByText("One physical computer")).toBeVisible();
   await expect(page.getByText("Several unlike computers")).toBeVisible();
   await expect(page.getByRole("link", { name: "Patchbay", exact: true }).first()).toHaveAttribute("href", "/conduit/patchbay/");

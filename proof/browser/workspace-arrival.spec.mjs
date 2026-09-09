@@ -117,3 +117,21 @@ test("Birth and the listening surface fit a narrow window", async ({ page }, tes
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: testInfo.outputPath("workspace-narrow.png"), fullPage: true });
 });
+
+test("an intentionally empty Body remains lulled without inventing a Play", async ({ page }) => {
+  await page.goto(entrance.url);
+  await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
+  await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  await expect(page.getByRole("heading", { name: "No Forms installed", exact: true })).toBeVisible();
+  await expect(page.locator("#form-input")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeHidden();
+  const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  expect(original.active_play_id).toBeUndefined();
+  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
+  await page.reload();
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  const returned = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  expect(returned.body_id).toBe(original.body_id);
+  expect(returned.active_play_id).toBeUndefined();
+});
