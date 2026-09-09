@@ -4,6 +4,36 @@ use super::GlyphRaster;
 use crate::display::{DisplayError, DisplayReceipt, RetainedPixelTarget};
 use conduit_presentation::LayoutRect;
 
+/// Lay out and draw one bounded command using the same cursor as measurement.
+pub fn render_text(
+    target: &mut impl RetainedPixelTarget,
+    value: &str,
+    role: super::TextRole,
+    bounds: LayoutRect,
+    clip: LayoutRect,
+    color: u32,
+) -> Result<DisplayReceipt, DisplayError> {
+    let layout = super::TextLayout::new(value, role, bounds.width)?;
+    let format = target.format().validate()?;
+    let mut receipt = DisplayReceipt::default();
+    let Some(clip) = super::super::clipped(bounds, clip, format) else {
+        return Ok(receipt);
+    };
+    for positioned in layout {
+        let pen = (
+            i32::from(bounds.x) + positioned.pen.0,
+            i32::from(bounds.y) + positioned.pen.1,
+        );
+        let glyph_receipt = render_glyph(target, &positioned.glyph, pen, clip, color)?;
+        receipt.pixels_written = receipt
+            .pixels_written
+            .checked_add(glyph_receipt.pixels_written)
+            .ok_or(DisplayError::InvalidExtent)?;
+    }
+    receipt.commands = 1;
+    Ok(receipt)
+}
+
 /// Draw one glyph at a baseline pen, clipped to the retained target and clip.
 /// Work is at most 64 by 64 samples. Transparent samples do not read or write.
 pub fn render_glyph(
@@ -70,6 +100,52 @@ mod tests {
 
     struct Surface {
         pixels: [u32; 32 * 32],
+    }
+
+    #[test]
+    fn text_layout_raster_is_repeatable_and_confined_to_its_rectangle() {
+        let bounds = LayoutRect {
+            x: 3,
+            y: 2,
+            width: 20,
+            height: 26,
+        };
+        let mut surface = Surface {
+            pixels: [0x204060; 32 * 32],
+        };
+        let receipt = render_text(
+            &mut surface,
+            "Wi\nề",
+            TextRole::Body,
+            bounds,
+            bounds,
+            0xffffff,
+        )
+        .unwrap();
+        assert_eq!(receipt.commands, 1);
+        assert!(receipt.pixels_written > 0);
+        let expected = surface.pixels;
+        for _ in 0..64 {
+            surface.pixels.fill(0x204060);
+            let repeated = render_text(
+                &mut surface,
+                "Wi\nề",
+                TextRole::Body,
+                bounds,
+                bounds,
+                0xffffff,
+            )
+            .unwrap();
+            assert_eq!(repeated.pixels_written, receipt.pixels_written);
+            assert_eq!(surface.pixels, expected);
+        }
+        for y in 0..32 {
+            for x in 0..32 {
+                if !(3..23).contains(&x) || !(2..28).contains(&y) {
+                    assert_eq!(surface.pixels[y * 32 + x], 0x204060);
+                }
+            }
+        }
     }
     impl PixelTarget for Surface {
         fn format(&self) -> DisplayFormat {

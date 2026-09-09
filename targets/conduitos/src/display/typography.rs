@@ -5,7 +5,9 @@
 //! its explicit replacement glyph. This is scalar rendering, not general shaping.
 
 mod raster;
-pub use raster::render_glyph;
+pub use raster::{render_glyph, render_text};
+mod layout;
+pub use layout::{PositionedGlyph, TextLayout};
 
 /// Text purpose selects a fixed fabricated profile, never an ambient font.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
