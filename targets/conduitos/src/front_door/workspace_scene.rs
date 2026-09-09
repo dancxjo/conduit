@@ -74,6 +74,15 @@ pub(super) fn scene(
     if let Some(result) = &journey.result {
         text(&mut scene, screen, 208, result, GraphicsPaintRole::Accent)?;
     }
+    if journey.result_omitted_bytes > 0 {
+        text(
+            &mut scene,
+            screen,
+            248,
+            "Showing recent output.",
+            GraphicsPaintRole::Foreground,
+        )?;
+    }
     if let Some(refusal) = refusal {
         text(
             &mut scene,
@@ -85,13 +94,19 @@ pub(super) fn scene(
         text(&mut scene, screen, 320, refusal, GraphicsPaintRole::Status)?;
     }
     let footer_y = i16::try_from(screen.height.saturating_sub(48)).map_err(|_| Error::Scene)?;
+    let lifecycle_action = match journey.status {
+        JourneyStatus::Playing => "  ·  F8 Stop",
+        JourneyStatus::Stopped | JourneyStatus::ResultVisible => "  ·  F7 Lull",
+        _ => "",
+    };
     text(
         &mut scene,
         screen,
         footer_y,
         &format!(
-            "{}  ·  F2 details  ·  F9 Tour  ·  F8 Stop",
-            journey.status.as_str()
+            "{}  ·  F2 details  ·  F9 Tour{}",
+            journey.status.as_str(),
+            lifecycle_action
         ),
         GraphicsPaintRole::Foreground,
     )?;

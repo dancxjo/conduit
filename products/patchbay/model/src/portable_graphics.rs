@@ -20,6 +20,7 @@ pub struct NativeGraphicsObligation<'a> {
     pub paint: GraphicsPaintRole,
     pub style: GraphicsShapeStyle,
     pub resolved_content: &'a str,
+    pub path: Option<conduit_presentation::GraphicsPath>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -54,6 +55,7 @@ impl NativeGraphicsPresenter {
                 paint: command.paint,
                 style: command.style,
                 resolved_content: content,
+                path: command.path_geometry(),
             });
         }
         Ok(output)
@@ -64,6 +66,31 @@ impl NativeGraphicsPresenter {
 mod tests {
     use super::*;
     use conduit_presentation::{GraphicsCommand, GraphicsScene};
+
+    #[test]
+    fn path_geometry_survives_normalization_without_becoming_text() {
+        use conduit_presentation::{GraphicsPath, GraphicsPoint};
+        let path = GraphicsPath::new(&[
+            GraphicsPoint { x: 1, y: 2 },
+            GraphicsPoint { x: 8, y: 2 },
+            GraphicsPoint { x: 8, y: 9 },
+        ])
+        .unwrap();
+        let clip = LayoutRect {
+            x: 0,
+            y: 0,
+            width: 20,
+            height: 20,
+        };
+        let mut scene = GraphicsScene::empty();
+        scene
+            .push(GraphicsCommand::path(path, clip, GraphicsPaintRole::Status).unwrap())
+            .unwrap();
+        let normalized = NativeGraphicsPresenter::normalize(&scene).unwrap()[0].unwrap();
+        assert_eq!(normalized.path, Some(path));
+        assert_eq!(normalized.resolved_content, "");
+        assert_eq!(normalized.kind, GraphicsCommandKind::OrthogonalPath);
+    }
 
     #[test]
     fn native_normalizer_preserves_semantics_without_pixel_parity() {

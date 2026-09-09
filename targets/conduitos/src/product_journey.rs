@@ -17,6 +17,8 @@ use crate::{
 };
 
 mod birth;
+mod result_window;
+use result_window::ResultWindow;
 mod play;
 
 pub use patchbay_control::{
@@ -64,6 +66,7 @@ pub enum JourneyError {
     Plan(PreparationError),
     Kernel,
     InputUnavailable,
+    InputSequenceExhausted,
     RevisionExhausted,
 }
 
@@ -80,6 +83,7 @@ impl JourneyError {
             Self::Plan(error) => error.as_str(),
             Self::Kernel => "product-kernel-refused",
             Self::InputUnavailable => "product-input-unavailable",
+            Self::InputSequenceExhausted => "product-input-sequence-exhausted",
             Self::RevisionExhausted => "product-presentation-revision-exhausted",
         }
     }
@@ -108,6 +112,9 @@ pub struct JourneyProjection {
     pub input_sign_id: Option<SignId>,
     pub result_sign_id: Option<SignId>,
     pub result: Option<String>,
+    pub result_omitted_bytes: u64,
+    pub input_count: u32,
+    pub kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     pub last_request_id: Option<String>,
 }
 
@@ -130,10 +137,11 @@ pub struct ProductJourney {
     play: Option<ActivePlayIdentity>,
     kernel: Option<Box<KeyboardTextKernel>>,
     pending_keyboard: Option<HostOperationRequest>,
-    input_count: u8,
+    input_count: u32,
     input_sign_id: Option<SignId>,
     result_sign_id: Option<SignId>,
-    result: Option<String>,
+    result: ResultWindow,
+    retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
 }
 
@@ -166,7 +174,8 @@ impl ProductJourney {
             input_count: 0,
             input_sign_id: None,
             result_sign_id: None,
-            result: None,
+            result: ResultWindow::new(),
+            retained_kernel_sign_gap: None,
             last_request_id: None,
         })
     }
@@ -287,7 +296,14 @@ impl ProductJourney {
                 .collect(),
             input_sign_id: self.input_sign_id.clone(),
             result_sign_id: self.result_sign_id.clone(),
-            result: self.result.clone(),
+            result: (!self.result.as_str().is_empty()).then(|| self.result.as_str().into()),
+            result_omitted_bytes: self.result.omitted_bytes(),
+            input_count: self.input_count,
+            kernel_sign_gap: self
+                .kernel
+                .as_ref()
+                .and_then(|kernel| kernel.sign_retention_gap())
+                .or(self.retained_kernel_sign_gap),
             last_request_id: self.last_request_id.clone(),
         }
     }

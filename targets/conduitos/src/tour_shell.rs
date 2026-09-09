@@ -307,6 +307,8 @@ impl TourShellPresenter {
                 self.lifecycle_basis.clone(),
             )
             .map_err(|_| TourShellError::Identity)?;
+        let status_presentation =
+            lifecycle::with_presenter_host(status_presentation, &self.host_id)?;
         let status = self.present_surface(
             Slot::Status,
             &status_presentation,

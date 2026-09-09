@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, format, string::String};
+use alloc::{boxed::Box, format};
 
 use conduit_body::WakeLifecycle;
 use conduit_core::SignId;
@@ -19,25 +19,29 @@ impl ProductJourney {
         if self.status != JourneyStatus::Playing {
             return Ok(false);
         }
+        let next_count = self
+            .input_count
+            .checked_add(1)
+            .ok_or(JourneyError::InputSequenceExhausted)?;
+        self.revision
+            .checked_add(1)
+            .ok_or(JourneyError::RevisionExhausted)?;
         let request = self
             .pending_keyboard
             .take()
             .ok_or(JourneyError::InputUnavailable)?;
+        self.kernel
+            .as_mut()
+            .ok_or(JourneyError::Kernel)?
+            .complete_keyboard(request, event)
+            .map_err(|_| JourneyError::Kernel)?;
         let play = self.play.as_ref().ok_or(JourneyError::InvalidTransition)?;
         self.input_sign_id = Some(SignId::from(format!(
             "conduitos/product/input/{}/{}",
             play.active_play_id.as_str(),
             self.input_count
         )));
-        self.input_count = self
-            .input_count
-            .checked_add(1)
-            .ok_or(JourneyError::Kernel)?;
-        self.kernel
-            .as_mut()
-            .ok_or(JourneyError::Kernel)?
-            .complete_keyboard(request, event)
-            .map_err(|_| JourneyError::Kernel)?;
+        self.input_count = next_count;
         self.drive_kernel()?;
         self.advance()?;
         Ok(true)
@@ -54,11 +58,11 @@ impl ProductJourney {
             .pending_keyboard
             .take()
             .ok_or(JourneyError::InputUnavailable)?;
-        self.kernel
-            .as_mut()
-            .ok_or(JourneyError::Kernel)?
+        let kernel = self.kernel.as_mut().ok_or(JourneyError::Kernel)?;
+        kernel
             .fail_keyboard_device_removed(request)
             .map_err(|_| JourneyError::Kernel)?;
+        self.retained_kernel_sign_gap = kernel.sign_retention_gap();
         self.kernel = None;
         self.status = JourneyStatus::Stopped;
         self.advance()
@@ -83,7 +87,7 @@ impl ProductJourney {
             return Err(JourneyError::WrongTarget);
         }
         let kernel =
-            Box::new(KeyboardTextKernel::prepare(&prepared, 2).map_err(JourneyError::Plan)?);
+            Box::new(KeyboardTextKernel::prepare_standing(&prepared).map_err(JourneyError::Plan)?);
         self.wake = Some(
             wake.plan_ready(
                 &prepared.plan,
@@ -91,6 +95,11 @@ impl ProductJourney {
             )
             .map_err(|_| JourneyError::InvalidTransition)?,
         );
+        self.result = super::ResultWindow::new();
+        self.input_count = 0;
+        self.input_sign_id = None;
+        self.result_sign_id = None;
+        self.retained_kernel_sign_gap = None;
         self.plan = Some(prepared.plan);
         self.planned_play = Some(prepared.active_play);
         self.kernel = Some(kernel);
@@ -127,6 +136,7 @@ impl ProductJourney {
             && let Some(kernel) = self.kernel.as_mut()
         {
             kernel.cancel().map_err(|_| JourneyError::Kernel)?;
+            self.retained_kernel_sign_gap = kernel.sign_retention_gap();
         }
         self.kernel = None;
         self.pending_keyboard = None;
@@ -177,8 +187,9 @@ impl ProductJourney {
                     .map_err(|_| JourneyError::Kernel)?;
                 match kind {
                     KeyboardTextRequestKind::Keyboard => {
-                        self.pending_keyboard = Some(request);
-                        return Ok(());
+                        if self.pending_keyboard.replace(request).is_some() {
+                            return Err(JourneyError::Kernel);
+                        }
                     }
                     KeyboardTextRequestKind::Keymap => self
                         .kernel
@@ -201,7 +212,9 @@ impl ProductJourney {
                             .map_err(|_| JourneyError::Kernel)?;
                         let value = core::str::from_utf8(fragment.as_bytes())
                             .map_err(|_| JourneyError::Kernel)?;
-                        self.result.get_or_insert_with(String::new).push_str(value);
+                        self.result
+                            .append(value)
+                            .map_err(|_| JourneyError::Kernel)?;
                         let play = self.play.as_ref().ok_or(JourneyError::Kernel)?;
                         self.result_sign_id = Some(SignId::from(format!(
                             "conduitos/product/result/{}/{}",
@@ -219,6 +232,7 @@ impl ProductJourney {
                 .map_err(|_| JourneyError::Kernel)?
             {
                 SchedulerStatus::Progress { .. } => {}
+                SchedulerStatus::Idle if self.pending_keyboard.is_some() => return Ok(()),
                 SchedulerStatus::Idle => return Err(JourneyError::Kernel),
                 SchedulerStatus::Drained => {
                     self.status = JourneyStatus::ResultVisible;

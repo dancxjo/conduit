@@ -2019,26 +2019,24 @@ test("unsupported capability and type mismatch remain ordinary pre-Play refusals
   await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
 });
 
-test("state over time presents startup and current count through four admitted browser ticks", async ({ page }) => {
+test("state over time remains live across repeated admitted browser ticks", async ({ page }) => {
   await openStep(page, 2);
   await expect(page.getByRole("heading", { name: "Hosts make Forms real" })).toBeVisible();
   const runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("0");
-  await expect(runner.locator(".morse")).toHaveText("4");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
-    "4 planned ticks and 5 presentations",
-  );
+  await expect.poll(async () => Number(await runner.locator(".morse").textContent())).toBeGreaterThan(0);
+  const firstCount = Number(await runner.locator(".morse").textContent());
+  await expect.poll(async () => Number(await runner.locator(".morse").textContent())).toBeGreaterThan(firstCount);
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Waiting for planned tick");
   await expect(runner.locator('[data-application-key="play-status"]'))
     .toHaveAttribute("data-application-component", "status");
   await expect(runner.locator('[data-application-key="play-status"]'))
     .toHaveAttribute("aria-live", "polite");
-  await expect(runner.locator(".run-identities")).toContainText("Timer completions4");
-  await expect(runner.locator(".run-identities")).toContainText("Manifestation completions5");
-  await expect(runner.locator(".run-identities")).toContainText("LifecycleQuiescentAwaitingInput");
   await expect(runner.locator(".run-identities")).toContainText("Active Play");
-  await expect(runner.locator(".run-identities dd")).toHaveCount(16);
   await expect(runner.locator('.run-identities [data-application-component="definition-table"]')).toBeAttached();
+  await runner.getByRole("button", { name: "Stop" }).click();
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("cancelled");
 });
 
 test("stopping state over time cancels the pending timer without a late completion", async ({ page }) => {

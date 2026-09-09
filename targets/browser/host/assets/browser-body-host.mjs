@@ -57,7 +57,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
   }
   for (const [kind, units] of demand) {
-    if (units > (kind === PRESENTATION ? 16 : 1)) throw new Error("browser Body resource demand exceeds local bounds");
+    if (units > ([PRESENTATION, INPUT].includes(kind) ? 16 : 1)) throw new Error("browser Body resource demand exceeds local bounds");
   }
   if (api.conduit_browser_form_human_machinery() < 0) throw new Error("browser machinery unavailable");
   const machinery = readOutput(api);
@@ -103,7 +103,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       host_id: hostId, boot_id: bootId, offer_generation: 1,
       pool_id: pools.get(class_id), class_id, health: "Ready",
       // Counts come from acquired adapter state, not advertised capacities.
-      unreserved_units: class_id === PRESENTATION ? slots.size : class_id === INPUT ? Number(input !== null) : Number(timer !== null),
+      unreserved_units: class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : Number(timer !== null),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
   };
