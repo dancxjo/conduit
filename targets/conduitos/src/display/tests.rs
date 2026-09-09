@@ -256,6 +256,10 @@ fn text_wraps_and_fallback_is_bounded_and_deterministic() {
     assert_eq!(wrapped, explicit);
     assert_eq!(wrapped_receipt, explicit_receipt);
 
+    let (words, words_receipt) = render("AB CD");
+    assert_eq!(words, explicit);
+    assert_eq!(words_receipt, explicit_receipt);
+
     let (fallback, fallback_receipt) = render("🦀🦀🦀");
     let (replacement, replacement_receipt) = render("���");
     assert_eq!(fallback, replacement);

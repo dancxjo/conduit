@@ -329,9 +329,8 @@ fn text(
     color: u32,
     receipt: &mut DisplayReceipt,
 ) -> Result<(), DisplayError> {
-    let mut cursor = text_layout::TextCursor::new(rect.width);
-    for character in value.chars() {
-        let Some((cell_x, cell_y)) = cursor.advance(character) else {
+    for (character, position) in text_layout::TextCursor::new(value, rect.width) {
+        let Some((cell_x, cell_y)) = position else {
             continue;
         };
         let (glyph, _) = font::glyph(character);
