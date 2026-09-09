@@ -72,9 +72,9 @@ pub(super) fn validate(
         || !exact_id(&keyboard.active_play_id)
         || keyboard.plan_id == keyboard.active_play_id
         || keyboard.resource_bindings != 8
-        || keyboard.report_buffers != 2
-        || keyboard.transition_slots != 8
-        || keyboard.operation_slots != 2
+        || keyboard.report_buffers != u16::from(hid.report_buffers)
+        || keyboard.transition_slots != u16::from(hid.sign_slots)
+        || keyboard.operation_slots != u16::from(hid.maximum_outstanding_interrupt_transfers)
         || keyboard.cord_item_capacity != 1
         || keyboard.cord_byte_capacity != 3
         || keyboard.event_count != 2
