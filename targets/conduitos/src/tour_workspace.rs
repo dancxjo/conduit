@@ -24,7 +24,6 @@ pub(crate) fn chooser_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
     }
 }
 
-#[allow(dead_code)]
 pub(crate) fn run_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
     LayoutRect {
         y: 92,
@@ -218,6 +217,39 @@ pub(crate) fn scene_with_graph(
         },
         state,
     )?;
+    let availability = state.run_availability();
+    let (run_label, run_detail) = match &availability {
+        conduit_presentation::ActionAvailability::Available => ("Run Plan", None),
+        conduit_presentation::ActionAvailability::Busy { detail }
+        | conduit_presentation::ActionAvailability::Unavailable { detail } => {
+            ("Run inactive", Some(detail.as_str()))
+        }
+    };
+    let run = run_bounds(&layout);
+    scene
+        .push(
+            GraphicsCommand::text(run, narrative, GraphicsPaintRole::Accent, run_label)
+                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+        )
+        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    if let Some(detail) = run_detail {
+        scene
+            .push(
+                GraphicsCommand::text(
+                    LayoutRect {
+                        x: 8,
+                        y: 164,
+                        width: narrative.width.saturating_sub(16).max(1),
+                        height: 44,
+                    },
+                    narrative,
+                    GraphicsPaintRole::Warning,
+                    detail,
+                )
+                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    }
     let button = chooser_bounds(&layout);
     scene
         .push(
