@@ -20,19 +20,9 @@ pub(super) fn open(
     offer: &HostOffer<'_>,
     fabrication: &FabricationRecord,
 ) -> Result<(), &'static str> {
-    let target = format!("form/{}", journey.form().checked_form_id.as_str());
-    let request = journey
-        .next_request(JourneyAction::OpenBack, target, door.revision())
-        .map_err(|e| e.as_str())?;
-    journey
-        .apply(
-            request,
-            identities,
-            offer,
-            fabrication.build_id,
-            door.revision(),
-        )
-        .map_err(|e| e.as_str())?;
+    // Crèche is the zero-Body entrance. Do not open a Form merely to make the
+    // arrival surface exist: reviewed Forms belong to the Crèche inventory and
+    // become lifecycle truth only after an explicit birth selection.
     door.observe_journey(journey.projection())
         .map_err(|e| e.as_str())?;
     let hex = crate::identity::hex(&identities.boot);
