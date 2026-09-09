@@ -42,6 +42,7 @@ jobs:
         run: >-
           node --test
           proof/ci/branch-boundary.spec.mjs
+          proof/ci/development-receipts.spec.mjs
           proof/ci/browser-product-ownership.test.mjs
           proof/ci/pr-closing-intent.test.mjs
           proof/ci/release-lane-controller.spec.mjs
