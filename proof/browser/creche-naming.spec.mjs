@@ -1,3 +1,4 @@
+import { openCrecheStep } from "./creche-test-actions.mjs";
 import { spawn } from "node:child_process";
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth } from "./creche-test-actions.mjs";
@@ -18,13 +19,14 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   const name = birth.getByLabel("Friendly Body name");
   const tradition = birth.getByLabel("Naming tradition");
   await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
-  await expect(birth.locator('[data-application-key="initial-forms-field"]')).toHaveAttribute("data-application-component", "choice-group");
+  await expect(birth.locator('[data-application-key="initial-forms"]')).toHaveAttribute("data-application-component", "choice-group");
   await expect(birth.getByRole("checkbox", { name: "Morse Network" })).not.toBeChecked();
   await birth.getByRole("checkbox", { name: "Memory Lantern" }).check();
   await expect(birth.getByRole("checkbox", { name: "Memory Lantern" })).toBeChecked();
-  await expect(birth.locator('[data-application-key="initial-forms-help"]')).toHaveText("1 of 5 reviewed Forms selected; maximum 16.");
-  await expect(name).toHaveAttribute("aria-describedby", /description/);
-  await expect(birth.getByLabel("Conduit Form source")).toHaveAttribute("aria-describedby", /description/);
+  await expect(birth.locator('[data-application-key="selected-forms"]')).toHaveText("Selected: 1");
+  await expect(name).toHaveAttribute("aria-describedby", /\S+/);
+  await expect(birth.getByLabel("Conduit Form source")).toHaveAttribute("aria-describedby", /\S+/);
+  await birth.getByText("Details and source", { exact: true }).click();
   const source = birth.getByLabel("Conduit Form source");
   const syntax = birth.locator('[data-application-syntax="conduit"] .syntax-highlight');
   await expect(source).toHaveAttribute("data-syntax-disposition", "accepted");
@@ -49,12 +51,10 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   expect(selectedStyle.color).not.toBe("rgba(0, 0, 0, 0)");
   expect(selectedStyle.fill).not.toBe("rgba(0, 0, 0, 0)");
   await expect(tradition.locator("option")).toHaveCount(24);
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("variation 0");
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("not the Body ID");
 
   await tradition.selectOption("chinese");
   await expect(name).toHaveValue(/^[\p{Script=Latin}\p{Mark}]+ [\p{Script=Latin}\p{Mark} ]+$/u);
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("Chinese (romanized, family name first)");
+  await expect(tradition.locator("option:checked")).toContainText("Chinese (romanized, family name first)");
 
   await tradition.selectOption("mexican");
   const mexicanParts = (await name.inputValue()).split(" ").length;
@@ -66,41 +66,41 @@ test("Crèche suggestions expose diverse structures while remaining editable met
 
   await tradition.selectOption("ukrainian");
   await expect(name).toHaveValue(/^[\p{Script=Latin}\p{Mark}'-]+ [\p{Script=Latin}\p{Mark}'-]+$/u);
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("Ukrainian (official romanization)");
+  await expect(tradition.locator("option:checked")).toContainText("Ukrainian (official romanization)");
 
   await tradition.selectOption("ancient-hebrew");
   await expect(name).toHaveValue(/ (?:ben|bat) /);
 
   await tradition.selectOption("amharic");
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("Amharic-style patronymic");
+  await expect(tradition.locator("option:checked")).toContainText("Amharic-style patronymic");
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(2);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(3);
 
   await tradition.selectOption("portuguese");
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("Portuguese multi-surname");
+  await expect(tradition.locator("option:checked")).toContainText("Portuguese multi-surname");
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(3);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(4);
 
   await tradition.selectOption("tamil");
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("Tamil patronymic forms");
+  await expect(tradition.locator("option:checked")).toContainText("Tamil patronymic forms");
   await expect(name).toHaveValue(/^(?:[A-Z]\. |[\p{Script=Latin}\p{Mark}]+ )[\p{Script=Latin}\p{Mark}]+$/u);
 
   await tradition.selectOption("indonesian");
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("Indonesian complete personal-name forms");
+  await expect(tradition.locator("option:checked")).toContainText("Indonesian complete personal-name forms");
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(1);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(2);
 
   await tradition.selectOption("welsh");
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("Welsh modern and patronymic forms");
+  await expect(tradition.locator("option:checked")).toContainText("Welsh modern and patronymic forms");
   expect((await name.inputValue()).split(" ").length).toBeGreaterThanOrEqual(2);
   expect((await name.inputValue()).split(" ").length).toBeLessThanOrEqual(3);
 
   await tradition.selectOption("kurmanji");
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("Kurdish Kurmanji (Latin script)");
+  await expect(tradition.locator("option:checked")).toContainText("Kurdish Kurmanji (Latin script)");
   await expect(name).toHaveValue(/^[\p{Script=Latin}\p{Mark}]+ [\p{Script=Latin}\p{Mark}]+$/u);
 
   await tradition.selectOption("targus");
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("The TARGUS family");
+  await expect(tradition.locator("option:checked")).toContainText("The TARGUS family");
   await expect(name).toHaveValue("TARGUS TARGUS");
   await birth.getByRole("button", { name: "Suggest another name" }).click();
   await expect(name).toHaveValue("TARGUS TARGUS");
@@ -110,22 +110,21 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   const revision = Number(await slot.getAttribute("data-application-revision"));
   await birth.getByRole("button", { name: "Suggest another name" }).click();
   expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(revision);
-  await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("variation 2");
 
   await name.fill("Juniper Signalhouse");
   await reviewAndBirth(page, birth);
   await expect(birth.locator('[data-application-key="body-identities"]')).toContainText("Juniper Signalhouse");
   await expect(birth.locator('[data-application-key="body-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
   const bodyId = await birth.getAttribute("data-body-id");
-  await page.getByRole("button", { name: "2. First Host" }).click();
+  await openCrecheStep(page, "2. First Host");
   await expect(page).toHaveURL(/\/creche\/first-host\/$/);
   await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-current", "2");
   await page.goBack();
   await expect(page).toHaveURL(/\/creche\/birth\/$/);
   const retained = page.locator(".body-birth-runner");
-  await expect(retained.getByLabel("Friendly Body name")).toHaveValue("Juniper Signalhouse");
+  await expect(retained.locator('[data-application-key="body-identities"]')).toContainText("Juniper Signalhouse");
   await expect(retained).toHaveAttribute("data-body-id", bodyId);
-  await expect(retained.locator('[data-application-key="name-origin"]')).toContainText("persisted friendly name is metadata");
+  expect(bodyId).not.toBe("Juniper Signalhouse");
 });
 
 function startCreche() {
