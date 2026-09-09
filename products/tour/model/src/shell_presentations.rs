@@ -8,6 +8,7 @@ use conduit_presentation::{
 use crate::{CANONICAL_PATCHBAY_GEARS, TourWorkspacePhase, TourWorkspaceState};
 
 pub const TOUR_WORKSPACE_SUBJECT: &str = "tour/workspace";
+pub const INSPECTOR_CLOSE_ACTION_ID: &str = "tour.inspector.close";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourTransientKind {
@@ -100,6 +101,7 @@ impl TourWorkspaceState {
             ),
             subject(gear, PresentationRole::Gear, gear),
             subject(&inspection, PresentationRole::Form, "Gear inspection"),
+            subject(INSPECTOR_CLOSE_ACTION_ID, PresentationRole::Action, "Close"),
         ];
         let text = crate::inspection::fields(self, gear, &mut subjects);
         Presentation::new(

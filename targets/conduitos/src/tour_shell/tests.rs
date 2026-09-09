@@ -99,6 +99,37 @@ fn chooser_selects_exact_gear_and_rejects_the_dismissed_route() {
 }
 
 #[test]
+fn close_control_restores_workspace_and_invalidates_its_surface_route() {
+    let (mut tour, mut shell, mut display) = fixture();
+    tour.accept_pointer(pointer(), 640, 480).unwrap();
+    shell.present(&tour, &mut display).unwrap();
+    let header = delivered(shell.route_pointer(450, 20, true).unwrap());
+    assert!(!shell.inspector_close_hit(&header).unwrap());
+    let close = delivered(shell.route_pointer(600, 20, true).unwrap());
+    assert!(shell.inspector_close_hit(&close).unwrap());
+    assert!(
+        shell
+            .activate_inspector_close(&close, &mut tour, &mut display)
+            .unwrap()
+    );
+    assert!(
+        tour.controller()
+            .state()
+            .selected_patchbay_subject
+            .is_none()
+    );
+    assert!(
+        shell
+            .activate_inspector_close(&close, &mut tour, &mut display)
+            .is_err()
+    );
+    assert_eq!(
+        delivered(shell.route_pointer(600, 20, false).unwrap()).surface_id,
+        WORKSPACE_SURFACE
+    );
+}
+
+#[test]
 fn transient_is_an_independent_related_surface_and_dismissal_exposes_parent() {
     let (tour, mut shell, mut display) = fixture();
     shell.present(&tour, &mut display).unwrap();

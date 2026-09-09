@@ -101,8 +101,9 @@ impl TourWorkspaceController {
         if self.state.selected_patchbay_subject.is_none() {
             return Ok(false);
         }
+        let revision = self.next_revision()?;
         self.state.selected_patchbay_subject = None;
-        self.state.revision = self.next_revision()?;
+        self.state.revision = revision;
         Ok(true)
     }
 
@@ -232,6 +233,18 @@ mod tests {
             controller.state().selected_patchbay_subject.as_deref(),
             Some("meet-one-gear/change")
         );
+    }
+
+    #[test]
+    fn refused_close_preserves_the_selection() {
+        let mut controller = TourWorkspaceController::canonical(u32::MAX);
+        controller.state.selected_patchbay_subject = Some("meet-one-gear/change".into());
+        let before = controller.state().clone();
+        assert_eq!(
+            controller.dismiss_inspector(),
+            Err(TourWorkspaceRefusal::RevisionExhausted)
+        );
+        assert_eq!(controller.state(), &before);
     }
 
     fn proof() -> TourRunProof {
