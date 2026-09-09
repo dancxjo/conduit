@@ -8,7 +8,7 @@ test("browser Host has no Tour or Creche product source", () => {
   assert.ok(existsSync("products/patchbay/html/assets/patchbay.application.template.json"));
 });
 
-for (const product of ["tour", "creche"]) {
+for (const product of ["tour", "creche", "workspace"]) {
   test(`${product} package dependencies name real source owners`, () => {
     const root = resolve(`products/${product}/browser`);
     const descriptor = JSON.parse(readFileSync(`${root}/${product}.application.template.json`, "utf8"));
@@ -26,7 +26,7 @@ test("target source moves preserve declared browser resource URLs and relative d
   const root = resolve("products/creche/browser");
   const descriptor = JSON.parse(readFileSync(`${root}/creche.application.template.json`, "utf8"));
   const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
-  const entry = descriptor.resources.find((resource) => resource.path === "creche.mjs");
+  const entry = descriptor.resources.find((resource) => resource.path === "creche-installed-targets.mjs");
   const packageRoot = new URL("https://conduit.invalid/creche/");
   let adapters = 0;
   for (const dependency of entry.dependencies.filter((dependency) => dependency.role.endsWith("-adapter"))) {

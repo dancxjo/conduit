@@ -1,6 +1,7 @@
 //! Explicit, bounded Body birth and first-Host admission for the Crèche.
 
 mod abi;
+mod birth_draft;
 mod browser_configuration;
 mod durable;
 mod graduation;
@@ -9,6 +10,10 @@ mod initial_forms;
 mod protocol;
 mod review;
 mod session;
+#[cfg(feature = "form-runner")]
+mod workspace;
+#[cfg(feature = "form-runner")]
+pub(crate) use workspace::{handoff_workspace, plan_workspace_forms, workspace_evidence};
 mod spore;
 mod spore_target;
 
