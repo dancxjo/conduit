@@ -88,33 +88,6 @@ impl BoundedTextState {
     }
 }
 
-#[cfg(test)]
-mod state_tests {
-    use super::*;
-
-    #[test]
-    fn submission_reuses_fixed_storage_and_clears_between_lines() {
-        let mut state = BoundedTextState::new(TextStateMode::Submit, 5).unwrap();
-        assert_eq!(state.apply(b"one").unwrap(), None);
-        assert_eq!(state.apply(b"\n").unwrap(), Some(b"one".as_slice()));
-        assert_eq!(state.apply(b"two").unwrap(), None);
-        assert_eq!(state.apply(b"\n").unwrap(), Some(b"two".as_slice()));
-        assert_eq!(
-            state.apply(b"123456"),
-            Err(TextStateRefusal::CapacityExhausted)
-        );
-    }
-
-    #[test]
-    fn editing_backspace_is_utf8_safe_and_capacity_is_exact() {
-        let mut state = BoundedTextState::new(TextStateMode::Edit, 4).unwrap();
-        assert_eq!(state.apply("éa".as_bytes()).unwrap(), Some("éa".as_bytes()));
-        assert_eq!(state.apply(b"\x08").unwrap(), Some("é".as_bytes()));
-        assert_eq!(state.apply(b"bc").unwrap(), Some("ébc".as_bytes()));
-        assert_eq!(state.apply(b"d"), Err(TextStateRefusal::CapacityExhausted));
-    }
-}
-
 fn contract(kind: &str, revision: &str, output: &str, summary: &str) -> StandardKindContract {
     let _ = revision;
     StandardKindContract {
@@ -216,4 +189,31 @@ pub fn install_text_state_catalogs(
             .map_err(|error| error.to_string())?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod state_tests {
+    use super::*;
+
+    #[test]
+    fn submission_reuses_fixed_storage_and_clears_between_lines() {
+        let mut state = BoundedTextState::new(TextStateMode::Submit, 5).unwrap();
+        assert_eq!(state.apply(b"one").unwrap(), None);
+        assert_eq!(state.apply(b"\n").unwrap(), Some(b"one".as_slice()));
+        assert_eq!(state.apply(b"two").unwrap(), None);
+        assert_eq!(state.apply(b"\n").unwrap(), Some(b"two".as_slice()));
+        assert_eq!(
+            state.apply(b"123456"),
+            Err(TextStateRefusal::CapacityExhausted)
+        );
+    }
+
+    #[test]
+    fn editing_backspace_is_utf8_safe_and_capacity_is_exact() {
+        let mut state = BoundedTextState::new(TextStateMode::Edit, 4).unwrap();
+        assert_eq!(state.apply("éa".as_bytes()).unwrap(), Some("éa".as_bytes()));
+        assert_eq!(state.apply(b"\x08").unwrap(), Some("é".as_bytes()));
+        assert_eq!(state.apply(b"bc").unwrap(), Some("ébc".as_bytes()));
+        assert_eq!(state.apply(b"d"), Err(TextStateRefusal::CapacityExhausted));
+    }
 }

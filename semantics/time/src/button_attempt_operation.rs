@@ -234,7 +234,7 @@ impl TimedButtonAttemptOperation {
     }
 
     fn release_unused_durations(&mut self) {
-        self.released.extend(self.durations.drain(..));
+        self.released.append(&mut self.durations);
     }
 }
 

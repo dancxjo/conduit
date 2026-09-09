@@ -105,13 +105,12 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
                         4
                     } else if connection.value_kind.as_str() == conduit_net::TEXT_INFO_ID {
                         conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES
-                    } else if source_kind.starts_with("record/") {
-                        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
-                    } else if [
-                        conduit_net::TYPED_RECORD_INFO_ID,
-                        conduit_net::FRAMED_TYPED_RECORD_INFO_ID,
-                    ]
-                    .contains(&connection.value_kind.as_str())
+                    } else if source_kind.starts_with("record/")
+                        || [
+                            conduit_net::TYPED_RECORD_INFO_ID,
+                            conduit_net::FRAMED_TYPED_RECORD_INFO_ID,
+                        ]
+                        .contains(&connection.value_kind.as_str())
                     {
                         conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
                     } else {
