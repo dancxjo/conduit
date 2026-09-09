@@ -88,8 +88,10 @@ pub(super) fn compose_damage(
                 if focused_surface.is_some_and(|id| focus_pixel(surfaces, id, x, y)) {
                     pixel = 0x00ffcc33;
                 }
-                if cursor.is_some_and(|position| cursor_pixel(position, x, y)) {
-                    pixel = if cursor_hover { 0x00ffcc33 } else { 0x00ffffff };
+                if let Some(cursor_pixel) =
+                    cursor.and_then(|position| cursor_color(position, x, y, cursor_hover))
+                {
+                    pixel = cursor_pixel;
                 }
                 target.write_pixel(x, y, pixel)?;
                 count = count
@@ -122,26 +124,42 @@ fn focus_pixel(surfaces: &[CompositorSurface], id: &str, x: u32, y: u32) -> bool
         })
 }
 
-fn cursor_pixel((cx, cy): (u32, u32), x: u32, y: u32) -> bool {
+const CURSOR_OUTLINE: [u16; 16] = [
+    0x0001, 0x0003, 0x0005, 0x0009, 0x0011, 0x0021, 0x0041, 0x0081, 0x0101, 0x03e1, 0x0049, 0x0095,
+    0x0093, 0x0121, 0x0120, 0x00c0,
+];
+const CURSOR_FILL: [u16; 16] = [
+    0x0000, 0x0000, 0x0002, 0x0006, 0x000e, 0x001e, 0x003e, 0x007e, 0x00fe, 0x001e, 0x0036, 0x0062,
+    0x0060, 0x00c0, 0x00c0, 0x0000,
+];
+
+fn cursor_color((cx, cy): (u32, u32), x: u32, y: u32, hovered: bool) -> Option<u32> {
     let (Some(dx), Some(dy)) = (x.checked_sub(cx), y.checked_sub(cy)) else {
-        return false;
+        return None;
     };
-    (dy <= 15 && dx <= (dy * 3) / 4) || ((12..=21).contains(&dy) && (4..=7).contains(&dx))
+    let row = usize::try_from(dy).ok()?;
+    let bit = 1_u16.checked_shl(dx)?;
+    if CURSOR_FILL.get(row).is_some_and(|mask| mask & bit != 0) {
+        return Some(if hovered { 0x00ffcc33 } else { 0x00ffffff });
+    }
+    CURSOR_OUTLINE
+        .get(row)
+        .is_some_and(|mask| mask & bit != 0)
+        .then_some(0x00000000)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::cursor_pixel;
+    use super::cursor_color;
 
     #[test]
-    fn cursor_is_a_filled_arrow_with_a_distinct_stem() {
+    fn cursor_bitmap_has_outline_fill_stem_and_exact_hotspot() {
         let origin = (20, 30);
-        assert!(cursor_pixel(origin, 20, 30));
-        assert!(cursor_pixel(origin, 30, 44));
-        assert!(cursor_pixel(origin, 25, 51));
-        assert!(!cursor_pixel(origin, 31, 40));
-        assert!(!cursor_pixel(origin, 19, 30));
-        assert!(!cursor_pixel(origin, 28, 51));
+        assert_eq!(cursor_color(origin, 20, 30, false), Some(0x00000000));
+        assert_eq!(cursor_color(origin, 21, 32, false), Some(0x00ffffff));
+        assert_eq!(cursor_color(origin, 26, 44, true), Some(0x00ffcc33));
+        assert_eq!(cursor_color(origin, 19, 30, false), None);
+        assert_eq!(cursor_color(origin, 35, 46, false), None);
     }
 }
 
