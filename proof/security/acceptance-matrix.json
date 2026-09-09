@@ -74,10 +74,10 @@
       "attack": "missing/expired/forged attendance, stale resource, unsafe envelope, retry",
       "boundary": "last-mile ConsequentialEffectGate",
       "expected": "authority, attendance, safety, or envelope refusal",
-      "observer": "fixture physical state changes only for exact observed positive control",
+      "observer": "independent socket confirms the exact nonce-bearing payload and the selected NIC transmit counter advances",
       "survival": "loss drives explicit safe disposition",
-      "proof_class": "deterministic contract; physical HIL pending",
-      "command": "cargo xtask check consequential-effect"
+      "proof_class": "deterministic contract plus attended low-energy physical HIL",
+      "command": "cargo xtask check consequential-effect; cargo xtask check physical-effect-hil"
     }
   ]
 }
