@@ -363,4 +363,16 @@ mod tests {
         assert_eq!(count, INGRESS_CAPACITY - 1);
         assert!(!observed.contains(&40));
     }
+
+    #[test]
+    fn malformed_report_suffix_preserves_the_preexisting_queue() {
+        let mut ingress = KeyboardIngress::new();
+        ingress.admit(transition(4, true)).unwrap();
+        assert_eq!(
+            ingress.admit_report(&[transition(5, true), transition(0, true)]),
+            Err(KeyboardIngressRefusal::InvalidTransition)
+        );
+        assert_eq!(ingress.pending(), 1);
+        assert_eq!(ingress.service(8, |event| assert_eq!(event.usage(), 4)), 1);
+    }
 }
