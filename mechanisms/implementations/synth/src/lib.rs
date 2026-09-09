@@ -18,6 +18,7 @@ mod envelope;
 mod filter;
 mod oscillator;
 mod profile;
+mod startup_chime;
 mod voice;
 
 pub use engine::*;
@@ -25,6 +26,7 @@ pub use envelope::*;
 pub use filter::*;
 pub use oscillator::*;
 pub use profile::*;
+pub use startup_chime::*;
 pub use voice::*;
 
 pub const REFERENCE_SYNTH_PROFILE_ID: &str = "conduit.reference/music-synth-fixed-q16@1";
