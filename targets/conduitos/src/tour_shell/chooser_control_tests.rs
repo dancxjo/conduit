@@ -1,6 +1,92 @@
 use super::*;
 
 #[test]
+fn completed_run_is_not_an_active_native_control() {
+    let (mut tour, mut shell, mut display) = fixture();
+    let identities = BootIdentities {
+        host: [1; 32],
+        boot: [2; 32],
+    };
+    let offer = host_offer(&identities);
+    tour.accept(
+        &ApplicationEvent {
+            revision: tour.controller().state().revision,
+            action: conduit_tour_model::RUN_ACTION_ID.into(),
+            kind: ApplicationEventKind::Activate,
+            value: vec![],
+        },
+        &identities,
+        &offer,
+        "build",
+        &mut Clock::default(),
+        &mut Serial::default(),
+        &mut Interrupts::default(),
+        &mut Idle::default(),
+    )
+    .unwrap();
+    assert!(!tour.controller().state().run_action_available());
+    shell.present(&tour, &mut display).unwrap();
+    let route = delivered(shell.route_pointer(8, 92, false).unwrap());
+    assert!(!shell.run_hit(&route, &tour).unwrap());
+    let scene = tour.scene(640, 480).unwrap();
+    assert!(
+        scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Canonical Play already completed")
+    );
+    assert!(scene.commands().len() <= 24);
+    assert!(
+        scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Run inactive")
+    );
+    assert!(
+        !scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Run Plan")
+    );
+}
+
+#[test]
+fn run_button_has_exact_bounds_and_refuses_a_retired_route() {
+    let (tour, mut shell, mut display) = fixture();
+    shell.present(&tour, &mut display).unwrap();
+    for (x, y, expected) in [
+        (8, 92, true),
+        (119, 119, true),
+        (7, 92, false),
+        (120, 92, false),
+        (8, 91, false),
+        (8, 120, false),
+    ] {
+        let crate::native_compositor::InputRoute::Delivered(route) =
+            shell.route_pointer(x, y, false).unwrap()
+        else {
+            panic!("workspace route");
+        };
+        assert_eq!(shell.run_hit(&route, &tour).unwrap(), expected);
+    }
+    let crate::native_compositor::InputRoute::Delivered(route) =
+        shell.route_pointer(8, 92, false).unwrap()
+    else {
+        panic!("workspace route");
+    };
+    shell.suspend().unwrap();
+    assert!(shell.run_hit(&route, &tour).is_err());
+    let scene = tour.scene(640, 480).unwrap();
+    assert!(
+        scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Run Plan")
+    );
+    assert_eq!(scene.commands().len(), 23);
+}
+
+#[test]
 fn compact_rows_are_visible_and_each_resolves_its_own_gear() {
     for height in [160, 266, 360] {
         let bounds = conduit_presentation::LayoutRect {

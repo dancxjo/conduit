@@ -85,6 +85,20 @@ impl TourWorkspaceState {
         }
     }
 
+    pub fn run_availability(&self) -> ActionAvailability {
+        if self.run_pending {
+            ActionAvailability::Busy {
+                detail: "Canonical Play is active".into(),
+            }
+        } else if self.phase == TourWorkspacePhase::ResultVisible {
+            ActionAvailability::Unavailable {
+                detail: "Canonical Play already completed".into(),
+            }
+        } else {
+            ActionAvailability::Available
+        }
+    }
+
     pub fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
         let status = match self.phase {
             TourWorkspacePhase::LessonReady => (StatusKind::Ordinary, "Lesson ready"),
@@ -196,17 +210,7 @@ impl TourWorkspaceState {
                                         "run",
                                         RUN_ACTION_ID,
                                         "Run Form",
-                                        if self.run_pending {
-                                            ActionAvailability::Busy {
-                                                detail: "Canonical Play is active".into(),
-                                            }
-                                        } else if self.phase == TourWorkspacePhase::ResultVisible {
-                                            ActionAvailability::Unavailable {
-                                                detail: "Canonical Play already completed".into(),
-                                            }
-                                        } else {
-                                            ActionAvailability::Available
-                                        },
+                                        self.run_availability(),
                                     ),
                                     action(
                                         "open-patchbay",
@@ -279,6 +283,33 @@ fn node(
 mod tests {
     use super::*;
     use conduit_presentation::{ApplicationComponent, ApplicationView};
+
+    #[test]
+    fn run_availability_is_shared_by_semantic_and_shell_controls() {
+        for phase in [
+            TourWorkspacePhase::LessonReady,
+            TourWorkspacePhase::PatchbayOpen,
+            TourWorkspacePhase::ResultVisible,
+        ] {
+            for pending in [false, true] {
+                let mut state = TourWorkspaceState::canonical(1, phase);
+                state.run_pending = pending;
+                let view = state.presentation().unwrap().lower().unwrap();
+                assert_eq!(
+                    state.run_action_available(),
+                    view.actions.iter().any(|action| action.id == RUN_ACTION_ID)
+                );
+                if pending {
+                    assert_eq!(
+                        state.run_availability(),
+                        ActionAvailability::Busy {
+                            detail: "Canonical Play is active".into()
+                        }
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn canonical_workspace_is_one_bounded_portable_view() {

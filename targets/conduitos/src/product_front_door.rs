@@ -444,6 +444,18 @@ pub fn run(
             },
         )?;
     }
+    let mut execute_tour = |tour: &mut TourProduct, event: &ApplicationEvent| {
+        tour.accept(
+            event,
+            identities,
+            offer,
+            fabrication.build_id,
+            &mut clock,
+            &mut serial,
+            &mut interrupts,
+            &mut idle,
+        )
+    };
     if let Some(ps2) = ps2_input {
         return crate::product_pointer::run_ps2(
             identities,
@@ -452,6 +464,7 @@ pub fn run(
             &mut shell,
             display,
             ps2,
+            &mut execute_tour,
         );
     }
     let (pointer_session, pointer_usb) = pointer_session
@@ -467,6 +480,7 @@ pub fn run(
         pointer_session,
         controller,
         pointer_usb,
+        &mut execute_tour,
     )
 }
 

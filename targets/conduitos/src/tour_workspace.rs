@@ -13,6 +13,13 @@ mod graph;
 
 pub(crate) const STATUS_HEIGHT: u16 = 64;
 
+pub(crate) fn run_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
+    LayoutRect {
+        y: 92,
+        ..chooser_bounds(layout)
+    }
+}
+
 pub(crate) fn chooser_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
     LayoutRect {
         x: 8,
@@ -201,6 +208,38 @@ pub(crate) fn scene_with_graph(
     let clip = graphics_rect(layout.narrative)?;
     crate::native_components::button(&mut scene, button, clip, "Gears")
         .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    if state.run_action_available() {
+        crate::native_components::button(&mut scene, run_bounds(&layout), clip, "Run Plan")
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    } else {
+        scene
+            .push(
+                GraphicsCommand::text(
+                    run_bounds(&layout),
+                    clip,
+                    GraphicsPaintRole::Foreground,
+                    "Run inactive",
+                )
+                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    }
+    if let conduit_presentation::ActionAvailability::Busy { detail }
+    | conduit_presentation::ActionAvailability::Unavailable { detail } = state.run_availability()
+    {
+        let reason = LayoutRect {
+            x: 8,
+            y: 168,
+            width: clip.width.saturating_sub(16).max(1),
+            height: 64,
+        };
+        scene
+            .push(
+                GraphicsCommand::text(reason, clip, GraphicsPaintRole::Foreground, &detail)
+                    .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    }
     Ok(scene)
 }
 
@@ -291,7 +330,7 @@ mod tests {
     #[test]
     fn native_scene_manifests_every_shared_region_and_visible_focus() {
         let scene = scene(640, 480, 12, TourWorkspacePhase::PatchbayOpen).unwrap();
-        assert_eq!(scene.commands().len(), 21);
+        assert_eq!(scene.commands().len(), 23);
         let frames: alloc::vec::Vec<_> = scene
             .commands()
             .iter()

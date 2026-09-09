@@ -44,6 +44,12 @@ impl TourTransientKind {
 }
 
 impl TourWorkspaceState {
+    pub fn run_action_available(&self) -> bool {
+        matches!(
+            self.run_availability(),
+            conduit_presentation::ActionAvailability::Available
+        )
+    }
     /// Primary Patchbay workspace meaning, independent of shell geometry.
     pub fn workspace_presentation(&self) -> Result<Presentation, &'static str> {
         let mut subjects = vec![subject(
@@ -52,6 +58,20 @@ impl TourWorkspaceState {
             "Patchbay workspace",
         )];
         let mut relationships = Vec::new();
+        subjects.push(subject(
+            crate::RUN_ACTION_ID,
+            if self.run_action_available() {
+                PresentationRole::Action
+            } else {
+                PresentationRole::Info
+            },
+            "Run Plan",
+        ));
+        relationships.push(PresentationRelationship {
+            source: TOUR_WORKSPACE_SUBJECT.into(),
+            target: crate::RUN_ACTION_ID.into(),
+            kind: PresentationRelationshipKind::Contains,
+        });
         subjects.push(subject(
             crate::OPEN_CHOOSER_ACTION_ID,
             PresentationRole::Action,
