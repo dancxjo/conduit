@@ -2,8 +2,10 @@
 
 use crate::{LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT};
 mod path;
+mod symbol;
 mod text_role;
 pub use path::{GraphicsPath, GraphicsPoint, MAX_GRAPHICS_PATH_POINTS};
+pub use symbol::GraphicsSymbol;
 pub use text_role::GraphicsTextRole;
 
 pub const GRAPHICS_SCENE_KIND: &str = "presentation/graphics-scene@1";
