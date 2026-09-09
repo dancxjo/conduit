@@ -63,7 +63,7 @@ jobs:
   dev-integration:
     needs: [check, products]
     if: always() && !cancelled()
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     steps:
       - name: Keep the construction site usable
         env:

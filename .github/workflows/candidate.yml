@@ -67,7 +67,7 @@ jobs:
   candidate:
     needs: [admission, check, products]
     if: always() && !cancelled()
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     steps:
       - name: Admit only a candidate whose affected integration passed
         env:
