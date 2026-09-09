@@ -219,6 +219,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 let bytes = encode(&serde_json::json!({
                     "schema": "conduit.patchbay/body-execution-proposal@1",
                     "wake": realization.wake, "plan": realization.plan,
+                    "body_evidence": candidate.evidence(),
                 }))?;
                 *slot = Some(candidate);
                 return Ok(bytes);

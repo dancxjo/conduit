@@ -34,6 +34,10 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
         const running = adapter;
         adapter.run().then(receipt => {
           if (adapter !== running || terminal) return;
+          if (receipt?.schema === 'conduit.browser/pending-effects@1' && receipt.disposition === 'quiescent_awaiting_input' && receipt.active_play_id === started.play.active_play_id && receipt.pending_effects === 0) {
+            publish('Idle', 'Its Forms are awake. Their current work has finished.');
+            return;
+          }
           requireTerminal(receipt);
           publish(receipt.disposition === 'completed' ? 'Completed' : receipt.disposition === 'cancelled' ? 'Cancelled' : 'Failed');
         }).catch(error => { if (adapter === running && !terminal) publish('Failed', error.message, error); });
@@ -85,6 +89,7 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
         throw error;
       } finally { transition = false; }
     },
+    evidence() { return adapter?.evidence() ?? terminal?.kernel_signs ?? null; },
     close() { return adapter?.close(); },
   });
 }
