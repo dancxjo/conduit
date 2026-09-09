@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
 
+test("document-wide input leaves native controls operable without an admitted key request", async ({ page }) => {
+  await page.goto("/proof/browser/browser-human-input.test.html");
+  await expect(page.locator("#status")).toHaveText("ready");
+  const control = page.getByRole("button", { name: "Native control" });
+  await control.focus();
+  await control.press("Enter");
+  await expect(page.locator("#native-actions")).toHaveText("1");
+});
+
 test("ordered button transitions survive gaps between Host requests and refuse overflow", async ({ page }) => {
   await page.goto("/proof/browser/browser-human-input.test.html");
   await expect(page.locator("#status")).toHaveText("ready");

@@ -1,3 +1,4 @@
+import { openCrecheStep } from "./creche-test-actions.mjs";
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -21,15 +22,14 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     for (const title of ["Button Across Room", "Clock-demo", "Desk Telegraph"]) {
       await selectBirthForm(birth, title);
     }
-    await birth.getByRole("button", { name: "Review workload", exact: true }).click();
     await expect(birth.getByRole("button", { name: "Birth Body", exact: true })).toBeEnabled();
     await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
     await expect(birth).toHaveAttribute("data-body-id", /.+/);
     const bodyId = await birth.getAttribute("data-body-id");
     const birthSignId = await birth.getAttribute("data-birth-sign-id");
-    await page.getByRole("button", { name: "2. First Host", exact: true }).click();
+    await openCrecheStep(page, "2. First Host");
     await page.getByRole("button", { name: "Give this Body its first Host", exact: true }).click();
-    await page.getByRole("button", { name: "4. Graduate", exact: true }).click();
+    await openCrecheStep(page, "4. Graduate");
     await page.getByRole("button", { name: "Finish without hosted Patchbay", exact: true }).click();
     await page.getByRole("button", { name: "End the Crèche", exact: true }).click();
     const downloading = page.waitForEvent("download");

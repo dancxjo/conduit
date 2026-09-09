@@ -1,19 +1,12 @@
+import { createInstalledCrecheTargetCatalog } from "./creche-installed-targets.mjs";
 import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-bootstrap.mjs";
+import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
 import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./creche-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./creche-physical.mjs";
-import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
 import { createGraduationRunner, exportBodyEvidence, renderBiography } from "./creche-graduation.mjs";
 import { createCrecheRouting } from "./creche-routing.mjs";
 import { openFormSelection, persistedFormSelection, readReviewedFormInventory } from "./creche-form-selection.mjs";
 import { createProductMasthead } from "../../../semantics/presentation/assets/product-masthead.mjs";
-import { AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/avr/deployment/browser/creche-adapter.mjs";
-import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/rp2040/deployment/browser/creche-adapter.mjs";
-import { ESP32_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/esp32/deployment/browser/creche-adapter.mjs";
-import { STD_EXISTING_COMPUTER_CONTRIBUTIONS } from "../../../targets/std/deployment/browser/creche-adapter.mjs";
-import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "../../../targets/browser/deployment/browser/creche-adapter.mjs";
-import { ORANGE_PI_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/orange-pi/deployment/browser/creche-adapter.mjs";
-import { RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/raspberry-pi/deployment/browser/creche-adapter.mjs";
-import { CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/conduitos/deployment/browser/creche-adapter.mjs";
 
 const steps = [
   { name: "Birth", slug: "birth" },
@@ -37,19 +30,7 @@ let currentStep = 0;
 let sequence = 0;
 let presentationRevision = 0;
 let productMasthead;
-const targetCatalog = createPhysicalHostTargetCatalog({
-  generation: 1,
-  contributions: [
-    RP2040_CRECHE_TARGET_CONTRIBUTION,
-    AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION,
-    ...ESP32_CRECHE_TARGET_CONTRIBUTIONS,
-    ...STD_EXISTING_COMPUTER_CONTRIBUTIONS,
-    BROWSER_EXISTING_COMPUTER_CONTRIBUTION,
-    ORANGE_PI_CRECHE_TARGET_CONTRIBUTION,
-    ...RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS,
-    ...CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS,
-  ],
-});
+const targetCatalog = createInstalledCrecheTargetCatalog();
 
 export async function startApplication(application) {
  try {
@@ -57,6 +38,19 @@ export async function startApplication(application) {
   presentationFor = application.presentationFor;
   productMasthead = createProductMasthead(presentation, "product-masthead", "creche");
   storage = application.storage;
+  const continuity = await acquireBrowserBodyContinuity();
+  const retained = await storage.readJson("body-session");
+  if (retained?.schema === "conduit.workspace/body@1") {
+    // Arrival owns this biography now. Do not restore it into a second model.
+    continuity.close();
+    renderHostStatus("Your Body is ready to reopen", "success-status");
+    const heading = document.createElement("h2"); heading.textContent = "Return to your Body";
+    const explanation = document.createElement("p"); explanation.textContent = "Your Body and its installed Forms are retained.";
+    const link = document.createElement("a"); link.textContent = "Open your Body";
+    link.href = new URL("../workspace/", document.baseURI).href;
+    workspace.replaceChildren(heading, explanation, link);
+    return;
+  }
   initialFormSource = application.text("reviewed-form-inventory");
   renderHostStatus("Starting browser Host…", "status");
   const initialized = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });
@@ -120,12 +114,15 @@ function renderStep(focus = false) {
   workspace.replaceChildren();
   const heading = document.createElement("h2");
   heading.textContent = steps[currentStep].name;
-  workspace.append(heading);
+  if (currentStep !== 0) workspace.append(heading);
+  const provisioning = document.querySelector(".creche-options");
+  if (provisioning && currentStep !== 0) provisioning.open = true;
   heading.tabIndex = -1;
   if (currentStep === 0) workspace.append(createBodyBirthRunner({
     source: initialFormSource, sourceKey: "standalone-creche", listingId: "creche-forms", host,
     presentationFor, inventory: reviewedFormInventory, initialSelection: initialFormSelection,
     onSelection: retainFormSelection, nextSequence: () => ++sequence, onBodyChanged: bodyChanged,
+    onContinue: () => { void navigateToStep(1).catch(error => renderHostStatus(error.message, "failure-status")); },
   }));
   if (currentStep === 1) workspace.append(createFirstHostRunner({
     host, presentationFor,
@@ -144,7 +141,12 @@ function renderStep(focus = false) {
     onEnd: renderComplete,
   }));
   refreshContext();
-  if (focus) heading.focus({ preventScroll: true });
+  if (focus) {
+    const focusHeading = currentStep === 0
+      ? workspace.querySelector('[data-application-key="creche-heading"], [data-application-key="born-heading"]')
+      : heading;
+    if (focusHeading) { focusHeading.tabIndex = -1; focusHeading.focus({ preventScroll: true }); }
+  }
 }
 
 function galleryHandoff() {
@@ -188,7 +190,6 @@ function refreshContext() {
     nodes: [
       { parent: null, component: "panel", action: null, key: "body-context", text: "" },
       { parent: 0, component: "paragraph", action: null, key: "body-name", text: body.friendly_name },
-      { parent: 0, component: "code", action: null, key: "body-id", text: body.body_id },
     ],
   });
 }
@@ -312,6 +313,7 @@ function renderComplete(receipt, biography) {
     if (event.action === "creche.finish") await finishCrecheLocally();
   } });
   document.querySelector('[data-application-slot="creche-navigation"]')?.remove();
+  document.querySelector(".creche-options").hidden = true;
 }
 
 function renderBiographyEvidence() {
@@ -324,21 +326,24 @@ function renderBiographyEvidence() {
 async function finishCrecheLocally() {
   await storage.deleteJson("body-session");
   host.runtime.conduit_creche_forget_local();
-  sequence = 0;
+  // A new Body on this same Host Boot must receive a fresh birth sequence.
   currentStep = 0;
   await routing.move(0, "replace");
   if (!document.querySelector('[data-application-slot="creche-navigation"]')) {
     const navigation = document.createElement("div");
     navigation.className = "creche-steps";
     navigation.dataset.applicationSlot = "creche-navigation";
-    workspace.before(navigation);
+    document.querySelector(".creche-options").append(navigation);
   }
+  const options = document.querySelector(".creche-options");
+  options.hidden = false;
+  options.open = false;
   renderNavigation();
-  renderStep();
+  renderStep(true);
 }
 
 function requireCrecheAbi(api) {
-  const required = ["memory", "conduit_syntax_input_ptr", "conduit_syntax_input_capacity", "conduit_syntax_output_ptr", "conduit_syntax_output_len", "conduit_syntax_project", "conduit_creche_input_ptr", "conduit_creche_input_capacity", "conduit_creche_output_ptr", "conduit_creche_output_len", "conduit_creche_reviewed_inventory", "conduit_creche_review_initial_workload", "conduit_creche_admit_source_interaction", "conduit_creche_birth", "conduit_creche_current", "conduit_creche_biography", "conduit_creche_durable_snapshot", "conduit_creche_restore_durable", "conduit_creche_attach_here", "conduit_creche_leave_here", "conduit_creche_revoke_here", "conduit_creche_forget_local", "conduit_creche_graduation_readiness", "conduit_creche_graduate", "conduit_creche_graduation_view", "conduit_creche_prepare_selected_physical_spore", "conduit_creche_prepare_selected_physical_spore_for_target", "conduit_creche_prepare_selected_physical_spore_for_target_with_image", "conduit_creche_browser_configuration_catalog", "conduit_creche_browser_configuration_view", "conduit_creche_review_browser_configuration", "conduit_creche_prepare_selected_browser_spore", "conduit_creche_admit_physical_spore"];
+  const required = ["memory", "conduit_syntax_input_ptr", "conduit_syntax_input_capacity", "conduit_syntax_output_ptr", "conduit_syntax_output_len", "conduit_syntax_project", "conduit_creche_input_ptr", "conduit_creche_input_capacity", "conduit_creche_output_ptr", "conduit_creche_output_len", "conduit_creche_birth_draft_open", "conduit_creche_birth_draft_event", "conduit_creche_birth_draft_view", "conduit_creche_reviewed_inventory", "conduit_creche_review_initial_workload", "conduit_creche_admit_source_interaction", "conduit_creche_birth", "conduit_creche_current", "conduit_creche_biography", "conduit_creche_durable_snapshot", "conduit_creche_restore_durable", "conduit_creche_attach_here", "conduit_creche_leave_here", "conduit_creche_revoke_here", "conduit_creche_forget_local", "conduit_creche_graduation_readiness", "conduit_creche_graduate", "conduit_creche_graduation_view", "conduit_creche_prepare_selected_physical_spore", "conduit_creche_prepare_selected_physical_spore_for_target", "conduit_creche_prepare_selected_physical_spore_for_target_with_image", "conduit_creche_browser_configuration_catalog", "conduit_creche_browser_configuration_view", "conduit_creche_review_browser_configuration", "conduit_creche_prepare_selected_browser_spore", "conduit_creche_admit_physical_spore"];
   if (required.some((name) => !(name in api))) throw new Error("Crèche runtime ABI is incomplete");
 }
 

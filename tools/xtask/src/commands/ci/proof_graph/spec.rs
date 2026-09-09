@@ -219,6 +219,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "products/patchbay/html",
             "products/tour",
             "products/creche",
+            "products/workspace",
             "site",
         ],
         // Fingerprint complete owning domains so a trusted controller can

@@ -48,19 +48,24 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "proof/browser/creche-workload.spec.mjs",
             "proof/browser/creche-naming.spec.mjs",
             "proof/browser/creche-body-execution.spec.mjs",
+            "proof/browser/workspace-arrival.spec.mjs",
+            "proof/browser/creche-workspace-continuity.spec.mjs",
         ],
         input_prefixes: &[
             "proof/browser/fourth-product/",
             "products/tour/",
             "products/creche/",
+            "products/workspace/",
             "products/patchbay/",
             "products/shared/browser/",
             "semantics/presentation/assets/",
             "site/",
             "products/tour/browser/",
             "products/creche/browser/",
+            "products/workspace/browser/",
             "products/tour/tools/stage-tour-product",
             "products/creche/tools/stage-creche-product",
+            "products/workspace/tools/stage-workspace-product",
             "site/tools/stage-pages-root",
             "products/patchbay/tools/stage-patchbay-product",
             "targets/browser/host/",
@@ -147,8 +152,10 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
             "products/shared/browser/",
             "products/tour/browser/",
             "products/creche/browser/",
+            "products/workspace/browser/",
             "products/tour/tools/stage-tour-product",
             "products/creche/tools/stage-creche-product",
+            "products/workspace/tools/stage-workspace-product",
             "site/tools/stage-pages-root",
             "products/patchbay/tools/stage-patchbay-product",
         ],
@@ -168,13 +175,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn creche_body_contract_changes_select_the_product_carrier_proof() {
+    fn birth_and_arrival_contract_changes_select_the_product_carrier_proof() {
         let root = crate::workspace::workspace_root().unwrap();
         let packages = super::super::discover(&root).unwrap();
         for path in [
             "proof/browser/creche-workload.spec.mjs",
             "proof/browser/creche-naming.spec.mjs",
             "proof/browser/creche-body-execution.spec.mjs",
+            "proof/browser/workspace-arrival.spec.mjs",
+            "proof/browser/creche-workspace-continuity.spec.mjs",
         ] {
             assert_eq!(
                 super::proofs_for_paths(&[path.into()]),
