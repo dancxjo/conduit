@@ -2,15 +2,16 @@
 
 `unifont-17.0.04-patchbay.hex` is a mechanically extracted, bounded subset of
 GNU Unifont 17.0.04. It contains ASCII, Latin-1, Greek and Coptic, Cyrillic,
-arrows, box drawing, geometric shapes, one double-width CJK demonstration
-glyph (`U+4E2D`), and the explicit replacement glyph (`U+FFFD`).
+the em dash used by renderer-neutral titled text, arrows, box drawing,
+geometric shapes, one double-width CJK demonstration glyph (`U+4E2D`), and
+the explicit replacement glyph (`U+FFFD`).
 
 Upstream source:
 
 - <https://unifoundry.com/pub/unifont/unifont-17.0.04/font-builds/unifont_all-17.0.04.hex.gz>
 - SHA-256: `c31d210962408a00de8e2ebe2f2fc26824d7a4939d4eb15d347761fb2a0b39a6`
 - package source SHA-256: `5c52c5d56ef98089ddbca62e68560ceccc57ea88940b9d38cc3c888fe3b59a34`
-- generated subset SHA-256: `223372388dae17310325d422bf6e50a388f6c9d886783820f158542efc0d7bd5`
+- generated subset SHA-256: `730c6f050a4d9e57e6fd20c525e41df63ffa53dcef3ef53b9cb64bc5bea7abab`
 
 Regenerate from the downloaded, checksum-verified asset:
 
