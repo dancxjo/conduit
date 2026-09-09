@@ -104,11 +104,7 @@ fn layout_offer(contract: StandardKindContract) -> CapabilityOffer {
     )
 }
 
-fn presentation_composition_offer(mut contract: StandardKindContract) -> CapabilityOffer {
-    contract.limits.max_queue_bytes = contract
-        .limits
-        .max_queue_bytes
-        .max(conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32);
+fn presentation_composition_offer(contract: StandardKindContract) -> CapabilityOffer {
     let kind = contract.kind_id.as_str().to_owned();
     let implementation = match kind.as_str() {
         conduit_semantic_catalog::PRESENTATION_ICON_KIND => PRESENTATION_ICON_IMPLEMENTATION,

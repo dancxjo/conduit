@@ -232,8 +232,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
             placement.kind_id.as_str() != conduit_semantic_catalog::PRESENTATION_ICON_KIND,
         ),
         sign_items: 32,
-        maximum_value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES.max(MAX_GRAPHICS_SCENE_BYTES)
-            as u32,
+        maximum_value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
     })
 }
 
