@@ -31,3 +31,7 @@ problem or desire, Conduit idea, executable demonstration, then payoff.
 `browser/` the reader and lesson interactions. Executable fences and front
 matter are consumed by the application; keep their canonical Form identities
 and stage declarations aligned when changing a lesson.
+
+The native ConduitOS Tour shows the first chapter’s prose beside its canonical
+Form. Focus the left pane and use Page Up, Page Down, Home, or End to read it;
+scrolling leaves the laboratory in place.

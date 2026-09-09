@@ -117,6 +117,9 @@ impl TourShellPresenter {
             return Ok(ScrollOutcome::Ineligible);
         };
         let slot = self.surfaces[index].slot;
+        if slot == Slot::Workspace {
+            return self.scroll_lesson(direction, display);
+        }
         if !matches!(slot, Slot::Inspector | Slot::Transient) {
             return Ok(ScrollOutcome::Ineligible);
         }

@@ -5,7 +5,8 @@ mod path;
 pub use path::{GraphicsPath, GraphicsPoint, MAX_GRAPHICS_PATH_POINTS};
 
 pub const GRAPHICS_SCENE_KIND: &str = "presentation/graphics-scene@1";
-pub const MAX_GRAPHICS_COMMANDS: usize = 16;
+// Includes the native Tour lesson prose alongside its graph and source panes.
+pub const MAX_GRAPHICS_COMMANDS: usize = 32;
 /// One bounded pane-sized UTF-8 payload. Commands remain fixed-capacity, but
 /// can retain a small complete source document instead of a single label.
 /// Orthogonal paths reuse this storage for at most eight binary coordinate pairs.

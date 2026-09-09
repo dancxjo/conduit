@@ -56,6 +56,7 @@ impl TourWorkspaceState {
             subject: TOUR_WORKSPACE_SUBJECT.into(),
             text: workspace_summary(self),
         }];
+        crate::lesson::append(&mut subjects, &mut relationships, &mut text)?;
         for gear in CANONICAL_PATCHBAY_GEARS {
             subjects.push(subject(gear, PresentationRole::Gear, gear));
             relationships.push(PresentationRelationship {
