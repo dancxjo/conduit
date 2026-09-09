@@ -41,6 +41,7 @@ pub(super) fn field_node(
         FieldKind::Text if !device => ApplicationComponent::TextInput,
         FieldKind::TextArea if !device => ApplicationComponent::TextArea,
         FieldKind::Select { options } if !options.is_empty() => ApplicationComponent::Select,
+        FieldKind::NamedSelect { options } if !options.is_empty() => ApplicationComponent::Select,
         _ if device => return Err(SemanticPresentationRefusal::InvalidDeviceChoice),
         _ => return Err(SemanticPresentationRefusal::InvalidField),
     };

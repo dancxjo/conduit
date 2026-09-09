@@ -1,3 +1,4 @@
+import { openCrecheStep } from "./creche-test-actions.mjs";
 import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
@@ -90,7 +91,7 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await reviewAndBirth(page);
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
   await expect(runner.locator('[data-application-key="physical-status"]')).toHaveAttribute("data-application-component", "status");
@@ -221,7 +222,7 @@ async function fabricateBrowserHost(page, { preset, add = [] }) {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await reviewAndBirth(page);
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
   const edit = runner.getByRole("button", { name: "Back / Edit" });

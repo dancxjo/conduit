@@ -1,8 +1,11 @@
 //! Native input adaptation for the shared Crèche draft; no lifecycle authority.
-use alloc::{string::String, vec};
+use alloc::{format, string::String, vec};
 use conduit_body::ResidentForm;
-use conduit_creche_model::birth::{BirthDraft, BirthDraftRefusal, BirthFormChoice, BirthSelection};
+use conduit_creche_model::birth::{
+    BirthActionOutcome, BirthDraft, BirthDraftRefusal, BirthFormChoice, BirthSelection,
+};
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
+use conduit_presentation::ApplicationEventKind;
 
 use super::{Error, FrontDoor};
 
@@ -36,6 +39,8 @@ impl FrontDoor {
             uuid,
             vec![BirthFormChoice {
                 title: "Keyboard canvas".into(),
+                search_text: "keyboard input/keyboard input/keymap text/upper presentation/text"
+                    .into(),
                 form: ResidentForm::new(
                     self.source_document_id.clone(),
                     self.checked_form_id.clone(),
@@ -90,7 +95,6 @@ impl Arrival {
         if event.transition() != KeyTransition::Pressed {
             return ArrivalInput::Unchanged;
         }
-        let revision = self.draft.revision();
         let result = match event.usage() {
             43 | 81 | 82 => {
                 let backward = event.usage() == 82
@@ -114,8 +118,16 @@ impl Arrival {
             40 | 44 if self.focus == 1 => self.cycle_tradition(false),
             40 | 44 if self.focus >= 3 && self.focus < self.draft.choices().len() + 3 => {
                 let index = self.focus - 3;
-                self.draft
-                    .select(revision, index, !self.draft.choices()[index].selected)
+                let value = if self.draft.choices()[index].selected {
+                    "false"
+                } else {
+                    "true"
+                };
+                self.change(
+                    &format!("creche.form.{index}"),
+                    ApplicationEventKind::Change,
+                    value,
+                )
             }
             42 if self.focus == 0 => {
                 let mut name = self.draft.friendly_name().into();
@@ -125,7 +137,7 @@ impl Arrival {
                     String::pop(&mut name);
                 }
                 self.replace_name = false;
-                self.draft.edit_name(revision, name)
+                self.change("creche.name", ApplicationEventKind::Input, &name)
             }
             _ if self.focus == 0 => match self.keymap.apply(event) {
                 KeymapDisposition::Text(fragment) => {
@@ -138,7 +150,7 @@ impl Arrival {
                         return ArrivalInput::Unchanged;
                     };
                     name.push_str(text);
-                    let result = self.draft.edit_name(revision, name);
+                    let result = self.change("creche.name", ApplicationEventKind::Input, &name);
                     if result.is_ok() {
                         self.replace_name = false;
                     }
@@ -153,11 +165,17 @@ impl Arrival {
     }
 
     fn submit(&mut self) -> ArrivalInput {
-        match self.draft.selection(self.draft.revision()) {
-            Ok(selection) => {
+        match self.draft.apply_event(
+            self.draft.revision(),
+            "creche.birth",
+            ApplicationEventKind::Activate,
+            "",
+        ) {
+            Ok(BirthActionOutcome::Birth(selection)) => {
                 self.refusal = None;
                 ArrivalInput::Birth(selection)
             }
+            Ok(BirthActionOutcome::Changed) => ArrivalInput::Changed,
             Err(error) => {
                 self.refusal = Some(refusal_text(error).into());
                 ArrivalInput::Changed
@@ -165,8 +183,7 @@ impl Arrival {
         }
     }
     fn suggest(&mut self) -> Result<(), BirthDraftRefusal> {
-        let system: String = self.draft.requested_system().into();
-        self.draft.suggest(self.draft.revision(), &system)?;
+        self.change("creche.suggest", ApplicationEventKind::Activate, "")?;
         self.replace_name = true;
         Ok(())
     }
@@ -185,9 +202,24 @@ impl Arrival {
             .expect("bounded naming index")
             .0
             .into();
-        self.draft.suggest(self.draft.revision(), &system)?;
+        self.change("creche.naming", ApplicationEventKind::Change, &system)?;
         self.replace_name = true;
         Ok(())
+    }
+
+    fn change(
+        &mut self,
+        action: &str,
+        event: ApplicationEventKind,
+        value: &str,
+    ) -> Result<(), BirthDraftRefusal> {
+        match self
+            .draft
+            .apply_event(self.draft.revision(), action, event, value)?
+        {
+            BirthActionOutcome::Changed => Ok(()),
+            BirthActionOutcome::Birth(_) => Err(BirthDraftRefusal::UnknownAction),
+        }
     }
 }
 

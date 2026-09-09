@@ -1,32 +1,31 @@
-import { nameFor, NAMING_SYSTEM_OPTIONS } from "./creche-names.mjs";
 import { attachConduitSyntaxEditor } from "../../../targets/browser/host/assets/application-syntax-presentation.mjs";
 import {
   encodedFormSelection,
   reviewInitialWorkload,
-  searchForms,
-  setFormSelected,
 } from "./creche-form-selection.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createBodyBirthRunner({ source, sourceKey, listingId, host, presentationFor, inventory, initialSelection, onSelection, nextSequence, onBodyChanged }) {
+export function createBodyBirthRunner({ source, sourceKey, listingId, host, presentationFor, inventory, initialSelection, onSelection, nextSequence, onBodyChanged, onContinue }) {
   const runner = document.createElement("section");
   runner.className = "runner body-birth-runner";
   runner.dataset.sourceKey = sourceKey;
   runner.innerHTML = `
     <div class="birth-presentation">
-      <div data-application-slot="birth-selection"></div>
-      <div data-application-slot="birth-fields"></div>
-      <div data-application-slot="birth-source"></div>
+      <div data-application-slot="birth-fields"></div><div data-application-slot="birth-feedback"></div>
+      <details class="birth-details"><summary>Details and source</summary><div data-application-slot="birth-source"></div></details>
     </div>
-    <div class="result body-birth-result">
+    <div class="result body-birth-result" hidden>
+      <div data-application-slot="birth-next"></div>
+      <details class="birth-details"><summary>Body details and evidence</summary>
       <div class="body-chain" aria-label="Forms to Body lifecycle">
         <article><span>initial active Forms</span><code class="initial-forms">not born</code></article>
         <b aria-hidden="true">BIRTH →</b>
         <article><span>durable Body</span><strong class="body-state">not born</strong><code class="body-id"></code></article>
       </div>
       <div class="body-evidence" data-application-slot="birth-evidence"></div>
+      </details>
     </div>`;
   const presentation = presentationFor(runner);
   const selectionNotice = initialFormSelectionNotice(initialSelection);
@@ -34,13 +33,9 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     revision: 0,
     friendlyName: "Choosing a persona…",
     namingSystem: "surprise",
-    namingLabel: "Surprise me",
     personaUuid: crypto.randomUUID(),
-    variation: 0,
-    namingRequest: 0,
     pending: true,
     initialForms: [...initialSelection.selected],
-    search: "",
     inventorySource: source,
     review: null,
     status: selectionNotice ?? "Browse the reviewed Forms, compose a bounded workload, then review it before birth.",
@@ -49,16 +44,35 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     selectionNotice,
   };
   const current = readCurrent(host.runtime);
-  const controls = { presentation, runtime: host.runtime, listingId, inventory, onSelection: onSelection ?? (() => {}), onReview() {
+  const controls = { presentation, runtime: host.runtime, listingId, inventory, onContinue, onSelection: onSelection ?? (() => {}), onReview() {
     review(runner, host, state, controls);
   }, onBirth() {
-    birth(runner, host, state, nextSequence(), onBodyChanged, controls);
+    review(runner, host, state, controls);
+    if (state.review) birth(runner, host, state, nextSequence(), onBodyChanged, controls);
   } };
   if (current) {
     state.pending = false;
     renderReceipt(runner, current, true, state, controls);
   } else {
-    void suggestName(runner, state, controls);
+    try {
+      applyDraftSnapshot(state, controls, draftCall(host.runtime, "conduit_creche_birth_draft_open", {
+        persona_uuid: state.personaUuid,
+        choices: inventory.forms.map((form) => ({
+          title: form.title,
+          search_text: `${form.name} ${form.required_kinds.join(" ")}`,
+          form: { source_document_id: form.source_document_id, checked_form_id: form.checked_form_id },
+          selected: state.initialForms.some((selected) => selected.checked_form_id === form.checked_form_id),
+        })),
+      }));
+      state.pending = false;
+      state.status = selectionNotice ?? "Give it a name. Choose what it wakes with.";
+      presentBirthControls(runner, state, controls);
+    } catch (error) {
+      state.pending = false;
+      state.status = error instanceof Error ? error.message : String(error);
+      state.outcome = "failure-status";
+      presentBirthControls(runner, state, controls);
+    }
   }
   return runner;
 }
@@ -77,141 +91,86 @@ export function initialFormSelectionNotice(initialSelection) {
   return notices.length === 0 ? null : notices.join(" ");
 }
 
+function draftCall(runtime, entrance, request) {
+  const bytes = encoder.encode(JSON.stringify(request));
+  if (bytes.length > runtime.conduit_creche_input_capacity()) throw new Error("Crèche draft request exceeds its bound");
+  const pointer = runtime.conduit_creche_input_ptr();
+  new Uint8Array(runtime.memory.buffer, pointer, bytes.length).set(bytes);
+  const code = runtime[entrance](bytes.length);
+  const response = readOutput(runtime);
+  if (code < 0) throw new Error(response.message ?? `Crèche draft refused (${code})`);
+  return response;
+}
+
+function applyDraftSnapshot(state, controls, snapshot) {
+  state.draft = snapshot;
+  state.friendlyName = snapshot.friendly_name;
+  state.namingSystem = snapshot.naming_system;
+  state.initialForms = snapshot.selected.map((identity) => {
+    const form = controls.inventory.forms.find((candidate) => candidate.source_document_id === identity.source_document_id
+      && candidate.checked_form_id === identity.checked_form_id);
+    if (!form) throw new Error("Crèche draft returned an unknown Form identity");
+    return form;
+  });
+}
+
 function presentBirthControls(runner, state, controls) {
-  const { presentation, runtime, listingId, inventory, onSelection, onReview = () => {}, onBirth = () => {} } = controls;
-  const interactive = !state.terminal && !state.pending;
-  const visible = searchForms(inventory, state.search);
-  const selectionActions = interactive ? [
-    { id: "forms.search", event: "input" },
-    ...visible.map((form) => ({ id: `form.toggle.${form.name}`, event: "change" })),
-  ] : [];
-  const fieldActions = interactive ? [
-    { id: "name.input", event: "input" },
-    { id: "name-system.change", event: "change" },
-    { id: "name.refresh", event: "activate" },
-  ] : [];
-  const sourceActions = interactive ? [
-    { id: "workload.review", event: "activate" },
-    { id: "birth.activate", event: "activate" },
-  ] : [];
-  const onEvent = (slot) => (event) => {
-    presentation.nextEvent(slot);
-    const value = decoder.decode(event.value);
-    if (event.action === "forms.search") {
-      state.search = value;
-      presentBirthControls(runner, state, controls);
-      return;
-    }
-    if (event.action.startsWith("form.toggle.")) {
-      state.initialForms = setFormSelected(
-        inventory,
-        state.initialForms,
-        event.action.slice("form.toggle.".length),
-        value === "true",
-      );
-      state.review = null;
-      state.status = "Selection changed; review the combined workload before birth.";
-      state.outcome = "status";
-      onSelection(state.initialForms);
-      presentBirthControls(runner, state, controls);
-      return;
-    }
-    if (event.action === "name.input") state.friendlyName = value;
-    if (event.action === "name-system.change") { state.namingSystem = value; void suggestName(runner, state, controls); }
-    if (event.action === "name.refresh") { state.variation += 1; void suggestName(runner, state, controls); }
-    if (event.action === "workload.review") onReview();
-    if (event.action === "birth.activate") onBirth();
-  };
-  presentation.present("birth-selection", {
-    revision: ++state.revision,
-    actions: selectionActions,
-    nodes: birthSelectionNodes(state, inventory, visible, selectionActions),
-  }, { onEvent: onEvent("birth-selection") });
-  presentation.present("birth-fields", {
-    revision: ++state.revision,
-    actions: fieldActions,
-    nodes: birthFieldNodes(state, inventory, visible, fieldActions),
-  }, { onEvent: onEvent("birth-fields") });
+  const { presentation, runtime, listingId, onSelection, onReview, onBirth } = controls;
+  runner.querySelector(".birth-presentation").hidden = state.terminal;
+  if (state.terminal) return;
+  if (state.draft && state.renderedDraftRevision !== state.draft.revision) {
+    const code = runtime.conduit_creche_birth_draft_view(state.draft.generation);
+    if (code < 0) throw new Error(readOutput(runtime).message ?? `Crèche view refused (${code})`);
+    const view = new Uint8Array(runtime.memory.buffer, runtime.conduit_creche_output_ptr(), runtime.conduit_creche_output_len()).slice();
+    presentation.present("birth-fields", view, {
+      onEvent(event) {
+        presentation.nextEvent("birth-fields");
+        try {
+          const snapshot = draftCall(runtime, "conduit_creche_birth_draft_event", {
+            generation: state.draft.generation, revision: event.revision,
+            action: event.action, event: ({ 1: "activate", 2: "change", 3: "input" })[event.kind],
+            value: decoder.decode(event.value),
+          });
+          applyDraftSnapshot(state, controls, snapshot);
+          if (event.action.startsWith("creche.form.")) {
+            state.review = null;
+            onSelection(state.initialForms);
+          }
+          if (snapshot.birth_requested) { onBirth(); return; }
+          state.status = "Give it a name. Choose what it wakes with.";
+          state.outcome = "status";
+          presentBirthControls(runner, state, controls);
+        } catch (error) {
+          state.status = error instanceof Error ? error.message : String(error);
+          state.outcome = "failure-status";
+          presentBirthControls(runner, state, controls);
+        }
+      },
+    });
+    state.renderedDraftRevision = state.draft.revision;
+  }
+  presentation.present("birth-feedback", {
+    revision: ++state.revision, actions: [],
+    nodes: [{ parent: null, component: state.outcome, action: null, key: "birth-status", text: state.status }],
+  });
   presentation.present("birth-source", {
     revision: ++state.revision,
-    actions: sourceActions,
-    nodes: birthSourceNodes(state, listingId),
-  }, { onEvent: onEvent("birth-source") });
+    actions: [{ id: "workload.review", event: "activate" }],
+    nodes: [
+      { parent: null, component: "stack", action: null, key: "birth-source", text: "" },
+      { parent: 0, component: "form-field", action: null, key: "form-source-field", text: "" },
+      { parent: 1, component: "field-label", action: null, key: "form-source-label", text: "Selected Conduit Form source" },
+      { parent: 1, component: "textarea", action: null, key: listingId, text: "Selected Conduit Form source", value: selectedCanonicalSource(state.initialForms), valueCapacity: 65_536 },
+      { parent: 1, component: "field-help", action: null, key: "form-source-help", text: "The exact source of the selected Forms." },
+      { parent: 0, component: "definition-table", action: null, key: "combined-requirements", text: "Combined requirements" },
+      { parent: 5, component: "definition", action: null, key: "required-kinds", text: "Checked kinds", value: combinedKinds(state), valueCapacity: 4096 },
+      { parent: 5, component: "definition", action: null, key: "review-basis", text: "Review basis", value: state.review
+        ? "Reviewed against current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created."
+        : "Selection not reviewed; Birth will review it before creating the Body.", valueCapacity: 4096 },
+      { parent: 0, component: "button", action: 0, key: "review", text: "Review workload" },
+    ],
+  }, { onEvent() { presentation.nextEvent("birth-source"); onReview(); } });
   attachConduitSyntaxEditor(runner.querySelector(`[data-application-key="${listingId}"]`), runtime);
-}
-
-function birthSelectionNodes(state, inventory, visible, actions) {
-  const interactive = !state.terminal && !state.pending;
-  const action = (id) => interactive ? actions.findIndex((candidate) => candidate.id === id) : null;
-  const nodes = [
-    { parent: null, component: "stack", action: null, key: "initial-forms-selection", text: "" },
-    { parent: 0, component: "form-field", action: null, key: "form-search-field", text: "" },
-    { parent: 1, component: "field-label", action: null, key: "form-search-label", text: "Search Forms" },
-    { parent: 1, component: "text-input", action: action("forms.search"), key: "form-search", text: "Search Forms", value: state.search, valueCapacity: 128 },
-    { parent: 1, component: "field-help", action: null, key: "form-search-help", text: "Filter the finite reviewed inventory by name or required kind." },
-    { parent: 0, component: "paragraph", action: null, key: "selected-heading", text: `Selected (${state.initialForms.length})` },
-    { parent: 0, component: "choice-group", action: null, key: "initial-forms-field", text: "active_forms" },
-    { parent: 6, component: "choice-group-label", action: null, key: "initial-forms-label", text: "Initial active Forms" },
-  ];
-  for (const form of visible) {
-    const selected = state.initialForms.some((candidate) => candidate.checked_form_id === form.checked_form_id);
-    const label = nodes.length;
-    nodes.push({ parent: 6, component: "choice-option-label", action: null, key: `form-${form.name}-label`, text: form.title });
-    nodes.push({ parent: label, component: "independent-choice", action: action(`form.toggle.${form.name}`), key: `form-${form.name}`, text: form.name, value: String(selected), valueCapacity: 5 });
-    nodes.push({ parent: 6, component: "paragraph", action: null, key: `form-${form.name}-kinds`, text: form.required_kinds.join(" · ") });
-  }
-  nodes.push({ parent: 6, component: "paragraph", action: null, key: "initial-forms-help", text: `${state.initialForms.length} of ${inventory.forms.length} reviewed Forms selected; maximum ${inventory.maximum_selection}.` });
-  return nodes;
-}
-
-function birthFieldNodes(state, _inventory, _visible, actions) {
-  const interactive = !state.terminal && !state.pending;
-  const action = (id) => interactive ? actions.findIndex((candidate) => candidate.id === id) : null;
-  const nodes = [
-    { parent: null, component: "stack", action: null, key: "birth-fields", text: "" },
-  ];
-  const nameField = nodes.length;
-  nodes.push(
-    { parent: 0, component: "form-field", action: null, key: "friendly-name-field", text: "" },
-    { parent: nameField, component: "field-label", action: null, key: "friendly-name-label", text: "Friendly Body name" },
-    { parent: nameField, component: "text-input", action: action("name.input"), key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
-    { parent: nameField, component: "field-help", action: null, key: "friendly-name-help", text: "Editable metadata; the durable Body identity remains distinct." },
-    { parent: 0, component: "paragraph", action: null, key: "name-origin", text: nameOriginText(state) },
-  );
-  const systemField = nodes.length;
-  nodes.push(
-    { parent: 0, component: "form-field", action: null, key: "name-system-field", text: "" },
-    { parent: systemField, component: "field-label", action: null, key: "name-system-label", text: "Naming tradition" },
-    { parent: systemField, component: "select", action: action("name-system.change"), key: "name-system", text: "Naming tradition", value: state.namingSystem, valueCapacity: 32 },
-    { parent: systemField, component: "field-help", action: null, key: "name-system-help", text: "Select one bounded naming system for the next suggestion." },
-  );
-  const selectIndex = systemField + 2;
-  for (const option of NAMING_SYSTEM_OPTIONS) {
-    nodes.push({ parent: selectIndex, component: "option", action: null, key: `name-${option.id}`, text: option.label, value: option.id, valueCapacity: 32 });
-  }
-  nodes.push({ parent: 0, component: "button", action: action("name.refresh"), key: "another-name", text: "Suggest another name" });
-  return nodes;
-}
-
-function birthSourceNodes(state, listingId) {
-  const interactive = !state.terminal && !state.pending;
-  const source = selectedCanonicalSource(state.initialForms);
-  return [
-    { parent: null, component: "stack", action: null, key: "birth-source", text: "" },
-    { parent: 0, component: "disclosure", action: null, key: "form-source", text: "" },
-    { parent: 1, component: "summary", action: null, key: "form-summary", text: "Selected canonical Form source" },
-    { parent: 1, component: "form-field", action: null, key: "form-source-field", text: "" },
-    { parent: 3, component: "field-label", action: null, key: "form-source-label", text: "Selected Conduit Form source" },
-    { parent: 3, component: "textarea", action: null, key: listingId, text: "Selected Conduit Form source", value: source, valueCapacity: 65_536 },
-    { parent: 3, component: "field-help", action: null, key: "form-source-help", text: "Read-only exact canonical source for the selected Forms. The internal reviewed package envelope is not authored meaning." },
-    { parent: 0, component: "definition-table", action: null, key: "combined-requirements", text: "Combined requirements" },
-    { parent: 7, component: "definition", action: null, key: "required-kinds", text: "Checked kinds", value: combinedKinds(state), valueCapacity: 4096 },
-    { parent: 7, component: "definition", action: null, key: "review-basis", text: "Realization basis", value: state.review ? `${state.review.proposed_hosts.length} current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created` : "not reviewed", valueCapacity: 1024 },
-    { parent: 0, component: "action-group", action: null, key: "birth-actions", text: "Birth actions" },
-    { parent: 10, component: "button", action: interactive ? 0 : null, key: "review", text: "Review workload" },
-    { parent: 10, component: "button", action: interactive && state.review ? 1 : null, key: "birth", text: "Birth Body" },
-    { parent: 0, component: state.outcome, action: null, key: "birth-status", text: state.status },
-  ];
 }
 
 export function selectedCanonicalSource(forms) {
@@ -223,35 +182,6 @@ function combinedKinds(state) {
   return kinds.join(", ") || "none (idle Body)";
 }
 
-async function suggestName(runner, state, controls) {
-  const request = ++state.namingRequest;
-  state.pending = true;
-  state.status = "Deriving a stable persona suggestion from the persona seed UUID…";
-  state.outcome = "status";
-  presentBirthControls(runner, state, controls);
-  try {
-    const suggestion = await nameFor(state.personaUuid, state.namingSystem, state.variation);
-    if (request !== state.namingRequest || state.terminal) return;
-    state.friendlyName = suggestion.name;
-    state.namingLabel = suggestion.system_label;
-    state.pending = false;
-    state.status = state.selectionNotice
-      ?? "Edit the suggestion or Form selection, then review the combined workload.";
-    presentBirthControls(runner, state, controls);
-  } catch (error) {
-    if (request !== state.namingRequest || state.terminal) return;
-    state.pending = false;
-    state.outcome = "failure-status";
-    state.status = `Persona suggestion refused: ${error instanceof Error ? error.message : String(error)}`;
-    presentBirthControls(runner, state, controls);
-  }
-}
-
-function nameOriginText(state) {
-  if (state.terminal) return "This persisted friendly name is metadata; the Body ID remains distinct.";
-  return `${state.namingLabel} · persona seed ${state.personaUuid.slice(0, 8)} · variation ${state.variation}. The seed chooses a suggestion; it is not the Body ID.`;
-}
-
 function review(runner, host, state, controls) {
   try {
     state.review = reviewInitialWorkload(
@@ -261,7 +191,7 @@ function review(runner, host, state, controls) {
       state.inventorySource,
       state.initialForms,
     );
-    state.status = `Review accepted ${state.initialForms.length} Form(s) against ${state.review.proposed_hosts.length} current Host OFFER(s). No permission or resource was acquired; no Body Plan or Play exists.`;
+    state.status = `Ready to birth with ${state.initialForms.length} Form(s).`;
     state.outcome = "success-status";
   } catch (error) {
     state.review = null;
@@ -334,6 +264,7 @@ function renderRefusal(runner, api, code, state, presentationOptions) {
 }
 
 function renderReceipt(runner, receipt, retained, state, presentationOptions) {
+  runner.querySelector(".body-birth-result").hidden = false;
   runner.dataset.bodyId = receipt.body_id;
   runner.dataset.birthSignId = receipt.birth_sign_id;
   state.terminal = true;
@@ -354,6 +285,29 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   state.outcome = "success-status";
   if (!retained) presentationOptions.onSelection(null);
   presentBirthControls(runner, state, presentationOptions);
+  presentationOptions.presentation.present("birth-next", {
+    revision: ++state.revision,
+    actions: [{ id: "creche.continue", event: "activate" }],
+    nodes: [
+      { parent: null, component: "stack", action: null, key: "born", text: "" },
+      { parent: 0, component: "heading", action: null, key: "born-heading", text: `${receipt.friendly_name} is born` },
+      { parent: 0, component: "paragraph", action: null, key: "born-forms", text: state.initialForms.length
+        ? `${state.initialForms.length} Form${state.initialForms.length === 1 ? "" : "s"} included.`
+        : "Your Body is ready for Forms whenever you are." },
+      ...state.initialForms.map((form, index) => ({ parent: 0, component: "paragraph", action: null, key: `born-form-${index}`, text: form.title })),
+      { parent: 0, component: "paragraph", action: null, key: "born-state", text: receipt.here_part_id
+        ? "This Body has a Host. Continue to its Host options." : "Give it a Host to continue." },
+      { parent: 0, component: "button", action: 0, key: "born-continue", text: "Continue on this Host" },
+    ],
+  }, { onEvent() {
+    presentationOptions.presentation.nextEvent("birth-next");
+    presentationOptions.onContinue();
+  } });
+  if (!retained) {
+    const heading = runner.querySelector('[data-application-key="born-heading"]');
+    heading.tabIndex = -1;
+    heading.focus();
+  }
   const identities = [
     ["Friendly name", receipt.friendly_name],
     ["Initial Forms", receipt.initial_forms.map((form) => form.name).join(", ") || "none"],

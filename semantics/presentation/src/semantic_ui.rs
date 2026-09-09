@@ -136,23 +136,8 @@ pub struct SemanticAction {
     pub availability: ActionAvailability,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum FieldKind {
-    Text,
-    Select { options: Vec<String> },
-    TextArea,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FormField {
-    pub label: String,
-    pub help: String,
-    pub error: Option<String>,
-    pub value: String,
-    pub value_capacity: u32,
-    pub input_action: SemanticAction,
-    pub kind: FieldKind,
-}
+mod form_field;
+pub use form_field::{FieldKind, FormField, SelectOption};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ChoiceMultiplicity {
