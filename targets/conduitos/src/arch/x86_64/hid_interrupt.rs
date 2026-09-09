@@ -76,8 +76,13 @@ fn enqueue(sequence: usize, ring: u64, reports: u64) {
     });
 }
 
-/// Arms an exact report slot without waiting for a completion.  The caller may
-/// now service already-admitted finite work before polling this transfer.
+/// Publish the next fixed receive window without waiting for completion.
+///
+/// `REPORT_BUFFERS` is the admitted physical buffering bound. Windows are
+/// published only at aligned sequence boundaries so a later `begin_followup`
+/// for the already-owned sibling slot is a no-op rather than a duplicate TRB.
+/// This keeps the controller collecting the next report while the host services
+/// semantic work or a dirty frame.
 pub(super) fn submit_report(
     controller: &mut XhciReady,
     device: &UsbDevice,
@@ -87,17 +92,18 @@ pub(super) fn submit_report(
 ) -> Result<(), HidError> {
     let ring = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
     let reports = dma_physical + core::mem::offset_of!(HidDma, reports) as u64;
+    if index % REPORT_BUFFERS != 0 {
+        return Ok(());
+    }
+    let end = index
+        .checked_add(REPORT_BUFFERS)
+        .ok_or(HidError::TransferOverflow)?;
+    for report_index in index..end {
+        enqueue(report_index, ring, reports);
+    }
+    controller.ring_endpoint(device.slot, dci);
     if index == 0 {
-        for report_index in 0..REPORT_BUFFERS {
-            enqueue(report_index, ring, reports);
-        }
-        controller.ring_endpoint(device.slot, dci);
         serial::early_write(b"CONDUIT_BOOT_STAGE hid-awaiting-qemu-key\n");
-    } else if index >= REPORT_BUFFERS {
-        // Only completed slots are reused: at most two initial reports are in
-        // flight, then each next report is submitted after its predecessor.
-        enqueue(index, ring, reports);
-        controller.ring_endpoint(device.slot, dci);
     }
     Ok(())
 }
