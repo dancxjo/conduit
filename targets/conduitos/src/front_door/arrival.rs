@@ -1,6 +1,5 @@
 //! Native input adaptation for the shared Crèche draft; no lifecycle authority.
-use alloc::{format, string::String, vec};
-use conduit_body::ResidentForm;
+use alloc::{format, string::String, vec::Vec};
 use conduit_creche_model::birth::{
     BirthActionOutcome, BirthDraft, BirthDraftRefusal, BirthFormChoice, BirthSelection,
 };
@@ -37,17 +36,19 @@ impl FrontDoor {
         let available = refusal.is_none();
         let draft = BirthDraft::new(
             uuid,
-            vec![BirthFormChoice {
-                title: "Keyboard canvas".into(),
-                search_text: "keyboard input/keyboard input/keymap text/upper presentation/text"
-                    .into(),
-                form: ResidentForm::new(
-                    self.source_document_id.clone(),
-                    self.checked_form_id.clone(),
-                ),
-                refusal,
-                selected: available,
-            }],
+            crate::native_workset::inventory()
+                .into_iter()
+                .map(|form| {
+                    Ok(BirthFormChoice {
+                        title: form.title().into(),
+                        search_text: form.source().into(),
+                        form: crate::native_workset::resident(form)
+                            .map_err(|_| Error::Presentation)?,
+                        refusal: refusal.clone(),
+                        selected: available,
+                    })
+                })
+                .collect::<Result<_, Error>>()?,
         )
         .map_err(|_| Error::Presentation)?;
         self.arrival = Some(Arrival {
@@ -95,6 +96,10 @@ impl Arrival {
         if event.transition() != KeyTransition::Pressed {
             return ArrivalInput::Unchanged;
         }
+        let controls = self.controls();
+        let Some(action) = controls.get(self.focus) else {
+            return ArrivalInput::Unchanged;
+        };
         let result = match event.usage() {
             43 | 81 | 82 => {
                 let backward = event.usage() == 82
@@ -102,7 +107,7 @@ impl Arrival {
                         && event.modifiers_after().bits()
                             & (KeyModifiers::LEFT_SHIFT.bits() | KeyModifiers::RIGHT_SHIFT.bits())
                             != 0);
-                let count = self.draft.choices().len() + 4;
+                let count = controls.len();
                 self.focus = (self.focus + if backward { count - 1 } else { 1 }) % count;
                 self.replace_name = self.focus == 0;
                 self.keymap.reset();
@@ -111,13 +116,18 @@ impl Arrival {
             59 => self.suggest(), // F2: the same suggestion action as the Crèche button.
             79 | 80 if self.focus == 1 => self.cycle_tradition(event.usage() == 80),
             60 => return self.submit(),
-            40 if self.focus == 0 || self.focus == self.draft.choices().len() + 3 => {
+            40 if action == "creche.name" || action == "creche.birth" => {
                 return self.submit();
             }
             40 | 44 if self.focus == 2 => self.suggest(),
             40 | 44 if self.focus == 1 => self.cycle_tradition(false),
-            40 | 44 if self.focus >= 3 && self.focus < self.draft.choices().len() + 3 => {
-                let index = self.focus - 3;
+            40 | 44 if action.starts_with("creche.form.") => {
+                let Some(index) = action
+                    .strip_prefix("creche.form.")
+                    .and_then(|value| value.parse::<usize>().ok())
+                else {
+                    return ArrivalInput::Unchanged;
+                };
                 let value = if self.draft.choices()[index].selected {
                     "false"
                 } else {
@@ -129,6 +139,22 @@ impl Arrival {
                     value,
                 )
             }
+            42 if action == "creche.search" => {
+                let mut search = String::from(self.draft.search());
+                search.pop();
+                self.change("creche.search", ApplicationEventKind::Input, &search)
+            }
+            _ if action == "creche.search" => match self.keymap.apply(event) {
+                KeymapDisposition::Text(fragment) => {
+                    let mut search = String::from(self.draft.search());
+                    let Ok(text) = core::str::from_utf8(fragment.as_bytes()) else {
+                        return ArrivalInput::Unchanged;
+                    };
+                    search.push_str(text);
+                    self.change("creche.search", ApplicationEventKind::Input, &search)
+                }
+                _ => return ArrivalInput::Unchanged,
+            },
             42 if self.focus == 0 => {
                 let mut name = self.draft.friendly_name().into();
                 if self.replace_name {
@@ -162,6 +188,29 @@ impl Arrival {
         };
         self.refusal = result.err().map(|error| refusal_text(error).into());
         ArrivalInput::Changed
+    }
+
+    fn controls(&self) -> Vec<String> {
+        use conduit_presentation::PresentationMechanism;
+        let Ok(view) = self.draft.presentation() else {
+            return Vec::new();
+        };
+        let mut controls = Vec::new();
+        for node in &view.root.children {
+            match &node.mechanism {
+                PresentationMechanism::FormField(field) => {
+                    controls.push(field.input_action.identity.clone())
+                }
+                PresentationMechanism::Action(action) => controls.push(action.identity.clone()),
+                PresentationMechanism::ChoiceGroup { options, .. } => controls.extend(
+                    options
+                        .iter()
+                        .map(|choice| choice.change_action.identity.clone()),
+                ),
+                _ => {}
+            }
+        }
+        controls
     }
 
     fn submit(&mut self) -> ArrivalInput {

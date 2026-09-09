@@ -1,0 +1,77 @@
+//! Exact Body membership and foreground view, supplied by ProductJourney.
+use super::{Error, FrontDoor};
+use crate::product_journey::{JourneyProjection, WorkspaceProjection};
+use alloc::format;
+
+impl FrontDoor {
+    pub fn observe_body(
+        &mut self,
+        journey: JourneyProjection,
+        workspace: WorkspaceProjection,
+    ) -> Result<(), Error> {
+        if journey.body_id.as_ref() != Some(&workspace.body_id)
+            || journey.revision != workspace.revision
+            || workspace.forms.is_empty()
+            || workspace.forms.len() > 2
+            || workspace
+                .forms
+                .iter()
+                .filter(|form| form.foreground)
+                .count()
+                != 1
+        {
+            return Err(Error::Presentation);
+        }
+        if self
+            .journey
+            .as_ref()
+            .is_some_and(|previous| previous.revision > journey.revision)
+            || workspace.forms.iter().enumerate().any(|(index, form)| {
+                workspace.forms[..index]
+                    .iter()
+                    .any(|prior| prior.form == form.form)
+            })
+        {
+            return Err(Error::Presentation);
+        }
+        let selected = workspace
+            .forms
+            .iter()
+            .find(|form| form.foreground)
+            .ok_or(Error::Presentation)?;
+        if selected.form.source_document_id != journey.source_document_id
+            || selected.form.checked_form_id != journey.checked_form_id
+            || self
+                .journey
+                .as_ref()
+                .and_then(|previous| previous.body_id.as_ref())
+                .is_some_and(|body| body != &workspace.body_id)
+            || journey.host_id != self.host_id
+            || journey.boot_id != self.boot_id
+            || journey.offer_generation != self.offer_generation
+        {
+            return Err(Error::Presentation);
+        }
+        for form in &workspace.forms {
+            let kind =
+                crate::native_workset::resolve(&form.form).map_err(|_| Error::Presentation)?;
+            if kind.title() != form.title {
+                return Err(Error::Presentation);
+            }
+        }
+        self.revision.checked_add(1).ok_or(Error::Presentation)?;
+        self.source_document_id = journey.source_document_id.clone();
+        self.checked_form_id = journey.checked_form_id.clone();
+        self.form_subject = format!("form/{}", self.checked_form_id.as_str());
+        if self.selected_subject.starts_with("form/") {
+            self.selected_subject = self.form_subject.clone();
+        }
+        self.form_open = false;
+        self.journey = Some(journey);
+        self.workspace = Some(workspace);
+        self.advance()
+    }
+}
+
+#[cfg(test)]
+mod tests;

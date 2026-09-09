@@ -57,6 +57,20 @@ pub enum PlayRefusal {
     WorkBound,
     Cancelled,
 }
+impl PlayRefusal {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Preparation => "native-body-play-preparation-refused",
+            Self::Kernel => "native-body-kernel-boundary-refused",
+            Self::Scheduler(_) => "native-body-kernel-operation-refused",
+            Self::HostFailure(failure) => failure.code.as_str(),
+            Self::Foreground => "native-body-foreground-unavailable",
+            Self::InputPressure => "native-body-input-pressure",
+            Self::WorkBound => "native-body-work-bound-exceeded",
+            Self::Cancelled => "native-body-play-cancelled",
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NativePresentation {
@@ -93,6 +107,10 @@ pub struct NativeWorksetPlay {
 }
 
 impl NativeWorksetPlay {
+    #[cfg(test)]
+    pub(crate) fn pending_requests(&self) -> [Option<HostOperationRequest>; FORMS] {
+        self.pending
+    }
     pub fn prepare(prepared: &PreparedNativeWorkset) -> Result<Self, WorksetRefusal> {
         preparation::prepare(prepared)
     }

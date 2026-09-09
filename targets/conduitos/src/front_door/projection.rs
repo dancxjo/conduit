@@ -118,9 +118,16 @@ impl FrontDoor {
             if let Some(result) = &journey.result {
                 properties.push(property(
                     &host,
-                    "semantic-result",
-                    PresentationPropertyValue::Text(result.clone()),
+                    "semantic-result-empty",
+                    PresentationPropertyValue::Flag(result.is_empty()),
                 ));
+                if !result.is_empty() {
+                    properties.push(property(
+                        &host,
+                        "semantic-result",
+                        PresentationPropertyValue::Text(result.clone()),
+                    ));
+                }
             }
             properties.push(property(
                 &host,

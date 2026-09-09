@@ -18,6 +18,7 @@ mod arrival;
 mod presenter;
 mod projection;
 mod scene;
+mod workspace;
 mod workspace_scene;
 pub use arrival::ArrivalInput;
 mod semantics;
@@ -55,6 +56,7 @@ pub struct FrontDoor {
     connectivity: Option<ConnectivityProjection>,
     arrival: Option<arrival::Arrival>,
     startup_refusal: Option<String>,
+    workspace: Option<crate::product_journey::WorkspaceProjection>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -148,6 +150,7 @@ impl FrontDoor {
             connectivity: None,
             arrival: None,
             startup_refusal: None,
+            workspace: None,
         }
     }
 

@@ -2,16 +2,13 @@
 
 use alloc::{borrow::ToOwned, boxed::Box, format, string::String, vec::Vec};
 
-use conduit_body::{Body, BodyMembership, BodyState, PartId, Wake};
-use conduit_core::{
-    ActivePlayIdentity, BootId, ExpandedFormId, HostId, OfferGeneration, Plan, SignId,
-};
-use conduit_kernel::scheduler::HostOperationRequest;
+use conduit_body::{Body, BodyMembership, BodyPlan, BodyPlayIdentity, BodyState, PartId, Wake};
+use conduit_core::{BootId, ExpandedFormId, HostId, OfferGeneration, SignId};
 
 use crate::{
     identity::BootIdentities,
     keyboard_text_plan::{self, KeyboardTextFormIdentity},
-    keyboard_text_play::KeyboardTextKernel,
+    native_workset::{self, NativeForm, NativeWorksetPlay},
     offer::HostOffer,
     ordinary_plan::PreparationError,
 };
@@ -20,6 +17,9 @@ mod birth;
 mod result_window;
 use result_window::ResultWindow;
 mod play;
+mod workset;
+use workset::FormResult;
+pub use workset::{WorkspaceForm, WorkspaceProjection};
 
 pub use patchbay_control::{
     PatchbayAction as JourneyAction, PatchbayControlRequest as JourneyRequest,
@@ -64,6 +64,8 @@ pub enum JourneyError {
     InvalidTransition,
     Membership,
     Plan(PreparationError),
+    Workset(native_workset::WorksetRefusal),
+    Play(native_workset::PlayRefusal),
     Kernel,
     InputUnavailable,
     InputSequenceExhausted,
@@ -81,6 +83,8 @@ impl JourneyError {
             Self::InvalidTransition => "product-lifecycle-transition-refused",
             Self::Membership => "product-birth-membership-refused",
             Self::Plan(error) => error.as_str(),
+            Self::Workset(error) => error.as_str(),
+            Self::Play(error) => error.as_str(),
             Self::Kernel => "product-kernel-refused",
             Self::InputUnavailable => "product-input-unavailable",
             Self::InputSequenceExhausted => "product-input-sequence-exhausted",
@@ -132,15 +136,15 @@ pub struct ProductJourney {
     membership: Option<BodyMembership>,
     part_id: Option<PartId>,
     wake: Option<Wake>,
-    plan: Option<Plan>,
-    planned_play: Option<ActivePlayIdentity>,
-    play: Option<ActivePlayIdentity>,
-    kernel: Option<Box<KeyboardTextKernel>>,
-    pending_keyboard: Option<HostOperationRequest>,
+    plan: Option<BodyPlan>,
+    planned_play: Option<BodyPlayIdentity>,
+    play: Option<BodyPlayIdentity>,
+    kernel: Option<Box<NativeWorksetPlay>>,
+    foreground: usize,
+    forms: [Option<NativeForm>; 2],
     input_count: u32,
     input_sign_id: Option<SignId>,
-    result_sign_id: Option<SignId>,
-    result: ResultWindow,
+    results: [FormResult; 2],
     retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
 }
@@ -170,11 +174,11 @@ impl ProductJourney {
             planned_play: None,
             play: None,
             kernel: None,
-            pending_keyboard: None,
+            foreground: 0,
+            forms: [None; 2],
             input_count: 0,
             input_sign_id: None,
-            result_sign_id: None,
-            result: ResultWindow::new(),
+            results: core::array::from_fn(|_| FormResult::new()),
             retained_kernel_sign_gap: None,
             last_request_id: None,
         })
@@ -263,14 +267,16 @@ impl ProductJourney {
             gear_ids: self
                 .plan
                 .iter()
-                .flat_map(|plan| &plan.fragments)
+                .flat_map(|plan| &plan.forms)
+                .flat_map(|form| &form.plan.fragments)
                 .flat_map(|fragment| &fragment.placements)
                 .map(|placement| placement.gear_id.as_str().to_owned())
                 .collect(),
             port_ids: self
                 .plan
                 .iter()
-                .flat_map(|plan| &plan.fragments)
+                .flat_map(|plan| &plan.forms)
+                .flat_map(|form| &form.plan.fragments)
                 .flat_map(|fragment| &fragment.connections)
                 .flat_map(|connection| {
                     [
@@ -290,14 +296,16 @@ impl ProductJourney {
             cord_ids: self
                 .plan
                 .iter()
-                .flat_map(|plan| &plan.fragments)
+                .flat_map(|plan| &plan.forms)
+                .flat_map(|form| &form.plan.fragments)
                 .flat_map(|fragment| &fragment.connections)
                 .map(|connection| connection.connection_id.as_str().to_owned())
                 .collect(),
             input_sign_id: self.input_sign_id.clone(),
-            result_sign_id: self.result_sign_id.clone(),
-            result: (!self.result.as_str().is_empty()).then(|| self.result.as_str().into()),
-            result_omitted_bytes: self.result.omitted_bytes(),
+            result_sign_id: self.results[self.foreground].sign.clone(),
+            result: self.foreground_result().map(|text| text.into()),
+            result_omitted_bytes: self.results[self.foreground]
+                .omitted_bytes(self.forms[self.foreground]),
             input_count: self.input_count,
             kernel_sign_gap: self
                 .kernel
@@ -344,10 +352,16 @@ impl ProductJourney {
             return Err(JourneyError::InvalidTransition);
         }
         let (body, wake) = body
-            .wake(0, SignId::from("conduitos/product/woke"))
+            .wake(
+                self.revision,
+                SignId::from(format!("conduitos/product/woke/{}", self.revision)),
+            )
             .map_err(|_| JourneyError::InvalidTransition)?;
         self.body = Some(body);
         self.wake = Some(wake);
+        self.plan = None;
+        self.planned_play = None;
+        self.play = None;
         self.status = JourneyStatus::Awake;
         Ok(())
     }
@@ -363,3 +377,5 @@ impl ProductJourney {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod workset_tests;

@@ -46,10 +46,13 @@ fn native_draft_edits_name_and_submits_exact_checked_selection_without_birth() {
     assert_eq!(selection.friendly_name, "ro");
     assert_eq!(
         selection.workset.forms(),
-        &[ResidentForm::new(
-            SourceDocumentId::from("source"),
-            CheckedFormId::from("checked")
-        )]
+        conduit_body::BodyWorkset::from_forms(
+            crate::native_workset::inventory()
+                .into_iter()
+                .map(|form| crate::native_workset::resident(form).unwrap())
+        )
+        .unwrap()
+        .forms()
     );
     assert!(door.presentation().unwrap().basis.body_id.is_none());
     assert!(door.close_creche().is_err());
@@ -58,10 +61,12 @@ fn native_draft_edits_name_and_submits_exact_checked_selection_without_birth() {
 #[test]
 fn selection_and_availability_are_visible_and_refuse_empty_or_unavailable_birth() {
     let mut door = door(None);
-    for _ in 0..3 {
+    for _ in 0..4 {
         press(&mut door, 43);
     }
-    press(&mut door, 44); // remove the only available Form
+    press(&mut door, 44); // remove the first Form
+    press(&mut door, 43);
+    press(&mut door, 44); // remove the second Form
     let presentation = door.presentation().unwrap();
     assert!(
         presentation
@@ -84,7 +89,7 @@ fn selection_and_availability_are_visible_and_refuse_empty_or_unavailable_birth(
 
     let mut unavailable = self::door(Some("keyboard not offered".into()));
     assert!(matches!(press(&mut unavailable, 60), ArrivalInput::Changed));
-    for _ in 0..3 {
+    for _ in 0..4 {
         press(&mut unavailable, 43);
     }
     press(&mut unavailable, 44);
@@ -134,4 +139,44 @@ fn unrelated_input_preserves_refusal_and_revision_exhaustion_is_atomic() {
         Err(Error::Presentation)
     ));
     assert_eq!(door.arrival.as_ref().unwrap().draft.friendly_name(), name);
+}
+
+#[test]
+fn shared_search_filters_visible_controls_without_losing_included_forms() {
+    let mut door = door(None);
+    for _ in 0..3 {
+        press(&mut door, 43);
+    }
+    for usage in [16, 8, 16, 18, 21, 28] {
+        press(&mut door, usage);
+    } // memory
+    let actions = door.arrival.as_ref().unwrap().controls();
+    assert!(actions.iter().any(|action| action == "creche.form.1"));
+    assert!(!actions.iter().any(|action| action == "creche.form.0"));
+    assert!(door.scene(&super::super::tests::Sink).is_ok());
+    press(&mut door, 29); // mz: no match
+    assert!(door.scene(&super::super::tests::Sink).is_ok());
+    assert!(
+        door.arrival
+            .as_ref()
+            .unwrap()
+            .controls()
+            .iter()
+            .all(|action| !action.starts_with("creche.form."))
+    );
+    let ArrivalInput::Birth(selection) = press(&mut door, 60) else {
+        panic!("selected Forms survive filtering")
+    };
+    assert_eq!(selection.workset.len(), 2);
+}
+
+#[test]
+fn two_form_scene_and_refusal_fit_the_native_display_envelope() {
+    let mut door = door(None);
+    assert!(door.scene(&super::super::tests::Sink).is_ok());
+    press(&mut door, 42);
+    press(&mut door, 60);
+    let scene = door.scene(&super::super::tests::Sink).unwrap();
+    assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+    crate::display::render_scene(&mut super::super::tests::Sink, &scene).unwrap();
 }

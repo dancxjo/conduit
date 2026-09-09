@@ -60,7 +60,7 @@ pub fn resident(form: NativeForm) -> Result<ResidentForm, WorksetRefusal> {
     ))
 }
 
-pub(super) fn resolve(identity: &ResidentForm) -> Result<NativeForm, WorksetRefusal> {
+pub fn resolve(identity: &ResidentForm) -> Result<NativeForm, WorksetRefusal> {
     for form in inventory() {
         if &resident(form)? == identity {
             return Ok(form);

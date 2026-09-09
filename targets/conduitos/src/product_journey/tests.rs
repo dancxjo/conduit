@@ -8,7 +8,7 @@ use conduit_body::WakeLifecycle;
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 use conduit_presentation::PresentationActionAvailability;
 
-fn fixture() -> (BootIdentities, HostOffer<'static>, ProductJourney) {
+pub(super) fn fixture() -> (BootIdentities, HostOffer<'static>, ProductJourney) {
     let identities = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
@@ -91,7 +91,7 @@ fn target(journey: &ProductJourney, action: JourneyAction) -> String {
     }
 }
 
-fn invoke(
+pub(super) fn invoke(
     journey: &mut ProductJourney,
     action: JourneyAction,
     identities: &BootIdentities,
@@ -102,7 +102,7 @@ fn invoke(
     journey.apply(request, identities, offer, "build", revision)
 }
 
-fn key(usage: u8, transition: KeyTransition) -> KeyEvent {
+pub(super) fn key(usage: u8, transition: KeyTransition) -> KeyEvent {
     KeyEvent::new(usage, transition, KeyModifiers::from_bits(0)).unwrap()
 }
 
@@ -304,7 +304,7 @@ fn missing_current_keyboard_offer_refuses_plan_before_kernel_admission() {
     );
     assert_eq!(
         invoke(&mut journey, JourneyAction::Plan, &identities, &absent),
-        Err(JourneyError::Plan(PreparationError::PlacementRejected))
+        Err(JourneyError::Workset(native_workset::WorksetRefusal::Host))
     );
     assert!(journey.plan.is_none() && journey.kernel.is_none());
 }
@@ -342,7 +342,7 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
             .accept_play_input(key(4, KeyTransition::Pressed))
             .unwrap()
     );
-    assert!(journey.projection().result.is_none() && journey.result_sign_id.is_none());
+    assert!(journey.projection().result.is_none() && journey.projection().result_sign_id.is_none());
 }
 
 #[test]
@@ -410,7 +410,7 @@ fn exhausted_input_or_revision_preserves_pending_input_and_result() {
         } else {
             journey.revision = u64::MAX;
         }
-        let pending = journey.pending_keyboard;
+        let pending = journey.kernel.as_ref().unwrap().pending_requests();
         let projection = journey.projection();
         assert_eq!(
             journey.accept_play_input(key(4, KeyTransition::Pressed)),
@@ -420,7 +420,7 @@ fn exhausted_input_or_revision_preserves_pending_input_and_result() {
                 JourneyError::RevisionExhausted
             })
         );
-        assert_eq!(journey.pending_keyboard, pending);
+        assert_eq!(journey.kernel.as_ref().unwrap().pending_requests(), pending);
         assert_eq!(journey.projection(), projection);
     }
 }

@@ -1,7 +1,7 @@
 //! Native layout of the shared Crèche state; geometry belongs to this renderer.
 use super::{Arrival, Error};
 use crate::display::PixelTarget;
-use alloc::format;
+use alloc::{format, string::String};
 use conduit_presentation::{
     ActionAvailability, FieldKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
     GraphicsShapeStyle, LayoutRect, PresentationMechanism,
@@ -64,17 +64,18 @@ impl Arrival {
         };
         line(0, "CONDUIT / CRÈCHE", false)?;
         let view = self.draft.presentation().map_err(|_| Error::Presentation)?;
-        let mut choice_count = 0;
+        let controls = self.controls();
+        let focused = controls.get(self.focus).map(String::as_str);
         for node in &view.root.children {
             match (&*node.key, &node.mechanism) {
                 ("creche-heading", PresentationMechanism::Heading { text }) => {
-                    line(38, text, false)?
+                    line(28, text, false)?
                 }
                 ("body-name", PresentationMechanism::FormField(field)) => {
-                    line(64, &field.help, false)?;
-                    line(108, &field.label, self.focus == 0)?;
+                    line(52, &field.help, false)?;
+                    line(92, &field.label, self.focus == 0)?;
                     line(
-                        132,
+                        116,
                         &format!(
                             "{} {}",
                             if self.focus == 0 { ">" } else { " " },
@@ -92,7 +93,7 @@ impl Arrival {
                         .find(|option| option.identity == field.value)
                         .ok_or(Error::Scene)?;
                     line(
-                        176,
+                        156,
                         &format!(
                             "{} {}: {}",
                             if self.focus == 1 { ">" } else { " " },
@@ -103,16 +104,20 @@ impl Arrival {
                     )?;
                 }
                 ("suggest-name", PresentationMechanism::Action(action)) => {
-                    line(204, &format!("  {}  [F2]", action.label), self.focus == 2)?;
+                    line(184, &format!("  {}  [F2]", action.label), self.focus == 2)?;
                 }
                 ("initial-forms", PresentationMechanism::ChoiceGroup { label, options, .. }) => {
-                    line(248, label, false)?;
+                    line(260, label, false)?;
                     for (index, choice) in options.iter().enumerate() {
                         line(
-                            276 + index as i16 * 24,
+                            288 + index as i16 * 24,
                             &format!(
                                 "{} [{}] {}{}",
-                                if self.focus == index + 3 { ">" } else { " " },
+                                if focused == Some(choice.change_action.identity.as_str()) {
+                                    ">"
+                                } else {
+                                    " "
+                                },
                                 if choice.selected { "x" } else { " " },
                                 choice.label,
                                 if matches!(
@@ -124,23 +129,44 @@ impl Arrival {
                                     " / unavailable"
                                 }
                             ),
-                            self.focus == index + 3,
+                            focused == Some(choice.change_action.identity.as_str()),
                         )?;
                     }
-                    choice_count = options.len();
                 }
                 ("birth-body", PresentationMechanism::Action(action)) => {
                     line(
-                        328,
+                        372,
                         &format!("  {}  [Enter / F3]", action.label),
-                        self.focus == choice_count + 3,
+                        focused == Some(action.identity.as_str()),
                     )?;
+                }
+                ("form-search", PresentationMechanism::FormField(field)) => {
+                    line(
+                        224,
+                        &format!(
+                            "{} {}: {}",
+                            if focused == Some(field.input_action.identity.as_str()) {
+                                ">"
+                            } else {
+                                " "
+                            },
+                            field.label,
+                            field.value
+                        ),
+                        focused == Some(field.input_action.identity.as_str()),
+                    )?;
+                }
+                ("selected-forms", PresentationMechanism::Status { title, .. }) => {
+                    line(340, title, false)?
+                }
+                ("initial-forms", PresentationMechanism::Status { title, .. }) => {
+                    line(288, title, false)?
                 }
                 _ => return Err(Error::Scene),
             }
         }
         if let Some(refusal) = &self.refusal {
-            line(368, refusal, true)?;
+            line(392, refusal, true)?;
         }
         line(416, "Tab moves  ·  Arrows choose  ·  F9 visits Tour", false)?;
         Ok(scene)
