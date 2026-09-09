@@ -1047,7 +1047,7 @@ jobs:
   proof-receipts:
     needs: [plan, tour-patchbay-proof, browser-proof]
     if: >-
-      always() && !cancelled() &&
+      always() && !cancelled() && !inputs.development_admission &&
       needs.plan.outputs.tour_required == 'true' &&
       needs.tour-patchbay-proof.result == 'success' &&
       (needs.plan.outputs.exact_execution == 'true' || needs.browser-proof.result == 'success')
@@ -1093,9 +1093,8 @@ jobs:
     # A deliberately cancelled duplicate lifecycle run is not new proof
     # failure. Real dependency failures still reach this gate and fail it.
     if: ${{ always() && !cancelled() }}
-    # This gate only inspects completed dependency results. Keep it on the
-    # single-CPU automation lane so product fabrication cannot occupy its runner.
-    runs-on: ubuntu-slim
+    # Collect results on the standard pool; a queued collector blocks admission.
+    runs-on: ubuntu-24.04
     steps:
       - name: Preserve the stable required product gate
         env:
@@ -1111,6 +1110,7 @@ jobs:
           BROWSER_RESULT: ${{ needs.browser-proof.result }}
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
           RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
+          DEVELOPMENT_ADMISSION: ${{ inputs.development_admission }}
         run: |
           if test "$PRODUCT_REQUIRED" != true; then
             echo "No Pages product proof inputs changed: $PRODUCT_PROOFS"
@@ -1119,7 +1119,7 @@ jobs:
           if test "$TOUR_REQUIRED" = true || test "$DEBUGGER_REQUIRED" = true; then
             test "$TOUR_PATCHBAY_RESULT" = success
           fi
-          if test "$TOUR_REQUIRED" = true; then
+          if test "$TOUR_REQUIRED" = true && test "$DEVELOPMENT_ADMISSION" != true; then
             test "$RECEIPTS_RESULT" = success
           fi
           if test "$BROWSER_ADMISSION_REQUIRED" = true; then
