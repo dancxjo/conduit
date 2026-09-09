@@ -21,8 +21,10 @@ when the browser exposes its audio API. Uncheck either Form before Birth to
 omit it. Selecting only Startup Chime births a sound-only workload: it makes its
 cue, settles idle in the same living Play, and stops only when lulled. A later
 ordinary Wake is eligible for a new cue. The separate First Wake Chime is opt-in.
-The current arrival surface does not yet edit an existing Body's workset;
-Gallery installation and removal remain separate workspace work.
+For an existing Body, open **+ Forms**, find Startup Chime, and choose **Remove**
+to disable it or **Use** to install it. Removal survives reload and leaves the
+other installed Forms available. Installing First Wake Chime after the Body's
+first Wake does not create a new first-wake lifetime.
 
 ## Lifecycle scope
 
@@ -59,8 +61,8 @@ reported as denied without queueing it for a later gesture. Missing output and
 rendering failure are reported separately. Those outcomes complete the optional
 sound sink while other Forms continue. The workspace Forms chooser can remove the
 chime through the ordinary retained workload lifecycle. Explicit mute policy and
-removal are not hidden lifecycle flags. The adapter honors its explicit mute input; no product-wide
-mute preference existed before this slice.
+removal are not hidden lifecycle flags. The adapter honors its explicit mute
+input; no product-wide mute preference existed before this slice.
 
 The lifecycle inspection contains the current exact Play's kernel events and a
 separately labeled Host completion history. That history retains at most 64
@@ -73,7 +75,9 @@ cargo xtask demo workspace --check
 
 The pinned Chromium journey checks real audio-source start and completion,
 sound-only idle, later ordinary Wake, first-wake silence after fresh-Boot reload,
-and usable keyboard Forms with unavailable or suspended audio. A failed Started
+and usable keyboard Forms with unavailable or suspended audio. It also checks
+that removing the default cue survives reload and installing First Wake Chime
+later does not reset the Body lifetime. A failed Started
 save is also proved to cancel before any audio source starts. Deterministic tests cover
 exact source emissions, invalid history, replacement Play, new Body identity,
 correlated denial, bounded outcome retention, and equality with the shared DSP.
