@@ -128,3 +128,19 @@ fn one_lull_action_retires_a_listening_body_and_preserves_its_workset() {
         before.body_id
     );
 }
+
+#[test]
+fn foreground_selection_before_admission_does_not_invent_a_plan_or_play() {
+    let (ids, offer, mut journey) = born();
+    let before = journey.projection();
+    select(&mut journey, NativeForm::MemoryLantern);
+    let selected = journey.projection();
+    assert_eq!(selected.status, JourneyStatus::BornLulled);
+    assert_eq!(selected.body_id, before.body_id);
+    assert!(selected.plan_id.is_none() && selected.active_play_id.is_none());
+    invoke(&mut journey, JourneyAction::Wake, &ids, &offer).unwrap();
+    select(&mut journey, NativeForm::KeyboardCanvas);
+    let waiting = journey.projection();
+    assert_eq!(waiting.status, JourneyStatus::Awake);
+    assert!(waiting.plan_id.is_none() && waiting.active_play_id.is_none());
+}

@@ -98,17 +98,26 @@ impl ProductJourney {
         self.revision
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
-        let plan = &self
-            .plan
-            .as_ref()
-            .ok_or(JourneyError::InvalidTransition)?
-            .forms[index]
-            .plan;
-        self.form = KeyboardTextFormIdentity {
-            source_document_id: plan.source_document_id.clone(),
-            checked_form_id: plan.checked_form_id.clone(),
-            expanded_form_id: plan.expanded_form_id.clone(),
+        let identity = if let Some(plan) = &self.plan {
+            let form = &plan.forms[index].plan;
+            KeyboardTextFormIdentity {
+                source_document_id: form.source_document_id.clone(),
+                checked_form_id: form.checked_form_id.clone(),
+                expanded_form_id: form.expanded_form_id.clone(),
+            }
+        } else {
+            // A born or awaiting-plan Body still has exact resident meaning.
+            // Reviewing it here grants no execution; an active Play always
+            // uses the already prepared identities above.
+            let form = native_workset::checked(self.forms[index].ok_or(JourneyError::WrongTarget)?)
+                .map_err(JourneyError::Workset)?;
+            KeyboardTextFormIdentity {
+                source_document_id: form.source_document_id,
+                checked_form_id: form.checked_form_id,
+                expanded_form_id: form.expanded_form_id,
+            }
         };
+        self.form = identity;
         self.foreground = index;
         self.advance()
     }
