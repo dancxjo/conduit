@@ -76,21 +76,15 @@ pub(super) fn scene(
         GraphicsPaintRole::Foreground,
         GraphicsTextRole::Status,
     )?;
+    let mut result_notice_y = 248;
     if let Some(result) = &journey.result {
-        text(
-            &mut scene,
-            screen,
-            208,
-            result,
-            GraphicsPaintRole::Accent,
-            GraphicsTextRole::Body,
-        )?;
+        result_notice_y = result_text(&mut scene, screen, 208, result)?;
     }
     if journey.result_omitted_bytes > 0 {
         text(
             &mut scene,
             screen,
-            248,
+            result_notice_y,
             "Showing recent output.",
             GraphicsPaintRole::Foreground,
             GraphicsTextRole::Muted,
@@ -133,6 +127,45 @@ pub(super) fn scene(
         GraphicsTextRole::Body,
     )?;
     Ok(scene)
+}
+
+fn result_text(
+    scene: &mut GraphicsScene,
+    screen: LayoutRect,
+    mut y: i16,
+    value: &str,
+) -> Result<i16, Error> {
+    if value.is_empty() {
+        text(
+            scene,
+            screen,
+            y,
+            "Result is empty.",
+            GraphicsPaintRole::Muted,
+            GraphicsTextRole::Status,
+        )?;
+        return y.checked_add(40).ok_or(Error::Scene);
+    }
+    let mut remaining = value;
+    while !remaining.is_empty() {
+        let mut split = remaining
+            .len()
+            .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
+        while !remaining.is_char_boundary(split) {
+            split -= 1;
+        }
+        text(
+            scene,
+            screen,
+            y,
+            &remaining[..split],
+            GraphicsPaintRole::Accent,
+            GraphicsTextRole::Body,
+        )?;
+        remaining = &remaining[split..];
+        y = y.checked_add(40).ok_or(Error::Scene)?;
+    }
+    Ok(y)
 }
 
 fn text(
