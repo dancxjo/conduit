@@ -174,32 +174,7 @@ pub(crate) fn scene_with_observations(
     )?;
     let button = chooser_bounds(&layout);
     let clip = graphics_rect(layout.narrative)?;
-    scene
-        .push(
-            GraphicsCommand::rect(
-                button,
-                clip,
-                GraphicsPaintRole::Accent,
-                GraphicsShapeStyle::Stroke,
-            )
-            .map_err(TourWorkspaceSceneRefusal::Graphics)?,
-        )
-        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-    scene
-        .push(
-            GraphicsCommand::text(
-                LayoutRect {
-                    x: button.x.saturating_add(8),
-                    y: button.y.saturating_add(4),
-                    width: button.width.saturating_sub(16).max(1),
-                    height: button.height.saturating_sub(8).max(1),
-                },
-                button,
-                GraphicsPaintRole::Foreground,
-                "Gears",
-            )
-            .map_err(TourWorkspaceSceneRefusal::Graphics)?,
-        )
+    crate::native_components::button(&mut scene, button, clip, "Gears")
         .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     Ok(scene)
 }

@@ -249,32 +249,7 @@ pub(super) fn transient_scene(
         })
         .ok_or(TourShellError::Identity)?;
     let button = super::controls::inspector_close_bounds(bounds.width);
-    scene
-        .push(
-            GraphicsCommand::rect(
-                button,
-                button,
-                GraphicsPaintRole::Accent,
-                GraphicsShapeStyle::Stroke,
-            )
-            .map_err(|_| TourShellError::Scene)?,
-        )
-        .map_err(|_| TourShellError::Scene)?;
-    scene
-        .push(
-            GraphicsCommand::text(
-                LayoutRect {
-                    x: button.x + 8,
-                    y: button.y + 4,
-                    width: button.width - 16,
-                    height: 16,
-                },
-                button,
-                GraphicsPaintRole::Foreground,
-                &close.label,
-            )
-            .map_err(|_| TourShellError::Scene)?,
-        )
+    crate::native_components::button(&mut scene, button, button, &close.label)
         .map_err(|_| TourShellError::Scene)?;
     Ok(scene)
 }
