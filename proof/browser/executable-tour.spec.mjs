@@ -924,6 +924,7 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   });
   await openStep(page, 0);
   await page.getByRole("button", { name: "Form Gallery" }).click();
+  await expect(page).toHaveURL(/\/tour\/gallery\/$/);
   await expect(page).toHaveTitle("Form Gallery · Tour");
   await expect(page.getByRole("heading", { level: 1, name: "Form Gallery" })).toBeFocused();
   const cards = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]');
@@ -959,12 +960,18 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   const memory = cards.filter({ has: page.getByRole("heading", { name: "Memory Lantern" }) });
   const reviewedIdentity = await memory.locator("code").textContent();
   await memory.getByRole("button", { name: "Inspect Patchbay" }).click();
+  await expect(page).toHaveURL(/\/tour\/gallery\/memory-lantern\/$/);
   await expect(laboratory).toHaveAttribute("data-specimen-id", reviewedIdentity);
   await expect(memory.getByRole("status").filter({ hasText: "Selected" })).toBeVisible();
   await expect(cards.first().locator('[data-application-key^="form-state-"]')).not.toContainText("Selected");
   await expect(laboratory.locator(".compact-patchbay")).toBeFocused();
   await expect(laboratory.locator("textarea")).toHaveValue(await readFile(new URL("../../forms/memory-lantern/main.conduit", import.meta.url), "utf8"));
   await expect(laboratory.locator(".compact-patchbay")).toHaveAttribute("data-checked-form-id", reviewedIdentity);
+  await page.reload();
+  await expect(page).toHaveURL(/\/tour\/gallery\/memory-lantern\/$/);
+  await expect(page).toHaveTitle("Form Gallery · Tour");
+  await expect(page.locator(".tour-workbench")).toHaveAttribute("data-specimen-id", reviewedIdentity);
+  await expect(memory.getByRole("status").filter({ hasText: "Selected" })).toBeVisible();
   await laboratory.getByRole("button", { name: "Run" }).click();
   await expect(laboratory.locator(".morse")).toHaveText("READY");
   await expect(laboratory.locator('[data-application-key="play-status"]')).toHaveText(
