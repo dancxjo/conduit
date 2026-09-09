@@ -12,6 +12,9 @@ use super::{Error, FrontDoor};
 
 impl FrontDoor {
     pub fn scene(&self, display: &impl PixelTarget) -> Result<GraphicsScene, Error> {
+        if let Some(arrival) = &self.arrival {
+            return arrival.scene(display);
+        }
         self.presentation()?
             .validate()
             .map_err(|_| Error::Presentation)?;
@@ -54,26 +57,11 @@ impl FrontDoor {
             .is_some_and(|journey| journey.body_id.is_some())
             && !self.exact_details_open
         {
-            let journey = self.journey.as_ref().ok_or(Error::Scene)?;
-            text(&mut scene, 18, 42, "CURRENT BODY")?;
-            if let Some(body_id) = &journey.body_id {
-                exact_text(&mut scene, 18, 66, body_id.as_str())?;
-            }
-            let summary = presentation
-                .text
-                .first()
-                .map_or("CURRENT PORTABLE PRESENTATION", |line| line.text.as_str());
-            text(&mut scene, 18, 132, summary)?;
-            if let Some(action) = presentation.actions.iter().find(|action| {
-                matches!(
-                    action.availability,
-                    conduit_presentation::PresentationActionAvailability::Available
-                ) && !matches!(action.intent.as_str(), "conduit.intent/open@1")
-            }) {
-                text(&mut scene, 18, 160, &local_action_label(action))?;
-            }
-            text(&mut scene, 18, 184, "F2 EXACT DETAILS")?;
-            return Ok(scene);
+            return super::workspace_scene::scene(
+                self.journey.as_ref().ok_or(Error::Scene)?,
+                self.startup_refusal.as_deref(),
+                display,
+            );
         }
         if self.exact_details_open {
             let (label, value) = self.current_detail();

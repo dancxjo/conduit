@@ -28,6 +28,21 @@ the second boots that artifact in QEMU. The build needs the Rust toolchain,
 The builder acquires pinned boot dependencies. An interactive boot is useful
 for exploration; the proof commands below validate specific behaviors.
 
+## First arrival on x86_64
+
+The graphical image opens the Crèche before a Body exists. Edit the suggested
+name, choose a naming tradition, and select the initial Forms. Enter births the
+named Body and requests Wake, exact planning, and Play in order. Each successful
+stage has its own lifecycle evidence; a refusal remains visible at the stage
+that could not finish. F2 suggests another name in the Crèche and opens exact
+details after birth. F9 visits the existing Tour.
+
+This development slice offers the native **Keyboard canvas** Form. Its existing
+finite Play produces an uppercase keyboard result. Resident Tour and Patchbay
+Forms, continuous native interaction, and durable Body restoration across a new
+Boot remain open work. The startup sound and reusable first-wake behavior are
+tracked in [#3152](https://github.com/dancxjo/conduit/issues/3152).
+
 ## Available images
 
 Paths below are relative to `target/conduitos/`.

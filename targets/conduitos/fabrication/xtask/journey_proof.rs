@@ -224,16 +224,9 @@ fn execute_image(
                 "product-journey-front-door-timeout",
             )?;
             artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
-            for (key, status) in [
-                ("ret", "form-opened"),
-                ("f3", "born-lulled"),
-                ("f4", "awake"),
-                ("f5", "planned"),
-            ] {
-                journey_input::key_pair(&mut qmp, &mut reader, key, status)?;
-                journey_input::wait_status(&serial_path, &mut child, status)?;
-                artifacts.capture(&mut qmp, &mut reader, status, true)?;
-            }
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "creche-birth")?;
+            journey_input::wait_status(&serial_path, &mut child, "playing")?;
+            artifacts.capture(&mut qmp, &mut reader, "body-awake", true)?;
             for label in [
                 "PROFILE ID",
                 "BUILD ID",
@@ -258,7 +251,6 @@ fn execute_image(
                 )?;
             }
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f6", "playing")?;
             journey_input::wait_status(&serial_path, &mut child, "playing")?;
             artifacts.capture(&mut qmp, &mut reader, "playing", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "a", "semantic-input")?;

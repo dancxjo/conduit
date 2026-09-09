@@ -1,0 +1,102 @@
+//! Composition of Crèche birth with the existing admitted native lifecycle.
+use super::{emit_journey_sign, refresh};
+use crate::{
+    arch,
+    display::PixelTarget,
+    fabrication::FabricationRecord,
+    front_door::{FrontDoor, FrontDoorPresenter},
+    identity::BootIdentities,
+    keyboard_text_plan,
+    offer::HostOffer,
+    product_journey::{JourneyAction, ProductJourney},
+};
+use alloc::format;
+use conduit_creche_model::birth::BirthSelection;
+
+pub(super) fn open(
+    door: &mut FrontDoor,
+    journey: &mut ProductJourney,
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    fabrication: &FabricationRecord,
+) -> Result<(), &'static str> {
+    let target = format!("form/{}", journey.form().checked_form_id.as_str());
+    let request = journey
+        .next_request(JourneyAction::OpenBack, target, door.revision())
+        .map_err(|e| e.as_str())?;
+    journey
+        .apply(
+            request,
+            identities,
+            offer,
+            fabrication.build_id,
+            door.revision(),
+        )
+        .map_err(|e| e.as_str())?;
+    door.observe_journey(journey.projection())
+        .map_err(|e| e.as_str())?;
+    let hex = crate::identity::hex(&identities.boot);
+    let uuid = format!(
+        "{}-{}-{}-{}-{}",
+        &hex[..8],
+        &hex[8..12],
+        &hex[12..16],
+        &hex[16..20],
+        &hex[20..32]
+    );
+    let refusal = keyboard_text_plan::prepare(identities, offer, fabrication.build_id)
+        .err()
+        .map(|e| e.as_str().into());
+    door.open_creche(uuid, refusal).map_err(|e| e.as_str())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn birth_and_wake(
+    selection: BirthSelection,
+    door: &mut FrontDoor,
+    journey: &mut ProductJourney,
+    presenter: &mut FrontDoorPresenter,
+    display: &mut impl PixelTarget,
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    fabrication: &FabricationRecord,
+) -> Result<(), &'static str> {
+    journey
+        .birth_from_creche(selection)
+        .map_err(|e| e.as_str())?;
+    door.observe_journey(journey.projection())
+        .map_err(|e| e.as_str())?;
+    door.close_creche().map_err(|e| e.as_str())?;
+    let receipt = presenter.present(door, display).map_err(|e| e.as_str())?;
+    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+    for action in [
+        JourneyAction::Wake,
+        JourneyAction::Plan,
+        JourneyAction::Play,
+    ] {
+        let semantic = door
+            .resolve_action(action, door.revision())
+            .map_err(|e| e.as_str())?;
+        let request = journey
+            .next_request(action, semantic.target, door.revision())
+            .map_err(|e| e.as_str())?;
+        if let Err(error) = journey.apply(
+            request,
+            identities,
+            offer,
+            fabrication.build_id,
+            door.revision(),
+        ) {
+            door.startup_refused(error.as_str())
+                .map_err(|e| e.as_str())?;
+            let receipt = refresh(door, journey, presenter, display)?;
+            emit_journey_sign(&journey.projection(), fabrication, &receipt);
+            arch::early_write(format!("CONDUIT_CRECHE_REFUSAL {}\n", error.as_str()).as_bytes());
+            return Ok(());
+        }
+        let receipt = refresh(door, journey, presenter, display)?;
+        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+    }
+    arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT body-awake\n");
+    Ok(())
+}

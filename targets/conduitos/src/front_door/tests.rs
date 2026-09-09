@@ -37,6 +37,7 @@ fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjection {
         boot_id: BootId::from("boot"),
         offer_generation: OfferGeneration(3),
         body_id: Some(body_id),
+        friendly_name: Some("Roseau".into()),
         born_sign_id: None,
         part_id: None,
         wake_id: None,
