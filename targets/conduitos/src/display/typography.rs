@@ -4,6 +4,9 @@
 //! Missing face coverage uses the pinned rescue subset; unsupported scalars use
 //! its explicit replacement glyph. This is scalar rendering, not general shaping.
 
+mod raster;
+pub use raster::render_glyph;
+
 /// Text purpose selects a fixed fabricated profile, never an ambient font.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
