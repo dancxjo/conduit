@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const checkpoints = [
-  "front-door-ready", "form-opened", "born-lulled", "awake", "planned", "playing",
+  "front-door-ready", "body-awake", "playing",
   "result-visible", "lulled", "usb-line-current", "peer-attached", "line-value-visible",
   "line-lost", "tour-opened", "tour-result-visible", "confirmation-transient",
   "confirmation-dismissed", "refusal-transient", "refusal-dismissed",
@@ -31,7 +31,7 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.match(page, /src="confirmation-transient\.png"/);
     assert.match(page, /src="inspector-focused\.png"/);
     assert.match(page, /src="inspector-long-text\.png"/);
-    assert.ok(page.indexOf("Form opened") < page.indexOf("Tour opened"), "walkthrough is not in journey order");
+    assert.ok(page.indexOf("Crèche ready") < page.indexOf("Tour opened"), "walkthrough is not in journey order");
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }
@@ -42,7 +42,7 @@ test("ConduitOS journey publisher refuses checkpoint drift", () => {
   try {
     const manifestPath = path.join(fixture.evidence, "manifest.json");
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-    manifest.checkpoints[1].checkpoint = "form-renamed";
+    manifest.checkpoints[1].checkpoint = "creche-renamed";
     writeFileSync(manifestPath, JSON.stringify(manifest));
     const result = publish(fixture);
     assert.notEqual(result.status, 0);

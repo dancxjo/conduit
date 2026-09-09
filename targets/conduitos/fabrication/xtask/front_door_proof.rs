@@ -20,8 +20,8 @@ struct FrontDoorProof {
     image_sha256: String,
     profile: &'static str,
     body: Option<String>,
-    form_opened: bool,
-    details_opened: bool,
+    form_reviewed: bool,
+    naming_edited: bool,
     effects: u8,
     remained_alive: bool,
     stopped_by_harness: bool,
@@ -95,22 +95,14 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "CONDUIT_BOOT_STAGE front-door-ready",
             "front-door-ready-timeout",
         )?;
-        hid_qmp::send_named_keys(&mut qmp, &mut reader, &["ret"], true, "front-door-open")?;
+        hid_qmp::send_named_keys(&mut qmp, &mut reader, &["f2"], true, "creche-suggest-name")?;
         hid_qmp::wait_for_stage(
             &serial_path,
             &mut child,
-            "\"status\":\"form-opened\"",
-            "front-door-open-timeout",
+            "CONDUIT_CRECHE_CHECKPOINT edited",
+            "creche-name-edit-timeout",
         )?;
-        hid_qmp::send_named_keys(&mut qmp, &mut reader, &["ret"], false, "front-door-open")?;
-        hid_qmp::send_named_keys(&mut qmp, &mut reader, &["f2"], true, "front-door-details")?;
-        hid_qmp::wait_for_stage(
-            &serial_path,
-            &mut child,
-            "\"status\":\"details-opened\"",
-            "front-door-details-timeout",
-        )?;
-        hid_qmp::send_named_keys(&mut qmp, &mut reader, &["f2"], false, "front-door-details")?;
+        hid_qmp::send_named_keys(&mut qmp, &mut reader, &["f2"], false, "creche-suggest-name")?;
         thread::sleep(Duration::from_millis(250));
         if child
             .try_wait()
@@ -121,7 +113,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         {
             return Err(ConduitosError::refusal(
                 "front-door-not-long-lived",
-                "normal IMAGE exited after inert OPEN/DETAILS interaction",
+                "normal IMAGE exited while naming a Body in the Crèche",
             ));
         }
         Ok(())
@@ -143,10 +135,10 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if ready.is_none() || first_report.is_none() || ready >= first_report {
         return Err(ConduitosError::refusal(
             "front-door-waited-for-input",
-            "zero-Body WORLD was not ready before the first ordinary HID report",
+            "the Crèche was not ready before the first ordinary HID report",
         ));
     }
-    if serial.contains("body-born")
+    if serial.contains("\"status\":\"born-lulled\"")
         || serial.contains("CONDUIT_KERNEL_SIGN")
         || serial.contains("CONDUIT_BOOT_STAGE body-patchbay-open")
     {
@@ -156,13 +148,13 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let proof = FrontDoorProof {
-        schema: "conduit.conduitos/front-door-proof@1",
+        schema: "conduit.conduitos/front-door-proof@2",
         base_commit: git_head(&paths.root)?,
         image_sha256: image.iso_sha256,
         profile: super::demo::DEMO_PROFILE,
         body: None,
-        form_opened: serial.contains("\"status\":\"form-opened\""),
-        details_opened: serial.contains("\"status\":\"details-opened\""),
+        form_reviewed: serial.contains("\"status\":\"form-opened\""),
+        naming_edited: serial.contains("CONDUIT_CRECHE_CHECKPOINT edited"),
         effects: 0,
         remained_alive: true,
         stopped_by_harness: true,
