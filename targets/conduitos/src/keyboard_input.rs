@@ -207,11 +207,16 @@ pub fn run_product(
         session
             .begin_followup(controller, device)
             .map_err(|error| error.as_str())?;
-        interact(ProductInputEvent::Service)?;
+        if interact(ProductInputEvent::Service)? == ProductInputControl::Yield {
+            return Ok(());
+        }
         let (transitions, count) = loop {
             match session.poll_followup(controller, device) {
                 Ok(Some(batch)) => break batch,
                 Ok(None) => {
+                    if interact(ProductInputEvent::Service)? == ProductInputControl::Yield {
+                        return Ok(());
+                    }
                     core::hint::spin_loop();
                 }
                 Err(error) => {
@@ -240,7 +245,9 @@ pub fn run_ps2_product(
         let transition = match input.poll_keyboard() {
             Ok(Some(transition)) => transition,
             Ok(None) => {
-                interact(ProductInputEvent::Service)?;
+                if interact(ProductInputEvent::Service)? == ProductInputControl::Yield {
+                    return Ok(());
+                }
                 continue;
             }
             Err(error) => {
