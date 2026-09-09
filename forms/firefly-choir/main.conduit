@@ -1,12 +1,10 @@
-# A finite local pulse path for the Firefly Choir proving composition. Peer
+# A living local pulse path for the Firefly Choir proving composition. Peer
 # exchange and phase following extend this Form through ordinary Lines; they
 # are not hidden inside this browser-independent authored meaning.
 form firefly-choir {
-    # Transactional demo: four admitted pulses, then completion.
-    complete
     clock: time/every(240ms)
     observe: pulse-manifestation
-    peer_observe: time/pulse-observe(period-ms = 240, maximum-pulses = 4)
+    peer_observe: time/pulse-observe(period-ms = 240)
     follow: phase-follower
 
     clock > observe.tick
@@ -17,10 +15,10 @@ form firefly-choir {
 # Reusable light-only pulse manifestation. Sound is omitted by authored
 # composition: there is no tone Gear or Cord to skip at runtime.
 form pulse-manifestation (
-    > tick: value/tick@1...|
+    > tick: value/tick@1...
 ) {
-    observe: time/pulse-observe(period-ms = 240, maximum-pulses = 4)
-    light: presentation/pulse(maximum-values = 4)
+    observe: time/pulse-observe(period-ms = 240)
+    light: presentation/pulse
 
     tick > observe.tick
     observe.observation > light.pulse
@@ -29,21 +27,21 @@ form pulse-manifestation (
 # Explicit enriched composition. Light and tone are separate semantic sinks
 # fed by ordinary atomic fan-out and require separately offered realizations.
 form pulse-light-tone-manifestation (
-    > tick: value/tick@1...|
+    > tick: value/tick@1...
 ) {
-    observe: time/pulse-observe(period-ms = 240, maximum-pulses = 4)
-    light: presentation/pulse(maximum-values = 4)
-    tone: sound/pulse-tone(maximum-values = 4)
+    observe: time/pulse-observe(period-ms = 240)
+    light: presentation/pulse
+    tone: sound/pulse-tone
 
     tick > observe.tick
     observe.observation > light.pulse
     observe.observation > tone.pulse
 }
 
-# Reusable stateful follower. One explicit initial state is updated by a finite
+# Reusable stateful follower. One explicit initial state is updated by an open
 # peer flow; light/audio realization and transport remain separate concerns.
 form phase-follower (
-    > peer: time/pulse-observation@1...|
+    > peer: time/pulse-observation@1...
 ) {
     local: time/rhythm-state(sequence = 0, next-pulse-at-ms = 0, period-ms = 280, expected-peer-sequence = 0)
     synchronize: phase-synchronization
@@ -55,9 +53,9 @@ form phase-follower (
 }
 
 form phase-synchronization (
-    > local: time/rhythm-state@1...|
-    > peer: time/pulse-observation@1...|
-    updated: time/rhythm-state@1...| >
+    > local: time/rhythm-state@1...
+    > peer: time/pulse-observation@1...
+    updated: time/rhythm-state@1... >
 ) {
     synchronize: time/phase-synchronize
     local > synchronize.local

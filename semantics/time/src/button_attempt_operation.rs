@@ -22,7 +22,8 @@ pub struct TimedButtonAttemptOperation {
     accepted_transitions: u64,
     maximum_transitions: u64,
     retain_resumed: bool,
-    completed: bool,
+    emitted_attempt: bool,
+    completed_attempt: bool,
 }
 
 impl TimedButtonAttemptOperation {
@@ -45,7 +46,8 @@ impl TimedButtonAttemptOperation {
             accepted_transitions: 0,
             maximum_transitions,
             retain_resumed: false,
-            completed: false,
+            emitted_attempt: false,
+            completed_attempt: false,
         }
     }
 
@@ -59,7 +61,7 @@ impl TimedButtonAttemptOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if !self.completed && self.accepted_transitions < self.maximum_transitions => {
+            } if !self.emitted_attempt && self.accepted_transitions < self.maximum_transitions => {
                 self.accepted_transitions += 1;
                 match self.pending {
                     None => self.request_observation(value),
@@ -81,6 +83,14 @@ impl TimedButtonAttemptOperation {
                 if self.pending == Some((request, Pending::Deadline)) =>
             {
                 self.resume_deadline(request, outcome)
+            }
+            OperationInput::Closed { port: PortId(0) }
+                if self.pending.is_none()
+                    && self.completed_attempt
+                    && self.accepted_transitions == 0 =>
+            {
+                self.release_unused_durations();
+                OperationAction::Complete
             }
             OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
                 self.release_unused_durations();
@@ -114,8 +124,7 @@ impl TimedButtonAttemptOperation {
                 self.request_deadline()
             }
             (HostOperationDisposition::Completed, Some(output), None, Some(_)) => {
-                self.completed = true;
-                self.release_unused_durations();
+                self.emitted_attempt = true;
                 OperationAction::Emit {
                     port: PortId(0),
                     value: output.value,
@@ -130,11 +139,13 @@ impl TimedButtonAttemptOperation {
     }
 
     pub fn advance(&mut self) -> OperationAction {
-        if self.completed {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
+        if self.emitted_attempt {
+            self.emitted_attempt = false;
+            self.completed_attempt = true;
+            self.accepted_transitions = 0;
+            self.next_duration = 0;
         }
+        OperationAction::Await
     }
 
     pub fn cancel(&mut self) {
@@ -157,6 +168,10 @@ impl TimedButtonAttemptOperation {
 
     pub fn allocation_capacity(&self) -> usize {
         self.durations.capacity() + self.released.capacity()
+    }
+
+    pub fn retains_host_operation_input(&self, value: ValueRef) -> bool {
+        self.durations.contains(&value)
     }
 
     fn resume_deadline(
@@ -198,10 +213,10 @@ impl TimedButtonAttemptOperation {
     }
 
     fn request_deadline(&mut self) -> OperationAction {
-        let Some(value) = self.durations.get(self.next_duration).copied() else {
+        let Some(value) = self.durations.first().copied() else {
             return fail(FailureCode::StorageExhausted, 276);
         };
-        self.next_duration += 1;
+        self.next_duration = 1;
         let request = self.next_request();
         self.pending = Some((request, Pending::Deadline));
         OperationAction::RequestHostOperation {
@@ -219,8 +234,7 @@ impl TimedButtonAttemptOperation {
     }
 
     fn release_unused_durations(&mut self) {
-        self.released
-            .extend(self.durations.drain(self.next_duration..));
+        self.released.append(&mut self.durations);
     }
 }
 
@@ -256,6 +270,9 @@ impl conduit_kernel::Operation for TimedButtonAttemptOperation {
     }
     fn accepts_input_while_host_operation_pending(&self) -> bool {
         true
+    }
+    fn retains_host_operation_input(&self, _request: RequestId, value: ValueRef) -> bool {
+        Self::retains_host_operation_input(self, value)
     }
 }
 fn fail(code: FailureCode, detail: u16) -> OperationAction {

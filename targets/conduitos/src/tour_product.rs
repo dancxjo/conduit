@@ -3,7 +3,7 @@
 use conduit_presentation::{ApplicationEvent, GraphicsScene};
 use conduit_tour_model::{
     CANONICAL_SPECIMEN_ID, TourPointerOutcome, TourRunProof, TourWorkspaceController,
-    TourWorkspaceLayout, TourWorkspaceRefusal, TourWorkspaceRequest,
+    TourWorkspaceRefusal, TourWorkspaceRequest,
 };
 
 use crate::{
@@ -84,8 +84,9 @@ impl TourProduct {
         width: u16,
         height: u16,
     ) -> Result<TourPointerOutcome, &'static str> {
-        let layout = TourWorkspaceLayout::default_for(width, height)
-            .map_err(|_| "tour-pointer-layout-refused")?;
+        let layout =
+            crate::tour_workspace::layout_for_state(width, height, self.controller.state())
+                .map_err(|_| "tour-pointer-layout-refused")?;
         self.controller
             .accept_pointer(sample, &layout)
             .map_err(|_| "tour-pointer-refused")
@@ -124,7 +125,7 @@ impl TourProduct {
             TourWorkspaceRequest::Run => {
                 let mut prepared = crate::tour_play::prepare(identities, offer, build_id)
                     .map_err(TourProductError::Preparation)?;
-                let inspection = inspection::RunInspection::from_plan(&prepared.plan)
+                let mut inspection = inspection::RunInspection::from_plan(&prepared.plan)
                     .map_err(TourProductError::Preparation)?;
                 let evidence =
                     crate::tour_play::run(&mut prepared, clock, serial, interrupts, idle)
@@ -132,6 +133,7 @@ impl TourProduct {
                 self.controller
                     .complete_run(run_proof(&evidence))
                     .map_err(TourProductError::Controller)?;
+                inspection.observations = evidence.observations.clone();
                 self.inspection = Some(inspection);
                 Some(evidence)
             }
@@ -276,6 +278,12 @@ mod tests {
         assert_eq!(update.request, TourWorkspaceRequest::Run);
         let evidence = update.play.unwrap();
         assert_eq!(evidence.result, CANONICAL_RESULT);
+        assert_eq!(evidence.observations.upper_input.text(), Some("hello"));
+        assert_eq!(evidence.observations.upper_output.text(), Some("HELLO"));
+        assert_eq!(
+            evidence.observations.presentation_input.text(),
+            Some("HELLO")
+        );
         assert_eq!(serial.0, [CANONICAL_RESULT.as_bytes()]);
         assert_eq!(
             product.controller().state().phase,
@@ -295,6 +303,13 @@ mod tests {
             .unwrap();
         product.select_gear(13, "meet-one-gear/change").unwrap();
         let inspector = product.inspector_presentation().unwrap().unwrap();
+        assert!(
+            inspector
+                .text
+                .iter()
+                .any(|item| item.subject.ends_with("/state")
+                    && item.text == "Last run\nin text: \"hello\"\nout text: \"HELLO\"")
+        );
         let prepared = crate::tour_play::prepare(&identities, &offer, "build").unwrap();
         let placement = prepared
             .plan
@@ -387,6 +402,33 @@ mod tests {
                 .commands()
                 .iter()
                 .any(|command| command.payload().contains("selected meet-one-gear/change"))
+        );
+        let layout =
+            crate::tour_workspace::layout_for_state(640, 480, product.controller().state())
+                .unwrap();
+        let x = u32::from(layout.patchbay.x) + u32::from(layout.patchbay.width) * 5 / 6;
+        let outcome = product
+            .accept_pointer(
+                conduit_semantic_catalog::NormalizedPointerSample {
+                    position_x: i64::from(x * 1_000_000 / 640),
+                    position_y: 200_000,
+                    delta_x: 0,
+                    delta_y: 0,
+                    primary_pressed: true,
+                    coalesced: 0,
+                    dropped: 0,
+                    queue_capacity: 2,
+                    sequence: 2,
+                },
+                640,
+                480,
+            )
+            .unwrap();
+        assert_eq!(
+            outcome,
+            conduit_tour_model::TourPointerOutcome::Selected {
+                subject: "meet-one-gear/result".into()
+            }
         );
     }
 }

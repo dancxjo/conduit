@@ -5,9 +5,11 @@ pub(super) fn catalogs(
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profile = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
+    conduit_time::install_tick_catalog(&mut startup, &mut profile)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profile)?;
     conduit_time::install_historical_timeline_catalog(&mut startup, &mut profile)?;
     conduit_time::install_replay_source_catalog(&mut startup, &mut profile)?;

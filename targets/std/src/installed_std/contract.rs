@@ -18,7 +18,7 @@ pub(super) use conduit_std_offers::{
     TIME_EVERY_EXECUTION_PROFILE, TIME_EVERY_IMPLEMENTATION,
 };
 pub(super) use conduit_time::{
-    decode_tick, encode_tick, TickConfiguration, TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_COUNT,
+    decode_tick, encode_tick, EveryConfiguration, TickConfiguration, TIME_EVERY_CONTRACT_REVISION,
     TIME_EVERY_KIND,
 };
 
@@ -28,7 +28,7 @@ pub(crate) fn every_offer() -> CapabilityOffer {
 
 pub(super) fn parse_every_configuration(
     entries: &[ConfigurationEntry],
-) -> Result<TickConfiguration, String> {
+) -> Result<EveryConfiguration, String> {
     if entries.len() != 1 {
         return Err("time/every requires exactly one planned configuration field".to_string());
     }
@@ -39,10 +39,7 @@ pub(super) fn parse_every_configuration(
             _ => None,
         })
         .ok_or_else(|| "missing or invalid time/every configuration 'freq'".to_string())?;
-    Ok(TickConfiguration {
-        count: TIME_EVERY_COUNT,
-        period_ms,
-    })
+    Ok(EveryConfiguration { period_ms })
 }
 
 pub(crate) fn tick_offer() -> CapabilityOffer {

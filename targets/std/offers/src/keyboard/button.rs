@@ -1,11 +1,15 @@
 //! An explicitly selected Space-key realization of ordinary button meaning.
-use conduit_core::{resource_requirement, CapabilityOffer, INPUT_RESOURCE_CLASS};
+use conduit_core::{
+    resource_requirement, CapabilityOffer, HostOperationContractId, HostOperationRequirement,
+    INPUT_RESOURCE_CLASS,
+};
 use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
 
 pub const IMPLEMENTATION: &str = "std/kernel-space-button@1";
 pub const ARTIFACT: &str = "conduit-std-host/space-button@1";
 pub const MAPPER: &str = "std/kernel-button-indicator-state@1";
 pub const INDICATOR: &str = "std/stdout-indicator-state@1";
+pub const NEXT_TRANSITION_HOST_OPERATION: &str = "conduit.host/input-next-button-transition@1";
 
 pub fn mapper_offer() -> CapabilityOffer {
     realization_offer(
@@ -52,7 +56,19 @@ pub fn offer() -> CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![super::next_key_event_host_operation_requirement()],
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(NEXT_TRANSITION_HOST_OPERATION),
+            target_kind: Some(
+                conduit_semantic_catalog::input_button_transition_type()
+                    .profile()
+                    .expect("reviewed button transition profile")
+                    .value_kind()
+                    .clone(),
+            ),
+            maximum_in_flight: 1,
+            maximum_input_bytes: 0,
+            maximum_output_bytes: conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
+        }],
         vec![resource_requirement(INPUT_RESOURCE_CLASS, 1)],
         Vec::new(),
     )

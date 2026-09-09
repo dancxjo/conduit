@@ -392,9 +392,21 @@ fn complete(
 
 #[cfg(test)]
 mod tests {
+    extern crate std;
     use super::*;
     use crate::display::{DisplayError, DisplayFormat};
     use alloc::vec;
+
+    fn with_kernel_stack(test: impl FnOnce() + Send + 'static) {
+        // Debug builds retain large by-value fixed-scheduler temporaries.
+        // Keep the test budget explicit as the admitted scene bound grows.
+        std::thread::Builder::new()
+            .stack_size(8 * 1024 * 1024)
+            .spawn(test)
+            .unwrap()
+            .join()
+            .unwrap();
+    }
 
     struct Buffer {
         format: DisplayFormat,
@@ -437,27 +449,31 @@ mod tests {
 
     #[test]
     fn one_ordinary_form_runs_all_three_branches_through_the_kernel() {
-        let prepared = super::super::prepare("test-host", "test-boot").unwrap();
-        let mut display = Buffer::new();
-        let proof = run(&prepared, &mut display).unwrap();
-        assert_eq!(proof.text, "Gear Face");
-        assert_eq!(proof.layout_children, 3);
-        assert_eq!(proof.graphics_commands, 3);
-        assert_eq!(proof.text_display.commands, 1);
-        assert!(proof.text_display.pixels_written > 0);
-        assert_eq!(proof.display.commands, 3);
-        assert!(proof.display.pixels_written > 0);
-        assert!(display.bytes.iter().any(|byte| *byte != 0));
+        with_kernel_stack(|| {
+            let prepared = super::super::prepare("test-host", "test-boot").unwrap();
+            let mut display = Buffer::new();
+            let proof = run(&prepared, &mut display).unwrap();
+            assert_eq!(proof.text, "Gear Face");
+            assert_eq!(proof.layout_children, 3);
+            assert_eq!(proof.graphics_commands, 3);
+            assert_eq!(proof.text_display.commands, 1);
+            assert!(proof.text_display.pixels_written > 0);
+            assert_eq!(proof.display.commands, 3);
+            assert!(proof.display.pixels_written > 0);
+            assert!(display.bytes.iter().any(|byte| *byte != 0));
+        });
     }
 
     #[test]
     fn display_loss_is_not_kernel_or_semantic_success() {
-        let prepared = super::super::prepare("test-host", "test-boot").unwrap();
-        let mut display = Buffer::new();
-        display.lost = true;
-        assert_eq!(
-            run(&prepared, &mut display),
-            Err(PresentationRunError::Display(DisplayError::Lost))
-        );
+        with_kernel_stack(|| {
+            let prepared = super::super::prepare("test-host", "test-boot").unwrap();
+            let mut display = Buffer::new();
+            display.lost = true;
+            assert_eq!(
+                run(&prepared, &mut display),
+                Err(PresentationRunError::Display(DisplayError::Lost))
+            );
+        });
     }
 }

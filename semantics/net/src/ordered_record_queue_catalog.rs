@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub const ORDERED_RECORD_QUEUE_KIND: &str = "record/ordered-send-queue";
-pub const ORDERED_RECORD_QUEUE_CONTRACT_REVISION: &str = "conduit.net/ordered-record-queue@1";
+pub const ORDERED_RECORD_QUEUE_CONTRACT_REVISION: &str = "conduit.net/ordered-record-queue@2";
 
 pub fn install_ordered_record_queue_catalog(
     startup: &mut StartupCatalog,
@@ -79,6 +79,6 @@ fn port(
         port_id: port_id(name),
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
-        temporal: PortTemporal::Flow { closes: true },
+        temporal: PortTemporal::Value,
     }
 }

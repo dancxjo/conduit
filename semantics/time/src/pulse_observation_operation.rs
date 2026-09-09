@@ -1,8 +1,8 @@
 //! Shared finite kernel operation for ordered nominal pulse observations.
 
-use alloc::vec::Vec;
 use conduit_kernel::{
-    Failure, FailureCode, Operation, OperationAction, OperationInput, PortId, ValueRef,
+    CanonicalValue, Failure, FailureCode, Operation, OperationAction, OperationInput, PortId,
+    ValueRef,
 };
 
 use crate::{
@@ -21,29 +21,21 @@ enum Lifecycle {
 /// A host-neutral lifecycle whose output values were admitted before Play.
 pub struct PulseObservationOperation {
     configuration: PulseObservationConfiguration,
-    outputs: Vec<ValueRef>,
     next: u32,
     lifecycle: Lifecycle,
 }
 
 impl PulseObservationOperation {
-    pub fn from_prepared_outputs(
-        configuration: PulseObservationConfiguration,
-        outputs: Vec<ValueRef>,
-    ) -> Result<Self, &'static str> {
-        if outputs.len() != usize::from(configuration.maximum_pulses) {
-            return Err("prepared pulse outputs differ from configured capacity");
-        }
-        Ok(Self {
+    pub fn new(configuration: PulseObservationConfiguration) -> Self {
+        Self {
             configuration,
-            outputs,
             next: 0,
             lifecycle: Lifecycle::Prepared,
-        })
+        }
     }
 
     pub fn allocation_capacity(&self) -> usize {
-        self.outputs.capacity()
+        0
     }
 
     pub fn next_sequence(&self) -> u32 {
@@ -76,9 +68,6 @@ impl Operation for PulseObservationOperation {
         let sequence = decode_tick(canonical).expect("exact tick length checked");
         match self.configuration.observe(self.next, sequence) {
             Ok(_) => {}
-            Err(PulseObservationRefusal::Exhausted) => {
-                return failure(FailureCode::StorageExhausted, 483)
-            }
             Err(PulseObservationRefusal::UnexpectedSequence { .. }) => {
                 return failure(FailureCode::InvalidInput, 482)
             }
@@ -87,9 +76,14 @@ impl Operation for PulseObservationOperation {
             }
         }
         self.lifecycle = Lifecycle::Emitting;
-        OperationAction::Emit {
+        let observation = self
+            .configuration
+            .observe(self.next, sequence)
+            .expect("validated ordered pulse");
+        OperationAction::EmitCanonical {
             port: PortId(0),
-            value: self.outputs[self.next as usize],
+            value: CanonicalValue::new(&crate::encode_pulse_observation(observation))
+                .expect("pulse observation has a fixed encoding"),
         }
     }
 
@@ -116,7 +110,10 @@ impl Operation for PulseObservationOperation {
         if self.lifecycle != Lifecycle::Emitting {
             return failure(FailureCode::InvalidLifecycle, 3);
         }
-        self.next += 1;
+        let Some(next) = self.next.checked_add(1) else {
+            return failure(FailureCode::IdentityCapacityExhausted, 483);
+        };
+        self.next = next;
         self.lifecycle = Lifecycle::Ready;
         OperationAction::Await
     }

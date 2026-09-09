@@ -59,7 +59,8 @@ impl BoundedTemplateStore {
             return Err(TemplateStoreRefusal::Malformed);
         }
         match take_bytes(&mut input)? {
-            b"put" => self.put(input)?,
+            b"put" => self.put(input, false)?,
+            b"put-and-get" => self.put(input, true)?,
             b"get" => self.get(input)?,
             b"delete" => self.delete(input)?,
             _ => return Err(TemplateStoreRefusal::Malformed),
@@ -67,7 +68,7 @@ impl BoundedTemplateStore {
         Ok(&self.output)
     }
 
-    fn put(&mut self, mut input: &[u8]) -> Result<(), TemplateStoreRefusal> {
+    fn put(&mut self, mut input: &[u8], return_pattern: bool) -> Result<(), TemplateStoreRefusal> {
         if take_byte(&mut input)? != 2 || take_u32(&mut input)? != 2 {
             return Err(TemplateStoreRefusal::Malformed);
         }
@@ -103,7 +104,11 @@ impl BoundedTemplateStore {
         slot.name[..name.len()].copy_from_slice(name);
         slot.pattern_node.clear();
         slot.pattern_node.extend_from_slice(pattern);
-        encode_name_result(&mut self.output, &self.result_prefix, b"stored", name);
+        if return_pattern {
+            encode_found_result(&mut self.output, &self.result_prefix, name, pattern);
+        } else {
+            encode_name_result(&mut self.output, &self.result_prefix, b"stored", name);
+        }
         Ok(())
     }
 
@@ -126,15 +131,12 @@ impl BoundedTemplateStore {
         if !retained.is_empty() {
             return Err(TemplateStoreRefusal::CorruptRetainedTemplate);
         }
-        self.output.clear();
-        self.output.extend_from_slice(&self.result_prefix);
-        self.output.push(3);
-        bytes(&mut self.output, b"found");
-        self.output.push(2);
-        self.output.extend_from_slice(&2_u32.to_le_bytes());
-        field_leaf(&mut self.output, b"name", name);
-        bytes(&mut self.output, b"pattern");
-        self.output.extend_from_slice(&slot.pattern_node);
+        encode_found_result(
+            &mut self.output,
+            &self.result_prefix,
+            name,
+            &slot.pattern_node,
+        );
         Ok(())
     }
 
@@ -158,6 +160,18 @@ impl BoundedTemplateStore {
         encode_name_result(&mut self.output, &self.result_prefix, tag, name);
         Ok(())
     }
+}
+
+fn encode_found_result(output: &mut Vec<u8>, prefix: &[u8], name: &[u8], pattern: &[u8]) {
+    output.clear();
+    output.extend_from_slice(prefix);
+    output.push(3);
+    bytes(output, b"found");
+    output.push(2);
+    output.extend_from_slice(&2_u32.to_le_bytes());
+    field_leaf(output, b"name", name);
+    bytes(output, b"pattern");
+    output.extend_from_slice(pattern);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

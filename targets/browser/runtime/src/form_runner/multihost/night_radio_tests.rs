@@ -35,6 +35,7 @@ fn canonical_night_radio_retains_then_reconstructs_one_report_across_the_planned
 
     let ((mut sender, source_output), (mut receiver, sink_output)) = prepare_pair();
     assert!(matches!(sink_output, Output::Waiting { .. }));
+    let source_output = super::submit_ascii_line(&mut sender, source_output, "NIGHT REPORT");
     let offered = match source_output {
         Output::Line {
             frame,
@@ -67,25 +68,19 @@ fn canonical_night_radio_retains_then_reconstructs_one_report_across_the_planned
         Output::Line { frame, .. } => frame,
         _ => panic!("Night Radio receiver did not acknowledge manifestation"),
     };
-    let close = match sender.ingest(*delivered).unwrap() {
-        Output::Line { frame, .. } => frame,
-        _ => panic!("Night Radio sender did not close the Line"),
-    };
-    let terminal = match receiver.ingest(*close).unwrap() {
-        Output::Line {
-            frame,
-            receipt: Some(receipt),
-            ..
-        } => {
-            assert_eq!(receipt.disposition, "completed");
-            frame
-        }
-        _ => panic!("Night Radio receiver did not retain terminal truth"),
-    };
-    let source_receipt = match sender.ingest(*terminal).unwrap() {
+    assert!(matches!(
+        sender.ingest(*delivered).unwrap(),
+        Output::Input { .. }
+    ));
+    let sink_receipt = match receiver.cancel().unwrap() {
         Output::Receipt { receipt, .. } => receipt,
-        _ => panic!("Night Radio sender did not complete"),
+        _ => panic!("Night Radio receiver did not retain Stop"),
     };
-    assert_eq!(source_receipt.disposition, "completed");
+    assert_eq!(sink_receipt.disposition, "cancelled");
+    let source_receipt = match sender.cancel().unwrap() {
+        Output::Receipt { receipt, .. } => receipt,
+        _ => panic!("Night Radio sender did not retain Stop"),
+    };
+    assert_eq!(source_receipt.disposition, "cancelled");
     assert_eq!(source_receipt.transcript.as_ref().unwrap().retention_gap, 0);
 }

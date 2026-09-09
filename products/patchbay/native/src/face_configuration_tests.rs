@@ -125,7 +125,7 @@ fn native_face_control_refuses_invalid_value_without_changing_source() {
     let path = directory.join("controls.conduit");
     std::fs::write(
         &path,
-        "form controls {\n    show: presentation/tick(maximum-values = 3)\n}\n",
+        "form controls {\n    stable: time/debounce(maximum-values = 3)\n}\n",
     )
     .unwrap();
     let mut application = PatchbayApplication::new(Arguments {
@@ -134,13 +134,13 @@ fn native_face_control_refuses_invalid_value_without_changing_source() {
     })
     .unwrap();
     let graph = application.graphical_form.as_ref().unwrap();
-    let subject = graph.subject_ref("gear/controls/show").unwrap();
+    let subject = graph.subject_ref("gear/controls/stable").unwrap();
     let source = application.form_editor.as_ref().unwrap().view().source;
     application
         .handle_gui_action(GuiAction::ConfigureGear {
             subject,
             key: "maximum-values".into(),
-            value: ConfigurationValue::U64(5),
+            value: ConfigurationValue::U64(conduit_semantic_catalog::TIME_MAXIMUM_VALUES + 1),
         })
         .unwrap();
     assert!(application

@@ -21,13 +21,13 @@ use conduit_human::{
 };
 
 pub const KEY_EVENT_TEE_KIND: &str = "input/key-tee";
-pub const KEY_EVENT_TEE_REVISION: &str = "conduit.input/key-tee@1";
+pub const KEY_EVENT_TEE_REVISION: &str = "conduit.input/key-tee@2";
 
 pub const KEYMAP_KIND: &str = "input/keymap";
-pub const KEYMAP_REVISION: &str = "conduit.input/keymap@1";
+pub const KEYMAP_REVISION: &str = "conduit.input/keymap@2";
 
 pub const CHORDS_KIND: &str = "input/chords";
-pub const CHORDS_REVISION: &str = "conduit.input/chords@1";
+pub const CHORDS_REVISION: &str = "conduit.input/chords@2";
 
 pub const INPUT_SEMANTIC_MAXIMUM_VALUES: u16 = 16;
 
@@ -45,20 +45,20 @@ pub fn key_event_tee_contract() -> StandardKindContract {
             "key",
             KEY_EVENT_INFO_ID,
             PortDirection::Input,
-            PortTemporal::Flow { closes: true },
+            PortTemporal::Flow { closes: false },
         )],
         outputs: vec![
             port(
                 "text-keys",
                 KEY_EVENT_INFO_ID,
                 PortDirection::Output,
-                PortTemporal::Flow { closes: true },
+                PortTemporal::Flow { closes: false },
             ),
             port(
                 "chord-keys",
                 KEY_EVENT_INFO_ID,
                 PortDirection::Output,
-                PortTemporal::Flow { closes: true },
+                PortTemporal::Flow { closes: false },
             ),
         ],
         configuration: Vec::new(),
@@ -80,13 +80,13 @@ pub fn keymap_contract() -> StandardKindContract {
             "key",
             KEY_EVENT_INFO_ID,
             PortDirection::Input,
-            PortTemporal::Flow { closes: true },
+            PortTemporal::Flow { closes: false },
         )],
         outputs: vec![port(
             "text",
             TEXT_PRESENTATION_VALUE_KIND,
             PortDirection::Output,
-            PortTemporal::Value,
+            PortTemporal::Flow { closes: false },
         )],
         configuration: vec![StandardConfigurationField {
             key: "layout".to_string(),
@@ -114,13 +114,13 @@ pub fn chords_contract() -> StandardKindContract {
             "key",
             KEY_EVENT_INFO_ID,
             PortDirection::Input,
-            PortTemporal::Flow { closes: true },
+            PortTemporal::Flow { closes: false },
         )],
         outputs: vec![port(
             "chord",
             CHORD_INFO_ID,
             PortDirection::Output,
-            PortTemporal::Flow { closes: true },
+            PortTemporal::Flow { closes: false },
         )],
         configuration: vec![StandardConfigurationField {
             key: "map".to_string(),
@@ -142,7 +142,7 @@ fn limits(maximum_value_bytes: u32) -> CapabilityLimits {
     CapabilityLimits {
         max_active_instances: 4,
         max_queue_items: 8,
-        max_queue_bytes: 8 * maximum_value_bytes.max(KEY_EVENT_ENCODED_LEN as u32),
+        max_queue_bytes: (8 * maximum_value_bytes.max(KEY_EVENT_ENCODED_LEN as u32)).max(64),
     }
 }
 

@@ -17,7 +17,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_lenia_catalogs(&mut startup, &mut profile)?;
-    conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
+    conduit_time::install_tick_catalog(&mut startup, &mut profile)?;
     conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
     install_distributed_lenia_catalogs(&mut startup, &mut profile)?;
 

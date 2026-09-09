@@ -3,7 +3,7 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use conduit_core::{CapabilityOffer, ConfigurationValue, PlannedGear};
+use conduit_core::{CapabilityOffer, PlannedGear};
 
 const IMPLEMENTATION: &str = "browser/presentation-pulse@1";
 
@@ -37,21 +37,9 @@ fn prepare(
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<super::BrowserOperation, String> {
     validate_placement(placement, &offer())?;
-    let maximum = placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            ("maximum-values", ConfigurationValue::U64(value))
-                if (1..=u64::from(conduit_time::MAXIMUM_OBSERVED_PULSES)).contains(value) =>
-            {
-                Some(*value)
-            }
-            _ => None,
-        })
-        .ok_or("pulse presentation has no valid finite value bound")?;
     Ok(super::BrowserOperation::presentation(
         conduit_time::PULSE_OBSERVATION_ENCODED_LEN as u32,
-        maximum as u32,
+        1,
     ))
 }
 

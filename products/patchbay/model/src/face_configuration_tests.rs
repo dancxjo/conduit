@@ -299,47 +299,47 @@ fn face_edit_accepts_an_open_back_with_runtime_face_ports() {
 
 #[test]
 fn default_value_becomes_an_authored_named_argument() {
-    let mut editor = editor("form controls {\n    show: presentation/tick\n}\n");
+    let mut editor = editor("form controls {\n    stable: time/debounce\n}\n");
     let before = editor.expand_form("controls").unwrap();
     editor
         .set_gear_configuration(
             0,
             &before.expanded_form_id,
-            "show",
-            "maximum-values",
+            "stable",
+            "duration-ms",
             ConfigurationValue::U64(3),
         )
         .unwrap();
     assert!(editor
         .view()
         .source
-        .contains("show: presentation/tick(maximum-values = 3)"));
+        .contains("stable: time/debounce(duration-ms = 3ms)"));
 }
 
 #[test]
 fn invalid_and_stale_edits_are_immediate_atomic_refusals() {
-    let mut editor =
-        editor("form controls {\n    show: presentation/tick(maximum-values = 3)\n}\n");
+    let mut editor = editor("form controls {\n    stable: time/debounce(maximum-values = 3)\n}\n");
     let before = editor.expand_form("controls").unwrap();
     let source = editor.view().source;
     let error = editor
         .set_gear_configuration(
             0,
             &before.expanded_form_id,
-            "show",
+            "stable",
             "maximum-values",
-            ConfigurationValue::U64(5),
+            ConfigurationValue::U64(conduit_semantic_catalog::TIME_MAXIMUM_VALUES + 1),
         )
         .unwrap_err();
     assert!(
-        matches!(error, FormEditorError::InvalidConfiguration(message) if message.contains("1 through 4"))
+        matches!(error, FormEditorError::InvalidConfiguration(ref message) if message.contains("1 through 8")),
+        "{error:?}"
     );
     assert_eq!(editor.view().source, source);
     let error = editor
         .set_gear_configuration(
             1,
             &before.expanded_form_id,
-            "show",
+            "stable",
             "maximum-values",
             ConfigurationValue::U64(8),
         )

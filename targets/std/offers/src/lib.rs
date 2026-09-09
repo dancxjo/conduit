@@ -28,6 +28,8 @@ mod presentation_sinks;
 pub use presentation_sinks::*;
 mod text;
 pub use text::*;
+mod text_state;
+pub use text_state::*;
 mod state_input;
 pub use state_input::*;
 mod alife;

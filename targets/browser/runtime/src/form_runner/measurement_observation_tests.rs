@@ -217,7 +217,15 @@ fn browser_pointer_and_deterministic_control_share_the_exact_measurement_form() 
     .canonical_bytes()
     .unwrap();
     complete_host_effect_with_output(&mut scheduler, &pointer, &pointer_value).unwrap();
-    let DriveStatus::Effect(effect) = drive(&mut scheduler, &fragment).unwrap() else {
+    let mut status = drive(&mut scheduler, &fragment).unwrap();
+    if matches!(
+        status,
+        DriveStatus::Effect(ref effect)
+            if matches!(effect.effect, BrowserHostEffect::PointerEvent)
+    ) {
+        status = drive(&mut scheduler, &fragment).unwrap();
+    }
+    let DriveStatus::Effect(effect) = status else {
         panic!("interactive measurement did not reach its typed sink")
     };
     let BrowserHostEffect::Manifestation(manifestation) = &effect.effect else {

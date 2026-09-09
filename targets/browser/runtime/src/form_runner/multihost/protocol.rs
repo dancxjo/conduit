@@ -86,7 +86,7 @@ pub(super) enum Output {
     #[serde(rename = "input")]
     Input {
         schema: &'static str,
-        input: Box<super::super::protocol::TourButtonTransitionEffect>,
+        input: Box<super::super::protocol::TourKeyEventEffect>,
         plan_projection: Box<PlanProjection>,
     },
     #[serde(rename = "line")]

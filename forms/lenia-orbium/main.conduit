@@ -14,7 +14,7 @@ form lenia (
 # Autonomous Orbium specimen: deterministic seed and no human feedback.
 form lenia-orbium-demo {
     seed: alife/orbium-seed(width = 128, height = 128, seed = 1)
-    clock: time/every(50ms)
+    clock: time/tick(count = 4, period-ms = 50)
     organism: lenia
     show: presentation/scalar-field(title = "Orbium", minimum = 0.0, maximum = 1.0)
 

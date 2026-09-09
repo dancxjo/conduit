@@ -2,8 +2,8 @@
 use super::*;
 
 #[test]
-fn timed_input_reaches_the_exact_normalized_presenter_and_completes() {
-    let source = "form zz-timing {\n button: input/button(maximum-transitions = 5)\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: derive-intervals\n normalize: normalize-durations\n show: presentation/structured-info\n button.transition > attempt.transition\n attempt.events > derive.events\n derive.intervals > normalize.intervals\n normalize.normalized > show.input\n}\n";
+fn timed_input_reaches_the_exact_normalized_presenter_until_stop() {
+    let source = "form zz-timing {\n button: input/button\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: derive-intervals\n normalize: normalize-durations\n show: presentation/structured-info\n button.transition > attempt.transition\n attempt.events > derive.events\n derive.intervals > normalize.intervals\n normalize.normalized > show.input\n}\n";
     let source = source.replacen("{\n", "{\n complete\n", 1);
     // Import the exact canonical reusable declarations, without the namesake's
     // storage-dependent root. This fixture does not claim full Secret Knock support.
@@ -35,7 +35,6 @@ fn timed_input_reaches_the_exact_normalized_presenter_and_completes() {
     let mut transition = 0_u64;
     let mut clock = 0;
     let times = [100_u64, 150, 200, 250, 500];
-    let mut seen = None;
     for _ in 0..80 {
         let progress = session.poll_effect().unwrap();
         let progress = match progress {
@@ -52,9 +51,9 @@ fn timed_input_reaches_the_exact_normalized_presenter_and_completes() {
                     .pending
                     .iter()
                     .min_by_key(|effect| match effect.effect {
-                        engine::BrowserHostEffect::ClockObservation => 0,
-                        engine::BrowserHostEffect::ButtonTransition => 1,
-                        engine::BrowserHostEffect::Manifestation(_) => 2,
+                        engine::BrowserHostEffect::Manifestation(_) => 0,
+                        engine::BrowserHostEffect::ClockObservation => 1,
+                        engine::BrowserHostEffect::ButtonTransition => 2,
                         _ => 3,
                     })
                     .unwrap();
@@ -94,20 +93,19 @@ fn timed_input_reaches_the_exact_normalized_presenter_and_completes() {
         match progress {
             TourProgress::Effect(effect) => {
                 if let TourHostEffect::Manifestation(effect) = *effect {
-                    seen = effect.text;
+                    assert_eq!(transition, 5);
+                    assert_eq!(clock, 5);
+                    let text = effect.text.as_ref().unwrap();
+                    assert!(text.contains("333333,1000000"), "{text}");
+                    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+                    return;
                 }
             }
             TourProgress::Receipt(receipt) => {
-                assert_eq!(receipt.disposition, "completed");
-                assert_eq!(receipt.manifestation_completions, 1);
-                assert_eq!(transition, 5);
-                assert_eq!(clock, 5);
-                let text = seen.unwrap();
-                assert!(text.contains("333333,1000000"), "{text}");
-                return;
+                panic!("standing timing input ended before Stop: {receipt:?}");
             }
             _ => {}
         }
     }
-    panic!("finite timing composition did not complete");
+    panic!("timing composition did not manifest before Stop");
 }

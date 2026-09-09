@@ -194,72 +194,46 @@ fn prepare_initializer(
         .collect::<Result<Vec<_>, _>>()?;
     let pattern = conduit_semantic_catalog::normalized_value(&normalized)
         .map_err(|error| format!("normalized pattern: {error:?}"))?;
-    let commands = [
-        conduit_semantic_catalog::put_template_command(name, pattern)
-            .map_err(|error| format!("template put: {error:?}"))?,
-        conduit_semantic_catalog::get_template_command(name)
-            .map_err(|error| format!("template get: {error:?}"))?,
-    ];
-    let stored = commands
-        .iter()
-        .map(|command| {
-            values
-                .store(
-                    &command
-                        .canonical_bytes()
-                        .map_err(|error| format!("template command: {error:?}"))?,
-                )
-                .map_err(|error| format!("store template command: {error:?}"))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let command = conduit_semantic_catalog::put_and_get_template_command(name, pattern)
+        .map_err(|error| format!("template put and get: {error:?}"))?;
+    let stored = values
+        .store(
+            &command
+                .canonical_bytes()
+                .map_err(|error| format!("template command: {error:?}"))?,
+        )
+        .map_err(|error| format!("store template command: {error:?}"))?;
     Ok(BrowserOperation::installed(TemplateInitializerOperation {
-        commands: stored
-            .try_into()
-            .map_err(|_| "template initializer command count")?,
-        next: 0,
-        closed: false,
+        command: stored,
+        emitted: false,
     }))
 }
 
 struct TemplateInitializerOperation {
-    commands: [ValueRef; 2],
-    next: usize,
-    closed: bool,
+    command: ValueRef,
+    emitted: bool,
 }
 
 impl Operation for TemplateInitializerOperation {
     fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0), ..
-            } if self.next < self.commands.len() => {
-                let value = self.commands[self.next];
-                self.next += 1;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
-            }
-            OperationInput::Value {
-                port: PortId(0), ..
-            } => OperationAction::Await,
-            OperationInput::Closed { port: PortId(0) } if !self.closed => {
-                self.closed = true;
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(Failure {
-                code: FailureCode::InvalidLifecycle,
-                detail: 265,
-            }),
+        self.emitted = true;
+        OperationAction::Emit {
+            port: PortId(0),
+            value: self.command,
         }
     }
 
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        let _ = input;
+        OperationAction::Fail(Failure {
+            code: FailureCode::InvalidLifecycle,
+            detail: 265,
+        })
+    }
+
     fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
+        debug_assert!(self.emitted);
+        OperationAction::Complete
     }
 }
 

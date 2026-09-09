@@ -356,8 +356,24 @@ pub(super) fn connect(
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     match (source, sink) {
         (StageSource::Internal(source), StageSink::Internal(sink)) => {
+            let reactively_lifted_value = matches!(
+                (source.port.temporal, sink.port.temporal),
+                (
+                    conduit_core::PortTemporal::Flow { .. },
+                    conduit_core::PortTemporal::Value
+                )
+            );
+            let finite_flow_into_standing_consumer = matches!(
+                (source.port.temporal, sink.port.temporal),
+                (
+                    conduit_core::PortTemporal::Flow { closes: true },
+                    conduit_core::PortTemporal::Flow { closes: false }
+                )
+            );
             if source.port.value_kind != sink.port.value_kind
-                || source.port.temporal != sink.port.temporal
+                || (source.port.temporal != sink.port.temporal
+                    && !reactively_lifted_value
+                    && !finite_flow_into_standing_consumer)
             {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-045",
@@ -374,7 +390,7 @@ pub(super) fn connect(
             });
         }
         (StageSource::FaceInput(name, value_type, temporal), StageSink::Internal(sink)) => {
-            require_face_contract(&name, &value_type, temporal, &sink.port)?;
+            require_face_contract(&name, &value_type, temporal, &sink.port, true)?;
             let endpoints = inputs.entry(name.clone()).or_default();
             if endpoints.iter().any(|endpoint| {
                 endpoint.gear_id == sink.gear_id && endpoint.port.port_id == sink.port.port_id
@@ -387,7 +403,7 @@ pub(super) fn connect(
             endpoints.push(sink);
         }
         (StageSource::Internal(source), StageSink::FaceOutput(name, value_type, temporal)) => {
-            require_face_contract(&name, &value_type, temporal, &source.port)?;
+            require_face_contract(&name, &value_type, temporal, &source.port, false)?;
             insert_boundary(outputs, name, source)?;
         }
         (StageSource::FaceInput(_, _, _), StageSink::FaceOutput(_, _, _)) => {
@@ -419,14 +435,38 @@ fn require_face_contract(
     value_kind: &conduit_core::KindId,
     temporal: conduit_core::PortTemporal,
     actual: &conduit_core::PortDescriptor,
+    face_is_source: bool,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
-    if value_kind != &actual.value_kind || temporal != actual.temporal {
+    let reactive_flow_boundary = matches!(
+        (temporal, actual.temporal),
+        (
+            conduit_core::PortTemporal::Flow { .. },
+            conduit_core::PortTemporal::Value
+        ) | (
+            conduit_core::PortTemporal::Value,
+            conduit_core::PortTemporal::Flow { .. }
+        )
+    );
+    let finite_flow_into_standing_consumer = face_is_source
+        && matches!(
+            (temporal, actual.temporal),
+            (
+                conduit_core::PortTemporal::Flow { closes: true },
+                conduit_core::PortTemporal::Flow { closes: false }
+            )
+        );
+    if value_kind != &actual.value_kind
+        || (temporal != actual.temporal
+            && !reactive_flow_boundary
+            && !finite_flow_into_standing_consumer)
+    {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-045",
             format!(
-                "runtime face port '{name}' declares '{}' but binds '{}'",
+                "runtime face port '{name}' declares '{}' ({temporal:?}) but binds '{}' ({:?})",
                 value_kind.as_str(),
-                actual.value_kind.as_str()
+                actual.value_kind.as_str(),
+                actual.temporal,
             ),
         ));
     }

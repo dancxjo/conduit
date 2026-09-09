@@ -72,6 +72,22 @@ test("selected keyboard and pointer adapt real Chromium actions to portable valu
   expect(failures).toEqual([]);
 });
 
+test("ordered keyboard transitions survive gaps between Host requests and refuse overflow", async ({ page }) => {
+  await page.goto("/proof/browser/browser-human-input.test.html");
+  await expect(page.locator("#status")).toHaveText("ready");
+  await page.locator("#surface").focus();
+
+  await page.keyboard.press("KeyA");
+  const queued = await page.evaluate(async () => [
+    Array.from((await globalThis.__conduitHumanInput.adapter.nextKeyboard()).canonical_bytes),
+    Array.from((await globalThis.__conduitHumanInput.adapter.nextKeyboard()).canonical_bytes),
+  ]);
+  expect(queued).toEqual([[0x04, 0, 0], [0x04, 1, 0]]);
+
+  for (const key of ["KeyB", "KeyC", "KeyD", "KeyE", "KeyF"]) await page.keyboard.press(key);
+  expect(await page.evaluate(() => globalThis.__conduitHumanInput.adapter.nextKeyboard().catch((error) => error.code))).toBe("Pressure");
+});
+
 test("profile omission, finite pressure, cancellation, and stale Boot stay distinct", async ({ page }) => {
   await page.goto("/proof/browser/browser-human-input.test.html?profile=viewer");
   await expect(page.locator("#status")).toHaveText("ready");

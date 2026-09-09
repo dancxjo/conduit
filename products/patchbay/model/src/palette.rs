@@ -142,11 +142,12 @@ mod tests {
             "text/upper"
         );
         assert_eq!(palette.search("value/count").unwrap().len(), 2);
-        assert_eq!(palette.search("maximum-values").unwrap().len(), 7);
-        assert_eq!(
-            palette.search("interval").unwrap()[0].kind_id.as_str(),
-            "time/every"
-        );
+        assert_eq!(palette.search("maximum-values").unwrap().len(), 5);
+        assert!(palette
+            .search("interval")
+            .unwrap()
+            .iter()
+            .any(|entry| entry.kind_id.as_str() == "time/every"));
         assert_eq!(
             palette.search("files").unwrap()[0].kind_id.as_str(),
             "file/copy"

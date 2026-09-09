@@ -58,6 +58,9 @@ pub(super) struct TourScheduler {
     comparisons:
         [Option<conduit_semantic_catalog::BoundedPatternComparisonCodec>; MAXIMUM_BROWSER_GEARS],
     timing: [Option<crate::installed_browser::timing::PreparedTiming>; MAXIMUM_BROWSER_GEARS],
+    keymaps: [Option<crate::installed_browser::keymap::PreparedKeymap>; MAXIMUM_BROWSER_GEARS],
+    text_states: [Option<Box<crate::installed_browser::text_state::PreparedTextState>>;
+        MAXIMUM_BROWSER_GEARS],
     deliveries: [Option<conduit_net::BoundedRecordDeliveryStatusCodec>; MAXIMUM_BROWSER_GEARS],
     histories:
         [Option<crate::installed_browser::historical::PreparedHistory>; MAXIMUM_BROWSER_GEARS],
@@ -279,6 +282,18 @@ fn drive_with_boundary<'a>(
                 return Ok(DriveStatus::Waiting {
                     pending_effects: scheduler.pending_host_operation_count(),
                 });
+            }
+        }
+        if scheduler.has_ready_work() {
+            match scheduler.step().map_err(|error| {
+                if let conduit_kernel::scheduler::SchedulerError::OperationFailed(detail) = &error {
+                    scheduler.failure = Some(*detail);
+                }
+                debug_error(error)
+            })? {
+                SchedulerStatus::Progress { .. } => continue,
+                SchedulerStatus::Cancelled => return Err("Tour Play was cancelled".into()),
+                SchedulerStatus::Drained | SchedulerStatus::Idle => {}
             }
         }
         if let Some(request) = scheduler.next_host_request() {

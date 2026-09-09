@@ -23,6 +23,8 @@ mod keyboard;
 pub use keyboard::*;
 mod input_semantics;
 pub use input_semantics::*;
+mod text_state;
+pub use text_state::*;
 mod http;
 pub use http::*;
 mod resource_snapshot;

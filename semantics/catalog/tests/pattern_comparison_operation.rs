@@ -77,6 +77,32 @@ fn either_port_order_emits_once_then_requires_both_closures() {
         }
         assert_eq!(operation.advance(), OperationAction::Await);
         assert_eq!(
+            operation.resume(OperationInput::Value {
+                port: PortId(0),
+                value: value(10),
+            }),
+            OperationAction::RequestHostOperation {
+                request: RequestId(2),
+                operation: HostOperationId(0),
+                input: BoundedValueRef::new(value(10), 4096).unwrap(),
+            }
+        );
+        assert_eq!(
+            operation.resume(OperationInput::HostOperationCompleted {
+                request: RequestId(2),
+                outcome: HostOperationOutcome {
+                    disposition: HostOperationDisposition::Completed,
+                    output: Some(BoundedValueRef::new(value(20), 4096).unwrap()),
+                    failure: None,
+                },
+            }),
+            OperationAction::Emit {
+                port: PortId(0),
+                value: value(20),
+            }
+        );
+        assert_eq!(operation.advance(), OperationAction::Await);
+        assert_eq!(
             operation.resume(OperationInput::Closed { port: PortId(0) }),
             OperationAction::Await
         );

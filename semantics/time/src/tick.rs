@@ -10,13 +10,17 @@ pub const TICK_PORT: &str = "tick";
 pub const TICK_VALUE_KIND: &str = "value/tick@1";
 pub const TICK_ENCODED_LEN: u32 = 8;
 pub const TICK_CONTRACT_REVISION: &str = "conduit.std/time-tick@2";
-pub const TIME_EVERY_CONTRACT_REVISION: &str = "conduit.std/time-every@1";
+pub const TIME_EVERY_CONTRACT_REVISION: &str = "conduit.std/time-every@2";
 pub const MAX_TICK_COUNT: u64 = 4_096;
-pub const TIME_EVERY_COUNT: u64 = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TickConfiguration {
     pub count: u64,
+    pub period_ms: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EveryConfiguration {
     pub period_ms: u64,
 }
 
@@ -84,6 +88,18 @@ pub fn tick_outputs() -> Vec<PortDescriptor> {
         value_kind: tick_value_kind(),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: true },
+    }]
+}
+
+/// The recurring interval source has the same typed value as `time/tick`, but
+/// remains open until its Play is explicitly terminated or its Host input is
+/// lost. `time/tick` retains the separate closing, configured-count contract.
+pub fn time_every_outputs() -> Vec<PortDescriptor> {
+    vec![PortDescriptor {
+        port_id: port_id(TICK_PORT),
+        value_kind: tick_value_kind(),
+        direction: PortDirection::Output,
+        temporal: PortTemporal::Flow { closes: false },
     }]
 }
 

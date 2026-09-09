@@ -68,11 +68,27 @@ impl ExpandedCanonicalForm {
                     .iter()
                     .find(|port| port.port_id == connection.sink_port_id)
             });
-            if source.map(|port| (&port.value_kind, port.temporal))
-                != Some((&connection.value_kind, connection.temporal))
-                || sink.map(|port| (&port.value_kind, port.temporal))
-                    != Some((&connection.value_kind, connection.temporal))
-            {
+            let source_matches = source.map(|port| (&port.value_kind, port.temporal))
+                == Some((&connection.value_kind, connection.temporal));
+            let sink_matches = sink.is_some_and(|port| {
+                port.value_kind == connection.value_kind
+                    && (port.temporal == connection.temporal
+                        || matches!(
+                            (connection.temporal, port.temporal),
+                            (
+                                conduit_core::PortTemporal::Flow { .. },
+                                conduit_core::PortTemporal::Value
+                            )
+                        )
+                        || matches!(
+                            (connection.temporal, port.temporal),
+                            (
+                                conduit_core::PortTemporal::Flow { closes: true },
+                                conduit_core::PortTemporal::Flow { closes: false }
+                            )
+                        ))
+            });
+            if !source_matches || !sink_matches {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-049",
                     "expanded cord differs from its exact primitive port contracts".into(),

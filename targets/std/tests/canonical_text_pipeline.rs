@@ -1,9 +1,13 @@
-use conduit_core::{ObservationKind, TerminalDisposition};
+use conduit_core::{resource_offer, ObservationKind, TerminalDisposition, INPUT_RESOURCE_CLASS};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
-use conduit_std_host::{StdHost, ThreadTimer};
+use conduit_std_host::{
+    hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll},
+    RunControl, RunControlRequestId, StdHost, ThreadTimer,
+};
+use std::collections::VecDeque;
 
 const HELLO_PROGRAM: &str = include_str!("../../../forms/hello/main.conduit");
 const MORSE_NETWORK: &str = include_str!("../../../forms/morse-network/main.conduit");
@@ -79,6 +83,8 @@ fn canonical_morse_network_runs_through_the_std_kernel_and_indicator_effect() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
     conduit_text::install_morse_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)
         .unwrap();
@@ -86,7 +92,23 @@ fn canonical_morse_network_runs_through_the_std_kernel_and_indicator_effect() {
     let checked = check_syntax_document(&syntax, &startup).expect("Morse Network checks");
     let expanded =
         expand_canonical_form(&checked, "morse_network", &profile).expect("Morse Network expands");
-    let mut host = StdHost::new();
+    let mut advertisement = StdHost::new().advertisement().clone();
+    advertisement
+        .capabilities
+        .push(conduit_std_offers::hosted_keyboard_offer(
+            "proof/morse-keyboard",
+            "proof/morse-keyboard@1",
+        ));
+    advertisement.resources.push(resource_offer(
+        "proof/morse-keyboard",
+        INPUT_RESOURCE_CLASS,
+        1,
+    ));
+    advertisement
+        .capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    advertisement.resources.sort();
+    let mut host = StdHost::from_advertisement(advertisement).unwrap();
     let plan = host
         .plan_expanded_local(&expanded)
         .expect("Morse Network plans onto exact installed offers");
@@ -97,19 +119,50 @@ fn canonical_morse_network_runs_through_the_std_kernel_and_indicator_effect() {
         .expect("std fragment exists");
     let mut output = Vec::with_capacity(4_096);
     let mut timer = ThreadTimer;
+    struct Keyboard {
+        events: VecDeque<[u8; 3]>,
+        stop: Option<RunControl>,
+        idle_polls: usize,
+    }
+    impl HostedKeyboardAdapter for Keyboard {
+        fn poll_next(&mut self) -> HostedKeyboardPoll {
+            if let Some(bytes) = self.events.pop_front() {
+                return HostedKeyboardPoll::Event(conduit_human::KeyEvent::decode(&bytes).unwrap());
+            }
+            if self.idle_polls < 64 {
+                self.idle_polls += 1;
+                return HostedKeyboardPoll::Pending;
+            }
+            if let Some(control) = self.stop.take() {
+                control
+                    .request_stop(RunControlRequestId::new("stop-morse-network").unwrap())
+                    .unwrap();
+            }
+            HostedKeyboardPoll::Pending
+        }
+    }
+    let control = RunControl::default();
+    let mut keyboard = Keyboard {
+        events: [[4, 0, 0], [4, 1, 0], [5, 0, 0], [5, 1, 0]].into(),
+        stop: Some(control.clone()),
+        idle_polls: 0,
+    };
     let report = host
-        .run_fragment_to(fragment, &mut output, &mut timer)
+        .run_fragment_controlled_with_keyboard_to(
+            fragment,
+            &mut output,
+            &mut timer,
+            &control,
+            Some(&mut keyboard),
+        )
         .expect("Morse Network executes through the installed kernel table");
     let output = String::from_utf8(output).unwrap();
-    assert!(
-        output.contains("indicator unit-ms=120 segments=17\n"),
-        "{output}"
-    );
-    assert_eq!(output.matches("indicator unit-ms=").count(), 1, "{output}");
+    assert!(output.contains("indicator unit-ms=120"), "{output}");
+    assert_eq!(output.matches("indicator unit-ms=").count(), 2, "{output}");
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {
-            disposition: TerminalDisposition::Completed
+            disposition: TerminalDisposition::Cancelled { .. }
         })
     ));
 }

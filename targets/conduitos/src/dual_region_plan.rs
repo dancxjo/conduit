@@ -19,7 +19,7 @@ use crate::{
     ordinary_plan::PreparationError,
 };
 
-pub const FORM_SOURCE: &str = "form conduitos-two-regions {\n    clock: time/tick(count = 1, period-ms = 1)\n    ticks: presentation/tick(maximum-values = 1)\n    upper: text/upper\n    text: presentation/text\n    clock > ticks\n    \"Hello, ConduitOS\" > upper > text\n}\n";
+pub const FORM_SOURCE: &str = "form conduitos-two-regions {\n    clock: time/tick(count = 1, period-ms = 1)\n    ticks: presentation/tick\n    upper: text/upper\n    text: presentation/text\n    clock > ticks\n    \"Hello, ConduitOS\" > upper > text\n}\n";
 pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
 const PLACEMENT_COUNT: usize = 5;
 const CORD_COUNT: usize = 3;

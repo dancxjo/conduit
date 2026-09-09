@@ -12,10 +12,11 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
     let (mut session, started) = prepare(request).unwrap();
     assert!(started.play.validate_for(&original));
     let mut progress = started.progress;
-    let mut transitions = 0;
+    let mut transitions = 0_u64;
     let mut ticks = Vec::new();
     let mut levels = Vec::new();
     let mut telegraph = false;
+    let mut keys = 0_usize;
     loop {
         match progress {
             TourProgress::Effect(effect) => {
@@ -23,7 +24,7 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
                     TourHostEffect::ButtonTransition(_) => {
                         let bytes = conduit_semantic_catalog::button_transition_value(
                             "button/primary",
-                            transitions == 0,
+                            transitions.is_multiple_of(2),
                             transitions,
                         )
                         .unwrap()
@@ -35,6 +36,29 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
                     TourHostEffect::Timer(timer) => {
                         assert_eq!(timer.duration_millis, 1000);
                         None
+                    }
+                    TourHostEffect::KeyEvent(_) => {
+                        let (usage, transition) = match keys {
+                            0 => (0x04, conduit_human::KeyTransition::Pressed),
+                            1 => (0x04, conduit_human::KeyTransition::Released),
+                            2 => (0x28, conduit_human::KeyTransition::Pressed),
+                            3 => (0x28, conduit_human::KeyTransition::Released),
+                            extra if extra.is_multiple_of(2) => {
+                                (0x04, conduit_human::KeyTransition::Pressed)
+                            }
+                            _ => (0x04, conduit_human::KeyTransition::Released),
+                        };
+                        keys += 1;
+                        Some(
+                            conduit_human::KeyEvent::new(
+                                usage,
+                                transition,
+                                conduit_human::KeyModifiers::NONE,
+                            )
+                            .unwrap()
+                            .encode()
+                            .to_vec(),
+                        )
                     }
                     TourHostEffect::Manifestation(value) => {
                         assert_eq!(value.active_play_id, started.play.active_play_id.as_str());
@@ -50,7 +74,7 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
                                 levels.push(value.text.unwrap())
                             }
                             "presentation/text" => {
-                                assert_eq!(value.text.as_deref(), Some("CALLING"));
+                                assert_eq!(value.text.as_deref(), Some("a"));
                                 telegraph = true;
                             }
                             _ => panic!("unexpected manifestation"),
@@ -63,6 +87,9 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
                     Some(bytes) => session.advance_with_output(&bytes).unwrap(),
                     None => session.advance().unwrap(),
                 };
+                if transitions >= 2 && ticks.len() >= 5 && levels.len() >= 2 && telegraph {
+                    break;
+                }
             }
             TourProgress::Waiting {
                 disposition,
@@ -73,14 +100,24 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
                 assert_eq!(disposition, "quiescent_awaiting_input");
                 assert_eq!(active_play_id, started.play.active_play_id.as_str());
                 assert_eq!(pending_effects, 0);
-                break;
+                panic!("standing Body became quiescent before its acceptance observations");
             }
             _ => panic!("unexpected progress"),
         }
     }
-    assert_eq!(transitions, 2);
-    assert_eq!(ticks, ["0", "1", "2", "3"]);
-    assert_eq!(levels, ["true", "false"]);
+    assert!(transitions >= 2);
+    assert!(ticks.len() >= 5);
+    assert!(ticks
+        .iter()
+        .enumerate()
+        .all(|(index, tick)| tick == &index.to_string()));
+    assert!(levels.len() >= 2);
+    assert!(levels.iter().enumerate().all(|(index, level)| level
+        == if index.is_multiple_of(2) {
+            "true"
+        } else {
+            "false"
+        }));
     assert!(telegraph);
     assert_eq!(
         session
@@ -98,7 +135,7 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
 }
 
 #[test]
-fn canonical_firefly_and_unrelated_text_complete_in_one_body_play() {
+fn canonical_firefly_and_unrelated_text_remain_in_one_body_play_until_stop() {
     let request = request_from_sources(&[
         include_str!("../../../../../forms/firefly-choir/main.conduit"),
         "form unrelated {\n complete\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
@@ -112,7 +149,7 @@ fn canonical_firefly_and_unrelated_text_complete_in_one_body_play() {
     let mut pulses = Vec::new();
     let mut rhythms = Vec::new();
     let mut unrelated = false;
-    loop {
+    let receipt = loop {
         match progress {
             TourProgress::Effect(effect) => {
                 match *effect {
@@ -140,22 +177,23 @@ fn canonical_firefly_and_unrelated_text_complete_in_one_body_play() {
                     _ => panic!("unexpected effect"),
                 }
                 progress = session.advance().unwrap();
+                if pulses.len() >= 5 && rhythms.len() >= 5 && unrelated {
+                    assert_eq!(session.fragments.len(), 2);
+                    break session.cancel().unwrap();
+                }
             }
             TourProgress::Receipt(receipt) => {
-                assert_eq!(receipt.disposition, "completed");
-                assert_eq!(receipt.active_play_id, started.play.active_play_id.as_str());
-                assert_eq!(receipt.timer_completions, 4);
-                assert_eq!(receipt.manifestation_completions, 9);
-                break;
+                panic!("standing Firefly ended before Stop: {receipt:?}");
             }
             _ => panic!("unexpected progress"),
         }
-    }
+    };
 
-    assert_eq!(pulses.len(), 4);
-    assert_eq!(rhythms.len(), 4);
+    assert_eq!(receipt.disposition, "cancelled");
+    assert_eq!(receipt.active_play_id, started.play.active_play_id.as_str());
+    assert_eq!(pulses.len(), 5);
+    assert_eq!(rhythms.len(), 5);
     assert!(unrelated);
-    assert_eq!(session.fragments.len(), 2);
 }
 
 #[test]
@@ -222,7 +260,7 @@ fn unchanged_canonical_clock_uses_installed_browser_tick_presentation() {
     let mut progress = TourProgress::Effect(Box::new(effect));
     let mut ticks = Vec::new();
     let mut waits = 0;
-    loop {
+    let receipt = loop {
         match progress {
             TourProgress::Effect(effect) => {
                 match *effect {
@@ -240,16 +278,19 @@ fn unchanged_canonical_clock_uses_installed_browser_tick_presentation() {
                     _ => panic!("unexpected clock effect"),
                 }
                 progress = session.advance().unwrap();
+                if ticks.len() == 5 {
+                    break session.cancel().unwrap();
+                }
             }
             TourProgress::Receipt(receipt) => {
-                assert_eq!(receipt.disposition, "completed");
-                break;
+                panic!("standing clock ended before Stop: {receipt:?}");
             }
             _ => panic!("unexpected clock progress"),
         }
-    }
-    assert_eq!(waits, conduit_time::TIME_EVERY_COUNT);
-    assert_eq!(ticks, ["0", "1", "2", "3"]);
+    };
+    assert_eq!(receipt.disposition, "cancelled");
+    assert_eq!(waits, 5);
+    assert_eq!(ticks, ["0", "1", "2", "3", "4"]);
     let malformed = crate::installed_browser::BrowserManifestation {
         kind_id: conduit_semantic_catalog::TICK_PRESENTATION_KIND,
         canonical_value: vec![0; 7],

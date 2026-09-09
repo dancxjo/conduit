@@ -115,7 +115,7 @@ fn closing_preserves_queued_records_until_fifo_drain_then_becomes_terminal() {
 }
 
 #[test]
-fn ordered_queue_is_a_reusable_closing_flow_form() {
+fn ordinary_queue_is_reapplied_under_a_reusable_closing_flow_form() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
@@ -129,12 +129,6 @@ fn ordered_queue_is_a_reusable_closing_flow_form() {
     assert_eq!(authored.output_bindings.len(), 1);
     let queue = &authored.expanded.gears[0];
     assert_eq!(queue.kind_id.as_str(), ORDERED_RECORD_QUEUE_KIND);
-    assert_eq!(
-        queue.inputs[0].temporal,
-        conduit_core::PortTemporal::Flow { closes: true }
-    );
-    assert_eq!(
-        queue.outputs[0].temporal,
-        conduit_core::PortTemporal::Flow { closes: true }
-    );
+    assert_eq!(queue.inputs[0].temporal, conduit_core::PortTemporal::Value);
+    assert_eq!(queue.outputs[0].temporal, conduit_core::PortTemporal::Value);
 }

@@ -36,6 +36,18 @@ fn fragment(name: &str, message: &str) -> PlanFragment {
 
 #[test]
 fn distinct_plans_execute_in_one_browser_kernel_without_relabeling() {
+    // Debug builds retain large by-value fixed-scheduler temporaries. Keep the
+    // test-thread stack explicit without changing the browser runtime budget.
+    std::thread::Builder::new()
+        .name("browser-partition-fixed-kernel".into())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(run_distinct_plans_in_one_kernel)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+fn run_distinct_plans_in_one_kernel() {
     let fragments = [fragment("first", "FIRST"), fragment("second", "SECOND")];
     let original = fragments.clone();
     let lowered = lower_local_fragment_set(

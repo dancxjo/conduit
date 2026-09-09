@@ -1,6 +1,7 @@
 use super::*;
 use crate::machine::BaseError;
 use conduit_core::{CancellationReason, TerminalDisposition};
+extern crate std;
 
 #[derive(Default)]
 struct RecordedOpl2 {
@@ -67,8 +68,23 @@ fn prepared() -> crate::opl2_plan::PreparedOpl2Play {
     crate::opl2_plan::prepare(&identities, &fixed, opl2, "build").unwrap()
 }
 
+fn with_kernel_stack(test: impl FnOnce() + Send + 'static) {
+    // Debug builds retain large by-value fixed-scheduler temporaries.
+    std::thread::Builder::new()
+        .name("conduitos-opl2-fixed-kernel".into())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(test)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
 #[test]
 fn ordinary_plan_runs_chord_and_exact_nine_voice_saturation() {
+    with_kernel_stack(run_ordinary_plan);
+}
+
+fn run_ordinary_plan() {
     let prepared = prepared();
     let mut execution = prepare_execution(&prepared, reviewed_values()).unwrap();
     let mut base = RecordedOpl2::default();
@@ -108,6 +124,10 @@ fn ordinary_plan_runs_chord_and_exact_nine_voice_saturation() {
 
 #[test]
 fn tenth_voice_refuses_and_quiesces_every_owned_channel() {
+    with_kernel_stack(run_tenth_voice_refusal);
+}
+
+fn run_tenth_voice_refusal() {
     let prepared = prepared();
     let mut values = reviewed_values();
     values[15] = note(19, 587_330, Gate::On, 15);
@@ -122,6 +142,10 @@ fn tenth_voice_refuses_and_quiesces_every_owned_channel() {
 
 #[test]
 fn active_cancellation_and_reset_failure_are_distinct_and_silent() {
+    with_kernel_stack(run_active_cancellation);
+}
+
+fn run_active_cancellation() {
     let prepared = prepared();
     let mut execution = prepare_execution(&prepared, reviewed_values()).unwrap();
     let mut base = RecordedOpl2::default();
@@ -155,6 +179,10 @@ fn active_cancellation_and_reset_failure_are_distinct_and_silent() {
 
 #[test]
 fn unsupported_velocity_refuses_without_claiming_expression() {
+    with_kernel_stack(run_unsupported_velocity_refusal);
+}
+
+fn run_unsupported_velocity_refusal() {
     let prepared = prepared();
     let mut values = reviewed_values();
     values[0].velocity = 32_768;

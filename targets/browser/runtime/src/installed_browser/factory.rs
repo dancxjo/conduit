@@ -251,7 +251,7 @@ pub(crate) fn advertisement_for_machinery(
         resources.push(resource_offer(
             "browser/window-input",
             input::WINDOW_INPUT_RESOURCE_CLASS,
-            1,
+            super::MAXIMUM_BROWSER_GEARS as u32,
         ));
     }
     resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));

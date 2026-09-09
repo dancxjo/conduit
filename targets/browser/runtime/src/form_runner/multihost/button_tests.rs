@@ -105,23 +105,20 @@ fn canonical_button_runs_ordered_press_release_in_two_kernel_fragments() {
         let delivered = frame(sink.complete_manifestation().unwrap(), "delivered");
         output = source.ingest(delivered).unwrap();
     }
-    let close = frame(output, "close");
-    assert_eq!(close.sequence, 2);
-    let Output::Line {
-        frame: terminal,
-        receipt: Some(receipt),
-        ..
-    } = sink.ingest(close).unwrap()
-    else {
-        panic!("expected terminal")
+    let Output::Input { input, .. } = output else {
+        panic!("standing source must request another transition")
+    };
+    assert_eq!(input.request_sequence, 2);
+    let Output::Receipt { receipt, .. } = source.cancel().unwrap() else {
+        panic!("expected cancelled source receipt")
     };
     assert_eq!(receipt.transferred_values, 2);
-    assert_eq!(receipt.disposition, "completed");
-    let Output::Receipt { receipt, .. } = source.ingest(*terminal).unwrap() else {
-        panic!("expected source receipt")
+    assert_eq!(receipt.disposition, "cancelled");
+    let Output::Receipt { receipt, .. } = sink.cancel().unwrap() else {
+        panic!("expected cancelled sink receipt")
     };
     assert_eq!(receipt.transferred_values, 2);
-    assert_eq!(receipt.disposition, "completed");
+    assert_eq!(receipt.disposition, "cancelled");
 }
 
 #[test]

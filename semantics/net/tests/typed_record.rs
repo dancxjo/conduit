@@ -4,6 +4,111 @@ use conduit_core::{
 };
 use conduit_net::*;
 
+fn install_gallery_input_test_catalogs(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) {
+    use conduit_core::{port_id, ConfigurationValue, PortDescriptor, PortDirection, PortTemporal};
+    use conduit_form::{
+        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        StartupParameterSignature,
+    };
+
+    startup
+        .insert(KindSignature {
+            kind: "input/keyboard".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    profile
+        .insert(KindDefinition {
+            kind_id: kind_id("input/keyboard"),
+            kind_contract_revision: "conduit.input/keyboard@2".into(),
+            inputs: vec![],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("key"),
+                value_kind: kind_id("input/key-event@1"),
+                direction: PortDirection::Output,
+                temporal: PortTemporal::Flow { closes: false },
+            }],
+            configuration: vec![],
+        })
+        .unwrap();
+
+    startup
+        .insert(KindSignature {
+            kind: "input/keymap".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "layout".into(),
+                value_type: "Text".into(),
+                default: Some("\"conduit-intl\"".into()),
+            }],
+        })
+        .unwrap();
+    profile
+        .insert(KindDefinition {
+            kind_id: kind_id("input/keymap"),
+            kind_contract_revision: "conduit.input/keymap@2".into(),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("key"),
+                value_kind: kind_id("input/key-event@1"),
+                direction: PortDirection::Input,
+                temporal: PortTemporal::Flow { closes: false },
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("text"),
+                value_kind: kind_id(TEXT_INFO_ID),
+                direction: PortDirection::Output,
+                temporal: PortTemporal::Flow { closes: false },
+            }],
+            configuration: vec![ConfigurationField {
+                key: "layout".into(),
+                default_value: ConfigurationValue::Text("conduit-intl".into()),
+                validation: ConfigurationRule::TextOneOf {
+                    values: vec!["conduit-intl".into()],
+                },
+            }],
+        })
+        .unwrap();
+
+    startup
+        .insert(KindSignature {
+            kind: "text/submit-lines".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "maximum-bytes".into(),
+                value_type: "Count".into(),
+                default: Some("256".into()),
+            }],
+        })
+        .unwrap();
+    profile
+        .insert(KindDefinition {
+            kind_id: kind_id("text/submit-lines"),
+            kind_contract_revision: "conduit.text/submit-lines@1".into(),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("fragment"),
+                value_kind: kind_id(TEXT_INFO_ID),
+                direction: PortDirection::Input,
+                temporal: PortTemporal::Flow { closes: false },
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("submitted"),
+                value_kind: kind_id(TEXT_INFO_ID),
+                direction: PortDirection::Output,
+                temporal: PortTemporal::Flow { closes: false },
+            }],
+            configuration: vec![ConfigurationField {
+                key: "maximum-bytes".into(),
+                default_value: ConfigurationValue::U64(256),
+                validation: ConfigurationRule::U64Range {
+                    minimum: 1,
+                    maximum: 256,
+                },
+            }],
+        })
+        .unwrap();
+}
+
 fn record_parts() -> (String, Vec<u8>) {
     let value = StructuredInfoValue::leaf(
         StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
@@ -283,6 +388,7 @@ fn desk_telegraph_uses_reusable_text_record_faces_around_exact_framing() {
     install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
     install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
     conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
+    install_gallery_input_test_catalogs(&mut startup, &mut profile);
     startup
         .insert(conduit_form::KindSignature {
             kind: "presentation/text".into(),
@@ -322,7 +428,7 @@ fn desk_telegraph_uses_reusable_text_record_faces_around_exact_framing() {
         &profile,
     )
     .unwrap();
-    assert_eq!(send.expanded.gears.len(), 3);
+    assert_eq!(send.expanded.gears.len(), 1);
     assert_eq!(send.input_bindings.len(), 1);
     assert_eq!(send.output_bindings.len(), 1);
     let telegraph =
@@ -338,9 +444,7 @@ fn desk_telegraph_uses_reusable_text_record_faces_around_exact_framing() {
     assert!(kinds.contains(&TYPED_RECORD_DEFRAME_KIND));
     assert!(kinds.contains(&TEXT_TO_TYPED_RECORD_KIND));
     assert!(kinds.contains(&TYPED_RECORD_TO_TEXT_KIND));
-    assert!(kinds.contains(&RECORD_SINGLETON_STREAM_KIND));
     assert!(kinds.contains(&ORDERED_RECORD_QUEUE_KIND));
-    assert!(kinds.contains(&RECORD_EXACTLY_ONE_KIND));
 }
 
 #[test]
@@ -351,6 +455,7 @@ fn night_radio_composes_existing_framing_queue_and_presentation() {
     install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
     install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
     conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
+    install_gallery_input_test_catalogs(&mut startup, &mut profile);
     startup
         .insert(conduit_form::KindSignature {
             kind: "presentation/text".into(),
@@ -391,9 +496,7 @@ fn night_radio_composes_existing_framing_queue_and_presentation() {
     for required in [
         TEXT_TO_TYPED_RECORD_KIND,
         TYPED_RECORD_FRAME_KIND,
-        RECORD_SINGLETON_STREAM_KIND,
         ORDERED_RECORD_QUEUE_KIND,
-        RECORD_EXACTLY_ONE_KIND,
         TYPED_RECORD_DEFRAME_KIND,
         TYPED_RECORD_TO_TEXT_KIND,
         "presentation/text",
