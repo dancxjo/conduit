@@ -12,6 +12,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
   await expect(page.locator("#nucleus [data-layout-index]")).toHaveCount(3);
   await expect(page.locator("#nucleus [data-graphics-kind]")).toHaveCount(3);
   await expect(page.locator("#nucleus [data-graphics-kind=text]")).toHaveText("ready");
+  await expect(page.locator("#nucleus [data-graphics-kind=text]")).toHaveAttribute("data-graphics-text-role", "body");
   await expect(page.locator("#nucleus [data-graphics-kind=icon]")).toHaveAttribute("role", "img");
   await expect(page.locator("#nucleus [data-presentation-kind=text]")).toHaveText("STRASSE");
   await expect(page.locator("#nucleus [data-application-component=shell]")).toHaveCount(1);
