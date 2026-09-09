@@ -55,7 +55,7 @@ pub struct FrontDoor {
     journey: Option<JourneyProjection>,
     connectivity: Option<ConnectivityProjection>,
     arrival: Option<arrival::Arrival>,
-    startup_refusal: Option<String>,
+    refusal: Option<workspace::WorkspaceRefusal>,
     workspace: Option<crate::product_journey::WorkspaceProjection>,
 }
 
@@ -149,7 +149,7 @@ impl FrontDoor {
             journey: None,
             connectivity: None,
             arrival: None,
-            startup_refusal: None,
+            refusal: None,
             workspace: None,
         }
     }
@@ -234,7 +234,7 @@ impl FrontDoor {
     }
 
     pub fn startup_refused(&mut self, reason: &str) -> Result<(), Error> {
-        self.startup_refusal = Some(reason.into());
+        self.refusal = Some(workspace::WorkspaceRefusal::Startup(reason.into()));
         self.advance()
     }
 

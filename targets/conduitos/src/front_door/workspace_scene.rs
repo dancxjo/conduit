@@ -12,7 +12,7 @@ use conduit_presentation::{
 pub(super) fn scene(
     journey: &JourneyProjection,
     workspace: Option<&crate::product_journey::WorkspaceProjection>,
-    refusal: Option<&str>,
+    refusal: Option<&super::workspace::WorkspaceRefusal>,
     display: &impl PixelTarget,
 ) -> Result<GraphicsScene, Error> {
     let format = display.format().validate().map_err(Error::Display)?;
@@ -91,10 +91,16 @@ pub(super) fn scene(
             &mut scene,
             screen,
             352,
-            "Wake could not finish. Details:",
+            refusal.heading(),
             GraphicsPaintRole::Status,
         )?;
-        text(&mut scene, screen, 384, refusal, GraphicsPaintRole::Status)?;
+        text(
+            &mut scene,
+            screen,
+            384,
+            refusal.reason(),
+            GraphicsPaintRole::Status,
+        )?;
     }
     let footer_y = i16::try_from(screen.height.saturating_sub(48)).map_err(|_| Error::Scene)?;
     if let Some(workspace) = workspace {

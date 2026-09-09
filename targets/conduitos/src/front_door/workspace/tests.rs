@@ -69,3 +69,34 @@ fn empty_and_full_memory_text_manifest_through_the_native_scene() {
         crate::display::render_scene(&mut super::super::tests::Sink, &scene).unwrap();
     }
 }
+
+#[test]
+fn stopped_play_refusal_remains_visible_until_a_new_play_starts() {
+    use crate::product_journey::JourneyStatus;
+    let (mut door, mut journey, workspace) = fixture();
+    assert_eq!(
+        door.play_refused("state-capacity-exhausted"),
+        Err(Error::Presentation)
+    );
+    journey.status = JourneyStatus::Stopped;
+    door.observe_body(journey.clone(), workspace.clone())
+        .unwrap();
+    door.play_refused("state-capacity-exhausted").unwrap();
+    let scene = door.scene(&super::super::tests::Sink).unwrap();
+    crate::display::render_scene(&mut super::super::tests::Sink, &scene).unwrap();
+    assert_eq!(
+        door.refusal.as_ref().map(WorkspaceRefusal::reason),
+        Some("state-capacity-exhausted")
+    );
+    journey.status = JourneyStatus::Lulled;
+    door.observe_body(journey.clone(), workspace.clone())
+        .unwrap();
+    assert_eq!(door.refusal.as_ref().unwrap().key(), "play-refusal");
+    assert_eq!(
+        door.refusal.as_ref().unwrap().heading(),
+        "Play stopped. Details:"
+    );
+    journey.status = JourneyStatus::Playing;
+    door.observe_body(journey, workspace).unwrap();
+    assert!(door.refusal.is_none());
+}

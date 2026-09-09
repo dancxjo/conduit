@@ -1,9 +1,55 @@
 //! Exact Body membership and foreground view, supplied by ProductJourney.
 use super::{Error, FrontDoor};
 use crate::product_journey::{JourneyProjection, WorkspaceProjection};
-use alloc::format;
+use alloc::{format, string::String};
+
+pub(super) enum WorkspaceRefusal {
+    Startup(String),
+    Play(String),
+}
+impl WorkspaceRefusal {
+    pub(super) fn reason(&self) -> &str {
+        match self {
+            Self::Startup(reason) | Self::Play(reason) => reason,
+        }
+    }
+    pub(super) fn key(&self) -> &'static str {
+        match self {
+            Self::Startup(_) => "startup-refusal",
+            Self::Play(_) => "play-refusal",
+        }
+    }
+    pub(super) fn heading(&self) -> &'static str {
+        match self {
+            Self::Startup(_) => "Wake could not finish. Details:",
+            Self::Play(_) => "Play stopped. Details:",
+        }
+    }
+}
 
 impl FrontDoor {
+    /// Refresh from the authoritative lifecycle and its exact resident workset.
+    pub fn observe_product(
+        &mut self,
+        journey: &crate::product_journey::ProductJourney,
+    ) -> Result<(), Error> {
+        if let Some(workspace) = journey.workspace_projection() {
+            self.observe_body(journey.projection(), workspace)
+        } else {
+            self.observe_journey(journey.projection())
+        }
+    }
+
+    pub fn play_refused(&mut self, reason: &str) -> Result<(), Error> {
+        if self.journey.as_ref().map(|journey| journey.status)
+            != Some(crate::product_journey::JourneyStatus::Stopped)
+        {
+            return Err(Error::Presentation);
+        }
+        self.refusal = Some(WorkspaceRefusal::Play(reason.into()));
+        self.advance()
+    }
+
     pub fn observe_body(
         &mut self,
         journey: JourneyProjection,
@@ -81,6 +127,10 @@ impl FrontDoor {
             self.selected_subject = self.form_subject.clone();
         }
         self.form_open = false;
+        // A newly admitted Play supersedes an earlier startup/input refusal.
+        if journey.status == crate::product_journey::JourneyStatus::Playing {
+            self.refusal = None;
+        }
         self.journey = Some(journey);
         self.workspace = Some(workspace);
         self.advance()

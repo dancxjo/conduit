@@ -183,11 +183,11 @@ impl FrontDoor {
                 ));
             }
         }
-        if let Some(reason) = &self.startup_refusal {
+        if let Some(refusal) = &self.refusal {
             properties.push(property(
                 &host,
-                "startup-refusal",
-                PresentationPropertyValue::Text(reason.clone()),
+                refusal.key(),
+                PresentationPropertyValue::Text(refusal.reason().into()),
             ));
         }
         let basis = self.journey.as_ref().map_or_else(

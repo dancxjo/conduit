@@ -60,7 +60,7 @@ impl FrontDoor {
             return super::workspace_scene::scene(
                 self.journey.as_ref().ok_or(Error::Scene)?,
                 self.workspace.as_ref(),
-                self.startup_refusal.as_deref(),
+                self.refusal.as_ref(),
                 display,
             );
         }
