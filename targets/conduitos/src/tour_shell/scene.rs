@@ -120,11 +120,61 @@ pub(super) fn status_scene(
     bounds: LayoutRect,
     presentation: &Presentation,
 ) -> Result<GraphicsScene, TourShellError> {
-    panel_scene(
-        bounds,
-        "BODY / WAKE / PLAN / PLAY",
-        first_text(presentation),
-    )
+    let local = LayoutRect {
+        x: 0,
+        y: 0,
+        width: bounds.width,
+        height: bounds.height,
+    };
+    let mut scene = GraphicsScene::empty();
+    scene
+        .push(
+            GraphicsCommand::rect(
+                local,
+                local,
+                GraphicsPaintRole::Background,
+                GraphicsShapeStyle::Fill,
+            )
+            .map_err(|_| TourShellError::Scene)?,
+        )
+        .map_err(|_| TourShellError::Scene)?;
+    for (index, key) in ["body", "wake", "plan", "play", "lines", "host"]
+        .into_iter()
+        .enumerate()
+    {
+        let identity = alloc::format!("tour/status/{key}");
+        let subject = presentation
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == identity)
+            .ok_or(TourShellError::Identity)?;
+        let item = presentation
+            .text
+            .iter()
+            .find(|item| item.subject == identity)
+            .ok_or(TourShellError::Identity)?;
+        let column = bounds.width / 6;
+        let cell = LayoutRect {
+            x: i16::try_from(index as u16 * column).map_err(|_| TourShellError::Identity)?,
+            y: 0,
+            width: column,
+            height: bounds.height,
+        };
+        let text_bounds = LayoutRect {
+            x: cell.x + 8,
+            y: 12,
+            width: column.saturating_sub(16).max(1),
+            height: bounds.height.saturating_sub(12).max(1),
+        };
+        let text = alloc::format!("{}\n{}", subject.label, item.text);
+        scene
+            .push(
+                GraphicsCommand::text(text_bounds, cell, GraphicsPaintRole::Foreground, &text)
+                    .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+    }
+    Ok(scene)
 }
 pub(super) fn inspector_scene(
     bounds: LayoutRect,
