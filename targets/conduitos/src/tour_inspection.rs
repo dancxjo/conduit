@@ -11,12 +11,14 @@ use super::{PreparationError, TourProduct};
 
 pub(super) struct RunInspection {
     placements: Vec<GearPlacement>,
+    pub(super) observations: crate::text_composition::TextObservations,
 }
 
 struct GearPlacement {
     subject: &'static str,
     implementation: String,
     placement: String,
+    configured_text: Option<String>,
 }
 
 impl RunInspection {
@@ -49,9 +51,20 @@ impl RunInspection {
                 subject,
                 implementation: placement.implementation_id.as_str().into(),
                 placement: placement.placement_id.as_str().into(),
+                configured_text: placement.configuration.iter().find_map(|entry| {
+                    if entry.key == "value"
+                        && let conduit_core::ConfigurationValue::Text(value) = &entry.value
+                    {
+                        return Some(value.clone());
+                    }
+                    None
+                }),
             });
         }
-        Ok(Self { placements })
+        Ok(Self {
+            placements,
+            observations: Default::default(),
+        })
     }
 }
 
@@ -85,6 +98,34 @@ impl TourProduct {
                     proof.plan_id.as_str(),
                     proof.active_play_id.as_str()
                 );
+            } else if item.subject == format!("{selected}/inspection/state") {
+                let observed = &snapshot.observations;
+                item.text = match selected {
+                    "meet-one-gear/change" => format!(
+                        "Last run\nin text: {:?}\nout text: {:?}",
+                        observed
+                            .upper_input
+                            .text()
+                            .ok_or("inspection-input-unobserved")?,
+                        observed
+                            .upper_output
+                            .text()
+                            .ok_or("inspection-output-unobserved")?
+                    ),
+                    "meet-one-gear/result" => format!(
+                        "Last run\nin text: {:?}",
+                        observed
+                            .presentation_input
+                            .text()
+                            .ok_or("inspection-presentation-unobserved")?
+                    ),
+                    _ => placement.configured_text.as_ref().map_or_else(
+                        || "Literal output not directly observed".into(),
+                        |value| {
+                            format!("Configured value: {value:?}\nOutput not directly observed")
+                        },
+                    ),
+                };
             }
         }
         presentation.basis.source_document_id = Some(proof.source_document_id.clone());
