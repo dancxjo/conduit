@@ -135,11 +135,19 @@ impl Arrival {
                         GraphicsTextRole::Action,
                     )?;
                 }
+                ("form-search", PresentationMechanism::FormField(field)) => {
+                    line(
+                        232,
+                        &format!("{}: {}", field.label, field.value),
+                        self.focus == 3,
+                        GraphicsTextRole::Code,
+                    )?;
+                }
                 ("initial-forms", PresentationMechanism::ChoiceGroup { label, options, .. }) => {
-                    line(248, label, false, GraphicsTextRole::Label)?;
+                    line(272, label, false, GraphicsTextRole::Label)?;
                     for (index, choice) in options.iter().enumerate() {
                         line(
-                            276 + index as i16 * 24,
+                            300 + index as i16 * 24,
                             &format!(
                                 "{}  {}{}",
                                 if choice.selected { "●" } else { "○" },
@@ -153,17 +161,20 @@ impl Arrival {
                                     " / unavailable"
                                 }
                             ),
-                            self.focus == index + 3,
+                            self.focus == index + 4,
                             GraphicsTextRole::Body,
                         )?;
                     }
                     choice_count = options.len();
                 }
+                ("selected-forms", PresentationMechanism::Status { title, .. }) => {
+                    line(348, title, false, GraphicsTextRole::Status)?;
+                }
                 ("birth-body", PresentationMechanism::Action(action)) => {
                     line(
-                        328,
+                        376,
                         &format!("{}  ·  Enter / F3", action.label),
-                        self.focus == choice_count + 3,
+                        self.focus == choice_count + 4,
                         GraphicsTextRole::Action,
                     )?;
                 }
@@ -195,7 +206,7 @@ impl Arrival {
         scene
             .push(
                 GraphicsCommand::icon(
-                    LayoutRect { x: x - 24, y: y + 328, width: 16, height: 16 },
+                    LayoutRect { x: x - 24, y: y + 376, width: 16, height: 16 },
                     screen,
                     GraphicsPaintRole::Success,
                     PresentationIconKey::Confirm,
