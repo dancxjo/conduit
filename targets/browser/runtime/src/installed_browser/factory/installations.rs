@@ -48,6 +48,8 @@ pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
     &crate::installed_browser::text::UPPER,
     &crate::installed_browser::text::JOIN,
     &crate::installed_browser::text::PRESENTATION,
+    &crate::installed_browser::text_state::EDIT,
+    &crate::installed_browser::text_state::SUBMIT,
     &crate::installed_browser::linguistics::TOKENIZE,
     &crate::installed_browser::linguistics::ANNOTATE,
     &crate::installed_browser::linguistics::PRESENTATION,
@@ -87,6 +89,7 @@ pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
     &crate::installed_browser::layout::VIEWPORT,
     &crate::installed_browser::input::KEYBOARD,
     &crate::installed_browser::input::BUTTON,
+    &crate::installed_browser::keymap::INSTALLATION,
     &crate::installed_browser::button_indicator::MAPPER,
     &crate::installed_browser::button_indicator::INDICATOR,
 ];

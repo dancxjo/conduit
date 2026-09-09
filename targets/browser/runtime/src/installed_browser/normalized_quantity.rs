@@ -55,7 +55,8 @@ fn prepare(
     CONVERTER.get_or_init(PreparedNormalizedQuantity::new);
     Ok(BrowserOperation::installed(NormalizeOperation {
         pending: false,
-        done: false,
+        next_request: 0,
+        cancelled: false,
     }))
 }
 
@@ -82,7 +83,8 @@ fn failure(detail: u16) -> Failure {
 
 struct NormalizeOperation {
     pending: bool,
-    done: bool,
+    next_request: u32,
+    cancelled: bool,
 }
 
 impl Operation for NormalizeOperation {
@@ -95,26 +97,32 @@ impl Operation for NormalizeOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if !self.pending && !self.done => {
+            } if !self.pending && !self.cancelled => {
                 let Ok(input) = BoundedValueRef::new(
                     value,
                     conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
                 ) else {
                     return OperationAction::Fail(failure(11));
                 };
+                let request = RequestId(self.next_request);
+                let Some(next_request) = self.next_request.checked_add(1) else {
+                    return OperationAction::Fail(Failure {
+                        code: FailureCode::IdentityCapacityExhausted,
+                        detail: 15,
+                    });
+                };
+                self.next_request = next_request;
                 self.pending = true;
                 OperationAction::RequestHostOperation {
-                    request: RequestId(0),
+                    request,
                     operation: HostOperationId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending => {
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending && request.0.checked_add(1) == Some(self.next_request) =>
+            {
                 self.pending = false;
-                self.done = true;
                 match (outcome.disposition, outcome.output, outcome.failure) {
                     (HostOperationDisposition::Completed, Some(output), None)
                         if output.admitted_bytes == 8 && output.value.byte_len == 8 =>
@@ -139,7 +147,7 @@ impl Operation for NormalizeOperation {
 
     fn cancel(&mut self) {
         self.pending = false;
-        self.done = true;
+        self.cancelled = true;
     }
 }
 
@@ -172,7 +180,8 @@ mod tests {
             assert_eq!(reason, failure(detail));
             let mut operation = NormalizeOperation {
                 pending: true,
-                done: false,
+                next_request: 1,
+                cancelled: false,
             };
             assert_eq!(
                 operation.resume(OperationInput::HostOperationCompleted {

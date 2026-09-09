@@ -13,6 +13,8 @@ mod remote_execution;
 mod session_cancellation;
 mod session_effects;
 mod session_signs;
+#[cfg(feature = "creche-surface")]
+pub(crate) mod workspace;
 
 #[cfg(test)]
 use crate::installed_browser::{advertisement, catalogs};

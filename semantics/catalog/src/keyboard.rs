@@ -6,14 +6,13 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_human::{KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID};
+use conduit_human::KEY_EVENT_INFO_ID;
 
 pub const KEYBOARD_KIND: &str = "input/keyboard";
 pub const KEYBOARD_PORT: &str = "key";
-pub const KEYBOARD_CONTRACT_REVISION: &str = "conduit.input/keyboard@1";
+pub const KEYBOARD_CONTRACT_REVISION: &str = "conduit.input/keyboard@2";
 pub const KEYBOARD_MAX_QUEUE_ITEMS: u16 = 8;
-pub const KEYBOARD_MAX_QUEUE_BYTES: u32 =
-    KEYBOARD_MAX_QUEUE_ITEMS as u32 * KEY_EVENT_ENCODED_LEN as u32;
+pub const KEYBOARD_MAX_QUEUE_BYTES: u32 = 64;
 
 pub fn keyboard_contract() -> StandardKindContract {
     StandardKindContract {
@@ -45,7 +44,7 @@ pub fn keyboard_outputs() -> Vec<PortDescriptor> {
         port_id: port_id(KEYBOARD_PORT),
         value_kind: kind_id(KEY_EVENT_INFO_ID),
         direction: PortDirection::Output,
-        temporal: PortTemporal::Flow { closes: true },
+        temporal: PortTemporal::Flow { closes: false },
     }]
 }
 
@@ -77,17 +76,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn keyboard_is_a_finite_typed_closing_source() {
+    fn keyboard_is_a_finite_bounded_open_source() {
         let contract = keyboard_contract();
         assert!(contract.inputs.is_empty());
         assert_eq!(contract.outputs, keyboard_outputs());
         assert_eq!(contract.outputs[0].value_kind.as_str(), KEY_EVENT_INFO_ID);
         assert_eq!(
             contract.outputs[0].temporal,
-            PortTemporal::Flow { closes: true }
+            PortTemporal::Flow { closes: false }
         );
         assert_eq!(contract.limits.max_queue_items, 8);
-        assert_eq!(contract.limits.max_queue_bytes, 24);
+        assert_eq!(contract.limits.max_queue_bytes, 64);
     }
 
     #[cfg(feature = "form-catalog")]

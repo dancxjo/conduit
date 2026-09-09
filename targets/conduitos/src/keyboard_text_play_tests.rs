@@ -9,7 +9,7 @@ use crate::{
     offer::{CpuFeatures, HostOffer},
 };
 
-fn prepared() -> keyboard_text_plan::PreparedKeyboardTextPlay {
+pub(crate) fn prepared() -> keyboard_text_plan::PreparedKeyboardTextPlay {
     let identities = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
@@ -26,6 +26,7 @@ fn prepared() -> keyboard_text_plan::PreparedKeyboardTextPlay {
     )
     .with_keyboard(
         KeyboardRealization {
+            mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
             controller_id: [3; 32],
             device_id: [4; 32],
             interface_id: [5; 32],

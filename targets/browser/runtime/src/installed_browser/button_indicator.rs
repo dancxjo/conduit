@@ -9,8 +9,8 @@ use conduit_core::{
     BOOL_ENCODED_LEN, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{
-    Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    ValueRef, ValueStorage,
+    CanonicalValue, Failure, FailureCode, HostedValueStore, Operation, OperationAction,
+    OperationInput, PortId, ValueRef,
 };
 
 const ARTIFACT: &str = "conduit-browser-runtime/button-indicator@1";
@@ -77,20 +77,11 @@ fn indicator_offer() -> conduit_core::CapabilityOffer {
 
 fn prepare_mapper(
     placement: &PlannedGear,
-    values: &mut HostedValueStore,
+    _values: &mut HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &mapper_offer())?;
-    let admitted_states = |values: &mut HostedValueStore, level: InfoBool| {
-        (0..conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_VALUES)
-            .map(|_| values.store(&level.encode()).map_err(debug))
-            .collect::<Result<Vec<_>, _>>()
-    };
-    let off = admitted_states(values, InfoBool::FALSE)?;
-    let on = admitted_states(values, InfoBool::TRUE)?;
     Ok(BrowserOperation::installed(ButtonIndicatorOperation {
         mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().map_err(debug)?,
-        off,
-        on,
         emitted: 0,
     }))
 }
@@ -116,9 +107,7 @@ fn perform_indicator(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHo
 
 struct ButtonIndicatorOperation {
     mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper,
-    off: Vec<ValueRef>,
-    on: Vec<ValueRef>,
-    emitted: usize,
+    emitted: u32,
 }
 
 impl Operation for ButtonIndicatorOperation {
@@ -143,19 +132,20 @@ impl Operation for ButtonIndicatorOperation {
             return fail(61);
         }
         match self.mapper.map(canonical) {
-            Ok(value) if self.emitted < self.on.len() => {
-                let emitted = self.emitted;
-                self.emitted += 1;
-                OperationAction::Emit {
+            Ok(value) => {
+                let Some(next) = self.emitted.checked_add(1) else {
+                    return OperationAction::Fail(Failure {
+                        code: FailureCode::IdentityCapacityExhausted,
+                        detail: 63,
+                    });
+                };
+                self.emitted = next;
+                OperationAction::EmitCanonical {
                     port: PortId(0),
-                    value: if value.get() {
-                        self.on[emitted]
-                    } else {
-                        self.off[emitted]
-                    },
+                    value: CanonicalValue::new(&value.encode())
+                        .expect("indicator state has a fixed canonical encoding"),
                 }
             }
-            Ok(_) => fail(63),
             Err(_) => fail(62),
         }
     }
@@ -181,18 +171,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pressed_and_released_emit_pre_admitted_current_states() {
+    fn pressed_and_released_emit_transaction_local_current_states() {
         let mut operation = ButtonIndicatorOperation {
             mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().unwrap(),
-            off: vec![value(1), value(3)],
-            on: vec![value(2), value(4)],
             emitted: 0,
         };
-        for (pressed, slot) in [(true, 2), (false, 3)] {
+        for pressed in [true, false, true, false] {
             let encoded = conduit_semantic_catalog::button_transition_value(
                 "button/primary",
                 pressed,
-                u64::from(slot),
+                u64::from(operation.emitted),
             )
             .unwrap()
             .canonical_bytes()
@@ -207,13 +195,17 @@ mod tests {
                     },
                     &encoded,
                 ),
-                OperationAction::Emit {
+                OperationAction::EmitCanonical {
                     port: PortId(0),
-                    value: ValueRef {
-                        slot,
-                        generation: 1,
-                        byte_len: 1
-                    },
+                    value: CanonicalValue::new(
+                        &if pressed {
+                            InfoBool::TRUE
+                        } else {
+                            InfoBool::FALSE
+                        }
+                        .encode(),
+                    )
+                    .unwrap(),
                 }
             );
             assert_eq!(operation.advance(), OperationAction::Await);
@@ -229,11 +221,9 @@ mod tests {
     }
 
     #[test]
-    fn mapping_refuses_bad_input_and_exhaustion_and_preserves_closure() {
+    fn mapping_refuses_bad_input_and_preserves_reuse_and_closure() {
         let mut operation = ButtonIndicatorOperation {
             mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().unwrap(),
-            off: vec![value(1)],
-            on: vec![value(2)],
             emitted: 0,
         };
         let encoded = conduit_semantic_catalog::button_transition_value("button/primary", true, 0)
@@ -252,16 +242,16 @@ mod tests {
         assert_eq!(operation.emitted, 0);
         assert_eq!(
             operation.resume_value(PortId(0), value(0), &encoded),
-            OperationAction::Emit {
+            OperationAction::EmitCanonical {
                 port: PortId(0),
-                value: value(2)
+                value: CanonicalValue::new(&InfoBool::TRUE.encode()).unwrap()
             }
         );
         assert_eq!(operation.advance(), OperationAction::Await);
-        assert_eq!(
+        assert!(matches!(
             operation.resume_value(PortId(0), value(0), &encoded),
-            fail(63)
-        );
+            OperationAction::EmitCanonical { .. }
+        ));
         assert_eq!(
             operation.resume(OperationInput::Closed { port: PortId(0) }),
             OperationAction::Complete

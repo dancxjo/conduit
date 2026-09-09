@@ -55,7 +55,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             port_id: port_id(name),
             value_kind: kind_id(value),
             direction,
-            temporal: PortTemporal::Flow { closes: true },
+            temporal: PortTemporal::Flow { closes: false },
         };
         profile
             .insert(KindDefinition {

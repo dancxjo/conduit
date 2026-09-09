@@ -79,7 +79,7 @@ impl PatternComparisonOperation {
                 port: PortId(port @ 0..=1),
             } if self.pending.is_none() && !self.closed[usize::from(port)] => {
                 self.closed[usize::from(port)] = true;
-                if self.closed == [true, true] && self.emitted {
+                if self.closed == [true, true] {
                     OperationAction::Complete
                 } else {
                     OperationAction::Await
@@ -90,7 +90,11 @@ impl PatternComparisonOperation {
     }
 
     pub fn advance(&mut self) -> OperationAction {
-        if self.closed == [true, true] && self.emitted {
+        if self.emitted {
+            self.emitted = false;
+            self.received[0] = false;
+        }
+        if self.closed == [true, true] {
             OperationAction::Complete
         } else {
             OperationAction::Await

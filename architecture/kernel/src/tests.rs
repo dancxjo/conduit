@@ -303,6 +303,38 @@ fn fixed_sign_has_independent_item_and_byte_budgets() {
 }
 
 #[test]
+fn fixed_sign_evicts_transient_history_with_an_exact_gap_but_keeps_terminal_truth() {
+    let charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
+    let mut log = FixedSignLog::<3>::new(charge * 3).unwrap();
+    log.record(NodeId(0), None, None, KernelEventKind::OperationCompleted)
+        .unwrap();
+    log.record(NodeId(1), None, None, KernelEventKind::ValueRouted)
+        .unwrap();
+    log.record(NodeId(2), None, None, KernelEventKind::ValueConsumed)
+        .unwrap();
+    let newest = log
+        .record(
+            NodeId(3),
+            None,
+            None,
+            KernelEventKind::HostOperationRequested,
+        )
+        .unwrap();
+    assert_eq!(newest.sequence, 3);
+    assert!(log.contains_kind(KernelEventKind::OperationCompleted));
+    assert_eq!(
+        log.retention_gap(),
+        Some(super::SignRetentionGap {
+            first_sequence: 1,
+            last_sequence: 1,
+            entries: 1,
+        })
+    );
+    assert_eq!(log.len(), 3);
+    assert_eq!(log.used_bytes(), charge * 3);
+}
+
+#[test]
 fn remote_sign_identity_requires_separate_admission_and_fails_atomically() {
     let event_charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
     let remote_charge = super::remote_sign_storage_bytes(1).unwrap();
@@ -351,6 +383,56 @@ fn remote_sign_identity_requires_separate_admission_and_fails_atomically() {
     assert_eq!(admitted.len(), 1);
     assert_eq!(admitted.used_bytes(), event_charge);
     assert_eq!(admitted.remote_len(), 1);
+}
+
+#[test]
+fn remote_sign_evicts_transient_history_but_preserves_remote_lifecycle_identity() {
+    let event_charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
+    let remote_charge = super::remote_sign_storage_bytes(2).unwrap();
+    let mut log =
+        FixedSignLog::<2>::new_with_remote_storage(event_charge * 2, 2, remote_charge).unwrap();
+    log.record(NodeId(0), None, None, KernelEventKind::ValueRouted)
+        .unwrap();
+    let first_identity = super::RemoteLifecycleIdentity {
+        endpoint: super::RemoteEndpointId(1),
+        cord: CordId(0),
+        direction: super::RemoteCordDirection::Egress,
+        sequence: 0,
+    };
+    let first = log
+        .record_remote(
+            NodeId(1),
+            PortId(0),
+            KernelEventKind::RemoteValueOffered,
+            first_identity,
+        )
+        .unwrap();
+    let second_identity = super::RemoteLifecycleIdentity {
+        sequence: 1,
+        ..first_identity
+    };
+    let second = log
+        .record_remote(
+            NodeId(1),
+            PortId(0),
+            KernelEventKind::RemoteValueDelivered,
+            second_identity,
+        )
+        .unwrap();
+    assert_eq!(log.remote_identity(first.sequence), Some(first_identity));
+    assert_eq!(log.remote_identity(second.sequence), Some(second_identity));
+    assert_eq!(
+        log.retention_gap(),
+        Some(super::SignRetentionGap {
+            first_sequence: 0,
+            last_sequence: 0,
+            entries: 1,
+        })
+    );
+    assert_eq!(
+        log.record(NodeId(2), None, None, KernelEventKind::OperationCompleted),
+        Err(SignError::ItemCapacityExceeded)
+    );
 }
 
 #[cfg(feature = "alloc")]

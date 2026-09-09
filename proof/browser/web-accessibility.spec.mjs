@@ -1,3 +1,4 @@
+import { openCrecheStep } from "./creche-test-actions.mjs";
 import AxeBuilder from "@axe-core/playwright";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
@@ -40,7 +41,7 @@ test("shared skip link reaches each product's primary content", async ({ page })
     if (path === "tour/") await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
     if (path === "creche/") {
       await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-      await expect(page.locator("#workspace h2")).toBeFocused();
+      await expect(page.locator('[data-application-key="creche-heading"]')).toBeFocused();
     }
     if (path === "patchbay/") await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     const skip = page.getByRole("link", { name: "Skip to main content" });
@@ -64,6 +65,6 @@ test("dynamic workspaces use focused headings instead of broad live regions", as
   await page.goto(`${entrance.url}creche/`);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await expect(page.locator("#workspace")).not.toHaveAttribute("aria-live", /.+/);
-  await page.getByRole("button", { name: /2\. First Host/ }).click();
+  await openCrecheStep(page, "2. First Host");
   await expect(page.locator("#workspace h2")).toBeFocused();
 });

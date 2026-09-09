@@ -19,7 +19,7 @@ use crate::{
 pub const DETERMINISTIC_GAMEPAD_KIND: &str = "input/deterministic-gamepad";
 pub const DETERMINISTIC_POINTER_TOUCH_KIND: &str = "input/deterministic-pointer-touch";
 pub const POINTER_SOURCE_KIND: &str = "input/pointer-source";
-pub const GENERALIZED_INPUT_REVISION: &str = "conduit.std/generalized-input@1";
+pub const GENERALIZED_INPUT_REVISION: &str = "conduit.std/generalized-input@2";
 
 pub fn install_generalized_input_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -34,7 +34,7 @@ pub fn install_generalized_input_catalogs(
         startup,
         profile,
         POINTER_SOURCE_KIND,
-        vec![port(
+        vec![source_port(
             "pointer",
             &pointer_event_type(),
             PortDirection::Output,
@@ -107,4 +107,14 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
         direction,
         temporal: PortTemporal::Value,
     }
+}
+
+fn source_port(
+    name: &str,
+    value_type: &StructuredInfoType,
+    direction: PortDirection,
+) -> PortDescriptor {
+    let mut port = port(name, value_type, direction);
+    port.temporal = PortTemporal::Flow { closes: false };
+    port
 }

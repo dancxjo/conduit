@@ -23,7 +23,7 @@ test("Pocket Theremin maps pointer and deterministic control to typed pitch", as
     expect(evidence.effect.text).toBe(expected);
     expect(evidence.effect.expanded_gears.filter(({ kind_id }) => kind_id.startsWith("structured-info/selector-")).length).toBe(2);
     expect(evidence.effect.expanded_gears.some(({ kind_id }) => kind_id === "math/map-quantity")).toBe(true);
-    expect(evidence.receipt.disposition).toBe("completed");
+    expect(evidence.receipt.disposition).toBe("cancelled");
     expect(evidence.acquisition.active_play_id).toBe(evidence.effect.active_play_id);
     expect(evidence.receipt.active_play_id).toBe(evidence.effect.active_play_id);
     plays.push(evidence.effect.active_play_id);
@@ -32,8 +32,14 @@ test("Pocket Theremin maps pointer and deterministic control to typed pitch", as
   await expect(page.locator("#output")).toHaveText("15005 Hz");
   const alternate = JSON.parse(await page.locator("#evidence").textContent());
   expect(alternate.inputMode).toBe("deterministic");
-  expect(alternate.receipt.disposition).toBe("completed");
+  expect(alternate.receipt.disposition).toBe("cancelled");
   plays.push(alternate.effect.active_play_id);
   expect(new Set(plays).size).toBe(3);
   expect(errors).toEqual([]);
+  console.log(`CONDUIT_FORM_EVIDENCE=${JSON.stringify({
+    slug: "pocket-theremin",
+    status: "passed",
+    plan_id: alternate.effect.plan_id,
+    play_id: alternate.effect.active_play_id,
+  })}`);
 });

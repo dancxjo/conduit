@@ -49,6 +49,8 @@ pub enum CheckSuite {
     InputSemantics,
     /// Run the Linux Landlock/seccomp hosted Base confinement proof.
     HostedBaseIsolation,
+    /// Prove the exact-endpoint OS-capability-mediated HTTP Base.
+    IsolatedHttpBase,
     /// Prove directional external mappings and exact reflection fencing.
     InteropMembrane,
     /// Prove mutually authenticated, replay-fenced, non-transitive federation.
@@ -61,6 +63,8 @@ pub enum CheckSuite {
     Ros2Base,
     /// Run the permanent cross-boundary adversarial security acceptance gate.
     SecurityAcceptance,
+    /// Run the attended low-energy physical-effect HIL proof.
+    PhysicalEffectHil,
     All,
 }
 
@@ -98,12 +102,14 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::HostedBaseIsolation => run_suite(HOSTED_BASE_ISOLATION_STEPS, &root, opts),
+        CheckSuite::IsolatedHttpBase => run_suite(ISOLATED_HTTP_BASE_STEPS, &root, opts),
         CheckSuite::InteropMembrane => run_suite(INTEROP_MEMBRANE_STEPS, &root, opts),
         CheckSuite::FederationSecurity => run_suite(FEDERATION_SECURITY_STEPS, &root, opts),
         CheckSuite::ConfinedGear => run_suite(CONFINED_GEAR_STEPS, &root, opts),
         CheckSuite::ConsequentialEffect => run_suite(CONSEQUENTIAL_EFFECT_STEPS, &root, opts),
         CheckSuite::Ros2Base => run_suite(ROS2_BASE_STEPS, &root, opts),
         CheckSuite::SecurityAcceptance => run_suite(SECURITY_ACCEPTANCE_STEPS, &root, opts),
+        CheckSuite::PhysicalEffectHil => run_suite(PHYSICAL_EFFECT_HIL_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
@@ -144,7 +150,38 @@ const HOSTED_BASE_ISOLATION_STEPS: &[Step] = &[
             "--locked",
         ],
     ),
+    Step::new(
+        "hosted-base-isolation.http",
+        "Prove exact-endpoint HTTP descriptor authority and mechanical socket denial",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--features",
+            "isolated-http-base",
+            "--test",
+            "isolated_http_base",
+            "--locked",
+        ],
+    ),
 ];
+
+const ISOLATED_HTTP_BASE_STEPS: &[Step] = &[Step::new(
+    "isolated-http-base.exact-endpoint",
+    "Prove checked HTTP meaning, exact endpoint authority, and OS-confined provider denial",
+    "cargo",
+    &[
+        "test",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "isolated-http-base",
+        "--test",
+        "isolated_http_base",
+        "--locked",
+    ],
+)];
 
 const INTEROP_MEMBRANE_STEPS: &[Step] = &[Step::new(
     "interop-membrane.core",
@@ -283,6 +320,21 @@ const SECURITY_ACCEPTANCE_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "security-acceptance.http-base",
+        "Attack exact endpoint, redirect, stale scope, raw socket, and listener boundaries",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--features",
+            "isolated-http-base",
+            "--test",
+            "isolated_http_base",
+            "--locked",
+        ],
+    ),
+    Step::new(
         "security-acceptance.federation",
         "Attack authenticated A-B-C federation authority and replay fences",
         "cargo",
@@ -327,6 +379,22 @@ const SECURITY_ACCEPTANCE_STEPS: &[Step] = &[
         &["xtask", "conduitos", "isolation-proof"],
     ),
 ];
+
+const PHYSICAL_EFFECT_HIL_STEPS: &[Step] = &[Step::new(
+    "physical-effect-hil.wifi",
+    "Require fresh attendance and independently observe one bounded physical transmission",
+    "cargo",
+    &[
+        "run",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "physical-effect-proof",
+        "--bin",
+        "conduit-physical-effect-proof",
+        "--locked",
+    ],
+)];
 
 const QUANTITY_MAPPING_STEPS: &[Step] = &[
     Step::new(

@@ -1,5 +1,7 @@
 use super::*;
 
+const MAXIMUM_EFFECT_DRIVE_STEPS: usize = crate::installed_browser::BROWSER_ROUTE_SLOTS;
+
 const HELLO_LIGHT: &str = r#"form hello-light {
     complete
     message: text/literal("SOS")
@@ -52,62 +54,342 @@ fn canonical_button_form_runs_press_and_release_without_device_identity() {
     );
 
     let (mut session, first) = TourSession::prepare(host_id, boot_id, source, 40).unwrap();
-    let TourHostEffect::ButtonTransition(first) = first else {
-        panic!("button Form must request its first ordered transition")
-    };
-    assert_eq!(first.request_sequence, 0);
+    assert!(matches!(first, TourHostEffect::ButtonTransition(_)));
+    let play = session.active_play_id.as_str().to_owned();
+    let mut observed = Vec::new();
 
-    let press = conduit_semantic_catalog::button_transition_value("button/primary", true, 0)
-        .unwrap()
-        .canonical_bytes()
-        .unwrap();
-    let TourProgress::Effect(second) = session.advance_with_output(&press).unwrap() else {
-        panic!("press must preserve the next bounded input request")
-    };
-    let TourHostEffect::ButtonTransition(second) = *second else {
-        panic!("button Form must preserve the second ordered transition")
-    };
-    assert_eq!(second.request_sequence, 1);
+    for sequence in 0..4_u64 {
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
+            if session.pending.iter().any(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::ButtonTransition)
+            }) {
+                break;
+            }
+            let _ = session.poll_effect().unwrap();
+        }
+        let input_index = session
+            .pending
+            .iter()
+            .position(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::ButtonTransition)
+            })
+            .expect("same Play must remain armed for another button transition");
+        let request = session.pending[input_index].request;
+        assert_eq!(request.request.0, sequence as u32);
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
+            .placement_id
+            .as_str()
+            .to_owned();
+        let pressed = sequence.is_multiple_of(2);
+        let value =
+            conduit_semantic_catalog::button_transition_value("button/primary", pressed, sequence)
+                .unwrap()
+                .canonical_bytes()
+                .unwrap();
+        let _ = session
+            .complete_effect(&play, &placement, request.request.0, Some(&value))
+            .unwrap();
 
-    let release = conduit_semantic_catalog::button_transition_value("button/primary", false, 1)
-        .unwrap()
-        .canonical_bytes()
-        .unwrap();
-    let TourProgress::Effect(on) = session.advance_with_output(&release).unwrap() else {
-        panic!("both bounded transitions must flow to presentation")
-    };
-    let on = manifestation(*on);
-    assert_eq!(on.presentation_kind, "presentation/indicator-state");
-    assert_eq!(on.text.as_deref(), Some("true"));
-    assert_eq!(on.host_id, host_id);
-    assert_eq!(on.boot_id, boot_id);
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
+            if session.pending.iter().any(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
+            }) {
+                break;
+            }
+            let _ = session.poll_effect().unwrap();
+        }
+        let output_index = session
+            .pending
+            .iter()
+            .position(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
+            })
+            .expect("button transition must update the indicator");
+        let TourHostEffect::Manifestation(output) =
+            session.project_pending_effect(output_index).unwrap()
+        else {
+            unreachable!()
+        };
+        assert_eq!(output.presentation_kind, "presentation/indicator-state");
+        assert_eq!(
+            output.text.as_deref(),
+            Some(if pressed { "true" } else { "false" })
+        );
+        assert_eq!(output.host_id, host_id);
+        assert_eq!(output.boot_id, boot_id);
+        assert_eq!(output.active_play_id, play);
+        observed.push(output.observation_sequence);
+        let request = session.pending[output_index].request;
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
+            .placement_id
+            .as_str()
+            .to_owned();
+        let _ = session
+            .complete_effect(&play, &placement, request.request.0, None)
+            .unwrap();
+    }
 
-    let TourProgress::Effect(off) = session.advance().unwrap() else {
-        panic!("press manifestation completion must reveal release manifestation")
-    };
-    let off = manifestation(*off);
-    assert_eq!(off.text.as_deref(), Some("false"));
-    assert_eq!(off.checked_form_id, on.checked_form_id);
-    assert_eq!(off.plan_id, on.plan_id);
-    assert_eq!(off.active_play_id, on.active_play_id);
-
-    let TourProgress::Waiting {
-        disposition,
-        active_play_id,
-        pending_effects,
-        timer_completions,
-        manifestation_completions,
-        ..
-    } = session.advance().unwrap()
-    else {
-        panic!("living button Play must remain quiescent after its current events")
-    };
-    assert_eq!(disposition, "quiescent_awaiting_input");
-    assert_eq!(active_play_id, on.active_play_id);
-    assert_eq!(pending_effects, 0);
-    assert_eq!(timer_completions, 0);
-    assert_eq!(manifestation_completions, 2);
+    assert_eq!(observed, vec![0, 1, 2, 3]);
+    assert_eq!(session.active_play_id.as_str(), play);
     assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+}
+
+#[test]
+fn morse_keyboard_reacts_to_three_separated_keys_in_one_play() {
+    let source = include_str!("../../../../../forms/morse-network/main.conduit");
+    let (mut session, first) = TourSession::prepare(
+        "browser/morse-live-proof",
+        "browser-boot/morse-live-proof",
+        source,
+        41,
+    )
+    .unwrap();
+    assert!(matches!(first, TourHostEffect::KeyEvent(_)));
+    let play = session.active_play_id.as_str().to_owned();
+    let mut observations = Vec::new();
+
+    for usage in [0x04, 0x05, 0x06] {
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
+            if session
+                .pending
+                .iter()
+                .any(|pending| matches!(pending.effect, engine::BrowserHostEffect::KeyEvent))
+            {
+                break;
+            }
+            let _ = session.poll_effect().unwrap();
+        }
+        let key_index = session
+            .pending
+            .iter()
+            .position(|pending| matches!(pending.effect, engine::BrowserHostEffect::KeyEvent))
+            .expect("same Play must remain armed for the next keyboard transition");
+        let request = session.pending[key_index].request;
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
+            .placement_id
+            .as_str()
+            .to_owned();
+        let encoded = conduit_human::KeyEvent::new(
+            usage,
+            conduit_human::KeyTransition::Pressed,
+            conduit_human::KeyModifiers::NONE,
+        )
+        .unwrap()
+        .encode();
+        let _ = session
+            .complete_effect(&play, &placement, request.request.0, Some(&encoded))
+            .unwrap();
+
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
+            if session.pending.iter().any(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
+            }) {
+                break;
+            }
+            let _ = session.poll_effect().unwrap();
+        }
+        let manifestation_index = session
+            .pending
+            .iter()
+            .position(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
+            })
+            .expect("typed character must reach the Morse indicator");
+        let TourHostEffect::Manifestation(effect) =
+            session.project_pending_effect(manifestation_index).unwrap()
+        else {
+            unreachable!()
+        };
+        assert_eq!(effect.active_play_id, play);
+        assert!(!effect.segments.is_empty());
+        observations.push(effect.observation_sequence);
+        let request = session.pending[manifestation_index].request;
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
+            .placement_id
+            .as_str()
+            .to_owned();
+        let _ = session
+            .complete_effect(&play, &placement, request.request.0, None)
+            .unwrap();
+    }
+
+    assert_eq!(observations, vec![0, 1, 2]);
+    assert_eq!(session.active_play_id.as_str(), play);
+    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+}
+
+#[test]
+fn memory_lantern_retains_edits_and_backspace_in_one_play() {
+    let source = include_str!("../../../../../forms/memory-lantern/main.conduit");
+    let (mut session, first) = TourSession::prepare(
+        "browser/memory-lantern-live-proof",
+        "browser-boot/memory-lantern-live-proof",
+        source,
+        42,
+    )
+    .unwrap();
+    assert!(matches!(first, TourHostEffect::KeyEvent(_)));
+    let play = session.active_play_id.as_str().to_owned();
+    let mut observed = Vec::new();
+
+    for usage in [0x04, 0x05, 0x06, 0x2a] {
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
+            if session
+                .pending
+                .iter()
+                .any(|pending| matches!(pending.effect, engine::BrowserHostEffect::KeyEvent))
+            {
+                break;
+            }
+            let _ = session.poll_effect().unwrap();
+        }
+        let input_index = session
+            .pending
+            .iter()
+            .position(|pending| matches!(pending.effect, engine::BrowserHostEffect::KeyEvent))
+            .expect("Memory Lantern must remain armed for another edit");
+        let request = session.pending[input_index].request;
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
+            .placement_id
+            .as_str()
+            .to_owned();
+        let encoded = conduit_human::KeyEvent::new(
+            usage,
+            conduit_human::KeyTransition::Pressed,
+            conduit_human::KeyModifiers::NONE,
+        )
+        .unwrap()
+        .encode();
+        let _ = session
+            .complete_effect(&play, &placement, request.request.0, Some(&encoded))
+            .unwrap();
+
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
+            if session.pending.iter().any(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
+            }) {
+                break;
+            }
+            let _ = session.poll_effect().unwrap();
+        }
+        let output_index = session
+            .pending
+            .iter()
+            .position(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
+            })
+            .expect("each edit must update the retained presentation");
+        let TourHostEffect::Manifestation(output) =
+            session.project_pending_effect(output_index).unwrap()
+        else {
+            unreachable!()
+        };
+        assert_eq!(output.active_play_id, play);
+        observed.push(output.text.unwrap());
+        let request = session.pending[output_index].request;
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
+            .placement_id
+            .as_str()
+            .to_owned();
+        let _ = session
+            .complete_effect(&play, &placement, request.request.0, None)
+            .unwrap();
+    }
+
+    assert_eq!(observed, ["a", "ab", "abc", "ab"]);
+    assert_eq!(session.active_play_id.as_str(), play);
+    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+}
+
+#[test]
+fn desk_telegraph_and_night_radio_submit_two_messages_in_one_play() {
+    for source in [
+        include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+        include_str!("../../../../../forms/night-radio/main.conduit"),
+    ] {
+        let (mut session, first) = TourSession::prepare(
+            "browser/living-messages",
+            "browser-boot/living-messages",
+            source,
+            43,
+        )
+        .unwrap();
+        assert!(matches!(first, TourHostEffect::KeyEvent(_)));
+        let play = session.active_play_id.as_str().to_owned();
+        let mut outputs = Vec::new();
+
+        for (sequence, usage) in [0x04_u8, 0x28, 0x05, 0x28].into_iter().enumerate() {
+            for _ in 0..24 {
+                if session
+                    .pending
+                    .iter()
+                    .any(|pending| matches!(pending.effect, engine::BrowserHostEffect::KeyEvent))
+                {
+                    break;
+                }
+                let _ = session.poll_effect().unwrap();
+            }
+            let input_index = session
+                .pending
+                .iter()
+                .position(|pending| matches!(pending.effect, engine::BrowserHostEffect::KeyEvent))
+                .expect("message station must remain armed for keyboard input");
+            let request = session.pending[input_index].request;
+            let placement = session.fragments[0].placements[usize::from(request.node.0)]
+                .placement_id
+                .as_str()
+                .to_owned();
+            let encoded = conduit_human::KeyEvent::new(
+                usage,
+                conduit_human::KeyTransition::Pressed,
+                conduit_human::KeyModifiers::NONE,
+            )
+            .unwrap()
+            .encode();
+            let _ = session
+                .complete_effect(&play, &placement, request.request.0, Some(&encoded))
+                .unwrap();
+
+            if usage != 0x28 {
+                continue;
+            }
+            for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
+                if session.pending.iter().any(|pending| {
+                    matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
+                }) {
+                    break;
+                }
+                let _ = session.poll_effect().unwrap();
+            }
+            let output_index = session
+                .pending
+                .iter()
+                .position(|pending| {
+                    matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
+                })
+                .expect("Enter must send the bounded message through the record path");
+            let TourHostEffect::Manifestation(output) =
+                session.project_pending_effect(output_index).unwrap()
+            else {
+                unreachable!()
+            };
+            assert_eq!(output.active_play_id, play);
+            assert_eq!(output.observation_sequence, (sequence / 2) as u32);
+            outputs.push(output.text.unwrap());
+            let request = session.pending[output_index].request;
+            let placement = session.fragments[0].placements[usize::from(request.node.0)]
+                .placement_id
+                .as_str()
+                .to_owned();
+            let _ = session
+                .complete_effect(&play, &placement, request.request.0, None)
+                .unwrap();
+        }
+
+        assert_eq!(outputs, ["a", "b"]);
+        assert_eq!(session.active_play_id.as_str(), play);
+        assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+    }
 }
 
 #[test]
@@ -136,19 +418,15 @@ fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
     message: text/literal("CALLING")
     encode: record/text-to-typed
     frame: record/frame-typed
-    submit: record/singleton-stream
     queue: record/ordered-send-queue(4, 4096)
-    receive: record/exactly-one
     deframe: record/deframe-typed
     decode: record/typed-to-text
     show: presentation/text
 
     message.text > encode.text
     encode.record > frame.record
-    frame.frame > submit.record
-    submit.stream > queue.frame
-    queue.queued > receive.stream
-    receive.record > deframe.frame
+    frame.frame > queue.frame
+    queue.queued > deframe.frame
     deframe.record > decode.record
     decode.text > show.text
 }"#;
@@ -239,11 +517,10 @@ fn typed_fanout_reconverges_without_tour_topology_code() {
 }
 
 #[test]
-fn finite_browser_timer_drives_current_count_through_one_kernel_play() {
+fn standing_browser_timer_drives_current_count_until_stop_in_one_kernel_play() {
     let source = r#"form count-over-time {
-    complete
     count: state/count(start = 0)
-    show: presentation/count(maximum-values = 5)
+    show: presentation/count
     clock: time/every(freq = 100ms)
 
     clock.tick > count.bump
@@ -273,14 +550,14 @@ fn finite_browser_timer_drives_current_count_through_one_kernel_play() {
             .iter()
             .filter(|event| event.starts_with("timer:"))
             .count(),
-        conduit_time::TIME_EVERY_COUNT as usize
+        5
     );
     assert!(first
         .0
         .iter()
         .filter(|event| event.starts_with("timer:"))
         .all(|event| event.split(':').nth(1) == Some("100")));
-    assert_eq!(first.1, (4, 5));
+    assert_eq!(first.1, (5, 5));
 
     let too_long = source.replace("100ms", "10001ms");
     let refusal = TourSession::prepare(
@@ -323,17 +600,27 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
                 panic!("timer fixture requested button input")
             }
         }
-        match session.advance().unwrap() {
+        let progress = session.advance().unwrap();
+        if trace
+            .iter()
+            .filter(|event| event.starts_with("manifestation:"))
+            .count()
+            == 5
+        {
+            let receipt = session.cancel().unwrap();
+            assert_eq!(receipt.disposition, "cancelled");
+            return (
+                trace,
+                (receipt.timer_completions, receipt.manifestation_completions),
+            );
+        }
+        match progress {
             TourProgress::Effect(next) => effect = *next,
             TourProgress::Waiting { .. } | TourProgress::Cancellation { .. } => {
                 panic!("serial fixture unexpectedly waits")
             }
             TourProgress::Receipt(receipt) => {
-                assert_eq!(receipt.disposition, "completed");
-                return (
-                    trace,
-                    (receipt.timer_completions, receipt.manifestation_completions),
-                );
+                panic!("standing timer ended before Stop: {receipt:?}")
             }
         }
     }
@@ -343,7 +630,7 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
 fn pending_browser_timer_cancels_without_becoming_a_completed_tick() {
     let source = r#"form count-over-time {
     count: state/count(start = 0)
-    show: presentation/count(maximum-values = 5)
+    show: presentation/count
     clock: time/every(freq = 100ms)
 
     clock.tick > count.bump

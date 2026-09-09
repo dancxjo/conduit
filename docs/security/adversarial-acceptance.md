@@ -26,6 +26,7 @@ process-confined.
 
 Proof classes remain distinct. The suite includes deterministic model tests,
 Linux kernel process isolation, authenticated loopback federation, native ROS
-2 Jazzy transport, and QEMU x86_64 protection-domain execution. Its
-consequential-effect row is explicitly non-physical until an attended hardware
-receipt exists; it cannot promote that deterministic fixture into HIL evidence.
+2 Jazzy transport, QEMU x86_64 protection-domain execution, and an attended
+low-energy physical-effect HIL. The physical profile remains a separate,
+explicitly attended command because the deterministic acceptance suite cannot
+manufacture fresh operator approval or silently repeat a physical effect.

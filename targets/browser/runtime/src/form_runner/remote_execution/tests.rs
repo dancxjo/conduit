@@ -210,10 +210,15 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
         source.delivered(sequence).unwrap();
         assert!(matches!(sink.drive().unwrap(), DriveStatus::Quiescent));
     }
-    assert!(matches!(source.drive().unwrap(), DriveStatus::Quiescent));
-    assert!(source.terminal().unwrap());
-    sink.close_input().unwrap();
-    assert!(matches!(sink.drive().unwrap(), DriveStatus::Quiescent));
+    assert!(matches!(
+        source.drive().unwrap(),
+        DriveStatus::Effect(engine::PendingHostEffect {
+            effect: engine::BrowserHostEffect::ButtonTransition,
+            ..
+        })
+    ));
+    assert!(!source.terminal().unwrap());
+    sink.cancel().unwrap();
     source.cancel().unwrap();
 }
 

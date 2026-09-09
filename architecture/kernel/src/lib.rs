@@ -685,6 +685,15 @@ pub enum SignError {
     SequenceOverflow,
 }
 
+/// Exact bounded-history evidence for transient kernel Signs evicted while a
+/// Play remains alive. Terminal and remote lifecycle Signs are never evicted.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SignRetentionGap {
+    pub first_sequence: u32,
+    pub last_sequence: u32,
+    pub entries: u32,
+}
+
 pub trait SignSink {
     fn item_capacity(&self) -> u16;
     fn byte_capacity(&self) -> u32;
@@ -693,6 +702,29 @@ pub trait SignSink {
         self.len() == 0
     }
     fn used_bytes(&self) -> u32;
+    fn ensure_capacity(&self, additional: u16) -> Result<(), SignError> {
+        if self
+            .len()
+            .checked_add(additional)
+            .filter(|len| *len <= self.item_capacity())
+            .is_none()
+        {
+            return Err(SignError::ItemCapacityExceeded);
+        }
+        let charge = u32::try_from(size_of::<KernelEvent>())
+            .map_err(|_| SignError::InvalidBudget)?
+            .checked_mul(u32::from(additional))
+            .ok_or(SignError::InvalidBudget)?;
+        if self
+            .used_bytes()
+            .checked_add(charge)
+            .filter(|used| *used <= self.byte_capacity())
+            .is_none()
+        {
+            return Err(SignError::ByteCapacityExceeded);
+        }
+        Ok(())
+    }
     fn record(
         &mut self,
         node: NodeId,
@@ -721,6 +753,9 @@ pub trait SignSink {
 pub trait SignQuery {
     fn contains_kind(&self, kind: KernelEventKind) -> bool;
     fn remote_identity(&self, event_sequence: u32) -> Option<RemoteLifecycleIdentity>;
+    fn retention_gap(&self) -> Option<SignRetentionGap> {
+        None
+    }
 }
 
 pub struct FixedSignLog<const EVENTS: usize> {
@@ -734,6 +769,7 @@ pub struct FixedSignLog<const EVENTS: usize> {
     remote_byte_capacity: u32,
     remote_len: u16,
     remote_used_bytes: u32,
+    retention_gap: Option<SignRetentionGap>,
 }
 
 impl<const EVENTS: usize> FixedSignLog<EVENTS> {
@@ -774,6 +810,7 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
             remote_byte_capacity,
             remote_len: 0,
             remote_used_bytes: 0,
+            retention_gap: None,
         })
     }
 
@@ -796,6 +833,20 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
     pub fn remote_used_bytes(&self) -> u32 {
         self.remote_used_bytes
     }
+
+    fn evict_transient(&mut self) -> Result<(), SignError> {
+        let index = self.entries[..usize::from(self.len)]
+            .iter()
+            .position(|event| event.is_some_and(|event| transient_sign(event.kind)))
+            .ok_or(SignError::ItemCapacityExceeded)?;
+        let event = self.entries[index].ok_or(SignError::ItemCapacityExceeded)?;
+        self.entries[index..usize::from(self.len)].rotate_left(1);
+        self.len -= 1;
+        self.entries[usize::from(self.len)] = None;
+        self.used_bytes -=
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
+        extend_sign_gap(&mut self.retention_gap, event.sequence)
+    }
 }
 
 impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
@@ -815,6 +866,15 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
         self.used_bytes
     }
 
+    fn ensure_capacity(&self, additional: u16) -> Result<(), SignError> {
+        ensure_retained_sign_capacity(
+            self.events(),
+            self.item_capacity(),
+            self.byte_capacity,
+            additional,
+        )
+    }
+
     fn record(
         &mut self,
         node: NodeId,
@@ -825,7 +885,7 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
         let charge =
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
         if usize::from(self.len) >= EVENTS {
-            return Err(SignError::ItemCapacityExceeded);
+            self.evict_transient()?;
         }
         if self
             .used_bytes
@@ -863,7 +923,7 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
         let remote_charge = u32::try_from(size_of::<RemoteLifecycleSign>())
             .map_err(|_| SignError::InvalidBudget)?;
         if usize::from(self.len) >= EVENTS {
-            return Err(SignError::ItemCapacityExceeded);
+            self.evict_transient()?;
         }
         if self
             .used_bytes
@@ -935,6 +995,10 @@ impl<const EVENTS: usize> SignQuery for FixedSignLog<EVENTS> {
             .find(|entry| entry.event_sequence == event_sequence)
             .map(|entry| entry.identity)
     }
+
+    fn retention_gap(&self) -> Option<SignRetentionGap> {
+        self.retention_gap
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -949,6 +1013,7 @@ pub struct HostedSignLog {
     remote_byte_capacity: u32,
     remote_len: u16,
     remote_used_bytes: u32,
+    retention_gap: Option<SignRetentionGap>,
 }
 
 #[cfg(feature = "alloc")]
@@ -994,6 +1059,7 @@ impl HostedSignLog {
             remote_byte_capacity,
             remote_len: 0,
             remote_used_bytes: 0,
+            retention_gap: None,
         })
     }
 
@@ -1003,6 +1069,20 @@ impl HostedSignLog {
 
     pub fn allocation_capacity(&self) -> usize {
         self.entries.capacity() + self.remote_entries.capacity()
+    }
+
+    fn evict_transient(&mut self) -> Result<(), SignError> {
+        let index = self.entries[..usize::from(self.len)]
+            .iter()
+            .position(|event| event.is_some_and(|event| transient_sign(event.kind)))
+            .ok_or(SignError::ItemCapacityExceeded)?;
+        let event = self.entries[index].ok_or(SignError::ItemCapacityExceeded)?;
+        self.entries[index..usize::from(self.len)].rotate_left(1);
+        self.len -= 1;
+        self.entries[usize::from(self.len)] = None;
+        self.used_bytes -=
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
+        extend_sign_gap(&mut self.retention_gap, event.sequence)
     }
 }
 
@@ -1024,6 +1104,15 @@ impl SignSink for HostedSignLog {
         self.used_bytes
     }
 
+    fn ensure_capacity(&self, additional: u16) -> Result<(), SignError> {
+        ensure_retained_sign_capacity(
+            self.events(),
+            self.item_capacity(),
+            self.byte_capacity,
+            additional,
+        )
+    }
+
     fn record(
         &mut self,
         node: NodeId,
@@ -1034,7 +1123,7 @@ impl SignSink for HostedSignLog {
         let charge =
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
         if usize::from(self.len) >= self.entries.len() {
-            return Err(SignError::ItemCapacityExceeded);
+            self.evict_transient()?;
         }
         if self
             .used_bytes
@@ -1072,7 +1161,7 @@ impl SignSink for HostedSignLog {
         let remote_charge = u32::try_from(size_of::<RemoteLifecycleSign>())
             .map_err(|_| SignError::InvalidBudget)?;
         if usize::from(self.len) >= self.entries.len() {
-            return Err(SignError::ItemCapacityExceeded);
+            self.evict_transient()?;
         }
         if self
             .used_bytes
@@ -1145,6 +1234,70 @@ impl SignQuery for HostedSignLog {
             .find(|entry| entry.event_sequence == event_sequence)
             .map(|entry| entry.identity)
     }
+
+    fn retention_gap(&self) -> Option<SignRetentionGap> {
+        self.retention_gap
+    }
+}
+
+fn transient_sign(kind: KernelEventKind) -> bool {
+    !matches!(
+        kind,
+        KernelEventKind::RemoteValueOffered
+            | KernelEventKind::RemoteValueAccepted
+            | KernelEventKind::RemoteValueDelivered
+            | KernelEventKind::RemoteOutputClosed
+            | KernelEventKind::RemoteInputAdmitted
+            | KernelEventKind::RemoteInputClosed
+            | KernelEventKind::OperationCompleted
+            | KernelEventKind::OperationFailed
+            | KernelEventKind::RunCancelled
+    )
+}
+
+fn ensure_retained_sign_capacity(
+    events: impl Iterator<Item = KernelEvent>,
+    item_capacity: u16,
+    byte_capacity: u32,
+    additional: u16,
+) -> Result<(), SignError> {
+    let retained = events.filter(|event| !transient_sign(event.kind)).count();
+    if retained
+        .checked_add(usize::from(additional))
+        .filter(|required| *required <= usize::from(item_capacity))
+        .is_none()
+    {
+        return Err(SignError::ItemCapacityExceeded);
+    }
+    let charge = u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
+    let required = u32::try_from(retained)
+        .map_err(|_| SignError::InvalidBudget)?
+        .checked_add(u32::from(additional))
+        .and_then(|items| items.checked_mul(charge))
+        .ok_or(SignError::InvalidBudget)?;
+    if required > byte_capacity {
+        return Err(SignError::ByteCapacityExceeded);
+    }
+    Ok(())
+}
+
+fn extend_sign_gap(gap: &mut Option<SignRetentionGap>, sequence: u32) -> Result<(), SignError> {
+    *gap = Some(match *gap {
+        None => SignRetentionGap {
+            first_sequence: sequence,
+            last_sequence: sequence,
+            entries: 1,
+        },
+        Some(existing) => SignRetentionGap {
+            first_sequence: existing.first_sequence.min(sequence),
+            last_sequence: existing.last_sequence.max(sequence),
+            entries: existing
+                .entries
+                .checked_add(1)
+                .ok_or(SignError::SequenceOverflow)?,
+        },
+    });
+    Ok(())
 }
 
 #[cfg(test)]

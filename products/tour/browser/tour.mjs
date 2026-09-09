@@ -79,14 +79,14 @@ try {
   routing = createTourRouting({
     host,
     applicationId: application.manifest.applicationId,
-    render: (index) => renderPage(index),
+    render: renderRoute,
     onFailure: showTourFailure,
   });
   guidedPages = parseTourPages(chapters);
   setupTourModes();
-  const initialRoute = routing.admitPages(guidedPages);
-  await renderPage(initialRoute.index);
-  if (initialRoute.normalize) await routing.move(initialRoute.index, "replace");
+  const initialRoute = routing.admit(guidedPages, gallery.forms);
+  await renderRoute(initialRoute.destination);
+  if (initialRoute.normalize) await routing.move(initialRoute.destination.index, "replace");
   hostStatus.success("Browser Host ready");
   globalThis.__conduitTourHost = host;
   globalThis.__conduitTourLaboratory = laboratory;
@@ -98,6 +98,12 @@ try {
   hostStatus.failure("Browser Host unavailable");
   chapter.textContent = error instanceof Error ? error.message : String(error);
   chapter.classList.add("error");
+}
+
+function renderRoute(destination) {
+  return destination.kind === "gallery"
+    ? renderGallery(destination.formName)
+    : renderPage(destination.index);
 }
 }
 
@@ -153,9 +159,12 @@ function setupTourModes() {
   const guided = document.querySelector('button[data-tour-mode="guided"]');
   const galleryButton = document.querySelector('button[data-tour-mode="gallery"]');
   if (!guided || !galleryButton) throw new Error("Tour entrances are incomplete");
-  guided.addEventListener("click", () => renderPage(currentPage).catch(showTourFailure));
-  galleryButton.addEventListener("click", () => {
-    try { renderGallery(); }
+  guided.addEventListener("click", () => renderPage(currentPage, "push").catch(showTourFailure));
+  galleryButton.addEventListener("click", async () => {
+    try {
+      await routing.moveGallery(null, "push");
+      renderGallery();
+    }
     catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       document.title = `Form Gallery refused: ${detail}`;
@@ -172,7 +181,7 @@ function setTourMode(mode) {
   }
 }
 
-function renderGallery() {
+function renderGallery(formName = null) {
   retireActiveLaboratory();
   setTourMode("gallery");
   document.title = "Form Gallery · Tour";
@@ -185,6 +194,7 @@ function renderGallery() {
   surface.dataset.applicationSlot = "tour-form-gallery";
   chapter.append(surface);
   const gallerySurface = createReviewedFormGallery(host.runtime, hostPresentation, surface, gallery, crecheUrl, (form, action) => {
+    routing.moveGallery(form.name, "push").catch(showTourFailure);
     selectLaboratoryStage(reviewedFormStage(form), [], true);
     presentGalleryExperience(laboratory.querySelector(".runner"), form, hostPresentationFor(laboratory));
     gallerySurface.select(form.checked_form_id);
@@ -195,7 +205,8 @@ function renderGallery() {
       patchbay.focus({ preventScroll: true });
     }
   });
-  const initialForm = gallery.forms.find((form) => form.name === "morse_network") ?? gallery.forms[0];
+  const initialForm = gallery.forms.find((form) => form.name === formName)
+    ?? gallery.forms.find((form) => form.name === "morse_network") ?? gallery.forms[0];
   selectLaboratoryStage(reviewedFormStage(initialForm), []);
   presentGalleryExperience(laboratory.querySelector(".runner"), initialForm, hostPresentationFor(laboratory));
   gallerySurface.select(initialForm.checked_form_id);
@@ -873,8 +884,10 @@ async function runMultiHostListing(runner, source) {
       plan.cord.maximum_payload_bytes,
     );
     activeMemoryLine = line;
+    let deliveredCount = 0;
     while (["input", "timer"].includes(sourceProgress.effect_kind) || sourceProgress.frame?.phase === "value") {
       if (sourceProgress.effect_kind === "timer") {
+        if (!await delay(sourceProgress.timer.duration_millis, current)) return;
         const api = host.runtime;
         const play = encoder.encode(sourceProgress.timer.active_play_id);
         if (play.length > api.conduit_tour_multi_input_capacity()) {
@@ -890,17 +903,30 @@ async function runMultiHostListing(runner, source) {
         continue;
       }
       if (sourceProgress.effect_kind === "input") {
-        runner.querySelector(".input-button").hidden = false;
-        runner.playStatus.ordinary("Waiting for one admitted button transition on Host A…");
-        const event = await humanInput.nextButton();
-        if (current !== generation) return;
         const api = host.runtime;
-        const encodedCode = api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence));
-        if (encodedCode < 0) throw new Error(`button transition encoding refused (${encodedCode})`);
-        const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
+        let bytes;
+        const deliverySuffix = deliveredCount === 0 ? "" : deliveredCount === 1
+          ? " One delivered cross-Host value; the same Play remains active."
+          : ` ${deliveredCount} delivered cross-Host values; the same Play remains active.`;
+        if (sourceProgress.input.effect_kind === "key-event") {
+          runner.playStatus.ordinary(`Waiting for one admitted keyboard transition on Host A…${deliverySuffix}`);
+          const event = await humanInput.nextKeyboard();
+          if (current !== generation) return;
+          bytes = event.canonical_bytes;
+        } else if (sourceProgress.input.effect_kind === "button-transition") {
+          runner.querySelector(".input-button").hidden = false;
+          runner.playStatus.ordinary(`Waiting for one admitted button transition on Host A…${deliverySuffix}`);
+          const event = await humanInput.nextButton();
+          if (current !== generation) return;
+          const encodedCode = api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence));
+          if (encodedCode < 0) throw new Error(`button transition encoding refused (${encodedCode})`);
+          bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
+        } else {
+          throw new Error(`unsupported multi-Host input effect ${sourceProgress.input.effect_kind}`);
+        }
         const play = encoder.encode(sourceProgress.input.active_play_id);
         if (bytes.length > sourceProgress.input.maximum_output_bytes || play.length + bytes.length > api.conduit_tour_multi_input_capacity()) {
-          throw new Error("button transition exceeds its admitted completion bound");
+          throw new Error("Host input exceeds its admitted completion bound");
         }
         const completion = new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), play.length + bytes.length);
         completion.set(play);
@@ -935,6 +961,10 @@ async function runMultiHostListing(runner, source) {
       if (completion < 0) throw new Error(`Host B presentation completion refused (${completion})`);
       const delivered = readMultiOutput(peer.runtime);
       sourceProgress = line.transfer(delivered.frame, host.runtime);
+      deliveredCount += 1;
+      runner.playStatus.ordinary(deliveredCount === 1
+        ? "Running — one delivered cross-Host value; the same Play is still listening."
+        : `Running — ${deliveredCount} delivered cross-Host values; the same Play is still listening.`);
     }
     if (sourceProgress.frame?.phase !== "close") throw new Error("source did not close its planned Cord");
     const terminal = line.transfer(sourceProgress.frame, peer.runtime);
@@ -1186,21 +1216,32 @@ function stopListing(runner) {
   runner.querySelector(".input-button")?.setAttribute("hidden", "");
   cancelDelay();
   humanInput?.cancelPending();
-  if (running && runner.dataset.mode === "multi") cancelMultiSessions();
-  else if (running) host.runtime.conduit_browser_form_cancel();
+  const multiReceipts = running && runner.dataset.mode === "multi" ? cancelMultiSessions() : null;
+  if (running && runner.dataset.mode !== "multi") host.runtime.conduit_browser_form_cancel();
   running = false;
   activeRunner = null;
   setNavigationDisabled(false);
   setIndicator(runner, false);
   runner.actionControls.render(false);
-  runner.playStatus.ordinary("Stopped. The Play was cancelled.");
+  if (multiReceipts?.source?.receipt && multiReceipts?.sink?.receipt) {
+    const count = multiReceipts.source.receipt.transferred_values;
+    appendRunEvidence(runner, [
+      ["Terminal source receipt", multiReceipts.source.receipt.terminal_sign_id],
+      ["Terminal sink receipt", multiReceipts.sink.receipt.terminal_sign_id],
+    ]);
+    runner.playStatus.ordinary(`Stopped. The Plays were cancelled after ${count} delivered cross-Host value${count === 1 ? "" : "s"}.`);
+  } else {
+    runner.playStatus.ordinary("Stopped. The Play was cancelled.");
+  }
 }
 
 function cancelMultiSessions() {
   activeMemoryLine?.cancel();
   activeMemoryLine = null;
-  host?.runtime.conduit_tour_multi_cancel();
-  peerHost?.runtime.conduit_tour_multi_cancel();
+  let source = null, sink = null;
+  if (host && host.runtime.conduit_tour_multi_cancel() >= 0) source = readMultiOutput(host.runtime);
+  if (peerHost && peerHost.runtime.conduit_tour_multi_cancel() >= 0) sink = readMultiOutput(peerHost.runtime);
+  return { source, sink };
 }
 
 function readOutput(api) {

@@ -211,6 +211,8 @@ pub(super) fn build_advertisement(
             conduit_std_offers::text_literal_offer(),
             conduit_std_offers::text_upper_offer(),
             conduit_std_offers::text_join_offer(),
+            conduit_std_offers::text_edit_std_offer(),
+            conduit_std_offers::text_submit_lines_std_offer(),
             conduit_std_offers::text_morse_offer(),
             conduit_std_offers::address_detect_offer(),
             conduit_std_offers::recognition_to_text_std_offer(),

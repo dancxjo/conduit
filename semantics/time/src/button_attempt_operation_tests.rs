@@ -21,7 +21,8 @@ fn operation(
         accepted_transitions: 0,
         maximum_transitions,
         retain_resumed: false,
-        completed: false,
+        emitted_attempt: false,
+        completed_attempt: false,
     }
 }
 

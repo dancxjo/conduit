@@ -24,35 +24,52 @@ pub(super) fn lower_form_field(
     actions: &mut Vec<ApplicationAction>,
     device: bool,
 ) -> Result<(), SemanticPresentationRefusal> {
-    let options = match &field.kind {
-        FieldKind::Select { options } => options.as_slice(),
-        _ => &[],
+    let option_count = match &field.kind {
+        FieldKind::Select { options } => options.len(),
+        FieldKind::NamedSelect { options } => options.len(),
+        _ => 0,
     };
     let event_is_exact = matches!(
         (&field.kind, field.input_action.event),
         (
             FieldKind::Text | FieldKind::TextArea,
             ApplicationEventKind::Input
-        ) | (FieldKind::Select { .. }, ApplicationEventKind::Change)
+        ) | (
+            FieldKind::Select { .. } | FieldKind::NamedSelect { .. },
+            ApplicationEventKind::Change
+        )
     );
-    let required = 3 + usize::from(field.error.is_some()) + options.len();
+    let required = option_count.saturating_add(3 + usize::from(field.error.is_some()));
     if nodes.len().saturating_add(required) > MAX_APPLICATION_VIEW_NODES {
         return Err(SemanticPresentationRefusal::ApplicationView(
             ApplicationViewRefusal::TooManyNodes,
         ));
     }
+    let options = match &field.kind {
+        FieldKind::Select { options } => options
+            .iter()
+            .map(|value| (value.as_str(), value.as_str()))
+            .collect::<Vec<_>>(),
+        FieldKind::NamedSelect { options } => options
+            .iter()
+            .map(|option| (option.identity.as_str(), option.label.as_str()))
+            .collect(),
+        _ => Vec::new(),
+    };
     if field.label.is_empty()
         || field.help.is_empty()
         || field.error.as_ref().is_some_and(String::is_empty)
         || field.value_capacity == 0
         || !event_is_exact
         || field.value.len() > usize::try_from(field.value_capacity).unwrap_or(0)
-        || options.iter().any(String::is_empty)
+        || options
+            .iter()
+            .any(|(value, label)| value.is_empty() || label.is_empty())
         || options
             .iter()
             .enumerate()
-            .any(|(index, option)| options[..index].contains(option))
-        || matches!(&field.kind, FieldKind::Select { .. } if !options.iter().any(|option| option == &field.value))
+            .any(|(index, (value, _))| options[..index].iter().any(|(prior, _)| prior == value))
+        || matches!(&field.kind, FieldKind::Select { .. } | FieldKind::NamedSelect { .. } if !options.iter().any(|(value, _)| *value == field.value))
     {
         return Err(if device {
             SemanticPresentationRefusal::InvalidDeviceChoice
@@ -72,20 +89,18 @@ pub(super) fn lower_form_field(
     if let Some(error) = &field.error {
         push_text(parent, nodes, ApplicationComponent::FieldError, error)?;
     }
-    if let FieldKind::Select { options } = &field.kind {
-        for option in options {
-            let index = next_index(nodes)?;
-            nodes.push(ApplicationViewNode {
-                parent: Some(control_index),
-                component: ApplicationComponent::Option,
-                key: generated_key(parent, index),
-                text: option.clone(),
-                value: option.clone(),
-                value_capacity: u32::try_from(option.len()).unwrap_or(u32::MAX).max(1),
-                action: None,
-                state: ApplicationNodeState::Ready,
-            });
-        }
+    for (value, label) in options {
+        let index = next_index(nodes)?;
+        nodes.push(ApplicationViewNode {
+            parent: Some(control_index),
+            component: ApplicationComponent::Option,
+            key: generated_key(parent, index),
+            text: label.into(),
+            value: value.into(),
+            value_capacity: u32::try_from(value.len()).unwrap_or(u32::MAX).max(1),
+            action: None,
+            state: ApplicationNodeState::Ready,
+        });
     }
     Ok(())
 }

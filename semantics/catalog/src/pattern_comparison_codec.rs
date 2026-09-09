@@ -61,6 +61,7 @@ impl BoundedPatternComparisonCodec {
             self.tolerance,
             score,
         )?;
+        self.candidate.clear();
         Ok(Some(&self.output))
     }
 }

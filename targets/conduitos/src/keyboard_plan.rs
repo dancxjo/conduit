@@ -12,7 +12,8 @@ use crate::{
     identity::BootIdentities,
     keyboard_offer::{
         CONTROLLER_RESOURCE, DEVICE_RESOURCE, ENDPOINT_RESOURCE, INTERFACE_RESOURCE,
-        KEYBOARD_EXECUTION_PROFILE, KEYBOARD_IMPLEMENTATION, OPERATION_RESOURCE, REPORT_RESOURCE,
+        KEYBOARD_EXECUTION_PROFILE, KEYBOARD_IMPLEMENTATION, OPERATION_RESOURCE,
+        PS2_INPUT_EXECUTION_PROFILE, PS2_KEYBOARD_IMPLEMENTATION, REPORT_RESOURCE,
         TRANSITION_RESOURCE,
     },
     offer::HostOffer,
@@ -100,8 +101,14 @@ pub fn validate(
     if placement.kind_id.as_str() != conduit_semantic_catalog::KEYBOARD_KIND
         || placement.kind_contract_revision
             != conduit_semantic_catalog::keyboard_contract_revision()
-        || placement.execution_profile_id.as_str() != KEYBOARD_EXECUTION_PROFILE
-        || placement.implementation_id.as_str() != KEYBOARD_IMPLEMENTATION
+        || !matches!(
+            (
+                placement.execution_profile_id.as_str(),
+                placement.implementation_id.as_str()
+            ),
+            (KEYBOARD_EXECUTION_PROFILE, KEYBOARD_IMPLEMENTATION)
+                | (PS2_INPUT_EXECUTION_PROFILE, PS2_KEYBOARD_IMPLEMENTATION)
+        )
         || placement.artifact_id.as_str() != alloc::format!("conduitos-build/{build_id}")
         || !placement.inputs.is_empty()
         || placement.outputs != conduit_semantic_catalog::keyboard_outputs()
@@ -182,6 +189,7 @@ mod tests {
         )
         .with_keyboard(
             KeyboardRealization {
+                mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
                 controller_id: [3; 32],
                 device_id: [4; 32],
                 interface_id: [5; 32],

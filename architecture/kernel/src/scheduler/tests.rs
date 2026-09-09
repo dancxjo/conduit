@@ -1311,7 +1311,7 @@ fn scheduler_never_reuses_a_retired_request_identity() {
         Err(super::SchedulerError::HostOperationRequestDuplicate)
     );
     assert_eq!(scheduler.pending_host_operation_count(), 1);
-    assert_eq!(scheduler.values().used_items(), 1);
+    assert_eq!(scheduler.values().used_items(), 2);
 }
 
 #[cfg(feature = "alloc")]

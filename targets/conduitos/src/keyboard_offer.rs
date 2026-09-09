@@ -9,6 +9,8 @@ use conduit_core::{
 
 pub const KEYBOARD_IMPLEMENTATION: &str = "conduitos/usb-hid-keyboard@1";
 pub const KEYBOARD_EXECUTION_PROFILE: &str = "conduitos/usb-input-cooperative@1";
+pub const PS2_KEYBOARD_IMPLEMENTATION: &str = "conduitos/ps2-keyboard@1";
+pub const PS2_INPUT_EXECUTION_PROFILE: &str = "conduitos/ps2-input-cooperative@1";
 pub const CONTROLLER_RESOURCE: &str = "conduitos.resource/device-controller-instance@1";
 pub const DEVICE_RESOURCE: &str = "conduitos.resource/device-instance@1";
 pub const INTERFACE_RESOURCE: &str = "conduitos.resource/device-interface-instance@1";
@@ -20,6 +22,7 @@ pub const NEXT_KEY_EVENT_HOST_OPERATION: &str = "conduit.host/input-next-key-eve
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct KeyboardRealization {
+    pub mechanism: KeyboardMechanism,
     pub controller_id: [u8; 32],
     pub device_id: [u8; 32],
     pub interface_id: [u8; 32],
@@ -27,6 +30,28 @@ pub struct KeyboardRealization {
     pub report_buffers: u16,
     pub transition_slots: u16,
     pub operation_slots: u16,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum KeyboardMechanism {
+    UsbHid,
+    Ps2,
+}
+
+impl KeyboardMechanism {
+    pub const fn implementation(self) -> &'static str {
+        match self {
+            Self::UsbHid => KEYBOARD_IMPLEMENTATION,
+            Self::Ps2 => PS2_KEYBOARD_IMPLEMENTATION,
+        }
+    }
+
+    pub const fn execution_profile(self) -> &'static str {
+        match self {
+            Self::UsbHid => KEYBOARD_EXECUTION_PROFILE,
+            Self::Ps2 => PS2_INPUT_EXECUTION_PROFILE,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -144,8 +169,10 @@ pub(crate) fn append_to_advertisement(
             kind_id: contract.kind_id,
             kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
             implementation: conduit_core::ImplementationOffer {
-                execution_profile_id: ExecutionProfileId::from(KEYBOARD_EXECUTION_PROFILE),
-                implementation_id: ImplementationId::from(KEYBOARD_IMPLEMENTATION),
+                execution_profile_id: ExecutionProfileId::from(
+                    realization.mechanism.execution_profile(),
+                ),
+                implementation_id: ImplementationId::from(realization.mechanism.implementation()),
                 artifact_id: ArtifactId::from(format!("conduitos-build/{build_id}")),
             },
             inputs: contract.inputs,
@@ -172,6 +199,7 @@ mod tests {
 
     fn realization() -> KeyboardRealization {
         KeyboardRealization {
+            mechanism: KeyboardMechanism::UsbHid,
             controller_id: [1; 32],
             device_id: [2; 32],
             interface_id: [3; 32],
@@ -199,6 +227,44 @@ mod tests {
         assert_eq!(
             exhausted.validate(),
             Err(KeyboardOfferError::InvalidCapacity)
+        );
+    }
+
+    #[test]
+    fn ps2_mechanism_keeps_portable_kind_and_names_exact_implementation() {
+        let mut realization = realization();
+        realization.mechanism = KeyboardMechanism::Ps2;
+        let mut advertisement = conduit_core::HostAdvertisement {
+            protocol_version: conduit_core::PROTOCOL_VERSION,
+            host_id: conduit_core::HostId::from("host"),
+            boot_id: conduit_core::BootId::from("boot"),
+            offer_generation: conduit_core::OfferGeneration(1),
+            profile: conduit_core::HostProfileId::from("profile"),
+            capabilities: Vec::new(),
+            resources: Vec::new(),
+            planner_capabilities: Vec::new(),
+        };
+        append_to_advertisement(
+            &mut advertisement,
+            KeyboardOffer {
+                artifact_build: "build",
+                realization,
+            },
+            "build",
+        )
+        .unwrap();
+        let capability = &advertisement.capabilities[0];
+        assert_eq!(
+            capability.kind_id.as_str(),
+            conduit_semantic_catalog::KEYBOARD_KIND
+        );
+        assert_eq!(
+            capability.implementation.implementation_id.as_str(),
+            PS2_KEYBOARD_IMPLEMENTATION
+        );
+        assert_eq!(
+            capability.implementation.execution_profile_id.as_str(),
+            PS2_INPUT_EXECUTION_PROFILE
         );
     }
 }

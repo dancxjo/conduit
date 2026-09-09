@@ -151,6 +151,7 @@ test("integration covers a skipped intermediate change even when the newest push
 
 test("release admission has one serialized trusted entry and a lost-wakeup recovery", () => {
   const workflow = readFileSync(".github/workflows/promote-dev.yml", "utf8");
+  const adapter = readFileSync("tools/ci/release-request-github.mjs", "utf8");
   assert.match(workflow, /group: promote-dev-to-main\n  cancel-in-progress: false/);
   assert.match(workflow, /cron: "\*\/10 \* \* \* \*"/);
   assert.match(workflow, /ref: main/);
@@ -158,4 +159,9 @@ test("release admission has one serialized trusted entry and a lost-wakeup recov
   assert.match(workflow, /Deferred until the trusted main controller contains release-request-github\.mjs/);
   assert.match(workflow, /node tools\/ci\/release-request-github.mjs/);
   assert.doesNotMatch(workflow, /gh pr create|git push|gh run rerun/);
+  assert.match(adapter, /path\.startsWith\("\/actions\/workflows\/dev-integration\.yml\/runs\?"\)/);
+  assert.match(adapter, /--jq/);
+  for (const field of ["id", "head_sha", "head_branch", "head_repository", "event", "status", "conclusion", "created_at"]) {
+    assert.match(adapter, new RegExp(`\\b${field}\\b`));
+  }
 });

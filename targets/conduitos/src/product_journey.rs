@@ -2,9 +2,7 @@
 
 use alloc::{borrow::ToOwned, boxed::Box, format, string::String, vec::Vec};
 
-use conduit_body::{
-    AuthenticatedHostObservation, Body, BodyMembership, BodyState, MembershipProofId, PartId, Wake,
-};
+use conduit_body::{Body, BodyMembership, BodyState, PartId, Wake};
 use conduit_core::{
     ActivePlayIdentity, BootId, ExpandedFormId, HostId, OfferGeneration, Plan, SignId,
 };
@@ -18,6 +16,9 @@ use crate::{
     ordinary_plan::PreparationError,
 };
 
+mod birth;
+mod result_window;
+use result_window::ResultWindow;
 mod play;
 
 pub use patchbay_control::{
@@ -65,6 +66,7 @@ pub enum JourneyError {
     Plan(PreparationError),
     Kernel,
     InputUnavailable,
+    InputSequenceExhausted,
     RevisionExhausted,
 }
 
@@ -81,6 +83,7 @@ impl JourneyError {
             Self::Plan(error) => error.as_str(),
             Self::Kernel => "product-kernel-refused",
             Self::InputUnavailable => "product-input-unavailable",
+            Self::InputSequenceExhausted => "product-input-sequence-exhausted",
             Self::RevisionExhausted => "product-presentation-revision-exhausted",
         }
     }
@@ -97,6 +100,7 @@ pub struct JourneyProjection {
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
     pub body_id: Option<conduit_body::BodyId>,
+    pub friendly_name: Option<String>,
     pub born_sign_id: Option<SignId>,
     pub part_id: Option<PartId>,
     pub wake_id: Option<conduit_body::WakeId>,
@@ -108,6 +112,9 @@ pub struct JourneyProjection {
     pub input_sign_id: Option<SignId>,
     pub result_sign_id: Option<SignId>,
     pub result: Option<String>,
+    pub result_omitted_bytes: u64,
+    pub input_count: u32,
+    pub kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     pub last_request_id: Option<String>,
 }
 
@@ -120,6 +127,7 @@ pub struct ProductJourney {
     revision: u64,
     request_sequence: u64,
     body: Option<Body>,
+    friendly_name: Option<String>,
     born_sign_id: Option<SignId>,
     membership: Option<BodyMembership>,
     part_id: Option<PartId>,
@@ -129,10 +137,11 @@ pub struct ProductJourney {
     play: Option<ActivePlayIdentity>,
     kernel: Option<Box<KeyboardTextKernel>>,
     pending_keyboard: Option<HostOperationRequest>,
-    input_count: u8,
+    input_count: u32,
     input_sign_id: Option<SignId>,
     result_sign_id: Option<SignId>,
-    result: Option<String>,
+    result: ResultWindow,
+    retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
 }
 
@@ -152,6 +161,7 @@ impl ProductJourney {
             revision: 1,
             request_sequence: 0,
             body: None,
+            friendly_name: None,
             born_sign_id: None,
             membership: None,
             part_id: None,
@@ -164,7 +174,8 @@ impl ProductJourney {
             input_count: 0,
             input_sign_id: None,
             result_sign_id: None,
-            result: None,
+            result: ResultWindow::new(),
+            retained_kernel_sign_gap: None,
             last_request_id: None,
         })
     }
@@ -244,6 +255,7 @@ impl ProductJourney {
             offer_generation: self.offer_generation,
             body_id: self.body.as_ref().map(|body| body.body_id.clone()),
             born_sign_id: self.born_sign_id.clone(),
+            friendly_name: self.friendly_name.clone(),
             part_id: self.part_id.clone(),
             wake_id: self.wake.as_ref().map(|wake| wake.wake_id.clone()),
             plan_id: self.plan.as_ref().map(|plan| plan.plan_id.clone()),
@@ -284,7 +296,14 @@ impl ProductJourney {
                 .collect(),
             input_sign_id: self.input_sign_id.clone(),
             result_sign_id: self.result_sign_id.clone(),
-            result: self.result.clone(),
+            result: (!self.result.as_str().is_empty()).then(|| self.result.as_str().into()),
+            result_omitted_bytes: self.result.omitted_bytes(),
+            input_count: self.input_count,
+            kernel_sign_gap: self
+                .kernel
+                .as_ref()
+                .and_then(|kernel| kernel.sign_retention_gap())
+                .or(self.retained_kernel_sign_gap),
             last_request_id: self.last_request_id.clone(),
         }
     }
@@ -316,59 +335,6 @@ impl ProductJourney {
             return Err(JourneyError::AlreadyBorn);
         }
         self.status = JourneyStatus::FormOpened;
-        Ok(())
-    }
-
-    fn birth(&mut self) -> Result<(), JourneyError> {
-        if self.body.is_some() {
-            return Err(JourneyError::AlreadyBorn);
-        }
-        if self.status != JourneyStatus::FormOpened {
-            return Err(JourneyError::FormNotOpened);
-        }
-        let born_sign = SignId::from(format!("conduitos/product/born/{}", self.revision));
-        let body = Body::born(
-            self.form.source_document_id.clone(),
-            self.form.checked_form_id.clone(),
-            0,
-            born_sign.clone(),
-        )
-        .map_err(|_| JourneyError::InvalidTransition)?;
-        let part = PartId::bind(&body.body_id, self.host_id.as_str(), 0)
-            .map_err(|_| JourneyError::Membership)?;
-        let proof = MembershipProofId::bind("conduitos/product/local-birth")
-            .map_err(|_| JourneyError::Membership)?;
-        let mut membership =
-            BodyMembership::new(body.body_id.clone()).map_err(|_| JourneyError::Membership)?;
-        membership
-            .admit(
-                &body.body_id,
-                membership.revision,
-                part.clone(),
-                proof.clone(),
-                SignId::from("conduitos/product/part-admitted"),
-            )
-            .map_err(|_| JourneyError::Membership)?;
-        membership
-            .observe_present(
-                &body.body_id,
-                membership.revision,
-                &part,
-                AuthenticatedHostObservation {
-                    host_id: self.host_id.clone(),
-                    boot_id: self.boot_id.clone(),
-                    offer_generation: self.offer_generation,
-                    proof_id: proof,
-                    sequence: 0,
-                },
-                SignId::from("conduitos/product/host-attached"),
-            )
-            .map_err(|_| JourneyError::Membership)?;
-        self.body = Some(body);
-        self.born_sign_id = Some(born_sign);
-        self.membership = Some(membership);
-        self.part_id = Some(part);
-        self.status = JourneyStatus::BornLulled;
         Ok(())
     }
 

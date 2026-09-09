@@ -74,7 +74,7 @@ fn real_partition_operations_use_global_slots_and_original_placement_identity() 
 }
 
 #[test]
-fn two_real_clock_partitions_complete_through_the_shared_kernel_installation() {
+fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_installation() {
     use crate::installed_std::kernel_preparation::KernelTables;
     use conduit_kernel::scheduler::SchedulerStatus;
     use conduit_kernel::{HostOperationDisposition, HostOperationOutcome, HostedSignLog};
@@ -110,10 +110,10 @@ fn two_real_clock_partitions_complete_through_the_shared_kernel_installation() {
             .unwrap(),
         )
         .unwrap();
-    let mut ticks = [Vec::with_capacity(4), Vec::with_capacity(4)];
+    let mut ticks = [Vec::with_capacity(6), Vec::with_capacity(6)];
     let mut output = Vec::with_capacity(256);
     let mut waits = [0; 2];
-    let mut completed = false;
+    let mut drained = false;
     // Deterministic Host-operation completions, not wall-clock or OS proof.
     // All operation state machines and scheduling are the installed production path.
     for _ in 0..256 {
@@ -166,19 +166,18 @@ fn two_real_clock_partitions_complete_through_the_shared_kernel_installation() {
                 )
                 .unwrap();
         }
-        if kernel.step().unwrap() == SchedulerStatus::Drained {
-            completed = true;
+        drained = kernel.step().unwrap() == SchedulerStatus::Drained;
+        if ticks.iter().all(|partition| partition.len() >= 6) {
             break;
         }
     }
-    assert!(
-        completed,
-        "both exact partitions must finish in the one kernel"
-    );
-    assert_eq!(ticks, [vec![0, 1, 2, 3], vec![0, 1, 2, 3]]);
-    assert_eq!(waits, [4, 4]);
+    assert!(!drained, "standing clock partitions must remain live");
+    assert_eq!(ticks, [vec![0, 1, 2, 3, 4, 5], vec![0, 1, 2, 3, 4, 5]]);
+    assert_eq!(waits, [10, 10]);
+    kernel.cancel().unwrap();
+    assert!(matches!(kernel.try_retire(), Ok(retired) if retired.cancelled));
     let output = String::from_utf8(output).unwrap();
-    for sequence in 0..4 {
+    for sequence in 0..6 {
         let expected = format!("tick sequence={sequence}");
         assert_eq!(output.lines().filter(|line| *line == expected).count(), 2);
     }

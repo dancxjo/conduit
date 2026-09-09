@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
 
+test("document-wide input leaves native controls operable without an admitted key request", async ({ page }) => {
+  await page.goto("/proof/browser/browser-human-input.test.html");
+  await expect(page.locator("#status")).toHaveText("ready");
+  const control = page.getByRole("button", { name: "Native control" });
+  await control.focus();
+  await control.press("Enter");
+  await expect(page.locator("#native-actions")).toHaveText("1");
+});
+
 test("ordered button transitions survive gaps between Host requests and refuse overflow", async ({ page }) => {
   await page.goto("/proof/browser/browser-human-input.test.html");
   await expect(page.locator("#status")).toHaveText("ready");
@@ -70,6 +79,22 @@ test("selected keyboard and pointer adapt real Chromium actions to portable valu
     sequence: 1,
   });
   expect(failures).toEqual([]);
+});
+
+test("ordered keyboard transitions survive gaps between Host requests and refuse overflow", async ({ page }) => {
+  await page.goto("/proof/browser/browser-human-input.test.html");
+  await expect(page.locator("#status")).toHaveText("ready");
+  await page.locator("#surface").focus();
+
+  await page.keyboard.press("KeyA");
+  const queued = await page.evaluate(async () => [
+    Array.from((await globalThis.__conduitHumanInput.adapter.nextKeyboard()).canonical_bytes),
+    Array.from((await globalThis.__conduitHumanInput.adapter.nextKeyboard()).canonical_bytes),
+  ]);
+  expect(queued).toEqual([[0x04, 0, 0], [0x04, 1, 0]]);
+
+  for (const key of ["KeyB", "KeyC", "KeyD", "KeyE", "KeyF"]) await page.keyboard.press(key);
+  expect(await page.evaluate(() => globalThis.__conduitHumanInput.adapter.nextKeyboard().catch((error) => error.code))).toBe("Pressure");
 });
 
 test("profile omission, finite pressure, cancellation, and stale Boot stay distinct", async ({ page }) => {

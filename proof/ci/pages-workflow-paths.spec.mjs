@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-test("product proof begins after cheap PR entry while promotion stays privileged", () => {
+test("affected product proof begins after cheap PR entry while promotion stays privileged", () => {
   const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
   const candidateWorkflow = readFileSync(".github/workflows/candidate.yml", "utf8");
   const integrationWorkflow = readFileSync(".github/workflows/dev-integration.yml", "utf8");
   assert.match(candidateWorkflow, /^  pull_request:\s*$/m);
-  assert.doesNotMatch(candidateWorkflow, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.match(candidateWorkflow, /products:\n    needs: admission\n    uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.match(candidateWorkflow, /development_admission: true/);
   assert.match(integrationWorkflow, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
   assert.doesNotMatch(productWorkflow, /^  pull_request:\s*$/m);
   assert.doesNotMatch(productWorkflow, /paths:\s*&product-paths/);

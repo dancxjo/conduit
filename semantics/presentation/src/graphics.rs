@@ -1,10 +1,15 @@
 //! Fixed-capacity graphical leaf obligations below semantic presentation.
 
 use crate::{LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT};
+mod path;
+pub use path::{GraphicsPath, GraphicsPoint, MAX_GRAPHICS_PATH_POINTS};
 
 pub const GRAPHICS_SCENE_KIND: &str = "presentation/graphics-scene@1";
-pub const MAX_GRAPHICS_COMMANDS: usize = 8;
-pub const MAX_GRAPHICS_TEXT_BYTES: usize = 64;
+pub const MAX_GRAPHICS_COMMANDS: usize = 16;
+/// One bounded pane-sized UTF-8 payload. Commands remain fixed-capacity, but
+/// can retain a small complete source document instead of a single label.
+/// Orthogonal paths reuse this storage for at most eight binary coordinate pairs.
+pub const MAX_GRAPHICS_TEXT_BYTES: usize = 192;
 pub const MAX_GRAPHICS_SCENE_BYTES: usize =
     2 + MAX_GRAPHICS_COMMANDS * (20 + MAX_GRAPHICS_TEXT_BYTES);
 const VERSION: u8 = 1;
@@ -15,6 +20,7 @@ pub enum GraphicsCommandKind {
     Rect = 1,
     Text = 2,
     Icon = 3,
+    OrthogonalPath = 4,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,6 +69,27 @@ pub struct GraphicsCommand {
 }
 
 impl GraphicsCommand {
+    pub fn path(
+        path: GraphicsPath,
+        clip: LayoutRect,
+        paint: GraphicsPaintRole,
+    ) -> Result<Self, GraphicsError> {
+        let (bytes, len) = path.encode();
+        Self::new(
+            GraphicsCommandKind::OrthogonalPath,
+            path.bounds()?,
+            clip,
+            paint,
+            GraphicsShapeStyle::Stroke,
+            &bytes[..len],
+        )
+    }
+
+    pub fn path_geometry(&self) -> Option<GraphicsPath> {
+        (self.kind == GraphicsCommandKind::OrthogonalPath)
+            .then(|| GraphicsPath::decode(&self.payload[..usize::from(self.payload_len)]).ok())
+            .flatten()
+    }
     pub fn rect(
         bounds: LayoutRect,
         clip: LayoutRect,
@@ -127,10 +154,18 @@ impl GraphicsCommand {
             }
         } else if kind == GraphicsCommandKind::Text {
             core::str::from_utf8(payload).map_err(|_| GraphicsError::MalformedEncoding)?;
+        } else if kind == GraphicsCommandKind::OrthogonalPath {
+            if GraphicsPath::decode(payload)?.bounds()? != bounds
+                || style != GraphicsShapeStyle::Stroke
+            {
+                return Err(GraphicsError::NonCanonicalEncoding);
+            }
         } else if !payload.is_empty() {
             return Err(GraphicsError::NonCanonicalEncoding);
         }
-        if kind != GraphicsCommandKind::Rect && style != GraphicsShapeStyle::Fill {
+        if matches!(kind, GraphicsCommandKind::Text | GraphicsCommandKind::Icon)
+            && style != GraphicsShapeStyle::Fill
+        {
             return Err(GraphicsError::NonCanonicalEncoding);
         }
         let mut stored = [0; MAX_GRAPHICS_TEXT_BYTES];
@@ -146,7 +181,12 @@ impl GraphicsCommand {
         })
     }
 
+    /// Textual content only; use `path_geometry` for an orthogonal path.
     pub fn payload(&self) -> &str {
+        // Paths have typed binary geometry, not textual content.
+        if self.kind == GraphicsCommandKind::OrthogonalPath {
+            return "";
+        }
         core::str::from_utf8(&self.payload[..usize::from(self.payload_len)])
             .expect("validated graphics payload")
     }
@@ -329,6 +369,7 @@ fn decode_kind(value: u8) -> Result<GraphicsCommandKind, GraphicsError> {
         1 => Ok(GraphicsCommandKind::Rect),
         2 => Ok(GraphicsCommandKind::Text),
         3 => Ok(GraphicsCommandKind::Icon),
+        4 => Ok(GraphicsCommandKind::OrthogonalPath),
         _ => Err(GraphicsError::MalformedEncoding),
     }
 }

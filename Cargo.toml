@@ -49,10 +49,12 @@ members = [
 	# Product and application compositions.
 	"products/conduit",
 	"products/creche/model",
+	"products/workspace/model",
 	"products/tour/model",
 	"products/patchbay/hosted",
 	"products/patchbay/html",
 	"products/patchbay/model",
+	"products/patchbay/graph",
 	"products/patchbay/control",
 	"products/patchbay/native",
 	"bodies/pete",

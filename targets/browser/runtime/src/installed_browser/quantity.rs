@@ -102,7 +102,8 @@ fn prepare(
     configuration(placement)?;
     Ok(BrowserOperation::installed(QuantityOperation {
         pending: false,
-        completed: false,
+        next_request: 0,
+        cancelled: false,
     }))
 }
 
@@ -136,7 +137,8 @@ fn failure(detail: u16) -> Failure {
 
 struct QuantityOperation {
     pending: bool,
-    completed: bool,
+    next_request: u32,
+    cancelled: bool,
 }
 
 impl Operation for QuantityOperation {
@@ -150,23 +152,29 @@ impl Operation for QuantityOperation {
                 port: PortId(0),
                 value,
             } if !self.pending
-                && !self.completed
+                && !self.cancelled
                 && value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32 =>
             {
+                let request = RequestId(self.next_request);
+                let Some(next_request) = self.next_request.checked_add(1) else {
+                    return OperationAction::Fail(Failure {
+                        code: FailureCode::IdentityCapacityExhausted,
+                        detail: 6,
+                    });
+                };
+                self.next_request = next_request;
                 self.pending = true;
                 OperationAction::RequestHostOperation {
-                    request: RequestId(0),
+                    request,
                     operation: HostOperationId(0),
                     input: BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
                         .expect("exact Scalar"),
                 }
             }
-            OperationInput::HostOperationCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending => {
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending && request.0.checked_add(1) == Some(self.next_request) =>
+            {
                 self.pending = false;
-                self.completed = true;
                 match (outcome.disposition, outcome.output, outcome.failure) {
                     (HostOperationDisposition::Completed, Some(output), None)
                         if output.admitted_bytes == conduit_core::QUANTITY_ENCODED_LEN as u32
@@ -193,7 +201,7 @@ impl Operation for QuantityOperation {
 
     fn cancel(&mut self) {
         self.pending = false;
-        self.completed = true;
+        self.cancelled = true;
     }
 }
 
@@ -206,7 +214,8 @@ mod tests {
     fn browser_quantity_operation_requires_exact_ports_requests_and_output() {
         let mut operation = QuantityOperation {
             pending: false,
-            completed: false,
+            next_request: 0,
+            cancelled: false,
         };
         let input = ValueRef {
             slot: 0,
@@ -253,7 +262,8 @@ mod tests {
         for detail in 1..=5 {
             let mut operation = QuantityOperation {
                 pending: true,
-                completed: false,
+                next_request: 1,
+                cancelled: false,
             };
             let outcome = HostOperationOutcome {
                 disposition: HostOperationDisposition::Failed,
@@ -270,7 +280,8 @@ mod tests {
         }
         let mut operation = QuantityOperation {
             pending: true,
-            completed: false,
+            next_request: 1,
+            cancelled: false,
         };
         operation.cancel();
         assert!(matches!(

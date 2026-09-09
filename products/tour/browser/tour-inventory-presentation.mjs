@@ -175,7 +175,7 @@ export function presentGalleryExperience(runner, form, presentation) {
   const result = runner.querySelector(".result");
   const controls = runner.querySelector('[data-application-slot^="tour-runner-actions-"]');
   result.prepend(controls);
-  presentGalleryMessage(runner, form, presentation, result, controls);
+  const keyboardControl = presentGalleryKeyboardControl(runner, form, result, controls);
   const inputButton = runner.querySelector(".input-button");
   inputButton.textContent = form.name === "secret-knock-demo" ? "Knock here" : "Hold to light";
   result.querySelector("h2").textContent = "Live result";
@@ -187,50 +187,23 @@ export function presentGalleryExperience(runner, form, presentation) {
     if (event.target.closest('[data-application-key="run"]') && matchMedia("(max-width: 760px)").matches) {
       result.querySelector(".morse").scrollIntoView({ block: "center" });
     }
+    if (event.target.closest('[data-application-key="run"]')) queueMicrotask(() => keyboardControl?.focus());
   });
 }
 
 
-function presentGalleryMessage(runner, form, presentation, result, controls) {
-  const original = { morse_network: "SOS", memory_lantern: "READY", desk_telegraph: "CALLING", "night-radio": "NIGHT REPORT" }[form.name];
-  if (!original) return;
-  const token = JSON.stringify(original);
-  const offset = form.source.indexOf(token);
-  if (offset < 0 || form.source.indexOf(token, offset + token.length) !== -1) return;
-  const prefix = form.source.slice(0, offset);
-  const suffix = form.source.slice(offset + token.length);
-  const source = runner.querySelector("textarea");
+function presentGalleryKeyboardControl(runner, form, result, controls) {
+  if (!["morse_network", "memory_lantern", "desk_telegraph", "night-radio"].includes(form.name)) return null;
   const surface = runner.ownerDocument.createElement("div");
-  const slot = `gallery-message-${++revision}`;
-  surface.dataset.applicationSlot = slot;
-  surface.className = "gallery-message";
+  surface.className = "gallery-message gallery-keyboard-input";
+  surface.tabIndex = 0;
+  surface.setAttribute("role", "group");
+  surface.setAttribute("aria-label", "Form keyboard input");
+  surface.textContent = form.name === "memory_lantern"
+    ? "Keyboard input · type to edit the living text. Backspace edits; Stop ends the Play."
+    : form.name === "morse_network"
+      ? "Keyboard input · type characters while this Play is running."
+      : "Keyboard input · type a message and press Enter to submit it. Send another before Stop.";
   result.insertBefore(surface, controls);
-  const render = () => {
-    let value = null;
-    if (source.value.startsWith(prefix) && source.value.endsWith(suffix)) {
-      try { value = JSON.parse(source.value.slice(prefix.length, -suffix.length)); } catch { /* An edited source remains editable in the inspector. */ }
-    }
-    const available = typeof value === "string" && value.length <= 24;
-    presentation.present(slot, { revision: ++revision, actions: [{ id: "gallery.message", event: "input" }], nodes: [
-      { parent: null, component: "stack", key: "message-editor", text: "", action: null },
-      { parent: 0, component: "paragraph", key: "message-label", text: "Your message", action: null },
-      { parent: 0, component: "text-input", key: "message", text: "Your message", value: available ? value : "", valueCapacity: 96, action: available ? 0 : null },
-      { parent: 0, component: "paragraph", key: "message-help", text: available
-        ? form.name === "morse_network" ? "Up to 24 letters, numbers, or spaces. Press Run to send it in light." : "Up to 24 characters. Press Run to try your message."
-        : "This source has custom edits. Use the source editor, or restore the canonical source to use this field.", action: null },
-    ] }, { onEvent(event) {
-      presentation.nextEvent(slot);
-      const next = decoder.decode(event.value);
-      if (event.action !== "gallery.message" || !available || next.length > 24) { render(); return; }
-      source.value = `${prefix}${JSON.stringify(next)}${suffix}`;
-      source.dispatchEvent(new Event("input", { bubbles: true }));
-    } });
-    surface.querySelector("input").maxLength = 24;
-  };
-  source.addEventListener("input", render);
-  // Restore uses the runner's existing source change/refresh path.
-  runner.addEventListener("click", (event) => {
-    if (event.target.closest('[data-application-key="restore"]')) queueMicrotask(render);
-  });
-  render();
+  return surface;
 }

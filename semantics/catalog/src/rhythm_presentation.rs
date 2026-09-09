@@ -6,26 +6,26 @@ use conduit_core::{kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirec
 use super::{StandardKindContract, TerminalBehavior};
 
 pub const RHYTHM_PRESENTATION_KIND: &str = "presentation/rhythm";
-pub const RHYTHM_PRESENTATION_CONTRACT_REVISION: &str = "conduit.presentation/rhythm-state@1";
+pub const RHYTHM_PRESENTATION_CONTRACT_REVISION: &str = "conduit.presentation/rhythm-state@2";
 
 pub fn rhythm_presentation_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(RHYTHM_PRESENTATION_KIND),
         plain_name: "Rhythm presentation".to_string(),
-        summary: "Manifest a finite flow of exact phase-following state.".to_string(),
+        summary: "Manifest each exact phase-following state while its Play remains alive."
+            .to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("state"),
             value_kind: kind_id(conduit_time::RHYTHM_STATE_VALUE_KIND),
             direction: PortDirection::Input,
-            temporal: conduit_core::PortTemporal::Flow { closes: true },
+            temporal: conduit_core::PortTemporal::Flow { closes: false },
         }],
         outputs: Vec::new(),
         configuration: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 16,
-            max_queue_items: conduit_time::MAXIMUM_OBSERVED_PULSES,
-            max_queue_bytes: conduit_time::RHYTHM_STATE_ENCODED_LEN as u32
-                * conduit_time::MAXIMUM_OBSERVED_PULSES as u32,
+            max_queue_items: 1,
+            max_queue_bytes: conduit_time::RHYTHM_STATE_ENCODED_LEN as u32,
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,

@@ -35,7 +35,7 @@ means a current observation, not an unbounded history:
 ```conduit
 form count (
     start: Count = 0
-    bump: Tick...| > value: $Count
+    bump: Tick... > value: $Count
 ) {
     gear: state/count(start)
     bump > gear.bump

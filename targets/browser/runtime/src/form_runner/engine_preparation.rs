@@ -80,6 +80,8 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
     let mut attempts = core::array::from_fn(|_| None);
     let mut comparisons = core::array::from_fn(|_| None);
     let mut timing = core::array::from_fn(|_| None);
+    let mut keymaps = core::array::from_fn(|_| None);
+    let mut text_states = core::array::from_fn(|_| None);
     let mut deliveries = core::array::from_fn(|_| None);
     let mut histories = core::array::from_fn(|_| None);
     let mut replay_sources = core::array::from_fn(|_| None);
@@ -125,6 +127,11 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
             crate::installed_browser::button_attempt::prepare_codec(placement)?;
         timing[usize::from(node.node.0)] =
             crate::installed_browser::timing::PreparedTiming::for_placement(placement)?;
+        keymaps[usize::from(node.node.0)] =
+            crate::installed_browser::keymap::PreparedKeymap::for_placement(placement)?;
+        text_states[usize::from(node.node.0)] =
+            crate::installed_browser::text_state::PreparedTextState::for_placement(placement)?
+                .map(Box::new);
         deliveries[usize::from(node.node.0)] =
             crate::installed_browser::record_delivery::prepare_codec(placement)?;
         histories[usize::from(node.node.0)] =
@@ -267,6 +274,8 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
         mappings,
         selectors,
         timing,
+        keymaps,
+        text_states,
         deliveries,
         histories,
         replay_sources,

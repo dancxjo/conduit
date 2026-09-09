@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  candidate:
+  admission:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -47,3 +47,34 @@ jobs:
           proof/ci/release-lane-controller.spec.mjs
           proof/ci/release-request.spec.mjs
           proof/ci/tour-compatibility.test.mjs
+
+  check:
+    needs: admission
+    uses: ./.github/workflows/check.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+      development_admission: true
+
+  products:
+    needs: admission
+    uses: ./.github/workflows/tour-products.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+      development_admission: true
+
+  candidate:
+    needs: [admission, check, products]
+    if: always() && !cancelled()
+    runs-on: ubuntu-slim
+    steps:
+      - name: Admit only a candidate whose affected integration passed
+        env:
+          ADMISSION_RESULT: ${{ needs.admission.result }}
+          CHECK_RESULT: ${{ needs.check.result }}
+          PRODUCTS_RESULT: ${{ needs.products.result }}
+        run: |
+          test "$ADMISSION_RESULT" = success
+          test "$CHECK_RESULT" = success
+          test "$PRODUCTS_RESULT" = success

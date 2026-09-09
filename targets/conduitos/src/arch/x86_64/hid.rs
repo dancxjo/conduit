@@ -111,6 +111,17 @@ impl HidKeyTransition {
             modifiers,
         }
     }
+
+    /// Constructs a transition after a non-HID physical adapter has validated
+    /// and translated its mechanism-specific code into the portable keyboard
+    /// usage vocabulary.
+    pub(super) const fn from_validated_physical(usage: u8, pressed: bool, modifiers: u8) -> Self {
+        Self {
+            usage,
+            pressed,
+            modifiers,
+        }
+    }
     pub const fn usage(self) -> u8 {
         self.usage
     }

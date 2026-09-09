@@ -118,6 +118,7 @@ mod test_timing_sink;
 mod text_operations;
 #[cfg(test)]
 mod text_operations_tests;
+mod text_state_operation;
 mod tick_operations;
 mod tick_presentation;
 mod timed_button_attempt_host;
@@ -159,6 +160,15 @@ use conduit_plan_lowering::lowering::{
 };
 use std::io::Write;
 use std::time::Duration;
+
+fn record_request(requests: &mut Vec<HostOperationRequest>, request: HostOperationRequest) {
+    if !requests
+        .iter()
+        .any(|observed| observed.node == request.node && observed.operation == request.operation)
+    {
+        requests.push(request);
+    }
+}
 
 const MAX_NODES: usize = 16;
 const MAX_CORDS: usize = 16;
@@ -343,6 +353,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let keyboard_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_offers::NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT,
     );
+    let button_contract_id = conduit_core::HostOperationContractId::from(
+        conduit_std_offers::button::NEXT_TRANSITION_HOST_OPERATION,
+    );
     let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
     let graphics_presentation_target_kind = kind_id("presentation/graphics-scene");
     let structured_presentation_target_kind =
@@ -374,6 +387,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         presentation_construction_host::PresentationConstructionHost::prepare();
     let mut text_output_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     let mut input_keymaps = [conduit_human::ConduitIntlKeymap::new(); MAX_NODES];
+    let mut text_state_hosts = fragment
+        .placements
+        .iter()
+        .map(text_state_operation::TextStateHost::from_placement)
+        .collect::<Result<Vec<_>, String>>()?;
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
     let mut http_output =
@@ -503,7 +521,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         })
         .collect::<Result<Vec<_>, String>>()?;
     let mut midi_input_requests = vec![None; active_nodes];
-    let mut keyboard_host = keyboard_input_host::KeyboardInputHost::new(keyboard);
+    let mut keyboard_host = keyboard_input_host::KeyboardInputHost::new(
+        keyboard,
+        lowered
+            .host_operations
+            .iter()
+            .any(|operation| operation.contract_id == keyboard_contract_id),
+    );
     let mut indicator_host = indicator_host::IndicatorHost::prepare(
         indicator,
         advertisement,
@@ -604,7 +628,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .ok_or_else(|| "cancelled MIDI input has no admitted session".to_string())?;
                 session.cancel();
                 midi_input_requests[node] = None;
-            } else if cancelled_operation.contract_id == keyboard_contract_id {
+            } else if cancelled_operation.contract_id == keyboard_contract_id
+                || cancelled_operation.contract_id == button_contract_id
+            {
                 keyboard_host.cancel();
             } else if cancelled_operation.contract_id.as_str()
                 == conduit_ai::VECTOR_SEARCH_OPERATION
@@ -662,7 +688,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -705,7 +731,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -746,7 +772,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -795,7 +821,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -838,7 +864,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -884,7 +910,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -953,7 +979,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1004,7 +1030,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1018,6 +1044,61 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| {
                         format!("complete bounded structured selector operation: {error:?}")
                     })?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::TEXT_STATE_HOST_OPERATION {
+                let completion = text_state_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "text state request has no admitted host".to_string())?
+                    .execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(Some(encoded)) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded text state output: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound text state output: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Ok(None) => (HostOperationDisposition::Completed, None, None),
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: match refusal {
+                                conduit_semantic_catalog::TextStateRefusal::CapacityExhausted => {
+                                    conduit_kernel::FailureCode::StateCapacityExhausted
+                                }
+                                conduit_semantic_catalog::TextStateRefusal::InvalidCapacity
+                                | conduit_semantic_catalog::TextStateRefusal::InvalidUtf8 => {
+                                    conduit_kernel::FailureCode::InvalidInput
+                                }
+                            },
+                            detail: 1,
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete bounded text state: {error:?}"))?;
                 continue;
             }
             if contract.as_str() == conduit_std_offers::ORDERED_EVENT_INTERVALS_HOST_OPERATION {
@@ -1050,7 +1131,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1094,7 +1175,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1147,7 +1228,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1203,7 +1284,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1254,7 +1335,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1302,7 +1383,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         }),
                     ),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1324,11 +1405,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if midi_input_requests[node].replace(request).is_some() {
                     return Err("MIDI input node has two pending host requests".into());
                 }
-                requests.push(request);
+                record_request(&mut requests, request);
                 continue;
             } else if contract == &keyboard_contract_id {
-                keyboard_host.accept(request, input)?;
-                requests.push(request);
+                keyboard_host.accept(
+                    request,
+                    input,
+                    keyboard_input_host::InputRequestKind::Keyboard,
+                )?;
+                record_request(&mut requests, request);
+                continue;
+            } else if contract == &button_contract_id {
+                keyboard_host.accept(
+                    request,
+                    input,
+                    keyboard_input_host::InputRequestKind::SpaceButton,
+                )?;
+                record_request(&mut requests, request);
                 continue;
             } else if contract.as_str() == synth_operation::SYNTH_HOST_OPERATION {
                 let state = synth_states
@@ -1347,7 +1440,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 } else {
                     None
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1368,7 +1461,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         "audio/play request has no exact admitted session".to_string()
                     })?;
                 let outcome = audio_play_operation::execute(session, input);
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(request.node, request.request, outcome)
                     .map_err(|error| format!("complete audio/play host operation: {error:?}"))?;
@@ -1389,7 +1482,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .ok_or_else(|| "MIDI request has no exact admitted adapter".to_string())?;
                 let outcome =
                     midi_output_operation::execute(adapter, session, contract.as_str(), input);
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(request.node, request.request, outcome)
                     .map_err(|error| format!("complete MIDI output operation: {error:?}"))?;
@@ -1400,7 +1493,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if input != [0] {
                     return Err("proof PCM source yield marker is malformed".to_string());
                 }
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1429,7 +1522,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     let output =
                         BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
                             .map_err(|error| format!("bound recorded recognition: {error:?}"))?;
-                    requests.push(request);
+                    record_request(&mut requests, request);
                     scheduler
                         .complete_host_operation(
                             request.node,
@@ -1460,7 +1553,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     }
                     Err(_) => (HostOperationDisposition::Denied, None),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1488,7 +1581,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     }
                     Err(_) => (HostOperationDisposition::Denied, None),
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1526,7 +1619,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         )
                     }
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1568,7 +1661,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         (HostOperationDisposition::Denied, None)
                     }
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1610,7 +1703,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 } else {
                     None
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1644,7 +1737,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 } else {
                     None
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1713,7 +1806,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         (HostOperationDisposition::Cancelled, output)
                     }
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1764,7 +1857,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         failure: Some(failure),
                     },
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(request.node, request.request, outcome)
                     .map_err(|error| format!("complete alife host operation: {error:?}"))?;
@@ -1773,7 +1866,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let duration = decode_tick(input).map_err(|error| error.to_string())?;
                 if let Some(now_ms) = timer.monotonic_now_ms() {
                     deadlines.arm(request, duration, now_ms)?;
-                    requests.push(request);
+                    record_request(&mut requests, request);
                     continue;
                 }
                 timer.wait(Duration::from_millis(duration));
@@ -1784,7 +1877,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .monotonic_now_ms()
                     .ok_or_else(|| "admitted monotonic deadline Base is unavailable".to_string())?;
                 deadlines.arm(request, duration, now_ms)?;
-                requests.push(request);
+                record_request(&mut requests, request);
                 continue;
             } else if contract == &upper_contract_id
                 && lowered_operation.target_kind.as_ref() == Some(&upper_target_kind)
@@ -1793,7 +1886,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let value = scheduler
                     .store_host_value(&text_output_buffer)
                     .map_err(|error| format!("store uppercase text output: {error:?}"))?;
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1814,7 +1907,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let value = scheduler
                     .store_host_value(&text_output_buffer)
                     .map_err(|error| format!("store joined text output: {error:?}"))?;
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1834,7 +1927,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let value = scheduler
                     .store_host_value(&text_output_buffer)
                     .map_err(|error| format!("store Morse pattern output: {error:?}"))?;
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1847,7 +1940,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 && lowered_operation.target_kind.as_ref() == Some(&gate_bool_target_kind)
             {
                 let enabled = flow_gate_operation::decode_bool(input)?;
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
                         request.node,
@@ -1901,7 +1994,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         failure: Some(failure),
                     },
                 };
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(request.node, request.request, outcome)
                     .map_err(|error| {
@@ -1925,7 +2018,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 continue;
             } else if contract.as_str() == conduit_std_offers::indicator_resource::OPERATION {
                 let outcome = indicator_host.present(request, input);
-                requests.push(request);
+                record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(request.node, request.request, outcome)
                     .map_err(|error| format!("complete indicator operation: {error:?}"))?;
@@ -1967,7 +2060,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 #[cfg(not(test))]
                 return Err("installed host-operation contract is unsupported".to_string());
             }
-            requests.push(request);
+            record_request(&mut requests, request);
             scheduler
                 .complete_host_operation(
                     request.node,

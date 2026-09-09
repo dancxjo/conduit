@@ -37,6 +37,7 @@ mod journey_pointer;
 mod journey_proof;
 mod journey_records;
 mod journey_resize;
+mod journey_standing;
 mod journey_tour;
 mod journey_transient;
 mod journey_usb_line;
@@ -64,6 +65,7 @@ mod product_readiness_matrix;
 mod profile;
 mod prove;
 mod prove_many;
+mod ps2_input_proof;
 mod qemu_artifacts;
 mod qmp;
 mod qmp_display;
@@ -155,6 +157,8 @@ enum ConduitosCommand {
     HidProof(PreparedProofArgs),
     /// Prove the exact portable keyboard offer, Plan, Play, and event values.
     KeyboardProof(PreparedProofArgs),
+    /// Prove bounded PS/2 keyboard and pointer input through ordinary product semantics.
+    Ps2InputProof,
     /// Build one immutable x86 proof image for bounded downstream PLAY jobs.
     PrepareProofImage,
     /// Prove the exact PC-speaker offer, Plan, production-kernel Play, and Base effects.
@@ -502,6 +506,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::UsbProof(args) => usb_proof::execute(args.prepared_image, opts),
         ConduitosCommand::HidProof(args) => hid_proof::execute(args.prepared_image, opts),
         ConduitosCommand::KeyboardProof(args) => keyboard_proof::execute(args.prepared_image, opts),
+        ConduitosCommand::Ps2InputProof => ps2_input_proof::execute(opts),
         ConduitosCommand::PrepareProofImage => prepared_proof_image::prepare(opts),
         ConduitosCommand::PcSpeakerProof => pc_speaker_proof::execute(opts),
         ConduitosCommand::HotplugProof => hotplug_proof::execute(opts),

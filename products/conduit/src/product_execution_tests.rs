@@ -191,7 +191,7 @@ fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_or
     let show = host("bounds-show");
     let host_for_kind = |kind: &str| match kind {
         conduit_alife::ORBIUM_SEED_KIND => seed.advertisement(),
-        conduit_time::TIME_EVERY_KIND => clock.advertisement(),
+        conduit_time::TICK_KIND => clock.advertisement(),
         conduit_alife::LENIA_STEP_KIND => evolve.advertisement(),
         conduit_alife::SCALAR_FIELD_PRESENTATION_KIND => show.advertisement(),
         other => panic!("unexpected Lenia demo Kind '{other}'"),

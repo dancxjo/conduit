@@ -3,7 +3,7 @@ use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
 use super::BrowserOperation;
-use conduit_core::{CapabilityOffer, ConfigurationValue, PlannedGear};
+use conduit_core::{CapabilityOffer, PlannedGear};
 
 const IMPLEMENTATION: &str = "browser/presentation-tick@1";
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
@@ -43,21 +43,9 @@ fn prepare(
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &offer())?;
-    let maximum = placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            ("maximum-values", ConfigurationValue::U64(value))
-                if (1..=conduit_time::TIME_EVERY_COUNT).contains(value) =>
-            {
-                Some(*value)
-            }
-            _ => None,
-        })
-        .ok_or("tick presentation has no valid finite value bound")?;
     Ok(BrowserOperation::presentation(
         conduit_time::TICK_ENCODED_LEN,
-        maximum as u32,
+        1,
     ))
 }
 

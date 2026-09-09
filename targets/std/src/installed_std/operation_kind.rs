@@ -62,6 +62,7 @@ use super::test_structured_selector::{
 use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
 };
+use super::text_state_operation::TextStateOperation;
 #[cfg(test)]
 use super::tick_operations::TestObserverOperation;
 use super::tick_operations::TickOperation;
@@ -103,6 +104,7 @@ pub(super) enum InstalledOperation {
     TextUpper(TextTransformOperation),
     TextJoin(TextTransformOperation),
     TextPresentation(TextPresentationOperation),
+    TextState(TextStateOperation),
     StateCount(StateCountOperation),
     StateToggle(StateToggleOperation),
     CountPresentation(CountPresentationOperation),

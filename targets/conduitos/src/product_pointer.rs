@@ -40,6 +40,7 @@ pub fn realization(
         identity::derive_usb_interface(&device_id, interface.number, interface.alternate_setting);
     let endpoint_id = identity::derive_usb_endpoint(&interface_id, ready.endpoint_address);
     Ok(PointerRealization {
+        mechanism: crate::pointer_offer::PointerMechanism::UsbHid,
         controller_id,
         device_id,
         interface_id,
@@ -61,12 +62,38 @@ pub fn run(
     controller: &mut XhciReady,
     usb: &UsbDevice,
 ) -> Result<(), &'static str> {
+    run_with(identities, fabrication, tour, presenter, display, || {
+        session
+            .receive(controller, usb)
+            .map_err(|error| error.as_str())
+    })
+}
+
+pub fn run_ps2(
+    identities: &BootIdentities,
+    fabrication: &FabricationRecord,
+    tour: &mut TourProduct,
+    presenter: &mut TourShellPresenter,
+    display: &mut impl crate::display::PixelTarget,
+    input: &mut crate::arch::Ps2Input,
+) -> Result<(), &'static str> {
+    run_with(identities, fabrication, tour, presenter, display, || {
+        input.receive_pointer().map_err(|error| error.as_str())
+    })
+}
+
+fn run_with(
+    identities: &BootIdentities,
+    fabrication: &FabricationRecord,
+    tour: &mut TourProduct,
+    presenter: &mut TourShellPresenter,
+    display: &mut impl crate::display::PixelTarget,
+    mut receive: impl FnMut() -> Result<conduit_semantic_catalog::NormalizedPointerSample, &'static str>,
+) -> Result<(), &'static str> {
     arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
     let mut suppress_dismissal_release = false;
     loop {
-        let sample = session
-            .receive(controller, usb)
-            .map_err(|error| error.as_str())?;
+        let sample = receive()?;
         let format = display
             .format()
             .validate()
@@ -88,10 +115,23 @@ pub fn run(
             continue;
         }
         if route.surface_id != WORKSPACE_SURFACE {
-            let hovered = presenter
-                .scroll_hit_subject(&route)
-                .map_err(|error| error.as_str())?
-                .is_some();
+            let close_hit = presenter
+                .inspector_close_hit(&route)
+                .map_err(|error| error.as_str())?;
+            if sample.primary_pressed && close_hit {
+                presenter
+                    .activate_inspector_close(&route, tour, display)
+                    .map_err(|error| error.as_str())?;
+                suppress_dismissal_release = true;
+                arch::early_write(b"CONDUIT_TOUR_CHECKPOINT inspector-close-activated\n");
+                arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+                continue;
+            }
+            let hovered = close_hit
+                || presenter
+                    .scroll_hit_subject(&route)
+                    .map_err(|error| error.as_str())?
+                    .is_some();
             presenter
                 .set_pointer_hover(hovered)
                 .map_err(|error| error.as_str())?;
@@ -111,6 +151,13 @@ pub fn run(
                 emit_auxiliary_focus_sign(&route, sample, tour, identities, fabrication);
                 arch::early_write(b"CONDUIT_TOUR_CHECKPOINT auxiliary-surface-focused\n");
                 if route.surface_id == TRANSIENT_SURFACE {
+                    let chosen = presenter
+                        .chooser_gear(&route)
+                        .map_err(|error| error.as_str())?;
+                    if let Some(gear) = chosen {
+                        tour.select_gear(tour.controller().state().revision, gear)
+                            .map_err(|error| error.as_str())?;
+                    }
                     let dismissal = presenter
                         .dismiss_transient(display)
                         .map_err(|error| error.as_str())?;
@@ -129,6 +176,12 @@ pub fn run(
                         identities,
                         fabrication,
                     );
+                    if chosen.is_some() {
+                        presenter
+                            .present(tour, display)
+                            .map_err(|error| error.as_str())?;
+                        arch::early_write(b"CONDUIT_TOUR_CHECKPOINT chooser-gear-selected\n");
+                    }
                     suppress_dismissal_release = true;
                     arch::early_write(b"CONDUIT_TOUR_CHECKPOINT transient-pointer-dismissed\n");
                 }
@@ -144,11 +197,21 @@ pub fn run(
         let mut local_sample = sample;
         local_sample.position_x = normalized_local(route.local_x, format.width)?;
         local_sample.position_y = normalized_local(route.local_y, format.height)?;
-        let outcome = tour.accept_pointer(
+        let outcome = tour.route_workspace_pointer(
             local_sample,
             u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
             u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
         )?;
+        let Some(outcome) = outcome else {
+            presenter
+                .set_pointer_hover(false)
+                .map_err(|error| error.as_str())?;
+            presenter
+                .present(tour, display)
+                .map_err(|error| error.as_str())?;
+            arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+            continue;
+        };
         presenter
             .set_pointer_hover(true)
             .map_err(|error| error.as_str())?;
@@ -181,8 +244,27 @@ fn normalized_local(value: u16, extent: u32) -> Result<i64, &'static str> {
     if extent == 0 || u32::from(value) >= extent {
         return Err("compositor-pointer-local-coordinate-invalid");
     }
-    i64::try_from(u64::from(value) * 1_000_000 / u64::from(extent))
+    // Round upward so the semantic decoder's floor maps back to this exact
+    // pixel, including the first pixel on a card edge.
+    i64::try_from((u64::from(value) * 1_000_000).div_ceil(u64::from(extent)))
         .map_err(|_| "compositor-pointer-local-coordinate-invalid")
+}
+
+#[cfg(test)]
+mod coordinate_tests {
+    use super::*;
+
+    #[test]
+    fn surface_local_pixels_survive_normalization_without_edge_drift() {
+        for extent in [320, 640, 800, 1280, 1920, u32::from(u16::MAX)] {
+            for pixel in 0..extent {
+                let normalized = normalized_local(pixel as u16, extent).unwrap();
+                assert_eq!(display_coordinate(normalized, extent).unwrap(), pixel);
+            }
+        }
+        assert!(normalized_local(0, 0).is_err());
+        assert!(normalized_local(640, 640).is_err());
+    }
 }
 
 fn display_coordinate(value: i64, extent: u32) -> Result<u32, &'static str> {

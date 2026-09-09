@@ -79,7 +79,13 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(candidate, /branches: \[dev\]/);
   assert.match(candidate, /cargo test --locked --package conduit-xtask-dispatch/);
   assert.match(candidate, /proof\/ci\/release-lane-controller\.spec\.mjs/);
-  assert.doesNotMatch(candidate, /tour-products\.yml/);
+  assert.match(candidate, /uses: \.\/\.github\/workflows\/check\.yml/);
+  assert.match(candidate, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.equal(candidate.match(/development_admission: true/g)?.length, 2);
+  assert.match(candidate, /needs: \[admission, check, products\]/);
+  assert.match(candidate, /Admit only a candidate whose affected integration passed/);
+  assert.match(candidate, /test "\$CHECK_RESULT" = success/);
+  assert.match(candidate, /test "\$PRODUCTS_RESULT" = success/);
   assert.match(candidate, /group: candidate-\$\{\{ github\.event\.pull_request\.number \}\}/);
   assert.match(candidate, /cancel-in-progress: true/);
   assert.match(integration, /branches: \[dev\]/);
@@ -138,6 +144,11 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(devIntegration, /-f integrated_sha="\$INTEGRATED_SHA"/);
   const finalizer = readFileSync(".github/workflows/finalize-release.yml", "utf8");
   assert.match(finalizer, /types: \[completed\]/);
+  assert.match(finalizer, /gh pr list --state all --base main --head "\$HEAD_BRANCH"/);
+  assert.match(finalizer, /if test "\$state" = OPEN/);
+  assert.match(finalizer, /test "\$state" = MERGED/);
+  assert.match(finalizer, /git fetch --no-tags origin "\$merge_sha"/);
+  assert.match(finalizer, /base_sha=\$\(git rev-parse "\$merge_sha\^1"\)/);
   assert.match(finalizer, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
   assert.match(finalizer, /test "\$\(git rev-parse "\$merge_sha\^2"\)" = "\$HEAD_SHA"/);
   assert.match(finalizer, /gh pr merge "\$pr_url" --squash --match-head-commit "\$HEAD_SHA"/);

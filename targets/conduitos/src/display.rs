@@ -1,6 +1,9 @@
 //! Finite framebuffer mechanism below portable graphics meaning.
 
 mod font;
+mod text_layout;
+#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
+pub(crate) use text_layout::text_height;
 
 use conduit_presentation::{
     GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
@@ -219,13 +222,35 @@ fn render_command(
     };
     let color = paint(format, command.paint);
     match command.kind {
+        GraphicsCommandKind::OrthogonalPath => {
+            let path = command.path_geometry().ok_or(DisplayError::InvalidExtent)?;
+            for segment in path.points().windows(2) {
+                let start = segment[0];
+                let end = segment[1];
+                let rect = LayoutRect {
+                    x: start.x.min(end.x),
+                    y: start.y.min(end.y),
+                    width: (i32::from(start.x) - i32::from(end.x)).unsigned_abs() as u16 + 1,
+                    height: (i32::from(start.y) - i32::from(end.y)).unsigned_abs() as u16 + 1,
+                };
+                if let Some(visible) = clipped(rect, command.clip, format) {
+                    fill(target, visible, color, receipt)?;
+                }
+            }
+            Ok(())
+        }
         GraphicsCommandKind::Rect if command.style == GraphicsShapeStyle::Fill => {
             fill(target, bounds, color, receipt)
         }
         GraphicsCommandKind::Rect => stroke(target, bounds, color, receipt),
-        GraphicsCommandKind::Text | GraphicsCommandKind::Icon => {
-            text(target, bounds, command.payload(), color, receipt)
-        }
+        GraphicsCommandKind::Text | GraphicsCommandKind::Icon => text(
+            target,
+            command.bounds,
+            bounds,
+            command.payload(),
+            color,
+            receipt,
+        ),
     }
 }
 
@@ -248,9 +273,9 @@ fn clipped(bounds: LayoutRect, clip: LayoutRect, format: DisplayFormat) -> Optio
 
 fn paint(format: DisplayFormat, role: GraphicsPaintRole) -> u32 {
     let (red, green, blue) = match role {
-        GraphicsPaintRole::Background => (8, 18, 24),
-        GraphicsPaintRole::Foreground => (205, 235, 224),
-        GraphicsPaintRole::Accent => (69, 255, 188),
+        GraphicsPaintRole::Background => (15, 23, 32),
+        GraphicsPaintRole::Foreground => (225, 232, 240),
+        GraphicsPaintRole::Accent => (83, 178, 255),
         GraphicsPaintRole::Status => (255, 190, 70),
     };
     format.pixel(red, green, blue)
@@ -300,46 +325,38 @@ fn stroke(
 fn text(
     target: &mut impl PixelTarget,
     rect: LayoutRect,
+    clip: LayoutRect,
     value: &str,
     color: u32,
     receipt: &mut DisplayReceipt,
 ) -> Result<(), DisplayError> {
-    let origin_x = u32::from(rect.x as u16);
-    let origin_y = u32::from(rect.y as u16);
-    let right = origin_x + u32::from(rect.width);
-    let bottom = origin_y + u32::from(rect.height);
-    let mut cell_x = origin_x;
-    let mut cell_y = origin_y;
+    let mut cursor = text_layout::TextCursor::new(rect.width);
     for character in value.chars() {
-        if character == '\n' {
-            cell_x = origin_x;
-            cell_y = cell_y.saturating_add(font::GLYPH_HEIGHT);
-            if cell_y >= bottom {
-                break;
-            }
+        let Some((cell_x, cell_y)) = cursor.advance(character) else {
             continue;
-        }
+        };
         let (glyph, _) = font::glyph(character);
         let width = u32::from(glyph.width);
-        if cell_x + width > right {
-            cell_x = origin_x;
-            cell_y = cell_y.saturating_add(font::GLYPH_HEIGHT);
-        }
-        if cell_y >= bottom || cell_x + width > right {
+        if cell_y >= u32::from(rect.height) || cell_x + width > u32::from(rect.width) {
             break;
         }
         for row in 0..font::GLYPH_HEIGHT {
-            if cell_y + row >= bottom {
-                break;
-            }
             for column in 0..width {
+                let x = i32::from(rect.x) + (cell_x + column) as i32;
+                let y = i32::from(rect.y) + (cell_y + row) as i32;
+                if x < i32::from(clip.x)
+                    || y < i32::from(clip.y)
+                    || x >= i32::from(clip.x) + i32::from(clip.width)
+                    || y >= i32::from(clip.y) + i32::from(clip.height)
+                {
+                    continue;
+                }
                 let byte = glyph.bitmap[row as usize * (width as usize / 8) + column as usize / 8];
                 if byte & (0x80 >> (column % 8)) != 0 {
-                    put(target, cell_x + column, cell_y + row, color, receipt)?;
+                    put(target, x as u32, y as u32, color, receipt)?;
                 }
             }
         }
-        cell_x = cell_x.saturating_add(width);
     }
     Ok(())
 }

@@ -1,6 +1,8 @@
 use alloc::{format, vec, vec::Vec};
+#[path = "transient_replacement_tests.rs"]
+mod transient_replacement_tests;
 
-use conduit_presentation::{ApplicationEvent, ApplicationEventKind, GraphicsClipClass};
+use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
 use conduit_semantic_catalog::NormalizedPointerSample;
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, TourPointerOutcome, TourTransientKind};
 
@@ -57,6 +59,75 @@ fn selected_gear_manifests_independent_focused_inspector_and_dismisses_it() {
     );
     assert_eq!(
         delivered(shell.route_pointer(500, 100, false).unwrap()).surface_id,
+        WORKSPACE_SURFACE
+    );
+}
+
+#[test]
+fn chooser_selects_exact_gear_and_rejects_the_dismissed_route() {
+    let (mut tour, mut shell, mut display) = fixture();
+    shell.present(&tour, &mut display).unwrap();
+    shell
+        .show_transient(
+            &tour,
+            TourTransientKind::Chooser,
+            "Choose a Patchbay Gear",
+            &mut display,
+        )
+        .unwrap();
+    let header = delivered(shell.route_pointer(200, 180, true).unwrap());
+    assert_eq!(shell.chooser_gear(&header).unwrap(), None);
+    let route = delivered(shell.route_pointer(200, 240, true).unwrap());
+    let gear = shell.chooser_gear(&route).unwrap().unwrap();
+    assert_eq!(gear, "meet-one-gear/words");
+    tour.select_gear(tour.controller().state().revision, gear)
+        .unwrap();
+    shell.dismiss_transient(&mut display).unwrap();
+    assert!(shell.chooser_gear(&route).is_err());
+    assert!(
+        shell
+            .present(&tour, &mut display)
+            .unwrap()
+            .inspector
+            .is_some()
+    );
+    assert_eq!(
+        tour.controller()
+            .state()
+            .selected_patchbay_subject
+            .as_deref(),
+        Some(gear)
+    );
+}
+
+#[test]
+fn close_control_restores_workspace_and_invalidates_its_surface_route() {
+    let (mut tour, mut shell, mut display) = fixture();
+    tour.accept_pointer(pointer(), 640, 480).unwrap();
+    shell.present(&tour, &mut display).unwrap();
+    let header = delivered(shell.route_pointer(450, 20, true).unwrap());
+    assert!(!shell.inspector_close_hit(&header).unwrap());
+    let close = delivered(shell.route_pointer(600, 20, true).unwrap());
+    assert!(shell.inspector_close_hit(&close).unwrap());
+    assert!(
+        shell
+            .activate_inspector_close(&close, &mut tour, &mut display)
+            .unwrap()
+    );
+    assert!(
+        tour.controller()
+            .state()
+            .selected_patchbay_subject
+            .is_none()
+    );
+    assert!(tour.controller().state().hovered_patchbay_subject.is_none());
+    assert!(
+        shell
+            .activate_inspector_close(&close, &mut tour, &mut display)
+            .is_err()
+    );
+    assert_eq!(
+        delivered(shell.route_pointer(600, 20, false).unwrap()).surface_id,
         WORKSPACE_SURFACE
     );
 }
@@ -143,7 +214,7 @@ fn chooser_scroll_is_finite_and_off_viewport_rows_are_clipped() {
         scene
             .commands()
             .iter()
-            .any(|command| command.clip_class() == GraphicsClipClass::FullyClipped)
+            .any(|command| command.payload() == "Select meet-one-gear/result")
     );
     assert_eq!(
         shell
@@ -303,6 +374,7 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
     .unwrap();
     journey.accept_play_input(press).unwrap();
     journey.accept_play_input(release).unwrap();
+    invoke_journey(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
     invoke_journey(&mut journey, JourneyAction::Lull, &identities, &offer).unwrap();
     let (_, mut shell, _) = fixture();
     let mut display = MemoryDisplay::with_size(1280, 800);
@@ -312,7 +384,7 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
             &journey.projection(),
             &mut display,
         )
-        .expect("initial Tour must accept the completed and lulled lifecycle basis");
+        .expect("initial Tour must accept the stopped and lulled lifecycle basis");
 }
 
 #[test]
@@ -420,6 +492,7 @@ fn host_offer(identities: &BootIdentities) -> HostOffer<'_> {
     )
     .with_keyboard(
         KeyboardRealization {
+            mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
             controller_id: [3; 32],
             device_id: [4; 32],
             interface_id: [5; 32],

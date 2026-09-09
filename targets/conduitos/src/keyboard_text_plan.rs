@@ -12,7 +12,7 @@ use conduit_planner::{
 
 use crate::{
     identity::BootIdentities,
-    keyboard_offer::{KEYBOARD_IMPLEMENTATION, OPERATION_RESOURCE},
+    keyboard_offer::{KEYBOARD_IMPLEMENTATION, PS2_KEYBOARD_IMPLEMENTATION},
     offer::HostOffer,
     ordinary_plan::{PreparationError, advertisement},
 };
@@ -142,7 +142,10 @@ pub fn validate(
             .iter()
             .find(|placement| placement.kind_id.as_str() == kind)
             .ok_or(PreparationError::PlanRejected)?;
-        if placement.implementation_id.as_str() != implementation
+        let implementation_matches = placement.implementation_id.as_str() == implementation
+            || (kind == conduit_semantic_catalog::KEYBOARD_KIND
+                && placement.implementation_id.as_str() == PS2_KEYBOARD_IMPLEMENTATION);
+        if !implementation_matches
             || placement.artifact_id.as_str() != format!("conduitos-build/{build_id}")
             || placement.host_id != advertisement.host_id
             || placement.boot_id != advertisement.boot_id
@@ -220,10 +223,12 @@ fn append_keymap_offer(advertisement: &mut HostAdvertisement, build_id: &str) {
     keymap.implementation.execution_profile_id = ExecutionProfileId::from(KEYMAP_EXECUTION_PROFILE);
     keymap.implementation.implementation_id = ImplementationId::from(KEYMAP_IMPLEMENTATION);
     keymap.implementation.artifact_id = ArtifactId::from(format!("conduitos-build/{build_id}"));
-    keymap.resource_requirements = vec![
-        resource_requirement("conduit.resource/runtime-memory@1", 4_096),
-        resource_requirement(OPERATION_RESOURCE, 1),
-    ];
+    // Keymap transforms an admitted value in memory. Its Host operation has its
+    // own planned in-flight bound; it does not use a keyboard controller slot.
+    keymap.resource_requirements = vec![resource_requirement(
+        "conduit.resource/runtime-memory@1",
+        4_096,
+    )];
     advertisement.capabilities.push(keymap);
 }
 
@@ -268,6 +273,7 @@ mod tests {
         )
         .with_keyboard(
             KeyboardRealization {
+                mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
                 controller_id: [3; 32],
                 device_id: [4; 32],
                 interface_id: [5; 32],
@@ -290,6 +296,33 @@ mod tests {
         assert!(!FORM_SOURCE.contains("usb"));
         assert_eq!(prepared.plan.fragments[0].placements.len(), PLACEMENTS);
         assert_eq!(prepared.plan.fragments[0].connections.len(), CONNECTIONS);
+    }
+
+    #[test]
+    fn ps2_keyboard_with_one_hardware_operation_slot_plans_the_same_portable_form() {
+        let (identities, mut offer) = fixture();
+        let keyboard = &mut offer.keyboard.as_mut().unwrap().realization;
+        keyboard.mechanism = crate::keyboard_offer::KeyboardMechanism::Ps2;
+        keyboard.operation_slots = 1;
+        keyboard.report_buffers = 1;
+        let prepared = prepare(&identities, &offer, "build").unwrap();
+        assert!(
+            prepared.plan.fragments[0]
+                .placements
+                .iter()
+                .any(
+                    |placement| placement.implementation_id.as_str() == PS2_KEYBOARD_IMPLEMENTATION
+                )
+        );
+        let keymap = prepared.plan.fragments[0]
+            .placements
+            .iter()
+            .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND)
+            .unwrap();
+        assert_eq!(keymap.host_operations.len(), 1);
+        assert_eq!(keymap.host_operations[0].maximum_in_flight, 1);
+        offer.keyboard.as_mut().unwrap().realization.operation_slots = 0;
+        assert!(prepare(&identities, &offer, "build").is_err());
     }
 
     #[test]

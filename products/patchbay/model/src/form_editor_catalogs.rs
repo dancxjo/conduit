@@ -9,6 +9,8 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Fo
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
+    conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile)

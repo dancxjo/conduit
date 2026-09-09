@@ -62,7 +62,7 @@ fn cancellation_rejects_late_machine_wake() {
 }
 
 #[test]
-fn base_failure_remains_failure_and_sign_full_never_becomes_success() {
+fn base_failure_remains_failure_and_bounded_sign_eviction_stays_visible() {
     let mut profile = KernelProfile::new().unwrap();
     let timer = reach_timer_request(&mut profile);
     let interest = KernelProfile::timer_interest(timer).unwrap();
@@ -84,8 +84,22 @@ fn base_failure_remains_failure_and_sign_full_never_becomes_success() {
     signs
         .record(NodeId(0), None, None, KernelEventKind::Decision)
         .unwrap();
+    signs
+        .record(NodeId(0), None, None, KernelEventKind::Decision)
+        .unwrap();
     assert_eq!(
-        signs.record(NodeId(0), None, None, KernelEventKind::Decision),
+        signs.retention_gap(),
+        Some(conduit_kernel::SignRetentionGap {
+            first_sequence: 0,
+            last_sequence: 0,
+            entries: 1,
+        })
+    );
+    signs
+        .record(NodeId(0), None, None, KernelEventKind::OperationCompleted)
+        .unwrap();
+    assert_eq!(
+        signs.record(NodeId(0), None, None, KernelEventKind::OperationFailed),
         Err(SignError::ItemCapacityExceeded)
     );
 }

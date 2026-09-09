@@ -1,11 +1,13 @@
 # A bounded timing-pattern Form. Trigger, clock, storage, and presentation
 # realizations remain Host choices made by an exact Plan.
 form secret-knock (
-    > transitions: InputButtonTransition...|
+    > transitions: InputButtonTransition...
     > template_commands: NamedPatternTemplateCommand...|
 ) {
     # Three presses include two intervening releases; finish on the third press.
-    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)
+    # Six slots admit the release separating two physical attempts as well as
+    # the five transitions that describe one three-press attempt.
+    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 6, timeout-ms = 1000ms)
     intervals: derive-intervals
     normalize: normalize-durations
     storage: storage/named-pattern-templates(maximum-commands = 2)
@@ -57,18 +59,15 @@ form compare-pattern (
     compare.comparison > comparison
 }
 
-# The Gallery entry is a closed ordinary Form: pointer, device, or fixture
-# button realizations can drive the same reusable recognizer. The initializer
-# emits one bounded Put/Get command pair; storage remains an independently
-# selected and admitted realization rather than hidden UI state.
+# The Gallery entry is a living ordinary Form: pointer, device, or fixture
+# button realizations can drive repeated bounded attempts. The initializer
+# emits one bounded Put/Get command pair; storage remains independently
+# selected and admitted truth rather than hidden UI state.
 form secret-knock-demo {
-    # Transactional demo: one bounded recognition attempt.
-    complete
-    button: input/button(maximum-transitions = 5)
+    button: input/button
     template: storage/named-pattern-template-initializer(name = "gallery-knock", normalized-values = "333333,1000000")
     recognize: secret-knock
 
     button.transition > recognize.transitions
-    button.transition > template.trigger
     template.commands > recognize.template_commands
 }

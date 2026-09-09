@@ -1,57 +1,87 @@
-//! One boot-scoped admitted allocator used only before Play start.
+//! Fixed-capacity storage for Boot-scoped preparation.
+//!
+//! Dropping a prepared object returns its storage to this same admitted range.
+//! Successive graphical Presentations therefore reuse storage rather than
+//! consuming a new lifetime allocation on every refresh. Sealing still refuses
+//! all subsequent allocations; the kernel's allocation-free proof is unchanged.
+//! Interrupt handlers must not allocate or enter this preparation allocator.
 
+mod bitmap;
+
+use bitmap::ArenaState;
 use core::{
     alloc::{GlobalAlloc, Layout},
-    ptr::null_mut,
-    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+    cell::UnsafeCell,
+    hint::spin_loop,
+    sync::atomic::{AtomicBool, Ordering},
 };
 
+/// Maximum preparation range, including the graphical profile's current arena.
+pub const MAXIMUM_ARENA_BYTES: usize = 16 * 1024 * 1024;
+
 pub struct BootArena {
-    start: AtomicUsize,
-    end: AtomicUsize,
-    next: AtomicUsize,
-    sealed: AtomicBool,
+    locked: AtomicBool,
+    state: UnsafeCell<ArenaState>,
 }
+
+// The lock exclusively owns every access to state. Allocated ranges are
+// disjoint; their access and deallocation obey GlobalAlloc's caller contract.
+unsafe impl Sync for BootArena {}
 
 impl BootArena {
     pub const fn new() -> Self {
         Self {
-            start: AtomicUsize::new(0),
-            end: AtomicUsize::new(0),
-            next: AtomicUsize::new(0),
-            sealed: AtomicBool::new(false),
+            locked: AtomicBool::new(false),
+            state: UnsafeCell::new(ArenaState::new()),
         }
     }
 
     /// # Safety
-    ///
     /// `start..start + length` must be one exclusively owned writable virtual
-    /// range for the duration of this boot.
+    /// range for this arena's lifetime, without overlapping the arena metadata.
     pub unsafe fn initialize(&self, start: usize, length: usize) -> Result<(), ArenaError> {
-        let end = start.checked_add(length).ok_or(ArenaError::InvalidRange)?;
-        if start == 0 || length == 0 || self.start.swap(start, Ordering::SeqCst) != 0 {
-            return Err(ArenaError::InvalidRange);
-        }
-        self.end.store(end, Ordering::SeqCst);
-        self.next.store(start, Ordering::SeqCst);
-        Ok(())
+        self.with_state(|state| state.initialize(start, length))
     }
 
     pub fn seal(&self) -> usize {
-        self.sealed.store(true, Ordering::SeqCst);
-        self.used()
+        self.with_state(|state| {
+            state.sealed = true;
+            state.used()
+        })
     }
 
+    /// Peak live storage for the existing before/after-seal proof receipt.
     pub fn used(&self) -> usize {
-        self.next
-            .load(Ordering::SeqCst)
-            .saturating_sub(self.start.load(Ordering::SeqCst))
+        self.with_state(|state| state.used())
+    }
+
+    /// Currently live storage, including fixed allocation-unit rounding.
+    pub fn live_bytes(&self) -> usize {
+        self.with_state(|state| state.live_bytes())
     }
 
     pub fn capacity(&self) -> usize {
-        self.end
-            .load(Ordering::SeqCst)
-            .saturating_sub(self.start.load(Ordering::SeqCst))
+        self.with_state(|state| state.capacity())
+    }
+
+    fn with_state<R>(&self, work: impl FnOnce(&mut ArenaState) -> R) -> R {
+        while self
+            .locked
+            .compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
+            spin_loop();
+        }
+        struct Unlock<'a>(&'a AtomicBool);
+        impl Drop for Unlock<'_> {
+            fn drop(&mut self) {
+                self.0.store(false, Ordering::Release);
+            }
+        }
+        let _unlock = Unlock(&self.locked);
+        // SAFETY: this guard exclusively owns state until work returns. Work
+        // never recursively allocates, and no reference to state is returned.
+        work(unsafe { &mut *self.state.get() })
     }
 }
 
@@ -68,36 +98,15 @@ pub enum ArenaError {
 
 unsafe impl GlobalAlloc for BootArena {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        if self.sealed.load(Ordering::SeqCst) {
-            return null_mut();
-        }
-        let end = self.end.load(Ordering::SeqCst);
-        let mut current = self.next.load(Ordering::SeqCst);
-        loop {
-            let Some(aligned) = current
-                .checked_add(layout.align() - 1)
-                .map(|value| value & !(layout.align() - 1))
-            else {
-                return null_mut();
-            };
-            let Some(next) = aligned.checked_add(layout.size()) else {
-                return null_mut();
-            };
-            if next > end {
-                return null_mut();
-            }
-            match self
-                .next
-                .compare_exchange(current, next, Ordering::SeqCst, Ordering::SeqCst)
-            {
-                Ok(_) => return aligned as *mut u8,
-                Err(observed) => current = observed,
-            }
-        }
+        self.with_state(|state| state.allocate(layout))
     }
-
-    unsafe fn dealloc(&self, _pointer: *mut u8, _layout: Layout) {}
+    unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+        self.with_state(|state| state.release(pointer, layout));
+    }
 }
 
 #[cfg_attr(target_os = "none", global_allocator)]
 pub static BOOT_ARENA: BootArena = BootArena::new();
+
+#[cfg(test)]
+mod tests;

@@ -1,9 +1,10 @@
 form morse_network {
-    # Transactional demo: presents one finite encoded message.
-    complete
-    message: text/literal("SOS")
+    # Run once; each later portable key transition is mapped and manifested.
+    keyboard: input/keyboard
+    keymap: input/keymap
     morse: text/morse(120)
     light: presentation/indicator
 
-    message > morse > light
+    keyboard.key > keymap.key
+    keymap.text > morse > light
 }

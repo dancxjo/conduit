@@ -26,6 +26,21 @@ pub enum TourPointerRefusal {
 }
 
 impl TourWorkspaceController {
+    /// A renderer-resolved gap clears hover without changing selection.
+    pub fn leave_pointer(&mut self, sequence: u64) -> Result<(), TourPointerRefusal> {
+        if self
+            .last_pointer_sequence()
+            .is_some_and(|previous| sequence <= previous)
+        {
+            return Err(TourPointerRefusal::StaleSequence);
+        }
+        let revision = self
+            .next_revision()
+            .map_err(TourPointerRefusal::Workspace)?;
+        self.commit_pointer_leave(sequence, revision);
+        Ok(())
+    }
+
     pub fn accept_pointer(
         &mut self,
         sample: NormalizedPointerSample,
@@ -108,6 +123,18 @@ mod tests {
             })
             .unwrap();
         controller
+    }
+
+    #[test]
+    fn leaving_at_revision_exhaustion_preserves_the_previous_state() {
+        let mut controller = TourWorkspaceController::canonical(u32::MAX);
+        let before = controller.state().clone();
+        assert!(matches!(
+            controller.leave_pointer(1),
+            Err(TourPointerRefusal::Workspace(_))
+        ));
+        assert_eq!(controller.state(), &before);
+        assert_eq!(controller.last_pointer_sequence(), None);
     }
 
     #[test]

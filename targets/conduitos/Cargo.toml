@@ -175,6 +175,7 @@ scripted-keyboard-proof = []
 native-compositor = []
 native-http-client = []
 conduitos-isolation-proof = []
+ps2-input = []
 # Proof-appliance selectors. Every selected entrypoint lives under the explicit
 # proof/appliances tree and remains absent from an ordinary product build.
 aarch64-a0 = []
@@ -201,6 +202,7 @@ loongarch64-a4 = []
 loongarch64-product = []
 
 [dependencies]
+conduit-creche-model = { path = "../../products/creche/model" }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-core = { path = "../../architecture/core" }

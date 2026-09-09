@@ -132,25 +132,21 @@ fn two_browser_hosts_exchange_pulses_and_converge_over_one_planned_line() {
         output = sender.ingest(*delivered).unwrap();
     }
     assert_eq!(periods, [270, 262, 262, 262]);
-    let Output::Line { frame: close, .. } = output else {
-        panic!("Firefly source did not close its pulse Cord")
-    };
-    assert_eq!(close.phase, "close");
-    let Output::Line {
-        frame: terminal,
-        receipt: Some(sink_receipt),
+    assert!(matches!(output, Output::Timer { .. }));
+    let Output::Receipt {
+        receipt: sink_receipt,
         ..
-    } = follower.ingest(*close).unwrap()
+    } = follower.cancel().unwrap()
     else {
-        panic!("Firefly follower did not complete")
+        panic!("Firefly follower did not retain Stop")
     };
     assert_eq!(sink_receipt.transferred_values, 4);
-    assert_eq!(sink_receipt.disposition, "completed");
-    let Output::Receipt { receipt, .. } = sender.ingest(*terminal).unwrap() else {
-        panic!("Firefly sender did not retain terminal truth")
+    assert_eq!(sink_receipt.disposition, "cancelled");
+    let Output::Receipt { receipt, .. } = sender.cancel().unwrap() else {
+        panic!("Firefly sender did not retain Stop")
     };
     assert_eq!(receipt.transferred_values, 4);
-    assert_eq!(receipt.disposition, "completed");
+    assert_eq!(receipt.disposition, "cancelled");
 }
 
 #[test]
@@ -390,6 +386,7 @@ fn desk_telegraph_patchbay_separates_record_queue_line_delivery_transcript_and_s
     let ((mut source_session, source_output), (mut sink_session, sink_output)) =
         prepare_pair_for(source);
     assert!(matches!(sink_output, Output::Waiting { .. }));
+    let source_output = super::submit_ascii_line(&mut source_session, source_output, "CALLING");
     let (offered, projection) = match source_output {
         Output::Line {
             frame,
@@ -407,9 +404,7 @@ fn desk_telegraph_patchbay_separates_record_queue_line_delivery_transcript_and_s
     for kind in [
         conduit_net::TEXT_TO_TYPED_RECORD_KIND,
         conduit_net::TYPED_RECORD_FRAME_KIND,
-        conduit_net::RECORD_SINGLETON_STREAM_KIND,
         conduit_net::ORDERED_RECORD_QUEUE_KIND,
-        conduit_net::RECORD_EXACTLY_ONE_KIND,
         conduit_net::TYPED_RECORD_DEFRAME_KIND,
         conduit_net::TYPED_RECORD_TO_TEXT_KIND,
     ] {
@@ -450,26 +445,22 @@ fn desk_telegraph_patchbay_separates_record_queue_line_delivery_transcript_and_s
         Output::Line { frame, .. } => frame,
         _ => panic!("Desk Telegraph sink did not acknowledge delivery"),
     };
-    let close = match source_session.ingest(*delivered).unwrap() {
-        Output::Line { frame, .. } => frame,
-        _ => panic!("Desk Telegraph source did not close its Line"),
-    };
-    let (terminal, sink_receipt) = match sink_session.ingest(*close).unwrap() {
-        Output::Line {
-            frame,
-            receipt: Some(receipt),
-            ..
-        } => (frame, receipt),
-        _ => panic!("Desk Telegraph sink did not retain terminal evidence"),
+    assert!(matches!(
+        source_session.ingest(*delivered).unwrap(),
+        Output::Input { .. }
+    ));
+    let sink_receipt = match sink_session.cancel().unwrap() {
+        Output::Receipt { receipt, .. } => receipt,
+        _ => panic!("Desk Telegraph sink did not retain Stop"),
     };
     let sink_transcript = sink_receipt.transcript.as_ref().unwrap();
     assert_eq!(sink_transcript.retention_gap, 0);
     assert_eq!(sink_transcript.entries.len(), 2);
     assert_eq!(sink_transcript.entries[0].event, "received-record");
-    assert_eq!(sink_transcript.entries[1].event, "completed");
-    let source_receipt = match source_session.ingest(*terminal).unwrap() {
+    assert_eq!(sink_transcript.entries[1].event, "cancelled");
+    let source_receipt = match source_session.cancel().unwrap() {
         Output::Receipt { receipt, .. } => receipt,
-        _ => panic!("Desk Telegraph source did not retain terminal evidence"),
+        _ => panic!("Desk Telegraph source did not retain Stop"),
     };
     assert_eq!(source_receipt.deliveries[0].state, "remote-accepted");
     assert!(source_receipt.deliveries[0].remote_receipt_hex.is_some());
@@ -478,7 +469,7 @@ fn desk_telegraph_patchbay_separates_record_queue_line_delivery_transcript_and_s
     assert_eq!(source_transcript.retention_gap, 0);
     assert_eq!(source_transcript.entries.len(), 2);
     assert_eq!(source_transcript.entries[0].event, "sent-record");
-    assert_eq!(source_transcript.entries[1].event, "completed");
+    assert_eq!(source_transcript.entries[1].event, "cancelled");
 }
 
 #[test]
@@ -487,6 +478,7 @@ fn unchanged_desk_telegraph_executes_over_a_second_compatible_line_implementatio
     let ((mut source_session, source_output), (mut sink_session, sink_output)) =
         prepare_pair_for_alternate_line(source);
     assert!(matches!(sink_output, Output::Waiting { .. }));
+    let source_output = super::submit_ascii_line(&mut source_session, source_output, "CALLING");
     let offered = match source_output {
         Output::Line {
             frame,
@@ -522,6 +514,7 @@ fn unchanged_desk_telegraph_executes_over_a_second_compatible_line_implementatio
 fn renderer_loss_cannot_be_promoted_from_queued_to_remote_accepted() {
     let source = include_str!("../../../../../../forms/desk-telegraph/main.conduit");
     let ((mut source_session, source_output), (mut sink_session, _)) = prepare_pair_for(source);
+    let source_output = super::submit_ascii_line(&mut source_session, source_output, "CALLING");
     let offered = match source_output {
         Output::Line { frame, .. } => frame,
         _ => panic!("Desk Telegraph did not offer its framed value"),
@@ -568,6 +561,7 @@ fn unavailable_disconnect_and_timeout_remain_distinct_line_terminal_truth() {
         (TransportTermination::TimedOut, "timed-out"),
     ] {
         let ((mut source_session, source_output), _) = prepare_pair_for(source);
+        let source_output = super::submit_ascii_line(&mut source_session, source_output, "CALLING");
         assert!(matches!(source_output, Output::Line { .. }));
         let Output::Receipt { receipt, .. } =
             source_session.terminate_transport(termination, 71).unwrap()
@@ -589,6 +583,7 @@ fn unavailable_disconnect_and_timeout_remain_distinct_line_terminal_truth() {
 fn partial_send_cancelled_before_receipt_remains_explicitly_undelivered() {
     let source = include_str!("../../../../../../forms/desk-telegraph/main.conduit");
     let ((mut source_session, source_output), _) = prepare_pair_for(source);
+    let source_output = super::submit_ascii_line(&mut source_session, source_output, "CALLING");
     let frame_bytes = match source_output {
         Output::Line { frame, .. } => frame.payload.len(),
         _ => panic!("Desk Telegraph did not offer its framed value"),

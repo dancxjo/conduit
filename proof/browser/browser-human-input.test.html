@@ -3,6 +3,8 @@
 <title>Conduit selected browser human input proof</title>
 <style>#surface { width: 400px; height: 200px; background: #234; touch-action: none; }</style>
 <p id="status">starting</p>
+<button id="native-control" type="button">Native control</button>
+<output id="native-actions">0</output>
 <div id="surface" tabindex="0" aria-label="Admitted portable input surface"></div>
 <output id="keyboard"></output>
 <output id="pointer"></output>
@@ -22,6 +24,10 @@ const surface = document.querySelector("#surface");
 const adapter = openBrowserHumanInput({ target: surface, boot: current, currentBoot: () => current });
 const pointerValues = [];
 let stopPointer = null;
+let nativeActions = 0;
+document.querySelector("#native-control").addEventListener("click", () => {
+  document.querySelector("#native-actions").value = String(++nativeActions);
+});
 try {
   stopPointer = adapter.observePointer((value, error) => {
     if (error) {

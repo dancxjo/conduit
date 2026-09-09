@@ -206,7 +206,7 @@ impl<'a> HostOffer<'a> {
                 },
                 CapabilityOffer {
                     kind: "presentation/tick",
-                    contract_revision: "conduit.std/presentation-tick@1",
+                    contract_revision: "conduit.std/presentation-tick@2",
                     implementation: TICK_PRESENTATION_IMPLEMENTATION,
                     artifact_build: build_id,
                     host_operation: Some("conduit.host/present@1"),

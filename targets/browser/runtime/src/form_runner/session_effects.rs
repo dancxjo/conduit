@@ -115,7 +115,7 @@ mod tests {
 
     #[test]
     fn correlated_completion_preserves_other_pending_effects_and_rejects_stale_identity() {
-        let source = "form concurrent {\n button: input/button(maximum-transitions = 1)\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count(maximum-values = 5)\n button > state > indicator\n clock.tick > count.bump\n count.value > show.value\n}\n";
+        let source = "form concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count\n button > state > indicator\n clock.tick > count.bump\n count.value > show.value\n}\n";
         let (mut session, _) =
             TourSession::prepare("browser/test", "boot/test", source, 1).unwrap();
         let capacity = session.pending.capacity();
@@ -170,7 +170,7 @@ mod tests {
 #[cfg(test)]
 #[test]
 fn pressed_attempt_observes_clock_before_requesting_its_deadline() {
-    let source = "form timed {\n button: input/button(maximum-transitions = 5)\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: time/ordered-event-intervals\n button.transition > attempt.transition\n attempt.events > derive.events\n}\n";
+    let source = "form timed {\n button: input/button\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: time/ordered-event-intervals\n button.transition > attempt.transition\n attempt.events > derive.events\n}\n";
     let (mut session, _) =
         TourSession::prepare("browser/clock-test", "boot/clock-test", source, 1).unwrap();
     let bytes = conduit_semantic_catalog::button_transition_value("button/primary", true, 0)
@@ -203,9 +203,16 @@ fn pressed_attempt_observes_clock_before_requesting_its_deadline() {
     assert!(session
         .complete_effect(&play, &placement, request, Some(&[0]))
         .is_err());
-    let progress = session
+    let mut progress = session
         .complete_effect(&play, &placement, request, Some(&100_u64.to_le_bytes()))
         .unwrap();
+    for _ in 0..3 {
+        if matches!(&progress, TourProgress::Effect(effect) if matches!(**effect, super::TourHostEffect::Timer(_)))
+        {
+            break;
+        }
+        progress = session.poll_effect().unwrap();
+    }
     assert!(
         matches!(progress, TourProgress::Effect(effect) if matches!(*effect, super::TourHostEffect::Timer(_)))
     );

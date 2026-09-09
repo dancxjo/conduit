@@ -266,6 +266,10 @@ fn proof_profiles_are_checked_distinct_and_normal_products_stay_clean() {
         "../../../proof/profiles/conduitos-hotplug-proof.profile.json"
     )))
     .unwrap();
+    let ps2 = lower(&manifest(include_str!(
+        "../../../proof/profiles/conduitos-ps2-input.profile.json"
+    )))
+    .unwrap();
     assert_eq!(normal.proof_instrumentation, 0);
     assert_eq!(
         proof.cargo_features,
@@ -287,6 +291,8 @@ fn proof_profiles_are_checked_distinct_and_normal_products_stay_clean() {
         hotplug.proof_instrumentation,
         conduitos::fabrication::ALL_KNOWN_PROOF_INSTRUMENTATION
     );
+    assert_eq!(ps2.cargo_features, ["native-compositor", "ps2-input"]);
+    assert_eq!(ps2.proof_instrumentation, 0);
 }
 
 #[test]

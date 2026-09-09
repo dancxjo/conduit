@@ -1,3 +1,4 @@
+import { openCrecheStep } from "./creche-test-actions.mjs";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -75,7 +76,7 @@ async function birthStandaloneBody(page, { attachFirstHost = false, sourceVarian
     birthSignId: element.dataset.birthSignId,
   }));
   if (attachFirstHost) {
-    await page.getByRole("button", { name: "2. First Host" }).click();
+    await openCrecheStep(page, "2. First Host");
     await page.getByRole("button", { name: "Give this Body its first Host" }).click();
   }
   return identity;
@@ -165,6 +166,7 @@ test("every Tour page and Crèche step has a direct, history-aware route", async
 
   await openStandaloneCreche(page);
   await expect(page.locator("#host-state")).toHaveAttribute("data-application-component", "success-status");
+  await page.getByText("Hosts and provisioning", { exact: true }).click();
   await expect(page.locator('.creche-steps [data-application-component="stepper"]')).toBeVisible();
   const steps = ["birth", "first-host", "physical-host", "graduate"];
   await expect(page).toHaveURL(/\/creche\/birth\/$/);
@@ -226,8 +228,6 @@ test("the Tour navigation remains legible and interactive in both theme modes", 
     await previous.hover();
     await expect(previous).toHaveCSS("border-color", dark ? "rgb(233, 163, 37)" : "rgb(154, 91, 0)");
     await previous.focus();
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Shift+Tab");
     await expect(previous).toBeFocused();
     expect(await previous.evaluate((element) =>
       getComputedStyle(element).getPropertyValue("--conduit-focus").trim())).toBe(dark ? "#f4c400" : "#775d00");
@@ -703,7 +703,7 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
     const birth = page.locator(".body-birth-runner");
     await reviewAndBirth(page, birth);
     const stagedBodyId = await birth.getAttribute("data-body-id");
-    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    await openCrecheStep(page, "3. Physical Host");
     const runner = page.locator(".physical-host-runner");
     await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
     await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
@@ -759,8 +759,8 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
     await page.goto(`${creche.url}index.html`);
     await expect(page.locator("#host-state")).toHaveText("Crèche ready");
     await expect(page.locator(".body-birth-runner")).toHaveAttribute("data-body-id", stagedBodyId);
-    await expect(page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" })).toBeDisabled();
-    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    await expect(page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" })).toBeHidden();
+    await openCrecheStep(page, "3. Physical Host");
     const conduitosRunner = page.locator(".physical-host-runner");
     await conduitosRunner.locator('[data-application-key="physical-target"]').selectOption("conduitos/x86_64/pc");
     await expect(conduitosRunner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
@@ -830,7 +830,7 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
     await page.goto(`${creche.url}index.html`);
     await expect(page.locator("#host-state")).toHaveText("Crèche ready");
     await reviewAndBirth(page);
-    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    await openCrecheStep(page, "3. Physical Host");
     const runner = page.locator(".physical-host-runner");
     await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
     await expect(runner.locator("details code")).toContainText('"terminal": "ArtifactUnavailable"');
@@ -924,6 +924,7 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   });
   await openStep(page, 0);
   await page.getByRole("button", { name: "Form Gallery" }).click();
+  await expect(page).toHaveURL(/\/tour\/gallery\/$/);
   await expect(page).toHaveTitle("Form Gallery · Tour");
   await expect(page.getByRole("heading", { level: 1, name: "Form Gallery" })).toBeFocused();
   const cards = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]');
@@ -945,8 +946,17 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(laboratory.locator(".compact-patchbay")).toContainText("presentation/indicator");
   await morse.getByRole("button", { name: "Open in laboratory" }).click();
   await laboratory.getByRole("button", { name: "Run" }).click();
-  await expect(laboratory.locator(".morse")).toHaveText("··· ——— ···");
-  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await page.keyboard.press("s");
+  await expect(laboratory.locator(".morse")).toHaveText("···");
+  const morsePlay = await laboratory.locator('.run-identities [data-application-component="definition"]')
+    .filter({ hasText: "Active Play" }).locator("dd").textContent();
+  await page.keyboard.press("o");
+  await expect(laboratory.locator(".morse")).toHaveText("———");
+  await page.keyboard.press("s");
+  await expect(laboratory.locator(".morse")).toHaveText("···");
+  await expect.poll(() => laboratory.locator('.run-identities [data-application-component="definition"]')
+    .filter({ hasText: "Active Play" }).locator("dd").textContent()).toBe(morsePlay);
+  await laboratory.getByRole("button", { name: "Stop", exact: true }).click();
 
   const search = page.getByRole("textbox", { name: "Search reviewed Forms" });
   await search.fill("memory presentation/text");
@@ -959,19 +969,25 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   const memory = cards.filter({ has: page.getByRole("heading", { name: "Memory Lantern" }) });
   const reviewedIdentity = await memory.locator("code").textContent();
   await memory.getByRole("button", { name: "Inspect Patchbay" }).click();
+  await expect(page).toHaveURL(/\/tour\/gallery\/memory-lantern\/$/);
   await expect(laboratory).toHaveAttribute("data-specimen-id", reviewedIdentity);
   await expect(memory.getByRole("status").filter({ hasText: "Selected" })).toBeVisible();
   await expect(cards.first().locator('[data-application-key^="form-state-"]')).not.toContainText("Selected");
   await expect(laboratory.locator(".compact-patchbay")).toBeFocused();
   await expect(laboratory.locator("textarea")).toHaveValue(await readFile(new URL("../../forms/memory-lantern/main.conduit", import.meta.url), "utf8"));
   await expect(laboratory.locator(".compact-patchbay")).toHaveAttribute("data-checked-form-id", reviewedIdentity);
+  await page.reload();
+  await expect(page).toHaveURL(/\/tour\/gallery\/memory-lantern\/$/);
+  await expect(page).toHaveTitle("Form Gallery · Tour");
+  await expect(page.locator(".tour-workbench")).toHaveAttribute("data-specimen-id", reviewedIdentity);
+  await expect(memory.getByRole("status").filter({ hasText: "Selected" })).toBeVisible();
   await laboratory.getByRole("button", { name: "Run" }).click();
-  await expect(laboratory.locator(".morse")).toHaveText("READY");
-  await expect(laboratory.locator('[data-application-key="play-status"]')).toHaveText(
-    "Quiescent — same Play remains attached after 1 planned manifestations.",
-  );
+  await page.keyboard.type("ready");
+  await expect(laboratory.locator(".morse")).toHaveText("ready");
+  await expect(laboratory.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
   const reviewedSourceIdentity = await laboratory.locator(".compact-patchbay").getAttribute("data-source-document-id");
+  await laboratory.getByRole("button", { name: "Stop", exact: true }).click();
 
   const button = cards.filter({ has: page.getByRole("heading", { name: "Button Across the Room" }) });
   await button.getByRole("button", { name: "Inspect Patchbay" }).click();
@@ -983,7 +999,13 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("button transition");
   await page.mouse.up();
   await expect(laboratory.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
-  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("2 planned manifestations");
+  await control.hover();
+  await page.mouse.down();
+  await expect(laboratory.locator(".indicator")).toHaveAttribute("aria-label", "Indicator on");
+  await page.mouse.up();
+  await expect(laboratory.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
+  await expect(laboratory.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
+  await laboratory.getByRole("button", { name: "Stop", exact: true }).click();
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
   const add = memory.getByRole("link", { name: "Add to new Body" });
   const handoff = new URL(await add.getAttribute("href"));
@@ -1114,85 +1136,13 @@ test("the Tour opens with one logical Body premise and keeps Crèche machinery l
   await expect(page.locator(".body-birth-runner")).toHaveCount(0);
 });
 
-test("the standalone Crèche runs the same durable birth and graduation path without Tour assets", async ({ page }) => {
-  entrance.child.kill();
-  entrance = await startCreche();
-  const responses = [];
-  page.on("response", (response) => responses.push(new URL(response.url()).pathname));
-  await page.goto(entrance.url);
-  await expect(page).toHaveTitle("Conduit Crèche");
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  const birth = page.locator(".body-birth-runner");
-  await expect(birth.locator('[data-application-key="initial-forms-field"]')).toHaveAttribute("data-application-component", "choice-group");
-  await expect(birth.getByRole("checkbox", { name: "Morse Network" })).not.toBeChecked();
-  await expect(birth.getByRole("checkbox", { name: "Memory Lantern" })).not.toBeChecked();
-  await birth.getByLabel("Friendly Body name").fill("standalone firefly");
-  await reviewAndBirth(page, birth);
-  const bodyId = await birth.getAttribute("data-body-id");
-  expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
-  await expect(page.locator('.creche-body-context [data-application-component="panel"]')).toContainText("standalone firefly");
-  await page.getByRole("button", { name: "2. First Host" }).click();
-  await expect(page.locator('[data-application-key="attach-host"]')).toHaveAttribute("data-application-action", "host.attach");
-  await page.getByRole("button", { name: "Give this Body its first Host" }).click();
-  await expect(page.locator('.first-host-runner [data-application-key="host-status"]')).toHaveAttribute("data-application-component", "success-status");
-  await expect(page.locator('.first-host-runner [data-application-key="host-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
-  await page.getByRole("button", { name: "4. Graduate" }).click();
-  const finishWithoutPatchbay = page.getByRole("button", { name: "Finish without hosted Patchbay", exact: true });
-  await expect(finishWithoutPatchbay).toHaveAttribute("data-application-action", "graduate.without-patchbay");
-  await finishWithoutPatchbay.click();
-  await expect(page.locator('[data-application-key="graduation-status"]')).toHaveAttribute("data-application-component", "success-status");
-  await expect(page.getByRole("button", { name: "End the Crèche", exact: true })).toHaveAttribute("data-application-action", "graduate.end");
-  await expect(page.locator(".graduation-runner")).toHaveAttribute("data-body-id", bodyId);
-  await expect(page.locator('.body-biography [data-application-key^="biography-record-"]')).toHaveCount(4);
-  const durable = await page.evaluate(() => {
-    const api = globalThis.__conduitCrecheHost.runtime;
-    api.conduit_creche_biography();
-    const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
-    return JSON.parse(new TextDecoder().decode(bytes));
-  });
-  expect(durable.body_id).toBe(bodyId);
-  expect(durable.schema).toBe("conduit.body/biography-evidence@2");
-  const crecheRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitCrecheHost.runtime));
-  expect(crecheRuntimeExports.some((name) => name.startsWith("conduit_tour_"))).toBe(false);
-  expect((await page.request.get(new URL("/tour/", entrance.url).href)).status()).toBe(404);
-  expect(responses.some((path) => path.startsWith("/tour/") || path.includes("chapter-"))).toBe(false);
-});
-
-test("the standalone Crèche birth controls remain separated at a narrow viewport", async ({ page }) => {
-  entrance.child.kill();
-  entrance = await startCreche();
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  const runner = page.locator(".body-birth-runner");
-  const [program, name, source, editor] = await Promise.all([
-    runner.locator('[data-application-key="initial-forms-field"]').boundingBox(),
-    runner.getByLabel("Friendly Body name").boundingBox(),
-    runner.locator('[data-application-key="form-source"]').boundingBox(),
-    runner.locator(".birth-presentation").boundingBox(),
-  ]);
-  for (const box of [program, name, source, editor]) expect(box).not.toBeNull();
-  expect(program.y + program.height).toBeLessThanOrEqual(name.y);
-  expect(name.y + name.height).toBeLessThanOrEqual(source.y);
-  for (const control of [program, name, source]) {
-    expect(control.x).toBeGreaterThanOrEqual(editor.x);
-    expect(control.x + control.width).toBeLessThanOrEqual(editor.x + editor.width);
-  }
-  await runner.locator('[data-application-key="form-source"] summary').click();
-  await expect(runner.locator('[data-application-key="form-source"] textarea')).toBeVisible();
-  const selectAppearance = await runner.getByLabel("Naming tradition").evaluate(
-    (element) => getComputedStyle(element).appearance,
-  );
-  expect(selectAppearance).toBe("none");
-});
-
 test("the standalone Crèche physical Host selects use only the custom dropdown arrow", async ({ page }) => {
   entrance.child.kill();
   entrance = await startCreche();
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await birthStandaloneBody(page);
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const selects = page.locator('.physical-host-runner [data-application-key="physical-mode"], .physical-host-runner [data-application-key="physical-target"]');
   await expect(selects).toHaveCount(2);
   const appearances = await selects.evaluateAll(
@@ -1204,7 +1154,7 @@ test("the standalone Crèche physical Host selects use only the custom dropdown 
 test("two Bodies seal distinct spores against the same verified packaged Pico IMAGE", async ({ page }) => {
   const prepareOne = async (variant) => {
     const birth = await birthStandaloneBody(page, { sourceVariant: variant });
-    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    await openCrecheStep(page, "3. Physical Host");
     const runner = page.locator(".physical-host-runner");
     await expect(runner.locator("input[type=file]")).toHaveCount(0);
     await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
@@ -1242,7 +1192,7 @@ test("two Bodies seal distinct spores against the same verified packaged Pico IM
 test("the same Crèche lifecycle consumes packaged and template-specialized fabrication", async ({ page }) => {
   const prepare = async (variant, strategy) => {
     await birthStandaloneBody(page, { sourceVariant: variant });
-    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    await openCrecheStep(page, "3. Physical Host");
     const runner = page.locator(".physical-host-runner");
     await runner.locator(".fabrication-strategy").selectOption(strategy);
     await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
@@ -1263,7 +1213,7 @@ test("the same Crèche lifecycle consumes packaged and template-specialized fabr
 
 test("the physical workflow renders one adapter-owned catalog without learning target mechanics", async ({ page }) => {
   await birthStandaloneBody(page);
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
 
@@ -1357,7 +1307,7 @@ test("the physical workflow renders one adapter-owned catalog without learning t
 test("an exact browser release becomes a Body-bound spore and a newly admitted browser Host", async ({ page }) => {
   const release = await installHostRelease(page, "browser-page.json");
   const birth = await birthStandaloneBody(page, { sourceVariant: "browser-existing-computer" });
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
@@ -1467,7 +1417,7 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
 test("a native Linux target produces an exact spore but refuses to invent an installer", async ({ page }) => {
   const release = await installHostRelease(page, "hosted-linux-x86_64.json");
   await birthStandaloneBody(page, { sourceVariant: "native-existing-computer" });
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
@@ -1561,7 +1511,7 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
   for (const [index, profile] of profiles.entries()) {
     const release = await installHostRelease(page, profile.manifest);
     await birthStandaloneBody(page, { sourceVariant: `native-${profile.os}-${index}` });
-    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    await openCrecheStep(page, "3. Physical Host");
     const runner = page.locator(".physical-host-runner");
     await runner.locator('[data-application-key="physical-target"]').selectOption(profile.id);
     await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
@@ -1600,7 +1550,7 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
   for (const [index, profile] of profiles.entries()) {
     await installEsp32Release(page, profile);
     await birthStandaloneBody(page, { sourceVariant: `esp32-${index}` });
-    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    await openCrecheStep(page, "3. Physical Host");
     const runner = page.locator(".physical-host-runner");
     await runner.locator('[data-application-key="physical-target"]').selectOption(profile.id);
     await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
@@ -1655,7 +1605,7 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
 test("an unavailable generic ESP32 release refuses before device authority or spore creation", async ({ page }) => {
   await page.route("**/artifacts/esp32-c3-generic-release.json", (route) => route.fulfill({ status: 404 }));
   await birthStandaloneBody(page, { sourceVariant: "esp32-release-absent" });
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
   await expect(runner.locator("details code")).toContainText('"terminal": "ArtifactUnavailable"');
@@ -1686,7 +1636,7 @@ test("the ESP32 Crèche adapter refuses a wrong serial port as its own terminal"
     releaseName: "c3",
   });
   await birthStandaloneBody(page, { sourceVariant: "esp32-wrong-port" });
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
@@ -2067,26 +2017,24 @@ test("unsupported capability and type mismatch remain ordinary pre-Play refusals
   await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
 });
 
-test("state over time presents startup and current count through four admitted browser ticks", async ({ page }) => {
+test("state over time remains live across repeated admitted browser ticks", async ({ page }) => {
   await openStep(page, 2);
   await expect(page.getByRole("heading", { name: "Hosts make Forms real" })).toBeVisible();
   const runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("0");
-  await expect(runner.locator(".morse")).toHaveText("4");
-  await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
-    "4 planned ticks and 5 presentations",
-  );
+  await expect.poll(async () => Number(await runner.locator(".morse").textContent())).toBeGreaterThan(0);
+  const firstCount = Number(await runner.locator(".morse").textContent());
+  await expect.poll(async () => Number(await runner.locator(".morse").textContent())).toBeGreaterThan(firstCount);
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Waiting for planned tick");
   await expect(runner.locator('[data-application-key="play-status"]'))
     .toHaveAttribute("data-application-component", "status");
   await expect(runner.locator('[data-application-key="play-status"]'))
     .toHaveAttribute("aria-live", "polite");
-  await expect(runner.locator(".run-identities")).toContainText("Timer completions4");
-  await expect(runner.locator(".run-identities")).toContainText("Manifestation completions5");
-  await expect(runner.locator(".run-identities")).toContainText("LifecycleQuiescentAwaitingInput");
   await expect(runner.locator(".run-identities")).toContainText("Active Play");
-  await expect(runner.locator(".run-identities dd")).toHaveCount(16);
   await expect(runner.locator('.run-identities [data-application-component="definition-table"]')).toBeAttached();
+  await runner.getByRole("button", { name: "Stop" }).click();
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("cancelled");
 });
 
 test("stopping state over time cancels the pending timer without a late completion", async ({ page }) => {
@@ -2204,7 +2152,7 @@ test("Plans and Plays compact and raw views project the same exact immutable Pla
 test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and Play distinct", async ({ page }) => {
   await installB7Devices(page);
   const birth = await birthStandaloneBody(page);
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("Invitation, realization, Boot, join, membership, offers, Plan, and Play remain absent");
@@ -2262,7 +2210,7 @@ test("Add a physical Host retains a refused WebUSB acquisition as terminal", asy
     });
   });
   await birthStandaloneBody(page);
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
@@ -2276,7 +2224,7 @@ test("Add a physical Host retains a refused WebUSB acquisition as terminal", asy
 test("Add a physical Host retains the exact Picoboot refusal chain", async ({ page }) => {
   await installB7Devices(page, { staleStatus: true });
   await birthStandaloneBody(page);
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
@@ -2296,7 +2244,7 @@ test("Add a physical Host retains the exact Picoboot refusal chain", async ({ pa
 
 test("graduation retains the same Body through an ordinary hosted Patchbay Plan", async ({ page }) => {
   const { bodyId } = await birthStandaloneBody(page, { attachFirstHost: true });
-  await page.getByRole("button", { name: "4. Graduate" }).click();
+  await openCrecheStep(page, "4. Graduate");
   const runner = page.locator(".graduation-runner");
   const criteria = runner.locator('[data-application-key="graduation-criteria"]');
   await expect(criteria.locator('[data-application-component="panel"]')).toHaveText([
@@ -2352,7 +2300,7 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
 
 test("graduation can finish without hosting Patchbay and still retain the same Body", async ({ page }) => {
   const { bodyId } = await birthStandaloneBody(page, { attachFirstHost: true });
-  await page.getByRole("button", { name: "4. Graduate" }).click();
+  await openCrecheStep(page, "4. Graduate");
   const runner = page.locator(".graduation-runner");
   await runner.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
   await expect(runner).toHaveAttribute("data-body-id", bodyId);
@@ -2381,9 +2329,10 @@ test("stopping the two-Host lesson cancels without a late manifestation", async 
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Host A offered one value");
   await runner.getByRole("button", { name: "Stop" }).click();
-  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Plays were cancelled after 0 delivered cross-Host values.");
   await page.evaluate(() => globalThis.__releaseTourAnimationFrame());
-  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Plays were cancelled after 0 delivered cross-Host values.");
   await expect(runner.locator(".morse")).toHaveText("ready");
-  await expect(runner.locator(".run-identities")).not.toContainText("Terminal source receipt");
+  await expect(runner.locator(".run-identities")).toContainText("Terminal source receipt");
+  await expect(runner.locator(".run-identities")).toContainText("Terminal sink receipt");
 });

@@ -16,18 +16,48 @@ pub(super) fn validate(
     pointer_records: &[Value],
     opened: &Value,
 ) -> Result<ResizeEvidence, ConduitosError> {
-    let [record] = records else {
+    let [first, record] = records else {
         return Err(refusal(
             "product-journey-resize-record-count",
-            "exactly one live inspector relayout is required",
+            "chooser and graph selection must each produce one live inspector relayout",
         ));
     };
+    validate_lifecycle(first, opened)?;
+    validate_lifecycle(record, opened)?;
+    if first.get("current_manifestation_id") == record.get("current_manifestation_id") {
+        return Err(refusal(
+            "product-journey-resize-reused-binding",
+            "two updates must have distinct bindings",
+        ));
+    }
     let surface_id = text(record, "surface_id")?;
     let invalidated_manifestation_id = text(record, "invalidated_manifestation_id")?;
     let current_manifestation_id = text(record, "current_manifestation_id")?;
+    let focused = pointer_records
+        .iter()
+        .find(|record| record.get("status").and_then(Value::as_str) == Some("auxiliary-focused"))
+        .ok_or_else(|| refusal("product-journey-resize-focus-missing", "inspector"))?;
+    if focused.get("routed_surface_id") != record.get("surface_id")
+        || focused.get("routed_manifestation_id") != record.get("current_manifestation_id")
+    {
+        return Err(refusal(
+            "product-journey-resize-focus-stale",
+            "post-resize focus did not use the current geometry binding",
+        ));
+    }
+    Ok(ResizeEvidence {
+        surface_id,
+        invalidated_manifestation_id,
+        current_manifestation_id,
+        input_refused_while_invalidated: true,
+    })
+}
+
+fn validate_lifecycle(record: &Value, opened: &Value) -> Result<(), ConduitosError> {
     if text(record, "status")? != "current"
-        || surface_id != "conduitos/shell/inspector"
-        || invalidated_manifestation_id == current_manifestation_id
+        || text(record, "surface_id")? != "conduitos/shell/inspector"
+        || text(record, "invalidated_manifestation_id")?
+            == text(record, "current_manifestation_id")?
         || number(record, "previous_width")? <= number(record, "current_width")?
         || number(record, "previous_height")? != number(record, "current_height")?
         || record
@@ -47,24 +77,7 @@ pub(super) fn validate(
             return Err(refusal("product-journey-resize-identity-drift", identity));
         }
     }
-    let focused = pointer_records
-        .iter()
-        .find(|record| record.get("status").and_then(Value::as_str) == Some("auxiliary-focused"))
-        .ok_or_else(|| refusal("product-journey-resize-focus-missing", "inspector"))?;
-    if focused.get("routed_surface_id") != record.get("surface_id")
-        || focused.get("routed_manifestation_id") != record.get("current_manifestation_id")
-    {
-        return Err(refusal(
-            "product-journey-resize-focus-stale",
-            "post-resize focus did not use the current geometry binding",
-        ));
-    }
-    Ok(ResizeEvidence {
-        surface_id,
-        invalidated_manifestation_id,
-        current_manifestation_id,
-        input_refused_while_invalidated: true,
-    })
+    Ok(())
 }
 
 fn text(record: &Value, field: &str) -> Result<String, ConduitosError> {
@@ -104,14 +117,18 @@ mod tests {
             "profile_id":"p","build_id":"b","image_id":"i","host_id":"h","boot_id":"boot"
         });
         let focus = json!({"status":"auxiliary-focused","routed_surface_id":"conduitos/shell/inspector","routed_manifestation_id":"new"});
+        let mut first = resize.clone();
+        first["current_manifestation_id"] = json!("chooser-new");
         validate(
-            core::slice::from_ref(&resize),
+            &[first.clone(), resize.clone()],
             core::slice::from_ref(&focus),
             &opened,
         )
         .unwrap();
         let mut stale = focus;
         stale["routed_manifestation_id"] = json!("old");
-        assert!(validate(&[resize], &[stale], &opened).is_err());
+        assert!(validate(&[first.clone(), resize.clone()], &[stale], &opened).is_err());
+        first["input_refused_while_invalidated"] = json!(false);
+        assert!(validate(&[first, resize], &[], &opened).is_err());
     }
 }

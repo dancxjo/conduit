@@ -17,6 +17,19 @@ pub(in crate::server) fn proposed_server() -> PatchbayHtmlServer {
         .find_map(|part| part.current.as_ref())
         .unwrap();
     let mut host = conduit_std_host::StdHost::new().advertisement().clone();
+    host.capabilities
+        .push(conduit_std_host::hosted_keyboard_offer(
+            "proof/body-keyboard",
+            "proof/body-keyboard@1",
+        ));
+    host.resources.push(conduit_core::resource_offer(
+        "proof/body-input",
+        conduit_core::INPUT_RESOURCE_CLASS,
+        1,
+    ));
+    host.capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    host.resources.sort();
     host.host_id = current.host_id.clone();
     host.boot_id = current.boot_id.clone();
     host.offer_generation = current.offer_generation;
@@ -127,6 +140,19 @@ fn fresh_membership_must_still_match_the_proposed_host_boot_and_generation() {
         .body
         .clone();
     let mut host = conduit_std_host::StdHost::new().advertisement().clone();
+    host.capabilities
+        .push(conduit_std_host::hosted_keyboard_offer(
+            "proof/body-keyboard",
+            "proof/body-keyboard@1",
+        ));
+    host.resources.push(conduit_core::resource_offer(
+        "proof/body-input",
+        conduit_core::INPUT_RESOURCE_CLASS,
+        1,
+    ));
+    host.capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    host.resources.sort();
     let fragment = &original.current_plan().forms[0].plan.fragments[0];
     host.host_id = fragment.host_id.clone();
     host.boot_id = "boot/never-admitted".into();

@@ -23,6 +23,8 @@ mod keyboard;
 pub use keyboard::*;
 mod input_semantics;
 pub use input_semantics::*;
+mod text_state;
+pub use text_state::*;
 mod http;
 pub use http::*;
 mod resource_snapshot;
@@ -229,6 +231,18 @@ mod robotics_structured;
 pub use robotics_structured::*;
 mod robotics_structured_realization;
 pub use robotics_structured_realization::*;
+mod navigation;
+pub use navigation::*;
+mod navigation_realization;
+pub use navigation_realization::*;
+mod navigation_control;
+pub use navigation_control::*;
+mod navigation_codec;
+pub use navigation_codec::*;
+mod navigation_codec_support;
+pub use navigation_codec_support::NavigationCodecError;
+mod navigation_goal_codec;
+pub use navigation_goal_codec::*;
 #[cfg(feature = "form-catalog")]
 mod robotics_catalog;
 #[cfg(feature = "form-catalog")]
@@ -237,6 +251,10 @@ pub use robotics_catalog::install_robotics_catalogs;
 mod robotics_structured_catalog;
 #[cfg(feature = "form-catalog")]
 pub use robotics_structured_catalog::*;
+#[cfg(feature = "form-catalog")]
+mod navigation_catalog;
+#[cfg(feature = "form-catalog")]
+pub use navigation_catalog::*;
 mod copy_file;
 pub use copy_file::*;
 mod sound;

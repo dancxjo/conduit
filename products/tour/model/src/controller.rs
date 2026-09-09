@@ -76,17 +76,46 @@ impl TourWorkspaceController {
         self.last_run.as_ref()
     }
 
+    /// Select an exact specimen Gear from the current workspace revision.
+    pub fn select_gear(&mut self, revision: u32, gear: &str) -> Result<(), TourWorkspaceRefusal> {
+        if revision != self.state.revision {
+            return Err(TourWorkspaceRefusal::Event(
+                ApplicationViewRefusal::StaleRevision,
+            ));
+        }
+        if self.state.phase != TourWorkspacePhase::PatchbayOpen
+            || !crate::CANONICAL_PATCHBAY_GEARS.contains(&gear)
+        {
+            return Err(TourWorkspaceRefusal::Event(
+                ApplicationViewRefusal::UnknownAction,
+            ));
+        }
+        let next = self.next_revision()?;
+        self.state.selected_patchbay_subject = Some(gear.into());
+        self.state.focused_key = "patchbay".into();
+        self.state.revision = next;
+        Ok(())
+    }
+
     pub fn dismiss_inspector(&mut self) -> Result<bool, TourWorkspaceRefusal> {
         if self.state.selected_patchbay_subject.is_none() {
             return Ok(false);
         }
+        let revision = self.next_revision()?;
         self.state.selected_patchbay_subject = None;
-        self.state.revision = self.next_revision()?;
+        self.state.hovered_patchbay_subject = None;
+        self.state.revision = revision;
         Ok(true)
     }
 
     pub(crate) const fn last_pointer_sequence(&self) -> Option<u64> {
         self.last_pointer_sequence
+    }
+
+    pub(crate) fn commit_pointer_leave(&mut self, sequence: u64, revision: u32) {
+        self.last_pointer_sequence = Some(sequence);
+        self.state.hovered_patchbay_subject = None;
+        self.state.revision = revision;
     }
 
     pub(crate) fn commit_pointer(
@@ -194,6 +223,35 @@ mod tests {
             kind: ApplicationEventKind::Activate,
             value: vec![],
         }
+    }
+
+    #[test]
+    fn chooser_selection_refuses_stale_and_unknown_subjects_without_mutation() {
+        let mut controller = TourWorkspaceController::canonical(8);
+        controller
+            .request(&event(8, OPEN_PATCHBAY_ACTION_ID))
+            .unwrap();
+        let before = controller.state().clone();
+        assert!(controller.select_gear(8, "meet-one-gear/words").is_err());
+        assert!(controller.select_gear(9, "other/words").is_err());
+        assert_eq!(controller.state(), &before);
+        controller.select_gear(9, "meet-one-gear/change").unwrap();
+        assert_eq!(
+            controller.state().selected_patchbay_subject.as_deref(),
+            Some("meet-one-gear/change")
+        );
+    }
+
+    #[test]
+    fn refused_close_preserves_the_selection() {
+        let mut controller = TourWorkspaceController::canonical(u32::MAX);
+        controller.state.selected_patchbay_subject = Some("meet-one-gear/change".into());
+        let before = controller.state().clone();
+        assert_eq!(
+            controller.dismiss_inspector(),
+            Err(TourWorkspaceRefusal::RevisionExhausted)
+        );
+        assert_eq!(controller.state(), &before);
     }
 
     fn proof() -> TourRunProof {

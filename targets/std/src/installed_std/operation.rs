@@ -34,6 +34,7 @@ impl Operation for InstalledOperation {
             Self::TextUpper(operation) => operation.start(),
             Self::TextJoin(operation) => operation.start(),
             Self::TextPresentation(operation) => operation.start(),
+            Self::TextState(operation) => operation.start(),
             Self::StateCount(operation) => operation.start(),
             Self::StateToggle(operation) => operation.start(),
             Self::CountPresentation(operation) => operation.start(),
@@ -161,6 +162,7 @@ impl Operation for InstalledOperation {
             (Self::TextUpper(operation), input) => operation.resume(input),
             (Self::TextJoin(operation), input) => operation.resume(input),
             (Self::TextPresentation(operation), input) => operation.resume(input),
+            (Self::TextState(operation), input) => operation.resume(input),
             (Self::TickPresentation(operation), input) => operation.resume(input),
             (Self::BoolPresentation(operation), input) => operation.resume(input),
             (Self::OrbiumSeed(_), _) => Self::fail(180),
@@ -351,6 +353,7 @@ impl Operation for InstalledOperation {
             Self::TextUpper(_) => OperationAction::Await,
             Self::TextJoin(_) => OperationAction::Await,
             Self::TextPresentation(_) => OperationAction::Await,
+            Self::TextState(operation) => operation.advance(),
             Self::Json(operation) => operation.advance(),
             Self::StructuredSelector(operation) => operation.advance(),
             Self::StructuredLiteral(operation) => operation.advance(),
@@ -509,6 +512,13 @@ impl Operation for InstalledOperation {
                 | Self::TimeThrottle(_)
                 | Self::TimedButtonAttempt(_)
         )
+    }
+
+    fn retains_host_operation_input(&self, _request: RequestId, value: ValueRef) -> bool {
+        match self {
+            Self::TimedButtonAttempt(operation) => operation.retains_host_operation_input(value),
+            _ => false,
+        }
     }
 
     fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {

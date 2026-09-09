@@ -8,6 +8,7 @@ use conduit_presentation::{
 use crate::{CANONICAL_PATCHBAY_GEARS, TourWorkspacePhase, TourWorkspaceState};
 
 pub const TOUR_WORKSPACE_SUBJECT: &str = "tour/workspace";
+pub const INSPECTOR_CLOSE_ACTION_ID: &str = "tour.inspector.close";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourTransientKind {
@@ -92,18 +93,21 @@ impl TourWorkspaceState {
             return Err("tour-inspector-subject-refused");
         }
         let inspection = format!("{gear}/inspection");
+        let mut subjects = vec![
+            subject(
+                TOUR_WORKSPACE_SUBJECT,
+                PresentationRole::Form,
+                "Patchbay workspace",
+            ),
+            subject(gear, PresentationRole::Gear, gear),
+            subject(&inspection, PresentationRole::Form, "Gear inspection"),
+            subject(INSPECTOR_CLOSE_ACTION_ID, PresentationRole::Action, "Close"),
+        ];
+        let text = crate::inspection::fields(self, gear, &mut subjects);
         Presentation::new(
             u64::from(self.revision),
             empty_basis(),
-            vec![
-                subject(
-                    TOUR_WORKSPACE_SUBJECT,
-                    PresentationRole::Form,
-                    "Patchbay workspace",
-                ),
-                subject(gear, PresentationRole::Gear, gear),
-                subject(&inspection, PresentationRole::Form, "Gear Back inspection"),
-            ],
+            subjects,
             vec![
                 PresentationRelationship {
                     source: TOUR_WORKSPACE_SUBJECT.into(),
@@ -117,10 +121,7 @@ impl TourWorkspaceState {
                 },
             ],
             vec![],
-            vec![PresentationText {
-                subject: inspection,
-                text: format!("BACK / {gear} / retained inspection surface"),
-            }],
+            text,
         )
         .map(Some)
         .map_err(|_| "tour-inspector-presentation-refused")
@@ -208,18 +209,64 @@ impl TourWorkspaceState {
         } else {
             observed.join("; ")
         };
-        Presentation::new(
-            revision,
-            basis,
-            subjects,
-            relationships,
-            vec![],
-            vec![PresentationText {
-                subject: status.into(),
-                text: lifecycle,
-            }],
-        )
-        .map_err(|_| "tour-status-presentation-refused")
+        let mut text = vec![PresentationText {
+            subject: status.into(),
+            text: lifecycle,
+        }];
+        for (key, label, value) in [
+            (
+                "body",
+                "Body",
+                if basis.body_id.is_some() {
+                    "Present"
+                } else {
+                    "Absent"
+                },
+            ),
+            (
+                "wake",
+                "Wake",
+                if basis.wake_id.is_some() {
+                    "Present"
+                } else {
+                    "Absent"
+                },
+            ),
+            (
+                "plan",
+                "Plan",
+                if basis.plan_id.is_some() {
+                    "Present"
+                } else {
+                    "Absent"
+                },
+            ),
+            (
+                "play",
+                "Play",
+                if basis.active_play_id.is_some() {
+                    "Present"
+                } else {
+                    "Inactive"
+                },
+            ),
+            ("lines", "Lines", "Unobserved"),
+            ("host", "Host", "Unobserved"),
+        ] {
+            let identity = format!("{status}/{key}");
+            subjects.push(subject(&identity, PresentationRole::Status, label));
+            relationships.push(PresentationRelationship {
+                source: status.into(),
+                target: identity.clone(),
+                kind: PresentationRelationshipKind::Contains,
+            });
+            text.push(PresentationText {
+                subject: identity,
+                text: value.into(),
+            });
+        }
+        Presentation::new(revision, basis, subjects, relationships, vec![], text)
+            .map_err(|_| "tour-status-presentation-refused")
     }
 
     pub fn transient_presentation(
@@ -332,8 +379,19 @@ mod tests {
                 && relationship.kind == PresentationRelationshipKind::Describes
         }));
         let detail = inspector.text.first().expect("inspection detail");
-        assert!(detail.text.len() > 48);
-        assert!(detail.text.contains("retained inspection surface"));
+        assert_eq!(detail.text, "text/upper");
+        assert!(
+            inspector
+                .text
+                .iter()
+                .any(|item| item.text.contains("value/text"))
+        );
+        assert!(
+            !inspector
+                .text
+                .iter()
+                .any(|item| item.text.contains("HELLO"))
+        );
     }
 
     #[test]

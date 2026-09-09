@@ -1,17 +1,21 @@
 //! Long-lived ordinary product service for the Patchbay lifecycle journey.
 
+mod arrival;
+mod input_actions;
+use input_actions::{action_for, form_receives_input};
+mod journey_sign;
 mod scroll_input;
 mod tour_sign;
 pub(crate) mod transient_sign;
 
-use alloc::{format, string::String};
+use alloc::format;
 
 use conduit_human::KeyTransition;
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID, TourTransientKind};
 
 use crate::{
-    arch::{self, HidKeyTransition, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
+    arch::{self, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
     fabrication::FabricationRecord,
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::{self, BootIdentities},
@@ -20,12 +24,12 @@ use crate::{
     native_compositor::InputRoute,
     offer::CAPABILITY_COUNT,
     offer_fabrication::ImageBoundHostOffer,
-    product_bindings::binding_for_usage,
-    product_journey::{JourneyAction, JourneyProjection, JourneyStatus, ProductJourney},
+    product_journey::{JourneyStatus, ProductJourney},
     rescue_guest,
     tour_product::TourProduct,
     tour_shell::TourShellPresenter,
 };
+use journey_sign::emit_journey_sign;
 use tour_sign::emit_tour_sign;
 use transient_sign::{emit_dismissed_transient, emit_shown_transient};
 
@@ -43,13 +47,14 @@ pub fn run(
     fabrication: &FabricationRecord,
     framebuffer_basis: &conduit_observatory::FramebufferBasis,
     display: &mut impl crate::display::PixelTarget,
-    hid_session: &mut HidKeyboardSession,
+    mut hid_session: Option<&mut HidKeyboardSession>,
     controller: &mut XhciReady,
     controller_id: [u8; 32],
     usb: &UsbDevice,
-    pointer_session: Option<&mut HidPointerSession>,
+    mut pointer_session: Option<&mut HidPointerSession>,
     pointer_usb: Option<&UsbDevice>,
     usb_line_device: Option<&UsbDevice>,
+    mut ps2_input: Option<&mut crate::arch::Ps2Input>,
     rescue_matcher: &mut LocalRescueMatcher,
 ) -> Result<(), &'static str> {
     let host_id = conduit_core::HostId::from(identity::hex(&identities.host));
@@ -73,6 +78,13 @@ pub fn run(
             + u64::from(offer.pc_speaker.is_some()),
         true,
     );
+    arrival::open(
+        &mut front_door,
+        &mut journey,
+        identities,
+        offer,
+        fabrication,
+    )?;
     let mut presenter = FrontDoorPresenter::prepare(
         host_id,
         boot_id,
@@ -83,10 +95,11 @@ pub fn run(
         fabrication.presentation_surface_slots,
     )
     .map_err(|error| error.as_str())?;
-    presenter
+    let receipt = presenter
         .present(&front_door, display)
         .map_err(|error| error.as_str())?;
-    arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
+    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+    arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\nCONDUIT_CRECHE_CHECKPOINT ready\n");
     let mut tour = TourProduct::canonical(1);
     let mut shell = TourShellPresenter::prepare(
         conduit_core::HostId::from(identity::hex(&identities.host)),
@@ -99,13 +112,14 @@ pub fn run(
     )
     .map_err(|error| error.as_str())?;
     let mut tour_open = false;
+    let mut consumed_birth_key = None;
     let mut clock = arch::Clock::new();
     let mut serial = arch::Serial::new();
     let mut interrupts = arch::Interrupts::new();
     let mut idle = arch::Idle::new();
     loop {
         let mut line_requested = false;
-        keyboard_input::run_product(hid_session, controller, usb, |input| {
+        let mut interact = |input| {
             let transition = match input {
                 ProductInputEvent::Transition(transition) => transition,
                 ProductInputEvent::Lost(_) => {
@@ -132,6 +146,12 @@ pub fn run(
                 transition.modifiers(),
             )
             .map_err(|_| "front-door-key-event-invalid")?;
+            if consumed_birth_key == Some(event.usage()) {
+                if event.transition() == KeyTransition::Released {
+                    consumed_birth_key = None;
+                }
+                return Ok(ProductInputControl::Continue);
+            }
             let keyboard_route = if tour_open {
                 shell.route_keyboard().map_err(|error| error.as_str())?
             } else {
@@ -276,7 +296,37 @@ pub fn run(
                     );
                 }
             }
-            if journey.status() == JourneyStatus::Playing && !is_control_transition(transition) {
+            if !tour_open && front_door.creche_open() {
+                match front_door
+                    .accept_creche(event, front_door.revision())
+                    .map_err(|e| e.as_str())?
+                {
+                    crate::front_door::ArrivalInput::Unchanged => {}
+                    crate::front_door::ArrivalInput::Changed => {
+                        presenter
+                            .present(&front_door, display)
+                            .map_err(|e| e.as_str())?;
+                        arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT edited\n");
+                    }
+                    crate::front_door::ArrivalInput::Birth(selection) => {
+                        consumed_birth_key = Some(event.usage());
+                        arrival::birth_and_wake(
+                            selection,
+                            &mut front_door,
+                            &mut journey,
+                            &mut presenter,
+                            display,
+                            identities,
+                            offer,
+                            fabrication,
+                        )?;
+                    }
+                }
+                return Ok(ProductInputControl::Continue);
+            }
+            if journey.status() == JourneyStatus::Playing
+                && form_receives_input(tour_open, front_door.exact_details_open(), event.usage())
+            {
                 if journey
                     .accept_play_input(event)
                     .map_err(|error| error.as_str())?
@@ -327,7 +377,15 @@ pub fn run(
                 }
             }
             Ok(ProductInputControl::Continue)
-        })?;
+        };
+        if let Some(ps2) = ps2_input.as_deref_mut() {
+            keyboard_input::run_ps2_product(ps2, &mut interact)?;
+        } else {
+            let session = hid_session
+                .as_deref_mut()
+                .ok_or("front-door-keyboard-realization-missing")?;
+            keyboard_input::run_product(session, controller, usb, &mut interact)?;
+        }
         if !line_requested {
             break;
         }
@@ -364,7 +422,18 @@ pub fn run(
             },
         )?;
     }
+    if let Some(ps2) = ps2_input {
+        return crate::product_pointer::run_ps2(
+            identities,
+            fabrication,
+            &mut tour,
+            &mut shell,
+            display,
+            ps2,
+        );
+    }
     let (pointer_session, pointer_usb) = pointer_session
+        .take()
         .zip(pointer_usb)
         .ok_or("front-door-pointer-realization-missing")?;
     crate::product_pointer::run(
@@ -387,29 +456,6 @@ fn tour_action(usage: u8) -> Option<&'static str> {
     }
 }
 
-fn action_for(
-    usage: u8,
-    front_door: &FrontDoor,
-    journey: &ProductJourney,
-) -> Option<JourneyAction> {
-    if usage == ENTER && !front_door.exact_details_open() {
-        return Some(JourneyAction::OpenBack);
-    }
-    let action = binding_for_usage(usage)?.action;
-    if action == JourneyAction::Stop
-        && !matches!(
-            journey.status(),
-            JourneyStatus::Playing | JourneyStatus::ResultVisible
-        )
-    {
-        return None;
-    }
-    Some(action)
-}
-
-fn is_control_transition(transition: HidKeyTransition) -> bool {
-    binding_for_usage(transition.usage()).is_some()
-}
 #[cfg(test)]
 mod input_routing_tests;
 fn refresh(
@@ -424,97 +470,4 @@ fn refresh(
     presenter
         .present(front_door, display)
         .map_err(|error| error.as_str())
-}
-
-fn emit_journey_sign(
-    projection: &JourneyProjection,
-    fabrication: &FabricationRecord,
-    receipt: &crate::native_compositor::CompositionReceipt,
-) {
-    let line = format!(
-        "CONDUIT_PRODUCT_JOURNEY {{\"status\":\"{}\",\"revision\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"offer_generation\":{},\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"body_id\":{},\"born_sign_id\":{},\"part_id\":{},\"wake_id\":{},\"plan_id\":{},\"active_play_id\":{},\"gear_ids\":{},\"port_ids\":{},\"cord_ids\":{},\"presentation_id\":\"{}\",\"manifestation_id\":\"{}\",\"presenter_implementation_id\":\"{}\",\"input_sign_id\":{},\"result_sign_id\":{},\"result\":{},\"request_id\":{}}}\n",
-        projection.status.as_str(),
-        projection.revision,
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
-        projection.host_id.as_str(),
-        projection.boot_id.as_str(),
-        projection.offer_generation.0,
-        projection.source_document_id.as_str(),
-        projection.checked_form_id.as_str(),
-        projection.expanded_form_id.as_str(),
-        json_identity(
-            projection
-                .body_id
-                .as_ref()
-                .map(conduit_body::BodyId::as_str)
-        ),
-        json_identity(
-            projection
-                .born_sign_id
-                .as_ref()
-                .map(conduit_core::SignId::as_str)
-        ),
-        json_identity(
-            projection
-                .part_id
-                .as_ref()
-                .map(conduit_body::PartId::as_str)
-        ),
-        json_identity(
-            projection
-                .wake_id
-                .as_ref()
-                .map(conduit_body::WakeId::as_str)
-        ),
-        json_identity(
-            projection
-                .plan_id
-                .as_ref()
-                .map(conduit_core::PlanId::as_str)
-        ),
-        json_identity(
-            projection
-                .active_play_id
-                .as_ref()
-                .map(conduit_core::ActivePlayId::as_str)
-        ),
-        json_array(&projection.gear_ids),
-        json_array(&projection.port_ids),
-        json_array(&projection.cord_ids),
-        receipt.presentation_id.as_str(),
-        receipt.manifestation_id.as_str(),
-        receipt.presenter_implementation_id.as_str(),
-        json_identity(
-            projection
-                .input_sign_id
-                .as_ref()
-                .map(conduit_core::SignId::as_str)
-        ),
-        json_identity(
-            projection
-                .result_sign_id
-                .as_ref()
-                .map(conduit_core::SignId::as_str)
-        ),
-        json_identity(projection.result.as_deref()),
-        json_identity(projection.last_request_id.as_deref()),
-    );
-    arch::early_write(line.as_bytes());
-}
-
-fn json_array(values: &[String]) -> String {
-    format!(
-        "[{}]",
-        values
-            .iter()
-            .map(|value| format!("\"{value}\""))
-            .collect::<alloc::vec::Vec<_>>()
-            .join(",")
-    )
-}
-
-fn json_identity(value: Option<&str>) -> String {
-    value.map_or_else(|| "null".into(), |value| format!("\"{value}\""))
 }

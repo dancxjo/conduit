@@ -1,5 +1,7 @@
 //! Multi-surface native shell for the canonical Tour/Patchbay workspace.
 
+mod controls;
+mod fields;
 mod lifecycle;
 mod relayout;
 mod scene;
@@ -305,6 +307,8 @@ impl TourShellPresenter {
                 self.lifecycle_basis.clone(),
             )
             .map_err(|_| TourShellError::Identity)?;
+        let status_presentation =
+            lifecycle::with_presenter_host(status_presentation, &self.host_id)?;
         let status = self.present_surface(
             Slot::Status,
             &status_presentation,
@@ -313,7 +317,7 @@ impl TourShellPresenter {
             1,
             &status_scene(layout.status, &status_presentation)?,
         )?;
-        let inspector = if let Some(presentation) = state
+        let inspector = if let Some(presentation) = tour
             .inspector_presentation()
             .map_err(|_| TourShellError::Identity)?
         {

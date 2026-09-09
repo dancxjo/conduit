@@ -416,6 +416,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
         profile_fragments: vec![
             "profile-fragment/conduitos-scripted-keyboard-proof@1".into(),
             "profile-fragment/conduitos-hotplug-proof@1".into(),
+            "profile-fragment/conduitos-ps2-input@1".into(),
         ],
         mutually_exclusive_mechanisms: vec![
             ("compositor/native@1".into(), "browser/dom".into()),

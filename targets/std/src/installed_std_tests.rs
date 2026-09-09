@@ -53,6 +53,24 @@ impl TimerAdapter for RecordingTimer {
     }
 }
 
+struct StopAfterWaits {
+    control: crate::RunControl,
+    request: Option<crate::RunControlRequestId>,
+    waits: Vec<Duration>,
+    stop_after: usize,
+}
+
+impl TimerAdapter for StopAfterWaits {
+    fn wait(&mut self, duration: Duration) {
+        self.waits.push(duration);
+        if self.waits.len() >= self.stop_after {
+            if let Some(request) = self.request.take() {
+                self.control.request_stop(request).unwrap();
+            }
+        }
+    }
+}
+
 fn host(id: &str) -> StdHost {
     StdHost::new_with_config(StdHostConfig {
         host_id: HostId::from(id),
@@ -126,7 +144,9 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
         })
     ));
     let kernel = report.kernel.expect("kernel report exists");
-    assert_eq!(kernel.identity.lengths(), (6, 0, 1));
+    // Execution identity retains the two exact Host-operation bindings, not
+    // one unbounded entry per recurring or finite invocation sequence.
+    assert_eq!(kernel.identity.lengths(), (2, 0, 1));
     assert_eq!(
         kernel.value_allocation_capacity_before,
         kernel.value_allocation_capacity_after
@@ -637,24 +657,27 @@ fn canonical_clock_has_zero_successful_post_play_start_allocations() {
     let mut host = host("allocation-clock-host");
     let plan = host.plan_expanded_local(&expanded).unwrap();
     let mut output = Vec::with_capacity(4_096);
-    let mut timer = RecordingTimer {
-        waits: Vec::with_capacity(4),
+    let control = crate::RunControl::default();
+    let mut timer = StopAfterWaits {
+        control: control.clone(),
+        request: Some(crate::RunControlRequestId::new("stop-clock-proof").unwrap()),
+        waits: Vec::with_capacity(16),
+        stop_after: 16,
     };
     let report = host
-        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .run_fragment_controlled_to(plan.fragments[0].clone(), &mut output, &mut timer, &control)
         .unwrap();
     assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
-    assert_eq!(timer.waits, vec![Duration::from_secs(1); 4]);
-    assert!(String::from_utf8(output)
-        .unwrap()
-        .contains("tick sequence=3\n"));
+    assert_eq!(timer.waits, vec![Duration::from_secs(1); 16]);
+    let output = String::from_utf8(output).unwrap();
+    assert!(output.contains("tick sequence=5\n"), "output={output:?}");
 }
 
 #[test]
 fn canonical_state_count_executes_current_values_with_bounded_sign() {
     let source = r#"form count (
     start: Count = 0
-    bump: Tick...| > value: $Count
+    bump: Tick... > value: $Count
 ) {
     gear: state/count(start)
     bump > gear.bump
@@ -687,7 +710,7 @@ form count-demo {
         .unwrap();
     assert_eq!(
         state.inputs[0].temporal,
-        conduit_core::PortTemporal::Flow { closes: true }
+        conduit_core::PortTemporal::Flow { closes: false }
     );
     assert_eq!(
         state.outputs[0].temporal,
@@ -695,27 +718,33 @@ form count-demo {
     );
 
     let mut output = Vec::with_capacity(4_096);
-    let mut timer = RecordingTimer {
-        waits: Vec::with_capacity(4),
+    let control = crate::RunControl::default();
+    let mut timer = StopAfterWaits {
+        control: control.clone(),
+        request: Some(crate::RunControlRequestId::new("stop-count-proof").unwrap()),
+        waits: Vec::with_capacity(16),
+        stop_after: 16,
     };
     let report = host
-        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .run_fragment_controlled_to(plan.fragments[0].clone(), &mut output, &mut timer, &control)
         .unwrap();
-    assert_eq!(timer.waits, vec![Duration::from_secs(1); 4]);
+    assert_eq!(timer.waits, vec![Duration::from_secs(1); 16]);
     let output = String::from_utf8(output).unwrap();
     let counts = output
         .lines()
         .filter_map(|line| line.strip_prefix("count value="))
         .map(|value| value.parse::<u64>().unwrap())
         .collect::<Vec<_>>();
-    assert_eq!(counts, vec![2, 3, 4, 5, 6]);
+    assert!(counts.len() > 5, "counts={counts:?}");
+    assert_eq!(counts.first(), Some(&2));
+    assert!(counts.windows(2).all(|pair| pair[1] == pair[0] + 1));
     assert!(matches!(
         report
             .observations
             .last()
             .map(|observation| &observation.kind),
         Some(ObservationKind::PlanTerminal {
-            disposition: TerminalDisposition::Completed
+            disposition: TerminalDisposition::Cancelled { .. }
         })
     ));
     let kernel = report.kernel.unwrap();

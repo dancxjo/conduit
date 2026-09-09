@@ -4,7 +4,7 @@
 
 The narrated gallery shows the actual QEMU graphical product: Tour, Forms,
 Patchbay inspection, pointer interaction, and USB Line delivery and loss. Its
-seventeen checkpoints link to their provenance. This is freestanding emulator
+checkpoints link to their provenance. This is freestanding emulator
 evidence; physical laptop acceptance is separate.
 
 ConduitOS is Conduit's freestanding Host. The x86_64 PC image is a graphical
@@ -27,6 +27,23 @@ the second boots that artifact in QEMU. The build needs the Rust toolchain,
 `curl`, `make`, `tar`, and `xorriso`; boot also needs `qemu-system-x86_64`.
 The builder acquires pinned boot dependencies. An interactive boot is useful
 for exploration; the proof commands below validate specific behaviors.
+
+## First arrival on x86_64
+
+The graphical image opens the Crèche before a Body exists. Edit the suggested
+name, choose a naming tradition, and select the initial Forms. Enter births the
+named Body and requests Wake, exact planning, and Play in order. Each successful
+stage has its own lifecycle evidence; a refusal remains visible at the stage
+that could not finish. F2 suggests another name in the Crèche and opens exact
+details after birth. F9 visits the existing Tour.
+
+This development slice offers the native **Keyboard canvas** Form. One Play
+keeps listening and shows uppercase output until F8 explicitly stops it; F7
+then Lulls the Body. The screen retains a fixed window of recent output and
+reports when older output or kernel evidence leaves its bounded history.
+Resident Tour and Patchbay Forms and durable Body restoration across a new
+Boot remain open work. The startup sound and reusable first-wake behavior are
+tracked in [#3152](https://github.com/dancxjo/conduit/issues/3152).
 
 ## Available images
 

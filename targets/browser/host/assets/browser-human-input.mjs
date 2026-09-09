@@ -23,6 +23,7 @@ export function openBrowserHumanInput({
   boot,
   currentBoot = () => boot,
   maximumQueueItems = MAXIMUM_QUEUE_ITEMS,
+  routeInput,
 } = {}) {
   if (!target?.addEventListener || !target?.removeEventListener) {
     refuse("UnsupportedInput", "browser input requires an event target");
@@ -37,6 +38,7 @@ export function openBrowserHumanInput({
     offer_generation: positiveInteger(boot?.offer_generation ?? 1, "OfferGenerationInvalid"),
   });
   const keyboardWaiters = [];
+  const keyboardQueue = [];
   const buttonWaiters = [];
   const buttonQueue = [];
   let buttonActive = false;
@@ -48,22 +50,41 @@ export function openBrowserHumanInput({
   let dropped = 0;
 
   const onKey = (event) => {
-    if (closed || keyboardWaiters.length === 0) return;
+    if (closed) return;
     const usage = browserKeyboardUsage(event.code);
     if (usage === null) return;
-    const waiter = keyboardWaiters.shift();
+    // A document-wide adapter must leave ordinary browser controls operable
+    // while no admitted Form is waiting for a key. This also prevents a skip
+    // link or layout button from becoming stale queued Form input.
+    if (keyboardWaiters.length === 0 && target.nodeType === 9 &&
+        typeof event.target?.closest === "function" &&
+        event.target.closest("a[href], button, input, select, textarea, summary, [contenteditable]:not([contenteditable='false'])")) {
+      return;
+    }
     try {
       assertCurrent(owner, currentBoot());
       assertPageActive(target);
       if (!currentTargetOwnsEvent(target, event)) refuse("FocusLost", "keyboard focus left the admitted target");
       event.preventDefault();
-      waiter.resolve(Object.freeze({
-        schema: "input/key-event@1",
-        canonical_bytes: Uint8Array.of(usage, event.type === "keydown" ? 0 : 1, modifiers(event)),
-        owner,
-      }));
+      const canonical = Uint8Array.of(usage, event.type === "keydown" ? 0 : 1, modifiers(event));
+      const transition = Object.freeze({
+        schema: "input/key-event@1", canonical_bytes: canonical, owner,
+        ...(routeInput ? { delivery_form: routeInput("keyboard", canonical) } : {}),
+      });
+      if (keyboardWaiters.length > 0) keyboardWaiters.shift().resolve(transition);
+      else {
+        if (keyboardQueue.length >= maximumQueueItems) {
+          terminal = new BrowserInputRefusal("Pressure", "ordered keyboard queue is full");
+          keyboardQueue.length = 0;
+          while (keyboardWaiters.length) keyboardWaiters.shift().reject(terminal);
+          return;
+        }
+        keyboardQueue.push(transition);
+      }
     } catch (error) {
-      waiter.reject(error);
+      terminal = error;
+      keyboardQueue.length = 0;
+      while (keyboardWaiters.length) keyboardWaiters.shift().reject(error);
     }
   };
 
@@ -80,6 +101,7 @@ export function openBrowserHumanInput({
         const transition = Object.freeze({
           schema: "input/button-transition@1",
           pressed: event.type === "pointerdown",
+          ...(routeInput ? { delivery_form: routeInput("button", { pressed: event.type === "pointerdown" }) } : {}),
           sequence: buttonSequence++,
           owner,
         });
@@ -128,6 +150,7 @@ export function openBrowserHumanInput({
       ? "browser page was lost while input was pending"
       : "browser input target lost focus");
     buttonQueue.length = 0;
+    keyboardQueue.length = 0;
     while (keyboardWaiters.length) keyboardWaiters.shift().reject(terminal);
     while (buttonWaiters.length) buttonWaiters.shift().reject(terminal);
   };
@@ -160,6 +183,15 @@ export function openBrowserHumanInput({
     nextKeyboard() {
       requireSelected(admitted, KEYBOARD_IMPLEMENTATION);
       if (closed || terminal) return Promise.reject(terminal ?? new BrowserInputRefusal("Cancelled", "browser input adapter is closed"));
+      try {
+        assertCurrent(owner, currentBoot());
+        assertPageActive(target);
+      } catch (error) {
+        terminal = error;
+        keyboardQueue.length = 0;
+        return Promise.reject(error);
+      }
+      if (keyboardQueue.length) return Promise.resolve(keyboardQueue.shift());
       if (keyboardWaiters.length >= maximumQueueItems) {
         return Promise.reject(new BrowserInputRefusal("Pressure", "keyboard input queue is full"));
       }
@@ -193,6 +225,7 @@ export function openBrowserHumanInput({
     },
     cancelPending() {
       buttonActive = false;
+      keyboardQueue.length = 0;
       buttonQueue.length = 0;
       while (keyboardWaiters.length) keyboardWaiters.shift().reject(new BrowserInputRefusal("Cancelled", "browser input request was cancelled"));
       while (buttonWaiters.length) buttonWaiters.shift().reject(new BrowserInputRefusal("Cancelled", "browser input request was cancelled"));
@@ -207,6 +240,7 @@ export function openBrowserHumanInput({
       window.removeEventListener?.("pagehide", pageLost);
       window.removeEventListener?.("blur", focusLost);
       window.removeEventListener?.("focus", restoreFocus);
+      keyboardQueue.length = 0;
       while (keyboardWaiters.length) keyboardWaiters.shift().reject(new BrowserInputRefusal("Cancelled", "browser input request was cancelled"));
       while (buttonWaiters.length) buttonWaiters.shift().reject(new BrowserInputRefusal("Cancelled", "browser input request was cancelled"));
       pointerConsumers.clear();
