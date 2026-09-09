@@ -6,7 +6,7 @@ use crate::cli::GlobalOpts;
 
 use super::{live_media, ConduitosArch, ConduitosError};
 
-pub const DEMO_PROFILE: &str = "q35-single-cpu-64m-visible-gtk-xhci-usb-kbd";
+pub const DEMO_PROFILE: &str = "q35-single-cpu-64m-visible-gtk-xhci-usb-kbd-mouse";
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if arch != ConduitosArch::X86_64 {
@@ -101,9 +101,11 @@ fn qemu_args(iso: &str) -> Vec<&str> {
         "-net",
         "none",
         "-device",
-        "qemu-xhci,id=conduitos-xhci,p2=1,p3=0",
+        "qemu-xhci,id=conduitos-xhci,p2=2,p3=0",
         "-device",
         "usb-kbd,bus=conduitos-xhci.0,port=1",
+        "-device",
+        "usb-mouse,bus=conduitos-xhci.0,port=2",
         "-cdrom",
         iso,
         "-boot",
@@ -122,8 +124,9 @@ mod tests {
         assert!(args.windows(2).any(|pair| pair == ["-serial", "stdio"]));
         assert!(args.windows(2).any(|pair| pair == ["-M", "q35"]));
         assert!(args.windows(2).any(|pair| pair == ["-m", "64M"]));
-        assert!(args.contains(&"qemu-xhci,id=conduitos-xhci,p2=1,p3=0"));
+        assert!(args.contains(&"qemu-xhci,id=conduitos-xhci,p2=2,p3=0"));
         assert!(args.contains(&"usb-kbd,bus=conduitos-xhci.0,port=1"));
+        assert!(args.contains(&"usb-mouse,bus=conduitos-xhci.0,port=2"));
         assert!(!args.contains(&"-no-shutdown"));
         assert!(!args.contains(&"isa-debug-exit,iobase=0xf4,iosize=0x04"));
     }

@@ -185,6 +185,35 @@ pub(super) fn inspector_scene(
         return Err(TourShellError::Identity);
     }
     let mut scene = panel_scene(bounds, "INSPECTOR", "")?;
+    if let Some(action) = presentation.subjects.iter().find(|subject| {
+        subject.identity == conduit_tour_model::INSPECTOR_CLOSE_ACTION_ID
+            && subject.role == conduit_presentation::PresentationRole::Action
+    }) {
+        let button = super::controls::inspector_close_bounds(bounds.width);
+        scene
+            .push(
+                GraphicsCommand::rect(
+                    button,
+                    button,
+                    GraphicsPaintRole::Accent,
+                    GraphicsShapeStyle::Stroke,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+        let text = LayoutRect {
+            x: button.x + 8,
+            y: button.y + 4,
+            width: button.width - 16,
+            height: button.height - 8,
+        };
+        scene
+            .push(
+                GraphicsCommand::text(text, button, GraphicsPaintRole::Foreground, &action.label)
+                    .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+    }
     let viewport = LayoutRect {
         x: 0,
         y: 36,

@@ -376,6 +376,22 @@ fn execute_image(
                 false,
                 "pointer-release-inspector",
             )?;
+            journey_input::relative_motion(
+                &mut qmp,
+                &mut reader,
+                0,
+                -20,
+                "pointer-close-inspector",
+            )?;
+            journey_input::primary_button(&mut qmp, &mut reader, true, "activate-close-inspector")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_TOUR_CHECKPOINT inspector-close-activated",
+                "product-journey-inspector-close-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "inspector-closed", false)?;
+            journey_input::primary_button(&mut qmp, &mut reader, false, "release-close-inspector")?;
             thread::sleep(Duration::from_millis(250));
             if child
                 .try_wait()
