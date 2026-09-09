@@ -4,8 +4,7 @@ use crate::display::{PixelTarget, SPACING};
 use alloc::format;
 use conduit_presentation::{
     ActionAvailability, FieldKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
-    GraphicsShapeStyle, GraphicsTextRole, LayoutRect, PresentationIconKey,
-    PresentationMechanism,
+    GraphicsShapeStyle, GraphicsTextRole, LayoutRect, PresentationIconKey, PresentationMechanism,
 };
 
 impl Arrival {
@@ -201,7 +200,12 @@ impl Arrival {
             scene
                 .push(
                     GraphicsCommand::icon(
-                        LayoutRect { x: x - 24, y: y + 368, width: 16, height: 16 },
+                        LayoutRect {
+                            x: x - 24,
+                            y: y + 368,
+                            width: 16,
+                            height: 16,
+                        },
                         screen,
                         GraphicsPaintRole::Warning,
                         PresentationIconKey::Warning,
@@ -213,7 +217,12 @@ impl Arrival {
         scene
             .push(
                 GraphicsCommand::icon(
-                    LayoutRect { x: x - 24, y: y + 376, width: 16, height: 16 },
+                    LayoutRect {
+                        x: x - 24,
+                        y: y + 376,
+                        width: 16,
+                        height: 16,
+                    },
                     screen,
                     GraphicsPaintRole::Success,
                     PresentationIconKey::Confirm,

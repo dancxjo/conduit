@@ -69,9 +69,7 @@ const fn letter_a(x: i32, y: i32) -> bool {
 const fn ink(icon: Icon, x: i32, y: i32) -> bool {
     use Icon::*;
     match icon {
-        Clock => ring(x, y, 12, 12, 9)
-            || line(x, y, 12, 6, 12, 12)
-            || line(x, y, 12, 12, 17, 15),
+        Clock => ring(x, y, 12, 12, 9) || line(x, y, 12, 6, 12, 12) || line(x, y, 12, 12, 17, 15),
         Repeat2 => {
             line(x, y, 5, 6, 19, 6)
                 || line(x, y, 19, 6, 19, 11)
@@ -81,13 +79,9 @@ const fn ink(icon: Icon, x: i32, y: i32) -> bool {
                 || line(x, y, 5, 18, 8, 21)
         }
         Presentation => {
-            frame(x, y, 3, 3, 21, 16)
-                || line(x, y, 12, 16, 12, 21)
-                || line(x, y, 7, 21, 17, 21)
+            frame(x, y, 3, 3, 21, 16) || line(x, y, 12, 16, 12, 21) || line(x, y, 7, 21, 17, 21)
         }
-        Type => line(x, y, 4, 4, 20, 4)
-            || line(x, y, 12, 4, 12, 20)
-            || line(x, y, 8, 20, 16, 20),
+        Type => line(x, y, 4, 4, 20, 4) || line(x, y, 12, 4, 12, 20) || line(x, y, 8, 20, 16, 20),
         CaseUpper => letter_a(x, y),
         Combine => {
             line(x, y, 3, 5, 8, 5)
@@ -106,9 +100,7 @@ const fn ink(icon: Icon, x: i32, y: i32) -> bool {
                 || line(x, y, 2, 17, 21, 7)
         }
         ChartColumnsIncreasing => {
-            frame(x, y, 3, 15, 7, 21)
-                || frame(x, y, 10, 10, 14, 21)
-                || frame(x, y, 17, 3, 21, 21)
+            frame(x, y, 3, 15, 7, 21) || frame(x, y, 10, 10, 14, 21) || frame(x, y, 17, 3, 21, 21)
         }
         FileOutput => {
             line(x, y, 4, 3, 14, 3)
@@ -149,9 +141,7 @@ const fn ink(icon: Icon, x: i32, y: i32) -> bool {
         }
         Play => x >= 6 && x <= 20 && y >= 3 && y <= 21 && (y - 12).abs() * 14 <= (20 - x) * 9,
         Host => {
-            frame(x, y, 3, 3, 21, 16)
-                || line(x, y, 12, 16, 12, 21)
-                || line(x, y, 7, 21, 17, 21)
+            frame(x, y, 3, 3, 21, 16) || line(x, y, 12, 16, 12, 21) || line(x, y, 7, 21, 17, 21)
         }
         Port => {
             ring(x, y, 8, 12, 5)
@@ -159,16 +149,8 @@ const fn ink(icon: Icon, x: i32, y: i32) -> bool {
                 || line(x, y, 22, 12, 18, 8)
                 || line(x, y, 22, 12, 18, 16)
         }
-        Line => {
-            frame(x, y, 1, 13, 7, 19)
-                || frame(x, y, 17, 5, 23, 11)
-                || line(x, y, 7, 16, 17, 8)
-        }
-        Status => {
-            ring(x, y, 12, 12, 10)
-                || line(x, y, 12, 10, 12, 18)
-                || ring(x, y, 12, 6, 1)
-        }
+        Line => frame(x, y, 1, 13, 7, 19) || frame(x, y, 17, 5, 23, 11) || line(x, y, 7, 16, 17, 8),
+        Status => ring(x, y, 12, 12, 10) || line(x, y, 12, 10, 12, 18) || ring(x, y, 12, 6, 1),
         Warning => {
             line(x, y, 12, 2, 2, 21)
                 || line(x, y, 2, 21, 22, 21)
@@ -177,9 +159,7 @@ const fn ink(icon: Icon, x: i32, y: i32) -> bool {
                 || ring(x, y, 12, 18, 1)
         }
         Close => line(x, y, 5, 5, 19, 19) || line(x, y, 19, 5, 5, 19),
-        Back => line(x, y, 3, 12, 21, 12)
-            || line(x, y, 3, 12, 10, 5)
-            || line(x, y, 3, 12, 10, 19),
+        Back => line(x, y, 3, 12, 21, 12) || line(x, y, 3, 12, 10, 5) || line(x, y, 3, 12, 10, 19),
         Confirm => line(x, y, 3, 12, 9, 18) || line(x, y, 9, 18, 21, 5),
     }
 }

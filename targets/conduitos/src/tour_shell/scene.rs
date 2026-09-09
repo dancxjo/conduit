@@ -1,6 +1,6 @@
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect, Presentation,
-    PresentationIconKey,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
+    Presentation, PresentationIconKey,
 };
 
 use super::TourShellError;
@@ -161,8 +161,8 @@ pub(super) fn status_scene(
         ("lines", PresentationIconKey::Line),
         ("host", PresentationIconKey::Host),
     ]
-        .into_iter()
-        .enumerate()
+    .into_iter()
+    .enumerate()
     {
         let identity = alloc::format!("tour/status/{key}");
         let subject = presentation
@@ -251,7 +251,12 @@ pub(super) fn inspector_scene(
         scene
             .push(
                 GraphicsCommand::icon(
-                    LayoutRect { x: button.x + 8, y: button.y + 4, width: 16, height: 16 },
+                    LayoutRect {
+                        x: button.x + 8,
+                        y: button.y + 4,
+                        width: 16,
+                        height: 16,
+                    },
                     button,
                     GraphicsPaintRole::Accent,
                     PresentationIconKey::Close,
