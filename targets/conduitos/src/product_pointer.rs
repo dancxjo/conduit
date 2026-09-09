@@ -115,10 +115,23 @@ fn run_with(
             continue;
         }
         if route.surface_id != WORKSPACE_SURFACE {
-            let hovered = presenter
-                .scroll_hit_subject(&route)
-                .map_err(|error| error.as_str())?
-                .is_some();
+            let close_hit = presenter
+                .inspector_close_hit(&route)
+                .map_err(|error| error.as_str())?;
+            if sample.primary_pressed && close_hit {
+                presenter
+                    .activate_inspector_close(&route, tour, display)
+                    .map_err(|error| error.as_str())?;
+                suppress_dismissal_release = true;
+                arch::early_write(b"CONDUIT_TOUR_CHECKPOINT inspector-close-activated\n");
+                arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+                continue;
+            }
+            let hovered = close_hit
+                || presenter
+                    .scroll_hit_subject(&route)
+                    .map_err(|error| error.as_str())?
+                    .is_some();
             presenter
                 .set_pointer_hover(hovered)
                 .map_err(|error| error.as_str())?;
