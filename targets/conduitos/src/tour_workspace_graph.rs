@@ -103,7 +103,7 @@ pub(super) fn append(
         }
         scene
             .push(
-                GraphicsCommand::rect(card, bounds, paint, GraphicsShapeStyle::Stroke)
+                GraphicsCommand::rect(card, bounds, paint, GraphicsShapeStyle::RoundedStroke)
                     .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
@@ -276,7 +276,6 @@ mod tests {
             .filter_map(GraphicsCommand::path_geometry)
             .collect();
         assert_eq!(paths.len(), 2);
-        // Graph Cord order is semantic storage, not left-to-right layout.
         paths.sort_by_key(|path| path.points()[2].x);
         assert!(scene.commands().len() >= 21);
         assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
@@ -285,31 +284,19 @@ mod tests {
         let result = card_bounds(graph, 2);
         assert_eq!(
             paths[0].points()[2],
-            GraphicsPoint {
-                x: words.x + words.width as i16 - 1,
-                y: words.y + 80
-            }
+            GraphicsPoint { x: words.x + words.width as i16 - 1, y: words.y + 80 }
         );
         assert_eq!(
             &paths[0].points()[3],
-            &GraphicsPoint {
-                x: change.x,
-                y: change.y + 80
-            }
+            &GraphicsPoint { x: change.x, y: change.y + 80 }
         );
         assert_eq!(
             paths[1].points()[2],
-            GraphicsPoint {
-                x: change.x + change.width as i16 - 1,
-                y: change.y + 128
-            }
+            GraphicsPoint { x: change.x + change.width as i16 - 1, y: change.y + 128 }
         );
         assert_eq!(
             &paths[1].points()[5],
-            &GraphicsPoint {
-                x: result.x,
-                y: result.y + 80
-            }
+            &GraphicsPoint { x: result.x, y: result.y + 80 }
         );
         assert_eq!(paths[0].points().len(), 6);
         assert_eq!(paths[1].points().len(), 8);
@@ -317,11 +304,7 @@ mod tests {
             let points = path.points();
             for (top, bottom, center) in [
                 (points[0], points[1], points[2]),
-                (
-                    points[points.len() - 2],
-                    points[points.len() - 1],
-                    points[points.len() - 3],
-                ),
+                (points[points.len() - 2], points[points.len() - 1], points[points.len() - 3]),
             ] {
                 assert_eq!(top.x, center.x);
                 assert_eq!(bottom.x, center.x);
@@ -331,10 +314,7 @@ mod tests {
         }
         assert!(
             port_anchor(
-                LayoutRect {
-                    height: 32,
-                    ..change
-                },
+                LayoutRect { height: 32, ..change },
                 "name\nkind\nstate\n\n",
                 true
             )
