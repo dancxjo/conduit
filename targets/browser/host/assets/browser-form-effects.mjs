@@ -1,3 +1,12 @@
+// A typed result of one real platform attempt. Other errors remain programming/resource failures.
+export class BrowserHostEffectRefusal extends Error {
+  constructor(disposition, detail, message) {
+    super(message);this.name = "BrowserHostEffectRefusal";
+    if (!["denied", "failed"].includes(disposition) || !Number.isInteger(detail) || detail < 0 || detail > 65535) throw new Error("invalid Host effect refusal");
+    this.disposition = disposition;this.detail = detail;
+  }
+}
+
 // Shared page-Host dispatch for effects requested by the one WASM kernel.
 // It does not plan work or schedule semantic operations.
 export async function drainBrowserEffects({ api, initialProgress, readOutput, perform,
@@ -62,7 +71,7 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
       }
       if (!isCurrent()) return;
       effects.delete(completed.key);
-      if (completed.error) throw completed.error;
+      if (completed.error && !(completed.error instanceof BrowserHostEffectRefusal)) throw completed.error;
       const { effect, output = new Uint8Array() } = completed;
       const play = encoder.encode(effect.active_play_id);
       const placement = encoder.encode(effect.placement_id);
@@ -74,10 +83,12 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
       bytes.set(play);
       bytes.set(placement, play.length);
       bytes.set(output, play.length + placement.length);
-      const completion = api.conduit_browser_form_complete_effect(
-        play.length, placement.length, effect.request_sequence ?? effect.observation_sequence,
-        output.length,
-      );
+      const completion = completed.error
+        ? api.conduit_browser_form_refuse_effect(play.length, placement.length,
+            effect.request_sequence ?? effect.observation_sequence,
+            completed.error.disposition === "denied" ? 1 : 2, completed.error.detail)
+        : api.conduit_browser_form_complete_effect(play.length, placement.length,
+            effect.request_sequence ?? effect.observation_sequence, output.length);
       if (completion < 0) {
         const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
         throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);

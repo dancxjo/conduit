@@ -121,7 +121,7 @@ test("Crèche births canonical button, clock, and unrelated Forms without source
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const birth = page.locator(".body-birth-runner");
-  for (const title of ["Button Across Room", "Clock-demo", "Desk Telegraph"]) {
+  for (const title of ["Button Across the Room", "Clock", "Desk Telegraph"]) {
     await selectBirthForm(birth, title);
   }
   await expect(birth.locator('[data-application-key="selected-forms"]')).toHaveText(

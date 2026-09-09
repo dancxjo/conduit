@@ -591,6 +591,7 @@ dependencies = [
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-offers",
+ "conduit-synth",
  "conduit-text",
  "conduit-time",
  "conduit-tour-model",
@@ -1174,6 +1175,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-presentation",
  "serde",
  "serde_json",
 ]

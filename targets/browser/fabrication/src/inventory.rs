@@ -85,6 +85,14 @@ struct BrowserRealizationLimits {
 
 pub const BROWSER_HUMAN_PRESENTATION_REALIZATIONS: &[BrowserRealizationDescriptor] = &[
     realization(
+        "browser/audio-cue@1",
+        "sound/startup-chime",
+        "browser/startup-chime@1",
+        "conduit-browser-runtime/startup-chime@1",
+        "conduit.host/browser-startup-chime@1",
+        limits(1, 1, 4_096),
+    ),
+    realization(
         "browser/dom-presentation@1",
         "presentation/text",
         "browser/presentation-text@1",
@@ -201,6 +209,10 @@ const DEVICE_ACQUISITION: BrowserRuntimePrerequisite = BrowserRuntimePrerequisit
 };
 
 pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
+    descriptor("Presentation", "Optional audible cue", "audio/output", "browser/audio-cue@1",
+        16, 1024 * 1024, &[BrowserRuntimePrerequisite {
+            kind: "audio-policy", detail: "playback requires available output and permitted audio; denial is retained without blocking other Forms",
+        }]),
     descriptor(
         "Presentation",
         "Browser document",

@@ -5,6 +5,8 @@ use conduit_core::{
     ResourceAdmissionItem, ResourceAdmissionOwner, ResourceAdmissionRequest, ResourceObservation,
 };
 use conduit_plan_lowering::fragment_set::{lower_local_fragment_set, FragmentSetBounds};
+#[path = "body_startup.rs"]
+mod startup;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -14,6 +16,10 @@ pub(super) struct BodyStartRequest {
     pub play_sequence: u64,
     /// Supplied by the trusted page Host adapter, not inferred from offers.
     pub observations: Vec<ResourceObservation>,
+    /// Exact retained history before this start. Required for lifecycle sources;
+    /// the Host must durably record the returned start before dispatching effects.
+    #[serde(default)]
+    pub body_evidence: Option<conduit_body::BodyBiographyEvidence>,
 }
 
 #[derive(serde::Serialize)]
@@ -42,7 +48,7 @@ pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodySta
         })
         .collect::<Result<Vec<_>, String>>()?;
     let first = fragments.first().ok_or("empty Body workload")?;
-    let host =
+    let mut host =
         crate::installed_browser::advertisement(first.host_id.clone(), first.boot_id.clone());
     if request.observations.len() > host.resources.len() {
         return Err("Body resource observations exceed the installed resource bound".into());
@@ -62,6 +68,21 @@ pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodySta
         },
     )
     .map_err(|error| format!("Body lowering: {error:?}"))?;
+    // Lowering has already bounded the placements. Dynamic selectors are pure,
+    // installed realizations whose exact types and configuration are revalidated.
+    for gear in fragments.iter().flat_map(|fragment| &fragment.placements) {
+        if let Some(offer) =
+            crate::installed_browser::structured_selector::offer_for_placement(gear)?
+        {
+            if !host
+                .capabilities
+                .iter()
+                .any(|current| current.capability_id == offer.capability_id)
+            {
+                host.capabilities.push(offer);
+            }
+        }
+    }
     let mut requests = Vec::new();
     let mut instances = BTreeMap::<conduit_core::CapabilityId, usize>::new();
     for fragment in &fragments {
@@ -134,12 +155,6 @@ pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodySta
             });
         }
     }
-    let scheduler = engine::preparation::prepare_partition_scheduler(
-        &fragments
-            .iter()
-            .zip(&lowered.partitions)
-            .collect::<Vec<_>>(),
-    )?;
     let mut resources = ResourceAdmissionOwner::new(host.clone());
     if !requests.is_empty() {
         resources
@@ -161,11 +176,26 @@ pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodySta
         .body_plan_ready(&request.plan, sign(0))
         .and_then(|wake| wake.body_play_started(&request.plan, &play, sign(1)))
         .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
+    let startup = startup::prepare(
+        request.body_evidence.as_ref(),
+        &request.wake,
+        &request.plan,
+        &play,
+        &wake_at_start,
+    )?;
+    let scheduler = engine::preparation::prepare_body_scheduler(
+        &fragments
+            .iter()
+            .zip(&lowered.partitions)
+            .collect::<Vec<_>>(),
+        startup.as_ref(),
+    )?;
     let mut session = TourSession {
         _resource_admissions: Some(resources),
         cancellation: None,
         scheduler,
         pending: Vec::with_capacity(BROWSER_PENDING_REQUESTS),
+        host_outcomes: host_outcomes::HostOutcomes::new(),
         active_play_id: play.active_play_id.clone(),
         terminal_sign_sequence: 2,
         latest_presentation: None,
@@ -224,3 +254,7 @@ pub(in crate::form_runner) mod tests;
 #[cfg(test)]
 #[path = "little_seismograph_body_tests.rs"]
 mod little_seismograph_tests;
+
+#[cfg(test)]
+#[path = "body_startup_tests.rs"]
+mod startup_tests;

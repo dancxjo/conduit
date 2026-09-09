@@ -6,6 +6,8 @@ export function createBodyInputRouting({ forms, foreground }) {
     throw new BrowserInputRefusal("InvalidInventory", "invalid Body input routing inventory");
   }
   const placementForms = new Map();
+  const placementInputs = new Map();
+  const inputKinds = new Map([["input/keyboard", "keyboard"], ["input/button", "button"], ["input/pointer-source", "pointer"]]);
   const formIds = new Set();
   for (const partition of forms) {
     const form = partition.form?.checked_form_id;
@@ -14,15 +16,17 @@ export function createBodyInputRouting({ forms, foreground }) {
     for (const fragment of partition.plan.fragments) for (const placement of fragment.placements) {
       if (typeof placement.placement_id !== "string" || !placement.placement_id || placement.placement_id.length > 256 || placementForms.has(placement.placement_id) || placementForms.size === 16) throw new BrowserInputRefusal("PlacementBound", "Body input placement bound exceeded");
       placementForms.set(placement.placement_id, form);
+      if (inputKinds.has(placement.kind_id)) placementInputs.set(placement.placement_id, inputKinds.get(placement.kind_id));
     }
   }
   const waiters = [], queued = [];
   const heldKeys = new Array(256).fill(null);
   const pumping = new Set();
-  let heldButton = null, input = null, terminal = null;
+  let heldButton = null, input = null, terminal = null, stopPointer = null;
   const fail = error => {
     if (terminal) return;
     terminal = error;
+    stopPointer?.();
     queued.length = 0;
     for (const waiter of waiters.splice(0)) { waiter.dispose(); waiter.reject(error); }
   };
@@ -30,6 +34,10 @@ export function createBodyInputRouting({ forms, foreground }) {
     const form = foreground();
     if (!formIds.has(form)) throw new BrowserInputRefusal("StaleForm", "foreground Form is outside the admitted Body Plan");
     return form;
+  };
+  const accepts = (form, kind) => {
+    for (const [placement, inputKind] of placementInputs) if (inputKind === kind && placementForms.get(placement) === form) return true;
+    return false;
   };
   const deliver = (kind, event) => {
     if (!formIds.has(event.delivery_form)) throw new BrowserInputRefusal("StaleForm", "input lacks its captured Form identity");
@@ -46,6 +54,14 @@ export function createBodyInputRouting({ forms, foreground }) {
     if (pumping.has(kind)) return;
     pumping.add(kind);
     try {
+      if (kind === "pointer") {
+        stopPointer = input.observePointer((event, error) => {
+          if (terminal) return;
+          try { if (error) throw error; deliver(kind, event); }
+          catch (failure) { fail(failure); }
+        });
+        return;
+      }
       while (!terminal) {
         const event = await (kind === "keyboard" ? input.nextKeyboard() : input.nextButton());
         if (!terminal) deliver(kind, event);
@@ -60,13 +76,19 @@ export function createBodyInputRouting({ forms, foreground }) {
         if (!(value instanceof Uint8Array) || value.length !== 3 || value[1] > 1) throw new BrowserInputRefusal("InvalidInput", "invalid routed key event");
         const [usage, phase] = value;
         const form = heldKeys[usage] ?? selected();
+        if (!accepts(form, kind)) return null;
         heldKeys[usage] = phase === 0 ? form : null;
         return form;
       }
       if (kind === "button") {
         const form = heldButton ?? selected();
+        if (!accepts(form, kind)) return null;
         heldButton = value.pressed ? form : null;
         return form;
+      }
+      if (kind === "pointer") {
+        const form = selected();
+        return accepts(form, kind) ? form : null;
       }
       throw new BrowserInputRefusal("UnsupportedInput", "unsupported routed input kind");
     },
@@ -76,7 +98,7 @@ export function createBodyInputRouting({ forms, foreground }) {
     },
     next(kind, placement, signal) {
       if (terminal) return Promise.reject(terminal);
-      if (!input || !["keyboard", "button"].includes(kind) || !placementForms.has(placement)) {
+      if (!input || placementInputs.get(placement) !== kind) {
         return Promise.reject(new BrowserInputRefusal("StalePlacement", "input request is outside the admitted Body Plan"));
       }
       if (signal.aborted) return Promise.reject(new BrowserInputRefusal("Cancelled", "Body input request cancelled"));

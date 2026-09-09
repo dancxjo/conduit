@@ -42,20 +42,12 @@ pub(super) fn review(
         return Err("initial Form selection exceeds Body capacity".into());
     }
     let checked_documents = super::initial_forms::check_inventory(source)?;
-    let (_, profile) = crate::installed_browser::catalogs()?;
-    let backs = crate::installed_browser::backs(
-        &{
-            let (startup, _) = crate::installed_browser::catalogs()?;
-            startup
-        },
-        &profile,
-    )?;
     let mut required_kinds = BTreeSet::new();
     let mut resource_totals = BTreeMap::<(HostId, ResourceClassId), u32>::new();
     let mut capability_totals = BTreeMap::<(HostId, CapabilityId), u32>::new();
 
     for selected_form in &selected {
-        let (checked, form) = checked_documents
+        let (checked, form, presentation) = checked_documents
             .iter()
             .find_map(|entry| {
                 entry
@@ -63,7 +55,7 @@ pub(super) fn review(
                     .forms
                     .iter()
                     .find(|form| form.name == selected_form.name)
-                    .map(|form| (&entry.checked, form))
+                    .map(|form| (&entry.checked, form, entry.presentation))
             })
             .ok_or_else(|| {
                 format!(
@@ -79,6 +71,13 @@ pub(super) fn review(
                 selected_form.name
             ));
         }
+        let (startup, mut profile) =
+            crate::installed_browser::catalogs_for_presentation(presentation)?;
+        crate::installed_browser::catalogs::install_checked_structured_selectors(
+            checked,
+            &mut profile,
+        )?;
+        let backs = crate::installed_browser::backs(&startup, &profile)?;
         let expanded =
             conduit_form::expand_canonical_form_with_backs(checked, &form.name, &profile, &backs)
                 .map_err(|error| format!("expand reviewed Form {:?}: {error:?}", form.name))?;

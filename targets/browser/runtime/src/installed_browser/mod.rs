@@ -1,5 +1,6 @@
 //! Finite implementation registry installed by the ordinary browser Host.
 
+pub(crate) mod body_startup;
 mod button_indicator;
 mod delay;
 mod deterministic_garden_source;
@@ -45,6 +46,7 @@ pub(crate) mod replay_source;
 pub(crate) mod resource;
 mod rhythm_presentation;
 mod rhythm_state;
+pub(crate) mod startup_chime;
 mod state_time;
 pub(crate) mod stroke_capture;
 pub(crate) mod structured_selector;

@@ -181,3 +181,19 @@ test("malformed successful start output still retires the acquired session", () 
   assert.equal(owner.close().receipt.disposition, "cancelled");
   assert.equal(f.count().cancels, 1);
 });
+
+test('the kernel-local template slot has one preparation owner and is released on close', () => {
+  const f = fixture();
+  const resource = f.proposal.plan.forms[0].plan.fragments[0].placements[0].resources[0];
+  Object.assign(resource, { pool_id: 'browser/named-pattern-storage', class_id: 'conduit.resource/named-pattern-storage-slot@1' });
+  const owner = acquireBrowserBodyHost(f);
+  assert.equal(owner.observations()[0].unreserved_units, 1);
+  assert.equal(f.count().starts, 0);
+  assert.throws(() => acquireBrowserBodyHost(f), /already acquired/);
+  owner.close();
+  assert.throws(() => owner.observations(), /resources lost/);
+  const next = acquireBrowserBodyHost(f);
+  next.close();
+  resource.units = 2;
+  assert.throws(() => acquireBrowserBodyHost(f), /exceeds local bounds/);
+});
