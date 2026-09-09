@@ -49,6 +49,15 @@ pub fn scene_for_state(
     height: u16,
     state: &TourWorkspaceState,
 ) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
+    scene_with_observations(width, height, state, None)
+}
+
+pub(crate) fn scene_with_observations(
+    width: u16,
+    height: u16,
+    state: &TourWorkspaceState,
+    observations: Option<&crate::text_composition::TextObservations>,
+) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
     let view = state
         .presentation()
         .and_then(|presentation| presentation.lower())
@@ -108,7 +117,12 @@ pub fn scene_for_state(
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     }
-    graph::append(&mut scene, graphics_rect(layout.patchbay)?, state)?;
+    graph::append(
+        &mut scene,
+        graphics_rect(layout.patchbay)?,
+        state,
+        observations,
+    )?;
     Ok(scene)
 }
 
