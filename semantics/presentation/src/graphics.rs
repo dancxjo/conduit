@@ -151,6 +151,23 @@ impl GraphicsCommand {
         )
     }
 
+    /// A resolved native symbol, not an asset identity on portable Presentation.
+    pub fn symbol(
+        bounds: LayoutRect,
+        clip: LayoutRect,
+        paint: GraphicsPaintRole,
+        symbol: GraphicsSymbol,
+    ) -> Result<Self, GraphicsError> {
+        Self::new(
+            GraphicsCommandKind::Icon,
+            bounds,
+            clip,
+            paint,
+            GraphicsShapeStyle::Fill,
+            symbol.as_token().as_bytes(),
+        )
+    }
+
     fn new(
         kind: GraphicsCommandKind,
         bounds: LayoutRect,
@@ -169,7 +186,9 @@ impl GraphicsCommand {
         }
         if kind == GraphicsCommandKind::Icon {
             let token = core::str::from_utf8(payload).map_err(|_| GraphicsError::UnknownIcon)?;
-            if PresentationIconKey::from_token(token).is_none() {
+            if PresentationIconKey::from_token(token).is_none()
+                && GraphicsSymbol::from_token(token).is_none()
+            {
                 return Err(GraphicsError::UnknownIcon);
             }
         } else if kind == GraphicsCommandKind::Text {

@@ -2,7 +2,8 @@
 //! Geometry is rasterized at compile time, not parsed or cached during frames.
 
 use super::{DisplayError, DisplayReceipt, PixelTarget, clipped, put};
-use conduit_presentation::{GraphicsCommand, PresentationIconKey};
+use conduit_presentation::{GraphicsCommand, GraphicsSymbol, PresentationIconKey};
+mod symbols;
 
 const EDGE: usize = 24;
 struct Icon {
@@ -141,16 +142,21 @@ pub(super) fn render(
     color: u32,
     receipt: &mut DisplayReceipt,
 ) -> Result<(), DisplayError> {
-    let key =
-        PresentationIconKey::from_token(command.payload()).ok_or(DisplayError::InvalidExtent)?;
-    let icon = ICONS
-        .iter()
-        .find(|icon| icon.key == key)
-        .ok_or(DisplayError::InvalidExtent)?;
+    let rows = if let Some(symbol) = GraphicsSymbol::from_token(command.payload()) {
+        symbols::raster(symbol)
+    } else {
+        let key = PresentationIconKey::from_token(command.payload())
+            .ok_or(DisplayError::InvalidExtent)?;
+        &ICONS
+            .iter()
+            .find(|icon| icon.key == key)
+            .ok_or(DisplayError::InvalidExtent)?
+            .rows
+    };
     let Some(clip) = clipped(command.bounds, command.clip, target.format()) else {
         return Ok(());
     };
-    for (row, bits) in icon.rows.iter().enumerate() {
+    for (row, bits) in rows.iter().enumerate() {
         for column in 0..EDGE {
             if bits & (1 << column) == 0 {
                 continue;
