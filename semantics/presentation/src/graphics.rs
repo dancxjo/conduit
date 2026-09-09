@@ -1,6 +1,6 @@
 //! Fixed-capacity graphical leaf obligations below semantic presentation.
 
-use crate::{LayoutRect, MAX_LAYOUT_EXTENT, PresentationIconKey};
+use crate::{LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT};
 mod path;
 mod text_role;
 pub use path::{GraphicsPath, GraphicsPoint, MAX_GRAPHICS_PATH_POINTS};

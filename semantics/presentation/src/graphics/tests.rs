@@ -37,17 +37,15 @@ fn graphical_roles_round_trip_and_refuse_unknown_or_nontext_roles() {
             Err(GraphicsError::MalformedEncoding)
         );
     }
-    assert!(
-        GraphicsCommand::rect(
-            rect(0, 10),
-            rect(0, 10),
-            GraphicsPaintRole::Background,
-            GraphicsShapeStyle::Fill
-        )
-        .unwrap()
-        .with_text_role(GraphicsTextRole::Code)
-        .is_err()
-    );
+    assert!(GraphicsCommand::rect(
+        rect(0, 10),
+        rect(0, 10),
+        GraphicsPaintRole::Background,
+        GraphicsShapeStyle::Fill
+    )
+    .unwrap()
+    .with_text_role(GraphicsTextRole::Code)
+    .is_err());
 }
 fn rect(x: i16, width: u16) -> LayoutRect {
     LayoutRect {
