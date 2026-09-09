@@ -203,6 +203,45 @@ test("first-wake audio stays silent after reload of the same Body with a fresh B
   expect((await liveEvidence(page)).host_completions.records).toEqual([]);
 });
 
+test("removing the default cue survives reload and a later first-wake installation stays silent", async ({ page }) => {
+  await observeRealAudio(page);
+  await page.goto(entrance.url);
+  await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
+  await expect(page.locator('[data-play-state]')).toHaveText('Playing');
+  await expect.poll(() => page.evaluate(() => globalThis.__cueAudio.ended)).toBe(1);
+  const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  const card = title => page.locator('[data-application-key^="library-form-"]').filter({ hasText: title });
+  await page.getByRole('button', { name: '+ Forms', exact: true }).click();
+  await card('Startup Chime').getByRole('button', { name: 'Remove', exact: true }).click();
+  await expect(card('Startup Chime')).toContainText('Not in your Body');
+  await card('First Wake Chime').getByRole('button', { name: 'Use', exact: true }).click();
+  await expect(page.locator('#surface-title')).toHaveText('First Wake Chime');
+  await expect(page.locator('[data-play-state]')).toHaveText('Playing');
+  expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(1);
+  expect((await liveEvidence(page)).host_completions.records).toEqual([]);
+
+  await page.getByRole('button', { name: 'Lull Body', exact: true }).click();
+  await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
+  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await expect(page.locator('[data-play-state]')).toHaveText('Playing');
+  expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(1);
+  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
+  await page.reload();
+  await expect(page.locator('[data-play-state]')).toHaveText('Playing');
+  const restored = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  expect(restored.body_id).toBe(original.body_id);
+  expect(restored.boot_id).not.toBe(original.boot_id);
+  expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(0);
+  expect((await liveEvidence(page)).host_completions.records).toEqual([]);
+  await page.getByRole('button', { name: '+ Forms', exact: true }).click();
+  await expect(card('Startup Chime')).toContainText('Not in your Body');
+  await expect(card('First Wake Chime')).toContainText('In your Body');
+  await page.getByRole('button', { name: 'Back to the surface', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Your Forms' }).getByRole('button', { name: 'Memory Lantern', exact: true }).click();
+  await page.keyboard.press('a');
+  await expect(page.locator('[data-form-output] output:visible')).toHaveText('a');
+});
+
 test("unavailable audio is omitted by default and an explicitly installed cue cannot stop other Forms", async ({ page }, testInfo) => {
   await page.addInitScript(() => { window.AudioContext = undefined; });
   await page.goto(entrance.url);
