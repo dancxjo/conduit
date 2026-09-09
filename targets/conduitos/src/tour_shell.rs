@@ -1,5 +1,6 @@
 //! Multi-surface native shell for the canonical Tour/Patchbay workspace.
 
+mod chooser_layout;
 mod controls;
 mod fields;
 mod lifecycle;
@@ -167,6 +168,7 @@ pub struct TourShellPresenter {
     play_sequence: u64,
     lifecycle_revision: u64,
     lifecycle_basis: PresentationBasis,
+    lifecycle_status: Option<lifecycle::StatusSnapshot>,
 }
 
 impl TourShellPresenter {
@@ -268,6 +270,7 @@ impl TourShellPresenter {
             play_sequence: 0,
             lifecycle_revision: 0,
             lifecycle_basis: empty_lifecycle_basis(),
+            lifecycle_status: None,
         })
     }
 
@@ -307,6 +310,8 @@ impl TourShellPresenter {
                 self.lifecycle_basis.clone(),
             )
             .map_err(|_| TourShellError::Identity)?;
+        let status_presentation =
+            lifecycle::with_status(status_presentation, self.lifecycle_status.as_ref())?;
         let status_presentation =
             lifecycle::with_presenter_host(status_presentation, &self.host_id)?;
         let status = self.present_surface(

@@ -59,6 +59,7 @@ pub mod keyboard_text_play;
 mod keyboard_text_play_tests;
 pub mod local_rescue;
 pub mod machine;
+mod native_components;
 #[cfg(any(test, feature = "native-compositor"))]
 pub mod native_compositor;
 pub mod native_workset;

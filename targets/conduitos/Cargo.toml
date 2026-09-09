@@ -215,6 +215,7 @@ conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-presentation = { path = "../../semantics/presentation" }
 conduit-tour-model = { path = "../../products/tour/model" }
+patchbay-graph = { path = "../../products/patchbay/graph" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-wire = { path = "../../architecture/wire" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["form-catalog"] }

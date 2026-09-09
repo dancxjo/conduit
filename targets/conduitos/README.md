@@ -105,6 +105,31 @@ window, and retains its receipt and screenshots under
 two report buffers and a fixed 64-entry transfer ring across session input;
 one ring entry links back with the xHCI cycle toggle. This is emulator proof,
 not physical keyboard qualification.
+## Headless startup boundary
+
+The x86 headless profile excludes the native graphical Presenter, compositor,
+and display resources. Build and inspect its exact final artifact with:
+
+```sh
+cargo xtask host build targets/conduitos/profiles/conduitos-headless.profile.json --output target/headless-proof
+cargo xtask conduitos headless-proof target/headless-proof
+```
+
+The artifact boots without a framebuffer or USB input device. It validates
+its fabricated inventory and finite arena, derives fresh Host/Boot identities,
+and reports `headless-workload-entry-unavailable`. This is an explicit
+unsupported workload entry: no providers are initialized, no offer is published,
+and no Body, Plan, or Play is invented. Compiled implementation inventory is
+reported separately. The boot stops with failure status after that receipt;
+it does not fall back to the graphical demonstration or claim a ready workload.
+
+The proof verifies artifact digests and excluded graphical symbols, then boots
+the same image twice in QEMU and checks exact provenance, fresh identities,
+zero allocation, and the expected unsupported disposition. The retained
+`headless-proof.json`, two serial logs, and ELF symbol inventory live in the
+supplied output directory. Passing this proof establishes that refusal contract,
+not working headless Form execution or physical hardware acceptance. The
+ordinary graphical journey remains `cargo xtask conduitos journey-proof`.
 
 ## Where to contribute
 

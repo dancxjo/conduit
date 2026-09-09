@@ -118,7 +118,7 @@ impl TourShellPresenter {
             self.surfaces[index].scroll.configure(
                 bounds.height,
                 if face_subject == TourTransientKind::Chooser.subject_identity() {
-                    432
+                    super::chooser_layout::content_height(bounds)
                 } else if slot == Slot::Inspector {
                     fields::project(bounds, presentation, 0, None)?
                 } else {

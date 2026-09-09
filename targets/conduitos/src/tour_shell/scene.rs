@@ -79,6 +79,17 @@ fn panel_scene(
             .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
+    scene
+        .push(
+            GraphicsCommand::rect(
+                local,
+                local,
+                GraphicsPaintRole::Accent,
+                GraphicsShapeStyle::Stroke,
+            )
+            .map_err(|_| TourShellError::Scene)?,
+        )
+        .map_err(|_| TourShellError::Scene)?;
     let title_bounds = LayoutRect {
         x: 12,
         y: 12,
@@ -169,6 +180,22 @@ pub(super) fn status_scene(
         let text = alloc::format!("{}\n{}", subject.label, item.text);
         scene
             .push(
+                GraphicsCommand::rect(
+                    LayoutRect {
+                        x: cell.x + 4,
+                        y: 4,
+                        width: cell.width.saturating_sub(8).max(1),
+                        height: cell.height.saturating_sub(4).max(1),
+                    },
+                    cell,
+                    GraphicsPaintRole::Foreground,
+                    GraphicsShapeStyle::Stroke,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+        scene
+            .push(
                 GraphicsCommand::text(text_bounds, cell, GraphicsPaintRole::Foreground, &text)
                     .map_err(|_| TourShellError::Scene)?,
             )
@@ -190,28 +217,7 @@ pub(super) fn inspector_scene(
             && subject.role == conduit_presentation::PresentationRole::Action
     }) {
         let button = super::controls::inspector_close_bounds(bounds.width);
-        scene
-            .push(
-                GraphicsCommand::rect(
-                    button,
-                    button,
-                    GraphicsPaintRole::Accent,
-                    GraphicsShapeStyle::Stroke,
-                )
-                .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
-        let text = LayoutRect {
-            x: button.x + 8,
-            y: button.y + 4,
-            width: button.width - 16,
-            height: button.height - 8,
-        };
-        scene
-            .push(
-                GraphicsCommand::text(text, button, GraphicsPaintRole::Foreground, &action.label)
-                    .map_err(|_| TourShellError::Scene)?,
-            )
+        crate::native_components::button(&mut scene, button, button, &action.label)
             .map_err(|_| TourShellError::Scene)?;
     }
     super::fields::project(bounds, presentation, scroll_y, Some(&mut scene))?;
@@ -222,12 +228,25 @@ pub(super) fn transient_scene(
     presentation: &Presentation,
     scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
-    if presentation.subjects.iter().any(|subject| {
+    let mut scene = if presentation.subjects.iter().any(|subject| {
         subject.identity == conduit_tour_model::TourTransientKind::Chooser.subject_identity()
     }) {
-        return chooser_scene(bounds, presentation, scroll_y);
-    }
-    scroll_scene(bounds, "DETAIL", first_text(presentation), scroll_y)
+        chooser_scene(bounds, presentation, scroll_y)?
+    } else {
+        scroll_scene(bounds, "DETAIL", first_text(presentation), scroll_y)?
+    };
+    let close = presentation
+        .subjects
+        .iter()
+        .find(|subject| {
+            subject.identity == conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID
+                && subject.role == conduit_presentation::PresentationRole::Action
+        })
+        .ok_or(TourShellError::Identity)?;
+    let button = super::controls::inspector_close_bounds(bounds.width);
+    crate::native_components::button(&mut scene, button, button, &close.label)
+        .map_err(|_| TourShellError::Scene)?;
+    Ok(scene)
 }
 
 fn chooser_scene(
@@ -249,16 +268,11 @@ fn chooser_scene(
         .into_iter()
         .enumerate()
     {
-        let y = 76 + index as i32 * 140 - i32::from(scroll_y);
-        if y + 60 <= 70 || y >= i32::from(bounds.height) {
+        let row = super::chooser_layout::row(bounds, index, scroll_y);
+        let y = i32::from(row.y);
+        if y + i32::from(row.height) <= 70 || y >= i32::from(bounds.height) {
             continue;
         }
-        let row = LayoutRect {
-            x: 12,
-            y: i16::try_from(y).map_err(|_| TourShellError::Identity)?,
-            width: bounds.width.saturating_sub(24).max(1),
-            height: 60,
-        };
         scene
             .push(
                 GraphicsCommand::rect(
@@ -273,9 +287,9 @@ fn chooser_scene(
         let label = alloc::format!("Select {gear}");
         let text = LayoutRect {
             x: row.x + 8,
-            y: row.y + 8,
+            y: row.y + 4,
             width: row.width.saturating_sub(16).max(1),
-            height: 44,
+            height: row.height.saturating_sub(8).max(1),
         };
         scene
             .push(
