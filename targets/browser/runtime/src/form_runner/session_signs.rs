@@ -9,8 +9,17 @@ pub(super) struct KernelSignEvidence {
     boot_id: String,
     active_play_id: String,
     item_capacity: u16,
+    retention_gap: Option<KernelSignGap>,
     placements: Vec<PlacementBinding>,
     events: Vec<KernelEventEvidence>,
+    host_completions: super::host_outcomes::HostOutcomeEvidence,
+}
+
+#[derive(Debug, Serialize)]
+struct KernelSignGap {
+    first_sequence: u32,
+    last_sequence: u32,
+    entries: u32,
 }
 
 #[derive(Debug, Serialize)]
@@ -32,7 +41,11 @@ struct KernelEventEvidence {
 
 impl TourSession {
     pub(super) fn with_kernel_signs(&self, mut receipt: TourReceipt) -> TourReceipt {
-        use conduit_kernel::SignSink;
+        receipt.kernel_signs = Some(self.kernel_signs());
+        receipt
+    }
+    pub(super) fn kernel_signs(&self) -> KernelSignEvidence {
+        use conduit_kernel::{SignQuery, SignSink};
         let log = self.scheduler.signs();
         // Both collections inherit already-admitted kernel bounds: at most
         // MAXIMUM_BROWSER_GEARS placements and BROWSER_SIGN_ITEMS events.
@@ -63,16 +76,21 @@ impl TourSession {
                 kind: format!("{:?}", event.kind),
             })
             .collect();
-        receipt.kernel_signs = Some(KernelSignEvidence {
+        KernelSignEvidence {
             schema: "conduit.browser/kernel-sign-evidence@1",
             host_id: self.host_id.as_str().into(),
             boot_id: self.boot_id.as_str().into(),
             active_play_id: self.active_play_id.as_str().into(),
             item_capacity: log.item_capacity(),
+            retention_gap: log.retention_gap().map(|gap| KernelSignGap {
+                first_sequence: gap.first_sequence,
+                last_sequence: gap.last_sequence,
+                entries: gap.entries,
+            }),
             placements,
             events,
-        });
-        receipt
+            host_completions: self.host_outcomes.evidence(),
+        }
     }
 }
 

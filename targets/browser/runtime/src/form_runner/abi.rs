@@ -541,6 +541,6 @@ mod tests {
             machinery["schema"],
             "conduit.browser/selected-human-machinery@1"
         );
-        assert_eq!(machinery["implementations"].as_array().unwrap().len(), 3);
+        assert_eq!(machinery["implementations"].as_array().unwrap().len(), 4);
     }
 }

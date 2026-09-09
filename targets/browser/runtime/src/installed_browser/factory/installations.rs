@@ -3,6 +3,9 @@
 use super::BrowserInstallation;
 
 pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &super::super::startup_chime::INSTALLATION,
+    &crate::installed_browser::body_startup::WAKE,
+    &crate::installed_browser::body_startup::FIRST_WAKE,
     &crate::installed_browser::little_seismograph_source::INSTALLATION,
     &crate::installed_browser::deterministic_garden_source::INSTALLATION,
     &crate::installed_browser::garden_step::INSTALLATION,

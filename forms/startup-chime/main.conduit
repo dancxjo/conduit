@@ -1,0 +1,5 @@
+form startup_chime {
+    wake: body/wake
+    chime: sound/startup-chime
+    wake.pulse > chime.pulse
+}

@@ -21,7 +21,8 @@ cargo xtask demo workspace --check
 The journey births Memory Lantern and Desk Telegraph, interacts repeatedly with
 both, switches without replacing Play, and reopens the same Body with its last
 foreground Form. Separate cases exercise storage exhaustion, a competing window,
-a narrow viewport, and an intentionally empty Body. The product carrier also checks that the provisioning
+a narrow viewport, an intentionally empty Body, real sound-only startup, first-wake
+silence after reload, and continued input when audio is unavailable. The product carrier also checks that the provisioning
 Crèche respects the same live owner and returns an arrived Body to its Forms.
 
 ## Lifecycle and ownership
@@ -64,8 +65,8 @@ Form's internal state or text. History keeps the existing finite Body bounds
 transition and preserves the previous evidence. Long-lived history compaction is
 not provided by this slice.
 
-Startup is the installed Forms waking. Some Forms draw, some listen, and others
-can have no graphical surface. The audio source groundwork and generic durable
-first-wake/chime integration remain tracked in
-[#3152](https://github.com/dancxjo/conduit/issues/3152); this arrival does not claim
-that acceptance.
+Startup is the installed Forms waking. Browser arrival now includes the original
+[Startup Chime and reusable first-wake source](../../forms/startup-chime/README.md).
+The default cue is optional, uses the existing kernel and admitted Host effects,
+and can settle idle without any graphical Form. Native audio support and stable
+acceptance are not claimed by the browser proof.
