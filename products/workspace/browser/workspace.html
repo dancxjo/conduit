@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Your body · Conduit</title>
+  <meta name="conduit-application-package" content="./workspace.application.json">
+  <link rel="stylesheet" href="./workspace.css">
+</head>
+<body>
+  <a class="skip-link" href="#form-input">Skip to the Form</a>
+  <div class="workspace-shell">
+    <header class="body-header">
+      <a class="conduit-mark" href="../" aria-label="Conduit home"><span aria-hidden="true">c.</span> conduit</a>
+      <div class="body-heading"><h1 data-body-name>Your body</h1><span class="body-state" data-body-state>Opening…</span></div>
+
+    </header>
+    <main>
+      <section class="workspace-creche" data-workspace-creche hidden aria-label="Birth your Body">
+        <div data-creche-content></div>
+      </section>
+      <section class="form-surface" aria-labelledby="surface-title" data-workspace-surface hidden>
+        <div class="surface-content">
+          <h2 id="surface-title">Start with a word.</h2>
+          <p class="surface-invitation" data-surface-invitation>Type something. Watch it become a signal.</p>
+          <div id="form-input" role="textbox" aria-multiline="true" aria-label="Interact with your Form" tabindex="-1" aria-disabled="true" aria-describedby="surface-guidance" inert>
+            <span class="input-prompt" aria-hidden="true">Type to begin.</span>
+            <div class="signal-manifestation" aria-label="Form output" data-form-output></div>
+          </div>
+          <p id="surface-guidance" class="surface-guidance">Preparing your Form…</p>
+          <div class="body-controls"><button type="button" data-wake-body hidden>Wake Body</button><button type="button" data-lull-body disabled>Lull Body</button></div>
+        </div>
+      </section>
+      <nav class="activity-switcher" aria-label="Your Forms" hidden></nav>
+      <section class="workspace-panel" id="workspace-inspection" aria-labelledby="inspection-title" hidden>
+        <div class="panel-heading"><h2 id="inspection-title" tabindex="-1">Inside this Form</h2><button type="button" data-close-inspection aria-label="Close inspection">Back to the surface <span aria-hidden="true">↗</span></button></div>
+        <div data-inspection-content></div>
+      </section>
+    </main>
+    <footer class="truth-strip" aria-label="Current activity">
+      <button type="button" data-inspect="form" aria-controls="workspace-inspection" aria-expanded="false" class="current-form">Your Form <span aria-hidden="true">⌄</span></button>
+      <button type="button" data-inspect="flow" aria-controls="workspace-inspection" aria-expanded="false" class="current-flow"><span data-flow-label>keyboard → encode → light</span><span class="inspect-hint">Look inside ↗</span></button>
+      <button type="button" data-inspect="lifecycle" aria-controls="workspace-inspection" aria-expanded="false" class="current-state"><span class="state-dot" aria-hidden="true"></span><span data-play-state>Preparing</span></button>
+    </footer>
+    <p class="workspace-notice" role="status" aria-live="polite" data-workspace-notice></p>
+  </div>
+  <script type="module" src="./browser-application-loader.mjs"></script>
+</body>
+</html>

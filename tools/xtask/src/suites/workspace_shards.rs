@@ -101,6 +101,7 @@ package_test_shard!(
         "conduit-pete",
         "conduit-tongues",
         "conduit-creche-model",
+        "conduit-workspace-model",
         "conduit-tour-model",
         "patchbay-control",
         "conduit",

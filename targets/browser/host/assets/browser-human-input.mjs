@@ -23,6 +23,7 @@ export function openBrowserHumanInput({
   boot,
   currentBoot = () => boot,
   maximumQueueItems = MAXIMUM_QUEUE_ITEMS,
+  routeInput,
 } = {}) {
   if (!target?.addEventListener || !target?.removeEventListener) {
     refuse("UnsupportedInput", "browser input requires an event target");
@@ -65,10 +66,10 @@ export function openBrowserHumanInput({
       assertPageActive(target);
       if (!currentTargetOwnsEvent(target, event)) refuse("FocusLost", "keyboard focus left the admitted target");
       event.preventDefault();
+      const canonical = Uint8Array.of(usage, event.type === "keydown" ? 0 : 1, modifiers(event));
       const transition = Object.freeze({
-        schema: "input/key-event@1",
-        canonical_bytes: Uint8Array.of(usage, event.type === "keydown" ? 0 : 1, modifiers(event)),
-        owner,
+        schema: "input/key-event@1", canonical_bytes: canonical, owner,
+        ...(routeInput ? { delivery_form: routeInput("keyboard", canonical) } : {}),
       });
       if (keyboardWaiters.length > 0) keyboardWaiters.shift().resolve(transition);
       else {
@@ -100,6 +101,7 @@ export function openBrowserHumanInput({
         const transition = Object.freeze({
           schema: "input/button-transition@1",
           pressed: event.type === "pointerdown",
+          ...(routeInput ? { delivery_form: routeInput("button", { pressed: event.type === "pointerdown" }) } : {}),
           sequence: buttonSequence++,
           owner,
         });
