@@ -53,6 +53,7 @@ members = [
 	"products/patchbay/hosted",
 	"products/patchbay/html",
 	"products/patchbay/model",
+	"products/patchbay/graph",
 	"products/patchbay/control",
 	"products/patchbay/native",
 	"bodies/pete",
