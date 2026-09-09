@@ -12,7 +12,7 @@ const checkpoints = [
   "line-lost", "tour-opened", "tour-result-visible", "confirmation-transient",
   "confirmation-dismissed", "refusal-transient", "refusal-dismissed",
   "tour-patchbay-open", "chooser-pointer-focused", "pointer-hover-or-focus",
-  "pointer-selected", "inspector-focused", "inspector-long-text",
+  "pointer-selected", "inspector-focused", "inspector-long-text", "inspector-closed",
 ];
 const commit = "1".repeat(40);
 const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1]);
