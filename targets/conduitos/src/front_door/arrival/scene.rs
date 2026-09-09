@@ -167,6 +167,13 @@ impl Arrival {
                     }
                     choice_count = options.len();
                 }
+                ("initial-forms", PresentationMechanism::Status { title, detail, .. }) => {
+                    line(272, title, false, GraphicsTextRole::Status)?;
+                    if !detail.is_empty() {
+                        line(300, detail, false, GraphicsTextRole::Muted)?;
+                    }
+                    choice_count = 0;
+                }
                 ("selected-forms", PresentationMechanism::Status { title, .. }) => {
                     line(348, title, false, GraphicsTextRole::Status)?;
                 }
