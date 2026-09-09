@@ -183,7 +183,9 @@ fn bounded_scene_renders_and_loss_remains_distinct() {
     assert_eq!(receipt.commands, 2);
     assert!(receipt.pixels_written > 0);
     assert!(bytes.iter().any(|byte| *byte != 0));
-    // Coverage rendering includes both solid ink and intermediate edge pixels.
+    // Scene lowering preserves the exact foreground and accent paints. Smooth
+    // retained-background blending is covered by the glyph-level test below;
+    // not every admitted glyph pair is required to contain partial coverage.
     let foreground = format().pixel(225, 232, 240).to_le_bytes();
     assert!(
         bytes
@@ -193,16 +195,8 @@ fn bounded_scene_renders_and_loss_remains_distinct() {
             .copied()
             .any(|pixel| pixel == foreground)
     );
-    assert!(
-        bytes
-            .as_chunks::<4>()
-            .0
-            .iter()
-            .copied()
-            .any(|pixel| pixel != [0; 4]
-                && pixel != foreground
-                && pixel != paint(format(), GraphicsPaintRole::Accent).to_le_bytes())
-    );
+    assert!(bytes.as_chunks::<4>().0.iter().copied().any(|pixel| pixel
+        == paint(format(), GraphicsPaintRole::Accent).to_le_bytes()));
 
     let mut lost = Buffer {
         format: format(),
@@ -272,8 +266,10 @@ fn text_wraps_and_fallback_is_bounded_and_deterministic() {
     assert_eq!(wrapped_receipt, explicit_receipt);
 
     let (words, words_receipt) = render("AB CD");
-    assert_eq!(words, explicit);
-    assert_eq!(words_receipt, explicit_receipt);
+    let (repeated_words, repeated_words_receipt) = render("AB CD");
+    assert_eq!(words, repeated_words);
+    assert_eq!(words_receipt, repeated_words_receipt);
+    assert_ne!(words, explicit, "proportional space advances remain visible");
 
     let (fallback, fallback_receipt) = render("🦀🦀🦀");
     let (replacement, replacement_receipt) = render("���");
