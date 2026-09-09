@@ -92,18 +92,20 @@ impl TourWorkspaceState {
             return Err("tour-inspector-subject-refused");
         }
         let inspection = format!("{gear}/inspection");
+        let mut subjects = vec![
+            subject(
+                TOUR_WORKSPACE_SUBJECT,
+                PresentationRole::Form,
+                "Patchbay workspace",
+            ),
+            subject(gear, PresentationRole::Gear, gear),
+            subject(&inspection, PresentationRole::Form, "Gear inspection"),
+        ];
+        let text = crate::inspection::fields(self, gear, &mut subjects);
         Presentation::new(
             u64::from(self.revision),
             empty_basis(),
-            vec![
-                subject(
-                    TOUR_WORKSPACE_SUBJECT,
-                    PresentationRole::Form,
-                    "Patchbay workspace",
-                ),
-                subject(gear, PresentationRole::Gear, gear),
-                subject(&inspection, PresentationRole::Form, "Gear Back inspection"),
-            ],
+            subjects,
             vec![
                 PresentationRelationship {
                     source: TOUR_WORKSPACE_SUBJECT.into(),
@@ -117,10 +119,7 @@ impl TourWorkspaceState {
                 },
             ],
             vec![],
-            vec![PresentationText {
-                subject: inspection,
-                text: format!("BACK / {gear} / retained inspection surface"),
-            }],
+            text,
         )
         .map(Some)
         .map_err(|_| "tour-inspector-presentation-refused")
@@ -332,8 +331,19 @@ mod tests {
                 && relationship.kind == PresentationRelationshipKind::Describes
         }));
         let detail = inspector.text.first().expect("inspection detail");
-        assert!(detail.text.len() > 48);
-        assert!(detail.text.contains("retained inspection surface"));
+        assert_eq!(detail.text, "text/upper");
+        assert!(
+            inspector
+                .text
+                .iter()
+                .any(|item| item.text.contains("value/text"))
+        );
+        assert!(
+            !inspector
+                .text
+                .iter()
+                .any(|item| item.text.contains("HELLO"))
+        );
     }
 
     #[test]
