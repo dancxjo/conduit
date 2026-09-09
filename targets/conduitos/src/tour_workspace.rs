@@ -24,6 +24,14 @@ pub(crate) fn chooser_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
     }
 }
 
+#[allow(dead_code)]
+pub(crate) fn run_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
+    LayoutRect {
+        y: 92,
+        ..chooser_bounds(layout)
+    }
+}
+
 #[cfg(any(test, target_arch = "x86_64"))]
 pub(crate) fn hits_card(
     layout: &TourWorkspaceLayout,

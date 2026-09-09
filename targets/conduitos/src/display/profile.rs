@@ -9,6 +9,7 @@ static HEADING: &[u8] = include_bytes!("../../assets/graphical/heading.atlas");
 static TITLE: &[u8] = include_bytes!("../../assets/graphical/title.atlas");
 static CODE: &[u8] = include_bytes!("../../assets/graphical/code.atlas");
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub(super) struct Glyph {
     pub advance: u32,
