@@ -187,8 +187,18 @@ pub(crate) fn scene_with_observations(
         .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     scene
         .push(
-            GraphicsCommand::text(inset(button), clip, GraphicsPaintRole::Foreground, "Gears")
-                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            GraphicsCommand::text(
+                LayoutRect {
+                    x: button.x.saturating_add(8),
+                    y: button.y.saturating_add(4),
+                    width: button.width.saturating_sub(16).max(1),
+                    height: button.height.saturating_sub(8).max(1),
+                },
+                button,
+                GraphicsPaintRole::Foreground,
+                "Gears",
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?,
         )
         .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     Ok(scene)
@@ -247,6 +257,26 @@ mod tests {
     use conduit_tour_model::CANONICAL_SOURCE;
 
     use super::*;
+
+    #[test]
+    fn chooser_label_fits_a_complete_measured_font_line() {
+        for (width, height) in [(640, 480), (1280, 800)] {
+            let scene = scene(width, height, 1, TourWorkspacePhase::PatchbayOpen).unwrap();
+            let label = scene
+                .commands()
+                .iter()
+                .find(|command| command.payload() == "Gears")
+                .unwrap();
+            let measured =
+                crate::display::text_height(label.payload(), label.bounds.width).unwrap();
+            assert!(label.bounds.height >= measured);
+            assert!(label.bounds.y >= label.clip.y);
+            assert!(
+                i32::from(label.bounds.y) + i32::from(measured)
+                    <= i32::from(label.clip.y) + i32::from(label.clip.height)
+            );
+        }
+    }
 
     #[test]
     fn conduitos_consumes_the_tour_owned_portable_view() {
