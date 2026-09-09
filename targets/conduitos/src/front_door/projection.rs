@@ -122,6 +122,29 @@ impl FrontDoor {
                     PresentationPropertyValue::Text(result.clone()),
                 ));
             }
+            properties.push(property(
+                &host,
+                "input-events",
+                PresentationPropertyValue::Count(u64::from(journey.input_count)),
+            ));
+            properties.push(property(
+                &host,
+                "result-omitted-bytes",
+                PresentationPropertyValue::Count(journey.result_omitted_bytes),
+            ));
+            if let Some(gap) = journey.kernel_sign_gap {
+                for (name, value) in [
+                    ("kernel-sign-gap-first-sequence", gap.first_sequence),
+                    ("kernel-sign-gap-last-sequence", gap.last_sequence),
+                    ("kernel-sign-gap-entries", gap.entries),
+                ] {
+                    properties.push(property(
+                        &host,
+                        name,
+                        PresentationPropertyValue::Count(u64::from(value)),
+                    ));
+                }
+            }
         }
         if let Some(line) = &self.connectivity {
             subjects.push(PresentationSubject {

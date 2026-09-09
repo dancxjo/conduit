@@ -9,7 +9,7 @@ use crate::{
     offer::{CpuFeatures, HostOffer},
 };
 
-fn prepared() -> keyboard_text_plan::PreparedKeyboardTextPlay {
+pub(crate) fn prepared() -> keyboard_text_plan::PreparedKeyboardTextPlay {
     let identities = BootIdentities {
         host: [1; 32],
         boot: [2; 32],

@@ -206,7 +206,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
         .accept_play_input(key(4, KeyTransition::Released))
         .unwrap();
     let result = journey.projection();
-    assert_eq!(result.status, JourneyStatus::ResultVisible);
+    assert_eq!(result.status, JourneyStatus::Playing);
     assert_eq!(result.result.as_deref(), Some("A"));
     assert!(result.input_sign_id.is_some() && result.result_sign_id.is_some());
     front_door.observe_journey(result.clone()).unwrap();
@@ -219,6 +219,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
             .any(|property| property.name == "semantic-result")
     );
     let body_id = result.body_id.clone();
+    invoke(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
     invoke(&mut journey, JourneyAction::Lull, &identities, &offer).unwrap();
     let lulled = journey.projection();
     assert_eq!(lulled.status, JourneyStatus::Lulled);
@@ -321,7 +322,7 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
     }
     journey.input_lost().unwrap();
     assert_eq!(journey.status(), JourneyStatus::Stopped);
-    assert!(journey.projection().active_play_id.is_none() && journey.result.is_none());
+    assert!(journey.projection().active_play_id.is_none() && journey.projection().result.is_none());
 
     let (identities, offer, mut journey) = fixture();
     reach_playing(&mut journey, &identities, &offer);
@@ -341,5 +342,83 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
             .accept_play_input(key(4, KeyTransition::Pressed))
             .unwrap()
     );
-    assert!(journey.result.is_none() && journey.result_sign_id.is_none());
+    assert!(journey.projection().result.is_none() && journey.result_sign_id.is_none());
+}
+
+#[test]
+fn long_session_keeps_one_body_plan_play_and_discloses_bounded_history() {
+    for device_lost in [false, true] {
+        let (identities, offer, mut journey) = fixture();
+        reach_playing(&mut journey, &identities, &offer);
+        let initial = journey.projection();
+        for index in 0..1_024 {
+            for transition in [KeyTransition::Pressed, KeyTransition::Released] {
+                assert!(journey.accept_play_input(key(4, transition)).unwrap());
+            }
+            let current = journey.projection();
+            assert_eq!(current.status, JourneyStatus::Playing);
+            assert_eq!(current.body_id, initial.body_id);
+            assert_eq!(current.plan_id, initial.plan_id);
+            assert_eq!(current.active_play_id, initial.active_play_id);
+            assert_eq!(current.input_count, (index + 1) * 2);
+            assert_eq!(
+                current.result.as_ref().unwrap().len(),
+                (index as usize + 1).min(128)
+            );
+        }
+        let current = journey.projection();
+        assert_eq!(current.result_omitted_bytes, 896);
+        let gap = current.kernel_sign_gap.unwrap();
+        assert!(gap.entries > 0);
+        let mut door = front_door(&journey);
+        door.observe_journey(current).unwrap();
+        let presentation = door.presentation().unwrap();
+        assert!(presentation.properties.iter().any(|property| {
+            property.name == "kernel-sign-gap-entries"
+                && property.value
+                    == conduit_presentation::PresentationPropertyValue::Count(u64::from(gap.entries))
+        }));
+        if device_lost {
+            journey.input_lost().unwrap();
+        } else {
+            invoke(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
+        }
+        let stopped = journey.projection();
+        assert_eq!(stopped.status, JourneyStatus::Stopped);
+        assert!(stopped.kernel_sign_gap.unwrap().entries >= gap.entries);
+        assert_eq!(stopped.result_omitted_bytes, 896);
+        assert!(
+            !journey
+                .accept_play_input(key(4, KeyTransition::Pressed))
+                .unwrap()
+        );
+        assert_eq!(journey.projection(), stopped);
+        invoke(&mut journey, JourneyAction::Lull, &identities, &offer).unwrap();
+        assert_eq!(journey.projection().body_id, initial.body_id);
+    }
+}
+
+#[test]
+fn exhausted_input_or_revision_preserves_pending_input_and_result() {
+    for exhausted_count in [false, true] {
+        let (identities, offer, mut journey) = fixture();
+        reach_playing(&mut journey, &identities, &offer);
+        if exhausted_count {
+            journey.input_count = u32::MAX;
+        } else {
+            journey.revision = u64::MAX;
+        }
+        let pending = journey.pending_keyboard;
+        let projection = journey.projection();
+        assert_eq!(
+            journey.accept_play_input(key(4, KeyTransition::Pressed)),
+            Err(if exhausted_count {
+                JourneyError::InputSequenceExhausted
+            } else {
+                JourneyError::RevisionExhausted
+            })
+        );
+        assert_eq!(journey.pending_keyboard, pending);
+        assert_eq!(journey.projection(), projection);
+    }
 }
