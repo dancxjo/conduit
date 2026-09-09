@@ -10,12 +10,40 @@ use crate::{
 
 const MAXIMUM_KERNEL_STEPS: u32 = 128;
 
+#[path = "text_observations.rs"]
+mod observations;
+pub use observations::TextObservations;
+
 pub fn run<C, S, I, D>(
     kernel: &mut TextPlannedKernel,
     clock: &mut C,
     serial: &mut S,
     interrupts: &mut I,
     idle: &mut D,
+) -> Result<MachineRunReceipt, MachineRunError>
+where
+    C: MonotonicClockBase,
+    S: SerialBase,
+    I: InterruptBase,
+    D: IdleBase,
+{
+    run_observed(
+        kernel,
+        clock,
+        serial,
+        interrupts,
+        idle,
+        &mut TextObservations::default(),
+    )
+}
+
+pub fn run_observed<C, S, I, D>(
+    kernel: &mut TextPlannedKernel,
+    clock: &mut C,
+    serial: &mut S,
+    interrupts: &mut I,
+    idle: &mut D,
+    observed: &mut TextObservations,
 ) -> Result<MachineRunReceipt, MachineRunError>
 where
     C: MonotonicClockBase,
@@ -41,6 +69,7 @@ where
                     let value = kernel
                         .host_value(request.input.value)
                         .map_err(|_| MachineRunError::KernelFailure)?;
+                    observed.upper_input.set(value)?;
                     crate::text_upper::uppercase(value).map_err(|error| match error {
                         crate::text_upper::UppercaseError::MalformedUtf8 => {
                             MachineRunError::TextMalformedUtf8
@@ -50,6 +79,7 @@ where
                         }
                     })?
                 };
+                observed.upper_output.set(output.as_bytes())?;
                 kernel
                     .complete_upper(request, output.as_bytes())
                     .map_err(|_| MachineRunError::KernelFailure)?;
@@ -66,6 +96,7 @@ where
                 serial
                     .present(value)
                     .map_err(|_| MachineRunError::SerialBaseFailure)?;
+                observed.presentation_input.set(value)?;
             }
             kernel
                 .complete_presentation(request)
