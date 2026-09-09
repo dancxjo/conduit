@@ -41,9 +41,11 @@ fn two_form_proof_rejects_restarts_identity_substitution_input_loss_and_state_lo
         "checked_form_id",
         "expanded_form_id",
     ] {
-        let mut changed = valid.clone();
-        changed[20][field] = "substituted".into();
-        assert!(validate(&changed).is_err(), "{field}");
+        for index in [20, 37, 38] {
+            let mut changed = valid.clone();
+            changed[index][field] = "substituted".into();
+            assert!(validate(&changed).is_err(), "{field} at {index}");
+        }
     }
     for index in [18, 21, 26, 36] {
         let mut changed = valid.clone();

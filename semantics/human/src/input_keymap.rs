@@ -76,6 +76,12 @@ impl ConduitIntlKeymap {
         self.right_meta_tap = false;
     }
 
+    /// A text field must let an in-progress Compose/Unicode entry consume
+    /// confirmation keys before interpreting them as actions such as submit.
+    pub const fn is_composing(&self) -> bool {
+        !matches!(self.mode, Mode::Direct)
+    }
+
     pub fn apply(&mut self, event: KeyEvent) -> KeymapDisposition {
         if event.usage() == 0xe7 {
             match event.transition() {

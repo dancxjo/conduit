@@ -70,7 +70,7 @@ Host. See [Raspberry Pi](../raspberry-pi/fabrication/README.md) and
 
 | Command | What it checks |
 | --- | --- |
-| `cargo xtask conduitos journey-proof` | Graphical Body/Wake/Plan/Play journey, pointer actions, USB Line state, and correlated screenshots |
+| `cargo xtask conduitos journey-proof` | Birth two resident Forms, type and switch within one Play, inspect Body/Wake/Plan evidence, then exercise pointer actions and USB Line state with correlated screenshots |
 | `cargo xtask conduitos front-door-proof` | The normal image's initial surface and long-lived interaction |
 | `cargo xtask conduitos prove --arch x86-64 --locked` | Architecture appliance, image reproducibility, fresh boots, kernel execution, and Observatory evidence |
 | `cargo xtask conduitos architecture-matrix --locked` | Architecture backends and their earned proof rungs |
@@ -80,6 +80,14 @@ Host. See [Raspberry Pi](../raspberry-pi/fabrication/README.md) and
 The journey writes PNGs and `manifest.json` under
 `target/conduitos/x86_64/journey-frames/`. The [visual evidence guide](../../docs/visual-evidence.md)
 explains publication and how images correlate with semantic assertions.
+
+The initial Crèche offers Keyboard canvas and Memory Lantern through the same
+shared naming and selection model as the browser. Birth wakes the selected
+workset; Tab foregrounds another resident Form and F7 lulls the Body. The
+ordinary journey types into both Forms, clears and edits Memory again, and
+checks that a held-key release still reaches its original Form after switching.
+This is emulator evidence; it does not establish physical input or persistence
+across a machine reboot.
 USB Line attachment and delivery in that journey do not imply Body membership;
 the records explicitly retain `membership: not-requested`.
 

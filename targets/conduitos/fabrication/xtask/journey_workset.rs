@@ -1,5 +1,7 @@
 //! Exact Form switching inside one ordinary native Body Play.
+mod causality;
 mod input;
+pub(super) use causality::validate as validate_causality;
 #[cfg(test)]
 mod tests;
 
@@ -160,7 +162,9 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             .iter()
             .find(|record| record["status"] == status)
             .ok_or_else(refusal)?;
-        if record["body_id"] != playing[0]["body_id"]
+        if ["body_id", "wake_id", "plan_id", "active_play_id"]
+            .iter()
+            .any(|field| record[field] != playing[0][field])
             || record["input_count"] != 30
             || record["result"] != "HELLOXY"
         {

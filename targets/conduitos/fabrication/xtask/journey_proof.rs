@@ -49,6 +49,7 @@ struct JourneyProof {
     input_sign_id: String,
     result_sign_id: String,
     result: String,
+    workset: super::journey_workset::WorksetProof,
     tour_specimen_id: String,
     tour_source_document_id: String,
     tour_checked_form_id: String,
@@ -255,6 +256,13 @@ fn execute_image(
             artifacts.capture(&mut qmp, &mut reader, "playing", true)?;
             super::journey_standing::type_hello(&mut qmp, &mut reader, &serial_path, &mut child)?;
             artifacts.capture(&mut qmp, &mut reader, "result-visible", true)?;
+            super::journey_workset::exercise(
+                &mut qmp,
+                &mut reader,
+                &serial_path,
+                &mut child,
+                &mut artifacts,
+            )?;
             journey_input::key_pair(&mut qmp, &mut reader, "f8", "stop")?;
             journey_input::wait_status(&serial_path, &mut child, "stopped")?;
             journey_input::key_pair(&mut qmp, &mut reader, "f7", "lull")?;
@@ -523,59 +531,12 @@ fn execute_image(
         let born = by_status["born-lulled"];
         let planned = by_status["planned"];
         let playing = by_status["playing"];
-        let result = super::journey_standing::validate(&records)?;
+        let (result, workset) = super::journey_workset::validate(&records)?;
         let lulled = by_status["lulled"];
         let plan_id = text(planned, "plan_id")?;
-        let inspected_plan = serial.lines().any(|line| {
-            line.contains("CONDUIT_FRONT_DOOR_SIGN")
-                && line.contains("\"label\":\"PLAN ID\"")
-                && line.contains(&format!("\"value\":\"{plan_id}\""))
-        });
-        if planned.get("active_play_id") != Some(&Value::Null)
-            || planned
-                .get("gear_ids")
-                .and_then(Value::as_array)
-                .is_none_or(Vec::is_empty)
-            || planned
-                .get("port_ids")
-                .and_then(Value::as_array)
-                .is_none_or(Vec::is_empty)
-            || planned
-                .get("cord_ids")
-                .and_then(Value::as_array)
-                .is_none_or(Vec::is_empty)
-            || playing.get("active_play_id") == Some(&Value::Null)
-            || playing.get("plan_id") == playing.get("active_play_id")
-            || born.get("body_id") != lulled.get("body_id")
-            || !inspected_plan
-        {
-            return Err(ConduitosError::refusal(
-                "product-journey-causality-invalid",
-                "exact Plan/Play/result/LULL causality did not match the product contract",
-            ));
-        }
-        for identity in [
-            "profile_id",
-            "build_id",
-            "image_id",
-            "host_id",
-            "boot_id",
-            "source_document_id",
-            "checked_form_id",
-            "expanded_form_id",
-        ] {
-            let expected = opened.get(identity);
-            if expected.is_none()
-                || records
-                    .iter()
-                    .any(|record| record.get(identity) != expected)
-            {
-                return Err(ConduitosError::refusal(
-                    "product-journey-identity-drift",
-                    identity,
-                ));
-            }
-        }
+        super::journey_workset::validate_causality(
+            &serial, &records, opened, born, planned, playing, lulled,
+        )?;
         if serial.contains("CONDUIT_KERNEL_SIGN") || serial.contains("body-patchbay-open") {
             return Err(ConduitosError::refusal(
                 "product-journey-used-proof-entrance",
@@ -610,6 +571,7 @@ fn execute_image(
             input_sign_id: text(result, "input_sign_id")?,
             result_sign_id: text(result, "result_sign_id")?,
             result: text(result, "result")?,
+            workset,
             tour_specimen_id: text(tour_opened, "specimen_id")?,
             tour_source_document_id: text(tour_result, "source_document_id")?,
             tour_checked_form_id: text(tour_result, "checked_form_id")?,

@@ -30,7 +30,7 @@ pub(super) fn form_receives_input(tour_open: bool, details_open: bool, usage: u8
     !tour_open
         && !details_open
         && binding_for_usage(usage).is_none()
-        && !matches!(usage, 41 | 59 | 66..=69)
+        && !matches!(usage, 41 | 43 | 59 | 66..=69)
 }
 
 #[cfg(test)]
@@ -42,7 +42,7 @@ mod tests {
         assert!(form_receives_input(false, false, 40));
         assert!(!form_receives_input(true, false, 4));
         assert!(!form_receives_input(false, true, 4));
-        for usage in [41, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69] {
+        for usage in [41, 43, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69] {
             assert!(!form_receives_input(false, false, usage));
         }
     }

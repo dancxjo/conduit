@@ -201,3 +201,46 @@ fn native_form_availability_is_reviewed_independently() {
         ]
     );
 }
+
+#[test]
+fn unicode_commit_and_compose_release_edit_the_name_before_birth() {
+    let mut door = door(None);
+    let enter_unicode = KeyEvent::new(
+        44,
+        KeyTransition::Pressed,
+        KeyModifiers::from_bits(KeyModifiers::RIGHT_ALT.bits() | KeyModifiers::LEFT_SHIFT.bits()),
+    )
+    .unwrap();
+    assert!(matches!(
+        door.accept_creche(enter_unicode, door.revision()).unwrap(),
+        ArrivalInput::Unchanged
+    ));
+    for usage in [39, 39, 8, 38] {
+        // 00e9
+        press(&mut door, usage);
+    }
+    assert!(matches!(press(&mut door, 40), ArrivalInput::Changed));
+    assert_eq!(door.arrival.as_ref().unwrap().draft.friendly_name(), "é");
+    for transition in [KeyTransition::Pressed, KeyTransition::Released] {
+        let modifiers = if transition == KeyTransition::Pressed {
+            KeyModifiers::RIGHT_GUI
+        } else {
+            KeyModifiers::NONE
+        };
+        let event = KeyEvent::new(0xe7, transition, modifiers).unwrap();
+        door.accept_creche(event, door.revision()).unwrap();
+    }
+    press(&mut door, 52); // apostrophe
+    press(&mut door, 8); // e
+    let ArrivalInput::Birth(selection) = press(&mut door, 40) else {
+        panic!("a later Enter births")
+    };
+    assert_eq!(selection.friendly_name, "éé");
+    door.accept_creche(enter_unicode, door.revision()).unwrap();
+    for usage in [39, 4] {
+        // 0a: a control scalar is invalid in a friendly name.
+        press(&mut door, usage);
+    }
+    assert!(matches!(press(&mut door, 40), ArrivalInput::Changed));
+    assert_eq!(door.arrival.as_ref().unwrap().draft.friendly_name(), "éé");
+}

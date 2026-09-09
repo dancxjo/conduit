@@ -103,12 +103,15 @@ impl FrontDoor {
 impl Arrival {
     fn accept(&mut self, event: KeyEvent) -> ArrivalInput {
         if event.transition() != KeyTransition::Pressed {
+            // The portable Compose gesture includes a Right Meta release.
+            self.keymap.apply(event);
             return ArrivalInput::Unchanged;
         }
         let controls = self.controls();
         let Some(action) = controls.get(self.focus) else {
             return ArrivalInput::Unchanged;
         };
+        let composing = self.keymap.is_composing();
         let result = match event.usage() {
             43 | 81 | 82 => {
                 let backward = event.usage() == 82
@@ -125,7 +128,18 @@ impl Arrival {
             59 => self.suggest(), // F2: the same suggestion action as the Crèche button.
             79 | 80 if self.focus == 1 => self.cycle_tradition(event.usage() == 80),
             60 => return self.submit(),
-            40 if action == "creche.name" || action == "creche.birth" => {
+            40 if action == "creche.name" => match self.keymap.apply(event) {
+                KeymapDisposition::Text(fragment) if !composing && fragment.as_bytes() == b"\n" => {
+                    return self.submit();
+                }
+                KeymapDisposition::Text(fragment) => self.append_name(fragment.as_bytes()),
+                KeymapDisposition::Refused(_) => {
+                    self.refusal = Some("The keyboard could not complete that character.".into());
+                    return ArrivalInput::Changed;
+                }
+                _ => return ArrivalInput::Unchanged,
+            },
+            40 if action == "creche.birth" => {
                 return self.submit();
             }
             40 | 44 if self.focus == 2 => self.suggest(),
@@ -175,28 +189,26 @@ impl Arrival {
                 self.change("creche.name", ApplicationEventKind::Input, &name)
             }
             _ if self.focus == 0 => match self.keymap.apply(event) {
-                KeymapDisposition::Text(fragment) => {
-                    let mut name = if self.replace_name {
-                        String::new()
-                    } else {
-                        self.draft.friendly_name().into()
-                    };
-                    let Ok(text) = core::str::from_utf8(fragment.as_bytes()) else {
-                        return ArrivalInput::Unchanged;
-                    };
-                    name.push_str(text);
-                    let result = self.change("creche.name", ApplicationEventKind::Input, &name);
-                    if result.is_ok() {
-                        self.replace_name = false;
-                    }
-                    result
-                }
+                KeymapDisposition::Text(fragment) => self.append_name(fragment.as_bytes()),
                 _ => return ArrivalInput::Unchanged,
             },
             _ => return ArrivalInput::Unchanged,
         };
         self.refusal = result.err().map(|error| refusal_text(error).into());
         ArrivalInput::Changed
+    }
+
+    fn append_name(&mut self, fragment: &[u8]) -> Result<(), BirthDraftRefusal> {
+        let text = core::str::from_utf8(fragment).map_err(|_| BirthDraftRefusal::InvalidName)?;
+        let mut name = if self.replace_name {
+            String::new()
+        } else {
+            self.draft.friendly_name().into()
+        };
+        name.push_str(text);
+        self.change("creche.name", ApplicationEventKind::Input, &name)?;
+        self.replace_name = false;
+        Ok(())
     }
 
     fn controls(&self) -> Vec<String> {

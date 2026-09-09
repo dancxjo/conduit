@@ -379,3 +379,6 @@ impl ProductJourney {
 mod tests;
 #[cfg(test)]
 mod workset_tests;
+
+#[cfg(test)]
+pub(crate) mod test_support;
