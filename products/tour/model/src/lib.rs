@@ -13,6 +13,7 @@ mod controller;
 mod gallery;
 mod gallery_experience;
 mod inspection;
+pub use inspection::canonical_gear_contract;
 mod layout;
 mod navigation;
 mod pointer;
