@@ -172,6 +172,14 @@ impl Arrival {
         }
         if let Some(refusal) = &self.refusal {
             line(368, refusal, true, GraphicsTextRole::Warning)?;
+        }
+        line(
+            416,
+            "Tab moves  ·  Arrows choose  ·  F9 visits Tour",
+            false,
+            GraphicsTextRole::Muted,
+        )?;
+        if self.refusal.is_some() {
             scene
                 .push(
                     GraphicsCommand::icon(
@@ -195,12 +203,6 @@ impl Arrival {
                 .map_err(|_| Error::Scene)?,
             )
             .map_err(|_| Error::Scene)?;
-        line(
-            416,
-            "Tab moves  ·  Arrows choose  ·  F9 visits Tour",
-            false,
-            GraphicsTextRole::Muted,
-        )?;
         Ok(scene)
     }
 }
