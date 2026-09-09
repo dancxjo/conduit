@@ -21,6 +21,20 @@ pub(super) fn append(
         height: bounds.height - TOP,
         ..bounds
     };
+    // This module owns the prose viewport. Clear it before placing the authored
+    // blocks so stale generic lesson-status text or retained pixels cannot sit
+    // underneath the measured paragraph layout. The pane title above TOP stays.
+    scene
+        .push(
+            GraphicsCommand::rect(
+                clip,
+                clip,
+                GraphicsPaintRole::Background,
+                GraphicsShapeStyle::Fill,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+        )
+        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     let presentation = state
         .workspace_presentation()
         .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?;
@@ -131,8 +145,8 @@ pub(crate) fn extent(scene: &GraphicsScene) -> Option<(u16, u16)> {
     Some((first.clip.height, content_height))
 }
 
-// Only this module places text below TOP in the leftmost pane. The other
-// workspace regions and the lesson status label retain their own geometry.
+// Only this module places text below TOP in the leftmost pane. The pane title
+// above TOP and the other workspace regions retain their own geometry.
 #[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 fn is_prose(command: &GraphicsCommand) -> bool {
     command.kind == conduit_presentation::GraphicsCommandKind::Text
