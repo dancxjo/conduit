@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 
@@ -18,6 +19,10 @@ const RANGES: &[(u32, u32)] = &[
     (0xfffd, 0xfffd), // Explicit replacement glyph
 ];
 
+// The shared naming source is data, not a second list of transliterations.
+// Its module syntax is ASCII and is already included by the base ranges.
+const NAMING_CATALOG: &str = include_str!("../../../../products/creche/names/catalog.mjs");
+
 pub fn run(args: UnifontSubsetArgs) -> Result<(), Box<dyn std::error::Error>> {
     let input = File::open(&args.input)?;
     let output = File::create(&args.output)?;
@@ -30,6 +35,11 @@ pub fn run(args: UnifontSubsetArgs) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn write_subset(mut glyphs: impl BufRead, mut subset: impl Write) -> io::Result<()> {
+    let naming: BTreeSet<u32> = NAMING_CATALOG
+        .chars()
+        .filter(|character| !character.is_ascii_control())
+        .map(u32::from)
+        .collect();
     let mut line = String::new();
     while glyphs.read_line(&mut line)? != 0 {
         if !line.is_ascii() {
@@ -46,7 +56,7 @@ fn write_subset(mut glyphs: impl BufRead, mut subset: impl Write) -> io::Result<
                     format!("invalid Unifont codepoint {codepoint:?}: {error}"),
                 )
             })?;
-            if selected(codepoint) {
+            if selected(codepoint) || naming.contains(&codepoint) {
                 subset.write_all(line.as_bytes())?;
             }
         }
@@ -68,6 +78,24 @@ mod tests {
     use flate2::{write::GzEncoder, Compression};
 
     use super::*;
+
+    #[test]
+    fn pinned_subset_covers_every_shared_naming_character() {
+        let subset = include_str!(
+            "../../../../products/patchbay/native/assets/unifont/unifont-17.0.04-patchbay.hex"
+        );
+        let covered: BTreeSet<u32> = subset
+            .lines()
+            .map(|line| u32::from_str_radix(line.split_once(':').unwrap().0, 16).unwrap())
+            .collect();
+        for character in NAMING_CATALOG.chars().filter(|c| !c.is_ascii_control()) {
+            assert!(
+                covered.contains(&u32::from(character)),
+                "missing naming glyph {character:?}"
+            );
+        }
+        assert!(covered.len() <= 1_024, "preserve the admitted glyph bound");
+    }
 
     #[test]
     fn writes_only_the_bounded_patchbay_ranges() {

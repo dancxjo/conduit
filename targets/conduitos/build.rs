@@ -168,7 +168,7 @@ fn generate_unifont_subset() {
         generated.push_str("] },\n");
         count += 1;
     }
-    assert_eq!(count, 930, "the pinned Unifont subset must be exact");
+    assert_eq!(count, 971, "the pinned Unifont subset must be exact");
     generated.push_str("];\n");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"));
     fs::write(output.join("conduitos_unifont_subset.rs"), generated)

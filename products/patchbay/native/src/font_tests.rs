@@ -5,7 +5,7 @@ use embedded_graphics::prelude::Point;
 
 #[test]
 fn bounded_subset_covers_the_acceptance_scripts_and_double_width() {
-    assert_eq!(BitmapFont::glyph_count(), 930);
+    assert_eq!(BitmapFont::glyph_count(), 971);
     for character in ['A', 'é', 'Ω', 'Ж', '—', '─', '→', '■'] {
         let mut pixels = [0; 16 * GLYPH_HEIGHT];
         let mut canvas = SoftwareCanvas::new(&mut pixels, 16, GLYPH_HEIGHT);

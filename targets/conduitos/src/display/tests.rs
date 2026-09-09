@@ -199,7 +199,7 @@ fn bounded_scene_renders_and_loss_remains_distinct() {
 
 #[test]
 fn pinned_unifont_subset_covers_ascii_and_multilingual_text() {
-    assert_eq!(font::glyph_count(), 930);
+    assert_eq!(font::glyph_count(), 971);
     for character in ' '..='~' {
         let (glyph, missing) = font::glyph(character);
         assert!(!missing, "missing printable ASCII glyph {character:?}");
