@@ -45,6 +45,7 @@ export default defineConfig({
     "browser-form-runner.spec.mjs",
     "quantity-controller.spec.mjs",
     "reviewed-form-conformance.spec.mjs",
+    "secret-knock-conformance.spec.mjs",
     "pages-front-door.spec.mjs",
     "web-accessibility.spec.mjs",
     "creche-avr.spec.mjs",
