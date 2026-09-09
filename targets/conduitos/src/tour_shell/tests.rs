@@ -335,6 +335,8 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
     shell
         .present_with_lifecycle(&tour, &journey.projection(), &mut display)
         .expect("a pre-Birth lifecycle must remain a valid status basis");
+    assert_lifecycle_status(&shell, "body", "Absent");
+    assert_lifecycle_status(&shell, "play", "Inactive");
     for action in [
         JourneyAction::OpenBack,
         JourneyAction::Birth,
@@ -351,6 +353,10 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
         .unwrap();
 
     assert_eq!(receipt.status.surface_id, STATUS_SURFACE);
+    assert_lifecycle_status(&shell, "body", "My Body");
+    assert_lifecycle_status(&shell, "wake", "Awake");
+    assert_lifecycle_status(&shell, "plan", "In use");
+    assert_lifecycle_status(&shell, "play", "Running");
     assert_eq!(shell.lifecycle_revision, projection.revision);
     assert_eq!(shell.lifecycle_basis.body_id, projection.body_id);
     assert_eq!(shell.lifecycle_basis.wake_id, projection.wake_id);
@@ -375,6 +381,10 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
     journey.accept_play_input(press).unwrap();
     journey.accept_play_input(release).unwrap();
     invoke_journey(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
+    shell
+        .present_with_lifecycle(&tour, &journey.projection(), &mut display)
+        .unwrap();
+    assert_lifecycle_status(&shell, "play", "Stopped");
     invoke_journey(&mut journey, JourneyAction::Lull, &identities, &offer).unwrap();
     let (_, mut shell, _) = fixture();
     let mut display = MemoryDisplay::with_size(1280, 800);
@@ -385,6 +395,25 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
             &mut display,
         )
         .expect("initial Tour must accept the stopped and lulled lifecycle basis");
+    assert_lifecycle_status(&shell, "wake", "Lulled");
+    assert_lifecycle_status(&shell, "play", "Ended");
+}
+
+fn assert_lifecycle_status(shell: &TourShellPresenter, key: &str, value: &str) {
+    let presentation = shell
+        .surfaces
+        .iter()
+        .find(|surface| surface.slot == Slot::Status)
+        .unwrap()
+        .presentation
+        .as_ref()
+        .unwrap();
+    assert!(
+        presentation
+            .text
+            .iter()
+            .any(|item| item.subject == format!("tour/status/{key}") && item.text == value)
+    );
 }
 
 #[test]
