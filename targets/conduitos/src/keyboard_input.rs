@@ -1,6 +1,7 @@
 //! Consumers of validated HID transitions for proof and ordinary guest profiles.
 
 use conduit_human::KeyEvent;
+use conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_ITEMS;
 
 use crate::{
     arch::{HidKeyTransition, HidKeyboardSession, UsbDevice, XhciReady},
@@ -8,6 +9,88 @@ use crate::{
     keyboard_plan::PreparedKeyboardPlay,
     keyboard_play,
 };
+
+/// The exact source-queue capacity admitted by `input/keyboard`.
+///
+/// This is deliberately shared with the semantic contract: a native input
+/// adapter may not hide a larger backlog below the planned keyboard Cord.
+pub const INGRESS_CAPACITY: usize = KEYBOARD_MAX_QUEUE_ITEMS as usize;
+
+/// A refusal while accepting a physical transition into the admitted source
+/// queue.  Pressure is distinct from malformed physical input, and neither
+/// loses an already-admitted transition.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum KeyboardIngressRefusal {
+    InvalidTransition,
+    Pressure,
+}
+
+impl KeyboardIngressRefusal {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidTransition => "keyboard-portable-value-invalid",
+            Self::Pressure => "keyboard-input-pressure",
+        }
+    }
+}
+
+/// Fixed, ordered, portable keyboard ingress.
+///
+/// HID/PS2 adapters put validated physical transitions here before any Form,
+/// compositor, or Sign-export work runs.  A host event loop can then take a
+/// bounded work slice with [`Self::service`], while continuing to re-arm and
+/// poll the physical mechanism independently.
+pub struct KeyboardIngress {
+    queue: crate::machine::FixedFactRing<KeyEvent, INGRESS_CAPACITY>,
+}
+
+impl KeyboardIngress {
+    pub const fn new() -> Self {
+        Self {
+            queue: crate::machine::FixedFactRing::new(),
+        }
+    }
+
+    /// Canonicalize and admit one validated physical transition.  The queue
+    /// remains ordered; transitions are never coalesced.
+    pub fn admit(&mut self, transition: HidKeyTransition) -> Result<(), KeyboardIngressRefusal> {
+        let event = keyboard_bridge::portable_key_event(
+            transition.usage(),
+            transition.pressed(),
+            transition.modifiers(),
+        )
+        .map_err(|_| KeyboardIngressRefusal::InvalidTransition)?;
+        self.queue
+            .push(event)
+            .map_err(|_| KeyboardIngressRefusal::Pressure)
+    }
+
+    /// Run at most `budget` admitted semantic deliveries.  Presentation is
+    /// intentionally not part of this operation; consumers return after the
+    /// semantic input boundary and let a separate dirty-driven frame phase
+    /// decide whether to compose.
+    pub fn service(&mut self, budget: usize, mut deliver: impl FnMut(KeyEvent)) -> usize {
+        let mut delivered = 0;
+        while delivered < budget {
+            let Some(event) = self.queue.pop() else {
+                break;
+            };
+            deliver(event);
+            delivered += 1;
+        }
+        delivered
+    }
+
+    pub const fn pending(&self) -> usize {
+        self.queue.len()
+    }
+}
+
+impl Default for KeyboardIngress {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PortablePairConsumer {
@@ -177,5 +260,59 @@ mod tests {
             assert_eq!(pair[0].usage(), usage);
             assert_eq!(pair[1].usage(), usage);
         }
+    }
+
+    #[test]
+    fn ingress_preserves_all_admitted_transition_order_across_work_slices() {
+        let mut ingress = KeyboardIngress::new();
+        for usage in [4, 5, 6, 7] {
+            ingress.admit(transition(usage, true)).unwrap();
+        }
+
+        let mut observed = [0_u8; 4];
+        let mut count = 0;
+        assert_eq!(
+            ingress.service(2, |event| {
+                observed[count] = event.usage();
+                count += 1;
+            }),
+            2
+        );
+        assert_eq!(ingress.pending(), 2);
+        assert_eq!(
+            ingress.service(2, |event| {
+                observed[count] = event.usage();
+                count += 1;
+            }),
+            2
+        );
+        assert_eq!(ingress.pending(), 0);
+        assert_eq!(observed, [4, 5, 6, 7]);
+    }
+
+    #[test]
+    fn ingress_refuses_pressure_without_dropping_admitted_events() {
+        let mut ingress = KeyboardIngress::new();
+        for usage in 4..(4 + INGRESS_CAPACITY as u8) {
+            ingress.admit(transition(usage, true)).unwrap();
+        }
+        assert_eq!(ingress.pending(), INGRESS_CAPACITY);
+        assert_eq!(
+            ingress.admit(transition(42, true)),
+            Err(KeyboardIngressRefusal::Pressure)
+        );
+
+        let mut observed = [0_u8; INGRESS_CAPACITY];
+        let mut count = 0;
+        ingress.service(INGRESS_CAPACITY, |event| {
+            observed[count] = event.usage();
+            count += 1;
+        });
+        assert_eq!(count, INGRESS_CAPACITY);
+        assert_eq!(observed[0], 4);
+        assert_eq!(
+            observed[INGRESS_CAPACITY - 1],
+            4 + INGRESS_CAPACITY as u8 - 1
+        );
     }
 }

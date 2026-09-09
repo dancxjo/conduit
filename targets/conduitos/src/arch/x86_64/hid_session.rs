@@ -1,8 +1,9 @@
 //! Reusable bounded-report session above validated HID boot reports.
 
 use super::{
-    BootReport, HID_DMA, HidError, HidKeyTransition, HidKeyboardReady, HidProof,
-    MAX_SESSION_TRANSITIONS, MAX_TRANSITIONS_PER_REPORT, derive_transitions, receive_report,
+    derive_transitions, poll_report, receive_report, submit_report, BootReport, HidError,
+    HidKeyTransition, HidKeyboardReady, HidProof, HID_DMA, MAX_SESSION_TRANSITIONS,
+    MAX_TRANSITIONS_PER_REPORT,
 };
 use crate::arch::x86_64::{usb::UsbDevice, xhci::XhciReady};
 
@@ -14,6 +15,7 @@ pub struct HidKeyboardSession {
     initial_count: usize,
     transition_count: usize,
     next_report_index: usize,
+    pending_report_index: Option<usize>,
 }
 
 impl HidKeyboardSession {
@@ -35,6 +37,7 @@ pub fn start_boot_keyboard_session(ready: HidKeyboardReady) -> HidKeyboardSessio
         initial_count: 0,
         transition_count: 0,
         next_report_index: 0,
+        pending_report_index: None,
     }
 }
 
@@ -60,35 +63,81 @@ pub fn receive_first_boot_keyboard_report(
         initial_count: count,
         transition_count: count,
         next_report_index: 1,
+        pending_report_index: None,
     })
 }
 
 impl HidKeyboardSession {
-    pub fn receive_followup(
+    /// Arms the next bounded report slot.  Calling this twice without a
+    /// completion refuses rather than replacing an in-flight transfer.
+    pub fn begin_followup(
         &mut self,
         controller: &mut XhciReady,
         device: &UsbDevice,
-    ) -> Result<([HidKeyTransition; MAX_TRANSITIONS_PER_REPORT], usize), HidError> {
+    ) -> Result<(), HidError> {
+        if self.pending_report_index.is_some() {
+            return Err(HidError::TransferOverflow);
+        }
         let index = self.next_report_index;
         let next_index = index.checked_add(1).ok_or(HidError::TransferOverflow)?;
-        receive_report(
+        submit_report(
             controller,
             device,
             self.ready.endpoint_dci,
             index,
             self.ready.dma_physical,
         )?;
+        self.next_report_index = next_index;
+        self.pending_report_index = Some(index);
+        Ok(())
+    }
+
+    /// Takes a completed report if one is ready, without waiting.  A host may
+    /// use `None` to run another admitted work slice or a dirty frame.
+    pub fn poll_followup(
+        &mut self,
+        controller: &mut XhciReady,
+        device: &UsbDevice,
+    ) -> Result<Option<([HidKeyTransition; MAX_TRANSITIONS_PER_REPORT], usize)>, HidError> {
+        let index = self
+            .pending_report_index
+            .ok_or(HidError::TransferOverflow)?;
+        if poll_report(
+            controller,
+            device,
+            self.ready.endpoint_dci,
+            index,
+            self.ready.dma_physical,
+        )?
+        .is_none()
+        {
+            return Ok(None);
+        }
         super::super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-release-report\n");
         let current =
             super::parse_report(unsafe { &HID_DMA.reports[index % super::REPORT_BUFFERS] })?;
         let (transitions, count) = derive_transitions(self.previous, current)?;
         self.previous = current;
-        self.next_report_index = next_index;
+        self.pending_report_index = None;
         self.transition_count = self
             .transition_count
             .checked_add(count)
             .ok_or(HidError::TransitionOverflow)?;
-        Ok((transitions, count))
+        Ok(Some((transitions, count)))
+    }
+
+    pub fn receive_followup(
+        &mut self,
+        controller: &mut XhciReady,
+        device: &UsbDevice,
+    ) -> Result<([HidKeyTransition; MAX_TRANSITIONS_PER_REPORT], usize), HidError> {
+        self.begin_followup(controller, device)?;
+        for _ in 0..super::INTERRUPT_POLL_WINDOWS {
+            if let Some(report) = self.poll_followup(controller, device)? {
+                return Ok(report);
+            }
+        }
+        Err(HidError::TransferTimeout)
     }
 
     pub fn receive_until(

@@ -14,7 +14,7 @@ use super::{
 mod interrupt;
 #[path = "hid_report.rs"]
 mod report;
-use interrupt::receive_report;
+use interrupt::{poll_report, receive_report, submit_report};
 #[cfg(test)]
 use report::retain_transition;
 use report::{BootReport, derive_transitions, parse_report};

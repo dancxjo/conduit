@@ -1,12 +1,12 @@
 //! One reusable, admitted interrupt ring; exact report completion is unchanged.
 use core::{
     ptr::write_volatile,
-    sync::atomic::{Ordering, fence},
+    sync::atomic::{fence, Ordering},
 };
 
 use super::{
-    BOOT_REPORT_BYTES, HID_DMA, HidDma, HidError, INTERRUPT_POLL_WINDOWS, REPORT_BUFFERS,
-    TRANSFER_RING_REPORT_SLOTS, ensure_device_present, validate_interrupt_event,
+    ensure_device_present, validate_interrupt_event, HidDma, HidError, BOOT_REPORT_BYTES, HID_DMA,
+    INTERRUPT_POLL_WINDOWS, REPORT_BUFFERS, TRANSFER_RING_REPORT_SLOTS,
 };
 use crate::arch::x86_64::{
     serial,
@@ -80,7 +80,9 @@ fn enqueue(sequence: usize, ring: u64, reports: u64) {
     });
 }
 
-pub(super) fn receive_report(
+/// Arms an exact report slot without waiting for a completion.  The caller may
+/// now service already-admitted finite work before polling this transfer.
+pub(super) fn submit_report(
     controller: &mut XhciReady,
     device: &UsbDevice,
     dci: u8,
@@ -101,23 +103,29 @@ pub(super) fn receive_report(
         enqueue(index, ring, reports);
         controller.ring_endpoint(device.slot, dci);
     }
-    let mut completed = None;
-    for _ in 0..INTERRUPT_POLL_WINDOWS {
-        ensure_device_present(controller.port_status(device.root_port))?;
-        match controller.next_event() {
-            Ok(event) if event.event_type == 34 => return Err(HidError::DeviceRemoved),
-            Ok(event) => {
-                completed = Some(event);
-                break;
-            }
-            Err(XhciError::CommandTimeout) => {}
-            Err(_) => {
-                ensure_device_present(controller.port_status(device.root_port))?;
-                return Err(HidError::TransferError);
-            }
+    Ok(())
+}
+
+/// Polls one already-armed report completion.  `Ok(None)` is ordinary: it is
+/// not input loss and it leaves the physical transfer armed.
+pub(super) fn poll_report(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    dci: u8,
+    index: usize,
+    dma_physical: u64,
+) -> Result<Option<()>, HidError> {
+    let ring = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
+    ensure_device_present(controller.port_status(device.root_port))?;
+    let event = match controller.next_event() {
+        Ok(event) if event.event_type == 34 => return Err(HidError::DeviceRemoved),
+        Ok(event) => event,
+        Err(XhciError::CommandTimeout) => return Ok(None),
+        Err(_) => {
+            ensure_device_present(controller.port_status(device.root_port))?;
+            return Err(HidError::TransferError);
         }
-    }
-    let event = completed.ok_or(HidError::TransferTimeout)?;
+    };
     validate_interrupt_event(
         event,
         device.slot,
@@ -125,7 +133,23 @@ pub(super) fn receive_report(
         ring + (Position::at(index).slot * 16) as u64,
     )?;
     ensure_device_present(controller.port_status(device.root_port))?;
-    Ok(())
+    Ok(Some(()))
+}
+
+pub(super) fn receive_report(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    dci: u8,
+    index: usize,
+    dma_physical: u64,
+) -> Result<(), HidError> {
+    submit_report(controller, device, dci, index, dma_physical)?;
+    for _ in 0..INTERRUPT_POLL_WINDOWS {
+        if poll_report(controller, device, dci, index, dma_physical)?.is_some() {
+            return Ok(());
+        }
+    }
+    Err(HidError::TransferTimeout)
 }
 
 #[cfg(test)]
