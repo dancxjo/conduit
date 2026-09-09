@@ -104,8 +104,8 @@ pub(super) fn execute(paths: &Paths, image: &Path, digest: &str) -> Result<(), C
         let offset = fs::metadata(&serial).map_err(io)?.len() as usize;
         button(&mut stream, &mut reader, &serial, &mut child, false)?;
         wait(&serial, &mut child, RELEASE, offset)?;
-        let text = fs::read_to_string(&serial).map_err(io)?;
-        validate(&text)?;
+        let bytes = fs::read(&serial).map_err(io)?;
+        validate(journey_input::complete_records(&bytes)?)?;
         let capture = serde_json::json!({"execute":"screendump", "arguments":{
             "filename":directory.join("run-completed.png"), "format":"png"}});
         qmp::request(

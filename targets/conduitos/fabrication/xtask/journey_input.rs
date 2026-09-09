@@ -190,7 +190,7 @@ pub(super) fn wait_for_record(
 // The guest may be midway through a UTF-8 scalar or JSON record when a live
 // file read ends. Only completed records can satisfy an observation. Keep
 // strict UTF-8 validation for that prefix; never replace malformed bytes.
-fn complete_records(bytes: &[u8]) -> Result<&str, ConduitosError> {
+pub(super) fn complete_records(bytes: &[u8]) -> Result<&str, ConduitosError> {
     let end = bytes
         .iter()
         .rposition(|byte| *byte == b'\n')
