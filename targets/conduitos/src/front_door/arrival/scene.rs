@@ -3,7 +3,8 @@ use super::{Arrival, Error};
 use crate::display::PixelTarget;
 use alloc::format;
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
+    ActionAvailability, FieldKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
+    GraphicsShapeStyle, LayoutRect, PresentationMechanism,
 };
 
 impl Arrival {
@@ -62,55 +63,82 @@ impl Arrival {
                 .map_err(|_| Error::Scene)
         };
         line(0, "CONDUIT / CRÈCHE", false)?;
-        line(38, "A Body of your own", false)?;
-        line(64, "Give it a name. Choose what it wakes with.", false)?;
-        line(108, "BODY NAME", self.focus == 0)?;
-        line(
-            132,
-            &format!(
-                "{} {}",
-                if self.focus == 0 { ">" } else { " " },
-                self.draft.friendly_name()
-            ),
-            self.focus == 0,
-        )?;
-        let tradition = self
-            .draft
-            .naming_systems()
-            .find(|(id, _)| *id == self.draft.requested_system())
-            .map_or("Surprise me", |(_, label)| label);
-        line(
-            176,
-            &format!(
-                "{} Naming tradition: {tradition}",
-                if self.focus == 1 { ">" } else { " " }
-            ),
-            self.focus == 1,
-        )?;
-        line(204, "  Suggest another name  [F2]", self.focus == 2)?;
-        line(248, "FORMS TO INCLUDE", false)?;
-        for (index, choice) in self.draft.choices().iter().enumerate() {
-            line(
-                276 + index as i16 * 24,
-                &format!(
-                    "{} [{}] {}{}",
-                    if self.focus == index + 3 { ">" } else { " " },
-                    if choice.selected { "x" } else { " " },
-                    choice.title,
-                    if choice.refusal.is_some() {
-                        " / unavailable"
-                    } else {
-                        ""
+        let view = self.draft.presentation().map_err(|_| Error::Presentation)?;
+        let mut choice_count = 0;
+        for node in &view.root.children {
+            match (&*node.key, &node.mechanism) {
+                ("creche-heading", PresentationMechanism::Heading { text }) => {
+                    line(38, text, false)?
+                }
+                ("body-name", PresentationMechanism::FormField(field)) => {
+                    line(64, &field.help, false)?;
+                    line(108, &field.label, self.focus == 0)?;
+                    line(
+                        132,
+                        &format!(
+                            "{} {}",
+                            if self.focus == 0 { ">" } else { " " },
+                            field.value
+                        ),
+                        self.focus == 0,
+                    )?;
+                }
+                ("name-system", PresentationMechanism::FormField(field)) => {
+                    let FieldKind::NamedSelect { options } = &field.kind else {
+                        return Err(Error::Scene);
+                    };
+                    let selected = options
+                        .iter()
+                        .find(|option| option.identity == field.value)
+                        .ok_or(Error::Scene)?;
+                    line(
+                        176,
+                        &format!(
+                            "{} {}: {}",
+                            if self.focus == 1 { ">" } else { " " },
+                            field.label,
+                            selected.label
+                        ),
+                        self.focus == 1,
+                    )?;
+                }
+                ("suggest-name", PresentationMechanism::Action(action)) => {
+                    line(204, &format!("  {}  [F2]", action.label), self.focus == 2)?;
+                }
+                ("initial-forms", PresentationMechanism::ChoiceGroup { label, options, .. }) => {
+                    line(248, label, false)?;
+                    for (index, choice) in options.iter().enumerate() {
+                        line(
+                            276 + index as i16 * 24,
+                            &format!(
+                                "{} [{}] {}{}",
+                                if self.focus == index + 3 { ">" } else { " " },
+                                if choice.selected { "x" } else { " " },
+                                choice.label,
+                                if matches!(
+                                    choice.change_action.availability,
+                                    ActionAvailability::Available
+                                ) {
+                                    ""
+                                } else {
+                                    " / unavailable"
+                                }
+                            ),
+                            self.focus == index + 3,
+                        )?;
                     }
-                ),
-                self.focus == index + 3,
-            )?;
+                    choice_count = options.len();
+                }
+                ("birth-body", PresentationMechanism::Action(action)) => {
+                    line(
+                        328,
+                        &format!("  {}  [Enter / F3]", action.label),
+                        self.focus == choice_count + 3,
+                    )?;
+                }
+                _ => return Err(Error::Scene),
+            }
         }
-        line(
-            328,
-            "  Birth Body and wake Forms  [Enter / F3]",
-            self.focus == self.draft.choices().len() + 3,
-        )?;
         if let Some(refusal) = &self.refusal {
             line(368, refusal, true)?;
         }
