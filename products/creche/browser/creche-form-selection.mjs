@@ -115,6 +115,20 @@ export function encodedFormSelection(selected) {
   return JSON.stringify(selected.map(exactIdentity));
 }
 
+// Preserve each selected document verbatim; concatenation would invent new
+// source identities. Unselected catalog entries need no authoring admission.
+export function selectedReviewedSource(source, selected) {
+  let bundle;
+  try { bundle = JSON.parse(source); } catch { return source; }
+  if (bundle?.schema !== 'conduit.creche/reviewed-form-bundle@1' || !Array.isArray(bundle.forms)) return source;
+  const names = new Set(selected.map(form => form.name));
+  const forms = bundle.forms.filter(form => names.has(form.entry ?? form.slug.replaceAll('-', '_')));
+  if (forms.length !== names.size) throw new Error('The selection is absent from its reviewed inventory');
+  // An empty Body still records a checked source interaction, with no selected
+  // Forms or execution. Retain one existing document as that bounded context.
+  return JSON.stringify({ ...bundle, forms: forms.length ? forms : bundle.forms.slice(0, 1) });
+}
+
 function exactCurrent(inventory, candidate) {
   if (!candidate || typeof candidate !== "object") return null;
   return inventory.forms.find((form) => form.name === candidate.name

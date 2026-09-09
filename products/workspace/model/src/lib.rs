@@ -7,5 +7,6 @@ extern crate alloc;
 
 mod continuity;
 mod flow;
+pub mod library;
 mod lifecycle;
 pub use lifecycle::{WorkspaceBody, WorkspaceBodyError, WorkspaceRealization};

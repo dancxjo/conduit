@@ -101,6 +101,8 @@ pub(super) struct InventoryForm {
     pub(super) reusable_entries: Vec<ReusableForm>,
     #[serde(default)]
     initial_body_order: Option<u8>,
+    #[serde(default)]
+    initial_body_presentation_profile: u8,
     pub(super) deterministic: Option<DeterministicOracle>,
     pub(super) deterministic_not_applicable: Option<String>,
     pub(super) browser_safe: Option<BrowserOracle>,
@@ -257,7 +259,9 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
     #[derive(Serialize)]
     struct BundledForm<'a> {
         slug: &'a str,
+        title: &'a str,
         entry: &'a str,
+        presentation_profile: u8,
         source: String,
     }
     #[derive(Serialize)]
@@ -272,6 +276,8 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
             fs::read_to_string(&path).map_err(|error| format!("{}: {error}", path.display()))?;
         forms.push(BundledForm {
             slug: &form.slug,
+            title: &form.title,
+            presentation_profile: form.initial_body_presentation_profile,
             entry: &form.entry,
             source,
         });

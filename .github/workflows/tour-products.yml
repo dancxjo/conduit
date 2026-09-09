@@ -791,7 +791,7 @@ jobs:
           - shard: browser-host
             specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
           - shard: creche-machines
-            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
+            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
             specs: proof/browser/pages-front-door.spec.mjs proof/browser/web-accessibility.spec.mjs
     name: browser-proof-${{ matrix.shard }}
@@ -814,7 +814,7 @@ jobs:
         run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-admission-probe
       - name: Prove foreground input and Body retirement contracts
         if: matrix.shard == 'creche-machines'
-        run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs
+        run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs proof/browser/workspace-handoff.test.mjs
       - name: Prove the ${{ matrix.shard }} surface in pinned Chromium
         if: matrix.shard != 'tour'
         env:

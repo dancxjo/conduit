@@ -65,11 +65,13 @@ export function openBrowserHumanInput({
       assertCurrent(owner, currentBoot());
       assertPageActive(target);
       if (!currentTargetOwnsEvent(target, event)) refuse("FocusLost", "keyboard focus left the admitted target");
-      event.preventDefault();
       const canonical = Uint8Array.of(usage, event.type === "keydown" ? 0 : 1, modifiers(event));
+      const deliveryForm = routeInput?.("keyboard", canonical);
+      if (routeInput && deliveryForm === null) return;
+      event.preventDefault();
       const transition = Object.freeze({
         schema: "input/key-event@1", canonical_bytes: canonical, owner,
-        ...(routeInput ? { delivery_form: routeInput("keyboard", canonical) } : {}),
+        ...(routeInput ? { delivery_form: deliveryForm } : {}),
       });
       if (keyboardWaiters.length > 0) keyboardWaiters.shift().resolve(transition);
       else {
@@ -97,11 +99,12 @@ export function openBrowserHumanInput({
       if (event.buttons !== 0 && event.buttons !== 1) {
         refuse("UnsupportedInput", "pointer buttons exceed the reviewed primary-button profile");
       }
-      if (buttonActive) {
+      const buttonForm = buttonActive ? routeInput?.("button", { pressed: event.type === "pointerdown" }) : null;
+      if (buttonActive && (!routeInput || buttonForm !== null)) {
         const transition = Object.freeze({
           schema: "input/button-transition@1",
           pressed: event.type === "pointerdown",
-          ...(routeInput ? { delivery_form: routeInput("button", { pressed: event.type === "pointerdown" }) } : {}),
+          ...(routeInput ? { delivery_form: buttonForm } : {}),
           sequence: buttonSequence++,
           owner,
         });
@@ -111,6 +114,9 @@ export function openBrowserHumanInput({
           buttonQueue.push(transition);
         }
       }
+      if (pointerConsumers.size === 0) return;
+      const pointerForm = routeInput?.("pointer", null);
+      if (routeInput && pointerForm === null) return;
       const surface = target.nodeType === 9 ? target.documentElement : target;
       const bounds = surface.getBoundingClientRect();
       if (!(bounds.width > 0 && bounds.height > 0)) refuse("TargetLost", "pointer target has no extent");
@@ -120,6 +126,7 @@ export function openBrowserHumanInput({
         : 0;
       const value = Object.freeze({
         schema: "input/pointer-event@1",
+        ...(routeInput ? { delivery_form: pointerForm } : {}),
         position_x: millionth((event.clientX - bounds.left) / bounds.width),
         position_y: millionth((event.clientY - bounds.top) / bounds.height),
         delta_x: millionth(event.movementX / bounds.width),

@@ -69,6 +69,8 @@ pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
     &crate::installed_browser::pointer_selector::POSITION,
     &crate::installed_browser::pointer_selector::X,
     &crate::installed_browser::quantity_output::WRAP,
+    &crate::installed_browser::quantity_output::DIRECT_PRESENTATION,
+    &crate::installed_browser::comparison_presentation::PRESENTATION,
     &crate::installed_browser::logic::COMPARE,
     &crate::installed_browser::logic::NOT,
     &crate::installed_browser::logic::SELECT,
