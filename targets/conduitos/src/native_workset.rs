@@ -6,7 +6,7 @@ mod play;
 mod text_state;
 
 pub use catalog::{NativeForm, checked, inventory, resident, resolve};
-pub use planning::{PreparedNativeWorkset, prepare};
+pub use planning::{PreparedNativeWorkset, prepare, review};
 pub use play::{NativePresentation, NativeWorksetPlay, PlayRefusal};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

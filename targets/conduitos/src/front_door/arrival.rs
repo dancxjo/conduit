@@ -27,24 +27,33 @@ pub enum ArrivalInput {
 
 impl FrontDoor {
     pub fn open_creche(&mut self, uuid: String, refusal: Option<String>) -> Result<(), Error> {
+        self.open_creche_reviewed(uuid, [refusal.clone(), refusal])
+    }
+
+    pub fn open_creche_reviewed(
+        &mut self,
+        uuid: String,
+        refusals: [Option<String>; 2],
+    ) -> Result<(), Error> {
         if !self.lifecycle_authority_admitted {
             return Err(Error::ActionUnavailable);
         }
         if self.arrival.is_some() || self.journey.as_ref().is_some_and(|j| j.body_id.is_some()) {
             return Err(Error::Presentation);
         }
-        let available = refusal.is_none();
         let draft = BirthDraft::new(
             uuid,
             crate::native_workset::inventory()
                 .into_iter()
-                .map(|form| {
+                .zip(refusals)
+                .map(|(form, refusal)| {
+                    let available = refusal.is_none();
                     Ok(BirthFormChoice {
                         title: form.title().into(),
                         search_text: form.source().into(),
                         form: crate::native_workset::resident(form)
                             .map_err(|_| Error::Presentation)?,
-                        refusal: refusal.clone(),
+                        refusal,
                         selected: available,
                     })
                 })

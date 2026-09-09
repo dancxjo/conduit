@@ -180,3 +180,24 @@ fn two_form_scene_and_refusal_fit_the_native_display_envelope() {
     assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
     crate::display::render_scene(&mut super::super::tests::Sink, &scene).unwrap();
 }
+
+#[test]
+fn native_form_availability_is_reviewed_independently() {
+    let mut door = door(None);
+    door.arrival = None;
+    door.open_creche_reviewed(
+        "00112233-4455-6677-8899-aabbccddeeff".into(),
+        [Some("Canvas unavailable".into()), None],
+    )
+    .unwrap();
+    let ArrivalInput::Birth(selection) = press(&mut door, 60) else {
+        panic!("the available Form can be included")
+    };
+    assert_eq!(
+        selection.workset.forms(),
+        &[
+            crate::native_workset::resident(crate::native_workset::NativeForm::MemoryLantern)
+                .unwrap()
+        ]
+    );
+}

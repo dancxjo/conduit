@@ -45,6 +45,45 @@ pub fn prepare(
     if wake.workset.is_empty() || wake.workset.len() > 2 {
         return Err(WorksetRefusal::WorksetBound);
     }
+    let (advertisement, keyboard) = host(identities, offer, build_id)?;
+    let forms = plan_forms(wake.workset.forms(), &advertisement)?;
+    let plan = BodyPlan::seal(wake, forms).map_err(|_| WorksetRefusal::Plan)?;
+    validate_combined(&advertisement, plan.forms.iter().map(|form| &form.plan))?;
+    let lowered = lower_forms(&plan.forms)?;
+    Ok(PreparedNativeWorkset {
+        advertisement,
+        plan,
+        lowered,
+        keyboard,
+    })
+}
+
+/// Review exact Form planning and bounds without creating a Body or a Play.
+pub fn review(
+    form: super::NativeForm,
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<(), WorksetRefusal> {
+    let (advertisement, _) = host(identities, offer, build_id)?;
+    let form = catalog::resident(form)?;
+    let forms = plan_forms(core::slice::from_ref(&form), &advertisement)?;
+    validate_combined(&advertisement, forms.iter().map(|form| &form.plan))?;
+    lower_forms(&forms)?;
+    Ok(())
+}
+
+fn host(
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<
+    (
+        HostAdvertisement,
+        crate::keyboard_offer::KeyboardRealization,
+    ),
+    WorksetRefusal,
+> {
     let keyboard = offer.keyboard.ok_or(WorksetRefusal::Host)?;
     let mut advertisement = crate::ordinary_plan::advertisement(identities, offer, build_id)
         .map_err(|_| WorksetRefusal::Host)?;
@@ -64,10 +103,17 @@ pub fn prepare(
     advertisement
         .capabilities
         .push(super::text_state::offer(build_id));
-    let mut forms = Vec::with_capacity(wake.workset.len());
-    for identity in wake.workset.forms() {
+    Ok((advertisement, keyboard))
+}
+
+fn plan_forms(
+    identities: &[conduit_body::ResidentForm],
+    advertisement: &HostAdvertisement,
+) -> Result<Vec<BodyFormPlan>, WorksetRefusal> {
+    let mut forms = Vec::with_capacity(identities.len());
+    for identity in identities {
         let expanded = catalog::checked(catalog::resolve(identity)?)?;
-        let hosts = core::slice::from_ref(&advertisement);
+        let hosts = core::slice::from_ref(advertisement);
         let placements =
             default_expanded_placements(&expanded, hosts).map_err(|_| WorksetRefusal::Plan)?;
         let mut limits = BTreeMap::new();
@@ -120,11 +166,12 @@ pub fn prepare(
             plan,
         });
     }
-    let plan = BodyPlan::seal(wake, forms).map_err(|_| WorksetRefusal::Plan)?;
-    validate_combined(&advertisement, plan.forms.iter().map(|form| &form.plan))?;
-    let lowered = lower_local_fragment_set(
-        &plan
-            .forms
+    Ok(forms)
+}
+
+fn lower_forms(forms: &[BodyFormPlan]) -> Result<LoweredFragmentSet, WorksetRefusal> {
+    lower_local_fragment_set(
+        &forms
             .iter()
             .map(|form| &form.plan.fragments[0])
             .collect::<Vec<_>>(),
@@ -139,13 +186,7 @@ pub fn prepare(
             sign_bytes: 768 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
         },
     )
-    .map_err(|_| WorksetRefusal::Lowering)?;
-    Ok(PreparedNativeWorkset {
-        advertisement,
-        plan,
-        lowered,
-        keyboard,
-    })
+    .map_err(|_| WorksetRefusal::Lowering)
 }
 
 fn validate_combined<'a>(

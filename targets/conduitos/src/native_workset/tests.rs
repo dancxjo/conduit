@@ -134,3 +134,18 @@ fn two_forms_reserve_distinct_deliveries_from_one_initialized_keyboard() {
             .all(|resource| resource.capacity_units == 1)
     );
 }
+
+#[test]
+fn pre_birth_review_checks_each_exact_form_without_a_body_or_play() {
+    let (ids, mut offer) = fixture();
+    for form in inventory() {
+        assert_eq!(review(form, &ids, &offer, "build"), Ok(()));
+    }
+    offer.keyboard = None;
+    for form in inventory() {
+        assert_eq!(
+            review(form, &ids, &offer, "build"),
+            Err(WorksetRefusal::Host)
+        );
+    }
+}

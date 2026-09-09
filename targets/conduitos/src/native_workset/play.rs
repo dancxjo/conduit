@@ -123,6 +123,12 @@ impl NativeWorksetPlay {
     pub fn take_presentation(&mut self, form: usize) -> Option<NativePresentation> {
         self.presentations.get_mut(form)?.take()
     }
+    /// A captured release still belongs here when another surface has focus.
+    pub fn owns_release(&self, event: KeyEvent) -> bool {
+        !self.cancelled
+            && event.transition() == KeyTransition::Released
+            && self.held[usize::from(event.usage())].is_some()
+    }
     /// Foreground is supplied by the authoritative workspace selection. A held
     /// key keeps its original owner across subsequent selection changes.
     pub fn input(&mut self, foreground: usize, event: KeyEvent) -> Result<bool, PlayRefusal> {

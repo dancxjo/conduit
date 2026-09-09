@@ -54,7 +54,10 @@ fn release_keeps_press_owner_and_cancel_retires_every_pending_request() {
     play.input(canvas, key(4, KeyTransition::Pressed)).unwrap();
     play.take_presentation(canvas).unwrap();
     let held = play.pending[canvas].unwrap();
+    assert!(play.owns_release(key(4, KeyTransition::Released)));
+    assert!(!play.owns_release(key(5, KeyTransition::Released)));
     play.input(memory, key(4, KeyTransition::Released)).unwrap();
+    assert!(!play.owns_release(key(4, KeyTransition::Released)));
     assert_eq!(play.pending[memory].unwrap().request, before.request);
     assert_ne!(play.pending[canvas].unwrap().request, held.request);
     play.cancel().unwrap();

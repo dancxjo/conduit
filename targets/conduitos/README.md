@@ -37,10 +37,13 @@ stage has its own lifecycle evidence; a refusal remains visible at the stage
 that could not finish. F2 suggests another name in the Crèche and opens exact
 details after birth. F9 visits the existing Tour.
 
-This development slice offers the native **Keyboard canvas** Form. One Play
-keeps listening and shows uppercase output until F8 explicitly stops it; F7
-then Lulls the Body. The screen retains a fixed window of recent output and
-reports when older output or kernel evidence leaves its bounded history.
+This development slice offers **Keyboard canvas** and the canonical **Memory
+Lantern**. Their exact Form partitions share one Body Plan and Play. Keyboard
+canvas shows recent uppercase output; Memory Lantern retains up to 256 bytes
+of editable text within that Play. F7 Lulls the Body by cancelling its actual
+Play and retaining both included Forms. F8 remains available for Stop alone.
+The screen reports when older canvas output or kernel evidence leaves its
+bounded history.
 Resident Tour and Patchbay Forms and durable Body restoration across a new
 Boot remain open work. The startup sound and reusable first-wake behavior are
 tracked in [#3152](https://github.com/dancxjo/conduit/issues/3152).

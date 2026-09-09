@@ -7,6 +7,13 @@ use conduit_core::SignId;
 use conduit_human::KeyEvent;
 
 impl ProductJourney {
+    pub fn owns_key_release(&self, event: KeyEvent) -> bool {
+        self.status == JourneyStatus::Playing
+            && self
+                .kernel
+                .as_ref()
+                .is_some_and(|kernel| kernel.owns_release(event))
+    }
     pub fn accept_play_input(&mut self, event: KeyEvent) -> Result<bool, JourneyError> {
         if self.status != JourneyStatus::Playing {
             return Ok(false);
