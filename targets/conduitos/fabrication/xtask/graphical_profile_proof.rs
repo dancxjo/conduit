@@ -12,8 +12,9 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "the graphical quality floor requires the actual canonical live image",
         ));
     }
-    live_media::build(live_media::LiveHost::X86_64, opts)?;
     let paths = Paths::new(ConduitosArch::X86_64)?;
+    let source_commit = clean_head(&paths.root)?;
+    live_media::build(live_media::LiveHost::X86_64, opts)?;
     fs::create_dir_all(&paths.target).map_err(io_error)?;
     let image = paths
         .root
@@ -39,7 +40,13 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let headless = super::graphical_asset_proof::prove(&paths.root, &image, opts)?;
-    let proof = serde_json::json!({"schema":"conduit.conduitos/graphical-profile-proof@1", "proof_class":"freestanding-emulator", "source_commit":super::report::git_head(&paths.root)?, "image_sha256":digest, "profile":profiles[0], "journey":"journey-proof.json", "physical_evidence":false, "headless_images":headless});
+    if clean_head(&paths.root)? != source_commit {
+        return Err(ConduitosError::refusal(
+            "graphical-proof-source-changed",
+            "source changed while building or proving the product images",
+        ));
+    }
+    let proof = serde_json::json!({"schema":"conduit.conduitos/graphical-profile-proof@1", "proof_class":"freestanding-emulator", "source_commit":source_commit, "image_sha256":digest, "profile":profiles[0], "journey":"journey-proof.json", "physical_evidence":false, "headless_images":headless});
     fs::write(
         paths.target.join("graphical-profile-proof.json"),
         serde_json::to_vec_pretty(&proof).map_err(|error| {
@@ -60,4 +67,19 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 
 fn io_error(error: std::io::Error) -> ConduitosError {
     ConduitosError::refusal("graphical-profile-evidence-unavailable", error.to_string())
+}
+
+fn clean_head(root: &std::path::Path) -> Result<String, ConduitosError> {
+    let status = std::process::Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(root)
+        .output()
+        .map_err(io_error)?;
+    if !status.status.success() || !status.stdout.is_empty() {
+        return Err(ConduitosError::refusal(
+            "graphical-proof-source-not-clean",
+            "commit the graphical profile before collecting exact image evidence",
+        ));
+    }
+    super::report::git_head(root)
 }
