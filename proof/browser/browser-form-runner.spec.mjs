@@ -105,13 +105,13 @@ test("a normal browser Form session refuses an unsupported semantic Kind before 
   expect(refusal.output.message).toContain("layout/inset");
 });
 
-test("an authored five-transition button stream handles three ordinary browser presses", async ({ page }) => {
+test("a living button stream handles three ordinary browser presses until explicit Stop", async ({ page }) => {
   const failures = [];
   page.on("pageerror", (error) => failures.push(String(error)));
   await openTourStep(page, entrance, 0);
   const runner = page.locator('[data-application-component="tour-laboratory"]');
   await runner.locator("textarea").fill(`form three-presses {
-    button: input/button(maximum-transitions = 5)
+    button: input/button
     state: input/button-indicator-state
     indicator: presentation/indicator-state
     button > state > indicator
@@ -127,8 +127,11 @@ test("an authored five-transition button stream handles three ordinary browser p
     await page.mouse.down();
     await page.mouse.up();
     await page.mouse.down();
-    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("5 planned manifestations");
+    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Waiting for one admitted button transition");
     await expect(runner.locator('[role="img"].indicator')).toHaveAttribute("aria-label", "Indicator on");
+    await page.mouse.up();
+    await runner.getByRole("button", { name: "Stop", exact: true }).click();
+    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("cancelled");
     expect(failures).toEqual([]);
   } finally {
     await page.mouse.up();
@@ -139,7 +142,7 @@ test("button input progresses alongside a pending timer and the Play can be canc
   await openTourStep(page, entrance, 0);
   const runner = page.locator('[data-application-component="tour-laboratory"]');
   await runner.locator("textarea").fill(`form concurrent {
-    button: input/button(maximum-transitions = 1)
+    button: input/button
     state: input/button-indicator-state
     indicator: presentation/indicator-state
     clock: time/every(freq = 10000ms)
@@ -170,7 +173,7 @@ test("a released timed attempt reaches its rearmed deadline and retires cleanly"
   const runner = page.locator('[data-application-component="tour-laboratory"]');
   const status = runner.locator('[data-application-key="play-status"]');
   await runner.locator("textarea").fill(`form timed {
-    button: input/button(maximum-transitions = 5)
+    button: input/button
     attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)
     derive: time/ordered-event-intervals
     button.transition > attempt.transition
@@ -204,7 +207,7 @@ test("relative-duration output uses the selected profile for Patchbay and live t
   const runner = page.locator('[data-application-component="tour-laboratory"]');
   await runner.getByLabel("Structured output").selectOption("2");
   await runner.locator("textarea").fill(`form timing-output {
-    button: input/button(maximum-transitions = 5)
+    button: input/button
     attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)
     derive: time/ordered-event-intervals
     normalize: sequence/normalize-relative-duration
