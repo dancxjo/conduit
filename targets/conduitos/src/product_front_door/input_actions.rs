@@ -47,3 +47,10 @@ mod tests {
         }
     }
 }
+pub(super) fn tour_action(usage: u8) -> Option<&'static str> {
+    match usage {
+        super::F10 => Some(conduit_tour_model::RUN_ACTION_ID),
+        super::F11 => Some(conduit_tour_model::OPEN_PATCHBAY_ACTION_ID),
+        _ => None,
+    }
+}

@@ -203,12 +203,22 @@ pub fn run_product(
         }
     }
     loop {
-        let (transitions, count) = match session.receive_followup(controller, device) {
-            Ok(batch) => batch,
-            Err(error) => {
-                let reason = error.as_str();
-                interact(ProductInputEvent::Lost(reason))?;
-                return Err(reason);
+        // Publish the next transfer before giving presentation/export a turn.
+        session
+            .begin_followup(controller, device)
+            .map_err(|error| error.as_str())?;
+        interact(ProductInputEvent::Service)?;
+        let (transitions, count) = loop {
+            match session.poll_followup(controller, device) {
+                Ok(Some(batch)) => break batch,
+                Ok(None) => {
+                    core::hint::spin_loop();
+                }
+                Err(error) => {
+                    let reason = error.as_str();
+                    interact(ProductInputEvent::Lost(reason))?;
+                    return Err(reason);
+                }
             }
         };
         for transition in transitions[..count].iter().copied() {
@@ -227,8 +237,12 @@ pub fn run_ps2_product(
     mut interact: impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
 ) -> Result<(), &'static str> {
     loop {
-        let transition = match input.receive_keyboard() {
-            Ok(transition) => transition,
+        let transition = match input.poll_keyboard() {
+            Ok(Some(transition)) => transition,
+            Ok(None) => {
+                interact(ProductInputEvent::Service)?;
+                continue;
+            }
             Err(error) => {
                 let reason = error.as_str();
                 interact(ProductInputEvent::Lost(reason))?;
@@ -249,6 +263,8 @@ pub enum ProductInputControl {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProductInputEvent {
+    /// Host service opportunity, distinct from a physical input transition.
+    Service,
     Transition(HidKeyTransition),
     Lost(&'static str),
 }
