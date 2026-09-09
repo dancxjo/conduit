@@ -138,6 +138,13 @@ fn run_with(
                 emit_auxiliary_focus_sign(&route, sample, tour, identities, fabrication);
                 arch::early_write(b"CONDUIT_TOUR_CHECKPOINT auxiliary-surface-focused\n");
                 if route.surface_id == TRANSIENT_SURFACE {
+                    let chosen = presenter
+                        .chooser_gear(&route)
+                        .map_err(|error| error.as_str())?;
+                    if let Some(gear) = chosen {
+                        tour.select_gear(tour.controller().state().revision, gear)
+                            .map_err(|error| error.as_str())?;
+                    }
                     let dismissal = presenter
                         .dismiss_transient(display)
                         .map_err(|error| error.as_str())?;
@@ -156,6 +163,12 @@ fn run_with(
                         identities,
                         fabrication,
                     );
+                    if chosen.is_some() {
+                        presenter
+                            .present(tour, display)
+                            .map_err(|error| error.as_str())?;
+                        arch::early_write(b"CONDUIT_TOUR_CHECKPOINT chooser-gear-selected\n");
+                    }
                     suppress_dismissal_release = true;
                     arch::early_write(b"CONDUIT_TOUR_CHECKPOINT transient-pointer-dismissed\n");
                 }

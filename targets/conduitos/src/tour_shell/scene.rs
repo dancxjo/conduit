@@ -223,7 +223,69 @@ pub(super) fn transient_scene(
     presentation: &Presentation,
     scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
+    if presentation.subjects.iter().any(|subject| {
+        subject.identity == conduit_tour_model::TourTransientKind::Chooser.subject_identity()
+    }) {
+        return chooser_scene(bounds, presentation, scroll_y);
+    }
     scroll_scene(bounds, "DETAIL", first_text(presentation), scroll_y)
+}
+
+fn chooser_scene(
+    bounds: LayoutRect,
+    presentation: &Presentation,
+    scroll_y: u16,
+) -> Result<GraphicsScene, TourShellError> {
+    if scroll_y > SCROLL_CONTENT_HEIGHT {
+        return Err(TourShellError::Identity);
+    }
+    let mut scene = panel_scene(bounds, "CHOOSE GEAR", first_text(presentation))?;
+    let viewport = LayoutRect {
+        x: 0,
+        y: 70,
+        width: bounds.width,
+        height: bounds.height.saturating_sub(70).max(1),
+    };
+    for (index, gear) in conduit_tour_model::CANONICAL_PATCHBAY_GEARS
+        .into_iter()
+        .enumerate()
+    {
+        let y = 76 + index as i32 * 140 - i32::from(scroll_y);
+        if y + 60 <= 70 || y >= i32::from(bounds.height) {
+            continue;
+        }
+        let row = LayoutRect {
+            x: 12,
+            y: i16::try_from(y).map_err(|_| TourShellError::Identity)?,
+            width: bounds.width.saturating_sub(24).max(1),
+            height: 60,
+        };
+        scene
+            .push(
+                GraphicsCommand::rect(
+                    row,
+                    viewport,
+                    GraphicsPaintRole::Accent,
+                    GraphicsShapeStyle::Stroke,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+        let label = alloc::format!("Select {gear}");
+        let text = LayoutRect {
+            x: row.x + 8,
+            y: row.y + 8,
+            width: row.width.saturating_sub(16).max(1),
+            height: 44,
+        };
+        scene
+            .push(
+                GraphicsCommand::text(text, viewport, GraphicsPaintRole::Foreground, &label)
+                    .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+    }
+    Ok(scene)
 }
 
 fn scroll_scene(

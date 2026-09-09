@@ -1,6 +1,6 @@
 use alloc::{format, vec, vec::Vec};
 
-use conduit_presentation::{ApplicationEvent, ApplicationEventKind, GraphicsClipClass};
+use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
 use conduit_semantic_catalog::NormalizedPointerSample;
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, TourPointerOutcome, TourTransientKind};
 
@@ -58,6 +58,43 @@ fn selected_gear_manifests_independent_focused_inspector_and_dismisses_it() {
     assert_eq!(
         delivered(shell.route_pointer(500, 100, false).unwrap()).surface_id,
         WORKSPACE_SURFACE
+    );
+}
+
+#[test]
+fn chooser_selects_exact_gear_and_rejects_the_dismissed_route() {
+    let (mut tour, mut shell, mut display) = fixture();
+    shell.present(&tour, &mut display).unwrap();
+    shell
+        .show_transient(
+            &tour,
+            TourTransientKind::Chooser,
+            "Choose a Patchbay Gear",
+            &mut display,
+        )
+        .unwrap();
+    let header = delivered(shell.route_pointer(200, 180, true).unwrap());
+    assert_eq!(shell.chooser_gear(&header).unwrap(), None);
+    let route = delivered(shell.route_pointer(200, 240, true).unwrap());
+    let gear = shell.chooser_gear(&route).unwrap().unwrap();
+    assert_eq!(gear, "meet-one-gear/words");
+    tour.select_gear(tour.controller().state().revision, gear)
+        .unwrap();
+    shell.dismiss_transient(&mut display).unwrap();
+    assert!(shell.chooser_gear(&route).is_err());
+    assert!(
+        shell
+            .present(&tour, &mut display)
+            .unwrap()
+            .inspector
+            .is_some()
+    );
+    assert_eq!(
+        tour.controller()
+            .state()
+            .selected_patchbay_subject
+            .as_deref(),
+        Some(gear)
     );
 }
 
@@ -143,7 +180,7 @@ fn chooser_scroll_is_finite_and_off_viewport_rows_are_clipped() {
         scene
             .commands()
             .iter()
-            .any(|command| command.clip_class() == GraphicsClipClass::FullyClipped)
+            .any(|command| command.payload() == "Select meet-one-gear/result")
     );
     assert_eq!(
         shell

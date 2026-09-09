@@ -5,6 +5,38 @@ use crate::display::PixelTarget;
 use super::*;
 
 impl TourShellPresenter {
+    /// Resolve a current chooser row to its exact semantic Gear identity.
+    pub fn chooser_gear(
+        &self,
+        route: &RoutedPointer,
+    ) -> Result<Option<&'static str>, TourShellError> {
+        self.validate_pointer_route(route)?;
+        let Some(state) = self
+            .surfaces
+            .iter()
+            .find(|state| state.slot == Slot::Transient)
+        else {
+            return Ok(None);
+        };
+        if route.surface_id != TRANSIENT_SURFACE
+            || state.face_subject.as_deref() != Some(TourTransientKind::Chooser.subject_identity())
+        {
+            return Ok(None);
+        }
+        let bounds = state.bounds.ok_or(TourShellError::Identity)?;
+        if route.local_y < 70
+            || route.local_x < 12
+            || route.local_x >= bounds.width.saturating_sub(12)
+        {
+            return Ok(None);
+        }
+        Ok(self.scroll_hit_subject(route)?.and_then(|row| {
+            conduit_tour_model::CANONICAL_PATCHBAY_GEARS
+                .get(usize::from(row))
+                .copied()
+        }))
+    }
+
     pub fn show_transient(
         &mut self,
         tour: &TourProduct,
