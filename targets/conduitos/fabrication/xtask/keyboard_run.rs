@@ -36,7 +36,8 @@ pub(super) fn validate(
     let advertised = observatory.hosts.first().is_some_and(|host| {
         host.advertisement.capabilities.iter().any(|capability| {
             capability.kind_id.as_str() == "input/keyboard"
-                && capability.kind_contract_revision.as_str() == "conduit.input/keyboard@1"
+                && capability.kind_contract_revision.as_str()
+                    == conduit_semantic_catalog::KEYBOARD_CONTRACT_REVISION
                 && capability.implementation.implementation_id.as_str()
                     == "conduitos/usb-hid-keyboard@1"
                 && capability.implementation.execution_profile_id.as_str()
@@ -59,7 +60,7 @@ pub(super) fn validate(
         || keyboard.boot_id != boot.boot_id
         || keyboard.offer_generation != 1
         || keyboard.kind != "input/keyboard"
-        || keyboard.contract_revision != "conduit.input/keyboard@1"
+        || keyboard.contract_revision != conduit_semantic_catalog::KEYBOARD_CONTRACT_REVISION
         || keyboard.implementation != "conduitos/usb-hid-keyboard@1"
         || keyboard.execution_profile != "conduitos/usb-input-cooperative@1"
         || keyboard.artifact_build != boot.build_id
