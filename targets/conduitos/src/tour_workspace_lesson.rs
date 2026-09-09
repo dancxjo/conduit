@@ -13,14 +13,30 @@ pub(super) fn append(
 ) -> Result<(), TourWorkspaceSceneRefusal> {
     // Tiny synthetic viewports cannot display a glyph; the ordinary shell
     // admits at least 320x240. Retain their existing geometry-only behavior.
-    if bounds.width < 32 || bounds.height <= TOP {
+    let reserved = TOP.saturating_add(super::LESSON_CONTROL_BAR_HEIGHT);
+    if bounds.width < 32 || bounds.height <= reserved {
         return Ok(());
     }
     let clip = LayoutRect {
         y: bounds.y + TOP as i16,
-        height: bounds.height - TOP,
+        height: bounds.height - reserved,
         ..bounds
     };
+    // This module owns the prose viewport. Clear it before placing the authored
+    // blocks so stale generic lesson-status text or retained pixels cannot sit
+    // underneath the measured paragraph layout. The pane title above TOP and
+    // the control footer below the clip stay independently owned.
+    scene
+        .push(
+            GraphicsCommand::rect(
+                clip,
+                clip,
+                GraphicsPaintRole::Background,
+                GraphicsShapeStyle::Fill,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+        )
+        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     let presentation = state
         .workspace_presentation()
         .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?;
@@ -46,8 +62,10 @@ pub(super) fn append(
             let end = chunk_end(remaining);
             let chunk = &remaining[..end];
             let width = bounds.width - 16;
-            let height = crate::display::text_height(chunk, width)
-                .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?;
+            // The native compositor renders proportional text through TextLayout,
+            // so it must also own the height calculation. Fallback surfaces keep
+            // the fixed-font measurement paired with their fixed-font renderer.
+            let height = measured_text_height(chunk, width)?;
             let text_bounds = LayoutRect {
                 x: bounds.x + 8,
                 y: bounds.y
@@ -74,6 +92,25 @@ pub(super) fn append(
             .ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
     }
     Ok(())
+}
+
+fn measured_text_height(text: &str, width: u16) -> Result<u16, TourWorkspaceSceneRefusal> {
+    #[cfg(feature = "native-compositor")]
+    {
+        let height = crate::display::typography::TextLayout::new(
+            text,
+            crate::display::typography::TextRole::Body,
+            width,
+        )
+        .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?
+        .finish_height();
+        return u16::try_from(height).map_err(|_| TourWorkspaceSceneRefusal::MissingRegion);
+    }
+    #[cfg(not(feature = "native-compositor"))]
+    {
+        crate::display::text_height(text, width)
+            .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)
+    }
 }
 
 fn chunk_end(text: &str) -> usize {
@@ -128,8 +165,8 @@ pub(crate) fn extent(scene: &GraphicsScene) -> Option<(u16, u16)> {
     Some((first.clip.height, content_height))
 }
 
-// Only this module places text below TOP in the leftmost pane. The other
-// workspace regions and the lesson status label retain their own geometry.
+// Only this module places text below TOP in the leftmost pane. The pane title
+// above TOP and the other workspace regions retain their own geometry.
 #[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 fn is_prose(command: &GraphicsCommand) -> bool {
     command.kind == conduit_presentation::GraphicsCommandKind::Text
@@ -137,4 +174,15 @@ fn is_prose(command: &GraphicsCommand) -> bool {
         && command.clip.y == TOP as i16
         && command.bounds.x == 8
         && command.bounds.y >= TOP as i16
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prose_measurement_is_positive_and_bounded() {
+        let height = measured_text_height("alpha beta gamma", 96).unwrap();
+        assert!(height > 0 && height < 256);
+    }
 }

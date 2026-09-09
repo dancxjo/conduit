@@ -183,15 +183,20 @@ pub(super) fn status_scene(
             height: bounds.height,
         };
         let text_bounds = LayoutRect {
-            x: cell.x + 28,
-            y: 12,
-            width: column.saturating_sub(36).max(1),
-            height: bounds.height.saturating_sub(12).max(1),
+            x: cell.x + 40,
+            y: 8,
+            width: column.saturating_sub(48).max(1),
+            height: bounds.height.saturating_sub(8).max(1),
         };
         scene
             .push(
                 GraphicsCommand::icon(
-                    LayoutRect { x: cell.x + 8, y: 12, width: 16, height: 16 },
+                    LayoutRect {
+                        x: cell.x + 8,
+                        y: 8,
+                        width: 24,
+                        height: 24,
+                    },
                     cell,
                     GraphicsPaintRole::Status,
                     icon,

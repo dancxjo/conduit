@@ -1,6 +1,8 @@
 //! Finite framebuffer mechanism below portable graphics meaning.
 
 mod font;
+#[cfg(feature = "native-compositor")]
+mod icons;
 mod text_layout;
 mod tokens;
 pub use tokens::*;
@@ -262,7 +264,18 @@ fn render_command(
             fill(target, bounds, color, receipt)
         }
         GraphicsCommandKind::Rect => stroke(target, bounds, color, receipt),
-        GraphicsCommandKind::Text | GraphicsCommandKind::Icon => text(
+        #[cfg(feature = "native-compositor")]
+        GraphicsCommandKind::Icon => icons::draw(target, command, bounds, color, receipt),
+        #[cfg(not(feature = "native-compositor"))]
+        GraphicsCommandKind::Icon => text(
+            target,
+            command.bounds,
+            bounds,
+            command.payload(),
+            color,
+            receipt,
+        ),
+        GraphicsCommandKind::Text => text(
             target,
             command.bounds,
             bounds,
