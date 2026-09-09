@@ -156,7 +156,7 @@ impl ProductJourney {
     pub(super) fn lull(&mut self) -> Result<(), JourneyError> {
         if !matches!(
             self.status,
-            JourneyStatus::ResultVisible | JourneyStatus::Stopped
+            JourneyStatus::Playing | JourneyStatus::ResultVisible | JourneyStatus::Stopped
         ) {
             return Err(JourneyError::InvalidTransition);
         }
@@ -168,13 +168,20 @@ impl ProductJourney {
             )))
             .map_err(|_| JourneyError::InvalidTransition)?;
         let body = self.body.as_ref().ok_or(JourneyError::BodyAbsent)?;
-        self.body = Some(
-            body.retain_after_lull(
+        let retained = body
+            .retain_after_lull(
                 &lulled,
                 SignId::from(format!("conduitos/product/body-retained/{}", self.revision)),
             )
-            .map_err(|_| JourneyError::InvalidTransition)?,
-        );
+            .map_err(|_| JourneyError::InvalidTransition)?;
+        // Prepare the biography transition first; publish it only after the
+        // actual kernel has retired every pending operation and owned value.
+        if let Some(kernel) = self.kernel.as_mut() {
+            kernel.cancel().map_err(JourneyError::Play)?;
+            self.retained_kernel_sign_gap = kernel.sign_retention_gap();
+        }
+        self.kernel = None;
+        self.body = Some(retained);
         self.wake = Some(lulled);
         self.status = JourneyStatus::Lulled;
         Ok(())

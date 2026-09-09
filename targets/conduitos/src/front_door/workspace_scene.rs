@@ -113,7 +113,7 @@ pub(super) fn scene(
         )?;
     }
     let lifecycle_action = match journey.status {
-        JourneyStatus::Playing => "  ·  F8 Stop",
+        JourneyStatus::Playing => "  ·  F7 Lull",
         JourneyStatus::Stopped | JourneyStatus::ResultVisible => "  ·  F7 Lull",
         _ => "",
     };

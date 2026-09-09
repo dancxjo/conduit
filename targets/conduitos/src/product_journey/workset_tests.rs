@@ -105,3 +105,26 @@ fn lull_retains_both_forms_and_next_wake_prepares_fresh_plan_play() {
     type_key(&mut journey, 5);
     assert!(journey.projection().result.is_some());
 }
+
+#[test]
+fn one_lull_action_retires_a_listening_body_and_preserves_its_workset() {
+    let (ids, offer, mut journey) = born();
+    run(&mut journey, &ids, &offer);
+    let before = journey.workspace_projection().unwrap();
+    journey
+        .accept_play_input(key(4, KeyTransition::Pressed))
+        .unwrap();
+    invoke(&mut journey, JourneyAction::Lull, &ids, &offer).unwrap();
+    assert_eq!(journey.status(), JourneyStatus::Lulled);
+    assert!(journey.kernel.is_none());
+    assert!(
+        !journey
+            .accept_play_input(key(4, KeyTransition::Released))
+            .unwrap()
+    );
+    assert_eq!(journey.workspace_projection().unwrap().forms, before.forms);
+    assert_eq!(
+        journey.workspace_projection().unwrap().body_id,
+        before.body_id
+    );
+}

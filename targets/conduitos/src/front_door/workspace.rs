@@ -52,11 +52,25 @@ impl FrontDoor {
         {
             return Err(Error::Presentation);
         }
-        for form in &workspace.forms {
-            let kind =
-                crate::native_workset::resolve(&form.form).map_err(|_| Error::Presentation)?;
-            if kind.title() != form.title {
+        if let Some(previous) = &self.workspace {
+            // This native slice has an immutable resident workset. Revisions
+            // change selection/output; they do not re-check Forms during Play.
+            if previous.forms.len() != workspace.forms.len()
+                || previous
+                    .forms
+                    .iter()
+                    .zip(&workspace.forms)
+                    .any(|(left, right)| left.form != right.form || left.title != right.title)
+            {
                 return Err(Error::Presentation);
+            }
+        } else {
+            for form in &workspace.forms {
+                let kind =
+                    crate::native_workset::resolve(&form.form).map_err(|_| Error::Presentation)?;
+                if kind.title() != form.title {
+                    return Err(Error::Presentation);
+                }
             }
         }
         self.revision.checked_add(1).ok_or(Error::Presentation)?;
