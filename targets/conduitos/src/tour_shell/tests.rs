@@ -4,6 +4,8 @@ mod transient_replacement_tests;
 
 #[path = "chooser_control_tests.rs"]
 mod chooser_control_tests;
+#[path = "revision_churn_tests.rs"]
+mod revision_churn_tests;
 
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
 use conduit_semantic_catalog::NormalizedPointerSample;
