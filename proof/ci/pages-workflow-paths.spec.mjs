@@ -69,6 +69,9 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /shard: browser-host/);
   assert.match(productWorkflow, /shard: creche-machines/);
   assert.match(productWorkflow, /shard: pages/);
+  assert.match(productWorkflow, /browser-admission-stage:\n    needs: \[plan, browser-runtimes\]/);
+  assert.match(productWorkflow, /stage-creche-product\.sh[^\n]+unused browser-proof/);
+  assert.match(productWorkflow, /name: browser-admission-\$\{\{ matrix\.shard \}\}/);
   assert.match(productWorkflow, /--workers 1/);
   assert.match(productWorkflow, /--retries 0/);
   assert.match(
@@ -82,11 +85,12 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /Restore an identical admitted ConduitOS image/);
   assert.match(productWorkflow, /if: steps\.image-cache\.outputs\.cache-hit != 'true'/);
   assert.match(productWorkflow, /conduitos-releases:\n    needs: conduitos-release-images/);
-  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, products-stage, browser-proof, pages-carrier, proof-receipts\]/);
+  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, pages-carrier, proof-receipts\]/);
   assert.match(productWorkflow, /if test "\$PRODUCT_REQUIRED" != true/);
   assert.match(productWorkflow, /test "\$STAGE_RESULT" = success/);
   assert.match(productWorkflow, /test "\$TOUR_PATCHBAY_RESULT" = success/);
   assert.match(productWorkflow, /test "\$BROWSER_RESULT" = success/);
+  assert.match(productWorkflow, /test "\$BROWSER_ADMISSION_RESULT" = success/);
   assert.match(productWorkflow, /test "\$CARRIER_RESULT" = success/);
   assert.match(productWorkflow, /test "\$RECEIPTS_RESULT" = success/);
 
