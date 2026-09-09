@@ -1,18 +1,14 @@
 //! One reusable, admitted interrupt ring; exact report completion is unchanged.
 use core::{
     ptr::write_volatile,
-    sync::atomic::{fence, Ordering},
+    sync::atomic::{Ordering, fence},
 };
 
 use super::{
-    ensure_device_present, validate_interrupt_event, HidDma, HidError, BOOT_REPORT_BYTES, HID_DMA,
-    INTERRUPT_POLL_WINDOWS, REPORT_BUFFERS, TRANSFER_RING_REPORT_SLOTS,
+    BOOT_REPORT_BYTES, HID_DMA, HidDma, HidError, INTERRUPT_POLL_WINDOWS, REPORT_BUFFERS,
+    TRANSFER_RING_REPORT_SLOTS, ensure_device_present, validate_interrupt_event,
 };
-use crate::arch::x86_64::{
-    serial,
-    usb::UsbDevice,
-    xhci::{XhciError, XhciReady},
-};
+use crate::arch::x86_64::{serial, usb::UsbDevice, xhci::XhciReady};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct Position {
@@ -117,14 +113,10 @@ pub(super) fn poll_report(
 ) -> Result<Option<()>, HidError> {
     let ring = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
     ensure_device_present(controller.port_status(device.root_port))?;
-    let event = match controller.next_event() {
-        Ok(event) if event.event_type == 34 => return Err(HidError::DeviceRemoved),
-        Ok(event) => event,
-        Err(XhciError::CommandTimeout) => return Ok(None),
-        Err(_) => {
-            ensure_device_present(controller.port_status(device.root_port))?;
-            return Err(HidError::TransferError);
-        }
+    let event = match controller.poll_event() {
+        Some(event) if event.event_type == 34 => return Err(HidError::DeviceRemoved),
+        Some(event) => event,
+        None => return Ok(None),
     };
     validate_interrupt_event(
         event,
@@ -144,7 +136,7 @@ pub(super) fn receive_report(
     dma_physical: u64,
 ) -> Result<(), HidError> {
     submit_report(controller, device, dci, index, dma_physical)?;
-    for _ in 0..INTERRUPT_POLL_WINDOWS {
+    for _ in 0..u64::from(INTERRUPT_POLL_WINDOWS) * u64::from(super::super::xhci::POLL_STEPS) {
         if poll_report(controller, device, dci, index, dma_physical)?.is_some() {
             return Ok(());
         }

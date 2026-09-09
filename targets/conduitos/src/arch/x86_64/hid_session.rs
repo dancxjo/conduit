@@ -1,9 +1,9 @@
 //! Reusable bounded-report session above validated HID boot reports.
 
 use super::{
-    derive_transitions, poll_report, receive_report, submit_report, BootReport, HidError,
-    HidKeyTransition, HidKeyboardReady, HidProof, HID_DMA, MAX_SESSION_TRANSITIONS,
-    MAX_TRANSITIONS_PER_REPORT,
+    BootReport, HID_DMA, HidError, HidKeyTransition, HidKeyboardReady, HidProof,
+    MAX_SESSION_TRANSITIONS, MAX_TRANSITIONS_PER_REPORT, derive_transitions, poll_report,
+    receive_report, submit_report,
 };
 use crate::arch::x86_64::{usb::UsbDevice, xhci::XhciReady};
 
@@ -113,7 +113,6 @@ impl HidKeyboardSession {
         {
             return Ok(None);
         }
-        super::super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-release-report\n");
         let current =
             super::parse_report(unsafe { &HID_DMA.reports[index % super::REPORT_BUFFERS] })?;
         let (transitions, count) = derive_transitions(self.previous, current)?;
@@ -132,8 +131,11 @@ impl HidKeyboardSession {
         device: &UsbDevice,
     ) -> Result<([HidKeyTransition; MAX_TRANSITIONS_PER_REPORT], usize), HidError> {
         self.begin_followup(controller, device)?;
-        for _ in 0..super::INTERRUPT_POLL_WINDOWS {
+        for _ in
+            0..u64::from(super::INTERRUPT_POLL_WINDOWS) * u64::from(super::super::xhci::POLL_STEPS)
+        {
             if let Some(report) = self.poll_followup(controller, device)? {
+                super::super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-release-report\n");
                 return Ok(report);
             }
         }

@@ -75,6 +75,16 @@ impl KeyboardIngress {
         if transitions.len() > INGRESS_CAPACITY.saturating_sub(self.pending()) {
             return Err(KeyboardIngressRefusal::Pressure);
         }
+        // Validate the whole report before mutating the queue as well: a
+        // malformed final transition must not leave a successfully queued prefix.
+        for transition in transitions {
+            keyboard_bridge::portable_key_event(
+                transition.usage(),
+                transition.pressed(),
+                transition.modifiers(),
+            )
+            .map_err(|_| KeyboardIngressRefusal::InvalidTransition)?;
+        }
         for transition in transitions {
             self.admit(*transition)?;
         }
