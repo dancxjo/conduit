@@ -1,5 +1,10 @@
 form memory_lantern {
-    message: text/literal("READY")
+    keyboard: input/keyboard
+    keymap: input/keymap
+    message: text/edit(maximum-bytes = 256)
     show: presentation/text
-    message > show
+
+    keyboard.key > keymap.key
+    keymap.text > message.fragment
+    message.current > show.text
 }

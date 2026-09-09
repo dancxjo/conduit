@@ -511,6 +511,13 @@ impl Operation for InstalledOperation {
         )
     }
 
+    fn retains_host_operation_input(&self, _request: RequestId, value: ValueRef) -> bool {
+        match self {
+            Self::TimedButtonAttempt(operation) => operation.retains_host_operation_input(value),
+            _ => false,
+        }
+    }
+
     fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
         match self {
             Self::TimeDebounce(operation) => operation.take_host_operation_cancellation(),

@@ -945,8 +945,17 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(laboratory.locator(".compact-patchbay")).toContainText("presentation/indicator");
   await morse.getByRole("button", { name: "Open in laboratory" }).click();
   await laboratory.getByRole("button", { name: "Run" }).click();
-  await expect(laboratory.locator(".morse")).toHaveText("··· ——— ···");
-  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  await page.keyboard.press("s");
+  await expect(laboratory.locator(".morse")).toHaveText("···");
+  const morsePlay = await laboratory.locator('.run-identities [data-application-component="definition"]')
+    .filter({ hasText: "Active Play" }).locator("dd").textContent();
+  await page.keyboard.press("o");
+  await expect(laboratory.locator(".morse")).toHaveText("———");
+  await page.keyboard.press("s");
+  await expect(laboratory.locator(".morse")).toHaveText("···");
+  await expect.poll(() => laboratory.locator('.run-identities [data-application-component="definition"]')
+    .filter({ hasText: "Active Play" }).locator("dd").textContent()).toBe(morsePlay);
+  await laboratory.getByRole("button", { name: "Stop", exact: true }).click();
 
   const search = page.getByRole("textbox", { name: "Search reviewed Forms" });
   await search.fill("memory presentation/text");
@@ -966,12 +975,12 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(laboratory.locator("textarea")).toHaveValue(await readFile(new URL("../../forms/memory-lantern/main.conduit", import.meta.url), "utf8"));
   await expect(laboratory.locator(".compact-patchbay")).toHaveAttribute("data-checked-form-id", reviewedIdentity);
   await laboratory.getByRole("button", { name: "Run" }).click();
-  await expect(laboratory.locator(".morse")).toHaveText("READY");
-  await expect(laboratory.locator('[data-application-key="play-status"]')).toHaveText(
-    "Quiescent — same Play remains attached after 1 planned manifestations.",
-  );
+  await page.keyboard.type("ready");
+  await expect(laboratory.locator(".morse")).toHaveText("ready");
+  await expect(laboratory.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
   const reviewedSourceIdentity = await laboratory.locator(".compact-patchbay").getAttribute("data-source-document-id");
+  await laboratory.getByRole("button", { name: "Stop", exact: true }).click();
 
   const button = cards.filter({ has: page.getByRole("heading", { name: "Button Across the Room" }) });
   await button.getByRole("button", { name: "Inspect Patchbay" }).click();
@@ -983,7 +992,13 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("button transition");
   await page.mouse.up();
   await expect(laboratory.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
-  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("2 planned manifestations");
+  await control.hover();
+  await page.mouse.down();
+  await expect(laboratory.locator(".indicator")).toHaveAttribute("aria-label", "Indicator on");
+  await page.mouse.up();
+  await expect(laboratory.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
+  await expect(laboratory.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
+  await laboratory.getByRole("button", { name: "Stop", exact: true }).click();
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
   const add = memory.getByRole("link", { name: "Add to new Body" });
   const handoff = new URL(await add.getAttribute("href"));

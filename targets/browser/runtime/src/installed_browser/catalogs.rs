@@ -84,6 +84,8 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     startup.insert(conduit_form::KindSignature {
@@ -119,7 +121,11 @@ pub(crate) fn install_checked_structured_selectors(
             _ => None,
         })
     {
-        for temporal in [PortTemporal::Value, PortTemporal::Flow { closes: true }] {
+        for temporal in [
+            PortTemporal::Value,
+            PortTemporal::Flow { closes: true },
+            PortTemporal::Flow { closes: false },
+        ] {
             let definition = conduit_form::structured_selector_definition(selector, temporal);
             if profile.get(&definition.kind_id).is_none() {
                 profile

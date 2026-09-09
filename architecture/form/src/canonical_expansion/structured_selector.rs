@@ -100,6 +100,10 @@ pub(super) fn resolve_selectors(
             PendingStage::Selector { .. } => None,
         });
         let temporal = match (left, right) {
+            (
+                Some(conduit_core::PortTemporal::Flow { closes: false }),
+                Some(conduit_core::PortTemporal::Value),
+            ) => conduit_core::PortTemporal::Flow { closes: false },
             (Some(left), Some(right)) if left != right => {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-045",

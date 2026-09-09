@@ -1,11 +1,10 @@
 # Ordered transitions with an explicit nominal period; this does not measure time.
 form pulse-observation (
     period-ms: Count = 240
-    maximum-pulses: Count = 64
-    > tick: value/tick@1...|
-    observation: time/pulse-observation@1...| >
+    > tick: value/tick@1...
+    observation: time/pulse-observation@1... >
 ) {
-    observe: time/pulse-observe(period-ms, maximum-pulses)
+    observe: time/pulse-observe(period-ms)
     tick > observe.tick
     observe.observation > observation
 }

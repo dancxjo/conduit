@@ -39,7 +39,7 @@ fn prepare(
     validate_placement(placement, &offer())?;
     Ok(super::BrowserOperation::presentation(
         conduit_time::RHYTHM_STATE_ENCODED_LEN as u32,
-        conduit_time::MAXIMUM_OBSERVED_PULSES.into(),
+        1,
     ))
 }
 

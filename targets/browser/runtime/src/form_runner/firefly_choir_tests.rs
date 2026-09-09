@@ -59,13 +59,13 @@ fn pulse_light_and_tone_are_explicit_and_sound_omission_removes_its_cord() {
 }
 
 #[test]
-fn canonical_firefly_choir_manifests_four_exact_bounded_pulses() {
+fn canonical_firefly_choir_manifests_pulse_five_and_remains_alive() {
     let source = include_str!("../../../../../forms/firefly-choir/main.conduit");
     let (mut session, mut effect) =
         TourSession::prepare("browser/firefly", "boot/firefly", source, 1).unwrap();
     let mut pulses = Vec::new();
     let mut rhythms = Vec::new();
-    loop {
+    for _ in 0..80 {
         match effect {
             TourHostEffect::Timer(timer) => {
                 assert_eq!(timer.duration_millis, 240)
@@ -81,33 +81,23 @@ fn canonical_firefly_choir_manifests_four_exact_bounded_pulses() {
             },
             _ => panic!("Firefly Choir requested an unrelated effect"),
         }
-        match session.advance().unwrap() {
+        let progress = session.advance().unwrap();
+        if pulses.len() >= 6 && rhythms.len() >= 6 {
+            assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+            assert_eq!(
+                pulses,
+                (0..6)
+                    .map(|sequence| { (sequence, format!("pulse {sequence} · 240 ms"),) })
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(rhythms.len(), 6);
+            return;
+        }
+        match progress {
             TourProgress::Effect(next) => effect = *next,
-            TourProgress::Receipt(receipt) => {
-                assert_eq!(receipt.disposition, "completed");
-                assert_eq!(receipt.timer_completions, 4);
-                assert_eq!(receipt.manifestation_completions, 8);
-                break;
-            }
-            _ => panic!("Firefly Choir did not continue its bounded effect sequence"),
+            TourProgress::Receipt(_) => panic!("living Firefly Choir completed without Stop"),
+            _ => panic!("Firefly Choir did not continue its recurring effect sequence"),
         }
     }
-    assert_eq!(
-        pulses,
-        [
-            (0, "pulse 0 · 240 ms".into()),
-            (1, "pulse 1 · 240 ms".into()),
-            (2, "pulse 2 · 240 ms".into()),
-            (3, "pulse 3 · 240 ms".into()),
-        ]
-    );
-    assert_eq!(
-        rhythms,
-        [
-            "rhythm 0 · next 0 ms · period 270 ms · peer 1",
-            "rhythm 0 · next 64 ms · period 262 ms · peer 2",
-            "rhythm 0 · next 64 ms · period 262 ms · peer 3",
-            "rhythm 0 · next 64 ms · period 262 ms · peer 4",
-        ]
-    );
+    panic!("Firefly Choir did not reach pulse five in one Play");
 }

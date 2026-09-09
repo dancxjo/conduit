@@ -365,6 +365,10 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
     fn accepts_input_while_host_operation_pending(&self) -> bool {
         self.operation.accepts_input_while_host_operation_pending()
     }
+
+    fn retains_host_operation_input(&self, request: RequestId, value: ValueRef) -> bool {
+        self.operation.retains_host_operation_input(request, value)
+    }
 }
 
 impl<O, const PORTS: usize> OperationDriver<O, PORTS> {

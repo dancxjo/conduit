@@ -1,6 +1,5 @@
 form clock-demo {
-    # Transactional demo: emits its admitted finite tick sequence, then completes.
-    complete
+    # Standing clock: bounded instantaneous pressure, alive until Stop.
     clock: time/every(1s)
     clock > presentation/tick
 }

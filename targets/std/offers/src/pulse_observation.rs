@@ -1,4 +1,4 @@
-//! Finite, effect-free realization of ordered nominal pulse observations.
+//! Bounded, effect-free realization of recurring nominal pulse observations.
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
     FaceStartupParameter, ImplementationId, ImplementationOffer,
@@ -15,7 +15,7 @@ pub fn pulse_observe_offer() -> CapabilityOffer {
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
-        startup_parameters: ["period-ms", "maximum-pulses"]
+        startup_parameters: ["period-ms"]
             .into_iter()
             .map(|name| FaceStartupParameter {
                 name: name.into(),

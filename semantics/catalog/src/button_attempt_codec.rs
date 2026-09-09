@@ -66,6 +66,7 @@ impl BoundedButtonAttemptCodec {
             &self.output_type_prefix,
             &self.event_times[..self.count],
         );
+        self.count = 0;
         Ok(ButtonAttemptObservation::Complete(&self.output))
     }
 }
@@ -233,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn malformed_overflow_and_stale_clock_are_distinct() {
+    fn malformed_capacity_and_stale_clock_are_distinct() {
         let mut host = BoundedButtonAttemptCodec::prepare(2);
         assert_eq!(
             host.observe(b"bad", 1).unwrap_err(),
@@ -247,14 +248,24 @@ mod tests {
             host.observe(&transition(true, 2), 10).unwrap_err(),
             ButtonAttemptRefusal::ClockRegressed
         );
-        let mut one = BoundedButtonAttemptCodec::prepare(1);
-        assert!(matches!(
-            one.observe(&transition(true, 1), 1),
-            Ok(ButtonAttemptObservation::Complete(_))
-        ));
+        let mut none = BoundedButtonAttemptCodec::prepare(0);
         assert_eq!(
-            one.observe(&transition(true, 2), 2).unwrap_err(),
+            none.observe(&transition(true, 2), 2).unwrap_err(),
             ButtonAttemptRefusal::TooManyEvents
         );
+    }
+
+    #[test]
+    fn completed_attempt_reuses_the_same_fixed_storage() {
+        let mut host = BoundedButtonAttemptCodec::prepare(2);
+        for (sequence, now) in [(1, 10), (2, 20), (3, 30), (4, 40)] {
+            let observation = host.observe(&transition(true, sequence), now).unwrap();
+            if sequence.is_multiple_of(2) {
+                assert!(matches!(observation, ButtonAttemptObservation::Complete(_)));
+            } else {
+                assert!(matches!(observation, ButtonAttemptObservation::Pressed));
+            }
+        }
+        assert_eq!(host.count, 0);
     }
 }

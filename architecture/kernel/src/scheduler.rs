@@ -180,6 +180,9 @@ pub trait StepOperation<const PORTS: usize> {
     fn accepts_input_while_host_operation_pending(&self) -> bool {
         false
     }
+    fn retains_host_operation_input(&self, _request: RequestId, _value: ValueRef) -> bool {
+        false
+    }
     fn cancel(&mut self) {}
 }
 
@@ -566,6 +569,7 @@ pub struct FixedScheduler<
     ready: [bool; NODES],
     completed: [bool; NODES],
     cursor: usize,
+    host_request_cursor: usize,
     decisions: u32,
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
@@ -660,6 +664,7 @@ where
             ready: core::array::from_fn(|node| node < active_nodes),
             completed: [false; NODES],
             cursor: 0,
+            host_request_cursor: 0,
             decisions: 0,
             last_host_request: [None; NODES],
             cancelled: false,
@@ -1199,13 +1204,45 @@ where
     }
 
     pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
-        let pending = self
-            .pending_host_operations
-            .iter_mut()
-            .flatten()
-            .find(|pending| !pending.dispatched)?;
-        pending.dispatched = true;
-        Some(pending.request)
+        self.next_host_request_matching(|_| true)
+    }
+
+    /// Selects the next undispatched request accepted by the Host adapter.
+    /// Non-matching requests remain undispatched and retain their exact order
+    /// for a later call.
+    pub fn next_host_request_matching(
+        &mut self,
+        mut accepts: impl FnMut(&HostOperationRequest) -> bool,
+    ) -> Option<HostOperationRequest> {
+        for offset in 0..PENDING_REQUESTS {
+            let slot = (self.host_request_cursor + offset) % PENDING_REQUESTS;
+            let Some(pending) = self.pending_host_operations[slot].as_mut() else {
+                continue;
+            };
+            if pending.dispatched || !accepts(&pending.request) {
+                continue;
+            }
+            pending.dispatched = true;
+            self.host_request_cursor = (slot + 1) % PENDING_REQUESTS;
+            return Some(pending.request);
+        }
+        None
+    }
+
+    pub fn has_ready_work(&self) -> bool {
+        (0..self.active_nodes).any(|node| {
+            let waiting_for_host_completion =
+                self.pending_host_operations
+                    .iter()
+                    .flatten()
+                    .any(|pending| {
+                        usize::from(pending.request.node.0) == node && pending.completion.is_none()
+                    });
+            self.ready[node]
+                && !self.completed[node]
+                && (!waiting_for_host_completion
+                    || self.drivers[node].accepts_input_while_host_operation_pending())
+        })
     }
 
     pub fn next_host_cancellation(&mut self) -> Option<HostOperationCancellation> {
@@ -1265,13 +1302,9 @@ where
             self.values.get(output.value)?;
         }
         self.ensure_sign_capacity(1)?;
-        // A zero-byte operation has no payload ownership to transfer. Its
-        // exact empty marker remains reusable by a bounded source operation.
-        if pending.maximum_input_bytes > 0
-            && outcome.output.map(|output| output.value) != Some(pending.request.input.value)
-        {
-            self.values.release(pending.request.input.value)?;
-        }
+        // Input ownership remains with the pending completion until its node
+        // commits the resume step. That transaction may reuse the same exact
+        // value for a re-armed bounded Host request.
         self.pending_host_operations[slot]
             .as_mut()
             .ok_or(SchedulerError::HostOperationCompletionRejected)?
@@ -1617,7 +1650,7 @@ where
             });
         }
 
-        let consumed_host_value = if consumed_host_completion {
+        let (consumed_host_input, consumed_host_value) = if consumed_host_completion {
             let slot = self
                 .pending_host_operations
                 .iter()
@@ -1634,13 +1667,21 @@ where
             let pending = self.pending_host_operations[slot]
                 .take()
                 .ok_or(SchedulerError::InvalidHostOperationAccess)?;
-            pending
+            let retains_input = self.drivers[node]
+                .retains_host_operation_input(pending.request.request, pending.request.input.value);
+            let completion = pending
                 .completion
-                .ok_or(SchedulerError::InvalidHostOperationAccess)?
-                .output
-                .map(|output| output.value)
+                .ok_or(SchedulerError::InvalidHostOperationAccess)?;
+            (
+                (pending.maximum_input_bytes > 0
+                    && !retains_input
+                    && completion.output.map(|output| output.value)
+                        != Some(pending.request.input.value))
+                .then_some(pending.request.input.value),
+                completion.output.map(|output| output.value),
+            )
         } else {
-            None
+            (None, None)
         };
 
         let mut handled = [None; PORTS];
@@ -1702,6 +1743,13 @@ where
         }
         if let Some(value) = consumed_host_value {
             if !outputs.iter().flatten().any(|output| *output == value)
+                && host_request.map(|request| request.2.value) != Some(value)
+            {
+                self.values.release(value)?;
+            }
+        }
+        if let Some(value) = consumed_host_input {
+            if consumed_host_value != Some(value)
                 && host_request.map(|request| request.2.value) != Some(value)
             {
                 self.values.release(value)?;
@@ -2028,29 +2076,9 @@ where
     fn ensure_sign_capacity(&self, additional: usize) -> Result<(), SchedulerError> {
         let additional_items =
             u16::try_from(additional).map_err(|_| SchedulerError::InvalidPlan)?;
-        if self
-            .signs
-            .len()
-            .checked_add(additional_items)
-            .filter(|len| *len <= self.signs.item_capacity())
-            .is_none()
-        {
-            return Err(SchedulerError::Sign(SignError::ItemCapacityExceeded));
-        }
-        let charge = u32::try_from(core::mem::size_of::<crate::KernelEvent>())
-            .map_err(|_| SchedulerError::InvalidPlan)?
-            .checked_mul(u32::from(additional_items))
-            .ok_or(SchedulerError::InvalidPlan)?;
-        if self
-            .signs
-            .used_bytes()
-            .checked_add(charge)
-            .filter(|bytes| *bytes <= self.signs.byte_capacity())
-            .is_none()
-        {
-            return Err(SchedulerError::Sign(SignError::ByteCapacityExceeded));
-        }
-        Ok(())
+        self.signs
+            .ensure_capacity(additional_items)
+            .map_err(SchedulerError::Sign)
     }
 
     fn ensure_remote_sign_capacity(&self, additional: usize) -> Result<(), SchedulerError> {

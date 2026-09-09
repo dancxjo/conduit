@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection, PortTemporal};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostOperationDisposition,
+    HostOperationId, OperationAction, OperationInput, PortId, RequestId,
 };
 
 pub(super) static STATE_COUNT_FACTORY: InstalledFactory = InstalledFactory {
@@ -18,30 +18,25 @@ pub(super) static COUNT_PRESENTATION_FACTORY: InstalledFactory = InstalledFactor
 };
 
 pub(super) struct StateCountOperation {
-    values: Vec<ValueRef>,
-    next: usize,
+    current: u64,
     initial_emitted: bool,
 }
 
 pub(super) struct CountPresentationOperation {
     pending: Option<RequestId>,
     next: u32,
-    maximum_values: u32,
 }
 
 impl StateCountOperation {
     pub(super) fn allocation_capacity(&self) -> usize {
-        self.values.capacity()
+        0
     }
 
     pub(super) fn start(&mut self) -> OperationAction {
-        self.values.first().copied().map_or_else(
-            || InstalledOperation::fail(10),
-            |value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            },
-        )
+        OperationAction::EmitCanonical {
+            port: PortId(0),
+            value: CanonicalValue::new(&self.current.to_le_bytes()).expect("Count is eight bytes"),
+        }
     }
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
@@ -49,14 +44,18 @@ impl StateCountOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if self.initial_emitted
-                && value.byte_len == conduit_time::TICK_ENCODED_LEN
-                && self.next + 1 < self.values.len() =>
-            {
-                self.next += 1;
-                OperationAction::Emit {
+            } if self.initial_emitted && value.byte_len == conduit_time::TICK_ENCODED_LEN => {
+                let Some(current) = self.current.checked_add(1) else {
+                    return OperationAction::Fail(Failure {
+                        code: FailureCode::IdentityCapacityExhausted,
+                        detail: 10,
+                    });
+                };
+                self.current = current;
+                OperationAction::EmitCanonical {
                     port: PortId(0),
-                    value: self.values[self.next],
+                    value: CanonicalValue::new(&current.to_le_bytes())
+                        .expect("Count is eight bytes"),
                 }
             }
             OperationInput::Closed { port: PortId(0) } if self.initial_emitted => {
@@ -82,9 +81,16 @@ impl CountPresentationOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if self.pending.is_none() && self.next < self.maximum_values => {
+            } if self.pending.is_none() => {
                 let request = RequestId(self.next);
+                let Some(next) = self.next.checked_add(1) else {
+                    return OperationAction::Fail(Failure {
+                        code: FailureCode::IdentityCapacityExhausted,
+                        detail: 11,
+                    });
+                };
                 self.pending = Some(request);
+                self.next = next;
                 let Ok(input) =
                     BoundedValueRef::new(value, conduit_semantic_catalog::COUNT_ENCODED_LEN)
                 else {
@@ -103,7 +109,6 @@ impl CountPresentationOperation {
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
-                self.next = self.next.saturating_add(1);
                 OperationAction::Await
             }
             OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
@@ -120,10 +125,9 @@ impl CountPresentationOperation {
 
 fn state_count_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_state_count(placement)?;
-    let values = conduit_semantic_catalog::MAX_COUNT_VALUES;
     Ok(OperationBudget {
-        value_items: values as u16,
-        value_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN * values as u32,
+        value_items: 0,
+        value_bytes: 0,
         host_requests: 0,
         sign_items: 96,
         maximum_value_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN,
@@ -132,38 +136,22 @@ fn state_count_budget(placement: &PlannedGear) -> Result<OperationBudget, String
 
 fn prepare_state_count(
     placement: &PlannedGear,
-    values: &mut conduit_kernel::HostedValueStore,
+    _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_state_count(placement)?;
     let start = count_configuration(placement, "start", u64::MAX)?;
-    let mut prepared = Vec::with_capacity(conduit_semantic_catalog::MAX_COUNT_VALUES as usize);
-    for offset in 0..conduit_semantic_catalog::MAX_COUNT_VALUES {
-        let count = conduit_semantic_catalog::bounded_count_value(start, offset)
-            .ok_or_else(|| "state/count exceeds the Count range".to_string())?;
-        prepared.push(
-            values
-                .store(&count.to_le_bytes())
-                .map_err(|error| format!("store current count: {error:?}"))?,
-        );
-    }
     Ok(InstalledOperation::StateCount(StateCountOperation {
-        values: prepared,
-        next: 0,
+        current: start,
         initial_emitted: false,
     }))
 }
 
 fn count_presentation_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_count_presentation(placement)?;
-    let maximum = count_configuration(
-        placement,
-        "maximum-values",
-        conduit_semantic_catalog::MAX_COUNT_VALUES,
-    )?;
     Ok(OperationBudget {
         value_items: 0,
         value_bytes: 0,
-        host_requests: maximum as usize,
+        host_requests: 1,
         sign_items: 64,
         maximum_value_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN,
     })
@@ -178,11 +166,6 @@ fn prepare_count_presentation(
         CountPresentationOperation {
             pending: None,
             next: 0,
-            maximum_values: count_configuration(
-                placement,
-                "maximum-values",
-                conduit_semantic_catalog::MAX_COUNT_VALUES,
-            )? as u32,
         },
     ))
 }
@@ -215,19 +198,14 @@ fn validate_state_count(placement: &PlannedGear) -> Result<(), String> {
         conduit_std_offers::STATE_COUNT_ARTIFACT,
         "bump",
         conduit_time::TICK_VALUE_KIND,
-        PortTemporal::Flow { closes: true },
+        PortTemporal::Flow { closes: false },
         Some((
             "value",
             conduit_semantic_catalog::STATE_COUNT_VALUE_KIND,
             PortTemporal::Current,
         )),
     )?;
-    count_configuration(
-        placement,
-        "start",
-        u64::MAX - conduit_time::TIME_EVERY_COUNT,
-    )
-    .map(|_| ())
+    count_configuration(placement, "start", u64::MAX).map(|_| ())
 }
 
 fn validate_count_presentation(placement: &PlannedGear) -> Result<(), String> {
@@ -243,15 +221,11 @@ fn validate_count_presentation(placement: &PlannedGear) -> Result<(), String> {
         PortTemporal::Current,
         None,
     )?;
-    let maximum = count_configuration(
-        placement,
-        "maximum-values",
-        conduit_semantic_catalog::MAX_COUNT_VALUES,
-    )?;
-    if maximum == 0 {
-        return Err("presentation/count maximum-values must be positive".to_string());
-    }
-    Ok(())
+    placement
+        .configuration
+        .is_empty()
+        .then_some(())
+        .ok_or_else(|| "presentation/count accepts no lifetime configuration".to_string())
 }
 
 #[allow(clippy::too_many_arguments)]

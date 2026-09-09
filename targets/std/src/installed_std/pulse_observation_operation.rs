@@ -1,13 +1,12 @@
-//! Tick bytes are validated at the kernel value boundary; all outputs exist before Play.
+//! Tick bytes are validated at the kernel value boundary; output storage is transaction-local.
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
+use conduit_kernel::HostedValueStore;
 #[cfg(test)]
-use conduit_kernel::{Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef};
-use conduit_kernel::{HostedValueStore, ValueStorage};
-use conduit_time::{
-    PulseObservationConfiguration, PulseObservationOperation, PULSE_OBSERVATION_ENCODED_LEN,
-    TICK_ENCODED_LEN,
+use conduit_kernel::{
+    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
 };
+use conduit_time::{PulseObservationConfiguration, PulseObservationOperation, TICK_ENCODED_LEN};
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::PULSE_OBSERVE_IMPLEMENTATION,
@@ -41,35 +40,23 @@ fn validate(placement: &PlannedGear) -> Result<PulseObservationConfiguration, St
 }
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    let configuration = validate(placement)?;
+    validate(placement)?;
     Ok(OperationBudget {
-        value_items: configuration.maximum_pulses,
-        value_bytes: u32::from(configuration.maximum_pulses) * PULSE_OBSERVATION_ENCODED_LEN as u32,
+        value_items: 0,
+        value_bytes: 0,
         host_requests: 0,
-        sign_items: configuration.maximum_pulses * 8 + 16,
+        sign_items: 64,
         maximum_value_bytes: TICK_ENCODED_LEN,
     })
 }
 
 fn prepare(
     placement: &PlannedGear,
-    values: &mut HostedValueStore,
+    _values: &mut HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     let configuration = validate(placement)?;
-    let mut outputs = Vec::with_capacity(configuration.maximum_pulses.into());
-    for sequence in 0..u32::from(configuration.maximum_pulses) {
-        let observation = configuration
-            .observe(sequence, sequence.into())
-            .expect("admitted sequence");
-        outputs.push(
-            values
-                .store(&conduit_time::encode_pulse_observation(observation))
-                .map_err(|error| format!("store pulse observation: {error:?}"))?,
-        );
-    }
     Ok(InstalledOperation::PulseObserve(
-        PulseObservationOperation::from_prepared_outputs(configuration, outputs)
-            .map_err(str::to_owned)?,
+        PulseObservationOperation::new(configuration),
     ))
 }
 

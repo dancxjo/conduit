@@ -1,8 +1,6 @@
-# A finite portable controller-to-pitch Form. Pointer acquisition and visible
+# A living portable controller-to-pitch Form. Pointer acquisition and visible
 # quantity manifestation are selected Host realizations, not authored APIs.
 form pocket-theremin {
-    # Transactional demo: one admitted pointer-to-pitch transition.
-    complete
     controller: input/pointer-source
     normalize: math/normalized-quantity-scalar
     pitch: quantity-range-map

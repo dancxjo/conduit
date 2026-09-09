@@ -90,7 +90,11 @@ impl PatternComparisonOperation {
     }
 
     pub fn advance(&mut self) -> OperationAction {
-        if self.closed == [true, true] && self.emitted {
+        if self.emitted {
+            self.emitted = false;
+            self.received[0] = false;
+        }
+        if self.closed == [true, true] {
             OperationAction::Complete
         } else {
             OperationAction::Await

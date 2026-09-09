@@ -356,8 +356,24 @@ pub(super) fn connect(
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     match (source, sink) {
         (StageSource::Internal(source), StageSink::Internal(sink)) => {
+            let reactively_lifted_value = matches!(
+                (source.port.temporal, sink.port.temporal),
+                (
+                    conduit_core::PortTemporal::Flow { closes: false },
+                    conduit_core::PortTemporal::Value
+                )
+            );
+            let finite_flow_into_standing_consumer = matches!(
+                (source.port.temporal, sink.port.temporal),
+                (
+                    conduit_core::PortTemporal::Flow { closes: true },
+                    conduit_core::PortTemporal::Flow { closes: false }
+                )
+            );
             if source.port.value_kind != sink.port.value_kind
-                || source.port.temporal != sink.port.temporal
+                || (source.port.temporal != sink.port.temporal
+                    && !reactively_lifted_value
+                    && !finite_flow_into_standing_consumer)
             {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-045",

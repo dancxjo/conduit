@@ -390,7 +390,7 @@ pub(crate) fn advertisement() -> HostAdvertisement {
             port_id: port_id("pointer"),
             value_kind: value_kind.clone(),
             direction: PortDirection::Output,
-            temporal: PortTemporal::Value,
+            temporal: PortTemporal::Flow { closes: false },
         }],
         host_operations: vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(SOURCE_OPERATION),

@@ -16,7 +16,7 @@ pub const MAX_CANDIDATE_ADVERTISEMENT_BYTES: u32 = 112 * 1024;
 pub const MAX_CANDIDATE_TOTAL_BYTES: u32 = 4 * MAX_CANDIDATE_ADVERTISEMENT_BYTES;
 pub const MAX_CANDIDATE_LABEL_BYTES: usize = 128;
 pub const MAX_CANDIDATE_RESOURCES: usize = 32;
-pub const MAX_CANDIDATE_CAPABILITIES: usize = 100;
+pub const MAX_CANDIDATE_CAPABILITIES: usize = 104;
 pub const MAX_CANDIDATE_PLANNER_CAPABILITIES: usize = 8;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]

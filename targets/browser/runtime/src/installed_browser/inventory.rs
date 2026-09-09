@@ -135,6 +135,22 @@ mod tests {
                 && resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS
                 && resource.capacity_units == 1
         }));
+        for implementation in [
+            "browser/window-keyboard@1",
+            "browser/window-primary-button@1",
+        ] {
+            let offer = advertisement
+                .capabilities
+                .iter()
+                .find(|offer| offer.implementation.implementation_id.as_str() == implementation)
+                .unwrap();
+            assert_eq!(offer.limits.max_active_instances, 16);
+        }
+        assert!(advertisement.resources.iter().any(|resource| {
+            resource.pool_id.as_str() == "browser/window-input"
+                && resource.class_id.as_str() == super::super::input::WINDOW_INPUT_RESOURCE_CLASS
+                && resource.capacity_units == 16
+        }));
         assert!(
             inventory
                 .entries

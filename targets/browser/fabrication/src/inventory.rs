@@ -106,7 +106,7 @@ pub const BROWSER_HUMAN_PRESENTATION_REALIZATIONS: &[BrowserRealizationDescripto
         "browser/presentation-count@1",
         "conduit-browser-runtime/installed-state-time@1",
         "conduit.host/browser-present-count@1",
-        limits(1, 5, 4_096),
+        limits(1, 1, 4_096),
     ),
     realization(
         "browser/dom-presentation@1",

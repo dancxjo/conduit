@@ -1,13 +1,13 @@
 use super::*;
 
 #[test]
-fn canonical_clock_executes_four_exact_tick_manifestations_in_the_browser_kernel() {
+fn canonical_clock_executes_five_ticks_then_stops_in_the_browser_kernel() {
     let source = include_str!("../../../../../forms/clock/main.conduit");
     let (mut session, mut effect) =
         TourSession::prepare("browser/clock", "boot/clock", source, 1).unwrap();
     let mut ticks = Vec::new();
     let mut timers = 0;
-    loop {
+    let receipt = loop {
         match effect {
             TourHostEffect::Timer(timer) => {
                 assert_eq!(timer.duration_millis, 1000);
@@ -23,16 +23,21 @@ fn canonical_clock_executes_four_exact_tick_manifestations_in_the_browser_kernel
             _ => panic!("canonical clock requested an unrelated effect"),
         }
         match session.advance().unwrap() {
-            TourProgress::Effect(next) => effect = *next,
+            TourProgress::Effect(next) => {
+                effect = *next;
+                if ticks.len() == 5 {
+                    break session.cancel().unwrap();
+                }
+            }
             TourProgress::Receipt(receipt) => {
-                assert_eq!(receipt.disposition, "completed");
-                assert_eq!(receipt.timer_completions, 4);
-                assert_eq!(receipt.manifestation_completions, 4);
-                break;
+                panic!("standing clock ended before Stop: {receipt:?}");
             }
             _ => panic!("canonical clock did not continue its exact effect sequence"),
         }
-    }
-    assert_eq!(timers, 4);
-    assert_eq!(ticks, ["0", "1", "2", "3"]);
+    };
+    assert_eq!(receipt.disposition, "cancelled");
+    assert_eq!(receipt.timer_completions, 5);
+    assert_eq!(receipt.manifestation_completions, 5);
+    assert_eq!(timers, 5);
+    assert_eq!(ticks, ["0", "1", "2", "3", "4"]);
 }

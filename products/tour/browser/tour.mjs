@@ -890,17 +890,27 @@ async function runMultiHostListing(runner, source) {
         continue;
       }
       if (sourceProgress.effect_kind === "input") {
-        runner.querySelector(".input-button").hidden = false;
-        runner.playStatus.ordinary("Waiting for one admitted button transition on Host A…");
-        const event = await humanInput.nextButton();
-        if (current !== generation) return;
         const api = host.runtime;
-        const encodedCode = api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence));
-        if (encodedCode < 0) throw new Error(`button transition encoding refused (${encodedCode})`);
-        const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
+        let bytes;
+        if (sourceProgress.input.effect_kind === "key-event") {
+          runner.playStatus.ordinary("Waiting for one admitted keyboard transition on Host A…");
+          const event = await humanInput.nextKeyboard();
+          if (current !== generation) return;
+          bytes = event.canonical_bytes;
+        } else if (sourceProgress.input.effect_kind === "button-transition") {
+          runner.querySelector(".input-button").hidden = false;
+          runner.playStatus.ordinary("Waiting for one admitted button transition on Host A…");
+          const event = await humanInput.nextButton();
+          if (current !== generation) return;
+          const encodedCode = api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence));
+          if (encodedCode < 0) throw new Error(`button transition encoding refused (${encodedCode})`);
+          bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
+        } else {
+          throw new Error(`unsupported multi-Host input effect ${sourceProgress.input.effect_kind}`);
+        }
         const play = encoder.encode(sourceProgress.input.active_play_id);
         if (bytes.length > sourceProgress.input.maximum_output_bytes || play.length + bytes.length > api.conduit_tour_multi_input_capacity()) {
-          throw new Error("button transition exceeds its admitted completion bound");
+          throw new Error("Host input exceeds its admitted completion bound");
         }
         const completion = new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), play.length + bytes.length);
         completion.set(play);

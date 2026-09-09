@@ -15,10 +15,10 @@ use conduit_core::{
 
 pub const STATE_COUNT_KIND: &str = "state/count";
 pub const STATE_COUNT_VALUE_KIND: &str = "value/count@1";
-pub const STATE_COUNT_CONTRACT_REVISION: &str = "conduit.std/state-count@1";
+pub const STATE_COUNT_CONTRACT_REVISION: &str = "conduit.std/state-count@2";
 
 pub const COUNT_PRESENTATION_KIND: &str = "presentation/count";
-pub const COUNT_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-count@1";
+pub const COUNT_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-count@2";
 pub const COUNT_ENCODED_LEN: u32 = 8;
 pub const MAX_COUNT_VALUES: u64 = conduit_time::TIME_EVERY_COUNT + 1;
 
@@ -34,13 +34,13 @@ pub fn state_count_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(STATE_COUNT_KIND),
         plain_name: "Current count".to_string(),
-        summary: "Emit an initial count and one current count after each closing-flow tick."
+        summary: "Emit an initial count and one current count after each open-flow tick."
             .to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("bump"),
             value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
             direction: PortDirection::Input,
-            temporal: PortTemporal::Flow { closes: true },
+            temporal: PortTemporal::Flow { closes: false },
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("value"),
@@ -53,13 +53,13 @@ pub fn state_count_contract() -> StandardKindContract {
             default_value: ConfigurationValue::U64(0),
             rule: StandardConfigurationRule::U64Range {
                 minimum: 0,
-                maximum: u64::MAX - conduit_time::TIME_EVERY_COUNT,
+                maximum: u64::MAX,
             },
         }],
         limits: CapabilityLimits {
             max_active_instances: 16,
-            max_queue_items: conduit_time::TIME_EVERY_COUNT as u16,
-            max_queue_bytes: 64,
+            max_queue_items: 1,
+            max_queue_bytes: COUNT_ENCODED_LEN,
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
@@ -73,7 +73,8 @@ pub fn count_presentation_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(COUNT_PRESENTATION_KIND),
         plain_name: "Count presentation".to_string(),
-        summary: "Present up to five exact current count observations on stdout.".to_string(),
+        summary: "Present each exact current count observation while its Play remains alive."
+            .to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("value"),
             value_kind: kind_id(STATE_COUNT_VALUE_KIND),
@@ -81,18 +82,11 @@ pub fn count_presentation_contract() -> StandardKindContract {
             temporal: PortTemporal::Current,
         }],
         outputs: Vec::new(),
-        configuration: vec![StandardConfigurationField {
-            key: "maximum-values".to_string(),
-            default_value: ConfigurationValue::U64(MAX_COUNT_VALUES),
-            rule: StandardConfigurationRule::U64Range {
-                minimum: 1,
-                maximum: MAX_COUNT_VALUES,
-            },
-        }],
+        configuration: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 16,
-            max_queue_items: MAX_COUNT_VALUES as u16,
-            max_queue_bytes: 64,
+            max_queue_items: 1,
+            max_queue_bytes: COUNT_ENCODED_LEN,
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
@@ -165,7 +159,7 @@ mod tests {
         let state = state_count_contract();
         assert_eq!(
             state.inputs[0].temporal,
-            PortTemporal::Flow { closes: true }
+            PortTemporal::Flow { closes: false }
         );
         assert_eq!(state.outputs[0].temporal, PortTemporal::Current);
         assert_eq!(state.configuration[0].key, "start");
@@ -185,7 +179,7 @@ mod tests {
         conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
         crate::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
         install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-        let source = "form count (\n    start: Count = 0\n    bump: Tick...| > value: $Count\n) {\n    gear: state/count(start)\n    bump > gear.bump\n    gear.value > value\n}\nform main {\n    clock: time/every(1s)\n    count: count\n    show: presentation/count\n    clock > count > show\n}\n";
+        let source = "form count (\n    start: Count = 0\n    bump: Tick... > value: $Count\n) {\n    gear: state/count(start)\n    bump > gear.bump\n    gear.value > value\n}\nform main {\n    clock: time/every(1s)\n    count: count\n    show: presentation/count\n    clock > count > show\n}\n";
         let syntax = conduit_form::parse_syntax_document(source);
         let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
         let expanded = conduit_form::expand_canonical_form(&checked, "main", &profile).unwrap();

@@ -2,7 +2,7 @@
 use super::*;
 
 #[test]
-fn timed_input_compares_through_canonical_nested_forms_and_completes() {
+fn timed_input_compares_through_canonical_nested_forms_until_stop() {
     let source = comparison_source();
     let projection = compact_patchbay::project_with_presentation(
         &source,
@@ -28,7 +28,6 @@ fn timed_input_compares_through_canonical_nested_forms_and_completes() {
     let mut transition = 0_u64;
     let mut clock = 0;
     let times = [100_u64, 150, 200, 250, 500];
-    let mut seen = None;
     for _ in 0..80 {
         let progress = session.poll_effect().unwrap();
         let progress = match progress {
@@ -45,9 +44,9 @@ fn timed_input_compares_through_canonical_nested_forms_and_completes() {
                     .pending
                     .iter()
                     .min_by_key(|effect| match effect.effect {
-                        engine::BrowserHostEffect::ClockObservation => 0,
-                        engine::BrowserHostEffect::ButtonTransition => 1,
-                        engine::BrowserHostEffect::Manifestation(_) => 2,
+                        engine::BrowserHostEffect::Manifestation(_) => 0,
+                        engine::BrowserHostEffect::ClockObservation => 1,
+                        engine::BrowserHostEffect::ButtonTransition => 2,
                         _ => 3,
                     })
                     .unwrap();
@@ -87,29 +86,29 @@ fn timed_input_compares_through_canonical_nested_forms_and_completes() {
         match progress {
             TourProgress::Effect(effect) => {
                 if let TourHostEffect::Manifestation(effect) = *effect {
-                    seen = effect.text;
+                    assert_eq!(transition, 5);
+                    assert_eq!(clock, 5);
+                    let text = effect.text.as_ref().unwrap();
+                    assert!(
+                        text.contains("matched: true")
+                            && text.contains("score_millionths: 1000000"),
+                        "{text}"
+                    );
+                    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+                    return;
                 }
             }
             TourProgress::Receipt(receipt) => {
-                assert_eq!(receipt.disposition, "completed");
-                assert_eq!(receipt.manifestation_completions, 1);
-                assert_eq!(transition, 5);
-                assert_eq!(clock, 5);
-                let text = seen.unwrap();
-                assert!(
-                    text.contains("matched: true") && text.contains("score_millionths: 1000000"),
-                    "{text}"
-                );
-                return;
+                panic!("standing timing input ended before Stop: {receipt:?}");
             }
             _ => {}
         }
     }
-    panic!("finite timing composition did not complete");
+    panic!("timing composition did not manifest before Stop");
 }
 
 #[test]
-fn canonical_secret_knock_demo_runs_storage_and_recognizer_as_nested_forms() {
+fn canonical_secret_knock_demo_runs_two_attempts_in_one_play() {
     let source = include_str!("../../../../../forms/secret-knock/main.conduit");
     let projection = compact_patchbay::project_with_presentation(
         source,
@@ -132,12 +131,17 @@ fn canonical_secret_knock_demo_runs_storage_and_recognizer_as_nested_forms() {
         crate::installed_browser::PresentationProfile::PatternComparison,
     )
     .unwrap();
-    let times = [100_u64, 150, 200, 300, 500];
+    let times = [100_u64, 150, 200, 300, 500, 550, 600, 650, 700, 800, 1000];
+    let play_id = session.active_play_id.as_str().to_owned();
     let mut transition = 0_u64;
     let mut clock = 0;
-    let mut manifested = None;
+    let mut manifested = Vec::new();
     for _ in 0..600 {
-        let mut progress = session.poll_effect().unwrap();
+        let mut progress = session.poll_effect().unwrap_or_else(|error| {
+            panic!(
+                "Secret Knock poll failed after transitions={transition} clocks={clock} manifested={manifested:?}: {error}"
+            )
+        });
         if let TourProgress::Cancellation {
             active_play_id,
             placement_id,
@@ -150,8 +154,8 @@ fn canonical_secret_knock_demo_runs_storage_and_recognizer_as_nested_forms() {
                 .unwrap();
         }
         if let TourProgress::Effect(effect) = &progress {
-            if let TourHostEffect::Manifestation(effect) = &**effect {
-                manifested = effect.text.clone();
+            if let TourHostEffect::Manifestation(presentation) = &**effect {
+                manifested.push(presentation.text.clone().unwrap());
             }
         }
         if let Some(effect) = session
@@ -159,13 +163,19 @@ fn canonical_secret_knock_demo_runs_storage_and_recognizer_as_nested_forms() {
             .iter()
             .filter(|effect| !matches!(effect.effect, engine::BrowserHostEffect::Timer { .. }))
             .min_by_key(|effect| match effect.effect {
-                engine::BrowserHostEffect::ClockObservation => 0,
-                engine::BrowserHostEffect::ButtonTransition => 1,
-                engine::BrowserHostEffect::Manifestation(_) => 2,
+                engine::BrowserHostEffect::Manifestation(_) => 0,
+                engine::BrowserHostEffect::ClockObservation => 1,
+                engine::BrowserHostEffect::ButtonTransition => 2,
                 _ => 3,
             })
         {
-            let output = match effect.effect {
+            let effect_kind = match effect.effect {
+                engine::BrowserHostEffect::ClockObservation => "clock",
+                engine::BrowserHostEffect::ButtonTransition => "button",
+                engine::BrowserHostEffect::Manifestation(_) => "manifestation",
+                _ => "unexpected",
+            };
+            let output = match &effect.effect {
                 engine::BrowserHostEffect::ClockObservation => {
                     let bytes = times[clock].to_le_bytes().to_vec();
                     clock += 1;
@@ -198,28 +208,34 @@ fn canonical_secret_knock_demo_runs_storage_and_recognizer_as_nested_forms() {
                     effect.request.request.0,
                     output.as_deref(),
                 )
-                .unwrap();
+                .unwrap_or_else(|error| {
+                    panic!(
+                        "Secret Knock {effect_kind} effect failed after transitions={transition} clocks={clock} manifested={manifested:?}: {error}"
+                    )
+                });
         }
-        match progress {
-            TourProgress::Effect(effect) => {
-                if let TourHostEffect::Manifestation(effect) = *effect {
-                    manifested = effect.text;
-                }
+        if let TourProgress::Effect(effect) = &progress {
+            if let TourHostEffect::Manifestation(presentation) = &**effect {
+                manifested.push(presentation.text.clone().unwrap());
             }
-            TourProgress::Receipt(receipt) => {
-                assert_eq!(receipt.disposition, "completed");
-                assert_eq!(receipt.manifestation_completions, 1);
-                let text = manifested.unwrap();
-                assert!(text.contains("matched: true"), "{text}");
-                assert_eq!(transition, 5);
-                assert_eq!(clock, 5);
-                return;
-            }
-            _ => {}
+        }
+        if manifested.len() == 2 {
+            assert_eq!(session.active_play_id.as_str(), play_id);
+            assert_eq!(transition, 11);
+            assert_eq!(clock, 11);
+            assert!(
+                manifested.iter().all(|text| text.contains("matched: true")),
+                "{manifested:?}"
+            );
+            assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+            return;
+        }
+        if let TourProgress::Receipt(receipt) = progress {
+            panic!("living Secret Knock ended before Stop: {receipt:?}");
         }
     }
     panic!(
-        "canonical Secret Knock demo did not complete: transitions={transition} clocks={clock} manifested={manifested:?} pending={:?}",
+        "canonical Secret Knock demo did not produce two attempts: transitions={transition} clocks={clock} manifested={manifested:?} pending={:?}",
         session.pending.iter().map(|effect| match &effect.effect {
             engine::BrowserHostEffect::ClockObservation => "clock",
             engine::BrowserHostEffect::ButtonTransition => "button",
@@ -233,7 +249,7 @@ fn canonical_secret_knock_demo_runs_storage_and_recognizer_as_nested_forms() {
 }
 
 fn comparison_source() -> String {
-    let source = "form zz-timing {\n button: input/button(maximum-transitions = 5)\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: derive-intervals\n normalize: normalize-durations\n compare: compare-pattern(metric = \"maximum-absolute-millionths@1\", tolerance-millionths = 0)\n show: presentation/structured-info\n button.transition > attempt.transition\n attempt.events > derive.events\n derive.intervals > normalize.intervals\n normalize.normalized > compare.candidate\n normalize.normalized > compare.template\n compare.comparison > show.input\n}\n";
+    let source = "form zz-timing {\n button: input/button\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: derive-intervals\n normalize: normalize-durations\n compare: compare-pattern(metric = \"maximum-absolute-millionths@1\", tolerance-millionths = 0)\n show: presentation/structured-info\n button.transition > attempt.transition\n attempt.events > derive.events\n derive.intervals > normalize.intervals\n normalize.normalized > compare.candidate\n normalize.normalized > compare.template\n compare.comparison > show.input\n}\n";
     let source = source.replacen("{\n", "{\n complete\n", 1);
     // Import the exact canonical reusable declarations, without the namesake's
     // storage-dependent root. This fixture does not claim full Secret Knock support.

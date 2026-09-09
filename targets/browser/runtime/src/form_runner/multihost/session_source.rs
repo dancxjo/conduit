@@ -1,7 +1,7 @@
 //! Source-fragment Host input and ordered egress through the ordinary kernel.
 
 use super::*;
-use crate::form_runner::protocol::TourButtonTransitionEffect;
+use crate::form_runner::protocol::TourKeyEventEffect;
 use crate::form_runner::protocol::TourTimerEffect;
 
 impl Session {
@@ -117,6 +117,58 @@ impl Session {
                     receipt: None,
                 });
             }
+            match self.scheduler.step().map_err(debug_error)? {
+                SchedulerStatus::Progress { .. } => continue,
+                SchedulerStatus::Idle => {}
+                SchedulerStatus::Drained => {
+                    if !self
+                        .scheduler
+                        .remote_egress_terminal(endpoint, cord)
+                        .map_err(debug_error)?
+                    {
+                        return Err("multi-Host source egress is not terminal".into());
+                    }
+                    self.stage = Stage::Closing;
+                    return Ok(Output::Line {
+                        schema: "conduit.tour/browser-memory-line-effect@1",
+                        frame: Box::new(self.frame("close", self.sequence, Vec::new())),
+                        plan_projection: None,
+                        receipt: None,
+                    });
+                }
+                SchedulerStatus::Cancelled => return Err("multi-Host source was cancelled".into()),
+            }
+            if let Some(request) = self.scheduler.next_host_request_matching(|request| {
+                self.fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .and_then(|placement| {
+                        placement
+                            .host_operations
+                            .get(usize::from(request.operation.0))
+                    })
+                    .is_some_and(|operation| {
+                        !matches!(
+                            operation.contract_id.as_str(),
+                            conduit_core::WAIT_HOST_OPERATION_CONTRACT
+                                | conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
+                                | crate::installed_browser::BUTTON_EVENT_OPERATION
+                                | crate::installed_browser::KEY_EVENT_OPERATION
+                        )
+                    })
+            }) {
+                let placement = &self.fragment.placements[usize::from(request.node.0)];
+                let operation = &placement.host_operations[usize::from(request.operation.0)];
+                if engine::transforms::complete_transform(
+                    &mut self.scheduler,
+                    placement,
+                    operation,
+                    request,
+                )? {
+                    continue;
+                }
+                return Err("multi-Host synchronous Host effect is unsupported".into());
+            }
             if let Some(request) = self.scheduler.next_host_request() {
                 let placement = self
                     .fragment
@@ -172,24 +224,34 @@ impl Session {
                         plan_projection: Box::new(self.projection.clone()),
                     });
                 }
-                if operation.contract_id.as_str()
-                    != crate::installed_browser::BUTTON_EVENT_OPERATION
-                {
-                    return Err("multi-Host source Host effect is unsupported".into());
-                }
-                let pending = PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::ButtonTransition,
-                };
-                let effect = TourButtonTransitionEffect {
-                    schema: "conduit.tour/button-transition-effect@1",
-                    effect_kind: "button-transition",
+                let (schema, effect_kind, maximum_output_bytes, effect) =
+                    match operation.contract_id.as_str() {
+                        crate::installed_browser::BUTTON_EVENT_OPERATION => (
+                            "conduit.tour/button-transition-effect@1",
+                            "button-transition",
+                            conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
+                            BrowserHostEffect::ButtonTransition,
+                        ),
+                        crate::installed_browser::KEY_EVENT_OPERATION => (
+                            "conduit.tour/key-event-effect@1",
+                            "key-event",
+                            conduit_human::KEY_EVENT_ENCODED_LEN as u32,
+                            BrowserHostEffect::KeyEvent,
+                        ),
+                        _ => {
+                            return Err("multi-Host source Host effect is unsupported".into());
+                        }
+                    };
+                let pending = PendingHostEffect { request, effect };
+                let effect = TourKeyEventEffect {
+                    schema,
+                    effect_kind,
                     active_play_id: self.source_active_play_id.as_str().into(),
                     placement_id: placement.placement_id.as_str().into(),
                     host_id: self.fragment.host_id.as_str().into(),
                     boot_id: self.fragment.boot_id.as_str().into(),
                     request_sequence: pending.request.request.0,
-                    maximum_output_bytes: conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
+                    maximum_output_bytes,
                     source_interaction: Some(self.source_interaction.clone()),
                 };
                 self.pending = Some(pending);
@@ -200,29 +262,7 @@ impl Session {
                     plan_projection: Box::new(self.projection.clone()),
                 });
             }
-            match self.scheduler.step().map_err(debug_error)? {
-                SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Idle => {
-                    return Err("multi-Host source became idle before offering its value".into())
-                }
-                SchedulerStatus::Drained => {
-                    if !self
-                        .scheduler
-                        .remote_egress_terminal(endpoint, cord)
-                        .map_err(debug_error)?
-                    {
-                        return Err("multi-Host source egress is not terminal".into());
-                    }
-                    self.stage = Stage::Closing;
-                    return Ok(Output::Line {
-                        schema: "conduit.tour/browser-memory-line-effect@1",
-                        frame: Box::new(self.frame("close", self.sequence, Vec::new())),
-                        plan_projection: None,
-                        receipt: None,
-                    });
-                }
-                SchedulerStatus::Cancelled => return Err("multi-Host source was cancelled".into()),
-            }
+            return Err("multi-Host source became idle before offering its value".into());
         }
     }
 }

@@ -407,9 +407,9 @@ mod tests {
     #[test]
     fn projects_reusable_form_with_unbound_face_port_for_authoring() {
         let source = r#"form pulse-manifestation (
-    > tick: value/tick@1...|
+    > tick: value/tick@1...
 ) {
-    observe: time/pulse-observe(period-ms = 240, maximum-pulses = 4)
+    observe: time/pulse-observe(period-ms = 240)
     tick > observe.tick
 }"#;
 

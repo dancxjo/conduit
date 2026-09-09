@@ -10,8 +10,8 @@ use super::contract::{
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostOperationDisposition,
+    HostOperationId, OperationAction, OperationInput, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static TICK_FACTORY: InstalledFactory = InstalledFactory {
@@ -31,6 +31,8 @@ pub(super) struct TickOperation {
     waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
+    recurring: bool,
+    sequence: u64,
 }
 
 impl TickOperation {
@@ -51,20 +53,46 @@ impl TickOperation {
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
-                self.values.get(self.next).copied().map_or_else(
-                    || InstalledOperation::fail(1),
-                    |value| OperationAction::Emit {
-                        port: conduit_kernel::PortId(0),
-                        value,
-                    },
-                )
+                if self.recurring {
+                    CanonicalValue::new(&encode_tick(self.sequence)).map_or_else(
+                        |_| InstalledOperation::fail(1),
+                        |value| OperationAction::EmitCanonical {
+                            port: conduit_kernel::PortId(0),
+                            value,
+                        },
+                    )
+                } else {
+                    self.values.get(self.next).copied().map_or_else(
+                        || InstalledOperation::fail(1),
+                        |value| OperationAction::Emit {
+                            port: conduit_kernel::PortId(0),
+                            value,
+                        },
+                    )
+                }
             }
             _ => InstalledOperation::fail(2),
         }
     }
 
     pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
+        if self.recurring {
+            let Some(sequence) = self.sequence.checked_add(1) else {
+                return OperationAction::Fail(Failure {
+                    code: FailureCode::IdentityCapacityExhausted,
+                    detail: 1,
+                });
+            };
+            if u32::try_from(sequence).is_err() {
+                return OperationAction::Fail(Failure {
+                    code: FailureCode::IdentityCapacityExhausted,
+                    detail: 1,
+                });
+            }
+            self.sequence = sequence;
+        } else {
+            self.next += 1;
+        }
         self.request_wait().unwrap_or(OperationAction::Complete)
     }
 
@@ -73,8 +101,15 @@ impl TickOperation {
     }
 
     fn request_wait(&mut self) -> Option<OperationAction> {
-        let wait = self.waits.get(self.next).copied()?;
-        let request = RequestId(u32::try_from(self.next).ok()?);
+        let wait = self
+            .waits
+            .get(if self.recurring { 0 } else { self.next })
+            .copied()?;
+        let request = if self.recurring {
+            RequestId(u32::try_from(self.sequence).ok()?)
+        } else {
+            RequestId(u32::try_from(self.next).ok()?)
+        };
         self.pending = Some(request);
         Some(OperationAction::RequestHostOperation {
             request,
@@ -94,7 +129,14 @@ fn tick_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 
 fn every_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_every_placement(placement)?;
-    tick_budget_for(&parse_every_configuration(&placement.configuration)?)
+    let _ = parse_every_configuration(&placement.configuration)?;
+    Ok(OperationBudget {
+        value_items: 2,
+        value_bytes: TICK_ENCODED_LEN * 2,
+        host_requests: 1,
+        sign_items: 256,
+        maximum_value_bytes: TICK_ENCODED_LEN,
+    })
 }
 
 fn tick_budget_for(configuration: &TickConfiguration) -> Result<OperationBudget, String> {
@@ -139,7 +181,18 @@ fn prepare_every(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_every_placement(placement)?;
-    prepare_tick_values(parse_every_configuration(&placement.configuration)?, values)
+    let configuration = parse_every_configuration(&placement.configuration)?;
+    let wait = values
+        .store(&configuration.period_ms.to_le_bytes())
+        .map_err(|error| format!("store recurring tick wait: {error:?}"))?;
+    Ok(InstalledOperation::Tick(TickOperation {
+        values: Vec::new(),
+        waits: vec![wait],
+        next: 0,
+        pending: None,
+        recurring: true,
+        sequence: 0,
+    }))
 }
 
 fn prepare_tick_values(
@@ -167,6 +220,8 @@ fn prepare_tick_values(
         waits,
         next: 0,
         pending: None,
+        recurring: false,
+        sequence: 0,
     }))
 }
 
@@ -318,6 +373,8 @@ mod tests {
             waits: vec![value(1)],
             next: 0,
             pending: None,
+            recurring: false,
+            sequence: 0,
         };
         assert!(matches!(
             operation.start(),
@@ -342,5 +399,47 @@ mod tests {
                 detail: 2,
             })
         ));
+    }
+
+    #[test]
+    fn recurring_every_rearms_fixed_storage_past_tick_four() {
+        let wait = value(0);
+        let mut operation = TickOperation {
+            values: Vec::new(),
+            waits: vec![wait],
+            next: 0,
+            pending: None,
+            recurring: true,
+            sequence: 0,
+        };
+        let mut action = operation.start();
+        for sequence in 0..7_u64 {
+            assert!(matches!(
+                action,
+                OperationAction::RequestHostOperation {
+                    request: RequestId(found),
+                    ..
+                } if u64::from(found) == sequence
+            ));
+            let emitted = operation.resume(OperationInput::HostOperationCompleted {
+                request: RequestId(sequence as u32),
+                outcome: HostOperationOutcome {
+                    disposition: HostOperationDisposition::Completed,
+                    output: None,
+                    failure: None,
+                },
+            });
+            let OperationAction::EmitCanonical { port, value } = emitted else {
+                panic!("time/every did not emit recurring tick {sequence}");
+            };
+            assert_eq!(port, conduit_kernel::PortId(0));
+            assert_eq!(value.as_slice(), encode_tick(sequence));
+            action = operation.advance();
+        }
+        assert!(matches!(
+            action,
+            OperationAction::RequestHostOperation { .. }
+        ));
+        assert_eq!(operation.allocation_capacity(), 1);
     }
 }

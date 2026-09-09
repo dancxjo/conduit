@@ -10,14 +10,14 @@ mod prepared;
 use alloc::string::String;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, InfoBool, PortDescriptor,
-    PortDirection, PortTemporal, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoValue, StructuredInfoValueShape, BOOL_INFO_ID,
+    kind_id, port_id, CapabilityLimits, InfoBool, PortDescriptor, PortDirection, PortTemporal,
+    StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue,
+    StructuredInfoValueShape, BOOL_INFO_ID,
 };
 pub use prepared::PreparedButtonIndicatorMapper;
 
 pub const BUTTON_SOURCE_KIND: &str = "input/button";
-pub const BUTTON_SOURCE_REVISION: &str = "conduit.input/button@2";
+pub const BUTTON_SOURCE_REVISION: &str = "conduit.input/button@3";
 pub const BUTTON_INDICATOR_STATE_KIND: &str = "input/button-indicator-state";
 pub const BUTTON_INDICATOR_STATE_REVISION: &str = "conduit.input/button-indicator-state@1";
 pub const INDICATOR_STATE_PRESENTATION_KIND: &str = "presentation/indicator-state";
@@ -43,14 +43,7 @@ pub fn button_source_contract() -> StandardKindContract {
             .to_string(),
         inputs: Vec::new(),
         outputs: vec![button_port("transition", PortDirection::Output)],
-        configuration: vec![crate::StandardConfigurationField {
-            key: "maximum-transitions".into(),
-            default_value: ConfigurationValue::U64(2),
-            rule: crate::StandardConfigurationRule::U64Range {
-                minimum: 1,
-                maximum: u64::from(BUTTON_TRANSITION_MAXIMUM_VALUES),
-            },
-        }],
+        configuration: Vec::new(),
         limits: button_limits(),
         terminal_behavior: TerminalBehavior::HostInputEndsOrFailsSource,
         hosted_implementation_required: true,
@@ -173,7 +166,7 @@ fn button_port(name: &str, direction: PortDirection) -> PortDescriptor {
             .value_kind()
             .clone(),
         direction,
-        temporal: PortTemporal::Flow { closes: true },
+        temporal: PortTemporal::Flow { closes: false },
     }
 }
 
@@ -277,7 +270,7 @@ mod tests {
         let mapping = button_indicator_state_contract();
         assert_eq!(
             mapping.inputs[0].temporal,
-            PortTemporal::Flow { closes: true }
+            PortTemporal::Flow { closes: false }
         );
         assert_eq!(mapping.outputs[0].temporal, PortTemporal::Current);
         assert_eq!(

@@ -8,11 +8,11 @@ use conduit_form::{
 
 use crate::{
     historical_timeline_kind_definition, replay_control_kind_definition,
-    replay_source_kind_definition, tick_outputs, HISTORICAL_TIMELINE_KIND, MAX_TICK_COUNT,
-    PHASE_SYNCHRONIZE_KIND, PHASE_SYNCHRONIZE_REVISION, PULSE_OBSERVATION_VALUE_KIND,
-    PULSE_OBSERVE_KIND, PULSE_OBSERVE_REVISION, REPLAY_SOURCE_KIND, RHYTHM_STATE_VALUE_KIND,
-    TICK_CONTRACT_REVISION, TICK_KIND, TICK_VALUE_KIND, TIME_EVERY_CONTRACT_REVISION,
-    TIME_EVERY_KIND,
+    replay_source_kind_definition, tick_outputs, time_every_outputs, HISTORICAL_TIMELINE_KIND,
+    MAX_TICK_COUNT, PHASE_SYNCHRONIZE_KIND, PHASE_SYNCHRONIZE_REVISION,
+    PULSE_OBSERVATION_VALUE_KIND, PULSE_OBSERVE_KIND, PULSE_OBSERVE_REVISION, REPLAY_SOURCE_KIND,
+    RHYTHM_STATE_VALUE_KIND, TICK_CONTRACT_REVISION, TICK_KIND, TICK_VALUE_KIND,
+    TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_KIND,
 };
 use conduit_core::{port_id, PortDescriptor, PortDirection, PortTemporal};
 
@@ -48,7 +48,7 @@ pub fn time_every_kind_definition() -> KindDefinition {
         kind_id: kind_id(TIME_EVERY_KIND),
         kind_contract_revision: KindContractRevision::from(TIME_EVERY_CONTRACT_REVISION),
         inputs: alloc::vec::Vec::new(),
-        outputs: tick_outputs(),
+        outputs: time_every_outputs(),
         configuration: vec![ConfigurationField {
             key: "freq".to_string(),
             default_value: ConfigurationValue::U64(1_000),
@@ -107,18 +107,11 @@ pub fn install_rhythm_catalog(
 ) -> Result<(), String> {
     startup.insert(KindSignature {
         kind: PULSE_OBSERVE_KIND.into(),
-        startup_parameters: vec![
-            StartupParameterSignature {
-                name: "period-ms".into(),
-                value_type: "Count".into(),
-                default: Some("240".into()),
-            },
-            StartupParameterSignature {
-                name: "maximum-pulses".into(),
-                value_type: "Count".into(),
-                default: Some("64".into()),
-            },
-        ],
+        startup_parameters: vec![StartupParameterSignature {
+            name: "period-ms".into(),
+            value_type: "Count".into(),
+            default: Some("240".into()),
+        }],
     })?;
     profile
         .insert(pulse_observe_kind_definition())
@@ -202,7 +195,7 @@ pub fn phase_synchronize_kind_definition() -> KindDefinition {
     }
 }
 
-/// Nominal pulse period and observation count are semantic, finite configuration.
+/// Nominal pulse period is semantic; each observation remains finite.
 pub fn pulse_observe_kind_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(PULSE_OBSERVE_KIND),
@@ -213,24 +206,14 @@ pub fn pulse_observe_kind_definition() -> KindDefinition {
             PULSE_OBSERVATION_VALUE_KIND,
             PortDirection::Output,
         )],
-        configuration: vec![
-            ConfigurationField {
-                key: "period-ms".into(),
-                default_value: ConfigurationValue::U64(240),
-                validation: ConfigurationRule::U64Range {
-                    minimum: crate::MINIMUM_PERIOD_MS.into(),
-                    maximum: crate::MAXIMUM_PERIOD_MS.into(),
-                },
+        configuration: vec![ConfigurationField {
+            key: "period-ms".into(),
+            default_value: ConfigurationValue::U64(240),
+            validation: ConfigurationRule::U64Range {
+                minimum: crate::MINIMUM_PERIOD_MS.into(),
+                maximum: crate::MAXIMUM_PERIOD_MS.into(),
             },
-            ConfigurationField {
-                key: "maximum-pulses".into(),
-                default_value: ConfigurationValue::U64(64),
-                validation: ConfigurationRule::U64Range {
-                    minimum: 1,
-                    maximum: crate::MAXIMUM_OBSERVED_PULSES.into(),
-                },
-            },
-        ],
+        }],
     }
 }
 
@@ -239,7 +222,7 @@ fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDesc
         port_id: port_id(name),
         value_kind: kind_id(value_kind),
         direction,
-        temporal: PortTemporal::Flow { closes: true },
+        temporal: PortTemporal::Flow { closes: false },
     }
 }
 

@@ -98,7 +98,7 @@ impl StepOperation<1> for Driver {
 
 #[test]
 fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
-    let (pulse, mut values) = prepared(3);
+    let (pulse, mut values) = prepared();
     let ticks = (0..3)
         .map(|sequence| values.store(&conduit_time::encode_tick(sequence)).unwrap())
         .collect();
