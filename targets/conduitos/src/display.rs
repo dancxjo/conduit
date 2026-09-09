@@ -160,6 +160,23 @@ impl PixelTarget for RawDisplay {
         self.format
     }
 
+    fn read_pixel(&self, x: u32, y: u32) -> Option<u32> {
+        if !self.available || x >= self.format.width || y >= self.format.height {
+            return None;
+        }
+        let offset =
+            usize::try_from(u64::from(y) * u64::from(self.format.pitch) + u64::from(x) * 4).ok()?;
+        if offset.checked_add(4)? > self.byte_len {
+            return None;
+        }
+        let mut bytes = [0; 4];
+        for (index, byte) in bytes.iter_mut().enumerate() {
+            // SAFETY: construction owns this mapped range; the check bounds all four reads.
+            *byte = unsafe { core::ptr::read_volatile(self.address.as_ptr().add(offset + index)) };
+        }
+        Some(u32::from_le_bytes(bytes))
+    }
+
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
         if !self.available {
             return Err(DisplayError::Lost);
