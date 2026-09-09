@@ -34,19 +34,6 @@ impl TextCursor {
     }
 }
 
-pub(crate) fn text_width(value: &str) -> Result<u16, DisplayError> {
-    let mut width = 0_u32;
-    for character in value.chars() {
-        if character == '\n' {
-            return Err(DisplayError::InvalidExtent);
-        }
-        width = width
-            .checked_add(u32::from(font::glyph(character).0.width))
-            .ok_or(DisplayError::InvalidExtent)?;
-    }
-    u16::try_from(width).map_err(|_| DisplayError::InvalidExtent)
-}
-
 pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> {
     let mut cursor = TextCursor::new(width);
     for character in value.chars() {
@@ -70,13 +57,5 @@ mod tests {
         assert_eq!(text_height("A\n", 16), Ok(32));
         assert_eq!(text_height("🦀", 16), text_height("�", 16));
         assert_eq!(text_height("中", 8), Err(DisplayError::InvalidExtent));
-    }
-
-    #[test]
-    fn single_line_width_uses_the_same_glyph_advances() {
-        let ab = text_width("AB").unwrap();
-        let cd = text_width("CD").unwrap();
-        assert_eq!(text_width("ABCD"), ab.checked_add(cd).ok_or(DisplayError::InvalidExtent));
-        assert_eq!(text_width("A\nB"), Err(DisplayError::InvalidExtent));
     }
 }
