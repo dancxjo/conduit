@@ -86,6 +86,14 @@ contract: controller readiness, device enumeration, HID reports, and a portable
 keyboard offer are different steps. These tests use real emulated device
 paths and retain failures and identity changes as distinct results.
 
+`cargo xtask conduitos keyboard-repeat-proof --locked` boots the normal image,
+births a Body and sends 320 keyboard transitions through one Play before
+Stop and Lull. It checks retained identities and the bounded recent-output
+window, and retains its receipt and screenshots under
+`target/conduitos/x86_64/keyboard-repeat-*`. The native USB keyboard reuses
+two report buffers and a fixed 64-entry transfer ring across session input;
+one ring entry links back with the xHCI cycle toggle. This is emulator proof,
+not physical keyboard qualification.
 ## Headless startup boundary
 
 The x86 headless profile excludes the native graphical Presenter, compositor,
