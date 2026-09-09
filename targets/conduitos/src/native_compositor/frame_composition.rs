@@ -123,15 +123,26 @@ fn focus_pixel(surfaces: &[CompositorSurface], id: &str, x: u32, y: u32) -> bool
 }
 
 fn cursor_pixel((cx, cy): (u32, u32), x: u32, y: u32) -> bool {
-    let dx = x.checked_sub(cx);
-    let dy = y.checked_sub(cy);
-    matches!(
-        (dx, dy),
-        (Some(0), Some(0..=12))
-            | (Some(1..=6), Some(1))
-            | (Some(1), Some(2..=9))
-            | (Some(2..=4), Some(8..=10))
-    )
+    let (Some(dx), Some(dy)) = (x.checked_sub(cx), y.checked_sub(cy)) else {
+        return false;
+    };
+    (dy <= 15 && dx <= (dy * 3) / 4) || ((12..=21).contains(&dy) && (4..=7).contains(&dx))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cursor_pixel;
+
+    #[test]
+    fn cursor_is_a_filled_arrow_with_a_distinct_stem() {
+        let origin = (20, 30);
+        assert!(cursor_pixel(origin, 20, 30));
+        assert!(cursor_pixel(origin, 30, 44));
+        assert!(cursor_pixel(origin, 25, 51));
+        assert!(!cursor_pixel(origin, 31, 40));
+        assert!(!cursor_pixel(origin, 19, 30));
+        assert!(!cursor_pixel(origin, 28, 51));
+    }
 }
 
 fn contains(surface: &CompositorSurface, x: u32, y: u32) -> bool {
