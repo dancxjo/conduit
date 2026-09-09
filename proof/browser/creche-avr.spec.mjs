@@ -1,3 +1,4 @@
+import { openCrecheStep } from "./creche-test-actions.mjs";
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
@@ -57,7 +58,7 @@ async function birthBody(page) {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await reviewAndBirth(page);
-  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  await openCrecheStep(page, "3. Physical Host");
 }
 
 test.beforeEach(async () => {

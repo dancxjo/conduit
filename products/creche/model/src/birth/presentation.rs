@@ -2,8 +2,8 @@ use super::*;
 use alloc::{format, vec};
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, ChoiceMultiplicity, ChoiceOption, FieldKind,
-    FormField, PresentationMechanism, SemanticAction, SemanticApplicationView,
-    SemanticPresentationNode, SemanticPresentationRefusal,
+    FormField, PresentationMechanism, SelectOption, SemanticAction, SemanticApplicationView,
+    SemanticPresentationNode, SemanticPresentationRefusal, StatusKind,
 };
 
 impl BirthDraft {
@@ -14,10 +14,15 @@ impl BirthDraft {
                 detail: format!("{error:?}"),
             };
         }
-        let choices = self
+        let query = self.search.to_lowercase();
+        let choices: Vec<_> = self
             .choices
             .iter()
             .enumerate()
+            .filter(|(_, choice)| {
+                let text = format!("{} {}", choice.title, choice.search_text).to_lowercase();
+                query.split_whitespace().all(|term| text.contains(term))
+            })
             .map(|(index, choice)| {
                 let mut change = action(
                     &format!("creche.form.{index}"),
@@ -37,7 +42,20 @@ impl BirthDraft {
                 }
             })
             .collect();
-        let view = SemanticApplicationView {
+        let form_selection = if choices.is_empty() {
+            PresentationMechanism::Status {
+                kind: StatusKind::Ordinary,
+                title: "No Forms match your search.".into(),
+                detail: "Your selected Forms are still included.".into(),
+            }
+        } else {
+            PresentationMechanism::ChoiceGroup {
+                label: "Forms to include".into(),
+                multiplicity: ChoiceMultiplicity::Independent,
+                options: choices,
+            }
+        };
+        let mut view = SemanticApplicationView {
             revision: self.revision,
             root: node(
                 "creche",
@@ -69,24 +87,27 @@ impl BirthDraft {
                     ),
                     node(
                         "name-system",
-                        PresentationMechanism::ChoiceGroup {
+                        PresentationMechanism::FormField(FormField {
                             label: "Naming tradition".into(),
-                            multiplicity: ChoiceMultiplicity::Exclusive,
-                            options: self
-                                .naming_systems()
-                                .enumerate()
-                                .map(|(index, (id, label))| ChoiceOption {
-                                    identity: id.into(),
-                                    label: label.into(),
-                                    selected: id == self.requested_system,
-                                    change_action: action(
-                                        &format!("creche.naming.{index}"),
-                                        "Use naming tradition",
-                                        ApplicationEventKind::Change,
-                                    ),
-                                })
-                                .collect(),
-                        },
+                            help: "Choose a tradition for the next name suggestion.".into(),
+                            error: None,
+                            value: self.requested_system.clone(),
+                            value_capacity: 64,
+                            input_action: action(
+                                "creche.naming",
+                                "Use naming tradition",
+                                ApplicationEventKind::Change,
+                            ),
+                            kind: FieldKind::NamedSelect {
+                                options: self
+                                    .naming_systems()
+                                    .map(|(id, label)| SelectOption {
+                                        identity: id.into(),
+                                        label: label.into(),
+                                    })
+                                    .collect(),
+                            },
+                        }),
                         vec![],
                     ),
                     node(
@@ -98,19 +119,48 @@ impl BirthDraft {
                         )),
                         vec![],
                     ),
-                    node(
-                        "initial-forms",
-                        PresentationMechanism::ChoiceGroup {
-                            label: "Forms to include".into(),
-                            multiplicity: ChoiceMultiplicity::Independent,
-                            options: choices,
-                        },
-                        vec![],
-                    ),
+                    node("initial-forms", form_selection, vec![]),
                     node("birth-body", PresentationMechanism::Action(birth), vec![]),
                 ],
             ),
         };
+        if self.choices.len() > 1 {
+            view.root.children.insert(
+                4,
+                node(
+                    "form-search",
+                    PresentationMechanism::FormField(FormField {
+                        label: "Search Forms".into(),
+                        help: "Find a Form by name or what it uses.".into(),
+                        error: None,
+                        value: self.search.clone(),
+                        value_capacity: 128,
+                        input_action: action(
+                            "creche.search",
+                            "Search Forms",
+                            ApplicationEventKind::Input,
+                        ),
+                        kind: FieldKind::Text,
+                    }),
+                    vec![],
+                ),
+            );
+            view.root.children.insert(
+                6,
+                node(
+                    "selected-forms",
+                    PresentationMechanism::Status {
+                        kind: StatusKind::Ordinary,
+                        title: format!(
+                            "Selected: {}",
+                            self.choices.iter().filter(|choice| choice.selected).count()
+                        ),
+                        detail: String::new(),
+                    },
+                    vec![],
+                ),
+            );
+        }
         view.lower()?;
         Ok(view)
     }

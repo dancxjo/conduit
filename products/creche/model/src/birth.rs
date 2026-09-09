@@ -4,11 +4,15 @@ use conduit_body::{BodyWorkset, MAX_BODY_FORMS, ResidentForm};
 
 use crate::names::{MAX_FRIENDLY_NAME_BYTES, NameSuggestion, NamingCatalog, NamingRefusal};
 
+mod actions;
 mod presentation;
+pub use actions::BirthActionOutcome;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BirthFormChoice {
     pub title: String,
+    /// Searchable names and required kinds from the checked Form inventory.
+    pub search_text: String,
     pub form: ResidentForm,
     /// Current local review refusal. Availability is never inferred from a label.
     pub refusal: Option<String>,
@@ -23,6 +27,8 @@ pub struct BirthDraft {
     requested_system: String,
     suggestion: NameSuggestion,
     choices: Vec<BirthFormChoice>,
+    idle_body_allowed: bool,
+    search: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -42,6 +48,9 @@ pub enum BirthDraftRefusal {
     StalePresentation,
     RevisionExhausted,
     UnknownChoice,
+    UnknownAction,
+    InvalidActionValue,
+    InvalidSearch,
 }
 
 impl BirthDraft {
@@ -53,6 +62,7 @@ impl BirthDraft {
             || choices.iter().any(|choice| {
                 choice.title.is_empty()
                     || choice.title.len() > 64
+                    || choice.search_text.len() > 2_048
                     || choice.refusal.as_ref().is_some_and(|text| text.len() > 256)
                     || (choice.selected && choice.refusal.is_some())
             })
@@ -72,7 +82,14 @@ impl BirthDraft {
             requested_system: "surprise".into(),
             suggestion,
             choices,
+            idle_body_allowed: false,
+            search: String::new(),
         })
+    }
+    /// The owning lifecycle boundary may support birth with an empty workset.
+    pub fn allow_idle_body(mut self) -> Self {
+        self.idle_body_allowed = true;
+        self
     }
     pub fn revision(&self) -> u32 {
         self.revision
@@ -96,6 +113,18 @@ impl BirthDraft {
     }
     pub fn requested_system(&self) -> &str {
         &self.requested_system
+    }
+    pub fn search(&self) -> &str {
+        &self.search
+    }
+    pub fn search_forms(&mut self, revision: u32, value: &str) -> Result<(), BirthDraftRefusal> {
+        let next = self.next_revision(revision)?;
+        if value.len() > 128 || value.chars().any(char::is_control) {
+            return Err(BirthDraftRefusal::InvalidSearch);
+        }
+        self.search = value.into();
+        self.revision = next;
+        Ok(())
     }
     pub fn edit_name(&mut self, revision: u32, name: String) -> Result<(), BirthDraftRefusal> {
         let next = self.next_revision(revision)?;
@@ -157,7 +186,7 @@ impl BirthDraft {
                 .map(|choice| choice.form.clone()),
         )
         .map_err(|_| BirthDraftRefusal::InvalidInventory)?;
-        if workset.is_empty() {
+        if workset.is_empty() && !self.idle_body_allowed {
             return Err(BirthDraftRefusal::EmptySelection);
         }
         Ok(BirthSelection {
