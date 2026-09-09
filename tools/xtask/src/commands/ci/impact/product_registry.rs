@@ -49,6 +49,8 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "proof/browser/creche-naming.spec.mjs",
             "proof/browser/creche-body-execution.spec.mjs",
             "proof/browser/workspace-arrival.spec.mjs",
+            "proof/browser/workspace-library.spec.mjs",
+            "proof/browser/workspace-handoff.test.mjs",
             "proof/browser/creche-workspace-continuity.spec.mjs",
         ],
         input_prefixes: &[
@@ -183,6 +185,8 @@ mod tests {
             "proof/browser/creche-naming.spec.mjs",
             "proof/browser/creche-body-execution.spec.mjs",
             "proof/browser/workspace-arrival.spec.mjs",
+            "proof/browser/workspace-library.spec.mjs",
+            "proof/browser/workspace-handoff.test.mjs",
             "proof/browser/creche-workspace-continuity.spec.mjs",
         ] {
             assert_eq!(

@@ -13,6 +13,12 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
     }
     terminal = receipt;
   };
+  const stop = async () => {
+    const closed = adapter.close();
+    if (!terminal) requireTerminal(closed?.receipt);
+    adapter = null;
+    await session.lull(started.play);
+  };
   return Object.freeze({
     async wake() {
       if (adapter || transition) return;
@@ -25,15 +31,16 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
         started = adapter.start(1);
         await session.started(started);
         publish('Playing', 'Forms are awake');
+        const running = adapter;
         adapter.run().then(receipt => {
-          if (terminal) return;
+          if (adapter !== running || terminal) return;
           if (receipt?.schema === 'conduit.browser/pending-effects@1' && receipt.disposition === 'quiescent_awaiting_input' && receipt.active_play_id === started.play.active_play_id && receipt.pending_effects === 0) {
             publish('Idle', 'Its Forms are awake. Their current work has finished.');
             return;
           }
           requireTerminal(receipt);
           publish(receipt.disposition === 'completed' ? 'Completed' : receipt.disposition === 'cancelled' ? 'Cancelled' : 'Failed');
-        }).catch(error => { if (!terminal) publish('Failed', error.message, error); });
+        }).catch(error => { if (adapter === running && !terminal) publish('Failed', error.message, error); });
       } catch (error) {
         let cleanupError = null;
         try {
@@ -58,15 +65,28 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
       if (!adapter || transition) return;
       transition = true;
       try {
-        const closed = adapter.close();
-        if (!terminal) requireTerminal(closed?.receipt);
-        adapter = null;
-        await session.lull(started.play);
+        await stop();
         publish('Lulled', 'Your Body is retained. Its Forms can wake again.');
       } catch (error) {
         publish(terminal ? 'Stopped' : 'Failed', terminal
           ? `Its Forms have stopped, but your Body could not be saved. Reopen to recover the last saved state. ${error.message}`
           : error.message, error);
+      } finally { transition = false; }
+    },
+    async changeWorkset(edit, form, expectedRevision) {
+      if (transition) throw new Error('A Body transition is already in progress');
+      if (session.persistenceFailure()) throw session.persistenceFailure();
+      transition = true;
+      try {
+        // The view's revision is checked again at the authoritative mutation.
+        if (session.current().workload_revision !== expectedRevision) throw new Error('The installed Forms changed. Reopen the chooser.');
+        if (adapter) await stop();
+        if (session.current().state !== 'LULLED') throw new Error('The current Play has not been retired');
+        await session.changeWorkset(edit, form, source, expectedRevision);
+        publish('Lulled', 'Your installed Forms have been saved.');
+      } catch (error) {
+        publish(session.persistenceFailure() ? 'Stopped' : session.current().state === 'LULLED' ? 'Refused' : 'Failed', error.message, error);
+        throw error;
       } finally { transition = false; }
     },
     evidence() { return adapter?.evidence() ?? terminal?.kernel_signs ?? null; },
