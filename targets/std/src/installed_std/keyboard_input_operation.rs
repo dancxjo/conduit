@@ -8,8 +8,6 @@ use conduit_kernel::{
     OperationAction, PortId, RequestId, ValueRef, ValueStorage,
 };
 
-pub(super) const MAX_PLAY_EVENTS: u32 = 64;
-
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::HOSTED_KEYBOARD_IMPLEMENTATION,
     budget,
@@ -83,11 +81,11 @@ impl KeyboardInputOperation {
         if self.pending.is_some() || self.emitted {
             return InstalledOperation::fail(116);
         }
-        if self.next_request == MAX_PLAY_EVENTS {
-            return fail(FailureCode::StorageExhausted, 117);
-        }
         let request = RequestId(self.next_request);
-        self.next_request += 1;
+        let Some(next_request) = self.next_request.checked_add(1) else {
+            return fail(FailureCode::StorageExhausted, 117);
+        };
+        self.next_request = next_request;
         self.pending = Some(request);
         OperationAction::RequestHostOperation {
             request,
@@ -107,8 +105,8 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     Ok(OperationBudget {
         value_items: 2,
         value_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
-        host_requests: MAX_PLAY_EVENTS as usize,
-        sign_items: (MAX_PLAY_EVENTS as u16).saturating_mul(4),
+        host_requests: 1,
+        sign_items: 64,
         maximum_value_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
     })
 }

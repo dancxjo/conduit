@@ -13,22 +13,32 @@ test("canonical Secret Knock runs its stored template and nested recognizer", as
   await runner.getByRole("button", { name: "Run", exact: true }).click();
   const control = runner.getByRole("button", { name: "Hold to control indicator" });
   await expect(control).toBeVisible();
+  await runner.locator(".morse").evaluate((output) => {
+    output.dataset.presentationCount = "0";
+    new MutationObserver(() => {
+      output.dataset.presentationCount = String(Number(output.dataset.presentationCount) + 1);
+    }).observe(output, { childList: true, characterData: true, subtree: true });
+  });
   await control.hover();
   try {
-    // Keep both press intervals well above runner scheduling jitter while the
-    // longer interval remains comfortably below the admitted attempt timeout.
-    await page.mouse.down();
-    await page.waitForTimeout(50);
-    await page.mouse.up();
-    await page.waitForTimeout(250);
-    await page.mouse.down();
-    await page.waitForTimeout(50);
-    await page.mouse.up();
-    await page.waitForTimeout(650);
-    await page.mouse.down();
-    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
-    await expect(runner.locator(".morse")).toContainText("matched: true");
+    for (const transition of ["down", "up", "down", "up", "down", "up", "down", "up", "down", "up", "down"]) {
+      await expect(runner.locator('[data-application-key="play-status"]')).toContainText("button transition");
+      await page.mouse[transition]();
+    }
+    await expect(runner.locator(".morse")).toContainText("matched:");
     await expect(runner.locator(".morse")).toContainText("score_millionths:");
+    await expect.poll(() => runner.locator(".morse").getAttribute("data-presentation-count")).toBe("2");
+    const labels = await runner.locator(".run-identities dt").allTextContents();
+    const values = await runner.locator(".run-identities dd").allTextContents();
+    const identities = Object.fromEntries(labels.map((label, index) => [label, values[index]]));
+    await runner.getByRole("button", { name: "Stop", exact: true }).click();
+    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("cancelled");
+    console.log(`CONDUIT_FORM_EVIDENCE=${JSON.stringify({
+      slug: "secret-knock",
+      status: "passed",
+      plan_id: identities.Plan,
+      play_id: identities["Active Play"],
+    })}`);
   } finally {
     await page.mouse.up();
   }

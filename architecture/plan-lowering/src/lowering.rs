@@ -677,7 +677,21 @@ pub fn lower_plan_fragment_for_profile(
         }) || sink_node.zip(sink_port).is_some_and(|(node, port)| {
             let descriptor = &nodes[usize::from(node.0)].inputs[usize::from(port.0)];
             descriptor.value_kind != connection.value_kind
-                || descriptor.temporal != connection.temporal
+                || (descriptor.temporal != connection.temporal
+                    && !matches!(
+                        (connection.temporal, descriptor.temporal),
+                        (
+                            conduit_core::PortTemporal::Flow { .. },
+                            conduit_core::PortTemporal::Value
+                        )
+                    )
+                    && !matches!(
+                        (connection.temporal, descriptor.temporal),
+                        (
+                            conduit_core::PortTemporal::Flow { closes: true },
+                            conduit_core::PortTemporal::Flow { closes: false }
+                        )
+                    ))
         }) {
             return Err(LoweringError::ConnectionContractMismatch(
                 connection.connection_id.clone(),

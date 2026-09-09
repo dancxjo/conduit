@@ -22,7 +22,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_lenia_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
+    conduit_time::install_tick_catalog(&mut startup, &mut profile).unwrap();
     install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
     let syntax = parse_syntax_document(SOURCE);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
@@ -76,22 +76,19 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
             Vec::new(),
         ),
     ];
-    let mut every = conduit_semantic_catalog::realization_offer(
-        conduit_semantic_catalog::time_every_contract(),
-        conduit_time::TIME_EVERY_CONTRACT_REVISION,
+    capabilities.push(conduit_semantic_catalog::realization_offer(
+        conduit_semantic_catalog::tick_contract(),
+        conduit_time::TICK_CONTRACT_REVISION,
         conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: "lenia-proof-time-every",
-            execution_profile: "proof/lenia-time-every@1",
-            implementation: "proof/lenia-time-every@1",
-            artifact: "proof/lenia-time-every@1",
+            capability: "lenia-proof-tick",
+            execution_profile: "proof/lenia-tick@1",
+            implementation: "proof/lenia-tick@1",
+            artifact: "proof/lenia-tick@1",
         },
         vec![wait_host_operation_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         Vec::new(),
-    );
-    every.startup_parameters[0].value_type = "Duration".into();
-    every.startup_parameters[0].has_default = false;
-    capabilities.push(every);
+    ));
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/lenia-proof"),

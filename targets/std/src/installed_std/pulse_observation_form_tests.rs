@@ -28,7 +28,7 @@ fn reusable_pulse_form_plans_and_executes_outside_choir() {
             configuration: vec![],
         })
         .unwrap();
-    let source = format!("{}\nform metronome {{\n clock: time/tick(count = 3, period-ms = 320)\n pulse: pulse-observation(period-ms = 320, maximum-pulses = 3)\n clock.tick > pulse.tick\n result: conduit-test/pulse-sink\n pulse.observation > result.observation\n}}",include_str!("../../../../forms/pulse-observation/main.conduit"));
+    let source = format!("{}\nform metronome {{\n clock: time/tick(count = 3, period-ms = 320)\n pulse: pulse-observation(period-ms = 320)\n clock.tick > pulse.tick\n result: conduit-test/pulse-sink\n pulse.observation > result.observation\n}}",include_str!("../../../../forms/pulse-observation/main.conduit"));
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "metronome", &profile).unwrap();
     let host = crate::StdHost::new_with_composition(

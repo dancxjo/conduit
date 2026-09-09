@@ -33,10 +33,23 @@ function execute(x, y, inputMode) {
     const canonical = readBytes();
     write(canonical);
     accept(api.conduit_browser_form_complete_with_output(canonical.length), "pointer completion");
-    const effect = read();
+    let effect = read();
+    for (let attempts = 0; effect.effect_kind !== "manifestation" && attempts < 16; attempts += 1) {
+      accept(api.conduit_browser_form_poll_effect(), "presentation poll");
+      effect = read();
+    }
     if (effect.effect_kind !== "manifestation") throw new Error("expected manifestation");
     document.querySelector("#output").textContent = effect.text;
-    accept(api.conduit_browser_form_complete(), "presentation completion");
+    const play = encoder.encode(effect.active_play_id);
+    const placement = encoder.encode(effect.placement_id);
+    const completionIdentity = new Uint8Array(play.length + placement.length);
+    completionIdentity.set(play);
+    completionIdentity.set(placement, play.length);
+    write(completionIdentity);
+    accept(api.conduit_browser_form_complete_effect(
+      play.length, placement.length, effect.observation_sequence, 0,
+    ), "presentation completion");
+    accept(api.conduit_browser_form_cancel(), "Stop");
     const receipt = read();
     if (receipt.active_play_id !== effect.active_play_id || acquisition.active_play_id !== effect.active_play_id)
       throw new Error("Play correlation drift");

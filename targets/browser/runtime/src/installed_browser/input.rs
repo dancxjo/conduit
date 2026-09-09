@@ -31,7 +31,7 @@ pub(super) static BUTTON: BrowserInstallation = BrowserInstallation {
 };
 
 fn button_offer() -> conduit_core::CapabilityOffer {
-    conduit_semantic_catalog::realization_offer(
+    let mut offer = conduit_semantic_catalog::realization_offer(
         conduit_semantic_catalog::button_source_contract(),
         conduit_semantic_catalog::BUTTON_SOURCE_REVISION,
         conduit_semantic_catalog::RealizationOfferIdentity {
@@ -49,11 +49,13 @@ fn button_offer() -> conduit_core::CapabilityOffer {
         }],
         vec![resource_requirement(WINDOW_INPUT_RESOURCE_CLASS, 1)],
         Vec::new(),
-    )
+    );
+    offer.limits.max_active_instances = super::MAXIMUM_BROWSER_GEARS as u16;
+    offer
 }
 
 fn offer() -> conduit_core::CapabilityOffer {
-    conduit_semantic_catalog::realization_offer(
+    let mut offer = conduit_semantic_catalog::realization_offer(
         conduit_semantic_catalog::keyboard_contract(),
         conduit_semantic_catalog::KEYBOARD_CONTRACT_REVISION,
         conduit_semantic_catalog::RealizationOfferIdentity {
@@ -71,7 +73,9 @@ fn offer() -> conduit_core::CapabilityOffer {
         }],
         vec![resource_requirement(WINDOW_INPUT_RESOURCE_CLASS, 1)],
         Vec::new(),
-    )
+    );
+    offer.limits.max_active_instances = super::MAXIMUM_BROWSER_GEARS as u16;
+    offer
 }
 
 fn prepare(
@@ -85,7 +89,7 @@ fn prepare(
     Ok(BrowserOperation::installed(KeyboardOperation {
         request,
         pending: false,
-        emitted: false,
+        next: 0,
     }))
 }
 
@@ -94,50 +98,29 @@ fn prepare_button(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &button_offer())?;
-    let count = button_transition_count(placement)?;
-    let request = (0..count)
-        .map(|_| {
-            values
-                .store(&[0])
-                .map_err(|error| format!("store button request: {error:?}"))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let request = values
+        .store(&[0])
+        .map_err(|error| format!("store button request: {error:?}"))?;
     Ok(BrowserOperation::installed(ButtonOperation {
         request,
         pending: false,
-        delivered: 0,
+        next: 0,
     }))
 }
 
-fn button_transition_count(placement: &PlannedGear) -> Result<usize, String> {
-    match placement.configuration.as_slice() {
-        [field] if field.key == "maximum-transitions" => match field.value {
-            conduit_core::ConfigurationValue::U64(value)
-                if (1..=u64::from(conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_VALUES))
-                    .contains(&value) =>
-            {
-                Ok(value as usize)
-            }
-            _ => Err("button transition count is outside the admitted 1..8 range".into()),
-        },
-        _ => Err("button input requires exactly one maximum-transitions configuration".into()),
-    }
-}
-
 struct ButtonOperation {
-    request: Vec<ValueRef>,
+    request: ValueRef,
     pending: bool,
-    delivered: u32,
+    next: u32,
 }
 
 impl ButtonOperation {
     fn request(&mut self) -> OperationAction {
         self.pending = true;
         OperationAction::RequestHostOperation {
-            request: RequestId(self.delivered),
+            request: RequestId(self.next),
             operation: HostOperationId(0),
-            input: BoundedValueRef::new(self.request[self.delivered as usize], 1)
-                .expect("button request is one byte"),
+            input: BoundedValueRef::new(self.request, 1).expect("button request is one byte"),
         }
     }
 }
@@ -151,7 +134,7 @@ impl Operation for ButtonOperation {
         match input {
             OperationInput::HostOperationCompleted { request, outcome }
                 if self.pending
-                    && request == RequestId(self.delivered)
+                    && request == RequestId(self.next)
                     && outcome.disposition == HostOperationDisposition::Completed
                     && outcome.failure.is_none() =>
             {
@@ -169,12 +152,11 @@ impl Operation for ButtonOperation {
     }
 
     fn advance(&mut self) -> OperationAction {
-        self.delivered += 1;
-        if self.delivered as usize == self.request.len() {
-            OperationAction::Complete
-        } else {
-            self.request()
-        }
+        let Some(next) = self.next.checked_add(1) else {
+            return identity_exhausted();
+        };
+        self.next = next;
+        self.request()
     }
 
     fn cancel(&mut self) {
@@ -185,32 +167,30 @@ impl Operation for ButtonOperation {
 struct KeyboardOperation {
     request: ValueRef,
     pending: bool,
-    emitted: bool,
+    next: u32,
 }
 
 impl Operation for KeyboardOperation {
     fn start(&mut self) -> OperationAction {
         self.pending = true;
         OperationAction::RequestHostOperation {
-            request: RequestId(0),
+            request: RequestId(self.next),
             operation: HostOperationId(0),
             input: BoundedValueRef::new(self.request, 1).expect("keyboard request is one byte"),
         }
     }
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.failure.is_none() =>
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending
+                    && request == RequestId(self.next)
+                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
                     return fail();
                 };
                 self.pending = false;
-                self.emitted = true;
                 OperationAction::Emit {
                     port: PortId(0),
                     value: output.value,
@@ -220,11 +200,11 @@ impl Operation for KeyboardOperation {
         }
     }
     fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            fail()
-        }
+        let Some(next) = self.next.checked_add(1) else {
+            return identity_exhausted();
+        };
+        self.next = next;
+        self.start()
     }
     fn cancel(&mut self) {
         self.pending = false;
@@ -238,53 +218,68 @@ fn fail() -> OperationAction {
     })
 }
 
+fn identity_exhausted() -> OperationAction {
+    OperationAction::Fail(Failure {
+        code: FailureCode::IdentityCapacityExhausted,
+        detail: 50,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use conduit_kernel::{HostOperationOutcome, ValueRef};
 
     #[test]
-    fn button_emits_each_admitted_transition_and_closes_at_the_exact_bound() {
-        for count in [1, 2, 5, 8] {
-            let mut operation = ButtonOperation {
-                request: (0..count)
-                    .map(|slot| ValueRef {
-                        slot,
-                        generation: 1,
-                        byte_len: 1,
-                    })
-                    .collect(),
-                pending: false,
-                delivered: 0,
+    fn button_rearms_one_fixed_request_after_each_transition() {
+        let request = ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 1,
+        };
+        let mut operation = ButtonOperation {
+            request,
+            pending: false,
+            next: 0,
+        };
+        let mut action = operation.start();
+        for sequence in 0..6 {
+            assert!(matches!(
+                action,
+                OperationAction::RequestHostOperation {
+                    request: RequestId(found),
+                    ..
+                } if found == u32::from(sequence)
+            ));
+            let value = ValueRef {
+                slot: sequence + 1,
+                generation: 1,
+                byte_len: 1,
             };
-            let mut action = operation.start();
-            for index in 0..count {
-                assert!(matches!(action, OperationAction::RequestHostOperation {
-                    request: RequestId(id), ..
-                } if id == index as u32));
-                let value = operation.request[index as usize];
-                assert_eq!(
-                    operation.resume(OperationInput::HostOperationCompleted {
-                        request: RequestId(index as u32),
-                        outcome: HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
-                            output: Some(BoundedValueRef::new(value, 1).unwrap()),
-                            failure: None,
-                        },
-                    }),
-                    OperationAction::Emit {
-                        port: PortId(0),
-                        value
-                    }
-                );
-                action = operation.advance();
-            }
-            assert_eq!(action, OperationAction::Complete);
+            assert_eq!(
+                operation.resume(OperationInput::HostOperationCompleted {
+                    request: RequestId(sequence.into()),
+                    outcome: HostOperationOutcome {
+                        disposition: HostOperationDisposition::Completed,
+                        output: Some(BoundedValueRef::new(value, 1).unwrap()),
+                        failure: None,
+                    },
+                }),
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value
+                }
+            );
+            action = operation.advance();
         }
+        assert!(matches!(
+            action,
+            OperationAction::RequestHostOperation { .. }
+        ));
     }
 
     #[test]
-    fn keyboard_requests_one_bounded_event_and_emits_exact_completion() {
+    fn keyboard_rearms_the_same_bounded_request_after_each_event() {
         let mut operation = KeyboardOperation {
             request: ValueRef {
                 slot: 1,
@@ -292,7 +287,7 @@ mod tests {
                 byte_len: 1,
             },
             pending: false,
-            emitted: false,
+            next: 0,
         };
         assert!(matches!(
             operation.start(),
@@ -323,6 +318,12 @@ mod tests {
                 value: key
             }
         );
-        assert_eq!(operation.advance(), OperationAction::Complete);
+        assert!(matches!(
+            operation.advance(),
+            OperationAction::RequestHostOperation {
+                request: RequestId(1),
+                ..
+            }
+        ));
     }
 }

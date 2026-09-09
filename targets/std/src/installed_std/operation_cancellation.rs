@@ -29,6 +29,7 @@ impl InstalledOperation {
             Self::TextUpper(operation) => operation.cancel(),
             Self::TextJoin(operation) => operation.cancel(),
             Self::TextPresentation(operation) => operation.cancel(),
+            Self::TextState(operation) => operation.cancel(),
             Self::StateCount(_) => {}
             Self::StateToggle(_) => {}
             Self::CountPresentation(operation) => operation.cancel(),

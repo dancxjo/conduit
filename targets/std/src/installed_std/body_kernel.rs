@@ -23,6 +23,8 @@ pub(crate) struct BodyKernel {
     typed_record_hosts: Vec<Option<super::typed_record_operation::TypedRecordHost>>,
     image_text_hosts: Vec<Option<super::image_text_operation::ImageTextHost>>,
     image_text_record_hosts: Vec<Option<super::image_text_record_operation::ImageTextRecordHost>>,
+    text_state_hosts: Vec<Option<super::text_state_operation::TextStateHost>>,
+    input_keymaps: [conduit_human::ConduitIntlKeymap; MAX_NODES],
     requests: Vec<HostOperationRequest>,
 }
 
@@ -37,6 +39,18 @@ pub(crate) struct BodyKernelResult {
 
 fn keyboard(contract: &conduit_core::HostOperationContractId) -> bool {
     contract.as_str() == conduit_std_offers::NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT
+}
+fn button(contract: &conduit_core::HostOperationContractId) -> bool {
+    contract.as_str() == conduit_std_offers::button::NEXT_TRANSITION_HOST_OPERATION
+}
+fn text_state(contract: &conduit_core::HostOperationContractId) -> bool {
+    contract.as_str() == conduit_std_offers::TEXT_STATE_HOST_OPERATION
+}
+fn input_semantic(contract: &conduit_core::HostOperationContractId) -> bool {
+    matches!(
+        contract.as_str(),
+        conduit_std_offers::KEYMAP_HOST_OPERATION | conduit_std_offers::CHORDS_HOST_OPERATION
+    )
 }
 fn timer(contract: &conduit_core::HostOperationContractId) -> bool {
     contract.as_str() == conduit_core::WAIT_HOST_OPERATION_CONTRACT
@@ -96,13 +110,15 @@ impl BodyKernel {
             .iter()
             .flat_map(|part| &part.host_operations)
         {
-            if keyboard(&operation.contract_id) {
+            if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                 if !has_keyboard {
                     return Err("Body keyboard has no admitted adapter".into());
                 }
             } else if !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
+                && !text_state(&operation.contract_id)
+                && !input_semantic(&operation.contract_id)
                 && !presentation(operation)
             {
                 return Err(format!(
@@ -166,6 +182,15 @@ impl BodyKernel {
             .iter()
             .flat_map(|fragment| super::image_text_record_operation::prepare_hosts(fragment))
             .collect();
+        let text_state_hosts = fragments
+            .iter()
+            .flat_map(|fragment| {
+                fragment
+                    .placements
+                    .iter()
+                    .map(super::text_state_operation::TextStateHost::from_placement)
+            })
+            .collect::<Result<Vec<_>, String>>()?;
         Ok(Self {
             scheduler: tables.install(drivers, values, signs)?,
             operations: lowered
@@ -181,6 +206,8 @@ impl BodyKernel {
             typed_record_hosts,
             image_text_hosts,
             image_text_record_hosts,
+            text_state_hosts,
+            input_keymaps: [conduit_human::ConduitIntlKeymap::new(); MAX_NODES],
             requests: Vec::with_capacity(request_capacity),
         })
     }
@@ -192,7 +219,12 @@ impl BodyKernel {
         input: Option<&mut dyn HostedKeyboardAdapter>,
         control: &RunControl,
     ) -> BodyKernelResult {
-        let mut keys = super::keyboard_input_host::KeyboardInputHost::new(input);
+        let mut keys = super::keyboard_input_host::KeyboardInputHost::new(
+            input,
+            self.operations
+                .iter()
+                .any(|operation| keyboard(&operation.contract_id)),
+        );
         let mut deadlines = super::deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
@@ -213,7 +245,7 @@ impl BodyKernel {
                             op.node == cancellation.node && op.operation == cancellation.operation
                         })
                         .ok_or("Body cancellation has no exact operation")?;
-                    if keyboard(&operation.contract_id) {
+                    if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                         keys.cancel();
                         self.scheduler
                             .complete_host_operation(
@@ -231,10 +263,14 @@ impl BodyKernel {
                     }
                 }
                 while let Some(request) = self.scheduler.next_host_request() {
-                    if self.requests.len() == self.requests.capacity() {
-                        return Err("Body request capacity exceeded".into());
+                    if !self.requests.iter().any(|observed| {
+                        observed.node == request.node && observed.operation == request.operation
+                    }) {
+                        if self.requests.len() == self.requests.capacity() {
+                            return Err("Body observed-operation capacity exceeded".into());
+                        }
+                        self.requests.push(request);
                     }
-                    self.requests.push(request);
                     let operation = self
                         .operations
                         .iter()
@@ -245,7 +281,120 @@ impl BodyKernel {
                         .host_value(request.input.value)
                         .map_err(|error| format!("Body request value: {error:?}"))?;
                     if keyboard(&operation.contract_id) {
-                        keys.accept(request, input)?;
+                        keys.accept(
+                            request,
+                            input,
+                            super::keyboard_input_host::InputRequestKind::Keyboard,
+                        )?;
+                        continue;
+                    }
+                    if button(&operation.contract_id) {
+                        keys.accept(
+                            request,
+                            input,
+                            super::keyboard_input_host::InputRequestKind::SpaceButton,
+                        )?;
+                        continue;
+                    }
+                    if text_state(&operation.contract_id) {
+                        let completion = self
+                            .text_state_hosts
+                            .get_mut(usize::from(request.node.0))
+                            .and_then(Option::as_mut)
+                            .ok_or("Body text state has no admitted Host")?
+                            .execute(input);
+                        let (disposition, output, failure) = match completion {
+                            Ok(encoded) => {
+                                let output = encoded
+                                    .map(|encoded| self.scheduler.store_host_value(encoded))
+                                    .transpose()
+                                    .map_err(|error| {
+                                        format!("Body text state output: {error:?}")
+                                    })?
+                                    .map(|value| {
+                                        BoundedValueRef::new(
+                                            value,
+                                            operation.binding.maximum_output_bytes,
+                                        )
+                                    })
+                                    .transpose()
+                                    .map_err(|error| {
+                                        format!("Body text state output bound: {error:?}")
+                                    })?;
+                                (HostOperationDisposition::Completed, output, None)
+                            }
+                            Err(refusal) => (
+                                HostOperationDisposition::Failed,
+                                None,
+                                Some(conduit_kernel::Failure {
+                                    code: match refusal {
+                                        conduit_semantic_catalog::TextStateRefusal::CapacityExhausted => conduit_kernel::FailureCode::StateCapacityExhausted,
+                                        conduit_semantic_catalog::TextStateRefusal::InvalidCapacity | conduit_semantic_catalog::TextStateRefusal::InvalidUtf8 => conduit_kernel::FailureCode::InvalidInput,
+                                    },
+                                    detail: 1,
+                                }),
+                            ),
+                        };
+                        self.scheduler
+                            .complete_host_operation(
+                                request.node,
+                                request.request,
+                                HostOperationOutcome {
+                                    disposition,
+                                    output,
+                                    failure,
+                                },
+                            )
+                            .map_err(|error| format!("Body text state completion: {error:?}"))?;
+                        continue;
+                    }
+                    if input_semantic(&operation.contract_id) {
+                        let node = usize::from(request.node.0);
+                        let completion = super::input_semantic_operations::execute_host(
+                            operation.contract_id.as_str()
+                                == conduit_std_offers::KEYMAP_HOST_OPERATION,
+                            &mut self.input_keymaps[node],
+                            input,
+                        );
+                        let outcome =
+                            match completion {
+                                Ok(Some(encoded)) => {
+                                    let value = self
+                                        .scheduler
+                                        .store_host_value(encoded.as_slice())
+                                        .map_err(|error| {
+                                            format!("Body input semantic output: {error:?}")
+                                        })?;
+                                    HostOperationOutcome {
+                                    disposition: HostOperationDisposition::Completed,
+                                    output: Some(
+                                        BoundedValueRef::new(
+                                            value,
+                                            operation.binding.maximum_output_bytes,
+                                        )
+                                        .map_err(|error| {
+                                            format!("Body input semantic output bound: {error:?}")
+                                        })?,
+                                    ),
+                                    failure: None,
+                                }
+                                }
+                                Ok(None) => HostOperationOutcome {
+                                    disposition: HostOperationDisposition::Completed,
+                                    output: None,
+                                    failure: None,
+                                },
+                                Err(failure) => HostOperationOutcome {
+                                    disposition: HostOperationDisposition::Failed,
+                                    output: None,
+                                    failure: Some(failure),
+                                },
+                            };
+                        self.scheduler
+                            .complete_host_operation(request.node, request.request, outcome)
+                            .map_err(|error| {
+                                format!("Body input semantic completion: {error:?}")
+                            })?;
                         continue;
                     }
                     if typed_record_codec(&operation.contract_id) {
@@ -429,7 +578,11 @@ impl BodyKernel {
                             reason: CancellationReason::OperatorRequested,
                         })
                     }
-                    SchedulerStatus::Progress { .. } => {}
+                    SchedulerStatus::Progress { .. } => {
+                        if keys.is_pending() {
+                            keys.poll(&mut self.scheduler)?;
+                        }
+                    }
                     SchedulerStatus::Idle => {
                         if keys.poll(&mut self.scheduler)?
                             || deadlines.complete_next(&mut self.scheduler, clock)?

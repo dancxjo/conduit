@@ -20,11 +20,10 @@ impl BrowserOperation {
         }))
     }
 
-    pub(crate) fn unary(maximum_input_bytes: u32, maximum_values: u32) -> Self {
+    pub(crate) fn unary(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
         Self(Box::new(UnaryOperation {
             maximum_input_bytes,
-            maximum_values,
-            next: 0,
+            next_request: 0,
             pending: None,
         }))
     }
@@ -46,11 +45,10 @@ impl BrowserOperation {
         }))
     }
 
-    pub(crate) fn presentation(maximum_input_bytes: u32, maximum_values: u32) -> Self {
+    pub(crate) fn presentation(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
         Self(Box::new(PresentationOperation {
             maximum_input_bytes,
-            maximum_values,
-            next: 0,
+            next_request: 0,
             pending: None,
         }))
     }
@@ -96,6 +94,10 @@ impl Operation for BrowserOperation {
 
     fn accepts_input_while_host_operation_pending(&self) -> bool {
         self.0.accepts_input_while_host_operation_pending()
+    }
+
+    fn retains_host_operation_input(&self, request: RequestId, value: ValueRef) -> bool {
+        self.0.retains_host_operation_input(request, value)
     }
 
     fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
@@ -248,8 +250,7 @@ impl Operation for SourceOperation {
 
 struct UnaryOperation {
     maximum_input_bytes: u32,
-    maximum_values: u32,
-    next: u32,
+    next_request: u32,
     pending: Option<RequestId>,
 }
 
@@ -263,8 +264,8 @@ impl Operation for UnaryOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if self.pending.is_none() && self.next < self.maximum_values => {
-                let request = RequestId(self.next);
+            } if self.pending.is_none() => {
+                let request = RequestId(self.next_request);
                 self.pending = Some(request);
                 let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
                     return fail(2);
@@ -280,14 +281,17 @@ impl Operation for UnaryOperation {
                     && outcome.disposition == HostOperationDisposition::Completed
                     && outcome.failure.is_none() =>
             {
-                let Some(output) = outcome.output else {
-                    return fail(2);
-                };
                 self.pending = None;
-                self.next = self.next.saturating_add(1);
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
+                let Some(next) = self.next_request.checked_add(1) else {
+                    return identity_exhausted(2);
+                };
+                self.next_request = next;
+                match outcome.output {
+                    Some(output) => OperationAction::Emit {
+                        port: PortId(0),
+                        value: output.value,
+                    },
+                    None => OperationAction::Await,
                 }
             }
             OperationInput::HostOperationCompleted { request, outcome }
@@ -326,8 +330,7 @@ impl Operation for UnaryOperation {
 
 struct PresentationOperation {
     maximum_input_bytes: u32,
-    maximum_values: u32,
-    next: u32,
+    next_request: u32,
     pending: Option<RequestId>,
 }
 
@@ -341,8 +344,8 @@ impl Operation for PresentationOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if self.pending.is_none() && self.next < self.maximum_values => {
-                let request = RequestId(self.next);
+            } if self.pending.is_none() => {
+                let request = RequestId(self.next_request);
                 self.pending = Some(request);
                 let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
                     return fail(3);
@@ -360,7 +363,10 @@ impl Operation for PresentationOperation {
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
-                self.next = self.next.saturating_add(1);
+                let Some(next) = self.next_request.checked_add(1) else {
+                    return identity_exhausted(3);
+                };
+                self.next_request = next;
                 OperationAction::Await
             }
             OperationInput::HostOperationCompleted { request, outcome }
@@ -586,6 +592,13 @@ impl Operation for InactiveOperation {
 fn fail(detail: u16) -> OperationAction {
     OperationAction::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
+
+fn identity_exhausted(detail: u16) -> OperationAction {
+    OperationAction::Fail(Failure {
+        code: FailureCode::IdentityCapacityExhausted,
         detail,
     })
 }

@@ -2,7 +2,7 @@ use super::{host, installed_std, BTreeMap, BaseImplementationId, PlanningOptions
 use conduit_core::{ObservationKind, TerminalDisposition};
 use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
-use conduit_presentation::MAX_GRAPHICS_SCENE_BYTES;
+use conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES;
 use std::io::{self, Write};
 
 struct LostGraphicsSurface;
@@ -56,7 +56,7 @@ fn ordinary_presentation_back_lowers_through_multiple_graphics_kinds() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: MAX_GRAPHICS_SCENE_BYTES as u32,
+            connection_byte_capacity: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],

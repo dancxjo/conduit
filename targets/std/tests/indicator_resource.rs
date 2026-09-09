@@ -9,7 +9,7 @@ use conduit_std_host::{
         HostedIndicatorAdapter, IndicatorBinding, IndicatorFailure, IndicatorRequest,
     },
     hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll},
-    HostedRunAdapters, RunControl, StdHost, TimerAdapter,
+    HostedRunAdapters, RunControl, RunControlRequestId, StdHost, TimerAdapter,
 };
 
 struct Keyboard(usize);
@@ -24,6 +24,30 @@ impl HostedKeyboardAdapter for Keyboard {
         } else {
             HostedKeyboardPoll::Cancelled
         }
+    }
+}
+
+struct ControlledKeyboard {
+    phase: usize,
+    transitions: usize,
+    stop: Option<RunControl>,
+}
+impl HostedKeyboardAdapter for ControlledKeyboard {
+    fn poll_next(&mut self) -> HostedKeyboardPoll {
+        if self.phase < self.transitions {
+            let phase = self.phase;
+            self.phase += 1;
+            return HostedKeyboardPoll::Event(
+                conduit_human::KeyEvent::decode(&[0x2c, (phase % 2) as u8, 0]).unwrap(),
+            );
+        }
+        if let Some(control) = self.stop.take() {
+            control
+                .request_stop(RunControlRequestId::new("stop-indicator-proof").unwrap())
+                .unwrap();
+            return HostedKeyboardPoll::Pending;
+        }
+        HostedKeyboardPoll::Cancelled
     }
 }
 struct Timer;
@@ -151,14 +175,20 @@ fn prepare_source(source: &str) -> (StdHost, Plan, Provider) {
 fn canonical_form_completes_only_through_exact_indicator_adapter() {
     let (mut host, plan, mut provider) = prepare();
     let mut output = Vec::new();
+    let control = RunControl::default();
+    let mut keyboard = ControlledKeyboard {
+        phase: 0,
+        transitions: 2,
+        stop: Some(control.clone()),
+    };
     let report = host
         .run_fragment_controlled_with_adapters_to(
             plan.fragments[0].clone(),
             &mut output,
             &mut Timer,
-            &RunControl::default(),
+            &control,
             HostedRunAdapters {
-                keyboard: Some(&mut Keyboard(0)),
+                keyboard: Some(&mut keyboard),
                 indicator: Some(&mut provider),
             },
         )
@@ -169,30 +199,33 @@ fn canonical_form_completes_only_through_exact_indicator_adapter() {
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(conduit_core::ObservationKind::PlanTerminal {
-            disposition: conduit_core::TerminalDisposition::Completed
+            disposition: conduit_core::TerminalDisposition::Cancelled { .. }
         })
     ));
 }
 
 #[test]
 fn acquired_indicator_honors_all_eight_admitted_transitions() {
-    let source = include_str!("../../../forms/button-across-room/main.conduit")
-        .replace("input/button\n", "input/button(8)\n");
-    let (mut host, plan, mut provider) = prepare_source(&source);
-    let mut keyboard = Keyboard(0);
+    let (mut host, plan, mut provider) = prepare();
+    let control = RunControl::default();
+    let mut keyboard = ControlledKeyboard {
+        phase: 0,
+        transitions: 8,
+        stop: Some(control.clone()),
+    };
     let report = host
         .run_fragment_controlled_with_adapters_to(
             plan.fragments[0].clone(),
             &mut Vec::new(),
             &mut Timer,
-            &RunControl::default(),
+            &control,
             HostedRunAdapters {
                 keyboard: Some(&mut keyboard),
                 indicator: Some(&mut provider),
             },
         )
         .unwrap();
-    assert_eq!(keyboard.0, 8);
+    assert_eq!(keyboard.phase, 8);
     assert_eq!(provider.calls, 8);
     assert_eq!(
         provider.states,
@@ -201,7 +234,7 @@ fn acquired_indicator_honors_all_eight_admitted_transitions() {
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(conduit_core::ObservationKind::PlanTerminal {
-            disposition: conduit_core::TerminalDisposition::Completed
+            disposition: conduit_core::TerminalDisposition::Cancelled { .. }
         })
     ));
 }

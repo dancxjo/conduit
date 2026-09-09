@@ -15,6 +15,11 @@ pub trait Operation {
     fn accepts_input_while_host_operation_pending(&self) -> bool {
         false
     }
+    /// Whether an exact prepared value used as Host-operation input remains
+    /// operation-owned after that request completes.
+    fn retains_host_operation_input(&self, _request: RequestId, _value: ValueRef) -> bool {
+        false
+    }
     /// Returns one exact pending host request that this operation wants the
     /// adapter to cancel. The scheduler validates ownership and dispatch state
     /// before exposing the cancellation to the host.

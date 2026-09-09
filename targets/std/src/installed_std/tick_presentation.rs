@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
+use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
+    OperationAction, OperationInput, PortId, RequestId,
 };
 
 pub(super) static TICK_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
@@ -14,7 +14,6 @@ pub(super) static TICK_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory
 pub(super) struct TickPresentationOperation {
     pending: Option<RequestId>,
     next: u32,
-    maximum_values: u32,
 }
 
 impl TickPresentationOperation {
@@ -27,7 +26,7 @@ impl TickPresentationOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if self.pending.is_none() && self.next < self.maximum_values => {
+            } if self.pending.is_none() => {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
                 let Ok(input) = BoundedValueRef::new(value, conduit_time::TICK_ENCODED_LEN) else {
@@ -46,7 +45,13 @@ impl TickPresentationOperation {
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
-                self.next = self.next.saturating_add(1);
+                let Some(next) = self.next.checked_add(1) else {
+                    return OperationAction::Fail(Failure {
+                        code: FailureCode::IdentityCapacityExhausted,
+                        detail: 9,
+                    });
+                };
+                self.next = next;
                 OperationAction::Await
             }
             OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
@@ -59,23 +64,6 @@ impl TickPresentationOperation {
     pub(super) fn cancel(&mut self) {
         self.pending = None;
     }
-}
-
-fn maximum_values(placement: &PlannedGear) -> Result<u64, String> {
-    if placement.configuration.len() != 1 {
-        return Err(
-            "presentation/tick requires exactly one planned configuration field".to_string(),
-        );
-    }
-    placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
-            ("maximum-values", ConfigurationValue::U64(value)) => Some(*value),
-            _ => None,
-        })
-        .filter(|value| (1..=conduit_time::TIME_EVERY_COUNT).contains(value))
-        .ok_or_else(|| "presentation/tick maximum-values is missing or invalid".to_string())
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
@@ -92,21 +80,21 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.inputs[0].port_id.as_str() != "tick"
         || placement.inputs[0].value_kind.as_str() != conduit_time::TICK_VALUE_KIND
         || placement.inputs[0].direction != PortDirection::Input
+        || !placement.configuration.is_empty()
     {
         return Err(
             "planned tick presentation identity does not match its installation".to_string(),
         );
     }
-    maximum_values(placement).map(|_| ())
+    Ok(())
 }
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
-    let maximum = maximum_values(placement)?;
     Ok(OperationBudget {
         value_items: 0,
         value_bytes: 0,
-        host_requests: maximum as usize,
+        host_requests: 1,
         sign_items: 64,
         maximum_value_bytes: conduit_time::TICK_ENCODED_LEN,
     })
@@ -121,7 +109,6 @@ fn prepare(
         TickPresentationOperation {
             pending: None,
             next: 0,
-            maximum_values: maximum_values(placement)? as u32,
         },
     ))
 }

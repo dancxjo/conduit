@@ -3,22 +3,30 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
-use conduit_std_host::{StdHost, TimerAdapter};
+use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
 use std::time::Duration;
 
 const POSITIONAL: &str = include_str!("../../../forms/clock/main.conduit");
 const NAMED: &str =
-    "form clock-demo {\n    complete\n    clock: time/every(freq = 1s)\n    clock > presentation/tick\n}\n";
-const LOCAL: &str = "form clock-demo {\n    complete\n    freq = 1s\n    clock: time/every(freq)\n    clock > presentation/tick\n}\n";
+    "form clock-demo {\n    clock: time/every(freq = 1s)\n    clock > presentation/tick\n}\n";
+const LOCAL: &str = "form clock-demo {\n    freq = 1s\n    clock: time/every(freq)\n    clock > presentation/tick\n}\n";
 
 #[derive(Default)]
 struct RecordingTimer {
     waits: Vec<Duration>,
+    stop: Option<RunControl>,
 }
 
 impl TimerAdapter for RecordingTimer {
     fn wait(&mut self, duration: Duration) {
         self.waits.push(duration);
+        if self.waits.len() >= 16 {
+            if let Some(control) = self.stop.take() {
+                control
+                    .request_stop(RunControlRequestId::new("stop-canonical-clock").unwrap())
+                    .unwrap();
+            }
+        }
     }
 }
 
@@ -39,7 +47,7 @@ fn checked(source: &str) -> conduit_form::CheckedSyntaxDocument {
 }
 
 #[test]
-fn duration_spellings_have_one_semantic_identity_and_execute_four_bounded_ticks() {
+fn duration_spellings_have_one_semantic_identity_and_execute_until_explicit_stop() {
     let positional = checked(POSITIONAL);
     let named = checked(NAMED);
     let local = checked(LOCAL);
@@ -63,14 +71,18 @@ fn duration_spellings_have_one_semantic_identity_and_execute_four_bounded_ticks(
 
     let mut host = StdHost::new();
     let plan = host.plan_expanded_local(&positional).unwrap();
-    let mut output = Vec::with_capacity(256);
-    let mut timer = RecordingTimer::default();
+    let mut output = Vec::with_capacity(4_096);
+    let control = RunControl::default();
+    let mut timer = RecordingTimer {
+        waits: Vec::with_capacity(16),
+        stop: Some(control.clone()),
+    };
     let report = host
-        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .run_fragment_controlled_to(plan.fragments[0].clone(), &mut output, &mut timer, &control)
         .unwrap();
-    assert_eq!(timer.waits, vec![Duration::from_secs(1); 4]);
+    assert_eq!(timer.waits, vec![Duration::from_secs(1); 16]);
     let output = String::from_utf8(output).unwrap();
-    for sequence in 0..4 {
+    for sequence in 0..6 {
         assert!(
             output.contains(&format!("tick sequence={sequence}\n")),
             "{output}"
@@ -79,7 +91,7 @@ fn duration_spellings_have_one_semantic_identity_and_execute_four_bounded_ticks(
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {
-            disposition: TerminalDisposition::Completed
+            disposition: TerminalDisposition::Cancelled { .. }
         })
     ));
     let kernel = report.kernel.unwrap();

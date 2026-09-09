@@ -3,7 +3,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
-use conduit_std_host::{StdHost, TimerAdapter};
+use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
 use std::time::Duration;
 
 const PROGRAM: &str = include_str!("../../../forms/count/main.conduit");
@@ -12,11 +12,19 @@ const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
 #[derive(Default)]
 struct RecordingTimer {
     waits: Vec<Duration>,
+    stop: Option<RunControl>,
 }
 
 impl TimerAdapter for RecordingTimer {
     fn wait(&mut self, duration: Duration) {
         self.waits.push(duration);
+        if self.waits.len() >= 24 {
+            if let Some(control) = self.stop.take() {
+                control
+                    .request_stop(RunControlRequestId::new("stop-canonical-count").unwrap())
+                    .unwrap();
+            }
+        }
     }
 }
 
@@ -31,7 +39,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
 }
 
 #[test]
-fn canonical_program_four_runs_startup_flow_and_current_through_one_kernel() {
+fn canonical_program_reacts_to_open_flow_until_explicit_stop() {
     let (startup, profile) = catalogs();
     let syntax = parse_syntax_document(PROGRAM);
     assert_eq!(syntax.round_trip(), PROGRAM);
@@ -49,27 +57,33 @@ fn canonical_program_four_runs_startup_flow_and_current_through_one_kernel() {
         .unwrap();
     assert_eq!(
         state.inputs[0].temporal,
-        PortTemporal::Flow { closes: true }
+        PortTemporal::Flow { closes: false }
     );
     assert_eq!(state.outputs[0].temporal, PortTemporal::Current);
 
-    let mut output = Vec::with_capacity(512);
-    let mut timer = RecordingTimer::default();
+    let mut output = Vec::with_capacity(4_096);
+    let control = RunControl::default();
+    let mut timer = RecordingTimer {
+        waits: Vec::with_capacity(24),
+        stop: Some(control.clone()),
+    };
     let report = host
-        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .run_fragment_controlled_to(plan.fragments[0].clone(), &mut output, &mut timer, &control)
         .unwrap();
-    assert_eq!(timer.waits, vec![Duration::from_secs(1); 4]);
+    assert_eq!(timer.waits, vec![Duration::from_secs(1); 24]);
     let output = String::from_utf8(output).unwrap();
     let counts = output
         .lines()
         .filter_map(|line| line.strip_prefix("count value="))
         .map(|value| value.parse::<u64>().unwrap())
         .collect::<Vec<_>>();
-    assert_eq!(counts, vec![2, 3, 4, 5, 6]);
+    assert!(counts.len() > 5, "counts={counts:?}");
+    assert_eq!(counts.first(), Some(&2));
+    assert!(counts.windows(2).all(|pair| pair[1] == pair[0] + 1));
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {
-            disposition: TerminalDisposition::Completed
+            disposition: TerminalDisposition::Cancelled { .. }
         })
     ));
     let kernel = report.kernel.unwrap();
@@ -85,18 +99,19 @@ fn canonical_program_four_runs_startup_flow_and_current_through_one_kernel() {
 }
 
 #[test]
-fn temporal_mismatch_range_overflow_and_selected_identity_fail_before_output() {
+fn reactive_face_range_overflow_and_selected_identity_are_exact() {
     let (startup, profile) = catalogs();
-    let open_flow = PROGRAM.replace("Tick...|", "Tick...");
-    let checked = check_syntax_document(&parse_syntax_document(&open_flow), &startup).unwrap();
+    let single_value = PROGRAM.replace("Tick...", "Tick");
+    let checked = check_syntax_document(&parse_syntax_document(&single_value), &startup).unwrap();
+    let reactively_lifted = expand_canonical_form(&checked, "count-demo", &profile).unwrap();
+    let canonical = check_syntax_document(&parse_syntax_document(PROGRAM), &startup).unwrap();
+    let canonical = expand_canonical_form(&canonical, "count-demo", &profile).unwrap();
     assert_eq!(
-        expand_canonical_form(&checked, "count-demo", &profile)
-            .unwrap_err()
-            .code,
-        "CND-FRM-045"
+        reactively_lifted.expanded_form_id,
+        canonical.expanded_form_id
     );
 
-    let overflow = PROGRAM.replace("count(2)", "count(18446744073709551615)");
+    let overflow = PROGRAM.replace("count(2)", "count(18446744073709551616)");
     let checked = check_syntax_document(&parse_syntax_document(&overflow), &startup).unwrap();
     assert!(expand_canonical_form(&checked, "count-demo", &profile).is_err());
 

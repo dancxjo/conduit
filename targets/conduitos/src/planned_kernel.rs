@@ -376,7 +376,6 @@ fn validate_shape(
         || fragment.placements[1].implementation_id.as_str()
             != crate::offer::TICK_PRESENTATION_IMPLEMENTATION
         || configured_u64(&fragment.placements[0].configuration, "count")? != 1
-        || configured_u64(&fragment.placements[1].configuration, "maximum-values")? != 1
         || !lowered.remote_endpoints.is_empty()
     {
         return Err(SchedulerError::InvalidPlan);

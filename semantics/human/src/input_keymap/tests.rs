@@ -21,6 +21,7 @@ fn text(disposition: KeymapDisposition) -> alloc::string::String {
 fn base_shift_altgr_and_non_text_are_exact() {
     let mut map = ConduitIntlKeymap::new();
     assert_eq!(text(map.apply(press(0x04, KeyModifiers::NONE))), "a");
+    assert_eq!(text(map.apply(press(0x2a, KeyModifiers::NONE))), "\u{8}");
     assert_eq!(text(map.apply(press(0x04, KeyModifiers::LEFT_SHIFT))), "A");
     assert_eq!(text(map.apply(press(0x08, KeyModifiers::RIGHT_ALT))), "€");
     assert_eq!(text(map.apply(press(0x2d, KeyModifiers::RIGHT_ALT))), "–");

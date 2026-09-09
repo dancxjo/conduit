@@ -7,21 +7,45 @@ fn pointer_quantity_source() -> String {
 }
 
 #[test]
-fn canonical_pocket_theremin_maps_pointer_position_to_typed_pitch() {
+fn canonical_pocket_theremin_maps_separated_positions_in_one_play() {
     let source = pointer_quantity_source();
-    for (position_x, expected) in [(0, "20 Hz"), (500_000, "10010 Hz"), (1_000_000, "20000 Hz")] {
-        let (mut session, effect) = TourSession::prepare_with_profile(
-            "pointer-controller",
-            "pointer-boot",
-            &source,
-            position_x as u64,
-            MorseRealization::Direct,
-            crate::installed_browser::PresentationProfile::Quantity,
-        )
-        .unwrap();
-        let TourHostEffect::PointerEvent(input) = effect else {
-            panic!("expected pointer acquisition");
-        };
+    let (mut session, effect) = TourSession::prepare_with_profile(
+        "pointer-controller",
+        "pointer-boot",
+        &source,
+        42,
+        MorseRealization::Direct,
+        crate::installed_browser::PresentationProfile::Quantity,
+    )
+    .unwrap();
+    assert!(matches!(effect, TourHostEffect::PointerEvent(_)));
+    let play = session.active_play_id.as_str().to_owned();
+
+    for (sequence, (position_x, expected)) in
+        [(0, "20 Hz"), (500_000, "10010 Hz"), (1_000_000, "20000 Hz")]
+            .into_iter()
+            .enumerate()
+    {
+        for _ in 0..16 {
+            if session
+                .pending
+                .iter()
+                .any(|pending| matches!(pending.effect, engine::BrowserHostEffect::PointerEvent))
+            {
+                break;
+            }
+            let _ = session.poll_effect().unwrap();
+        }
+        let pointer_index = session
+            .pending
+            .iter()
+            .position(|pending| matches!(pending.effect, engine::BrowserHostEffect::PointerEvent))
+            .expect("same Play must remain armed for another pointer position");
+        let request = session.pending[pointer_index].request;
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
+            .placement_id
+            .as_str()
+            .to_owned();
         let canonical = conduit_semantic_catalog::normalized_pointer_value(
             conduit_semantic_catalog::NormalizedPointerSample {
                 position_x,
@@ -32,20 +56,37 @@ fn canonical_pocket_theremin_maps_pointer_position_to_typed_pitch() {
                 coalesced: 0,
                 dropped: 0,
                 queue_capacity: 1,
-                sequence: 1,
+                sequence: sequence as u64,
             },
         )
         .unwrap()
         .canonical_bytes()
         .unwrap();
-        let TourProgress::Effect(output) = session.advance_with_output(&canonical).unwrap() else {
-            panic!("pointer mapping must manifest");
-        };
-        let TourHostEffect::Manifestation(output) = *output else {
-            panic!("expected mapped output");
+        let _ = session
+            .complete_effect(&play, &placement, request.request.0, Some(&canonical))
+            .unwrap();
+        for _ in 0..16 {
+            if session.pending.iter().any(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
+            }) {
+                break;
+            }
+            let _ = session.poll_effect().unwrap();
+        }
+        let output_index = session
+            .pending
+            .iter()
+            .position(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
+            })
+            .expect("pointer mapping must manifest");
+        let TourHostEffect::Manifestation(output) =
+            session.project_pending_effect(output_index).unwrap()
+        else {
+            unreachable!()
         };
         assert_eq!(output.text.as_deref(), Some(expected));
-        assert_eq!(input.active_play_id, output.active_play_id);
+        assert_eq!(output.active_play_id, play);
         assert_eq!(
             output
                 .expanded_gears
@@ -54,12 +95,17 @@ fn canonical_pocket_theremin_maps_pointer_position_to_typed_pitch() {
                 .count(),
             2
         );
-        let TourProgress::Receipt(receipt) = session.advance().unwrap() else {
-            panic!("expected completion");
-        };
-        assert_eq!(receipt.disposition, "completed");
-        assert_eq!(receipt.active_play_id, output.active_play_id);
+        let request = session.pending[output_index].request;
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
+            .placement_id
+            .as_str()
+            .to_owned();
+        let _ = session
+            .complete_effect(&play, &placement, request.request.0, None)
+            .unwrap();
     }
+    assert_eq!(session.active_play_id.as_str(), play);
+    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
 }
 
 #[test]
@@ -102,7 +148,19 @@ fn pointer_quantity_chain_preserves_incompatible_unit_failure_without_presentati
     // The record is still structurally canonical. Unit refusal belongs to the
     // explicit converter, not to JS acquisition or a selector's field meaning.
     conduit_core::StructuredInfoValue::from_canonical_bytes(&canonical).unwrap();
-    let error = session.advance_with_output(&canonical).unwrap_err();
+    let mut error = None;
+    for _ in 0..8 {
+        match session.advance_with_output(&canonical) {
+            Ok(TourProgress::Effect(effect))
+                if matches!(*effect, TourHostEffect::PointerEvent(_)) => {}
+            Err(found) => {
+                error = Some(found);
+                break;
+            }
+            Ok(other) => panic!("unexpected pointer failure progress: {other:?}"),
+        }
+    }
+    let error = error.expect("bounded downstream work must not be starved by the standing source");
     assert!(
         error.contains("OperationFailed(Failure { code: InvalidInput, detail: 12 })"),
         "{error}"

@@ -105,6 +105,12 @@ fn canonical_constituent(
     let mut profiles = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)
         .expect("the installed text pipeline catalogs are disjoint");
+    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profiles)
+        .expect("the installed keyboard catalogs are disjoint");
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profiles)
+        .expect("the installed input semantic catalogs are disjoint");
+    conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profiles)
+        .expect("the installed text state catalogs are disjoint");
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)
         .expect("the installed Morse catalogs are disjoint");
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)
@@ -131,7 +137,23 @@ fn canonical_constituent(
 
 #[test]
 fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_scheduler() {
-    let host = conduit_std_host::StdHost::new();
+    let mut advertisement = conduit_std_host::StdHost::new().advertisement().clone();
+    advertisement
+        .capabilities
+        .push(conduit_std_offers::hosted_keyboard_offer(
+            "proof/body-wide-keyboard",
+            "proof/body-wide-keyboard@1",
+        ));
+    advertisement.resources.push(conduit_core::resource_offer(
+        "proof/body-wide-keyboard",
+        conduit_core::INPUT_RESOURCE_CLASS,
+        1,
+    ));
+    advertisement
+        .capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    advertisement.resources.sort();
+    let host = conduit_std_host::StdHost::from_advertisement(advertisement).unwrap();
     let (morse, morse_plan) = canonical_constituent(MORSE_NETWORK, "morse_network", &host);
     let (lantern, lantern_plan) = canonical_constituent(MEMORY_LANTERN, "memory_lantern", &host);
     let (telegraph, telegraph_plan) =

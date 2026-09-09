@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 #[test]
 fn button_completion_progresses_while_an_independent_timer_remains_pending() {
-    let source = "form concurrent {\n button: input/button(maximum-transitions = 1)\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count(maximum-values = 5)\n button > state > indicator\n clock.tick > count.bump\n count.value > show.value\n}\n";
+    let source = "form concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count\n button > state > indicator\n clock.tick > count.bump\n count.value > show.value\n}\n";
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "concurrent", &catalog).unwrap();
@@ -71,9 +71,21 @@ fn button_completion_progresses_while_an_independent_timer_remains_pending() {
         assert!(complete_host_effect_with_output(&mut scheduler, &button, &bytes).is_err());
     }
     assert_eq!(available_slots(&mut scheduler), available);
-    let DriveStatus::Effect(presentation) = drive(&mut scheduler, &fragment).unwrap() else {
-        panic!("button must manifest without completing the timer");
-    };
+    let presentation = (0..4)
+        .find_map(|_| match drive(&mut scheduler, &fragment).unwrap() {
+            DriveStatus::Effect(effect)
+                if matches!(effect.effect, BrowserHostEffect::Manifestation(_)) =>
+            {
+                Some(effect)
+            }
+            DriveStatus::Effect(effect)
+                if matches!(effect.effect, BrowserHostEffect::ButtonTransition) =>
+            {
+                None
+            }
+            _ => panic!("button must manifest without completing the timer"),
+        })
+        .expect("bounded downstream work must reach the indicator");
     let BrowserHostEffect::Manifestation(value) = &presentation.effect else {
         panic!("expected indicator")
     };
@@ -81,7 +93,7 @@ fn button_completion_progresses_while_an_independent_timer_remains_pending() {
     complete_host_effect(&mut scheduler, &presentation).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
-        DriveStatus::Waiting { pending_effects: 1 }
+        DriveStatus::Waiting { pending_effects: 2 }
     ));
     scheduler.cancel().unwrap();
     assert!(complete_host_effect(&mut scheduler, &timer).is_err());

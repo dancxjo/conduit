@@ -243,7 +243,7 @@ impl PatchbayGraph {
                 sink: sink.value_kind.clone(),
             };
         }
-        if source.temporal != sink.temporal {
+        if !temporal_compatible(source.temporal, sink.temporal) {
             return PatchbayPortCompatibility::IncompatibleTemporal {
                 source: source.temporal,
                 sink: sink.temporal,
@@ -401,7 +401,7 @@ impl PatchbayGraph {
             if source_port.descriptor.value_kind != connection.value_kind
                 || sink_port.descriptor.value_kind != connection.value_kind
                 || source_port.descriptor.temporal != connection.temporal
-                || sink_port.descriptor.temporal != connection.temporal
+                || !temporal_compatible(connection.temporal, sink_port.descriptor.temporal)
             {
                 return Err(PatchbayGraphError::CordContractMismatch);
             }
@@ -684,6 +684,18 @@ impl PatchbayGraph {
             .position(|candidate| candidate == identity)
             .ok_or(PatchbayGraphError::UnknownSubject)
     }
+}
+
+fn temporal_compatible(source: PortTemporal, sink: PortTemporal) -> bool {
+    source == sink
+        || matches!(
+            (source, sink),
+            (PortTemporal::Flow { .. }, PortTemporal::Value)
+                | (
+                    PortTemporal::Flow { closes: true },
+                    PortTemporal::Flow { closes: false }
+                )
+        )
 }
 
 fn patchbay_port(gear_id: &GearId, descriptor: &PortDescriptor) -> PatchbayPort {

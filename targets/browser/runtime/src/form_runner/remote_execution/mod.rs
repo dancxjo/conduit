@@ -134,13 +134,6 @@ impl RemoteExecution {
             .map_err(debug)
     }
 
-    pub(super) fn close_input(&mut self) -> Result<(), String> {
-        self.direction(RemoteCordDirection::Ingress)?;
-        self.scheduler
-            .close_remote_input(self.remote.endpoint, self.remote.cord)
-            .map_err(debug)
-    }
-
     pub(super) fn terminal(&mut self) -> Result<bool, String> {
         self.direction(RemoteCordDirection::Egress)?;
         self.scheduler

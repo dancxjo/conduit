@@ -240,6 +240,7 @@ fn qwerty_ascii(usage: u8, shift: bool) -> Option<char> {
         (0x27, false) => '0',
         (0x27, true) => ')',
         (0x28, _) => '\n',
+        (0x2a, _) => '\u{8}',
         (0x2c, _) => ' ',
         (0x2d, false) => '-',
         (0x2d, true) => '_',

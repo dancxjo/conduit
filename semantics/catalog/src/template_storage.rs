@@ -14,9 +14,9 @@ use conduit_form::{
 };
 
 pub const TEMPLATE_STORAGE_KIND: &str = "storage/named-pattern-templates";
-pub const TEMPLATE_STORAGE_REVISION: &str = "conduit.std/named-pattern-templates@1";
+pub const TEMPLATE_STORAGE_REVISION: &str = "conduit.std/named-pattern-templates@2";
 pub const TEMPLATE_INITIALIZER_KIND: &str = "storage/named-pattern-template-initializer";
-pub const TEMPLATE_INITIALIZER_REVISION: &str = "conduit.std/named-pattern-template-initializer@1";
+pub const TEMPLATE_INITIALIZER_REVISION: &str = "conduit.std/named-pattern-template-initializer@2";
 pub const TEMPLATE_STORAGE_COMMAND_TYPE: &str = "NamedPatternTemplateCommand";
 pub const TEMPLATE_STORAGE_RESULT_TYPE: &str = "NamedPatternTemplateResult";
 pub const NAMED_PATTERN_TEMPLATE_TYPE: &str = "NamedPatternTemplate";
@@ -46,6 +46,7 @@ pub fn template_storage_command_type() -> StructuredInfoType {
             StructuredVariantCase::new("delete", name.clone()).unwrap(),
             StructuredVariantCase::new("get", name).unwrap(),
             StructuredVariantCase::new("put", named_pattern_template_type()).unwrap(),
+            StructuredVariantCase::new("put-and-get", named_pattern_template_type()).unwrap(),
         ],
     )
     .unwrap()
@@ -94,11 +95,7 @@ pub fn named_pattern_template_initializer_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(TEMPLATE_INITIALIZER_KIND),
         kind_contract_revision: KindContractRevision::from(TEMPLATE_INITIALIZER_REVISION),
-        inputs: vec![port(
-            "trigger",
-            &crate::input_button_transition_type(),
-            PortDirection::Input,
-        )],
+        inputs: vec![],
         outputs: vec![port(
             "commands",
             &template_storage_command_type(),
@@ -178,6 +175,15 @@ pub fn put_template_command(
 ) -> Result<StructuredInfoValue, crate::TemplateCollectionRefusal> {
     let template = named_template(name, pattern)?;
     StructuredInfoValue::variant(template_storage_command_type(), "put", template)
+        .map_err(|_| crate::TemplateCollectionRefusal::Malformed)
+}
+
+pub fn put_and_get_template_command(
+    name: &str,
+    pattern: StructuredInfoValue,
+) -> Result<StructuredInfoValue, crate::TemplateCollectionRefusal> {
+    let template = named_template(name, pattern)?;
+    StructuredInfoValue::variant(template_storage_command_type(), "put-and-get", template)
         .map_err(|_| crate::TemplateCollectionRefusal::Malformed)
 }
 

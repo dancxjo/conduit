@@ -13,7 +13,7 @@ use conduit_form::{
 };
 
 pub const TIMED_BUTTON_ATTEMPT_KIND: &str = "time/pressed-button-attempt";
-pub const TIMED_BUTTON_ATTEMPT_REVISION: &str = "conduit.time/pressed-button-attempt@1";
+pub const TIMED_BUTTON_ATTEMPT_REVISION: &str = "conduit.time/pressed-button-attempt@2";
 pub const DEFAULT_ATTEMPT_PRESSES: u64 = 4;
 pub const DEFAULT_ATTEMPT_TRANSITIONS: u64 = 16;
 pub const MAXIMUM_ATTEMPT_TRANSITIONS: u64 = 32;
@@ -32,7 +32,7 @@ pub fn timed_button_attempt_definition() -> KindDefinition {
                 .value_kind()
                 .clone(),
             direction: PortDirection::Input,
-            temporal: PortTemporal::Flow { closes: true },
+            temporal: PortTemporal::Flow { closes: false },
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("events"),
@@ -113,7 +113,7 @@ mod tests {
         let definition = timed_button_attempt_definition();
         assert_eq!(
             definition.inputs[0].temporal,
-            PortTemporal::Flow { closes: true }
+            PortTemporal::Flow { closes: false }
         );
         assert_eq!(definition.outputs[0].temporal, PortTemporal::Value);
         assert_eq!(definition.configuration.len(), 3);
