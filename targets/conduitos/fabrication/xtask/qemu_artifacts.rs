@@ -3,8 +3,8 @@ use super::{qmp_display, ConduitosError};
 use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
-// Twenty-three ordinary journey checkpoints plus one terminal diagnostic capture.
-const MAX_CHECKPOINTS: usize = 24;
+// Twenty-four ordinary journey checkpoints plus one terminal diagnostic capture.
+const MAX_CHECKPOINTS: usize = 25;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
