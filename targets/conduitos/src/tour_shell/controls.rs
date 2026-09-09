@@ -52,6 +52,7 @@ impl TourShellPresenter {
         }
         tour.dismiss_inspector()
             .map_err(|_| TourShellError::Identity)?;
+        self.set_pointer_hover(false)?;
         self.present(tour, display)?;
         Ok(true)
     }

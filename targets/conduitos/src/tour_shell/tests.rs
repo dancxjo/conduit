@@ -118,6 +118,7 @@ fn close_control_restores_workspace_and_invalidates_its_surface_route() {
             .selected_patchbay_subject
             .is_none()
     );
+    assert!(tour.controller().state().hovered_patchbay_subject.is_none());
     assert!(
         shell
             .activate_inspector_close(&close, &mut tour, &mut display)

@@ -103,6 +103,7 @@ impl TourWorkspaceController {
         }
         let revision = self.next_revision()?;
         self.state.selected_patchbay_subject = None;
+        self.state.hovered_patchbay_subject = None;
         self.state.revision = revision;
         Ok(true)
     }
