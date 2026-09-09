@@ -8,6 +8,10 @@ publish = false
 name = "conduit-xtask-dispatch"
 path = "src/main.rs"
 
+[[test]]
+name = "ci_workflow_contract"
+path = "../xtask/tests/ci_workflow_contract.rs"
+
 [dependencies]
 clap = { version = "4", features = ["derive"], optional = true }
 serde = { version = "1", features = ["derive"] }
