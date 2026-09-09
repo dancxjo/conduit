@@ -1,65 +1,8 @@
+use super::test_support::{fixture, invoke, key};
 use super::*;
-use crate::{
-    keyboard_offer::KeyboardRealization,
-    offer::{CpuFeatures, HostOffer},
-    pointer_offer::PointerRealization,
-};
 use conduit_body::WakeLifecycle;
-use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
+use conduit_human::KeyTransition;
 use conduit_presentation::PresentationActionAvailability;
-
-fn fixture() -> (BootIdentities, HostOffer<'static>, ProductJourney) {
-    let identities = BootIdentities {
-        host: [1; 32],
-        boot: [2; 32],
-    };
-    let offer = HostOffer::new(
-        &identities,
-        "build",
-        CpuFeatures {
-            sse2: true,
-            rdrand: true,
-            invariant_tsc: true,
-        },
-        1_048_576,
-    )
-    .with_keyboard(
-        KeyboardRealization {
-            mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
-            controller_id: [3; 32],
-            device_id: [4; 32],
-            interface_id: [5; 32],
-            endpoint_id: [6; 32],
-            report_buffers: 2,
-            transition_slots: 8,
-            operation_slots: 2,
-        },
-        "build",
-    )
-    .unwrap();
-    let offer = offer
-        .with_pointer(
-            PointerRealization {
-                mechanism: crate::pointer_offer::PointerMechanism::UsbHid,
-                controller_id: [3; 32],
-                device_id: [7; 32],
-                interface_id: [8; 32],
-                endpoint_id: [9; 32],
-                report_buffers: 2,
-                event_slots: 8,
-                operation_slots: 1,
-            },
-            "build",
-        )
-        .unwrap();
-    let journey = ProductJourney::new(
-        HostId::from(crate::identity::hex(&identities.host)),
-        BootId::from(crate::identity::hex(&identities.boot)),
-        OfferGeneration(offer.generation),
-    )
-    .unwrap();
-    (identities, offer, journey)
-}
 
 fn front_door(journey: &ProductJourney) -> crate::front_door::FrontDoor {
     crate::front_door::FrontDoor::new(
@@ -74,36 +17,6 @@ fn front_door(journey: &ProductJourney) -> crate::front_door::FrontDoor {
         7,
         true,
     )
-}
-
-fn target(journey: &ProductJourney, action: JourneyAction) -> String {
-    let projection = journey.projection();
-    match action {
-        JourneyAction::OpenBack | JourneyAction::Birth => {
-            format!("form/{}", projection.checked_form_id.as_str())
-        }
-        JourneyAction::Wake
-        | JourneyAction::Plan
-        | JourneyAction::Play
-        | JourneyAction::Stop
-        | JourneyAction::Lull => format!("body/{}", projection.body_id.unwrap().as_str()),
-        _ => panic!("unsupported journey test action"),
-    }
-}
-
-fn invoke(
-    journey: &mut ProductJourney,
-    action: JourneyAction,
-    identities: &BootIdentities,
-    offer: &HostOffer<'_>,
-) -> Result<(), JourneyError> {
-    let revision = journey.revision();
-    let request = journey.next_request(action, target(journey, action), revision)?;
-    journey.apply(request, identities, offer, "build", revision)
-}
-
-fn key(usage: u8, transition: KeyTransition) -> KeyEvent {
-    KeyEvent::new(usage, transition, KeyModifiers::from_bits(0)).unwrap()
 }
 
 fn assert_current_action(front_door: &crate::front_door::FrontDoor, action: JourneyAction) {
@@ -304,7 +217,7 @@ fn missing_current_keyboard_offer_refuses_plan_before_kernel_admission() {
     );
     assert_eq!(
         invoke(&mut journey, JourneyAction::Plan, &identities, &absent),
-        Err(JourneyError::Plan(PreparationError::PlacementRejected))
+        Err(JourneyError::Workset(native_workset::WorksetRefusal::Host))
     );
     assert!(journey.plan.is_none() && journey.kernel.is_none());
 }
@@ -342,7 +255,7 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
             .accept_play_input(key(4, KeyTransition::Pressed))
             .unwrap()
     );
-    assert!(journey.projection().result.is_none() && journey.result_sign_id.is_none());
+    assert!(journey.projection().result.is_none() && journey.projection().result_sign_id.is_none());
 }
 
 #[test]
@@ -410,7 +323,7 @@ fn exhausted_input_or_revision_preserves_pending_input_and_result() {
         } else {
             journey.revision = u64::MAX;
         }
-        let pending = journey.pending_keyboard;
+        let pending = journey.kernel.as_ref().unwrap().pending_requests();
         let projection = journey.projection();
         assert_eq!(
             journey.accept_play_input(key(4, KeyTransition::Pressed)),
@@ -420,7 +333,7 @@ fn exhausted_input_or_revision_preserves_pending_input_and_result() {
                 JourneyError::RevisionExhausted
             })
         );
-        assert_eq!(journey.pending_keyboard, pending);
+        assert_eq!(journey.kernel.as_ref().unwrap().pending_requests(), pending);
         assert_eq!(journey.projection(), projection);
     }
 }

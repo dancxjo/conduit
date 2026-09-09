@@ -118,9 +118,16 @@ impl FrontDoor {
             if let Some(result) = &journey.result {
                 properties.push(property(
                     &host,
-                    "semantic-result",
-                    PresentationPropertyValue::Text(result.clone()),
+                    "semantic-result-empty",
+                    PresentationPropertyValue::Flag(result.is_empty()),
                 ));
+                if !result.is_empty() {
+                    properties.push(property(
+                        &host,
+                        "semantic-result",
+                        PresentationPropertyValue::Text(result.clone()),
+                    ));
+                }
             }
             properties.push(property(
                 &host,
@@ -176,11 +183,11 @@ impl FrontDoor {
                 ));
             }
         }
-        if let Some(reason) = &self.startup_refusal {
+        if let Some(refusal) = &self.refusal {
             properties.push(property(
                 &host,
-                "startup-refusal",
-                PresentationPropertyValue::Text(reason.clone()),
+                refusal.key(),
+                PresentationPropertyValue::Text(refusal.reason().into()),
             ));
         }
         let basis = self.journey.as_ref().map_or_else(

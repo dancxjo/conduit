@@ -7,6 +7,8 @@ mod journey_sign;
 mod scroll_input;
 mod tour_sign;
 pub(crate) mod transient_sign;
+mod workspace_input;
+use workspace_input::refresh;
 
 use alloc::format;
 
@@ -152,6 +154,16 @@ pub fn run(
                 }
                 return Ok(ProductInputControl::Continue);
             }
+            // A held key keeps its original Form owner across surface changes,
+            // including when the compositor currently has no keyboard target.
+            if journey.owns_key_release(event) {
+                workspace_input::accept(event, &mut journey, &mut front_door)?;
+                if !tour_open {
+                    let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                }
+                return Ok(ProductInputControl::Continue);
+            }
             let keyboard_route = if tour_open {
                 shell.route_keyboard().map_err(|error| error.as_str())?
             } else {
@@ -205,9 +217,10 @@ pub fn run(
                     }
                     tour_open = false;
                     shell.suspend().map_err(|error| error.as_str())?;
-                    presenter
+                    let receipt = presenter
                         .present(&front_door, display)
                         .map_err(|error| error.as_str())?;
+                    emit_journey_sign(&journey.projection(), fabrication, &receipt);
                     arch::early_write(b"CONDUIT_TOUR_CHECKPOINT world-returned\n");
                     return Ok(ProductInputControl::Continue);
                 }
@@ -324,17 +337,26 @@ pub fn run(
                 }
                 return Ok(ProductInputControl::Continue);
             }
-            if journey.status() == JourneyStatus::Playing
-                && form_receives_input(tour_open, front_door.exact_details_open(), event.usage())
-            {
-                if journey
-                    .accept_play_input(event)
-                    .map_err(|error| error.as_str())?
-                {
-                    let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+            if !tour_open && !front_door.exact_details_open() {
+                if let Some(changed) = workspace_input::select(event, &mut journey)? {
+                    if changed {
+                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                    }
+                    return Ok(ProductInputControl::Continue);
                 }
-                return Ok(ProductInputControl::Continue);
+                if journey.status() == JourneyStatus::Playing
+                    && form_receives_input(false, false, event.usage())
+                {
+                    if workspace_input::accept(event, &mut journey, &mut front_door)? {
+                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                    }
+                    return Ok(ProductInputControl::Continue);
+                }
+                if event.usage() == 43 {
+                    return Ok(ProductInputControl::Continue);
+                }
             }
             if event.transition() == KeyTransition::Pressed
                 && let Some(action) = action_for(transition.usage(), &front_door, &journey)
@@ -458,16 +480,3 @@ fn tour_action(usage: u8) -> Option<&'static str> {
 
 #[cfg(test)]
 mod input_routing_tests;
-fn refresh(
-    front_door: &mut FrontDoor,
-    journey: &ProductJourney,
-    presenter: &mut FrontDoorPresenter,
-    display: &mut impl crate::display::PixelTarget,
-) -> Result<crate::native_compositor::CompositionReceipt, &'static str> {
-    front_door
-        .observe_journey(journey.projection())
-        .map_err(|error| error.as_str())?;
-    presenter
-        .present(front_door, display)
-        .map_err(|error| error.as_str())
-}

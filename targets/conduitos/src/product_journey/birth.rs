@@ -6,15 +6,6 @@ use sha2::{Digest, Sha256};
 
 impl ProductJourney {
     pub fn birth_from_creche(&mut self, selection: BirthSelection) -> Result<(), JourneyError> {
-        let expected = BodyWorkset::one(ResidentForm::new(
-            self.form.source_document_id.clone(),
-            self.form.checked_form_id.clone(),
-        ))
-        .map_err(|_| JourneyError::WrongTarget)?;
-        // This native realization currently supports this exact inventory.
-        if selection.workset != expected {
-            return Err(JourneyError::WrongTarget);
-        }
         self.revision
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
@@ -57,6 +48,19 @@ impl ProductJourney {
         name: String,
         sequence: u64,
     ) -> Result<(), JourneyError> {
+        if workset.is_empty() || workset.len() > 2 {
+            return Err(JourneyError::WrongTarget);
+        }
+        let mut forms = [None; 2];
+        for (slot, resident) in forms.iter_mut().zip(workset.forms()) {
+            *slot = Some(native_workset::resolve(resident).map_err(|_| JourneyError::WrongTarget)?);
+        }
+        let foreground = forms
+            .iter()
+            .position(|form| *form == Some(NativeForm::KeyboardCanvas))
+            .unwrap_or(0);
+        let first = native_workset::checked(forms[foreground].ok_or(JourneyError::WrongTarget)?)
+            .map_err(JourneyError::Workset)?;
         if name.trim().is_empty()
             || name.len() > conduit_body::MAX_BODY_FRIENDLY_NAME_BYTES
             || name.chars().any(char::is_control)
@@ -107,6 +111,13 @@ impl ProductJourney {
             )
             .map_err(|_| JourneyError::Membership)?;
         self.friendly_name = Some(name);
+        self.forms = forms;
+        self.foreground = foreground;
+        self.form = KeyboardTextFormIdentity {
+            source_document_id: first.source_document_id,
+            checked_form_id: first.checked_form_id,
+            expanded_form_id: first.expanded_form_id,
+        };
         self.body = Some(body);
         self.born_sign_id = Some(born_sign);
         self.membership = Some(membership);

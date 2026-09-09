@@ -11,7 +11,8 @@ use conduit_presentation::{
 
 pub(super) fn scene(
     journey: &JourneyProjection,
-    refusal: Option<&str>,
+    workspace: Option<&crate::product_journey::WorkspaceProjection>,
+    refusal: Option<&super::workspace::WorkspaceRefusal>,
     display: &impl PixelTarget,
 ) -> Result<GraphicsScene, Error> {
     let format = display.format().validate().map_err(Error::Display)?;
@@ -51,17 +52,19 @@ pub(super) fn scene(
         &mut scene,
         screen,
         104,
-        "Keyboard canvas",
+        workspace
+            .and_then(|workspace| workspace.forms.iter().find(|form| form.foreground))
+            .map_or("Keyboard canvas", |form| form.title),
         GraphicsPaintRole::Foreground,
     )?;
     let status = match journey.status {
-        JourneyStatus::BornLulled => "Body born. Preparing to wake its Form...",
-        JourneyStatus::Awake => "Body awake. Planning its Form...",
-        JourneyStatus::Planned => "Form ready. Starting its Play...",
+        JourneyStatus::BornLulled => "Body born. Preparing to wake its Forms...",
+        JourneyStatus::Awake => "Body awake. Planning its Forms...",
+        JourneyStatus::Planned => "Forms ready. Starting their Play...",
         JourneyStatus::Playing => "Listening. Type to send a key through your Form.",
         JourneyStatus::ResultVisible => "Play completed. Your result is below.",
         JourneyStatus::Stopped => "Play stopped.",
-        JourneyStatus::Lulled => "Body lulled. Its Form remains included.",
+        JourneyStatus::Lulled => "Body lulled. Its Forms remain included.",
         _ => "Preparing your Body...",
     };
     text(
@@ -87,15 +90,36 @@ pub(super) fn scene(
         text(
             &mut scene,
             screen,
-            288,
-            "Wake could not finish. Details:",
+            352,
+            refusal.heading(),
             GraphicsPaintRole::Status,
         )?;
-        text(&mut scene, screen, 320, refusal, GraphicsPaintRole::Status)?;
+        text(
+            &mut scene,
+            screen,
+            384,
+            refusal.reason(),
+            GraphicsPaintRole::Status,
+        )?;
     }
     let footer_y = i16::try_from(screen.height.saturating_sub(48)).map_err(|_| Error::Scene)?;
+    if let Some(workspace) = workspace {
+        let labels = workspace
+            .forms
+            .iter()
+            .map(|form| format!("{}{}", if form.foreground { "> " } else { "" }, form.title))
+            .collect::<alloc::vec::Vec<_>>()
+            .join("   ·   ");
+        text(
+            &mut scene,
+            screen,
+            footer_y - 40,
+            &format!("{labels}   [Tab switches]"),
+            GraphicsPaintRole::Foreground,
+        )?;
+    }
     let lifecycle_action = match journey.status {
-        JourneyStatus::Playing => "  ·  F8 Stop",
+        JourneyStatus::Playing => "  ·  F7 Lull",
         JourneyStatus::Stopped | JourneyStatus::ResultVisible => "  ·  F7 Lull",
         _ => "",
     };
@@ -120,13 +144,29 @@ fn text(
     value: &str,
     role: GraphicsPaintRole,
 ) -> Result<(), Error> {
-    let bounds = LayoutRect {
-        x: 32,
-        y,
-        width: screen.width.saturating_sub(64),
-        height: 48,
-    };
-    scene
-        .push(GraphicsCommand::text(bounds, screen, role, value).map_err(|_| Error::Scene)?)
-        .map_err(|_| Error::Scene)
+    let mut rest = value;
+    let mut row = y;
+    while !rest.is_empty() {
+        let mut end = rest
+            .len()
+            .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
+        while !rest.is_char_boundary(end) {
+            end -= 1;
+        }
+        let bounds = LayoutRect {
+            x: 32,
+            y: row,
+            width: screen.width.saturating_sub(64),
+            height: 48,
+        };
+        scene
+            .push(
+                GraphicsCommand::text(bounds, screen, role, &rest[..end])
+                    .map_err(|_| Error::Scene)?,
+            )
+            .map_err(|_| Error::Scene)?;
+        rest = &rest[end..];
+        row = row.checked_add(48).ok_or(Error::Scene)?;
+    }
+    Ok(())
 }

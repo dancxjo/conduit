@@ -26,7 +26,8 @@ review after the shared draft requests Birth.
 
 The opening interaction is name → Forms → Birth. Browser Host provisioning and
 source/evidence inspection remain available as secondary details. The native
-arrival currently offers the Keyboard canvas Form and continues into its Wake
-and Play; browser birth retains its existing first-Host provisioning workflow.
+arrival offers Keyboard canvas and the canonical Memory Lantern, reviews their
+native capabilities independently, and continues into one Body-wide Wake and
+Play. Browser birth retains its existing first-Host provisioning workflow.
 A successful draft action alone does not create a Body, admit a Host, or start
 execution.
