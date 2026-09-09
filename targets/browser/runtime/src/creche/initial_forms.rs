@@ -14,7 +14,11 @@ struct ReviewedFormBundle {
 struct BundledForm {
     slug: String,
     #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
     entry: Option<String>,
+    #[serde(default)]
+    presentation_profile: u8,
     source: String,
 }
 
@@ -22,6 +26,8 @@ pub(super) struct CheckedInventoryEntry {
     pub(super) source: String,
     pub(super) checked: conduit_form::CheckedSyntaxDocument,
     pub(super) entry_name: Option<String>,
+    pub(super) entry_title: Option<String>,
+    pub(super) presentation: crate::installed_browser::PresentationProfile,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,7 +74,10 @@ pub(super) fn reviewed_inventory(source: &str) -> Result<ReviewedFormInventory, 
             required_kinds.dedup();
             forms.push(ReviewedForm {
                 name: form.name.clone(),
-                title: title(&form.name),
+                title: entry
+                    .entry_title
+                    .clone()
+                    .unwrap_or_else(|| title(&form.name)),
                 source: entry.source.clone(),
                 source_document_id: entry.checked.source_document_id.as_str().to_string(),
                 checked_form_id: form.checked_form_id.as_str().to_string(),
@@ -150,6 +159,8 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
                 source: source.to_owned(),
                 checked,
                 entry_name: None,
+                entry_title: None,
+                presentation: crate::installed_browser::PresentationProfile::Annotation,
             }]
         });
     };
@@ -163,10 +174,23 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
     let mut names = BTreeSet::new();
     let mut identities = BTreeSet::new();
     for entry in bundle.forms {
-        if entry.slug.is_empty() || entry.source.is_empty() {
+        if entry.slug.is_empty()
+            || entry.source.is_empty()
+            || entry
+                .title
+                .as_ref()
+                .is_some_and(|title| title.is_empty() || title.len() > 256)
+        {
             return Err("reviewed Form bundle entry is malformed".into());
         }
-        let document = check_source(&entry.source)?;
+        let presentation = match entry.presentation_profile {
+            0 => crate::installed_browser::PresentationProfile::Annotation,
+            1 => crate::installed_browser::PresentationProfile::Quantity,
+            2 => crate::installed_browser::PresentationProfile::NormalizedDurations,
+            3 => crate::installed_browser::PresentationProfile::PatternComparison,
+            _ => return Err("reviewed Form has an unsupported presentation profile".into()),
+        };
+        let document = check_source_for_presentation(&entry.source, presentation)?;
         let expected_entry = entry.entry.unwrap_or_else(|| entry.slug.replace('-', "_"));
         let form = document
             .forms
@@ -190,13 +214,25 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
             source: entry.source,
             checked: document,
             entry_name: Some(expected_entry),
+            entry_title: entry.title,
+            presentation,
         });
     }
     Ok(checked)
 }
 
 pub(super) fn check_source(source: &str) -> Result<conduit_form::CheckedSyntaxDocument, String> {
-    let (startup, _) = crate::installed_browser::catalogs()?;
+    check_source_for_presentation(
+        source,
+        crate::installed_browser::PresentationProfile::Annotation,
+    )
+}
+
+fn check_source_for_presentation(
+    source: &str,
+    presentation: crate::installed_browser::PresentationProfile,
+) -> Result<conduit_form::CheckedSyntaxDocument, String> {
+    let (startup, _) = crate::installed_browser::catalogs_for_presentation(presentation)?;
     let syntax = conduit_form::parse_syntax_document(source);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
@@ -218,4 +254,34 @@ fn title(name: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+/// The installed generic selector realizes only exact checked selector contracts.
+/// This prepares the local browser offer; it does not add offers to other Hosts.
+pub(super) fn reviewed_browser_host(
+    source: &str,
+    host: conduit_core::HostId,
+    boot: conduit_core::BootId,
+) -> Result<conduit_core::HostAdvertisement, String> {
+    let mut host = crate::installed_browser::advertisement(host, boot);
+    for entry in check_inventory(source)? {
+        let (_, mut profile) =
+            crate::installed_browser::catalogs_for_presentation(entry.presentation)?;
+        let offers = crate::installed_browser::catalogs::install_checked_structured_selectors(
+            &entry.checked,
+            &mut profile,
+        )?;
+        for offer in offers {
+            if !host
+                .capabilities
+                .iter()
+                .any(|current| current.capability_id == offer.capability_id)
+            {
+                host.capabilities.push(offer);
+            }
+        }
+    }
+    host.capabilities
+        .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+    Ok(host)
 }

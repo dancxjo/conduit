@@ -8,6 +8,7 @@ fn inventory_form() -> InventoryForm {
         entry: "composition".into(),
         reusable_entries: Vec::new(),
         initial_body_order: None,
+        initial_body_presentation_profile: 0,
         deterministic: None,
         deterministic_not_applicable: None,
         browser_safe: None,
@@ -206,6 +207,10 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
         ("clock", "clock-demo"),
         ("startup-chime", "startup_chime"),
         ("first-wake-chime", "first_wake_chime"),
+        ("firefly-choir", "firefly-choir"),
+        ("night-radio", "night-radio"),
+        ("secret-knock", "secret-knock-demo"),
+        ("pocket-theremin", "pocket-theremin"),
     ];
     assert_eq!(forms.len(), expected.len());
     for (form, (slug, entry)) in forms.iter().zip(expected) {
