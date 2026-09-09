@@ -37,6 +37,7 @@ pub fn run(args: UnifontSubsetArgs) -> Result<(), Box<dyn std::error::Error>> {
 fn write_subset(mut glyphs: impl BufRead, mut subset: impl Write) -> io::Result<()> {
     let naming: BTreeSet<u32> = NAMING_CATALOG
         .chars()
+        .chain(NAMING_CATALOG.chars().flat_map(char::to_uppercase))
         .filter(|character| !character.is_ascii_control())
         .map(u32::from)
         .collect();
@@ -88,7 +89,11 @@ mod tests {
             .lines()
             .map(|line| u32::from_str_radix(line.split_once(':').unwrap().0, 16).unwrap())
             .collect();
-        for character in NAMING_CATALOG.chars().filter(|c| !c.is_ascii_control()) {
+        for character in NAMING_CATALOG
+            .chars()
+            .chain(NAMING_CATALOG.chars().flat_map(char::to_uppercase))
+            .filter(|c| !c.is_ascii_control())
+        {
             assert!(
                 covered.contains(&u32::from(character)),
                 "missing naming glyph {character:?}"
@@ -99,14 +104,14 @@ mod tests {
 
     #[test]
     fn writes_only_the_bounded_patchbay_ranges() {
-        let source = b"001F:00\n0020:01\n007E:02\n0100:03\n0370:04\n2014:05\n4E2D:06\nFFFD:07\n";
+        let source = b"001F:00\n0020:01\n007E:02\n0100:03\n0370:04\n2014:05\n4E2D:06\nFFFD:07\n1F980:08\n";
         let mut output = Vec::new();
 
         write_subset(Cursor::new(source), &mut output).expect("subset generation succeeds");
 
         assert_eq!(
             output,
-            b"0020:01\n007E:02\n0370:04\n2014:05\n4E2D:06\nFFFD:07\n"
+            b"0020:01\n007E:02\n0100:03\n0370:04\n2014:05\n4E2D:06\nFFFD:07\n"
         );
     }
 
@@ -121,13 +126,13 @@ mod tests {
     #[test]
     fn reads_gzip_input() {
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-        encoder.write_all(b"0041:AA\n0100:BB\n").unwrap();
+        encoder.write_all(b"0041:AA\n0100:BB\n1F980:CC\n").unwrap();
         let compressed = encoder.finish().unwrap();
         let glyphs = BufReader::new(GzDecoder::new(Cursor::new(compressed)));
         let mut output = Vec::new();
 
         write_subset(glyphs, &mut output).expect("gzip subset generation succeeds");
 
-        assert_eq!(output, b"0041:AA\n");
+        assert_eq!(output, b"0041:AA\n0100:BB\n");
     }
 }

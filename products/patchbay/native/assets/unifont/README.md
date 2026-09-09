@@ -5,8 +5,9 @@ GNU Unifont 17.0.04. It contains ASCII, Latin-1, Greek and Coptic, Cyrillic,
 the em dash used by renderer-neutral titled text, arrows, box drawing,
 geometric shapes, one double-width CJK demonstration glyph (`U+4E2D`), and
 the explicit replacement glyph (`U+FFFD`). It also includes every printable
-character in the shared Crèche naming catalog, selected directly from
-`products/creche/names/catalog.mjs`. The resulting 971 glyphs remain within the
+character in the shared Crèche naming catalog and its uppercase output (as
+produced by the native Keyboard canvas), selected directly from
+`products/creche/names/catalog.mjs`. The resulting 1,000 glyphs remain within the
 existing 1,024-glyph bound. Glyph coverage alone does not establish combining
 mark placement or general text shaping; those remain renderer obligations.
 The native text renderers overlay the catalog's U+0300 and U+0301 marks on
@@ -20,7 +21,7 @@ Upstream source:
 - <https://unifoundry.com/pub/unifont/unifont-17.0.04/font-builds/unifont_all-17.0.04.hex.gz>
 - SHA-256: `c31d210962408a00de8e2ebe2f2fc26824d7a4939d4eb15d347761fb2a0b39a6`
 - package source SHA-256: `5c52c5d56ef98089ddbca62e68560ceccc57ea88940b9d38cc3c888fe3b59a34`
-- generated subset SHA-256: `08701b3d465956a53b599fca8adbc6eb18b77ee1681daca4eb70b2b7b509d26d`
+- generated subset SHA-256: `36dc9161951eb379c10013143b2cb6b99119a64e02add3e8bdba6cac20a2e127`
 
 Regenerate from the downloaded, checksum-verified asset:
 
