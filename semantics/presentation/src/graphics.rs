@@ -13,8 +13,10 @@ pub const MAX_GRAPHICS_COMMANDS: usize = 32;
 /// Orthogonal paths reuse this storage for at most eight binary coordinate pairs.
 pub const MAX_GRAPHICS_TEXT_BYTES: usize = 192;
 pub const MAX_GRAPHICS_SCENE_BYTES: usize =
-    2 + MAX_GRAPHICS_COMMANDS * (20 + MAX_GRAPHICS_TEXT_BYTES);
-const VERSION: u8 = 1;
+    2 + MAX_GRAPHICS_COMMANDS * (21 + MAX_GRAPHICS_TEXT_BYTES);
+// Version 2 carries one explicit graphical text-role byte per command. Old
+// scene encodings refuse rather than silently changing text layout on replay.
+const VERSION: u8 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -66,11 +68,16 @@ pub struct GraphicsCommand {
     pub clip: LayoutRect,
     pub paint: GraphicsPaintRole,
     pub style: GraphicsShapeStyle,
+    text_role: GraphicsTextRole,
     payload_len: u8,
     payload: [u8; MAX_GRAPHICS_TEXT_BYTES],
 }
 
 impl GraphicsCommand {
+    pub const fn text_role(&self) -> GraphicsTextRole {
+        self.text_role
+    }
+
     pub fn path(
         path: GraphicsPath,
         clip: LayoutRect,
@@ -178,6 +185,7 @@ impl GraphicsCommand {
             clip,
             paint,
             style,
+            text_role: GraphicsTextRole::Body,
             payload_len: payload.len() as u8,
             payload: stored,
         })
@@ -193,19 +201,14 @@ impl GraphicsCommand {
             .expect("validated graphics payload")
     }
 
-    /// Preserve compatibility with role-aware callers while retaining the
-    /// current wire format where text roles are interpreted by the renderer.
-    pub fn with_text_role(self, _role: GraphicsTextRole) -> Result<Self, GraphicsError> {
-        if self.kind == GraphicsCommandKind::Text {
-            Ok(self)
-        } else {
-            Err(GraphicsError::NonCanonicalEncoding)
+    /// Typography purpose belongs to the resolved graphical leaf, not the
+    /// portable Presentation identity; no font family or size is prescribed.
+    pub fn with_text_role(mut self, role: GraphicsTextRole) -> Result<Self, GraphicsError> {
+        if self.kind != GraphicsCommandKind::Text {
+            return Err(GraphicsError::NonCanonicalEncoding);
         }
-    }
-
-    /// Default rendering role when role metadata is unavailable.
-    pub const fn text_role(&self) -> GraphicsTextRole {
-        GraphicsTextRole::Body
+        self.text_role = role;
+        Ok(self)
     }
 
     pub fn clip_class(&self) -> GraphicsClipClass {
@@ -236,6 +239,7 @@ const EMPTY_COMMAND: GraphicsCommand = GraphicsCommand {
     },
     paint: GraphicsPaintRole::Background,
     style: GraphicsShapeStyle::Fill,
+    text_role: GraphicsTextRole::Body,
     payload_len: 0,
     payload: [0; MAX_GRAPHICS_TEXT_BYTES],
 };
@@ -280,9 +284,10 @@ impl GraphicsScene {
             write_rect(&mut output[offset + 3..offset + 11], command.bounds);
             write_rect(&mut output[offset + 11..offset + 19], command.clip);
             output[offset + 19] = command.payload_len;
+            output[offset + 20] = command.text_role as u8;
             let len = usize::from(command.payload_len);
-            output[offset + 20..offset + 20 + len].copy_from_slice(&command.payload[..len]);
-            offset += 20 + len;
+            output[offset + 21..offset + 21 + len].copy_from_slice(&command.payload[..len]);
+            offset += 21 + len;
         }
         output
     }
@@ -291,7 +296,7 @@ impl GraphicsScene {
         2 + self
             .commands()
             .iter()
-            .map(|command| 20 + usize::from(command.payload_len))
+            .map(|command| 21 + usize::from(command.payload_len))
             .sum::<usize>()
     }
 
@@ -306,7 +311,7 @@ impl GraphicsScene {
         let mut scene = Self::empty();
         let mut offset = 2;
         for _ in 0..count {
-            if input.len().saturating_sub(offset) < 20 {
+            if input.len().saturating_sub(offset) < 21 {
                 return Err(GraphicsError::MalformedEncoding);
             }
             let kind = decode_kind(input[offset])?;
@@ -315,18 +320,24 @@ impl GraphicsScene {
             let bounds = read_rect(&input[offset + 3..offset + 11]);
             let clip = read_rect(&input[offset + 11..offset + 19]);
             let len = usize::from(input[offset + 19]);
-            if len > MAX_GRAPHICS_TEXT_BYTES || input.len().saturating_sub(offset + 20) < len {
+            let text_role = GraphicsTextRole::decode(input[offset + 20])?;
+            if kind != GraphicsCommandKind::Text && text_role != GraphicsTextRole::Body {
+                return Err(GraphicsError::NonCanonicalEncoding);
+            }
+            if len > MAX_GRAPHICS_TEXT_BYTES || input.len().saturating_sub(offset + 21) < len {
                 return Err(GraphicsError::PayloadTooLong);
             }
-            scene.push(GraphicsCommand::new(
+            let mut command = GraphicsCommand::new(
                 kind,
                 bounds,
                 clip,
                 paint,
                 style,
-                &input[offset + 20..offset + 20 + len],
-            )?)?;
-            offset += 20 + len;
+                &input[offset + 21..offset + 21 + len],
+            )?;
+            command.text_role = text_role;
+            scene.push(command)?;
+            offset += 21 + len;
         }
         if offset != input.len() {
             return Err(GraphicsError::NonCanonicalEncoding);

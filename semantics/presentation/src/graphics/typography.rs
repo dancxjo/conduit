@@ -16,7 +16,6 @@ pub enum GraphicsTextRole {
 }
 
 impl GraphicsTextRole {
-    #[allow(dead_code)]
     pub(super) fn decode(value: u8) -> Result<Self, GraphicsError> {
         match value {
             1 => Ok(Self::Body),
