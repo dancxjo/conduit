@@ -109,8 +109,12 @@ fn run_with(
         presenter
             .validate_pointer_route(&route)
             .map_err(|error| error.as_str())?;
-        if suppress_dismissal_release && !sample.primary_pressed {
-            suppress_dismissal_release = false;
+        if suppress_dismissal_release {
+            // A surface-changing press owns the rest of its gesture, including
+            // held motion and release over the newly exposed surface.
+            if !sample.primary_pressed {
+                suppress_dismissal_release = false;
+            }
             arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
             continue;
         }
@@ -195,6 +199,32 @@ fn run_with(
             continue;
         }
         let mut local_sample = sample;
+        if presenter
+            .chooser_open_hit(&route, tour)
+            .map_err(|error| error.as_str())?
+        {
+            presenter
+                .set_pointer_hover(true)
+                .map_err(|error| error.as_str())?;
+            if sample.primary_pressed {
+                presenter
+                    .show_transient(
+                        tour,
+                        conduit_tour_model::TourTransientKind::Chooser,
+                        "Choose a Patchbay Gear",
+                        display,
+                    )
+                    .map_err(|error| error.as_str())?;
+                suppress_dismissal_release = true;
+                arch::early_write(b"CONDUIT_TOUR_CHECKPOINT chooser-button-activated\n");
+            } else {
+                presenter
+                    .compose_affordances(display)
+                    .map_err(|error| error.as_str())?;
+            }
+            arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+            continue;
+        }
         local_sample.position_x = normalized_local(route.local_x, format.width)?;
         local_sample.position_y = normalized_local(route.local_y, format.height)?;
         let outcome = tour.route_workspace_pointer(

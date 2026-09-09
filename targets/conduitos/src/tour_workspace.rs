@@ -13,6 +13,15 @@ mod graph;
 
 pub(crate) const STATUS_HEIGHT: u16 = 64;
 
+pub(crate) fn chooser_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
+    LayoutRect {
+        x: 8,
+        y: 128,
+        width: layout.narrative.width.saturating_sub(16).clamp(1, 112),
+        height: 28,
+    }
+}
+
 #[cfg(any(test, target_arch = "x86_64"))]
 pub(crate) fn hits_card(
     layout: &TourWorkspaceLayout,
@@ -163,6 +172,25 @@ pub(crate) fn scene_with_observations(
         state,
         observations,
     )?;
+    let button = chooser_bounds(&layout);
+    let clip = graphics_rect(layout.narrative)?;
+    scene
+        .push(
+            GraphicsCommand::rect(
+                button,
+                clip,
+                GraphicsPaintRole::Accent,
+                GraphicsShapeStyle::Stroke,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+        )
+        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    scene
+        .push(
+            GraphicsCommand::text(inset(button), clip, GraphicsPaintRole::Foreground, "Gears")
+                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+        )
+        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     Ok(scene)
 }
 
@@ -233,7 +261,7 @@ mod tests {
     #[test]
     fn native_scene_manifests_every_shared_region_and_visible_focus() {
         let scene = scene(640, 480, 12, TourWorkspacePhase::PatchbayOpen).unwrap();
-        assert_eq!(scene.commands().len(), 19);
+        assert_eq!(scene.commands().len(), 21);
         let frames: alloc::vec::Vec<_> = scene
             .commands()
             .iter()

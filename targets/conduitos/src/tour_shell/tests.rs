@@ -2,6 +2,9 @@ use alloc::{format, vec, vec::Vec};
 #[path = "transient_replacement_tests.rs"]
 mod transient_replacement_tests;
 
+#[path = "chooser_control_tests.rs"]
+mod chooser_control_tests;
+
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
 use conduit_semantic_catalog::NormalizedPointerSample;
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, TourPointerOutcome, TourTransientKind};

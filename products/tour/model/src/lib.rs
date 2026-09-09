@@ -39,6 +39,7 @@ pub const CANONICAL_SOURCE: &str = concat!(
 );
 pub const RUN_ACTION_ID: &str = "tour.run";
 pub const OPEN_PATCHBAY_ACTION_ID: &str = "tour.open-patchbay";
+pub const OPEN_CHOOSER_ACTION_ID: &str = "tour.chooser.open";
 pub const CANONICAL_PATCHBAY_GEARS: [&str; 3] = [
     "meet-one-gear/words",
     "meet-one-gear/change",

@@ -196,7 +196,7 @@ mod tests {
             .filter_map(GraphicsCommand::path_geometry)
             .collect();
         assert_eq!(paths.len(), 2);
-        assert_eq!(scene.commands().len(), 19);
+        assert_eq!(scene.commands().len(), 21);
         let words = card_bounds(graph, 0);
         let change = card_bounds(graph, 1);
         let result = card_bounds(graph, 2);
