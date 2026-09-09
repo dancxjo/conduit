@@ -13,6 +13,26 @@ mod graph;
 
 pub(crate) const STATUS_HEIGHT: u16 = 64;
 
+#[cfg(any(test, target_arch = "x86_64"))]
+pub(crate) fn hits_card(
+    layout: &TourWorkspaceLayout,
+    x: u16,
+    y: u16,
+) -> Result<bool, TourWorkspaceSceneRefusal> {
+    let bounds = graphics_rect(layout.patchbay)?;
+    Ok((0..3).any(|index| {
+        let card = graph::card_bounds(bounds, index);
+        let x = i32::from(x);
+        let y = i32::from(y);
+        x >= i32::from(card.x)
+            && x < i32::from(card.x) + i32::from(card.width)
+            && y >= i32::from(card.y)
+            && y < i32::from(card.y) + i32::from(card.height)
+            && x < i32::from(bounds.x) + i32::from(bounds.width)
+            && y < i32::from(bounds.y) + i32::from(bounds.height)
+    }))
+}
+
 pub(crate) fn inspector_width(width: u16) -> u16 {
     (width / 3).max(180)
 }

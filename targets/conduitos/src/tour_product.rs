@@ -17,6 +17,8 @@ use crate::{
 
 #[path = "tour_inspection.rs"]
 mod inspection;
+#[path = "tour_pointer.rs"]
+mod pointer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TourProductUpdate {

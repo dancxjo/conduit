@@ -112,6 +112,12 @@ impl TourWorkspaceController {
         self.last_pointer_sequence
     }
 
+    pub(crate) fn commit_pointer_leave(&mut self, sequence: u64, revision: u32) {
+        self.last_pointer_sequence = Some(sequence);
+        self.state.hovered_patchbay_subject = None;
+        self.state.revision = revision;
+    }
+
     pub(crate) fn commit_pointer(
         &mut self,
         sequence: u64,

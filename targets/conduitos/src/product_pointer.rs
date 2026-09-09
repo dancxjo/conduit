@@ -197,11 +197,21 @@ fn run_with(
         let mut local_sample = sample;
         local_sample.position_x = normalized_local(route.local_x, format.width)?;
         local_sample.position_y = normalized_local(route.local_y, format.height)?;
-        let outcome = tour.accept_pointer(
+        let outcome = tour.route_workspace_pointer(
             local_sample,
             u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
             u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
         )?;
+        let Some(outcome) = outcome else {
+            presenter
+                .set_pointer_hover(false)
+                .map_err(|error| error.as_str())?;
+            presenter
+                .present(tour, display)
+                .map_err(|error| error.as_str())?;
+            arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+            continue;
+        };
         presenter
             .set_pointer_hover(true)
             .map_err(|error| error.as_str())?;

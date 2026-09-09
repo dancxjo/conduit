@@ -2,25 +2,29 @@
 use super::*;
 use conduit_tour_model::{CANONICAL_PATCHBAY_GEARS, canonical_gear_contract};
 
+pub(super) fn card_bounds(bounds: LayoutRect, index: usize) -> LayoutRect {
+    let column = bounds.width / 3;
+    LayoutRect {
+        x: bounds
+            .x
+            .saturating_add(index as i16 * column as i16)
+            .saturating_add(8),
+        y: bounds.y.saturating_add(64),
+        width: column.saturating_sub(16).max(1),
+        height: bounds.height.saturating_sub(80).clamp(1, 240),
+    }
+}
+
 pub(super) fn append(
     scene: &mut GraphicsScene,
     bounds: LayoutRect,
     state: &TourWorkspaceState,
     observations: Option<&crate::text_composition::TextObservations>,
 ) -> Result<(), TourWorkspaceSceneRefusal> {
-    let column = bounds.width / 3;
     for (index, gear) in CANONICAL_PATCHBAY_GEARS.into_iter().enumerate() {
         let contract =
             canonical_gear_contract(gear).ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
-        let card = LayoutRect {
-            x: bounds
-                .x
-                .saturating_add((index as i16) * column as i16)
-                .saturating_add(8),
-            y: bounds.y.saturating_add(64),
-            width: column.saturating_sub(16).max(1),
-            height: bounds.height.saturating_sub(80).clamp(1, 240),
-        };
+        let card = card_bounds(bounds, index);
         let paint = if state.selected_patchbay_subject.as_deref() == Some(gear) {
             GraphicsPaintRole::Accent
         } else if state.hovered_patchbay_subject.as_deref() == Some(gear) {
