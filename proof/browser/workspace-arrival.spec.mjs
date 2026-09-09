@@ -62,6 +62,7 @@ test("Birth arrives in listening Forms; foreground changes and reload preserve t
 });
 
 test("a failed started-state save cancels the real Play before dispatching effects", async ({ page }) => {
+  await observeRealAudio(page);
   await page.addInitScript(() => {
     const put = IDBObjectStore.prototype.put;
     globalThis.__failedBodyWrites = 0;
@@ -88,6 +89,7 @@ test("a failed started-state save cancels the real Play before dispatching effec
   expect(result.state.refusal.code).toBe("QuotaExceededError");
   expect(result.state.terminal.active_play_id).toBe(result.state.play.active_play_id);
   expect(result.state.terminal.manifestation_completions).toBe(0);
+  expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(0);
   await expect(page.locator("[data-form-output] output")).toHaveCount(0);
 });
 

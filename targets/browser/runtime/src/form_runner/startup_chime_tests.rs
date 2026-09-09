@@ -224,3 +224,57 @@ fn canonical_first_wake_chime_does_not_repeat_after_retained_wake() {
     ));
     assert_eq!(session.cancel().unwrap().disposition, "cancelled");
 }
+
+#[test]
+fn live_inspection_exposes_kernel_gaps_and_a_bounded_host_completion_window() {
+    let source = include_str!("../../../../../forms/button-across-room/main.conduit");
+    let (mut session, mut effect) =
+        TourSession::prepare("host/gaps", "boot/gaps", source, 1).unwrap();
+    let mut transitions = 0_u64;
+    for _ in 0..100 {
+        let (play, placement, request, output) = match effect {
+            TourHostEffect::ButtonTransition(value) => {
+                let bytes = conduit_semantic_catalog::button_transition_value(
+                    "button/primary",
+                    transitions.is_multiple_of(2),
+                    transitions,
+                )
+                .unwrap()
+                .canonical_bytes()
+                .unwrap();
+                transitions += 1;
+                (
+                    value.active_play_id,
+                    value.placement_id,
+                    value.request_sequence,
+                    Some(bytes),
+                )
+            }
+            TourHostEffect::Manifestation(value) => (
+                value.active_play_id,
+                value.placement_id,
+                value.observation_sequence,
+                None,
+            ),
+            _ => panic!("unexpected button effect"),
+        };
+        let progress = session
+            .complete_effect(&play, &placement, request, output.as_deref())
+            .unwrap();
+        effect = match progress {
+            TourProgress::Effect(effect) => *effect,
+            _ => panic!("button stopped before its observation window filled"),
+        };
+    }
+    let observed = serde_json::to_value(session.kernel_signs()).unwrap();
+    assert!(observed["retention_gap"]["entries"].as_u64().unwrap() > 0);
+    assert_eq!(observed["host_completions"]["omitted"], 36);
+    assert_eq!(
+        observed["host_completions"]["records"]
+            .as_array()
+            .unwrap()
+            .len(),
+        64
+    );
+    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+}
