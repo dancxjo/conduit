@@ -41,6 +41,53 @@ fn format() -> DisplayFormat {
 }
 
 #[test]
+fn routed_path_rasterizes_only_its_clipped_axis_aligned_segments() {
+    use conduit_presentation::{GraphicsPath, GraphicsPoint};
+    let path = GraphicsPath::new(&[
+        GraphicsPoint { x: -4, y: 4 },
+        GraphicsPoint { x: 10, y: 4 },
+        GraphicsPoint { x: 10, y: 20 },
+        GraphicsPoint { x: 24, y: 20 },
+    ])
+    .unwrap();
+    let clip = LayoutRect {
+        x: 2,
+        y: 2,
+        width: 18,
+        height: 20,
+    };
+    let mut scene = GraphicsScene::empty();
+    scene
+        .push(GraphicsCommand::path(path, clip, GraphicsPaintRole::Accent).unwrap())
+        .unwrap();
+    let mut bytes = alloc::vec![0; 128 * 24];
+    let receipt = render_scene(
+        &mut Buffer {
+            format: format(),
+            bytes: &mut bytes,
+            lost: false,
+        },
+        &scene,
+    )
+    .unwrap();
+    assert_eq!(receipt.commands, 1);
+    assert!(receipt.pixels_written <= 40);
+    let color = paint(format(), GraphicsPaintRole::Accent).to_le_bytes();
+    for y in 0..24 {
+        for x in 0..32 {
+            let offset = y * 128 + x * 4;
+            let on_path = (y == 4 && (2..=10).contains(&x))
+                || (x == 10 && (4..=20).contains(&y))
+                || (y == 20 && (10..20).contains(&x));
+            assert_eq!(
+                &bytes[offset..offset + 4],
+                if on_path { &color } else { &[0; 4] }
+            );
+        }
+    }
+}
+
+#[test]
 fn clipping_crops_text_without_restarting_or_rewrapping_it() {
     fn render(bounds: LayoutRect, clip: LayoutRect) -> alloc::vec::Vec<u8> {
         let mut bytes = alloc::vec![0; 128 * 24];
