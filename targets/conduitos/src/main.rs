@@ -251,6 +251,25 @@ extern "C" fn conduitos_start() -> ! {
                 arch::prepare_boot_pointer(&mut xhci, device, boot::executable_physical_address)
                     .unwrap_or_else(|error| emit_machine_refusal(error.as_str()))
             });
+            let mut ps2_input = None;
+            let mut ps2_ready = None;
+            if cfg!(feature = "ps2-input") {
+                let (input, ready) = arch::Ps2Input::initialize()
+                    .unwrap_or_else(|error| emit_machine_refusal(error.as_str()));
+                arch::early_write(
+                    format!(
+                        "CONDUIT_PS2_INPUT_SIGN {{\"schema\":\"conduit.conduitos.ps2-input/v1\",\"status\":\"ready\",\"proof_class\":\"freestanding-emulator\",\"keyboard_kind\":\"input/keyboard\",\"pointer_kind\":\"input/pointer-source\",\"controller_slots\":{},\"keyboard_transition_slots\":{},\"pointer_packet_slots\":{},\"operation_slots\":{},\"bounded\":true}}\n",
+                        ready.controller_slots,
+                        ready.keyboard_transition_slots,
+                        ready.pointer_packet_slots,
+                        ready.operation_slots,
+                    )
+                    .as_bytes(),
+                );
+                arch::early_write(b"CONDUIT_BOOT_STAGE ps2-input-ready\n");
+                ps2_input = Some(input);
+                ps2_ready = Some(ready);
+            }
             arch::early_write(b"CONDUIT_BOOT_STAGE local-rescue-ready\n");
             let keyboard_offer = conduitos::offer_fabrication::ImageBoundHostOffer::new(
                 &identities,
@@ -261,18 +280,71 @@ extern "C" fn conduitos_start() -> ! {
             .and_then(|offer| {
                 offer.with_keyboard(
                     fabrication,
-                    conduitos::keyboard_offer::KeyboardRealization {
-                        controller_id: xhci_base,
-                        device_id,
-                        interface_id,
-                        endpoint_id,
-                        report_buffers: hid_ready.report_buffers,
-                        transition_slots: hid_ready.transition_slots,
-                        operation_slots: hid_ready.operation_slots,
+                    if let Some(ready) = ps2_ready {
+                        conduitos::keyboard_offer::KeyboardRealization {
+                            mechanism: conduitos::keyboard_offer::KeyboardMechanism::Ps2,
+                            controller_id: identity::derive_base(
+                                &identities.boot,
+                                "conduitos/i8042/0",
+                            ),
+                            device_id: identity::derive_base(
+                                &identities.boot,
+                                "conduitos/i8042/keyboard",
+                            ),
+                            interface_id: identity::derive_base(
+                                &identities.boot,
+                                "conduitos/i8042/keyboard/port",
+                            ),
+                            endpoint_id: identity::derive_base(
+                                &identities.boot,
+                                "conduitos/i8042/keyboard/scancode-stream",
+                            ),
+                            report_buffers: ready.controller_slots,
+                            transition_slots: ready.keyboard_transition_slots,
+                            operation_slots: ready.operation_slots,
+                        }
+                    } else {
+                        conduitos::keyboard_offer::KeyboardRealization {
+                            mechanism: conduitos::keyboard_offer::KeyboardMechanism::UsbHid,
+                            controller_id: xhci_base,
+                            device_id,
+                            interface_id,
+                            endpoint_id,
+                            report_buffers: hid_ready.report_buffers,
+                            transition_slots: hid_ready.transition_slots,
+                            operation_slots: hid_ready.operation_slots,
+                        }
                     },
                 )
             });
             let input_offer = keyboard_offer.and_then(|offer| {
+                if let Some(ready) = ps2_ready {
+                    return offer.with_pointer(
+                        fabrication,
+                        conduitos::pointer_offer::PointerRealization {
+                            mechanism: conduitos::pointer_offer::PointerMechanism::Ps2,
+                            controller_id: identity::derive_base(
+                                &identities.boot,
+                                "conduitos/i8042/0",
+                            ),
+                            device_id: identity::derive_base(
+                                &identities.boot,
+                                "conduitos/i8042/pointer",
+                            ),
+                            interface_id: identity::derive_base(
+                                &identities.boot,
+                                "conduitos/i8042/pointer/port",
+                            ),
+                            endpoint_id: identity::derive_base(
+                                &identities.boot,
+                                "conduitos/i8042/pointer/packet-stream",
+                            ),
+                            report_buffers: ready.pointer_packet_slots,
+                            event_slots: conduitos::pointer_offer::POINTER_EVENT_SLOTS,
+                            operation_slots: ready.operation_slots,
+                        },
+                    );
+                }
                 let Some((pointer, ready)) = pointer_usb.as_ref().zip(pointer_ready) else {
                     return Ok(offer);
                 };
@@ -352,13 +424,14 @@ extern "C" fn conduitos_start() -> ! {
                     fabrication,
                     &framebuffer_basis,
                     &mut presentation_display,
-                    &mut hid_session,
+                    Some(&mut hid_session),
                     &mut xhci,
                     xhci_base,
                     &usb,
                     pointer_session.as_mut(),
                     pointer_usb.as_ref(),
                     line_usb.as_ref(),
+                    ps2_input.as_mut(),
                     &mut rescue_matcher,
                 ) {
                     emit_machine_refusal(reason);

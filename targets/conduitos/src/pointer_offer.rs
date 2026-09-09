@@ -9,6 +9,8 @@ use conduit_core::{
 
 pub const POINTER_IMPLEMENTATION: &str = "conduitos/usb-hid-pointer@1";
 pub const POINTER_EXECUTION_PROFILE: &str = "conduitos/usb-input-cooperative@1";
+pub const PS2_POINTER_IMPLEMENTATION: &str = "conduitos/ps2-pointer@1";
+pub const PS2_INPUT_EXECUTION_PROFILE: &str = "conduitos/ps2-input-cooperative@1";
 pub const NEXT_POINTER_EVENT_HOST_OPERATION: &str = "conduit.host/input-next-pointer-event@1";
 pub const POINTER_EVENT_SLOTS: u16 = 8;
 pub const POINTER_OPERATION_SLOTS: u16 = 1;
@@ -22,6 +24,7 @@ pub const POINTER_OPERATION_RESOURCE: &str = "conduitos.resource/pointer-operati
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PointerRealization {
+    pub mechanism: PointerMechanism,
     pub controller_id: [u8; 32],
     pub device_id: [u8; 32],
     pub interface_id: [u8; 32],
@@ -29,6 +32,28 @@ pub struct PointerRealization {
     pub report_buffers: u16,
     pub event_slots: u16,
     pub operation_slots: u16,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PointerMechanism {
+    UsbHid,
+    Ps2,
+}
+
+impl PointerMechanism {
+    const fn implementation(self) -> &'static str {
+        match self {
+            Self::UsbHid => POINTER_IMPLEMENTATION,
+            Self::Ps2 => PS2_POINTER_IMPLEMENTATION,
+        }
+    }
+
+    const fn execution_profile(self) -> &'static str {
+        match self {
+            Self::UsbHid => POINTER_EXECUTION_PROFILE,
+            Self::Ps2 => PS2_INPUT_EXECUTION_PROFILE,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -162,8 +187,10 @@ pub(crate) fn append_to_advertisement(
                 conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
             ),
             implementation: conduit_core::ImplementationOffer {
-                execution_profile_id: ExecutionProfileId::from(POINTER_EXECUTION_PROFILE),
-                implementation_id: ImplementationId::from(POINTER_IMPLEMENTATION),
+                execution_profile_id: ExecutionProfileId::from(
+                    realization.mechanism.execution_profile(),
+                ),
+                implementation_id: ImplementationId::from(realization.mechanism.implementation()),
                 artifact_id: ArtifactId::from(format!("conduitos-build/{build_id}")),
             },
             inputs: Vec::new(),
@@ -198,6 +225,7 @@ mod tests {
 
     fn realization() -> PointerRealization {
         PointerRealization {
+            mechanism: PointerMechanism::UsbHid,
             controller_id: [1; 32],
             device_id: [2; 32],
             interface_id: [3; 32],

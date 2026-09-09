@@ -420,6 +420,7 @@ fn host_offer(identities: &BootIdentities) -> HostOffer<'_> {
     )
     .with_keyboard(
         KeyboardRealization {
+            mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
             controller_id: [3; 32],
             device_id: [4; 32],
             interface_id: [5; 32],
