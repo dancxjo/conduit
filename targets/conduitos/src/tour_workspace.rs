@@ -8,6 +8,9 @@ use conduit_tour_model::{
     TourLayoutRefusal, TourRect, TourWorkspaceLayout, TourWorkspacePhase, TourWorkspaceState,
 };
 
+#[path = "tour_workspace_graph.rs"]
+mod graph;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourWorkspaceSceneRefusal {
     Presentation(SemanticPresentationRefusal),
@@ -85,6 +88,7 @@ pub fn scene_for_state(
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     }
+    graph::append(&mut scene, graphics_rect(layout.patchbay)?, state)?;
     Ok(scene)
 }
 
@@ -126,10 +130,11 @@ mod tests {
     #[test]
     fn native_scene_manifests_every_shared_region_and_visible_focus() {
         let scene = scene(640, 480, 12, TourWorkspacePhase::PatchbayOpen).unwrap();
-        assert_eq!(scene.commands().len(), 8);
+        assert_eq!(scene.commands().len(), 16);
         let frames: alloc::vec::Vec<_> = scene
             .commands()
             .iter()
+            .take(8)
             .filter(|command| command.kind == GraphicsCommandKind::Rect)
             .collect();
         assert_eq!(frames.len(), 4);
@@ -171,6 +176,7 @@ mod tests {
             let frames: alloc::vec::Vec<_> = scene
                 .commands()
                 .iter()
+                .take(8)
                 .filter(|command| command.kind == GraphicsCommandKind::Rect)
                 .collect();
             assert_eq!(
@@ -189,6 +195,32 @@ mod tests {
             Err(TourWorkspaceSceneRefusal::Layout(
                 TourLayoutRefusal::EmptyViewport
             ))
+        );
+    }
+
+    #[test]
+    fn graph_cards_project_catalog_ports_and_selected_gear() {
+        let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
+        state.selected_patchbay_subject = Some("meet-one-gear/change".into());
+        let scene = scene_for_state(1280, 800, &state).unwrap();
+        let card = scene
+            .commands()
+            .iter()
+            .find(|command| command.payload().starts_with("change\ntext/upper"))
+            .unwrap();
+        assert_eq!(card.paint, GraphicsPaintRole::Accent);
+        assert!(card.payload().contains("value/text"));
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.payload().starts_with("words\ntext/literal"))
+        );
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.payload().starts_with("result\npresentation/text"))
         );
     }
 }

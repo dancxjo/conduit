@@ -7,16 +7,23 @@ use conduit_semantic_catalog::{
 
 use crate::TourWorkspaceState;
 
+pub fn canonical_gear_contract(
+    gear: &str,
+) -> Option<conduit_semantic_catalog::StandardKindContract> {
+    match gear {
+        "meet-one-gear/words" => Some(text_literal_contract()),
+        "meet-one-gear/change" => Some(text_upper_contract()),
+        "meet-one-gear/result" => Some(text_presentation_contract()),
+        _ => None,
+    }
+}
+
 pub(crate) fn fields(
     state: &TourWorkspaceState,
     gear: &str,
     subjects: &mut Vec<PresentationSubject>,
 ) -> Vec<PresentationText> {
-    let contract = match gear {
-        "meet-one-gear/words" => text_literal_contract(),
-        "meet-one-gear/change" => text_upper_contract(),
-        _ => text_presentation_contract(),
-    };
+    let contract = canonical_gear_contract(gear).expect("inspection validates the specimen Gear");
     let mut text = Vec::new();
     let mut field = |key: &str, label: &str, value: alloc::string::String| {
         let identity = format!("{gear}/inspection/{key}");
