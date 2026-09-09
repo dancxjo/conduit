@@ -1,6 +1,6 @@
 //! Consumers of validated HID transitions for proof and ordinary guest profiles.
 
-use conduit_human::{KeyEvent, KeyTransition};
+use conduit_human::KeyEvent;
 use conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_ITEMS;
 
 use crate::{
@@ -17,7 +17,7 @@ use crate::{
 pub const INGRESS_CAPACITY: usize = KEYBOARD_MAX_QUEUE_ITEMS as usize;
 
 /// A refusal while accepting a physical transition into the admitted source
-/// queue.  Pressure is distinct from malformed physical input, and neither
+/// queue. Pressure is distinct from malformed physical input, and neither
 /// loses an already-admitted transition.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KeyboardIngressRefusal {
@@ -37,7 +37,7 @@ impl KeyboardIngressRefusal {
 /// Fixed, ordered, portable keyboard ingress.
 ///
 /// HID/PS2 adapters put validated physical transitions here before any Form,
-/// compositor, or Sign-export work runs.  A host event loop can then take a
+/// compositor, or Sign-export work runs. A host event loop can then take a
 /// bounded work slice with [`Self::service`], while continuing to re-arm and
 /// poll the physical mechanism independently.
 pub struct KeyboardIngress {
@@ -51,7 +51,7 @@ impl KeyboardIngress {
         }
     }
 
-    /// Canonicalize and admit one validated physical transition.  The queue
+    /// Canonicalize and admit one validated physical transition. The queue
     /// remains ordered; transitions are never coalesced.
     pub fn admit(&mut self, transition: HidKeyTransition) -> Result<(), KeyboardIngressRefusal> {
         let event = keyboard_bridge::portable_key_event(
@@ -91,7 +91,7 @@ impl KeyboardIngress {
         Ok(())
     }
 
-    /// Run at most `budget` admitted semantic deliveries.  Presentation is
+    /// Run at most `budget` admitted semantic deliveries. Presentation is
     /// intentionally not part of this operation; consumers return after the
     /// semantic input boundary and let a separate dirty-driven frame phase
     /// decide whether to compose.
@@ -108,7 +108,7 @@ impl KeyboardIngress {
     }
 
     /// Take one already-admitted portable value for a fallible product service
-    /// phase.  Keeping this separate from [`Self::service`] lets callers stop on
+    /// phase. Keeping this separate from [`Self::service`] lets callers stop on
     /// an exact Yield/refusal without accidentally consuming later events.
     pub fn take(&mut self) -> Option<KeyEvent> {
         self.queue.pop()
@@ -196,10 +196,10 @@ pub fn run_interactive(
 }
 
 /// Runs the ordinary physical input source for a long-lived product-owned
-/// Play. Physical reports are first canonicalized into the exact finite
+/// Play. Physical transitions cross the local-rescue boundary while their
+/// provenance is still known, then are canonicalized into the exact finite
 /// `input/keyboard` queue. The next USB transfer is armed before a bounded
-/// semantic/presentation service slice drains that queue, so scanout/export
-/// work does not gate publication of the next physical receive buffer.
+/// semantic/presentation service slice drains portable `KeyEvent` values.
 pub fn run_product(
     session: &mut HidKeyboardSession,
     controller: &mut XhciReady,
@@ -207,6 +207,14 @@ pub fn run_product(
     mut interact: impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
 ) -> Result<(), &'static str> {
     let mut ingress = KeyboardIngress::new();
+    for transition in session.transitions().iter().copied() {
+        if interact(ProductInputEvent::LocalRescue(
+            transition.into_local_rescue(),
+        ))? == ProductInputControl::Yield
+        {
+            return Ok(());
+        }
+    }
     ingress
         .admit_report(session.transitions())
         .map_err(KeyboardIngressRefusal::as_str)?;
@@ -240,6 +248,14 @@ pub fn run_product(
             }
         };
 
+        for transition in transitions[..count].iter().copied() {
+            if interact(ProductInputEvent::LocalRescue(
+                transition.into_local_rescue(),
+            ))? == ProductInputControl::Yield
+            {
+                return Ok(());
+            }
+        }
         // Whole-report admission is atomic. We intentionally do not run Form
         // work here: the loop immediately publishes the next receive transfer,
         // then services these portable events within the admitted bound.
@@ -260,9 +276,17 @@ pub fn run_ps2_product(
     loop {
         for _ in 0..INGRESS_CAPACITY {
             match input.poll_keyboard() {
-                Ok(Some(transition)) => ingress
-                    .admit(transition)
-                    .map_err(KeyboardIngressRefusal::as_str)?,
+                Ok(Some(transition)) => {
+                    if interact(ProductInputEvent::LocalRescue(
+                        transition.into_local_rescue(),
+                    ))? == ProductInputControl::Yield
+                    {
+                        return Ok(());
+                    }
+                    ingress
+                        .admit(transition)
+                        .map_err(KeyboardIngressRefusal::as_str)?;
+                }
                 Ok(None) => break,
                 Err(error) => {
                     let reason = error.as_str();
@@ -287,15 +311,17 @@ pub enum ProductInputControl {
 pub enum ProductInputEvent {
     /// Host service opportunity, distinct from a physical input transition.
     Service,
-    Transition(HidKeyTransition),
+    /// Proven-local physical transition for the narrow rescue policy only.
+    LocalRescue(crate::local_rescue::ValidatedLocalTransition),
+    /// Portable semantic keyboard occurrence drained from admitted ingress.
+    Key(KeyEvent),
     Lost(&'static str),
 }
 
 /// Deliver at most the exact admitted keyboard queue capacity, then give the
-/// host one separate presentation/export service opportunity. `KeyEvent` is the
-/// stored truth; rebuilding the existing transition callback shape is a
-/// temporary compatibility boundary and is lossless over the three canonical
-/// key-event fields.
+/// host one separate presentation/export service opportunity. Portable
+/// `KeyEvent` is the stored and delivered semantic truth; physical provenance
+/// never needs to be reconstructed after this boundary.
 fn service_product_ingress(
     ingress: &mut KeyboardIngress,
     interact: &mut impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
@@ -304,12 +330,7 @@ fn service_product_ingress(
         let Some(event) = ingress.take() else {
             break;
         };
-        let transition = HidKeyTransition::new(
-            event.usage(),
-            event.transition() == KeyTransition::Pressed,
-            event.modifiers_after().bits(),
-        );
-        if interact(ProductInputEvent::Transition(transition))? == ProductInputControl::Yield {
+        if interact(ProductInputEvent::Key(event))? == ProductInputControl::Yield {
             return Ok(ProductInputControl::Yield);
         }
     }
@@ -449,8 +470,8 @@ mod tests {
         let mut count = 0;
         let mut service_seen = false;
         let control = service_product_ingress(&mut ingress, &mut |event| match event {
-            ProductInputEvent::Transition(transition) => {
-                usages[count] = transition.usage();
+            ProductInputEvent::Key(event) => {
+                usages[count] = event.usage();
                 count += 1;
                 Ok(ProductInputControl::Continue)
             }
@@ -458,6 +479,7 @@ mod tests {
                 service_seen = true;
                 Ok(ProductInputControl::Continue)
             }
+            ProductInputEvent::LocalRescue(_) => panic!("unexpected local-rescue observation"),
             ProductInputEvent::Lost(_) => panic!("unexpected loss"),
         })
         .unwrap();
