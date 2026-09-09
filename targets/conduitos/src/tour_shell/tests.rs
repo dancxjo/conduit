@@ -372,6 +372,7 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
     .unwrap();
     journey.accept_play_input(press).unwrap();
     journey.accept_play_input(release).unwrap();
+    invoke_journey(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
     invoke_journey(&mut journey, JourneyAction::Lull, &identities, &offer).unwrap();
     let (_, mut shell, _) = fixture();
     let mut display = MemoryDisplay::with_size(1280, 800);
@@ -381,7 +382,7 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
             &journey.projection(),
             &mut display,
         )
-        .expect("initial Tour must accept the completed and lulled lifecycle basis");
+        .expect("initial Tour must accept the stopped and lulled lifecycle basis");
 }
 
 #[test]

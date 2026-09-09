@@ -376,7 +376,9 @@ fn long_session_keeps_one_body_plan_play_and_discloses_bounded_history() {
         assert!(presentation.properties.iter().any(|property| {
             property.name == "kernel-sign-gap-entries"
                 && property.value
-                    == conduit_presentation::PresentationPropertyValue::Count(u64::from(gap.entries))
+                    == conduit_presentation::PresentationPropertyValue::Count(u64::from(
+                        gap.entries,
+                    ))
         }));
         if device_lost {
             journey.input_lost().unwrap();
