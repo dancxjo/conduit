@@ -7,7 +7,9 @@ mod interaction_affordance;
 mod surface_buffer;
 mod surface_lifecycle;
 
-use crate::display::{DisplayError, DisplayReceipt, render_scene};
+#[cfg(not(feature = "native-compositor"))]
+use crate::display::render_scene;
+use crate::display::{DisplayError, DisplayReceipt};
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
     ActivePlayId, ArtifactId, BootId, CapabilityId, HostBaseId, HostId, ImplementationId,
@@ -324,6 +326,11 @@ impl NativeCompositor {
             }
         }
         surface.buffer.clear();
+        #[cfg(feature = "native-compositor")]
+        let display = crate::display::typography::render_scene(&mut surface.buffer, scene, |_, _| {
+            crate::display::typography::TextRole::Body
+        })?;
+        #[cfg(not(feature = "native-compositor"))]
         let display = render_scene(&mut surface.buffer, scene)?;
         surface.binding = Some(SurfaceBinding {
             manifestation_id: manifestation.manifestation_id.clone(),

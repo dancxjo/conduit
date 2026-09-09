@@ -8,6 +8,8 @@ mod raster;
 pub use raster::{render_glyph, render_text};
 mod layout;
 pub use layout::{PositionedGlyph, TextLayout};
+mod scene;
+pub use scene::render_scene;
 
 /// Text purpose selects a fixed fabricated profile, never an ambient font.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
