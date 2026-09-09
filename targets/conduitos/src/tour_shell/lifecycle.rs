@@ -17,11 +17,12 @@ pub(super) fn with_presenter_host(
         .find(|item| item.subject == "tour/status/host")
         .ok_or(TourShellError::Identity)?;
     let identity = host.as_str();
-    let short: alloc::string::String = identity.chars().take(12).collect();
+    // Eleven ASCII cells also fit the compact status item at 640 pixels.
+    let short: alloc::string::String = identity.chars().take(8).collect();
     item.text = alloc::format!(
         "Native\n{short}{}",
         if short.len() < identity.len() {
-            "…"
+            "..."
         } else {
             ""
         }
@@ -148,11 +149,13 @@ mod tests {
                     && edge.kind == PresentationRelationshipKind::Observes)
         );
         assert!(
-            presentation
-                .text
-                .iter()
-                .any(|item| item.subject == "tour/status/host"
-                    && item.text == "Native\n0123456789ab…")
+            presentation.text.iter().any(
+                |item| item.subject == "tour/status/host" && item.text == "Native\n01234567..."
+            )
+        );
+        assert_eq!(
+            crate::display::text_height("Host\nNative\n01234567...", 640 / 6 - 16).unwrap(),
+            48
         );
         assert!(
             presentation
