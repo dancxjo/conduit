@@ -22,6 +22,8 @@ export function registerButtonMultiHostTests(openStep) {
     await expect(status).toContainText("2 delivered cross-Host values");
     await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
     await expect(runner.locator("textarea")).toHaveValue(source);
+    await runner.getByRole("button", { name: "Stop", exact: true }).click();
+    await expect(status).toContainText("cancelled after 2 delivered cross-Host values");
     const identities = await page.evaluate(() => ({
       source: globalThis.__conduitTourHost.hostId,
       sink: globalThis.__conduitTourPeerHost.hostId,
@@ -47,5 +49,6 @@ export function registerButtonMultiHostTests(openStep) {
     await runner.getByRole("button", { name: "Hold to control indicator" }).click();
     await expect(status).toContainText("2 delivered cross-Host values");
     await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
+    await runner.getByRole("button", { name: "Stop", exact: true }).click();
   });
 }

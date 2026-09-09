@@ -8,7 +8,7 @@ pub(super) fn emit_journey_sign(
     receipt: &crate::native_compositor::CompositionReceipt,
 ) {
     let line = format!(
-        "CONDUIT_PRODUCT_JOURNEY {{\"status\":\"{}\",\"revision\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"offer_generation\":{},\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"body_id\":{},\"friendly_name\":{},\"born_sign_id\":{},\"part_id\":{},\"wake_id\":{},\"plan_id\":{},\"active_play_id\":{},\"gear_ids\":{},\"port_ids\":{},\"cord_ids\":{},\"presentation_id\":\"{}\",\"manifestation_id\":\"{}\",\"presenter_implementation_id\":\"{}\",\"input_sign_id\":{},\"result_sign_id\":{},\"result\":{},\"request_id\":{}}}\n",
+        "CONDUIT_PRODUCT_JOURNEY {{\"status\":\"{}\",\"revision\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"offer_generation\":{},\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"body_id\":{},\"friendly_name\":{},\"born_sign_id\":{},\"part_id\":{},\"wake_id\":{},\"plan_id\":{},\"active_play_id\":{},\"gear_ids\":{},\"port_ids\":{},\"cord_ids\":{},\"presentation_id\":\"{}\",\"manifestation_id\":\"{}\",\"presenter_implementation_id\":\"{}\",\"input_sign_id\":{},\"result_sign_id\":{},\"result\":{},\"result_omitted_bytes\":{},\"input_count\":{},\"kernel_sign_gap\":{},\"request_id\":{}}}\n",
         projection.status.as_str(),
         projection.revision,
         fabrication.profile_id,
@@ -76,6 +76,15 @@ pub(super) fn emit_journey_sign(
                 .map(conduit_core::SignId::as_str)
         ),
         json_identity(projection.result.as_deref()),
+        projection.result_omitted_bytes,
+        projection.input_count,
+        projection.kernel_sign_gap.map_or_else(
+            || "null".into(),
+            |gap| format!(
+                "{{\"first_sequence\":{},\"last_sequence\":{},\"entries\":{}}}",
+                gap.first_sequence, gap.last_sequence, gap.entries
+            )
+        ),
         json_identity(projection.last_request_id.as_deref()),
     );
     arch::early_write(line.as_bytes());

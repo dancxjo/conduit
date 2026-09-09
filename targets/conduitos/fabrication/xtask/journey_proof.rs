@@ -253,9 +253,10 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
             journey_input::wait_status(&serial_path, &mut child, "playing")?;
             artifacts.capture(&mut qmp, &mut reader, "playing", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "a", "semantic-input")?;
-            journey_input::wait_status(&serial_path, &mut child, "result-visible")?;
+            super::journey_standing::type_hello(&mut qmp, &mut reader, &serial_path, &mut child)?;
             artifacts.capture(&mut qmp, &mut reader, "result-visible", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f8", "stop")?;
+            journey_input::wait_status(&serial_path, &mut child, "stopped")?;
             journey_input::key_pair(&mut qmp, &mut reader, "f7", "lull")?;
             journey_input::wait_status(&serial_path, &mut child, "lulled")?;
             artifacts.capture(&mut qmp, &mut reader, "lulled", true)?;
@@ -426,7 +427,7 @@ fn execute_image(
             "awake",
             "planned",
             "playing",
-            "result-visible",
+            "stopped",
             "lulled",
         ] {
             if !by_status.contains_key(status) {
@@ -522,7 +523,7 @@ fn execute_image(
         let born = by_status["born-lulled"];
         let planned = by_status["planned"];
         let playing = by_status["playing"];
-        let result = by_status["result-visible"];
+        let result = super::journey_standing::validate(&records)?;
         let lulled = by_status["lulled"];
         let plan_id = text(planned, "plan_id")?;
         let inspected_plan = serial.lines().any(|line| {
@@ -545,7 +546,6 @@ fn execute_image(
                 .is_none_or(Vec::is_empty)
             || playing.get("active_play_id") == Some(&Value::Null)
             || playing.get("plan_id") == playing.get("active_play_id")
-            || result.get("result").and_then(Value::as_str) != Some("A")
             || born.get("body_id") != lulled.get("body_id")
             || !inspected_plan
         {
@@ -583,7 +583,7 @@ fn execute_image(
             ));
         }
         let proof = JourneyProof {
-            schema: "conduit.conduitos/product-journey-proof@1",
+            schema: "conduit.conduitos/product-journey-proof@2",
             base_commit: git_head(&paths.root)?,
             image_sha256,
             profile_id: text(opened, "profile_id")?,

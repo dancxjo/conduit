@@ -884,8 +884,10 @@ async function runMultiHostListing(runner, source) {
       plan.cord.maximum_payload_bytes,
     );
     activeMemoryLine = line;
+    let deliveredCount = 0;
     while (["input", "timer"].includes(sourceProgress.effect_kind) || sourceProgress.frame?.phase === "value") {
       if (sourceProgress.effect_kind === "timer") {
+        if (!await delay(sourceProgress.timer.duration_millis, current)) return;
         const api = host.runtime;
         const play = encoder.encode(sourceProgress.timer.active_play_id);
         if (play.length > api.conduit_tour_multi_input_capacity()) {
@@ -903,14 +905,17 @@ async function runMultiHostListing(runner, source) {
       if (sourceProgress.effect_kind === "input") {
         const api = host.runtime;
         let bytes;
+        const deliverySuffix = deliveredCount === 0 ? "" : deliveredCount === 1
+          ? " One delivered cross-Host value; the same Play remains active."
+          : ` ${deliveredCount} delivered cross-Host values; the same Play remains active.`;
         if (sourceProgress.input.effect_kind === "key-event") {
-          runner.playStatus.ordinary("Waiting for one admitted keyboard transition on Host A…");
+          runner.playStatus.ordinary(`Waiting for one admitted keyboard transition on Host A…${deliverySuffix}`);
           const event = await humanInput.nextKeyboard();
           if (current !== generation) return;
           bytes = event.canonical_bytes;
         } else if (sourceProgress.input.effect_kind === "button-transition") {
           runner.querySelector(".input-button").hidden = false;
-          runner.playStatus.ordinary("Waiting for one admitted button transition on Host A…");
+          runner.playStatus.ordinary(`Waiting for one admitted button transition on Host A…${deliverySuffix}`);
           const event = await humanInput.nextButton();
           if (current !== generation) return;
           const encodedCode = api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence));
@@ -956,6 +961,10 @@ async function runMultiHostListing(runner, source) {
       if (completion < 0) throw new Error(`Host B presentation completion refused (${completion})`);
       const delivered = readMultiOutput(peer.runtime);
       sourceProgress = line.transfer(delivered.frame, host.runtime);
+      deliveredCount += 1;
+      runner.playStatus.ordinary(deliveredCount === 1
+        ? "Running — one delivered cross-Host value; the same Play is still listening."
+        : `Running — ${deliveredCount} delivered cross-Host values; the same Play is still listening.`);
     }
     if (sourceProgress.frame?.phase !== "close") throw new Error("source did not close its planned Cord");
     const terminal = line.transfer(sourceProgress.frame, peer.runtime);
@@ -1207,21 +1216,32 @@ function stopListing(runner) {
   runner.querySelector(".input-button")?.setAttribute("hidden", "");
   cancelDelay();
   humanInput?.cancelPending();
-  if (running && runner.dataset.mode === "multi") cancelMultiSessions();
-  else if (running) host.runtime.conduit_browser_form_cancel();
+  const multiReceipts = running && runner.dataset.mode === "multi" ? cancelMultiSessions() : null;
+  if (running && runner.dataset.mode !== "multi") host.runtime.conduit_browser_form_cancel();
   running = false;
   activeRunner = null;
   setNavigationDisabled(false);
   setIndicator(runner, false);
   runner.actionControls.render(false);
-  runner.playStatus.ordinary("Stopped. The Play was cancelled.");
+  if (multiReceipts?.source?.receipt && multiReceipts?.sink?.receipt) {
+    const count = multiReceipts.source.receipt.transferred_values;
+    appendRunEvidence(runner, [
+      ["Terminal source receipt", multiReceipts.source.receipt.terminal_sign_id],
+      ["Terminal sink receipt", multiReceipts.sink.receipt.terminal_sign_id],
+    ]);
+    runner.playStatus.ordinary(`Stopped. The Plays were cancelled after ${count} delivered cross-Host value${count === 1 ? "" : "s"}.`);
+  } else {
+    runner.playStatus.ordinary("Stopped. The Play was cancelled.");
+  }
 }
 
 function cancelMultiSessions() {
   activeMemoryLine?.cancel();
   activeMemoryLine = null;
-  host?.runtime.conduit_tour_multi_cancel();
-  peerHost?.runtime.conduit_tour_multi_cancel();
+  let source = null, sink = null;
+  if (host && host.runtime.conduit_tour_multi_cancel() >= 0) source = readMultiOutput(host.runtime);
+  if (peerHost && peerHost.runtime.conduit_tour_multi_cancel() >= 0) sink = readMultiOutput(peerHost.runtime);
+  return { source, sink };
 }
 
 function readOutput(api) {

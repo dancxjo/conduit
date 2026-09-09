@@ -20,6 +20,7 @@ struct Proof {
     base_commit: String,
     image_sha256: String,
     keyboard_body_born: bool,
+    keyboard_same_play_result: String,
     pointer_semantics_reached: bool,
     bounded: bool,
     proof_class: &'static str,
@@ -104,6 +105,9 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         }
         journey_input::key_pair(&mut stream, &mut reader, "ret", "ps2-birth-body")?;
         journey_input::wait_status(&serial_path, &mut child, "playing")?;
+        super::journey_standing::type_hello(&mut stream, &mut reader, &serial_path, &mut child)?;
+        journey_input::key_pair(&mut stream, &mut reader, "f8", "ps2-stop")?;
+        journey_input::wait_status(&serial_path, &mut child, "stopped")?;
         journey_input::key_pair(&mut stream, &mut reader, "f9", "ps2-open-tour")?;
         hid_qmp::wait_for_stage(
             &serial_path,
@@ -164,11 +168,14 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "guest refused the PS/2 interaction sequence",
         ));
     }
+    let records = super::journey_records::decode(&serial)?;
+    let result = super::journey_standing::validate(&records)?;
     let proof = Proof {
-        schema: "conduit.conduitos.ps2-input-proof/v2",
+        schema: "conduit.conduitos.ps2-input-proof/v3",
         base_commit: git_head(&paths.root)?,
         image_sha256: built.iso_sha256,
         keyboard_body_born: serial.contains("\"status\":\"born-lulled\""),
+        keyboard_same_play_result: result["result"].as_str().unwrap().into(),
         pointer_semantics_reached: serial.contains("CONDUIT_POINTER_SIGN"),
         bounded: true,
         proof_class: "freestanding-emulator",

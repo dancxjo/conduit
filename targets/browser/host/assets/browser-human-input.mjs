@@ -52,6 +52,14 @@ export function openBrowserHumanInput({
     if (closed) return;
     const usage = browserKeyboardUsage(event.code);
     if (usage === null) return;
+    // A document-wide adapter must leave ordinary browser controls operable
+    // while no admitted Form is waiting for a key. This also prevents a skip
+    // link or layout button from becoming stale queued Form input.
+    if (keyboardWaiters.length === 0 && target.nodeType === 9 &&
+        typeof event.target?.closest === "function" &&
+        event.target.closest("a[href], button, input, select, textarea, summary, [contenteditable]:not([contenteditable='false'])")) {
+      return;
+    }
     try {
       assertCurrent(owner, currentBoot());
       assertPageActive(target);

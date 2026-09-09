@@ -197,11 +197,21 @@ fn run_with(
         let mut local_sample = sample;
         local_sample.position_x = normalized_local(route.local_x, format.width)?;
         local_sample.position_y = normalized_local(route.local_y, format.height)?;
-        let outcome = tour.accept_pointer(
+        let outcome = tour.route_workspace_pointer(
             local_sample,
             u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
             u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
         )?;
+        let Some(outcome) = outcome else {
+            presenter
+                .set_pointer_hover(false)
+                .map_err(|error| error.as_str())?;
+            presenter
+                .present(tour, display)
+                .map_err(|error| error.as_str())?;
+            arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+            continue;
+        };
         presenter
             .set_pointer_hover(true)
             .map_err(|error| error.as_str())?;
@@ -234,8 +244,27 @@ fn normalized_local(value: u16, extent: u32) -> Result<i64, &'static str> {
     if extent == 0 || u32::from(value) >= extent {
         return Err("compositor-pointer-local-coordinate-invalid");
     }
-    i64::try_from(u64::from(value) * 1_000_000 / u64::from(extent))
+    // Round upward so the semantic decoder's floor maps back to this exact
+    // pixel, including the first pixel on a card edge.
+    i64::try_from((u64::from(value) * 1_000_000).div_ceil(u64::from(extent)))
         .map_err(|_| "compositor-pointer-local-coordinate-invalid")
+}
+
+#[cfg(test)]
+mod coordinate_tests {
+    use super::*;
+
+    #[test]
+    fn surface_local_pixels_survive_normalization_without_edge_drift() {
+        for extent in [320, 640, 800, 1280, 1920, u32::from(u16::MAX)] {
+            for pixel in 0..extent {
+                let normalized = normalized_local(pixel as u16, extent).unwrap();
+                assert_eq!(display_coordinate(normalized, extent).unwrap(), pixel);
+            }
+        }
+        assert!(normalized_local(0, 0).is_err());
+        assert!(normalized_local(640, 640).is_err());
+    }
 }
 
 fn display_coordinate(value: i64, extent: u32) -> Result<u32, &'static str> {
