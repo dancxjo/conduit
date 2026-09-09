@@ -60,6 +60,8 @@ mod music;
 pub use music::*;
 mod robotics;
 pub use robotics::*;
+mod navigation;
+pub use navigation::*;
 mod calendar;
 pub use calendar::*;
 mod workflows;

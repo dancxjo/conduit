@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 97
+maximum_forms = 98
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -31,6 +31,12 @@ slug = "bounded-job"
 title = "Bounded Job"
 entry = "bounded-job"
 deterministic = { package = "conduit-semantic-catalog", test = "job_forms", case = "ordinary_form_plans_one_bounded_admitted_job" }
+[[forms]]
+slug = "bounded-navigation"
+title = "Bounded Navigation"
+entry = "bounded-navigation"
+deterministic = { package = "conduit-semantic-catalog", test = "portable_navigation_forms", case = "canonical_bounded_navigation_is_one_checked_form" }
+browser_safe_not_applicable = "portable navigation has no installed browser route or local-control realization"
 [[forms]]
 slug = "bounded-replay-control"
 title = "Bounded Replay Control"
