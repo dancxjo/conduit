@@ -41,6 +41,69 @@ fn format() -> DisplayFormat {
 }
 
 #[test]
+fn clipping_crops_text_without_restarting_or_rewrapping_it() {
+    fn render(bounds: LayoutRect, clip: LayoutRect) -> alloc::vec::Vec<u8> {
+        let mut bytes = alloc::vec![0; 128 * 24];
+        let mut scene = GraphicsScene::empty();
+        scene
+            .push(
+                GraphicsCommand::text(bounds, clip, GraphicsPaintRole::Foreground, "AB\nCD")
+                    .unwrap(),
+            )
+            .unwrap();
+        render_scene(
+            &mut Buffer {
+                format: format(),
+                bytes: &mut bytes,
+                lost: false,
+            },
+            &scene,
+        )
+        .unwrap();
+        bytes
+    }
+    let full = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 32,
+        height: 24,
+    };
+    let reference = render(full, full);
+    let clip = LayoutRect {
+        x: 4,
+        y: 6,
+        width: 24,
+        height: 18,
+    };
+    let cropped = render(full, clip);
+    for y in 0..24 {
+        for x in 0..32 {
+            let offset = y * 128 + x * 4;
+            let expected = if y >= 6 && (4..28).contains(&x) {
+                &reference[offset..offset + 4]
+            } else {
+                &[0; 4]
+            };
+            assert_eq!(&cropped[offset..offset + 4], expected);
+        }
+    }
+    let scrolled = render(
+        LayoutRect {
+            y: -8,
+            height: 32,
+            ..full
+        },
+        full,
+    );
+    for y in 0..16 {
+        assert_eq!(
+            &scrolled[y * 128..(y + 1) * 128],
+            &reference[(y + 8) * 128..(y + 9) * 128]
+        );
+    }
+}
+
+#[test]
 fn bounded_scene_renders_and_loss_remains_distinct() {
     let bounds = LayoutRect {
         x: 2,
