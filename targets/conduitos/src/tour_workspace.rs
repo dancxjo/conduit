@@ -74,11 +74,25 @@ pub fn scene_for_state(
         } else {
             GraphicsPaintRole::Foreground
         };
-        scene
-            .push(
-                GraphicsCommand::rect(bounds, bounds, paint, GraphicsShapeStyle::Stroke)
-                    .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+        let frame = if key == "lesson-status" {
+            // Retained pixels outside a reflowed region must not survive a revision.
+            let viewport = LayoutRect {
+                x: 0,
+                y: 0,
+                width,
+                height,
+            };
+            GraphicsCommand::rect(
+                viewport,
+                viewport,
+                GraphicsPaintRole::Background,
+                GraphicsShapeStyle::Fill,
             )
+        } else {
+            GraphicsCommand::rect(bounds, bounds, paint, GraphicsShapeStyle::Stroke)
+        };
+        scene
+            .push(frame.map_err(TourWorkspaceSceneRefusal::Graphics)?)
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
         let label = if node.component == conduit_presentation::ApplicationComponent::CodeBlock
             || node.text.is_empty()
@@ -178,7 +192,7 @@ mod tests {
             LayoutRect {
                 x: 0,
                 y: 0,
-                width: 294,
+                width: 640,
                 height: 480
             }
         );
