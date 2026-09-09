@@ -151,7 +151,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(finalizer, /base_sha=\$\(git rev-parse "\$merge_sha\^1"\)/);
   assert.match(finalizer, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
   assert.match(finalizer, /test "\$\(git rev-parse "\$merge_sha\^2"\)" = "\$HEAD_SHA"/);
-  assert.match(finalizer, /gh pr merge "\$pr_url" --squash --match-head-commit "\$HEAD_SHA"/);
+  assert.match(finalizer, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
   assert.match(finalizer, /git merge-tree --write-tree "\$base_sha" "\$HEAD_SHA"/);
   assert.match(finalizer, /if test "\$expected_tree" = "\$base_tree"/);
   assert.match(finalizer, /Development already contains the accepted release tree/);
@@ -196,9 +196,9 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(monitor, /comment_body=\$\(printf/);
   assert.doesNotMatch(monitor, /^Release attempt /m);
   assert.match(monitor, /sleep 30/);
-  assert.doesNotMatch(monitor, /gh pr merge "\$pr_url" --merge/);
+  assert.doesNotMatch(monitor, /gh pr merge "\$pr_url" --squash/);
   assert.match(monitor, /finalize-release owns acceptance and publication/);
-  assert.match(monitor, /gh pr merge "\$pr_url" --squash --match-head-commit "\$HEAD_SHA"/);
+  assert.match(monitor, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
   assert.match(monitor, /git merge-tree --write-tree "\$base_sha" "\$HEAD_SHA"/);
   assert.match(monitor, /test "\$\(git rev-parse "\$merge_sha\^\{tree\}"\)" = "\$expected_tree"/);
   assert.doesNotMatch(monitor, /gh workflow run tour-and-creche-pages/);

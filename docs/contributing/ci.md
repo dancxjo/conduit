@@ -98,6 +98,12 @@ and merges the exact successful head, then dispatches Pages and synchronization.
 The long-running release monitor handles approval and early failure; it never
 competes to merge or dispatch duplicate publication work.
 
+Promotion uses a merge commit rather than squashing the release PR. The release
+branch already is the reviewed batch boundary, and retaining its ancestry lets
+the automatic development sync distinguish accepted release repairs from work
+that accumulated later in `dev`. Squashing an environment promotion erases that
+relationship and turns the routine return merge into a large false conflict.
+
 ## Statuses
 
 | Status | Meaning | Action |
