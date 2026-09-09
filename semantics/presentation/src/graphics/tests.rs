@@ -87,3 +87,29 @@ fn malformed_overflow_and_unknown_icon_refuse() {
         Err(GraphicsError::NonCanonicalEncoding)
     );
 }
+
+#[test]
+fn pane_sized_text_is_exactly_bounded_and_round_trips() {
+    let exact =
+        alloc::string::String::from_utf8(alloc::vec![b'x'; MAX_GRAPHICS_TEXT_BYTES]).unwrap();
+    let command = GraphicsCommand::text(
+        rect(0, 10),
+        rect(0, 10),
+        GraphicsPaintRole::Foreground,
+        &exact,
+    )
+    .unwrap();
+    assert_eq!(command.payload(), exact);
+
+    let overflow =
+        alloc::string::String::from_utf8(alloc::vec![b'x'; MAX_GRAPHICS_TEXT_BYTES + 1]).unwrap();
+    assert_eq!(
+        GraphicsCommand::text(
+            rect(0, 10),
+            rect(0, 10),
+            GraphicsPaintRole::Foreground,
+            &overflow
+        ),
+        Err(GraphicsError::PayloadTooLong)
+    );
+}

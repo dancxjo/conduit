@@ -78,13 +78,6 @@ pub fn scene_for_state(
         } else {
             node.text.as_str()
         };
-        let label = label
-            .get(
-                ..label
-                    .len()
-                    .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES),
-            )
-            .ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
         scene
             .push(
                 GraphicsCommand::text(inset(bounds), bounds, paint, label)
@@ -116,6 +109,7 @@ fn inset(rect: LayoutRect) -> LayoutRect {
 #[cfg(test)]
 mod tests {
     use conduit_presentation::{ApplicationComponent, GraphicsCommandKind};
+    use conduit_tour_model::CANONICAL_SOURCE;
 
     use super::*;
 
@@ -158,11 +152,8 @@ mod tests {
             }
         );
         assert_eq!(frames[1].paint, GraphicsPaintRole::Accent);
-        assert!(
-            scene.commands()[5]
-                .payload()
-                .starts_with("form meet-one-gear")
-        );
+        assert_eq!(scene.commands()[5].payload(), CANONICAL_SOURCE);
+        assert!(scene.commands()[5].payload().ends_with("}"));
         assert!(scene.commands()[7].payload().contains("Patchbay open"));
         assert!(scene.commands().iter().all(|command| {
             command.clip_class() == conduit_presentation::GraphicsClipClass::FullyVisible

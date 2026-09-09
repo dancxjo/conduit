@@ -4,7 +4,9 @@ use crate::{LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT};
 
 pub const GRAPHICS_SCENE_KIND: &str = "presentation/graphics-scene@1";
 pub const MAX_GRAPHICS_COMMANDS: usize = 8;
-pub const MAX_GRAPHICS_TEXT_BYTES: usize = 64;
+/// One bounded pane-sized UTF-8 payload. Commands remain fixed-capacity, but
+/// can retain a small complete source document instead of a single label.
+pub const MAX_GRAPHICS_TEXT_BYTES: usize = 192;
 pub const MAX_GRAPHICS_SCENE_BYTES: usize =
     2 + MAX_GRAPHICS_COMMANDS * (20 + MAX_GRAPHICS_TEXT_BYTES);
 const VERSION: u8 = 1;

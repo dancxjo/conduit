@@ -148,21 +148,6 @@ fn cursor_color((cx, cy): (u32, u32), x: u32, y: u32, hovered: bool) -> Option<u
         .then_some(0x00000000)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::cursor_color;
-
-    #[test]
-    fn cursor_bitmap_has_outline_fill_stem_and_exact_hotspot() {
-        let origin = (20, 30);
-        assert_eq!(cursor_color(origin, 20, 30, false), Some(0x00000000));
-        assert_eq!(cursor_color(origin, 21, 32, false), Some(0x00ffffff));
-        assert_eq!(cursor_color(origin, 26, 44, true), Some(0x00ffcc33));
-        assert_eq!(cursor_color(origin, 19, 30, false), None);
-        assert_eq!(cursor_color(origin, 35, 46, false), None);
-    }
-}
-
 fn contains(surface: &CompositorSurface, x: u32, y: u32) -> bool {
     let left = i64::from(surface.bounds.x);
     let top = i64::from(surface.bounds.y);
@@ -193,4 +178,19 @@ fn surface_pixel(
         .get(index)
         .copied()
         .ok_or(NativeCompositorError::InvalidBounds)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cursor_color;
+
+    #[test]
+    fn cursor_bitmap_has_outline_fill_stem_and_exact_hotspot() {
+        let origin = (20, 30);
+        assert_eq!(cursor_color(origin, 20, 30, false), Some(0x00000000));
+        assert_eq!(cursor_color(origin, 21, 32, false), Some(0x00ffffff));
+        assert_eq!(cursor_color(origin, 26, 44, true), Some(0x00ffcc33));
+        assert_eq!(cursor_color(origin, 19, 30, false), None);
+        assert_eq!(cursor_color(origin, 35, 46, false), None);
+    }
 }
