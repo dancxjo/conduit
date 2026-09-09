@@ -60,9 +60,9 @@ fn configured_literal_is_visible_without_claiming_an_observed_output() {
     let heading = scene
         .commands()
         .iter()
-        .position(|command| command.payload().starts_with("words\n"))
+        .find(|command| command.payload().starts_with("words\n"))
         .unwrap();
-    let body = scene.commands()[heading + 1].payload();
+    let body = heading.payload();
     assert!(body.contains("Configured value\n\"hello\""));
     assert!(body.contains("out text\nvalue/text@1\n= unobserved"));
     assert!(!body.contains("= \"hello\""));
