@@ -44,9 +44,6 @@ impl TourShellPresenter {
         detail: &str,
         display: &mut impl PixelTarget,
     ) -> Result<ShellTransientReceipt, TourShellError> {
-        if self.has_transient() {
-            self.dismiss(Slot::Transient)?;
-        }
         let format = display
             .format()
             .validate()
@@ -61,13 +58,19 @@ impl TourShellPresenter {
             .state()
             .transient_presentation(kind, detail)
             .map_err(|_| TourShellError::Identity)?;
+        // Refuse malformed or oversized content before invalidating the
+        // currently visible dialog and its input routes.
+        let scene = transient_scene(layout.transient, &presentation, 0)?;
+        if self.has_transient() {
+            self.dismiss(Slot::Transient)?;
+        }
         let receipt = self.present_surface(
             Slot::Transient,
             &presentation,
             kind.subject_identity(),
             layout.transient,
             3,
-            &transient_scene(layout.transient, &presentation, 0)?,
+            &scene,
         )?;
         let frame = self
             .compositor

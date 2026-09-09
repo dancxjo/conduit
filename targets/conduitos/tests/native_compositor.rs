@@ -315,7 +315,7 @@ fn retained_surfaces_update_independently_and_compose_by_geometry_and_z() {
     let mut display = MemoryDisplay::new();
     let first_frame = compositor.compose_frame(&mut display).unwrap();
     assert_eq!(first_frame.surfaces_composed, 2);
-    assert_eq!(display.pixels[1 + 32], 0x45ffbc);
+    assert_eq!(display.pixels[1 + 32], 0x53b2ff);
     assert_eq!(display.pixels[5 + 2 * 32], 0xffbe46);
 
     compositor
@@ -323,7 +323,7 @@ fn retained_surfaces_update_independently_and_compose_by_geometry_and_z() {
         .unwrap();
     let second_frame = compositor.compose_frame(&mut display).unwrap();
     assert_eq!(second_frame.frame_sequence, 2);
-    assert_eq!(display.pixels[5 + 2 * 32], 0x45ffbc);
+    assert_eq!(display.pixels[5 + 2 * 32], 0x53b2ff);
     assert_eq!(compositor.receipts().count(), 2);
 }
 

@@ -14,6 +14,8 @@ export function registerFireflyMultiHostTests(openStep) {
 
     const status = runner.locator('[data-application-key="play-status"]');
     await expect(status).toContainText("4 delivered cross-Host values");
+    await runner.getByRole("button", { name: "Stop", exact: true }).click();
+    await expect(status).toContainText("cancelled after 4 delivered cross-Host values");
     await expect(runner.locator(".morse")).toContainText("period 262 ms");
     await expect(runner.locator("textarea")).toHaveValue(source);
     const semanticPatchbay = runner.locator(".compact-patchbay");
