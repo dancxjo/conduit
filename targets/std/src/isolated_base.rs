@@ -216,8 +216,16 @@ fn write_probe_denied(
 }
 
 pub fn write_frame(writer: &mut impl Write, frame: &impl Serialize) -> io::Result<()> {
+    write_frame_with_limit(writer, frame, MAX_FRAME_BYTES)
+}
+
+pub(crate) fn write_frame_with_limit(
+    writer: &mut impl Write,
+    frame: &impl Serialize,
+    maximum: usize,
+) -> io::Result<()> {
     let bytes = serde_json::to_vec(frame).map_err(io::Error::other)?;
-    if bytes.len() > MAX_FRAME_BYTES {
+    if bytes.len() > maximum {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "frame too large",
@@ -229,10 +237,17 @@ pub fn write_frame(writer: &mut impl Write, frame: &impl Serialize) -> io::Resul
 }
 
 pub fn read_frame<R: Read, T: DeserializeOwned>(reader: &mut R) -> io::Result<T> {
+    read_frame_with_limit(reader, MAX_FRAME_BYTES)
+}
+
+pub(crate) fn read_frame_with_limit<R: Read, T: DeserializeOwned>(
+    reader: &mut R,
+    maximum: usize,
+) -> io::Result<T> {
     let mut length = [0_u8; 4];
     reader.read_exact(&mut length)?;
     let length = u32::from_le_bytes(length) as usize;
-    if length == 0 || length > MAX_FRAME_BYTES {
+    if length == 0 || length > maximum {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "invalid frame length",

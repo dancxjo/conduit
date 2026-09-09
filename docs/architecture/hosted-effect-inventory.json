@@ -28,8 +28,8 @@
       "enforcement_class": "cooperative",
       "ambient_privileges": ["Host outbound network", "provider credentials when explicitly supplied"],
       "proposed_base_owner": "conduit-base-http",
-      "migration_status": "focused child #3089",
-      "adversarial_proof": "pending #3089"
+      "migration_status": "legacy compatibility path; exact-endpoint isolated profile is separately selectable under #3089",
+      "adversarial_proof": "cooperative path remains unconfined and is not covered by #3089"
     },
     {
       "family": "websocket-lines",
@@ -142,6 +142,20 @@
       "proposed_base_owner": "conduit-base-indicator-device",
       "migration_status": "pending",
       "adversarial_proof": "physical presentation proof is not hostile isolation"
+    },
+    {
+      "family": "isolated-exact-endpoint-http-client",
+      "semantic_kinds": ["web/http-client"],
+      "implementation_owner": "conduit-base-http exact-endpoint provider",
+      "source_paths": ["targets/std/src/isolated_http_base.rs", "targets/std/src/isolated_http_base/host.rs", "targets/std/src/isolated_http_base/provider.rs", "targets/std/src/isolated_http_base/adversarial.rs"],
+      "external_mechanism": "one preconnected exact-peer TCP descriptor plus empty Landlock filesystem and seccomp socket/process denial",
+      "contracts": ["unchanged web/http-client Kind", "#3072 opaque capability scope", "exact endpoint and resource generation", "one finite connection/request/response"],
+      "boundary": "separate Linux provider process selected by explicit isolated-http-base profile",
+      "enforcement_class": "os-capability-mediated",
+      "ambient_privileges": ["one connected descriptor to the exact admitted endpoint"],
+      "proposed_base_owner": "conduit-base-http",
+      "migration_status": "production-selectable exact-endpoint profile; proof accepted by #3089",
+      "adversarial_proof": "#3089"
     },
     {
       "family": "isolated-production-file-copy",

@@ -37,7 +37,11 @@ test("every hosted production effect path is classified", async () => {
     assert.ok(entry.semantic_kinds.length > 0);
     assert.ok(entry.contracts.length > 0);
     assert.ok(entry.ambient_privileges.length > 0);
-    assert.ok(["cooperative", "process-isolated"].includes(entry.enforcement_class));
+    assert.ok(
+      ["cooperative", "process-isolated", "os-capability-mediated"].includes(
+        entry.enforcement_class,
+      ),
+    );
     for (const source of entry.source_paths)
       await readFile(path.join(root, source), "utf8");
   }

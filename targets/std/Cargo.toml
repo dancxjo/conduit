@@ -10,6 +10,7 @@ local-model-proof = []
 pete-create = ["dep:conduit-create-oi"]
 isolated-file-base = []
 isolated-base-proof = ["isolated-file-base"]
+isolated-http-base = ["isolated-file-base"]
 confined-gear = ["dep:wasmi"]
 physical-effect-proof = []
 
@@ -85,6 +86,11 @@ required-features = ["isolated-base-proof"]
 name = "conduit-isolated-copy-base"
 path = "src/bin/conduit-isolated-copy-base.rs"
 required-features = ["isolated-file-base"]
+
+[[bin]]
+name = "conduit-isolated-http-base"
+path = "src/bin/conduit-isolated-http-base.rs"
+required-features = ["isolated-http-base"]
 
 [[bin]]
 name = "conduit-physical-effect-proof"

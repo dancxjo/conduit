@@ -49,6 +49,8 @@ pub enum CheckSuite {
     InputSemantics,
     /// Run the Linux Landlock/seccomp hosted Base confinement proof.
     HostedBaseIsolation,
+    /// Prove the exact-endpoint OS-capability-mediated HTTP Base.
+    IsolatedHttpBase,
     /// Prove directional external mappings and exact reflection fencing.
     InteropMembrane,
     /// Prove mutually authenticated, replay-fenced, non-transitive federation.
@@ -100,6 +102,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::HostedBaseIsolation => run_suite(HOSTED_BASE_ISOLATION_STEPS, &root, opts),
+        CheckSuite::IsolatedHttpBase => run_suite(ISOLATED_HTTP_BASE_STEPS, &root, opts),
         CheckSuite::InteropMembrane => run_suite(INTEROP_MEMBRANE_STEPS, &root, opts),
         CheckSuite::FederationSecurity => run_suite(FEDERATION_SECURITY_STEPS, &root, opts),
         CheckSuite::ConfinedGear => run_suite(CONFINED_GEAR_STEPS, &root, opts),
@@ -147,7 +150,38 @@ const HOSTED_BASE_ISOLATION_STEPS: &[Step] = &[
             "--locked",
         ],
     ),
+    Step::new(
+        "hosted-base-isolation.http",
+        "Prove exact-endpoint HTTP descriptor authority and mechanical socket denial",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--features",
+            "isolated-http-base",
+            "--test",
+            "isolated_http_base",
+            "--locked",
+        ],
+    ),
 ];
+
+const ISOLATED_HTTP_BASE_STEPS: &[Step] = &[Step::new(
+    "isolated-http-base.exact-endpoint",
+    "Prove checked HTTP meaning, exact endpoint authority, and OS-confined provider denial",
+    "cargo",
+    &[
+        "test",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "isolated-http-base",
+        "--test",
+        "isolated_http_base",
+        "--locked",
+    ],
+)];
 
 const INTEROP_MEMBRANE_STEPS: &[Step] = &[Step::new(
     "interop-membrane.core",
@@ -282,6 +316,21 @@ const SECURITY_ACCEPTANCE_STEPS: &[Step] = &[
             "isolated-base-proof",
             "--test",
             "isolated_base_security",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "security-acceptance.http-base",
+        "Attack exact endpoint, redirect, stale scope, raw socket, and listener boundaries",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--features",
+            "isolated-http-base",
+            "--test",
+            "isolated_http_base",
             "--locked",
         ],
     ),

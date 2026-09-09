@@ -36,6 +36,17 @@
       "command": "cargo xtask check hosted-base-isolation"
     },
     {
+      "principal": "compromised-http-base-provider",
+      "legitimate_scope": "one Play-scoped request over one preconnected exact-peer descriptor",
+      "attack": "sibling endpoint, alternate authority, redirect, forged scope, stale generation, revoked handle, raw socket, listener, process spawn",
+      "boundary": "BaseCapabilityTable plus connected descriptor, empty Landlock filesystem, and seccomp",
+      "expected": "capability or endpoint refusal and kernel EPERM for new authority",
+      "observer": "exact server sees only the authorized request and sibling server receives no connection",
+      "survival": "redirect remains response data and replacement provider starts with fresh resource truth",
+      "proof_class": "Linux OS-capability-mediated process isolation",
+      "command": "cargo xtask check isolated-http-base"
+    },
+    {
       "principal": "compromised-federation-part-b",
       "legitimate_scope": "exact authenticated A-B and B-C relationships",
       "attack": "peer minting, transposition, replay, non-transitive proxy",
