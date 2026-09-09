@@ -62,6 +62,7 @@ pub(super) fn catalogs(
     conduit_net::install_record_delivery_status_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_robotics_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_robotics_structured_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_navigation_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_education_catalogs(&mut startup, &mut profile)?;
     conduit_chat::install_messaging_catalogs(&mut startup, &mut profile)?;

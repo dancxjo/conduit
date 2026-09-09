@@ -37,6 +37,7 @@ fn blast_radius_receipts_are_finite_complete_and_secret_free() {
         "hostile-wasm-gear",
         "malicious-base-client",
         "compromised-base-provider",
+        "compromised-http-base-provider",
         "compromised-federation-part-b",
         "malicious-ros-client",
         "hostile-conduitos-domain",

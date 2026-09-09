@@ -76,6 +76,10 @@ pub mod isolated_base;
 pub mod isolated_copy_base;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub use isolated_copy_base::provider_main as isolated_copy_provider_main;
+#[cfg(all(target_os = "linux", feature = "isolated-http-base"))]
+pub mod isolated_http_base;
+#[cfg(all(target_os = "linux", feature = "isolated-http-base"))]
+pub use isolated_http_base::provider_main as isolated_http_provider_main;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
