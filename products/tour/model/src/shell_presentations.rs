@@ -298,12 +298,24 @@ impl TourWorkspaceState {
                     "Patchbay workspace",
                 ),
                 subject(transient, PresentationRole::Diagnostic, kind.label()),
+                subject(
+                    crate::TRANSIENT_CLOSE_ACTION_ID,
+                    PresentationRole::Action,
+                    "Close",
+                ),
             ],
-            vec![PresentationRelationship {
-                source: transient.into(),
-                target: TOUR_WORKSPACE_SUBJECT.into(),
-                kind: PresentationRelationshipKind::Describes,
-            }],
+            vec![
+                PresentationRelationship {
+                    source: transient.into(),
+                    target: TOUR_WORKSPACE_SUBJECT.into(),
+                    kind: PresentationRelationshipKind::Describes,
+                },
+                PresentationRelationship {
+                    source: transient.into(),
+                    target: crate::TRANSIENT_CLOSE_ACTION_ID.into(),
+                    kind: PresentationRelationshipKind::Contains,
+                },
+            ],
             vec![],
             vec![PresentationText {
                 subject: transient.into(),

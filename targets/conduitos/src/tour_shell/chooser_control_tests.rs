@@ -61,6 +61,15 @@ fn chooser_has_a_visible_bounded_outer_frame() {
         }
     );
     assert_eq!(frame.clip, frame.bounds);
+    assert!(
+        scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Close")
+    );
+    assert!(presentation.subjects.iter().any(|subject| subject.identity
+        == conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID
+        && subject.role == conduit_presentation::PresentationRole::Action));
 }
 
 #[test]
