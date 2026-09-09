@@ -48,6 +48,9 @@ fn main() {
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Audio(args) => match args.command {
             AudioCommand::List => commands::audio::list(&opts),
+            AudioCommand::RenderStartupCue { output } => {
+                commands::audio::cue::render(&opts, &output)
+            }
             AudioCommand::PlaybackProof {
                 card_id,
                 device,

@@ -9,6 +9,9 @@ use serde::Serialize;
 use std::io::Write;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub mod cli;
+pub mod cue;
+
 const AUDIO_LIST_SCHEMA: &str = "conduit.tools/xtask/hosted-audio-list@1";
 const AUDIO_PROOF_SCHEMA: &str = "conduit.tools/xtask/hosted-audio-proof@1";
 
