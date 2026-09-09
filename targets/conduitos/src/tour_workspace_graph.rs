@@ -1,7 +1,7 @@
 //! Native projection of the Tour specimen's Gear contracts.
 use super::*;
 use conduit_presentation::{GraphicsPath, GraphicsPoint};
-use conduit_tour_model::{CANONICAL_PATCHBAY_GEARS, canonical_gear_contract};
+use conduit_tour_model::CANONICAL_PATCHBAY_GEARS;
 
 pub(super) fn card_bounds(bounds: LayoutRect, index: usize) -> LayoutRect {
     let column = bounds.width / 3;
@@ -20,12 +20,22 @@ pub(super) fn append(
     scene: &mut GraphicsScene,
     bounds: LayoutRect,
     state: &TourWorkspaceState,
+    graph: &patchbay_graph::PatchbayGraph,
     observations: Option<&crate::text_composition::TextObservations>,
 ) -> Result<(), TourWorkspaceSceneRefusal> {
-    let mut previous_output = None;
+    // Tour owns three visible slots; graph storage order is not layout order.
+    // General viewport admission is a separate renderer contract.
+    if graph.gears.len() != CANONICAL_PATCHBAY_GEARS.len() {
+        return Err(TourWorkspaceSceneRefusal::Graph);
+    }
+    let mut anchors: [Option<(&str, GraphicsPoint)>; 4] = [None; 4];
+    let mut anchor_count = 0;
     for (index, gear) in CANONICAL_PATCHBAY_GEARS.into_iter().enumerate() {
-        let contract =
-            canonical_gear_contract(gear).ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
+        let contract = graph
+            .gears
+            .iter()
+            .find(|candidate| candidate.gear_id.as_str() == gear)
+            .ok_or(TourWorkspaceSceneRefusal::Graph)?;
         let card = card_bounds(bounds, index);
         let paint = if state.selected_patchbay_subject.as_deref() == Some(gear) {
             GraphicsPaintRole::Accent
@@ -45,17 +55,16 @@ pub(super) fn append(
         } else {
             "Unobserved\n"
         });
-        let (mut input, mut output) = (None, None);
         for (direction, ports) in [("in", &contract.inputs), ("out", &contract.outputs)] {
-            for port in ports {
+            for graph_port in ports {
+                let port = &graph_port.descriptor;
                 text.push('\n');
-                if port.port_id.as_str() == "text" {
-                    let anchor = port_anchor(card, &text, direction == "out");
-                    if direction == "out" {
-                        output = anchor;
-                    } else {
-                        input = anchor;
-                    }
+                if let Some(anchor) = port_anchor(card, &text, direction == "out") {
+                    let slot = anchors
+                        .get_mut(anchor_count)
+                        .ok_or(TourWorkspaceSceneRefusal::Graph)?;
+                    *slot = Some((graph_port.identity.as_str(), anchor));
+                    anchor_count += 1;
                 }
                 text.push_str(&alloc::format!(
                     "{direction} {}\n{}",
@@ -110,9 +119,18 @@ pub(super) fn append(
                 .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-        // The canonical source wires words.text -> change.text -> result.text.
-        // Anchors come from those exact typed Port rows, never card centers.
-        if let (Some(start), Some(end)) = (previous_output, input) {
+    }
+    // Draw only Cords present in the checked graph, by their exact Port IDs.
+    // A clipped Port has no visible anchor; its Cord is clipped out as well.
+    for cord in &graph.cords {
+        let anchor = |identity: &str| {
+            anchors
+                .iter()
+                .flatten()
+                .find(|(candidate, _)| *candidate == identity)
+                .map(|(_, point)| *point)
+        };
+        if let (Some(start), Some(end)) = (anchor(&cord.source_port), anchor(&cord.sink_port)) {
             let path = cord_path(start, end).map_err(TourWorkspaceSceneRefusal::Graphics)?;
             scene
                 .push(
@@ -121,7 +139,6 @@ pub(super) fn append(
                 )
                 .map_err(TourWorkspaceSceneRefusal::Graphics)?;
         }
-        previous_output = output;
     }
     Ok(())
 }
@@ -200,6 +217,10 @@ fn preview(value: Option<&str>) -> alloc::string::String {
 }
 
 #[cfg(test)]
+#[path = "tour_workspace_graph_projection_tests.rs"]
+mod projection_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -219,12 +240,14 @@ mod tests {
         let layout = super::super::layout_for_state(1280, 800, &state).unwrap();
         let graph = graphics_rect(layout.patchbay).unwrap();
         let scene = super::super::scene_for_state(1280, 800, &state).unwrap();
-        let paths: alloc::vec::Vec<_> = scene
+        let mut paths: alloc::vec::Vec<_> = scene
             .commands()
             .iter()
             .filter_map(GraphicsCommand::path_geometry)
             .collect();
         assert_eq!(paths.len(), 2);
+        // Graph Cord order is semantic storage, not left-to-right layout.
+        paths.sort_by_key(|path| path.points()[2].x);
         assert_eq!(scene.commands().len(), 21);
         let words = card_bounds(graph, 0);
         let change = card_bounds(graph, 1);

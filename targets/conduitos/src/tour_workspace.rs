@@ -51,6 +51,7 @@ pub enum TourWorkspaceSceneRefusal {
     Presentation(SemanticPresentationRefusal),
     Layout(TourLayoutRefusal),
     MissingRegion,
+    Graph,
     Graphics(GraphicsError),
 }
 
@@ -85,6 +86,29 @@ pub(crate) fn scene_with_observations(
     width: u16,
     height: u16,
     state: &TourWorkspaceState,
+    observations: Option<&crate::text_composition::TextObservations>,
+) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
+    let graph = canonical_graph()?;
+    scene_with_graph(width, height, state, &graph, observations)
+}
+
+/// Preparation only. The live Tour retains this projection across revisions.
+pub(crate) fn canonical_graph() -> Result<patchbay_graph::PatchbayGraph, TourWorkspaceSceneRefusal>
+{
+    let form = crate::ordinary_form::checked_expanded_text_form_named(
+        conduit_tour_model::CANONICAL_SOURCE,
+        "meet-one-gear",
+    )
+    .map_err(|_| TourWorkspaceSceneRefusal::Graph)?;
+    patchbay_graph::PatchbayGraph::from_expanded(&form)
+        .map_err(|_| TourWorkspaceSceneRefusal::Graph)
+}
+
+pub(crate) fn scene_with_graph(
+    width: u16,
+    height: u16,
+    state: &TourWorkspaceState,
+    graph: &patchbay_graph::PatchbayGraph,
     observations: Option<&crate::text_composition::TextObservations>,
 ) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
     let view = state
@@ -170,6 +194,7 @@ pub(crate) fn scene_with_observations(
         &mut scene,
         graphics_rect(layout.patchbay)?,
         state,
+        graph,
         observations,
     )?;
     let button = chooser_bounds(&layout);
