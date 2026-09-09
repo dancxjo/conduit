@@ -31,6 +31,10 @@ impl From<conduit_presentation::GraphicsTextRole> for TextRole {
             GraphicsTextRole::Heading => Self::Heading,
             GraphicsTextRole::Title => Self::Title,
             GraphicsTextRole::Code => Self::Code,
+            GraphicsTextRole::Status | GraphicsTextRole::Warning | GraphicsTextRole::Action => {
+                Self::Label
+            }
+            GraphicsTextRole::Muted => Self::Body,
         }
     }
 }
