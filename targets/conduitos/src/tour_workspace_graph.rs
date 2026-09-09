@@ -154,7 +154,7 @@ fn preview(value: Option<&str>) -> alloc::string::String {
     while !escaped.is_char_boundary(end) {
         end -= 1;
     }
-    alloc::format!("{}…", &escaped[..end])
+    alloc::format!("{}...", &escaped[..end])
 }
 
 #[cfg(test)]
@@ -252,6 +252,6 @@ mod tests {
         assert_eq!(preview(Some("hello")), "\"hello\"");
         let long = preview(Some("中文中文中文中文中文中文中文中文"));
         assert!(long.len() <= 26);
-        assert!(long.ends_with('…'));
+        assert!(long.ends_with("..."));
     }
 }
