@@ -115,7 +115,7 @@ test("standalone locks fail before ESP32 fabrication fans out", () => {
     checkWorkflow,
     /standalone-locks:\n    needs: classify[\s\S]*?"\$\{controller\[@\]\}" ci standalone-locks --locked/,
   );
-  assert.match(checkWorkflow, /esp32-firmware:\n    needs: \[classify, standalone-locks\]/);
+  assert.match(checkWorkflow, /esp32-firmware:\n    needs: \[classify, standalone-locks, conduitos-x86\]/);
   assert.match(
     productWorkflow,
     /standalone-locks:\n    needs: plan[\s\S]*?conduit-xtask-dispatch"\n          ci standalone-locks --locked/,

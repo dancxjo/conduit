@@ -12,6 +12,7 @@ depends on semantic, application, target, or proof packages.
 | `lib.rs` | universal architecture | Exact identity types and the generic Form/Host/Boot/Plan/Play/Line/Sign records shared by the architecture. It is the crate facade, not a domain attic. |
 | `base_registry.rs` | universal architecture | Bounded thin-Host truth for exact Base provider identity, generation, lifecycle, enforcement class, and ordinary capability/resource offer aggregation; no planning, authority issuance, or effects. |
 | `base_capability.rs` | universal architecture | Opaque issuer-private Base capability possession, exact per-Play scope narrowing, finite operation leases, revocation, and non-secret lifecycle inspection. |
+| `consequential_effect.rs` | universal architecture | Generic attended last-mile gating for bounded consequential physical effects, including exact resource generation, safety readiness, one-shot authority, uncertain outcomes, and safe disposition. |
 | `characteristic.rs` | universal architecture | Generic realization, resource, topology, Base, and observation characteristics. |
 | `completion.rs` | universal architecture | Exact live-versus-semantic-completion policy sealed from checked Form meaning into Plan and fragment identity. |
 | `configuration.rs` | universal architecture | Generic bounded configuration values carried by checked Forms and Plans. |
@@ -20,6 +21,7 @@ depends on semantic, application, target, or proof packages.
 | `execution_fusion.rs` | universal architecture | Exact optional fusion of ordinary planned placements without a second executor. |
 | `face.rs` | universal architecture | Checked generic capability Face and typed Port surface. |
 | `implementation.rs` | universal architecture | Exact implementation and realization offers, distinct from availability and active instances. |
+| `interop.rs` | universal architecture | Exact directional bridge identity, bounded mapping, reflection fencing, and machine-readable refusal without granting sibling authority. |
 | `plan_fingerprint.rs` | universal architecture | Canonical fragment and Plan commitment encoding; preserves immutable realization identity. |
 | `plan_realization.rs` | universal architecture | Exact reusable Back identity retained in an expanded Form and Plan. |
 | `port.rs` | universal architecture | Typed Port direction and temporal shape. |

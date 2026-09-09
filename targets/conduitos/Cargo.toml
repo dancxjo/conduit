@@ -174,6 +174,7 @@ hotplug-proof = []
 scripted-keyboard-proof = []
 native-compositor = []
 native-http-client = []
+conduitos-isolation-proof = []
 # Proof-appliance selectors. Every selected entrypoint lives under the explicit
 # proof/appliances tree and remains absent from an ordinary product build.
 aarch64-a0 = []

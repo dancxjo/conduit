@@ -4,6 +4,8 @@ use super::TIMER_IRQ_VECTOR;
 
 const KERNEL_CODE_SELECTOR: u16 = 0x08;
 const INTERRUPT_GATE: u8 = 0x8e;
+#[cfg(feature = "conduitos-isolation-proof")]
+pub(super) const USER_INTERRUPT_GATE: u8 = 0xee;
 
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -15,6 +17,17 @@ struct Entry {
     offset_middle: u16,
     offset_high: u32,
     reserved: u32,
+}
+
+#[cfg(feature = "conduitos-isolation-proof")]
+pub(super) unsafe fn install_handler(vector: u8, address: u64, attributes: u8) {
+    let table = TABLE.0.get();
+    unsafe {
+        (*table).0[usize::from(vector)] = Entry {
+            attributes,
+            ..Entry::handler(address, 0)
+        };
+    }
 }
 
 impl Entry {

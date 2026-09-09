@@ -14,8 +14,8 @@
       "enforcement_class": "cooperative",
       "ambient_privileges": ["Host-process filesystem authority"],
       "proposed_base_owner": "conduit-base-files",
-      "migration_status": "isolated read provider proved; full copy semantics pending provider selection",
-      "adversarial_proof": "#3088 proves raw sibling denial for isolated file read; cooperative copy path has semantic negatives only"
+      "migration_status": "legacy compatibility path retained pending the documented removal after isolated profile adoption",
+      "adversarial_proof": "cooperative path has semantic negatives only and makes no hostile-isolation claim"
     },
     {
       "family": "http-and-service-clients",
@@ -144,6 +144,20 @@
       "adversarial_proof": "physical presentation proof is not hostile isolation"
     },
     {
+      "family": "isolated-production-file-copy",
+      "semantic_kinds": ["file/copy"],
+      "implementation_owner": "conduit-std-host isolated file Base",
+      "source_paths": ["targets/std/src/isolated_copy_base.rs", "targets/std/src/isolated_copy_base/sandbox.rs"],
+      "external_mechanism": "Landlock-confined exact source/destination filesystem operations plus seccomp and private bounded IPC",
+      "contracts": ["unchanged file/copy Kind", "#3072 opaque capability scope", "exact protected resource generations", "finite provider frames and operations"],
+      "boundary": "separate Linux provider process selected by explicit isolated-file-base profile",
+      "enforcement_class": "process-isolated",
+      "ambient_privileges": ["read beneath exact source directory and write/create/remove beneath exact destination directory only"],
+      "proposed_base_owner": "conduit-base-files",
+      "migration_status": "production-selectable profile; proof accepted by #3091",
+      "adversarial_proof": "#3091"
+    },
+    {
       "family": "isolated-file-proof-provider",
       "semantic_kinds": ["proof-only exact file read"],
       "implementation_owner": "conduit-std-host isolated_base proof feature",
@@ -154,7 +168,7 @@
       "enforcement_class": "process-isolated",
       "ambient_privileges": ["read only beneath exact bootstrap directory"],
       "proposed_base_owner": "conduit-base-files",
-      "migration_status": "proof accepted by #3088; production file/copy selection pending",
+      "migration_status": "proof accepted by #3088; retained as the lower-level confinement fixture",
       "adversarial_proof": "#3088"
     }
   ],

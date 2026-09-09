@@ -14,6 +14,7 @@ mod base_registry;
 mod characteristic;
 mod completion;
 mod configuration;
+mod consequential_effect;
 mod control_loop;
 mod deadline;
 mod delivery;
@@ -23,6 +24,7 @@ mod execution_fusion;
 mod face;
 mod implementation;
 mod info;
+mod interop;
 mod plan_realization;
 mod port;
 mod preparation;
@@ -54,6 +56,7 @@ pub use characteristic::*;
 pub use completion::*;
 pub use conduit_assigned_plan::*;
 pub use configuration::{ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue};
+pub use consequential_effect::*;
 pub use control_loop::*;
 pub use deadline::*;
 pub use delivery::*;
@@ -65,6 +68,7 @@ pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
 };
 pub use info::*;
+pub use interop::*;
 pub use plan_realization::RealizationBack;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use preparation::*;
@@ -199,6 +203,14 @@ identity_type!(AuthorityGrantId);
 identity_type!(CapabilityPossessionId);
 // Exact identity of a Base-owned, domain-specific parameter envelope.
 identity_type!(CapabilityEnvelopeId);
+// Identity in an external ecosystem; never a Conduit semantic identity.
+identity_type!(ExternalResourceId);
+// Identity of one reviewed directional semantic/external mapping.
+identity_type!(InteropMappingId);
+// Identity of one external-system adapter instance.
+identity_type!(InteropAdapterId);
+// Identity of one outward manifestation, retained for reflection fencing.
+identity_type!(ExternalManifestationId);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct OfferGeneration(pub u64);

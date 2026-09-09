@@ -11,10 +11,17 @@ use serde::Serialize;
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
 use super::{
-    demo, removable_media,
+    demo,
+    profile::{LIMINE_ARCHIVE_SHA256, LIMINE_VERSION},
+    removable_media,
     report::{git_head, sha256_file},
     ConduitosError,
 };
+
+const IA32_IMAGE_PACKAGER: &str = "pinned-limine-hybrid-iso";
+const IA32_BOOTLOADER: &str = "Limine";
+const IA32_FIRMWARE_ENVIRONMENT: &str = "x86-bios";
+const IA32_BIOS_BOOT_ENTRY: &str = "boot/limine/limine-bios-cd.bin";
 
 #[derive(ValueEnum, Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum LiveHost {
@@ -170,6 +177,12 @@ struct Ia32FlashRecord {
     image_id: String,
     image_sha256: String,
     image_bytes: u64,
+    image_packager: &'static str,
+    bootloader: &'static str,
+    bootloader_version: String,
+    bootloader_archive_sha256: String,
+    firmware_environment: &'static str,
+    firmware_boot_entry: &'static str,
     carrier: &'static str,
     device: String,
     removable: bool,
@@ -198,6 +211,17 @@ pub(super) fn flash_ia32(
     let output = output(&root, LiveHost::Ia32);
     let manifest = crate::commands::host::host_target::verify_target(&output)
         .map_err(|error| ConduitosError::refusal("live-media-invalid", error.to_string()))?;
+    if manifest.boot_assets.packager != IA32_IMAGE_PACKAGER
+        || manifest.boot_assets.limine_version != LIMINE_VERSION
+        || manifest.boot_assets.limine_archive_sha256 != LIMINE_ARCHIVE_SHA256
+        || manifest.boot_assets.architecture != "ia32"
+        || manifest.boot_assets.machine != "pc"
+    {
+        return Err(ConduitosError::refusal(
+            "ia32-bios-boot-assets-invalid",
+            "the verified IA-32 IMAGE does not carry the exact pinned hybrid Limine identity",
+        ));
+    }
     let image = output.join(&manifest.image.file);
     let image_bytes = fs::metadata(&image)
         .map_err(|error| ConduitosError::refusal("flash-image-unavailable", error.to_string()))?
@@ -205,7 +229,7 @@ pub(super) fn flash_ia32(
     removable_media::write_and_verify(&image, image_bytes, &device)?;
 
     let record = Ia32FlashRecord {
-        schema: "conduit.conduitos.ia32-live-flash/v1",
+        schema: "conduit.conduitos.ia32-live-flash/v2",
         base_commit: git_head(&root)?,
         architecture: "ia32",
         host: LiveHost::Ia32.row().host,
@@ -214,6 +238,12 @@ pub(super) fn flash_ia32(
         image_id: manifest.image_id,
         image_sha256: sha256_file(&image)?,
         image_bytes,
+        image_packager: IA32_IMAGE_PACKAGER,
+        bootloader: IA32_BOOTLOADER,
+        bootloader_version: manifest.boot_assets.limine_version,
+        bootloader_archive_sha256: manifest.boot_assets.limine_archive_sha256,
+        firmware_environment: IA32_FIRMWARE_ENVIRONMENT,
+        firmware_boot_entry: IA32_BIOS_BOOT_ENTRY,
         carrier: "removable-whole-device",
         device: device.path.display().to_string(),
         removable: true,

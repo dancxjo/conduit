@@ -11,6 +11,7 @@ use conduit_std_host::isolated_base::{
 };
 use std::fs;
 use std::io::{BufReader, Write};
+use std::net::{Ipv4Addr, TcpListener};
 use std::path::PathBuf;
 
 fn issue() -> CapabilityIssueRequest {
@@ -89,6 +90,116 @@ fn proof_root() -> PathBuf {
         "conduit-isolated-base-proof-{}",
         std::process::id()
     ))
+}
+
+#[test]
+fn isolated_file_base_cannot_reach_network_and_network_work_survives_its_loss() {
+    use conduit_net::{NetworkAddress, NetworkConnectionState, NetworkEndpoint, NetworkTransport};
+    use conduit_std_host::hosted_network::{
+        connect_tcp, EndpointFreshness, NetworkProviderAvailability,
+    };
+    use std::time::Duration;
+
+    let root =
+        std::env::temp_dir().join(format!("conduit-cross-base-proof-{}", std::process::id()));
+    let allowed = root.join("allowed");
+    let protected = root.join("protected");
+    fs::create_dir_all(&allowed).unwrap();
+    fs::create_dir_all(&protected).unwrap();
+    fs::write(allowed.join("input.txt"), b"allowed").unwrap();
+    fs::write(protected.join("sentinel.txt"), b"protected").unwrap();
+
+    let network_sentinel = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    network_sentinel.set_nonblocking(true).unwrap();
+    let endpoint = NetworkEndpoint {
+        address: NetworkAddress::Ipv4(Ipv4Addr::LOCALHOST.octets()),
+        port: network_sentinel.local_addr().unwrap().port(),
+        transport: NetworkTransport::Tcp,
+    };
+
+    let executable = PathBuf::from(env!("CARGO_BIN_EXE_conduit-isolated-file-base"));
+    let mut child = spawn_provider(&executable).unwrap();
+    let mut input = child.stdin.take().unwrap();
+    let mut output = BufReader::new(child.stdout.take().unwrap());
+    write_frame(
+        &mut input,
+        &SupervisorFrame::Bootstrap {
+            protocol_version: PROTOCOL_VERSION,
+            issue: Box::new(issue()),
+            allowed_directory: allowed.display().to_string(),
+            allowed_file: allowed.join("input.txt").display().to_string(),
+            protected_sibling: protected.join("sentinel.txt").display().to_string(),
+        },
+    )
+    .unwrap();
+    assert!(matches!(
+        read_frame::<_, ProviderFrame>(&mut output).unwrap(),
+        ProviderFrame::Ready { .. }
+    ));
+    write_frame(&mut input, &SupervisorFrame::ProbeNetworkSocket).unwrap();
+    assert!(matches!(
+        read_frame::<_, ProviderFrame>(&mut output).unwrap(),
+        ProviderFrame::ProbeDenied {
+            probe,
+            os_error: libc::EPERM
+        } if probe == "network-socket"
+    ));
+    assert!(matches!(
+        network_sentinel.accept(),
+        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock
+    ));
+
+    let accept = std::thread::spawn(move || loop {
+        match network_sentinel.accept() {
+            Ok(connection) => break connection,
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                std::thread::yield_now();
+            }
+            Err(error) => panic!("network sentinel failed: {error}"),
+        }
+    });
+    let lifecycle = connect_tcp(
+        &endpoint,
+        EndpointFreshness::Current,
+        NetworkProviderAvailability::Available,
+        Duration::from_secs(1),
+    );
+    let _ = accept.join().unwrap();
+    assert!(lifecycle
+        .iter()
+        .any(|state| matches!(state, NetworkConnectionState::Connected { .. })));
+
+    write_frame(&mut input, &SupervisorFrame::Shutdown).unwrap();
+    assert_eq!(
+        read_frame::<_, ProviderFrame>(&mut output).unwrap(),
+        ProviderFrame::Stopped
+    );
+    drop(input);
+    assert!(child.wait().unwrap().success());
+    assert_eq!(
+        fs::read(protected.join("sentinel.txt")).unwrap(),
+        b"protected"
+    );
+
+    let survivor = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let survivor_address = survivor.local_addr().unwrap();
+    let survivor_accept = std::thread::spawn(move || survivor.accept().unwrap());
+    let survivor_endpoint = NetworkEndpoint {
+        address: NetworkAddress::Ipv4(Ipv4Addr::LOCALHOST.octets()),
+        port: survivor_address.port(),
+        transport: NetworkTransport::Tcp,
+    };
+    let survivor_lifecycle = connect_tcp(
+        &survivor_endpoint,
+        EndpointFreshness::Current,
+        NetworkProviderAvailability::Available,
+        Duration::from_secs(1),
+    );
+    let _ = survivor_accept.join().unwrap();
+    assert!(survivor_lifecycle
+        .iter()
+        .any(|state| matches!(state, NetworkConnectionState::Connected { .. })));
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

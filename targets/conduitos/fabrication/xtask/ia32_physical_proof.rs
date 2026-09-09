@@ -12,12 +12,17 @@ use serde::{Deserialize, Serialize};
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
 use super::{
+    profile::{LIMINE_ARCHIVE_SHA256, LIMINE_VERSION},
     report::{git_head, sha256_file},
     ConduitosError,
 };
 
 const SPECIMEN: &str = "mabel-copperbutton";
 const MAX_PHOTO_BYTES: u64 = 16 * 1024 * 1024;
+const IMAGE_PACKAGER: &str = "pinned-limine-hybrid-iso";
+const BOOTLOADER: &str = "Limine";
+const FIRMWARE_ENVIRONMENT: &str = "x86-bios";
+const BIOS_BOOT_ENTRY: &str = "boot/limine/limine-bios-cd.bin";
 
 #[derive(ClapArgs, Debug, Clone)]
 pub(super) struct Args {
@@ -70,6 +75,12 @@ struct FlashRecord {
     image_id: String,
     image_sha256: String,
     image_bytes: u64,
+    image_packager: String,
+    bootloader: String,
+    bootloader_version: String,
+    bootloader_archive_sha256: String,
+    firmware_environment: String,
+    firmware_boot_entry: String,
     carrier: String,
     device: String,
     removable: bool,
@@ -106,6 +117,11 @@ struct PhysicalProof {
     specimen_class: &'static str,
     architecture: &'static str,
     firmware_environment: &'static str,
+    image_packager: String,
+    bootloader: String,
+    bootloader_version: String,
+    bootloader_archive_sha256: String,
+    firmware_boot_entry: String,
     profile_id: String,
     build_id: String,
     image_id: String,
@@ -169,14 +185,19 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
 
     let root = workspace_root().map_err(|error| refusal("workspace-unavailable", error))?;
     let proof = PhysicalProof {
-        schema: "conduit.conduitos/ia32-mabel-physical-proof@1",
+        schema: "conduit.conduitos/ia32-mabel-physical-proof@2",
         proof_class: "attended-physical-ia32-legacy-bios",
         recorder_commit: git_head(&root)?,
         image_source_commit: flash.base_commit,
         specimen: SPECIMEN,
         specimen_class: "hp-pavilion-dv1660se-core-duo-t2300",
         architecture: "ia32",
-        firmware_environment: "x86-bios",
+        firmware_environment: FIRMWARE_ENVIRONMENT,
+        image_packager: flash.image_packager,
+        bootloader: flash.bootloader,
+        bootloader_version: flash.bootloader_version,
+        bootloader_archive_sha256: flash.bootloader_archive_sha256,
+        firmware_boot_entry: flash.firmware_boot_entry,
         profile_id: flash.profile_id,
         build_id: flash.build_id,
         image_id: flash.image_id,
@@ -238,9 +259,15 @@ fn read_flash_record(path: &Path) -> Result<FlashRecord, ConduitosError> {
 }
 
 fn validate_flash_record(record: &FlashRecord, confirmed: &str) -> Result<(), ConduitosError> {
-    if record.schema != "conduit.conduitos.ia32-live-flash/v1"
+    if record.schema != "conduit.conduitos.ia32-live-flash/v2"
         || record.architecture != "ia32"
         || record.host != "conduitos/ia32/pc"
+        || record.image_packager != IMAGE_PACKAGER
+        || record.bootloader != BOOTLOADER
+        || record.bootloader_version != LIMINE_VERSION
+        || record.bootloader_archive_sha256 != LIMINE_ARCHIVE_SHA256
+        || record.firmware_environment != FIRMWARE_ENVIRONMENT
+        || record.firmware_boot_entry != BIOS_BOOT_ENTRY
         || record.carrier != "removable-whole-device"
         || !record.removable
         || !record.write_completed
@@ -255,6 +282,11 @@ fn validate_flash_record(record: &FlashRecord, confirmed: &str) -> Result<(), Co
         ));
     }
     validate_sha256("flash image SHA-256", &record.image_sha256)?;
+    validate_sha256(
+        "bootloader archive SHA-256",
+        &record.bootloader_archive_sha256,
+    )
+    .map_err(|_| refusal("flash-record-invalid", "invalid bootloader archive SHA-256"))?;
     if record.image_sha256 != confirmed {
         return Err(refusal(
             "physical-image-confirmation-mismatch",
@@ -387,7 +419,7 @@ mod tests {
     #[test]
     fn completed_flash_record_still_cannot_claim_a_boot() {
         let mut record = FlashRecord {
-            schema: "conduit.conduitos.ia32-live-flash/v1".into(),
+            schema: "conduit.conduitos.ia32-live-flash/v2".into(),
             base_commit: "a".repeat(40),
             architecture: "ia32".into(),
             host: "conduitos/ia32/pc".into(),
@@ -396,6 +428,12 @@ mod tests {
             image_id: format!("image:sha256:{}", "d".repeat(64)),
             image_sha256: "a".repeat(64),
             image_bytes: 1,
+            image_packager: IMAGE_PACKAGER.into(),
+            bootloader: BOOTLOADER.into(),
+            bootloader_version: LIMINE_VERSION.into(),
+            bootloader_archive_sha256: LIMINE_ARCHIVE_SHA256.into(),
+            firmware_environment: FIRMWARE_ENVIRONMENT.into(),
+            firmware_boot_entry: BIOS_BOOT_ENTRY.into(),
             carrier: "removable-whole-device".into(),
             device: "/dev/test".into(),
             removable: true,
@@ -407,5 +445,7 @@ mod tests {
         assert!(validate_flash_record(&record, &"a".repeat(64)).is_err());
         record.physical_boot_claimed = false;
         assert!(validate_flash_record(&record, &"a".repeat(64)).is_ok());
+        record.firmware_boot_entry = "EFI/BOOT/BOOTIA32.EFI".into();
+        assert!(validate_flash_record(&record, &"a".repeat(64)).is_err());
     }
 }

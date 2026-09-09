@@ -111,6 +111,12 @@ A candidate passing is not stable acceptance. Use the
 automation owns release receipts, retirement, integration refs, reconciliation,
 and promotion commits. Investigate actual failures without polling healthy jobs.
 
+An open release owns its batch through failure and repair. Later development
+accumulates in `dev`; do not create successor release PRs while a release or its
+synchronization is open. Running integration finishes and pending updates
+coalesce; compare the accumulated delta with accepted `main`, never only the
+last push whose intermediate checks may have been skipped.
+
 Describe what changed, why, the owning issue, the relevant boundary, validation,
 and meaningful remaining gaps. GitHub retains commits and check identities;
 do not repeat them in prose unless diagnosing a failure. Never close an issue
