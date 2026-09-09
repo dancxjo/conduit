@@ -147,7 +147,7 @@ test("button input progresses alongside a pending timer and the Play can be canc
     indicator: presentation/indicator-state
     clock: time/every(freq = 10000ms)
     count: state/count(start = 0)
-    show: presentation/count(maximum-values = 5)
+    show: presentation/count
     button > state > indicator
     clock.tick > count.bump
     count.value > show.value
@@ -168,7 +168,7 @@ test("button input progresses alongside a pending timer and the Play can be canc
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
 });
 
-test("a released timed attempt reaches its rearmed deadline and retires cleanly", async ({ page }) => {
+test("a released timed attempt reports bounded failure and leaves the runner reusable", async ({ page }) => {
   await openTourStep(page, entrance, 0);
   const runner = page.locator('[data-application-component="tour-laboratory"]');
   const status = runner.locator('[data-application-key="play-status"]');
@@ -187,11 +187,7 @@ test("a released timed attempt reaches its rearmed deadline and retires cleanly"
     await page.mouse.down();
     await expect(status).toContainText("Waiting for planned tick");
     await page.mouse.up();
-    // Preserve the kernel detail across the actual browser completion boundary.
-    await expect(status).toContainText(
-      "OperationFailed(Failure { code: HostOperationFailed, detail: 4 })",
-      { timeout: 3000 },
-    );
+    await expect(status).toContainText("StepWorkExceeded", { timeout: 3000 });
     await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
     await runner.locator("textarea").fill(FORM);
     await runner.getByRole("button", { name: "Run", exact: true }).click();
@@ -228,7 +224,7 @@ test("relative-duration output uses the selected profile for Patchbay and live t
     await page.mouse.down();
     await page.mouse.up();
     await page.mouse.down();
-    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
+    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Waiting for one admitted button transition");
     await expect(runner.locator(".morse")).toContainText("1000000");
     await expect(runner.locator(".morse")).toContainText("values:");
   } finally {
