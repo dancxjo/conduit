@@ -318,23 +318,28 @@ pub enum ProductInputEvent {
     Lost(&'static str),
 }
 
-/// Deliver at most the exact admitted keyboard queue capacity, then give the
-/// host one separate presentation/export service opportunity. Portable
-/// `KeyEvent` is the stored and delivered semantic truth; physical provenance
-/// never needs to be reconstructed after this boundary.
+/// Deliver at most the exact admitted keyboard queue capacity. If any keyboard
+/// work ran, return immediately so the caller can re-check the physical source;
+/// presentation/export service runs only from an already-idle ingress turn.
 fn service_product_ingress(
     ingress: &mut KeyboardIngress,
     interact: &mut impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
 ) -> Result<ProductInputControl, &'static str> {
+    let mut delivered = false;
     for _ in 0..INGRESS_CAPACITY {
         let Some(event) = ingress.take() else {
             break;
         };
+        delivered = true;
         if interact(ProductInputEvent::Key(event))? == ProductInputControl::Yield {
             return Ok(ProductInputControl::Yield);
         }
     }
-    interact(ProductInputEvent::Service)
+    if delivered {
+        Ok(ProductInputControl::Continue)
+    } else {
+        interact(ProductInputEvent::Service)
+    }
 }
 
 fn consume(
@@ -461,7 +466,7 @@ mod tests {
     }
 
     #[test]
-    fn product_service_delivers_portable_queue_in_order_before_service_phase() {
+    fn product_service_prioritizes_portable_queue_before_service_phase() {
         let mut ingress = KeyboardIngress::new();
         ingress.admit(transition(4, true)).unwrap();
         ingress.admit(transition(5, true)).unwrap();
@@ -487,7 +492,26 @@ mod tests {
         assert_eq!(control, ProductInputControl::Continue);
         assert_eq!(usages, [4, 5]);
         assert_eq!(count, 2);
-        assert!(service_seen);
+        assert!(!service_seen);
         assert_eq!(ingress.pending(), 0);
+    }
+
+    #[test]
+    fn product_service_runs_presentation_only_from_idle_ingress_turn() {
+        let mut ingress = KeyboardIngress::new();
+        let mut service_seen = false;
+        let control = service_product_ingress(&mut ingress, &mut |event| match event {
+            ProductInputEvent::Service => {
+                service_seen = true;
+                Ok(ProductInputControl::Continue)
+            }
+            ProductInputEvent::Key(_) => panic!("unexpected keyboard delivery"),
+            ProductInputEvent::LocalRescue(_) => panic!("unexpected local-rescue observation"),
+            ProductInputEvent::Lost(_) => panic!("unexpected loss"),
+        })
+        .unwrap();
+
+        assert_eq!(control, ProductInputControl::Continue);
+        assert!(service_seen);
     }
 }
