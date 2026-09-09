@@ -10,7 +10,7 @@ Body should go without giving that proposer local-control, actuator, or motor
 authority.
 
 ```text
-current pose + goal + finite traversability
+current pose + goal + finite traversability + explicit current time
                     |
                     v
             route decision
@@ -39,6 +39,8 @@ The following values remain mechanically distinct:
 
 - `NavigationGoal` identifies an exact target or hold request, its arrival
   tolerance, and its finite lifetime.
+- `NavigationTime` names the clock and current instant used to evaluate every
+  freshness and expiry decision; implementations cannot consult ambient time.
 - `NavigationPose` carries current position and heading, source and sample
   identity, uncertainty, and freshness relative to the navigation decision.
 - `NavigationTraversability4x4` is one finite observation in the same frame. It
@@ -80,13 +82,13 @@ The canonical `bounded-navigation` Form composes three ordinary Kinds:
 
 ```text
 navigation/route-grid4
-  pose + goal + traversability -> decision(route | refusal)
+  pose + goal + traversability + time -> decision(route | refusal)
 
 navigation/time-parameterize
-  selected route -> trajectory
+  selected route + time -> trajectory
 
 navigation/local-control
-  pose + trajectory -> control(motion request | refusal)
+  pose + trajectory + time -> control(motion request | refusal)
 ```
 
 Variant selection with `unmatched=drop` prevents a refusal from being fed into

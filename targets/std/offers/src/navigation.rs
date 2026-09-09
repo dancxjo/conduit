@@ -17,6 +17,8 @@ pub const NAVIGATION_ROUTE_GRID4_GOAL_OPERATION: &str =
     "conduit.host/navigation-route-grid4-goal@1";
 pub const NAVIGATION_ROUTE_GRID4_TRAVERSABILITY_OPERATION: &str =
     "conduit.host/navigation-route-grid4-traversability@1";
+pub const NAVIGATION_ROUTE_GRID4_TIME_OPERATION: &str =
+    "conduit.host/navigation-route-grid4-time@1";
 
 pub const NAVIGATION_TIME_PARAMETERIZE_PROFILE: &str =
     "std/navigation-time-parameterize-fixed-hosted@1";
@@ -24,6 +26,8 @@ pub const NAVIGATION_TIME_PARAMETERIZE_IMPLEMENTATION: &str =
     "std/kernel-navigation-time-parameterize-fixed@1";
 pub const NAVIGATION_TIME_PARAMETERIZE_ROUTE_OPERATION: &str =
     "conduit.host/navigation-time-parameterize-route@1";
+pub const NAVIGATION_TIME_PARAMETERIZE_TIME_OPERATION: &str =
+    "conduit.host/navigation-time-parameterize-time@1";
 
 pub const NAVIGATION_LOCAL_CONTROL_PROFILE: &str = "std/navigation-local-control-bounded-hosted@1";
 pub const NAVIGATION_LOCAL_CONTROL_IMPLEMENTATION: &str =
@@ -32,6 +36,8 @@ pub const NAVIGATION_LOCAL_CONTROL_POSE_OPERATION: &str =
     "conduit.host/navigation-local-control-pose@1";
 pub const NAVIGATION_LOCAL_CONTROL_TRAJECTORY_OPERATION: &str =
     "conduit.host/navigation-local-control-trajectory@1";
+pub const NAVIGATION_LOCAL_CONTROL_TIME_OPERATION: &str =
+    "conduit.host/navigation-local-control-time@1";
 
 pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
     vec![
@@ -44,6 +50,7 @@ pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
                 NAVIGATION_ROUTE_GRID4_POSE_OPERATION,
                 NAVIGATION_ROUTE_GRID4_GOAL_OPERATION,
                 NAVIGATION_ROUTE_GRID4_TRAVERSABILITY_OPERATION,
+                NAVIGATION_ROUTE_GRID4_TIME_OPERATION,
             ],
         ),
         navigation_offer(
@@ -51,7 +58,10 @@ pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
             "std-navigation-time-parameterize-fixed",
             NAVIGATION_TIME_PARAMETERIZE_PROFILE,
             NAVIGATION_TIME_PARAMETERIZE_IMPLEMENTATION,
-            &[NAVIGATION_TIME_PARAMETERIZE_ROUTE_OPERATION],
+            &[
+                NAVIGATION_TIME_PARAMETERIZE_ROUTE_OPERATION,
+                NAVIGATION_TIME_PARAMETERIZE_TIME_OPERATION,
+            ],
         ),
         navigation_offer(
             conduit_semantic_catalog::NAVIGATION_LOCAL_CONTROL_KIND,
@@ -61,6 +71,7 @@ pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
             &[
                 NAVIGATION_LOCAL_CONTROL_POSE_OPERATION,
                 NAVIGATION_LOCAL_CONTROL_TRAJECTORY_OPERATION,
+                NAVIGATION_LOCAL_CONTROL_TIME_OPERATION,
             ],
         ),
     ]
