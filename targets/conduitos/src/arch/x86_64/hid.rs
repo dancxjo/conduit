@@ -7,11 +7,14 @@ use core::ptr::{read_volatile, write_volatile};
 
 use super::{
     usb::{UsbDevice, UsbError, dma::device_dma_pointer, select_boot_protocol},
-    xhci::{Event, XhciError, XhciReady},
+    xhci::{Event, XhciReady},
 };
 
+#[path = "hid_interrupt.rs"]
+mod interrupt;
 #[path = "hid_report.rs"]
 mod report;
+use interrupt::receive_report;
 #[cfg(test)]
 use report::retain_transition;
 use report::{BootReport, derive_transitions, parse_report};
@@ -25,7 +28,7 @@ pub use session::{
 pub const BOOT_REPORT_BYTES: usize = 8;
 pub const MAX_TRANSITIONS_PER_REPORT: usize = 20;
 pub const REPORT_BUFFERS: usize = 2;
-pub const MAX_SESSION_REPORTS: usize = 64;
+pub const TRANSFER_RING_REPORT_SLOTS: usize = INTERRUPT_TRANSFER_TRBS - 1;
 pub const MAX_SESSION_TRANSITIONS: usize = 64;
 pub const MAX_OUTSTANDING_INTERRUPT_TRANSFERS: u8 = 2;
 pub const INTERRUPT_TRANSFER_TRBS: usize = 64;
@@ -409,76 +412,6 @@ unsafe fn write_input_u32(offset: usize, value: u32) {
             value,
         )
     }
-}
-
-pub(super) fn receive_report(
-    controller: &mut XhciReady,
-    device: &UsbDevice,
-    dci: u8,
-    index: usize,
-    dma_physical: u64,
-) -> Result<(), HidError> {
-    let ring = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
-    if index == 0 {
-        for report_index in 0..REPORT_BUFFERS {
-            let buffer = dma_physical
-                + core::mem::offset_of!(HidDma, reports) as u64
-                + (report_index * BOOT_REPORT_BYTES) as u64;
-            unsafe {
-                write_volatile(
-                    core::ptr::addr_of_mut!(HID_DMA.transfer_ring[report_index]),
-                    [
-                        buffer as u32,
-                        (buffer >> 32) as u32,
-                        BOOT_REPORT_BYTES as u32,
-                        (1 << 10) | (1 << 5) | 1,
-                    ],
-                );
-            }
-        }
-        controller.ring_endpoint(device.slot, dci);
-        super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-awaiting-qemu-key\n");
-    } else if index >= REPORT_BUFFERS {
-        if index >= MAX_SESSION_REPORTS {
-            return Err(HidError::TransferOverflow);
-        }
-        let buffer_slot = index % REPORT_BUFFERS;
-        let buffer = dma_physical
-            + core::mem::offset_of!(HidDma, reports) as u64
-            + (buffer_slot * BOOT_REPORT_BYTES) as u64;
-        unsafe {
-            write_volatile(
-                core::ptr::addr_of_mut!(HID_DMA.transfer_ring[index]),
-                [
-                    buffer as u32,
-                    (buffer >> 32) as u32,
-                    BOOT_REPORT_BYTES as u32,
-                    (1 << 10) | (1 << 5) | 1,
-                ],
-            );
-        }
-        controller.ring_endpoint(device.slot, dci);
-    }
-    let mut completed = None;
-    for _ in 0..INTERRUPT_POLL_WINDOWS {
-        ensure_device_present(controller.port_status(device.root_port))?;
-        match controller.next_event() {
-            Ok(event) if event.event_type == 34 => return Err(HidError::DeviceRemoved),
-            Ok(event) => {
-                completed = Some(event);
-                break;
-            }
-            Err(XhciError::CommandTimeout) => {}
-            Err(_) => {
-                ensure_device_present(controller.port_status(device.root_port))?;
-                return Err(HidError::TransferError);
-            }
-        }
-    }
-    let event = completed.ok_or(HidError::TransferTimeout)?;
-    validate_interrupt_event(event, device.slot, dci, ring + (index * 16) as u64)?;
-    ensure_device_present(controller.port_status(device.root_port))?;
-    Ok(())
 }
 
 fn ensure_device_present(port_status: u32) -> Result<(), HidError> {

@@ -70,9 +70,7 @@ impl HidKeyboardSession {
         device: &UsbDevice,
     ) -> Result<([HidKeyTransition; MAX_TRANSITIONS_PER_REPORT], usize), HidError> {
         let index = self.next_report_index;
-        if index >= super::MAX_SESSION_REPORTS {
-            return Err(HidError::TransferOverflow);
-        }
+        let next_index = index.checked_add(1).ok_or(HidError::TransferOverflow)?;
         receive_report(
             controller,
             device,
@@ -85,7 +83,7 @@ impl HidKeyboardSession {
             super::parse_report(unsafe { &HID_DMA.reports[index % super::REPORT_BUFFERS] })?;
         let (transitions, count) = derive_transitions(self.previous, current)?;
         self.previous = current;
-        self.next_report_index += 1;
+        self.next_report_index = next_index;
         self.transition_count = self
             .transition_count
             .checked_add(count)
