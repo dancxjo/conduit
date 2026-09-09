@@ -80,6 +80,17 @@ fn panel_scene(
             .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
+    scene
+        .push(
+            GraphicsCommand::rect(
+                local,
+                local,
+                GraphicsPaintRole::Accent,
+                GraphicsShapeStyle::Stroke,
+            )
+            .map_err(|_| TourShellError::Scene)?,
+        )
+        .map_err(|_| TourShellError::Scene)?;
     let title_bounds = LayoutRect {
         x: 12,
         y: 12,
@@ -285,16 +296,12 @@ fn chooser_scene(
         .into_iter()
         .enumerate()
     {
-        let y = 76 + index as i32 * 140 - i32::from(scroll_y);
-        if y + 60 <= 70 || y >= i32::from(bounds.height) {
+        let row = super::chooser_layout::row(bounds, index, scroll_y);
+        if i32::from(row.y) + i32::from(row.height) <= 70
+            || i32::from(row.y) >= i32::from(bounds.height)
+        {
             continue;
         }
-        let row = LayoutRect {
-            x: 12,
-            y: i16::try_from(y).map_err(|_| TourShellError::Identity)?,
-            width: bounds.width.saturating_sub(24).max(1),
-            height: 60,
-        };
         scene
             .push(
                 GraphicsCommand::rect(
@@ -307,16 +314,22 @@ fn chooser_scene(
             )
             .map_err(|_| TourShellError::Scene)?;
         let label = alloc::format!("Select {gear}");
+        let icon_size = row.height.saturating_sub(8).min(16).max(1);
         let text = LayoutRect {
             x: row.x + 32,
-            y: row.y + 8,
+            y: row.y + 4,
             width: row.width.saturating_sub(40).max(1),
-            height: 44,
+            height: row.height.saturating_sub(8).max(1),
         };
         scene
             .push(
                 GraphicsCommand::icon(
-                    LayoutRect { x: row.x + 8, y: row.y + 8, width: 16, height: 16 },
+                    LayoutRect {
+                        x: row.x + 8,
+                        y: row.y + 4,
+                        width: icon_size,
+                        height: icon_size,
+                    },
                     viewport,
                     GraphicsPaintRole::Accent,
                     PresentationIconKey::GenericGear,
