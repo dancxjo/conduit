@@ -10,6 +10,9 @@ pub use tokens::*;
 pub mod profile;
 #[cfg(feature = "native-compositor")]
 pub mod typography;
+pub(crate) fn text_width(value: &str) -> Result<u16, DisplayError> {
+    text_layout::text_width(value)
+}
 pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> {
     text_layout::text_height(value, width)
 }
@@ -85,10 +88,16 @@ impl DisplayFormat {
     }
 
     fn pixel(self, red: u8, green: u8, blue: u8) -> u32 {
-        (u32::from(red) << self.red_shift)
-            | (u32::from(green) << self.green_shift)
-            | (u32::from(blue) << self.blue_shift)
+        u32::from(red) << self.red_shift
+            | u32::from(green) << self.green_shift
+            | u32::from(blue) << self.blue_shift
     }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct DisplayReceipt {
+    pub commands: u16,
+    pub pixels_written: u64,
 }
 
 pub trait PixelTarget {
@@ -96,97 +105,87 @@ pub trait PixelTarget {
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError>;
 }
 
-/// Retained readable pixels support coverage blending without assuming a
-/// background color. Scanout-only Bases need not offer this capability.
-pub trait RetainedPixelTarget: PixelTarget {
-    fn read_pixel(&self, x: u32, y: u32) -> Result<u32, DisplayError>;
-}
-
-impl<T: RetainedPixelTarget + ?Sized> RetainedPixelTarget for &mut T {
-    fn read_pixel(&self, x: u32, y: u32) -> Result<u32, DisplayError> {
-        (**self).read_pixel(x, y)
-    }
-}
-
-impl<T: PixelTarget + ?Sized> PixelTarget for &mut T {
-    fn format(&self) -> DisplayFormat {
-        (**self).format()
-    }
-
-    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
-        (**self).write_pixel(x, y, pixel)
-    }
-}
-
-pub struct RawDisplay {
-    address: NonNull<u8>,
-    byte_len: usize,
+pub struct Framebuffer<'a> {
     format: DisplayFormat,
-    available: bool,
+    bytes: &'a mut [u8],
 }
 
-impl RawDisplay {
-    /// # Safety
-    ///
-    /// `address..address + byte_len` must remain uniquely writable display
-    /// memory for this value's lifetime. The caller owns synchronization.
-    pub unsafe fn new(
-        address: NonNull<u8>,
-        byte_len: usize,
-        format: DisplayFormat,
-    ) -> Result<Self, DisplayError> {
+impl<'a> Framebuffer<'a> {
+    pub fn new(bytes: &'a mut [u8], format: DisplayFormat) -> Result<Self, DisplayError> {
         let format = format.validate()?;
-        if byte_len < format.byte_len()? {
+        if bytes.len() < format.byte_len()? {
             return Err(DisplayError::BufferTooSmall);
         }
-        Ok(Self {
-            address,
-            byte_len,
-            format,
-            available: true,
-        })
-    }
-
-    pub fn lose(&mut self) {
-        self.available = false;
+        Ok(Self { format, bytes })
     }
 }
 
-impl PixelTarget for RawDisplay {
+impl PixelTarget for Framebuffer<'_> {
     fn format(&self) -> DisplayFormat {
         self.format
     }
 
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
-        if !self.available {
-            return Err(DisplayError::Lost);
-        }
         let offset = usize::try_from(
             u64::from(y)
                 .checked_mul(u64::from(self.format.pitch))
                 .and_then(|row| row.checked_add(u64::from(x) * 4))
-                .ok_or(DisplayError::InvalidExtent)?,
+                .ok_or(DisplayError::BufferTooSmall)?,
         )
-        .map_err(|_| DisplayError::InvalidExtent)?;
-        if offset.checked_add(4).is_none_or(|end| end > self.byte_len) {
-            return Err(DisplayError::BufferTooSmall);
-        }
-        // SAFETY: construction establishes the writable range and the bound
-        // above keeps this four-byte volatile write inside it.
-        unsafe {
-            let output = pixel.to_le_bytes();
-            for (index, byte) in output.into_iter().enumerate() {
-                core::ptr::write_volatile(self.address.as_ptr().add(offset + index), byte);
-            }
-        }
+        .map_err(|_| DisplayError::BufferTooSmall)?;
+        let output = self
+            .bytes
+            .get_mut(offset..offset + 4)
+            .ok_or(DisplayError::BufferTooSmall)?;
+        output.copy_from_slice(&pixel.to_le_bytes());
         Ok(())
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct DisplayReceipt {
-    pub commands: u8,
-    pub pixels_written: u32,
+pub struct VolatileFramebuffer {
+    format: DisplayFormat,
+    base: NonNull<u8>,
+    len: usize,
+}
+
+impl VolatileFramebuffer {
+    /// # Safety
+    /// `base..base+len` must remain a writable mapped framebuffer for this value's lifetime.
+    pub unsafe fn new(
+        base: *mut u8,
+        len: usize,
+        format: DisplayFormat,
+    ) -> Result<Self, DisplayError> {
+        let format = format.validate()?;
+        if len < format.byte_len()? {
+            return Err(DisplayError::BufferTooSmall);
+        }
+        let base = NonNull::new(base).ok_or(DisplayError::Absent)?;
+        Ok(Self { format, base, len })
+    }
+}
+
+impl PixelTarget for VolatileFramebuffer {
+    fn format(&self) -> DisplayFormat {
+        self.format
+    }
+
+    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
+        let offset = usize::try_from(
+            u64::from(y)
+                .checked_mul(u64::from(self.format.pitch))
+                .and_then(|row| row.checked_add(u64::from(x) * 4))
+                .ok_or(DisplayError::BufferTooSmall)?,
+        )
+        .map_err(|_| DisplayError::BufferTooSmall)?;
+        if offset.checked_add(4).is_none_or(|end| end > self.len) {
+            return Err(DisplayError::BufferTooSmall);
+        }
+        unsafe {
+            core::ptr::write_volatile(self.base.as_ptr().add(offset).cast::<u32>(), pixel);
+        }
+        Ok(())
+    }
 }
 
 pub fn render_scene(
@@ -196,25 +195,25 @@ pub fn render_scene(
     let format = target.format().validate()?;
     let mut receipt = DisplayReceipt::default();
     for command in scene.commands() {
+        render_command(target, format, command, &mut receipt)?;
         receipt.commands = receipt
             .commands
             .checked_add(1)
             .ok_or(DisplayError::InvalidExtent)?;
-        render_command(target, format, command, &mut receipt)?;
     }
     Ok(receipt)
 }
 
-/// Manifest one portable gray8 bitmap on the selected finite display Base.
-/// Nearest-neighbor scaling is a mechanism choice below the bitmap and
-/// presentation contracts; it does not mutate their semantic truth.
-pub fn render_gray8_bitmap(
+pub fn render_bitmap(
     target: &mut impl PixelTarget,
-    bitmap: &conduit_presentation::Gray8Bitmap,
+    bitmap: &crate::display::profile::DisplayBitmap,
 ) -> Result<DisplayReceipt, DisplayError> {
     let format = target.format().validate()?;
     let source_width = u64::from(bitmap.width());
     let source_height = u64::from(bitmap.height());
+    if source_width == 0 || source_height == 0 {
+        return Err(DisplayError::InvalidExtent);
+    }
     let mut receipt = DisplayReceipt {
         commands: 1,
         pixels_written: 0,
