@@ -1,6 +1,6 @@
 //! Consumers of validated HID transitions for proof and ordinary guest profiles.
 
-use conduit_human::KeyEvent;
+use conduit_human::{KeyEvent, KeyTransition};
 use conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_ITEMS;
 
 use crate::{
@@ -107,6 +107,13 @@ impl KeyboardIngress {
         delivered
     }
 
+    /// Take one already-admitted portable value for a fallible product service
+    /// phase.  Keeping this separate from [`Self::service`] lets callers stop on
+    /// an exact Yield/refusal without accidentally consuming later events.
+    pub fn take(&mut self) -> Option<KeyEvent> {
+        self.queue.pop()
+    }
+
     pub const fn pending(&self) -> usize {
         self.queue.len()
     }
@@ -189,32 +196,38 @@ pub fn run_interactive(
 }
 
 /// Runs the ordinary physical input source for a long-lived product-owned
-/// Play. The product lifecycle admits and drives the exact semantic consumer;
-/// this function only transports validated HID transitions.
+/// Play. Physical reports are first canonicalized into the exact finite
+/// `input/keyboard` queue. The next USB transfer is armed before a bounded
+/// semantic/presentation service slice drains that queue, so scanout/export
+/// work does not gate publication of the next physical receive buffer.
 pub fn run_product(
     session: &mut HidKeyboardSession,
     controller: &mut XhciReady,
     device: &UsbDevice,
     mut interact: impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
 ) -> Result<(), &'static str> {
-    for transition in session.transitions().iter().copied() {
-        if interact(ProductInputEvent::Transition(transition))? == ProductInputControl::Yield {
-            return Ok(());
-        }
-    }
+    let mut ingress = KeyboardIngress::new();
+    ingress
+        .admit_report(session.transitions())
+        .map_err(KeyboardIngressRefusal::as_str)?;
+
     loop {
-        // Publish the next transfer before giving presentation/export a turn.
+        // Publish the next transfer before giving admitted semantic work or
+        // presentation/export a turn.
         session
             .begin_followup(controller, device)
             .map_err(|error| error.as_str())?;
-        if interact(ProductInputEvent::Service)? == ProductInputControl::Yield {
+        if service_product_ingress(&mut ingress, &mut interact)? == ProductInputControl::Yield {
             return Ok(());
         }
+
         let (transitions, count) = loop {
             match session.poll_followup(controller, device) {
                 Ok(Some(batch)) => break batch,
                 Ok(None) => {
-                    if interact(ProductInputEvent::Service)? == ProductInputControl::Yield {
+                    if service_product_ingress(&mut ingress, &mut interact)?
+                        == ProductInputControl::Yield
+                    {
                         return Ok(());
                     }
                     core::hint::spin_loop();
@@ -226,37 +239,39 @@ pub fn run_product(
                 }
             }
         };
-        for transition in transitions[..count].iter().copied() {
-            if interact(ProductInputEvent::Transition(transition))? == ProductInputControl::Yield {
-                return Ok(());
-            }
-        }
+
+        // Whole-report admission is atomic. We intentionally do not run Form
+        // work here: the loop immediately publishes the next receive transfer,
+        // then services these portable events within the admitted bound.
+        ingress
+            .admit_report(&transitions[..count])
+            .map_err(KeyboardIngressRefusal::as_str)?;
     }
 }
 
 /// Runs the same long-lived portable keyboard source from a validated PS/2
-/// mechanism. The adapter yields one ordered transition at a time and owns no
-/// semantic keymap or product policy.
+/// mechanism. The adapter polls only a finite controller-byte window before a
+/// bounded semantic service slice, retaining decoder prefixes between turns.
 pub fn run_ps2_product(
     input: &mut crate::arch::Ps2Input,
     mut interact: impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
 ) -> Result<(), &'static str> {
+    let mut ingress = KeyboardIngress::new();
     loop {
-        let transition = match input.poll_keyboard() {
-            Ok(Some(transition)) => transition,
-            Ok(None) => {
-                if interact(ProductInputEvent::Service)? == ProductInputControl::Yield {
-                    return Ok(());
+        for _ in 0..INGRESS_CAPACITY {
+            match input.poll_keyboard() {
+                Ok(Some(transition)) => ingress
+                    .admit(transition)
+                    .map_err(KeyboardIngressRefusal::as_str)?,
+                Ok(None) => break,
+                Err(error) => {
+                    let reason = error.as_str();
+                    interact(ProductInputEvent::Lost(reason))?;
+                    return Err(reason);
                 }
-                continue;
             }
-            Err(error) => {
-                let reason = error.as_str();
-                interact(ProductInputEvent::Lost(reason))?;
-                return Err(reason);
-            }
-        };
-        if interact(ProductInputEvent::Transition(transition))? == ProductInputControl::Yield {
+        }
+        if service_product_ingress(&mut ingress, &mut interact)? == ProductInputControl::Yield {
             return Ok(());
         }
     }
@@ -274,6 +289,31 @@ pub enum ProductInputEvent {
     Service,
     Transition(HidKeyTransition),
     Lost(&'static str),
+}
+
+/// Deliver at most the exact admitted keyboard queue capacity, then give the
+/// host one separate presentation/export service opportunity. `KeyEvent` is the
+/// stored truth; rebuilding the existing transition callback shape is a
+/// temporary compatibility boundary and is lossless over the three canonical
+/// key-event fields.
+fn service_product_ingress(
+    ingress: &mut KeyboardIngress,
+    interact: &mut impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
+) -> Result<ProductInputControl, &'static str> {
+    for _ in 0..INGRESS_CAPACITY {
+        let Some(event) = ingress.take() else {
+            break;
+        };
+        let transition = HidKeyTransition::new(
+            event.usage(),
+            event.transition() == KeyTransition::Pressed,
+            event.modifiers_after().bits(),
+        );
+        if interact(ProductInputEvent::Transition(transition))? == ProductInputControl::Yield {
+            return Ok(ProductInputControl::Yield);
+        }
+    }
+    interact(ProductInputEvent::Service)
 }
 
 fn consume(
@@ -397,5 +437,35 @@ mod tests {
         );
         assert_eq!(ingress.pending(), 1);
         assert_eq!(ingress.service(8, |event| assert_eq!(event.usage(), 4)), 1);
+    }
+
+    #[test]
+    fn product_service_delivers_portable_queue_in_order_before_service_phase() {
+        let mut ingress = KeyboardIngress::new();
+        ingress.admit(transition(4, true)).unwrap();
+        ingress.admit(transition(5, true)).unwrap();
+
+        let mut usages = [0_u8; 2];
+        let mut count = 0;
+        let mut service_seen = false;
+        let control = service_product_ingress(&mut ingress, &mut |event| match event {
+            ProductInputEvent::Transition(transition) => {
+                usages[count] = transition.usage();
+                count += 1;
+                Ok(ProductInputControl::Continue)
+            }
+            ProductInputEvent::Service => {
+                service_seen = true;
+                Ok(ProductInputControl::Continue)
+            }
+            ProductInputEvent::Lost(_) => panic!("unexpected loss"),
+        })
+        .unwrap();
+
+        assert_eq!(control, ProductInputControl::Continue);
+        assert_eq!(usages, [4, 5]);
+        assert_eq!(count, 2);
+        assert!(service_seen);
+        assert_eq!(ingress.pending(), 0);
     }
 }
