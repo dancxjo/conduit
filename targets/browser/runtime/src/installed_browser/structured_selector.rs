@@ -94,6 +94,23 @@ pub(crate) fn offer(selector: &StructuredSelector, temporal: PortTemporal) -> Ca
     }
 }
 
+/// Reconstruct and validate the exact contract supported by this installed generic implementation.
+#[cfg(feature = "form-runner")]
+pub(crate) fn offer_for_placement(
+    placement: &PlannedGear,
+) -> Result<Option<CapabilityOffer>, String> {
+    if placement.implementation_id.as_str() != IMPLEMENTATION {
+        return Ok(None);
+    }
+    let selector = selector_from_placement(placement)?;
+    validate(placement, &selector)?;
+    let exact = offer(&selector, placement.inputs[0].temporal);
+    if placement.capability_id != exact.capability_id {
+        return Err("planned selector capability differs from its exact contract".into());
+    }
+    Ok(Some(exact))
+}
+
 fn selector_from_placement(placement: &PlannedGear) -> Result<StructuredSelector, String> {
     let [entry] = placement.configuration.as_slice() else {
         return Err("structured selector requires one exact configuration".into());

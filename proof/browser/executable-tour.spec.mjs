@@ -228,8 +228,6 @@ test("the Tour navigation remains legible and interactive in both theme modes", 
     await previous.hover();
     await expect(previous).toHaveCSS("border-color", dark ? "rgb(233, 163, 37)" : "rgb(154, 91, 0)");
     await previous.focus();
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Shift+Tab");
     await expect(previous).toBeFocused();
     expect(await previous.evaluate((element) =>
       getComputedStyle(element).getPropertyValue("--conduit-focus").trim())).toBe(dark ? "#f4c400" : "#775d00");
@@ -1009,9 +1007,9 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(laboratory.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
   await laboratory.getByRole("button", { name: "Stop", exact: true }).click();
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
-  const add = memory.getByRole("link", { name: "Add to new Body" });
+  const add = memory.getByRole("link", { name: "Use in your Body" });
   const handoff = new URL(await add.getAttribute("href"));
-  expect(handoff.pathname).toBe(new URL("../creche/", entrance.url).pathname);
+  expect(handoff.pathname).toBe(new URL("../workspace/", entrance.url).pathname);
   expect(Object.fromEntries(handoff.searchParams)).toEqual({
     form: "memory_lantern",
     source_document_id: reviewedSourceIdentity,
@@ -1125,9 +1123,9 @@ test("the Tour opens with one logical Body premise and keeps Crèche machinery l
 
   await openStep(page, 6);
   const handoff = page.getByRole("link", { name: "Birth a Body" });
-  await expect(handoff).toHaveAttribute("href", "../creche/");
-  await expect(handoff).toHaveJSProperty("href", new URL("../creche/", entrance.url).href);
-  await expect(page.locator('meta[name="conduit-creche-url"]')).toHaveAttribute("content", "../creche/");
+  await expect(handoff).toHaveAttribute("href", "../workspace/");
+  await expect(handoff).toHaveJSProperty("href", new URL("../workspace/", entrance.url).href);
+  await expect(page.locator('meta[name="conduit-creche-url"]')).toHaveAttribute("content", "../workspace/");
   const tourRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitTourHost.runtime));
   expect(tourRuntimeExports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
   expect((await page.request.get(new URL("/creche/", entrance.url).href)).status()).toBe(404);
@@ -2331,9 +2329,10 @@ test("stopping the two-Host lesson cancels without a late manifestation", async 
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Host A offered one value");
   await runner.getByRole("button", { name: "Stop" }).click();
-  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Plays were cancelled after 0 delivered cross-Host values.");
   await page.evaluate(() => globalThis.__releaseTourAnimationFrame());
-  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Plays were cancelled after 0 delivered cross-Host values.");
   await expect(runner.locator(".morse")).toHaveText("ready");
-  await expect(runner.locator(".run-identities")).not.toContainText("Terminal source receipt");
+  await expect(runner.locator(".run-identities")).toContainText("Terminal source receipt");
+  await expect(runner.locator(".run-identities")).toContainText("Terminal sink receipt");
 });

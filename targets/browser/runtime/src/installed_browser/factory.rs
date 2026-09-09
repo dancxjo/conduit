@@ -231,7 +231,13 @@ pub(crate) fn advertisement_for_presentation(
         super::PresentationProfile::Annotation => unreachable!(),
     };
     presenter.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
-    host.capabilities.push(presenter);
+    if !host
+        .capabilities
+        .iter()
+        .any(|offer| offer.capability_id == presenter.capability_id)
+    {
+        host.capabilities.push(presenter);
+    }
     host.capabilities
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
     host

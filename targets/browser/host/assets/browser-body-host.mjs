@@ -6,11 +6,12 @@ import { drainBrowserEffects } from "./browser-form-effects.mjs";
 const PRESENTATION = "conduit.resource/presentation-slot@1";
 const INPUT = "conduit.resource/browser-window-input@1";
 const TIMER = "conduit.resource/timer-slot@1";
+const TEMPLATE = "conduit.resource/named-pattern-storage-slot@1";
 const CLOCK = "conduit.resource/monotonic-millisecond-timer-slot@1";
 const pools = new Map([
   [AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL],
   [PRESENTATION, "browser/presentation"], [INPUT, "browser/window-input"],
-  [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
+  [TEMPLATE, "browser/named-pattern-storage"], [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
 ]);
 
 function readOutput(api) {
@@ -68,6 +69,9 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const boot = { host_id: hostId, boot_id: bootId, offer_generation: 1, implementation_registry: machinery.implementations };
   const routing = foregroundForm ? createBodyInputRouting({ forms: proposal.plan.forms, foreground: foregroundForm }) : null;
   const slots = new Map();
+  // The single WASM owner leases this local preparation slot. Its bounded
+  // template storage is initialized by ordinary kernel preparation before Play.
+  const templateSlots = new Set();
   const presentationTimers = new Map();
   const elements = [];
   let audio = null;
@@ -81,6 +85,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       audio = acquireBrowserAudioCue({ api, window, placements: placements.filter(item => item.resources.some(resource => resource.class_id === AUDIO_CUE_RESOURCE)) });
       if (audio.capacity !== demand.get(AUDIO_CUE_RESOURCE)) throw new Error("audio acquisition differs from demand");
     }
+    for (const placement of placements) {
+      if (placement.resources.some(resource => resource.class_id === TEMPLATE)) templateSlots.add(placement.placement_id);
+    }
+    if (templateSlots.size !== (demand.get(TEMPLATE) ?? 0)) throw new Error("template storage acquisition differs from demand");
     if (demand.has(INPUT)) {
       input = openBrowserHumanInput({ target: inputTarget, boot, routeInput: routing?.capture });
       routing?.attach(input);
@@ -116,7 +124,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       host_id: hostId, boot_id: bootId, offer_generation: 1,
       pool_id: pools.get(class_id), class_id, health: "Ready",
       // Counts come from acquired adapter state, not advertised capacities.
-      unreserved_units: class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : Number(timer !== null),
+      unreserved_units: class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : Number(timer !== null),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
   };
@@ -150,6 +158,16 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       const bytes = new Uint8Array(8);
       new DataView(bytes.buffer).setBigUint64(0, BigInt(Math.floor(window.performance.now() * 1000)), true);
       return bytes;
+    }
+    if (effect.effect_kind === "pointer-event") {
+      if (!input || !routing) throw new Error("routed pointer input not acquired");
+      const event = await routing.next("pointer", effect.placement_id, signal);
+      assertCurrent();
+      const status = api.conduit_browser_form_encode_pointer(event.position_x, event.position_y,
+        event.delta_x, event.delta_y, event.primary_pressed ? 1 : 0, event.coalesced,
+        event.dropped, event.queue_capacity, event.sequence);
+      if (status < 0) throw new Error("pointer encoding refused");
+      return new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
     }
     if (effect.effect_kind === "key-event" || effect.effect_kind === "button-transition") {
       if (!input) throw new Error("browser input not acquired");

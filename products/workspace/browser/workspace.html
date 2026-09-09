@@ -33,6 +33,10 @@
         </div>
       </section>
       <nav class="activity-switcher" aria-label="Your Forms" hidden></nav>
+      <section class="workspace-panel form-library-panel" id="workspace-library" aria-labelledby="library-title" hidden>
+        <div class="panel-heading"><h2 id="library-title" tabindex="-1">Forms for your Body</h2><button type="button" data-close-library>Back to the surface</button></div>
+        <div data-application-slot="workspace-form-library"></div>
+      </section>
       <section class="workspace-panel" id="workspace-inspection" aria-labelledby="inspection-title" hidden>
         <div class="panel-heading"><h2 id="inspection-title" tabindex="-1">Inside this Form</h2><button type="button" data-close-inspection aria-label="Close inspection">Back to the surface <span aria-hidden="true">↗</span></button></div>
         <div data-inspection-content></div>

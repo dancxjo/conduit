@@ -57,8 +57,9 @@ inside the admitted audio operation; the kernel's storage limits do not grow.
 A cue slot admits an attempt, not permission to make sound. Suspended audio is
 reported as denied without queueing it for a later gesture. Missing output and
 rendering failure are reported separately. Those outcomes complete the optional
-sound sink while other Forms continue. Explicit mute policy and removal are not hidden
-lifecycle flags. The adapter honors its explicit mute input; no product-wide
+sound sink while other Forms continue. The workspace Forms chooser can remove the
+chime through the ordinary retained workload lifecycle. Explicit mute policy and
+removal are not hidden lifecycle flags. The adapter honors its explicit mute input; no product-wide
 mute preference existed before this slice.
 
 The lifecycle inspection contains the current exact Play's kernel events and a

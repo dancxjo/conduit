@@ -57,6 +57,7 @@ export default defineConfig({
     "creche-browser-configuration.spec.mjs",
     "creche-workload.spec.mjs",
     "workspace-arrival.spec.mjs",
+    "workspace-library.spec.mjs",
     "creche-workspace-continuity.spec.mjs",
     "creche-body-execution.spec.mjs",
     "creche-naming.spec.mjs",
