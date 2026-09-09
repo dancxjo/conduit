@@ -1,6 +1,6 @@
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect, Presentation,
-    PresentationIconKey,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
+    Presentation, PresentationIconKey,
 };
 
 use super::TourShellError;
@@ -150,8 +150,8 @@ pub(super) fn status_scene(
         ("lines", PresentationIconKey::Line),
         ("host", PresentationIconKey::Host),
     ]
-        .into_iter()
-        .enumerate()
+    .into_iter()
+    .enumerate()
     {
         let identity = alloc::format!("tour/status/{key}");
         let subject = presentation
@@ -180,7 +180,12 @@ pub(super) fn status_scene(
         scene
             .push(
                 GraphicsCommand::icon(
-                    LayoutRect { x: cell.x + 8, y: 12, width: 16, height: 16 },
+                    LayoutRect {
+                        x: cell.x + 8,
+                        y: 12,
+                        width: 16,
+                        height: 16,
+                    },
                     cell,
                     GraphicsPaintRole::Status,
                     icon,
@@ -235,7 +240,12 @@ pub(super) fn inspector_scene(
         scene
             .push(
                 GraphicsCommand::icon(
-                    LayoutRect { x: button.x + 8, y: button.y + 4, width: 16, height: 16 },
+                    LayoutRect {
+                        x: button.x + 8,
+                        y: button.y + 4,
+                        width: 16,
+                        height: 16,
+                    },
                     button,
                     GraphicsPaintRole::Accent,
                     PresentationIconKey::Close,
@@ -316,7 +326,12 @@ fn chooser_scene(
         scene
             .push(
                 GraphicsCommand::icon(
-                    LayoutRect { x: row.x + 8, y: row.y + 8, width: 16, height: 16 },
+                    LayoutRect {
+                        x: row.x + 8,
+                        y: row.y + 8,
+                        width: 16,
+                        height: 16,
+                    },
                     viewport,
                     GraphicsPaintRole::Accent,
                     PresentationIconKey::GenericGear,
