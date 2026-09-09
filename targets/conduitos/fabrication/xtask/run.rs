@@ -670,7 +670,7 @@ fn validate_observatory(
         "conduitos/kernel-time-tick@1",
     ) && exact_placement(
         "presentation/tick",
-        "conduit.std/presentation-tick@1",
+        conduit_semantic_catalog::TICK_PRESENTATION_CONTRACT_REVISION,
         "conduitos/kernel-serial-tick@1",
     );
     let bases_match = snapshot.bases.len() == kernel.base_ids.len() + 1

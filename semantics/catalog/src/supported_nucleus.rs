@@ -39,7 +39,7 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
         ),
         (
             tick_presentation_contract(),
-            "conduit.std/presentation-tick@1",
+            TICK_PRESENTATION_CONTRACT_REVISION,
         ),
         (bool_presentation_contract(), "conduit.presentation/bool@1"),
         (text_literal_contract(), "conduit.std/text-literal@1"),
@@ -52,11 +52,11 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
         (key_event_tee_contract(), "conduit.input/key-tee@1"),
         (keymap_contract(), "conduit.input/keymap@1"),
         (chords_contract(), "conduit.input/chords@1"),
-        (state_count_contract(), "conduit.std/state-count@1"),
+        (state_count_contract(), STATE_COUNT_CONTRACT_REVISION),
         (state_toggle_contract(), "conduit.std/state-toggle@1"),
         (
             count_presentation_contract(),
-            "conduit.std/presentation-count@1",
+            COUNT_PRESENTATION_CONTRACT_REVISION,
         ),
         (
             state_latest_scalar_contract(),
