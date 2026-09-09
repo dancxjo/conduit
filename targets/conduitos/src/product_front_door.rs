@@ -166,8 +166,7 @@ pub fn run(
             // A held key keeps its original Form owner across surface changes,
             // including when the compositor currently has no keyboard target.
             if journey.owns_key_release(event) {
-                workspace_input::accept(event, &mut journey, &mut front_door)?;
-                if !tour_open {
+                if workspace_input::accept(event, &mut journey, &mut front_door)? && !tour_open {
                     workspace_dirty = true;
                 }
                 return Ok(ProductInputControl::Continue);

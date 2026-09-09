@@ -50,6 +50,37 @@ fn listening() -> (ProductJourney, FrontDoor) {
 }
 
 #[test]
+fn accepted_release_preserves_presentation_without_requesting_a_repaint() {
+    let (mut journey, mut door) = listening();
+    assert!(
+        update(
+            key(4, KeyTransition::Pressed),
+            &mut journey,
+            &mut door,
+            |_| { panic!("unexpected refusal") }
+        )
+        .unwrap()
+    );
+    let produced = journey.foreground_presentation_sequence();
+    let before = journey.projection();
+    assert!(
+        !update(
+            key(4, KeyTransition::Released),
+            &mut journey,
+            &mut door,
+            |_| { panic!("unexpected refusal") }
+        )
+        .unwrap()
+    );
+    assert_eq!(journey.foreground_presentation_sequence(), produced);
+    let after = journey.projection();
+    assert_eq!(after.input_count, before.input_count + 1);
+    assert_eq!(after.active_play_id, before.active_play_id);
+    assert_eq!(after.result, before.result);
+    assert!(!journey.owns_key_release(key(4, KeyTransition::Released)));
+}
+
+#[test]
 fn tab_and_captured_release_preserve_two_form_state_and_the_same_play() {
     let (mut journey, mut door) = listening();
     let before = journey.projection();

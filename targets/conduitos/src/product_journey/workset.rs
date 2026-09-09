@@ -18,6 +18,7 @@ pub struct WorkspaceProjection {
 }
 
 pub(super) struct FormResult {
+    pub(super) input_sequence: Option<u32>,
     recent: ResultWindow,
     current: Option<NativePresentation>,
     pub(super) sign: Option<SignId>,
@@ -25,6 +26,7 @@ pub(super) struct FormResult {
 impl FormResult {
     pub(super) fn new() -> Self {
         Self {
+            input_sequence: None,
             recent: ResultWindow::new(),
             current: None,
             sign: None,
@@ -62,6 +64,12 @@ impl FormResult {
 }
 
 impl ProductJourney {
+    /// The accepted input sequence that last produced foreground Presentation.
+    /// Releases consumed without output leave this value unchanged.
+    pub fn foreground_presentation_sequence(&self) -> Option<u32> {
+        self.results[self.foreground].input_sequence
+    }
+
     pub fn workspace_projection(&self) -> Option<WorkspaceProjection> {
         let body = self.body.as_ref()?;
         Some(WorkspaceProjection {
