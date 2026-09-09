@@ -9,7 +9,7 @@ use super::{
     transient_scene,
 };
 
-pub const MAX_SCROLL_CONTENT_HEIGHT: u16 = 768;
+pub const MAX_SCROLL_CONTENT_HEIGHT: u16 = 4096;
 const SCROLL_STEP: u16 = 48;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -226,7 +226,7 @@ mod tests {
     fn empty_overflow_and_outside_viewport_refuse_distinctly() {
         let mut state = ScrollState::empty();
         assert_eq!(state.configure(0, 10), Err(TourShellError::Identity));
-        assert_eq!(state.configure(10, 769), Err(TourShellError::Identity));
+        assert_eq!(state.configure(10, 4097), Err(TourShellError::Identity));
         state.configure(10, 10).unwrap();
         assert_eq!(state.content_y(10), Err(TourShellError::Identity));
     }

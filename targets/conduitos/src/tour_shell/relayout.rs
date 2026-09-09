@@ -95,9 +95,10 @@ impl TourShellPresenter {
                 .iter_mut()
                 .find(|state| state.slot == Slot::Inspector)
                 .ok_or(TourShellError::Identity)?;
-            state
-                .scroll
-                .configure(current_bounds.height, scene::SCROLL_CONTENT_HEIGHT)?;
+            state.scroll.configure(
+                current_bounds.height,
+                fields::project(current_bounds, &revised, 0, None)?,
+            )?;
             state.scroll.offset()
         };
         let current = self.present_surface(
