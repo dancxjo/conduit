@@ -5,8 +5,22 @@ use conduit_presentation::{
     GraphicsShapeStyle, LayoutRect, SemanticPresentationRefusal,
 };
 use conduit_tour_model::{
-    TourLayoutRefusal, TourRect, TourWorkspaceLayout, TourWorkspacePhase, TourWorkspaceState,
+    CANONICAL_PATCHBAY_GEARS, TourLayoutRefusal, TourRect, TourWorkspaceLayout, TourWorkspacePhase,
+    TourWorkspaceState,
 };
+
+pub const MAX_TOUR_COMPOSITION_LAYERS: usize = 2;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TourWorkspaceComposition {
+    layers: [GraphicsScene; MAX_TOUR_COMPOSITION_LAYERS],
+}
+
+impl TourWorkspaceComposition {
+    pub fn layers(&self) -> &[GraphicsScene] {
+        &self.layers
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourWorkspaceSceneRefusal {
@@ -14,6 +28,17 @@ pub enum TourWorkspaceSceneRefusal {
     Layout(TourLayoutRefusal),
     MissingRegion,
     Graphics(GraphicsError),
+}
+
+impl TourWorkspaceSceneRefusal {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Presentation(_) => "tour-presentation-refused",
+            Self::Layout(_) => "tour-layout-refused",
+            Self::MissingRegion => "tour-region-missing",
+            Self::Graphics(_) => "tour-graphics-refused",
+        }
+    }
 }
 
 pub fn application_view(
@@ -89,6 +114,96 @@ pub fn scene_for_state(
             .push(
                 GraphicsCommand::text(inset(bounds), bounds, paint, label)
                     .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    }
+    Ok(scene)
+}
+
+pub fn composition_for_state(
+    width: u16,
+    height: u16,
+    state: &TourWorkspaceState,
+) -> Result<TourWorkspaceComposition, TourWorkspaceSceneRefusal> {
+    let base = scene_for_state(width, height, state)?;
+    let layout = TourWorkspaceLayout::default_for(width, height)
+        .map_err(TourWorkspaceSceneRefusal::Layout)?;
+    let patchbay = patchbay_scene(layout.patchbay, state)?;
+    Ok(TourWorkspaceComposition {
+        layers: [base, patchbay],
+    })
+}
+
+fn patchbay_scene(
+    region: TourRect,
+    state: &TourWorkspaceState,
+) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
+    let clip = graphics_rect(region)?;
+    let inset_x = 14_u16;
+    let usable_width = region.width.saturating_sub(inset_x.saturating_mul(2));
+    let gear_width = (usable_width.saturating_sub(32) / 3).max(1);
+    let gear_height = region.height.saturating_sub(64).clamp(24, 72);
+    let gear_y = region
+        .y
+        .saturating_add(region.height.saturating_sub(gear_height) / 2);
+    let mut scene = GraphicsScene::empty();
+    let mut gears = [clip; CANONICAL_PATCHBAY_GEARS.len()];
+    for (index, identity) in CANONICAL_PATCHBAY_GEARS.iter().enumerate() {
+        let x = region.x.saturating_add(inset_x).saturating_add(
+            u16::try_from(index)
+                .unwrap_or(u16::MAX)
+                .saturating_mul(gear_width.saturating_add(16)),
+        );
+        let bounds = LayoutRect {
+            x: i16::try_from(x).map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?,
+            y: i16::try_from(gear_y).map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?,
+            width: gear_width,
+            height: gear_height,
+        };
+        gears[index] = bounds;
+        let paint = if state.selected_patchbay_subject.as_deref() == Some(*identity) {
+            GraphicsPaintRole::Accent
+        } else {
+            GraphicsPaintRole::Foreground
+        };
+        scene
+            .push(
+                GraphicsCommand::rect(bounds, clip, paint, GraphicsShapeStyle::Stroke)
+                    .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+        let label = identity.rsplit('/').next().unwrap_or(identity);
+        scene
+            .push(
+                GraphicsCommand::text(inset(bounds), clip, paint, label)
+                    .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    }
+    for pair in gears.windows(2) {
+        let left = pair[0];
+        let right = pair[1];
+        let x = left.x.saturating_add_unsigned(left.width);
+        let width = u16::try_from(i32::from(right.x).saturating_sub(i32::from(x)))
+            .unwrap_or_default()
+            .max(1);
+        let cord = LayoutRect {
+            x,
+            y: left
+                .y
+                .saturating_add_unsigned(left.height.saturating_div(2)),
+            width,
+            height: 2,
+        };
+        scene
+            .push(
+                GraphicsCommand::rect(
+                    cord,
+                    clip,
+                    GraphicsPaintRole::Accent,
+                    GraphicsShapeStyle::Fill,
+                )
+                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     }
@@ -189,6 +304,38 @@ mod tests {
                 Some(focused_frame)
             );
         }
+    }
+
+    #[test]
+    fn patchbay_composition_draws_three_semantic_gears_and_two_cords() {
+        let mut state = TourWorkspaceState::canonical(12, TourWorkspacePhase::PatchbayOpen);
+        state.selected_patchbay_subject = Some(CANONICAL_PATCHBAY_GEARS[1].into());
+        let composition = composition_for_state(640, 480, &state).unwrap();
+        assert_eq!(composition.layers().len(), MAX_TOUR_COMPOSITION_LAYERS);
+        let patchbay = &composition.layers()[1];
+        assert_eq!(patchbay.commands().len(), 8);
+        assert_eq!(
+            patchbay
+                .commands()
+                .iter()
+                .filter(|command| command.kind == GraphicsCommandKind::Text)
+                .map(|command| command.payload())
+                .collect::<alloc::vec::Vec<_>>(),
+            alloc::vec!["words", "change", "result"]
+        );
+        let gear_frames = patchbay
+            .commands()
+            .iter()
+            .filter(|command| {
+                command.kind == GraphicsCommandKind::Rect
+                    && command.style == GraphicsShapeStyle::Stroke
+            })
+            .collect::<alloc::vec::Vec<_>>();
+        assert_eq!(gear_frames.len(), 3);
+        assert_eq!(gear_frames[1].paint, GraphicsPaintRole::Accent);
+        assert!(patchbay.commands().iter().all(|command| {
+            command.clip_class() == conduit_presentation::GraphicsClipClass::FullyVisible
+        }));
     }
 
     #[test]

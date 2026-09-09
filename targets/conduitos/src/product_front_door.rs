@@ -291,12 +291,12 @@ pub(crate) fn render_tour(
         .format()
         .validate()
         .map_err(crate::display::DisplayError::as_str)?;
-    let scene = tour
-        .scene(
-            u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
-            u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
-        )
-        .map_err(|error| error.as_str())?;
+    let composition = crate::tour_workspace::composition_for_state(
+        u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
+        u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
+        tour.controller().state(),
+    )
+    .map_err(|error| error.as_str())?;
     let bounds = LayoutRect {
         x: 0,
         y: 0,
@@ -317,9 +317,11 @@ pub(crate) fn render_tour(
         .map_err(|_| "tour-background-scene-refused")?;
     crate::display::render_scene(display, &background)
         .map_err(crate::display::DisplayError::as_str)?;
-    crate::display::render_scene(display, &scene)
-        .map(|_| ())
-        .map_err(crate::display::DisplayError::as_str)
+    for scene in composition.layers() {
+        crate::display::render_scene(display, scene)
+            .map_err(crate::display::DisplayError::as_str)?;
+    }
+    Ok(())
 }
 
 fn emit_tour_sign(
