@@ -28,6 +28,19 @@ enum Request {
     SelectForm {
         form: ResidentForm,
     },
+    LibraryView {
+        source: String,
+        query: String,
+        revision: u32,
+    },
+    ChangeWorkset {
+        host_id: HostId,
+        boot_id: BootId,
+        expected_revision: u64,
+        form: ResidentForm,
+        source: String,
+        edit: WorksetEdit,
+    },
     Propose {
         host_id: HostId,
         boot_id: BootId,
@@ -44,6 +57,12 @@ enum Request {
         boot_id: BootId,
         terminated_play: Option<BodyPlayIdentity>,
     },
+}
+
+#[derive(Deserialize)]
+enum WorksetEdit {
+    Install,
+    Remove,
 }
 
 #[derive(Serialize)]
@@ -137,6 +156,51 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         let mut candidate = current.clone();
         match request {
             Request::Current => return snapshot(current),
+            Request::LibraryView {
+                source,
+                query,
+                revision,
+            } => {
+                return crate::creche::workspace_library(&source)?
+                    .presentation(current, revision, &query)
+                    .map_err(|error| Refusal::new("LibraryPresentation", format!("{error:?}")))?
+                    .lower()
+                    .map_err(|error| Refusal::new("LibraryPresentation", format!("{error:?}")))?
+                    .encode()
+                    .map_err(|error| Refusal::new("LibraryPresentation", format!("{error:?}")))
+                    .and_then(|bytes| {
+                        if bytes.len() <= CAPACITY {
+                            Ok(bytes)
+                        } else {
+                            Err(Refusal::new(
+                                "OutputBound",
+                                "Form library exceeds its presentation bound",
+                            ))
+                        }
+                    });
+            }
+            Request::ChangeWorkset {
+                host_id,
+                boot_id,
+                expected_revision,
+                form,
+                source,
+                edit,
+            } => {
+                crate::form_runner::workspace::require_empty()?;
+                match edit {
+                    WorksetEdit::Install => {
+                        crate::creche::require_workspace_form(&source, &form)?;
+                        candidate
+                            .admit_form(expected_revision, form.clone(), &host_id, &boot_id)
+                            .map_err(debug)?;
+                        candidate.select_form(&form).map_err(debug)?;
+                    }
+                    WorksetEdit::Remove => candidate
+                        .remove_form(expected_revision, &form, &host_id, &boot_id)
+                        .map_err(debug)?,
+                }
+            }
             Request::SelectForm { form } => candidate.select_form(&form).map_err(debug)?,
             Request::Propose {
                 host_id,

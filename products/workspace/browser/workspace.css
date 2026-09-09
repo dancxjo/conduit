@@ -85,3 +85,15 @@ a { color:var(--muted); text-decoration:none; }
 
 .workspace-creche button[data-application-component] { background:var(--field); color:var(--ink); box-shadow:none; }
 .workspace-creche button[data-application-key="birth-body"] { background:var(--amber); color:var(--paper); }
+.form-library-panel [data-application-component="shell"] { display:grid; gap:1.5rem; }
+.form-library-panel [data-application-component="grid"] { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr)); gap:1rem; }
+.form-library-panel [data-application-component="panel"] { padding:1.1rem; border:1px solid var(--line); border-radius:.35rem; }
+.form-library-panel [data-application-component="panel"] > h2 { margin:0 0 .5rem; font-size:1rem; color:var(--ink); }
+.form-library-panel [data-application-component="form-field"] { display:grid; gap:.5rem; }
+.form-library-panel input { width:100%; padding:.65rem; background:var(--field); color:var(--ink); border:1px solid var(--line); border-radius:.3rem; font:inherit; }
+.form-library-panel [data-application-component="field-help"], .form-library-panel [data-application-component="status"] { color:var(--muted); font-size:.8rem; }
+.form-library-panel [data-application-component="action-group"] { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.75rem; }
+.form-library-panel button[data-application-component] { background:var(--field); color:var(--ink); box-shadow:none; }
+.form-library-panel [data-application-key^="use-"] { color:var(--amber); }
+.form-library-panel [data-application-component="panel"] { display:flex; flex-direction:column; gap:.65rem; background:var(--panel); color:var(--ink); }
+.form-library-panel [data-application-component="action-group"] { margin-top:0; }

@@ -119,10 +119,11 @@ pub extern "C" fn conduit_creche_review_initial_workload(
                 .map_err(|_| "initial Form selection is not UTF-8".to_string())?;
             let source = core::str::from_utf8(&input[forms_end..total_length])
                 .map_err(|_| "reviewed Form inventory is not UTF-8".to_string())?;
-            let hosts = [crate::installed_browser::advertisement(
+            let hosts = [super::initial_forms::reviewed_browser_host(
+                source,
                 conduit_core::HostId::from(host),
                 conduit_core::BootId::from(boot),
-            )];
+            )?];
             super::review::review(
                 source,
                 selection,

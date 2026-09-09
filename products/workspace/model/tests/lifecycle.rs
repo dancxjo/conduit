@@ -249,3 +249,107 @@ fn foreground_selection_changes_neither_body_evidence_nor_running_realization() 
     );
     assert_eq!(body.foreground(), Some(&form("notes")));
 }
+
+#[test]
+fn removing_forms_retains_the_body_and_membership_and_reconciles_foreground() {
+    let mut body = born();
+    let identity = body.evidence().body_id.clone();
+    let membership = body.evidence().membership.clone();
+    body.admit_form(0, form("notes"), &host(), &boot()).unwrap();
+    body.select_form(&form("notes")).unwrap();
+    let play = start(&mut body);
+    let before = body.evidence().clone();
+    assert_eq!(
+        body.remove_form(1, &form("notes"), &host(), &boot()),
+        Err(WorkspaceBodyError::NotLulled)
+    );
+    assert_eq!(body.evidence(), &before);
+    body.lull(&host(), &boot(), Some(&play)).unwrap();
+    body.remove_form(1, &form("notes"), &host(), &boot())
+        .unwrap();
+    assert_eq!(body.foreground(), Some(&form("morse")));
+    body.remove_form(2, &form("morse"), &host(), &boot())
+        .unwrap();
+    assert_eq!(body.foreground(), None);
+    assert!(body.evidence().body.workset.is_empty());
+    assert_eq!(body.evidence().body.state, BodyState::Lulled);
+    assert_eq!(body.evidence().body_id, identity);
+    assert_eq!(body.evidence().membership, membership);
+    assert_eq!(body.evidence().body.workload_revision, 3);
+    let restored: BodyBiographyEvidence =
+        serde_json::from_str(&serde_json::to_string(body.evidence()).unwrap()).unwrap();
+    assert!(
+        WorkspaceBody::open(restored)
+            .unwrap()
+            .evidence()
+            .body
+            .workset
+            .is_empty()
+    );
+}
+
+#[test]
+fn stale_or_absent_removal_preserves_current_workload_and_evidence() {
+    let mut body = born();
+    let before = body.evidence().clone();
+    assert_eq!(
+        body.remove_form(1, &form("morse"), &host(), &boot()),
+        Err(WorkspaceBodyError::StaleWorkload)
+    );
+    assert_eq!(
+        body.remove_form(0, &form("morse"), &host(), &"boot/stale".into()),
+        Err(WorkspaceBodyError::StaleHost)
+    );
+    assert!(
+        body.remove_form(0, &form("missing"), &host(), &boot())
+            .is_err()
+    );
+    assert_eq!(body.evidence(), &before);
+    assert_eq!(body.foreground(), Some(&form("morse")));
+}
+
+#[test]
+fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtered() {
+    use conduit_workspace_model::library::{FormLibrary, LibraryEntry, LibraryRefusal};
+    let body = born();
+    let library = FormLibrary::new(vec![
+        LibraryEntry {
+            form: form("morse"),
+            title: "Morse".into(),
+            search_text: "keyboard light".into(),
+        },
+        LibraryEntry {
+            form: form("notes"),
+            title: "Notes".into(),
+            search_text: "keyboard text".into(),
+        },
+    ])
+    .unwrap();
+    let view = library
+        .presentation(&body, 7, "keyboard text")
+        .unwrap()
+        .lower()
+        .unwrap();
+    assert_eq!(view.revision, 7);
+    assert!(
+        view.actions
+            .iter()
+            .any(|action| action.id == "library.use.1")
+    );
+    assert!(
+        !view
+            .actions
+            .iter()
+            .any(|action| action.id.starts_with("library.remove"))
+    );
+    let view = library.presentation(&body, 8, "").unwrap().lower().unwrap();
+    assert!(
+        view.actions
+            .iter()
+            .any(|action| action.id == "library.remove.0")
+    );
+    assert!(matches!(
+        library.presentation(&body, 9, &"x".repeat(129)),
+        Err(LibraryRefusal::SearchBound)
+    ));
+}

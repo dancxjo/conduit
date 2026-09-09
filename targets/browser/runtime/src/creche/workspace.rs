@@ -10,6 +10,42 @@ pub(crate) fn handoff_workspace() {
     super::session::forget_local();
 }
 
+pub(crate) fn require_workspace_form(
+    source: &str,
+    form: &conduit_body::ResidentForm,
+) -> Result<(), String> {
+    let inventory = super::initial_forms::reviewed_inventory(source)?;
+    if !inventory.forms.iter().any(|entry| {
+        entry.source_document_id == form.source_document_id.as_str()
+            && entry.checked_form_id == form.checked_form_id.as_str()
+    }) {
+        return Err("Form has a stale or missing reviewed identity".into());
+    }
+    Ok(())
+}
+
+pub(crate) fn workspace_library(
+    source: &str,
+) -> Result<conduit_workspace_model::library::FormLibrary, String> {
+    use conduit_workspace_model::library::{FormLibrary, LibraryEntry};
+    let inventory = super::initial_forms::reviewed_inventory(source)?;
+    FormLibrary::new(
+        inventory
+            .forms
+            .into_iter()
+            .map(|entry| LibraryEntry {
+                form: conduit_body::ResidentForm::new(
+                    entry.source_document_id.into(),
+                    entry.checked_form_id.into(),
+                ),
+                title: entry.title,
+                search_text: format!("{} {}", entry.name, entry.required_kinds.join(" ")),
+            })
+            .collect(),
+    )
+    .map_err(|error| format!("Form library refused: {error:?}"))
+}
+
 pub(crate) fn plan_workspace_forms(
     evidence: &BodyBiographyEvidence,
     source: &str,
@@ -17,16 +53,15 @@ pub(crate) fn plan_workspace_forms(
     boot: &BootId,
 ) -> Result<Vec<BodyFormPlan>, String> {
     let inventory = super::initial_forms::check_inventory(source)?;
-    let (startup, profile) = crate::installed_browser::catalogs()?;
-    let backs = crate::installed_browser::backs(&startup, &profile)?;
-    let hosts = [crate::installed_browser::advertisement(
+    let hosts = [super::initial_forms::reviewed_browser_host(
+        source,
         host.clone(),
         boot.clone(),
-    )];
+    )?];
     let bases = crate::installed_browser::local_bases();
     let mut plans = Vec::with_capacity(evidence.body.workset.len());
     for resident in evidence.body.workset.forms() {
-        let (document, form) = inventory
+        let (document, form, presentation) = inventory
             .iter()
             .find_map(|entry| {
                 if entry.checked.source_document_id != resident.source_document_id {
@@ -37,9 +72,16 @@ pub(crate) fn plan_workspace_forms(
                     .forms
                     .iter()
                     .find(|form| form.checked_form_id == resident.checked_form_id)
-                    .map(|form| (&entry.checked, form))
+                    .map(|form| (&entry.checked, form, entry.presentation))
             })
             .ok_or("Resident Form has a stale or missing checked identity")?;
+        let (startup, mut profile) =
+            crate::installed_browser::catalogs_for_presentation(presentation)?;
+        crate::installed_browser::catalogs::install_checked_structured_selectors(
+            document,
+            &mut profile,
+        )?;
+        let backs = crate::installed_browser::backs(&startup, &profile)?;
         let expanded =
             conduit_form::expand_canonical_form_with_backs(document, &form.name, &profile, &backs)
                 .map_err(|error| format!("Workspace expansion refused: {error:?}"))?;

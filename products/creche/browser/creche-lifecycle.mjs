@@ -2,6 +2,7 @@ import { attachConduitSyntaxEditor } from "../../../targets/browser/host/assets/
 import {
   encodedFormSelection,
   reviewInitialWorkload,
+  selectedReviewedSource,
 } from "./creche-form-selection.mjs";
 
 const encoder = new TextEncoder();
@@ -151,7 +152,7 @@ function presentBirthControls(runner, state, controls) {
   }
   presentation.present("birth-feedback", {
     revision: ++state.revision, actions: [],
-    nodes: [{ parent: null, component: state.outcome, action: null, key: "birth-status", text: state.status }],
+    nodes: birthFeedbackNodes(state.status, state.outcome),
   });
   presentation.present("birth-source", {
     revision: ++state.revision,
@@ -173,6 +174,25 @@ function presentBirthControls(runner, state, controls) {
   attachConduitSyntaxEditor(runner.querySelector(`[data-application-key="${listingId}"]`), runtime);
 }
 
+// Status labels have a 256-byte bound; detailed evidence uses the existing value channel.
+export function birthFeedbackNodes(message, outcome) {
+  const bytes = encoder.encode(message);
+  if (bytes.length <= 256) return [{ parent: null, component: outcome, action: null, key: "birth-status", text: message }];
+  const suffix = "\n[Details exceed the display bound.]";
+  let detail = message;
+  if (bytes.length > 65_536) {
+    let end = 65_536 - encoder.encode(suffix).length;
+    while ((bytes[end] & 0xc0) === 0x80) end--;
+    detail = decoder.decode(bytes.subarray(0, end)) + suffix;
+  }
+  return [
+    { parent: null, component: "stack", action: null, key: "birth-feedback", text: "" },
+    { parent: 0, component: outcome, action: null, key: "birth-status", text: "The workload could not be accepted. Details are shown below." },
+    { parent: 0, component: "definition-table", action: null, key: "birth-details", text: "Workload details" },
+    { parent: 2, component: "definition", action: null, key: "birth-detail", text: "Reason", value: detail, valueCapacity: 65_536 },
+  ];
+}
+
 export function selectedCanonicalSource(forms) {
   return forms.map((form) => form.source.trimEnd()).join("\n\n");
 }
@@ -188,7 +208,7 @@ function review(runner, host, state, controls) {
       host.runtime,
       host.hostId,
       host.bootId,
-      state.inventorySource,
+      selectedReviewedSource(state.inventorySource, state.initialForms),
       state.initialForms,
     );
     state.status = `Ready to birth with ${state.initialForms.length} Form(s).`;
@@ -203,7 +223,7 @@ function review(runner, host, state, controls) {
 
 function birth(runner, host, state, sequence, onBodyChanged, presentationOptions) {
   const api = host.runtime;
-  const sourceBytes = encoder.encode(state.inventorySource);
+  const sourceBytes = encoder.encode(selectedReviewedSource(state.inventorySource, state.initialForms));
   const hostBytes = encoder.encode(host.hostId);
   const bootBytes = encoder.encode(host.bootId);
   const nameBytes = encoder.encode(state.friendlyName.trim());
