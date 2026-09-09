@@ -45,20 +45,10 @@ impl TourTransientKind {
 
 impl TourWorkspaceState {
     pub fn run_action_available(&self) -> bool {
-        let Ok(view) = self
-            .presentation()
-            .and_then(|presentation| presentation.lower())
-        else {
-            return false;
-        };
-        conduit_presentation::ApplicationEvent {
-            revision: self.revision,
-            action: crate::RUN_ACTION_ID.into(),
-            kind: conduit_presentation::ApplicationEventKind::Activate,
-            value: Vec::new(),
-        }
-        .validate(&view)
-        .is_ok()
+        matches!(
+            self.run_availability(),
+            conduit_presentation::ActionAvailability::Available
+        )
     }
     /// Primary Patchbay workspace meaning, independent of shell geometry.
     pub fn workspace_presentation(&self) -> Result<Presentation, &'static str> {

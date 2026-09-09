@@ -33,6 +33,13 @@ fn completed_run_is_not_an_active_native_control() {
         scene
             .commands()
             .iter()
+            .any(|command| command.payload() == "Canonical Play already completed")
+    );
+    assert!(scene.commands().len() <= 24);
+    assert!(
+        scene
+            .commands()
+            .iter()
             .any(|command| command.payload() == "Run inactive")
     );
     assert!(

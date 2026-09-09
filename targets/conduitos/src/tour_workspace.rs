@@ -224,6 +224,22 @@ pub(crate) fn scene_with_graph(
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     }
+    if let conduit_presentation::ActionAvailability::Busy { detail }
+    | conduit_presentation::ActionAvailability::Unavailable { detail } = state.run_availability()
+    {
+        let reason = LayoutRect {
+            x: 8,
+            y: 168,
+            width: clip.width.saturating_sub(16).max(1),
+            height: 64,
+        };
+        scene
+            .push(
+                GraphicsCommand::text(reason, clip, GraphicsPaintRole::Foreground, &detail)
+                    .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    }
     Ok(scene)
 }
 
