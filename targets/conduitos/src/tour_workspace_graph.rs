@@ -1,5 +1,6 @@
 //! Native projection of the Tour specimen's Gear contracts.
 use super::*;
+use conduit_presentation::{GraphicsPath, GraphicsPoint};
 use conduit_tour_model::{CANONICAL_PATCHBAY_GEARS, canonical_gear_contract};
 
 pub(super) fn card_bounds(bounds: LayoutRect, index: usize) -> LayoutRect {
@@ -21,6 +22,7 @@ pub(super) fn append(
     state: &TourWorkspaceState,
     observations: Option<&crate::text_composition::TextObservations>,
 ) -> Result<(), TourWorkspaceSceneRefusal> {
+    let mut previous_output = None;
     for (index, gear) in CANONICAL_PATCHBAY_GEARS.into_iter().enumerate() {
         let contract =
             canonical_gear_contract(gear).ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
@@ -42,10 +44,20 @@ pub(super) fn append(
         } else {
             "Unobserved\n"
         });
+        let (mut input, mut output) = (None, None);
         for (direction, ports) in [("in", &contract.inputs), ("out", &contract.outputs)] {
             for port in ports {
+                text.push('\n');
+                if port.port_id.as_str() == "text" {
+                    let anchor = port_anchor(card, &text, direction == "out");
+                    if direction == "out" {
+                        output = anchor;
+                    } else {
+                        input = anchor;
+                    }
+                }
                 text.push_str(&alloc::format!(
-                    "\n{direction} {}\n{}",
+                    "{direction} {}\n{}",
                     port.port_id.as_str(),
                     port.value_kind.as_str()
                 ));
@@ -75,27 +87,58 @@ pub(super) fn append(
                     .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-        if index < 2 {
-            let cord = LayoutRect {
-                x: card.x.saturating_add(card.width as i16),
-                y: card.y.saturating_add((card.height / 2) as i16),
-                width: 16,
-                height: 2,
-            };
+        // The canonical source wires words.text -> change.text -> result.text.
+        // Anchors come from those exact typed Port rows, never card centers.
+        if let (Some(start), Some(end)) = (previous_output, input) {
+            let path = cord_path(start, end).map_err(TourWorkspaceSceneRefusal::Graphics)?;
             scene
                 .push(
-                    GraphicsCommand::rect(
-                        cord,
-                        bounds,
-                        GraphicsPaintRole::Status,
-                        GraphicsShapeStyle::Fill,
-                    )
-                    .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+                    GraphicsCommand::path(path, bounds, GraphicsPaintRole::Status)
+                        .map_err(TourWorkspaceSceneRefusal::Graphics)?,
                 )
                 .map_err(TourWorkspaceSceneRefusal::Graphics)?;
         }
+        previous_output = output;
     }
     Ok(())
+}
+
+fn port_anchor(card: LayoutRect, preceding_text: &str, output: bool) -> Option<GraphicsPoint> {
+    let text_bounds = super::inset(card);
+    let height = crate::display::text_height(preceding_text, text_bounds.width).ok()?;
+    // Measurement includes the next empty line; its center is eight pixels
+    // above the bottom of that line in the pinned sixteen-pixel font.
+    let y = i32::from(text_bounds.y) + i32::from(height) - 8;
+    if y >= i32::from(card.y) + i32::from(card.height) {
+        return None;
+    }
+    Some(GraphicsPoint {
+        x: if output {
+            card.x + card.width as i16 - 1
+        } else {
+            card.x
+        },
+        y: i16::try_from(y).ok()?,
+    })
+}
+
+fn cord_path(start: GraphicsPoint, end: GraphicsPoint) -> Result<GraphicsPath, GraphicsError> {
+    if start.y == end.y {
+        return GraphicsPath::new(&[start, end]);
+    }
+    let middle = start.x + (end.x - start.x) / 2;
+    GraphicsPath::new(&[
+        start,
+        GraphicsPoint {
+            x: middle,
+            y: start.y,
+        },
+        GraphicsPoint {
+            x: middle,
+            y: end.y,
+        },
+        end,
+    ])
 }
 
 // A card is a bounded preview, not a replacement for the exact observation.
@@ -117,6 +160,64 @@ fn preview(value: Option<&str>) -> alloc::string::String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn canonical_cords_join_measured_port_rows_with_one_command_each() {
+        let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
+        let layout = super::super::layout_for_state(1280, 800, &state).unwrap();
+        let graph = graphics_rect(layout.patchbay).unwrap();
+        let scene = super::super::scene_for_state(1280, 800, &state).unwrap();
+        let paths: alloc::vec::Vec<_> = scene
+            .commands()
+            .iter()
+            .filter_map(GraphicsCommand::path_geometry)
+            .collect();
+        assert_eq!(paths.len(), 2);
+        assert_eq!(scene.commands().len(), 16);
+        let words = card_bounds(graph, 0);
+        let change = card_bounds(graph, 1);
+        let result = card_bounds(graph, 2);
+        assert_eq!(
+            paths[0].points()[0],
+            GraphicsPoint {
+                x: words.x + words.width as i16 - 1,
+                y: words.y + 80
+            }
+        );
+        assert_eq!(
+            paths[0].points().last().unwrap(),
+            &GraphicsPoint {
+                x: change.x,
+                y: change.y + 80
+            }
+        );
+        assert_eq!(
+            paths[1].points()[0],
+            GraphicsPoint {
+                x: change.x + change.width as i16 - 1,
+                y: change.y + 128
+            }
+        );
+        assert_eq!(
+            paths[1].points().last().unwrap(),
+            &GraphicsPoint {
+                x: result.x,
+                y: result.y + 80
+            }
+        );
+        assert_eq!(paths[1].points().len(), 4);
+        assert!(
+            port_anchor(
+                LayoutRect {
+                    height: 32,
+                    ..change
+                },
+                "name\nkind\nstate\n\n",
+                true
+            )
+            .is_none()
+        );
+    }
 
     #[test]
     fn hit_regions_match_card_edges_and_exclude_headers_and_gaps() {
