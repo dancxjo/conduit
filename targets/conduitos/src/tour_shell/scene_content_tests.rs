@@ -2,6 +2,45 @@ use super::*;
 use conduit_tour_model::{TourWorkspacePhase, TourWorkspaceState};
 
 #[test]
+#[cfg(feature = "native-compositor")]
+fn transient_symbols_do_not_confuse_confirmation_with_success() {
+    use conduit_tour_model::TourTransientKind;
+    let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::LessonReady);
+    let bounds = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 640,
+        height: 320,
+    };
+    for (kind, symbol) in [
+        (TourTransientKind::Refusal, GraphicsSymbol::Warning),
+        (TourTransientKind::Confirmation, GraphicsSymbol::Info),
+        (TourTransientKind::Chooser, GraphicsSymbol::Gear),
+    ] {
+        let presentation = state.transient_presentation(kind, "Exact detail").unwrap();
+        let scene = transient_scene(bounds, &presentation, 0).unwrap();
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.payload() == symbol.as_token())
+        );
+        assert!(
+            !scene
+                .commands()
+                .iter()
+                .any(|command| command.payload() == GraphicsSymbol::Success.as_token())
+        );
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.payload() == "Exact detail")
+        );
+    }
+}
+
+#[test]
 fn status_cells_preserve_missing_evidence_as_distinct_values() {
     let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::LessonReady);
     let presentation = state.status_presentation().unwrap();

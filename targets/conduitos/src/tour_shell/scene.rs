@@ -1,5 +1,6 @@
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect, Presentation,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsSymbol,
+    LayoutRect, Presentation,
 };
 
 use super::TourShellError;
@@ -60,6 +61,7 @@ fn panel_scene(
     bounds: LayoutRect,
     title: &str,
     detail: &str,
+    symbol: GraphicsSymbol,
 ) -> Result<GraphicsScene, TourShellError> {
     let inset = crate::display::style::NATIVE_STYLE.panel_inset;
     let local = LayoutRect {
@@ -80,10 +82,31 @@ fn panel_scene(
             .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
+    let symbol_space = if cfg!(feature = "native-compositor") {
+        scene
+            .push(
+                GraphicsCommand::symbol(
+                    LayoutRect {
+                        x: inset as i16,
+                        y: inset as i16,
+                        width: 24,
+                        height: 24,
+                    },
+                    local,
+                    GraphicsPaintRole::Accent,
+                    symbol,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+        24 + crate::display::style::NATIVE_STYLE.inset
+    } else {
+        0
+    };
     let title_bounds = LayoutRect {
-        x: inset as i16,
+        x: (inset + symbol_space) as i16,
         y: inset as i16,
-        width: local.width.saturating_sub(2 * inset),
+        width: local.width.saturating_sub(2 * inset + symbol_space).max(1),
         height: 24,
     };
     scene
@@ -142,7 +165,6 @@ pub(super) fn status_scene(
             .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
-    use conduit_presentation::GraphicsSymbol;
     for (index, (key, symbol)) in [
         ("body", GraphicsSymbol::Body),
         ("wake", GraphicsSymbol::Wake),
@@ -224,7 +246,7 @@ pub(super) fn inspector_scene(
     if scroll_y > super::scroll::MAX_SCROLL_CONTENT_HEIGHT {
         return Err(TourShellError::Identity);
     }
-    let mut scene = panel_scene(bounds, "INSPECTOR", "")?;
+    let mut scene = panel_scene(bounds, "INSPECTOR", "", GraphicsSymbol::Inspect)?;
     if let Some(action) = presentation.subjects.iter().find(|subject| {
         subject.identity == conduit_tour_model::INSPECTOR_CLOSE_ACTION_ID
             && subject.role == conduit_presentation::PresentationRole::Action
@@ -267,7 +289,28 @@ pub(super) fn transient_scene(
     }) {
         return chooser_scene(bounds, presentation, scroll_y);
     }
-    scroll_scene(bounds, "DETAIL", first_text(presentation), scroll_y)
+    use conduit_tour_model::TourTransientKind;
+    let (subject, symbol) = [
+        (TourTransientKind::Refusal, GraphicsSymbol::Warning),
+        // A confirmation surface is not proof of successful execution.
+        (TourTransientKind::Confirmation, GraphicsSymbol::Info),
+    ]
+    .into_iter()
+    .find_map(|(kind, symbol)| {
+        presentation
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == kind.subject_identity())
+            .map(|subject| (subject, symbol))
+    })
+    .ok_or(TourShellError::Identity)?;
+    scroll_scene(
+        bounds,
+        &subject.label,
+        first_text(presentation),
+        scroll_y,
+        symbol,
+    )
 }
 
 fn chooser_scene(
@@ -278,7 +321,12 @@ fn chooser_scene(
     if scroll_y > SCROLL_CONTENT_HEIGHT {
         return Err(TourShellError::Identity);
     }
-    let mut scene = panel_scene(bounds, "CHOOSE GEAR", first_text(presentation))?;
+    let mut scene = panel_scene(
+        bounds,
+        "CHOOSE GEAR",
+        first_text(presentation),
+        GraphicsSymbol::Gear,
+    )?;
     let viewport = LayoutRect {
         x: 0,
         y: 70,
@@ -332,6 +380,7 @@ fn scroll_scene(
     title: &str,
     detail: &str,
     scroll_y: u16,
+    symbol: GraphicsSymbol,
 ) -> Result<GraphicsScene, TourShellError> {
     if scroll_y > SCROLL_CONTENT_HEIGHT {
         return Err(TourShellError::Identity);
@@ -342,7 +391,7 @@ fn scroll_scene(
         width: bounds.width,
         height: bounds.height,
     };
-    let mut scene = panel_scene(bounds, title, detail)?;
+    let mut scene = panel_scene(bounds, title, detail, symbol)?;
     for row in 0..5_u16 {
         let content_y = 76_u16
             .checked_add(row.checked_mul(140).ok_or(TourShellError::Identity)?)
