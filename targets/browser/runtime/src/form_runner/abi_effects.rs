@@ -11,6 +11,23 @@ pub extern "C" fn conduit_browser_form_poll_effect() -> i32 {
     progress(|session| session.poll_effect())
 }
 
+/// Read-only exact observation of the current Play; no completion or restart.
+#[no_mangle]
+pub extern "C" fn conduit_browser_form_signs() -> i32 {
+    clear_output();
+    SESSION.with(|slot| {
+        let slot = slot.borrow();
+        let Some(session) = slot.as_ref() else {
+            return ERROR_NOT_RUNNING;
+        };
+        if write_output(&session.kernel_signs()).is_ok() {
+            STATUS_READY
+        } else {
+            ERROR_OUTPUT
+        }
+    })
+}
+
 /// Input is exact Play identity, placement identity, then optional canonical output.
 #[no_mangle]
 pub extern "C" fn conduit_browser_form_complete_effect(
@@ -24,7 +41,7 @@ pub extern "C" fn conduit_browser_form_complete_effect(
         placement_length,
         request_sequence,
         output_length,
-        false,
+        Completion::Success,
     )
 }
 #[no_mangle]
@@ -33,14 +50,48 @@ pub extern "C" fn conduit_browser_form_acknowledge_cancellation(
     placement_length: usize,
     request_sequence: u32,
 ) -> i32 {
-    complete_effect(play_length, placement_length, request_sequence, 0, true)
+    complete_effect(
+        play_length,
+        placement_length,
+        request_sequence,
+        0,
+        Completion::Cancelled,
+    )
+}
+/// Report a real Host denial (1) or failure (2) for one exact pending effect.
+#[no_mangle]
+pub extern "C" fn conduit_browser_form_refuse_effect(
+    play_length: usize,
+    placement_length: usize,
+    request_sequence: u32,
+    disposition: u32,
+    detail: u32,
+) -> i32 {
+    if !matches!(disposition, 1 | 2) || detail > u16::MAX as u32 {
+        return ERROR_INPUT;
+    }
+    complete_effect(
+        play_length,
+        placement_length,
+        request_sequence,
+        0,
+        Completion::Refused {
+            denied: disposition == 1,
+            detail: detail as u16,
+        },
+    )
+}
+enum Completion {
+    Success,
+    Cancelled,
+    Refused { denied: bool, detail: u16 },
 }
 fn complete_effect(
     play_length: usize,
     placement_length: usize,
     request_sequence: u32,
     output_length: usize,
-    cancelled: bool,
+    completion: Completion,
 ) -> i32 {
     let Some(total) = play_length
         .checked_add(placement_length)
@@ -58,8 +109,20 @@ fn complete_effect(
             core::str::from_utf8(&input[play_length..play_length + placement_length]),
         ) {
             (Ok(play), Ok(placement)) => progress(|session| {
-                if cancelled {
-                    return session.acknowledge_cancellation(play, placement, request_sequence);
+                match completion {
+                    Completion::Cancelled => {
+                        return session.acknowledge_cancellation(play, placement, request_sequence)
+                    }
+                    Completion::Refused { denied, detail } => {
+                        return session.refuse_effect(
+                            play,
+                            placement,
+                            request_sequence,
+                            denied,
+                            detail,
+                        )
+                    }
+                    Completion::Success => {}
                 }
                 session.complete_effect(
                     play,

@@ -46,6 +46,7 @@ impl TourSession {
                     && effect.request.operation == cancellation.operation
             })
             .ok_or("cancelled effect is not pending")?;
+        self.host_outcomes.check_capacity()?;
         self.scheduler
             .complete_host_operation(
                 cancellation.node,
@@ -57,6 +58,15 @@ impl TourSession {
                 },
             )
             .map_err(|error| format!("{error:?}"))?;
+        self.host_outcomes.record(
+            cancellation.node,
+            cancellation.request,
+            conduit_kernel::HostOperationOutcome {
+                disposition: conduit_kernel::HostOperationDisposition::Cancelled,
+                output: None,
+                failure: None,
+            },
+        );
         self.pending.remove(index);
         self.cancellation = None;
         self.poll_effect()

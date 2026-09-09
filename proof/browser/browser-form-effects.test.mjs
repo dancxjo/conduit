@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { drainBrowserEffects } from "../../targets/browser/host/assets/browser-form-effects.mjs";
+import { drainBrowserEffects, BrowserHostEffectRefusal } from "../../targets/browser/host/assets/browser-form-effects.mjs";
 
 const effect = (placement) => ({ effect_kind: "timer", active_play_id: "body-play/one", placement_id: placement, request_sequence: 0 });
 const waiting = { disposition: "waiting" };
@@ -86,4 +86,27 @@ test("kernel cancellation aborts its exact timer before acknowledgement", async 
   });
   assert.equal(result.disposition, "completed");
   assert.deepEqual(host.received, []);
+});
+
+
+test("typed Host denial is correlated without stopping unrelated pending work", async () => {
+  const host = fixture([effect("keyboard"), waiting], [{ disposition: "completed" }]);
+  const refusals = [];
+  let releaseKeyboard;
+  host.api.conduit_browser_form_refuse_effect = (playLength, placementLength, sequence, disposition, detail) => {
+    const bytes = new Uint8Array(host.api.memory.buffer);
+    refusals.push({ play: new TextDecoder().decode(bytes.slice(0, playLength)), placement: new TextDecoder().decode(bytes.slice(playLength, playLength + placementLength)), sequence, disposition, detail });
+    queueMicrotask(releaseKeyboard);
+    return 0;
+  };
+  const result = await drainBrowserEffects({ ...host, initialProgress: effect("audio"),
+    perform: async value => {
+      if (value.placement_id === "audio") throw new BrowserHostEffectRefusal("denied", 2, "audio policy denied");
+      await new Promise(resolve => { releaseKeyboard = resolve; });
+      return Uint8Array.of(1);
+    },
+  });
+  assert.equal(result.disposition, "completed");
+  assert.deepEqual(refusals, [{ play: "body-play/one", placement: "audio", sequence: 0, disposition: 1, detail: 2 }]);
+  assert.deepEqual(host.received, [{ play: "body-play/one", placement: "keyboard", sequence: 0, length: 1 }]);
 });

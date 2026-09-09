@@ -1,8 +1,22 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 98
+maximum_forms = 100
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
+[[forms]]
+slug = "startup-chime"
+title = "Conduit Startup Chime"
+entry = "startup_chime"
+initial_body_order = 6
+deterministic = { package = "conduit-browser-runtime", test = "lib", case = "canonical_chime_requests_one_bounded_audio_effect_then_idles_without_graphics", plan_play_evidence = true }
+browser_safe_not_applicable = "requires a retained Body lifecycle and real audio policy; covered by workspace startup acceptance"
+[[forms]]
+slug = "first-wake-chime"
+title = "First Wake Chime"
+entry = "first_wake_chime"
+initial_body_order = 7
+deterministic = { package = "conduit-browser-runtime", test = "lib", case = "canonical_first_wake_chime_does_not_repeat_after_retained_wake", plan_play_evidence = true }
+browser_safe_not_applicable = "requires a retained Body lifecycle; a standalone Gallery Play cannot invent a Body wake"
 [[forms]]
 slug = "addressed-utterance"
 title = "Addressed Utterance"

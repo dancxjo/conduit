@@ -171,6 +171,7 @@ fn canonical_secret_knock_demo_runs_two_attempts_in_one_play() {
         {
             let effect_kind = match effect.effect {
                 engine::BrowserHostEffect::ClockObservation => "clock",
+                engine::BrowserHostEffect::AudioCue => "audio",
                 engine::BrowserHostEffect::ButtonTransition => "button",
                 engine::BrowserHostEffect::Manifestation(_) => "manifestation",
                 _ => "unexpected",
@@ -238,6 +239,7 @@ fn canonical_secret_knock_demo_runs_two_attempts_in_one_play() {
         "canonical Secret Knock demo did not produce two attempts: transitions={transition} clocks={clock} manifested={manifested:?} pending={:?}",
         session.pending.iter().map(|effect| match &effect.effect {
             engine::BrowserHostEffect::ClockObservation => "clock",
+            engine::BrowserHostEffect::AudioCue => "audio",
             engine::BrowserHostEffect::ButtonTransition => "button",
             engine::BrowserHostEffect::Manifestation(_) => "manifestation",
             engine::BrowserHostEffect::Timer { .. } => "timer",
