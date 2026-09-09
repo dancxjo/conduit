@@ -59,8 +59,8 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
     }
 
     assert!(
-        required_gate.contains("runs-on: ubuntu-slim"),
-        "the terminal gate must not compete with heavyweight proof runners"
+        required_gate.contains("runs-on: ubuntu-24.04"),
+        "the terminal gate uses the standard runner pool"
     );
 }
 
@@ -88,13 +88,13 @@ fn conduitos_result_join_is_folded_into_the_existing_final_gate() {
         );
     }
     assert!(join.contains("require_result conduitos-limine"));
-    assert!(join.contains("runs-on: ubuntu-slim"));
+    assert!(join.contains("runs-on: ubuntu-24.04"));
     assert!(workflow.contains("name: Verify the final result gate truth table"));
     assert!(workflow.contains("node --test \"$proof\""));
 }
 
 #[test]
-fn required_product_gate_uses_the_lightweight_automation_lane() {
+fn required_product_gate_uses_the_standard_runner_pool() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
@@ -104,7 +104,7 @@ fn required_product_gate_uses_the_lightweight_automation_lane() {
         .expect("locate the stable required product job");
 
     assert!(required_gate.contains("if: ${{ always() && !cancelled() }}"));
-    assert!(required_gate.contains("runs-on: ubuntu-slim"));
+    assert!(required_gate.contains("runs-on: ubuntu-24.04"));
     for result in [
         "TOUR_PATCHBAY_RESULT",
         "STAGE_RESULT",
