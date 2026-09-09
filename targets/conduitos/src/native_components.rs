@@ -1,5 +1,6 @@
 //! Small native rendering vocabulary, with no action or runtime ownership.
 
+#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 use conduit_presentation::{
     GraphicsCommand, GraphicsError, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
     LayoutRect, MAX_GRAPHICS_COMMANDS,
@@ -51,6 +52,7 @@ pub(crate) fn labeled_field(
 
 /// Append one button atomically within the admitted scene budget.
 /// The caller owns its semantic action, hit target, and containing clip.
+#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 pub(crate) fn button(
     scene: &mut GraphicsScene,
     bounds: LayoutRect,

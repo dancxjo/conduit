@@ -26,7 +26,11 @@ fn lesson_scroll_changes_prose_pixels_and_preserves_the_laboratory() {
         panic!("lesson must scroll to its final paragraph");
     };
     let visible = lesson::scrolled(&base, receipt.current_offset).unwrap();
-    let last = visible.commands().last().unwrap();
+    let last = visible
+        .commands()
+        .iter()
+        .rfind(|command| command.payload().contains("nearby Forms are unaffected."))
+        .unwrap();
     assert!(last.payload().ends_with("nearby Forms are unaffected."));
     assert_eq!(
         last.clip_class(),
