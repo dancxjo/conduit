@@ -173,6 +173,9 @@ pub(super) fn status_scene(
         scene
             .push(
                 GraphicsCommand::text(text_bounds, cell, GraphicsPaintRole::Foreground, &text)
+                    .and_then(|command| {
+                        command.with_text_role(conduit_presentation::GraphicsTextRole::Label)
+                    })
                     .map_err(|_| TourShellError::Scene)?,
             )
             .map_err(|_| TourShellError::Scene)?;

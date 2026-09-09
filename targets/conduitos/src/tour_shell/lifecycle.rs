@@ -157,6 +157,17 @@ mod tests {
             crate::display::text_height("Host\nNative\n01234567...", 640 / 6 - 16).unwrap(),
             48
         );
+        #[cfg(feature = "native-compositor")]
+        {
+            let height = crate::display::typography::TextLayout::new(
+                "Host\nNative\n01234567...",
+                crate::display::typography::TextRole::Label,
+                640 / 6 - 16,
+            )
+            .unwrap()
+            .finish_height();
+            assert!(height <= u32::from(crate::tour_workspace::STATUS_HEIGHT - 12));
+        }
         assert!(
             presentation
                 .text

@@ -224,6 +224,22 @@ mod tests {
     #[test]
     fn native_scene_manifests_every_shared_region_and_visible_focus() {
         let scene = scene(640, 480, 12, TourWorkspacePhase::PatchbayOpen).unwrap();
+        let source = scene
+            .commands()
+            .iter()
+            .find(|command| command.payload() == CANONICAL_SOURCE)
+            .unwrap();
+        assert_eq!(
+            source.text_role(),
+            conduit_presentation::GraphicsTextRole::Code
+        );
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.kind == GraphicsCommandKind::Text
+                    && command.text_role() == conduit_presentation::GraphicsTextRole::Body)
+        );
         assert_eq!(scene.commands().len(), 16);
         let frames: alloc::vec::Vec<_> = scene
             .commands()
