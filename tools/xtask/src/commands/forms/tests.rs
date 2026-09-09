@@ -204,6 +204,8 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
         ("desk-telegraph", "desk_telegraph"),
         ("button-across-room", "button_across_room"),
         ("clock", "clock-demo"),
+        ("startup-chime", "startup_chime"),
+        ("first-wake-chime", "first_wake_chime"),
     ];
     assert_eq!(forms.len(), expected.len());
     for (form, (slug, entry)) in forms.iter().zip(expected) {

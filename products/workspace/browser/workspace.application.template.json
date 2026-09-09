@@ -185,6 +185,10 @@
         {
           "role": "browser-body-input",
           "specifier": "./browser-body-input.mjs"
+        },
+        {
+          "role": "browser-audio-cue",
+          "specifier": "./browser-audio-cue.mjs"
         }
       ]
     },
@@ -218,6 +222,18 @@
         {
           "role": "browser-human-input",
           "specifier": "./browser-human-input.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-audio-cue",
+      "kind": "module",
+      "path": "browser-audio-cue.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "browser-form-effects",
+          "specifier": "./browser-form-effects.mjs"
         }
       ]
     }

@@ -591,6 +591,7 @@ dependencies = [
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-offers",
+ "conduit-synth",
  "conduit-text",
  "conduit-time",
  "conduit-tour-model",

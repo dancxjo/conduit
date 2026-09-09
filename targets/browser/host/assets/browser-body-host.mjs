@@ -1,3 +1,4 @@
+import { acquireBrowserAudioCue, AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL } from "./browser-audio-cue.mjs";
 import { createBodyInputRouting } from "./browser-body-input.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 import { drainBrowserEffects } from "./browser-form-effects.mjs";
@@ -7,6 +8,7 @@ const INPUT = "conduit.resource/browser-window-input@1";
 const TIMER = "conduit.resource/timer-slot@1";
 const CLOCK = "conduit.resource/monotonic-millisecond-timer-slot@1";
 const pools = new Map([
+  [AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL],
   [PRESENTATION, "browser/presentation"], [INPUT, "browser/window-input"],
   [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
 ]);
@@ -58,7 +60,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
   }
   for (const [kind, units] of demand) {
-    if (units > ([PRESENTATION, INPUT].includes(kind) ? 16 : 1)) throw new Error("browser Body resource demand exceeds local bounds");
+    if (units > ([PRESENTATION, INPUT, AUDIO_CUE_RESOURCE].includes(kind) ? 16 : 1)) throw new Error("browser Body resource demand exceeds local bounds");
   }
   if (api.conduit_browser_form_human_machinery() < 0) throw new Error("browser machinery unavailable");
   const machinery = readOutput(api);
@@ -68,11 +70,17 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const slots = new Map();
   const presentationTimers = new Map();
   const elements = [];
+  let audio = null;
   let input = null, timer = null, closed = false, started = null, completion = null, startAccepted = false, terminal = null;
   let startOutcome = "not-attempted";
   const window = outputRoot.ownerDocument.defaultView;
   owners.add(api);
   try {
+    if (demand.has(AUDIO_CUE_RESOURCE)) {
+      if (!machinery.implementations.some(entry => entry.id === "browser/audio-cue@1")) throw new Error("audio cue machinery is not installed");
+      audio = acquireBrowserAudioCue({ api, window, placements: placements.filter(item => item.resources.some(resource => resource.class_id === AUDIO_CUE_RESOURCE)) });
+      if (audio.capacity !== demand.get(AUDIO_CUE_RESOURCE)) throw new Error("audio acquisition differs from demand");
+    }
     if (demand.has(INPUT)) {
       input = openBrowserHumanInput({ target: inputTarget, boot, routeInput: routing?.capture });
       routing?.attach(input);
@@ -94,7 +102,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
     if (slots.size !== (demand.get(PRESENTATION) ?? 0)) throw new Error("presentation acquisition does not match demand");
   } catch (error) {
-    routing?.close();input?.close();elements.forEach(element => element.remove());owners.delete(api);throw error;
+    audio?.close();routing?.close();input?.close();elements.forEach(element => element.remove());owners.delete(api);throw error;
   }
 
   const assertCurrent = () => {
@@ -108,7 +116,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       host_id: hostId, boot_id: bootId, offer_generation: 1,
       pool_id: pools.get(class_id), class_id, health: "Ready",
       // Counts come from acquired adapter state, not advertised capacities.
-      unreserved_units: class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : Number(timer !== null),
+      unreserved_units: class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : Number(timer !== null),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
   };
@@ -132,6 +140,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     assertCurrent();
     if (effect.host_id !== hostId || effect.boot_id !== bootId ||
         effect.active_play_id !== started.play.active_play_id) throw new Error("browser effect identity mismatch");
+    if (effect.effect_kind === "audio-cue") {
+      if (!audio) throw new Error("audio cue slot not acquired");
+      return audio.perform(effect, signal);
+    }
     if (effect.effect_kind === "timer") return delay(effect.duration_millis, signal);
     if (effect.effect_kind === "clock-observation") {
       if (!timer) throw new Error("browser clock not acquired");
@@ -173,10 +185,16 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   };
   return Object.freeze({
     observations,
+    evidence() {
+      if (terminal) return terminal.kernel_signs ?? null;
+      if (!started || closed) return null;
+      if (api.conduit_browser_form_signs() < 0) throw new Error("active Body observation is unavailable");
+      return readOutput(api);
+    },
     start(playSequence) {
       assertCurrent();
       if (startAccepted || !Number.isSafeInteger(playSequence) || playSequence < 1) throw new Error("browser Body start refused");
-      const request = new TextEncoder().encode(JSON.stringify({ wake: proposal.wake, plan: proposal.plan, play_sequence: playSequence, observations: observations() }));
+      const request = new TextEncoder().encode(JSON.stringify({ wake: proposal.wake, plan: proposal.plan, body_evidence: proposal.body_evidence ?? null, play_sequence: playSequence, observations: observations() }));
       if (request.length > api.conduit_browser_body_input_capacity()) throw new Error("browser Body input bound exceeded");
       // The heap-backed input arena may grow WASM memory on first access.
       // Obtain the pointer before reading memory.buffer, which growth detaches.
@@ -214,6 +232,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     close() {
       if (closed) return;
       closed = true;
+      audio?.close();
       routing?.close();
       input?.close();
       timer?.cancel?.();
