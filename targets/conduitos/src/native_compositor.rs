@@ -327,9 +327,10 @@ impl NativeCompositor {
         }
         surface.buffer.clear();
         #[cfg(feature = "native-compositor")]
-        let display = crate::display::typography::render_scene(&mut surface.buffer, scene, |_, _| {
-            crate::display::typography::TextRole::Body
-        })?;
+        let display =
+            crate::display::typography::render_scene(&mut surface.buffer, scene, |_, command| {
+                command.text_role().into()
+            })?;
         #[cfg(not(feature = "native-compositor"))]
         let display = render_scene(&mut surface.buffer, scene)?;
         surface.binding = Some(SurfaceBinding {

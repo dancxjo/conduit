@@ -1,4 +1,54 @@
 use super::*;
+
+#[test]
+fn graphical_roles_round_trip_and_refuse_unknown_or_nontext_roles() {
+    for role in [
+        GraphicsTextRole::Body,
+        GraphicsTextRole::Label,
+        GraphicsTextRole::Heading,
+        GraphicsTextRole::Title,
+        GraphicsTextRole::Code,
+    ] {
+        let command = GraphicsCommand::text(
+            rect(0, 10),
+            rect(0, 10),
+            GraphicsPaintRole::Foreground,
+            "same text",
+        )
+        .unwrap()
+        .with_text_role(role)
+        .unwrap();
+        let mut scene = GraphicsScene::empty();
+        scene.push(command).unwrap();
+        let mut encoded = scene.encode();
+        assert_eq!(
+            GraphicsScene::decode(&encoded[..scene.encoded_len()]),
+            Ok(scene)
+        );
+        assert_eq!(scene.commands()[0].payload(), "same text");
+        encoded[22] = 255;
+        assert_eq!(
+            GraphicsScene::decode(&encoded[..scene.encoded_len()]),
+            Err(GraphicsError::MalformedEncoding)
+        );
+        encoded[0] = 1;
+        assert_eq!(
+            GraphicsScene::decode(&encoded[..scene.encoded_len()]),
+            Err(GraphicsError::MalformedEncoding)
+        );
+    }
+    assert!(
+        GraphicsCommand::rect(
+            rect(0, 10),
+            rect(0, 10),
+            GraphicsPaintRole::Background,
+            GraphicsShapeStyle::Fill
+        )
+        .unwrap()
+        .with_text_role(GraphicsTextRole::Code)
+        .is_err()
+    );
+}
 fn rect(x: i16, width: u16) -> LayoutRect {
     LayoutRect {
         x,

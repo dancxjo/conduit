@@ -83,11 +83,14 @@ fn panel_scene(
         x: 12,
         y: 12,
         width: local.width.saturating_sub(24),
-        height: 18,
+        height: 24,
     };
     scene
         .push(
             GraphicsCommand::text(title_bounds, local, GraphicsPaintRole::Accent, title)
+                .and_then(|command| {
+                    command.with_text_role(conduit_presentation::GraphicsTextRole::Heading)
+                })
                 .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;

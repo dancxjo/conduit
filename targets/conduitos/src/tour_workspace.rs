@@ -133,6 +133,17 @@ pub(crate) fn scene_with_observations(
         scene
             .push(
                 GraphicsCommand::text(inset(bounds), bounds, paint, label)
+                    .and_then(|command| {
+                        command.with_text_role(
+                            if node.component
+                                == conduit_presentation::ApplicationComponent::CodeBlock
+                            {
+                                conduit_presentation::GraphicsTextRole::Code
+                            } else {
+                                conduit_presentation::GraphicsTextRole::Body
+                            },
+                        )
+                    })
                     .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;

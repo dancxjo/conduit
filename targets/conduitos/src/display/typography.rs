@@ -22,6 +22,19 @@ pub enum TextRole {
     Code,
 }
 
+impl From<conduit_presentation::GraphicsTextRole> for TextRole {
+    fn from(role: conduit_presentation::GraphicsTextRole) -> Self {
+        use conduit_presentation::GraphicsTextRole;
+        match role {
+            GraphicsTextRole::Body => Self::Body,
+            GraphicsTextRole::Label => Self::Label,
+            GraphicsTextRole::Heading => Self::Heading,
+            GraphicsTextRole::Title => Self::Title,
+            GraphicsTextRole::Code => Self::Code,
+        }
+    }
+}
+
 pub(super) struct Glyph {
     profile: u8,
     codepoint: u32,
