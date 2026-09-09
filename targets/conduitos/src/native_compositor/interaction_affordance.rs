@@ -2,8 +2,8 @@
 
 use super::{NativeCompositor, NativeCompositorError, damage::RawDamageRect};
 
-const CURSOR_WIDTH: u16 = 7;
-const CURSOR_HEIGHT: u16 = 13;
+const CURSOR_WIDTH: u16 = 10;
+const CURSOR_HEIGHT: u16 = 16;
 
 impl NativeCompositor {
     pub fn set_cursor_hover(&mut self, hovered: bool) -> Result<(), NativeCompositorError> {

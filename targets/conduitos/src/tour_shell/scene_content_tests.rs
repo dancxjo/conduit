@@ -44,6 +44,20 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
         height: 320,
     };
     let top = inspector_scene(bounds, &presentation, 0).unwrap();
+    let fields: alloc::vec::Vec<_> = top
+        .commands()
+        .iter()
+        .filter(|command| command.payload().contains('\n'))
+        .collect();
+    assert_eq!(fields[0].bounds.height, 32);
+    assert_eq!(fields[1].bounds.y, fields[0].bounds.y + 44);
+    let narrow = LayoutRect {
+        width: 180,
+        ..bounds
+    };
+    let wide_extent = super::super::fields::project(bounds, &presentation, 0, None).unwrap();
+    let narrow_extent = super::super::fields::project(narrow, &presentation, 0, None).unwrap();
+    assert!(narrow_extent > wide_extent);
     assert!(
         top.commands()
             .iter()
@@ -54,8 +68,9 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
             .iter()
             .any(|command| command.payload().starts_with("Documentation"))
     );
+    let extent = super::super::fields::project(bounds, &presentation, 0, None).unwrap();
     let bottom =
-        inspector_scene(bounds, &presentation, SCROLL_CONTENT_HEIGHT - bounds.height).unwrap();
+        inspector_scene(bounds, &presentation, extent.saturating_sub(bounds.height)).unwrap();
     assert!(
         bottom
             .commands()
@@ -68,4 +83,20 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
             .iter()
             .all(|command| !command.payload().contains("HELLO"))
     );
+}
+
+#[test]
+fn inspection_rejects_oversized_fields_even_when_scrolled_out_of_view() {
+    let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
+    state.selected_patchbay_subject = Some("meet-one-gear/change".into());
+    let mut presentation = state.inspector_presentation().unwrap().unwrap();
+    presentation.text[0].text = "x".repeat(193);
+    let bounds = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 180,
+        height: 240,
+    };
+    assert!(inspector_scene(bounds, &presentation, 500).is_err());
+    assert!(super::super::fields::project(bounds, &presentation, 0, None).is_err());
 }
