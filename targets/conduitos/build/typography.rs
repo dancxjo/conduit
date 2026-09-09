@@ -2,8 +2,8 @@
 
 use std::{collections::BTreeSet, env, fmt::Write as _, fs, path::PathBuf};
 
-use sha2::{Digest, Sha256};
 use fontdue::{Font, FontSettings};
+use sha2::{Digest, Sha256};
 
 const MAX_FONT_BYTES: usize = 1_048_576;
 const MAX_CODEPOINTS: usize = 1_024;
@@ -82,12 +82,24 @@ pub fn generate() {
         )
         .unwrap();
         for &character in &repertoire {
+            // The pinned UI face supplies scalars absent from the code face.
+            // Keep the code profile's cell advance even for fallback outlines.
+            let raster_font = if font.lookup_glyph_index(character) == 0 {
+                &fonts[0]
+            } else {
+                font
+            };
             // Absent scalars remain explicit at lookup: the native runtime may
             // choose its pinned fallback, never the font parser's implicit .notdef.
-            if font.lookup_glyph_index(character) == 0 {
+            if raster_font.lookup_glyph_index(character) == 0 {
                 continue;
             }
-            let (metrics, bitmap) = font.rasterize(character, f32::from(size));
+            let (metrics, bitmap) = raster_font.rasterize(character, f32::from(size));
+            let advance = if face == 1 && metrics.advance_width != 0.0 {
+                font.metrics('M', f32::from(size)).advance_width
+            } else {
+                metrics.advance_width
+            };
             assert!(metrics.width <= MAX_GLYPH_EDGE && metrics.height <= MAX_GLYPH_EDGE);
             assert_eq!(bitmap.len(), metrics.width * metrics.height);
             assert!(
@@ -98,7 +110,7 @@ pub fn generate() {
             coverage.extend_from_slice(&bitmap);
             writeln!(records, "Glyph {{ profile: {profile}, codepoint: {}, x: {}, y: {}, width: {}, height: {}, advance: {}, offset: {offset} }},",
                 u32::from(character), metrics.xmin, metrics.ymin, metrics.width, metrics.height,
-                (metrics.advance_width * 64.0).round() as u16).unwrap();
+                (advance * 64.0).round() as u16).unwrap();
         }
     }
     records.push_str("];\n");

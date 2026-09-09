@@ -2,6 +2,8 @@
 
 mod font;
 mod text_layout;
+#[cfg(feature = "native-compositor")]
+pub mod typography;
 #[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 pub(crate) use text_layout::text_height;
 
