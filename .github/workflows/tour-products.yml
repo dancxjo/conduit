@@ -56,6 +56,7 @@ jobs:
       browser_runtime_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.browser_runtime_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
       tour_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.tour_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
       pages_carrier_required: ${{ inputs.full_suite || !inputs.development_admission && ((inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true'))) }}
+      browser_admission_required: ${{ inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') }}
       stack_role: ${{ steps.stack.outputs.role || 'independent' }}
       stack_tip_pr: ${{ steps.stack.outputs.tip_pr || github.event.pull_request.number }}
       stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CANDIDATE_SHA }}
@@ -348,6 +349,108 @@ jobs:
           path: target/ci-receipts/browser.patchbay-debugger.json
           if-no-files-found: error
           retention-days: 14
+
+  browser-admission-stage:
+    needs: [plan, browser-runtimes]
+    if: >-
+      always() && !cancelled() && needs.plan.result == 'success' &&
+      needs.plan.outputs.browser_admission_required == 'true' &&
+      needs.browser-runtimes.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - name: Download the exact browser product runtimes
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-browser-product-runtimes
+          path: target/browser-product-runtimes
+      - name: Stage the affected browser surfaces without release fabrication
+        run: |
+          mkdir -p target/debug target/wasm32-unknown-unknown/release
+          cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
+          cp target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-admission-probe target/debug/
+          cp target/browser-product-runtimes/patchbay-runtime.wasm target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
+          chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-admission-probe
+          chmod 755 target/browser-product-runtimes/patchbay-static-assets
+          site/tools/stage-pages-root.sh target/pages-root
+          products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+          products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product unused browser-proof
+          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
+          products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
+      - name: Retain the browser-only candidate surfaces
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-development-browser-products
+          path: |
+            target/debug/conduit-browser-host
+            target/debug/patchbay-html
+            target/debug/browser-admission-probe
+            target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
+            target/pages-root
+            target/tour-product
+            target/creche-product
+            target/workspace-product
+            target/patchbay-product
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 1
+          compression-level: 0
+
+  browser-admission-proof:
+    needs: [plan, browser-admission-stage]
+    if: >-
+      always() && !cancelled() && needs.plan.result == 'success' &&
+      needs.plan.outputs.browser_admission_required == 'true' &&
+      needs.browser-admission-stage.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: browser-host
+            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
+          - shard: creche-workspace
+            specs: proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
+          - shard: pages
+            specs: proof/browser/pages-front-door.spec.mjs proof/browser/web-accessibility.spec.mjs
+    name: browser-admission-${{ matrix.shard }}
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - name: Install the pinned browser proof dependency
+        run: npm --prefix proof/browser ci --ignore-scripts --prefer-offline
+      - name: Receive the exact browser-only candidate surfaces
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-development-browser-products
+          path: target
+      - name: Restore executable Host permission
+        run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-admission-probe
+      - name: Prove foreground input and Body retirement contracts
+        if: matrix.shard == 'creche-workspace'
+        run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs proof/browser/workspace-handoff.test.mjs
+      - name: Prove the affected ${{ matrix.shard }} surface in pinned Chromium
+        env:
+          BROWSER_PROOF_SPECS: ${{ matrix.specs }}
+          CONDUIT_BROWSER_PROOF_SHARD: admission-${{ matrix.shard }}
+        run: >-
+          node proof/browser/node_modules/@playwright/test/cli.js test
+          --config proof/browser/playwright.config.mjs
+          $BROWSER_PROOF_SPECS
+          --project chromium
+          --workers 1
+          --retries 0
 
   avr-release:
     needs: plan
@@ -986,7 +1089,7 @@ jobs:
           retention-days: 14
 
   products-proof:
-    needs: [plan, tour-patchbay-proof, products-stage, browser-proof, pages-carrier, proof-receipts]
+    needs: [plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, pages-carrier, proof-receipts]
     # A deliberately cancelled duplicate lifecycle run is not new proof
     # failure. Real dependency failures still reach this gate and fail it.
     if: ${{ always() && !cancelled() }}
@@ -1000,6 +1103,8 @@ jobs:
           TOUR_REQUIRED: ${{ needs.plan.outputs.tour_required }}
           DEBUGGER_REQUIRED: ${{ needs.plan.outputs.patchbay_debugger_required }}
           CARRIER_REQUIRED: ${{ needs.plan.outputs.pages_carrier_required }}
+          BROWSER_ADMISSION_REQUIRED: ${{ needs.plan.outputs.browser_admission_required }}
+          BROWSER_ADMISSION_RESULT: ${{ needs.browser-admission-proof.result }}
           TOUR_PATCHBAY_RESULT: ${{ needs.tour-patchbay-proof.result }}
           STAGE_RESULT: ${{ needs.products-stage.result }}
           BROWSER_RESULT: ${{ needs.browser-proof.result }}
@@ -1016,6 +1121,9 @@ jobs:
           fi
           if test "$TOUR_REQUIRED" = true && test "$DEVELOPMENT_ADMISSION" != true; then
             test "$RECEIPTS_RESULT" = success
+          fi
+          if test "$BROWSER_ADMISSION_REQUIRED" = true; then
+            test "$BROWSER_ADMISSION_RESULT" = success
           fi
           if test "$CARRIER_REQUIRED" = true; then
             test "$STAGE_RESULT" = success
