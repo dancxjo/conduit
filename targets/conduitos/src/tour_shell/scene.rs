@@ -249,16 +249,11 @@ fn chooser_scene(
         .into_iter()
         .enumerate()
     {
-        let y = 76 + index as i32 * 140 - i32::from(scroll_y);
-        if y + 60 <= 70 || y >= i32::from(bounds.height) {
+        let row = super::chooser_layout::row(bounds, index, scroll_y);
+        let y = i32::from(row.y);
+        if y + i32::from(row.height) <= 70 || y >= i32::from(bounds.height) {
             continue;
         }
-        let row = LayoutRect {
-            x: 12,
-            y: i16::try_from(y).map_err(|_| TourShellError::Identity)?,
-            width: bounds.width.saturating_sub(24).max(1),
-            height: 60,
-        };
         scene
             .push(
                 GraphicsCommand::rect(
@@ -273,9 +268,9 @@ fn chooser_scene(
         let label = alloc::format!("Select {gear}");
         let text = LayoutRect {
             x: row.x + 8,
-            y: row.y + 8,
+            y: row.y + 4,
             width: row.width.saturating_sub(16).max(1),
-            height: 44,
+            height: row.height.saturating_sub(8).max(1),
         };
         scene
             .push(

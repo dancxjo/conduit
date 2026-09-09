@@ -1,6 +1,35 @@
 use super::*;
 
 #[test]
+fn compact_rows_are_visible_and_each_resolves_its_own_gear() {
+    for height in [160, 266, 360] {
+        let bounds = conduit_presentation::LayoutRect {
+            x: 0,
+            y: 0,
+            width: 320,
+            height,
+        };
+        assert!(super::super::chooser_layout::content_height(bounds) <= height);
+        for index in 0..3 {
+            let row = super::super::chooser_layout::row(bounds, index, 0);
+            assert_eq!(
+                super::super::chooser_layout::hit(bounds, 0, row.x as u16, row.y as u16),
+                Some(index as u8)
+            );
+            assert_eq!(
+                super::super::chooser_layout::hit(
+                    bounds,
+                    0,
+                    row.x as u16,
+                    row.y as u16 + row.height
+                ),
+                None
+            );
+        }
+    }
+}
+
+#[test]
 fn chooser_button_uses_visible_bounds_and_current_workspace_identity() {
     let (tour, mut shell, mut display) = fixture();
     shell.present(&tour, &mut display).unwrap();
