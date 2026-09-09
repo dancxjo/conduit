@@ -65,6 +65,22 @@ impl KeyboardIngress {
             .map_err(|_| KeyboardIngressRefusal::Pressure)
     }
 
+    /// Admit all transitions derived from one validated physical report, or
+    /// refuse before changing the queue when its finite capacity cannot hold
+    /// the complete ordered report.
+    pub fn admit_report(
+        &mut self,
+        transitions: &[HidKeyTransition],
+    ) -> Result<(), KeyboardIngressRefusal> {
+        if transitions.len() > INGRESS_CAPACITY.saturating_sub(self.pending()) {
+            return Err(KeyboardIngressRefusal::Pressure);
+        }
+        for transition in transitions {
+            self.admit(*transition)?;
+        }
+        Ok(())
+    }
+
     /// Run at most `budget` admitted semantic deliveries.  Presentation is
     /// intentionally not part of this operation; consumers return after the
     /// semantic input boundary and let a separate dirty-driven frame phase
@@ -314,5 +330,27 @@ mod tests {
             observed[INGRESS_CAPACITY - 1],
             4 + INGRESS_CAPACITY as u8 - 1
         );
+    }
+
+    #[test]
+    fn report_pressure_refuses_before_any_transition_from_that_report_is_admitted() {
+        let mut ingress = KeyboardIngress::new();
+        for usage in 4..(4 + INGRESS_CAPACITY as u8 - 1) {
+            ingress.admit(transition(usage, true)).unwrap();
+        }
+        let report = [transition(40, true), transition(40, false)];
+        assert_eq!(
+            ingress.admit_report(&report),
+            Err(KeyboardIngressRefusal::Pressure)
+        );
+        assert_eq!(ingress.pending(), INGRESS_CAPACITY - 1);
+        let mut observed = [0_u8; INGRESS_CAPACITY - 1];
+        let mut count = 0;
+        ingress.service(INGRESS_CAPACITY, |event| {
+            observed[count] = event.usage();
+            count += 1;
+        });
+        assert_eq!(count, INGRESS_CAPACITY - 1);
+        assert!(!observed.contains(&40));
     }
 }
