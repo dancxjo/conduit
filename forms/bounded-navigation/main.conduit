@@ -1,0 +1,25 @@
+# Portable bounded navigation from a validated spatial goal to body-motion
+# intent. The exact Host implementations, authority, actuator lowering, and
+# mandatory physical safety remain choices and obligations of the Conduit Plan.
+form bounded-navigation (
+    > pose: NavigationPose
+    > goal: NavigationGoal
+    > traversability: NavigationTraversability4x4
+    decision: NavigationRouteDecision >
+    control: NavigationControl >
+    request: RoboticsMotionRequest >
+) {
+    route: navigation/route-grid4
+    timing: navigation/time-parameterize
+    controller: navigation/local-control
+
+    pose > route.pose
+    goal > route.goal
+    traversability > route.traversability
+    route.decision > decision
+    route.decision > select(NavigationRouteDecision.route, unmatched=drop) > timing.route
+    timing.trajectory > controller.trajectory
+    pose > controller.pose
+    controller.control > control
+    controller.control > select(NavigationControl.motion, unmatched=drop) > request
+}
