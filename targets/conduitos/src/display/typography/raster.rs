@@ -103,6 +103,72 @@ mod tests {
     }
 
     #[test]
+    fn oversized_text_refuses_before_any_surface_write_even_when_clipped() {
+        let oversized = "x".repeat(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES + 1);
+        let mut surface = Surface {
+            pixels: [0x204060; 32 * 32],
+        };
+        let bounds = LayoutRect {
+            x: 0,
+            y: 0,
+            width: 32,
+            height: 32,
+        };
+        for clip in [
+            bounds,
+            LayoutRect {
+                x: 40,
+                y: 40,
+                width: 1,
+                height: 1,
+            },
+        ] {
+            let result = render_text(
+                &mut surface,
+                &oversized,
+                TextRole::Body,
+                bounds,
+                clip,
+                0xffffff,
+            );
+            assert!(matches!(result, Err(DisplayError::BufferTooSmall)));
+            assert_eq!(surface.pixels, [0x204060; 32 * 32]);
+        }
+    }
+
+    #[test]
+    fn maximum_admitted_unicode_remains_bounded_at_one_pixel_width() {
+        let value = "é".repeat(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES / 2);
+        let count = value.chars().count();
+        let layout = super::super::TextLayout::new(&value, TextRole::Body, 1).unwrap();
+        assert_eq!(layout.count(), count);
+        let mut surface = Surface {
+            pixels: [0x204060; 32 * 32],
+        };
+        let bounds = LayoutRect {
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 32,
+        };
+        let receipt = render_text(
+            &mut surface,
+            &value,
+            TextRole::Body,
+            bounds,
+            bounds,
+            0xffffff,
+        )
+        .unwrap();
+        assert!(receipt.pixels_written <= count as u32 * 64 * 64);
+        for y in 0..32 {
+            for x in 1..32 {
+                assert_eq!(surface.pixels[y * 32 + x], 0x204060);
+            }
+        }
+    }
+
+    #[test]
     fn text_layout_raster_is_repeatable_and_confined_to_its_rectangle() {
         let bounds = LayoutRect {
             x: 3,
