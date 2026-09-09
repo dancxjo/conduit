@@ -20,19 +20,59 @@ impl TourSession {
         request: u32,
         output: Option<&[u8]>,
     ) -> Result<TourProgress, String> {
+        let index = self.pending_index(play, placement, request)?;
+        self.complete_pending(index, output)
+    }
+    fn pending_index(&self, play: &str, placement: &str, request: u32) -> Result<usize, String> {
         if play != self.active_play_id.as_str() {
             return Err("stale browser Play completion".into());
         }
-        let index = self
-            .pending
+        self.pending
             .iter()
             .position(|effect| {
                 effect.request.request.0 == request
                     && super::placement_in_fragments(&self.fragments, effect.request.node)
                         .is_some_and(|(_, gear)| gear.placement_id.as_str() == placement)
             })
-            .ok_or("unknown or completed browser effect identity")?;
-        self.complete_pending(index, output)
+            .ok_or_else(|| "unknown or completed browser effect identity".into())
+    }
+    pub(super) fn refuse_effect(
+        &mut self,
+        play: &str,
+        placement: &str,
+        request: u32,
+        denied: bool,
+        detail: u16,
+    ) -> Result<TourProgress, String> {
+        use conduit_kernel::{
+            Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
+        };
+        let index = self.pending_index(play, placement, request)?;
+        self.host_outcomes.check_capacity()?;
+        let effect = &self.pending[index];
+        let outcome = HostOperationOutcome {
+            disposition: if denied {
+                HostOperationDisposition::Denied
+            } else {
+                HostOperationDisposition::Failed
+            },
+            output: None,
+            failure: Some(Failure {
+                code: if denied {
+                    FailureCode::HostOperationDenied
+                } else {
+                    FailureCode::HostOperationFailed
+                },
+                detail,
+            }),
+        };
+        self.scheduler
+            .complete_host_operation(effect.request.node, effect.request.request, outcome)
+            .map_err(|error| format!("Host refusal: {error:?}"))?;
+        self.host_outcomes
+            .record(effect.request.node, effect.request.request, outcome);
+        self.pending.remove(index);
+        self.poll_effect()
     }
     fn complete_pending(
         &mut self,
@@ -43,12 +83,22 @@ impl TourSession {
             .pending
             .get(index)
             .ok_or("pending browser effect is absent")?;
+        self.host_outcomes.check_capacity()?;
         match output {
             Some(bytes) => {
                 engine::complete_host_effect_with_output(&mut self.scheduler, effect, bytes)?
             }
             None => engine::complete_host_effect(&mut self.scheduler, effect)?,
         }
+        self.host_outcomes.record(
+            effect.request.node,
+            effect.request.request,
+            conduit_kernel::HostOperationOutcome {
+                disposition: conduit_kernel::HostOperationDisposition::Completed,
+                output: None,
+                failure: None,
+            },
+        );
         match effect.effect {
             engine::BrowserHostEffect::Timer { .. } => self.timer_completions += 1,
             engine::BrowserHostEffect::Manifestation(_) => self.manifestation_completions += 1,
