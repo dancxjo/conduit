@@ -67,7 +67,7 @@ fn thousands_of_mixed_alignment_refreshes_keep_a_bounded_live_population() {
         random ^= random << 13;
         random ^= random >> 17;
         random ^= random << 5;
-        if !live.is_empty() && (live.len() >= 40 || random % 3 == 0) {
+        if !live.is_empty() && (live.len() >= 40 || random.is_multiple_of(3)) {
             let index = random as usize % live.len();
             let (pointer, layout, byte) = live.swap_remove(index);
             unsafe {
