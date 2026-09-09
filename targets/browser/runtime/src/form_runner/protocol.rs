@@ -81,6 +81,7 @@ pub(super) struct TourButtonTransitionEffect {
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub(super) enum TourHostEffect {
+    AudioCue(Box<super::audio::AudioEffect>),
     ClockObservation(Box<TourKeyEventEffect>),
     Snapshot(Box<SnapshotEffect>),
     Manifestation(Box<TourEffect>),
@@ -96,6 +97,7 @@ impl TourHostEffect {
         source_interaction: SourceInteractionEvidence,
     ) {
         match self {
+            Self::AudioCue(effect) => effect.source_interaction = Some(source_interaction),
             Self::ClockObservation(effect) => effect.source_interaction = Some(source_interaction),
             Self::Snapshot(effect) => effect.source_interaction = Some(source_interaction),
             Self::Manifestation(effect) => effect.source_interaction = Some(source_interaction),

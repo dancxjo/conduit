@@ -31,7 +31,8 @@ export async function startApplication(application) {
     let selection = openFormSelection(inventory, retainedSelection);
     if (retainedSelection === null) {
       const scratch = inventory.forms.find(form => form.name === 'memory_lantern');
-      if (scratch) selection = { selected: [scratch], refusals: [] };
+      const chime = typeof window.AudioContext === 'function' ? inventory.forms.find(form => form.name === 'startup_chime') : null;
+      selection = { selected: [scratch, chime].filter(Boolean), refusals: [] };
     }
     await session.restore();
     let saving = Promise.resolve();
@@ -45,6 +46,12 @@ export async function startApplication(application) {
           await session.save();
         }
         await session.arrive();
+        const resident = session.current().initial_forms;
+        const foreground = inventory.forms.find(form => form.checked_form_id === session.foreground()?.checked_form_id);
+        if (foreground?.required_kinds.includes('sound/startup-chime')) {
+          const visible = resident.find(form => inventory.forms.some(candidate => candidate.checked_form_id === form.checked_form_id && candidate.required_kinds.some(kind => kind.startsWith('presentation/'))));
+          if (visible) await session.selectForm(visible);
+        }
         selected = session.foreground()?.checked_form_id;
         render();
         if (session.current().initial_forms.length) await play.wake();
@@ -61,7 +68,7 @@ export async function startApplication(application) {
       text.textContent = kind === 'lifecycle' ? playback.detail : kind === 'flow' ? 'The checked source describes this Form’s meaning. Its exact realization appears below when admitted.' : 'An installed Form in this Body. Opening its surface keeps the current Play.';
       details.append(text);
       const pre = document.createElement('pre');
-      pre.textContent = kind === 'lifecycle' ? JSON.stringify({ body: evidence?.evidence, realization: evidence?.realization, terminal: playback.terminal, refusal: playback.refusal }, null, 2)
+      pre.textContent = kind === 'lifecycle' ? JSON.stringify({ body: evidence?.evidence, realization: evidence?.realization, active_observation: play?.evidence(), terminal: playback.terminal, refusal: playback.refusal }, null, 2)
         : kind === 'flow' && evidence?.realization ? JSON.stringify(evidence.realization.plan.forms.find(item => item.form.checked_form_id === selected), null, 2) : (form?.source ?? 'Source unavailable');
       const disclosure = document.createElement('details'), summary = document.createElement('summary');
       summary.textContent = kind === 'lifecycle' ? 'Exact lifecycle evidence' : kind === 'flow' && evidence?.realization ? 'Exact Plan' : 'Checked source';
@@ -77,10 +84,10 @@ export async function startApplication(application) {
     });
     const showSelected = () => {
       const form = inventory.forms.find(item => item.checked_form_id === selected);
-      input.hidden = !form;
+      input.hidden = !form?.required_kinds.some(kind => ['input/keyboard', 'input/button'].includes(kind));
       root.querySelector('#surface-title').textContent = form?.title ?? 'No Forms installed';
       root.querySelector('[data-surface-invitation]').textContent = form?.required_kinds.includes('text/submit-lines') ? 'Type a message. Press Enter to send.'
-        : form?.required_kinds.includes('input/keyboard') ? 'Type something. Your Form is listening.' : form ? 'Watch this Form take shape.' : 'Your Body is retained without running Forms.';
+        : form?.required_kinds.includes('input/keyboard') ? 'Type something. Your Form is listening.' : form?.required_kinds.includes('sound/startup-chime') ? 'This Form makes a short sound when eligible. Its playback outcome is in lifecycle evidence.' : form ? 'Watch this Form take shape.' : 'Your Body is retained without running Forms.';
       root.querySelector('.current-form').textContent = form?.title ?? 'Your Forms';
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
       input.setAttribute('aria-label', `Interact with ${form?.title ?? 'your Form'}`);
@@ -147,12 +154,12 @@ export async function startApplication(application) {
         root.querySelector('[data-body-state]').textContent = session.current().state.toLowerCase();
         root.querySelector('#surface-guidance').textContent = state.detail;
         wakeButton.disabled = Boolean(session.persistenceFailure()) || !['Lulled', 'Refused'].includes(state.state);
-        lullButton.disabled = !['Playing', 'Completed', 'Failed'].includes(state.state);
+        lullButton.disabled = !['Playing', 'Idle', 'Completed', 'Failed'].includes(state.state);
         input.disabled = state.state !== 'Playing';
         input.inert = input.disabled;
         input.tabIndex = input.disabled ? -1 : 0;
         input.setAttribute('aria-disabled', String(input.disabled));
-        wakeButton.hidden = state.state === 'Playing' || state.state === 'Preparing';
+        wakeButton.hidden = ['Playing', 'Idle', 'Preparing'].includes(state.state);
         showSelected();
         if (state.state === 'Playing') input.focus();
       } });

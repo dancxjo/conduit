@@ -109,10 +109,11 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     }));
     expect(admitted.application).toBe("conduit.application/patchbay");
     expect(admitted.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
-    expect(admitted.resourceRoles.length).toBe(33);
+    expect(admitted.resourceRoles.length).toBe(34);
     expect(new Set(admitted.resourceRoles).size).toBe(admitted.resourceRoles.length);
     expect(admitted.resourceRoles).toContain("browser-host-identity");
     expect(admitted.resourceRoles).toContain("browser-body-input");
+    expect(admitted.resourceRoles).toContain("browser-audio-cue");
     await expect(page.locator('script[src="/assets/app.js"]')).toHaveCount(0);
     await expect(page.locator('[data-application-slot="product-masthead"]')).toHaveAttribute("data-application-revision", /^\d+$/);
     await expect(page.locator('[data-application-key="product-status"]')).toContainText("Presentation revision");
