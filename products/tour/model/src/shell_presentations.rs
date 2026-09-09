@@ -207,18 +207,64 @@ impl TourWorkspaceState {
         } else {
             observed.join("; ")
         };
-        Presentation::new(
-            revision,
-            basis,
-            subjects,
-            relationships,
-            vec![],
-            vec![PresentationText {
-                subject: status.into(),
-                text: lifecycle,
-            }],
-        )
-        .map_err(|_| "tour-status-presentation-refused")
+        let mut text = vec![PresentationText {
+            subject: status.into(),
+            text: lifecycle,
+        }];
+        for (key, label, value) in [
+            (
+                "body",
+                "Body",
+                if basis.body_id.is_some() {
+                    "Present"
+                } else {
+                    "Absent"
+                },
+            ),
+            (
+                "wake",
+                "Wake",
+                if basis.wake_id.is_some() {
+                    "Present"
+                } else {
+                    "Absent"
+                },
+            ),
+            (
+                "plan",
+                "Plan",
+                if basis.plan_id.is_some() {
+                    "Present"
+                } else {
+                    "Absent"
+                },
+            ),
+            (
+                "play",
+                "Play",
+                if basis.active_play_id.is_some() {
+                    "Present"
+                } else {
+                    "Inactive"
+                },
+            ),
+            ("lines", "Lines", "Unobserved"),
+            ("host", "Host", "Unobserved"),
+        ] {
+            let identity = format!("{status}/{key}");
+            subjects.push(subject(&identity, PresentationRole::Status, label));
+            relationships.push(PresentationRelationship {
+                source: status.into(),
+                target: identity.clone(),
+                kind: PresentationRelationshipKind::Contains,
+            });
+            text.push(PresentationText {
+                subject: identity,
+                text: value.into(),
+            });
+        }
+        Presentation::new(revision, basis, subjects, relationships, vec![], text)
+            .map_err(|_| "tour-status-presentation-refused")
     }
 
     pub fn transient_presentation(
