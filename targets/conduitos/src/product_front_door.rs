@@ -2,7 +2,7 @@
 
 mod arrival;
 mod input_actions;
-use input_actions::{action_for, form_receives_input};
+use input_actions::{action_for, form_receives_input, tour_action};
 mod journey_sign;
 mod scroll_input;
 mod tour_sign;
@@ -14,7 +14,7 @@ use alloc::format;
 
 use conduit_human::KeyTransition;
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
-use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID, TourTransientKind};
+use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, TourTransientKind};
 
 use crate::{
     arch::{self, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
@@ -122,9 +122,21 @@ pub fn run(
     let mut idle = arch::Idle::new();
     loop {
         let mut line_requested = false;
+        let mut workspace_dirty = false;
         let mut interact = |input| {
-            let transition = match input {
-                ProductInputEvent::Transition(transition) => transition,
+            let event = match input {
+                ProductInputEvent::Service => {
+                    if core::mem::take(&mut workspace_dirty) && !tour_open {
+                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                    }
+                    return Ok(ProductInputControl::Continue);
+                }
+                ProductInputEvent::LocalRescue(local) => {
+                    rescue_guest::observe(identities, rescue_matcher, local, true);
+                    return Ok(ProductInputControl::Continue);
+                }
+                ProductInputEvent::Key(event) => event,
                 ProductInputEvent::Lost(_) => {
                     if matches!(
                         journey.status(),
@@ -137,18 +149,6 @@ pub fn run(
                     return Ok(ProductInputControl::Continue);
                 }
             };
-            rescue_guest::observe(
-                identities,
-                rescue_matcher,
-                transition.into_local_rescue(),
-                true,
-            );
-            let event = crate::keyboard_bridge::portable_key_event(
-                transition.usage(),
-                transition.pressed(),
-                transition.modifiers(),
-            )
-            .map_err(|_| "front-door-key-event-invalid")?;
             if consumed_birth_key == Some(event.usage()) {
                 if event.transition() == KeyTransition::Released {
                     consumed_birth_key = None;
@@ -158,10 +158,8 @@ pub fn run(
             // A held key keeps its original Form owner across surface changes,
             // including when the compositor currently has no keyboard target.
             if journey.owns_key_release(event) {
-                workspace_input::accept(event, &mut journey, &mut front_door)?;
-                if !tour_open {
-                    let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                if workspace_input::accept(event, &mut journey, &mut front_door)? && !tour_open {
+                    workspace_dirty = true;
                 }
                 return Ok(ProductInputControl::Continue);
             }
@@ -350,8 +348,7 @@ pub fn run(
                     && form_receives_input(false, false, event.usage())
                 {
                     if workspace_input::accept(event, &mut journey, &mut front_door)? {
-                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                        workspace_dirty = true;
                     }
                     return Ok(ProductInputControl::Continue);
                 }
@@ -360,7 +357,7 @@ pub fn run(
                 }
             }
             if event.transition() == KeyTransition::Pressed
-                && let Some(action) = action_for(transition.usage(), &front_door, &journey)
+                && let Some(action) = action_for(event.usage(), &front_door, &journey)
             {
                 let semantic_action = front_door
                     .resolve_action(action, front_door.revision())
@@ -483,14 +480,6 @@ pub fn run(
         pointer_usb,
         &mut execute_tour,
     )
-}
-
-fn tour_action(usage: u8) -> Option<&'static str> {
-    match usage {
-        F10 => Some(RUN_ACTION_ID),
-        F11 => Some(OPEN_PATCHBAY_ACTION_ID),
-        _ => None,
-    }
 }
 
 #[cfg(test)]

@@ -8,11 +8,7 @@ use super::{
     BOOT_REPORT_BYTES, HID_DMA, HidDma, HidError, INTERRUPT_POLL_WINDOWS, REPORT_BUFFERS,
     TRANSFER_RING_REPORT_SLOTS, ensure_device_present, validate_interrupt_event,
 };
-use crate::arch::x86_64::{
-    serial,
-    usb::UsbDevice,
-    xhci::{XhciError, XhciReady},
-};
+use crate::arch::x86_64::{serial, usb::UsbDevice, xhci::XhciReady};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct Position {
@@ -80,7 +76,14 @@ fn enqueue(sequence: usize, ring: u64, reports: u64) {
     });
 }
 
-pub(super) fn receive_report(
+/// Publish the next fixed receive window without waiting for completion.
+///
+/// `REPORT_BUFFERS` is the admitted physical buffering bound. Windows are
+/// published only at aligned sequence boundaries so a later `begin_followup`
+/// for the already-owned sibling slot is a no-op rather than a duplicate TRB.
+/// This keeps the controller collecting the next report while the host services
+/// semantic work or a dirty frame.
+pub(super) fn submit_report(
     controller: &mut XhciReady,
     device: &UsbDevice,
     dci: u8,
@@ -89,35 +92,38 @@ pub(super) fn receive_report(
 ) -> Result<(), HidError> {
     let ring = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
     let reports = dma_physical + core::mem::offset_of!(HidDma, reports) as u64;
+    if index % REPORT_BUFFERS != 0 {
+        return Ok(());
+    }
+    let end = index
+        .checked_add(REPORT_BUFFERS)
+        .ok_or(HidError::TransferOverflow)?;
+    for report_index in index..end {
+        enqueue(report_index, ring, reports);
+    }
+    controller.ring_endpoint(device.slot, dci);
     if index == 0 {
-        for report_index in 0..REPORT_BUFFERS {
-            enqueue(report_index, ring, reports);
-        }
-        controller.ring_endpoint(device.slot, dci);
         serial::early_write(b"CONDUIT_BOOT_STAGE hid-awaiting-qemu-key\n");
-    } else if index >= REPORT_BUFFERS {
-        // Only completed slots are reused: at most two initial reports are in
-        // flight, then each next report is submitted after its predecessor.
-        enqueue(index, ring, reports);
-        controller.ring_endpoint(device.slot, dci);
     }
-    let mut completed = None;
-    for _ in 0..INTERRUPT_POLL_WINDOWS {
-        ensure_device_present(controller.port_status(device.root_port))?;
-        match controller.next_event() {
-            Ok(event) if event.event_type == 34 => return Err(HidError::DeviceRemoved),
-            Ok(event) => {
-                completed = Some(event);
-                break;
-            }
-            Err(XhciError::CommandTimeout) => {}
-            Err(_) => {
-                ensure_device_present(controller.port_status(device.root_port))?;
-                return Err(HidError::TransferError);
-            }
-        }
-    }
-    let event = completed.ok_or(HidError::TransferTimeout)?;
+    Ok(())
+}
+
+/// Polls one already-armed report completion.  `Ok(None)` is ordinary: it is
+/// not input loss and it leaves the physical transfer armed.
+pub(super) fn poll_report(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    dci: u8,
+    index: usize,
+    dma_physical: u64,
+) -> Result<Option<()>, HidError> {
+    let ring = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
+    ensure_device_present(controller.port_status(device.root_port))?;
+    let event = match controller.poll_event() {
+        Some(event) if event.event_type == 34 => return Err(HidError::DeviceRemoved),
+        Some(event) => event,
+        None => return Ok(None),
+    };
     validate_interrupt_event(
         event,
         device.slot,
@@ -125,7 +131,23 @@ pub(super) fn receive_report(
         ring + (Position::at(index).slot * 16) as u64,
     )?;
     ensure_device_present(controller.port_status(device.root_port))?;
-    Ok(())
+    Ok(Some(()))
+}
+
+pub(super) fn receive_report(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    dci: u8,
+    index: usize,
+    dma_physical: u64,
+) -> Result<(), HidError> {
+    submit_report(controller, device, dci, index, dma_physical)?;
+    for _ in 0..u64::from(INTERRUPT_POLL_WINDOWS) * u64::from(super::super::xhci::POLL_STEPS) {
+        if poll_report(controller, device, dci, index, dma_physical)?.is_some() {
+            return Ok(());
+        }
+    }
+    Err(HidError::TransferTimeout)
 }
 
 #[cfg(test)]

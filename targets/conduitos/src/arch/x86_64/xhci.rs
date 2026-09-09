@@ -23,7 +23,7 @@ const EVENT_TRBS: usize = 16;
 const ADMITTED_DEVICE_SLOTS: u8 = 3;
 const DCBAA_ENTRIES: usize = ADMITTED_DEVICE_SLOTS as usize + 1;
 const MAX_PENDING_COMMANDS: u8 = 1;
-const POLL_STEPS: u32 = 2_000_000;
+pub(super) const POLL_STEPS: u32 = 2_000_000;
 const SIGN_SLOTS: u8 = 8;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -445,21 +445,7 @@ impl XhciReady {
 
     pub(super) fn next_event(&mut self) -> Result<Event, XhciError> {
         for _ in 0..POLL_STEPS {
-            let event = event::read_owned_event(self.event_cycle, |word| unsafe {
-                read_volatile(core::ptr::addr_of!(
-                    DMA.event_ring[self.event_dequeue][word]
-                ))
-            });
-            if let Some(event) = event {
-                self.event_dequeue += 1;
-                if self.event_dequeue == EVENT_TRBS {
-                    self.event_dequeue = 0;
-                    self.event_cycle ^= 1;
-                }
-                let event_phys = self.dma_physical
-                    + core::mem::offset_of!(DmaStorage, event_ring) as u64
-                    + (self.event_dequeue * 16) as u64;
-                unsafe { write64(self.runtime_interrupter + 0x18, event_phys | 8) };
+            if let Some(event) = self.poll_event() {
                 return Ok(event);
             }
             spin_loop();

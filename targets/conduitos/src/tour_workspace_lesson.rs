@@ -134,6 +134,7 @@ pub(crate) fn extent(scene: &GraphicsScene) -> Option<(u16, u16)> {
 fn is_prose(command: &GraphicsCommand) -> bool {
     command.kind == conduit_presentation::GraphicsCommandKind::Text
         && command.clip.x == 0
+        && command.clip.y == TOP as i16
         && command.bounds.x == 8
         && command.bounds.y >= TOP as i16
 }

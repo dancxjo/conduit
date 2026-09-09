@@ -4,24 +4,24 @@
 use alloc::format;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
-    HostBaseId, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, OfferGeneration, PROTOCOL_VERSION, Plan, SignId, bind_active_play, kind_id,
-    resource_offer, resource_requirement,
+    bind_active_play, kind_id, resource_offer, resource_requirement, ArtifactId, BootId,
+    CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostBaseId, HostId,
+    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
+    OfferGeneration, Plan, SignId, PROTOCOL_VERSION,
 };
-use conduit_form::{ProfileCatalog, parse};
+use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationId, ManifestationLifecycle,
-    PresentationRole, RendererRealizationOffer, renderer_kind_definition, renderer_offer,
+    renderer_kind_definition, renderer_offer, LayoutRect, Manifestation, ManifestationId,
+    ManifestationLifecycle, PresentationRole, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
 };
 
 use super::{Error as FrontDoorError, FrontDoor};
 use crate::{
     display::PixelTarget,
     native_compositor::{
-        CompositionReceipt, CompositorAdmission, InputRoute, NATIVE_PRESENTER_IMPLEMENTATION,
-        NativeCompositor, NativeCompositorError, RoutedKeyboard, RoutedPointer,
+        CompositionReceipt, CompositorAdmission, InputRoute, NativeCompositor,
+        NativeCompositorError, RoutedKeyboard, RoutedPointer, NATIVE_PRESENTER_IMPLEMENTATION,
     },
 };
 
@@ -191,7 +191,10 @@ impl FrontDoorPresenter {
         Ok(())
     }
 
-    pub fn present(
+    /// Retain a new presentation revision without touching scanout.  This is
+    /// the semantic/presentation boundary; a cooperative host chooses when a
+    /// separate frame phase composes its pending damage.
+    pub fn stage(
         &mut self,
         front_door: &FrontDoor,
         display: &mut impl PixelTarget,
@@ -267,9 +270,6 @@ impl FrontDoorPresenter {
             )
             .map_err(PresenterError::Compositor)?
             .clone();
-        self.compositor
-            .compose_frame(display)
-            .map_err(PresenterError::Compositor)?;
         if self.compositor.focused_surface().is_none() {
             self.compositor
                 .focus_surface(SURFACE_ID)
@@ -277,6 +277,28 @@ impl FrontDoorPresenter {
         }
         self.last_manifestation_id = Some(receipt.manifestation_id.clone());
         self.last_revision = presentation.revision;
+        Ok(receipt)
+    }
+
+    /// Compose retained damage at the host-selected frame point.
+    pub fn compose(
+        &mut self,
+        display: &mut impl PixelTarget,
+    ) -> Result<crate::native_compositor::FrameReceipt, PresenterError> {
+        self.compositor
+            .compose_frame(display)
+            .map_err(PresenterError::Compositor)
+    }
+
+    /// Compatibility entrance for product paths that intentionally stage and
+    /// compose one revision together.
+    pub fn present(
+        &mut self,
+        front_door: &FrontDoor,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, PresenterError> {
+        let receipt = self.stage(front_door, display)?;
+        self.compose(display)?;
         Ok(receipt)
     }
 }
@@ -402,6 +424,25 @@ mod tests {
         presenter.suspend().unwrap();
         assert_eq!(presenter.route_keyboard(), Err(PresenterError::Identity));
         presenter.present(&door, &mut display).unwrap();
+    }
+
+    #[test]
+    fn staging_a_revision_does_not_make_pixel_output_part_of_input_work() {
+        let door = door();
+        let mut presenter = presenter();
+        let mut display = MemoryDisplay::available();
+
+        let receipt = presenter.stage(&door, &mut display).unwrap();
+        assert_eq!(
+            receipt.presentation_id,
+            door.presentation().unwrap().identity
+        );
+        assert_eq!(presenter.compositor_frame_sequence(), 0);
+        assert!(display.pixels.iter().all(|pixel| *pixel == 0));
+
+        let frame = presenter.compose(&mut display).unwrap();
+        assert_eq!(frame.frame_sequence, 1);
+        assert!(frame.pixels_written > 0);
     }
 
     #[test]

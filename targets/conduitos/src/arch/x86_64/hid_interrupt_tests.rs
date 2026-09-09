@@ -27,7 +27,7 @@ fn repeated_wraps_reuse_fixed_slots_with_independent_report_buffer_and_cycle() {
         assert_eq!(trb[3] & 1, cycle);
         assert_eq!(
             trb[0],
-            reports as u32 + (sequence % 2 * BOOT_REPORT_BYTES) as u32
+            reports as u32 + (sequence % REPORT_BUFFERS * BOOT_REPORT_BYTES) as u32
         );
         assert_eq!(trb[2], BOOT_REPORT_BYTES as u32);
         consumer += 1;

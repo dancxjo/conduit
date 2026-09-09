@@ -224,25 +224,31 @@ impl Ps2Input {
     }
 
     pub fn receive_keyboard(&mut self) -> Result<HidKeyTransition, Ps2Error> {
-        if let Some(transition) = self.pending_keyboard.take() {
-            return Ok(transition);
-        }
         loop {
-            let Some((auxiliary, byte)) = try_read_any() else {
-                continue;
-            };
-            if auxiliary {
-                if let Some(sample) = self.pointer.accept(byte)?
-                    && self.pending_pointer.replace(sample).is_some()
-                {
-                    return Err(Ps2Error::PointerQueuePressure);
-                }
-                continue;
-            }
-            if let Some(value) = self.keyboard.accept(byte)? {
-                return Ok(value);
+            if let Some(transition) = self.poll_keyboard()? {
+                return Ok(transition);
             }
         }
+    }
+
+    /// Read at most one controller byte, retaining decoder prefixes between
+    /// calls so other admitted Host work can run while input is incomplete.
+    pub fn poll_keyboard(&mut self) -> Result<Option<HidKeyTransition>, Ps2Error> {
+        if let Some(transition) = self.pending_keyboard.take() {
+            return Ok(Some(transition));
+        }
+        let Some((auxiliary, byte)) = try_read_any() else {
+            return Ok(None);
+        };
+        if auxiliary {
+            if let Some(sample) = self.pointer.accept(byte)?
+                && self.pending_pointer.replace(sample).is_some()
+            {
+                return Err(Ps2Error::PointerQueuePressure);
+            }
+            return Ok(None);
+        }
+        self.keyboard.accept(byte)
     }
 
     pub fn receive_pointer(&mut self) -> Result<NormalizedPointerSample, Ps2Error> {

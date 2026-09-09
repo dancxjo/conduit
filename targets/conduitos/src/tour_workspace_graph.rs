@@ -108,6 +108,20 @@ pub(super) fn append(
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
         let text_bounds = super::inset(card);
+        // Ordinary headings and Port text use the same paint and typography.
+        // Keep their contiguous text in one command, reserving separate runs
+        // only for the distinct selected/hovered heading paint.
+        if paint == GraphicsPaintRole::Foreground
+            && text.len() <= conduit_presentation::MAX_GRAPHICS_TEXT_BYTES
+        {
+            scene
+                .push(
+                    GraphicsCommand::text(text_bounds, card, paint, &text)
+                        .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+                )
+                .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+            continue;
+        }
         // Sub-glyph-width cards remain valid clipped surfaces. Their ASCII
         // heading can be measured at one glyph even though no glyph fits.
         let heading_height =

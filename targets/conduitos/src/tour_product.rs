@@ -320,7 +320,7 @@ mod tests {
             .iter()
             .position(|command| command.payload().starts_with("change\n"))
             .unwrap();
-        let change = scene.commands()[change_index + 1].payload();
+        let change = scene.commands()[change_index].payload();
         assert!(change.contains("Last run"));
         assert!(change.contains("= \"hello\""));
         assert!(change.contains("= \"HELLO\""));
@@ -329,7 +329,7 @@ mod tests {
             .iter()
             .position(|command| command.payload().starts_with("words\n"))
             .unwrap();
-        let literal = scene.commands()[literal_index + 1].payload();
+        let literal = scene.commands()[literal_index].payload();
         assert!(literal.contains("= unobserved"));
         assert!(!literal.contains("= \"hello\""));
         product

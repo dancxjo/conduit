@@ -43,12 +43,13 @@ fn update(
     door: &mut FrontDoor,
     report_refusal: impl FnOnce(&str),
 ) -> Result<bool, &'static str> {
+    let previous = journey.foreground_presentation_sequence();
     match journey.accept_play_input(event) {
         Ok(false) => Ok(false),
         Ok(true) => {
             door.observe_product(journey)
                 .map_err(|error| error.as_str())?;
-            Ok(true)
+            Ok(journey.foreground_presentation_sequence() != previous)
         }
         Err(error @ JourneyError::Play(_)) if journey.status() == JourneyStatus::Stopped => {
             door.observe_product(journey)

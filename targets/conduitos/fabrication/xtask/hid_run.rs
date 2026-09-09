@@ -40,10 +40,10 @@ pub(super) fn validate(
         || hid.endpoint_maximum_packet_size != 8
         || hid.endpoint_interval != usb.first_endpoint_interval
         || hid.set_protocol_transfers != 1
-        || hid.interrupt_transfers != 2
+        || hid.interrupt_transfers != 8
         || hid.report_bytes != 8
-        || hid.report_buffers != 2
-        || hid.maximum_outstanding_interrupt_transfers != 2
+        || hid.report_buffers != 8
+        || hid.maximum_outstanding_interrupt_transfers != 8
         || hid.maximum_transitions_per_report != 20
         || hid.transfer_trbs != 64
         || hid.dma_bytes != 4096

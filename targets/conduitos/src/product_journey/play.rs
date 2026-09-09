@@ -58,6 +58,7 @@ impl ProductJourney {
                         self.input_count
                     )),
                 )?;
+                self.results[index].input_sequence = Some(next_count);
             }
         }
         self.input_count = next_count;

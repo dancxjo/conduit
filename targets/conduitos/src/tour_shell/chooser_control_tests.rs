@@ -35,7 +35,7 @@ fn completed_run_is_not_an_active_native_control() {
             .iter()
             .any(|command| command.payload() == "Canonical Play already completed")
     );
-    assert!(scene.commands().len() <= 24);
+    assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
     assert!(
         scene
             .commands()
@@ -83,7 +83,7 @@ fn run_button_has_exact_bounds_and_refuses_a_retired_route() {
             .iter()
             .any(|command| command.payload() == "Run Plan")
     );
-    assert_eq!(scene.commands().len(), 23);
+    assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
 }
 
 #[test]

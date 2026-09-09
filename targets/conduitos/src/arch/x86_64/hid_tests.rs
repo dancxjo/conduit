@@ -247,8 +247,8 @@ fn all_storage_and_work_limits_are_finite() {
     assert_eq!(MAX_TRANSITIONS_PER_REPORT, 20);
     assert_eq!(MAX_SESSION_TRANSITIONS, 64);
     assert_eq!(TRANSFER_RING_REPORT_SLOTS, 63);
-    assert_eq!(REPORT_BUFFERS, 2);
-    assert_eq!(MAX_OUTSTANDING_INTERRUPT_TRANSFERS, 2);
+    assert_eq!(REPORT_BUFFERS, 8);
+    assert_eq!(MAX_OUTSTANDING_INTERRUPT_TRANSFERS, 8);
     assert_eq!(INTERRUPT_TRANSFER_TRBS, 64);
     assert_eq!(INTERRUPT_POLL_WINDOWS, 1024);
     assert_eq!(core::mem::size_of::<HidDma>(), 4096);
