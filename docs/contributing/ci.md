@@ -10,15 +10,16 @@ The executable definitions live in [the workflow directory](../../.github/workfl
 1. Start from current `dev` and make one reviewable change.
 2. Open a pull request to `dev`.
 3. Read the single `candidate` result:
-   - **passed** — the change may merge;
-   - **failed** — fix the named formatting, patch, or controller failure;
+   - **passed** — the boundary checks and affected integration proof passed, so the change may merge;
+   - **failed** — fix the named boundary, formatting, controller, or affected-product failure;
    - **cancelled** — a newer push superseded it; follow the newest head.
 4. Merge after review.
 
-Entry is intentionally inexpensive. It checks patch integrity, formatting, and
-the lightweight CI controller. It does not compile the full workspace,
-fabricate products, start browsers, install firmware toolchains, or boot
-ConduitOS.
+Entry runs inexpensive patch, formatting, and controller checks first. After
+those pass, impact planning runs the affected workspace, browser, firmware,
+product, or ConduitOS proof before the required `candidate` result becomes
+green. Documentation-only and unrelated target worlds remain cheap; complete
+release fabrication stays in promotion.
 
 Do not dispatch reconciliation, copy commit identities into comments, poll every
 child job, or preserve an obsolete candidate run. The newest head owns the PR.
@@ -101,8 +102,8 @@ competes to merge or dispatch duplicate publication work.
 
 | Status | Meaning | Action |
 | --- | --- | --- |
-| `candidate` passed | This exact PR head may enter `dev` | Review and merge |
-| `candidate` failed | A cheap entry contract failed | Fix the named failure |
+| `candidate` passed | This exact PR head and its affected integration may enter `dev` | Review and merge |
+| `candidate` failed | A boundary check or affected integration failed | Fix the named failure |
 | `dev-integration` failed | The latest combined development tree has a bug | Repair it through an ordinary PR |
 | `promotion` failed | The current release batch is not releasable | Fix the release branch |
 | `promotion` passed | The exact repaired release head is releasable | None; auto-merge continues |
