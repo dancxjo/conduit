@@ -34,6 +34,15 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
+- **Startup Forms (#3152):** the optional browser Startup Chime and separate
+  First Wake Chime run through the ordinary planner and kernel. The generic
+  first-wake source uses retained Body biography across later Wakes and fresh
+  Boots; it has no chime-specific flag. Browser proof covers sound-only idle,
+  denied/unavailable playback, saving Started before effects, and retained
+  installation/removal. See [Startup Chime](forms/startup-chime/README.md) for
+  the exact lifetime and runnable proof. Deterministic synthesis and browser
+  execution do not establish physical speaker or subjective listening acceptance.
+
 - **Body continuity and supporting contracts:** surviving-Part continuity,
   atomic workload transition, typed failure disposition, bounded Resource
   collections, and causal evidence have dedicated implementation and tests.
