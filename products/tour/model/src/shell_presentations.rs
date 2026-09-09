@@ -44,6 +44,22 @@ impl TourTransientKind {
 }
 
 impl TourWorkspaceState {
+    pub fn run_action_available(&self) -> bool {
+        let Ok(view) = self
+            .presentation()
+            .and_then(|presentation| presentation.lower())
+        else {
+            return false;
+        };
+        conduit_presentation::ApplicationEvent {
+            revision: self.revision,
+            action: crate::RUN_ACTION_ID.into(),
+            kind: conduit_presentation::ApplicationEventKind::Activate,
+            value: Vec::new(),
+        }
+        .validate(&view)
+        .is_ok()
+    }
     /// Primary Patchbay workspace meaning, independent of shell geometry.
     pub fn workspace_presentation(&self) -> Result<Presentation, &'static str> {
         let mut subjects = vec![subject(
@@ -52,7 +68,15 @@ impl TourWorkspaceState {
             "Patchbay workspace",
         )];
         let mut relationships = Vec::new();
-        subjects.push(subject(crate::RUN_ACTION_ID, PresentationRole::Action, "Run Plan"));
+        subjects.push(subject(
+            crate::RUN_ACTION_ID,
+            if self.run_action_available() {
+                PresentationRole::Action
+            } else {
+                PresentationRole::Info
+            },
+            "Run Plan",
+        ));
         relationships.push(PresentationRelationship {
             source: TOUR_WORKSPACE_SUBJECT.into(),
             target: crate::RUN_ACTION_ID.into(),

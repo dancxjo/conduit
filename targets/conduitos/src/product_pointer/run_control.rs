@@ -52,7 +52,10 @@ pub(super) fn handle(
                     .show_transient(
                         tour,
                         conduit_tour_model::TourTransientKind::Refusal,
-                        error.as_str(),
+                        error
+                            .controller_refusal()
+                            .expect("matched refusal")
+                            .as_str(),
                         display,
                     )
                     .map_err(|error| error.as_str())?;

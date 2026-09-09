@@ -1,6 +1,49 @@
 use super::*;
 
 #[test]
+fn completed_run_is_not_an_active_native_control() {
+    let (mut tour, mut shell, mut display) = fixture();
+    let identities = BootIdentities {
+        host: [1; 32],
+        boot: [2; 32],
+    };
+    let offer = host_offer(&identities);
+    tour.accept(
+        &ApplicationEvent {
+            revision: tour.controller().state().revision,
+            action: conduit_tour_model::RUN_ACTION_ID.into(),
+            kind: ApplicationEventKind::Activate,
+            value: vec![],
+        },
+        &identities,
+        &offer,
+        "build",
+        &mut Clock::default(),
+        &mut Serial::default(),
+        &mut Interrupts::default(),
+        &mut Idle::default(),
+    )
+    .unwrap();
+    assert!(!tour.controller().state().run_action_available());
+    shell.present(&tour, &mut display).unwrap();
+    let route = delivered(shell.route_pointer(8, 92, false).unwrap());
+    assert!(!shell.run_hit(&route, &tour).unwrap());
+    let scene = tour.scene(640, 480).unwrap();
+    assert!(
+        scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Run unavailable")
+    );
+    assert!(
+        !scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Run Plan")
+    );
+}
+
+#[test]
 fn run_button_has_exact_bounds_and_refuses_a_retired_route() {
     let (tour, mut shell, mut display) = fixture();
     shell.present(&tour, &mut display).unwrap();

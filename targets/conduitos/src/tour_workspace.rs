@@ -208,8 +208,22 @@ pub(crate) fn scene_with_graph(
     let clip = graphics_rect(layout.narrative)?;
     crate::native_components::button(&mut scene, button, clip, "Gears")
         .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-    crate::native_components::button(&mut scene, run_bounds(&layout), clip, "Run Plan")
-        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    if state.run_action_available() {
+        crate::native_components::button(&mut scene, run_bounds(&layout), clip, "Run Plan")
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    } else {
+        scene
+            .push(
+                GraphicsCommand::text(
+                    run_bounds(&layout),
+                    clip,
+                    GraphicsPaintRole::Foreground,
+                    "Run unavailable",
+                )
+                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    }
     Ok(scene)
 }
 
