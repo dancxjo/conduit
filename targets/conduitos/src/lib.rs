@@ -61,6 +61,7 @@ pub mod local_rescue;
 pub mod machine;
 #[cfg(any(test, feature = "native-compositor"))]
 pub mod native_compositor;
+pub mod native_workset;
 pub mod observatory;
 pub mod offer;
 #[cfg(any(

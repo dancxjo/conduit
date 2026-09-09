@@ -217,7 +217,7 @@ pub fn validate(
     Ok(())
 }
 
-fn append_keymap_offer(advertisement: &mut HostAdvertisement, build_id: &str) {
+pub(crate) fn append_keymap_offer(advertisement: &mut HostAdvertisement, build_id: &str) {
     let mut keymap = crate::functional_offers::keymap_offer();
     keymap.capability_id = CapabilityId::from("conduitos/input-keymap@1");
     keymap.implementation.execution_profile_id = ExecutionProfileId::from(KEYMAP_EXECUTION_PROFILE);

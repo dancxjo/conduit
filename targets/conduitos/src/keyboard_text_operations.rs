@@ -41,6 +41,7 @@ pub(crate) enum PlannedOperation {
     Keyboard(KeyboardOperation),
     Keymap(StreamTransformOperation),
     Upper(StreamTransformOperation),
+    TextEdit(StreamTransformOperation),
     Presentation(PresentationOperation),
 }
 
@@ -202,7 +203,7 @@ impl Operation for PlannedOperation {
     fn start(&mut self) -> OperationAction {
         match self {
             Self::Keyboard(value) => value.start(),
-            Self::Keymap(value) | Self::Upper(value) => value.start(),
+            Self::Keymap(value) | Self::Upper(value) | Self::TextEdit(value) => value.start(),
             Self::Presentation(value) => value.start(),
         }
     }
@@ -210,7 +211,7 @@ impl Operation for PlannedOperation {
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match self {
             Self::Keyboard(value) => value.resume(input),
-            Self::Keymap(value) | Self::Upper(value) => value.resume(input),
+            Self::Keymap(value) | Self::Upper(value) | Self::TextEdit(value) => value.resume(input),
             Self::Presentation(value) => value.resume(input),
         }
     }
@@ -218,7 +219,7 @@ impl Operation for PlannedOperation {
     fn advance(&mut self) -> OperationAction {
         match self {
             Self::Keyboard(value) => value.advance(),
-            Self::Keymap(value) | Self::Upper(value) => value.advance(),
+            Self::Keymap(value) | Self::Upper(value) | Self::TextEdit(value) => value.advance(),
             Self::Presentation(value) => value.advance(),
         }
     }
@@ -226,7 +227,7 @@ impl Operation for PlannedOperation {
     fn cancel(&mut self) {
         match self {
             Self::Keyboard(value) => value.cancel(),
-            Self::Keymap(value) | Self::Upper(value) => value.cancel(),
+            Self::Keymap(value) | Self::Upper(value) | Self::TextEdit(value) => value.cancel(),
             Self::Presentation(value) => value.cancel(),
         }
     }
