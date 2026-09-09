@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { decideReleaseLane } from "../../tools/ci/release-lane-controller.mjs";
+import {
+  currentReleaseCandidates,
+  decideReleaseLane,
+} from "../../tools/ci/release-lane-controller.mjs";
 
 const minute = 60_000;
 const now = Date.parse("2026-09-08T16:00:00Z");
@@ -36,6 +39,30 @@ function decide(candidates, escalations = []) {
     maxElapsedMs: 45 * minute,
   });
 }
+
+test("an open release exposes only its current head to lane ownership", () => {
+  const old = run(101, "in_progress", 20, {
+    headSha: "old-head",
+    updatedAt: new Date(now - 20 * minute).toISOString(),
+  });
+  const current = run(102, "in_progress", 5, { headSha: "current-head" });
+  const candidates = currentReleaseCandidates([{
+    number: 1,
+    created_at: new Date(now - 30 * minute).toISOString(),
+    head: { ref: "release/0000000000000000000000000000000000000001", sha: "current-head" },
+  }], [
+    { ...old, branch: "release/0000000000000000000000000000000000000001" },
+    { ...current, branch: "release/0000000000000000000000000000000000000001" },
+  ]);
+
+  assert.equal(candidates.length, 1);
+  assert.equal(candidates[0].headSha, "current-head");
+  assert.deepEqual(candidates[0].attempts.map(({ id }) => id), [102]);
+  const decision = decide(candidates);
+  assert.deepEqual(decision.actions.preserve.map(({ runId }) => runId), [102]);
+  assert.deepEqual(decision.actions.cancel, []);
+  assert.deepEqual(decision.actions.escalate, []);
+});
 
 test("A remains healthy while B queues", () => {
   const a = candidate(1, run(101, "in_progress", 5));

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { appendFile } from "node:fs/promises";
-import { decideReleaseLane } from "./release-lane-controller.mjs";
+import { currentReleaseCandidates, decideReleaseLane } from "./release-lane-controller.mjs";
 
 const apply = process.argv.includes("--apply");
 const repository = process.env.GITHUB_REPOSITORY;
@@ -61,6 +61,7 @@ async function observe() {
   const jobLists = await Promise.all(relevantRuns.map(jobsFor));
   const runs = relevantRuns.map((run, index) => ({
     id: run.id,
+    branch: run.head_branch,
     headSha: run.head_sha,
     status: run.status,
     conclusion: run.conclusion,
@@ -71,20 +72,7 @@ async function observe() {
     url: run.html_url,
   }));
 
-  const candidates = [];
-  for (const pull of releases) {
-    const branchRuns = runs.filter((run) => relevantRuns.find(({ id }) => id === run.id)?.head_branch === pull.head.ref);
-    const heads = new Set([...branchRuns.map((run) => run.headSha), pull.head.sha]);
-    for (const headSha of heads) {
-      candidates.push({
-        prNumber: pull.number,
-        branch: pull.head.ref,
-        headSha,
-        createdAt: branchRuns.find((run) => run.headSha === headSha)?.createdAt ?? pull.created_at,
-        attempts: branchRuns.filter((run) => run.headSha === headSha),
-      });
-    }
-  }
+  const candidates = currentReleaseCandidates(releases, runs);
   const escalations = issues
     .filter((issue) => !issue.pull_request)
     .flatMap((issue) => [...(issue.body ?? "").matchAll(/<!-- conduit-release-liveness:([^ ]+) -->/g)].map((match) => match[1]));
