@@ -119,6 +119,8 @@ impl TourShellPresenter {
                 bounds.height,
                 if face_subject == TourTransientKind::Chooser.subject_identity() {
                     432
+                } else if slot == Slot::Inspector {
+                    fields::project(bounds, presentation, 0, None)?
                 } else {
                     scene::SCROLL_CONTENT_HEIGHT
                 },

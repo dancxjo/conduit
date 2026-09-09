@@ -181,7 +181,7 @@ pub(super) fn inspector_scene(
     presentation: &Presentation,
     scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
-    if scroll_y > SCROLL_CONTENT_HEIGHT {
+    if scroll_y > super::scroll::MAX_SCROLL_CONTENT_HEIGHT {
         return Err(TourShellError::Identity);
     }
     let mut scene = panel_scene(bounds, "INSPECTOR", "")?;
@@ -214,37 +214,7 @@ pub(super) fn inspector_scene(
             )
             .map_err(|_| TourShellError::Scene)?;
     }
-    let viewport = LayoutRect {
-        x: 0,
-        y: 36,
-        width: bounds.width,
-        height: bounds.height.saturating_sub(36),
-    };
-    for (index, item) in presentation.text.iter().enumerate() {
-        let subject = presentation
-            .subjects
-            .iter()
-            .find(|subject| subject.identity == item.subject)
-            .ok_or(TourShellError::Identity)?;
-        let y = 44_i32 + i32::try_from(index).map_err(|_| TourShellError::Identity)? * 86
-            - i32::from(scroll_y);
-        if y + 80 <= 36 || y >= i32::from(bounds.height) {
-            continue;
-        }
-        let row = LayoutRect {
-            x: 12,
-            y: i16::try_from(y).map_err(|_| TourShellError::Identity)?,
-            width: bounds.width.saturating_sub(24),
-            height: 80,
-        };
-        let text = alloc::format!("{}\n{}", subject.label, item.text);
-        scene
-            .push(
-                GraphicsCommand::text(row, viewport, GraphicsPaintRole::Foreground, &text)
-                    .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
-    }
+    super::fields::project(bounds, presentation, scroll_y, Some(&mut scene))?;
     Ok(scene)
 }
 pub(super) fn transient_scene(
