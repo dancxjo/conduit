@@ -97,7 +97,9 @@ fn cursor_hover_and_focus_are_visible_bounded_and_clear_with_surface_loss() {
     assert!(hover.cursor_visible);
     assert!(!hover.focus_visible);
     assert!(hover.pixels_written < display.format.width * display.format.height);
-    assert_eq!(display.pixels[4 * 32 + 7], 0x00ffcc33);
+    assert_eq!(display.pixels[4 * 32 + 7], 0x00000000);
+    assert_eq!(display.pixels[6 * 32 + 8], 0x00ffcc33);
+    assert_eq!(display.pixels[18 * 32 + 13], 0x00ffcc33);
 
     compositor.route_pointer(7, 4, true).unwrap();
     let focused = compositor.compose_frame(&mut display).unwrap();
