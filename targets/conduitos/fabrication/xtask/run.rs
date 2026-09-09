@@ -666,7 +666,7 @@ fn validate_observatory(
     );
     let exact_tick_placements = exact_placement(
         "time/tick",
-        "conduit.std/time-tick@2",
+        conduit_time::TICK_CONTRACT_REVISION,
         "conduitos/kernel-time-tick@1",
     ) && exact_placement(
         "presentation/tick",

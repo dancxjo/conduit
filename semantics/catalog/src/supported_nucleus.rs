@@ -20,8 +20,11 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
 pub(crate) fn supported_nucleus_contracts_with_revisions(
 ) -> Vec<(StandardKindContract, &'static str)> {
     vec![
-        (tick_contract(), "conduit.std/time-tick@2"),
-        (time_every_contract(), "conduit.std/time-every@1"),
+        (tick_contract(), conduit_time::TICK_CONTRACT_REVISION),
+        (
+            time_every_contract(),
+            conduit_time::TIME_EVERY_CONTRACT_REVISION,
+        ),
         (
             audio_render_demand_contract(),
             "conduit.std/audio-render-demand@1",
