@@ -25,6 +25,8 @@ pub struct NativeStyle {
     pub warning: Rgb,
     pub danger: Rgb,
     pub focus: Rgb,
+    pub hovered: Rgb,
+    pub selected: Rgb,
 }
 
 pub const NATIVE_STYLE: NativeStyle = NativeStyle {
@@ -41,6 +43,8 @@ pub const NATIVE_STYLE: NativeStyle = NativeStyle {
     warning: Rgb(255, 190, 70),
     danger: Rgb(255, 107, 122),
     focus: Rgb(255, 204, 51),
+    hovered: Rgb(153, 210, 255),
+    selected: Rgb(83, 178, 255),
 };
 
 #[cfg(test)]

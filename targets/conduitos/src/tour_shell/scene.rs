@@ -82,6 +82,12 @@ fn panel_scene(
             .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
+    let heading_paint = match symbol {
+        GraphicsSymbol::Warning => GraphicsPaintRole::Warning,
+        GraphicsSymbol::Failure => GraphicsPaintRole::Danger,
+        GraphicsSymbol::Success => GraphicsPaintRole::Success,
+        _ => GraphicsPaintRole::Accent,
+    };
     let symbol_space = if cfg!(feature = "native-compositor") {
         scene
             .push(
@@ -93,7 +99,7 @@ fn panel_scene(
                         height: 24,
                     },
                     local,
-                    GraphicsPaintRole::Accent,
+                    heading_paint,
                     symbol,
                 )
                 .map_err(|_| TourShellError::Scene)?,
@@ -111,7 +117,7 @@ fn panel_scene(
     };
     scene
         .push(
-            GraphicsCommand::text(title_bounds, local, GraphicsPaintRole::Accent, title)
+            GraphicsCommand::text(title_bounds, local, heading_paint, title)
                 .and_then(|command| {
                     command.with_text_role(conduit_presentation::GraphicsTextRole::Heading)
                 })

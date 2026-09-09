@@ -305,6 +305,13 @@ fn paint(format: DisplayFormat, role: GraphicsPaintRole) -> u32 {
         GraphicsPaintRole::Foreground => style::NATIVE_STYLE.foreground,
         GraphicsPaintRole::Accent => style::NATIVE_STYLE.accent,
         GraphicsPaintRole::Status => style::NATIVE_STYLE.warning,
+        GraphicsPaintRole::Muted => style::NATIVE_STYLE.muted,
+        GraphicsPaintRole::Success => style::NATIVE_STYLE.success,
+        GraphicsPaintRole::Warning => style::NATIVE_STYLE.warning,
+        GraphicsPaintRole::Danger => style::NATIVE_STYLE.danger,
+        GraphicsPaintRole::Focus => style::NATIVE_STYLE.focus,
+        GraphicsPaintRole::Hovered => style::NATIVE_STYLE.hovered,
+        GraphicsPaintRole::Selected => style::NATIVE_STYLE.selected,
     };
     format.pixel(color.0, color.1, color.2)
 }

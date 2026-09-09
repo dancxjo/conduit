@@ -319,7 +319,7 @@ mod tests {
             .iter()
             .find(|command| command.payload().starts_with("change\ntext/upper"))
             .unwrap();
-        assert_eq!(card.paint, GraphicsPaintRole::Accent);
+        assert_eq!(card.paint, GraphicsPaintRole::Selected);
         assert!(card.payload().contains("value/text"));
         assert!(
             scene

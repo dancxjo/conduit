@@ -26,9 +26,9 @@ pub(super) fn append(
             canonical_gear_contract(gear).ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
         let card = card_bounds(bounds, index);
         let paint = if state.selected_patchbay_subject.as_deref() == Some(gear) {
-            GraphicsPaintRole::Accent
+            GraphicsPaintRole::Selected
         } else if state.hovered_patchbay_subject.as_deref() == Some(gear) {
-            GraphicsPaintRole::Status
+            GraphicsPaintRole::Hovered
         } else {
             GraphicsPaintRole::Foreground
         };
@@ -37,6 +37,11 @@ pub(super) fn append(
             gear.rsplit('/').next().unwrap_or(gear),
             contract.kind_id.as_str()
         );
+        if paint == GraphicsPaintRole::Selected {
+            text.push_str("Selected\n");
+        } else if paint == GraphicsPaintRole::Hovered {
+            text.push_str("Hovered\n");
+        }
         text.push_str(if observations.is_some() {
             "Last run\n"
         } else {
@@ -117,6 +122,43 @@ fn preview(value: Option<&str>) -> alloc::string::String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn selected_and_hovered_cards_have_textual_state_as_well_as_paint() {
+        for selected in [false, true] {
+            let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
+            if selected {
+                state.selected_patchbay_subject = Some("meet-one-gear/change".into());
+            } else {
+                state.hovered_patchbay_subject = Some("meet-one-gear/change".into());
+            }
+            let mut scene = GraphicsScene::empty();
+            append(
+                &mut scene,
+                LayoutRect {
+                    x: 0,
+                    y: 0,
+                    width: 900,
+                    height: 400,
+                },
+                &state,
+                None,
+            )
+            .unwrap();
+            let paint = if selected {
+                GraphicsPaintRole::Selected
+            } else {
+                GraphicsPaintRole::Hovered
+            };
+            let label = if selected { "Selected\n" } else { "Hovered\n" };
+            assert!(
+                scene
+                    .commands()
+                    .iter()
+                    .any(|command| command.paint == paint && command.payload().contains(label))
+            );
+        }
+    }
 
     #[test]
     fn hit_regions_match_card_edges_and_exclude_headers_and_gaps() {

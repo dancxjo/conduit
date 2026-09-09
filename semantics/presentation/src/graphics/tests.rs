@@ -1,6 +1,34 @@
 use super::*;
 
 #[test]
+fn state_paints_round_trip_and_unknown_paints_refuse() {
+    for role in [
+        GraphicsPaintRole::Muted,
+        GraphicsPaintRole::Success,
+        GraphicsPaintRole::Warning,
+        GraphicsPaintRole::Danger,
+        GraphicsPaintRole::Focus,
+        GraphicsPaintRole::Hovered,
+        GraphicsPaintRole::Selected,
+    ] {
+        let mut scene = GraphicsScene::empty();
+        scene
+            .push(GraphicsCommand::text(rect(0, 10), rect(0, 10), role, "meaning").unwrap())
+            .unwrap();
+        let mut bytes = scene.encode();
+        assert_eq!(
+            GraphicsScene::decode(&bytes[..scene.encoded_len()]),
+            Ok(scene)
+        );
+        bytes[3] = 255;
+        assert_eq!(
+            GraphicsScene::decode(&bytes[..scene.encoded_len()]),
+            Err(GraphicsError::MalformedEncoding)
+        );
+    }
+}
+
+#[test]
 fn graphical_roles_round_trip_and_refuse_unknown_or_nontext_roles() {
     for role in [
         GraphicsTextRole::Body,
