@@ -4,6 +4,7 @@ mod font;
 mod text_layout;
 mod tokens;
 pub use tokens::*;
+#[cfg(feature = "native-compositor")]
 pub mod profile;
 #[cfg(feature = "native-compositor")]
 pub mod typography;
