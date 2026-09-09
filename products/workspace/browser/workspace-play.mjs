@@ -2,7 +2,8 @@ import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/bro
 
 export function openWorkspacePlay({ host, session, source, inputTarget, outputRoot, foregroundForm, onState }) {
   let adapter = null, started = null, terminal = null, transition = false;
-  const publish = (state, detail = '') => onState({ state, detail, play: started?.play, terminal });
+  const publish = (state, detail = '', error = null) => onState({ state, detail, play: started?.play, terminal,
+    refusal: error ? { code: typeof error.code === 'string' ? error.code : error.name, message: error.message } : null });
   const requireTerminal = receipt => {
     if (receipt?.schema !== 'conduit.tour/manifestation-receipt@3' ||
         receipt.active_play_id !== started?.play.active_play_id ||
@@ -28,16 +29,25 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
           if (terminal) return;
           requireTerminal(receipt);
           publish(receipt.disposition === 'completed' ? 'Completed' : receipt.disposition === 'cancelled' ? 'Cancelled' : 'Failed');
-        }).catch(error => { if (!terminal) publish('Failed', error.message); });
+        }).catch(error => { if (!terminal) publish('Failed', error.message, error); });
       } catch (error) {
-        const closed = adapter?.close(); adapter = null;
-        if (started) {
-          requireTerminal(closed?.receipt);
-          await session.lull(started.play);
-        } else if (session.evidence()?.realization && (!closed || closed.startOutcome === 'refused-before-play' || closed.startOutcome === 'not-attempted')) {
-          await session.lull(null);
+        let cleanupError = null;
+        try {
+          const closed = adapter?.close();
+          if (started) {
+            requireTerminal(closed?.receipt);
+            adapter = null;
+            await session.lull(started.play);
+          } else if (session.evidence()?.realization && (!closed || closed.startOutcome === 'refused-before-play' || closed.startOutcome === 'not-attempted')) {
+            adapter = null;
+            await session.lull(null);
+          }
+        } catch (failure) { cleanupError = failure; }
+        if (session.persistenceFailure()) {
+          publish(terminal ? 'Stopped' : 'Refused', `Your Body could not be saved. ${terminal ? 'Its Forms have stopped. ' : ''}Reopen to recover the last saved state. ${error.message}`, error);
+        } else {
+          publish(adapter ? 'Failed' : 'Refused', [error.message, cleanupError?.message].filter(Boolean).join(' · '), error);
         }
-        publish('Refused', error.message);
       } finally { transition = false; }
     },
     async lull() {
@@ -46,9 +56,13 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
       try {
         const closed = adapter.close();
         if (!terminal) requireTerminal(closed?.receipt);
-        await session.lull(started.play);
         adapter = null;
+        await session.lull(started.play);
         publish('Lulled', 'Your Body is retained. Its Forms can wake again.');
+      } catch (error) {
+        publish(terminal ? 'Stopped' : 'Failed', terminal
+          ? `Its Forms have stopped, but your Body could not be saved. Reopen to recover the last saved state. ${error.message}`
+          : error.message, error);
       } finally { transition = false; }
     },
     close() { return adapter?.close(); },

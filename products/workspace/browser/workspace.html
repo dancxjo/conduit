@@ -17,17 +17,17 @@
 
     </header>
     <main>
-      <section class="workspace-creche" data-workspace-creche hidden aria-labelledby="creche-title">
-        <header><span class="eyebrow">CRÈCHE</span><h2 id="creche-title">A body of your own.</h2><p>Give it a name. Choose what lives here.</p></header>
+      <section class="workspace-creche" data-workspace-creche hidden aria-label="Birth your Body">
         <div data-creche-content></div>
       </section>
       <section class="form-surface" aria-labelledby="surface-title" data-workspace-surface hidden>
         <div class="surface-content">
           <h2 id="surface-title">Start with a word.</h2>
           <p class="surface-invitation" data-surface-invitation>Type something. Watch it become a signal.</p>
-          <label class="visually-hidden" for="form-input">Interact with your Form</label>
-          <textarea id="form-input" rows="2" maxlength="256" spellcheck="false" autocomplete="off" placeholder="Hello, world." disabled aria-describedby="surface-guidance"></textarea>
-          <div class="signal-manifestation" aria-label="Form output" data-form-output></div>
+          <div id="form-input" role="textbox" aria-multiline="true" aria-label="Interact with your Form" tabindex="-1" aria-disabled="true" aria-describedby="surface-guidance" inert>
+            <span class="input-prompt" aria-hidden="true">Type to begin.</span>
+            <div class="signal-manifestation" aria-label="Form output" data-form-output></div>
+          </div>
           <p id="surface-guidance" class="surface-guidance">Preparing your Form…</p>
           <div class="body-controls"><button type="button" data-wake-body hidden>Wake Body</button><button type="button" data-lull-body disabled>Lull Body</button></div>
         </div>

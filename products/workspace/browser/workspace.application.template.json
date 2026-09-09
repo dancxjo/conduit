@@ -86,10 +86,6 @@
       "maximum_bytes": 24576,
       "dependencies": [
         {
-          "role": "creche-names",
-          "specifier": "./creche-names.mjs"
-        },
-        {
           "role": "application-syntax-presentation",
           "specifier": "../../../targets/browser/host/assets/application-syntax-presentation.mjs"
         },
@@ -218,7 +214,12 @@
       "kind": "module",
       "path": "browser-body-input.mjs",
       "maximum_bytes": 16384,
-      "dependencies": []
+      "dependencies": [
+        {
+          "role": "browser-human-input",
+          "specifier": "./browser-human-input.mjs"
+        }
+      ]
     }
   ]
 }

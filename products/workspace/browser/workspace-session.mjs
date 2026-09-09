@@ -6,6 +6,7 @@ export function openWorkspaceSession({ host, storage }) {
   const api = host.runtime;
   let sequence = 0;
   let write = Promise.resolve();
+  let persistenceFailure = null;
   let workspace = null;
   const request = (action, fields = {}) => {
     const bytes = encoder.encode(JSON.stringify({ action, ...fields }));
@@ -16,7 +17,7 @@ export function openWorkspaceSession({ host, storage }) {
     const length = api.conduit_workspace_output_len();
     if (length < 1 || length > 256 * 1024) throw new Error('Workspace output exceeds its bound');
     const result = JSON.parse(decoder.decode(new Uint8Array(api.memory.buffer, api.conduit_workspace_output_ptr(), length)));
-    if (status < 0) throw new Error(result.message ?? 'Workspace refused');
+    if (status < 0) throw Object.assign(new Error(result.message ?? 'Workspace refused'), { code: result.code, refusal: result });
     if (result.schema === 'conduit.workspace/body@1') workspace = result;
     return result;
   };
@@ -44,7 +45,10 @@ export function openWorkspaceSession({ host, storage }) {
     const current = workspace ? request('Current') : null;
     const snapshot = current ? { schema: current.schema, evidence: current.evidence, foreground: current.foreground } : call('conduit_creche_durable_snapshot');
     if (!snapshot) return write;
-    write = write.then(() => storage.writeJson('body-session', snapshot));
+    write = write.then(() => storage.writeJson('body-session', snapshot)).catch(error => {
+      persistenceFailure ??= error;
+      throw error;
+    });
     return write;
   };
   return Object.freeze({
@@ -73,11 +77,15 @@ export function openWorkspaceSession({ host, storage }) {
     foreground: () => workspace ? request('Current').foreground : null,
     arrive() { if (!workspace) request('Arrive'); return save(); },
     evidence: () => workspace ? request('Current') : null,
-    async propose(source) { const proposal = request('Propose', { ...here, source }); workspace = request('Current'); await save(); return proposal; },
+    async propose(source) {
+      if (persistenceFailure) throw persistenceFailure;
+      const proposal = request('Propose', { ...here, source }); workspace = request('Current'); await save(); return proposal;
+    },
     async started(start) { request('Started', { ...here, play: start.play, wake_at_start: start.wake_at_start }); await save(); },
     async lull(play) { request('Lull', { ...here, terminated_play: play ?? null }); await save(); },
     save,
     settled: () => write,
+    persistenceFailure: () => persistenceFailure,
     async restore() {
       const snapshot = await storage.readJson('body-session');
       if (snapshot === null) return null;

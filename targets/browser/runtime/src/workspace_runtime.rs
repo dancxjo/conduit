@@ -4,6 +4,9 @@ use conduit_core::{BootId, HostId};
 use conduit_workspace_model::WorkspaceBody;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
+#[path = "workspace_refusal.rs"]
+mod refusal;
+use refusal::Refusal;
 
 const CAPACITY: usize = 256 * 1024;
 thread_local! {
@@ -49,6 +52,7 @@ struct Snapshot<'a> {
     evidence: &'a BodyBiographyEvidence,
     realization: Option<&'a conduit_workspace_model::WorkspaceRealization>,
     foreground: Option<&'a ResidentForm>,
+    foreground_flow: String,
 }
 
 #[no_mangle]
@@ -81,15 +85,15 @@ pub extern "C" fn conduit_workspace_request(length: usize) -> i32 {
         request
     });
     let result = request
-        .map_err(|error| error.to_string())
+        .map_err(|error| Refusal::new("InvalidRequest", error.to_string()))
         .and_then(dispatch);
     match result {
         Ok(bytes) => {
             OUTPUT.with(|output| *output.borrow_mut() = bytes);
             0
         }
-        Err(message) => {
-            let refusal = serde_json::json!({ "schema": "conduit.workspace/refusal@1", "disposition": "refused", "message": message });
+        Err(error) => {
+            let refusal = serde_json::json!({ "schema": "conduit.workspace/refusal@1", "disposition": "refused", "code": error.code, "message": error.message });
             if let Ok(bytes) = serde_json::to_vec(&refusal) {
                 OUTPUT.with(|output| *output.borrow_mut() = bytes);
             }
@@ -98,7 +102,7 @@ pub extern "C" fn conduit_workspace_request(length: usize) -> i32 {
     }
 }
 
-fn dispatch(request: Request) -> Result<Vec<u8>, String> {
+fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
     BODY.with(|slot| {
         let mut slot = slot.borrow_mut();
         match request {
@@ -160,16 +164,26 @@ fn dispatch(request: Request) -> Result<Vec<u8>, String> {
                 boot_id,
                 play,
                 wake_at_start,
-            } => candidate
-                .started(&host_id, &boot_id, play, wake_at_start)
-                .map_err(debug)?,
+            } => {
+                crate::form_runner::workspace::require_started(&play)?;
+                candidate
+                    .started(&host_id, &boot_id, play, wake_at_start)
+                    .map_err(debug)?;
+                let bytes = snapshot(&candidate)?;
+                *slot = Some(candidate);
+                crate::form_runner::workspace::acknowledge_start();
+                return Ok(bytes);
+            }
             Request::Lull {
                 host_id,
                 boot_id,
                 terminated_play,
-            } => candidate
-                .lull(&host_id, &boot_id, terminated_play.as_ref())
-                .map_err(debug)?,
+            } => {
+                crate::form_runner::workspace::require_empty()?;
+                candidate
+                    .lull(&host_id, &boot_id, terminated_play.as_ref())
+                    .map_err(debug)?;
+            }
             Request::Arrive | Request::Restore { .. } => {
                 unreachable!("handled before current Body")
             }
@@ -180,21 +194,26 @@ fn dispatch(request: Request) -> Result<Vec<u8>, String> {
     })
 }
 
-fn snapshot(body: &WorkspaceBody) -> Result<Vec<u8>, String> {
+fn snapshot(body: &WorkspaceBody) -> Result<Vec<u8>, Refusal> {
     encode(&Snapshot {
         schema: "conduit.workspace/body@1",
         evidence: body.evidence(),
         realization: body.realization(),
         foreground: body.foreground(),
+        foreground_flow: body.foreground_flow(),
     })
 }
-fn encode(value: &impl Serialize) -> Result<Vec<u8>, String> {
-    let bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
+fn encode(value: &impl Serialize) -> Result<Vec<u8>, Refusal> {
+    let bytes = serde_json::to_vec(value)
+        .map_err(|error| Refusal::new("EncodingFailure", error.to_string()))?;
     if bytes.len() > CAPACITY {
-        return Err("Workspace output exceeds its admitted bound".into());
+        return Err(Refusal::new(
+            "OutputBound",
+            "Workspace output exceeds its admitted bound",
+        ));
     }
     Ok(bytes)
 }
-fn debug(error: impl core::fmt::Debug) -> String {
-    format!("Workspace refused: {error:?}")
+fn debug(error: conduit_workspace_model::WorkspaceBodyError) -> Refusal {
+    error.into()
 }

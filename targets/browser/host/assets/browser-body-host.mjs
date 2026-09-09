@@ -198,6 +198,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
           typeof started.play?.active_play_id !== "string" || !started.play.active_play_id ||
           started.play.plan_id !== proposal.plan.plan_id || started.play.wake_id !== proposal.wake.wake_id ||
           started.play.body_id !== proposal.plan.body_id) throw new Error("invalid browser Body start output");
+      if (started.progress?.schema === "conduit.tour/manifestation-receipt@3") terminal = started.progress;
       return started;
     },
     run() {

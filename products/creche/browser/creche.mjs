@@ -1,19 +1,12 @@
+import { createInstalledCrecheTargetCatalog } from "./creche-installed-targets.mjs";
 import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-bootstrap.mjs";
+import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
 import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./creche-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./creche-physical.mjs";
-import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
 import { createGraduationRunner, exportBodyEvidence, renderBiography } from "./creche-graduation.mjs";
 import { createCrecheRouting } from "./creche-routing.mjs";
 import { openFormSelection, persistedFormSelection, readReviewedFormInventory } from "./creche-form-selection.mjs";
 import { createProductMasthead } from "../../../semantics/presentation/assets/product-masthead.mjs";
-import { AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/avr/deployment/browser/creche-adapter.mjs";
-import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/rp2040/deployment/browser/creche-adapter.mjs";
-import { ESP32_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/esp32/deployment/browser/creche-adapter.mjs";
-import { STD_EXISTING_COMPUTER_CONTRIBUTIONS } from "../../../targets/std/deployment/browser/creche-adapter.mjs";
-import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "../../../targets/browser/deployment/browser/creche-adapter.mjs";
-import { ORANGE_PI_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/orange-pi/deployment/browser/creche-adapter.mjs";
-import { RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/raspberry-pi/deployment/browser/creche-adapter.mjs";
-import { CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/conduitos/deployment/browser/creche-adapter.mjs";
 
 const steps = [
   { name: "Birth", slug: "birth" },
@@ -37,19 +30,7 @@ let currentStep = 0;
 let sequence = 0;
 let presentationRevision = 0;
 let productMasthead;
-const targetCatalog = createPhysicalHostTargetCatalog({
-  generation: 1,
-  contributions: [
-    RP2040_CRECHE_TARGET_CONTRIBUTION,
-    AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION,
-    ...ESP32_CRECHE_TARGET_CONTRIBUTIONS,
-    ...STD_EXISTING_COMPUTER_CONTRIBUTIONS,
-    BROWSER_EXISTING_COMPUTER_CONTRIBUTION,
-    ORANGE_PI_CRECHE_TARGET_CONTRIBUTION,
-    ...RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS,
-    ...CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS,
-  ],
-});
+const targetCatalog = createInstalledCrecheTargetCatalog();
 
 export async function startApplication(application) {
  try {
@@ -57,6 +38,19 @@ export async function startApplication(application) {
   presentationFor = application.presentationFor;
   productMasthead = createProductMasthead(presentation, "product-masthead", "creche");
   storage = application.storage;
+  const continuity = await acquireBrowserBodyContinuity();
+  const retained = await storage.readJson("body-session");
+  if (retained?.schema === "conduit.workspace/body@1") {
+    // Arrival owns this biography now. Do not restore it into a second model.
+    continuity.close();
+    renderHostStatus("Your Body is ready to reopen", "success-status");
+    const heading = document.createElement("h2"); heading.textContent = "Return to your Body";
+    const explanation = document.createElement("p"); explanation.textContent = "Your Body and its installed Forms are retained.";
+    const link = document.createElement("a"); link.textContent = "Open your Body";
+    link.href = new URL("../workspace/", document.baseURI).href;
+    workspace.replaceChildren(heading, explanation, link);
+    return;
+  }
   initialFormSource = application.text("reviewed-form-inventory");
   renderHostStatus("Starting browser Host…", "status");
   const initialized = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });

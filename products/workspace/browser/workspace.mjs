@@ -61,7 +61,7 @@ export async function startApplication(application) {
       text.textContent = kind === 'lifecycle' ? playback.detail : kind === 'flow' ? 'The checked source describes this Form’s meaning. Its exact realization appears below when admitted.' : 'An installed Form in this Body. Opening its surface keeps the current Play.';
       details.append(text);
       const pre = document.createElement('pre');
-      pre.textContent = kind === 'lifecycle' ? JSON.stringify({ body: evidence?.evidence, realization: evidence?.realization, terminal: playback.terminal }, null, 2)
+      pre.textContent = kind === 'lifecycle' ? JSON.stringify({ body: evidence?.evidence, realization: evidence?.realization, terminal: playback.terminal, refusal: playback.refusal }, null, 2)
         : kind === 'flow' && evidence?.realization ? JSON.stringify(evidence.realization.plan.forms.find(item => item.form.checked_form_id === selected), null, 2) : (form?.source ?? 'Source unavailable');
       const disclosure = document.createElement('details'), summary = document.createElement('summary');
       summary.textContent = kind === 'lifecycle' ? 'Exact lifecycle evidence' : kind === 'flow' && evidence?.realization ? 'Exact Plan' : 'Checked source';
@@ -78,10 +78,10 @@ export async function startApplication(application) {
     const showSelected = () => {
       const form = inventory.forms.find(item => item.checked_form_id === selected);
       root.querySelector('#surface-title').textContent = form?.title ?? 'Your Forms';
-      root.querySelector('[data-surface-invitation]').textContent = form?.required_kinds.some(kind => kind.startsWith('human/'))
-        ? 'Make something happen here.' : 'Watch this Form take shape.';
+      root.querySelector('[data-surface-invitation]').textContent = form?.required_kinds.includes('text/submit-lines') ? 'Type a message. Press Enter to send.'
+        : form?.required_kinds.includes('input/keyboard') ? 'Type something. Your Form is listening.' : 'Watch this Form take shape.';
       root.querySelector('.current-form').textContent = form?.title ?? 'Your Forms';
-      root.querySelector('[data-flow-label]').textContent = form ? `${form.required_kinds.length} required capabilities` : 'No Form selected';
+      root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
       input.setAttribute('aria-label', `Interact with ${form?.title ?? 'your Form'}`);
       for (const button of activities.querySelectorAll('[data-checked-form-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedFormId === selected));
       const partition = session.evidence()?.realization?.plan.forms.find(item => item.form.checked_form_id === selected);
@@ -139,9 +139,12 @@ export async function startApplication(application) {
         root.querySelector('[data-play-state]').textContent = state.state;
         root.querySelector('[data-body-state]').textContent = session.current().state.toLowerCase();
         root.querySelector('#surface-guidance').textContent = state.detail;
-        wakeButton.disabled = !['Lulled', 'Refused'].includes(state.state);
+        wakeButton.disabled = Boolean(session.persistenceFailure()) || !['Lulled', 'Refused'].includes(state.state);
         lullButton.disabled = !['Playing', 'Completed', 'Failed'].includes(state.state);
         input.disabled = state.state !== 'Playing';
+        input.inert = input.disabled;
+        input.tabIndex = input.disabled ? -1 : 0;
+        input.setAttribute('aria-disabled', String(input.disabled));
         wakeButton.hidden = state.state === 'Playing' || state.state === 'Preparing';
         showSelected();
         if (state.state === 'Playing') input.focus();
@@ -154,6 +157,6 @@ export async function startApplication(application) {
     render();
     if (session.current()?.here_part_id && session.current().initial_forms.length) await play.wake();
     globalThis.addEventListener('pagehide', () => play?.close());
-    globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, settled: () => saving.then(session.settled) });
+    globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
   } catch (error) { fail(error); }
 }

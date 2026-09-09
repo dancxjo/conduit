@@ -54,7 +54,7 @@ test("queued keys retain capture focus and held-key releases stay with their pre
 test("cancelling one input request does not cancel another Form's request", async () => {
   const f = setup();
   const controller = new AbortController();
-  const cancelled = assert.rejects(f.next("notes", controller.signal), /cancelled/);
+  const cancelled = assert.rejects(f.next("notes", controller.signal), { code: "Cancelled" });
   const morse = f.next("morse");
   controller.abort();
   await cancelled;
@@ -79,9 +79,9 @@ test("uninstalled identities and duplicate requests refuse without consuming inp
 
 test("input pressure has a finite boundary and closes outstanding delivery", async () => {
   const f = setup();
-  const failed = assert.rejects(f.next("morse"), /queue capacity exhausted/);
+  const failed = assert.rejects(f.next("morse"), { code: "Pressure" });
   for (let usage = 4; usage < 13; usage++) await f.send(f.capture(usage));
   await failed;
-  await assert.rejects(f.next("notes"), /queue capacity exhausted/);
+  await assert.rejects(f.next("notes"), { code: "Pressure" });
   f.close();
 });
