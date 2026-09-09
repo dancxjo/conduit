@@ -48,7 +48,7 @@ pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodySta
         })
         .collect::<Result<Vec<_>, String>>()?;
     let first = fragments.first().ok_or("empty Body workload")?;
-    let host =
+    let mut host =
         crate::installed_browser::advertisement(first.host_id.clone(), first.boot_id.clone());
     if request.observations.len() > host.resources.len() {
         return Err("Body resource observations exceed the installed resource bound".into());
@@ -68,6 +68,21 @@ pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodySta
         },
     )
     .map_err(|error| format!("Body lowering: {error:?}"))?;
+    // Lowering has already bounded the placements. Dynamic selectors are pure,
+    // installed realizations whose exact types and configuration are revalidated.
+    for gear in fragments.iter().flat_map(|fragment| &fragment.placements) {
+        if let Some(offer) =
+            crate::installed_browser::structured_selector::offer_for_placement(gear)?
+        {
+            if !host
+                .capabilities
+                .iter()
+                .any(|current| current.capability_id == offer.capability_id)
+            {
+                host.capabilities.push(offer);
+            }
+        }
+    }
     let mut requests = Vec::new();
     let mut instances = BTreeMap::<conduit_core::CapabilityId, usize>::new();
     for fragment in &fragments {

@@ -24,3 +24,6 @@ mod spore_target;
 mod button_workset_tests;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod typed_workset_tests;

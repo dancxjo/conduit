@@ -19,7 +19,7 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     await page.goto(creche.url);
     await expect(page.locator("#host-state")).toHaveText("Crèche ready");
     const birth = page.locator(".body-birth-runner");
-    for (const title of ["Button Across Room", "Clock-demo", "Desk Telegraph"]) {
+    for (const title of ["Button Across the Room", "Clock", "Desk Telegraph"]) {
       await selectBirthForm(birth, title);
     }
     await expect(birth.getByRole("button", { name: "Birth Body", exact: true })).toBeEnabled();

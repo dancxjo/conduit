@@ -3,7 +3,9 @@ import { createBodyBirthRunner, createFirstHostRunner } from "../../creche/brows
 import { readReviewedFormInventory, openFormSelection, persistedFormSelection } from "../../creche/browser/creche-form-selection.mjs";
 import { openWorkspaceSession } from "./workspace-session.mjs";
 import { openWorkspacePlay } from "./workspace-play.mjs";
+import { configureWorkspaceInput } from "./workspace-surface.mjs";
 import { openWorkspaceLibrary } from "./workspace-library.mjs";
+import { readWorkspaceHandoff, consumeWorkspaceHandoff } from "./workspace-handoff.mjs";
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
 
 export async function startApplication(application) {
@@ -28,6 +30,9 @@ export async function startApplication(application) {
     const session = openWorkspaceSession({ host, storage: application.storage });
     const source = application.text('reviewed-form-inventory');
     const inventory = readReviewedFormInventory(host.runtime, source);
+    let handoff = null, handoffFailure = null;
+    try { handoff = readWorkspaceHandoff(globalThis.location, inventory); }
+    catch (error) { handoffFailure = error; }
     const retainedSelection = await application.storage.readJson('form-selection');
     let selection = openFormSelection(inventory, retainedSelection);
     if (retainedSelection === null) {
@@ -36,6 +41,11 @@ export async function startApplication(application) {
       selection = { selected: [scratch, chime].filter(Boolean), refusals: [] };
     }
     await session.restore();
+    if (handoff && !session.current()) {
+      selection = openFormSelection(inventory, persistedFormSelection(inventory, selection.selected), handoff);
+      await application.storage.writeJson('form-selection', persistedFormSelection(inventory, selection.selected));
+      await consumeWorkspaceHandoff({ host, applicationId: application.manifest.applicationId });
+    }
     let saving = Promise.resolve();
     let selected = session.foreground()?.checked_form_id;
     let playback = { state: 'Lulled', detail: 'Its Forms can wake here.' };
@@ -49,6 +59,9 @@ export async function startApplication(application) {
         }
         await session.arrive();
         const resident = session.current().initial_forms;
+        if (handoff && resident.some(form => form.checked_form_id === handoff.checked_form_id)) {
+          await session.selectForm({ source_document_id: handoff.source_document_id, checked_form_id: handoff.checked_form_id });
+        }
         const foreground = inventory.forms.find(form => form.checked_form_id === session.foreground()?.checked_form_id);
         if (foreground?.required_kinds.includes('sound/startup-chime')) {
           const visible = resident.find(form => inventory.forms.some(candidate => candidate.checked_form_id === form.checked_form_id && candidate.required_kinds.some(kind => kind.startsWith('presentation/'))));
@@ -87,15 +100,12 @@ export async function startApplication(application) {
     });
     const showSelected = () => {
       const form = inventory.forms.find(item => item.checked_form_id === selected);
-      input.hidden = !form?.required_kinds.some(kind => ['input/keyboard', 'input/button'].includes(kind));
+      const partition = session.evidence()?.realization?.plan.forms.find(item => item.form.checked_form_id === selected);
       root.querySelector('#surface-title').textContent = form?.title ?? 'No Forms installed';
-      root.querySelector('[data-surface-invitation]').textContent = form?.required_kinds.includes('text/submit-lines') ? 'Type a message. Press Enter to send.'
-        : form?.required_kinds.includes('input/keyboard') ? 'Type something. Your Form is listening.' : form?.required_kinds.includes('sound/startup-chime') ? 'This Form makes a short sound when eligible. Its playback outcome is in lifecycle evidence.' : form ? 'Watch this Form take shape.' : 'Your Body is retained without running Forms.';
+      root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, form, partition);
       root.querySelector('.current-form').textContent = form?.title ?? 'Your Forms';
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
-      input.setAttribute('aria-label', `Interact with ${form?.title ?? 'your Form'}`);
       for (const button of activities.querySelectorAll('[data-checked-form-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedFormId === selected));
-      const partition = session.evidence()?.realization?.plan.forms.find(item => item.form.checked_form_id === selected);
       const visible = new Set(partition?.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id)) ?? []);
       for (const output of root.querySelectorAll('[data-form-output] output')) output.hidden = !visible.has(output.dataset.placementId);
       for (const button of strip.querySelectorAll('[data-inspect="form"], [data-inspect="flow"]')) button.disabled = !form;
@@ -173,7 +183,7 @@ export async function startApplication(application) {
         input.setAttribute('aria-disabled', String(input.disabled));
         wakeButton.hidden = ['Playing', 'Idle', 'Preparing'].includes(state.state);
         showSelected();
-        if (state.state === 'Playing') input.focus();
+        if (state.state === 'Playing' && input.dataset.acceptsInput === 'true') input.focus();
       } });
       showSelected();
     }
@@ -210,7 +220,11 @@ export async function startApplication(application) {
     lullButton.addEventListener('click', () => play?.lull().catch(fail));
     if (session.current()?.here_part_id) await session.arrive();
     render();
-    if (session.current()?.here_part_id && session.current().initial_forms.length) await play.wake();
+    if (handoff && session.current()?.here_part_id) {
+      await consumeWorkspaceHandoff({ host, applicationId: application.manifest.applicationId });
+      await useForm(handoff, session.current().workload_revision);
+    } else if (session.current()?.here_part_id && session.current().initial_forms.length) await play.wake();
+    if (handoffFailure) fail(handoffFailure);
     globalThis.addEventListener('pagehide', () => play?.close());
     globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
   } catch (error) { fail(error); }

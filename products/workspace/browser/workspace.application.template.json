@@ -42,6 +42,14 @@
         {
           "role": "workspace-library",
           "specifier": "./workspace-library.mjs"
+        },
+        {
+          "role": "workspace-handoff",
+          "specifier": "./workspace-handoff.mjs"
+        },
+        {
+          "role": "workspace-surface",
+          "specifier": "./workspace-surface.mjs"
         }
       ]
     },
@@ -49,7 +57,7 @@
       "role": "reviewed-form-inventory",
       "kind": "content",
       "path": "forms/initial-body.conduit",
-      "maximum_bytes": 4096,
+      "maximum_bytes": 16384,
       "dependencies": []
     },
     {
@@ -246,6 +254,32 @@
       "kind": "module",
       "path": "workspace-library.mjs",
       "maximum_bytes": 8192,
+      "dependencies": []
+    },
+    {
+      "role": "workspace-handoff",
+      "kind": "module",
+      "path": "workspace-handoff.mjs",
+      "maximum_bytes": 4096,
+      "dependencies": [
+        {
+          "role": "browser-host-operations",
+          "specifier": "../../../targets/browser/host/assets/browser-host-operations.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-host-operations",
+      "kind": "module",
+      "path": "browser-host-operations.mjs",
+      "maximum_bytes": 24576,
+      "dependencies": []
+    },
+    {
+      "role": "workspace-surface",
+      "kind": "module",
+      "path": "workspace-surface.mjs",
+      "maximum_bytes": 4096,
       "dependencies": []
     }
   ]

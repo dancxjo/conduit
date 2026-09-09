@@ -27,6 +27,15 @@ fn offer() -> conduit_core::CapabilityOffer {
     offer.implementation.implementation_id = "browser/form-pointer-source@1".into();
     offer.implementation.execution_profile_id = "browser/form-pointer-source@1".into();
     offer.implementation.artifact_id = "conduit-browser-runtime/form-pointer-source@1".into();
+    offer
+        .resource_requirements
+        .push(conduit_core::ResourceRequirement {
+            class_id: super::input::WINDOW_INPUT_RESOURCE_CLASS.into(),
+            units: 1,
+            content: None,
+            protected_role: None,
+            compute: None,
+        });
     offer.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
     offer.host_operations[0].maximum_output_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
     offer
