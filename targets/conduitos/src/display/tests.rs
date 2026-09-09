@@ -139,7 +139,7 @@ fn bounded_scene_renders_and_loss_remains_distinct() {
     let first_glyph_pixel = 6 * 128 + 4 * 4;
     assert_eq!(
         &bytes[first_glyph_pixel..first_glyph_pixel + 4],
-        &format().pixel(205, 235, 224).to_le_bytes()
+        &format().pixel(225, 232, 240).to_le_bytes()
     );
 
     let mut lost = Buffer {

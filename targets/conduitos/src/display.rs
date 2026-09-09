@@ -256,9 +256,9 @@ fn clipped(bounds: LayoutRect, clip: LayoutRect, format: DisplayFormat) -> Optio
 
 fn paint(format: DisplayFormat, role: GraphicsPaintRole) -> u32 {
     let (red, green, blue) = match role {
-        GraphicsPaintRole::Background => (8, 18, 24),
-        GraphicsPaintRole::Foreground => (205, 235, 224),
-        GraphicsPaintRole::Accent => (69, 255, 188),
+        GraphicsPaintRole::Background => (15, 23, 32),
+        GraphicsPaintRole::Foreground => (225, 232, 240),
+        GraphicsPaintRole::Accent => (83, 178, 255),
         GraphicsPaintRole::Status => (255, 190, 70),
     };
     format.pixel(red, green, blue)
