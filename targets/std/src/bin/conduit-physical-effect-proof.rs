@@ -2,11 +2,10 @@ use conduit_core::*;
 use std::fs;
 use std::io::{self, Write};
 use std::net::{SocketAddr, UdpSocket};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 struct WifiBroadcastProvider {
     socket: UdpSocket,
-    endpoint: SocketAddr,
     payload: Vec<u8>,
     calls: u32,
     safe: bool,
@@ -28,7 +27,7 @@ impl ConsequentialEffectProvider for WifiBroadcastProvider {
         }
         self.calls = 1;
         self.socket
-            .send_to(&self.payload, self.endpoint)
+            .send(&self.payload)
             .map_err(|_| ConsequentialProviderFailure::Ambiguous)?;
         Ok(PhysicalObservation::Observed)
     }
@@ -87,10 +86,15 @@ fn main() -> Result<(), String> {
     socket
         .set_broadcast(true)
         .map_err(|error| format!("admit broadcast provider: {error}"))?;
+    socket
+        .connect(endpoint)
+        .map_err(|error| format!("select attended interface route: {error}"))?;
+    let provider_address = socket
+        .local_addr()
+        .map_err(|error| format!("inspect attended interface route: {error}"))?;
     let payload = format!("conduit-{nonce:032x}").into_bytes();
     let mut provider = WifiBroadcastProvider {
         socket,
-        endpoint,
         payload: payload.clone(),
         calls: 0,
         safe: false,
@@ -121,13 +125,23 @@ fn main() -> Result<(), String> {
         return Err("exact attended physical effect was not admitted".into());
     }
     let mut observed = [0_u8; 128];
-    let (length, _) = listener
+    let (length, source) = listener
         .recv_from(&mut observed)
         .map_err(|error| format!("independent broadcast observer: {error}"))?;
-    let after = tx_packets(&interface)?;
-    if observed[..length] != payload || after <= before {
-        return Err("independent socket/NIC observers did not confirm the exact effect".into());
+    if observed[..length] != payload {
+        return Err(format!(
+            "independent socket observed a different datagram: expected {} bytes, received {length}",
+            payload.len()
+        ));
     }
+    if source.ip() != provider_address.ip() {
+        return Err(format!(
+            "independent socket observed an unexpected source: expected {}, received {}",
+            provider_address.ip(),
+            source.ip()
+        ));
+    }
+    let after = wait_for_tx_increment(&interface, before)?;
 
     let (mut revoked, revoked_attendance) = prepare_gate(200, 210)?;
     revoked
@@ -163,6 +177,22 @@ fn tx_packets(interface: &str) -> Result<u64, String> {
         .trim()
         .parse()
         .map_err(|_| "NIC transmit observer is malformed".into())
+}
+
+fn wait_for_tx_increment(interface: &str, before: u64) -> Result<u64, String> {
+    let deadline = Instant::now() + Duration::from_secs(2);
+    loop {
+        let after = tx_packets(interface)?;
+        if after > before {
+            return Ok(after);
+        }
+        if Instant::now() >= deadline {
+            return Err(format!(
+                "NIC transmit observer did not advance from {before} after the one attempted effect"
+            ));
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
 }
 
 fn request() -> ConsequentialRequest {

@@ -43,7 +43,8 @@ realization facts and then prompts for a fresh phrase naming both plus a
 run-specific nonce. It sends one 40-byte UDP broadcast with no retry through
 the real interface. A separate
 socket observes the exact nonce-bearing payload and the kernel NIC transmit
-counter must advance. Missing attendance, an excessive envelope, and a revoked
+counter must advance under bounded observation polling that never repeats the
+effect. Missing attendance, an excessive envelope, and a revoked
 capability are proved not to invoke the provider; provider loss reaches the
 explicit no-further-transmission disposition. This is deliberately a
 low-energy network fixture, not a claim about motion, mains power, locks, or
