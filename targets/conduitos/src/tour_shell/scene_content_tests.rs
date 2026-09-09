@@ -33,6 +33,58 @@ fn status_cells_preserve_missing_evidence_as_distinct_values() {
 }
 
 #[test]
+#[cfg(feature = "native-compositor")]
+fn status_symbols_follow_subject_identity_not_display_labels() {
+    use conduit_presentation::{GraphicsCommandKind, GraphicsSymbol};
+    let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::LessonReady);
+    let mut presentation = state.status_presentation().unwrap();
+    for subject in &mut presentation.subjects {
+        subject.label = "Renamed".into();
+    }
+    let bounds = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 1280,
+        height: 64,
+    };
+    let scene = status_scene(bounds, &presentation).unwrap();
+    let symbols: alloc::vec::Vec<_> = scene
+        .commands()
+        .iter()
+        .filter(|command| command.kind == GraphicsCommandKind::Icon)
+        .map(|command| GraphicsSymbol::from_token(command.payload()).unwrap())
+        .collect();
+    assert_eq!(
+        symbols,
+        [
+            GraphicsSymbol::Body,
+            GraphicsSymbol::Wake,
+            GraphicsSymbol::Plan,
+            GraphicsSymbol::Play,
+            GraphicsSymbol::Line,
+            GraphicsSymbol::Host
+        ]
+    );
+    assert_eq!(scene.commands().len(), 13);
+    let narrow = status_scene(
+        LayoutRect {
+            width: 320,
+            ..bounds
+        },
+        &presentation,
+    )
+    .unwrap();
+    assert_eq!(narrow.commands().len(), 7);
+    assert!(
+        narrow
+            .commands()
+            .iter()
+            .filter(|command| command.kind == GraphicsCommandKind::Text)
+            .all(|command| command.payload().starts_with("Renamed\n"))
+    );
+}
+
+#[test]
 fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
     let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
     state.selected_patchbay_subject = Some("meet-one-gear/change".into());

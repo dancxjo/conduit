@@ -142,9 +142,17 @@ pub(super) fn status_scene(
             .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
-    for (index, key) in ["body", "wake", "plan", "play", "lines", "host"]
-        .into_iter()
-        .enumerate()
+    use conduit_presentation::GraphicsSymbol;
+    for (index, (key, symbol)) in [
+        ("body", GraphicsSymbol::Body),
+        ("wake", GraphicsSymbol::Wake),
+        ("plan", GraphicsSymbol::Plan),
+        ("play", GraphicsSymbol::Play),
+        ("lines", GraphicsSymbol::Line),
+        ("host", GraphicsSymbol::Host),
+    ]
+    .into_iter()
+    .enumerate()
     {
         let identity = alloc::format!("tour/status/{key}");
         let subject = presentation
@@ -164,11 +172,31 @@ pub(super) fn status_scene(
             width: column,
             height: bounds.height,
         };
+        // Narrow/rescue surfaces retain the complete textual status. Icons are
+        // redundant graphical cues selected from exact status identities above.
+        let icon_space = if cfg!(feature = "native-compositor") && column >= 160 {
+            let style = crate::display::style::NATIVE_STYLE;
+            let icon = LayoutRect {
+                x: cell.x + style.inset as i16,
+                y: style.panel_inset as i16,
+                width: 24,
+                height: 24,
+            };
+            scene
+                .push(
+                    GraphicsCommand::symbol(icon, cell, GraphicsPaintRole::Accent, symbol)
+                        .map_err(|_| TourShellError::Scene)?,
+                )
+                .map_err(|_| TourShellError::Scene)?;
+            24 + style.inset
+        } else {
+            0
+        };
         let text_bounds = LayoutRect {
-            x: cell.x + crate::display::style::NATIVE_STYLE.inset as i16,
+            x: cell.x + (crate::display::style::NATIVE_STYLE.inset + icon_space) as i16,
             y: crate::display::style::NATIVE_STYLE.panel_inset as i16,
             width: column
-                .saturating_sub(2 * crate::display::style::NATIVE_STYLE.inset)
+                .saturating_sub(2 * crate::display::style::NATIVE_STYLE.inset + icon_space)
                 .max(1),
             height: bounds
                 .height
