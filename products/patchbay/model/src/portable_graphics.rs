@@ -55,7 +55,7 @@ impl NativeGraphicsPresenter {
                 clip: command.clip_class(),
                 paint: command.paint,
                 style: command.style,
-                text_role: command.text_role,
+                text_role: command.text_role(),
                 resolved_content: content,
                 path: command.path_geometry(),
             });

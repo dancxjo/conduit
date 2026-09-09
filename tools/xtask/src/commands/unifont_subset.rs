@@ -104,7 +104,8 @@ mod tests {
 
     #[test]
     fn writes_only_the_bounded_patchbay_ranges() {
-        let source = b"001F:00\n0020:01\n007E:02\n0100:03\n0370:04\n2014:05\n4E2D:06\nFFFD:07\n1F980:08\n";
+        let source =
+            b"001F:00\n0020:01\n007E:02\n0100:03\n0370:04\n2014:05\n4E2D:06\nFFFD:07\n1F980:08\n";
         let mut output = Vec::new();
 
         write_subset(Cursor::new(source), &mut output).expect("subset generation succeeds");

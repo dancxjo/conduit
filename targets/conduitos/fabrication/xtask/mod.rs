@@ -43,6 +43,7 @@ mod journey_standing;
 mod journey_tour;
 mod journey_transient;
 mod journey_usb_line;
+mod journey_workset;
 mod keyboard_proof;
 mod keyboard_run;
 mod keyboard_text_run;

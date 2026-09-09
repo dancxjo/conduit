@@ -1,5 +1,4 @@
 //! Shared fixed-font wrapping for measurement and raster placement.
-#[cfg(test)]
 use super::DisplayError;
 use super::font;
 
@@ -35,7 +34,6 @@ impl TextCursor {
     }
 }
 
-#[cfg(test)]
 pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> {
     let mut cursor = TextCursor::new(width);
     for character in value.chars() {

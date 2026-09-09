@@ -224,7 +224,9 @@ fn pinned_unifont_subset_covers_ascii_and_multilingual_text() {
     }
     assert_eq!(
         &font::glyph('>').0.bitmap[..16],
-        &[0, 0, 0, 0, 0, 0x40, 0x20, 0x10, 0x08, 0x04, 0x08, 0x10, 0x20, 0x40, 0, 0]
+        &[
+            0, 0, 0, 0, 0, 0x40, 0x20, 0x10, 0x08, 0x04, 0x08, 0x10, 0x20, 0x40, 0, 0
+        ]
     );
     for character in ['é', 'Ω', 'Ж', '—', '→', '─', '■'] {
         assert!(

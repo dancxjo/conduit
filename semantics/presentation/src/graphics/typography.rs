@@ -16,6 +16,7 @@ pub enum GraphicsTextRole {
 }
 
 impl GraphicsTextRole {
+    #[allow(dead_code)]
     pub(super) fn decode(value: u8) -> Result<Self, GraphicsError> {
         match value {
             1 => Ok(Self::Body),
@@ -80,7 +81,7 @@ mod tests {
             );
             bytes[0] = 1;
             let legacy = GraphicsScene::decode(&bytes[..len - 1]).unwrap();
-            assert_eq!(legacy.commands()[0].text_role, GraphicsTextRole::Body);
+            assert_eq!(legacy.commands()[0].text_role(), GraphicsTextRole::Body);
             assert_eq!(legacy.commands()[0].payload(), "café / id:42");
         }
     }

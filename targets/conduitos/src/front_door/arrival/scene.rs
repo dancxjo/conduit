@@ -62,14 +62,9 @@ impl Arrival {
             };
             scene
                 .push(
-                    GraphicsCommand::text(
-                        bounds,
-                        screen,
-                        paint,
-                        value,
-                    )
-                    .and_then(|command| command.with_text_role(typography))
-                    .map_err(|_| Error::Scene)?,
+                    GraphicsCommand::text(bounds, screen, paint, value)
+                        .and_then(|command| command.with_text_role(typography))
+                        .map_err(|_| Error::Scene)?,
                 )
                 .map_err(|_| Error::Scene)?;
             if focused {
@@ -137,10 +132,10 @@ impl Arrival {
                 ("initial-forms", PresentationMechanism::ChoiceGroup { label, options, .. }) => {
                     line(248, label, false, GraphicsTextRole::Label)?;
                     for (index, choice) in options.iter().enumerate() {
-                            line(
-                                276 + index as i16 * 24,
-                                &format!(
-                                    "{}  {}{}",
+                        line(
+                            276 + index as i16 * 24,
+                            &format!(
+                                "{}  {}{}",
                                 if choice.selected { "●" } else { "○" },
                                 choice.label,
                                 if matches!(
@@ -151,10 +146,10 @@ impl Arrival {
                                 } else {
                                     " / unavailable"
                                 }
-                                ),
-                                self.focus == index + 3,
-                                GraphicsTextRole::Body,
-                            )?;
+                            ),
+                            self.focus == index + 3,
+                            GraphicsTextRole::Body,
+                        )?;
                     }
                     choice_count = options.len();
                 }

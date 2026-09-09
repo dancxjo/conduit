@@ -19,6 +19,7 @@ impl WorkspaceRefusal {
             Self::Play(_) => "play-refusal",
         }
     }
+    #[allow(dead_code)]
     pub(super) fn heading(&self) -> &'static str {
         match self {
             Self::Startup(_) => "Wake could not finish. Details:",

@@ -4,6 +4,7 @@ mod font;
 mod text_layout;
 mod tokens;
 pub use tokens::*;
+pub mod profile;
 #[cfg(feature = "native-compositor")]
 pub mod typography;
 pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> {
