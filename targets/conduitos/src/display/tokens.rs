@@ -11,3 +11,4 @@ pub const FOCUS: u32 = 0x00ffcc33;
 pub const HOVER: u32 = 0x00ffcc33;
 pub const CURSOR: u32 = 0x00ffffff;
 pub const SUCCESS: (u8, u8, u8) = (111, 220, 173);
+pub const DANGER: (u8, u8, u8) = (255, 111, 125);

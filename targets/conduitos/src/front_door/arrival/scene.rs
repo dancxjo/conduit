@@ -4,7 +4,8 @@ use crate::display::{PixelTarget, SPACING};
 use alloc::format;
 use conduit_presentation::{
     ActionAvailability, FieldKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
-    GraphicsShapeStyle, GraphicsTextRole, LayoutRect, PresentationMechanism,
+    GraphicsShapeStyle, GraphicsTextRole, LayoutRect, PresentationIconKey,
+    PresentationMechanism,
 };
 
 impl Arrival {
@@ -51,8 +52,13 @@ impl Arrival {
                     GraphicsPaintRole::Accent
                 }
                 GraphicsTextRole::Code | GraphicsTextRole::Status | GraphicsTextRole::Warning => {
-                    GraphicsPaintRole::Status
+                    if typography == GraphicsTextRole::Warning {
+                        GraphicsPaintRole::Warning
+                    } else {
+                        GraphicsPaintRole::Status
+                    }
                 }
+                GraphicsTextRole::Muted => GraphicsPaintRole::Muted,
                 _ => GraphicsPaintRole::Foreground,
             };
             let paint = if focused {
@@ -166,7 +172,29 @@ impl Arrival {
         }
         if let Some(refusal) = &self.refusal {
             line(368, refusal, true, GraphicsTextRole::Warning)?;
+            scene
+                .push(
+                    GraphicsCommand::icon(
+                        LayoutRect { x: x - 24, y: y + 368, width: 16, height: 16 },
+                        screen,
+                        GraphicsPaintRole::Warning,
+                        PresentationIconKey::Warning,
+                    )
+                    .map_err(|_| Error::Scene)?,
+                )
+                .map_err(|_| Error::Scene)?;
         }
+        scene
+            .push(
+                GraphicsCommand::icon(
+                    LayoutRect { x: x - 24, y: y + 328, width: 16, height: 16 },
+                    screen,
+                    GraphicsPaintRole::Success,
+                    PresentationIconKey::Confirm,
+                )
+                .map_err(|_| Error::Scene)?,
+            )
+            .map_err(|_| Error::Scene)?;
         line(
             416,
             "Tab moves  ·  Arrows choose  ·  F9 visits Tour",

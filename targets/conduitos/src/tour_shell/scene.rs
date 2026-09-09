@@ -1,5 +1,6 @@
 use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect, Presentation,
+    PresentationIconKey,
 };
 
 use super::TourShellError;
@@ -141,7 +142,14 @@ pub(super) fn status_scene(
             .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
-    for (index, key) in ["body", "wake", "plan", "play", "lines", "host"]
+    for (index, (key, icon)) in [
+        ("body", PresentationIconKey::Body),
+        ("wake", PresentationIconKey::Wake),
+        ("plan", PresentationIconKey::Plan),
+        ("play", PresentationIconKey::Play),
+        ("lines", PresentationIconKey::Line),
+        ("host", PresentationIconKey::Host),
+    ]
         .into_iter()
         .enumerate()
     {
@@ -164,11 +172,22 @@ pub(super) fn status_scene(
             height: bounds.height,
         };
         let text_bounds = LayoutRect {
-            x: cell.x + 8,
+            x: cell.x + 28,
             y: 12,
-            width: column.saturating_sub(16).max(1),
+            width: column.saturating_sub(36).max(1),
             height: bounds.height.saturating_sub(12).max(1),
         };
+        scene
+            .push(
+                GraphicsCommand::icon(
+                    LayoutRect { x: cell.x + 8, y: 12, width: 16, height: 16 },
+                    cell,
+                    GraphicsPaintRole::Status,
+                    icon,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
         let text = alloc::format!("{}\n{}", subject.label, item.text);
         scene
             .push(
@@ -208,11 +227,22 @@ pub(super) fn inspector_scene(
             )
             .map_err(|_| TourShellError::Scene)?;
         let text = LayoutRect {
-            x: button.x + 8,
+            x: button.x + 28,
             y: button.y + 4,
-            width: button.width - 16,
+            width: button.width.saturating_sub(36).max(1),
             height: button.height - 8,
         };
+        scene
+            .push(
+                GraphicsCommand::icon(
+                    LayoutRect { x: button.x + 8, y: button.y + 4, width: 16, height: 16 },
+                    button,
+                    GraphicsPaintRole::Accent,
+                    PresentationIconKey::Close,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
         scene
             .push(
                 GraphicsCommand::text(text, button, GraphicsPaintRole::Foreground, &action.label)
@@ -278,11 +308,22 @@ fn chooser_scene(
             .map_err(|_| TourShellError::Scene)?;
         let label = alloc::format!("Select {gear}");
         let text = LayoutRect {
-            x: row.x + 8,
+            x: row.x + 32,
             y: row.y + 8,
-            width: row.width.saturating_sub(16).max(1),
+            width: row.width.saturating_sub(40).max(1),
             height: 44,
         };
+        scene
+            .push(
+                GraphicsCommand::icon(
+                    LayoutRect { x: row.x + 8, y: row.y + 8, width: 16, height: 16 },
+                    viewport,
+                    GraphicsPaintRole::Accent,
+                    PresentationIconKey::GenericGear,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
         scene
             .push(
                 GraphicsCommand::text(text, viewport, GraphicsPaintRole::Foreground, &label)

@@ -291,10 +291,13 @@ fn clipped(bounds: LayoutRect, clip: LayoutRect, format: DisplayFormat) -> Optio
 
 fn paint(format: DisplayFormat, role: GraphicsPaintRole) -> u32 {
     let (red, green, blue) = match role {
-        GraphicsPaintRole::Background => (15, 23, 32),
-        GraphicsPaintRole::Foreground => (225, 232, 240),
-        GraphicsPaintRole::Accent => (83, 178, 255),
-        GraphicsPaintRole::Status => (255, 190, 70),
+        GraphicsPaintRole::Background => BACKGROUND,
+        GraphicsPaintRole::Foreground => FOREGROUND,
+        GraphicsPaintRole::Accent => ACCENT,
+        GraphicsPaintRole::Status | GraphicsPaintRole::Warning => WARNING,
+        GraphicsPaintRole::Muted => MUTED,
+        GraphicsPaintRole::Success => SUCCESS,
+        GraphicsPaintRole::Danger => DANGER,
     };
     format.pixel(red, green, blue)
 }

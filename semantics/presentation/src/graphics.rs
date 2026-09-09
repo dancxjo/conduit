@@ -34,6 +34,10 @@ pub enum GraphicsPaintRole {
     Foreground = 2,
     Accent = 3,
     Status = 4,
+    Muted = 5,
+    Success = 6,
+    Warning = 7,
+    Danger = 8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -407,6 +411,10 @@ fn decode_paint(value: u8) -> Result<GraphicsPaintRole, GraphicsError> {
         2 => Ok(GraphicsPaintRole::Foreground),
         3 => Ok(GraphicsPaintRole::Accent),
         4 => Ok(GraphicsPaintRole::Status),
+        5 => Ok(GraphicsPaintRole::Muted),
+        6 => Ok(GraphicsPaintRole::Success),
+        7 => Ok(GraphicsPaintRole::Warning),
+        8 => Ok(GraphicsPaintRole::Danger),
         _ => Err(GraphicsError::MalformedEncoding),
     }
 }
