@@ -357,9 +357,18 @@ fn configure_interrupt_endpoint(
             write_input_u32(context + offset, value);
         }
         let slot_context = read_volatile(
-            core::ptr::addr_of!((*usb_dma).device_context).cast::<u32>(),
+            core::ptr::addr_of!(HID_DMA.input_context)
+                .cast::<u8>()
+                .add(context)
+                .cast::<u32>(),
         );
-        let slot_speed = (slot_context >> 20) & 0xf;
+        write_input_u32(
+            context,
+            (slot_context & !(0x1f << 27)) | (u32::from(dci) << 27),
+        );
+        let slot_speed =
+            (read_volatile(core::ptr::addr_of!((*usb_dma).device_context).cast::<u32>()) >> 20)
+                & 0xf;
         let interval = match slot_speed {
             1 | 2 => endpoint
                 .interval
@@ -368,7 +377,6 @@ fn configure_interrupt_endpoint(
             3..=5 if endpoint.interval <= 16 => endpoint.interval - 1,
             _ => return Err(HidError::InvalidEndpoint),
         };
-        write_input_u32(context, (read_input_u32(context) & !(0x1f << 27)) | (u32::from(dci) << 27));
         let ep = context * (usize::from(dci) + 1);
         write_input_u32(ep, u32::from(interval) << 16);
         write_input_u32(
@@ -405,17 +413,6 @@ unsafe fn write_input_u32(offset: usize, value: u32) {
                 .add(offset)
                 .cast::<u32>(),
             value,
-        )
-    }
-}
-
-unsafe fn read_input_u32(offset: usize) -> u32 {
-    unsafe {
-        read_volatile(
-            core::ptr::addr_of!(HID_DMA.input_context)
-                .cast::<u8>()
-                .add(offset)
-                .cast::<u32>(),
         )
     }
 }
