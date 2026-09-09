@@ -6,6 +6,10 @@ use super::TourShellError;
 
 pub(super) const SCROLL_CONTENT_HEIGHT: u16 = 768;
 
+#[cfg(test)]
+#[path = "scene_content_tests.rs"]
+mod content_tests;
+
 pub(super) struct ShellLayout {
     pub(super) workspace: LayoutRect,
     pub(super) inspector: LayoutRect,
@@ -87,6 +91,9 @@ fn panel_scene(
                 .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
+    if detail.is_empty() {
+        return Ok(scene);
+    }
     let detail_bounds = LayoutRect {
         x: 12,
         y: 38,
@@ -124,7 +131,42 @@ pub(super) fn inspector_scene(
     presentation: &Presentation,
     scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
-    scroll_scene(bounds, "GEAR BACK", first_text(presentation), scroll_y)
+    if scroll_y > SCROLL_CONTENT_HEIGHT {
+        return Err(TourShellError::Identity);
+    }
+    let mut scene = panel_scene(bounds, "INSPECTOR", "")?;
+    let viewport = LayoutRect {
+        x: 0,
+        y: 36,
+        width: bounds.width,
+        height: bounds.height.saturating_sub(36),
+    };
+    for (index, item) in presentation.text.iter().enumerate() {
+        let subject = presentation
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == item.subject)
+            .ok_or(TourShellError::Identity)?;
+        let y = 44_i32 + i32::try_from(index).map_err(|_| TourShellError::Identity)? * 86
+            - i32::from(scroll_y);
+        if y + 80 <= 36 || y >= i32::from(bounds.height) {
+            continue;
+        }
+        let row = LayoutRect {
+            x: 12,
+            y: i16::try_from(y).map_err(|_| TourShellError::Identity)?,
+            width: bounds.width.saturating_sub(24),
+            height: 80,
+        };
+        let text = alloc::format!("{}\n{}", subject.label, item.text);
+        scene
+            .push(
+                GraphicsCommand::text(row, viewport, GraphicsPaintRole::Foreground, &text)
+                    .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+    }
+    Ok(scene)
 }
 pub(super) fn transient_scene(
     bounds: LayoutRect,

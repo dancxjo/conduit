@@ -12,6 +12,7 @@ use conduit_presentation::{
 mod controller;
 mod gallery;
 mod gallery_experience;
+mod inspection;
 mod layout;
 mod navigation;
 mod pointer;
