@@ -17,6 +17,13 @@ const api = async (path, method = "GET", value) => {
   if (value) args.push("--input", "-");
   // Pull lists must not truncate away the release or synchronization owner.
   if (method === "GET" && path.startsWith("/pulls?")) args.push("--paginate", "--slurp");
+  // A workflow run carries repository, actor, commit, URLs, and other nested
+  // objects that release admission never reads. Hundreds of those complete
+  // records can exceed Node's child-process buffer before admission gets to
+  // classify them. Keep the response bounded to the decision's exact inputs.
+  if (method === "GET" && path.startsWith("/actions/workflows/dev-integration.yml/runs?")) {
+    args.push("--jq", "{workflow_runs: [.workflow_runs[] | {id, head_sha, head_branch, head_repository: {full_name: .head_repository.full_name}, event, status, conclusion, created_at}]}");
+  }
   const output = execFileSync("gh", args, { encoding: "utf8", input: value ? JSON.stringify(value) : undefined });
   if (!output.trim()) return null;
   const result = JSON.parse(output);
