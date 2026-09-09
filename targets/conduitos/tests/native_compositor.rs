@@ -23,6 +23,8 @@ use conduitos::{
 
 #[path = "common/native_compositor.rs"]
 mod support;
+#[path = "common/native_text_damage.rs"]
+mod text_damage;
 use support::MemoryDisplay;
 
 const SURFACE_CLASS: &str = "presentation/surface";

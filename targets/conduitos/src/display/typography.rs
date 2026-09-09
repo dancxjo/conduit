@@ -1,177 +1,209 @@
-//! Shared bounded proportional placement and coverage rasterization.
-use super::{DisplayError, DisplayReceipt, PixelTarget, font, profile, put};
-use conduit_presentation::{GraphicsCommand, GraphicsTextRole, LayoutRect};
+//! Fixed graphical font resources. Lookup and coverage sampling allocate nothing.
+//!
+//! Roles belong to the graphical Presenter, not authored Presentation identity.
+//! Missing face coverage uses the pinned rescue subset; unsupported scalars use
+//! its explicit replacement glyph. This is scalar rendering, not general shaping.
 
-pub(super) struct Positions<'a> {
-    chars: core::str::Chars<'a>,
-    role: GraphicsTextRole,
-    width: u32,
-    x: u32,
-    pub y: u32,
-    anchor: u32,
-    word_start: bool,
+mod raster;
+pub use raster::{render_glyph, render_text};
+mod layout;
+pub use layout::{PositionedGlyph, TextLayout};
+mod scene;
+pub use scene::render_scene;
+
+/// Text purpose selects a fixed fabricated profile, never an ambient font.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
+pub enum TextRole {
+    Label,
+    Body,
+    Heading,
+    Title,
+    Code,
 }
 
-impl<'a> Positions<'a> {
-    fn new(value: &'a str, width: u16, role: GraphicsTextRole) -> Self {
-        Self {
-            chars: value.chars(),
-            role,
-            width: u32::from(width),
-            x: 0,
-            y: 0,
-            anchor: 0,
-            word_start: true,
+impl From<conduit_presentation::GraphicsTextRole> for TextRole {
+    fn from(role: conduit_presentation::GraphicsTextRole) -> Self {
+        use conduit_presentation::GraphicsTextRole;
+        match role {
+            GraphicsTextRole::Body => Self::Body,
+            GraphicsTextRole::Label => Self::Label,
+            GraphicsTextRole::Heading => Self::Heading,
+            GraphicsTextRole::Title => Self::Title,
+            GraphicsTextRole::Code => Self::Code,
         }
     }
-    fn newline(&mut self) {
-        self.x = 0;
-        self.anchor = 0;
-        self.y = self.y.saturating_add(profile::line_height(self.role));
+}
+
+pub(super) struct Glyph {
+    profile: u8,
+    codepoint: u32,
+    x: i16,
+    y: i16,
+    width: u8,
+    height: u8,
+    advance: u16,
+    offset: usize,
+}
+
+/// Vertical metrics in physical pixels for one fixed Presenter profile.
+pub struct ProfileMetrics {
+    pub ascent: i16,
+    pub line_height: u16,
+}
+
+include!(concat!(env!("OUT_DIR"), "/native_typography.rs"));
+static COVERAGE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/native_coverage.bin"));
+
+enum Raster {
+    Smooth(&'static Glyph),
+    Rescue(&'static super::font::GlyphRecord),
+}
+
+/// Borrowed glyph with explicit unsupported-scalar reporting.
+pub struct GlyphRaster {
+    raster: Raster,
+    pub unsupported: bool,
+}
+
+pub fn metrics(role: TextRole) -> &'static ProfileMetrics {
+    &PROFILES[role as usize]
+}
+
+pub fn glyph(role: TextRole, character: char) -> GlyphRaster {
+    let key = (role as u8, u32::from(character));
+    match GLYPHS.binary_search_by_key(&key, |glyph| (glyph.profile, glyph.codepoint)) {
+        Ok(index) => GlyphRaster {
+            raster: Raster::Smooth(&GLYPHS[index]),
+            unsupported: false,
+        },
+        Err(_) => {
+            let (glyph, unsupported) = super::font::glyph(character);
+            GlyphRaster {
+                raster: Raster::Rescue(glyph),
+                unsupported,
+            }
+        }
     }
 }
 
-impl Iterator for Positions<'_> {
-    type Item = (char, u32, u32);
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let character = self.chars.next()?;
-            if character == '\n' {
-                self.newline();
-                self.word_start = true;
-                continue;
+impl GlyphRaster {
+    /// Horizontal advance in 1/64 pixel units; zero-advance marks stay zero.
+    pub fn advance(&self) -> u16 {
+        match self.raster {
+            Raster::Smooth(glyph) => glyph.advance,
+            Raster::Rescue(glyph) => u16::from(glyph.width) * 64,
+        }
+    }
+
+    pub fn extent(&self) -> (u8, u8) {
+        match self.raster {
+            Raster::Smooth(glyph) => (glyph.width, glyph.height),
+            Raster::Rescue(glyph) => (glyph.width, super::font::GLYPH_HEIGHT as u8),
+        }
+    }
+
+    /// Top-left offset relative to the pen at the baseline; y grows downward.
+    pub fn bearing(&self) -> (i16, i16) {
+        match self.raster {
+            Raster::Smooth(glyph) => (glyph.x, -glyph.y - i16::from(glyph.height)),
+            Raster::Rescue(_) => (0, -14),
+        }
+    }
+
+    /// Coverage outside the glyph is transparent, including at clipped edges.
+    pub fn coverage(&self, x: u8, y: u8) -> u8 {
+        let (width, height) = self.extent();
+        if x >= width || y >= height {
+            return 0;
+        }
+        match self.raster {
+            Raster::Smooth(glyph) => {
+                COVERAGE[glyph.offset + usize::from(y) * usize::from(width) + usize::from(x)]
             }
-            let advance = profile::advance(character, self.role);
-            if self.word_start && !character.is_whitespace() {
-                let mut word = advance;
-                for next in self.chars.clone() {
-                    if next.is_whitespace() || word > self.width {
-                        break;
+            Raster::Rescue(glyph) => {
+                let index = usize::from(y) * usize::from(width / 8) + usize::from(x / 8);
+                if glyph.bitmap[index] & (0x80 >> (x % 8)) != 0 {
+                    255
+                } else {
+                    0
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fixed_tables_are_ordered_bounded_and_have_smooth_coverage() {
+        assert!(COVERAGE.len() <= 4 * 1_048_576);
+        assert!(GLYPHS.len() <= 5 * 1_024);
+        assert!(GLYPHS.windows(2).all(
+            |pair| (pair[0].profile, pair[0].codepoint) < (pair[1].profile, pair[1].codepoint)
+        ));
+        for glyph in GLYPHS {
+            assert!(glyph.width <= 64 && glyph.height <= 64);
+            assert!(
+                glyph.offset + usize::from(glyph.width) * usize::from(glyph.height)
+                    <= COVERAGE.len()
+            );
+        }
+        assert!(COVERAGE.iter().any(|&value| value > 0 && value < 255));
+    }
+
+    #[test]
+    fn prose_is_proportional_and_code_is_monospace() {
+        assert_ne!(
+            glyph(TextRole::Body, 'i').advance(),
+            glyph(TextRole::Body, 'W').advance()
+        );
+        assert_eq!(
+            glyph(TextRole::Code, 'i').advance(),
+            glyph(TextRole::Code, 'W').advance()
+        );
+    }
+
+    #[test]
+    fn naming_catalog_and_uppercase_have_admitted_coverage() {
+        let names = include_str!("../../../../products/creche/names/catalog.mjs");
+        for role in [
+            TextRole::Label,
+            TextRole::Body,
+            TextRole::Heading,
+            TextRole::Title,
+            TextRole::Code,
+        ] {
+            for character in names
+                .chars()
+                .chain(names.chars().flat_map(char::to_uppercase))
+                .filter(|character| !character.is_control())
+            {
+                let raster = glyph(role, character);
+                assert!(!raster.unsupported, "{role:?} missing {character:?}");
+                let (width, height) = raster.extent();
+                for y in 0..height {
+                    for x in 0..width {
+                        let _ = raster.coverage(x, y);
                     }
-                    word = word.saturating_add(profile::advance(next, self.role));
-                }
-                if self.x > 0 && word <= self.width && self.x + word > self.width {
-                    self.newline();
-                }
-            }
-            self.word_start = character.is_whitespace();
-            if self.x + advance > self.width && self.x > 0 {
-                self.newline();
-                if character.is_whitespace() {
-                    continue;
-                }
-            }
-            let x = if advance == 0 { self.anchor } else { self.x };
-            if advance != 0 {
-                self.anchor = self.x;
-            }
-            self.x = self.x.saturating_add(advance);
-            return Some((character, x, self.y));
-        }
-    }
-}
-
-pub(super) fn height(value: &str, width: u16, role: GraphicsTextRole) -> Result<u16, DisplayError> {
-    let mut positions = Positions::new(value, width, role);
-    for (character, _, _) in positions.by_ref() {
-        if profile::advance(character, role) > u32::from(width) {
-            return Err(DisplayError::InvalidExtent);
-        }
-    }
-    u16::try_from(positions.y + profile::line_height(role)).map_err(|_| DisplayError::InvalidExtent)
-}
-
-pub(super) fn draw(
-    target: &mut impl PixelTarget,
-    command: &GraphicsCommand,
-    clip: LayoutRect,
-    color: u32,
-    receipt: &mut DisplayReceipt,
-) -> Result<(), DisplayError> {
-    let role = command.text_role;
-    let color = match role {
-        GraphicsTextRole::Muted => rgb(target, profile::MUTED),
-        GraphicsTextRole::Status => rgb(target, profile::SUCCESS),
-        GraphicsTextRole::Warning => rgb(target, profile::WARNING),
-        _ => color,
-    };
-    for (character, x, y) in Positions::new(command.payload(), command.bounds.width, role) {
-        if y >= u32::from(command.bounds.height) {
-            break;
-        }
-        let origin_x = i32::from(command.bounds.x) + x as i32;
-        let origin_y = i32::from(command.bounds.y) + y as i32;
-        if let Some(glyph) = profile::glyph(character, role) {
-            for row in 0..glyph.height {
-                for column in 0..glyph.width {
-                    let alpha = glyph.coverage[(row * glyph.width + column) as usize];
-                    pixel(
-                        target,
-                        clip,
-                        origin_x + glyph.bearing + column as i32,
-                        origin_y + row as i32,
-                        color,
-                        alpha,
-                        receipt,
-                    )?;
-                }
-            }
-        } else {
-            // The exact existing admitted Unicode corpus is the deterministic secondary face.
-            let (glyph, _) = font::glyph(character);
-            for row in 0..font::GLYPH_HEIGHT {
-                for column in 0..u32::from(glyph.width) {
-                    let byte =
-                        glyph.bitmap[(row * u32::from(glyph.width) / 8 + column / 8) as usize];
-                    if byte & (0x80 >> (column % 8)) != 0 {
-                        pixel(
-                            target,
-                            clip,
-                            origin_x + column as i32,
-                            origin_y + row as i32,
-                            color,
-                            255,
-                            receipt,
-                        )?;
-                    }
                 }
             }
         }
     }
-    Ok(())
-}
 
-fn rgb(target: &impl PixelTarget, (r, g, b): (u8, u8, u8)) -> u32 {
-    target.format().pixel(r, g, b)
-}
-
-#[allow(clippy::too_many_arguments)]
-fn pixel(
-    target: &mut impl PixelTarget,
-    clip: LayoutRect,
-    x: i32,
-    y: i32,
-    color: u32,
-    alpha: u8,
-    receipt: &mut DisplayReceipt,
-) -> Result<(), DisplayError> {
-    if alpha == 0
-        || x < i32::from(clip.x)
-        || y < i32::from(clip.y)
-        || x >= i32::from(clip.x) + i32::from(clip.width)
-        || y >= i32::from(clip.y) + i32::from(clip.height)
-    {
-        return Ok(());
+    #[test]
+    fn unknown_scalar_has_explicit_deterministic_replacement() {
+        let unknown = glyph(TextRole::Body, '\u{10ffff}');
+        let (_, expected_unknown) = super::super::font::glyph('\u{10ffff}');
+        assert!(unknown.unsupported && expected_unknown);
+        assert_eq!(unknown.coverage(255, 255), 0);
+        let again = glyph(TextRole::Body, '\u{10ffff}');
+        for y in 0..16 {
+            for x in 0..16 {
+                assert_eq!(unknown.coverage(x, y), again.coverage(x, y));
+            }
+        }
     }
-    let background = target
-        .read_pixel(x as u32, y as u32)
-        .unwrap_or_else(|| rgb(target, profile::BACKGROUND));
-    let format = target.format();
-    let mut blended = 0;
-    for shift in [format.red_shift, format.green_shift, format.blue_shift] {
-        let fg = (color >> shift) & 255;
-        let bg = (background >> shift) & 255;
-        blended |= ((fg * u32::from(alpha) + bg * (255 - u32::from(alpha)) + 127) / 255) << shift;
-    }
-    put(target, x as u32, y as u32, blended, receipt)
 }

@@ -1,6 +1,5 @@
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
-    LayoutRect, Presentation,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect, Presentation,
 };
 
 use super::TourShellError;
@@ -80,17 +79,6 @@ fn panel_scene(
             .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
-    scene
-        .push(
-            GraphicsCommand::rect(
-                local,
-                local,
-                GraphicsPaintRole::Accent,
-                GraphicsShapeStyle::Stroke,
-            )
-            .map_err(|_| TourShellError::Scene)?,
-        )
-        .map_err(|_| TourShellError::Scene)?;
     let title_bounds = LayoutRect {
         x: 12,
         y: 12,
@@ -100,7 +88,9 @@ fn panel_scene(
     scene
         .push(
             GraphicsCommand::text(title_bounds, local, GraphicsPaintRole::Accent, title)
-                .and_then(|command| command.with_text_role(GraphicsTextRole::Heading))
+                .and_then(|command| {
+                    command.with_text_role(conduit_presentation::GraphicsTextRole::Heading)
+                })
                 .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
@@ -179,68 +169,13 @@ pub(super) fn status_scene(
             width: column.saturating_sub(16).max(1),
             height: bounds.height.saturating_sub(12).max(1),
         };
-        let (state, exact) = item
-            .text
-            .split_once('\n')
-            .map_or((item.text.as_str(), None), |(state, exact)| {
-                (state, Some(exact))
-            });
-        let text = alloc::format!("{}\n{}", subject.label, state);
-        scene
-            .push(
-                GraphicsCommand::rect(
-                    LayoutRect {
-                        x: cell.x + 4,
-                        y: 4,
-                        width: cell.width.saturating_sub(8).max(1),
-                        height: cell.height.saturating_sub(4).max(1),
-                    },
-                    cell,
-                    GraphicsPaintRole::Foreground,
-                    GraphicsShapeStyle::Stroke,
-                )
-                .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
+        let text = alloc::format!("{}\n{}", subject.label, item.text);
         scene
             .push(
                 GraphicsCommand::text(text_bounds, cell, GraphicsPaintRole::Foreground, &text)
-                    .and_then(|command| command.with_text_role(GraphicsTextRole::Label))
-                    .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
-        if let Some(exact) = exact {
-            let exact_bounds = LayoutRect {
-                y: 46,
-                height: 18,
-                ..text_bounds
-            };
-            scene
-                .push(
-                    GraphicsCommand::text(exact_bounds, cell, GraphicsPaintRole::Foreground, exact)
-                        .and_then(|command| command.with_text_role(GraphicsTextRole::Code))
-                        .map_err(|_| TourShellError::Scene)?,
-                )
-                .map_err(|_| TourShellError::Scene)?;
-        }
-        // Status labels retain their words. The native vocabulary adds a redundant visual cue.
-        let icon = match key {
-            "body" => conduit_presentation::PresentationIconKey::Body,
-            "wake" => conduit_presentation::PresentationIconKey::Wake,
-            "plan" => conduit_presentation::PresentationIconKey::Plan,
-            "play" => conduit_presentation::PresentationIconKey::Play,
-            "lines" => conduit_presentation::PresentationIconKey::Line,
-            _ => conduit_presentation::PresentationIconKey::Host,
-        };
-        let icon_bounds = LayoutRect {
-            x: cell.x + column as i16 - 22,
-            y: 10,
-            width: 16,
-            height: 16,
-        };
-        scene
-            .push(
-                GraphicsCommand::icon(icon_bounds, cell, GraphicsPaintRole::Accent, icon)
+                    .and_then(|command| {
+                        command.with_text_role(conduit_presentation::GraphicsTextRole::Label)
+                    })
                     .map_err(|_| TourShellError::Scene)?,
             )
             .map_err(|_| TourShellError::Scene)?;
@@ -261,7 +196,28 @@ pub(super) fn inspector_scene(
             && subject.role == conduit_presentation::PresentationRole::Action
     }) {
         let button = super::controls::inspector_close_bounds(bounds.width);
-        crate::native_components::button(&mut scene, button, button, &action.label)
+        scene
+            .push(
+                GraphicsCommand::rect(
+                    button,
+                    button,
+                    GraphicsPaintRole::Accent,
+                    GraphicsShapeStyle::Stroke,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+        let text = LayoutRect {
+            x: button.x + 8,
+            y: button.y + 4,
+            width: button.width - 16,
+            height: button.height - 8,
+        };
+        scene
+            .push(
+                GraphicsCommand::text(text, button, GraphicsPaintRole::Foreground, &action.label)
+                    .map_err(|_| TourShellError::Scene)?,
+            )
             .map_err(|_| TourShellError::Scene)?;
     }
     super::fields::project(bounds, presentation, scroll_y, Some(&mut scene))?;
@@ -272,25 +228,12 @@ pub(super) fn transient_scene(
     presentation: &Presentation,
     scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
-    let mut scene = if presentation.subjects.iter().any(|subject| {
+    if presentation.subjects.iter().any(|subject| {
         subject.identity == conduit_tour_model::TourTransientKind::Chooser.subject_identity()
     }) {
-        chooser_scene(bounds, presentation, scroll_y)?
-    } else {
-        scroll_scene(bounds, "DETAIL", first_text(presentation), scroll_y)?
-    };
-    let close = presentation
-        .subjects
-        .iter()
-        .find(|subject| {
-            subject.identity == conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID
-                && subject.role == conduit_presentation::PresentationRole::Action
-        })
-        .ok_or(TourShellError::Identity)?;
-    let button = super::controls::inspector_close_bounds(bounds.width);
-    crate::native_components::button(&mut scene, button, button, &close.label)
-        .map_err(|_| TourShellError::Scene)?;
-    Ok(scene)
+        return chooser_scene(bounds, presentation, scroll_y);
+    }
+    scroll_scene(bounds, "DETAIL", first_text(presentation), scroll_y)
 }
 
 fn chooser_scene(
@@ -312,11 +255,16 @@ fn chooser_scene(
         .into_iter()
         .enumerate()
     {
-        let row = super::chooser_layout::row(bounds, index, scroll_y);
-        let y = i32::from(row.y);
-        if y + i32::from(row.height) <= 70 || y >= i32::from(bounds.height) {
+        let y = 76 + index as i32 * 140 - i32::from(scroll_y);
+        if y + 60 <= 70 || y >= i32::from(bounds.height) {
             continue;
         }
+        let row = LayoutRect {
+            x: 12,
+            y: i16::try_from(y).map_err(|_| TourShellError::Identity)?,
+            width: bounds.width.saturating_sub(24).max(1),
+            height: 60,
+        };
         scene
             .push(
                 GraphicsCommand::rect(
@@ -331,9 +279,9 @@ fn chooser_scene(
         let label = alloc::format!("Select {gear}");
         let text = LayoutRect {
             x: row.x + 8,
-            y: row.y + 4,
+            y: row.y + 8,
             width: row.width.saturating_sub(16).max(1),
-            height: row.height.saturating_sub(8).max(1),
+            height: 44,
         };
         scene
             .push(

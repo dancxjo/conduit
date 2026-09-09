@@ -10,8 +10,6 @@ use conduit_tour_model::{
 
 #[path = "tour_workspace_graph.rs"]
 mod graph;
-#[path = "tour_workspace_lesson.rs"]
-pub(crate) mod lesson;
 
 pub(crate) const STATUS_HEIGHT: u16 = 64;
 
@@ -135,6 +133,17 @@ pub(crate) fn scene_with_observations(
         scene
             .push(
                 GraphicsCommand::text(inset(bounds), bounds, paint, label)
+                    .and_then(|command| {
+                        command.with_text_role(
+                            if node.component
+                                == conduit_presentation::ApplicationComponent::CodeBlock
+                            {
+                                conduit_presentation::GraphicsTextRole::Code
+                            } else {
+                                conduit_presentation::GraphicsTextRole::Body
+                            },
+                        )
+                    })
                     .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
@@ -144,17 +153,6 @@ pub(crate) fn scene_with_observations(
         graphics_rect(layout.patchbay)?,
         state,
         observations,
-    )?;
-    let narrative = graphics_rect(layout.narrative)?;
-    lesson::append(
-        &mut scene,
-        LayoutRect {
-            height: narrative
-                .height
-                .min(height.saturating_sub(STATUS_HEIGHT).max(1)),
-            ..narrative
-        },
-        state,
     )?;
     Ok(scene)
 }
@@ -226,13 +224,23 @@ mod tests {
     #[test]
     fn native_scene_manifests_every_shared_region_and_visible_focus() {
         let scene = scene(640, 480, 12, TourWorkspacePhase::PatchbayOpen).unwrap();
-        assert!(scene.commands().len() > 16);
+        let source = scene
+            .commands()
+            .iter()
+            .find(|command| command.payload() == CANONICAL_SOURCE)
+            .unwrap();
+        assert_eq!(
+            source.text_role(),
+            conduit_presentation::GraphicsTextRole::Code
+        );
         assert!(
             scene
                 .commands()
                 .iter()
-                .any(|command| command.payload().contains("Conduit lets you make"))
+                .any(|command| command.kind == GraphicsCommandKind::Text
+                    && command.text_role() == conduit_presentation::GraphicsTextRole::Body)
         );
+        assert_eq!(scene.commands().len(), 16);
         let frames: alloc::vec::Vec<_> = scene
             .commands()
             .iter()
@@ -262,7 +270,7 @@ mod tests {
         assert_eq!(scene.commands()[5].payload(), CANONICAL_SOURCE);
         assert!(scene.commands()[5].payload().ends_with("}"));
         assert!(scene.commands()[7].payload().contains("Patchbay open"));
-        assert!(scene.commands().iter().take(16).all(|command| {
+        assert!(scene.commands().iter().all(|command| {
             command.clip_class() == conduit_presentation::GraphicsClipClass::FullyVisible
         }));
     }

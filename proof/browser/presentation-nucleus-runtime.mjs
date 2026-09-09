@@ -43,24 +43,27 @@ function decodeLayout(encoded) {
 }
 
 function decodeGraphics(encoded) {
-  if (encoded.length < 2 || encoded[0] !== 1) throw new Error("invalid graphics scene");
+  if (encoded.length < 2 || encoded[0] !== 2) throw new Error("invalid graphics scene");
   const count = encoded[1];
   const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
   const decoder = new TextDecoder();
   const commands = [];
   let offset = 2;
   for (let index = 0; index < count; index += 1) {
-    if (encoded.length - offset < 20) throw new Error("truncated graphics command");
+    if (encoded.length - offset < 21) throw new Error("truncated graphics command");
     const payloadLength = encoded[offset + 19];
-    const end = offset + 20 + payloadLength;
+    const textRole = encoded[offset + 20];
+    if (textRole > 4 || (encoded[offset] !== 2 && textRole !== 0)) throw new Error("invalid graphics text role");
+    const end = offset + 21 + payloadLength;
     if (end > encoded.length) throw new Error("truncated graphics payload");
     commands.push({
       kind: encoded[offset],
       paint: encoded[offset + 1],
       style: encoded[offset + 2],
+      textRole: ["body", "label", "heading", "title", "code"][textRole],
       bounds: rect(view, offset + 3),
       clip: rect(view, offset + 11),
-      payload: decoder.decode(encoded.slice(offset + 20, end)),
+      payload: decoder.decode(encoded.slice(offset + 21, end)),
     });
     offset = end;
   }
@@ -142,6 +145,7 @@ export function manifestPresentationNucleus(api, root) {
     const leaf = document.createElement(command.kind === 2 ? "span" : "div");
     leaf.dataset.graphicsIndex = String(index);
     leaf.dataset.graphicsKind = ["", "rect", "text", "icon"][command.kind] ?? "unknown";
+    if (command.kind === 2) leaf.dataset.graphicsTextRole = command.textRole;
     leaf.dataset.clip = `${command.clip.x},${command.clip.y},${command.clip.width},${command.clip.height}`;
     leaf.textContent = command.payload;
     if (command.kind === 3) leaf.setAttribute("role", "img");

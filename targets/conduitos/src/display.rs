@@ -2,6 +2,9 @@
 
 mod font;
 mod text_layout;
+#[cfg(feature = "native-compositor")]
+pub mod typography;
+#[cfg(test)]
 pub(crate) use text_layout::text_height;
 
 use conduit_presentation::{
@@ -84,6 +87,18 @@ impl DisplayFormat {
 pub trait PixelTarget {
     fn format(&self) -> DisplayFormat;
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError>;
+}
+
+/// Retained readable pixels support coverage blending without assuming a
+/// background color. Scanout-only Bases need not offer this capability.
+pub trait RetainedPixelTarget: PixelTarget {
+    fn read_pixel(&self, x: u32, y: u32) -> Result<u32, DisplayError>;
+}
+
+impl<T: RetainedPixelTarget + ?Sized> RetainedPixelTarget for &mut T {
+    fn read_pixel(&self, x: u32, y: u32) -> Result<u32, DisplayError> {
+        (**self).read_pixel(x, y)
+    }
 }
 
 impl<T: PixelTarget + ?Sized> PixelTarget for &mut T {

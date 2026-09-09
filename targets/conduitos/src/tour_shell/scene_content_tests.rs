@@ -49,8 +49,16 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
         .iter()
         .filter(|command| command.payload().contains('\n'))
         .collect();
-    assert_eq!(fields[0].bounds.height, 36);
-    assert_eq!(fields[1].bounds.y, fields[0].bounds.y + 48);
+    #[cfg(not(feature = "native-compositor"))]
+    let line_height = 16;
+    #[cfg(feature = "native-compositor")]
+    let line_height =
+        crate::display::typography::metrics(crate::display::typography::TextRole::Body).line_height;
+    assert_eq!(fields[0].bounds.height, 2 * line_height);
+    assert_eq!(
+        fields[1].bounds.y,
+        fields[0].bounds.y + fields[0].bounds.height as i16 + 12
+    );
     let narrow = LayoutRect {
         width: 180,
         ..bounds
