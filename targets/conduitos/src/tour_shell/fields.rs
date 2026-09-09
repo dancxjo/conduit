@@ -1,7 +1,7 @@
 //! Content-sized labeled fields, bounded by the native scene and scroll budgets.
 use super::TourShellError;
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, LayoutRect, Presentation,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsTextRole, LayoutRect, Presentation,
 };
 
 pub(super) fn project(
@@ -29,8 +29,16 @@ pub(super) fn project(
             .find(|subject| subject.identity == item.subject)
             .ok_or(TourShellError::Identity)?;
         let text = alloc::format!("{}\n{}", subject.label, item.text);
-        let height =
-            crate::display::text_height(&text, width).map_err(|_| TourShellError::Scene)?;
+        let role = if ["/kind", "/ports", "/implementation", "/placement", "/play"]
+            .iter()
+            .any(|suffix| item.subject.ends_with(suffix))
+        {
+            GraphicsTextRole::Code
+        } else {
+            GraphicsTextRole::Body
+        };
+        let height = crate::display::styled_text_height(&text, width, role)
+            .map_err(|_| TourShellError::Scene)?;
         let y = i32::from(next_y) - i32::from(scroll_y);
         next_y = next_y
             .checked_add(height)
@@ -49,6 +57,7 @@ pub(super) fn project(
             GraphicsPaintRole::Foreground,
             &text,
         )
+        .and_then(|command| command.with_text_role(role))
         .map_err(|_| TourShellError::Scene)?;
         if y + i32::from(height) > 36
             && y < i32::from(bounds.height)

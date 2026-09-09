@@ -2,7 +2,7 @@
 
 use conduit_presentation::{
     ApplicationView, GraphicsCommand, GraphicsError, GraphicsPaintRole, GraphicsScene,
-    GraphicsShapeStyle, LayoutRect, SemanticPresentationRefusal,
+    GraphicsShapeStyle, GraphicsTextRole, LayoutRect, SemanticPresentationRefusal,
 };
 use conduit_tour_model::{
     TourLayoutRefusal, TourRect, TourWorkspaceLayout, TourWorkspacePhase, TourWorkspaceState,
@@ -133,6 +133,19 @@ pub(crate) fn scene_with_observations(
         scene
             .push(
                 GraphicsCommand::text(inset(bounds), bounds, paint, label)
+                    .and_then(|command| {
+                        command.with_text_role(
+                            if node.component
+                                == conduit_presentation::ApplicationComponent::CodeBlock
+                            {
+                                GraphicsTextRole::Code
+                            } else if key == "lesson-status" {
+                                GraphicsTextRole::Label
+                            } else {
+                                GraphicsTextRole::Body
+                            },
+                        )
+                    })
                     .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;

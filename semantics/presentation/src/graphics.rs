@@ -2,7 +2,9 @@
 
 use crate::{LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT};
 mod path;
+mod typography;
 pub use path::{GraphicsPath, GraphicsPoint, MAX_GRAPHICS_PATH_POINTS};
+pub use typography::GraphicsTextRole;
 
 pub const GRAPHICS_SCENE_KIND: &str = "presentation/graphics-scene@1";
 pub const MAX_GRAPHICS_COMMANDS: usize = 16;
@@ -11,8 +13,8 @@ pub const MAX_GRAPHICS_COMMANDS: usize = 16;
 /// Orthogonal paths reuse this storage for at most eight binary coordinate pairs.
 pub const MAX_GRAPHICS_TEXT_BYTES: usize = 192;
 pub const MAX_GRAPHICS_SCENE_BYTES: usize =
-    2 + MAX_GRAPHICS_COMMANDS * (20 + MAX_GRAPHICS_TEXT_BYTES);
-const VERSION: u8 = 1;
+    2 + MAX_GRAPHICS_COMMANDS * (21 + MAX_GRAPHICS_TEXT_BYTES);
+const VERSION: u8 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -64,6 +66,7 @@ pub struct GraphicsCommand {
     pub clip: LayoutRect,
     pub paint: GraphicsPaintRole,
     pub style: GraphicsShapeStyle,
+    pub text_role: GraphicsTextRole,
     payload_len: u8,
     payload: [u8; MAX_GRAPHICS_TEXT_BYTES],
 }
@@ -113,6 +116,15 @@ impl GraphicsCommand {
             GraphicsShapeStyle::Fill,
             text.as_bytes(),
         )
+    }
+
+    /// Semantic text purpose; font selection and metrics belong to the Presenter.
+    pub fn with_text_role(mut self, role: GraphicsTextRole) -> Result<Self, GraphicsError> {
+        if self.kind != GraphicsCommandKind::Text {
+            return Err(GraphicsError::NonCanonicalEncoding);
+        }
+        self.text_role = role;
+        Ok(self)
     }
 
     pub fn icon(
@@ -176,6 +188,7 @@ impl GraphicsCommand {
             clip,
             paint,
             style,
+            text_role: GraphicsTextRole::Body,
             payload_len: payload.len() as u8,
             payload: stored,
         })
@@ -219,6 +232,7 @@ const EMPTY_COMMAND: GraphicsCommand = GraphicsCommand {
     },
     paint: GraphicsPaintRole::Background,
     style: GraphicsShapeStyle::Fill,
+    text_role: GraphicsTextRole::Body,
     payload_len: 0,
     payload: [0; MAX_GRAPHICS_TEXT_BYTES],
 };
@@ -265,7 +279,8 @@ impl GraphicsScene {
             output[offset + 19] = command.payload_len;
             let len = usize::from(command.payload_len);
             output[offset + 20..offset + 20 + len].copy_from_slice(&command.payload[..len]);
-            offset += 20 + len;
+            output[offset + 20 + len] = command.text_role as u8;
+            offset += 21 + len;
         }
         output
     }
@@ -274,12 +289,12 @@ impl GraphicsScene {
         2 + self
             .commands()
             .iter()
-            .map(|command| 20 + usize::from(command.payload_len))
+            .map(|command| 21 + usize::from(command.payload_len))
             .sum::<usize>()
     }
 
     pub fn decode(input: &[u8]) -> Result<Self, GraphicsError> {
-        if input.len() < 2 || input[0] != VERSION {
+        if input.len() < 2 || !matches!(input[0], 1 | VERSION) {
             return Err(GraphicsError::MalformedEncoding);
         }
         let count = usize::from(input[1]);
@@ -301,15 +316,26 @@ impl GraphicsScene {
             if len > MAX_GRAPHICS_TEXT_BYTES || input.len().saturating_sub(offset + 20) < len {
                 return Err(GraphicsError::PayloadTooLong);
             }
-            scene.push(GraphicsCommand::new(
+            let mut command = GraphicsCommand::new(
                 kind,
                 bounds,
                 clip,
                 paint,
                 style,
                 &input[offset + 20..offset + 20 + len],
-            )?)?;
+            )?;
             offset += 20 + len;
+            if input[0] == VERSION {
+                let role = GraphicsTextRole::decode(
+                    *input.get(offset).ok_or(GraphicsError::MalformedEncoding)?,
+                )?;
+                if kind != GraphicsCommandKind::Text && role != GraphicsTextRole::Body {
+                    return Err(GraphicsError::NonCanonicalEncoding);
+                }
+                command.text_role = role;
+                offset += 1;
+            }
+            scene.push(command)?;
         }
         if offset != input.len() {
             return Err(GraphicsError::NonCanonicalEncoding);

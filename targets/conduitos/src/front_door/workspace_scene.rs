@@ -6,7 +6,8 @@ use crate::{
 };
 use alloc::format;
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
+    LayoutRect,
 };
 
 pub(super) fn scene(
@@ -37,8 +38,9 @@ pub(super) fn scene(
         &mut scene,
         screen,
         24,
-        "CONDUIT",
+        "Conduit",
         GraphicsPaintRole::Foreground,
+        GraphicsTextRole::Muted,
     )?;
     text(
         &mut scene,
@@ -46,6 +48,7 @@ pub(super) fn scene(
         64,
         journey.friendly_name.as_deref().unwrap_or("My Body"),
         GraphicsPaintRole::Accent,
+        GraphicsTextRole::Title,
     )?;
     text(
         &mut scene,
@@ -53,6 +56,7 @@ pub(super) fn scene(
         104,
         "Keyboard canvas",
         GraphicsPaintRole::Foreground,
+        GraphicsTextRole::Heading,
     )?;
     let status = match journey.status {
         JourneyStatus::BornLulled => "Body born. Preparing to wake its Form...",
@@ -70,9 +74,17 @@ pub(super) fn scene(
         144,
         status,
         GraphicsPaintRole::Foreground,
+        GraphicsTextRole::Status,
     )?;
     if let Some(result) = &journey.result {
-        text(&mut scene, screen, 208, result, GraphicsPaintRole::Accent)?;
+        text(
+            &mut scene,
+            screen,
+            208,
+            result,
+            GraphicsPaintRole::Accent,
+            GraphicsTextRole::Body,
+        )?;
     }
     if journey.result_omitted_bytes > 0 {
         text(
@@ -81,6 +93,7 @@ pub(super) fn scene(
             248,
             "Showing recent output.",
             GraphicsPaintRole::Foreground,
+            GraphicsTextRole::Muted,
         )?;
     }
     if let Some(refusal) = refusal {
@@ -90,8 +103,16 @@ pub(super) fn scene(
             288,
             "Wake could not finish. Details:",
             GraphicsPaintRole::Status,
+            GraphicsTextRole::Warning,
         )?;
-        text(&mut scene, screen, 320, refusal, GraphicsPaintRole::Status)?;
+        text(
+            &mut scene,
+            screen,
+            320,
+            refusal,
+            GraphicsPaintRole::Status,
+            GraphicsTextRole::Code,
+        )?;
     }
     let footer_y = i16::try_from(screen.height.saturating_sub(48)).map_err(|_| Error::Scene)?;
     let lifecycle_action = match journey.status {
@@ -109,6 +130,7 @@ pub(super) fn scene(
             lifecycle_action
         ),
         GraphicsPaintRole::Foreground,
+        GraphicsTextRole::Body,
     )?;
     Ok(scene)
 }
@@ -119,6 +141,7 @@ fn text(
     y: i16,
     value: &str,
     role: GraphicsPaintRole,
+    typography: GraphicsTextRole,
 ) -> Result<(), Error> {
     let bounds = LayoutRect {
         x: 32,
@@ -127,6 +150,10 @@ fn text(
         height: 48,
     };
     scene
-        .push(GraphicsCommand::text(bounds, screen, role, value).map_err(|_| Error::Scene)?)
+        .push(
+            GraphicsCommand::text(bounds, screen, role, value)
+                .and_then(|command| command.with_text_role(typography))
+                .map_err(|_| Error::Scene)?,
+        )
         .map_err(|_| Error::Scene)
 }

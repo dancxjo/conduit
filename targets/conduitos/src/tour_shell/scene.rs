@@ -1,5 +1,6 @@
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect, Presentation,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
+    LayoutRect, Presentation,
 };
 
 use super::TourShellError;
@@ -83,11 +84,12 @@ fn panel_scene(
         x: 12,
         y: 12,
         width: local.width.saturating_sub(24),
-        height: 18,
+        height: 24,
     };
     scene
         .push(
             GraphicsCommand::text(title_bounds, local, GraphicsPaintRole::Accent, title)
+                .and_then(|command| command.with_text_role(GraphicsTextRole::Heading))
                 .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
@@ -166,10 +168,52 @@ pub(super) fn status_scene(
             width: column.saturating_sub(16).max(1),
             height: bounds.height.saturating_sub(12).max(1),
         };
-        let text = alloc::format!("{}\n{}", subject.label, item.text);
+        let (state, exact) = item
+            .text
+            .split_once('\n')
+            .map_or((item.text.as_str(), None), |(state, exact)| {
+                (state, Some(exact))
+            });
+        let text = alloc::format!("{}\n{}", subject.label, state);
         scene
             .push(
                 GraphicsCommand::text(text_bounds, cell, GraphicsPaintRole::Foreground, &text)
+                    .and_then(|command| command.with_text_role(GraphicsTextRole::Label))
+                    .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+        if let Some(exact) = exact {
+            let exact_bounds = LayoutRect {
+                y: 46,
+                height: 18,
+                ..text_bounds
+            };
+            scene
+                .push(
+                    GraphicsCommand::text(exact_bounds, cell, GraphicsPaintRole::Foreground, exact)
+                        .and_then(|command| command.with_text_role(GraphicsTextRole::Code))
+                        .map_err(|_| TourShellError::Scene)?,
+                )
+                .map_err(|_| TourShellError::Scene)?;
+        }
+        // Status labels retain their words. The native vocabulary adds a redundant visual cue.
+        let icon = match key {
+            "body" => conduit_presentation::PresentationIconKey::Body,
+            "wake" => conduit_presentation::PresentationIconKey::Wake,
+            "plan" => conduit_presentation::PresentationIconKey::Plan,
+            "play" => conduit_presentation::PresentationIconKey::Play,
+            "lines" => conduit_presentation::PresentationIconKey::Line,
+            _ => conduit_presentation::PresentationIconKey::Host,
+        };
+        let icon_bounds = LayoutRect {
+            x: cell.x + column as i16 - 22,
+            y: 10,
+            width: 16,
+            height: 16,
+        };
+        scene
+            .push(
+                GraphicsCommand::icon(icon_bounds, cell, GraphicsPaintRole::Accent, icon)
                     .map_err(|_| TourShellError::Scene)?,
             )
             .map_err(|_| TourShellError::Scene)?;

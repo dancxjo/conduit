@@ -19,6 +19,7 @@ pub struct NativeGraphicsObligation<'a> {
     pub clip: GraphicsClipClass,
     pub paint: GraphicsPaintRole,
     pub style: GraphicsShapeStyle,
+    pub text_role: conduit_presentation::GraphicsTextRole,
     pub resolved_content: &'a str,
     pub path: Option<conduit_presentation::GraphicsPath>,
 }
@@ -54,6 +55,7 @@ impl NativeGraphicsPresenter {
                 clip: command.clip_class(),
                 paint: command.paint,
                 style: command.style,
+                text_role: command.text_role,
                 resolved_content: content,
                 path: command.path_geometry(),
             });

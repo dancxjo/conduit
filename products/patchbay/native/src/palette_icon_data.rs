@@ -204,6 +204,6 @@ pub const fn mask(key: PaletteIconKey) -> Option<&'static [u16; 16]> {
         PaletteIconKey::ChartColumnsIncreasing => Some(&CHART_COLUMNS_INCREASING),
         PaletteIconKey::FileOutput => Some(&FILE_OUTPUT),
         PaletteIconKey::Keyboard => Some(&KEYBOARD),
-        PaletteIconKey::GenericGear => None,
+        _ => None,
     }
 }

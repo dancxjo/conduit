@@ -1,7 +1,8 @@
 use alloc::{format, string::String};
 
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
+    LayoutRect,
 };
 
 use crate::{
@@ -214,15 +215,26 @@ fn lifecycle_detail<'a>(
 }
 
 fn text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<(), Error> {
+    styled_text(scene, x, y, value, GraphicsTextRole::Body)
+}
+
+fn styled_text(
+    scene: &mut GraphicsScene,
+    x: i16,
+    y: i16,
+    value: &str,
+    role: GraphicsTextRole,
+) -> Result<(), Error> {
     let bounds = LayoutRect {
         x,
         y,
         width: 610,
-        height: 16,
+        height: 18,
     };
     scene
         .push(
             GraphicsCommand::text(bounds, bounds, GraphicsPaintRole::Foreground, value)
+                .and_then(|command| command.with_text_role(role))
                 .map_err(|_| Error::Scene)?,
         )
         .map_err(|_| Error::Scene)
@@ -232,9 +244,9 @@ fn exact_text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<
     let split = value
         .len()
         .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
-    text(scene, x, y, &value[..split])?;
+    styled_text(scene, x, y, &value[..split], GraphicsTextRole::Code)?;
     if split < value.len() {
-        text(scene, x, y + 22, &value[split..])?;
+        styled_text(scene, x, y + 22, &value[split..], GraphicsTextRole::Code)?;
     }
     Ok(())
 }

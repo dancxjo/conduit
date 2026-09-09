@@ -127,6 +127,15 @@ impl PixelTarget for SurfaceBuffer {
         self.format
     }
 
+    fn read_pixel(&self, x: u32, y: u32) -> Option<u32> {
+        if x >= self.format.width || y >= self.format.height {
+            return None;
+        }
+        self.pixels
+            .get((y * self.format.width + x) as usize)
+            .copied()
+    }
+
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
         let index = usize::try_from(
             u64::from(y)
