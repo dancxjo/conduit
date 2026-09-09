@@ -146,11 +146,28 @@ fn port_anchor(card: LayoutRect, preceding_text: &str, output: bool) -> Option<G
 }
 
 fn cord_path(start: GraphicsPoint, end: GraphicsPoint) -> Result<GraphicsPath, GraphicsError> {
+    // Port caps share the Cord's bounded path: six points for a straight
+    // connection, eight for an elbow. The center remains the exact Port row.
+    let cap = |point: GraphicsPoint, offset: i16| {
+        Ok(GraphicsPoint {
+            x: point.x,
+            y: point
+                .y
+                .checked_add(offset)
+                .ok_or(GraphicsError::InvalidGeometry)?,
+        })
+    };
+    let start_top = cap(start, -3)?;
+    let start_bottom = cap(start, 3)?;
+    let end_top = cap(end, -3)?;
+    let end_bottom = cap(end, 3)?;
     if start.y == end.y {
-        return GraphicsPath::new(&[start, end]);
+        return GraphicsPath::new(&[start_top, start_bottom, start, end, end_top, end_bottom]);
     }
     let middle = start.x + (end.x - start.x) / 2;
     GraphicsPath::new(&[
+        start_top,
+        start_bottom,
         start,
         GraphicsPoint {
             x: middle,
@@ -161,6 +178,8 @@ fn cord_path(start: GraphicsPoint, end: GraphicsPoint) -> Result<GraphicsPath, G
             y: end.y,
         },
         end,
+        end_top,
+        end_bottom,
     ])
 }
 
@@ -185,6 +204,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn port_caps_refuse_coordinate_overflow() {
+        for y in [i16::MIN, i16::MAX] {
+            assert_eq!(
+                cord_path(GraphicsPoint { x: 0, y }, GraphicsPoint { x: 16, y }),
+                Err(GraphicsError::InvalidGeometry)
+            );
+        }
+    }
+
+    #[test]
     fn canonical_cords_join_measured_port_rows_with_one_command_each() {
         let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
         let layout = super::super::layout_for_state(1280, 800, &state).unwrap();
@@ -201,34 +230,51 @@ mod tests {
         let change = card_bounds(graph, 1);
         let result = card_bounds(graph, 2);
         assert_eq!(
-            paths[0].points()[0],
+            paths[0].points()[2],
             GraphicsPoint {
                 x: words.x + words.width as i16 - 1,
                 y: words.y + 80
             }
         );
         assert_eq!(
-            paths[0].points().last().unwrap(),
+            &paths[0].points()[3],
             &GraphicsPoint {
                 x: change.x,
                 y: change.y + 80
             }
         );
         assert_eq!(
-            paths[1].points()[0],
+            paths[1].points()[2],
             GraphicsPoint {
                 x: change.x + change.width as i16 - 1,
                 y: change.y + 128
             }
         );
         assert_eq!(
-            paths[1].points().last().unwrap(),
+            &paths[1].points()[5],
             &GraphicsPoint {
                 x: result.x,
                 y: result.y + 80
             }
         );
-        assert_eq!(paths[1].points().len(), 4);
+        assert_eq!(paths[0].points().len(), 6);
+        assert_eq!(paths[1].points().len(), 8);
+        for path in &paths {
+            let points = path.points();
+            for (top, bottom, center) in [
+                (points[0], points[1], points[2]),
+                (
+                    points[points.len() - 2],
+                    points[points.len() - 1],
+                    points[points.len() - 3],
+                ),
+            ] {
+                assert_eq!(top.x, center.x);
+                assert_eq!(bottom.x, center.x);
+                assert_eq!(top.y + 3, center.y);
+                assert_eq!(bottom.y - 3, center.y);
+            }
+        }
         assert!(
             port_anchor(
                 LayoutRect {
