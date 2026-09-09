@@ -53,14 +53,14 @@ function decodeGraphics(encoded) {
     if (encoded.length - offset < 21) throw new Error("truncated graphics command");
     const payloadLength = encoded[offset + 19];
     const textRole = encoded[offset + 20];
-    if (textRole > 4 || (encoded[offset] !== 2 && textRole !== 0)) throw new Error("invalid graphics text role");
+    if (textRole > 8 || (encoded[offset] !== 2 && textRole !== 0)) throw new Error("invalid graphics text role");
     const end = offset + 21 + payloadLength;
     if (end > encoded.length) throw new Error("truncated graphics payload");
     commands.push({
       kind: encoded[offset],
       paint: encoded[offset + 1],
       style: encoded[offset + 2],
-      textRole: ["body", "label", "heading", "title", "code"][textRole],
+      textRole: ["body", "label", "heading", "title", "code", "status", "warning", "action", "muted"][textRole],
       bounds: rect(view, offset + 3),
       clip: rect(view, offset + 11),
       payload: decoder.decode(encoded.slice(offset + 21, end)),
