@@ -43,7 +43,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     search: "",
     inventorySource: source,
     review: null,
-    status: selectionNotice ?? "Browse the reviewed Forms, compose a bounded workload, then review it before birth.",
+    status: selectionNotice ?? "Choose your Forms, then review them before birth.",
     outcome: initialSelection.refusals.length === 0 ? "status" : "warning-status",
     terminal: false,
     selectionNotice,
@@ -148,7 +148,7 @@ function birthSelectionNodes(state, inventory, visible, actions) {
     { parent: 0, component: "form-field", action: null, key: "form-search-field", text: "" },
     { parent: 1, component: "field-label", action: null, key: "form-search-label", text: "Search Forms" },
     { parent: 1, component: "text-input", action: action("forms.search"), key: "form-search", text: "Search Forms", value: state.search, valueCapacity: 128 },
-    { parent: 1, component: "field-help", action: null, key: "form-search-help", text: "Filter the finite reviewed inventory by name or required kind." },
+    { parent: 1, component: "field-help", action: null, key: "form-search-help", text: "Find Forms by name or capability." },
     { parent: 0, component: "paragraph", action: null, key: "selected-heading", text: `Selected (${state.initialForms.length})` },
     { parent: 0, component: "choice-group", action: null, key: "initial-forms-field", text: "active_forms" },
     { parent: 6, component: "choice-group-label", action: null, key: "initial-forms-label", text: "Initial active Forms" },
@@ -158,7 +158,9 @@ function birthSelectionNodes(state, inventory, visible, actions) {
     const label = nodes.length;
     nodes.push({ parent: 6, component: "choice-option-label", action: null, key: `form-${form.name}-label`, text: form.title });
     nodes.push({ parent: label, component: "independent-choice", action: action(`form.toggle.${form.name}`), key: `form-${form.name}`, text: form.name, value: String(selected), valueCapacity: 5 });
-    nodes.push({ parent: 6, component: "paragraph", action: null, key: `form-${form.name}-kinds`, text: form.required_kinds.join(" · ") });
+    const requirements = nodes.length;
+    nodes.push({ parent: 6, component: "disclosure", action: null, key: `requirements-${form.name}`, text: "Required capabilities" });
+    nodes.push({ parent: requirements, component: "paragraph", action: null, key: `form-${form.name}-kinds`, text: form.required_kinds.join(" · ") });
   }
   nodes.push({ parent: 6, component: "paragraph", action: null, key: "initial-forms-help", text: `${state.initialForms.length} of ${inventory.forms.length} reviewed Forms selected; maximum ${inventory.maximum_selection}.` });
   return nodes;
@@ -176,14 +178,15 @@ function birthFieldNodes(state, _inventory, _visible, actions) {
     { parent: nameField, component: "field-label", action: null, key: "friendly-name-label", text: "Friendly Body name" },
     { parent: nameField, component: "text-input", action: action("name.input"), key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
     { parent: nameField, component: "field-help", action: null, key: "friendly-name-help", text: "Editable metadata; the durable Body identity remains distinct." },
-    { parent: 0, component: "paragraph", action: null, key: "name-origin", text: nameOriginText(state) },
+    { parent: 0, component: "disclosure", action: null, key: "name-origin-details", text: "About this name" },
+    { parent: nameField + 4, component: "paragraph", action: null, key: "name-origin", text: nameOriginText(state) },
   );
   const systemField = nodes.length;
   nodes.push(
     { parent: 0, component: "form-field", action: null, key: "name-system-field", text: "" },
     { parent: systemField, component: "field-label", action: null, key: "name-system-label", text: "Naming tradition" },
     { parent: systemField, component: "select", action: action("name-system.change"), key: "name-system", text: "Naming tradition", value: state.namingSystem, valueCapacity: 32 },
-    { parent: systemField, component: "field-help", action: null, key: "name-system-help", text: "Select one bounded naming system for the next suggestion." },
+    { parent: systemField, component: "field-help", action: null, key: "name-system-help", text: "Choose a tradition for the next suggestion." },
   );
   const selectIndex = systemField + 2;
   for (const option of NAMING_SYSTEM_OPTIONS) {
@@ -203,7 +206,7 @@ function birthSourceNodes(state, listingId) {
     { parent: 1, component: "form-field", action: null, key: "form-source-field", text: "" },
     { parent: 3, component: "field-label", action: null, key: "form-source-label", text: "Selected Conduit Form source" },
     { parent: 3, component: "textarea", action: null, key: listingId, text: "Selected Conduit Form source", value: source, valueCapacity: 65_536 },
-    { parent: 3, component: "field-help", action: null, key: "form-source-help", text: "Read-only exact canonical source for the selected Forms. The internal reviewed package envelope is not authored meaning." },
+    { parent: 3, component: "field-help", action: null, key: "form-source-help", text: "Exact source for your selected Forms." },
     { parent: 0, component: "definition-table", action: null, key: "combined-requirements", text: "Combined requirements" },
     { parent: 7, component: "definition", action: null, key: "required-kinds", text: "Checked kinds", value: combinedKinds(state), valueCapacity: 4096 },
     { parent: 7, component: "definition", action: null, key: "review-basis", text: "Realization basis", value: state.review ? `${state.review.proposed_hosts.length} current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created` : "not reviewed", valueCapacity: 1024 },
@@ -280,7 +283,7 @@ function birth(runner, host, state, sequence, onBodyChanged, presentationOptions
   const formsBytes = encoder.encode(encodedFormSelection(state.initialForms));
   const total = hostBytes.length + bootBytes.length + nameBytes.length + formsBytes.length + sourceBytes.length;
   if (total > api.conduit_creche_input_capacity()) {
-    state.status = "The Form selection and exact Host identities exceed the admitted BIRTH input bound.";
+    state.status = "Birth input exceeds its admitted bound.";
     state.outcome = "failure-status";
     presentBirthControls(runner, state, presentationOptions);
     return;

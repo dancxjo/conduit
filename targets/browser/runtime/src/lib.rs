@@ -64,6 +64,8 @@ mod tour_navigation;
 mod tour_workspace;
 mod webchat;
 mod webrtc_session;
+#[cfg(all(feature = "creche-surface", feature = "form-runner"))]
+mod workspace_runtime;
 
 const FRAME_CAPACITY: usize = 4_096;
 const MAXIMUM_RECEIPTS: usize = 16;

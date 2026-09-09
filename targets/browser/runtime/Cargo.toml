@@ -13,6 +13,7 @@ tour-surface = ["form-runner"]
 creche-surface = []
 
 [dependencies]
+conduit-workspace-model = { path = "../../../products/workspace/model" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-creche-model = { path = "../../../products/creche/model" }
 conduit-data = { path = "../../../semantics/data" }
