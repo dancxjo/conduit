@@ -124,7 +124,7 @@ impl TourProduct {
             TourWorkspaceRequest::Run => {
                 let mut prepared = crate::tour_play::prepare(identities, offer, build_id)
                     .map_err(TourProductError::Preparation)?;
-                let inspection = inspection::RunInspection::from_plan(&prepared.plan)
+                let mut inspection = inspection::RunInspection::from_plan(&prepared.plan)
                     .map_err(TourProductError::Preparation)?;
                 let evidence =
                     crate::tour_play::run(&mut prepared, clock, serial, interrupts, idle)
@@ -132,6 +132,7 @@ impl TourProduct {
                 self.controller
                     .complete_run(run_proof(&evidence))
                     .map_err(TourProductError::Controller)?;
+                inspection.observations = evidence.observations.clone();
                 self.inspection = Some(inspection);
                 Some(evidence)
             }
@@ -276,6 +277,12 @@ mod tests {
         assert_eq!(update.request, TourWorkspaceRequest::Run);
         let evidence = update.play.unwrap();
         assert_eq!(evidence.result, CANONICAL_RESULT);
+        assert_eq!(evidence.observations.upper_input.text(), Some("hello"));
+        assert_eq!(evidence.observations.upper_output.text(), Some("HELLO"));
+        assert_eq!(
+            evidence.observations.presentation_input.text(),
+            Some("HELLO")
+        );
         assert_eq!(serial.0, [CANONICAL_RESULT.as_bytes()]);
         assert_eq!(
             product.controller().state().phase,
@@ -295,6 +302,13 @@ mod tests {
             .unwrap();
         product.select_gear(13, "meet-one-gear/change").unwrap();
         let inspector = product.inspector_presentation().unwrap().unwrap();
+        assert!(
+            inspector
+                .text
+                .iter()
+                .any(|item| item.subject.ends_with("/state")
+                    && item.text == "Last run\nin text: \"hello\"\nout text: \"HELLO\"")
+        );
         let prepared = crate::tour_play::prepare(&identities, &offer, "build").unwrap();
         let placement = prepared
             .plan

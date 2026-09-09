@@ -19,6 +19,7 @@ pub struct TourPlayEvidence {
     pub active_play_id: conduit_core::ActivePlayId,
     pub result: &'static str,
     pub run: MachineRunReceipt,
+    pub observations: crate::text_composition::TextObservations,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -61,12 +62,14 @@ where
         observed: false,
         mismatch: false,
     };
-    let run = crate::text_composition::run(
+    let mut observations = crate::text_composition::TextObservations::default();
+    let run = crate::text_composition::run_observed(
         &mut prepared.kernel,
         clock,
         &mut exact_serial,
         interrupts,
         idle,
+        &mut observations,
     );
     if exact_serial.mismatch {
         return Err(TourPlayError::ResultMismatch);
@@ -83,6 +86,7 @@ where
         active_play_id: prepared.active_play.active_play_id.clone(),
         result: CANONICAL_RESULT,
         run,
+        observations,
     })
 }
 
