@@ -1,12 +1,13 @@
 //! Shared fixed-font wrapping for measurement and raster placement.
+use super::font;
 #[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 use super::DisplayError;
-use super::font;
 
 pub(super) struct TextCursor {
     width: u32,
     x: u32,
     y: u32,
+    previous: Option<(u32, u32)>,
 }
 
 impl TextCursor {
@@ -15,14 +16,24 @@ impl TextCursor {
             width: u32::from(width),
             x: 0,
             y: 0,
+            previous: None,
         }
     }
 
     pub(super) fn advance(&mut self, character: char) -> Option<(u32, u32)> {
         if character == '\n' {
+            self.previous = None;
             self.x = 0;
             self.y = self.y.saturating_add(font::GLYPH_HEIGHT);
             return None;
+        }
+        // Only the two combining marks in the pinned naming coverage are
+        // supported. An orphan mark keeps an ordinary cell; never reach back
+        // across a newline. The payload itself is neither normalized nor edited.
+        if matches!(character, '\u{0300}' | '\u{0301}') {
+            if let Some(position) = self.previous {
+                return Some(position);
+            }
         }
         let width = u32::from(font::glyph(character).0.width);
         if self.x + width > self.width {
@@ -31,6 +42,7 @@ impl TextCursor {
         }
         let position = (self.x, self.y);
         self.x += width;
+        self.previous = Some(position);
         Some(position)
     }
 }
@@ -50,6 +62,26 @@ pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn naming_accents_overlay_the_previous_cell_even_at_a_wrap() {
+        let mut cursor = TextCursor::new(8);
+        assert_eq!(cursor.advance('ẹ'), Some((0, 0)));
+        assert_eq!(cursor.advance('\u{0301}'), Some((0, 0)));
+        assert_eq!(cursor.advance('A'), Some((0, 16)));
+        assert_eq!(cursor.advance('\u{0300}'), Some((0, 16)));
+        assert_eq!(text_height("ẹ\u{0301}A\u{0300}", 8), Ok(32));
+    }
+
+    #[test]
+    fn orphan_accents_do_not_reach_across_newlines() {
+        let mut cursor = TextCursor::new(16);
+        assert_eq!(cursor.advance('A'), Some((0, 0)));
+        assert_eq!(cursor.advance('\n'), None);
+        assert_eq!(cursor.advance('\u{0301}'), Some((0, 16)));
+        assert_eq!(cursor.advance('B'), Some((8, 16)));
+        assert_eq!(text_height("\u{0301}B", 16), Ok(16));
+    }
 
     #[test]
     fn measurement_uses_glyph_widths_newlines_and_fallback() {

@@ -36,6 +36,32 @@ fn missing_glyph_is_explicit_and_uses_a_bounded_replacement() {
 }
 
 #[test]
+fn naming_accents_overlay_without_advancing_or_touching_guards() {
+    let guard = 0x0012_3456;
+    let mut actual = [guard; 32 * GLYPH_HEIGHT + 2];
+    actual[1..1 + 32 * GLYPH_HEIGHT].fill(0);
+    let mut expected = [0; 32 * GLYPH_HEIGHT];
+    {
+        let mut canvas =
+            SoftwareCanvas::new(&mut actual[1..1 + 32 * GLYPH_HEIGHT], 32, GLYPH_HEIGHT);
+        let metrics =
+            BitmapFont::draw_text(&mut canvas, Point::zero(), "Ẹ\u{0301}A", Rgb888::WHITE).unwrap();
+        assert_eq!(metrics.advance, 16);
+        assert_eq!(metrics.missing_glyphs, 0);
+    }
+    {
+        let mut canvas = SoftwareCanvas::new(&mut expected, 32, GLYPH_HEIGHT);
+        for (character, x) in [('Ẹ', 0), ('\u{0301}', 0), ('A', 8)] {
+            BitmapFont::draw_character(&mut canvas, Point::new(x, 0), character, Rgb888::WHITE)
+                .unwrap();
+        }
+    }
+    assert_eq!(&actual[1..1 + 32 * GLYPH_HEIGHT], &expected);
+    assert_eq!(actual[0], guard);
+    assert_eq!(actual[actual.len() - 1], guard);
+}
+
+#[test]
 fn clipped_glyph_does_not_touch_guard_pixels() {
     let guard = 0x0012_3456;
     let mut storage = [guard; 4 * 4 + 2];

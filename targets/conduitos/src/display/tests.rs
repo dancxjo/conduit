@@ -209,9 +209,7 @@ fn pinned_unifont_subset_covers_ascii_and_multilingual_text() {
     }
     assert_eq!(
         &font::glyph('>').0.bitmap[..16],
-        &[
-            0, 0, 0, 0, 0, 0x40, 0x20, 0x10, 0x08, 0x04, 0x08, 0x10, 0x20, 0x40, 0, 0
-        ]
+        &[0, 0, 0, 0, 0, 0x40, 0x20, 0x10, 0x08, 0x04, 0x08, 0x10, 0x20, 0x40, 0, 0]
     );
     for character in ['é', 'Ω', 'Ж', '—', '→', '─', '■'] {
         assert!(
@@ -261,6 +259,12 @@ fn text_wraps_and_fallback_is_bounded_and_deterministic() {
     assert_eq!(fallback, replacement);
     assert_eq!(fallback_receipt, replacement_receipt);
     assert!(fallback_receipt.pixels_written > 0);
+
+    let (accented, _) = render("Aẹ\u{0301}BC");
+    let (accented_lines, _) = render("Aẹ\u{0301}\nBC");
+    assert_eq!(accented, accented_lines, "accent does not steal a cell");
+    let (plain, _) = render("AẹBC");
+    assert_ne!(accented, plain, "the accent is actually rasterized");
 }
 
 #[test]

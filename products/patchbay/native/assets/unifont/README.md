@@ -9,6 +9,11 @@ character in the shared Crèche naming catalog, selected directly from
 `products/creche/names/catalog.mjs`. The resulting 971 glyphs remain within the
 existing 1,024-glyph bound. Glyph coverage alone does not establish combining
 mark placement or general text shaping; those remain renderer obligations.
+The native text renderers overlay the catalog's U+0300 and U+0301 marks on
+the preceding cell without extra advance. Orphan marks occupy their own cell;
+ConduitOS does not carry an accent anchor across an explicit newline. This is
+bounded support for the catalog's Latin names, not general script shaping,
+bidirectional layout, normalization, or arbitrary combining-mark stacking.
 
 Upstream source:
 
