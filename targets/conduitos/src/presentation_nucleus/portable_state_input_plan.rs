@@ -151,14 +151,14 @@ fn fixture_offers() -> Vec<CapabilityOffer> {
             conduit_human::KEY_EVENT_INFO_ID,
             "key",
             conduit_human::KEY_EVENT_ENCODED_LEN as u32,
-            PortTemporal::Flow { closes: true },
+            PortTemporal::Flow { closes: false },
         ),
         sink_offer(
             CHORD_KEY_SINK_KIND,
             conduit_human::KEY_EVENT_INFO_ID,
             "key",
             conduit_human::KEY_EVENT_ENCODED_LEN as u32,
-            PortTemporal::Flow { closes: true },
+            PortTemporal::Flow { closes: false },
         ),
     ]
 }

@@ -25,8 +25,8 @@ pub fn time_every_contract() -> StandardKindContract {
         }],
         limits: CapabilityLimits {
             max_active_instances: 16,
-            max_queue_items: 1,
-            max_queue_bytes: conduit_time::TICK_ENCODED_LEN,
+            max_queue_items: 4,
+            max_queue_bytes: 64,
         },
         terminal_behavior: TerminalBehavior::HostObservationEndsOrFailsSource,
         hosted_implementation_required: true,
@@ -55,5 +55,7 @@ mod tests {
         );
         assert!(contract.browser_manifestation_honest);
         assert!(!contract.pico_manifestation_honest);
+        assert_eq!(contract.limits.max_queue_items, 4);
+        assert_eq!(contract.limits.max_queue_bytes, 64);
     }
 }

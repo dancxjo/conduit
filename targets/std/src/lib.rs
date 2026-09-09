@@ -28,6 +28,7 @@ pub mod distributed_toggle;
 pub mod text_lab_live;
 pub mod text_lab_split;
 pub use composition::{reference_advertisement, supported_nucleus_offers, StdHostComposition};
+pub use conduit_std_offers::hosted_keyboard_offer;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub use copy_task::prepare_isolated_copy_task;
 pub use copy_task::{

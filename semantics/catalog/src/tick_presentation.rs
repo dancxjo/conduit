@@ -24,8 +24,8 @@ pub fn tick_presentation_contract() -> StandardKindContract {
         configuration: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 16,
-            max_queue_items: 1,
-            max_queue_bytes: conduit_time::TICK_ENCODED_LEN,
+            max_queue_items: 4,
+            max_queue_bytes: 64,
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,

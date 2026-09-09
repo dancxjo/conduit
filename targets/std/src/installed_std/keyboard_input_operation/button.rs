@@ -1,10 +1,9 @@
-//! Finite Space-key to semantic button implementation using the existing input operation.
+//! Standing Space-key to semantic button implementation.
 pub(in crate::installed_std) mod indicator;
 #[cfg(test)]
 mod tests;
 use super::super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{ConfigurationValue, PlannedGear};
-use conduit_human::{KeyEvent, KeyTransition};
+use conduit_core::{PlannedGear, PreparedStructuredValueValidator};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
     HostOperationOutcome, HostedValueStore, OperationAction, PortId, RequestId, ValueRef,
@@ -19,13 +18,11 @@ pub(crate) static FACTORY: InstalledFactory = InstalledFactory {
 
 pub(crate) struct ButtonOperation {
     empty: ValueRef,
-    transitions: Vec<ValueRef>,
     empty_released: bool,
-    emitted: usize,
     next: u32,
     pending: Option<RequestId>,
-    held: bool,
     terminal: bool,
+    validator: PreparedStructuredValueValidator,
 }
 
 impl ButtonOperation {
@@ -47,22 +44,18 @@ impl ButtonOperation {
         self.terminal = true;
     }
     pub(crate) fn allocation_capacity(&self) -> usize {
-        self.transitions.capacity()
+        0
     }
 
     fn request(&mut self) -> OperationAction {
         if self.terminal || self.pending.is_some() {
             return fail(FailureCode::InvalidLifecycle, 1);
         }
-        if self.emitted == self.transitions.len() {
-            self.terminal = true;
-            return OperationAction::Complete;
-        }
-        if self.next == super::MAX_PLAY_EVENTS {
+        let Some(next) = self.next.checked_add(1) else {
             return fail(FailureCode::StorageExhausted, 2);
-        }
+        };
         let request = RequestId(self.next);
-        self.next += 1;
+        self.next = next;
         self.pending = Some(request);
         OperationAction::RequestHostOperation {
             request,
@@ -88,22 +81,15 @@ impl ButtonOperation {
         }
         match outcome.disposition {
             HostOperationDisposition::Completed => {
-                let Some(event) = canonical.and_then(|bytes| KeyEvent::decode(bytes).ok()) else {
+                let (Some(output), Some(canonical)) = (outcome.output, canonical) else {
                     return fail(FailureCode::InvalidInput, 4);
                 };
-                if event.usage() != 0x2c {
-                    return self.request();
-                }
-                let pressed = event.transition() == KeyTransition::Pressed;
-                if pressed == self.held {
+                if self.validator.validate(canonical).is_err() {
                     return fail(FailureCode::InvalidInput, 5);
                 }
-                self.held = pressed;
-                let value = self.transitions[self.emitted];
-                self.emitted += 1;
                 OperationAction::Emit {
                     port: PortId(0),
-                    value,
+                    value: output.value,
                 }
             }
             HostOperationDisposition::Cancelled if outcome.output.is_none() => {
@@ -119,7 +105,7 @@ fn fail(code: FailureCode, detail: u16) -> OperationAction {
     OperationAction::Fail(Failure { code, detail })
 }
 
-fn validate(placement: &PlannedGear) -> Result<usize, String> {
+fn validate(placement: &PlannedGear) -> Result<(), String> {
     let offer = conduit_std_offers::button::offer();
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
@@ -150,30 +136,20 @@ fn validate(placement: &PlannedGear) -> Result<usize, String> {
     {
         return Err("planned Space-button realization mismatch".into());
     }
-    let maximum = placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            ("maximum-transitions", ConfigurationValue::U64(value)) => Some(*value),
-            _ => None,
-        })
-        .ok_or("Space-button lacks maximum-transitions")?;
-    if !(1..=u64::from(conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_VALUES))
-        .contains(&maximum)
-    {
-        return Err("Space-button maximum outside admitted bounds".into());
+    if !placement.configuration.is_empty() {
+        return Err("standing Space-button has unexpected configuration".into());
     }
-    Ok(maximum as usize)
+    Ok(())
 }
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    let maximum = validate(placement)?;
+    validate(placement)?;
     let bytes = conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES;
     Ok(OperationBudget {
-        value_items: (maximum * 2 + 2) as u16,
-        value_bytes: bytes * maximum as u32 * 2 + conduit_human::KEY_EVENT_ENCODED_LEN as u32,
-        host_requests: super::MAX_PLAY_EVENTS as usize,
-        sign_items: (super::MAX_PLAY_EVENTS * 6) as u16,
+        value_items: 2,
+        value_bytes: bytes,
+        host_requests: 1,
+        sign_items: 64,
         maximum_value_bytes: bytes,
     })
 }
@@ -182,29 +158,19 @@ fn prepare(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
 ) -> Result<InstalledOperation, String> {
-    let maximum = validate(placement)?;
-    let mut transitions = Vec::with_capacity(maximum);
-    for sequence in 0..maximum {
-        // Initial released state plus duplicate/unmatched rejection makes the
-        // accepted sequence alternate exactly. No unused alternative is stored.
-        let bytes = conduit_semantic_catalog::button_transition_value(
-            "button/primary",
-            sequence % 2 == 0,
-            sequence as u64,
-        )
-        .and_then(|value| value.canonical_bytes())
-        .map_err(|error| format!("{error:?}"))?;
-        transitions.push(values.store(&bytes).map_err(|error| format!("{error:?}"))?);
-    }
+    validate(placement)?;
     let empty = values.store(&[]).map_err(|error| format!("{error:?}"))?;
+    let validator = PreparedStructuredValueValidator::new(
+        &conduit_semantic_catalog::input_button_transition_type(),
+        conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES as usize,
+    )
+    .map_err(|error| format!("prepare button transition validator: {error:?}"))?;
     Ok(InstalledOperation::ButtonInput(ButtonOperation {
         empty,
         empty_released: false,
-        transitions,
-        emitted: 0,
         next: 0,
         pending: None,
-        held: false,
         terminal: false,
+        validator,
     }))
 }

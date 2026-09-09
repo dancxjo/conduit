@@ -492,6 +492,36 @@ fn execute_copy(
             Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(_))
                 if result.is_some() =>
             {
+                scheduler
+                    .cancel()
+                    .map_err(|error| format!("cancel failed copy kernel: {error:?}"))?;
+                loop {
+                    while let Some(cancellation) = scheduler.next_host_cancellation() {
+                        scheduler
+                            .complete_host_operation(
+                                cancellation.node,
+                                cancellation.request,
+                                HostOperationOutcome {
+                                    disposition: HostOperationDisposition::Cancelled,
+                                    output: None,
+                                    failure: None,
+                                },
+                            )
+                            .map_err(|error| {
+                                format!("complete failed copy cancellation: {error:?}")
+                            })?;
+                    }
+                    match scheduler
+                        .step()
+                        .map_err(|error| format!("retire failed copy kernel: {error:?}"))?
+                    {
+                        SchedulerStatus::Progress { .. } => continue,
+                        SchedulerStatus::Drained | SchedulerStatus::Cancelled => break,
+                        SchedulerStatus::Idle => {
+                            return Err("failed copy kernel became idle during cleanup".into())
+                        }
+                    }
+                }
                 break;
             }
             Err(error) => return Err(format!("copy kernel step: {error:?}")),

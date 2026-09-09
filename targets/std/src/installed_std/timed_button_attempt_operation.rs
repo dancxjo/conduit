@@ -83,13 +83,9 @@ fn prepare(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     let (_, transitions, timeout) = validate(placement)?;
-    let durations = (0..transitions)
-        .map(|_| {
-            values
-                .store(&encode_monotonic_duration(timeout))
-                .map_err(|error| format!("store pressed-button deadline: {error:?}"))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let durations = vec![values
+        .store(&encode_monotonic_duration(timeout))
+        .map_err(|error| format!("store pressed-button deadline: {error:?}"))?];
     Ok(InstalledOperation::TimedButtonAttempt(
         TimedButtonAttemptOperation::from_prepared_durations(
             durations,

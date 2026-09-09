@@ -76,7 +76,7 @@ impl ExpandedCanonicalForm {
                         || matches!(
                             (connection.temporal, port.temporal),
                             (
-                                conduit_core::PortTemporal::Flow { closes: false },
+                                conduit_core::PortTemporal::Flow { .. },
                                 conduit_core::PortTemporal::Value
                             )
                         )

@@ -681,7 +681,7 @@ pub fn lower_plan_fragment_for_profile(
                     && !matches!(
                         (connection.temporal, descriptor.temporal),
                         (
-                            conduit_core::PortTemporal::Flow { closes: false },
+                            conduit_core::PortTemporal::Flow { .. },
                             conduit_core::PortTemporal::Value
                         )
                     )

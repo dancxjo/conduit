@@ -271,7 +271,17 @@ mod tests {
             .iter()
             .find_map(|part| part.current.as_ref())
             .unwrap();
-        let host = conduit_std_host::StdHost::new();
+        let mut host = conduit_std_host::StdHost::new().advertisement().clone();
+        host.capabilities
+            .push(conduit_std_host::hosted_keyboard_offer(
+                "proof/body-keyboard",
+                "proof/body-keyboard@1",
+            ));
+        host.resources.push(conduit_core::resource_offer(
+            "proof/body-input",
+            conduit_core::INPUT_RESOURCE_CLASS,
+            1,
+        ));
         let requirements = patchbay_model::body_planning_requirements(
             &server
                 .body_workload
@@ -287,8 +297,7 @@ mod tests {
             .kind_ids
             .iter()
             .map(|kind| {
-                host.advertisement()
-                    .capabilities
+                host.capabilities
                     .iter()
                     .find(|offer| &offer.kind_id == kind)
                     .unwrap()
@@ -307,7 +316,6 @@ mod tests {
             })
             .collect::<Vec<_>>();
         let mut resources = host
-            .advertisement()
             .resources
             .iter()
             .filter(|offer| required_classes.contains(&&offer.class_id))

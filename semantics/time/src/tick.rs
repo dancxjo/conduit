@@ -12,11 +12,15 @@ pub const TICK_ENCODED_LEN: u32 = 8;
 pub const TICK_CONTRACT_REVISION: &str = "conduit.std/time-tick@2";
 pub const TIME_EVERY_CONTRACT_REVISION: &str = "conduit.std/time-every@2";
 pub const MAX_TICK_COUNT: u64 = 4_096;
-pub const TIME_EVERY_COUNT: u64 = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TickConfiguration {
     pub count: u64,
+    pub period_ms: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EveryConfiguration {
     pub period_ms: u64,
 }
 

@@ -39,10 +39,30 @@ mod tests {
 
     #[test]
     fn native_button_adapter_executes_unchanged_form() {
-        use conduit_std_host::{RunControl, StdHost, TimerAdapter};
+        use conduit_std_host::{
+            hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll},
+            RunControl, RunControlRequestId, StdHost, TimerAdapter,
+        };
         struct Timer;
         impl TimerAdapter for Timer {
             fn wait(&mut self, _: std::time::Duration) {}
+        }
+        struct StopAfterPending {
+            reader: super::super::NativeKeyboardReader,
+            control: RunControl,
+            stopped: bool,
+        }
+        impl HostedKeyboardAdapter for StopAfterPending {
+            fn poll_next(&mut self) -> HostedKeyboardPoll {
+                let event = self.reader.poll_next();
+                if event == HostedKeyboardPoll::Pending && !self.stopped {
+                    self.control
+                        .request_stop(RunControlRequestId::new("stop-native-button-proof").unwrap())
+                        .unwrap();
+                    self.stopped = true;
+                }
+                event
+            }
         }
         let mut advertisement = StdHost::new().advertisement().clone();
         super::super::append_offer(&mut advertisement).unwrap();
@@ -75,13 +95,19 @@ mod tests {
                 .unwrap();
         }
         let mut output = Vec::new();
+        let run_control = RunControl::default();
+        let mut reader = StopAfterPending {
+            reader: keyboard.reader(),
+            control: run_control.clone(),
+            stopped: false,
+        };
         let report = host
             .run_fragment_controlled_with_keyboard_to(
                 plan.fragments[0].clone(),
                 &mut output,
                 &mut Timer,
-                &RunControl::default(),
-                Some(&mut keyboard.reader()),
+                &run_control,
+                Some(&mut reader),
             )
             .unwrap();
         let output = String::from_utf8(output).unwrap();
@@ -95,7 +121,7 @@ mod tests {
         assert!(matches!(
             report.observations.last().map(|item| &item.kind),
             Some(conduit_core::ObservationKind::PlanTerminal {
-                disposition: conduit_core::TerminalDisposition::Completed
+                disposition: conduit_core::TerminalDisposition::Cancelled { .. }
             })
         ));
     }

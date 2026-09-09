@@ -26,6 +26,69 @@ pub const BUTTON_TRANSITION_MAXIMUM_BYTES: u32 =
     conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32;
 pub const BUTTON_TRANSITION_MAXIMUM_VALUES: u16 = 8;
 
+/// Allocation-free canonical encoder prepared before Play for a single button identity.
+pub struct PreparedButtonTransitionEncoder {
+    button_identity: Vec<u8>,
+    type_prefix: Vec<u8>,
+    output: Vec<u8>,
+}
+
+impl PreparedButtonTransitionEncoder {
+    pub fn new(button_identity: &str) -> Result<Self, StructuredInfoRefusal> {
+        let type_prefix = input_button_transition_type().canonical_bytes()?;
+        let mut output = Vec::with_capacity(BUTTON_TRANSITION_MAXIMUM_BYTES as usize);
+        output.extend_from_slice(&type_prefix);
+        Ok(Self {
+            button_identity: button_identity.as_bytes().to_vec(),
+            type_prefix,
+            output,
+        })
+    }
+
+    pub fn encode(&mut self, pressed: bool, sequence: u64) -> Result<&[u8], StructuredInfoRefusal> {
+        self.output.truncate(self.type_prefix.len());
+        self.output.push(2);
+        self.output.extend_from_slice(&3_u32.to_le_bytes());
+        encode_text_into(b"button_identity", &mut self.output);
+        self.output.push(0);
+        encode_text_into(&self.button_identity, &mut self.output);
+        encode_text_into(b"phase", &mut self.output);
+        self.output.push(3);
+        encode_text_into(
+            if pressed { b"pressed" } else { b"released" },
+            &mut self.output,
+        );
+        self.output.push(0);
+        self.output.extend_from_slice(&0_u32.to_le_bytes());
+        encode_text_into(b"sequence", &mut self.output);
+        self.output.push(0);
+        let mut digits = [0_u8; 20];
+        let sequence = decimal_bytes(sequence, &mut digits);
+        encode_text_into(sequence, &mut self.output);
+        if self.output.len() > BUTTON_TRANSITION_MAXIMUM_BYTES as usize {
+            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        Ok(&self.output)
+    }
+}
+
+fn encode_text_into(value: &[u8], output: &mut Vec<u8>) {
+    output.extend_from_slice(&(value.len() as u32).to_le_bytes());
+    output.extend_from_slice(value);
+}
+
+fn decimal_bytes(mut value: u64, buffer: &mut [u8; 20]) -> &[u8] {
+    let mut start = buffer.len();
+    loop {
+        start -= 1;
+        buffer[start] = b'0' + (value % 10) as u8;
+        value /= 10;
+        if value == 0 {
+            return &buffer[start..];
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ButtonIndicatorRefusal {
     Malformed(StructuredInfoRefusal),
@@ -263,6 +326,18 @@ mod tests {
             map_button_transition_to_indicator(&transition("released", 2)),
             Ok(InfoBool::FALSE)
         );
+    }
+
+    #[test]
+    fn prepared_encoder_matches_canonical_values_without_lifetime_storage() {
+        let mut encoder = PreparedButtonTransitionEncoder::new("button/primary").unwrap();
+        for (pressed, sequence) in [(true, 0), (false, 1), (true, u64::MAX)] {
+            let expected = button_transition_value("button/primary", pressed, sequence)
+                .unwrap()
+                .canonical_bytes()
+                .unwrap();
+            assert_eq!(encoder.encode(pressed, sequence).unwrap(), expected);
+        }
     }
 
     #[test]

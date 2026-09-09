@@ -8,13 +8,15 @@ use conduit_core::TerminalDisposition;
 
 struct Keys {
     stop: Option<RunControl>,
+    stop_when_empty: bool,
     events: std::collections::VecDeque<[u8; 3]>,
     polls: usize,
 }
 impl HostedKeyboardAdapter for Keys {
     fn poll_next(&mut self) -> HostedKeyboardPoll {
         self.polls += 1;
-        if let Some(control) = self.stop.take() {
+        if self.stop.is_some() && (!self.stop_when_empty || self.events.is_empty()) {
+            let control = self.stop.take().unwrap();
             control
                 .request_stop(RunControlRequestId::new("stop-pending-keyboard").unwrap())
                 .unwrap();
@@ -73,6 +75,7 @@ fn pending_keyboard_cancellation_releases_the_whole_workload_for_another_play() 
     let stop = RunControl::default();
     let mut keys = Keys {
         stop: Some(stop.clone()),
+        stop_when_empty: false,
         events: [[0x2c, 0, 0], [0x2c, 1, 0]].into(),
         polls: 0,
     };
@@ -98,12 +101,15 @@ fn pending_keyboard_cancellation_releases_the_whole_workload_for_another_play() 
     assert_eq!(keys.polls, 1);
     assert_eq!(keys.events.len(), 2);
     assert!(!String::from_utf8(output).unwrap().contains("bool value="));
+    let second_stop = RunControl::default();
+    keys.stop = Some(second_stop.clone());
+    keys.stop_when_empty = true;
     let completed = host
         .run_body_plan_to(
             BodyRunRequest {
                 wake: &wake,
                 plan: &plan,
-                control: &RunControl::default(),
+                control: &second_stop,
                 keyboard: Some(&mut keys),
             },
             &mut Vec::new(),
@@ -112,7 +118,9 @@ fn pending_keyboard_cancellation_releases_the_whole_workload_for_another_play() 
         .unwrap();
     assert_eq!(
         completed.terminal,
-        TerminalDisposition::Completed,
+        TerminalDisposition::Cancelled {
+            reason: conduit_core::CancellationReason::OperatorRequested,
+        },
         "{:?}",
         completed.failure
     );
@@ -138,7 +146,12 @@ fn pending_keyboard_cancellation_releases_the_whole_workload_for_another_play() 
     .unwrap();
     assert_eq!(retained.play, play);
     assert_eq!(retained.terminal_sign, terminal_sign);
-    assert_eq!(retained.terminal, TerminalDisposition::Completed);
+    assert_eq!(
+        retained.terminal,
+        TerminalDisposition::Cancelled {
+            reason: conduit_core::CancellationReason::OperatorRequested,
+        }
+    );
     assert!(retained.failure.is_none());
     assert_eq!(
         format!(

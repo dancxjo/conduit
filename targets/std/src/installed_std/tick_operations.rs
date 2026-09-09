@@ -131,8 +131,10 @@ fn every_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_every_placement(placement)?;
     let _ = parse_every_configuration(&placement.configuration)?;
     Ok(OperationBudget {
-        value_items: 2,
-        value_bytes: TICK_ENCODED_LEN * 2,
+        // One retained wait, one in-flight emission, and the four admitted
+        // queue slots are all reserved before this standing source starts.
+        value_items: 6,
+        value_bytes: TICK_ENCODED_LEN * 6,
         host_requests: 1,
         sign_items: 256,
         maximum_value_bytes: TICK_ENCODED_LEN,

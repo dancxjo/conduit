@@ -6,14 +6,13 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_human::{KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID};
+use conduit_human::KEY_EVENT_INFO_ID;
 
 pub const KEYBOARD_KIND: &str = "input/keyboard";
 pub const KEYBOARD_PORT: &str = "key";
 pub const KEYBOARD_CONTRACT_REVISION: &str = "conduit.input/keyboard@2";
 pub const KEYBOARD_MAX_QUEUE_ITEMS: u16 = 8;
-pub const KEYBOARD_MAX_QUEUE_BYTES: u32 =
-    KEYBOARD_MAX_QUEUE_ITEMS as u32 * KEY_EVENT_ENCODED_LEN as u32;
+pub const KEYBOARD_MAX_QUEUE_BYTES: u32 = 64;
 
 pub fn keyboard_contract() -> StandardKindContract {
     StandardKindContract {
@@ -87,7 +86,7 @@ mod tests {
             PortTemporal::Flow { closes: false }
         );
         assert_eq!(contract.limits.max_queue_items, 8);
-        assert_eq!(contract.limits.max_queue_bytes, 24);
+        assert_eq!(contract.limits.max_queue_bytes, 64);
     }
 
     #[cfg(feature = "form-catalog")]

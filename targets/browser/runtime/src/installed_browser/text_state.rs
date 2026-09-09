@@ -72,28 +72,18 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
     Ok(BrowserOperation::unary(4, 1))
 }
 
-pub(crate) struct PreparedTextState {
-    mode: Mode,
-    text: Vec<u8>,
-    pending_clear: bool,
-}
-
-#[derive(Clone, Copy)]
-enum Mode {
-    Edit,
-    Submit,
-}
+pub(crate) struct PreparedTextState(conduit_semantic_catalog::BoundedTextState);
 
 impl PreparedTextState {
     pub(crate) fn for_placement(placement: &PlannedGear) -> Result<Option<Self>, String> {
         let mode = match placement.implementation_id.as_str() {
-            EDIT_IMPLEMENTATION => Mode::Edit,
-            SUBMIT_IMPLEMENTATION => Mode::Submit,
+            EDIT_IMPLEMENTATION => conduit_semantic_catalog::TextStateMode::Edit,
+            SUBMIT_IMPLEMENTATION => conduit_semantic_catalog::TextStateMode::Submit,
             _ => return Ok(None),
         };
         let expected = match mode {
-            Mode::Edit => edit_offer(),
-            Mode::Submit => submit_offer(),
+            conduit_semantic_catalog::TextStateMode::Edit => edit_offer(),
+            conduit_semantic_catalog::TextStateMode::Submit => submit_offer(),
         };
         validate_placement(placement, &expected)?;
         let maximum = placement
@@ -104,49 +94,22 @@ impl PreparedTextState {
                 _ => None,
             })
             .ok_or("text state maximum-bytes is absent")?;
-        Ok(Some(Self {
-            mode,
-            text: Vec::with_capacity(maximum),
-            pending_clear: false,
-        }))
+        conduit_semantic_catalog::BoundedTextState::new(mode, maximum)
+            .map(Self)
+            .map(Some)
+            .map_err(|_| "text state maximum-bytes is outside the portable bound".into())
     }
 
     pub(crate) fn execute(&mut self, fragment: &[u8]) -> Result<Option<&[u8]>, Failure> {
-        if self.pending_clear {
-            self.text.clear();
-            self.pending_clear = false;
-        }
-        let fragment =
-            core::str::from_utf8(fragment).map_err(|_| failure(FailureCode::InvalidInput, 1))?;
-        if fragment == "\n" {
-            return match self.mode {
-                Mode::Edit => Ok(Some(&self.text)),
-                Mode::Submit if self.text.is_empty() => Ok(None),
-                Mode::Submit => {
-                    self.pending_clear = true;
-                    Ok(Some(&self.text))
-                }
-            };
-        }
-        if fragment == "\u{8}" {
-            if let Some((index, _)) = core::str::from_utf8(&self.text)
-                .ok()
-                .and_then(|text| text.char_indices().next_back())
-            {
-                self.text.truncate(index);
+        self.0.apply(fragment).map_err(|refusal| match refusal {
+            conduit_semantic_catalog::TextStateRefusal::CapacityExhausted => {
+                failure(FailureCode::StateCapacityExhausted, 2)
             }
-            return Ok(matches!(self.mode, Mode::Edit).then_some(&self.text));
-        }
-        if self
-            .text
-            .len()
-            .checked_add(fragment.len())
-            .is_none_or(|length| length > self.text.capacity())
-        {
-            return Err(failure(FailureCode::StateCapacityExhausted, 2));
-        }
-        self.text.extend_from_slice(fragment.as_bytes());
-        Ok(matches!(self.mode, Mode::Edit).then_some(&self.text))
+            conduit_semantic_catalog::TextStateRefusal::InvalidCapacity
+            | conduit_semantic_catalog::TextStateRefusal::InvalidUtf8 => {
+                failure(FailureCode::InvalidInput, 1)
+            }
+        })
     }
 }
 

@@ -142,7 +142,7 @@ fn limits(maximum_value_bytes: u32) -> CapabilityLimits {
     CapabilityLimits {
         max_active_instances: 4,
         max_queue_items: 8,
-        max_queue_bytes: 8 * maximum_value_bytes.max(KEY_EVENT_ENCODED_LEN as u32),
+        max_queue_bytes: (8 * maximum_value_bytes.max(KEY_EVENT_ENCODED_LEN as u32)).max(64),
     }
 }
 

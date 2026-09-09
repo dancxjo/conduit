@@ -20,7 +20,7 @@ pub const STATE_COUNT_CONTRACT_REVISION: &str = "conduit.std/state-count@2";
 pub const COUNT_PRESENTATION_KIND: &str = "presentation/count";
 pub const COUNT_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-count@2";
 pub const COUNT_ENCODED_LEN: u32 = 8;
-pub const MAX_COUNT_VALUES: u64 = conduit_time::TIME_EVERY_COUNT + 1;
+pub const MAX_COUNT_VALUES: u64 = 5;
 
 pub const fn bounded_count_value(start: u64, index: u64) -> Option<u64> {
     if index < MAX_COUNT_VALUES {
@@ -58,8 +58,8 @@ pub fn state_count_contract() -> StandardKindContract {
         }],
         limits: CapabilityLimits {
             max_active_instances: 16,
-            max_queue_items: 1,
-            max_queue_bytes: COUNT_ENCODED_LEN,
+            max_queue_items: 4,
+            max_queue_bytes: 64,
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
@@ -85,8 +85,8 @@ pub fn count_presentation_contract() -> StandardKindContract {
         configuration: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 16,
-            max_queue_items: 1,
-            max_queue_bytes: COUNT_ENCODED_LEN,
+            max_queue_items: 4,
+            max_queue_bytes: 64,
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,

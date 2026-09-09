@@ -6,7 +6,7 @@ use conduit_form::{
 };
 use conduit_std_host::{
     hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll},
-    RunControl, StdHost, TimerAdapter,
+    RunControl, RunControlRequestId, StdHost, TimerAdapter,
 };
 use std::{collections::VecDeque, time::Duration};
 
@@ -15,14 +15,22 @@ struct Timer;
 impl TimerAdapter for Timer {
     fn wait(&mut self, _: Duration) {}
 }
-struct Keyboard(VecDeque<[u8; 3]>);
+struct Keyboard {
+    events: VecDeque<[u8; 3]>,
+    stop: Option<RunControl>,
+}
 impl HostedKeyboardAdapter for Keyboard {
     fn poll_next(&mut self) -> HostedKeyboardPoll {
-        self.0
-            .pop_front()
-            .map_or(HostedKeyboardPoll::Cancelled, |bytes| {
-                HostedKeyboardPoll::Event(conduit_human::KeyEvent::decode(&bytes).unwrap())
-            })
+        if let Some(bytes) = self.events.pop_front() {
+            return HostedKeyboardPoll::Event(conduit_human::KeyEvent::decode(&bytes).unwrap());
+        }
+        if let Some(control) = self.stop.take() {
+            control
+                .request_stop(RunControlRequestId::new("stop-button-proof").unwrap())
+                .unwrap();
+            return HostedKeyboardPoll::Pending;
+        }
+        HostedKeyboardPoll::Cancelled
     }
 }
 
@@ -32,10 +40,8 @@ fn unchanged_canonical_form_runs_on_native_kernel() {
 }
 
 #[test]
-fn maximum_button_bound_is_not_limited_by_the_unrelated_toggle_sink() {
-    let source = SOURCE.replace("input/button\n", "input/button(8)\n");
-    assert_ne!(source, SOURCE);
-    run_form(&source, 8);
+fn standing_button_is_not_limited_by_the_old_finite_transition_count() {
+    run_form(SOURCE, 8);
 }
 
 fn run_form(source: &str, transitions: usize) {
@@ -103,14 +109,18 @@ fn run_form(source: &str, transitions: usize) {
     assert_eq!(plan.fragments.len(), 1);
     let mut events = VecDeque::from([[4, 0, 0]]);
     events.extend((0..transitions).map(|sequence| [0x2c, (sequence % 2) as u8, 0]));
-    let mut keyboard = Keyboard(events);
+    let control = RunControl::default();
+    let mut keyboard = Keyboard {
+        events,
+        stop: Some(control.clone()),
+    };
     let mut output = Vec::new();
     let report = host
         .run_fragment_controlled_with_keyboard_to(
             plan.fragments[0].clone(),
             &mut output,
             &mut Timer,
-            &RunControl::default(),
+            &control,
             Some(&mut keyboard),
         )
         .unwrap();
@@ -126,7 +136,7 @@ fn run_form(source: &str, transitions: usize) {
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {
-            disposition: TerminalDisposition::Completed
+            disposition: TerminalDisposition::Cancelled { .. }
         })
     ));
     let kernel = report.kernel.unwrap();
@@ -139,7 +149,10 @@ fn run_form(source: &str, transitions: usize) {
         (vec![[0x2c, 1, 0]], "InvalidInput"),
         (vec![[0x2c, 0, 0], [0x2c, 0, 0]], "InvalidInput"),
     ] {
-        let mut input = Keyboard(events.into());
+        let mut input = Keyboard {
+            events: events.into(),
+            stop: None,
+        };
         let failure = host
             .run_fragment_controlled_with_keyboard_to(
                 plan.fragments[0].clone(),

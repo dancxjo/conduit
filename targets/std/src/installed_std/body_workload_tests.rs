@@ -24,6 +24,9 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
         .unwrap();
+    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
     conduit_net::install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
@@ -33,6 +36,7 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
         .unwrap();
     let mut host = crate::StdHost::new().advertisement().clone();
     for offer in [
+        conduit_std_offers::hosted_keyboard_offer("proof/body-keyboard", "proof/body-keyboard@1"),
         conduit_std_offers::button::offer(),
         conduit_std_offers::button::mapper_offer(),
         conduit_std_offers::button::indicator_offer(),
@@ -48,7 +52,7 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
     host.resources.push(resource_offer(
         "proof/body-keyboard",
         conduit_core::INPUT_RESOURCE_CLASS,
-        1,
+        2,
     ));
     host.resources.sort();
     host.capabilities
@@ -81,28 +85,35 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
                 .connections
                 .iter()
                 .map(|connection| {
+                    let source_kind = expanded
+                        .gears
+                        .iter()
+                        .find(|gear| gear.gear_id == connection.source_gear_id)
+                        .map(|gear| gear.kind_id.as_str())
+                        .unwrap();
                     let bytes = if connection.value_kind
                         == conduit_semantic_catalog::button_source_contract().outputs[0].value_kind
                     {
                         conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES
+                    } else if connection.value_kind.as_str() == conduit_human::KEY_EVENT_INFO_ID {
+                        conduit_human::KEY_EVENT_ENCODED_LEN as u32
                     } else if connection.value_kind.as_str() == conduit_core::BOOL_INFO_ID {
                         1
+                    } else if connection.value_kind.as_str() == conduit_net::TEXT_INFO_ID
+                        && source_kind == conduit_semantic_catalog::KEYMAP_KIND
+                    {
+                        4
+                    } else if connection.value_kind.as_str() == conduit_net::TEXT_INFO_ID {
+                        conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES
+                    } else if source_kind.starts_with("record/") {
+                        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
                     } else if [
                         conduit_net::TYPED_RECORD_INFO_ID,
                         conduit_net::FRAMED_TYPED_RECORD_INFO_ID,
                     ]
                     .contains(&connection.value_kind.as_str())
-                        || connection
-                            .source_gear_id
-                            .as_str()
-                            .starts_with("desk_telegraph/")
-                            && !connection.source_gear_id.as_str().ends_with("/message")
-                            && !connection
-                                .source_gear_id
-                                .as_str()
-                                .ends_with("/decode/unwrap")
                     {
-                        conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES as u32
+                        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
                     } else {
                         64
                     };
@@ -265,13 +276,37 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
         .body_play_started(&plan, &play, SignId::from("sign/play-started"))
         .unwrap();
     assert_eq!(playing.body_id, body.body_id);
-    let mut keys = [[0x2c_u8, 0, 0], [0x2c, 1, 0]].into_iter();
+    let mut keys = [
+        [6_u8, 0, 0],
+        [4, 0, 0],
+        [15, 0, 0],
+        [15, 0, 0],
+        [12, 0, 0],
+        [17, 0, 0],
+        [10, 0, 0],
+        [40, 0, 0],
+    ]
+    .into_iter();
+    let mut buttons = [(true, 0_u64), (false, 1)].into_iter();
+    let mut button_encoder =
+        conduit_semantic_catalog::PreparedButtonTransitionEncoder::new("button/primary").unwrap();
+    let mut input_keymaps = [conduit_human::ConduitIntlKeymap::new(); MAX_NODES];
     let mut output = Vec::with_capacity(1024);
     let mut typed_record_hosts: Vec<_> = fragments
         .iter()
         .flat_map(|fragment| typed_record_operation::prepare_hosts(fragment))
         .collect();
-    let mut completed = false;
+    let mut text_state_hosts: Vec<_> = fragments
+        .iter()
+        .flat_map(|fragment| {
+            fragment
+                .placements
+                .iter()
+                .map(crate::installed_std::text_state_operation::TextStateHost::from_placement)
+        })
+        .collect::<Result<_, _>>()
+        .unwrap();
+    let mut tick_presentations = 0;
     for _ in 0..512 {
         while let Some(request) = kernel.next_host_request() {
             let operation = lowered
@@ -288,11 +323,49 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
             if operation.contract_id.as_str()
                 == conduit_std_offers::NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT
             {
-                let bytes = keys
-                    .next()
-                    .expect("only the two admitted button transitions");
+                let Some(bytes) = keys.next() else {
+                    continue;
+                };
                 let value = kernel.store_host_value(&bytes).unwrap();
                 result.output = Some(BoundedValueRef::new(value, 3).unwrap());
+            } else if operation.contract_id.as_str()
+                == conduit_std_offers::button::NEXT_TRANSITION_HOST_OPERATION
+            {
+                let Some((pressed, sequence)) = buttons.next() else {
+                    continue;
+                };
+                let bytes = button_encoder.encode(pressed, sequence).unwrap();
+                let value = kernel.store_host_value(bytes).unwrap();
+                result.output = Some(
+                    BoundedValueRef::new(
+                        value,
+                        conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
+                    )
+                    .unwrap(),
+                );
+            } else if operation.contract_id.as_str()
+                == conduit_std_offers::TEXT_STATE_HOST_OPERATION
+            {
+                let encoded = text_state_hosts[usize::from(request.node.0)]
+                    .as_mut()
+                    .unwrap()
+                    .execute(kernel.host_value(request.input.value).unwrap())
+                    .unwrap();
+                result.output = encoded.map(|encoded| {
+                    let value = kernel.store_host_value(encoded).unwrap();
+                    BoundedValueRef::new(value, operation.binding.maximum_output_bytes).unwrap()
+                });
+            } else if operation.contract_id.as_str() == conduit_std_offers::KEYMAP_HOST_OPERATION {
+                let encoded = crate::installed_std::input_semantic_operations::execute_host(
+                    true,
+                    &mut input_keymaps[usize::from(request.node.0)],
+                    kernel.host_value(request.input.value).unwrap(),
+                )
+                .unwrap();
+                result.output = encoded.map(|encoded| {
+                    let value = kernel.store_host_value(encoded.as_slice()).unwrap();
+                    BoundedValueRef::new(value, operation.binding.maximum_output_bytes).unwrap()
+                });
             } else if operation.contract_id
                 == conduit_core::wait_host_operation_requirement().contract_id
             {
@@ -316,6 +389,11 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                     BoundedValueRef::new(value, operation.binding.maximum_output_bytes).unwrap(),
                 );
             } else {
+                if operation.target_kind.as_ref().is_some_and(|kind| {
+                    kind.as_str() == conduit_std_offers::TICK_PRESENTATION_TARGET
+                }) {
+                    tick_presentations += 1;
+                }
                 assert!(simple_presentation_host::present(
                     operation.target_kind.as_ref(),
                     kernel.host_value(request.input.value).unwrap(),
@@ -327,14 +405,21 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                 .complete_host_operation(request.node, request.request, result)
                 .unwrap();
         }
-        if kernel.step().unwrap() == SchedulerStatus::Drained {
-            completed = true;
+        let step = kernel.step();
+        assert!(
+            !matches!(step, Ok(SchedulerStatus::Drained)),
+            "standing workload drained unexpectedly"
+        );
+        step.unwrap();
+        if tick_presentations >= 6 && String::from_utf8_lossy(&output).contains("calling\n") {
             break;
         }
     }
-    assert!(completed);
+    assert!(tick_presentations >= 6);
+    kernel.cancel().unwrap();
+    assert!(matches!(kernel.try_retire(), Ok(retired) if retired.cancelled));
     let output = String::from_utf8(output).unwrap();
-    assert!(output.contains("CALLING\n"));
+    assert!(output.contains("calling\n"));
     assert_eq!(
         output
             .lines()
@@ -355,14 +440,27 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
 fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
     use crate::body_execution::BodyRunRequest;
     use crate::hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll};
-    struct Keys(std::collections::VecDeque<[u8; 3]>);
+    struct Keys {
+        events: std::collections::VecDeque<[u8; 3]>,
+        stop: Option<crate::RunControl>,
+        idle_polls: usize,
+    }
     impl HostedKeyboardAdapter for Keys {
         fn poll_next(&mut self) -> HostedKeyboardPoll {
-            self.0
-                .pop_front()
-                .map_or(HostedKeyboardPoll::Cancelled, |bytes| {
-                    HostedKeyboardPoll::Event(conduit_human::KeyEvent::decode(&bytes).unwrap())
-                })
+            if let Some(bytes) = self.events.pop_front() {
+                return HostedKeyboardPoll::Event(conduit_human::KeyEvent::decode(&bytes).unwrap());
+            }
+            if self.idle_polls < 128 {
+                self.idle_polls += 1;
+                return HostedKeyboardPoll::Pending;
+            }
+            if let Some(control) = self.stop.take() {
+                control
+                    .request_stop(crate::RunControlRequestId::new("stop-living-body").unwrap())
+                    .unwrap();
+                return HostedKeyboardPoll::Pending;
+            }
+            HostedKeyboardPoll::Cancelled
         }
     }
     struct Clock;
@@ -424,7 +522,11 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
         )
         .is_err());
     assert!(output.is_empty());
-    let mut bad_keys = Keys([[0x2c, 1, 0]].into());
+    let mut bad_keys = Keys {
+        events: [[0x2c, 1, 0]].into(),
+        stop: None,
+        idle_polls: 0,
+    };
     let failed = host
         .run_body_plan_to(
             BodyRunRequest {
@@ -448,13 +550,30 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
         .iter()
         .any(|event| event.kind == conduit_kernel::KernelEventKind::RunCancelled));
     output.clear();
-    let mut keys = Keys([[0x2c, 0, 0], [0x2c, 1, 0]].into());
+    let successful_stop = crate::RunControl::default();
+    let mut keys = Keys {
+        events: [
+            [6, 0, 0],
+            [4, 0, 0],
+            [15, 0, 0],
+            [15, 0, 0],
+            [12, 0, 0],
+            [17, 0, 0],
+            [10, 0, 0],
+            [40, 0, 0],
+            [0x2c, 0, 0],
+            [0x2c, 1, 0],
+        ]
+        .into(),
+        stop: Some(successful_stop.clone()),
+        idle_polls: 0,
+    };
     let report = host
         .run_body_plan_to(
             BodyRunRequest {
                 wake: &wake,
                 plan: &plan,
-                control: &control,
+                control: &successful_stop,
                 keyboard: Some(&mut keys),
             },
             &mut output,
@@ -463,7 +582,9 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
         .unwrap();
     assert_eq!(
         report.terminal,
-        conduit_core::TerminalDisposition::Completed
+        conduit_core::TerminalDisposition::Cancelled {
+            reason: conduit_core::CancellationReason::OperatorRequested,
+        }
     );
     assert!(report.failure.is_none());
     assert!(report.play.validate_for(&plan));
@@ -484,7 +605,7 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
         );
     }
     let output = String::from_utf8(output).unwrap();
-    assert!(output.contains("CALLING\n"));
+    assert!(output.contains("calling\n"), "output={output:?}");
     assert_eq!(
         output
             .lines()
@@ -492,17 +613,21 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
             .collect::<Vec<_>>(),
         ["bool value=true", "bool value=false"]
     );
-    assert_eq!(
+    assert!(
         output
             .lines()
             .filter(|line| line.starts_with("tick sequence="))
-            .count(),
-        4
+            .count()
+            > 4
     );
     let stop = crate::RunControl::default();
     stop.request_stop(crate::RunControlRequestId::new("stop-before-body-effects").unwrap())
         .unwrap();
-    let mut untouched = Keys([[0x2c, 0, 0], [0x2c, 1, 0]].into());
+    let mut untouched = Keys {
+        events: [[0x2c, 0, 0], [0x2c, 1, 0]].into(),
+        stop: None,
+        idle_polls: 0,
+    };
     let mut cancelled_output = Vec::new();
     let cancelled = host
         .run_body_plan_to(
@@ -522,7 +647,7 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
     ));
     assert!(cancelled.failure.is_none());
     assert!(cancelled_output.is_empty());
-    assert_eq!(untouched.0.len(), 2);
+    assert_eq!(untouched.events.len(), 2);
     assert_eq!(plan, original);
     let original_failure = failed.failure.clone();
     let original_terminal = failed.terminal;

@@ -102,12 +102,8 @@ impl TestChordSinkOperation {
     }
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(0) } if self.observed == 1 => {
-                OperationAction::Complete
-            }
-            _ => invalid(61),
-        }
+        let _ = input;
+        invalid(61)
     }
 
     pub(super) fn resume_value(&mut self, port: PortId, canonical: &[u8]) -> OperationAction {
@@ -117,7 +113,7 @@ impl TestChordSinkOperation {
         match ChordInfo::decode(canonical) {
             Ok(chord) if chord.chord_id() == CoreChordId::CancelOrEscape => {
                 self.observed = 1;
-                OperationAction::Await
+                OperationAction::Complete
             }
             _ => invalid(63),
         }
@@ -236,7 +232,7 @@ fn sink_port() -> PortDescriptor {
         port_id: port_id("chord"),
         value_kind: kind_id(CHORD_INFO_ID),
         direction: PortDirection::Input,
-        temporal: PortTemporal::Flow { closes: true },
+        temporal: PortTemporal::Flow { closes: false },
     }
 }
 

@@ -114,7 +114,15 @@ impl FormCandidate {
             .checked
             .source_document_id
             .clone()
-            .ok_or("Form source is unchecked")?;
+            .ok_or_else(|| {
+                editor
+                    .view()
+                    .checked
+                    .diagnostics
+                    .first()
+                    .map(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+                    .unwrap_or_else(|| "Form source is unchecked".into())
+            })?;
         let checked_form_id = editor
             .view()
             .checked

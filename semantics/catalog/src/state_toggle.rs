@@ -14,7 +14,8 @@ use conduit_core::{
 
 pub const STATE_TOGGLE_KIND: &str = "state/toggle";
 pub const STATE_TOGGLE_CONTRACT_REVISION: &str = "conduit.std/state-toggle@1";
-pub const MAX_TOGGLE_VALUES: u64 = conduit_time::TIME_EVERY_COUNT + 1;
+pub const MAX_TOGGLE_VALUES: u64 = 5;
+pub const STATE_TOGGLE_QUEUE_ITEMS: u16 = 4;
 
 pub const fn bounded_toggle_value(initial: bool, index: u64) -> Option<bool> {
     if index < MAX_TOGGLE_VALUES {
@@ -52,7 +53,7 @@ pub fn state_toggle_contract() -> StandardKindContract {
         }],
         limits: CapabilityLimits {
             max_active_instances: 16,
-            max_queue_items: conduit_time::TIME_EVERY_COUNT as u16,
+            max_queue_items: STATE_TOGGLE_QUEUE_ITEMS,
             max_queue_bytes: 64,
         },
         terminal_behavior: TerminalBehavior::EmitsInitialAndTogglesUntilInputCloses,

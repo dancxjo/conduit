@@ -101,9 +101,9 @@ pub(super) fn resolve_selectors(
         });
         let temporal = match (left, right) {
             (
-                Some(conduit_core::PortTemporal::Flow { closes: false }),
+                Some(conduit_core::PortTemporal::Flow { .. }),
                 Some(conduit_core::PortTemporal::Value),
-            ) => conduit_core::PortTemporal::Flow { closes: false },
+            ) => left.expect("selector source temporal is present"),
             (Some(left), Some(right)) if left != right => {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-045",

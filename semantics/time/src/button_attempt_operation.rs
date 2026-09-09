@@ -23,6 +23,7 @@ pub struct TimedButtonAttemptOperation {
     maximum_transitions: u64,
     retain_resumed: bool,
     emitted_attempt: bool,
+    completed_attempt: bool,
 }
 
 impl TimedButtonAttemptOperation {
@@ -46,6 +47,7 @@ impl TimedButtonAttemptOperation {
             maximum_transitions,
             retain_resumed: false,
             emitted_attempt: false,
+            completed_attempt: false,
         }
     }
 
@@ -81,6 +83,14 @@ impl TimedButtonAttemptOperation {
                 if self.pending == Some((request, Pending::Deadline)) =>
             {
                 self.resume_deadline(request, outcome)
+            }
+            OperationInput::Closed { port: PortId(0) }
+                if self.pending.is_none()
+                    && self.completed_attempt
+                    && self.accepted_transitions == 0 =>
+            {
+                self.release_unused_durations();
+                OperationAction::Complete
             }
             OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
                 self.release_unused_durations();
@@ -131,6 +141,7 @@ impl TimedButtonAttemptOperation {
     pub fn advance(&mut self) -> OperationAction {
         if self.emitted_attempt {
             self.emitted_attempt = false;
+            self.completed_attempt = true;
             self.accepted_transitions = 0;
             self.next_duration = 0;
         }
@@ -202,10 +213,10 @@ impl TimedButtonAttemptOperation {
     }
 
     fn request_deadline(&mut self) -> OperationAction {
-        let Some(value) = self.durations.get(self.next_duration).copied() else {
+        let Some(value) = self.durations.first().copied() else {
             return fail(FailureCode::StorageExhausted, 276);
         };
-        self.next_duration += 1;
+        self.next_duration = 1;
         let request = self.next_request();
         self.pending = Some((request, Pending::Deadline));
         OperationAction::RequestHostOperation {
@@ -223,8 +234,7 @@ impl TimedButtonAttemptOperation {
     }
 
     fn release_unused_durations(&mut self) {
-        self.released
-            .extend(self.durations.drain(self.next_duration..));
+        self.released.extend(self.durations.drain(..));
     }
 }
 

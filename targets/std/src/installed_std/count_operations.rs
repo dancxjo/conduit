@@ -126,8 +126,10 @@ impl CountPresentationOperation {
 fn state_count_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_state_count(placement)?;
     Ok(OperationBudget {
-        value_items: 0,
-        value_bytes: 0,
+        // The current value plus four admitted downstream queue entries can
+        // coexist while this stateful transform remains open.
+        value_items: 5,
+        value_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN * 5,
         host_requests: 0,
         sign_items: 96,
         maximum_value_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN,
