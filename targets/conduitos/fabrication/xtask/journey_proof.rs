@@ -20,6 +20,9 @@ use super::{
 
 use super::journey_records::decode as journey_records;
 
+#[path = "journey_run_control.rs"]
+mod run_control;
+
 #[derive(Serialize)]
 struct JourneyProof {
     schema: &'static str,
@@ -107,6 +110,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let paths = Paths::new(ConduitosArch::X86_64)?;
     let image = image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
     let image_path = paths.iso.clone();
+    run_control::execute(&paths, &image_path, &image.iso_sha256)?;
     execute_image(opts, paths, &image_path, image.iso_sha256).map(|_| ())
 }
 
