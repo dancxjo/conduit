@@ -47,6 +47,14 @@ pub const NATIVE_STYLE: NativeStyle = NativeStyle {
     selected: Rgb(83, 178, 255),
 };
 
+pub const fn panel_outline() -> conduit_presentation::GraphicsShapeStyle {
+    if cfg!(feature = "native-compositor") {
+        conduit_presentation::GraphicsShapeStyle::RoundedStroke
+    } else {
+        conduit_presentation::GraphicsShapeStyle::Stroke
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

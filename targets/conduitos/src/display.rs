@@ -3,6 +3,7 @@
 mod font;
 #[cfg(feature = "native-compositor")]
 mod icons;
+mod rounded;
 pub mod style;
 mod text_layout;
 #[cfg(feature = "native-compositor")]
@@ -255,6 +256,21 @@ fn render_command(
                 }
             }
             Ok(())
+        }
+        GraphicsCommandKind::Rect
+            if matches!(
+                command.style,
+                GraphicsShapeStyle::RoundedFill | GraphicsShapeStyle::RoundedStroke
+            ) =>
+        {
+            rounded::render(
+                target,
+                command.bounds,
+                bounds,
+                command.style,
+                color,
+                receipt,
+            )
         }
         GraphicsCommandKind::Rect if command.style == GraphicsShapeStyle::Fill => {
             fill(target, bounds, color, receipt)

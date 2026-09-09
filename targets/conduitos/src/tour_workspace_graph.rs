@@ -70,7 +70,7 @@ pub(super) fn append(
         }
         scene
             .push(
-                GraphicsCommand::rect(card, bounds, paint, GraphicsShapeStyle::Stroke)
+                GraphicsCommand::rect(card, bounds, paint, crate::display::style::panel_outline())
                     .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;

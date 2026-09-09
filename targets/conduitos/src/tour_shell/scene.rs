@@ -264,7 +264,7 @@ pub(super) fn inspector_scene(
                     button,
                     button,
                     GraphicsPaintRole::Accent,
-                    GraphicsShapeStyle::Stroke,
+                    crate::display::style::panel_outline(),
                 )
                 .map_err(|_| TourShellError::Scene)?,
             )
@@ -359,7 +359,7 @@ fn chooser_scene(
                     row,
                     viewport,
                     GraphicsPaintRole::Accent,
-                    GraphicsShapeStyle::Stroke,
+                    crate::display::style::panel_outline(),
                 )
                 .map_err(|_| TourShellError::Scene)?,
             )

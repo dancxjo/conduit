@@ -50,6 +50,8 @@ pub enum GraphicsPaintRole {
 pub enum GraphicsShapeStyle {
     Fill = 1,
     Stroke = 2,
+    RoundedFill = 3,
+    RoundedStroke = 4,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -448,6 +450,8 @@ fn decode_style(value: u8) -> Result<GraphicsShapeStyle, GraphicsError> {
     match value {
         1 => Ok(GraphicsShapeStyle::Fill),
         2 => Ok(GraphicsShapeStyle::Stroke),
+        3 => Ok(GraphicsShapeStyle::RoundedFill),
+        4 => Ok(GraphicsShapeStyle::RoundedStroke),
         _ => Err(GraphicsError::MalformedEncoding),
     }
 }

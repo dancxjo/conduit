@@ -1,6 +1,34 @@
 use super::*;
 
 #[test]
+fn rounded_shapes_round_trip_only_as_rectangles() {
+    for style in [
+        GraphicsShapeStyle::RoundedFill,
+        GraphicsShapeStyle::RoundedStroke,
+    ] {
+        let mut scene = GraphicsScene::empty();
+        scene
+            .push(
+                GraphicsCommand::rect(
+                    rect(0, 10),
+                    rect(0, 10),
+                    GraphicsPaintRole::Foreground,
+                    style,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        let mut bytes = scene.encode();
+        assert_eq!(
+            GraphicsScene::decode(&bytes[..scene.encoded_len()]),
+            Ok(scene)
+        );
+        bytes[2] = GraphicsCommandKind::Text as u8;
+        assert!(GraphicsScene::decode(&bytes[..scene.encoded_len()]).is_err());
+    }
+}
+
+#[test]
 fn state_paints_round_trip_and_unknown_paints_refuse() {
     for role in [
         GraphicsPaintRole::Muted,
