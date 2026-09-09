@@ -85,6 +85,17 @@ pub(super) fn append(
                 text.push_str(&preview(value));
             }
         }
+        // Configuration describes the checked Form, not a value observed from
+        // execution. Keep it after Port rows so anchors retain their meaning.
+        if let Some(value) = contract.controls.iter().find_map(|control| {
+            match (control.key.as_str(), &control.value) {
+                ("value", conduit_core::ConfigurationValue::Text(value)) => Some(value.as_str()),
+                _ => None,
+            }
+        }) {
+            text.push_str("\n\nConfigured value\n");
+            text.push_str(&preview(Some(value)));
+        }
         scene
             .push(
                 GraphicsCommand::rect(card, bounds, paint, GraphicsShapeStyle::Stroke)
