@@ -48,6 +48,8 @@ pub enum GraphicsPaintRole {
 pub enum GraphicsShapeStyle {
     Fill = 1,
     Stroke = 2,
+    RoundedFill = 3,
+    RoundedStroke = 4,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -106,6 +108,7 @@ impl GraphicsCommand {
             .then(|| GraphicsPath::decode(&self.payload[..usize::from(self.payload_len)]).ok())
             .flatten()
     }
+
     pub fn rect(
         bounds: LayoutRect,
         clip: LayoutRect,
@@ -200,7 +203,6 @@ impl GraphicsCommand {
 
     /// Textual content only; use `path_geometry` for an orthogonal path.
     pub fn payload(&self) -> &str {
-        // Paths have typed binary geometry, not textual content.
         if self.kind == GraphicsCommandKind::OrthogonalPath {
             return "";
         }
@@ -391,6 +393,7 @@ fn write_rect(output: &mut [u8], rect: LayoutRect) {
     output[4..6].copy_from_slice(&rect.width.to_le_bytes());
     output[6..8].copy_from_slice(&rect.height.to_le_bytes());
 }
+
 fn read_rect(input: &[u8]) -> LayoutRect {
     LayoutRect {
         x: i16::from_le_bytes([input[0], input[1]]),
@@ -399,6 +402,7 @@ fn read_rect(input: &[u8]) -> LayoutRect {
         height: u16::from_le_bytes([input[6], input[7]]),
     }
 }
+
 fn decode_kind(value: u8) -> Result<GraphicsCommandKind, GraphicsError> {
     match value {
         1 => Ok(GraphicsCommandKind::Rect),
@@ -408,6 +412,7 @@ fn decode_kind(value: u8) -> Result<GraphicsCommandKind, GraphicsError> {
         _ => Err(GraphicsError::MalformedEncoding),
     }
 }
+
 fn decode_paint(value: u8) -> Result<GraphicsPaintRole, GraphicsError> {
     match value {
         1 => Ok(GraphicsPaintRole::Background),
@@ -424,10 +429,13 @@ fn decode_paint(value: u8) -> Result<GraphicsPaintRole, GraphicsError> {
         _ => Err(GraphicsError::MalformedEncoding),
     }
 }
+
 fn decode_style(value: u8) -> Result<GraphicsShapeStyle, GraphicsError> {
     match value {
         1 => Ok(GraphicsShapeStyle::Fill),
         2 => Ok(GraphicsShapeStyle::Stroke),
+        3 => Ok(GraphicsShapeStyle::RoundedFill),
+        4 => Ok(GraphicsShapeStyle::RoundedStroke),
         _ => Err(GraphicsError::MalformedEncoding),
     }
 }

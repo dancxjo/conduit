@@ -3,6 +3,7 @@
 mod font;
 #[cfg(feature = "native-compositor")]
 mod icons;
+mod rounded;
 mod text_layout;
 mod tokens;
 pub use tokens::*;
@@ -171,8 +172,6 @@ impl PixelTarget for RawDisplay {
         if offset.checked_add(4).is_none_or(|end| end > self.byte_len) {
             return Err(DisplayError::BufferTooSmall);
         }
-        // SAFETY: construction establishes the writable range and the bound
-        // above keeps this four-byte volatile write inside it.
         unsafe {
             let output = pixel.to_le_bytes();
             for (index, byte) in output.into_iter().enumerate() {
@@ -259,6 +258,21 @@ fn render_command(
                 }
             }
             Ok(())
+        }
+        GraphicsCommandKind::Rect
+            if matches!(
+                command.style,
+                GraphicsShapeStyle::RoundedFill | GraphicsShapeStyle::RoundedStroke
+            ) =>
+        {
+            rounded::render(
+                target,
+                command.bounds,
+                bounds,
+                command.style,
+                color,
+                receipt,
+            )
         }
         GraphicsCommandKind::Rect if command.style == GraphicsShapeStyle::Fill => {
             fill(target, bounds, color, receipt)
@@ -358,8 +372,6 @@ fn stroke(
     Ok(())
 }
 
-// Private bounded Unifont raster mechanism. Portable text meaning remains the
-// exact UTF-8 payload above this boundary; unsupported glyphs use U+FFFD.
 fn text(
     target: &mut impl PixelTarget,
     rect: LayoutRect,
