@@ -194,6 +194,19 @@ fn read_message(
     reader: &mut Reader,
     deadline: Instant,
 ) -> Result<serde_json::Value, ConduitosError> {
+    let bytes = read_message_bytes(&mut reader.inner, deadline, |reader, remaining| {
+        reader.get_ref().set_read_timeout(Some(remaining))
+    })?;
+    reader.record("response", &bytes)?;
+    serde_json::from_slice(&bytes)
+        .map_err(|error| ConduitosError::refusal("qemu-qmp-malformed-response", error.to_string()))
+}
+
+fn read_message_bytes<R: BufRead>(
+    reader: &mut R,
+    deadline: Instant,
+    mut set_timeout: impl FnMut(&R, Duration) -> std::io::Result<()>,
+) -> Result<Vec<u8>, ConduitosError> {
     let mut bytes = Vec::new();
     loop {
         let remaining = deadline
@@ -202,23 +215,27 @@ fn read_message(
             .ok_or_else(|| {
                 ConduitosError::refusal("qemu-qmp-timeout", "response deadline expired")
             })?;
-        reader
-            .get_ref()
-            .set_read_timeout(Some(remaining))
+        set_timeout(reader, remaining)
             .map_err(|error| ConduitosError::refusal("qemu-qmp-read-failed", error.to_string()))?;
-        let available = reader.fill_buf().map_err(|error| {
-            ConduitosError::refusal(
-                if matches!(
-                    error.kind(),
-                    std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock
-                ) {
-                    "qemu-qmp-timeout"
-                } else {
-                    "qemu-qmp-read-failed"
-                },
-                error.to_string(),
-            )
-        })?;
+        let available = match reader.fill_buf() {
+            Ok(available) => available,
+            // A signal interrupted the read, not the QMP command. Preserve the
+            // partial response and the original deadline; never resend input.
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(error) => {
+                return Err(ConduitosError::refusal(
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock
+                    ) {
+                        "qemu-qmp-timeout"
+                    } else {
+                        "qemu-qmp-read-failed"
+                    },
+                    error.to_string(),
+                ));
+            }
+        };
         if available.is_empty() {
             return Err(ConduitosError::refusal(
                 "qemu-qmp-closed",
@@ -239,14 +256,76 @@ fn read_message(
             break;
         }
     }
-    reader.record("response", &bytes)?;
-    serde_json::from_slice(&bytes)
-        .map_err(|error| ConduitosError::refusal("qemu-qmp-malformed-response", error.to_string()))
+    Ok(bytes)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct InterruptedResponse {
+        reads: std::collections::VecDeque<std::io::Result<&'static [u8]>>,
+    }
+
+    impl std::io::Read for InterruptedResponse {
+        fn read(&mut self, output: &mut [u8]) -> std::io::Result<usize> {
+            let bytes = self.reads.pop_front().unwrap_or(Ok(&[]))?;
+            assert!(bytes.len() <= output.len());
+            output[..bytes.len()].copy_from_slice(bytes);
+            Ok(bytes.len())
+        }
+    }
+
+    #[test]
+    fn interrupted_reads_preserve_partial_response_and_do_not_reset_deadline() {
+        use std::io::{Error, ErrorKind};
+        let source = InterruptedResponse {
+            reads: [
+                Err(Error::from(ErrorKind::Interrupted)),
+                Ok(b"{\"return\":".as_slice()),
+                Err(Error::from(ErrorKind::Interrupted)),
+                Ok(b"{},\"id\":\"0:proof\"}\n".as_slice()),
+            ]
+            .into(),
+        };
+        let mut reader = BufReader::new(source);
+        let mut previous = Duration::from_secs(2);
+        let bytes = read_message_bytes(&mut reader, Instant::now() + previous, |_, remaining| {
+            assert!(remaining <= previous);
+            previous = remaining;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(bytes, b"{\"return\":{},\"id\":\"0:proof\"}\n");
+        assert!(reader.get_ref().reads.is_empty());
+    }
+
+    #[test]
+    fn interrupted_read_does_not_mask_the_following_failure_or_closed_response() {
+        use std::io::{Error, ErrorKind};
+        for (last, reason) in [
+            (Err(Error::from(ErrorKind::TimedOut)), "qemu-qmp-timeout"),
+            (
+                Err(Error::from(ErrorKind::BrokenPipe)),
+                "qemu-qmp-read-failed",
+            ),
+            (Ok(b"".as_slice()), "qemu-qmp-closed"),
+        ] {
+            let mut reader = BufReader::new(InterruptedResponse {
+                reads: [Err(Error::from(ErrorKind::Interrupted)), last].into(),
+            });
+            assert_eq!(
+                read_message_bytes(
+                    &mut reader,
+                    Instant::now() + Duration::from_secs(2),
+                    |_, _| Ok(())
+                )
+                .unwrap_err()
+                .reason,
+                reason
+            );
+        }
+    }
 
     fn reply(response: &[u8]) -> Result<(), ConduitosError> {
         let (mut client, mut server) = UnixStream::pair().unwrap();
