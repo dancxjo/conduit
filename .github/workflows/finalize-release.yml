@@ -125,7 +125,7 @@ jobs:
             printf 'changed=false\n' >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          gh pr merge "$pr_url" --squash --match-head-commit "$HEAD_SHA"
+          gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
           merge_sha=$(gh pr view "$pr_url" --json state,mergeCommit --jq 'select(.state == "MERGED") | .mergeCommit.oid')
           [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags origin dev

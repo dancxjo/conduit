@@ -198,7 +198,7 @@ jobs:
               "$HEAD_SHA" "$base_sha" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          gh pr merge "$pr_url" --squash --match-head-commit "$HEAD_SHA" --auto
+          gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA" --auto
           merge_sha=
           for attempt in $(seq 1 12); do
             current=$(gh pr view "$PR_NUMBER" --json state,headRefOid,mergeCommit)
