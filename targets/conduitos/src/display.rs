@@ -1,8 +1,26 @@
 //! Finite framebuffer mechanism below portable graphics meaning.
 
 mod font;
+mod icons;
+#[cfg(any(test, feature = "native-compositor"))]
+pub mod profile;
+#[cfg(any(test, feature = "native-compositor"))]
+mod rounded;
+#[cfg(any(test, not(feature = "native-compositor")))]
 mod text_layout;
+pub mod tokens;
+#[cfg(any(test, feature = "native-compositor"))]
+mod typography;
+#[cfg(test)]
 pub(crate) use text_layout::text_height;
+#[cfg(any(test, feature = "native-compositor"))]
+pub fn styled_text_height(
+    value: &str,
+    width: u16,
+    role: conduit_presentation::GraphicsTextRole,
+) -> Result<u16, DisplayError> {
+    typography::height(value, width, role)
+}
 
 use conduit_presentation::{
     GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
@@ -84,6 +102,10 @@ impl DisplayFormat {
 pub trait PixelTarget {
     fn format(&self) -> DisplayFormat;
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError>;
+    /// Retained targets override this for exact coverage compositing.
+    fn read_pixel(&self, _x: u32, _y: u32) -> Option<u32> {
+        None
+    }
 }
 
 impl<T: PixelTarget + ?Sized> PixelTarget for &mut T {
@@ -93,6 +115,9 @@ impl<T: PixelTarget + ?Sized> PixelTarget for &mut T {
 
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
         (**self).write_pixel(x, y, pixel)
+    }
+    fn read_pixel(&self, x: u32, y: u32) -> Option<u32> {
+        (**self).read_pixel(x, y)
     }
 }
 
@@ -133,6 +158,23 @@ impl RawDisplay {
 impl PixelTarget for RawDisplay {
     fn format(&self) -> DisplayFormat {
         self.format
+    }
+
+    fn read_pixel(&self, x: u32, y: u32) -> Option<u32> {
+        if !self.available || x >= self.format.width || y >= self.format.height {
+            return None;
+        }
+        let offset =
+            usize::try_from(u64::from(y) * u64::from(self.format.pitch) + u64::from(x) * 4).ok()?;
+        if offset.checked_add(4)? > self.byte_len {
+            return None;
+        }
+        let mut bytes = [0; 4];
+        for (index, byte) in bytes.iter_mut().enumerate() {
+            // SAFETY: construction owns this mapped range; the check bounds all four reads.
+            *byte = unsafe { core::ptr::read_volatile(self.address.as_ptr().add(offset + index)) };
+        }
+        Some(u32::from_le_bytes(bytes))
     }
 
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
@@ -241,8 +283,16 @@ fn render_command(
         GraphicsCommandKind::Rect if command.style == GraphicsShapeStyle::Fill => {
             fill(target, bounds, color, receipt)
         }
+        #[cfg(any(test, feature = "native-compositor"))]
+        GraphicsCommandKind::Rect => {
+            rounded::stroke(target, command.bounds, bounds, color, receipt)
+        }
+        #[cfg(not(any(test, feature = "native-compositor")))]
         GraphicsCommandKind::Rect => stroke(target, bounds, color, receipt),
-        GraphicsCommandKind::Text | GraphicsCommandKind::Icon => text(
+        #[cfg(any(test, feature = "native-compositor"))]
+        GraphicsCommandKind::Text => typography::draw(target, command, bounds, color, receipt),
+        #[cfg(not(any(test, feature = "native-compositor")))]
+        GraphicsCommandKind::Text => text(
             target,
             command.bounds,
             bounds,
@@ -250,6 +300,7 @@ fn render_command(
             color,
             receipt,
         ),
+        GraphicsCommandKind::Icon => icons::draw(target, command, bounds, color, receipt),
     }
 }
 
@@ -271,6 +322,14 @@ fn clipped(bounds: LayoutRect, clip: LayoutRect, format: DisplayFormat) -> Optio
 }
 
 fn paint(format: DisplayFormat, role: GraphicsPaintRole) -> u32 {
+    #[cfg(any(test, feature = "native-compositor"))]
+    let (red, green, blue) = match role {
+        GraphicsPaintRole::Background => profile::BACKGROUND,
+        GraphicsPaintRole::Foreground => profile::FOREGROUND,
+        GraphicsPaintRole::Accent => profile::ACCENT,
+        GraphicsPaintRole::Status => profile::WARNING,
+    };
+    #[cfg(not(any(test, feature = "native-compositor")))]
     let (red, green, blue) = match role {
         GraphicsPaintRole::Background => (15, 23, 32),
         GraphicsPaintRole::Foreground => (225, 232, 240),
@@ -294,6 +353,7 @@ fn fill(
     Ok(())
 }
 
+#[cfg(not(any(test, feature = "native-compositor")))]
 fn stroke(
     target: &mut impl PixelTarget,
     rect: LayoutRect,
@@ -321,6 +381,7 @@ fn stroke(
 
 // Private bounded Unifont raster mechanism. Portable text meaning remains the
 // exact UTF-8 payload above this boundary; unsupported glyphs use U+FFFD.
+#[cfg(not(any(test, feature = "native-compositor")))]
 fn text(
     target: &mut impl PixelTarget,
     rect: LayoutRect,
@@ -329,8 +390,9 @@ fn text(
     color: u32,
     receipt: &mut DisplayReceipt,
 ) -> Result<(), DisplayError> {
-    for (character, position) in text_layout::TextCursor::new(value, rect.width) {
-        let Some((cell_x, cell_y)) = position else {
+    let mut cursor = text_layout::TextCursor::new(rect.width);
+    for character in value.chars() {
+        let Some((cell_x, cell_y)) = cursor.advance(character) else {
             continue;
         };
         let (glyph, _) = font::glyph(character);
@@ -376,3 +438,6 @@ fn put(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod profile_tests;

@@ -1,0 +1,46 @@
+{
+  "pillow": "10.2.0",
+  "corpus_sha256": "730c6f050a4d9e57e6fd20c525e41df63ffa53dcef3ef53b9cb64bc5bea7abab",
+  "atlases": [
+    {
+      "name": "body",
+      "source": "DejaVuSans.ttf",
+      "source_sha256": "ae7b7855e115a5966d8b1b3f80f254ccc117ec86f9965e202ee2940453837280",
+      "size": 14,
+      "height": 18,
+      "glyphs": 920,
+      "bytes": 174466,
+      "sha256": "361e3711760cdf6fb824777351f97ff628ba235d406797b08e62105c9f43aa12"
+    },
+    {
+      "name": "heading",
+      "source": "DejaVuSans-Bold.ttf",
+      "source_sha256": "5c1247acef7f2b8522a31742c76d6adcb5569bacc0be7ceaa4dc39dd252ce895",
+      "size": 18,
+      "height": 24,
+      "glyphs": 920,
+      "bytes": 307756,
+      "sha256": "1938068710f261523d7ed50a0575a237c05db3a45d1db22b1c062d1df921f520"
+    },
+    {
+      "name": "title",
+      "source": "DejaVuSans.ttf",
+      "source_sha256": "ae7b7855e115a5966d8b1b3f80f254ccc117ec86f9965e202ee2940453837280",
+      "size": 26,
+      "height": 34,
+      "glyphs": 920,
+      "bytes": 575818,
+      "sha256": "fafbb9b08ee08f958447f560b11cf28cc023d4b9827eb4c32f95b0a1153b05f4"
+    },
+    {
+      "name": "code",
+      "source": "DejaVuSansMono.ttf",
+      "source_sha256": "c805f9436dbc268644c1d9584f01a601a653e028e08fd74b9b949f6cf8304d88",
+      "size": 13,
+      "height": 18,
+      "glyphs": 825,
+      "bytes": 130558,
+      "sha256": "13868ab07965321acb069e3f3a22a61b9d4e4d301eb82305b5cddbf527b1d0ed"
+    }
+  ]
+}

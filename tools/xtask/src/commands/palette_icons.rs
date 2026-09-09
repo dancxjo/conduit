@@ -38,7 +38,7 @@ pub fn run(args: PaletteIconsArgs) -> Result<(), Box<dyn std::error::Error>> {
             constant_name(key)
         )?;
     }
-    generated.push_str("        PaletteIconKey::GenericGear => None,\n    }\n}\n");
+    generated.push_str("        _ => None,\n    }\n}\n");
     fs::write(args.output, generated)?;
     Ok(())
 }
@@ -97,6 +97,6 @@ const fn constant_name(key: PaletteIconKey) -> &'static str {
         PaletteIconKey::ChartColumnsIncreasing => "CHART_COLUMNS_INCREASING",
         PaletteIconKey::FileOutput => "FILE_OUTPUT",
         PaletteIconKey::Keyboard => "KEYBOARD",
-        PaletteIconKey::GenericGear => "GENERIC_GEAR",
+        _ => "GENERIC_GEAR",
     }
 }

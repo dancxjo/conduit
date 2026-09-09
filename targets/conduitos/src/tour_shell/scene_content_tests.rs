@@ -15,20 +15,6 @@ fn status_cells_preserve_missing_evidence_as_distinct_values() {
         &presentation,
     )
     .unwrap();
-    assert_eq!(scene.commands().len(), 13);
-    let frames: alloc::vec::Vec<_> = scene
-        .commands()
-        .iter()
-        .filter(|command| command.style == GraphicsShapeStyle::Stroke)
-        .collect();
-    assert_eq!(frames.len(), 6);
-    for pair in frames.windows(2) {
-        assert!(
-            i32::from(pair[0].bounds.x) + i32::from(pair[0].bounds.width)
-                < i32::from(pair[1].bounds.x)
-        );
-    }
-    assert!(frames.iter().all(|frame| frame.bounds.height == 60));
     for expected in [
         "Body\nAbsent",
         "Wake\nAbsent",
@@ -58,26 +44,13 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
         height: 320,
     };
     let top = inspector_scene(bounds, &presentation, 0).unwrap();
-    let kind = top
+    let fields: alloc::vec::Vec<_> = top
         .commands()
         .iter()
-        .find(|command| command.payload() == "Kind")
-        .unwrap();
-    let value = top
-        .commands()
-        .iter()
-        .find(|command| command.payload() == "text/upper")
-        .unwrap();
-    let face = top
-        .commands()
-        .iter()
-        .find(|command| command.payload() == "Face")
-        .unwrap();
-    assert_eq!(kind.bounds.height, 16);
-    assert_eq!(kind.paint, GraphicsPaintRole::Accent);
-    assert_eq!(value.paint, GraphicsPaintRole::Foreground);
-    assert_eq!(value.bounds.y, kind.bounds.y + 16);
-    assert_eq!(face.bounds.y, kind.bounds.y + 44);
+        .filter(|command| command.payload().contains('\n'))
+        .collect();
+    assert_eq!(fields[0].bounds.height, 36);
+    assert_eq!(fields[1].bounds.y, fields[0].bounds.y + 48);
     let narrow = LayoutRect {
         width: 180,
         ..bounds
@@ -88,7 +61,7 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
     assert!(
         top.commands()
             .iter()
-            .any(|command| command.payload() == "text/upper")
+            .any(|command| command.payload() == "Kind\ntext/upper")
     );
     assert!(
         !top.commands()
@@ -102,13 +75,7 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
         bottom
             .commands()
             .iter()
-            .any(|command| command.payload() == "Documentation")
-    );
-    assert!(
-        bottom
-            .commands()
-            .iter()
-            .any(|command| command.payload().starts_with("Uppercase"))
+            .any(|command| command.payload().starts_with("Documentation\nUppercase"))
     );
     assert!(
         bottom

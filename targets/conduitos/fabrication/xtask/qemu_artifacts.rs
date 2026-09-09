@@ -64,6 +64,14 @@ impl Artifacts {
         let text = std::str::from_utf8(&serial).map_err(|error| {
             ConduitosError::refusal("qemu-display-serial-invalid", error.to_string())
         })?;
+        if let Some(profile) = text
+            .lines()
+            .find_map(|line| line.strip_prefix("CONDUIT_GRAPHICAL_PROFILE "))
+        {
+            self.context["graphical_profile"] = serde_json::from_str(profile).map_err(|error| {
+                ConduitosError::refusal("graphical-profile-record-invalid", error.to_string())
+            })?;
+        }
         let record = super::journey_records::latest_checkpoint(text)?;
         let boot = super::journey_records::boot(text)?;
         let (frame, health_refusal) =

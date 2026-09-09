@@ -86,7 +86,7 @@ pub(super) fn compose_damage(
                     0
                 };
                 if focused_surface.is_some_and(|id| focus_pixel(surfaces, id, x, y)) {
-                    pixel = 0x00ffcc33;
+                    pixel = crate::display::profile::FOCUS;
                 }
                 if let Some(cursor_pixel) =
                     cursor.and_then(|position| cursor_color(position, x, y, cursor_hover))
@@ -140,7 +140,11 @@ fn cursor_color((cx, cy): (u32, u32), x: u32, y: u32, hovered: bool) -> Option<u
     let row = usize::try_from(dy).ok()?;
     let bit = 1_u16.checked_shl(dx)?;
     if CURSOR_FILL.get(row).is_some_and(|mask| mask & bit != 0) {
-        return Some(if hovered { 0x00ffcc33 } else { 0x00ffffff });
+        return Some(if hovered {
+            crate::display::profile::HOVER
+        } else {
+            crate::display::profile::CURSOR
+        });
     }
     CURSOR_OUTLINE
         .get(row)

@@ -100,6 +100,7 @@ pub fn run(
     let receipt = presenter
         .present(&front_door, display)
         .map_err(|error| error.as_str())?;
+    crate::display::profile::emit_boot_receipt();
     emit_journey_sign(&journey.projection(), fabrication, &receipt);
     arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\nCONDUIT_CRECHE_CHECKPOINT ready\n");
     let mut tour = TourProduct::canonical(1);

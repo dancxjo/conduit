@@ -19,7 +19,8 @@ mod build;
 mod demo;
 mod fabrication_resolution;
 mod front_door_proof;
-mod headless_proof;
+mod graphical_asset_proof;
+mod graphical_profile_proof;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
@@ -42,9 +43,7 @@ mod journey_standing;
 mod journey_tour;
 mod journey_transient;
 mod journey_usb_line;
-mod journey_workset;
 mod keyboard_proof;
-mod keyboard_repeat_proof;
 mod keyboard_run;
 mod keyboard_text_run;
 mod live_media;
@@ -142,8 +141,8 @@ enum ConduitosCommand {
     FrontDoorProof,
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
     JourneyProof,
-    /// Verify an exact headless artifact and its explicit unsupported startup contract.
-    HeadlessProof { output: PathBuf },
+    /// Prove the default graphical profile through the canonical live ISO and retained gallery.
+    GraphicalProfileProof,
     /// Boot one architecture proof appliance and validate its bounded terminal Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
@@ -162,8 +161,6 @@ enum ConduitosCommand {
     HidProof(PreparedProofArgs),
     /// Prove the exact portable keyboard offer, Plan, Play, and event values.
     KeyboardProof(PreparedProofArgs),
-    /// Prove repeated normal-product input across several fixed USB keyboard ring cycles.
-    KeyboardRepeatProof,
     /// Prove bounded PS/2 keyboard and pointer input through ordinary product semantics.
     Ps2InputProof,
     /// Build one immutable x86 proof image for bounded downstream PLAY jobs.
@@ -475,7 +472,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
         ConduitosCommand::JourneyProof => journey_proof::execute(opts),
-        ConduitosCommand::HeadlessProof { output } => headless_proof::execute(output, opts),
+        ConduitosCommand::GraphicalProfileProof => graphical_profile_proof::execute(opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
             require_fabrication_target(target.arch, target.board)?;
@@ -514,7 +511,6 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::UsbProof(args) => usb_proof::execute(args.prepared_image, opts),
         ConduitosCommand::HidProof(args) => hid_proof::execute(args.prepared_image, opts),
         ConduitosCommand::KeyboardProof(args) => keyboard_proof::execute(args.prepared_image, opts),
-        ConduitosCommand::KeyboardRepeatProof => keyboard_repeat_proof::execute(opts),
         ConduitosCommand::Ps2InputProof => ps2_input_proof::execute(opts),
         ConduitosCommand::PrepareProofImage => prepared_proof_image::prepare(opts),
         ConduitosCommand::PcSpeakerProof => pc_speaker_proof::execute(opts),

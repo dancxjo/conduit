@@ -6,13 +6,13 @@ use crate::{
 };
 use alloc::format;
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
+    LayoutRect,
 };
 
 pub(super) fn scene(
     journey: &JourneyProjection,
-    workspace: Option<&crate::product_journey::WorkspaceProjection>,
-    refusal: Option<&super::workspace::WorkspaceRefusal>,
+    refusal: Option<&str>,
     display: &impl PixelTarget,
 ) -> Result<GraphicsScene, Error> {
     let format = display.format().validate().map_err(Error::Display)?;
@@ -38,8 +38,9 @@ pub(super) fn scene(
         &mut scene,
         screen,
         24,
-        "CONDUIT",
+        "Conduit",
         GraphicsPaintRole::Foreground,
+        GraphicsTextRole::Muted,
     )?;
     text(
         &mut scene,
@@ -47,24 +48,24 @@ pub(super) fn scene(
         64,
         journey.friendly_name.as_deref().unwrap_or("My Body"),
         GraphicsPaintRole::Accent,
+        GraphicsTextRole::Title,
     )?;
     text(
         &mut scene,
         screen,
         104,
-        workspace
-            .and_then(|workspace| workspace.forms.iter().find(|form| form.foreground))
-            .map_or("Keyboard canvas", |form| form.title),
+        "Keyboard canvas",
         GraphicsPaintRole::Foreground,
+        GraphicsTextRole::Heading,
     )?;
     let status = match journey.status {
-        JourneyStatus::BornLulled => "Body born. Preparing to wake its Forms...",
-        JourneyStatus::Awake => "Body awake. Planning its Forms...",
-        JourneyStatus::Planned => "Forms ready. Starting their Play...",
+        JourneyStatus::BornLulled => "Body born. Preparing to wake its Form...",
+        JourneyStatus::Awake => "Body awake. Planning its Form...",
+        JourneyStatus::Planned => "Form ready. Starting its Play...",
         JourneyStatus::Playing => "Listening. Type to send a key through your Form.",
         JourneyStatus::ResultVisible => "Play completed. Your result is below.",
         JourneyStatus::Stopped => "Play stopped.",
-        JourneyStatus::Lulled => "Body lulled. Its Forms remain included.",
+        JourneyStatus::Lulled => "Body lulled. Its Form remains included.",
         _ => "Preparing your Body...",
     };
     text(
@@ -73,9 +74,17 @@ pub(super) fn scene(
         144,
         status,
         GraphicsPaintRole::Foreground,
+        GraphicsTextRole::Status,
     )?;
     if let Some(result) = &journey.result {
-        text(&mut scene, screen, 208, result, GraphicsPaintRole::Accent)?;
+        text(
+            &mut scene,
+            screen,
+            208,
+            result,
+            GraphicsPaintRole::Accent,
+            GraphicsTextRole::Body,
+        )?;
     }
     if journey.result_omitted_bytes > 0 {
         text(
@@ -84,42 +93,30 @@ pub(super) fn scene(
             248,
             "Showing recent output.",
             GraphicsPaintRole::Foreground,
+            GraphicsTextRole::Muted,
         )?;
     }
     if let Some(refusal) = refusal {
         text(
             &mut scene,
             screen,
-            352,
-            refusal.heading(),
+            288,
+            "Wake could not finish. Details:",
             GraphicsPaintRole::Status,
+            GraphicsTextRole::Warning,
         )?;
         text(
             &mut scene,
             screen,
-            384,
-            refusal.reason(),
+            320,
+            refusal,
             GraphicsPaintRole::Status,
+            GraphicsTextRole::Code,
         )?;
     }
     let footer_y = i16::try_from(screen.height.saturating_sub(48)).map_err(|_| Error::Scene)?;
-    if let Some(workspace) = workspace {
-        let labels = workspace
-            .forms
-            .iter()
-            .map(|form| format!("{}{}", if form.foreground { "> " } else { "" }, form.title))
-            .collect::<alloc::vec::Vec<_>>()
-            .join("   ·   ");
-        text(
-            &mut scene,
-            screen,
-            footer_y - 40,
-            &format!("{labels}   [Tab switches]"),
-            GraphicsPaintRole::Foreground,
-        )?;
-    }
     let lifecycle_action = match journey.status {
-        JourneyStatus::Playing => "  ·  F7 Lull",
+        JourneyStatus::Playing => "  ·  F8 Stop",
         JourneyStatus::Stopped | JourneyStatus::ResultVisible => "  ·  F7 Lull",
         _ => "",
     };
@@ -133,6 +130,7 @@ pub(super) fn scene(
             lifecycle_action
         ),
         GraphicsPaintRole::Foreground,
+        GraphicsTextRole::Body,
     )?;
     Ok(scene)
 }
@@ -143,30 +141,19 @@ fn text(
     y: i16,
     value: &str,
     role: GraphicsPaintRole,
+    typography: GraphicsTextRole,
 ) -> Result<(), Error> {
-    let mut rest = value;
-    let mut row = y;
-    while !rest.is_empty() {
-        let mut end = rest
-            .len()
-            .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
-        while !rest.is_char_boundary(end) {
-            end -= 1;
-        }
-        let bounds = LayoutRect {
-            x: 32,
-            y: row,
-            width: screen.width.saturating_sub(64),
-            height: 48,
-        };
-        scene
-            .push(
-                GraphicsCommand::text(bounds, screen, role, &rest[..end])
-                    .map_err(|_| Error::Scene)?,
-            )
-            .map_err(|_| Error::Scene)?;
-        rest = &rest[end..];
-        row = row.checked_add(48).ok_or(Error::Scene)?;
-    }
-    Ok(())
+    let bounds = LayoutRect {
+        x: 32,
+        y,
+        width: screen.width.saturating_sub(64),
+        height: 48,
+    };
+    scene
+        .push(
+            GraphicsCommand::text(bounds, screen, role, value)
+                .and_then(|command| command.with_text_role(typography))
+                .map_err(|_| Error::Scene)?,
+        )
+        .map_err(|_| Error::Scene)
 }

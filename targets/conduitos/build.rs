@@ -1,3 +1,6 @@
+#[path = "build/graphical.rs"]
+mod graphical;
+
 fn main() {
     use std::{env, fs, path::PathBuf};
 
@@ -17,6 +20,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_FABRICATION_RECORD");
     generate_unifont_subset();
+    graphical::validate();
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"))
         .join("fabrication_record.rs");
     if let Some(source) = env::var_os("CONDUITOS_FABRICATION_RECORD") {
