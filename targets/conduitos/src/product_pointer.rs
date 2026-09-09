@@ -134,6 +134,7 @@ fn run_with(
             // held motion and release over the newly exposed surface.
             if !sample.primary_pressed {
                 suppress_dismissal_release = false;
+                arch::early_write(b"CONDUIT_TOUR_CHECKPOINT surface-gesture-released\n");
             }
             arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
             continue;
