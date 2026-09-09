@@ -313,7 +313,7 @@ impl TourShellPresenter {
             1,
             &status_scene(layout.status, &status_presentation)?,
         )?;
-        let inspector = if let Some(presentation) = state
+        let inspector = if let Some(presentation) = tour
             .inspector_presentation()
             .map_err(|_| TourShellError::Identity)?
         {

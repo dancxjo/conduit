@@ -15,6 +15,9 @@ use crate::{
     tour_workspace::TourWorkspaceSceneRefusal,
 };
 
+#[path = "tour_inspection.rs"]
+mod inspection;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TourProductUpdate {
     pub request: TourWorkspaceRequest,
@@ -49,12 +52,14 @@ impl TourProductError {
 
 pub struct TourProduct {
     controller: TourWorkspaceController,
+    inspection: Option<inspection::RunInspection>,
 }
 
 impl TourProduct {
     pub fn canonical(revision: u32) -> Self {
         Self {
             controller: TourWorkspaceController::canonical(revision),
+            inspection: None,
         }
     }
 
@@ -119,12 +124,15 @@ impl TourProduct {
             TourWorkspaceRequest::Run => {
                 let mut prepared = crate::tour_play::prepare(identities, offer, build_id)
                     .map_err(TourProductError::Preparation)?;
+                let inspection = inspection::RunInspection::from_plan(&prepared.plan)
+                    .map_err(TourProductError::Preparation)?;
                 let evidence =
                     crate::tour_play::run(&mut prepared, clock, serial, interrupts, idle)
                         .map_err(TourProductError::Play)?;
                 self.controller
                     .complete_run(run_proof(&evidence))
                     .map_err(TourProductError::Controller)?;
+                self.inspection = Some(inspection);
                 Some(evidence)
             }
         };
@@ -281,6 +289,50 @@ mod tests {
         let scene = product.scene(640, 480).unwrap();
         assert_eq!(scene.commands()[6].paint, GraphicsPaintRole::Accent);
         assert!(scene.commands()[7].payload().contains("Result visible"));
+        product
+            .controller
+            .request(&event(12, OPEN_PATCHBAY_ACTION_ID))
+            .unwrap();
+        product.select_gear(13, "meet-one-gear/change").unwrap();
+        let inspector = product.inspector_presentation().unwrap().unwrap();
+        let prepared = crate::tour_play::prepare(&identities, &offer, "build").unwrap();
+        let placement = prepared
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .find(|placement| placement.kind_id.as_str() == "text/upper")
+            .unwrap();
+        assert!(
+            inspector
+                .text
+                .iter()
+                .any(|item| item.subject.ends_with("/implementation")
+                    && item.text == placement.implementation_id.as_str())
+        );
+        assert!(
+            inspector
+                .text
+                .iter()
+                .any(|item| item.subject.ends_with("/placement")
+                    && item.text == placement.placement_id.as_str())
+        );
+        assert!(
+            inspector
+                .subjects
+                .iter()
+                .any(|subject| subject.identity == evidence.plan_id.as_str())
+        );
+        assert!(
+            inspector
+                .subjects
+                .iter()
+                .any(|subject| subject.identity == evidence.active_play_id.as_str())
+        );
+        assert!(inspector.basis.body_id.is_none());
+        let mut invalid = prepared.plan;
+        invalid.fragments[0].placements.pop();
+        assert!(inspection::RunInspection::from_plan(&invalid).is_err());
     }
 
     #[test]
