@@ -195,8 +195,14 @@ fn bounded_scene_renders_and_loss_remains_distinct() {
             .copied()
             .any(|pixel| pixel == foreground)
     );
-    assert!(bytes.as_chunks::<4>().0.iter().copied().any(|pixel| pixel
-        == paint(format(), GraphicsPaintRole::Accent).to_le_bytes()));
+    assert!(
+        bytes
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .copied()
+            .any(|pixel| pixel == paint(format(), GraphicsPaintRole::Accent).to_le_bytes())
+    );
 
     let mut lost = Buffer {
         format: format(),
@@ -269,7 +275,10 @@ fn text_wraps_and_fallback_is_bounded_and_deterministic() {
     let (repeated_words, repeated_words_receipt) = render("AB CD");
     assert_eq!(words, repeated_words);
     assert_eq!(words_receipt, repeated_words_receipt);
-    assert_ne!(words, explicit, "proportional space advances remain visible");
+    assert_ne!(
+        words, explicit,
+        "proportional space advances remain visible"
+    );
 
     let (fallback, fallback_receipt) = render("🦀🦀🦀");
     let (replacement, replacement_receipt) = render("���");

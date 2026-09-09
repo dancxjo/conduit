@@ -4,24 +4,24 @@
 use alloc::format;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    bind_active_play, kind_id, resource_offer, resource_requirement, ArtifactId, BootId,
-    CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostBaseId, HostId,
-    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    OfferGeneration, Plan, SignId, PROTOCOL_VERSION,
+    ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
+    HostBaseId, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
+    ImplementationId, OfferGeneration, PROTOCOL_VERSION, Plan, SignId, bind_active_play, kind_id,
+    resource_offer, resource_requirement,
 };
-use conduit_form::{parse, ProfileCatalog};
+use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    renderer_kind_definition, renderer_offer, LayoutRect, Manifestation, ManifestationId,
-    ManifestationLifecycle, PresentationRole, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
+    LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationId, ManifestationLifecycle,
+    PresentationRole, RendererRealizationOffer, renderer_kind_definition, renderer_offer,
 };
 
 use super::{Error as FrontDoorError, FrontDoor};
 use crate::{
     display::PixelTarget,
     native_compositor::{
-        CompositionReceipt, CompositorAdmission, InputRoute, NativeCompositor,
-        NativeCompositorError, RoutedKeyboard, RoutedPointer, NATIVE_PRESENTER_IMPLEMENTATION,
+        CompositionReceipt, CompositorAdmission, InputRoute, NATIVE_PRESENTER_IMPLEMENTATION,
+        NativeCompositor, NativeCompositorError, RoutedKeyboard, RoutedPointer,
     },
 };
 

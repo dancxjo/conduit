@@ -71,8 +71,18 @@ mod tests {
 
     #[test]
     fn interior_clip_does_not_create_a_new_stroke_edge() {
-        let bounds = LayoutRect { x: 0, y: 0, width: 24, height: 24 };
-        let clip = LayoutRect { x: 8, y: 8, width: 4, height: 4 };
+        let bounds = LayoutRect {
+            x: 0,
+            y: 0,
+            width: 24,
+            height: 24,
+        };
+        let clip = LayoutRect {
+            x: 8,
+            y: 8,
+            width: 4,
+            height: 4,
+        };
         let mut receipt = DisplayReceipt::default();
         render(
             &mut Target,
