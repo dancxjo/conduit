@@ -36,6 +36,17 @@
       "command": "cargo xtask check hosted-base-isolation"
     },
     {
+      "principal": "compromised-http-base-provider",
+      "legitimate_scope": "one Play-scoped request over one preconnected exact-peer descriptor",
+      "attack": "sibling endpoint, alternate authority, redirect, forged scope, stale generation, revoked handle, raw socket, listener, process spawn",
+      "boundary": "BaseCapabilityTable plus connected descriptor, empty Landlock filesystem, and seccomp",
+      "expected": "capability or endpoint refusal and kernel EPERM for new authority",
+      "observer": "exact server sees only the authorized request and sibling server receives no connection",
+      "survival": "redirect remains response data and replacement provider starts with fresh resource truth",
+      "proof_class": "Linux OS-capability-mediated process isolation",
+      "command": "cargo xtask check isolated-http-base"
+    },
+    {
       "principal": "compromised-federation-part-b",
       "legitimate_scope": "exact authenticated A-B and B-C relationships",
       "attack": "peer minting, transposition, replay, non-transitive proxy",
@@ -74,10 +85,10 @@
       "attack": "missing/expired/forged attendance, stale resource, unsafe envelope, retry",
       "boundary": "last-mile ConsequentialEffectGate",
       "expected": "authority, attendance, safety, or envelope refusal",
-      "observer": "fixture physical state changes only for exact observed positive control",
+      "observer": "independent socket confirms the exact nonce-bearing payload and the selected NIC transmit counter advances",
       "survival": "loss drives explicit safe disposition",
-      "proof_class": "deterministic contract; physical HIL pending",
-      "command": "cargo xtask check consequential-effect"
+      "proof_class": "deterministic contract plus attended low-energy physical HIL",
+      "command": "cargo xtask check consequential-effect; cargo xtask check physical-effect-hil"
     }
   ]
 }

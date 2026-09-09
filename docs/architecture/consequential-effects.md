@@ -1,7 +1,7 @@
 # Consequential physical effects
 
-Status: generic provider-gate contract and deterministic conformance proof for
-issue #3100. A physical claim still requires an attended hardware run.
+Status: generic provider-gate contract, deterministic conformance, and an
+attended low-energy physical-HIL profile for issue #3100.
 
 `ConsequentialEffectGate` is the reusable last trusted seam for realizations
 which can affect people, property, or the physical environment. Consequence is
@@ -36,3 +36,16 @@ expired, forged, stale, unsafe, and out-of-envelope inputs never reach its
 provider; it does **not** make a physical-HIL claim. Physical acceptance must
 use an attended device and independent observation, and record that separate
 proof class honestly.
+
+The physical profile is `cargo xtask check physical-effect-hil`. It requires
+the exact `CONDUIT_PHYSICAL_INTERFACE` and `CONDUIT_PHYSICAL_BROADCAST`
+realization facts and then prompts for a fresh phrase naming both plus a
+run-specific nonce. It sends one 40-byte UDP broadcast with no retry through
+the real interface. A separate
+socket observes the exact nonce-bearing payload and the kernel NIC transmit
+counter must advance under bounded observation polling that never repeats the
+effect. Missing attendance, an excessive envelope, and a revoked
+capability are proved not to invoke the provider; provider loss reaches the
+explicit no-further-transmission disposition. This is deliberately a
+low-energy network fixture, not a claim about motion, mains power, locks, or
+other hazardous devices.

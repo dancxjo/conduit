@@ -110,6 +110,28 @@ pub fn run_product(
     }
 }
 
+/// Runs the same long-lived portable keyboard source from a validated PS/2
+/// mechanism. The adapter yields one ordered transition at a time and owns no
+/// semantic keymap or product policy.
+pub fn run_ps2_product(
+    input: &mut crate::arch::Ps2Input,
+    mut interact: impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
+) -> Result<(), &'static str> {
+    loop {
+        let transition = match input.receive_keyboard() {
+            Ok(transition) => transition,
+            Err(error) => {
+                let reason = error.as_str();
+                interact(ProductInputEvent::Lost(reason))?;
+                return Err(reason);
+            }
+        };
+        if interact(ProductInputEvent::Transition(transition))? == ProductInputControl::Yield {
+            return Ok(());
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProductInputControl {
     Continue,

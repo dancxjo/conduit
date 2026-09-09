@@ -262,6 +262,7 @@ fn realization(
         identity::derive_usb_interface(&device_id, interface.number, interface.alternate_setting);
     let endpoint_id = identity::derive_usb_endpoint(&interface_id, device.endpoints[0].address);
     KeyboardRealization {
+        mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
         controller_id,
         device_id,
         interface_id,

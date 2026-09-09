@@ -40,20 +40,29 @@ jobs:
           snapshot=${HEAD_BRANCH#release/}
           [[ "$snapshot" =~ ^[0-9a-f]{40}$ ]]
           [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
-          pulls=$(gh pr list --state open --base main --head "$HEAD_BRANCH" --json number,url,headRefOid)
+          pulls=$(gh pr list --state all --base main --head "$HEAD_BRANCH" --json number,url,headRefOid,state,mergeCommit)
           test "$(jq length <<<"$pulls")" = 1
           test "$(jq -r '.[0].headRefOid' <<<"$pulls")" = "$HEAD_SHA"
           pr_number=$(jq -r '.[0].number' <<<"$pulls")
           pr_url=$(jq -r '.[0].url' <<<"$pulls")
-          base_sha=$(git rev-parse origin/main)
           git fetch --no-tags origin "$snapshot"
           git fetch --no-tags origin "refs/heads/$HEAD_BRANCH"
           test "$(git rev-parse FETCH_HEAD)" = "$HEAD_SHA"
           git merge-base --is-ancestor "$snapshot" "$HEAD_SHA"
-          gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
-          pull=$(gh pr view "$pr_number" --json state,mergeCommit)
-          test "$(jq -r .state <<<"$pull")" = MERGED
-          merge_sha=$(jq -r .mergeCommit.oid <<<"$pull")
+          state=$(jq -r '.[0].state' <<<"$pulls")
+          if test "$state" = OPEN; then
+            base_sha=$(git rev-parse origin/main)
+            gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
+            pull=$(gh pr view "$pr_number" --json state,mergeCommit)
+            test "$(jq -r .state <<<"$pull")" = MERGED
+            merge_sha=$(jq -r .mergeCommit.oid <<<"$pull")
+          else
+            test "$state" = MERGED
+            merge_sha=$(jq -r '.[0].mergeCommit.oid' <<<"$pulls")
+            [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]]
+            git fetch --no-tags origin "$merge_sha"
+            base_sha=$(git rev-parse "$merge_sha^1")
+          fi
           git fetch --no-tags origin main
           test "$(git rev-parse origin/main)" = "$merge_sha"
           test "$(git rev-parse "$merge_sha^1")" = "$base_sha"

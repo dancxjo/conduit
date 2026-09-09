@@ -3,7 +3,7 @@
 //! This module owns hosted HTTP/1.1 mechanism only. Planning, authority, and
 //! kernel correlation remain outside it.
 
-mod wire;
+pub(crate) mod wire;
 
 use conduit_web::{
     HttpExchangeFailure, HttpRequest, HttpResponse, HttpServerResponseRefusal,

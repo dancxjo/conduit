@@ -10,6 +10,7 @@ const RANGES: &[(u32, u32)] = &[
     (0x00a0, 0x00ff), // Latin-1 Supplement
     (0x0370, 0x03ff), // Greek and Coptic
     (0x0400, 0x04ff), // Cyrillic
+    (0x2014, 0x2014), // Em dash used by renderer-neutral titled text
     (0x2190, 0x21ff), // Arrows
     (0x2500, 0x257f), // Box Drawing
     (0x25a0, 0x25ff), // Geometric Shapes
@@ -70,12 +71,15 @@ mod tests {
 
     #[test]
     fn writes_only_the_bounded_patchbay_ranges() {
-        let source = b"001F:00\n0020:01\n007E:02\n0100:03\n0370:04\n4E2D:05\nFFFD:06\n";
+        let source = b"001F:00\n0020:01\n007E:02\n0100:03\n0370:04\n2014:05\n4E2D:06\nFFFD:07\n";
         let mut output = Vec::new();
 
         write_subset(Cursor::new(source), &mut output).expect("subset generation succeeds");
 
-        assert_eq!(output, b"0020:01\n007E:02\n0370:04\n4E2D:05\nFFFD:06\n");
+        assert_eq!(
+            output,
+            b"0020:01\n007E:02\n0370:04\n2014:05\n4E2D:06\nFFFD:07\n"
+        );
     }
 
     #[test]

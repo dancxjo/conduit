@@ -79,14 +79,14 @@ try {
   routing = createTourRouting({
     host,
     applicationId: application.manifest.applicationId,
-    render: (index) => renderPage(index),
+    render: renderRoute,
     onFailure: showTourFailure,
   });
   guidedPages = parseTourPages(chapters);
   setupTourModes();
-  const initialRoute = routing.admitPages(guidedPages);
-  await renderPage(initialRoute.index);
-  if (initialRoute.normalize) await routing.move(initialRoute.index, "replace");
+  const initialRoute = routing.admit(guidedPages, gallery.forms);
+  await renderRoute(initialRoute.destination);
+  if (initialRoute.normalize) await routing.move(initialRoute.destination.index, "replace");
   hostStatus.success("Browser Host ready");
   globalThis.__conduitTourHost = host;
   globalThis.__conduitTourLaboratory = laboratory;
@@ -98,6 +98,12 @@ try {
   hostStatus.failure("Browser Host unavailable");
   chapter.textContent = error instanceof Error ? error.message : String(error);
   chapter.classList.add("error");
+}
+
+function renderRoute(destination) {
+  return destination.kind === "gallery"
+    ? renderGallery(destination.formName)
+    : renderPage(destination.index);
 }
 }
 
@@ -153,9 +159,12 @@ function setupTourModes() {
   const guided = document.querySelector('button[data-tour-mode="guided"]');
   const galleryButton = document.querySelector('button[data-tour-mode="gallery"]');
   if (!guided || !galleryButton) throw new Error("Tour entrances are incomplete");
-  guided.addEventListener("click", () => renderPage(currentPage).catch(showTourFailure));
-  galleryButton.addEventListener("click", () => {
-    try { renderGallery(); }
+  guided.addEventListener("click", () => renderPage(currentPage, "push").catch(showTourFailure));
+  galleryButton.addEventListener("click", async () => {
+    try {
+      await routing.moveGallery(null, "push");
+      renderGallery();
+    }
     catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       document.title = `Form Gallery refused: ${detail}`;
@@ -172,7 +181,7 @@ function setTourMode(mode) {
   }
 }
 
-function renderGallery() {
+function renderGallery(formName = null) {
   retireActiveLaboratory();
   setTourMode("gallery");
   document.title = "Form Gallery · Tour";
@@ -185,6 +194,7 @@ function renderGallery() {
   surface.dataset.applicationSlot = "tour-form-gallery";
   chapter.append(surface);
   const gallerySurface = createReviewedFormGallery(host.runtime, hostPresentation, surface, gallery, crecheUrl, (form, action) => {
+    routing.moveGallery(form.name, "push").catch(showTourFailure);
     selectLaboratoryStage(reviewedFormStage(form), [], true);
     presentGalleryExperience(laboratory.querySelector(".runner"), form, hostPresentationFor(laboratory));
     gallerySurface.select(form.checked_form_id);
@@ -195,7 +205,8 @@ function renderGallery() {
       patchbay.focus({ preventScroll: true });
     }
   });
-  const initialForm = gallery.forms.find((form) => form.name === "morse_network") ?? gallery.forms[0];
+  const initialForm = gallery.forms.find((form) => form.name === formName)
+    ?? gallery.forms.find((form) => form.name === "morse_network") ?? gallery.forms[0];
   selectLaboratoryStage(reviewedFormStage(initialForm), []);
   presentGalleryExperience(laboratory.querySelector(".runner"), initialForm, hostPresentationFor(laboratory));
   gallerySurface.select(initialForm.checked_form_id);

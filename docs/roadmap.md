@@ -85,7 +85,8 @@ robotics Body. Its [memory #2231](https://github.com/dancxjo/conduit/issues/2231
 [resident workload #2233](https://github.com/dancxjo/conduit/issues/2233), and
 [continuous physical capstone #2234](https://github.com/dancxjo/conduit/issues/2234)
 slices are **paused**. [Navigation #2232](https://github.com/dancxjo/conduit/issues/2232)
-remains open for portable goal, path, trajectory, and local-control semantics.
+remains open for [portable goal, path, trajectory, and local-control
+semantics](architecture/portable-navigation.md).
 Existing deterministic robotics code does not finish the physical capstone.
 
 ## Contributor and release experience

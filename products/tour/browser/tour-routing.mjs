@@ -4,6 +4,7 @@ const MAXIMUM_LOCATION_SEQUENCE = 0xffff_ffff;
 const MAXIMUM_TOUR_PAGES = 16;
 const MAXIMUM_STAGES_PER_PAGE = 8;
 const IDENTITY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const FORM_IDENTITY = /^[a-z][a-z0-9_-]*$/;
 
 export function parseTourPages(chapters) {
   if (!Array.isArray(chapters) || chapters.length === 0 || chapters.length > MAXIMUM_TOUR_PAGES) {
@@ -57,21 +58,28 @@ export function createTourRouting({ host, applicationId, render, onFailure }) {
     authorityGeneration: 1,
   });
   let routes = [];
+  let galleryRoutes = [];
   let sequence = 0;
 
   const isProductRoot = () => location.pathname === new URL(".", document.baseURI).pathname
     || location.pathname === new URL("index.html", document.baseURI).pathname;
-  const indexForLocation = () => {
-    if (isProductRoot()) return 0;
+  const destinationForLocation = () => {
+    if (isProductRoot()) return Object.freeze({ kind: "page", index: 0 });
+    const galleryRoot = new URL("gallery/", document.baseURI).pathname;
+    if (location.pathname === galleryRoot) {
+      return Object.freeze({ kind: "gallery", formName: null });
+    }
+    const galleryEntry = galleryRoutes.find((entry) => entry.path === location.pathname);
+    if (galleryEntry) return Object.freeze({ kind: "gallery", formName: galleryEntry.name });
     const legacyRoutes = new Map([
       [new URL("meet-one-gear/", document.baseURI).pathname, 0],
       [new URL("same-face-different-implementation/", document.baseURI).pathname, 1],
     ]);
     const index = legacyRoutes.get(location.pathname) ?? routes.indexOf(location.pathname);
     if (index === -1) throw new Error("this Tour page does not exist");
-    return index;
+    return Object.freeze({ kind: "page", index });
   };
-  const move = async (index, mode) => {
+  const moveToPath = async (path, mode) => {
     sequence = sequence === MAXIMUM_LOCATION_SEQUENCE ? 1 : sequence + 1;
     const outcome = await operations.moveLocation({
       contract: browserHostOperationLimits.contract,
@@ -84,25 +92,45 @@ export function createTourRouting({ host, applicationId, render, onFailure }) {
       authorityGeneration: 1,
       presentationRevision: sequence,
       mode,
-      path: routes[index],
+      path,
     });
-    if (outcome.disposition !== "completed" || outcome.path !== routes[index]) {
+    if (outcome.disposition !== "completed" || outcome.path !== path) {
       throw new Error(`Tour location ${mode} refused (${outcome.disposition})`);
     }
+  };
+  const move = (index, mode) => moveToPath(routes[index], mode);
+  const moveGallery = (formName, mode) => {
+    const path = formName === null
+      ? new URL("gallery/", document.baseURI).pathname
+      : galleryRoutes.find((entry) => entry.name === formName)?.path;
+    if (!path) throw new Error("this Gallery Form does not exist");
+    return moveToPath(path, mode);
   };
 
   addEventListener("popstate", () => {
     (async () => {
-      const index = indexForLocation();
-      await render(index);
+      await render(destinationForLocation());
     })().catch(onFailure);
   });
 
   return Object.freeze({
-    admitPages(pages) {
+    admit(pages, forms) {
       routes = pages.map((page) => new URL(`${page.route}/`, document.baseURI).pathname);
-      return Object.freeze({ index: indexForLocation(), normalize: isProductRoot() });
+      const names = new Set();
+      const paths = new Set();
+      galleryRoutes = forms.map((form) => {
+        if (!FORM_IDENTITY.test(form.name) || names.has(form.name)) {
+          throw new Error("Gallery Form route identity is invalid or duplicated");
+        }
+        const path = new URL(`gallery/${form.name.replaceAll("_", "-")}/`, document.baseURI).pathname;
+        if (paths.has(path)) throw new Error("Gallery Form route is duplicated");
+        names.add(form.name);
+        paths.add(path);
+        return Object.freeze({ name: form.name, path });
+      });
+      return Object.freeze({ destination: destinationForLocation(), normalize: isProductRoot() });
     },
     move,
+    moveGallery,
   });
 }

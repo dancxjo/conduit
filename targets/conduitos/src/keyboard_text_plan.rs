@@ -12,7 +12,7 @@ use conduit_planner::{
 
 use crate::{
     identity::BootIdentities,
-    keyboard_offer::{KEYBOARD_IMPLEMENTATION, OPERATION_RESOURCE},
+    keyboard_offer::{KEYBOARD_IMPLEMENTATION, OPERATION_RESOURCE, PS2_KEYBOARD_IMPLEMENTATION},
     offer::HostOffer,
     ordinary_plan::{PreparationError, advertisement},
 };
@@ -142,7 +142,10 @@ pub fn validate(
             .iter()
             .find(|placement| placement.kind_id.as_str() == kind)
             .ok_or(PreparationError::PlanRejected)?;
-        if placement.implementation_id.as_str() != implementation
+        let implementation_matches = placement.implementation_id.as_str() == implementation
+            || (kind == conduit_semantic_catalog::KEYBOARD_KIND
+                && placement.implementation_id.as_str() == PS2_KEYBOARD_IMPLEMENTATION);
+        if !implementation_matches
             || placement.artifact_id.as_str() != format!("conduitos-build/{build_id}")
             || placement.host_id != advertisement.host_id
             || placement.boot_id != advertisement.boot_id
@@ -268,6 +271,7 @@ mod tests {
         )
         .with_keyboard(
             KeyboardRealization {
+                mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
                 controller_id: [3; 32],
                 device_id: [4; 32],
                 interface_id: [5; 32],
