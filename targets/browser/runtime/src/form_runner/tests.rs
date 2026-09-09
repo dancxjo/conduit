@@ -1,5 +1,7 @@
 use super::*;
 
+const MAXIMUM_EFFECT_DRIVE_STEPS: usize = crate::installed_browser::BROWSER_ROUTE_SLOTS;
+
 const HELLO_LIGHT: &str = r#"form hello-light {
     complete
     message: text/literal("SOS")
@@ -57,7 +59,7 @@ fn canonical_button_form_runs_press_and_release_without_device_identity() {
     let mut observed = Vec::new();
 
     for sequence in 0..4_u64 {
-        for _ in 0..16 {
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
             if session.pending.iter().any(|pending| {
                 matches!(pending.effect, engine::BrowserHostEffect::ButtonTransition)
             }) {
@@ -88,7 +90,7 @@ fn canonical_button_form_runs_press_and_release_without_device_identity() {
             .complete_effect(&play, &placement, request.request.0, Some(&value))
             .unwrap();
 
-        for _ in 0..16 {
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
             if session.pending.iter().any(|pending| {
                 matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
             }) {
@@ -147,7 +149,7 @@ fn morse_keyboard_reacts_to_three_separated_keys_in_one_play() {
     let mut observations = Vec::new();
 
     for usage in [0x04, 0x05, 0x06] {
-        for _ in 0..16 {
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
             if session
                 .pending
                 .iter()
@@ -178,7 +180,7 @@ fn morse_keyboard_reacts_to_three_separated_keys_in_one_play() {
             .complete_effect(&play, &placement, request.request.0, Some(&encoded))
             .unwrap();
 
-        for _ in 0..16 {
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
             if session.pending.iter().any(|pending| {
                 matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
             }) {
@@ -231,7 +233,7 @@ fn memory_lantern_retains_edits_and_backspace_in_one_play() {
     let mut observed = Vec::new();
 
     for usage in [0x04, 0x05, 0x06, 0x2a] {
-        for _ in 0..16 {
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
             if session
                 .pending
                 .iter()
@@ -262,7 +264,7 @@ fn memory_lantern_retains_edits_and_backspace_in_one_play() {
             .complete_effect(&play, &placement, request.request.0, Some(&encoded))
             .unwrap();
 
-        for _ in 0..16 {
+        for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
             if session.pending.iter().any(|pending| {
                 matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
             }) {
@@ -351,7 +353,7 @@ fn desk_telegraph_and_night_radio_submit_two_messages_in_one_play() {
             if usage != 0x28 {
                 continue;
             }
-            for _ in 0..32 {
+            for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
                 if session.pending.iter().any(|pending| {
                     matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
                 }) {
