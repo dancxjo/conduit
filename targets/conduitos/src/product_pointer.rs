@@ -280,23 +280,6 @@ fn normalized_local(value: u16, extent: u32) -> Result<i64, &'static str> {
         .map_err(|_| "compositor-pointer-local-coordinate-invalid")
 }
 
-#[cfg(test)]
-mod coordinate_tests {
-    use super::*;
-
-    #[test]
-    fn surface_local_pixels_survive_normalization_without_edge_drift() {
-        for extent in [320, 640, 800, 1280, 1920, u32::from(u16::MAX)] {
-            for pixel in 0..extent {
-                let normalized = normalized_local(pixel as u16, extent).unwrap();
-                assert_eq!(display_coordinate(normalized, extent).unwrap(), pixel);
-            }
-        }
-        assert!(normalized_local(0, 0).is_err());
-        assert!(normalized_local(640, 640).is_err());
-    }
-}
-
 fn display_coordinate(value: i64, extent: u32) -> Result<u32, &'static str> {
     if !(0..=1_000_000).contains(&value) || extent == 0 {
         return Err("compositor-pointer-coordinate-invalid");
@@ -437,4 +420,21 @@ fn emit_relayout_sign(
         identity::hex(&identities.boot),
     );
     arch::early_write(line.as_bytes());
+}
+
+#[cfg(test)]
+mod coordinate_tests {
+    use super::*;
+
+    #[test]
+    fn surface_local_pixels_survive_normalization_without_edge_drift() {
+        for extent in [320, 640, 800, 1280, 1920, u32::from(u16::MAX)] {
+            for pixel in 0..extent {
+                let normalized = normalized_local(pixel as u16, extent).unwrap();
+                assert_eq!(display_coordinate(normalized, extent).unwrap(), pixel);
+            }
+        }
+        assert!(normalized_local(0, 0).is_err());
+        assert!(normalized_local(640, 640).is_err());
+    }
 }
