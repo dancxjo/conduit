@@ -54,8 +54,10 @@ mod tests {
     #[test]
     fn palette_and_geometry_are_fixed_small_resources() {
         assert!(core::mem::size_of::<NativeStyle>() <= 64);
-        assert!(NATIVE_STYLE.border_width <= NATIVE_STYLE.inset);
-        assert!(NATIVE_STYLE.corner_radius <= NATIVE_STYLE.inset);
+        const {
+            assert!(NATIVE_STYLE.border_width <= NATIVE_STYLE.inset);
+            assert!(NATIVE_STYLE.corner_radius <= NATIVE_STYLE.inset);
+        }
         assert_eq!(NATIVE_STYLE.accent.packed(), 0x53b2ff);
         assert_eq!(NATIVE_STYLE.focus.packed(), 0xffcc33);
     }
