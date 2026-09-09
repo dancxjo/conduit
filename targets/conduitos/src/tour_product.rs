@@ -74,8 +74,15 @@ impl TourProduct {
     }
 
     pub fn scene(&self, width: u16, height: u16) -> Result<GraphicsScene, TourProductError> {
-        crate::tour_workspace::scene_for_state(width, height, self.controller.state())
-            .map_err(TourProductError::Scene)
+        crate::tour_workspace::scene_with_observations(
+            width,
+            height,
+            self.controller.state(),
+            self.inspection
+                .as_ref()
+                .map(|snapshot| &snapshot.observations),
+        )
+        .map_err(TourProductError::Scene)
     }
 
     pub fn accept_pointer(
@@ -297,6 +304,23 @@ mod tests {
         let scene = product.scene(640, 480).unwrap();
         assert_eq!(scene.commands()[6].paint, GraphicsPaintRole::Accent);
         assert!(scene.commands()[7].payload().contains("Result visible"));
+        let change = scene
+            .commands()
+            .iter()
+            .find(|command| command.payload().starts_with("change\n"))
+            .unwrap()
+            .payload();
+        assert!(change.contains("Last run"));
+        assert!(change.contains("= \"hello\""));
+        assert!(change.contains("= \"HELLO\""));
+        let literal = scene
+            .commands()
+            .iter()
+            .find(|command| command.payload().starts_with("words\n"))
+            .unwrap()
+            .payload();
+        assert!(literal.contains("= unobserved"));
+        assert!(!literal.contains("= \"hello\""));
         product
             .controller
             .request(&event(12, OPEN_PATCHBAY_ACTION_ID))
