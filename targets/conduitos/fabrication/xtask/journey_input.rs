@@ -161,7 +161,7 @@ pub(super) fn wait_pointer_status_count(
     )
 }
 
-fn wait_for_record(
+pub(super) fn wait_for_record(
     serial: &Path,
     child: &mut Child,
     reason: &'static str,

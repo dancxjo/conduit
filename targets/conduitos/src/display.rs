@@ -222,6 +222,23 @@ fn render_command(
     };
     let color = paint(format, command.paint);
     match command.kind {
+        GraphicsCommandKind::OrthogonalPath => {
+            let path = command.path_geometry().ok_or(DisplayError::InvalidExtent)?;
+            for segment in path.points().windows(2) {
+                let start = segment[0];
+                let end = segment[1];
+                let rect = LayoutRect {
+                    x: start.x.min(end.x),
+                    y: start.y.min(end.y),
+                    width: (i32::from(start.x) - i32::from(end.x)).unsigned_abs() as u16 + 1,
+                    height: (i32::from(start.y) - i32::from(end.y)).unsigned_abs() as u16 + 1,
+                };
+                if let Some(visible) = clipped(rect, command.clip, format) {
+                    fill(target, visible, color, receipt)?;
+                }
+            }
+            Ok(())
+        }
         GraphicsCommandKind::Rect if command.style == GraphicsShapeStyle::Fill => {
             fill(target, bounds, color, receipt)
         }
@@ -256,9 +273,9 @@ fn clipped(bounds: LayoutRect, clip: LayoutRect, format: DisplayFormat) -> Optio
 
 fn paint(format: DisplayFormat, role: GraphicsPaintRole) -> u32 {
     let (red, green, blue) = match role {
-        GraphicsPaintRole::Background => (8, 18, 24),
-        GraphicsPaintRole::Foreground => (205, 235, 224),
-        GraphicsPaintRole::Accent => (69, 255, 188),
+        GraphicsPaintRole::Background => (15, 23, 32),
+        GraphicsPaintRole::Foreground => (225, 232, 240),
+        GraphicsPaintRole::Accent => (83, 178, 255),
         GraphicsPaintRole::Status => (255, 190, 70),
     };
     format.pixel(red, green, blue)

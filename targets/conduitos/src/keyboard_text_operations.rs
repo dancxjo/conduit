@@ -10,7 +10,7 @@ pub(crate) struct KeyboardOperation {
     pub(crate) empty: ValueRef,
     pub(crate) pending: Option<RequestId>,
     pub(crate) next: u32,
-    pub(crate) maximum: u32,
+    pub(crate) maximum: Option<u32>,
 }
 
 #[derive(Clone, Copy)]
@@ -70,8 +70,11 @@ impl Operation for KeyboardOperation {
     }
 
     fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        if self.next == self.maximum {
+        let Some(next) = self.next.checked_add(1) else {
+            return exhausted(66);
+        };
+        self.next = next;
+        if self.maximum == Some(self.next) {
             OperationAction::Complete
         } else {
             self.request()
@@ -123,7 +126,10 @@ impl Operation for StreamTransformOperation {
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
-                self.next += 1;
+                let Some(next) = self.next.checked_add(1) else {
+                    return exhausted(67);
+                };
+                self.next = next;
                 match outcome.output {
                     Some(output) => OperationAction::Emit {
                         port: PortId(0),
@@ -174,7 +180,10 @@ impl Operation for PresentationOperation {
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
-                self.next += 1;
+                let Some(next) = self.next.checked_add(1) else {
+                    return exhausted(68);
+                };
+                self.next = next;
                 OperationAction::Await
             }
             OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
@@ -226,6 +235,13 @@ impl Operation for PlannedOperation {
 const fn fail(detail: u16) -> OperationAction {
     OperationAction::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
+
+const fn exhausted(detail: u16) -> OperationAction {
+    OperationAction::Fail(Failure {
+        code: FailureCode::StorageExhausted,
         detail,
     })
 }
