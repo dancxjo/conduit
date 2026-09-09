@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn native_scene_manifests_every_shared_region_and_visible_focus() {
         let scene = scene(640, 480, 12, TourWorkspacePhase::PatchbayOpen).unwrap();
-        assert_eq!(scene.commands().len(), 16);
+        assert_eq!(scene.commands().len(), 19);
         let frames: alloc::vec::Vec<_> = scene
             .commands()
             .iter()
@@ -321,7 +321,10 @@ mod tests {
             .find(|command| command.payload().starts_with("change\ntext/upper"))
             .unwrap();
         assert_eq!(card.paint, GraphicsPaintRole::Accent);
-        assert!(card.payload().contains("value/text"));
+        assert!(scene.commands().iter().any(|command| {
+            command.payload().contains("value/text")
+                && command.paint == GraphicsPaintRole::Foreground
+        }));
         assert!(
             scene
                 .commands()

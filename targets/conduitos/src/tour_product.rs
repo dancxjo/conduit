@@ -306,21 +306,21 @@ mod tests {
         let scene = product.scene(640, 480).unwrap();
         assert_eq!(scene.commands()[6].paint, GraphicsPaintRole::Accent);
         assert!(scene.commands()[7].payload().contains("Result visible"));
-        let change = scene
+        let change_index = scene
             .commands()
             .iter()
-            .find(|command| command.payload().starts_with("change\n"))
-            .unwrap()
-            .payload();
+            .position(|command| command.payload().starts_with("change\n"))
+            .unwrap();
+        let change = scene.commands()[change_index + 1].payload();
         assert!(change.contains("Last run"));
         assert!(change.contains("= \"hello\""));
         assert!(change.contains("= \"HELLO\""));
-        let literal = scene
+        let literal_index = scene
             .commands()
             .iter()
-            .find(|command| command.payload().starts_with("words\n"))
-            .unwrap()
-            .payload();
+            .position(|command| command.payload().starts_with("words\n"))
+            .unwrap();
+        let literal = scene.commands()[literal_index + 1].payload();
         assert!(literal.contains("= unobserved"));
         assert!(!literal.contains("= \"hello\""));
         product

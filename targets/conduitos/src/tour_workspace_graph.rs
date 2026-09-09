@@ -39,6 +39,7 @@ pub(super) fn append(
             gear.rsplit('/').next().unwrap_or(gear),
             contract.kind_id.as_str()
         );
+        let heading_len = text.len();
         text.push_str(if observations.is_some() {
             "Last run\n"
         } else {
@@ -81,10 +82,32 @@ pub(super) fn append(
                     .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+        let text_bounds = super::inset(card);
+        // Sub-glyph-width cards remain valid clipped surfaces. Their ASCII
+        // heading can be measured at one glyph even though no glyph fits.
+        let heading_height =
+            crate::display::text_height(&text[..heading_len], text_bounds.width.max(8))
+                .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?
+                .saturating_sub(16);
         scene
             .push(
-                GraphicsCommand::text(super::inset(card), card, paint, &text)
+                GraphicsCommand::text(text_bounds, card, paint, &text[..heading_len])
                     .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+        scene
+            .push(
+                GraphicsCommand::text(
+                    LayoutRect {
+                        y: text_bounds.y + heading_height as i16,
+                        height: text_bounds.height.saturating_sub(heading_height).max(1),
+                        ..text_bounds
+                    },
+                    card,
+                    GraphicsPaintRole::Foreground,
+                    &text[heading_len..],
+                )
+                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
         // The canonical source wires words.text -> change.text -> result.text.
@@ -173,7 +196,7 @@ mod tests {
             .filter_map(GraphicsCommand::path_geometry)
             .collect();
         assert_eq!(paths.len(), 2);
-        assert_eq!(scene.commands().len(), 16);
+        assert_eq!(scene.commands().len(), 19);
         let words = card_bounds(graph, 0);
         let change = card_bounds(graph, 1);
         let result = card_bounds(graph, 2);
