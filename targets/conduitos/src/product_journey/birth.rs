@@ -9,6 +9,12 @@ impl ProductJourney {
         self.revision
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
+        // Crèche owns the zero-Body birth selection. It does not need to open a
+        // candidate Form first: reviewed inventory plus explicit BirthSelection
+        // is the authority-bearing handoff from World into a born Body.
+        if self.body.is_none() && self.status != JourneyStatus::World {
+            return Err(JourneyError::InvalidTransition);
+        }
         let request_id = format!(
             "conduitos/creche/birth/{}/{}",
             self.boot_id.as_str(),
@@ -24,6 +30,11 @@ impl ProductJourney {
     }
 
     pub(super) fn birth(&mut self) -> Result<(), JourneyError> {
+        // The legacy direct Form action still means "birth from this opened
+        // Form" and therefore keeps its explicit inspection/open prerequisite.
+        if self.status != JourneyStatus::FormOpened {
+            return Err(JourneyError::FormNotOpened);
+        }
         let workset = BodyWorkset::one(ResidentForm::new(
             self.form.source_document_id.clone(),
             self.form.checked_form_id.clone(),
@@ -69,9 +80,6 @@ impl ProductJourney {
         }
         if self.body.is_some() {
             return Err(JourneyError::AlreadyBorn);
-        }
-        if self.status != JourneyStatus::FormOpened {
-            return Err(JourneyError::FormNotOpened);
         }
         let born_sign = SignId::from(format!(
             "conduitos/product/born/{}/{}",
@@ -131,27 +139,23 @@ impl ProductJourney {
 mod tests {
     use super::*;
     fn journey(boot: &str) -> ProductJourney {
-        let mut journey =
-            ProductJourney::new(HostId::from("host"), BootId::from(boot), OfferGeneration(1))
-                .unwrap();
-        journey.open_form().unwrap();
-        journey
+        ProductJourney::new(HostId::from("host"), BootId::from(boot), OfferGeneration(1)).unwrap()
     }
-    fn selection(journey: &ProductJourney) -> BirthSelection {
+    fn selection() -> BirthSelection {
         BirthSelection {
             revision: 3,
             friendly_name: "Roseau".into(),
-            workset: BodyWorkset::one(ResidentForm::new(
-                journey.form.source_document_id.clone(),
-                journey.form.checked_form_id.clone(),
-            ))
+            workset: BodyWorkset::one(
+                native_workset::resident(NativeForm::KeyboardCanvas).unwrap(),
+            )
             .unwrap(),
         }
     }
     #[test]
-    fn creche_birth_keeps_exact_workset_name_and_distinct_new_body_identity() {
+    fn creche_birth_from_world_keeps_exact_workset_name_and_distinct_new_body_identity() {
         let mut first = journey("boot-a");
-        let selection = selection(&first);
+        assert_eq!(first.status(), JourneyStatus::World);
+        let selection = selection();
         first.birth_from_creche(selection.clone()).unwrap();
         assert_eq!(first.body.as_ref().unwrap().workset, selection.workset);
         assert_eq!(first.projection().friendly_name.as_deref(), Some("Roseau"));
@@ -172,7 +176,7 @@ mod tests {
     fn unreviewed_inventory_and_invalid_name_refuse_without_birth() {
         let mut journey = journey("boot");
         let before = journey.projection();
-        let mut choice = selection(&journey);
+        let mut choice = selection();
         choice.workset = BodyWorkset::one(ResidentForm::new(
             "source/other".into(),
             "checked/other".into(),
@@ -182,12 +186,22 @@ mod tests {
             journey.birth_from_creche(choice),
             Err(JourneyError::WrongTarget)
         );
-        let mut choice = selection(&journey);
+        let mut choice = selection();
         choice.friendly_name = "\n".into();
         assert_eq!(
             journey.birth_from_creche(choice),
             Err(JourneyError::InvalidTransition)
         );
         assert_eq!(journey.projection(), before);
+    }
+
+    #[test]
+    fn direct_form_birth_still_requires_an_explicit_open() {
+        let mut journey = journey("boot");
+        assert_eq!(journey.birth(), Err(JourneyError::FormNotOpened));
+        assert!(journey.body.is_none());
+        journey.open_form().unwrap();
+        journey.birth().unwrap();
+        assert_eq!(journey.status(), JourneyStatus::BornLulled);
     }
 }
