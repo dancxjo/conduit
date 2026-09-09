@@ -644,6 +644,7 @@ version = "0.1.0"
 name = "conduit-creche-model"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-presentation",
  "serde",
  "serde_json",
@@ -1185,6 +1186,7 @@ dependencies = [
  "conduit-audio",
  "conduit-body",
  "conduit-core",
+ "conduit-creche-model",
  "conduit-form",
  "conduit-human",
  "conduit-kernel",

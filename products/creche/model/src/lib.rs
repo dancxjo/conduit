@@ -11,6 +11,7 @@ use conduit_presentation::{
 
 mod graduation_presentation;
 pub use graduation_presentation::*;
+pub mod birth;
 pub mod names;
 
 pub const MINIMAL_PRESET_ACTION: &str = "configuration.preset.minimal";

@@ -19,7 +19,7 @@ struct Proof {
     schema: &'static str,
     base_commit: String,
     image_sha256: String,
-    keyboard_form_opened: bool,
+    keyboard_body_born: bool,
     pointer_semantics_reached: bool,
     bounded: bool,
     proof_class: &'static str,
@@ -102,8 +102,8 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
                 "remove-bootstrap-usb-input",
             )?;
         }
-        journey_input::key_pair(&mut stream, &mut reader, "ret", "ps2-open-form")?;
-        journey_input::wait_status(&serial_path, &mut child, "form-opened")?;
+        journey_input::key_pair(&mut stream, &mut reader, "ret", "ps2-birth-body")?;
+        journey_input::wait_status(&serial_path, &mut child, "playing")?;
         journey_input::key_pair(&mut stream, &mut reader, "f9", "ps2-open-tour")?;
         hid_qmp::wait_for_stage(
             &serial_path,
@@ -165,10 +165,10 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let proof = Proof {
-        schema: "conduit.conduitos.ps2-input-proof/v1",
+        schema: "conduit.conduitos.ps2-input-proof/v2",
         base_commit: git_head(&paths.root)?,
         image_sha256: built.iso_sha256,
-        keyboard_form_opened: serial.contains("\"status\":\"form-opened\""),
+        keyboard_body_born: serial.contains("\"status\":\"born-lulled\""),
         pointer_semantics_reached: serial.contains("CONDUIT_POINTER_SIGN"),
         bounded: true,
         proof_class: "freestanding-emulator",
