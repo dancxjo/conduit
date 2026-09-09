@@ -22,8 +22,8 @@ impl ShellLayout {
         if width < 320 || height < 240 {
             return Err(TourShellError::Identity);
         }
-        let status_height = 64;
-        let inspector_width = (width / 3).max(180);
+        let status_height = crate::tour_workspace::STATUS_HEIGHT;
+        let inspector_width = crate::tour_workspace::inspector_width(width);
         let content_height = height
             .checked_sub(status_height)
             .ok_or(TourShellError::Identity)?;

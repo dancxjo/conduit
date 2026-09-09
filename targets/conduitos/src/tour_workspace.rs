@@ -11,6 +11,12 @@ use conduit_tour_model::{
 #[path = "tour_workspace_graph.rs"]
 mod graph;
 
+pub(crate) const STATUS_HEIGHT: u16 = 64;
+
+pub(crate) fn inspector_width(width: u16) -> u16 {
+    (width / 3).max(180)
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourWorkspaceSceneRefusal {
     Presentation(SemanticPresentationRefusal),
@@ -47,8 +53,8 @@ pub fn scene_for_state(
         .presentation()
         .and_then(|presentation| presentation.lower())
         .map_err(TourWorkspaceSceneRefusal::Presentation)?;
-    let layout = TourWorkspaceLayout::default_for(width, height)
-        .map_err(TourWorkspaceSceneRefusal::Layout)?;
+    let layout =
+        layout_for_state(width, height, state).map_err(TourWorkspaceSceneRefusal::Layout)?;
     let regions = [
         (layout.narrative, "lesson-status"),
         (layout.patchbay, "patchbay"),
@@ -90,6 +96,35 @@ pub fn scene_for_state(
     }
     graph::append(&mut scene, graphics_rect(layout.patchbay)?, state)?;
     Ok(scene)
+}
+
+/// Reserve the shell's Inspector/status edges while retaining full-display
+/// pointer normalization. Rendering and hit resolution consume this same layout.
+pub(crate) fn layout_for_state(
+    width: u16,
+    height: u16,
+    state: &TourWorkspaceState,
+) -> Result<TourWorkspaceLayout, TourLayoutRefusal> {
+    if state.selected_patchbay_subject.is_none() {
+        return TourWorkspaceLayout::default_for(width, height);
+    }
+    let available_width = width
+        .checked_sub(inspector_width(width))
+        .ok_or(TourLayoutRefusal::EmptyViewport)?;
+    let available_height = height
+        .checked_sub(STATUS_HEIGHT)
+        .ok_or(TourLayoutRefusal::EmptyViewport)?;
+    let mut layout = TourWorkspaceLayout::new(
+        available_width,
+        available_height,
+        30,
+        conduit_tour_model::DEFAULT_PATCHBAY_PERCENT,
+        conduit_tour_model::DEFAULT_SOURCE_PERCENT,
+    )?;
+    layout.viewport.width = width;
+    layout.viewport.height = height;
+    layout.validate()?;
+    Ok(layout)
 }
 
 fn graphics_rect(rect: TourRect) -> Result<LayoutRect, TourWorkspaceSceneRefusal> {
@@ -222,5 +257,23 @@ mod tests {
                 .iter()
                 .any(|command| command.payload().starts_with("result\npresentation/text"))
         );
+    }
+
+    #[test]
+    fn selected_workspace_reserves_inspector_and_status_without_rescaling_pointer_space() {
+        let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
+        state.selected_patchbay_subject = Some("meet-one-gear/change".into());
+        let layout = layout_for_state(1280, 800, &state).unwrap();
+        assert_eq!(layout.viewport.width, 1280);
+        assert_eq!(layout.viewport.height, 800);
+        for rect in [
+            layout.narrative,
+            layout.patchbay,
+            layout.source,
+            layout.output,
+        ] {
+            assert!(rect.x + rect.width <= 1280 - inspector_width(1280));
+            assert!(rect.y + rect.height <= 800 - STATUS_HEIGHT);
+        }
     }
 }

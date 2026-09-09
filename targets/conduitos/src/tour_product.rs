@@ -3,7 +3,7 @@
 use conduit_presentation::{ApplicationEvent, GraphicsScene};
 use conduit_tour_model::{
     CANONICAL_SPECIMEN_ID, TourPointerOutcome, TourRunProof, TourWorkspaceController,
-    TourWorkspaceLayout, TourWorkspaceRefusal, TourWorkspaceRequest,
+    TourWorkspaceRefusal, TourWorkspaceRequest,
 };
 
 use crate::{
@@ -84,8 +84,9 @@ impl TourProduct {
         width: u16,
         height: u16,
     ) -> Result<TourPointerOutcome, &'static str> {
-        let layout = TourWorkspaceLayout::default_for(width, height)
-            .map_err(|_| "tour-pointer-layout-refused")?;
+        let layout =
+            crate::tour_workspace::layout_for_state(width, height, self.controller.state())
+                .map_err(|_| "tour-pointer-layout-refused")?;
         self.controller
             .accept_pointer(sample, &layout)
             .map_err(|_| "tour-pointer-refused")
@@ -401,6 +402,33 @@ mod tests {
                 .commands()
                 .iter()
                 .any(|command| command.payload().contains("selected meet-one-gear/change"))
+        );
+        let layout =
+            crate::tour_workspace::layout_for_state(640, 480, product.controller().state())
+                .unwrap();
+        let x = u32::from(layout.patchbay.x) + u32::from(layout.patchbay.width) * 5 / 6;
+        let outcome = product
+            .accept_pointer(
+                conduit_semantic_catalog::NormalizedPointerSample {
+                    position_x: i64::from(x * 1_000_000 / 640),
+                    position_y: 200_000,
+                    delta_x: 0,
+                    delta_y: 0,
+                    primary_pressed: true,
+                    coalesced: 0,
+                    dropped: 0,
+                    queue_capacity: 2,
+                    sequence: 2,
+                },
+                640,
+                480,
+            )
+            .unwrap();
+        assert_eq!(
+            outcome,
+            conduit_tour_model::TourPointerOutcome::Selected {
+                subject: "meet-one-gear/result".into()
+            }
         );
     }
 }
