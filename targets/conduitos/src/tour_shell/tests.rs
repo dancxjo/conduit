@@ -221,6 +221,7 @@ fn focused_scrolling_revises_only_that_surface_and_translates_clipped_hits() {
         .unwrap();
     assert!(inspector.scroll.offset() <= inspector.scroll.maximum_offset());
     assert_eq!(relayout.current.surface_id, INSPECTOR_SURFACE);
+    assert!(relayout.input_refused_while_invalidated);
 }
 
 #[test]
@@ -287,6 +288,31 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
         shell.lifecycle_basis.active_play_id,
         projection.active_play_id
     );
+
+    let press = conduit_human::KeyEvent::new(
+        4,
+        conduit_human::KeyTransition::Pressed,
+        conduit_human::KeyModifiers::from_bits(0),
+    )
+    .unwrap();
+    let release = conduit_human::KeyEvent::new(
+        4,
+        conduit_human::KeyTransition::Released,
+        conduit_human::KeyModifiers::from_bits(0),
+    )
+    .unwrap();
+    journey.accept_play_input(press).unwrap();
+    journey.accept_play_input(release).unwrap();
+    invoke_journey(&mut journey, JourneyAction::Lull, &identities, &offer).unwrap();
+    let (_, mut shell, _) = fixture();
+    let mut display = MemoryDisplay::with_size(1280, 800);
+    shell
+        .present_with_lifecycle(
+            &TourProduct::canonical(1),
+            &journey.projection(),
+            &mut display,
+        )
+        .expect("initial Tour must accept the completed and lulled lifecycle basis");
 }
 
 #[test]
@@ -430,20 +456,28 @@ fn delivered<T>(route: InputRoute<T>) -> T {
 
 struct MemoryDisplay {
     pixels: Vec<u32>,
+    width: u32,
+    height: u32,
 }
 impl MemoryDisplay {
     fn new() -> Self {
+        Self::with_size(640, 480)
+    }
+
+    fn with_size(width: u32, height: u32) -> Self {
         Self {
-            pixels: vec![0; 640 * 480],
+            pixels: vec![0; usize::try_from(width * height).unwrap()],
+            width,
+            height,
         }
     }
 }
 impl PixelTarget for MemoryDisplay {
     fn format(&self) -> DisplayFormat {
         DisplayFormat {
-            width: 640,
-            height: 480,
-            pitch: 2560,
+            width: self.width,
+            height: self.height,
+            pitch: self.width * 4,
             bits_per_pixel: 32,
             red_shift: 16,
             green_shift: 8,
@@ -451,7 +485,7 @@ impl PixelTarget for MemoryDisplay {
         }
     }
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
-        self.pixels[usize::try_from(y * 640 + x).unwrap()] = pixel;
+        self.pixels[usize::try_from(y * self.width + x).unwrap()] = pixel;
         Ok(())
     }
 }

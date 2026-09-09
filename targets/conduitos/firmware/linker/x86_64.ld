@@ -17,6 +17,13 @@ SECTIONS
         *(.text .text.*)
     } :text
 
+    .user_text : ALIGN(4096) {
+        __conduitos_user_text_start = .;
+        KEEP(*(.user_text))
+        . = ALIGN(4096);
+        __conduitos_user_text_end = .;
+    } :text
+
     .rodata : ALIGN(CONSTANT(MAXPAGESIZE)) {
         *(.rodata .rodata.*)
     } :rodata

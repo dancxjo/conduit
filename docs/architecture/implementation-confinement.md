@@ -1,6 +1,7 @@
 # Implementation confinement and admitted authority
 
-Status: architectural contract and source audit, not hostile-isolation acceptance.
+Status: architectural contract and source audit. Mechanism-specific hostile
+isolation is accepted only where a linked target note names exact evidence.
 Origin: [#2685](https://github.com/dancxjo/conduit/issues/2685).
 Related: [#2682](https://github.com/dancxjo/conduit/issues/2682),
 [#2686](https://github.com/dancxjo/conduit/issues/2686),
@@ -27,8 +28,8 @@ current authority against trusted Host-owned state before performing the effect.
 | Boundary | Trusted components | Attacker and required refusal | Present proof limit |
 | --- | --- | --- | --- |
 | Cooperative std process | Host process, installed native code, OS | Malformed requests, stale identities, incorrect bindings | Semantic checks can refuse requests; native code shares process privileges. No hostile native-code isolation follows. |
-| Isolated WASM implementation | Engine, import provider, trusted capability table | Hostile module requests an unprovided import or another subject through a provided import | Requires an actual import inventory and adversarial execution. Compiling Rust to WASM alone is not proof; surrounding JavaScript may possess broader browser effects. |
-| ConduitOS implementation | Native kernel/Host protection mechanism and authority table | Implementation attempts direct device or memory access outside its admitted handles | Direction only until memory/device isolation and handle checks are executed and proved. A shared address space is not isolation. |
+| Isolated WASM implementation | Engine, import provider, trusted capability table | Hostile module requests an unprovided import or another subject through a provided import | The [confined hosted Gear profile](confined-gear-profile.md) proves a bounded no-WASI Wasmi compartment and one capability-scoped Base import. Surrounding JavaScript remains a separate authority boundary. |
+| ConduitOS implementation | Native kernel/Host protection mechanism and authority table | Implementation attempts direct device or memory access outside its admitted handles | The [x86_64 protection-domain profile](conduitos-protection-domains.md) proves one ring-3 CPU/page/I/O and serial-Base boundary in an emulator. It does not prove other architectures, DMA, driver isolation, or physical execution. |
 | Remote Host/Line | Authenticating endpoint and operation enforcement boundary | Forged, replayed, redirected, stale-Boot, or broadened request | Authentication and Line reachability are separate from operation permission. Transport encryption alone does not prove authorization. |
 | Physical actuator | Last trusted device driver or hardware gate | Unauthorized command reaches the effect boundary | The mechanism must refuse before actuation; planner refusal and simulated LEDs do not prove a physical gate. |
 

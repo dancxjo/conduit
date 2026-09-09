@@ -19,6 +19,8 @@ pub mod browser_admission;
 mod composition;
 #[cfg(test)]
 mod composition_test_offers;
+#[cfg(feature = "confined-gear")]
+pub mod confined_gear;
 mod copy_task;
 mod deadline_reactor;
 pub mod distributed_signal;
@@ -96,6 +98,7 @@ pub mod pool_webchat;
 pub mod r1_control;
 pub mod r1_control_input;
 pub mod reaction_diffusion;
+pub mod ros2_base;
 pub use reaction_diffusion::*;
 pub mod sound_recovery;
 #[cfg(all(target_os = "linux", feature = "pete-create"))]
