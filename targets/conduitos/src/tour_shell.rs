@@ -1,5 +1,6 @@
 //! Multi-surface native shell for the canonical Tour/Patchbay workspace.
 
+mod chooser_layout;
 mod controls;
 mod fields;
 mod lifecycle;
