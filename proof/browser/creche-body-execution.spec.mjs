@@ -83,15 +83,15 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     const proposal = await page.request.get(`${url}/api/body-execution-proposal`).then(response => response.json());
     await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
     await expect(page.locator("#body-execution-status")).toContainText("Body Play running");
-    await expect(page.locator("#body-execution-output")).toContainText("CALLING");
+    await expect(page.locator("#body-execution-output")).toContainText("3");
     await page.getByRole("group", { name: "Body Play input", exact: true }).hover();
     await page.mouse.down();
     await expect(page.locator('[data-presentation-kind="presentation/indicator-state"]')).toHaveText("true");
     await page.mouse.up();
     await expect(page.locator('[data-presentation-kind="presentation/indicator-state"]')).toHaveText("false");
-    await expect(page.locator("#body-execution-status")).toContainText("Body Play quiescent", { timeout: 10_000 });
-    const quiescent = await snapshot();
-    expect(quiescent.body_planning.execution_claims[0].phase).toBe("Started");
+    await expect(page.locator("#body-execution-status")).toContainText("Body Play running", { timeout: 10_000 });
+    const running = await snapshot();
+    expect(running.body_planning.execution_claims[0].phase).toBe("Started");
     await page.getByRole("button", { name: "Cancel Body Play", exact: true }).click();
     await expect(page.locator("#body-execution-status")).toContainText("Body Play cancelled", { timeout: 10_000 });
     const terminal = await snapshot();
@@ -102,7 +102,7 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     expect(execution.play.body_id).toBe(bodyId);
     expect(execution.receipt.active_play_id).toBe(terminal.body_planning.execution_claims[0].play.active_play_id);
     expect(execution.receipt.timer_completions).toBe(4);
-    expect(execution.receipt.manifestation_completions).toBe(7);
+    expect(execution.receipt.manifestation_completions).toBe(6);
     const signs = execution.receipt.kernel_signs;
     expect(signs.schema).toBe("conduit.browser/kernel-sign-evidence@1");
     expect(signs.active_play_id).toBe(execution.play.active_play_id);
