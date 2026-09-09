@@ -1,4 +1,5 @@
 //! Native paragraph layout and scrolling; prose remains owned by Tour Presentation.
+use alloc::string::String;
 use super::*;
 use conduit_presentation::MAX_GRAPHICS_TEXT_BYTES;
 use conduit_tour_model::TOUR_LESSON_SUBJECT;
@@ -62,10 +63,12 @@ pub(super) fn append(
             let end = chunk_end(remaining);
             let chunk = &remaining[..end];
             let width = bounds.width - 16;
-            // Give each chunk exactly the vertical extent measured by the same
-            // text layout used by raster placement. The next chunk starts below
-            // that extent, so wrapped lines cannot overlap their neighbors.
-            let height = crate::display::text_height(chunk, width)
+            // Prose chooses its word boundaries before it reaches the generic
+            // framebuffer cursor. Explicit newlines keep measurement and raster
+            // placement identical and avoid character-wrap surprises at the
+            // bottom edge of a bounded graphics command.
+            let wrapped = wrap_words(chunk, width)?;
+            let height = crate::display::text_height(&wrapped, width)
                 .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?;
             let text_bounds = LayoutRect {
                 x: bounds.x + 8,
@@ -76,7 +79,7 @@ pub(super) fn append(
             };
             scene
                 .push(
-                    GraphicsCommand::text(text_bounds, clip, paint, chunk)
+                    GraphicsCommand::text(text_bounds, clip, paint, &wrapped)
                         .map_err(TourWorkspaceSceneRefusal::Graphics)?,
                 )
                 .map_err(TourWorkspaceSceneRefusal::Graphics)?;
@@ -93,6 +96,42 @@ pub(super) fn append(
             .ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
     }
     Ok(())
+}
+
+fn wrap_words(text: &str, width: u16) -> Result<String, TourWorkspaceSceneRefusal> {
+    let mut wrapped = String::with_capacity(text.len());
+    let space = crate::display::text_width(" ")
+        .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?;
+    let mut line_width = 0_u16;
+    for word in text.split_whitespace() {
+        let word_width = crate::display::text_width(word)
+            .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?;
+        if word_width > width {
+            return Err(TourWorkspaceSceneRefusal::MissingRegion);
+        }
+        if line_width == 0 {
+            wrapped.push_str(word);
+            line_width = word_width;
+            continue;
+        }
+        let joined = line_width
+            .checked_add(space)
+            .and_then(|value| value.checked_add(word_width))
+            .ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
+        if joined <= width {
+            wrapped.push(' ');
+            wrapped.push_str(word);
+            line_width = joined;
+        } else {
+            wrapped.push('\n');
+            wrapped.push_str(word);
+            line_width = word_width;
+        }
+    }
+    if wrapped.len() > MAX_GRAPHICS_TEXT_BYTES {
+        return Err(TourWorkspaceSceneRefusal::MissingRegion);
+    }
+    Ok(wrapped)
 }
 
 fn chunk_end(text: &str) -> usize {
@@ -156,4 +195,21 @@ fn is_prose(command: &GraphicsCommand) -> bool {
         && command.clip.y == TOP as i16
         && command.bounds.x == 8
         && command.bounds.y >= TOP as i16
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prose_wraps_at_words_without_changing_its_bounded_payload() {
+        let width = crate::display::text_width("alpha beta").unwrap();
+        let wrapped = wrap_words("alpha beta gamma", width).unwrap();
+        assert_eq!(wrapped, "alpha beta\ngamma");
+        assert!(wrapped.len() <= "alpha beta gamma".len());
+        assert_eq!(
+            crate::display::text_height(&wrapped, width),
+            crate::display::text_height("alpha beta\ngamma", width)
+        );
+    }
 }
