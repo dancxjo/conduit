@@ -15,6 +15,20 @@ fn status_cells_preserve_missing_evidence_as_distinct_values() {
         &presentation,
     )
     .unwrap();
+    assert_eq!(scene.commands().len(), 13);
+    let frames: alloc::vec::Vec<_> = scene
+        .commands()
+        .iter()
+        .filter(|command| command.style == GraphicsShapeStyle::Stroke)
+        .collect();
+    assert_eq!(frames.len(), 6);
+    for pair in frames.windows(2) {
+        assert!(
+            i32::from(pair[0].bounds.x) + i32::from(pair[0].bounds.width)
+                < i32::from(pair[1].bounds.x)
+        );
+    }
+    assert!(frames.iter().all(|frame| frame.bounds.height == 60));
     for expected in [
         "Body\nAbsent",
         "Wake\nAbsent",

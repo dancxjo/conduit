@@ -180,6 +180,22 @@ pub(super) fn status_scene(
         let text = alloc::format!("{}\n{}", subject.label, item.text);
         scene
             .push(
+                GraphicsCommand::rect(
+                    LayoutRect {
+                        x: cell.x + 4,
+                        y: 4,
+                        width: cell.width.saturating_sub(8).max(1),
+                        height: cell.height.saturating_sub(4).max(1),
+                    },
+                    cell,
+                    GraphicsPaintRole::Foreground,
+                    GraphicsShapeStyle::Stroke,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+        scene
+            .push(
                 GraphicsCommand::text(text_bounds, cell, GraphicsPaintRole::Foreground, &text)
                     .map_err(|_| TourShellError::Scene)?,
             )
@@ -201,28 +217,7 @@ pub(super) fn inspector_scene(
             && subject.role == conduit_presentation::PresentationRole::Action
     }) {
         let button = super::controls::inspector_close_bounds(bounds.width);
-        scene
-            .push(
-                GraphicsCommand::rect(
-                    button,
-                    button,
-                    GraphicsPaintRole::Accent,
-                    GraphicsShapeStyle::Stroke,
-                )
-                .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
-        let text = LayoutRect {
-            x: button.x + 8,
-            y: button.y + 4,
-            width: button.width - 16,
-            height: button.height - 8,
-        };
-        scene
-            .push(
-                GraphicsCommand::text(text, button, GraphicsPaintRole::Foreground, &action.label)
-                    .map_err(|_| TourShellError::Scene)?,
-            )
+        crate::native_components::button(&mut scene, button, button, &action.label)
             .map_err(|_| TourShellError::Scene)?;
     }
     super::fields::project(bounds, presentation, scroll_y, Some(&mut scene))?;
