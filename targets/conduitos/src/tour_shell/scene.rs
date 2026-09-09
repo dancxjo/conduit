@@ -79,6 +79,17 @@ fn panel_scene(
             .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
+    scene
+        .push(
+            GraphicsCommand::rect(
+                local,
+                local,
+                GraphicsPaintRole::Accent,
+                GraphicsShapeStyle::Stroke,
+            )
+            .map_err(|_| TourShellError::Scene)?,
+        )
+        .map_err(|_| TourShellError::Scene)?;
     let title_bounds = LayoutRect {
         x: 12,
         y: 12,

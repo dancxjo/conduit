@@ -30,6 +30,40 @@ fn compact_rows_are_visible_and_each_resolves_its_own_gear() {
 }
 
 #[test]
+fn chooser_has_a_visible_bounded_outer_frame() {
+    let (tour, _, _) = fixture();
+    let presentation = tour
+        .controller()
+        .state()
+        .transient_presentation(TourTransientKind::Chooser, "Choose a Patchbay Gear")
+        .unwrap();
+    let bounds = conduit_presentation::LayoutRect {
+        x: 160,
+        y: 160,
+        width: 320,
+        height: 160,
+    };
+    let scene = transient_scene(bounds, &presentation, 0).unwrap();
+    let frame = &scene.commands()[1];
+    assert_eq!(frame.kind, conduit_presentation::GraphicsCommandKind::Rect);
+    assert_eq!(
+        frame.style,
+        conduit_presentation::GraphicsShapeStyle::Stroke
+    );
+    assert_eq!(frame.paint, conduit_presentation::GraphicsPaintRole::Accent);
+    assert_eq!(
+        frame.bounds,
+        conduit_presentation::LayoutRect {
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 160
+        }
+    );
+    assert_eq!(frame.clip, frame.bounds);
+}
+
+#[test]
 fn chooser_button_uses_visible_bounds_and_current_workspace_identity() {
     let (tour, mut shell, mut display) = fixture();
     shell.present(&tour, &mut display).unwrap();
