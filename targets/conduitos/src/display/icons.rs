@@ -13,11 +13,18 @@ pub(super) fn draw(
     receipt: &mut DisplayReceipt,
 ) -> Result<(), DisplayError> {
     let icon = Icon::from_token(command.payload()).ok_or(DisplayError::InvalidExtent)?;
-    for y in 0..EDGE {
-        for x in 0..EDGE {
+    let width = i32::from(command.bounds.width);
+    let height = i32::from(command.bounds.height);
+    if width <= 0 || height <= 0 {
+        return Err(DisplayError::InvalidExtent);
+    }
+    for y in 0..height {
+        for x in 0..width {
+            let source_x = x * EDGE / width;
+            let source_y = y * EDGE / height;
             let px = i32::from(command.bounds.x) + x;
             let py = i32::from(command.bounds.y) + y;
-            if ink(icon, x, y)
+            if ink(icon, source_x, source_y)
                 && px >= i32::from(clip.x)
                 && py >= i32::from(clip.y)
                 && px < i32::from(clip.x) + i32::from(clip.width)
