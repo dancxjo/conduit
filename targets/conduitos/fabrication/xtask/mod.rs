@@ -19,6 +19,7 @@ mod build;
 mod demo;
 mod fabrication_resolution;
 mod front_door_proof;
+mod headless_proof;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
@@ -140,6 +141,8 @@ enum ConduitosCommand {
     FrontDoorProof,
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
     JourneyProof,
+    /// Verify an exact headless artifact and its explicit unsupported startup contract.
+    HeadlessProof { output: PathBuf },
     /// Boot one architecture proof appliance and validate its bounded terminal Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
@@ -471,6 +474,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
         ConduitosCommand::JourneyProof => journey_proof::execute(opts),
+        ConduitosCommand::HeadlessProof { output } => headless_proof::execute(output, opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
             require_fabrication_target(target.arch, target.board)?;

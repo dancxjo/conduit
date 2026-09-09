@@ -2,6 +2,11 @@ use alloc::{format, vec, vec::Vec};
 #[path = "transient_replacement_tests.rs"]
 mod transient_replacement_tests;
 
+#[path = "chooser_control_tests.rs"]
+mod chooser_control_tests;
+#[path = "revision_churn_tests.rs"]
+mod revision_churn_tests;
+
 use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
 use conduit_semantic_catalog::NormalizedPointerSample;
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, TourPointerOutcome, TourTransientKind};
@@ -179,7 +184,7 @@ fn transient_is_an_independent_related_surface_and_dismissal_exposes_parent() {
 }
 
 #[test]
-fn chooser_scroll_is_finite_and_off_viewport_rows_are_clipped() {
+fn chooser_fits_all_gears_without_empty_scrolling() {
     let (tour, mut shell, mut display) = fixture();
     shell.present(&tour, &mut display).unwrap();
     shell
@@ -191,13 +196,12 @@ fn chooser_scroll_is_finite_and_off_viewport_rows_are_clipped() {
         )
         .unwrap();
     delivered(shell.route_pointer(320, 240, true).unwrap());
-    let ScrollOutcome::Updated(receipt) = shell
-        .scroll_focused(ScrollDirection::End, &mut display)
-        .unwrap()
-    else {
-        panic!("focused chooser must reach its finite end");
-    };
-    assert_eq!(receipt.surface_id, TRANSIENT_SURFACE);
+    assert_eq!(
+        shell
+            .scroll_focused(ScrollDirection::End, &mut display)
+            .unwrap(),
+        ScrollOutcome::Boundary
+    );
     let state = shell
         .surfaces
         .iter()

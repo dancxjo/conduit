@@ -73,15 +73,42 @@ impl TourProduct {
         let Some(mut presentation) = self.controller.state().inspector_presentation()? else {
             return Ok(None);
         };
-        let (Some(snapshot), Some(proof)) = (&self.inspection, self.controller.last_run()) else {
-            return Ok(Some(presentation));
-        };
         let selected = self
             .controller
             .state()
             .selected_patchbay_subject
             .as_deref()
             .ok_or("inspection-selection-missing")?;
+        let graph = self
+            .graph
+            .as_ref()
+            .map_err(|_| "inspection-graph-refused")?;
+        presentation.basis.source_document_id = Some(graph.source_document_id.clone());
+        presentation.basis.checked_form_id = Some(graph.checked_form_id.clone());
+        let gear = graph
+            .gears
+            .iter()
+            .find(|gear| gear.gear_id.as_str() == selected)
+            .ok_or("inspection-gear-missing")?;
+        if let Some(value) =
+            gear.controls
+                .iter()
+                .find_map(|control| match (control.key.as_str(), &control.value) {
+                    ("value", conduit_core::ConfigurationValue::Text(value)) => Some(value),
+                    _ => None,
+                })
+        {
+            let state_identity = format!("{selected}/inspection/state");
+            let state = presentation
+                .text
+                .iter_mut()
+                .find(|item| item.subject == state_identity)
+                .ok_or("inspection-state-missing")?;
+            state.text = format!("Configured value: {value:?}\nOutput not directly observed");
+        }
+        let (Some(snapshot), Some(proof)) = (&self.inspection, self.controller.last_run()) else {
+            return validated(presentation);
+        };
         let placement = snapshot
             .placements
             .iter()
@@ -161,15 +188,66 @@ impl TourProduct {
                 kind: PresentationRelationshipKind::Observes,
             });
         }
-        Presentation::new(
-            presentation.revision,
-            presentation.basis,
-            presentation.subjects,
-            presentation.relationships,
-            presentation.properties,
-            presentation.text,
-        )
-        .map(Some)
-        .map_err(|_| "inspection-evidence-refused")
+        validated(presentation)
+    }
+}
+
+fn validated(presentation: Presentation) -> Result<Option<Presentation>, &'static str> {
+    Presentation::new(
+        presentation.revision,
+        presentation.basis,
+        presentation.subjects,
+        presentation.relationships,
+        presentation.properties,
+        presentation.text,
+    )
+    .map(Some)
+    .map_err(|_| "inspection-evidence-refused")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unrun_literal_inspection_has_checked_configuration_but_no_execution_claim() {
+        let mut product = TourProduct::canonical(1);
+        product
+            .controller
+            .request(&conduit_presentation::ApplicationEvent {
+                revision: 1,
+                action: conduit_tour_model::OPEN_PATCHBAY_ACTION_ID.into(),
+                kind: conduit_presentation::ApplicationEventKind::Activate,
+                value: Vec::new(),
+            })
+            .unwrap();
+        product.select_gear(2, "meet-one-gear/words").unwrap();
+        let presentation = product.inspector_presentation().unwrap().unwrap();
+        assert!(
+            presentation.text.iter().any(
+                |item| item.text == "Configured value: \"hello\"\nOutput not directly observed"
+            )
+        );
+        assert!(
+            presentation
+                .text
+                .iter()
+                .any(|item| item.text == "No Tour result recorded")
+        );
+        assert!(presentation.subjects.iter().all(|subject| !matches!(
+            subject.role,
+            PresentationRole::Plan | PresentationRole::Play
+        )));
+        let graph = product.graph.as_ref().unwrap();
+        assert_eq!(
+            presentation.basis.source_document_id.as_ref(),
+            Some(&graph.source_document_id)
+        );
+        assert_eq!(
+            presentation.basis.checked_form_id.as_ref(),
+            Some(&graph.checked_form_id)
+        );
+        let identity = presentation.identity.clone();
+        assert_eq!(validated(presentation).unwrap().unwrap().identity, identity);
     }
 }

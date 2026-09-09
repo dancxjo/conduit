@@ -55,6 +55,7 @@ impl TourProductError {
 pub struct TourProduct {
     controller: TourWorkspaceController,
     inspection: Option<inspection::RunInspection>,
+    graph: Result<patchbay_graph::PatchbayGraph, TourWorkspaceSceneRefusal>,
 }
 
 impl TourProduct {
@@ -62,6 +63,7 @@ impl TourProduct {
         Self {
             controller: TourWorkspaceController::canonical(revision),
             inspection: None,
+            graph: crate::tour_workspace::canonical_graph(),
         }
     }
 
@@ -76,10 +78,13 @@ impl TourProduct {
     }
 
     pub fn scene(&self, width: u16, height: u16) -> Result<GraphicsScene, TourProductError> {
-        crate::tour_workspace::scene_with_observations(
+        crate::tour_workspace::scene_with_graph(
             width,
             height,
             self.controller.state(),
+            self.graph
+                .as_ref()
+                .map_err(|error| TourProductError::Scene(*error))?,
             self.inspection
                 .as_ref()
                 .map(|snapshot| &snapshot.observations),
@@ -286,6 +291,10 @@ mod tests {
 
         assert_eq!(update.request, TourWorkspaceRequest::Run);
         let evidence = update.play.unwrap();
+        let graph = product.graph.as_ref().unwrap();
+        assert_eq!(graph.source_document_id, evidence.source_document_id);
+        assert_eq!(graph.checked_form_id, evidence.checked_form_id);
+        assert_eq!(graph.expanded_form_id, evidence.expanded_form_id);
         assert_eq!(evidence.result, CANONICAL_RESULT);
         assert_eq!(evidence.observations.upper_input.text(), Some("hello"));
         assert_eq!(evidence.observations.upper_output.text(), Some("HELLO"));
@@ -306,21 +315,21 @@ mod tests {
         let scene = product.scene(640, 480).unwrap();
         assert_eq!(scene.commands()[6].paint, GraphicsPaintRole::Accent);
         assert!(scene.commands()[7].payload().contains("Result visible"));
-        let change = scene
+        let change_index = scene
             .commands()
             .iter()
-            .find(|command| command.payload().starts_with("change\n"))
-            .unwrap()
-            .payload();
+            .position(|command| command.payload().starts_with("change\n"))
+            .unwrap();
+        let change = scene.commands()[change_index + 1].payload();
         assert!(change.contains("Last run"));
         assert!(change.contains("= \"hello\""));
         assert!(change.contains("= \"HELLO\""));
-        let literal = scene
+        let literal_index = scene
             .commands()
             .iter()
-            .find(|command| command.payload().starts_with("words\n"))
-            .unwrap()
-            .payload();
+            .position(|command| command.payload().starts_with("words\n"))
+            .unwrap();
+        let literal = scene.commands()[literal_index + 1].payload();
         assert!(literal.contains("= unobserved"));
         assert!(!literal.contains("= \"hello\""));
         product

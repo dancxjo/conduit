@@ -2,7 +2,6 @@
 
 mod font;
 mod text_layout;
-#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 pub(crate) use text_layout::text_height;
 
 use conduit_presentation::{
