@@ -418,7 +418,8 @@ mod tests {
             .iter()
             .find(|command| command.payload().starts_with("change\ntext/upper"))
             .unwrap();
-        assert_eq!(card.paint, GraphicsPaintRole::Accent);
+        assert_eq!(card.paint, GraphicsPaintRole::Selected);
+        assert!(card.payload().contains("Selected\n"));
         assert!(scene.commands().iter().any(|command| {
             command.payload().contains("value/text")
                 && command.paint == GraphicsPaintRole::Foreground

@@ -38,9 +38,9 @@ pub(super) fn append(
             .ok_or(TourWorkspaceSceneRefusal::Graph)?;
         let card = card_bounds(bounds, index);
         let paint = if state.selected_patchbay_subject.as_deref() == Some(gear) {
-            GraphicsPaintRole::Accent
+            GraphicsPaintRole::Selected
         } else if state.hovered_patchbay_subject.as_deref() == Some(gear) {
-            GraphicsPaintRole::Status
+            GraphicsPaintRole::Hovered
         } else {
             GraphicsPaintRole::Foreground
         };
@@ -49,6 +49,11 @@ pub(super) fn append(
             gear.rsplit('/').next().unwrap_or(gear),
             contract.kind_id.as_str()
         );
+        if paint == GraphicsPaintRole::Selected {
+            text.push_str("Selected\n");
+        } else if paint == GraphicsPaintRole::Hovered {
+            text.push_str("Hovered\n");
+        }
         let heading_len = text.len();
         text.push_str(if observations.is_some() {
             "Last run\n"
