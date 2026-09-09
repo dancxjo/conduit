@@ -14,19 +14,33 @@ mod graph;
 pub(crate) mod lesson;
 
 pub(crate) const STATUS_HEIGHT: u16 = 64;
+pub(crate) const LESSON_CONTROL_BAR_HEIGHT: u16 = 40;
+
+fn lesson_button_width(layout: &TourWorkspaceLayout) -> u16 {
+    (layout.narrative.width.saturating_sub(24) / 2).clamp(1, 112)
+}
 
 pub(crate) fn chooser_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
+    let width = lesson_button_width(layout);
     LayoutRect {
-        x: 8,
-        y: 128,
-        width: layout.narrative.width.saturating_sub(16).clamp(1, 112),
+        x: i16::try_from(16_u16.saturating_add(width)).unwrap_or(i16::MAX),
+        y: i16::try_from(
+            layout
+                .narrative
+                .height
+                .saturating_sub(LESSON_CONTROL_BAR_HEIGHT)
+                .saturating_add(6),
+        )
+        .unwrap_or(i16::MAX),
+        width,
         height: 28,
     }
 }
 
 pub(crate) fn run_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
     LayoutRect {
-        y: 92,
+        x: 8,
+        width: lesson_button_width(layout),
         ..chooser_bounds(layout)
     }
 }
@@ -217,13 +231,10 @@ pub(crate) fn scene_with_graph(
         },
         state,
     )?;
-    let availability = state.run_availability();
-    let (run_label, run_detail) = match &availability {
-        conduit_presentation::ActionAvailability::Available => ("Run Plan", None),
-        conduit_presentation::ActionAvailability::Busy { detail }
-        | conduit_presentation::ActionAvailability::Unavailable { detail } => {
-            ("Run inactive", Some(detail.as_str()))
-        }
+    let run_label = match state.run_availability() {
+        conduit_presentation::ActionAvailability::Available => "Run Plan",
+        conduit_presentation::ActionAvailability::Busy { .. }
+        | conduit_presentation::ActionAvailability::Unavailable { .. } => "Run inactive",
     };
     let run = run_bounds(&layout);
     scene
@@ -232,24 +243,6 @@ pub(crate) fn scene_with_graph(
                 .map_err(TourWorkspaceSceneRefusal::Graphics)?,
         )
         .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-    if let Some(detail) = run_detail {
-        scene
-            .push(
-                GraphicsCommand::text(
-                    LayoutRect {
-                        x: 8,
-                        y: 164,
-                        width: narrative.width.saturating_sub(16).max(1),
-                        height: 44,
-                    },
-                    narrative,
-                    GraphicsPaintRole::Warning,
-                    detail,
-                )
-                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
-            )
-            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-    }
     let button = chooser_bounds(&layout);
     scene
         .push(
