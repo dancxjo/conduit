@@ -13,6 +13,13 @@ mod graph;
 
 pub(crate) const STATUS_HEIGHT: u16 = 64;
 
+pub(crate) fn run_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
+    LayoutRect {
+        y: 92,
+        ..chooser_bounds(layout)
+    }
+}
+
 pub(crate) fn chooser_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
     LayoutRect {
         x: 8,
@@ -201,6 +208,8 @@ pub(crate) fn scene_with_graph(
     let clip = graphics_rect(layout.narrative)?;
     crate::native_components::button(&mut scene, button, clip, "Gears")
         .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    crate::native_components::button(&mut scene, run_bounds(&layout), clip, "Run Plan")
+        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     Ok(scene)
 }
 
@@ -291,7 +300,7 @@ mod tests {
     #[test]
     fn native_scene_manifests_every_shared_region_and_visible_focus() {
         let scene = scene(640, 480, 12, TourWorkspacePhase::PatchbayOpen).unwrap();
-        assert_eq!(scene.commands().len(), 21);
+        assert_eq!(scene.commands().len(), 23);
         let frames: alloc::vec::Vec<_> = scene
             .commands()
             .iter()

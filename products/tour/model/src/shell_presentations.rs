@@ -52,6 +52,12 @@ impl TourWorkspaceState {
             "Patchbay workspace",
         )];
         let mut relationships = Vec::new();
+        subjects.push(subject(crate::RUN_ACTION_ID, PresentationRole::Action, "Run Plan"));
+        relationships.push(PresentationRelationship {
+            source: TOUR_WORKSPACE_SUBJECT.into(),
+            target: crate::RUN_ACTION_ID.into(),
+            kind: PresentationRelationshipKind::Contains,
+        });
         subjects.push(subject(
             crate::OPEN_CHOOSER_ACTION_ID,
             PresentationRole::Action,

@@ -19,6 +19,29 @@ impl TourShellPresenter {
         route: &RoutedPointer,
         tour: &TourProduct,
     ) -> Result<bool, TourShellError> {
+        self.workspace_control_hit(
+            route,
+            tour,
+            conduit_tour_model::OPEN_CHOOSER_ACTION_ID,
+            false,
+        )
+    }
+
+    pub fn run_hit(
+        &self,
+        route: &RoutedPointer,
+        tour: &TourProduct,
+    ) -> Result<bool, TourShellError> {
+        self.workspace_control_hit(route, tour, conduit_tour_model::RUN_ACTION_ID, true)
+    }
+
+    fn workspace_control_hit(
+        &self,
+        route: &RoutedPointer,
+        tour: &TourProduct,
+        action: &str,
+        run: bool,
+    ) -> Result<bool, TourShellError> {
         self.validate_pointer_route(route)?;
         if route.surface_id != super::WORKSPACE_SURFACE {
             return Ok(false);
@@ -32,10 +55,11 @@ impl TourShellPresenter {
             .presentation
             .as_ref()
             .ok_or(TourShellError::Identity)?;
-        if !presentation.subjects.iter().any(|subject| {
-            subject.identity == conduit_tour_model::OPEN_CHOOSER_ACTION_ID
-                && subject.role == PresentationRole::Action
-        }) {
+        if !presentation
+            .subjects
+            .iter()
+            .any(|subject| subject.identity == action && subject.role == PresentationRole::Action)
+        {
             return Ok(false);
         }
         let surface = state.bounds.ok_or(TourShellError::Identity)?;
@@ -45,7 +69,11 @@ impl TourShellPresenter {
             tour.controller().state(),
         )
         .map_err(|_| TourShellError::Scene)?;
-        let bounds = crate::tour_workspace::chooser_bounds(&layout);
+        let bounds = if run {
+            crate::tour_workspace::run_bounds(&layout)
+        } else {
+            crate::tour_workspace::chooser_bounds(&layout)
+        };
         Ok(i32::from(route.local_x) >= i32::from(bounds.x)
             && i32::from(route.local_x) < i32::from(bounds.x) + i32::from(bounds.width)
             && i32::from(route.local_y) >= i32::from(bounds.y)

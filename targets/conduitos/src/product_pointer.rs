@@ -2,6 +2,9 @@
 
 use alloc::format;
 
+mod run_control;
+use run_control::Execute;
+
 use conduit_tour_model::TourPointerOutcome;
 
 use crate::{
@@ -61,12 +64,21 @@ pub fn run(
     session: &mut HidPointerSession,
     controller: &mut XhciReady,
     usb: &UsbDevice,
+    execute: &mut impl Execute,
 ) -> Result<(), &'static str> {
-    run_with(identities, fabrication, tour, presenter, display, || {
-        session
-            .receive(controller, usb)
-            .map_err(|error| error.as_str())
-    })
+    run_with(
+        identities,
+        fabrication,
+        tour,
+        presenter,
+        display,
+        execute,
+        || {
+            session
+                .receive(controller, usb)
+                .map_err(|error| error.as_str())
+        },
+    )
 }
 
 pub fn run_ps2(
@@ -76,10 +88,17 @@ pub fn run_ps2(
     presenter: &mut TourShellPresenter,
     display: &mut impl crate::display::PixelTarget,
     input: &mut crate::arch::Ps2Input,
+    execute: &mut impl Execute,
 ) -> Result<(), &'static str> {
-    run_with(identities, fabrication, tour, presenter, display, || {
-        input.receive_pointer().map_err(|error| error.as_str())
-    })
+    run_with(
+        identities,
+        fabrication,
+        tour,
+        presenter,
+        display,
+        execute,
+        || input.receive_pointer().map_err(|error| error.as_str()),
+    )
 }
 
 fn run_with(
@@ -88,6 +107,7 @@ fn run_with(
     tour: &mut TourProduct,
     presenter: &mut TourShellPresenter,
     display: &mut impl crate::display::PixelTarget,
+    execute: &mut impl Execute,
     mut receive: impl FnMut() -> Result<conduit_semantic_catalog::NormalizedPointerSample, &'static str>,
 ) -> Result<(), &'static str> {
     arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
@@ -199,6 +219,18 @@ fn run_with(
             continue;
         }
         let mut local_sample = sample;
+        if run_control::handle(
+            &route,
+            sample.primary_pressed,
+            tour,
+            presenter,
+            display,
+            execute,
+        )? {
+            suppress_dismissal_release = sample.primary_pressed;
+            arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+            continue;
+        }
         if presenter
             .chooser_open_hit(&route, tour)
             .map_err(|error| error.as_str())?
