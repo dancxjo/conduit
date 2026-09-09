@@ -122,6 +122,18 @@ pub(super) fn execute_hotplug(
     )
 }
 
+pub(super) fn execute_ps2_input(
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
+    execute_embedded_profile(
+        arch,
+        include_str!("../../proof/profiles/conduitos-ps2-input.profile.json"),
+        ArtifactRole::ArchitectureProofAppliance,
+        opts,
+    )
+}
+
 pub(super) fn execute_proof(
     arch: ConduitosArch,
     opts: &GlobalOpts,

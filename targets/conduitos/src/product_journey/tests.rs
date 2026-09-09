@@ -25,6 +25,7 @@ fn fixture() -> (BootIdentities, HostOffer<'static>, ProductJourney) {
     )
     .with_keyboard(
         KeyboardRealization {
+            mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
             controller_id: [3; 32],
             device_id: [4; 32],
             interface_id: [5; 32],
@@ -39,6 +40,7 @@ fn fixture() -> (BootIdentities, HostOffer<'static>, ProductJourney) {
     let offer = offer
         .with_pointer(
             PointerRealization {
+                mechanism: crate::pointer_offer::PointerMechanism::UsbHid,
                 controller_id: [3; 32],
                 device_id: [7; 32],
                 interface_id: [8; 32],

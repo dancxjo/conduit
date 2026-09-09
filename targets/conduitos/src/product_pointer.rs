@@ -40,6 +40,7 @@ pub fn realization(
         identity::derive_usb_interface(&device_id, interface.number, interface.alternate_setting);
     let endpoint_id = identity::derive_usb_endpoint(&interface_id, ready.endpoint_address);
     Ok(PointerRealization {
+        mechanism: crate::pointer_offer::PointerMechanism::UsbHid,
         controller_id,
         device_id,
         interface_id,
@@ -61,12 +62,38 @@ pub fn run(
     controller: &mut XhciReady,
     usb: &UsbDevice,
 ) -> Result<(), &'static str> {
+    run_with(identities, fabrication, tour, presenter, display, || {
+        session
+            .receive(controller, usb)
+            .map_err(|error| error.as_str())
+    })
+}
+
+pub fn run_ps2(
+    identities: &BootIdentities,
+    fabrication: &FabricationRecord,
+    tour: &mut TourProduct,
+    presenter: &mut TourShellPresenter,
+    display: &mut impl crate::display::PixelTarget,
+    input: &mut crate::arch::Ps2Input,
+) -> Result<(), &'static str> {
+    run_with(identities, fabrication, tour, presenter, display, || {
+        input.receive_pointer().map_err(|error| error.as_str())
+    })
+}
+
+fn run_with(
+    identities: &BootIdentities,
+    fabrication: &FabricationRecord,
+    tour: &mut TourProduct,
+    presenter: &mut TourShellPresenter,
+    display: &mut impl crate::display::PixelTarget,
+    mut receive: impl FnMut() -> Result<conduit_semantic_catalog::NormalizedPointerSample, &'static str>,
+) -> Result<(), &'static str> {
     arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
     let mut suppress_dismissal_release = false;
     loop {
-        let sample = session
-            .receive(controller, usb)
-            .map_err(|error| error.as_str())?;
+        let sample = receive()?;
         let format = display
             .format()
             .validate()

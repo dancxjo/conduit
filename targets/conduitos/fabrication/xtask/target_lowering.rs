@@ -25,6 +25,7 @@ const RISCV64_SBI_BASE: &str = "conduitos/riscv64-sbi-console-text";
 const RISCV64_LINEAR_PRESENTER: &str = "presenter/riscv64-linear-sbi-console@1";
 const SCRIPTED_KEYBOARD_PROOF: &str = "profile-fragment/conduitos-scripted-keyboard-proof@1";
 const HOTPLUG_PROOF: &str = "profile-fragment/conduitos-hotplug-proof@1";
+const PS2_INPUT: &str = "profile-fragment/conduitos-ps2-input@1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct TargetBuildInputs {
@@ -127,6 +128,10 @@ pub(super) fn lower_x86_64_pc(
         .profile_fragments
         .iter()
         .any(|item| item == HOTPLUG_PROOF);
+    let ps2_input = manifest
+        .profile_fragments
+        .iter()
+        .any(|item| item == PS2_INPUT);
     let http = http::lower(manifest)?;
     if (scripted_keyboard || hotplug) && !native {
         return Err(refusal(
@@ -146,6 +151,9 @@ pub(super) fn lower_x86_64_pc(
     }
     if http.selected {
         cargo_features.push("native-http-client");
+    }
+    if ps2_input {
+        cargo_features.push("ps2-input");
     }
     Ok(TargetBuildInputs {
         cargo_features,

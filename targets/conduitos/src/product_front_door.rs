@@ -43,13 +43,14 @@ pub fn run(
     fabrication: &FabricationRecord,
     framebuffer_basis: &conduit_observatory::FramebufferBasis,
     display: &mut impl crate::display::PixelTarget,
-    hid_session: &mut HidKeyboardSession,
+    mut hid_session: Option<&mut HidKeyboardSession>,
     controller: &mut XhciReady,
     controller_id: [u8; 32],
     usb: &UsbDevice,
-    pointer_session: Option<&mut HidPointerSession>,
+    mut pointer_session: Option<&mut HidPointerSession>,
     pointer_usb: Option<&UsbDevice>,
     usb_line_device: Option<&UsbDevice>,
+    mut ps2_input: Option<&mut crate::arch::Ps2Input>,
     rescue_matcher: &mut LocalRescueMatcher,
 ) -> Result<(), &'static str> {
     let host_id = conduit_core::HostId::from(identity::hex(&identities.host));
@@ -105,7 +106,7 @@ pub fn run(
     let mut idle = arch::Idle::new();
     loop {
         let mut line_requested = false;
-        keyboard_input::run_product(hid_session, controller, usb, |input| {
+        let mut interact = |input| {
             let transition = match input {
                 ProductInputEvent::Transition(transition) => transition,
                 ProductInputEvent::Lost(_) => {
@@ -327,7 +328,15 @@ pub fn run(
                 }
             }
             Ok(ProductInputControl::Continue)
-        })?;
+        };
+        if let Some(ps2) = ps2_input.as_deref_mut() {
+            keyboard_input::run_ps2_product(ps2, &mut interact)?;
+        } else {
+            let session = hid_session
+                .as_deref_mut()
+                .ok_or("front-door-keyboard-realization-missing")?;
+            keyboard_input::run_product(session, controller, usb, &mut interact)?;
+        }
         if !line_requested {
             break;
         }
@@ -364,7 +373,18 @@ pub fn run(
             },
         )?;
     }
+    if let Some(ps2) = ps2_input {
+        return crate::product_pointer::run_ps2(
+            identities,
+            fabrication,
+            &mut tour,
+            &mut shell,
+            display,
+            ps2,
+        );
+    }
     let (pointer_session, pointer_usb) = pointer_session
+        .take()
         .zip(pointer_usb)
         .ok_or("front-door-pointer-realization-missing")?;
     crate::product_pointer::run(

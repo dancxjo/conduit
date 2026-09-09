@@ -40,6 +40,17 @@ pub(super) fn execute_hotplug(
     assemble_architecture_proof(arch, opts)
 }
 
+pub(super) fn execute_ps2_input(
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
+    let build = build::execute_ps2_input(arch, opts)?;
+    build
+        .artifact_role
+        .require(ArtifactRole::ArchitectureProofAppliance)?;
+    assemble_architecture_proof(arch, opts)
+}
+
 pub(super) fn execute_proof(
     arch: ConduitosArch,
     opts: &GlobalOpts,
