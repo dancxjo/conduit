@@ -229,6 +229,15 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   expect(crecheRuntimeExports.some((name) => name.startsWith("conduit_tour_"))).toBe(false);
   expect((await page.request.get(new URL("/tour/", entrance.url).href)).status()).toBe(404);
   expect(responses.some((path) => path.startsWith("/tour/") || path.includes("chapter-"))).toBe(false);
+  await page.getByRole("button", { name: "End the Crèche", exact: true }).click();
+  await page.getByRole("button", { name: "Finish and clear Crèche", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "A Body of your own" })).toBeFocused();
+  await expect(page.locator(".creche-options")).not.toHaveAttribute("open");
+  const nextBirth = page.locator(".body-birth-runner");
+  await reviewAndBirth(page, nextBirth);
+  await expect(nextBirth).toHaveAttribute("data-body-id", /.+/);
+  expect(await nextBirth.getAttribute("data-body-id")).not.toBe(bodyId);
+
 });
 
 test("the standalone Crèche birth controls remain separated at a narrow viewport", async ({ page }) => {

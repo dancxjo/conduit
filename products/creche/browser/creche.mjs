@@ -319,6 +319,7 @@ function renderComplete(receipt, biography) {
     if (event.action === "creche.finish") await finishCrecheLocally();
   } });
   document.querySelector('[data-application-slot="creche-navigation"]')?.remove();
+  document.querySelector(".creche-options").hidden = true;
 }
 
 function renderBiographyEvidence() {
@@ -331,17 +332,20 @@ function renderBiographyEvidence() {
 async function finishCrecheLocally() {
   await storage.deleteJson("body-session");
   host.runtime.conduit_creche_forget_local();
-  sequence = 0;
+  // A new Body on this same Host Boot must receive a fresh birth sequence.
   currentStep = 0;
   await routing.move(0, "replace");
   if (!document.querySelector('[data-application-slot="creche-navigation"]')) {
     const navigation = document.createElement("div");
     navigation.className = "creche-steps";
     navigation.dataset.applicationSlot = "creche-navigation";
-    workspace.before(navigation);
+    document.querySelector(".creche-options").append(navigation);
   }
+  const options = document.querySelector(".creche-options");
+  options.hidden = false;
+  options.open = false;
   renderNavigation();
-  renderStep();
+  renderStep(true);
 }
 
 function requireCrecheAbi(api) {

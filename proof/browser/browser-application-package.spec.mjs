@@ -143,7 +143,7 @@ test("Crèche launches its exact admitted graph through bounded Host context", a
   });
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await expect(page.getByRole("heading", { name: "Birth a Body" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A Body of your own" })).toBeVisible();
   const admission = await page.evaluate(() => ({
     applicationId: globalThis.__conduitBrowserApplication.manifest.applicationId,
     packageDigest: globalThis.__conduitBrowserApplication.manifest.packageDigest,
@@ -160,7 +160,8 @@ test("Crèche launches its exact admitted graph through bounded Host context", a
   expect(admission.paths.length).toBeGreaterThan(0);
   expect(admission.paths.length).toBeLessThanOrEqual(64);
   expect(admission.paths).toContain("browser-host-identity.mjs");
-  expect(admission.paths).toContain("creche-names.mjs");
+  expect(admission.paths).not.toContain("creche-names.mjs");
+  expect(admission.paths).toContain("runtime.wasm");
   expect(admission.paths).toContain("creche-form-selection.mjs");
   expect(admission.paths).toContain("application-syntax-presentation.mjs");
   expect(admission.paths).toContain("creche-browser-configuration.mjs");
