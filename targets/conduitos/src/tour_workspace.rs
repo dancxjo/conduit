@@ -218,7 +218,7 @@ pub(crate) fn scene_with_graph(
                     run_bounds(&layout),
                     clip,
                     GraphicsPaintRole::Foreground,
-                    "Run unavailable",
+                    "Run inactive",
                 )
                 .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
