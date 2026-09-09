@@ -62,6 +62,12 @@ impl TourProduct {
         &self.controller
     }
 
+    pub fn select_gear(&mut self, revision: u32, gear: &str) -> Result<(), TourProductError> {
+        self.controller
+            .select_gear(revision, gear)
+            .map_err(TourProductError::Controller)
+    }
+
     pub fn scene(&self, width: u16, height: u16) -> Result<GraphicsScene, TourProductError> {
         crate::tour_workspace::scene_for_state(width, height, self.controller.state())
             .map_err(TourProductError::Scene)

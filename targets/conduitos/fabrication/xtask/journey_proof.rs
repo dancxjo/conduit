@@ -349,6 +349,12 @@ fn execute_image(
             )?;
             journey_input::primary_button(&mut qmp, &mut reader, true, "pointer-chooser")?;
             journey_input::wait_pointer_status(&serial_path, &mut child, "transient-focused")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_TOUR_CHECKPOINT chooser-gear-selected",
+                "product-journey-chooser-selection-timeout",
+            )?;
             artifacts.capture(&mut qmp, &mut reader, "chooser-pointer-focused", true)?;
             journey_input::primary_button(&mut qmp, &mut reader, false, "pointer-chooser-release")?;
             journey_input::relative_motion(&mut qmp, &mut reader, 0, -100, "pointer-hover")?;
