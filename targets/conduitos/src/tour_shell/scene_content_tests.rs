@@ -2,6 +2,37 @@ use super::*;
 use conduit_tour_model::{TourWorkspacePhase, TourWorkspaceState};
 
 #[test]
+fn status_cells_preserve_missing_evidence_as_distinct_values() {
+    let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::LessonReady);
+    let presentation = state.status_presentation().unwrap();
+    let scene = status_scene(
+        LayoutRect {
+            x: 0,
+            y: 0,
+            width: 1280,
+            height: 64,
+        },
+        &presentation,
+    )
+    .unwrap();
+    for expected in [
+        "Body\nAbsent",
+        "Wake\nAbsent",
+        "Plan\nAbsent",
+        "Play\nInactive",
+        "Lines\nUnobserved",
+        "Host\nUnobserved",
+    ] {
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.payload() == expected)
+        );
+    }
+}
+
+#[test]
 fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
     let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
     state.selected_patchbay_subject = Some("meet-one-gear/change".into());
