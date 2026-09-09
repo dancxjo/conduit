@@ -17,7 +17,7 @@ Hosts also provide effects over time. This example uses a timer and state Gear s
 ```conduit run
 form count-over-time {
     count: state/count(start = 0)
-    show: presentation/count(maximum-values = 5)
+    show: presentation/count
     clock: time/every(freq = 120ms)
 
     clock.tick > count.bump
