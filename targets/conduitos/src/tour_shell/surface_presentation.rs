@@ -115,9 +115,14 @@ impl TourShellPresenter {
         self.surfaces[index].face_subject = Some(face_subject.into());
         self.surfaces[index].manifestation_id = Some(receipt.manifestation_id.clone());
         if matches!(slot, Slot::Inspector | Slot::Transient) {
-            self.surfaces[index]
-                .scroll
-                .configure(bounds.height, scene::SCROLL_CONTENT_HEIGHT)?;
+            self.surfaces[index].scroll.configure(
+                bounds.height,
+                if face_subject == TourTransientKind::Chooser.subject_identity() {
+                    432
+                } else {
+                    scene::SCROLL_CONTENT_HEIGHT
+                },
+            )?;
         }
         self.surfaces[index].bounds = Some(bounds);
         self.surfaces[index].presentation = Some(presentation.clone());
