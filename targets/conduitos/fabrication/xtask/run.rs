@@ -666,11 +666,11 @@ fn validate_observatory(
     );
     let exact_tick_placements = exact_placement(
         "time/tick",
-        "conduit.std/time-tick@2",
+        conduit_time::TICK_CONTRACT_REVISION,
         "conduitos/kernel-time-tick@1",
     ) && exact_placement(
         "presentation/tick",
-        "conduit.std/presentation-tick@1",
+        conduit_semantic_catalog::TICK_PRESENTATION_CONTRACT_REVISION,
         "conduitos/kernel-serial-tick@1",
     );
     let bases_match = snapshot.bases.len() == kernel.base_ids.len() + 1
