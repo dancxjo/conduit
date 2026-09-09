@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { acquireBrowserBodyHost } from "../../targets/browser/host/assets/browser-body-host.mjs";
 
-function fixture({ timer = false, text = "hello", quiescent = false } = {}) {
+function fixture({ timer = false, inputUnits = 0, text = "hello", quiescent = false } = {}) {
   const memory = { buffer: new ArrayBuffer(512 * 1024) };
   let length = 0, starts = 0, cancels = 0, request;
   const output = value => {
@@ -31,11 +31,26 @@ function fixture({ timer = false, text = "hello", quiescent = false } = {}) {
   const window = { setTimeout, clearTimeout, performance, crypto };
   const document = { defaultView: window, createElement() { return { dataset: {}, setAttribute() {}, remove() { this.isConnected = false; } }; } };
   const outputRoot = { isConnected: true, ownerDocument: document, children: [], append(element) { this.children.push(element);element.isConnected = true; } };
-  const inputTarget = { isConnected: true };
-  const resource = timer ? { pool_id: "browser/timer", class_id: "conduit.resource/timer-slot@1", units: 1 } : { pool_id: "browser/presentation", class_id: "conduit.resource/presentation-slot@1", units: 1 };
+  const inputTarget = Object.assign(new EventTarget(), {
+    isConnected: true,
+    nodeType: 1,
+    ownerDocument: document,
+    getBoundingClientRect: () => ({ width: 1, height: 1, left: 0, top: 0 }),
+  });
+  const resource = inputUnits > 0
+    ? { pool_id: "browser/window-input", class_id: "conduit.resource/browser-window-input@1", units: inputUnits }
+    : timer ? { pool_id: "browser/timer", class_id: "conduit.resource/timer-slot@1", units: 1 }
+      : { pool_id: "browser/presentation", class_id: "conduit.resource/presentation-slot@1", units: 1 };
   const proposal = { schema: "conduit.patchbay/body-execution-proposal@1", wake: { lifecycle: "AwaitingPlan", plans: [] }, plan: { forms: [{ plan: { fragments: [{ host_id: "host", boot_id: "boot", offer_generation: 1, placements: [{ placement_id: "placement", gear_id: "gear", resources: [resource] }] }] } }] } };
   return { api, proposal, outputRoot, inputTarget, hostId: "host", bootId: "boot", count: () => ({ starts, cancels }), request: () => request, output };
 }
+
+test("one acquired window-input adapter reports every admitted logical input unit", () => {
+  const f = fixture({ inputUnits: 16 });
+  const owner = acquireBrowserBodyHost(f);
+  assert.equal(owner.observations()[0].unreserved_units, 16);
+  owner.close();
+});
 
 test("acquisition reports owned slots without starting a Play or copying offer capacity", async () => {
   const f = fixture();
