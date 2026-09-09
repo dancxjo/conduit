@@ -299,6 +299,9 @@ fn paint(format: DisplayFormat, role: GraphicsPaintRole) -> u32 {
         GraphicsPaintRole::Muted => MUTED,
         GraphicsPaintRole::Success => SUCCESS,
         GraphicsPaintRole::Danger => DANGER,
+        GraphicsPaintRole::Focus => (0xff, 0xcc, 0x33),
+        GraphicsPaintRole::Hovered => (0xff, 0xcc, 0x33),
+        GraphicsPaintRole::Selected => ACCENT,
     };
     format.pixel(red, green, blue)
 }

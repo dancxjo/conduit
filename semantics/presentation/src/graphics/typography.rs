@@ -78,10 +78,13 @@ mod tests {
                 GraphicsScene::decode(&bytes[..len]),
                 Err(GraphicsError::MalformedEncoding)
             );
+            // Version 1 has no explicit role byte, so it refuses rather than
+            // silently changing the measured typography of a replayed scene.
             bytes[0] = 1;
-            let legacy = GraphicsScene::decode(&bytes[..len - 1]).unwrap();
-            assert_eq!(legacy.commands()[0].text_role(), GraphicsTextRole::Body);
-            assert_eq!(legacy.commands()[0].payload(), "café / id:42");
+            assert_eq!(
+                GraphicsScene::decode(&bytes[..len - 1]),
+                Err(GraphicsError::MalformedEncoding)
+            );
         }
     }
 }

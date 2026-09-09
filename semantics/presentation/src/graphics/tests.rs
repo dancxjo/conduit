@@ -1,6 +1,26 @@
 use super::*;
 
 #[test]
+fn interaction_state_paints_round_trip_and_unknown_paints_refuse() {
+    for role in [
+        GraphicsPaintRole::Focus,
+        GraphicsPaintRole::Hovered,
+        GraphicsPaintRole::Selected,
+    ] {
+        let mut scene = GraphicsScene::empty();
+        scene
+            .push(GraphicsCommand::text(rect(0, 10), rect(0, 10), role, "meaning").unwrap())
+            .unwrap();
+        let bytes = scene.encode();
+        assert_eq!(
+            GraphicsScene::decode(&bytes[..scene.encoded_len()]),
+            Ok(scene)
+        );
+    }
+    assert_eq!(decode_paint(12), Err(GraphicsError::MalformedEncoding));
+}
+
+#[test]
 fn graphical_roles_round_trip_and_refuse_unknown_or_nontext_roles() {
     for role in [
         GraphicsTextRole::Body,

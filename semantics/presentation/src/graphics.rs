@@ -38,6 +38,9 @@ pub enum GraphicsPaintRole {
     Success = 6,
     Warning = 7,
     Danger = 8,
+    Focus = 9,
+    Hovered = 10,
+    Selected = 11,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -415,6 +418,9 @@ fn decode_paint(value: u8) -> Result<GraphicsPaintRole, GraphicsError> {
         6 => Ok(GraphicsPaintRole::Success),
         7 => Ok(GraphicsPaintRole::Warning),
         8 => Ok(GraphicsPaintRole::Danger),
+        9 => Ok(GraphicsPaintRole::Focus),
+        10 => Ok(GraphicsPaintRole::Hovered),
+        11 => Ok(GraphicsPaintRole::Selected),
         _ => Err(GraphicsError::MalformedEncoding),
     }
 }
