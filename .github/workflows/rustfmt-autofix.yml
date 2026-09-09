@@ -1,0 +1,33 @@
+name: rustfmt-autofix
+
+on:
+  push:
+    branches:
+      - chore/rustfmt-native-visuals
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: chore/rustfmt-native-visuals
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rustfmt
+      - name: Format workspace
+        run: cargo fmt --all
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "conduit-rustfmt"
+          git config user.email "dancxjo@users.noreply.github.com"
+          git add -u
+          git commit -m "Format native visual integration"
+          git push origin HEAD:chore/rustfmt-native-visuals
