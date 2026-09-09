@@ -1,5 +1,7 @@
 //! Stable Patchbay boundaries for recursively realized Form Gears.
 
+use crate::prelude::*;
+
 use crate::{
     PatchbayComposition, PatchbayCompositionBinding, PatchbayFacePort, PatchbayGraph,
     PatchbayGraphError, RecursiveFormGearProjection,

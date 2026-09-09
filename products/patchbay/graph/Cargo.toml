@@ -1,0 +1,10 @@
+[package]
+name = "patchbay-graph"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-form = { path = "../../../architecture/form" }
+conduit-human = { path = "../../../semantics/human" }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false }

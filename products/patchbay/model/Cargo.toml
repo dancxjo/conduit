@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+patchbay-graph = { path = "../graph" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-human = { path = "../../../semantics/human" }
 patchbay-control = { path = "../control" }

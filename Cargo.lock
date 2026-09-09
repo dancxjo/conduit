@@ -2717,6 +2717,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "patchbay-graph"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-human",
+ "conduit-semantic-catalog",
+]
+
+[[package]]
 name = "patchbay-hosted"
 version = "0.1.0"
 dependencies = [
@@ -2772,6 +2782,7 @@ dependencies = [
  "conduit-time",
  "conduit-wire",
  "patchbay-control",
+ "patchbay-graph",
  "serde",
  "serde_json",
 ]

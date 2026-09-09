@@ -81,6 +81,7 @@ package_test_shard!(
         "conduitos",
         "patchbay-hosted",
         "patchbay-model",
+        "patchbay-graph",
         "patchbay-html",
         "patchbay-native",
     ],
