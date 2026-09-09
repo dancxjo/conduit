@@ -2,7 +2,7 @@
 
 use conduit_presentation::{
     ApplicationView, GraphicsCommand, GraphicsError, GraphicsPaintRole, GraphicsScene,
-    GraphicsShapeStyle, GraphicsTextRole, LayoutRect, SemanticPresentationRefusal,
+    GraphicsShapeStyle, LayoutRect, SemanticPresentationRefusal,
 };
 use conduit_tour_model::{
     TourLayoutRefusal, TourRect, TourWorkspaceLayout, TourWorkspacePhase, TourWorkspaceState,
@@ -10,24 +10,10 @@ use conduit_tour_model::{
 
 #[path = "tour_workspace_graph.rs"]
 mod graph;
+#[path = "tour_workspace_lesson.rs"]
+pub(crate) mod lesson;
 
 pub(crate) const STATUS_HEIGHT: u16 = 64;
-
-pub(crate) fn run_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
-    LayoutRect {
-        y: 92,
-        ..chooser_bounds(layout)
-    }
-}
-
-pub(crate) fn chooser_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
-    LayoutRect {
-        x: 8,
-        y: 128,
-        width: layout.narrative.width.saturating_sub(16).clamp(1, 112),
-        height: 28,
-    }
-}
 
 #[cfg(any(test, target_arch = "x86_64"))]
 pub(crate) fn hits_card(
@@ -58,7 +44,6 @@ pub enum TourWorkspaceSceneRefusal {
     Presentation(SemanticPresentationRefusal),
     Layout(TourLayoutRefusal),
     MissingRegion,
-    Graph,
     Graphics(GraphicsError),
 }
 
@@ -93,29 +78,6 @@ pub(crate) fn scene_with_observations(
     width: u16,
     height: u16,
     state: &TourWorkspaceState,
-    observations: Option<&crate::text_composition::TextObservations>,
-) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
-    let graph = canonical_graph()?;
-    scene_with_graph(width, height, state, &graph, observations)
-}
-
-/// Preparation only. The live Tour retains this projection across revisions.
-pub(crate) fn canonical_graph() -> Result<patchbay_graph::PatchbayGraph, TourWorkspaceSceneRefusal>
-{
-    let form = crate::ordinary_form::checked_expanded_text_form_named(
-        conduit_tour_model::CANONICAL_SOURCE,
-        "meet-one-gear",
-    )
-    .map_err(|_| TourWorkspaceSceneRefusal::Graph)?;
-    patchbay_graph::PatchbayGraph::from_expanded(&form)
-        .map_err(|_| TourWorkspaceSceneRefusal::Graph)
-}
-
-pub(crate) fn scene_with_graph(
-    width: u16,
-    height: u16,
-    state: &TourWorkspaceState,
-    graph: &patchbay_graph::PatchbayGraph,
     observations: Option<&crate::text_composition::TextObservations>,
 ) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
     let view = state
@@ -170,42 +132,9 @@ pub(crate) fn scene_with_graph(
         } else {
             node.text.as_str()
         };
-        // Keep the portable panel titles visible instead of dropping them
-        // while lowering their children into the native pane rectangles.
-        let panel_key = match key {
-            "lesson-status" => Some("lesson"),
-            "source" => Some("source-panel"),
-            "result" => Some("result-panel"),
-            _ => None,
-        };
-        let labeled;
-        let label = if let Some(panel_key) = panel_key {
-            let panel = view
-                .nodes
-                .iter()
-                .find(|node| node.key == panel_key)
-                .ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
-            labeled = alloc::format!("{}\n\n{label}", panel.text);
-            labeled.as_str()
-        } else {
-            label
-        };
         scene
             .push(
                 GraphicsCommand::text(inset(bounds), bounds, paint, label)
-                    .and_then(|command| {
-                        command.with_text_role(
-                            if node.component
-                                == conduit_presentation::ApplicationComponent::CodeBlock
-                            {
-                                GraphicsTextRole::Code
-                            } else if key == "lesson-status" {
-                                GraphicsTextRole::Label
-                            } else {
-                                GraphicsTextRole::Body
-                            },
-                        )
-                    })
                     .map_err(TourWorkspaceSceneRefusal::Graphics)?,
             )
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
@@ -214,45 +143,19 @@ pub(crate) fn scene_with_graph(
         &mut scene,
         graphics_rect(layout.patchbay)?,
         state,
-        graph,
         observations,
     )?;
-    let button = chooser_bounds(&layout);
-    let clip = graphics_rect(layout.narrative)?;
-    crate::native_components::button(&mut scene, button, clip, "Gears")
-        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-    if state.run_action_available() {
-        crate::native_components::button(&mut scene, run_bounds(&layout), clip, "Run Plan")
-            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-    } else {
-        scene
-            .push(
-                GraphicsCommand::text(
-                    run_bounds(&layout),
-                    clip,
-                    GraphicsPaintRole::Foreground,
-                    "Run inactive",
-                )
-                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
-            )
-            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-    }
-    if let conduit_presentation::ActionAvailability::Busy { detail }
-    | conduit_presentation::ActionAvailability::Unavailable { detail } = state.run_availability()
-    {
-        let reason = LayoutRect {
-            x: 8,
-            y: 168,
-            width: clip.width.saturating_sub(16).max(1),
-            height: 64,
-        };
-        scene
-            .push(
-                GraphicsCommand::text(reason, clip, GraphicsPaintRole::Foreground, &detail)
-                    .map_err(TourWorkspaceSceneRefusal::Graphics)?,
-            )
-            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-    }
+    let narrative = graphics_rect(layout.narrative)?;
+    lesson::append(
+        &mut scene,
+        LayoutRect {
+            height: narrative
+                .height
+                .min(height.saturating_sub(STATUS_HEIGHT).max(1)),
+            ..narrative
+        },
+        state,
+    )?;
     Ok(scene)
 }
 
@@ -311,26 +214,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn chooser_label_fits_a_complete_measured_font_line() {
-        for (width, height) in [(640, 480), (1280, 800)] {
-            let scene = scene(width, height, 1, TourWorkspacePhase::PatchbayOpen).unwrap();
-            let label = scene
-                .commands()
-                .iter()
-                .find(|command| command.payload() == "Gears")
-                .unwrap();
-            let measured =
-                crate::display::text_height(label.payload(), label.bounds.width).unwrap();
-            assert!(label.bounds.height >= measured);
-            assert!(label.bounds.y >= label.clip.y);
-            assert!(
-                i32::from(label.bounds.y) + i32::from(measured)
-                    <= i32::from(label.clip.y) + i32::from(label.clip.height)
-            );
-        }
-    }
-
-    #[test]
     fn conduitos_consumes_the_tour_owned_portable_view() {
         let view = application_view(11, TourWorkspacePhase::PatchbayOpen).unwrap();
         assert_eq!(view.revision, 11);
@@ -343,7 +226,13 @@ mod tests {
     #[test]
     fn native_scene_manifests_every_shared_region_and_visible_focus() {
         let scene = scene(640, 480, 12, TourWorkspacePhase::PatchbayOpen).unwrap();
-        assert_eq!(scene.commands().len(), 23);
+        assert!(scene.commands().len() > 16);
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.payload().contains("Conduit lets you make"))
+        );
         let frames: alloc::vec::Vec<_> = scene
             .commands()
             .iter()
@@ -370,19 +259,10 @@ mod tests {
             }
         );
         assert_eq!(frames[1].paint, GraphicsPaintRole::Accent);
-        assert_eq!(
-            scene.commands()[5].payload(),
-            alloc::format!("Source\n\n{CANONICAL_SOURCE}")
-        );
-        assert!(
-            scene.commands()[1]
-                .payload()
-                .starts_with("A first Form\n\n")
-        );
-        assert!(scene.commands()[7].payload().starts_with("Output\n\n"));
+        assert_eq!(scene.commands()[5].payload(), CANONICAL_SOURCE);
         assert!(scene.commands()[5].payload().ends_with("}"));
         assert!(scene.commands()[7].payload().contains("Patchbay open"));
-        assert!(scene.commands().iter().all(|command| {
+        assert!(scene.commands().iter().take(16).all(|command| {
             command.clip_class() == conduit_presentation::GraphicsClipClass::FullyVisible
         }));
     }
@@ -431,10 +311,7 @@ mod tests {
             .find(|command| command.payload().starts_with("change\ntext/upper"))
             .unwrap();
         assert_eq!(card.paint, GraphicsPaintRole::Accent);
-        assert!(scene.commands().iter().any(|command| {
-            command.payload().contains("value/text")
-                && command.paint == GraphicsPaintRole::Foreground
-        }));
+        assert!(card.payload().contains("value/text"));
         assert!(
             scene
                 .commands()

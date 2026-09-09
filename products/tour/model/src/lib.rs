@@ -15,6 +15,8 @@ mod gallery_experience;
 mod inspection;
 pub use inspection::canonical_gear_contract;
 mod layout;
+mod lesson;
+pub use lesson::TOUR_LESSON_SUBJECT;
 mod navigation;
 mod pointer;
 mod shell_presentations;

@@ -140,3 +140,23 @@ fn pane_sized_text_is_exactly_bounded_and_round_trips() {
         Err(GraphicsError::PayloadTooLong)
     );
 }
+
+#[test]
+fn full_scene_capacity_round_trips_and_refuses_one_more_command() {
+    let command = GraphicsCommand::text(
+        rect(0, 10),
+        rect(0, 10),
+        GraphicsPaintRole::Foreground,
+        &"x".repeat(MAX_GRAPHICS_TEXT_BYTES),
+    )
+    .unwrap();
+    let mut scene = GraphicsScene::empty();
+    for _ in 0..MAX_GRAPHICS_COMMANDS {
+        scene.push(command).unwrap();
+    }
+    let len = scene.encoded_len();
+    let bytes = scene.encode();
+    assert_eq!(len, MAX_GRAPHICS_SCENE_BYTES);
+    assert_eq!(GraphicsScene::decode(&bytes), Ok(scene));
+    assert_eq!(scene.push(command), Err(GraphicsError::TooManyCommands));
+}

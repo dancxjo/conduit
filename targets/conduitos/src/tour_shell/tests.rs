@@ -476,7 +476,7 @@ fn invoke_journey(
     journey.apply(request, identities, offer, "build", revision)
 }
 
-fn fixture() -> (TourProduct, TourShellPresenter, MemoryDisplay) {
+pub(super) fn fixture() -> (TourProduct, TourShellPresenter, MemoryDisplay) {
     let identities = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
@@ -560,8 +560,8 @@ fn delivered<T>(route: InputRoute<T>) -> T {
     }
 }
 
-struct MemoryDisplay {
-    pixels: Vec<u32>,
+pub(super) struct MemoryDisplay {
+    pub(super) pixels: Vec<u32>,
     width: u32,
     height: u32,
 }
