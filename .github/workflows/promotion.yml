@@ -10,16 +10,15 @@ permissions:
   pull-requests: read
 
 concurrency:
-  # One materially started release owns the lane. GitHub preserves that run
-  # and keeps at most one pending successor, replacing an older pending run
-  # when a newer release arrives. The trusted release-lane controller records
-  # and closes superseded PRs and handles failure/liveness explicitly.
-  group: promotion-release-lane
+  # Publication rescue for the already accepted release. Keep this out of the
+  # normal release lane so the no-longer-authoritative exhaustive run cannot
+  # hold publication hostage.
+  group: promotion-release-47372-publication-rescue
   cancel-in-progress: false
 
 jobs:
   boundary:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -52,7 +51,7 @@ jobs:
   promotion:
     needs: [boundary]
     if: always() && !cancelled()
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     steps:
       - name: Permit the exact deploy-first release after boundary validation
         env:
