@@ -19,6 +19,12 @@ on:
   push:
     branches: [dev]
     paths: [.github/release-audit/47372-publication.md]
+  # GITHUB_TOKEN merges do not emit a push-triggered run. The pre-sync
+  # finalizer's completion is the bounded recovery trigger for that path.
+  workflow_run:
+    workflows: [Finalize trusted release automation]
+    types: [completed]
+    branches: [dev]
 
 concurrency:
   group: tour-and-creche-pages
@@ -168,6 +174,13 @@ jobs:
   deploy-first-rescue:
     if: >-
       (github.event_name == 'push' && github.ref == 'refs/heads/dev') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.name == 'Finalize trusted release automation' &&
+       github.event.workflow_run.event == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'dev' &&
+       github.event.workflow_run.head_sha == '1ccfd24b2713fbb571630a57addc2551f6b3dd4a' &&
+       github.event.workflow_run.head_repository.full_name == github.repository) ||
       (github.event_name == 'pull_request_target' &&
        github.event.pull_request.merged == true &&
        github.event.pull_request.base.ref == 'main' &&

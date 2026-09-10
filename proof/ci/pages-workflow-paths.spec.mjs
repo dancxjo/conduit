@@ -232,3 +232,31 @@ test("Pages recovery executes freshness and source-integrity checks before publi
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+
+test("Pages recovery accepts only the successful pre-sync finalizer", () => {
+  const source = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
+  const trigger = source.match(/^  workflow_run:\n((?:    [^\n]+\n)+)/m)?.[1];
+  assert.equal(trigger, "    workflows: [Finalize trusted release automation]\n    types: [completed]\n    branches: [dev]\n");
+  const guard = pagesJob("deploy-first-rescue").match(/^    if: >-\n((?:      [^\n]+\n)+)/m)?.[1];
+  assert.ok(guard);
+  const evaluate = Function("github", `"use strict"; return (${guard.trim()});`);
+  const baseline = {
+    name: "Finalize trusted release automation", event: "workflow_run", conclusion: "success",
+    head_branch: "dev", head_sha: "1ccfd24b2713fbb571630a57addc2551f6b3dd4a",
+    head_repository: { full_name: "dancxjo/conduit" },
+  };
+  const accepts = (run) => evaluate({
+    event_name: "workflow_run", ref: "refs/heads/dev", repository: "dancxjo/conduit",
+    event: { workflow_run: run, pull_request: {} },
+  });
+  assert.equal(accepts(baseline), true);
+  for (const replacement of [
+    { name: "candidate" }, { event: "workflow_dispatch" },
+    { conclusion: "failure" }, { conclusion: "cancelled" }, { conclusion: "skipped" },
+    { head_branch: "main" }, { head_sha: "0".repeat(40) },
+    { head_repository: { full_name: "other/conduit" } },
+  ]) {
+    assert.equal(accepts({ ...baseline, ...replacement }), false, JSON.stringify(replacement));
+  }
+});
