@@ -240,7 +240,13 @@ fn inspector_width(width: u16) -> u16 {
 }
 
 #[cfg(test)]
-fn delta_hits(bounds: conduit_presentation::LayoutRect, width: u16, height: u16, dx: i64, dy: i64) -> bool {
+fn delta_hits(
+    bounds: conduit_presentation::LayoutRect,
+    width: u16,
+    height: u16,
+    dx: i64,
+    dy: i64,
+) -> bool {
     let normalized_x = POINTER_CENTER_NORMALIZED + dx * POINTER_NORMALIZED_SCALE;
     let normalized_y = POINTER_CENTER_NORMALIZED + dy * POINTER_NORMALIZED_SCALE;
     let pixel_x = normalized_x * i64::from(width) / POINTER_NORMALIZED_MAX;
