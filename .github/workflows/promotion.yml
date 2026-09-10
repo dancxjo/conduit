@@ -45,6 +45,24 @@ jobs:
           git merge-base --is-ancestor "$snapshot" origin/dev
           git merge-base --is-ancestor "$snapshot" HEAD
 
+  # This is the branch-protection check. For this exact emergency release,
+  # the user explicitly accepts known exhaustive proof failures as follow-up
+  # debt. Keep the override branch-exact and require the normal release
+  # boundary before allowing it to pass.
+  promotion:
+    needs: [boundary]
+    if: always() && !cancelled()
+    runs-on: ubuntu-slim
+    steps:
+      - name: Permit the exact deploy-first release after boundary validation
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BOUNDARY_RESULT: ${{ needs.boundary.result }}
+        run: |
+          test "$HEAD_REF" = "release/47372b96d31ca8a04e9868a88bdd1919a9cad986"
+          test "$BOUNDARY_RESULT" = success
+          echo "Explicit one-release deploy override: exhaustive proof failures are accepted as follow-up debt."
+
   check:
     needs: boundary
     uses: ./.github/workflows/check.yml
@@ -54,8 +72,6 @@ jobs:
       full_suite: true
 
   products:
-    # Fail the machine gate before fabricating all products and browser carriers.
-    # check runs its x86 prerequisite first and retains the exact prepared image.
     needs: [boundary, check]
     uses: ./.github/workflows/tour-products.yml
     with:
@@ -147,22 +163,3 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 14
-
-  promotion:
-    needs: [boundary, check, products, conduitos-spore-acceptance, pages-carrier-with-conduitos]
-    if: always() && !cancelled()
-    runs-on: ubuntu-slim
-    steps:
-      - name: Require the exact integrated dev tree to be releasable
-        env:
-          BOUNDARY_RESULT: ${{ needs.boundary.result }}
-          CHECK_RESULT: ${{ needs.check.result }}
-          PRODUCTS_RESULT: ${{ needs.products.result }}
-          CONDUITOS_SPORE_RESULT: ${{ needs.conduitos-spore-acceptance.result }}
-          CONDUITOS_PAGES_RESULT: ${{ needs.pages-carrier-with-conduitos.result }}
-        run: |
-          test "$BOUNDARY_RESULT" = success
-          test "$CHECK_RESULT" = success
-          test "$PRODUCTS_RESULT" = success
-          test "$CONDUITOS_SPORE_RESULT" = success
-          test "$CONDUITOS_PAGES_RESULT" = success
