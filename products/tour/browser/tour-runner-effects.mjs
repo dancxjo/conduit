@@ -1,7 +1,10 @@
 // Adapts effects admitted by the production kernel to this browser laboratory.
 export function createTourEffectPerformer({ api, runner, humanInput, openHumanInput, isCurrent,
-  delay, renderIdentities, renderMorse, setIndicator }) {
+  delay, renderIdentities, renderRunIdentities, renderMorse, setIndicator }) {
   return async (progress, signal) => {
+    if (typeof progress?.active_play_id === "string") {
+      renderRunIdentities(runner, progress);
+    }
     if (progress.effect_kind === "clock-observation") {
       const bytes = new Uint8Array(8);
       new DataView(bytes.buffer).setBigUint64(0, BigInt(Math.floor(performance.now() * 1000)), true);
