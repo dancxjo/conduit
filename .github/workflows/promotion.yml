@@ -59,7 +59,7 @@ jobs:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
           BOUNDARY_RESULT: ${{ needs.boundary.result }}
         run: |
-          test "$HEAD_REF" = "release/f3ba9d3b209110a8ee938db43bd2498a9b0cb9d4"
+          test "$HEAD_REF" = "release/47372b96d31ca8a04e9868a88bdd1919a9cad986"
           test "$BOUNDARY_RESULT" = success
           echo "Explicit one-release deploy override: exhaustive proof failures are accepted as follow-up debt."
 

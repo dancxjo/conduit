@@ -1099,6 +1099,10 @@ function finishRun(runner) {
   runner.actionControls.render(false);
 }
 
+function setLifecycleDisposition(runner, disposition) {
+  runner.dataset.lifecycleDisposition = disposition;
+}
+
 async function runListing(runner, source, recursive) {
   if (running && activeRunner) stopListing(activeRunner);
   const current = ++generation;
@@ -1146,18 +1150,20 @@ async function runListing(runner, source, recursive) {
   running = true;
   activeRunner = runner;
   setNavigationDisabled(true);
+  setLifecycleDisposition(runner, "running");
   runner.playStatus.ordinary("Playing through this browser Host…");
   runner.actionControls.render(true);
   try {
     const perform = createTourEffectPerformer({
       api, runner, humanInput, openHumanInput, isCurrent: () => current === generation,
       delay: (milliseconds, signal) => delay(milliseconds, current, signal),
-      renderIdentities, renderMorse, setIndicator,
+      renderIdentities, renderRunIdentities, renderMorse, setIndicator,
     });
     progress = await drainBrowserEffects({
       api, initialProgress: progress, readOutput, perform,
       isCurrent: () => current === generation,
       onWaiting: (pending) => {
+        setLifecycleDisposition(runner, "waiting");
         const timer = pending.find((effect) => effect.effect_kind === "timer");
         const button = pending.some((effect) => effect.effect_kind === "button-transition");
         const pointer = pending.some((effect) => effect.effect_kind === "pointer-event");
@@ -1170,6 +1176,7 @@ async function runListing(runner, source, recursive) {
     });
     if (current !== generation) return;
     if (progress.disposition === "quiescent_awaiting_input") {
+      setLifecycleDisposition(runner, "quiescent_awaiting_input");
       runner.playStatus.ordinary(progress.timer_completions > 0
         ? `Quiescent — same Play remains attached after ${progress.timer_completions} planned ticks and ${progress.manifestation_completions} presentations.`
         : `Quiescent — same Play remains attached after ${progress.manifestation_completions} planned manifestations.`);
@@ -1181,6 +1188,7 @@ async function runListing(runner, source, recursive) {
       ]);
       return;
     }
+    setLifecycleDisposition(runner, progress.disposition);
     runner.playStatus.success(progress.timer_completions > 0
       ? `Completed — one bounded Play, ${progress.timer_completions} planned ticks, ${progress.manifestation_completions} presentations.`
       : `Completed — one bounded Play, ${progress.manifestation_completions} planned manifestations.`);
@@ -1200,8 +1208,21 @@ async function runListing(runner, source, recursive) {
     generation += 1;
     cancelDelay();
     humanInput?.cancelPending();
-    api.conduit_browser_form_cancel();
+    let receipt = null;
+    const cancelCode = api.conduit_browser_form_cancel();
+    if (cancelCode >= 0 && api.conduit_browser_form_output_len() > 0) {
+      receipt = readOutput(api);
+    }
     setIndicator(runner, false);
+    setLifecycleDisposition(runner, "failed");
+    if (receipt?.disposition === "cancelled") {
+      appendRunEvidence(runner, [
+        ["Lifecycle", "CancelledAfterHostLoss"],
+        ["Terminal Sign", receipt.terminal_sign_id],
+        ["Timer completions", String(receipt.timer_completions)],
+        ["Manifestation completions", String(receipt.manifestation_completions)],
+      ]);
+    }
     runner.playStatus.failure(error instanceof Error ? error.message : String(error));
     running = false;
     activeRunner = null;
@@ -1217,11 +1238,18 @@ function stopListing(runner) {
   cancelDelay();
   humanInput?.cancelPending();
   const multiReceipts = running && runner.dataset.mode === "multi" ? cancelMultiSessions() : null;
-  if (running && runner.dataset.mode !== "multi") host.runtime.conduit_browser_form_cancel();
+  let receipt = null;
+  if (running && runner.dataset.mode !== "multi") {
+    const code = host.runtime.conduit_browser_form_cancel();
+    if (code >= 0 && host.runtime.conduit_browser_form_output_len() > 0) {
+      receipt = readOutput(host.runtime);
+    }
+  }
   running = false;
   activeRunner = null;
   setNavigationDisabled(false);
   setIndicator(runner, false);
+  setLifecycleDisposition(runner, "cancelled");
   runner.actionControls.render(false);
   if (multiReceipts?.source?.receipt && multiReceipts?.sink?.receipt) {
     const count = multiReceipts.source.receipt.transferred_values;
@@ -1230,6 +1258,14 @@ function stopListing(runner) {
       ["Terminal sink receipt", multiReceipts.sink.receipt.terminal_sign_id],
     ]);
     runner.playStatus.ordinary(`Stopped. The Plays were cancelled after ${count} delivered cross-Host value${count === 1 ? "" : "s"}.`);
+  } else if (receipt?.disposition === "cancelled") {
+    appendRunEvidence(runner, [
+      ["Lifecycle", "Cancelled"],
+      ["Terminal Sign", receipt.terminal_sign_id],
+      ["Timer completions", String(receipt.timer_completions)],
+      ["Manifestation completions", String(receipt.manifestation_completions)],
+    ]);
+    runner.playStatus.ordinary(`Stopped. The Play was cancelled at ${receipt.terminal_sign_id}.`);
   } else {
     runner.playStatus.ordinary("Stopped. The Play was cancelled.");
   }
@@ -1278,7 +1314,7 @@ function renderMorse(segments) {
 }
 
 function renderIdentities(runner, effect) {
-  runner.evidence.run(effect);
+  renderRunIdentities(runner, effect);
   const expansion = runner.querySelector(".exact-evidence .expansion");
   expansion.replaceChildren();
   const mode = document.createElement("p");
@@ -1306,6 +1342,10 @@ function renderIdentities(runner, effect) {
     gears.append(item);
   }
   expansion.append(heading, gears);
+}
+
+function renderRunIdentities(runner, effect) {
+  runner.evidence.run(effect);
 }
 
 function appendRunEvidence(runner, entries) {
