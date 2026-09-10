@@ -49,6 +49,7 @@ jobs:
       - name: Check out trusted merged workflow machinery
         uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
       - name: Resolve the exact successful PR product run
         id: resolve
