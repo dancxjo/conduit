@@ -4,7 +4,7 @@ use std::{os::unix::net::UnixStream, path::Path, process::Child};
 
 use serde_json::Value;
 
-use super::{journey_input, journey_records, qmp, ConduitosError};
+use super::{hid_qmp, journey_input, journey_records, qmp, ConduitosError};
 
 pub(super) fn type_hello(
     stream: &mut UnixStream,
@@ -13,23 +13,37 @@ pub(super) fn type_hello(
     child: &mut Child,
 ) -> Result<(), ConduitosError> {
     for (index, key) in ["h", "e", "l", "l", "o"].into_iter().enumerate() {
-        journey_input::key_pair(stream, reader, key, "standing-input")?;
         let expected = &"HELLO"[..index + 1];
-        journey_input::wait_for_record(
-            serial,
-            child,
-            "product-journey-standing-input-timeout",
-            expected,
-            |text| {
-                Ok(journey_records::decode(text)?.iter().any(|record| {
-                    record["status"] == "playing"
-                        && record["result"] == expected
-                        && record["input_count"] == ((index + 1) * 2) as u64
-                }))
-            },
-        )?;
+        let pressed_count = index * 2 + 1;
+        hid_qmp::send_named_keys(stream, reader, &[key], true, "standing-input-down")?;
+        wait_prefix(serial, child, expected, pressed_count)?;
+
+        let released_count = pressed_count + 1;
+        hid_qmp::send_named_keys(stream, reader, &[key], false, "standing-input-up")?;
+        wait_prefix(serial, child, expected, released_count)?;
     }
     Ok(())
+}
+
+fn wait_prefix(
+    serial: &Path,
+    child: &mut Child,
+    expected: &str,
+    input_count: usize,
+) -> Result<(), ConduitosError> {
+    journey_input::wait_for_record(
+        serial,
+        child,
+        "product-journey-standing-input-timeout",
+        expected,
+        |text| {
+            Ok(journey_records::decode(text)?.iter().any(|record| {
+                record["status"] == "playing"
+                    && record["result"] == expected
+                    && record["input_count"] == input_count as u64
+            }))
+        },
+    )
 }
 
 pub(super) fn validate(records: &[Value]) -> Result<&Value, ConduitosError> {
