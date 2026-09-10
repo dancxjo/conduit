@@ -30,7 +30,10 @@ jobs:
   resolve:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && startsWith(github.event.pull_request.head.ref, 'release/'))
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.base.ref == 'main' &&
+       startsWith(github.event.pull_request.head.ref, 'release/') &&
+       github.event.pull_request.head.ref != 'release/47372b96d31ca8a04e9868a88bdd1919a9cad986')
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     outputs:
@@ -145,6 +148,65 @@ jobs:
           EXPECTED_TREE: ${{ needs.resolve.outputs.disposition == 'inherited' && needs.resolve.outputs.source_tree || needs.resolve.outputs.integration_tree }}
         run: node tools/ci/verify-pages-carrier.mjs target/pages-carrier "$EXPECTED_TREE"
       - name: Upload the already-proven Pages carrier
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: target/pages-carrier/site
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+      - name: Deploy Conduit Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+  deploy-first-rescue:
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'release/47372b96d31ca8a04e9868a88bdd1919a9cad986'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the exact released product source
+        uses: actions/checkout@v7
+        with:
+          ref: f1e0245a8a55116a91c334d4e6f2719d81bc2ff3
+          fetch-depth: 0
+      - name: Reuse the exact already-built staged release payload
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-staged-browser-products
+          path: target
+          repository: ${{ github.repository }}
+          run-id: 34522795014
+          github-token: ${{ github.token }}
+      - name: Seal the deploy-first Pages carrier without the stale browser-proof veto
+        run: |
+          rm -rf target/pages-site target/pages-carrier
+          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/workspace target/pages-site/patchbay
+          cp -a target/pages-root/. target/pages-site/
+          cp -a target/tour-product/. target/pages-site/tour/
+          cp -a target/creche-product/. target/pages-site/creche/
+          cp -a target/workspace-product/. target/pages-site/workspace/
+          cp -a target/patchbay-product/. target/pages-site/patchbay/
+          node products/tour/tools/stage-legacy-routes.mjs target/pages-site
+          echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
+          test -f target/pages-site/tour/tour.application.json
+          test -f target/pages-site/book/index.html
+          test -f target/pages-site/creche/index.html
+          test -f target/pages-site/creche/creche.application.json
+          test -f target/pages-site/workspace/workspace.application.json
+          test -f target/pages-site/creche/runtime.wasm
+          test -f target/pages-site/patchbay/patchbay.application.json
+          test -f target/pages-site/patchbay/api/snapshot
+          source_commit=$(git rev-parse HEAD)
+          source_tree=$(git rev-parse 'HEAD^{tree}')
+          test "$source_commit" = f1e0245a8a55116a91c334d4e6f2719d81bc2ff3
+          node tools/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"
+          node tools/ci/verify-pages-carrier.mjs target/pages-carrier "$source_tree"
+      - name: Upload the deploy-first Pages carrier
         uses: actions/upload-pages-artifact@v5
         with:
           path: target/pages-carrier/site
