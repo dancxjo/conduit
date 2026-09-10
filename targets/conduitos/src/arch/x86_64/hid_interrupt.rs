@@ -92,13 +92,8 @@ pub(super) fn submit_report(
 ) -> Result<(), HidError> {
     let ring = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
     let reports = dma_physical + core::mem::offset_of!(HidDma, reports) as u64;
-    if index % REPORT_BUFFERS != 0 {
-        return Ok(());
-    }
-    let end = index
-        .checked_add(REPORT_BUFFERS)
-        .ok_or(HidError::TransferOverflow)?;
-    for report_index in index..end {
+    let (start, end) = report_window(index)?;
+    for report_index in start..end {
         enqueue(report_index, ring, reports);
     }
     controller.ring_endpoint(device.slot, dci);
@@ -106,6 +101,17 @@ pub(super) fn submit_report(
         serial::early_write(b"CONDUIT_BOOT_STAGE hid-awaiting-qemu-key\n");
     }
     Ok(())
+}
+
+fn report_window(index: usize) -> Result<(usize, usize), HidError> {
+    if index == 0 {
+        return Ok((0, REPORT_BUFFERS));
+    }
+    let start = index
+        .checked_add(REPORT_BUFFERS - 1)
+        .ok_or(HidError::TransferOverflow)?;
+    let end = start.checked_add(1).ok_or(HidError::TransferOverflow)?;
+    Ok((start, end))
 }
 
 /// Polls one already-armed report completion.  `Ok(None)` is ordinary: it is

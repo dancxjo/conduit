@@ -10,6 +10,14 @@ use std::{
 const READY: &str = "CONDUIT_BOOT_STAGE pointer-awaiting-report";
 const RUN: &str = "CONDUIT_TOUR_CHECKPOINT run-button-completed";
 const RELEASE: &str = "CONDUIT_TOUR_CHECKPOINT surface-gesture-released";
+const DISPLAY_WIDTH: u16 = 1280;
+const DISPLAY_HEIGHT: u16 = 800;
+const STATUS_HEIGHT: u16 = 64;
+const LESSON_CONTROL_BAR_HEIGHT: u16 = 40;
+const SELECTED_NARRATIVE_PERCENT: u16 = 30;
+const POINTER_CENTER_NORMALIZED: i64 = 500_000;
+const POINTER_NORMALIZED_SCALE: i64 = 4_000;
+const POINTER_NORMALIZED_MAX: i64 = 1_000_000;
 
 pub(super) fn execute(paths: &Paths, image: &Path, digest: &str) -> Result<(), ConduitosError> {
     // Keep each boot's evidence; do not overwrite another live proof's sockets.
@@ -97,11 +105,11 @@ pub(super) fn execute(paths: &Paths, image: &Path, digest: &str) -> Result<(), C
         let offset = fs::metadata(&serial).map_err(io)?.len() as usize;
         button(&mut stream, &mut reader, &serial, &mut child, false)?;
         wait(&serial, &mut child, RELEASE, offset)?;
-        // After chooser selection the pointer remains centered. The selected
-        // workspace Run control occupies the bottom-left lesson control bar;
-        // one boot-mouse report reaches its center with this bounded delta.
-        // Keep the local regression below tied to the shared 640x480 layout.
-        motion(&mut stream, &mut reader, &serial, &mut child, -111, 81)?;
+        // After chooser selection the pointer remains centered. Derive the Run
+        // target from the selected-workspace layout contract at the graphical
+        // product framebuffer size.
+        let (dx, dy) = run_pointer_delta(DISPLAY_WIDTH, DISPLAY_HEIGHT)?;
+        motion(&mut stream, &mut reader, &serial, &mut child, dx, dy)?;
         button(&mut stream, &mut reader, &serial, &mut child, true)?;
         wait(&serial, &mut child, RUN, 0)?;
         motion(&mut stream, &mut reader, &serial, &mut child, 0, 1)?;
@@ -186,6 +194,63 @@ fn motion(
     wait(serial, child, READY, offset)
 }
 
+fn run_pointer_delta(width: u16, height: u16) -> Result<(i64, i64), ConduitosError> {
+    let run = selected_run_bounds(width, height)?;
+    let target_x = i64::from(run.x) + i64::from(run.width / 2);
+    let target_y = i64::from(run.y) + i64::from(run.height / 2);
+    let target_x_normalized = target_x * POINTER_NORMALIZED_MAX / i64::from(width);
+    let target_y_normalized = target_y * POINTER_NORMALIZED_MAX / i64::from(height);
+    Ok((
+        (target_x_normalized - POINTER_CENTER_NORMALIZED + POINTER_NORMALIZED_SCALE / 2)
+            / POINTER_NORMALIZED_SCALE,
+        (target_y_normalized - POINTER_CENTER_NORMALIZED + POINTER_NORMALIZED_SCALE / 2)
+            / POINTER_NORMALIZED_SCALE,
+    ))
+}
+
+fn selected_run_bounds(
+    width: u16,
+    height: u16,
+) -> Result<conduit_presentation::LayoutRect, ConduitosError> {
+    let available_height = height
+        .checked_sub(STATUS_HEIGHT)
+        .ok_or_else(|| ConduitosError::refusal("run-control-layout", "empty viewport height"))?;
+    let available_width = width
+        .checked_sub(inspector_width(width))
+        .ok_or_else(|| ConduitosError::refusal("run-control-layout", "empty viewport width"))?;
+    let narrative_width = available_width
+        .saturating_mul(SELECTED_NARRATIVE_PERCENT)
+        .checked_div(100)
+        .ok_or_else(|| ConduitosError::refusal("run-control-layout", "invalid narrative split"))?;
+    Ok(conduit_presentation::LayoutRect {
+        x: 8,
+        y: i16::try_from(
+            available_height
+                .saturating_sub(LESSON_CONTROL_BAR_HEIGHT)
+                .saturating_add(6),
+        )
+        .unwrap_or(i16::MAX),
+        width: (narrative_width.saturating_sub(24) / 2).clamp(1, 112),
+        height: 28,
+    })
+}
+
+fn inspector_width(width: u16) -> u16 {
+    (width / 3).max(180)
+}
+
+#[cfg(test)]
+fn delta_hits(bounds: conduit_presentation::LayoutRect, width: u16, height: u16, dx: i64, dy: i64) -> bool {
+    let normalized_x = POINTER_CENTER_NORMALIZED + dx * POINTER_NORMALIZED_SCALE;
+    let normalized_y = POINTER_CENTER_NORMALIZED + dy * POINTER_NORMALIZED_SCALE;
+    let pixel_x = normalized_x * i64::from(width) / POINTER_NORMALIZED_MAX;
+    let pixel_y = normalized_y * i64::from(height) / POINTER_NORMALIZED_MAX;
+    pixel_x >= i64::from(bounds.x)
+        && pixel_x < i64::from(bounds.x) + i64::from(bounds.width)
+        && pixel_y >= i64::from(bounds.y)
+        && pixel_y < i64::from(bounds.y) + i64::from(bounds.height)
+}
+
 fn validate(text: &str) -> Result<(), ConduitosError> {
     let lines: Vec<_> = text.lines().collect();
     let output = lines
@@ -224,15 +289,14 @@ mod tests {
     }
     #[test]
     fn run_pointer_delta_targets_current_selected_control() {
-        // Selected 640x480 Tour layout reserves a 64px status strip and
-        // inspector width, putting Run at x=8..60 and y=382..410.
-        // The pointer starts centered at normalized (500000, 500000).
-        let final_x = 500_000_i64 - 111 * 4_000;
-        let final_y = 500_000_i64 + 81 * 4_000;
-        let pixel_x = final_x * 640 / 1_000_000;
-        let pixel_y = final_y * 480 / 1_000_000;
-        assert!((8..60).contains(&pixel_x));
-        assert!((382..410).contains(&pixel_y));
+        let bounds = selected_run_bounds(DISPLAY_WIDTH, DISPLAY_HEIGHT).unwrap();
+        assert_eq!(bounds.x, 8);
+        assert_eq!(bounds.y, 702);
+        assert_eq!(bounds.width, 112);
+        assert_eq!(bounds.height, 28);
+        let (dx, dy) = run_pointer_delta(DISPLAY_WIDTH, DISPLAY_HEIGHT).unwrap();
+        assert_eq!((dx, dy), (-112, 99));
+        assert!(delta_hits(bounds, DISPLAY_WIDTH, DISPLAY_HEIGHT, dx, dy));
     }
 
     #[test]
