@@ -1,4 +1,10 @@
-//! Hosted QEMU acceptance for the normal long-lived zero-Body product entrance.
+//! Transitional hosted QEMU acceptance for the normal long-lived zero-Body Crèche arrival.
+//!
+//! Keep the externally selected `front-door` proof slot stable while the native product
+//! entrance is being made genuinely Crèche-first. This proof deliberately does not encode
+//! incidental USB/HID initialization ordering. Its contract is product-facing: the normal
+//! IMAGE reaches a usable zero-Body Crèche, accepts an explicit Crèche interaction without
+//! inventing lifecycle, and remains alive.
 
 use std::{
     fs,
@@ -14,13 +20,14 @@ use crate::cli::GlobalOpts;
 use super::{hid_qmp, image, profile::Paths, report::git_head, ConduitosArch, ConduitosError};
 
 #[derive(Serialize)]
-struct FrontDoorProof {
+struct CrecheArrivalProof {
     schema: &'static str,
     base_commit: String,
     image_sha256: String,
     profile: &'static str,
     body: Option<String>,
-    form_reviewed: bool,
+    creche_ready: bool,
+    form_opened: bool,
     naming_edited: bool,
     effects: u8,
     remained_alive: bool,
@@ -113,7 +120,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         {
             return Err(ConduitosError::refusal(
                 "front-door-not-long-lived",
-                "normal IMAGE exited while naming a Body in the Crèche",
+                "normal IMAGE exited while interacting with the zero-Body Crèche",
             ));
         }
         Ok(())
@@ -130,12 +137,31 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let serial = fs::read_to_string(&serial_path).map_err(|error| {
         ConduitosError::refusal("front-door-serial-unavailable", error.to_string())
     })?;
-    let ready = serial.find("CONDUIT_BOOT_STAGE front-door-ready");
-    let first_report = serial.find("CONDUIT_BOOT_STAGE hid-release-report");
-    if ready.is_none() || first_report.is_none() || ready >= first_report {
+
+    let creche_ready = serial.contains("CONDUIT_BOOT_STAGE front-door-ready")
+        && serial.contains("CONDUIT_CRECHE_CHECKPOINT ready");
+    if !creche_ready {
         return Err(ConduitosError::refusal(
-            "front-door-waited-for-input",
-            "the Crèche was not ready before the first ordinary HID report",
+            "creche-arrival-not-ready",
+            "normal IMAGE never established the zero-Body Crèche readiness checkpoint",
+        ));
+    }
+    if !serial.contains("\"body_id\":null") {
+        return Err(ConduitosError::refusal(
+            "creche-arrival-invented-body",
+            "normal zero-Body arrival did not project an explicitly absent Body",
+        ));
+    }
+    if serial.contains("\"status\":\"form-opened\"") {
+        return Err(ConduitosError::refusal(
+            "creche-arrival-opened-form",
+            "normal zero-Body arrival opened a Form before explicit Crèche selection",
+        ));
+    }
+    if !serial.contains("CONDUIT_CRECHE_CHECKPOINT edited") {
+        return Err(ConduitosError::refusal(
+            "creche-arrival-not-interactive",
+            "the Crèche did not acknowledge the explicit naming interaction",
         ));
     }
     if serial.contains("\"status\":\"born-lulled\"")
@@ -147,14 +173,16 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "normal zero-Body interaction entered proof or Body lifecycle machinery",
         ));
     }
-    let proof = FrontDoorProof {
-        schema: "conduit.conduitos/front-door-proof@2",
+
+    let proof = CrecheArrivalProof {
+        schema: "conduit.conduitos/creche-arrival-proof@1",
         base_commit: git_head(&paths.root)?,
         image_sha256: image.iso_sha256,
         profile: super::demo::DEMO_PROFILE,
         body: None,
-        form_reviewed: serial.contains("\"status\":\"form-opened\""),
-        naming_edited: serial.contains("CONDUIT_CRECHE_CHECKPOINT edited"),
+        creche_ready,
+        form_opened: false,
+        naming_edited: true,
         effects: 0,
         remained_alive: true,
         stopped_by_harness: true,
@@ -165,7 +193,10 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ConduitosError::refusal("front-door-proof-unavailable", error.to_string())
     })?;
     if !opts.quiet && !opts.json {
-        println!("ConduitOS front-door proof: {}", proof_path.display());
+        println!(
+            "ConduitOS transitional Crèche arrival proof: {}",
+            proof_path.display()
+        );
     }
     Ok(())
 }

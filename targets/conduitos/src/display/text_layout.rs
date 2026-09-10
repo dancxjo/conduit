@@ -6,6 +6,8 @@ pub(super) struct TextCursor {
     width: u32,
     x: u32,
     y: u32,
+    previous_x: u32,
+    has_previous: bool,
 }
 
 impl TextCursor {
@@ -14,6 +16,8 @@ impl TextCursor {
             width: u32::from(width),
             x: 0,
             y: 0,
+            previous_x: 0,
+            has_previous: false,
         }
     }
 
@@ -21,38 +25,42 @@ impl TextCursor {
         if character == '\n' {
             self.x = 0;
             self.y = self.y.saturating_add(font::GLYPH_HEIGHT);
+            self.previous_x = 0;
+            self.has_previous = false;
             return None;
         }
-        let width = u32::from(font::glyph(character).0.width);
-        if Self::is_combining_mark(character) {
-            return Some((self.x.saturating_sub(width), self.y));
+        if self.has_previous && is_combining_mark(character) {
+            return Some((self.previous_x, self.y));
         }
+        let width = u32::from(font::glyph(character).0.width);
         if self.x + width > self.width {
             self.x = 0;
             self.y = self.y.saturating_add(font::GLYPH_HEIGHT);
         }
         let position = (self.x, self.y);
+        self.previous_x = self.x;
+        self.has_previous = true;
         self.x += width;
         Some(position)
     }
+}
 
-    const fn is_combining_mark(character: char) -> bool {
-        matches!(
-            character as u32,
-            0x0300..=0x036F
-                | 0x1AB0..=0x1AFF
-                | 0x1DC0..=0x1DFF
-                | 0x20D0..=0x20FF
-                | 0xFE20..=0xFE2F
-        )
-    }
+fn is_combining_mark(character: char) -> bool {
+    matches!(
+        character as u32,
+        0x0300..=0x036f
+            | 0x1ab0..=0x1aff
+            | 0x1dc0..=0x1dff
+            | 0x20d0..=0x20ff
+            | 0xfe20..=0xfe2f
+    )
 }
 
 pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> {
     let mut cursor = TextCursor::new(width);
     for character in value.chars() {
         if character != '\n'
-            && !TextCursor::is_combining_mark(character)
+            && !is_combining_mark(character)
             && u16::from(font::glyph(character).0.width) > width
         {
             return Err(DisplayError::InvalidExtent);
@@ -67,12 +75,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn measurement_uses_glyph_widths_newlines_and_fallback() {
+    fn measurement_uses_glyph_widths_newlines_fallback_and_combining_marks() {
         assert_eq!(text_height("ABCD", 16), Ok(32));
         assert_eq!(text_height("AB\nCD", 16), Ok(32));
         assert_eq!(text_height("中A", 16), Ok(32));
         assert_eq!(text_height("A\n", 16), Ok(32));
         assert_eq!(text_height("🦀", 16), text_height("�", 16));
         assert_eq!(text_height("中", 8), Err(DisplayError::InvalidExtent));
+        assert_eq!(text_height("Aẹ\u{0301}BC", 16), Ok(32));
+        assert_eq!(
+            text_height("Aẹ\u{0301}BC", 16),
+            text_height("Aẹ\u{0301}\nBC", 16)
+        );
     }
 }

@@ -172,13 +172,11 @@ fn shared_search_filters_visible_controls_without_losing_included_forms() {
 
 #[test]
 fn two_form_scene_and_refusal_fit_the_native_display_envelope() {
-    let arrival = door(None);
-    assert!(arrival.scene(&super::super::tests::Sink).is_ok());
-    let scene = arrival.scene(&super::super::tests::Sink).unwrap();
-    assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
-    crate::display::render_scene(&mut super::super::tests::Sink, &scene).unwrap();
-    let refused = door(Some("keyboard not offered".into()));
-    let scene = refused.scene(&super::super::tests::Sink).unwrap();
+    let mut door = door(None);
+    assert!(door.scene(&super::super::tests::Sink).is_ok());
+    press(&mut door, 42);
+    press(&mut door, 60);
+    let scene = door.scene(&super::super::tests::Sink).unwrap();
     assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
     crate::display::render_scene(&mut super::super::tests::Sink, &scene).unwrap();
 }

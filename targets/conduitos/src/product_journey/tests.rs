@@ -75,7 +75,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     );
     assert_eq!(
         invoke(&mut journey, JourneyAction::Birth, &identities, &offer),
-        Err(JourneyError::FormNotOpened)
+        Err(JourneyError::AlreadyBorn)
     );
 
     invoke(&mut journey, JourneyAction::Wake, &identities, &offer).unwrap();

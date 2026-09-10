@@ -30,6 +30,9 @@ impl ProductJourney {
     }
 
     pub(super) fn birth(&mut self) -> Result<(), JourneyError> {
+        if self.body.is_some() {
+            return Err(JourneyError::AlreadyBorn);
+        }
         // The legacy direct Form action still means "birth from this opened
         // Form" and therefore keeps its explicit inspection/open prerequisite.
         if self.status != JourneyStatus::FormOpened {
@@ -203,5 +206,6 @@ mod tests {
         journey.open_form().unwrap();
         journey.birth().unwrap();
         assert_eq!(journey.status(), JourneyStatus::BornLulled);
+        assert_eq!(journey.birth(), Err(JourneyError::AlreadyBorn));
     }
 }

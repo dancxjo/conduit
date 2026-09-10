@@ -341,6 +341,11 @@ pub fn run(record: boot::BootRecord) -> ! {
     };
     let mut pointer_session = pointer_ready.map(arch::start_pointer_session);
     let mut rescue_matcher = conduitos::local_rescue::LocalRescueMatcher::new();
+    let mut modifier_prefix = !hid_session.transitions().is_empty()
+        && hid_session
+            .transitions()
+            .iter()
+            .all(|transition| (0xe0..=0xe7).contains(&transition.usage()));
     for transition in hid_session.transitions().iter().copied() {
         conduitos::rescue_guest::observe(
             &identities,
@@ -348,6 +353,23 @@ pub fn run(record: boot::BootRecord) -> ! {
             transition.into_local_rescue(),
             false,
         );
+    }
+    while modifier_prefix {
+        let (transitions, count) = match hid_session.receive_followup(&mut xhci, &usb) {
+            Ok(batch) => batch,
+            Err(error) => emit_machine_refusal(error.as_str()),
+        };
+        for transition in transitions[..count].iter().copied() {
+            conduitos::rescue_guest::observe(
+                &identities,
+                &mut rescue_matcher,
+                transition.into_local_rescue(),
+                false,
+            );
+        }
+        modifier_prefix = transitions[..count]
+            .iter()
+            .all(|transition| (0xe0..=0xe7).contains(&transition.usage()));
     }
     if !cfg!(feature = "scripted-keyboard-proof") {
         if let Err(reason) = conduitos::product_front_door::run(

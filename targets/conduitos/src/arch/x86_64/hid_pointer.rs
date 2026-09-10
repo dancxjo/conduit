@@ -362,10 +362,24 @@ fn submit_report(
     }
     controller.ring_endpoint(device.slot, ready.endpoint_dci);
     let mut completed = None;
+    let mut retired_relinquished_completion = false;
     for _ in 0..POINTER_POLL_WINDOWS {
         ensure_present(controller.port_status(device.root_port))?;
         match controller.next_event() {
             Ok(event) if event.event_type == 34 => return Err(HidPointerError::DeviceRemoved),
+            Ok(event)
+                if index == 0
+                    && event.event_type == 32
+                    && event.slot != device.slot
+                    && !retired_relinquished_completion =>
+            {
+                // The keyboard source deliberately arms its next report before
+                // servicing semantic input. A pointer-mode handoff may therefore
+                // inherit exactly one completion from that relinquished USB slot.
+                // Retire only that first foreign transfer completion; the pointer
+                // endpoint and TRB identity remain exact below.
+                retired_relinquished_completion = true;
+            }
             Ok(event) => {
                 completed = Some(event);
                 break;
