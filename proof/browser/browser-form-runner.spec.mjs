@@ -198,6 +198,26 @@ test("a released timed attempt reports bounded failure and leaves the runner reu
   }
 });
 
+test("focus loss while waiting cancels the living Play without semantic completion", async ({ page }) => {
+  await openTourStep(page, entrance, 0);
+  const runner = page.locator('[data-application-component="tour-laboratory"]');
+  await runner.locator("textarea").fill(`form waiting {
+    button: input/button
+    state: input/button-indicator-state
+    indicator: presentation/indicator-state
+    button > state > indicator
+  }`);
+  await runner.getByRole("button", { name: "Run", exact: true }).click();
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Waiting for one admitted button transition");
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("lost focus");
+  await expect(runner.locator(".run-identities")).toContainText("CancelledAfterHostLoss");
+  await expect(runner.locator(".run-identities")).toContainText("Terminal Sign");
+  await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
+  await expect(runner.getByRole("button", { name: "Stop", exact: true })).toBeDisabled();
+  await expect(runner.locator('[data-application-key="play-status"]')).not.toContainText("Completed");
+});
+
 test("relative-duration output uses the selected profile for Patchbay and live timing", async ({ page }) => {
   await openTourStep(page, entrance, 0);
   const runner = page.locator('[data-application-component="tour-laboratory"]');

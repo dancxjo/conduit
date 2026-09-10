@@ -75,6 +75,8 @@ test("selected keyboard and pointer adapt real Chromium actions to portable valu
     position_x: 250000,
     position_y: 250000,
     primary_pressed: false,
+    coalesced: 0,
+    dropped: 0,
     queue_capacity: 1,
     sequence: 1,
   });
