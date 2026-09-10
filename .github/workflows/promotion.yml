@@ -143,8 +143,6 @@ jobs:
         with:
           name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
           path: target/conduitos-acceptance
-      - name: Install the pinned ConduitOS tools without mirror access
-        run: true
       - name: Append only validated promotion evidence and reseal the carrier
         run: |
           source_commit=$(git rev-parse HEAD)
