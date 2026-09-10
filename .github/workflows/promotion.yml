@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   boundary:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -51,7 +51,7 @@ jobs:
   promotion:
     needs: [boundary]
     if: always() && !cancelled()
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     steps:
       - name: Permit the exact deploy-first release after boundary validation
         env:
