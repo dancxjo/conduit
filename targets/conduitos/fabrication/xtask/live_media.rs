@@ -310,7 +310,7 @@ fn root() -> Result<PathBuf, ConduitosError> {
     workspace_root().map_err(|error| ConduitosError::refusal("workspace-unavailable", error))
 }
 
-fn output(root: &Path, host: LiveHost) -> PathBuf {
+pub(super) fn output(root: &Path, host: LiveHost) -> PathBuf {
     root.join("target/conduitos/live").join(host.slug())
 }
 

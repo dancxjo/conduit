@@ -15,6 +15,8 @@ mod gallery_experience;
 mod inspection;
 pub use inspection::canonical_gear_contract;
 mod layout;
+mod lesson;
+pub use lesson::TOUR_LESSON_SUBJECT;
 mod navigation;
 mod pointer;
 mod shell_presentations;
@@ -39,6 +41,8 @@ pub const CANONICAL_SOURCE: &str = concat!(
 );
 pub const RUN_ACTION_ID: &str = "tour.run";
 pub const OPEN_PATCHBAY_ACTION_ID: &str = "tour.open-patchbay";
+pub const OPEN_CHOOSER_ACTION_ID: &str = "tour.chooser.open";
+pub const TRANSIENT_CLOSE_ACTION_ID: &str = "tour.transient.close";
 pub const CANONICAL_PATCHBAY_GEARS: [&str; 3] = [
     "meet-one-gear/words",
     "meet-one-gear/change",
@@ -80,6 +84,20 @@ impl TourWorkspaceState {
             run_pending: false,
             hovered_patchbay_subject: None,
             selected_patchbay_subject: None,
+        }
+    }
+
+    pub fn run_availability(&self) -> ActionAvailability {
+        if self.run_pending {
+            ActionAvailability::Busy {
+                detail: "Canonical Play is active".into(),
+            }
+        } else if self.phase == TourWorkspacePhase::ResultVisible {
+            ActionAvailability::Unavailable {
+                detail: "Canonical Play already completed".into(),
+            }
+        } else {
+            ActionAvailability::Available
         }
     }
 
@@ -194,17 +212,7 @@ impl TourWorkspaceState {
                                         "run",
                                         RUN_ACTION_ID,
                                         "Run Form",
-                                        if self.run_pending {
-                                            ActionAvailability::Busy {
-                                                detail: "Canonical Play is active".into(),
-                                            }
-                                        } else if self.phase == TourWorkspacePhase::ResultVisible {
-                                            ActionAvailability::Unavailable {
-                                                detail: "Canonical Play already completed".into(),
-                                            }
-                                        } else {
-                                            ActionAvailability::Available
-                                        },
+                                        self.run_availability(),
                                     ),
                                     action(
                                         "open-patchbay",
@@ -277,6 +285,33 @@ fn node(
 mod tests {
     use super::*;
     use conduit_presentation::{ApplicationComponent, ApplicationView};
+
+    #[test]
+    fn run_availability_is_shared_by_semantic_and_shell_controls() {
+        for phase in [
+            TourWorkspacePhase::LessonReady,
+            TourWorkspacePhase::PatchbayOpen,
+            TourWorkspacePhase::ResultVisible,
+        ] {
+            for pending in [false, true] {
+                let mut state = TourWorkspaceState::canonical(1, phase);
+                state.run_pending = pending;
+                let view = state.presentation().unwrap().lower().unwrap();
+                assert_eq!(
+                    state.run_action_available(),
+                    view.actions.iter().any(|action| action.id == RUN_ACTION_ID)
+                );
+                if pending {
+                    assert_eq!(
+                        state.run_availability(),
+                        ActionAvailability::Busy {
+                            detail: "Canonical Play is active".into()
+                        }
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn canonical_workspace_is_one_bounded_portable_view() {

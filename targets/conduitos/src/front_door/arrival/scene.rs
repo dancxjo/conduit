@@ -1,10 +1,10 @@
 //! Native layout of the shared Crèche state; geometry belongs to this renderer.
 use super::{Arrival, Error};
-use crate::display::PixelTarget;
+use crate::display::{PixelTarget, SPACING};
 use alloc::format;
 use conduit_presentation::{
     ActionAvailability, FieldKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
-    GraphicsShapeStyle, LayoutRect, PresentationMechanism,
+    GraphicsShapeStyle, GraphicsTextRole, LayoutRect, PresentationIconKey, PresentationMechanism,
 };
 
 impl Arrival {
@@ -24,7 +24,7 @@ impl Arrival {
             width,
             height,
         };
-        let card_width = width.saturating_sub(64).min(640);
+        let card_width = width.saturating_sub(SPACING[4] * 2).min(640);
         let x = i16::try_from((width - card_width) / 2).map_err(|_| Error::Scene)?;
         let y = i16::try_from((height - 448) / 2).map_err(|_| Error::Scene)?;
         let mut scene = GraphicsScene::empty();
@@ -39,48 +39,78 @@ impl Arrival {
                 .map_err(|_| Error::Scene)?,
             )
             .map_err(|_| Error::Scene)?;
-        let mut line = |row: i16, value: &str, focused: bool| {
+        let mut line = |row: i16, value: &str, focused: bool, typography: GraphicsTextRole| {
             let bounds = LayoutRect {
                 x,
                 y: y + row,
                 width: card_width,
                 height: 32,
             };
-            scene
-                .push(
-                    GraphicsCommand::text(
-                        bounds,
-                        screen,
-                        if focused {
-                            GraphicsPaintRole::Accent
-                        } else {
-                            GraphicsPaintRole::Foreground
-                        },
-                        value,
+            let paint = match typography {
+                GraphicsTextRole::Heading | GraphicsTextRole::Action | GraphicsTextRole::Title => {
+                    GraphicsPaintRole::Accent
+                }
+                GraphicsTextRole::Code | GraphicsTextRole::Status | GraphicsTextRole::Warning => {
+                    if typography == GraphicsTextRole::Warning {
+                        GraphicsPaintRole::Warning
+                    } else {
+                        GraphicsPaintRole::Status
+                    }
+                }
+                GraphicsTextRole::Muted => GraphicsPaintRole::Muted,
+                _ => GraphicsPaintRole::Foreground,
+            };
+            let paint = if focused {
+                GraphicsPaintRole::Accent
+            } else {
+                paint
+            };
+            if !value.is_empty() {
+                scene
+                    .push(
+                        GraphicsCommand::text(bounds, screen, paint, value)
+                            .and_then(|command| command.with_text_role(typography))
+                            .map_err(|_| Error::Scene)?,
                     )
-                    .map_err(|_| Error::Scene)?,
-                )
-                .map_err(|_| Error::Scene)
+                    .map_err(|_| Error::Scene)?;
+            }
+            if focused {
+                let frame = LayoutRect {
+                    x: bounds.x - 8,
+                    y: bounds.y - 2,
+                    width: bounds.width + 16,
+                    height: 32,
+                };
+                scene
+                    .push(
+                        GraphicsCommand::rect(
+                            frame,
+                            screen,
+                            GraphicsPaintRole::Accent,
+                            GraphicsShapeStyle::Stroke,
+                        )
+                        .map_err(|_| Error::Scene)?,
+                    )
+                    .map_err(|_| Error::Scene)?;
+            }
+            Ok::<(), Error>(())
         };
-        line(0, "CONDUIT / CRÈCHE", false)?;
+        line(0, "Conduit / Crèche", false, GraphicsTextRole::Muted)?;
         let view = self.draft.presentation().map_err(|_| Error::Presentation)?;
         let mut choice_count = 0;
         for node in &view.root.children {
             match (&*node.key, &node.mechanism) {
                 ("creche-heading", PresentationMechanism::Heading { text }) => {
-                    line(38, text, false)?
+                    line(30, text, false, GraphicsTextRole::Title)?
                 }
                 ("body-name", PresentationMechanism::FormField(field)) => {
-                    line(64, &field.help, false)?;
-                    line(108, &field.label, self.focus == 0)?;
+                    line(72, &field.help, false, GraphicsTextRole::Body)?;
+                    line(108, &field.label, false, GraphicsTextRole::Label)?;
                     line(
                         132,
-                        &format!(
-                            "{} {}",
-                            if self.focus == 0 { ">" } else { " " },
-                            field.value
-                        ),
+                        &field.value,
                         self.focus == 0,
+                        GraphicsTextRole::Heading,
                     )?;
                 }
                 ("name-system", PresentationMechanism::FormField(field)) => {
@@ -93,27 +123,35 @@ impl Arrival {
                         .ok_or(Error::Scene)?;
                     line(
                         176,
-                        &format!(
-                            "{} {}: {}",
-                            if self.focus == 1 { ">" } else { " " },
-                            field.label,
-                            selected.label
-                        ),
+                        &format!("{}: {}", field.label, selected.label),
                         self.focus == 1,
+                        GraphicsTextRole::Label,
                     )?;
                 }
                 ("suggest-name", PresentationMechanism::Action(action)) => {
-                    line(204, &format!("  {}  [F2]", action.label), self.focus == 2)?;
+                    line(
+                        208,
+                        &format!("{}  ·  F2", action.label),
+                        self.focus == 2,
+                        GraphicsTextRole::Action,
+                    )?;
+                }
+                ("form-search", PresentationMechanism::FormField(field)) => {
+                    line(
+                        232,
+                        &format!("{}: {}", field.label, field.value),
+                        self.focus == 3,
+                        GraphicsTextRole::Code,
+                    )?;
                 }
                 ("initial-forms", PresentationMechanism::ChoiceGroup { label, options, .. }) => {
-                    line(248, label, false)?;
+                    line(272, label, false, GraphicsTextRole::Label)?;
                     for (index, choice) in options.iter().enumerate() {
                         line(
-                            276 + index as i16 * 24,
+                            300 + index as i16 * 24,
                             &format!(
-                                "{} [{}] {}{}",
-                                if self.focus == index + 3 { ">" } else { " " },
-                                if choice.selected { "x" } else { " " },
+                                "{}  {}{}",
+                                if choice.selected { "●" } else { "○" },
                                 choice.label,
                                 if matches!(
                                     choice.change_action.availability,
@@ -124,25 +162,76 @@ impl Arrival {
                                     " / unavailable"
                                 }
                             ),
-                            self.focus == index + 3,
+                            self.focus == index + 4,
+                            GraphicsTextRole::Body,
                         )?;
                     }
                     choice_count = options.len();
                 }
+                ("initial-forms", PresentationMechanism::Status { title, detail, .. }) => {
+                    line(272, title, false, GraphicsTextRole::Status)?;
+                    if !detail.is_empty() {
+                        line(300, detail, false, GraphicsTextRole::Muted)?;
+                    }
+                    choice_count = 0;
+                }
+                ("selected-forms", PresentationMechanism::Status { title, .. }) => {
+                    line(348, title, false, GraphicsTextRole::Status)?;
+                }
                 ("birth-body", PresentationMechanism::Action(action)) => {
                     line(
-                        328,
-                        &format!("  {}  [Enter / F3]", action.label),
-                        self.focus == choice_count + 3,
+                        376,
+                        &format!("{}  ·  Enter / F3", action.label),
+                        self.focus == choice_count + 4,
+                        GraphicsTextRole::Action,
                     )?;
                 }
                 _ => return Err(Error::Scene),
             }
         }
         if let Some(refusal) = &self.refusal {
-            line(368, refusal, true)?;
+            line(368, refusal, true, GraphicsTextRole::Warning)?;
         }
-        line(416, "Tab moves  ·  Arrows choose  ·  F9 visits Tour", false)?;
+        line(
+            416,
+            "Tab moves  ·  Arrows choose  ·  F9 visits Tour",
+            false,
+            GraphicsTextRole::Muted,
+        )?;
+        if self.refusal.is_some() {
+            scene
+                .push(
+                    GraphicsCommand::icon(
+                        LayoutRect {
+                            x: x - 24,
+                            y: y + 368,
+                            width: 16,
+                            height: 16,
+                        },
+                        screen,
+                        GraphicsPaintRole::Warning,
+                        PresentationIconKey::Warning,
+                    )
+                    .map_err(|_| Error::Scene)?,
+                )
+                .map_err(|_| Error::Scene)?;
+        }
+        scene
+            .push(
+                GraphicsCommand::icon(
+                    LayoutRect {
+                        x: x - 24,
+                        y: y + 376,
+                        width: 16,
+                        height: 16,
+                    },
+                    screen,
+                    GraphicsPaintRole::Success,
+                    PresentationIconKey::Confirm,
+                )
+                .map_err(|_| Error::Scene)?,
+            )
+            .map_err(|_| Error::Scene)?;
         Ok(scene)
     }
 }

@@ -35,6 +35,7 @@ pub(crate) struct BrowserInstallation {
     pub perform: Option<BrowserHostOperation>,
 }
 
+pub(crate) const AUDIO_FABRICATION_ID: &str = "browser/audio-cue@1";
 pub(crate) const PRESENTATION_FABRICATION_ID: &str = "browser/dom-presentation@1";
 pub(crate) const KEYBOARD_FABRICATION_ID: &str = "browser/keyboard-events@1";
 pub(crate) const POINTER_FABRICATION_ID: &str = "browser/pointer-events@1";
@@ -48,6 +49,7 @@ pub(crate) struct BrowserMachinery {
     presentation: bool,
     keyboard: bool,
     pointer: bool,
+    audio: bool,
 }
 
 impl BrowserMachinery {
@@ -56,6 +58,7 @@ impl BrowserMachinery {
         presentation: true,
         keyboard: false,
         pointer: false,
+        audio: false,
     };
 
     pub(crate) fn from_selected(selected: &[&str]) -> Result<Self, String> {
@@ -65,6 +68,7 @@ impl BrowserMachinery {
                 PRESENTATION_FABRICATION_ID,
                 KEYBOARD_FABRICATION_ID,
                 POINTER_FABRICATION_ID,
+                AUDIO_FABRICATION_ID,
             ]
             .contains(identity)
             {
@@ -77,6 +81,7 @@ impl BrowserMachinery {
             presentation: has(PRESENTATION_FABRICATION_ID),
             keyboard: has(KEYBOARD_FABRICATION_ID),
             pointer: has(POINTER_FABRICATION_ID),
+            audio: has(AUDIO_FABRICATION_ID),
         })
     }
 
@@ -86,6 +91,9 @@ impl BrowserMachinery {
         }
         if installation.implementation_id == input::BUTTON_IMPLEMENTATION {
             return self.pointer;
+        }
+        if installation.implementation_id == super::startup_chime::IMPLEMENTATION {
+            return self.audio;
         }
         let offer = (installation.offer)();
         if offer
@@ -103,6 +111,7 @@ impl BrowserMachinery {
             (self.presentation, PRESENTATION_FABRICATION_ID),
             (self.keyboard, KEYBOARD_FABRICATION_ID),
             (self.pointer, POINTER_FABRICATION_ID),
+            (self.audio, AUDIO_FABRICATION_ID),
         ]
         .into_iter()
         .filter_map(|(selected, identity)| selected.then_some(identity))
@@ -115,6 +124,7 @@ pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
         PRESENTATION_FABRICATION_ID,
         KEYBOARD_FABRICATION_ID,
         POINTER_FABRICATION_ID,
+        AUDIO_FABRICATION_ID,
     ])
     .expect("ordinary browser profile contains reviewed machinery")
     .selected_fabrication_ids()
@@ -221,7 +231,13 @@ pub(crate) fn advertisement_for_presentation(
         super::PresentationProfile::Annotation => unreachable!(),
     };
     presenter.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
-    host.capabilities.push(presenter);
+    if !host
+        .capabilities
+        .iter()
+        .any(|offer| offer.capability_id == presenter.capability_id)
+    {
+        host.capabilities.push(presenter);
+    }
     host.capabilities
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
     host
@@ -233,6 +249,13 @@ pub(crate) fn advertisement_for_machinery(
     machinery: BrowserMachinery,
 ) -> HostAdvertisement {
     let mut resources = Vec::new();
+    if machinery.audio {
+        resources.push(resource_offer(
+            super::startup_chime::POOL,
+            super::startup_chime::RESOURCE,
+            super::MAXIMUM_BROWSER_GEARS as u32,
+        ));
+    }
     if machinery.presentation {
         resources.push(resource_offer(
             "browser/presentation",

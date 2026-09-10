@@ -2,6 +2,9 @@
 
 use alloc::format;
 
+mod run_control;
+use run_control::Execute;
+
 use conduit_tour_model::TourPointerOutcome;
 
 use crate::{
@@ -61,12 +64,21 @@ pub fn run(
     session: &mut HidPointerSession,
     controller: &mut XhciReady,
     usb: &UsbDevice,
+    execute: &mut impl Execute,
 ) -> Result<(), &'static str> {
-    run_with(identities, fabrication, tour, presenter, display, || {
-        session
-            .receive(controller, usb)
-            .map_err(|error| error.as_str())
-    })
+    run_with(
+        identities,
+        fabrication,
+        tour,
+        presenter,
+        display,
+        execute,
+        || {
+            session
+                .receive(controller, usb)
+                .map_err(|error| error.as_str())
+        },
+    )
 }
 
 pub fn run_ps2(
@@ -76,10 +88,17 @@ pub fn run_ps2(
     presenter: &mut TourShellPresenter,
     display: &mut impl crate::display::PixelTarget,
     input: &mut crate::arch::Ps2Input,
+    execute: &mut impl Execute,
 ) -> Result<(), &'static str> {
-    run_with(identities, fabrication, tour, presenter, display, || {
-        input.receive_pointer().map_err(|error| error.as_str())
-    })
+    run_with(
+        identities,
+        fabrication,
+        tour,
+        presenter,
+        display,
+        execute,
+        || input.receive_pointer().map_err(|error| error.as_str()),
+    )
 }
 
 fn run_with(
@@ -88,6 +107,7 @@ fn run_with(
     tour: &mut TourProduct,
     presenter: &mut TourShellPresenter,
     display: &mut impl crate::display::PixelTarget,
+    execute: &mut impl Execute,
     mut receive: impl FnMut() -> Result<conduit_semantic_catalog::NormalizedPointerSample, &'static str>,
 ) -> Result<(), &'static str> {
     arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
@@ -109,8 +129,13 @@ fn run_with(
         presenter
             .validate_pointer_route(&route)
             .map_err(|error| error.as_str())?;
-        if suppress_dismissal_release && !sample.primary_pressed {
-            suppress_dismissal_release = false;
+        if suppress_dismissal_release {
+            // A surface-changing press owns the rest of its gesture, including
+            // held motion and release over the newly exposed surface.
+            if !sample.primary_pressed {
+                suppress_dismissal_release = false;
+                arch::early_write(b"CONDUIT_TOUR_CHECKPOINT surface-gesture-released\n");
+            }
             arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
             continue;
         }
@@ -195,6 +220,44 @@ fn run_with(
             continue;
         }
         let mut local_sample = sample;
+        if run_control::handle(
+            &route,
+            sample.primary_pressed,
+            tour,
+            presenter,
+            display,
+            execute,
+        )? {
+            suppress_dismissal_release = sample.primary_pressed;
+            arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+            continue;
+        }
+        if presenter
+            .chooser_open_hit(&route, tour)
+            .map_err(|error| error.as_str())?
+        {
+            presenter
+                .set_pointer_hover(true)
+                .map_err(|error| error.as_str())?;
+            if sample.primary_pressed {
+                presenter
+                    .show_transient(
+                        tour,
+                        conduit_tour_model::TourTransientKind::Chooser,
+                        "Choose a Patchbay Gear",
+                        display,
+                    )
+                    .map_err(|error| error.as_str())?;
+                suppress_dismissal_release = true;
+                arch::early_write(b"CONDUIT_TOUR_CHECKPOINT chooser-button-activated\n");
+            } else {
+                presenter
+                    .compose_affordances(display)
+                    .map_err(|error| error.as_str())?;
+            }
+            arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
+            continue;
+        }
         local_sample.position_x = normalized_local(route.local_x, format.width)?;
         local_sample.position_y = normalized_local(route.local_y, format.height)?;
         let outcome = tour.route_workspace_pointer(
@@ -248,23 +311,6 @@ fn normalized_local(value: u16, extent: u32) -> Result<i64, &'static str> {
     // pixel, including the first pixel on a card edge.
     i64::try_from((u64::from(value) * 1_000_000).div_ceil(u64::from(extent)))
         .map_err(|_| "compositor-pointer-local-coordinate-invalid")
-}
-
-#[cfg(test)]
-mod coordinate_tests {
-    use super::*;
-
-    #[test]
-    fn surface_local_pixels_survive_normalization_without_edge_drift() {
-        for extent in [320, 640, 800, 1280, 1920, u32::from(u16::MAX)] {
-            for pixel in 0..extent {
-                let normalized = normalized_local(pixel as u16, extent).unwrap();
-                assert_eq!(display_coordinate(normalized, extent).unwrap(), pixel);
-            }
-        }
-        assert!(normalized_local(0, 0).is_err());
-        assert!(normalized_local(640, 640).is_err());
-    }
 }
 
 fn display_coordinate(value: i64, extent: u32) -> Result<u32, &'static str> {
@@ -407,4 +453,21 @@ fn emit_relayout_sign(
         identity::hex(&identities.boot),
     );
     arch::early_write(line.as_bytes());
+}
+
+#[cfg(test)]
+mod coordinate_tests {
+    use super::*;
+
+    #[test]
+    fn surface_local_pixels_survive_normalization_without_edge_drift() {
+        for extent in [320, 640, 800, 1280, 1920, u32::from(u16::MAX)] {
+            for pixel in 0..extent {
+                let normalized = normalized_local(pixel as u16, extent).unwrap();
+                assert_eq!(display_coordinate(normalized, extent).unwrap(), pixel);
+            }
+        }
+        assert!(normalized_local(0, 0).is_err());
+        assert!(normalized_local(640, 640).is_err());
+    }
 }

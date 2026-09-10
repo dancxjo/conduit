@@ -144,7 +144,7 @@ impl TourGalleryState {
                             node(
                                 &format!("form-add-{index}"),
                                 PresentationMechanism::Link {
-                                    label: "Add to new Body".into(),
+                                    label: "Use in your Body".into(),
                                     destination: entry.handoff.clone(),
                                 },
                                 vec![],

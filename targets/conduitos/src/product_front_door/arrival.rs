@@ -6,7 +6,7 @@ use crate::{
     fabrication::FabricationRecord,
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::BootIdentities,
-    keyboard_text_plan,
+    native_workset,
     offer::HostOffer,
     product_journey::{JourneyAction, ProductJourney},
 };
@@ -20,19 +20,9 @@ pub(super) fn open(
     offer: &HostOffer<'_>,
     fabrication: &FabricationRecord,
 ) -> Result<(), &'static str> {
-    let target = format!("form/{}", journey.form().checked_form_id.as_str());
-    let request = journey
-        .next_request(JourneyAction::OpenBack, target, door.revision())
-        .map_err(|e| e.as_str())?;
-    journey
-        .apply(
-            request,
-            identities,
-            offer,
-            fabrication.build_id,
-            door.revision(),
-        )
-        .map_err(|e| e.as_str())?;
+    // Crèche is the zero-Body entrance. Do not open a Form merely to make the
+    // arrival surface exist: reviewed Forms belong to the Crèche inventory and
+    // become lifecycle truth only after an explicit birth selection.
     door.observe_journey(journey.projection())
         .map_err(|e| e.as_str())?;
     let hex = crate::identity::hex(&identities.boot);
@@ -44,10 +34,13 @@ pub(super) fn open(
         &hex[16..20],
         &hex[20..32]
     );
-    let refusal = keyboard_text_plan::prepare(identities, offer, fabrication.build_id)
-        .err()
-        .map(|e| e.as_str().into());
-    door.open_creche(uuid, refusal).map_err(|e| e.as_str())
+    let refusals = native_workset::inventory().map(|form| {
+        native_workset::review(form, identities, offer, fabrication.build_id)
+            .err()
+            .map(|error| error.as_str().into())
+    });
+    door.open_creche_reviewed(uuid, refusals)
+        .map_err(|e| e.as_str())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -64,8 +57,13 @@ pub(super) fn birth_and_wake(
     journey
         .birth_from_creche(selection)
         .map_err(|e| e.as_str())?;
-    door.observe_journey(journey.projection())
-        .map_err(|e| e.as_str())?;
+    door.observe_body(
+        journey.projection(),
+        journey
+            .workspace_projection()
+            .ok_or("born-body-workset-absent")?,
+    )
+    .map_err(|e| e.as_str())?;
     door.close_creche().map_err(|e| e.as_str())?;
     let receipt = presenter.present(door, display).map_err(|e| e.as_str())?;
     emit_journey_sign(&journey.projection(), fabrication, &receipt);

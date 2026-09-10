@@ -183,10 +183,25 @@ fn bounded_scene_renders_and_loss_remains_distinct() {
     assert_eq!(receipt.commands, 2);
     assert!(receipt.pixels_written > 0);
     assert!(bytes.iter().any(|byte| *byte != 0));
-    let first_glyph_pixel = 6 * 128 + 4 * 4;
-    assert_eq!(
-        &bytes[first_glyph_pixel..first_glyph_pixel + 4],
-        &format().pixel(225, 232, 240).to_le_bytes()
+    // Scene lowering preserves the exact foreground and accent paints. Smooth
+    // retained-background blending is covered by the glyph-level test below;
+    // not every admitted glyph pair is required to contain partial coverage.
+    let foreground = format().pixel(225, 232, 240).to_le_bytes();
+    assert!(
+        bytes
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .copied()
+            .any(|pixel| pixel == foreground)
+    );
+    assert!(
+        bytes
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .copied()
+            .any(|pixel| pixel == paint(format(), GraphicsPaintRole::Accent).to_le_bytes())
     );
 
     let mut lost = Buffer {
@@ -199,7 +214,7 @@ fn bounded_scene_renders_and_loss_remains_distinct() {
 
 #[test]
 fn pinned_unifont_subset_covers_ascii_and_multilingual_text() {
-    assert_eq!(font::glyph_count(), 930);
+    assert_eq!(font::glyph_count(), 1_000);
     for character in ' '..='~' {
         let (glyph, missing) = font::glyph(character);
         assert!(!missing, "missing printable ASCII glyph {character:?}");
@@ -256,11 +271,26 @@ fn text_wraps_and_fallback_is_bounded_and_deterministic() {
     assert_eq!(wrapped, explicit);
     assert_eq!(wrapped_receipt, explicit_receipt);
 
+    let (words, words_receipt) = render("AB CD");
+    let (repeated_words, repeated_words_receipt) = render("AB CD");
+    assert_eq!(words, repeated_words);
+    assert_eq!(words_receipt, repeated_words_receipt);
+    assert_ne!(
+        words, explicit,
+        "proportional space advances remain visible"
+    );
+
     let (fallback, fallback_receipt) = render("🦀🦀🦀");
     let (replacement, replacement_receipt) = render("���");
     assert_eq!(fallback, replacement);
     assert_eq!(fallback_receipt, replacement_receipt);
     assert!(fallback_receipt.pixels_written > 0);
+
+    let (accented, _) = render("Aẹ\u{0301}BC");
+    let (accented_lines, _) = render("Aẹ\u{0301}\nBC");
+    assert_eq!(accented, accented_lines, "accent does not steal a cell");
+    let (plain, _) = render("AẹBC");
+    assert_ne!(accented, plain, "the accent is actually rasterized");
 }
 
 #[test]

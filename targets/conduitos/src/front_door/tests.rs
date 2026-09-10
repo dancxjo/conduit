@@ -26,7 +26,7 @@ fn key(usage: u8) -> KeyEvent {
     .unwrap()
 }
 
-fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjection {
+pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjection {
     JourneyProjection {
         status: JourneyStatus::Lulled,
         revision: 9,
@@ -67,7 +67,7 @@ fn body_id(sequence: u64) -> conduit_body::BodyId {
     .body_id
 }
 
-struct Sink;
+pub(super) struct Sink;
 
 impl PixelTarget for Sink {
     fn format(&self) -> crate::display::DisplayFormat {

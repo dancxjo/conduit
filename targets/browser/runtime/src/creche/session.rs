@@ -55,10 +55,11 @@ pub(super) fn birth(
 
     let host_id = HostId::from(host);
     let boot_id = BootId::from(boot);
-    let proposed_hosts = [crate::installed_browser::advertisement(
+    let proposed_hosts = [super::initial_forms::reviewed_browser_host(
+        source,
         host_id.clone(),
         boot_id.clone(),
-    )];
+    )?];
     let initial_review = super::review::review(
         source,
         initial_forms_json,

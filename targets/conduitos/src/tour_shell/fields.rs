@@ -29,8 +29,20 @@ pub(super) fn project(
             .find(|subject| subject.identity == item.subject)
             .ok_or(TourShellError::Identity)?;
         let text = alloc::format!("{}\n{}", subject.label, item.text);
+        #[cfg(not(feature = "native-compositor"))]
         let height =
             crate::display::text_height(&text, width).map_err(|_| TourShellError::Scene)?;
+        #[cfg(feature = "native-compositor")]
+        let height = u16::try_from(
+            crate::display::typography::TextLayout::new(
+                &text,
+                crate::display::typography::TextRole::Body,
+                width,
+            )
+            .map_err(|_| TourShellError::Scene)?
+            .finish_height(),
+        )
+        .map_err(|_| TourShellError::Scene)?;
         let y = i32::from(next_y) - i32::from(scroll_y);
         next_y = next_y
             .checked_add(height)

@@ -172,7 +172,7 @@ default = []
 hosted-tools = []
 hotplug-proof = []
 scripted-keyboard-proof = []
-native-compositor = []
+native-compositor = ["dep:fontdue"]
 native-http-client = []
 conduitos-isolation-proof = []
 ps2-input = []
@@ -215,6 +215,7 @@ conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-presentation = { path = "../../semantics/presentation" }
 conduit-tour-model = { path = "../../products/tour/model" }
+patchbay-graph = { path = "../../products/patchbay/graph" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-wire = { path = "../../architecture/wire" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["form-catalog"] }
@@ -230,6 +231,11 @@ limine = "=0.5.0"
 
 [dev-dependencies]
 conduit-std-host = { path = "../std" }
+
+[build-dependencies]
+# Fabrication-only rasterization: no font parser or atlas allocation in Play.
+fontdue = { version = "=0.9.3", optional = true, default-features = false, features = ["std"] }
+sha2 = { version = "=0.10.9" }
 
 [[test]]
 name = "native_compositor"

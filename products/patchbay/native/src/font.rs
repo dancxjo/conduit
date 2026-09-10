@@ -54,13 +54,23 @@ impl BitmapFont {
     {
         let mut advance = 0usize;
         let mut missing_glyphs = 0usize;
+        let mut previous = None;
         for character in text.chars() {
-            let x = origin
-                .x
-                .saturating_add(advance.min(i32::MAX as usize) as i32);
+            // These are the combining accents admitted by the naming subset.
+            // Keep unsupported marks on the existing explicit fallback path.
+            let overlay = matches!(character, '\u{0300}' | '\u{0301}') && previous.is_some();
+            let cell = if overlay { previous.unwrap() } else { advance };
+            let x = origin.x.saturating_add(cell.min(i32::MAX as usize) as i32);
             let (width, missing) =
                 Self::draw_character(target, Point::new(x, origin.y), character, color)?;
-            advance = advance.saturating_add(width);
+            if !overlay {
+                previous = if character.is_control() {
+                    None
+                } else {
+                    Some(advance)
+                };
+                advance = advance.saturating_add(width);
+            }
             missing_glyphs = missing_glyphs.saturating_add(usize::from(missing));
         }
         Ok(TextMetrics {

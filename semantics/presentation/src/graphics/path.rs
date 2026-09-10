@@ -117,7 +117,7 @@ mod tests {
         let mut scene = GraphicsScene::empty();
         scene.push(command).unwrap();
         assert_eq!(scene.commands().len(), 1);
-        assert_eq!(scene.encoded_len(), 38);
+        assert_eq!(scene.encoded_len(), 39);
         let mut encoded = scene.encode();
         assert_eq!(
             GraphicsScene::decode(&encoded[..scene.encoded_len()]),

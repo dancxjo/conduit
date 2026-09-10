@@ -46,6 +46,13 @@ pub(super) fn prepare_scheduler(
 pub(in crate::form_runner) fn prepare_partition_scheduler(
     partitions: &[(&PlanFragment, &LoweredPlanFragment)],
 ) -> Result<TourScheduler, String> {
+    prepare_body_scheduler(partitions, None)
+}
+
+pub(in crate::form_runner) fn prepare_body_scheduler(
+    partitions: &[(&PlanFragment, &LoweredPlanFragment)],
+    startup: Option<&conduit_body::BodyStartup>,
+) -> Result<TourScheduler, String> {
     if partitions.is_empty()
         || partitions.len() > conduit_body::MAX_BODY_FORMS
         || partitions.iter().any(|(fragment, part)| {
@@ -120,7 +127,16 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
                 resource_effect::SnapshotState::prepare(placement)?,
             ));
         }
-        operations.push((installation.prepare)(placement, &mut values)?);
+        operations.push(
+            match crate::installed_browser::body_startup::prepare_for_body(
+                placement,
+                &mut values,
+                startup,
+            )? {
+                Some(operation) => operation,
+                None => (installation.prepare)(placement, &mut values)?,
+            },
+        );
         comparisons[usize::from(node.node.0)] =
             crate::installed_browser::pattern_comparison::prepare_codec(placement)?;
         attempts[usize::from(node.node.0)] =

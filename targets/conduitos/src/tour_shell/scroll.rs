@@ -117,6 +117,9 @@ impl TourShellPresenter {
             return Ok(ScrollOutcome::Ineligible);
         };
         let slot = self.surfaces[index].slot;
+        if slot == Slot::Workspace {
+            return self.scroll_lesson(direction, display);
+        }
         if !matches!(slot, Slot::Inspector | Slot::Transient) {
             return Ok(ScrollOutcome::Ineligible);
         }
@@ -174,6 +177,16 @@ impl TourShellPresenter {
         };
         if !matches!(state.slot, Slot::Inspector | Slot::Transient) {
             return Ok(None);
+        }
+        if state.face_subject.as_deref()
+            == Some(super::TourTransientKind::Chooser.subject_identity())
+        {
+            return Ok(super::chooser_layout::hit(
+                state.bounds.ok_or(TourShellError::Identity)?,
+                state.scroll.offset(),
+                route.local_x,
+                route.local_y,
+            ));
         }
         row_at(state.scroll.content_y(route.local_y)?)
     }

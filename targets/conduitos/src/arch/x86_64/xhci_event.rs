@@ -2,7 +2,28 @@
 
 use core::sync::atomic::{Ordering, fence};
 
-use super::Event;
+use super::{DMA, DmaStorage, EVENT_TRBS, Event, XhciReady, write64};
+
+impl XhciReady {
+    /// Inspect the current event slot once without waiting for controller work.
+    pub(in crate::arch::x86_64) fn poll_event(&mut self) -> Option<Event> {
+        let event = read_owned_event(self.event_cycle, |word| unsafe {
+            core::ptr::read_volatile(core::ptr::addr_of!(
+                DMA.event_ring[self.event_dequeue][word]
+            ))
+        })?;
+        self.event_dequeue += 1;
+        if self.event_dequeue == EVENT_TRBS {
+            self.event_dequeue = 0;
+            self.event_cycle ^= 1;
+        }
+        let event_phys = self.dma_physical
+            + core::mem::offset_of!(DmaStorage, event_ring) as u64
+            + (self.event_dequeue * 16) as u64;
+        unsafe { write64(self.runtime_interrupter + 0x18, event_phys | 8) };
+        Some(event)
+    }
+}
 
 /// The controller owns the payload until control's cycle matches the consumer.
 /// Read ownership first, then acquire the published payload. Reading the whole

@@ -1,3 +1,7 @@
+#[cfg(feature = "native-compositor")]
+#[path = "build/typography.rs"]
+mod typography;
+
 fn main() {
     use std::{env, fs, path::PathBuf};
 
@@ -17,6 +21,8 @@ fn main() {
     println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_FABRICATION_RECORD");
     generate_unifont_subset();
+    #[cfg(feature = "native-compositor")]
+    typography::generate();
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"))
         .join("fabrication_record.rs");
     if let Some(source) = env::var_os("CONDUITOS_FABRICATION_RECORD") {
@@ -168,7 +174,7 @@ fn generate_unifont_subset() {
         generated.push_str("] },\n");
         count += 1;
     }
-    assert_eq!(count, 930, "the pinned Unifont subset must be exact");
+    assert_eq!(count, 1000, "the pinned Unifont subset must be exact");
     generated.push_str("];\n");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"));
     fs::write(output.join("conduitos_unifont_subset.rs"), generated)

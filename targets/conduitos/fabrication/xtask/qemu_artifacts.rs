@@ -3,8 +3,9 @@ use super::{qmp_display, ConduitosError};
 use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
-// Twenty-four ordinary journey checkpoints plus one terminal diagnostic capture.
-const MAX_CHECKPOINTS: usize = 25;
+// The ordinary journey includes four resident-Form checkpoints. Keep a spare
+// failure frame within the finite manifest envelope.
+const MAX_CHECKPOINTS: usize = 32;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
@@ -45,7 +46,7 @@ impl Artifacts {
         if self.entries.len() >= MAX_CHECKPOINTS {
             return Err(ConduitosError::refusal(
                 "qemu-display-checkpoint-bound",
-                "at most twenty-five captures admitted",
+                "at most thirty-two captures admitted",
             ));
         }
         let mut serial = Vec::new();
@@ -63,6 +64,14 @@ impl Artifacts {
         let text = std::str::from_utf8(&serial).map_err(|error| {
             ConduitosError::refusal("qemu-display-serial-invalid", error.to_string())
         })?;
+        if let Some(profile) = text
+            .lines()
+            .find_map(|line| line.strip_prefix("CONDUIT_GRAPHICAL_PROFILE "))
+        {
+            self.context["graphical_profile"] = serde_json::from_str(profile).map_err(|error| {
+                ConduitosError::refusal("graphical-profile-record-invalid", error.to_string())
+            })?;
+        }
         let record = super::journey_records::latest_checkpoint(text)?;
         let boot = super::journey_records::boot(text)?;
         let (frame, health_refusal) =

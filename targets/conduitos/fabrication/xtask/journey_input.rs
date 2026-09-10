@@ -170,10 +170,10 @@ pub(super) fn wait_for_record(
 ) -> Result<(), ConduitosError> {
     let deadline = std::time::Instant::now() + Duration::from_secs(5);
     loop {
-        let text = fs::read_to_string(serial).map_err(|error| {
+        let bytes = fs::read(serial).map_err(|error| {
             ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
         })?;
-        if observed(&text)? {
+        if observed(complete_records(&bytes)?)? {
             return Ok(());
         }
         if std::time::Instant::now() >= deadline {
@@ -187,10 +187,46 @@ pub(super) fn wait_for_record(
     }
 }
 
+// The guest may be midway through a UTF-8 scalar or JSON record when a live
+// file read ends. Only completed records can satisfy an observation. Keep
+// strict UTF-8 validation for that prefix; never replace malformed bytes.
+pub(super) fn complete_records(bytes: &[u8]) -> Result<&str, ConduitosError> {
+    let end = bytes
+        .iter()
+        .rposition(|byte| *byte == b'\n')
+        .map_or(0, |index| index + 1);
+    std::str::from_utf8(&bytes[..end]).map_err(|error| {
+        ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::io::{BufRead, BufReader, Write};
+
+    #[test]
+    fn live_utf8_records_are_observed_only_after_their_newline() {
+        let record = "{\"friendly_name\":\"Lương Quốc Lâm\",\"probe\":\"é中🦀\"}\n";
+        let mut bytes = b"READY\n".to_vec();
+        for byte in record.as_bytes() {
+            assert_eq!(complete_records(&bytes).unwrap(), "READY\n");
+            bytes.push(*byte);
+        }
+        assert_eq!(
+            complete_records(&bytes).unwrap(),
+            format!("READY\n{record}")
+        );
+        assert!(std::str::from_utf8(&"Lương".as_bytes()[..2]).is_err());
+        assert_eq!(complete_records(&"Lương".as_bytes()[..2]).unwrap(), "");
+    }
+
+    #[test]
+    fn malformed_completed_records_still_refuse() {
+        assert!(complete_records(b"READY\n\xff\n").is_err());
+        assert_eq!(complete_records(b"READY\npartial").unwrap(), "READY\n");
+        assert_eq!(complete_records(b"READY").unwrap(), "");
+    }
 
     fn acknowledged(action: impl FnOnce(&mut UnixStream, &mut qmp::Reader)) -> Value {
         let (mut client, mut server) = UnixStream::pair().unwrap();

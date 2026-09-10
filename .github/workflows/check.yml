@@ -602,9 +602,8 @@ jobs:
     # A deliberately cancelled duplicate lifecycle run is not new proof
     # failure. Real dependency failures still reach this gate and fail it.
     if: ${{ always() && !cancelled() }}
-    # This gate only inspects completed dependency results. Keep it on the
-    # single-CPU automation lane so machine builds cannot occupy its runner.
-    runs-on: ubuntu-slim
+    # Collect results on the standard pool; a queued collector blocks admission.
+    runs-on: ubuntu-24.04
     steps:
       - name: Preserve the stable required workspace gate
         env:

@@ -19,6 +19,8 @@ mod build;
 mod demo;
 mod fabrication_resolution;
 mod front_door_proof;
+mod graphical_asset_proof;
+mod graphical_profile_proof;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
@@ -41,6 +43,7 @@ mod journey_standing;
 mod journey_tour;
 mod journey_transient;
 mod journey_usb_line;
+mod journey_workset;
 mod keyboard_proof;
 mod keyboard_run;
 mod keyboard_text_run;
@@ -139,6 +142,8 @@ enum ConduitosCommand {
     FrontDoorProof,
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
     JourneyProof,
+    /// Prove the default graphical profile through the canonical live ISO and retained gallery.
+    GraphicalProfileProof,
     /// Boot one architecture proof appliance and validate its bounded terminal Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
@@ -468,6 +473,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
         ConduitosCommand::JourneyProof => journey_proof::execute(opts),
+        ConduitosCommand::GraphicalProfileProof => graphical_profile_proof::execute(opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
             require_fabrication_target(target.arch, target.board)?;

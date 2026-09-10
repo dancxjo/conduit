@@ -21,10 +21,22 @@ pub enum PresentationIconKey {
     FileOutput,
     Keyboard,
     GenericGear,
+    Body,
+    Wake,
+    Plan,
+    Play,
+    Host,
+    Port,
+    Line,
+    Status,
+    Warning,
+    Close,
+    Back,
+    Confirm,
 }
 
 impl PresentationIconKey {
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 23] = [
         Self::Clock,
         Self::Repeat2,
         Self::Presentation,
@@ -36,6 +48,18 @@ impl PresentationIconKey {
         Self::FileOutput,
         Self::Keyboard,
         Self::GenericGear,
+        Self::Body,
+        Self::Wake,
+        Self::Plan,
+        Self::Play,
+        Self::Host,
+        Self::Port,
+        Self::Line,
+        Self::Status,
+        Self::Warning,
+        Self::Close,
+        Self::Back,
+        Self::Confirm,
     ];
     pub const ALL_UPSTREAM: [Self; 10] = [
         Self::Clock,
@@ -63,6 +87,18 @@ impl PresentationIconKey {
             Self::FileOutput => "file-output",
             Self::Keyboard => "keyboard",
             Self::GenericGear => "conduit-generic-gear",
+            Self::Body => "conduit-body",
+            Self::Wake => "conduit-wake",
+            Self::Plan => "conduit-plan",
+            Self::Play => "conduit-play",
+            Self::Host => "conduit-host",
+            Self::Port => "conduit-port",
+            Self::Line => "conduit-line",
+            Self::Status => "conduit-status",
+            Self::Warning => "conduit-warning",
+            Self::Close => "conduit-close",
+            Self::Back => "conduit-back",
+            Self::Confirm => "conduit-confirm",
         }
     }
 
@@ -79,6 +115,18 @@ impl PresentationIconKey {
             Self::FileOutput => "file output",
             Self::Keyboard => "keyboard input",
             Self::GenericGear => "generic Gear; icon metadata missing",
+            Self::Body => "Body",
+            Self::Wake => "Wake",
+            Self::Plan => "Plan",
+            Self::Play => "Play",
+            Self::Host => "Host",
+            Self::Port => "Port",
+            Self::Line => "Line",
+            Self::Status => "status",
+            Self::Warning => "warning",
+            Self::Close => "close",
+            Self::Back => "back",
+            Self::Confirm => "run or confirm",
         }
     }
 

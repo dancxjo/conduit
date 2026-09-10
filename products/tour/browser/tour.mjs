@@ -420,7 +420,7 @@ function createCrecheCallToAction(label = "Birth a Body") {
   const callout = document.createElement("aside");
   callout.className = "creche-handoff";
   const explanation = document.createElement("p");
-  explanation.textContent = "The Tour explains the idea. The Crèche owns the stateful birth and provisioning workflow.";
+  explanation.textContent = "Name a Body in the Crèche, choose its Forms, and arrive with them already listening.";
   const link = document.createElement("a");
   const configuredUrl = document.querySelector('meta[name="conduit-creche-url"]')?.content.trim();
   if (!configuredUrl) throw new Error("Tour has no configured Crèche entrance");

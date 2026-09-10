@@ -225,6 +225,40 @@ impl WorkspaceBody {
         Ok(())
     }
 
+    /// Remove checked meaning only after the Host has retired its actual Play.
+    /// The Body and membership survive even when the last Form is removed.
+    pub fn remove_form(
+        &mut self,
+        expected_revision: u64,
+        form: &ResidentForm,
+        host: &HostId,
+        boot: &BootId,
+    ) -> Result<(), WorkspaceBodyError> {
+        self.require_host(host, boot)?;
+        if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
+            return Err(WorkspaceBodyError::NotLulled);
+        }
+        if self.evidence.body.workload_revision != expected_revision {
+            return Err(WorkspaceBodyError::StaleWorkload);
+        }
+        let sequence = self.next_sequence()?;
+        let sign_id = sign(host, boot, sequence);
+        let body = self
+            .evidence
+            .body
+            .remove_form(form, sign_id.clone())
+            .map_err(WorkspaceBodyError::Lifecycle)?;
+        let mut evidence = self.evidence.clone();
+        evidence
+            .append_body_workload_events(body, &[(sign_id, sequence)])
+            .map_err(WorkspaceBodyError::Biography)?;
+        if self.foreground.as_ref() == Some(form) {
+            self.foreground = evidence.body.workset.forms().first().cloned();
+        }
+        self.evidence = evidence;
+        Ok(())
+    }
+
     fn require_host(&self, host: &HostId, boot: &BootId) -> Result<(), WorkspaceBodyError> {
         if self.evidence.membership.parts.iter().any(|part| {
             part.state == MembershipState::Admitted

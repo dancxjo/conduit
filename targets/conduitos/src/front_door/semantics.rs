@@ -94,7 +94,9 @@ impl FrontDoor {
                     availability(
                         matches!(
                             status,
-                            JourneyStatus::ResultVisible | JourneyStatus::Stopped
+                            JourneyStatus::Playing
+                                | JourneyStatus::ResultVisible
+                                | JourneyStatus::Stopped
                         ),
                         "Lull",
                         status,

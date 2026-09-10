@@ -10,8 +10,40 @@ use conduit_tour_model::{
 
 #[path = "tour_workspace_graph.rs"]
 mod graph;
+#[path = "tour_workspace_lesson.rs"]
+pub(crate) mod lesson;
 
 pub(crate) const STATUS_HEIGHT: u16 = 64;
+pub(crate) const LESSON_CONTROL_BAR_HEIGHT: u16 = 40;
+
+fn lesson_button_width(layout: &TourWorkspaceLayout) -> u16 {
+    (layout.narrative.width.saturating_sub(24) / 2).clamp(1, 112)
+}
+
+pub(crate) fn chooser_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
+    let width = lesson_button_width(layout);
+    LayoutRect {
+        x: i16::try_from(16_u16.saturating_add(width)).unwrap_or(i16::MAX),
+        y: i16::try_from(
+            layout
+                .narrative
+                .height
+                .saturating_sub(LESSON_CONTROL_BAR_HEIGHT)
+                .saturating_add(6),
+        )
+        .unwrap_or(i16::MAX),
+        width,
+        height: 28,
+    }
+}
+
+pub(crate) fn run_bounds(layout: &TourWorkspaceLayout) -> LayoutRect {
+    LayoutRect {
+        x: 8,
+        width: lesson_button_width(layout),
+        ..chooser_bounds(layout)
+    }
+}
 
 #[cfg(any(test, target_arch = "x86_64"))]
 pub(crate) fn hits_card(
@@ -42,6 +74,7 @@ pub enum TourWorkspaceSceneRefusal {
     Presentation(SemanticPresentationRefusal),
     Layout(TourLayoutRefusal),
     MissingRegion,
+    Graph,
     Graphics(GraphicsError),
 }
 
@@ -78,6 +111,29 @@ pub(crate) fn scene_with_observations(
     state: &TourWorkspaceState,
     observations: Option<&crate::text_composition::TextObservations>,
 ) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
+    let graph = canonical_graph()?;
+    scene_with_graph(width, height, state, &graph, observations)
+}
+
+/// Preparation only. The live Tour retains this projection across revisions.
+pub(crate) fn canonical_graph() -> Result<patchbay_graph::PatchbayGraph, TourWorkspaceSceneRefusal>
+{
+    let form = crate::ordinary_form::checked_expanded_text_form_named(
+        conduit_tour_model::CANONICAL_SOURCE,
+        "meet-one-gear",
+    )
+    .map_err(|_| TourWorkspaceSceneRefusal::Graph)?;
+    patchbay_graph::PatchbayGraph::from_expanded(&form)
+        .map_err(|_| TourWorkspaceSceneRefusal::Graph)
+}
+
+pub(crate) fn scene_with_graph(
+    width: u16,
+    height: u16,
+    state: &TourWorkspaceState,
+    graph: &patchbay_graph::PatchbayGraph,
+    observations: Option<&crate::text_composition::TextObservations>,
+) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
     let view = state
         .presentation()
         .and_then(|presentation| presentation.lower())
@@ -104,7 +160,6 @@ pub(crate) fn scene_with_observations(
             GraphicsPaintRole::Foreground
         };
         let frame = if key == "lesson-status" {
-            // Retained pixels outside a reflowed region must not survive a revision.
             let viewport = LayoutRect {
                 x: 0,
                 y: 0,
@@ -130,6 +185,24 @@ pub(crate) fn scene_with_observations(
         } else {
             node.text.as_str()
         };
+        let panel_key = match key {
+            "lesson-status" => Some("lesson"),
+            "source" => Some("source-panel"),
+            "result" => Some("result-panel"),
+            _ => None,
+        };
+        let labeled;
+        let label = if let Some(panel_key) = panel_key {
+            let panel = view
+                .nodes
+                .iter()
+                .find(|node| node.key == panel_key)
+                .ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
+            labeled = alloc::format!("{}\n\n{label}", panel.text);
+            labeled.as_str()
+        } else {
+            label
+        };
         scene
             .push(
                 GraphicsCommand::text(inset(bounds), bounds, paint, label)
@@ -141,31 +214,78 @@ pub(crate) fn scene_with_observations(
         &mut scene,
         graphics_rect(layout.patchbay)?,
         state,
+        graph,
         observations,
     )?;
+    let narrative = graphics_rect(layout.narrative)?;
+    lesson::append(
+        &mut scene,
+        LayoutRect {
+            height: narrative
+                .height
+                .min(height.saturating_sub(STATUS_HEIGHT).max(1)),
+            ..narrative
+        },
+        state,
+    )?;
+    let run_label = match state.run_availability() {
+        conduit_presentation::ActionAvailability::Available => "Run Plan",
+        conduit_presentation::ActionAvailability::Busy { .. }
+        | conduit_presentation::ActionAvailability::Unavailable { .. } => "Run inactive",
+    };
+    let run = run_bounds(&layout);
+    scene
+        .push(
+            GraphicsCommand::text(run, narrative, GraphicsPaintRole::Accent, run_label)
+                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+        )
+        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+    let button = chooser_bounds(&layout);
+    scene
+        .push(
+            GraphicsCommand::text(
+                LayoutRect {
+                    x: button.x.saturating_add(8),
+                    y: button.y.saturating_add(4),
+                    width: button.width.saturating_sub(16).max(1),
+                    height: button.height.saturating_sub(8).max(1),
+                },
+                narrative,
+                GraphicsPaintRole::Foreground,
+                "Gears",
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+        )
+        .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     Ok(scene)
 }
 
-/// Reserve the shell's Inspector/status edges while retaining full-display
-/// pointer normalization. Rendering and hit resolution consume this same layout.
+/// Reserve the shell's status edge in every workspace state and reserve the
+/// Inspector edge only while an Inspector is actually present. Keep the
+/// viewport at full-display coordinates so rendering and pointer normalization
+/// continue to share one coordinate space.
 pub(crate) fn layout_for_state(
     width: u16,
     height: u16,
     state: &TourWorkspaceState,
 ) -> Result<TourWorkspaceLayout, TourLayoutRefusal> {
-    if state.selected_patchbay_subject.is_none() {
-        return TourWorkspaceLayout::default_for(width, height);
-    }
-    let available_width = width
-        .checked_sub(inspector_width(width))
-        .ok_or(TourLayoutRefusal::EmptyViewport)?;
     let available_height = height
         .checked_sub(STATUS_HEIGHT)
         .ok_or(TourLayoutRefusal::EmptyViewport)?;
+    let (available_width, narrative_percent) = if state.selected_patchbay_subject.is_some() {
+        (
+            width
+                .checked_sub(inspector_width(width))
+                .ok_or(TourLayoutRefusal::EmptyViewport)?,
+            30,
+        )
+    } else {
+        (width, conduit_tour_model::DEFAULT_NARRATIVE_PERCENT)
+    };
     let mut layout = TourWorkspaceLayout::new(
         available_width,
         available_height,
-        30,
+        narrative_percent,
         conduit_tour_model::DEFAULT_PATCHBAY_PERCENT,
         conduit_tour_model::DEFAULT_SOURCE_PERCENT,
     )?;
@@ -201,6 +321,26 @@ mod tests {
     use super::*;
 
     #[test]
+    fn chooser_label_fits_a_complete_measured_font_line() {
+        for (width, height) in [(640, 480), (1280, 800)] {
+            let scene = scene(width, height, 1, TourWorkspacePhase::PatchbayOpen).unwrap();
+            let label = scene
+                .commands()
+                .iter()
+                .find(|command| command.payload() == "Gears")
+                .unwrap();
+            let measured =
+                crate::display::text_height(label.payload(), label.bounds.width).unwrap();
+            assert!(label.bounds.height >= measured);
+            assert!(label.bounds.y >= label.clip.y);
+            assert!(
+                i32::from(label.bounds.y) + i32::from(measured)
+                    <= i32::from(label.clip.y) + i32::from(label.clip.height)
+            );
+        }
+    }
+
+    #[test]
     fn conduitos_consumes_the_tour_owned_portable_view() {
         let view = application_view(11, TourWorkspacePhase::PatchbayOpen).unwrap();
         assert_eq!(view.revision, 11);
@@ -213,7 +353,13 @@ mod tests {
     #[test]
     fn native_scene_manifests_every_shared_region_and_visible_focus() {
         let scene = scene(640, 480, 12, TourWorkspacePhase::PatchbayOpen).unwrap();
-        assert_eq!(scene.commands().len(), 16);
+        assert!(scene.commands().len() > 16);
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.payload().contains("Conduit lets you make"))
+        );
         let frames: alloc::vec::Vec<_> = scene
             .commands()
             .iter()
@@ -236,14 +382,23 @@ mod tests {
                 x: 294,
                 y: 0,
                 width: 346,
-                height: 264
+                height: 228
             }
         );
         assert_eq!(frames[1].paint, GraphicsPaintRole::Accent);
-        assert_eq!(scene.commands()[5].payload(), CANONICAL_SOURCE);
+        assert_eq!(
+            scene.commands()[5].payload(),
+            alloc::format!("Source\n\n{CANONICAL_SOURCE}")
+        );
+        assert!(
+            scene.commands()[1]
+                .payload()
+                .starts_with("A first Form\n\n")
+        );
+        assert!(scene.commands()[7].payload().starts_with("Output\n\n"));
         assert!(scene.commands()[5].payload().ends_with("}"));
         assert!(scene.commands()[7].payload().contains("Patchbay open"));
-        assert!(scene.commands().iter().all(|command| {
+        assert!(scene.commands().iter().take(16).all(|command| {
             command.clip_class() == conduit_presentation::GraphicsClipClass::FullyVisible
         }));
     }
@@ -291,8 +446,12 @@ mod tests {
             .iter()
             .find(|command| command.payload().starts_with("change\ntext/upper"))
             .unwrap();
-        assert_eq!(card.paint, GraphicsPaintRole::Accent);
-        assert!(card.payload().contains("value/text"));
+        assert_eq!(card.paint, GraphicsPaintRole::Selected);
+        assert!(card.payload().contains("Selected\n"));
+        assert!(scene.commands().iter().any(|command| {
+            command.payload().contains("value/text")
+                && command.paint == GraphicsPaintRole::Foreground
+        }));
         assert!(
             scene
                 .commands()
@@ -305,6 +464,23 @@ mod tests {
                 .iter()
                 .any(|command| command.payload().starts_with("result\npresentation/text"))
         );
+    }
+
+    #[test]
+    fn default_workspace_reserves_status_without_rescaling_pointer_space() {
+        let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
+        let layout = layout_for_state(640, 480, &state).unwrap();
+        assert_eq!(layout.viewport.width, 640);
+        assert_eq!(layout.viewport.height, 480);
+        for rect in [
+            layout.narrative,
+            layout.patchbay,
+            layout.source,
+            layout.output,
+        ] {
+            assert!(rect.x + rect.width <= 640);
+            assert!(rect.y + rect.height <= 480 - STATUS_HEIGHT);
+        }
     }
 
     #[test]

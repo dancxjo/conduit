@@ -1,9 +1,19 @@
 //! Finite framebuffer mechanism below portable graphics meaning.
 
 mod font;
+#[cfg(feature = "native-compositor")]
+mod icons;
+mod rounded;
 mod text_layout;
-#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
-pub(crate) use text_layout::text_height;
+mod tokens;
+pub use tokens::*;
+#[cfg(any(test, feature = "native-compositor"))]
+pub mod profile;
+#[cfg(feature = "native-compositor")]
+pub mod typography;
+pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> {
+    text_layout::text_height(value, width)
+}
 
 use conduit_presentation::{
     GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
@@ -87,6 +97,18 @@ pub trait PixelTarget {
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError>;
 }
 
+/// Retained readable pixels support coverage blending without assuming a
+/// background color. Scanout-only Bases need not offer this capability.
+pub trait RetainedPixelTarget: PixelTarget {
+    fn read_pixel(&self, x: u32, y: u32) -> Result<u32, DisplayError>;
+}
+
+impl<T: RetainedPixelTarget + ?Sized> RetainedPixelTarget for &mut T {
+    fn read_pixel(&self, x: u32, y: u32) -> Result<u32, DisplayError> {
+        (**self).read_pixel(x, y)
+    }
+}
+
 impl<T: PixelTarget + ?Sized> PixelTarget for &mut T {
     fn format(&self) -> DisplayFormat {
         (**self).format()
@@ -150,8 +172,6 @@ impl PixelTarget for RawDisplay {
         if offset.checked_add(4).is_none_or(|end| end > self.byte_len) {
             return Err(DisplayError::BufferTooSmall);
         }
-        // SAFETY: construction establishes the writable range and the bound
-        // above keeps this four-byte volatile write inside it.
         unsafe {
             let output = pixel.to_le_bytes();
             for (index, byte) in output.into_iter().enumerate() {
@@ -239,11 +259,37 @@ fn render_command(
             }
             Ok(())
         }
+        GraphicsCommandKind::Rect
+            if matches!(
+                command.style,
+                GraphicsShapeStyle::RoundedFill | GraphicsShapeStyle::RoundedStroke
+            ) =>
+        {
+            rounded::render(
+                target,
+                command.bounds,
+                bounds,
+                command.style,
+                color,
+                receipt,
+            )
+        }
         GraphicsCommandKind::Rect if command.style == GraphicsShapeStyle::Fill => {
             fill(target, bounds, color, receipt)
         }
         GraphicsCommandKind::Rect => stroke(target, bounds, color, receipt),
-        GraphicsCommandKind::Text | GraphicsCommandKind::Icon => text(
+        #[cfg(feature = "native-compositor")]
+        GraphicsCommandKind::Icon => icons::draw(target, command, bounds, color, receipt),
+        #[cfg(not(feature = "native-compositor"))]
+        GraphicsCommandKind::Icon => text(
+            target,
+            command.bounds,
+            bounds,
+            command.payload(),
+            color,
+            receipt,
+        ),
+        GraphicsCommandKind::Text => text(
             target,
             command.bounds,
             bounds,
@@ -273,10 +319,16 @@ fn clipped(bounds: LayoutRect, clip: LayoutRect, format: DisplayFormat) -> Optio
 
 fn paint(format: DisplayFormat, role: GraphicsPaintRole) -> u32 {
     let (red, green, blue) = match role {
-        GraphicsPaintRole::Background => (15, 23, 32),
-        GraphicsPaintRole::Foreground => (225, 232, 240),
-        GraphicsPaintRole::Accent => (83, 178, 255),
-        GraphicsPaintRole::Status => (255, 190, 70),
+        GraphicsPaintRole::Background => BACKGROUND,
+        GraphicsPaintRole::Foreground => FOREGROUND,
+        GraphicsPaintRole::Accent => ACCENT,
+        GraphicsPaintRole::Status | GraphicsPaintRole::Warning => WARNING,
+        GraphicsPaintRole::Muted => MUTED,
+        GraphicsPaintRole::Success => SUCCESS,
+        GraphicsPaintRole::Danger => DANGER,
+        GraphicsPaintRole::Focus => (0xff, 0xcc, 0x33),
+        GraphicsPaintRole::Hovered => (0xff, 0xcc, 0x33),
+        GraphicsPaintRole::Selected => ACCENT,
     };
     format.pixel(red, green, blue)
 }
@@ -320,8 +372,6 @@ fn stroke(
     Ok(())
 }
 
-// Private bounded Unifont raster mechanism. Portable text meaning remains the
-// exact UTF-8 payload above this boundary; unsupported glyphs use U+FFFD.
 fn text(
     target: &mut impl PixelTarget,
     rect: LayoutRect,
