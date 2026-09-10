@@ -208,6 +208,11 @@ impl Session {
                     let effect = TourTimerEffect {
                         schema: "conduit.tour/timer-effect@1",
                         effect_kind: "timer",
+                        source_document_id: self.fragment.source_document_id.as_str().into(),
+                        checked_form_id: self.fragment.checked_form_id.as_str().into(),
+                        expanded_form_id: self.fragment.expanded_form_id.as_str().into(),
+                        plan_id: self.fragment.plan_id.as_str().into(),
+                        fragment_id: self.fragment.fragment_id.as_str().into(),
                         active_play_id: self.source_active_play_id.as_str().into(),
                         placement_id: placement.placement_id.as_str().into(),
                         host_id: self.fragment.host_id.as_str().into(),
@@ -246,6 +251,11 @@ impl Session {
                 let effect = TourKeyEventEffect {
                     schema,
                     effect_kind,
+                    source_document_id: self.fragment.source_document_id.as_str().into(),
+                    checked_form_id: self.fragment.checked_form_id.as_str().into(),
+                    expanded_form_id: self.fragment.expanded_form_id.as_str().into(),
+                    plan_id: self.fragment.plan_id.as_str().into(),
+                    fragment_id: self.fragment.fragment_id.as_str().into(),
                     active_play_id: self.source_active_play_id.as_str().into(),
                     placement_id: placement.placement_id.as_str().into(),
                     host_id: self.fragment.host_id.as_str().into(),

@@ -359,3 +359,6 @@ mod comparison_presentation_tests;
 
 #[cfg(test)]
 mod startup_chime_tests;
+
+#[cfg(test)]
+mod continuous_lifecycle_tests;
