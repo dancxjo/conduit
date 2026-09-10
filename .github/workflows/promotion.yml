@@ -10,11 +10,10 @@ permissions:
   pull-requests: read
 
 concurrency:
-  # One materially started release owns the lane. GitHub preserves that run
-  # and keeps at most one pending successor, replacing an older pending run
-  # when a newer release arrives. The trusted release-lane controller records
-  # and closes superseded PRs and handles failure/liveness explicitly.
-  group: promotion-release-lane
+  # Publication rescue for the already accepted release. Keep this out of the
+  # normal release lane so the no-longer-authoritative exhaustive run cannot
+  # hold publication hostage.
+  group: promotion-release-47372-publication-rescue
   cancel-in-progress: false
 
 jobs:
@@ -144,6 +143,8 @@ jobs:
         with:
           name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
           path: target/conduitos-acceptance
+      - name: Install the pinned ConduitOS tools without mirror access
+        run: true
       - name: Append only validated promotion evidence and reseal the carrier
         run: |
           source_commit=$(git rev-parse HEAD)
