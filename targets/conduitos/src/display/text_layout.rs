@@ -24,6 +24,9 @@ impl TextCursor {
             return None;
         }
         let width = u32::from(font::glyph(character).0.width);
+        if Self::is_combining_mark(character) {
+            return Some((self.x.saturating_sub(width), self.y));
+        }
         if self.x + width > self.width {
             self.x = 0;
             self.y = self.y.saturating_add(font::GLYPH_HEIGHT);
@@ -32,12 +35,26 @@ impl TextCursor {
         self.x += width;
         Some(position)
     }
+
+    const fn is_combining_mark(character: char) -> bool {
+        matches!(
+            character as u32,
+            0x0300..=0x036F
+                | 0x1AB0..=0x1AFF
+                | 0x1DC0..=0x1DFF
+                | 0x20D0..=0x20FF
+                | 0xFE20..=0xFE2F
+        )
+    }
 }
 
 pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> {
     let mut cursor = TextCursor::new(width);
     for character in value.chars() {
-        if character != '\n' && u16::from(font::glyph(character).0.width) > width {
+        if character != '\n'
+            && !TextCursor::is_combining_mark(character)
+            && u16::from(font::glyph(character).0.width) > width
+        {
             return Err(DisplayError::InvalidExtent);
         }
         cursor.advance(character);

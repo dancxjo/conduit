@@ -6,7 +6,6 @@ use conduit_human::KeyTransition;
 
 fn born() -> (BootIdentities, HostOffer<'static>, ProductJourney) {
     let (ids, offer, mut journey) = fixture();
-    invoke(&mut journey, JourneyAction::OpenBack, &ids, &offer).unwrap();
     journey
         .birth_from_creche(BirthSelection {
             revision: 3,
