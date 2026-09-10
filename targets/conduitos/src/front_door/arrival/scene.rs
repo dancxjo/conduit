@@ -65,13 +65,15 @@ impl Arrival {
             } else {
                 paint
             };
-            scene
-                .push(
-                    GraphicsCommand::text(bounds, screen, paint, value)
-                        .and_then(|command| command.with_text_role(typography))
-                        .map_err(|_| Error::Scene)?,
-                )
-                .map_err(|_| Error::Scene)?;
+            if !value.is_empty() {
+                scene
+                    .push(
+                        GraphicsCommand::text(bounds, screen, paint, value)
+                            .and_then(|command| command.with_text_role(typography))
+                            .map_err(|_| Error::Scene)?,
+                    )
+                    .map_err(|_| Error::Scene)?;
+            }
             if focused {
                 let frame = LayoutRect {
                     x: bounds.x - 8,

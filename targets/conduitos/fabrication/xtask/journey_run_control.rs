@@ -97,7 +97,11 @@ pub(super) fn execute(paths: &Paths, image: &Path, digest: &str) -> Result<(), C
         let offset = fs::metadata(&serial).map_err(io)?.len() as usize;
         button(&mut stream, &mut reader, &serial, &mut child, false)?;
         wait(&serial, &mut child, RELEASE, offset)?;
-        motion(&mut stream, &mut reader, &serial, &mut child, -120, -93)?;
+        // After chooser selection the pointer remains centered. The selected
+        // workspace Run control occupies the bottom-left lesson control bar;
+        // one boot-mouse report reaches its center with this bounded delta.
+        // Keep the local regression below tied to the shared 640x480 layout.
+        motion(&mut stream, &mut reader, &serial, &mut child, -111, 81)?;
         button(&mut stream, &mut reader, &serial, &mut child, true)?;
         wait(&serial, &mut child, RUN, 0)?;
         motion(&mut stream, &mut reader, &serial, &mut child, 0, 1)?;
@@ -218,6 +222,19 @@ mod tests {
         assert!(!marker_after(text, "", 0));
         assert!(!marker_after("check\npoint\n", "checkpoint", 0));
     }
+    #[test]
+    fn run_pointer_delta_targets_current_selected_control() {
+        // Selected 640x480 Tour layout reserves a 64px status strip and
+        // inspector width, putting Run at x=8..60 and y=382..410.
+        // The pointer starts centered at normalized (500000, 500000).
+        let final_x = 500_000_i64 - 111 * 4_000;
+        let final_y = 500_000_i64 + 81 * 4_000;
+        let pixel_x = final_x * 640 / 1_000_000;
+        let pixel_y = final_y * 480 / 1_000_000;
+        assert!((8..60).contains(&pixel_x));
+        assert!((382..410).contains(&pixel_y));
+    }
+
     #[test]
     fn result_activation_and_release_are_ordered_and_unique() {
         let valid = format!("CONDUIT_SERIAL_PRESENT HELLO\n{RUN}\n{RELEASE}\n");

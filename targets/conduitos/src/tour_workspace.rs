@@ -160,7 +160,6 @@ pub(crate) fn scene_with_graph(
             GraphicsPaintRole::Foreground
         };
         let frame = if key == "lesson-status" {
-            // Retained pixels outside a reflowed region must not survive a revision.
             let viewport = LayoutRect {
                 x: 0,
                 y: 0,
@@ -186,8 +185,6 @@ pub(crate) fn scene_with_graph(
         } else {
             node.text.as_str()
         };
-        // Keep the portable panel titles visible instead of dropping them
-        // while lowering their children into the native pane rectangles.
         let panel_key = match key {
             "lesson-status" => Some("lesson"),
             "source" => Some("source-panel"),
@@ -263,26 +260,32 @@ pub(crate) fn scene_with_graph(
     Ok(scene)
 }
 
-/// Reserve the shell's Inspector/status edges while retaining full-display
-/// pointer normalization. Rendering and hit resolution consume this same layout.
+/// Reserve the shell's status edge in every workspace state and reserve the
+/// Inspector edge only while an Inspector is actually present. Keep the
+/// viewport at full-display coordinates so rendering and pointer normalization
+/// continue to share one coordinate space.
 pub(crate) fn layout_for_state(
     width: u16,
     height: u16,
     state: &TourWorkspaceState,
 ) -> Result<TourWorkspaceLayout, TourLayoutRefusal> {
-    if state.selected_patchbay_subject.is_none() {
-        return TourWorkspaceLayout::default_for(width, height);
-    }
-    let available_width = width
-        .checked_sub(inspector_width(width))
-        .ok_or(TourLayoutRefusal::EmptyViewport)?;
     let available_height = height
         .checked_sub(STATUS_HEIGHT)
         .ok_or(TourLayoutRefusal::EmptyViewport)?;
+    let (available_width, narrative_percent) = if state.selected_patchbay_subject.is_some() {
+        (
+            width
+                .checked_sub(inspector_width(width))
+                .ok_or(TourLayoutRefusal::EmptyViewport)?,
+            30,
+        )
+    } else {
+        (width, conduit_tour_model::DEFAULT_NARRATIVE_PERCENT)
+    };
     let mut layout = TourWorkspaceLayout::new(
         available_width,
         available_height,
-        30,
+        narrative_percent,
         conduit_tour_model::DEFAULT_PATCHBAY_PERCENT,
         conduit_tour_model::DEFAULT_SOURCE_PERCENT,
     )?;
@@ -379,7 +382,7 @@ mod tests {
                 x: 294,
                 y: 0,
                 width: 346,
-                height: 264
+                height: 228
             }
         );
         assert_eq!(frames[1].paint, GraphicsPaintRole::Accent);
@@ -461,6 +464,23 @@ mod tests {
                 .iter()
                 .any(|command| command.payload().starts_with("result\npresentation/text"))
         );
+    }
+
+    #[test]
+    fn default_workspace_reserves_status_without_rescaling_pointer_space() {
+        let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
+        let layout = layout_for_state(640, 480, &state).unwrap();
+        assert_eq!(layout.viewport.width, 640);
+        assert_eq!(layout.viewport.height, 480);
+        for rect in [
+            layout.narrative,
+            layout.patchbay,
+            layout.source,
+            layout.output,
+        ] {
+            assert!(rect.x + rect.width <= 640);
+            assert!(rect.y + rect.height <= 480 - STATUS_HEIGHT);
+        }
     }
 
     #[test]

@@ -30,6 +30,7 @@ pub(super) fn handle(
     {
         return Ok(false);
     }
+    crate::arch::early_write(b"CONDUIT_TOUR_CHECKPOINT run-button-hit\n");
     presenter
         .set_pointer_hover(true)
         .map_err(|error| error.as_str())?;
@@ -48,14 +49,15 @@ pub(super) fn handle(
                 crate::arch::early_write(b"CONDUIT_TOUR_CHECKPOINT run-button-completed\n");
             }
             Err(error) if error.controller_refusal().is_some() => {
+                let refusal = error.controller_refusal().expect("matched refusal");
+                crate::arch::early_write(b"CONDUIT_TOUR_CHECKPOINT run-button-refused ");
+                crate::arch::early_write(refusal.as_str().as_bytes());
+                crate::arch::early_write(b"\n");
                 presenter
                     .show_transient(
                         tour,
                         conduit_tour_model::TourTransientKind::Refusal,
-                        error
-                            .controller_refusal()
-                            .expect("matched refusal")
-                            .as_str(),
+                        refusal.as_str(),
                         display,
                     )
                     .map_err(|error| error.as_str())?;
