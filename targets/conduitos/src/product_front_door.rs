@@ -122,12 +122,17 @@ pub fn run(
     let mut idle = arch::Idle::new();
     loop {
         let mut line_requested = false;
-        let mut workspace_dirty = false;
+        let mut workspace_updates = workspace_input::PendingInput::default();
         let mut interact = |input| {
             let event = match input {
                 ProductInputEvent::Service => {
-                    if core::mem::take(&mut workspace_dirty) && !tour_open {
-                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                    if let Some(receipt) = workspace_updates.service(
+                        &mut front_door,
+                        &journey,
+                        &mut presenter,
+                        display,
+                        !tour_open,
+                    )? {
                         emit_journey_sign(&journey.projection(), fabrication, &receipt);
                     }
                     return Ok(ProductInputControl::Continue);
@@ -158,9 +163,7 @@ pub fn run(
             // A held key keeps its original Form owner across surface changes,
             // including when the compositor currently has no keyboard target.
             if journey.owns_key_release(event) {
-                if workspace_input::accept(event, &mut journey, &mut front_door)? && !tour_open {
-                    workspace_dirty = true;
-                }
+                workspace_updates.accept(event, &mut journey, &mut front_door)?;
                 return Ok(ProductInputControl::Continue);
             }
             let keyboard_route = if tour_open {
@@ -347,9 +350,7 @@ pub fn run(
                 if journey.status() == JourneyStatus::Playing
                     && form_receives_input(false, false, event.usage())
                 {
-                    if workspace_input::accept(event, &mut journey, &mut front_door)? {
-                        workspace_dirty = true;
-                    }
+                    workspace_updates.accept(event, &mut journey, &mut front_door)?;
                     return Ok(ProductInputControl::Continue);
                 }
                 if event.usage() == 43 {

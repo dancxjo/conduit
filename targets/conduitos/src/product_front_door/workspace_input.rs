@@ -8,6 +8,55 @@ use crate::{
     product_journey::{JourneyError, JourneyStatus, ProductJourney},
 };
 
+/// Coalesce observation and pixel work independently at the existing Service
+/// boundary. An accepted release advances journey evidence, not visible text.
+#[derive(Default)]
+pub(super) struct PendingInput {
+    changed: bool,
+    repaint: bool,
+}
+
+impl PendingInput {
+    pub(super) fn accept(
+        &mut self,
+        event: KeyEvent,
+        journey: &mut ProductJourney,
+        door: &mut FrontDoor,
+    ) -> Result<(), &'static str> {
+        let revision = journey.revision();
+        self.repaint |= accept(event, journey, door)?;
+        self.changed |= journey.revision() != revision;
+        Ok(())
+    }
+
+    pub(super) fn service(
+        &mut self,
+        door: &mut FrontDoor,
+        journey: &ProductJourney,
+        presenter: &mut crate::front_door::FrontDoorPresenter,
+        display: &mut impl crate::display::PixelTarget,
+        visible: bool,
+    ) -> Result<Option<crate::native_compositor::CompositionReceipt>, &'static str> {
+        let pending = core::mem::take(self);
+        if !pending.changed || !visible {
+            return Ok(None);
+        }
+        door.observe_product(journey)
+            .map_err(|error| error.as_str())?;
+        // Stage an exact retained presentation for metadata-only changes too.
+        // Its receipt is observation evidence; only compose writes scanout.
+        let receipt = presenter
+            .stage(door, display)
+            .map_err(|error| error.as_str())?;
+        if pending.repaint {
+            presenter
+                .compose(display)
+                .map_err(|error| error.as_str())?;
+        }
+        Ok(Some(receipt))
+    }
+}
+
 /// Tab changes foreground membership without replacing the admitted Play.
 /// Release is consumed too, so it cannot become an unmatched Form input.
 pub(super) fn select(
@@ -77,5 +126,7 @@ pub(super) fn refresh(
         .map_err(|error| error.as_str())
 }
 
+#[cfg(test)]
+mod service_tests;
 #[cfg(test)]
 mod tests;
