@@ -222,9 +222,11 @@ pub fn run_product(
     loop {
         // Publish the next transfer before giving admitted semantic work or
         // presentation/export a turn.
-        session
-            .begin_followup(controller, device)
-            .map_err(|error| error.as_str())?;
+        if !session.followup_pending() {
+            session
+                .begin_followup(controller, device)
+                .map_err(|error| error.as_str())?;
+        }
         if service_product_ingress(&mut ingress, &mut interact)? == ProductInputControl::Yield {
             return Ok(());
         }

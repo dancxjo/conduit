@@ -22,6 +22,10 @@ impl HidKeyboardSession {
     pub fn transitions(&self) -> &[HidKeyTransition] {
         &self.initial[..self.initial_count]
     }
+
+    pub const fn followup_pending(&self) -> bool {
+        self.pending_report_index.is_some()
+    }
 }
 
 /// Starts the ordinary reusable session without waiting for user input.
@@ -38,6 +42,35 @@ pub fn start_boot_keyboard_session(ready: HidKeyboardReady) -> HidKeyboardSessio
         transition_count: 0,
         next_report_index: 0,
         pending_report_index: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ready() -> HidKeyboardReady {
+        HidKeyboardReady {
+            interface_number: 0,
+            endpoint_address: 0x81,
+            endpoint_dci: 3,
+            endpoint_maximum_packet_size: 8,
+            endpoint_interval: 7,
+            report_buffers: super::super::REPORT_BUFFERS as u16,
+            transition_slots: super::super::MAX_TRANSITIONS_PER_REPORT as u16,
+            operation_slots: 1,
+            dma_physical: 0x1000,
+        }
+    }
+
+    #[test]
+    fn ordinary_session_exposes_whether_a_followup_transfer_is_already_armed() {
+        let session = start_boot_keyboard_session(ready());
+        assert!(!session.followup_pending());
+
+        let mut armed = session;
+        armed.pending_report_index = Some(0);
+        assert!(armed.followup_pending());
     }
 }
 
