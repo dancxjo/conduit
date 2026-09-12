@@ -45,35 +45,6 @@ pub fn start_boot_keyboard_session(ready: HidKeyboardReady) -> HidKeyboardSessio
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn ready() -> HidKeyboardReady {
-        HidKeyboardReady {
-            interface_number: 0,
-            endpoint_address: 0x81,
-            endpoint_dci: 3,
-            endpoint_maximum_packet_size: 8,
-            endpoint_interval: 7,
-            report_buffers: super::super::REPORT_BUFFERS as u16,
-            transition_slots: super::super::MAX_TRANSITIONS_PER_REPORT as u16,
-            operation_slots: 1,
-            dma_physical: 0x1000,
-        }
-    }
-
-    #[test]
-    fn ordinary_session_exposes_whether_a_followup_transfer_is_already_armed() {
-        let session = start_boot_keyboard_session(ready());
-        assert!(!session.followup_pending());
-
-        let mut armed = session;
-        armed.pending_report_index = Some(0);
-        assert!(armed.followup_pending());
-    }
-}
-
 pub fn receive_first_boot_keyboard_report(
     controller: &mut XhciReady,
     device: &UsbDevice,
@@ -252,4 +223,33 @@ pub fn finish_boot_keyboard(
 ) -> Result<HidProof, HidError> {
     let (followup, count) = session.receive_followup(controller, device)?;
     session.scripted_initial_proof(&followup[..count])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ready() -> HidKeyboardReady {
+        HidKeyboardReady {
+            interface_number: 0,
+            endpoint_address: 0x81,
+            endpoint_dci: 3,
+            endpoint_maximum_packet_size: 8,
+            endpoint_interval: 7,
+            report_buffers: super::super::REPORT_BUFFERS as u16,
+            transition_slots: super::super::MAX_TRANSITIONS_PER_REPORT as u16,
+            operation_slots: 1,
+            dma_physical: 0x1000,
+        }
+    }
+
+    #[test]
+    fn ordinary_session_exposes_whether_a_followup_transfer_is_already_armed() {
+        let session = start_boot_keyboard_session(ready());
+        assert!(!session.followup_pending());
+
+        let mut armed = session;
+        armed.pending_report_index = Some(0);
+        assert!(armed.followup_pending());
+    }
 }
