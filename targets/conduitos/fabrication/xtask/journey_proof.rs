@@ -434,7 +434,7 @@ fn execute_image(
             .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
             .collect::<BTreeMap<_, _>>();
         for status in [
-            "form-opened",
+            "world",
             "born-lulled",
             "awake",
             "planned",
@@ -449,7 +449,7 @@ fn execute_image(
                 ));
             }
         }
-        let opened = by_status["form-opened"];
+        let opened = by_status["world"];
         let tour_by_status = tour_records
             .iter()
             .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))

@@ -9,8 +9,18 @@ const token = process.env.GITHUB_TOKEN;
 const output = process.env.GITHUB_OUTPUT;
 if (!repository || !token || !output) throw new Error("GitHub workflow context is incomplete");
 
-const requestedMain = event.inputs?.main_sha?.trim() ?? "";
-const eventPullNumber = event.pull_request?.number;
+// #3246 deliberately shipped after the normal release boundary while allowing
+// known exhaustive proof debt. A follow-up merge from the same exact release
+// branch must therefore be able to use the workflow's existing direct-main
+// fabrication path instead of waiting for an exact-head product artifact whose
+// production was intentionally not a release prerequisite.
+const deployFirstMerge = event.pull_request?.merged === true
+  && event.pull_request?.base?.ref === "main"
+  && event.pull_request?.head?.ref === "release/47372b96d31ca8a04e9868a88bdd1919a9cad986"
+  ? event.pull_request?.merge_commit_sha ?? ""
+  : "";
+const requestedMain = event.inputs?.main_sha?.trim() || deployFirstMerge;
+const eventPullNumber = deployFirstMerge ? undefined : event.pull_request?.number;
 const rawInputPullNumber = event.inputs?.pr_number;
 const inputPullNumber = rawInputPullNumber === undefined || rawInputPullNumber === ""
   || rawInputPullNumber === 0 || rawInputPullNumber === "0"

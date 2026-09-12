@@ -10,7 +10,7 @@ use conduit_body::BodyWorkset;
 use conduit_creche_model::birth::BirthSelection;
 use conduit_presentation::PresentationPropertyValue;
 
-fn listening() -> (ProductJourney, FrontDoor) {
+pub(super) fn listening() -> (ProductJourney, FrontDoor) {
     let (ids, offer, mut journey) = fixture();
     invoke(&mut journey, JourneyAction::OpenBack, &ids, &offer).unwrap();
     journey
