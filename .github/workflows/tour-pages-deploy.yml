@@ -186,7 +186,7 @@ jobs:
        github.event.pull_request.base.ref == 'main' &&
        github.event.pull_request.head.ref == 'release/47372b96d31ca8a04e9868a88bdd1919a9cad986')
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -208,6 +208,8 @@ jobs:
             ':(exclude).github/workflows/tour-pages-deploy.yml' \
             ':(exclude).github/release-audit/47372-publication.md'
       - name: Reuse the exact already-built staged release payload
+        id: staged-products
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: conduit-staged-browser-products
@@ -216,6 +218,37 @@ jobs:
           run-id: 34522795014
           github-token: ${{ github.token }}
           digest-mismatch: error
+      - uses: dtolnay/rust-toolchain@1.98.1
+        if: steps.staged-products.outcome != 'success'
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        if: steps.staged-products.outcome != 'success'
+        with:
+          cache-on-failure: false
+      - name: Rebuild the exact staged release payload after artifact expiry
+        if: steps.staged-products.outcome != 'success'
+        run: |
+          mkdir -p target/browser-product-runtimes
+          cargo build --locked -p conduit-browser-host
+          cp target/debug/conduit-browser-host target/browser-product-runtimes/conduit-browser-host
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features tour-surface
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/tour-runtime.wasm
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface,form-runner
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/workspace-runtime.wasm
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
+          cargo build --locked -p patchbay-html --bin patchbay-static-assets
+          cp target/debug/patchbay-static-assets target/browser-product-runtimes/patchbay-static-assets
+          cargo build --locked -p patchbay-html --bin patchbay-html -p conduit-std-host --bin browser-admission-probe
+          rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product
+          site/tools/stage-pages-root.sh target/pages-root
+          products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+          products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product unused browser-proof
+          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
+          products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
       - name: Seal the deploy-first Pages carrier without the stale browser-proof veto
         run: |
           rm -rf target/pages-site target/pages-carrier
