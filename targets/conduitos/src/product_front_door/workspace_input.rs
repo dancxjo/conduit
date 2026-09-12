@@ -49,9 +49,7 @@ impl PendingInput {
             .stage(door, display)
             .map_err(|error| error.as_str())?;
         if pending.repaint {
-            presenter
-                .compose(display)
-                .map_err(|error| error.as_str())?;
+            presenter.compose(display).map_err(|error| error.as_str())?;
         }
         Ok(Some(receipt))
     }
