@@ -272,6 +272,44 @@ fn structured_route_trajectory_and_control_codecs_preserve_exact_profiles() {
     ));
 }
 
+#[test]
+fn navigation_input_codecs_round_trip_exact_finite_values() {
+    let pose = pose(50, 50, 0);
+    let goal = goal(250, 250, 0);
+    let mut traversability = grid(TraversabilityCell::Free);
+    traversability.cells[1] = TraversabilityCell::Blocked;
+    let time = time(500);
+
+    assert_eq!(
+        conduit_semantic_catalog::decode_navigation_pose(
+            &conduit_semantic_catalog::encode_navigation_pose(&pose, 0, 0).unwrap()
+        )
+        .unwrap(),
+        pose
+    );
+    assert_eq!(
+        conduit_semantic_catalog::decode_navigation_goal(
+            &conduit_semantic_catalog::encode_navigation_goal(&goal).unwrap()
+        )
+        .unwrap(),
+        goal
+    );
+    assert_eq!(
+        conduit_semantic_catalog::decode_navigation_traversability(
+            &conduit_semantic_catalog::encode_navigation_traversability(&traversability).unwrap()
+        )
+        .unwrap(),
+        traversability
+    );
+    assert_eq!(
+        conduit_semantic_catalog::decode_navigation_time(
+            &conduit_semantic_catalog::encode_navigation_time(&time).unwrap()
+        )
+        .unwrap(),
+        time
+    );
+}
+
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();

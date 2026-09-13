@@ -131,6 +131,13 @@ pub(crate) fn text_value(value: &str) -> Result<StructuredInfoValue, NavigationC
     )?)
 }
 
+pub(crate) fn count_value(value: u64) -> Result<StructuredInfoValue, NavigationCodecError> {
+    Ok(StructuredInfoValue::leaf(
+        StructuredInfoType::leaf(kind_id("value/count@1"))?,
+        value.to_string().into_bytes(),
+    )?)
+}
+
 pub(crate) fn quantity_value(
     value: i64,
     unit: QuantityUnit,

@@ -45,6 +45,10 @@ use super::midi_input_operation::MIDI_INPUT_FACTORY;
 use super::midi_output_operation::MIDI_OUTPUT_FACTORY;
 use super::model_text_operation::FACTORY as MODEL_TEXT_FACTORY;
 use super::morse_operations::{INDICATOR_PRESENTATION_FACTORY, TEXT_MORSE_FACTORY};
+use super::navigation_operations::{
+    CONTROL_FACTORY as NAVIGATION_CONTROL_FACTORY, ROUTE_FACTORY as NAVIGATION_ROUTE_FACTORY,
+    TIME_FACTORY as NAVIGATION_TIME_FACTORY,
+};
 use super::operation::InstalledFactory;
 use super::pacing_operations::{TIME_DELAY_FACTORY, TIME_THROTTLE_FACTORY};
 use super::pattern_comparison_operation::FACTORY as PATTERN_COMPARISON_FACTORY;
@@ -192,6 +196,9 @@ const FACTORIES: &[&InstalledFactory] = &[
     &LOGIC_SELECT_SCALAR_FACTORY,
     &LOCAL_MODEL_FACTORY,
     &MODEL_TEXT_FACTORY,
+    &NAVIGATION_ROUTE_FACTORY,
+    &NAVIGATION_TIME_FACTORY,
+    &NAVIGATION_CONTROL_FACTORY,
     &EXACT_VECTOR_SEARCH_FACTORY,
     &HNSW_FACTORY,
     &MATH_CLAMP_FACTORY,

@@ -100,6 +100,181 @@ pub fn decode_navigation_traversability(
     })
 }
 
+pub fn encode_navigation_pose(
+    value: &NavigationPose,
+    position_uncertainty_mm: u32,
+    heading_uncertainty_microdegrees: u32,
+) -> Result<Vec<u8>, NavigationCodecError> {
+    let ty = navigation_pose_type();
+    let observation_ty = field_type(&ty, "observation")?;
+    let pose_ty = field_type(&observation_ty, "pose")?;
+    let sample_ty = field_type(&observation_ty, "sample")?;
+    let pose = record_value(
+        pose_ty,
+        vec![
+            (
+                "heading",
+                quantity_value(value.heading_microdegrees.into(), QuantityUnit::Microdegree)?,
+            ),
+            (
+                "position",
+                point2_value(
+                    &value.frame,
+                    Quantity::new(value.x_mm.into(), QuantityUnit::Millimeter),
+                    Quantity::new(value.y_mm.into(), QuantityUnit::Millimeter),
+                )
+                .map_err(|_| NavigationCodecError::Malformed)?,
+            ),
+        ],
+    )?;
+    let sample = sample_value(
+        sample_ty,
+        &value.source_identity,
+        value.sample_sequence,
+        value.validity.observed_at_ms,
+    )?;
+    let observation = record_value(
+        observation_ty,
+        vec![
+            (
+                "heading_uncertainty",
+                quantity_value(
+                    heading_uncertainty_microdegrees.into(),
+                    QuantityUnit::Microdegree,
+                )?,
+            ),
+            ("pose", pose),
+            (
+                "position_uncertainty",
+                quantity_value(position_uncertainty_mm.into(), QuantityUnit::Millimeter)?,
+            ),
+            ("sample", sample),
+        ],
+    )?;
+    let validity = validity_value(&ty, &value.clock_identity, value.validity.valid_until_ms)?;
+    Ok(record_value(
+        ty,
+        vec![("observation", observation), ("validity", validity)],
+    )?
+    .canonical_bytes()?)
+}
+
+pub fn encode_navigation_traversability(
+    value: &Traversability4x4,
+) -> Result<Vec<u8>, NavigationCodecError> {
+    let ty = navigation_traversability_type();
+    let cells_ty = field_type(&ty, "cells")?;
+    let StructuredInfoTypeShape::Collection { element, .. } = cells_ty.shape() else {
+        return Err(NavigationCodecError::Malformed);
+    };
+    let cells = value
+        .cells
+        .iter()
+        .map(|cell| {
+            let tag = match cell {
+                TraversabilityCell::Free => "free",
+                TraversabilityCell::Blocked => "blocked",
+                TraversabilityCell::Unknown => "unknown",
+            };
+            let unit = variant_type(element, tag)?;
+            Ok(StructuredInfoValue::variant(
+                element.clone(),
+                tag,
+                StructuredInfoValue::leaf(unit, Vec::new())?,
+            )?)
+        })
+        .collect::<Result<Vec<_>, NavigationCodecError>>()?;
+    let cells = StructuredInfoValue::collection(cells_ty, cells)?;
+    let extent_ty = field_type(&ty, "cell_extent")?;
+    let extent = record_value(
+        extent_ty,
+        vec![
+            (
+                "height",
+                quantity_value(value.cell_height_mm.into(), QuantityUnit::Millimeter)?,
+            ),
+            (
+                "width",
+                quantity_value(value.cell_width_mm.into(), QuantityUnit::Millimeter)?,
+            ),
+        ],
+    )?;
+    let sample_ty = field_type(&ty, "sample")?;
+    let sample = sample_value(
+        sample_ty,
+        &value.source_identity,
+        value.sample_sequence,
+        value.validity.observed_at_ms,
+    )?;
+    let validity = validity_value(&ty, &value.clock_identity, value.validity.valid_until_ms)?;
+    Ok(record_value(
+        ty,
+        vec![
+            ("cells", cells),
+            ("cell_extent", extent),
+            ("frame", text_value(&value.frame)?),
+            (
+                "origin",
+                point2_value(
+                    &value.frame,
+                    Quantity::new(value.origin_x_mm.into(), QuantityUnit::Millimeter),
+                    Quantity::new(value.origin_y_mm.into(), QuantityUnit::Millimeter),
+                )
+                .map_err(|_| NavigationCodecError::Malformed)?,
+            ),
+            ("sample", sample),
+            ("validity", validity),
+        ],
+    )?
+    .canonical_bytes()?)
+}
+
+fn sample_value(
+    ty: conduit_core::StructuredInfoType,
+    source_identity: &str,
+    sample_sequence: u64,
+    observed_at_ms: u64,
+) -> Result<StructuredInfoValue, NavigationCodecError> {
+    record_value(
+        ty,
+        vec![
+            ("sample_sequence", count_value(sample_sequence)?),
+            (
+                "sample_time_since_boot",
+                quantity_value(
+                    observed_at_ms
+                        .try_into()
+                        .map_err(|_| NavigationCodecError::InexactQuantity)?,
+                    QuantityUnit::Millisecond,
+                )?,
+            ),
+            ("source_identity", text_value(source_identity)?),
+        ],
+    )
+}
+
+fn validity_value(
+    parent: &conduit_core::StructuredInfoType,
+    clock_identity: &str,
+    valid_until_ms: u64,
+) -> Result<StructuredInfoValue, NavigationCodecError> {
+    record_value(
+        field_type(parent, "validity")?,
+        vec![
+            ("clock_identity", text_value(clock_identity)?),
+            (
+                "valid_until",
+                quantity_value(
+                    valid_until_ms
+                        .try_into()
+                        .map_err(|_| NavigationCodecError::InexactQuantity)?,
+                    QuantityUnit::Millisecond,
+                )?,
+            ),
+        ],
+    )
+}
+
 pub fn decode_navigation_route(encoded: &[u8]) -> Result<NavigationRoute, NavigationCodecError> {
     let value = exact(encoded, &navigation_route_type())?;
     let StructuredInfoValueShape::Variant { payload, .. } =
