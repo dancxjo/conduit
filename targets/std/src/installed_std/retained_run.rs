@@ -16,6 +16,7 @@ pub(crate) struct RunLifecycle<'a, 'indicator> {
     pub attach_live: bool,
     pub speech_synthesis: Option<&'a mut crate::hosted_speech::PiperSpeechAdapter>,
     pub speech_recognition: Option<&'a mut crate::hosted_speech_recognition::WhisperSpeechAdapter>,
+    pub microphone: Option<&'a mut crate::hosted_microphone::AlsaMicrophoneAdapter>,
 }
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
@@ -55,6 +56,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
             attach_live: false,
             speech_synthesis: None,
             speech_recognition: None,
+            microphone: None,
         },
     )
     .map(|run| run.report)

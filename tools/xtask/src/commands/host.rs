@@ -22,6 +22,8 @@ mod host_esp32_inspection;
 mod host_esp32_inspection_tests;
 #[path = "host_local_model.rs"]
 mod host_local_model;
+#[path = "host_microphone.rs"]
+mod host_microphone;
 #[path = "host_piper.rs"]
 mod host_piper;
 #[path = "host_recorded_house.rs"]
@@ -200,6 +202,29 @@ enum HostCommand {
         #[arg(long)]
         admitted_memory_mib: u32,
     },
+    /// Explicitly capture one bounded microphone clip and recognize it through Whisper.
+    ProveMicrophoneWhisper {
+        #[arg(long)]
+        arecord_executable: PathBuf,
+        #[arg(long)]
+        card_id: String,
+        #[arg(long)]
+        device: u16,
+        #[arg(long, default_value_t = 3_000)]
+        capture_milliseconds: u32,
+        #[arg(long, default_value_t = 10)]
+        capture_timeout_seconds: u64,
+        #[arg(long)]
+        whisper_executable: PathBuf,
+        #[arg(long)]
+        whisper_model: PathBuf,
+        #[arg(long, default_value_t = 2)]
+        whisper_threads: u8,
+        #[arg(long, default_value_t = 30)]
+        whisper_timeout_seconds: u64,
+        #[arg(long)]
+        authorize_capture: bool,
+    },
 }
 
 #[derive(Args, Debug)]
@@ -311,6 +336,32 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 whisper_timeout_seconds,
                 ollama_model,
                 admitted_memory_mib,
+            },
+            opts,
+        ),
+        HostCommand::ProveMicrophoneWhisper {
+            arecord_executable,
+            card_id,
+            device,
+            capture_milliseconds,
+            capture_timeout_seconds,
+            whisper_executable,
+            whisper_model,
+            whisper_threads,
+            whisper_timeout_seconds,
+            authorize_capture,
+        } => host_microphone::prove(
+            host_microphone::MicrophoneWhisperRequest {
+                arecord_executable,
+                card_id,
+                device,
+                capture_milliseconds,
+                capture_timeout_seconds,
+                whisper_executable,
+                whisper_model,
+                whisper_threads,
+                whisper_timeout_seconds,
+                authorize_capture,
             },
             opts,
         ),

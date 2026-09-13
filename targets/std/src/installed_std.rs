@@ -39,6 +39,7 @@ mod local_model_operation;
 mod logic_operations;
 mod math_host;
 mod math_operations;
+mod microphone_clip_operation;
 mod midi_input_operation;
 mod midi_output_operation;
 mod model_host;
@@ -222,6 +223,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         attach_live,
         mut speech_synthesis,
         mut speech_recognition,
+        mut microphone,
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
@@ -675,7 +677,52 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if [
+            if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
+                if input != b"capture" {
+                    return Err("microphone clip capture request is not exact".into());
+                }
+                let adapter = microphone.as_deref_mut().ok_or_else(|| {
+                    "microphone clip request has no initialized adapter".to_string()
+                })?;
+                let capture = adapter.capture_clip(|| control.requested_stop().is_some());
+                let (disposition, output, failure) = match capture {
+                    Ok(clip) => {
+                        let value = scheduler.store_host_value(&clip).map_err(|error| {
+                            format!("store captured microphone clip: {error:?}")
+                        })?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map_err(|error| format!("bound captured microphone clip: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output), None)
+                    }
+                    Err(crate::hosted_microphone::MicrophoneFailure::Cancelled) => {
+                        (HostOperationDisposition::Cancelled, None, None)
+                    }
+                    Err(error) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: error as u16,
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete microphone clip capture: {error:?}"))?;
+                continue;
+            } else if [
                 conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION,
                 conduit_std_offers::TYPED_RECORD_DEFRAME_HOST_OPERATION,
                 conduit_std_offers::TEXT_TO_TYPED_RECORD_HOST_OPERATION,
@@ -2665,6 +2712,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         control_receipts,
         speech_synthesis: speech_synthesis_receipts,
         speech_recognition: speech_recognition_receipts,
+        microphone: microphone
+            .and_then(crate::hosted_microphone::AlsaMicrophoneAdapter::take_receipt)
+            .into_iter()
+            .collect(),
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),

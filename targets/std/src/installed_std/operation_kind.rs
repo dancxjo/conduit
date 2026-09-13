@@ -26,6 +26,7 @@ use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
 };
 use super::math_operations::MathScalarOperation;
+use super::microphone_clip_operation::MicrophoneClipOperation;
 use super::midi_input_operation::MidiInputOperation;
 use super::midi_output_operation::MidiOutputOperation;
 use super::model_text_operation::ModelTextOperation;
@@ -82,6 +83,7 @@ pub(super) enum InstalledOperation {
     #[cfg(any(test, feature = "local-model-proof"))]
     RecordedSpeech(super::recorded_speech_operation::RecordedSpeechOperation),
     WhisperSpeech(super::whisper_speech_operation::WhisperSpeechOperation),
+    MicrophoneClip(MicrophoneClipOperation),
     AddressDetect(super::address_detect_operation::AddressDetectOperation),
     RecognitionText(super::recognition_text_operation::RecognitionTextOperation),
     TypedState(Box<crate::state_value::TypedStateOperation>),
