@@ -245,6 +245,13 @@ fn actions_for(presentation: &Presentation, identity: Option<&str>) -> Vec<Entra
             EntranceAction::Refuse,
         ],
         Some(PresentationRole::Plan) => &[EntranceAction::Inspect, EntranceAction::Replan],
+        Some(PresentationRole::Host)
+            if identity.is_some_and(|identity| {
+                property_flag(presentation, identity, "creche-primary")
+            }) =>
+        {
+            &[EntranceAction::Inspect, EntranceAction::Birth]
+        }
         Some(_) => &[EntranceAction::Inspect],
         None => &[],
     };

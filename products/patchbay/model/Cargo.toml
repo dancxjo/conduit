@@ -16,6 +16,7 @@ conduit-planner = { path = "../../../architecture/planner" }
 conduit-presentation = { path = "../../../semantics/presentation" }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false }
 conduit-body = { path = "../../../architecture/body" }
+conduit-creche-model = { path = "../../creche/model" }
 conduit-browser-runtime = { path = "../../../targets/browser/runtime" }
 conduit-ai = { path = "../../../semantics/ai", features = ["form-catalog"] }
 conduit-signal = { path = "../../../semantics/signal", features = ["host-profile"] }

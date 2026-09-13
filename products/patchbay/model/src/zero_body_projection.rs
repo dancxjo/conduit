@@ -38,12 +38,24 @@ impl ZeroBodyFrontDoor {
                 name: "current-body".into(),
                 value: PresentationPropertyValue::Text("none".into()),
             },
+            PresentationProperty {
+                subject: host_subject.clone(),
+                name: "creche-primary".into(),
+                value: PresentationPropertyValue::Flag(true),
+            },
         ];
         let mut text = vec![PresentationText {
             subject: host_subject.clone(),
             text: "HOST body=none; OPEN is inert; only JOIN or BIRTH can embody this Host".into(),
         }];
-        let mut actions = Vec::new();
+        let mut actions = vec![PresentationAction {
+            identity: format!("action/creche/{}", host.host_id.as_str()),
+            intent: "conduit.intent/birth@1".into(),
+            target: host_subject.clone(),
+            label: "Name Body and choose Forms".into(),
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Available,
+        }];
         let mut disclosures = vec![PresentationDisclosure {
             subject: host_subject.clone(),
             level: PresentationDisclosureLevel::Context,
