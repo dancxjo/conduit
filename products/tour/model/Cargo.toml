@@ -8,3 +8,7 @@ publish = false
 conduit-core = { path = "../../../architecture/core" }
 conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false }
+
+[dev-dependencies]
+conduit-form = { path = "../../../architecture/form" }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", features = ["form-catalog"] }

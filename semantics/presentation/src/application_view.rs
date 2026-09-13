@@ -2,6 +2,11 @@
 
 use alloc::{string::String, vec::Vec};
 
+/// Portable encoded input to a retained application Form operation.
+pub const APPLICATION_EVENT_INFO_ID: &str = "conduit.presentation/application-event@1";
+/// Portable encoded semantic output from a retained application Form operation.
+pub const APPLICATION_VIEW_INFO_ID: &str = "conduit.presentation/application-view@1";
+
 mod structure;
 
 pub(crate) use structure::valid_same_site_link;

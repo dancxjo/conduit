@@ -1,0 +1,10 @@
+form tour (
+  application: Text = "tour"
+) {
+  events: input/application-event
+  state: application/retained(application = application)
+  view: presentation/application-view
+
+  events.event > state.event
+  state.view > view.view
+}

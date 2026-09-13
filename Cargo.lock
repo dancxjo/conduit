@@ -1133,6 +1133,7 @@ name = "conduit-tour-model"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "conduit-presentation",
  "conduit-semantic-catalog",
 ]
