@@ -97,9 +97,9 @@ impl JourneyError {
 pub struct JourneyProjection {
     pub status: JourneyStatus,
     pub revision: u64,
-    pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub expanded_form_id: ExpandedFormId,
+    pub source_document_id: Option<conduit_core::SourceDocumentId>,
+    pub checked_form_id: Option<conduit_core::CheckedFormId>,
+    pub expanded_form_id: Option<ExpandedFormId>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -126,7 +126,7 @@ pub struct ProductJourney {
     host_id: HostId,
     boot_id: BootId,
     offer_generation: OfferGeneration,
-    form: KeyboardTextFormIdentity,
+    form: Option<KeyboardTextFormIdentity>,
     status: JourneyStatus,
     revision: u64,
     request_sequence: u64,
@@ -155,12 +155,11 @@ impl ProductJourney {
         boot_id: BootId,
         offer_generation: OfferGeneration,
     ) -> Result<Self, JourneyError> {
-        let form = keyboard_text_plan::checked_form_identity().map_err(JourneyError::Plan)?;
         Ok(Self {
             host_id,
             boot_id,
             offer_generation,
-            form,
+            form: None,
             status: JourneyStatus::World,
             revision: 1,
             request_sequence: 0,
@@ -182,10 +181,6 @@ impl ProductJourney {
             retained_kernel_sign_gap: None,
             last_request_id: None,
         })
-    }
-
-    pub fn form(&self) -> &KeyboardTextFormIdentity {
-        &self.form
     }
 
     pub const fn revision(&self) -> u64 {
@@ -251,9 +246,12 @@ impl ProductJourney {
         JourneyProjection {
             status: self.status,
             revision: self.revision,
-            source_document_id: self.form.source_document_id.clone(),
-            checked_form_id: self.form.checked_form_id.clone(),
-            expanded_form_id: self.form.expanded_form_id.clone(),
+            source_document_id: self
+                .form
+                .as_ref()
+                .map(|form| form.source_document_id.clone()),
+            checked_form_id: self.form.as_ref().map(|form| form.checked_form_id.clone()),
+            expanded_form_id: self.form.as_ref().map(|form| form.expanded_form_id.clone()),
             host_id: self.host_id.clone(),
             boot_id: self.boot_id.clone(),
             offer_generation: self.offer_generation,
@@ -318,9 +316,21 @@ impl ProductJourney {
 
     fn validate_target(&self, request: &JourneyRequest) -> Result<(), JourneyError> {
         let expected = match request.action {
-            JourneyAction::OpenBack | JourneyAction::Birth => {
-                format!("form/{}", self.form.checked_form_id.as_str())
-            }
+            JourneyAction::OpenBack => format!(
+                "form/{}",
+                keyboard_text_plan::checked_form_identity()
+                    .map_err(JourneyError::Plan)?
+                    .checked_form_id
+                    .as_str()
+            ),
+            JourneyAction::Birth => format!(
+                "form/{}",
+                self.form
+                    .as_ref()
+                    .ok_or(JourneyError::FormNotOpened)?
+                    .checked_form_id
+                    .as_str()
+            ),
             JourneyAction::Wake
             | JourneyAction::Plan
             | JourneyAction::Play
@@ -342,6 +352,7 @@ impl ProductJourney {
         if self.body.is_some() {
             return Err(JourneyError::AlreadyBorn);
         }
+        self.form = Some(keyboard_text_plan::checked_form_identity().map_err(JourneyError::Plan)?);
         self.status = JourneyStatus::FormOpened;
         Ok(())
     }

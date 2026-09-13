@@ -125,7 +125,7 @@ impl ProductJourney {
                 expanded_form_id: form.expanded_form_id,
             }
         };
-        self.form = identity;
+        self.form = Some(identity);
         self.foreground = index;
         self.advance()
     }

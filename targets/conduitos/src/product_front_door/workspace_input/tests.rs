@@ -40,8 +40,8 @@ pub(super) fn listening() -> (ProductJourney, FrontDoor) {
         "profile",
         "build",
         "image",
-        projection.source_document_id,
-        projection.checked_form_id,
+        projection.source_document_id.unwrap(),
+        projection.checked_form_id.unwrap(),
         7,
         true,
     );

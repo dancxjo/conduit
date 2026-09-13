@@ -64,7 +64,8 @@ pub fn run(
     let generation = conduit_core::OfferGeneration(offer.generation);
     let mut journey = ProductJourney::new(host_id.clone(), boot_id.clone(), generation)
         .map_err(|error| error.as_str())?;
-    let form = journey.form().clone();
+    // The embedded defaults are Crèche inventory, not ProductJourney state.
+    let form = keyboard_text_plan::checked_form_identity().map_err(|error| error.as_str())?;
     let mut front_door = FrontDoor::new(
         host_id.clone(),
         boot_id.clone(),
