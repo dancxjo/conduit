@@ -102,6 +102,8 @@ fn pair(
     count: u64,
     result: &'static str,
 ) -> Result<(), ConduitosError> {
-    journey_input::key_pair(stream, reader, key, "workset-input")?;
+    hid_qmp::send_named_keys(stream, reader, &[key], true, "workset-input")?;
+    wait(serial, child, form, count - 1, Some(result))?;
+    hid_qmp::send_named_keys(stream, reader, &[key], false, "workset-input")?;
     wait(serial, child, form, count, Some(result))
 }

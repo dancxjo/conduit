@@ -60,6 +60,11 @@ async function openStandaloneCreche(page) {
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
 }
 
+async function readPhysicalHostEvidence(runner) {
+  const chunks = await runner.locator(".physical-evidence details code").allTextContents();
+  return JSON.parse(chunks.join(""));
+}
+
 async function birthStandaloneBody(page, { attachFirstHost = false, sourceVariant = null } = {}) {
   await openStandaloneCreche(page);
   const birth = page.locator(".body-birth-runner");
@@ -1305,6 +1310,11 @@ test("the physical workflow renders one adapter-owned catalog without learning t
 });
 
 test("an exact browser release becomes a Body-bound spore and a newly admitted browser Host", async ({ page }) => {
+  const browserFailures = [];
+  page.on("pageerror", (error) => browserFailures.push(error instanceof Error ? error.message : String(error)));
+  page.on("console", (message) => {
+    if (message.type() === "error") browserFailures.push(message.text());
+  });
   const release = await installHostRelease(page, "browser-page.json");
   const birth = await birthStandaloneBody(page, { sourceVariant: "browser-existing-computer" });
   await openCrecheStep(page, "3. Physical Host");
@@ -1387,7 +1397,18 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
   await admit.click();
   await expect(runner.locator('[data-application-key="physical-stage-admit"]')).not.toContainText("waiting");
-  const evidenceParts = await runner.locator("details code").allTextContents();
+  try {
+    await expect.poll(async () => {
+      const current = await readPhysicalHostEvidence(runner);
+      return current.admission?.disposition ?? null;
+    }).toBe("admitted");
+  } catch (error) {
+    error.message += `\nPhysical Host status: ${await runner.locator('[data-application-key="physical-status"]').textContent()}`;
+    error.message += `\nBrowser failures: ${browserFailures.join(" | ") || "none"}`;
+    error.message += `\nEvidence tail: ${(await runner.locator(".physical-evidence details code").allTextContents()).join("").slice(-1000)}`;
+    throw error;
+  }
+  const evidenceParts = await runner.locator(".physical-evidence details code").allTextContents();
   expect(evidenceParts.every((part) => Buffer.byteLength(part) <= 65_536)).toBe(true);
   evidence = JSON.parse(evidenceParts.join(""));
   expect(evidence.realization).toMatchObject({
@@ -1892,7 +1913,11 @@ test("the first chapter builds from one Gear to branch, then hands off to Face/B
 
   await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await page.getByRole("button", { name: "Load branch-a-cord in the laboratory" }).click();
+  await expect(page.locator('[data-application-component="tour-laboratory"]'))
+    .toHaveAttribute("data-specimen-id", "canonical-form:branch-a-cord");
   runner = page.locator(".runner");
+  await expect(runner.locator("textarea")).toHaveValue(/form branch-a-cord/);
+  await expect(runner.locator(".morse")).toHaveText("ready");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("··· ——— ···");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Quiescent");
@@ -2043,10 +2068,12 @@ test("stopping state over time cancels the pending timer without a late completi
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("0");
   await runner.getByRole("button", { name: "Stop" }).click();
-  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
+  const cancelled = /^Stopped\. The Play was cancelled(?: at [0-9a-f]{64})?\.$/;
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText(cancelled);
   await page.waitForTimeout(650);
-  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
-  await expect(runner.locator(".run-identities")).not.toContainText("Terminal Sign");
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText(cancelled);
+  await expect(runner.locator(".run-identities")).toContainText("Terminal Sign");
+  await expect(runner.locator(".run-identities")).toContainText("Timer completions");
   await expect(runner.locator(".morse")).toHaveText("0");
 });
 
