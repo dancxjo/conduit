@@ -137,6 +137,25 @@ enum HostCommand {
         /// Run the unchanged portable Form through ordinary std Plan and Play.
         #[arg(long)]
         plan_play: bool,
+        /// Freshly select this ALSA card for the Plan/Play output.
+        #[arg(
+            long,
+            requires = "plan_play",
+            requires = "playback_device",
+            requires = "authorize_output"
+        )]
+        playback_card_id: Option<String>,
+        /// Freshly select this ALSA device number for the Plan/Play output.
+        #[arg(
+            long,
+            requires = "plan_play",
+            requires = "playback_card_id",
+            requires = "authorize_output"
+        )]
+        playback_device: Option<u16>,
+        /// Explicitly authorize opening and writing the selected playback device.
+        #[arg(long, requires = "playback_card_id")]
+        authorize_output: bool,
         #[arg(long, default_value_t = conduit_std_offers::PIPER_MAXIMUM_FRAMES)]
         maximum_frames: u32,
         #[arg(long, default_value_t = conduit_std_offers::PIPER_MAXIMUM_BLOCKS)]
@@ -199,6 +218,9 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             library_path,
             text,
             plan_play,
+            playback_card_id,
+            playback_device,
+            authorize_output,
             maximum_frames,
             maximum_blocks,
             timeout_seconds,
@@ -210,6 +232,9 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 library_path,
                 text,
                 plan_play,
+                playback_card_id,
+                playback_device,
+                authorize_output,
                 maximum_frames,
                 maximum_blocks,
                 timeout_seconds,

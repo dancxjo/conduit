@@ -661,6 +661,69 @@ impl StdHost {
         })
     }
 
+    pub fn new_with_piper_speech_and_playback(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: hosted_speech::PiperSpeechAdapter,
+        playback: hosted_audio::HostedPlaybackSelection,
+    ) -> Result<Self, String> {
+        if adapter.discovery().sample_rate_hz != 22_050
+            || adapter.limits().maximum_frames < conduit_tongues::MAXIMUM_PCM_BYTES.div_ceil(2)
+            || adapter.limits().maximum_blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS
+        {
+            return Err("initialized Piper adapter does not satisfy its offered profile".into());
+        }
+        if playback.boot_id != config.boot_id
+            || playback.offer_generation != config.offer_generation
+        {
+            return Err(
+                "playback observation does not match the advertised Boot/generation".into(),
+            );
+        }
+        let mut advertisement = composition::build_advertisement(
+            config,
+            composition,
+            Some(&playback),
+            None,
+            None,
+            false,
+        );
+        advertisement
+            .resources
+            .push(hosted_speech::process_resource_offer());
+        advertisement.capabilities.retain(|offer| {
+            offer.implementation.implementation_id.as_str()
+                != conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+        });
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::piper_speech_offer());
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::audio_convert_pcm_profile_offer());
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: Some(playback),
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            speech_synthesis: Some(adapter),
+            vector_search: None,
+            calendar: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
     /// Executes against one platform-extended advertisement that was already
     /// published for this exact Host/Boot. Rebuilding from only the generic
     /// composition here would discard admitted platform implementations.
