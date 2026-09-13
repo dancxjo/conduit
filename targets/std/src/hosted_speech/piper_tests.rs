@@ -2,6 +2,9 @@ use super::*;
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture {
     root: PathBuf,
@@ -13,11 +16,11 @@ struct Fixture {
 impl Fixture {
     fn new(script: &str) -> Self {
         let root = std::env::temp_dir().join(format!(
-            "conduit-piper-provider-{}-{}",
+            "conduit-piper-provider-{}-{}-{}",
             std::process::id(),
-            std::thread::current().name().unwrap_or("test")
+            std::thread::current().name().unwrap_or("test"),
+            FIXTURE_SEQUENCE.fetch_add(1, Ordering::Relaxed),
         ));
-        let _ = fs::remove_dir_all(&root);
         fs::create_dir(&root).unwrap();
         let executable = root.join("piper-fixture");
         let model = root.join("voice.onnx");
@@ -181,7 +184,7 @@ fn cancellation_and_provider_failure_are_not_completion() {
 
 #[test]
 fn timeout_and_partial_sample_are_distinct_failures() {
-    let fixture = Fixture::new("#!/bin/sh\nsleep 1\n");
+    let fixture = Fixture::new("#!/bin/sh\nsleep 2\n");
     let mut adapter =
         PiperDiscovery::inspect(&fixture.executable, &fixture.model, &fixture.config, None)
             .unwrap()
@@ -189,7 +192,7 @@ fn timeout_and_partial_sample_are_distinct_failures() {
                 maximum_text_bytes: 256,
                 maximum_frames: 8,
                 maximum_blocks: 8,
-                timeout: Duration::from_millis(10),
+                timeout: Duration::from_millis(500),
             })
             .unwrap();
     assert_eq!(

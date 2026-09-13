@@ -4,7 +4,6 @@ use super::alife_operations::{
     LeniaStepOperation, OrbiumSeedOperation, ScalarFieldPresentationOperation,
 };
 use super::audio_play_operation::AudioPlayOperation;
-use super::pcm_profile_conversion_operation::PcmProfileConversionOperation;
 use super::bool_presentation::BoolPresentationOperation;
 use super::calendar_proposal_operation::CalendarProposalOperation;
 use super::calendar_provider_operation::CalendarProviderOperation;
@@ -33,6 +32,7 @@ use super::model_text_operation::ModelTextOperation;
 use super::navigation_operations::NavigationOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
 use super::pattern_comparison_operation::PatternComparisonOperation;
+use super::pcm_profile_conversion_operation::PcmProfileConversionOperation;
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };

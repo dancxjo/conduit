@@ -2,7 +2,6 @@ mod address_detect_operation;
 mod alife_host;
 mod alife_operations;
 mod audio_play_operation;
-mod pcm_profile_conversion_operation;
 pub(crate) mod body_kernel;
 mod bool_presentation;
 mod calendar_proposal_codec;
@@ -52,6 +51,7 @@ mod operation_capacity;
 mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
+mod pcm_profile_conversion_operation;
 mod preparation;
 pub(super) use preparation::{
     lower_fragment_with_continuity, state_storage_profile, validate_retained_inputs,
@@ -483,8 +483,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut synth_output = Vec::with_capacity(synth_operation::PCM_BLOCK_BYTES as usize);
     let mut pcm_conversion_output =
         Vec::with_capacity(conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES as usize);
-    let mut pcm_conversion_hosts =
-        pcm_profile_conversion_operation::prepare_hosts(fragment);
+    let mut pcm_conversion_hosts = pcm_profile_conversion_operation::prepare_hosts(fragment);
     let mut synth_states = fragment
         .placements
         .iter()

@@ -30,10 +30,6 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             "conduit.std/audio-render-demand@1",
         ),
         (music_synth_contract(), "conduit.std/music-synth@1"),
-        (
-            audio_convert_pcm_profile_contract(),
-            AUDIO_CONVERT_PCM_PROFILE_REVISION,
-        ),
         (time_debounce_contract(), "conduit.std/time-debounce-bool@1"),
         (
             time_timeout_contract(),

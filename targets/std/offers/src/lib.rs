@@ -213,7 +213,6 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         time_every_offer(),
         audio_render_demand_offer(),
         music_synth_reference_offer(),
-        audio_convert_pcm_profile_offer(),
         time_debounce_offer(),
         time_timeout_offer(),
         time_delay_offer(),

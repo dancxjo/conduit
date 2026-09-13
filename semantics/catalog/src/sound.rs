@@ -43,8 +43,7 @@ pub const SYNTH_LFO_DEPTH_KEY: &str = "lfo-depth-q16";
 pub const SYNTH_MASTER_GAIN_KEY: &str = "master-gain-q16";
 pub const SYNTH_STEAL_POLICY_KEY: &str = "voice-steal-policy";
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
-pub const AUDIO_CONVERT_PCM_PROFILE_REVISION: &str =
-    "conduit.std/audio-convert-pcm-profile@1";
+pub const AUDIO_CONVERT_PCM_PROFILE_REVISION: &str = "conduit.std/audio-convert-pcm-profile@1";
 pub const AUDIO_CONVERT_OUTPUT_RATE_KEY: &str = "output-sample-rate-hz";
 pub const AUDIO_CONVERT_OUTPUT_LAYOUT_KEY: &str = "output-channel-layout";
 pub const AUDIO_PLAY_ALSA_PERIOD_FRAMES: u16 = 256;

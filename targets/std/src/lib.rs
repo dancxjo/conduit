@@ -628,7 +628,13 @@ impl StdHost {
         advertisement
             .capabilities
             .push(conduit_std_offers::piper_speech_offer());
-        #[cfg(feature = "local-model-proof")]
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::audio_convert_pcm_profile_offer());
+        // Unit-test compositions already install this proof sink through
+        // `composition_test_offers`; workspace feature unification must not
+        // advertise the same capability identity a second time.
+        #[cfg(all(feature = "local-model-proof", not(test)))]
         advertisement
             .capabilities
             .push(installed_std::test_speech_sink::offer());
@@ -688,7 +694,7 @@ impl StdHost {
                 "playback observation does not match the advertised Boot/generation".into(),
             );
         }
-        let advertisement = composition::build_advertisement(
+        let mut advertisement = composition::build_advertisement(
             config,
             composition,
             Some(&playback),
@@ -696,6 +702,14 @@ impl StdHost {
             None,
             false,
         );
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::audio_convert_pcm_profile_offer());
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,

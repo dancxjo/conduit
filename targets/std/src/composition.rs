@@ -201,7 +201,6 @@ pub(super) fn build_advertisement(
             installed_std::every_offer(),
             installed_std::render_demand_offer(),
             installed_std::synth_offer(),
-            conduit_std_offers::audio_convert_pcm_profile_offer(),
             conduit_std_offers::time_debounce_offer(),
             conduit_std_offers::time_timeout_offer(),
             conduit_std_offers::time_delay_offer(),

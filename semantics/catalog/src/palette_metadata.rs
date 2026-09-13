@@ -9,8 +9,7 @@ pub use conduit_presentation::PresentationIconKey as PaletteIconKey;
 use conduit_presentation::BITMAP_PRESENTATION_KIND;
 
 use crate::{
-    APPLICATION_EVENT_SOURCE_KIND, APPLICATION_VIEW_PRESENTATION_KIND,
-    AUDIO_CONVERT_PCM_PROFILE_KIND, AUDIO_RENDER_DEMAND_KIND,
+    APPLICATION_EVENT_SOURCE_KIND, APPLICATION_VIEW_PRESENTATION_KIND, AUDIO_RENDER_DEMAND_KIND,
     BOOL_PRESENTATION_KIND, CHORDS_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND,
     GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND,
     KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND, LATEST_KIND, LAYOUT_ALIGN_KIND,
@@ -111,11 +110,6 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             PaletteCategory::Transform,
             &["music", "synthesizer", "pcm", "polyphonic"],
             PaletteIconKey::Type,
-        ),
-        AUDIO_CONVERT_PCM_PROFILE_KIND => metadata(
-            PaletteCategory::Transform,
-            &["audio", "pcm", "sample-rate", "channels", "convert"],
-            PaletteIconKey::Repeat2,
         ),
         MUSIC_INPUT_KIND => metadata(
             PaletteCategory::Input,
@@ -502,7 +496,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 75);
+        assert_eq!(contracts.len(), 74);
         assert_eq!(
             contracts
                 .iter()
