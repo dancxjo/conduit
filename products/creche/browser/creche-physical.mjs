@@ -3,6 +3,7 @@ import { presentPhysicalActions, presentPhysicalArtifact, presentPhysicalEvidenc
 const WORKFLOW_SCHEMA = "conduit.creche/physical-host-workflow-evidence@1";
 const FAILURE_SCHEMA = "conduit.creche/physical-host-workflow-failure@1";
 const SELECTION_FAILURE_SCHEMA = "conduit.creche/physical-host-target-selection-failure@1";
+const PRESENTABLE_RETAINED_EVIDENCE_BYTES = 120 * 1024;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -225,7 +226,7 @@ function admitPart(runner, host, state, onBodyChanged) {
     completeStage(state, "admit", `revision ${result.membership_revision}`);
     setButtons(state, null);
     status(runner, state, `Physical Part admitted; ${result.offer_count} current offers are ready. No Plan or Play was created.`);
-    onBodyChanged?.();
+    return onBodyChanged;
   });
 }
 
@@ -250,11 +251,18 @@ async function operate(runner, state, operation, work, accept) {
     const result = await work(controller.signal);
     if (!currentOperation(state, generation) || controller.signal.aborted) return;
     requireOperationEvidence(state, result?.evidence ?? result, operation);
-    accept(result);
+    const afterAccept = accept(result);
     state.active = null;
     state.cancelEnabled = false;
     presentPhysicalActions(state);
     renderEvidence(runner, state);
+    if (afterAccept) queueMicrotask(() => {
+      try {
+        afterAccept();
+      } catch (error) {
+        console.error(error);
+      }
+    });
   } catch (error) {
     if (!currentOperation(state, generation)) return;
     state.active = null;
@@ -347,7 +355,7 @@ function requireOperationEvidence(state, evidence, operation) {
 }
 
 function renderEvidence(runner, state) {
-  const evidence = {
+  let evidence = {
     schema: WORKFLOW_SCHEMA,
     catalog: {
       schema: state.catalog.schema,
@@ -374,7 +382,16 @@ function renderEvidence(runner, state) {
     observation: state.observation?.evidence ?? null,
     admission: state.admission?.evidence ?? null,
   };
-  const encoded = encoder.encode(JSON.stringify(evidence));
+  let encoded = encoder.encode(JSON.stringify(evidence));
+  const presentationBound = Math.min(state.entry.bounds.maximumRetainedEvidenceBytes, PRESENTABLE_RETAINED_EVIDENCE_BYTES);
+  if (encoded.length > presentationBound) {
+    evidence = compactRetainedWorkflowEvidence(evidence);
+    encoded = encoder.encode(JSON.stringify(evidence));
+  }
+  if (encoded.length > presentationBound) {
+    evidence = minimalRetainedWorkflowEvidence(evidence);
+    encoded = encoder.encode(JSON.stringify(evidence));
+  }
   if (encoded.length > state.entry.bounds.maximumRetainedEvidenceBytes) {
     throw new RangeError("physical Host retained evidence exceeds its admitted byte bound");
   }
@@ -384,6 +401,171 @@ function renderEvidence(runner, state) {
       : "failed-evidence"
     : state.phase === "admitted" ? "successful-evidence" : "artifact";
   presentPhysicalEvidence(state, evidence, disposition);
+}
+
+function compactRetainedWorkflowEvidence(evidence) {
+  const omitted = [];
+  const compact = {
+    ...evidence,
+    realization: compactRealizationEvidence(evidence.realization, omitted),
+    observation: compactObservationEvidence(evidence.observation, omitted),
+    retained_evidence: {
+      schema: "conduit.creche/retained-physical-host-evidence-compaction@1",
+      reason: "maximumRetainedEvidenceBytes",
+      omitted_prior_fields: omitted,
+    },
+  };
+  return compact;
+}
+
+function compactRealizationEvidence(realization, omitted) {
+  if (!realization) return realization;
+  const { boot_truth, implementation_registry, offers, inspection, ...retained } = realization;
+  const omittedFields = [];
+  if (boot_truth) omittedFields.push("realization.boot_truth");
+  if (implementation_registry) omittedFields.push("realization.implementation_registry");
+  if (offers) omittedFields.push("realization.offers");
+  if (inspection) omittedFields.push("realization.inspection");
+  omitted.push(...omittedFields);
+  return {
+    ...retained,
+    retained_summary: {
+      schema: "conduit.creche/retained-browser-realization-summary@1",
+      boot_truth: boot_truth ? {
+        image_id: boot_truth.image_id,
+        profile_id: boot_truth.profile_id,
+        runtime_sha256: boot_truth.image?.files?.find(({ path }) => path === "runtime.wasm")?.sha256 ?? null,
+      } : null,
+      implementation_count: Array.isArray(implementation_registry) ? implementation_registry.length : null,
+      offer_count: Array.isArray(offers) ? offers.length : null,
+      inspection_count: Array.isArray(inspection) ? inspection.length : null,
+    },
+  };
+}
+
+function compactObservationEvidence(observation, omitted) {
+  if (!observation) return observation;
+  const { advertisement, ...retained } = observation;
+  if (advertisement) omitted.push("observation.advertisement");
+  return {
+    ...retained,
+    advertisement_summary: advertisement ? {
+      schema: "conduit.creche/retained-browser-advertisement-summary@1",
+      host_id: advertisement.host_id,
+      boot_id: advertisement.boot_id,
+      offer_generation: advertisement.offer_generation,
+      capability_count: Array.isArray(advertisement.capabilities) ? advertisement.capabilities.length : null,
+      planner_capability_count: Array.isArray(advertisement.planner_capabilities) ? advertisement.planner_capabilities.length : null,
+    } : null,
+  };
+}
+
+function minimalRetainedWorkflowEvidence(evidence) {
+  return {
+    schema: evidence.schema,
+    catalog: evidence.catalog,
+    target_entry: compactTargetEntry(evidence.target_entry),
+    target: evidence.target,
+    intention: evidence.intention,
+    bounds: evidence.bounds,
+    admitted_operations: evidence.admitted_operations,
+    cancellations: evidence.cancellations,
+    active_operation: evidence.active_operation,
+    phase: evidence.phase,
+    terminal: evidence.terminal,
+    obtainment: compactObtainmentEvidence(evidence.obtainment),
+    binding: compactBindingEvidence(evidence.binding),
+    realization: minimalRealizationEvidence(evidence.realization),
+    observation: minimalObservationEvidence(evidence.observation),
+    admission: evidence.admission,
+    retained_evidence: {
+      schema: "conduit.creche/minimal-retained-physical-host-evidence@1",
+      reason: "maximumRetainedEvidenceBytes",
+      omitted_prior_fields: [
+        "target_entry.intentions",
+        "target_entry.fabrication_strategies",
+        "target_entry.carriers",
+        "target_entry.target_profile",
+        "obtainment.network_fetches",
+        "binding.spore_artifact.files",
+        "realization.boot_truth",
+        "realization.implementation_registry",
+        "realization.offers",
+        "realization.inspection",
+        "observation.advertisement",
+      ],
+    },
+  };
+}
+
+function compactTargetEntry(entry) {
+  if (!entry) return entry;
+  return {
+    schema: entry.schema,
+    family: entry.family,
+    target: entry.target,
+    bounds: entry.bounds,
+    expected_join_contract: entry.expected_join_contract,
+  };
+}
+
+function compactObtainmentEvidence(obtainment) {
+  if (!obtainment) return obtainment;
+  const { network_fetches, ...retained } = obtainment;
+  return {
+    ...retained,
+    network_fetch_count: Array.isArray(network_fetches) ? network_fetches.length : null,
+  };
+}
+
+function compactBindingEvidence(binding) {
+  if (!binding) return binding;
+  const files = binding.spore_artifact?.files;
+  return {
+    ...binding,
+    spore_artifact: binding.spore_artifact ? {
+      ...binding.spore_artifact,
+      files: undefined,
+      file_count: Array.isArray(files) ? files.length : null,
+    } : null,
+  };
+}
+
+function minimalRealizationEvidence(realization) {
+  if (!realization) return realization;
+  return {
+    schema: realization.schema,
+    terminal: realization.terminal,
+    target_id: realization.target_id,
+    package_id: realization.package_id,
+    image_content_digest: realization.image_content_digest,
+    artifact_content_digest: realization.artifact_content_digest,
+    spore_id: realization.spore_id,
+    carrier: realization.carrier,
+    host_id: realization.host_id,
+    boot_id: realization.boot_id,
+    image_id: realization.image_id,
+    profile_id: realization.profile_id,
+    boot_module_sha256: realization.boot_module_sha256,
+    boot_observed: realization.boot_observed,
+    join_created: realization.join_created,
+    retained_summary: realization.retained_summary ?? null,
+  };
+}
+
+function minimalObservationEvidence(observation) {
+  if (!observation) return observation;
+  return {
+    schema: observation.schema,
+    spore_id: observation.spore_id,
+    image_id: observation.image_id,
+    invitation_id: observation.invitation_id,
+    body_id: observation.body_id,
+    host_id: observation.host_id,
+    boot_id: observation.boot_id,
+    observed_at_millis: observation.observed_at_millis,
+    advertisement_summary: observation.advertisement_summary ?? null,
+  };
 }
 
 function admitObservation(api, join) {

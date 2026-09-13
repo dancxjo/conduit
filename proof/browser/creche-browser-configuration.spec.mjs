@@ -99,7 +99,8 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
 
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).toContainText("waiting");
   await expect(runner.locator('fieldset[data-application-key^="configuration-group-"]')).toHaveCount(6);
-  await expect(runner.locator('input[type="checkbox"][data-application-action^="implementation.change-"]')).toHaveCount(11);
+  await expect(runner.locator('input[type="checkbox"][data-application-action^="implementation.change-"]')).toHaveCount(12);
+  await expect(runner.getByRole("checkbox", { name: /browser\/audio-cue@1/ })).not.toBeChecked();
   await expect(runner.getByRole("checkbox", { name: /browser\/web-audio-output@1/ })).toHaveCount(0);
   await expect(runner.getByRole("checkbox", { name: /browser\/dom@1/ })).toBeChecked();
   await expect(runner.getByRole("checkbox", { name: /browser\/keyboard-events@1/ })).toBeChecked();

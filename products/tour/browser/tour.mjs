@@ -1186,6 +1186,7 @@ async function runListing(runner, source, recursive) {
         ["Timer completions", String(progress.timer_completions)],
         ["Manifestation completions", String(progress.manifestation_completions)],
       ]);
+      finishRun(runner);
       return;
     }
     setLifecycleDisposition(runner, progress.disposition);
