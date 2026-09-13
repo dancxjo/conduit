@@ -25,6 +25,22 @@ const HOUSE_TEXT_SINK_REVISION: &str = "conduit-test/house-text-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduit-test/local-model-result-kernel@1";
 const PROFILE: &str = "conduit-test/local-model-io-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/test-local-model-io@1";
+#[cfg(test)]
+const NAV_POSE_SOURCE: &str = "conduit-test/navigation-pose-source";
+#[cfg(test)]
+const NAV_POSE_SOURCE_REVISION: &str = "conduit-test/navigation-pose-source@1";
+#[cfg(test)]
+const NAV_GOAL_SOURCE: &str = "conduit-test/navigation-goal-source";
+#[cfg(test)]
+const NAV_GOAL_SOURCE_REVISION: &str = "conduit-test/navigation-goal-source@1";
+#[cfg(test)]
+const NAV_GRID_SOURCE: &str = "conduit-test/navigation-grid-source";
+#[cfg(test)]
+const NAV_GRID_SOURCE_REVISION: &str = "conduit-test/navigation-grid-source@1";
+#[cfg(test)]
+const NAV_TIME_SOURCE: &str = "conduit-test/navigation-time-source";
+#[cfg(test)]
+const NAV_TIME_SOURCE_REVISION: &str = "conduit-test/navigation-time-source@1";
 
 pub(super) static TEST_LOCAL_MODEL_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
@@ -203,6 +219,66 @@ pub(crate) fn install_catalog(
     }
 }
 
+#[cfg(test)]
+pub(crate) fn install_navigation_catalog(
+    startup: &mut StartupCatalog,
+    catalog: &mut ProfileCatalog,
+) {
+    for offer in navigation_source_offers() {
+        install_offer(startup, catalog, offer);
+    }
+    let request_kind = conduit_semantic_catalog::robotics_motion_request_type();
+    install_offer(
+        startup,
+        catalog,
+        sink_offer(request_kind.profile().unwrap().value_kind().as_str()),
+    );
+}
+
+#[cfg(test)]
+pub(crate) fn navigation_source_offers() -> [CapabilityOffer; 4] {
+    let pose = conduit_semantic_catalog::navigation_pose_type();
+    let goal = conduit_semantic_catalog::navigation_goal_type();
+    let grid = conduit_semantic_catalog::navigation_traversability_type();
+    let time = conduit_semantic_catalog::navigation_time_type();
+    [
+        source_offer_for(
+            NAV_POSE_SOURCE,
+            pose.profile().unwrap().value_kind().as_str(),
+        ),
+        source_offer_for(
+            NAV_GOAL_SOURCE,
+            goal.profile().unwrap().value_kind().as_str(),
+        ),
+        source_offer_for(
+            NAV_GRID_SOURCE,
+            grid.profile().unwrap().value_kind().as_str(),
+        ),
+        source_offer_for(
+            NAV_TIME_SOURCE,
+            time.profile().unwrap().value_kind().as_str(),
+        ),
+    ]
+}
+
+#[cfg(test)]
+fn source_offer_for(kind: &str, value_kind: &str) -> CapabilityOffer {
+    let revision = match kind {
+        NAV_POSE_SOURCE => NAV_POSE_SOURCE_REVISION,
+        NAV_GOAL_SOURCE => NAV_GOAL_SOURCE_REVISION,
+        NAV_GRID_SOURCE => NAV_GRID_SOURCE_REVISION,
+        NAV_TIME_SOURCE => NAV_TIME_SOURCE_REVISION,
+        _ => unreachable!("navigation source inventory is closed"),
+    };
+    offer(
+        kind,
+        revision,
+        SOURCE_IMPLEMENTATION,
+        value_kind,
+        PortDirection::Output,
+    )
+}
+
 #[cfg(feature = "local-model-proof")]
 pub(crate) fn install_house_source_catalog(
     startup: &mut StartupCatalog,
@@ -266,6 +342,30 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
                 HOUSE_CONTEXT_SOURCE_REVISION,
                 SOURCE_IMPLEMENTATION,
             ),
+            #[cfg(test)]
+            NAV_POSE_SOURCE => (
+                NAV_POSE_SOURCE,
+                NAV_POSE_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
+            #[cfg(test)]
+            NAV_GOAL_SOURCE => (
+                NAV_GOAL_SOURCE,
+                NAV_GOAL_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
+            #[cfg(test)]
+            NAV_GRID_SOURCE => (
+                NAV_GRID_SOURCE,
+                NAV_GRID_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
+            #[cfg(test)]
+            NAV_TIME_SOURCE => (
+                NAV_TIME_SOURCE,
+                NAV_TIME_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
             _ => (SOURCE_KIND, SOURCE_REVISION, SOURCE_IMPLEMENTATION),
         }
     } else if placement.kind_id.as_str() == HOUSE_TEXT_SINK_KIND {
@@ -315,6 +415,36 @@ fn prepare_source(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement, PortDirection::Output)?;
+    #[cfg(test)]
+    let request = if placement.kind_id.as_str() == NAV_POSE_SOURCE {
+        conduit_semantic_catalog::encode_navigation_pose(&navigation_pose(), 0, 0)
+            .map_err(|error| format!("encode navigation pose: {error:?}"))?
+    } else if placement.kind_id.as_str() == NAV_GOAL_SOURCE {
+        conduit_semantic_catalog::encode_navigation_goal(&navigation_goal())
+            .map_err(|error| format!("encode navigation goal: {error:?}"))?
+    } else if placement.kind_id.as_str() == NAV_GRID_SOURCE {
+        conduit_semantic_catalog::encode_navigation_traversability(&navigation_grid())
+            .map_err(|error| format!("encode navigation grid: {error:?}"))?
+    } else if placement.kind_id.as_str() == NAV_TIME_SOURCE {
+        conduit_semantic_catalog::encode_navigation_time(&navigation_time())
+            .map_err(|error| format!("encode navigation time: {error:?}"))?
+    } else {
+        source_request(placement)?
+    };
+    #[cfg(not(test))]
+    let request = source_request(placement)?;
+    let value = values
+        .store(&request)
+        .map_err(|error| format!("store local-model test request: {error:?}"))?;
+    Ok(InstalledOperation::TestLocalModelSource(
+        TestLocalModelSourceOperation {
+            value,
+            emitted: false,
+        },
+    ))
+}
+
+fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
     let request = if placement.kind_id.as_str() == HOUSE_AUDIO_SOURCE_KIND {
         recorded_house_audio()?
     } else if placement.kind_id.as_str() == HOUSE_RECOGNIZED_SOURCE_KIND {
@@ -388,15 +518,70 @@ fn prepare_source(
     } else {
         b"Conduit bounded local model request".to_vec()
     };
-    let value = values
-        .store(&request)
-        .map_err(|error| format!("store local-model test request: {error:?}"))?;
-    Ok(InstalledOperation::TestLocalModelSource(
-        TestLocalModelSourceOperation {
-            value,
-            emitted: false,
+    Ok(request)
+}
+
+#[cfg(test)]
+fn navigation_time() -> conduit_semantic_catalog::NavigationTime {
+    conduit_semantic_catalog::NavigationTime {
+        clock_identity: "clock/fixture".into(),
+        now_ms: 500,
+    }
+}
+
+#[cfg(test)]
+fn navigation_pose() -> conduit_semantic_catalog::NavigationPose {
+    conduit_semantic_catalog::NavigationPose {
+        source_identity: "pose/fixture".into(),
+        sample_sequence: 7,
+        clock_identity: "clock/fixture".into(),
+        frame: "map/local".into(),
+        x_mm: 50,
+        y_mm: 50,
+        heading_microdegrees: 0,
+        validity: conduit_semantic_catalog::Validity {
+            observed_at_ms: 400,
+            valid_until_ms: 600,
         },
-    ))
+    }
+}
+
+#[cfg(test)]
+fn navigation_goal() -> conduit_semantic_catalog::NavigationGoal {
+    conduit_semantic_catalog::NavigationGoal {
+        identity: "goal/B".into(),
+        clock_identity: "clock/fixture".into(),
+        valid_until_ms: 1_000,
+        target: conduit_semantic_catalog::GoalTarget::Reach {
+            frame: "map/local".into(),
+            x_mm: 250,
+            y_mm: 250,
+            heading_microdegrees: 0,
+            position_tolerance_mm: 5,
+            heading_tolerance_microdegrees: 2_000_000,
+        },
+    }
+}
+
+#[cfg(test)]
+fn navigation_grid() -> conduit_semantic_catalog::Traversability4x4 {
+    let mut cells = [conduit_semantic_catalog::TraversabilityCell::Free; 16];
+    cells[1] = conduit_semantic_catalog::TraversabilityCell::Blocked;
+    conduit_semantic_catalog::Traversability4x4 {
+        source_identity: "grid/fixture".into(),
+        sample_sequence: 11,
+        clock_identity: "clock/fixture".into(),
+        frame: "map/local".into(),
+        origin_x_mm: 0,
+        origin_y_mm: 0,
+        cell_width_mm: 100,
+        cell_height_mm: 100,
+        validity: conduit_semantic_catalog::Validity {
+            observed_at_ms: 400,
+            valid_until_ms: 600,
+        },
+        cells,
+    }
 }
 
 pub(crate) fn recorded_house_audio() -> Result<Vec<u8>, String> {
