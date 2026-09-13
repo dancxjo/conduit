@@ -109,8 +109,8 @@ mod test_midi_source;
 mod test_recurrence_sink;
 #[cfg(test)]
 mod test_scalar_flow;
-#[cfg(test)]
-mod test_speech_sink;
+#[cfg(any(test, feature = "local-model-proof"))]
+pub(crate) mod test_speech_sink;
 #[cfg(test)]
 pub(super) mod test_structured_selector;
 #[cfg(test)]

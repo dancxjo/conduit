@@ -172,7 +172,7 @@ pub(super) enum InstalledOperation {
     #[cfg(test)]
     TestRecurrenceSink(super::test_recurrence_sink::TestRecurrenceSinkOperation),
     TestPcmSource(Box<super::test_audio_source::TestPcmSourceOperation>),
-    #[cfg(test)]
+    #[cfg(any(test, feature = "local-model-proof"))]
     TestSpeechSink(super::test_speech_sink::TestSpeechSinkOperation),
     #[cfg(test)]
     TestJsonSource(TestJsonSourceOperation),

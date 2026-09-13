@@ -103,7 +103,7 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestRecurrenceSink(operation) => operation.start(),
             Self::TestPcmSource(operation) => operation.emit_or_complete(),
-            #[cfg(test)]
+            #[cfg(any(test, feature = "local-model-proof"))]
             Self::TestSpeechSink(operation) => operation.start(),
             #[cfg(test)]
             Self::TestJsonSource(operation) => operation.emit_or_complete(),
@@ -242,7 +242,7 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             (Self::TestRecurrenceSink(operation), input) => operation.resume(input),
             (Self::TestPcmSource(operation), input) => operation.resume(input),
-            #[cfg(test)]
+            #[cfg(any(test, feature = "local-model-proof"))]
             (Self::TestSpeechSink(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestJsonSource(_), _) => Self::fail(104),
@@ -433,7 +433,7 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestRecurrenceSink(_) => OperationAction::Await,
             Self::TestPcmSource(operation) => operation.advance(),
-            #[cfg(test)]
+            #[cfg(any(test, feature = "local-model-proof"))]
             Self::TestSpeechSink(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.advance(),

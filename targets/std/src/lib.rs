@@ -87,6 +87,8 @@ mod kernel_preparation;
 mod kernel_signal;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
+#[cfg(feature = "local-model-proof")]
+pub mod piper_plan_play_proof;
 mod run_control;
 pub mod state_value;
 pub use run_control::{
@@ -626,6 +628,10 @@ impl StdHost {
         advertisement
             .capabilities
             .push(conduit_std_offers::piper_speech_offer());
+        #[cfg(feature = "local-model-proof")]
+        advertisement
+            .capabilities
+            .push(installed_std::test_speech_sink::offer());
         advertisement.resources.sort();
         advertisement.capabilities.sort_by(|left, right| {
             left.capability_id

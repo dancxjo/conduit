@@ -10,24 +10,28 @@ pub(super) struct PiperProofRequest {
     pub config: PathBuf,
     pub library_path: Option<PathBuf>,
     pub text: String,
+    pub plan_play: bool,
     pub maximum_frames: u32,
     pub maximum_blocks: u16,
     pub timeout_seconds: u64,
 }
 
 #[derive(Serialize)]
-struct PiperProofReport<'a> {
+struct PiperProofReport {
     schema: &'static str,
     proof_class: &'static str,
     dry_run: bool,
     effects_performed: bool,
-    executable_sha256: Option<&'a str>,
-    model_sha256: Option<&'a str>,
-    config_sha256: Option<&'a str>,
+    plan_id: Option<String>,
+    active_play_id: Option<String>,
+    implementation_id: Option<String>,
+    executable_sha256: Option<String>,
+    model_sha256: Option<String>,
+    config_sha256: Option<String>,
     model_bytes: Option<u64>,
     sample_rate_hz: Option<u32>,
-    text_sha256: Option<&'a str>,
-    pcm_sha256: Option<&'a str>,
+    text_sha256: Option<String>,
+    pcm_sha256: Option<String>,
     frames: Option<u32>,
     blocks: Option<u16>,
     diagnostic_bytes: Option<u16>,
@@ -42,10 +46,21 @@ pub(super) fn prove(
     }
     if opts.dry_run {
         let report = PiperProofReport {
-            schema: "conduit.tools/xtask/piper-provider-proof@1",
-            proof_class: "provider-not-plan-play",
+            schema: if request.plan_play {
+                "conduit.tools/xtask/piper-plan-play-proof@1"
+            } else {
+                "conduit.tools/xtask/piper-provider-proof@1"
+            },
+            proof_class: if request.plan_play {
+                "ordinary-plan-play"
+            } else {
+                "provider-not-plan-play"
+            },
             dry_run: true,
             effects_performed: false,
+            plan_id: None,
+            active_play_id: None,
+            implementation_id: None,
             executable_sha256: None,
             model_sha256: None,
             config_sha256: None,
@@ -75,6 +90,52 @@ pub(super) fn prove(
     let config_sha256 = discovery.config_sha256.clone();
     let model_bytes = discovery.model_bytes;
     let sample_rate_hz = discovery.sample_rate_hz;
+    let limits = PiperLimits {
+        maximum_text_bytes: conduit_tongues::MAXIMUM_TEXT_BYTES,
+        maximum_frames: request.maximum_frames,
+        maximum_blocks: request.maximum_blocks,
+        timeout: Duration::from_secs(request.timeout_seconds),
+    };
+    if request.plan_play {
+        let run = conduit_std_host::piper_plan_play_proof::run(discovery, limits, &request.text)?;
+        let receipt = run
+            .speech_synthesis
+            .first()
+            .ok_or("Piper Plan/Play proof omitted its synthesis receipt")?;
+        let report = PiperProofReport {
+            schema: "conduit.tools/xtask/piper-plan-play-proof@1",
+            proof_class: "ordinary-plan-play",
+            dry_run: false,
+            effects_performed: true,
+            plan_id: Some(receipt.plan_id.as_str().to_string()),
+            active_play_id: Some(receipt.active_play_id.as_str().to_string()),
+            implementation_id: Some(receipt.implementation_id.as_str().to_string()),
+            executable_sha256: Some(receipt.executable_sha256.clone()),
+            model_sha256: Some(receipt.model_sha256.clone()),
+            config_sha256: Some(receipt.config_sha256.clone()),
+            model_bytes: Some(model_bytes),
+            sample_rate_hz: Some(sample_rate_hz),
+            text_sha256: Some(receipt.text_sha256.clone()),
+            pcm_sha256: Some(receipt.pcm_sha256.clone()),
+            frames: Some(receipt.frames),
+            blocks: Some(receipt.blocks),
+            diagnostic_bytes: None,
+        };
+        if opts.json {
+            println!("{}", serde_json::to_string(&report)?);
+        } else if !opts.quiet {
+            println!(
+                "PIPER PLAN/PLAY PROVED: plan={} play={} model={} frames={} blocks={} pcm={}",
+                receipt.plan_id.as_str(),
+                receipt.active_play_id.as_str(),
+                receipt.model_sha256,
+                receipt.frames,
+                receipt.blocks,
+                receipt.pcm_sha256
+            );
+        }
+        return Ok(());
+    }
     let mut adapter = discovery.initialize(PiperLimits {
         maximum_text_bytes: conduit_tongues::MAXIMUM_TEXT_BYTES,
         maximum_frames: request.maximum_frames,
@@ -99,13 +160,16 @@ pub(super) fn prove(
         proof_class: "provider-not-plan-play",
         dry_run: false,
         effects_performed: true,
-        executable_sha256: Some(&executable_sha256),
-        model_sha256: Some(&model_sha256),
-        config_sha256: Some(&config_sha256),
+        plan_id: None,
+        active_play_id: None,
+        implementation_id: None,
+        executable_sha256: Some(executable_sha256),
+        model_sha256: Some(model_sha256.clone()),
+        config_sha256: Some(config_sha256),
         model_bytes: Some(model_bytes),
         sample_rate_hz: Some(sample_rate_hz),
-        text_sha256: Some(&receipt.text_sha256),
-        pcm_sha256: Some(&receipt.pcm_sha256),
+        text_sha256: Some(receipt.text_sha256.clone()),
+        pcm_sha256: Some(receipt.pcm_sha256.clone()),
         frames: Some(receipt.frames),
         blocks: Some(receipt.blocks),
         diagnostic_bytes: Some(receipt.diagnostic_bytes),

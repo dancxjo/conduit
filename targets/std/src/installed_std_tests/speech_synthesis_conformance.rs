@@ -13,7 +13,7 @@ fn unchanged_speech_form_streams_several_blocks_through_ordinary_plan_and_play()
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut catalog)
         .expect("speech synthesis catalog is exact");
     let form = conduit_form::parse(
-        "form bounded_speech {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n sink: conduit-test/speech-pcm-sink\n \"Rosehip House is ready.\" > synthesize.text\n synthesize.audio > sink.audio\n}\n",
+        "form bounded_speech {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n sink: conduit-proof/speech-pcm-sink\n \"Rosehip House is ready.\" > synthesize.text\n synthesize.audio > sink.audio\n}\n",
         &catalog,
     )
     .expect("provider-neutral speech Form parses");
@@ -114,7 +114,7 @@ fn initialized_piper_runs_the_unchanged_form_through_ordinary_plan_and_play() {
     let mut startup = conduit_form::StartupCatalog::new();
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut catalog).unwrap();
     let form = conduit_form::parse(
-        "form real_speech {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n sink: conduit-test/speech-pcm-sink\n \"Rosehip House\" > synthesize.text\n synthesize.audio > sink.audio\n}\n",
+        "form real_speech {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n sink: conduit-proof/speech-pcm-sink\n \"Rosehip House\" > synthesize.text\n synthesize.audio > sink.audio\n}\n",
         &catalog,
     )
     .unwrap();
