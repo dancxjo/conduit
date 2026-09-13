@@ -324,7 +324,7 @@ fn chooser_scene(
             )
             .map_err(|_| TourShellError::Scene)?;
         let label = alloc::format!("Select {gear}");
-        let icon_size = row.height.saturating_sub(8).min(16).max(1);
+        let icon_size = row.height.saturating_sub(8).clamp(1, 16);
         let text = LayoutRect {
             x: row.x + 32,
             y: row.y + 4,

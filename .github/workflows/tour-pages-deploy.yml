@@ -14,6 +14,17 @@ on:
         description: Exact current main commit to fabricate and promote
         required: false
         type: string
+  # Installing the accepted release's audit record in protected dev activates
+  # this one recovery. It never publishes arbitrary development source.
+  push:
+    branches: [dev]
+    paths: [.github/release-audit/47372-publication.md]
+  # GITHUB_TOKEN merges do not emit a push-triggered run. The pre-sync
+  # finalizer's completion is the bounded recovery trigger for that path.
+  workflow_run:
+    workflows: [Finalize trusted release automation]
+    types: [completed]
+    branches: [dev]
 
 concurrency:
   group: tour-and-creche-pages
@@ -112,6 +123,9 @@ jobs:
     with:
       base_sha: ${{ needs.resolve.outputs.integration_base }}
       candidate_sha: ${{ needs.resolve.outputs.merge_commit }}
+      # Execute means the carrier is needed even when the diff is metadata-only.
+      # Reuse exact product selection instead of accepting a successful no-op.
+      execute_proofs: '["products.pages-carrier"]'
 
   deploy:
     needs: [resolve, integration-products]
@@ -159,21 +173,40 @@ jobs:
 
   deploy-first-rescue:
     if: >-
-      github.event_name == 'pull_request_target' &&
-      github.event.pull_request.merged == true &&
-      github.event.pull_request.base.ref == 'main' &&
-      github.event.pull_request.head.ref == 'release/47372b96d31ca8a04e9868a88bdd1919a9cad986'
+      (github.event_name == 'push' && github.ref == 'refs/heads/dev') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.name == 'Finalize trusted release automation' &&
+       github.event.workflow_run.event == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'dev' &&
+       github.event.workflow_run.head_sha == '1ccfd24b2713fbb571630a57addc2551f6b3dd4a' &&
+       github.event.workflow_run.head_repository.full_name == github.repository) ||
+      (github.event_name == 'pull_request_target' &&
+       github.event.pull_request.merged == true &&
+       github.event.pull_request.base.ref == 'main' &&
+       github.event.pull_request.head.ref == 'release/47372b96d31ca8a04e9868a88bdd1919a9cad986')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      EXPECTED_MAIN_SHA: 69b39d54c5294f0c2781dded213d52789eff953e
+      RELEASE_SOURCE_SHA: f1e0245a8a55116a91c334d4e6f2719d81bc2ff3
     steps:
       - name: Check out the exact released product source
         uses: actions/checkout@v7
         with:
           ref: f1e0245a8a55116a91c334d4e6f2719d81bc2ff3
           fetch-depth: 0
+      - name: Refuse a stale recovery or changed released product source
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_MAIN_SHA"
+          git merge-base --is-ancestor "$RELEASE_SOURCE_SHA" FETCH_HEAD
+          git diff --exit-code "$RELEASE_SOURCE_SHA" FETCH_HEAD -- . \
+            ':(exclude).github/workflows/tour-pages-deploy.yml' \
+            ':(exclude).github/release-audit/47372-publication.md'
       - name: Reuse the exact already-built staged release payload
         uses: actions/download-artifact@v8
         with:
@@ -182,6 +215,7 @@ jobs:
           repository: ${{ github.repository }}
           run-id: 34522795014
           github-token: ${{ github.token }}
+          digest-mismatch: error
       - name: Seal the deploy-first Pages carrier without the stale browser-proof veto
         run: |
           rm -rf target/pages-site target/pages-carrier
@@ -212,6 +246,10 @@ jobs:
           path: target/pages-carrier/site
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
+      - name: Recheck current main immediately before publication
+        run: |
+          read -r current_main _ < <(git ls-remote --exit-code origin refs/heads/main)
+          test "$current_main" = "$EXPECTED_MAIN_SHA"
       - name: Deploy Conduit Pages
         id: deployment
         uses: actions/deploy-pages@v5
