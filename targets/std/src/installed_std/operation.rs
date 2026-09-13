@@ -78,6 +78,7 @@ impl Operation for InstalledOperation {
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::RecordedSpeech(operation) => operation.start(),
             Self::WhisperSpeech(operation) => operation.start(),
+            Self::MicrophoneClip(operation) => operation.start(),
             Self::RecognitionText(operation) => operation.start(),
             Self::HousePrompt(operation) => operation.start(),
             Self::LocalModel(operation) => operation.start(),
@@ -246,6 +247,7 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             (Self::TestRecurrenceSink(operation), input) => operation.resume(input),
             (Self::TestPcmSource(operation), input) => operation.resume(input),
+            (Self::MicrophoneClip(operation), input) => operation.resume(input),
             #[cfg(any(test, feature = "local-model-proof"))]
             (Self::TestSpeechSink(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -439,6 +441,7 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestRecurrenceSink(_) => OperationAction::Await,
             Self::TestPcmSource(operation) => operation.advance(),
+            Self::MicrophoneClip(operation) => operation.advance(),
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::TestSpeechSink(_) => OperationAction::Await,
             #[cfg(test)]

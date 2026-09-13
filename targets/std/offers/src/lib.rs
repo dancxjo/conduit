@@ -82,6 +82,8 @@ mod speech_recognition;
 pub use speech_recognition::*;
 mod speech_synthesis;
 pub use speech_synthesis::*;
+mod microphone;
+pub use microphone::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,

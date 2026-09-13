@@ -100,6 +100,7 @@ impl InstalledOperation {
             #[cfg(test)]
             Self::TestRecurrenceSink(_) => {}
             Self::TestPcmSource(operation) => operation.cancel(),
+            Self::MicrophoneClip(operation) => operation.cancel(),
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::TestSpeechSink(_) => {}
             #[cfg(test)]

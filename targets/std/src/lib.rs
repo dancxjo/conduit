@@ -61,6 +61,7 @@ pub use host_execution::HostedRunAdapters;
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
 pub mod hosted_messaging;
+pub mod hosted_microphone;
 pub mod hosted_midi;
 pub mod hosted_model;
 pub mod hosted_model_compute;
@@ -81,6 +82,7 @@ mod installed_std_tests;
 pub mod isolated_base;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub mod isolated_copy_base;
+pub mod microphone_whisper_proof;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub use isolated_copy_base::provider_main as isolated_copy_provider_main;
 #[cfg(all(target_os = "linux", feature = "isolated-http-base"))]
@@ -236,6 +238,7 @@ pub struct StdRunReport {
     pub control_receipts: Vec<RunControlReceipt>,
     pub speech_synthesis: Vec<SpeechSynthesisExecutionReceipt>,
     pub speech_recognition: Vec<SpeechRecognitionExecutionReceipt>,
+    pub microphone: Vec<hosted_microphone::MicrophoneCaptureReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -410,6 +413,7 @@ pub struct StdHost {
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
     speech_synthesis: Option<hosted_speech::PiperSpeechAdapter>,
     speech_recognition: Option<hosted_speech_recognition::WhisperSpeechAdapter>,
+    microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
@@ -483,6 +487,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: None,
             speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -548,6 +553,7 @@ impl StdHost {
             local_model: Some(adapter),
             speech_synthesis: None,
             speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -585,6 +591,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: None,
             speech_recognition: None,
+            microphone: None,
             vector_search: Some(adapter),
             calendar: None,
             kernel_resources,
@@ -622,6 +629,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: None,
             speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: Some(adapter),
             kernel_resources,
@@ -679,6 +687,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: Some(adapter),
             speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -730,6 +739,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: None,
             speech_recognition: Some(adapter),
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -782,6 +792,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: None,
             speech_recognition: Some(adapter),
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -933,6 +944,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: Some(adapter),
             speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -955,6 +967,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: None,
             speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -1001,6 +1014,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: None,
             speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -1042,6 +1056,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: None,
             speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -1072,6 +1087,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: None,
             speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -1115,6 +1131,7 @@ impl StdHost {
             local_model: None,
             speech_synthesis: None,
             speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
