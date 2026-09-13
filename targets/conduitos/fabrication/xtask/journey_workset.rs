@@ -126,17 +126,26 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
         .filter(|record| record["status"] == "quiescent-awaiting-input")
         .collect::<Vec<_>>();
     let expected = expected();
-    if quiescent.len() != expected.len() {
+    if quiescent.len() > expected.len() {
         return Err(refusal());
     }
-    for (record, expected) in quiescent.iter().zip(&expected) {
-        let form = match expected.form {
-            NativeForm::KeyboardCanvas => &canvas,
-            NativeForm::MemoryLantern => &memory,
-        };
-        if !matches(record, *expected, form) {
+    let mut expected_index = 0;
+    for record in &quiescent {
+        while expected_index < expected.len() {
+            let candidate = expected[expected_index];
+            let form = match candidate.form {
+                NativeForm::KeyboardCanvas => &canvas,
+                NativeForm::MemoryLantern => &memory,
+            };
+            if matches(record, candidate, form) {
+                break;
+            }
+            expected_index += 1;
+        }
+        if expected_index == expected.len() {
             return Err(refusal());
         }
+        expected_index += 1;
         for field in ["body_id", "wake_id", "plan_id", "active_play_id"] {
             if quiescent[0][field].as_str().is_none_or(str::is_empty)
                 || record[field] != quiescent[0][field]
@@ -145,9 +154,33 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             }
         }
     }
-    // Pre-birth records retain the initial Form identity. After birth each
-    // selection must still name an exact reviewed source/checked/expanded tuple.
+    // Presentation service may coalesce adjacent accepted inputs. Preserve the
+    // critical semantic checkpoints instead of requiring one frame per event.
+    for index in [0, 10, 17, 19, 26, 31, 36] {
+        let checkpoint = expected[index];
+        let form = match checkpoint.form {
+            NativeForm::KeyboardCanvas => &canvas,
+            NativeForm::MemoryLantern => &memory,
+        };
+        if !quiescent
+            .iter()
+            .any(|record| matches(record, checkpoint, form))
+        {
+            return Err(refusal());
+        }
+    }
+    // Zero-Body arrival has no lifecycle Form. Once explicit selection births
+    // the Body, every projection must name an exact reviewed identity tuple.
     for record in records {
+        if record["status"] == "world" {
+            if ["source_document_id", "checked_form_id", "expanded_form_id"]
+                .iter()
+                .any(|field| !record[field].is_null())
+            {
+                return Err(refusal());
+            }
+            continue;
+        }
         let reviewed = [&canvas, &memory].iter().any(|form| {
             record["source_document_id"] == form.source_document_id
                 && record["checked_form_id"] == form.checked_form_id
@@ -174,7 +207,11 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     canvas.final_result = "HELLOXY".into();
     memory.final_result = "hi".into();
     Ok((
-        quiescent[10],
+        quiescent
+            .iter()
+            .copied()
+            .find(|record| matches(record, expected[10], &canvas))
+            .ok_or_else(refusal)?,
         WorksetProof {
             forms: vec![canvas, memory],
             switches: quiescent

@@ -62,7 +62,12 @@ fn target(journey: &ProductJourney, action: JourneyAction) -> String {
     let projection = journey.projection();
     match action {
         JourneyAction::OpenBack | JourneyAction::Birth => {
-            format!("form/{}", projection.checked_form_id.as_str())
+            let checked = projection.checked_form_id.unwrap_or_else(|| {
+                crate::keyboard_text_plan::checked_form_identity()
+                    .unwrap()
+                    .checked_form_id
+            });
+            format!("form/{}", checked.as_str())
         }
         JourneyAction::Wake
         | JourneyAction::Plan

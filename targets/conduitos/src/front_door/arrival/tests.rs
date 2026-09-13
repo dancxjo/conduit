@@ -59,6 +59,38 @@ fn native_draft_edits_name_and_submits_exact_checked_selection_without_birth() {
 }
 
 #[test]
+fn zero_body_arrival_has_no_lifecycle_form_while_creche_inventory_is_usable() {
+    let mut door = door(None);
+    let journey = crate::product_journey::ProductJourney::new(
+        HostId::from("host"),
+        BootId::from("boot"),
+        OfferGeneration(1),
+    )
+    .unwrap();
+    let lifecycle = journey.projection();
+    assert!(lifecycle.body_id.is_none());
+    assert!(lifecycle.source_document_id.is_none());
+    assert!(lifecycle.checked_form_id.is_none());
+    assert!(lifecycle.expanded_form_id.is_none());
+    assert!(!door.form_open);
+    door.observe_journey(lifecycle).unwrap();
+
+    let presentation = door.presentation().unwrap();
+    assert!(presentation.basis.body_id.is_none());
+    assert!(presentation.basis.source_document_id.is_none());
+    assert!(presentation.basis.checked_form_id.is_none());
+    assert_eq!(
+        presentation
+            .subjects
+            .iter()
+            .filter(|subject| subject.role == conduit_presentation::PresentationRole::Form)
+            .count(),
+        crate::native_workset::inventory().len()
+    );
+    assert!(matches!(press(&mut door, 60), ArrivalInput::Birth(_)));
+}
+
+#[test]
 fn selection_and_availability_are_visible_and_refuse_empty_or_unavailable_birth() {
     let mut door = door(None);
     for _ in 0..4 {

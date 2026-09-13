@@ -330,12 +330,7 @@ fn execute_image(
             )?;
             artifacts.capture(&mut qmp, &mut reader, "refusal-transient", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-refusal")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_TOUR_CHECKPOINT transient-dismissed",
-                "product-journey-refusal-dismissal-timeout",
-            )?;
+            journey_input::wait_transient_status_count(&serial_path, &mut child, "dismissed", 2)?;
             artifacts.capture(&mut qmp, &mut reader, "refusal-dismissed", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "f11", "tour-patchbay")?;
             journey_input::wait_tour_status(&serial_path, &mut child, "patchbay-open")?;
@@ -557,9 +552,9 @@ fn execute_image(
             host_id: text(opened, "host_id")?,
             profile: "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib",
             boot_id: text(opened, "boot_id")?,
-            source_document_id: text(opened, "source_document_id")?,
-            checked_form_id: text(opened, "checked_form_id")?,
-            expanded_form_id: text(opened, "expanded_form_id")?,
+            source_document_id: text(born, "source_document_id")?,
+            checked_form_id: text(born, "checked_form_id")?,
+            expanded_form_id: text(born, "expanded_form_id")?,
             body_id: text(born, "body_id")?,
             born_sign_id: text(born, "born_sign_id")?,
             part_id: text(born, "part_id")?,
