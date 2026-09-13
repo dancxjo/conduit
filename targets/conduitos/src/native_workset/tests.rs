@@ -50,6 +50,10 @@ pub(super) fn wake(forms: &[NativeForm]) -> Wake {
 
 #[test]
 fn native_inventory_preserves_existing_canvas_and_canonical_memory_identities() {
+    let profile = profile();
+    assert_eq!(profile.id, "conduitos/native-installed-forms@1");
+    assert_eq!(profile.capacity, NATIVE_FORM_CAPACITY);
+    assert_eq!(profile.installed(), &inventory());
     let old = crate::keyboard_text_plan::checked_form_identity().unwrap();
     let canvas = resident(NativeForm::KeyboardCanvas).unwrap();
     assert_eq!(canvas.source_document_id, old.source_document_id);
@@ -69,6 +73,18 @@ fn native_inventory_preserves_existing_canvas_and_canonical_memory_identities() 
         catalog::resolve(&substituted),
         Err(WorksetRefusal::UnknownForm)
     );
+}
+
+#[test]
+fn profile_capacity_is_the_finite_native_workset_bound() {
+    assert_eq!(NATIVE_FORM_CAPACITY, inventory().len());
+    let one = BodyWorkset::from_forms(inventory()[..1].iter().map(|form| resident(*form).unwrap()))
+        .unwrap();
+    let maximum =
+        BodyWorkset::from_forms(inventory().iter().map(|form| resident(*form).unwrap())).unwrap();
+    assert_eq!(one.len(), 1);
+    assert_eq!(maximum.len(), profile().capacity);
+    assert!(BodyWorkset::default().is_empty());
 }
 
 #[test]

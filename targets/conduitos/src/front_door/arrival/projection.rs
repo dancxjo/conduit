@@ -97,7 +97,7 @@ impl Arrival {
                 text: self
                     .refusal
                     .clone()
-                    .unwrap_or_else(|| "Name your Body and choose its first Forms.".into()),
+                    .unwrap_or_else(|| "Name your Body and choose its installed Forms.".into()),
             }],
             actions,
             vec![PresentationDisclosure {

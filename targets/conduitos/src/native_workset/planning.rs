@@ -57,8 +57,14 @@ pub fn prepare(
     offer: &HostOffer<'_>,
     build_id: &str,
 ) -> Result<PreparedNativeWorkset, WorksetRefusal> {
-    if wake.workset.is_empty() || wake.workset.len() > 2 {
+    let profile = super::profile();
+    if wake.workset.is_empty() || wake.workset.len() > profile.capacity {
         return Err(WorksetRefusal::WorksetBound);
+    }
+    for form in wake.workset.forms() {
+        if !profile.contains(form)? {
+            return Err(WorksetRefusal::UnknownForm);
+        }
     }
     let (advertisement, keyboard) = host(identities, offer, build_id)?;
     let forms = plan_forms(wake.workset.forms(), &advertisement)?;
