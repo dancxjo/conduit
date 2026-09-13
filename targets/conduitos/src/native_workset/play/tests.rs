@@ -91,7 +91,13 @@ fn patchbay_inspects_the_selected_form_and_emits_bounded_edit_authority() {
         ))
     ));
     let latest = play.take_application_view(patchbay).unwrap();
-    play.application_event(patchbay, &edit.encode(&latest).unwrap())
+    let repeated_edit = conduit_presentation::ApplicationEvent {
+        revision: latest.revision,
+        action: patchbay_application::EDIT_CURRENT_ACTION_ID.into(),
+        kind: conduit_presentation::ApplicationEventKind::Activate,
+        value: alloc::vec::Vec::new(),
+    };
+    play.application_event(patchbay, &repeated_edit.encode(&latest).unwrap())
         .unwrap();
     play.cancel().unwrap();
     assert!(play.take_application_request(patchbay).is_none());
