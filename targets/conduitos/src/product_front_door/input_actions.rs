@@ -1,4 +1,4 @@
-//! Foreground ownership and Presenter-local lifecycle key bindings.
+//! Admitted product actions forwarded by native presentation input.
 use super::ENTER;
 use crate::{
     front_door::FrontDoor,
@@ -38,18 +38,79 @@ pub(super) enum ProductControl {
     UsbLine,
 }
 
-pub(super) fn product_control(usage: u8) -> Option<ProductControl> {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum ProductActionScope {
+    Surface,
+    Focus,
+    Inspection,
+    BodyLifecycle,
+    TourApplication,
+    LineRequest,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct AdmittedProductAction {
+    pub id: &'static str,
+    pub control: ProductControl,
+    pub scope: ProductActionScope,
+}
+
+pub(super) fn admitted_product_action(usage: u8) -> Option<AdmittedProductAction> {
     Some(match usage {
-        41 => ProductControl::Escape,
-        43 => ProductControl::SelectNextForm,
-        59 => ProductControl::SuggestOrDetails,
-        60..=65 => ProductControl::Lifecycle,
-        66 => ProductControl::Tour,
-        67 => ProductControl::TourRun,
-        68 => ProductControl::TourPatchbay,
-        69 => ProductControl::UsbLine,
+        41 => action(
+            "product.surface.escape",
+            ProductControl::Escape,
+            ProductActionScope::Surface,
+        ),
+        43 => action(
+            "product.form.select-next",
+            ProductControl::SelectNextForm,
+            ProductActionScope::Focus,
+        ),
+        59 => action(
+            "product.inspect.suggest-or-details",
+            ProductControl::SuggestOrDetails,
+            ProductActionScope::Inspection,
+        ),
+        60..=65 => action(
+            "product.body.lifecycle",
+            ProductControl::Lifecycle,
+            ProductActionScope::BodyLifecycle,
+        ),
+        66 => action(
+            "product.tour.open",
+            ProductControl::Tour,
+            ProductActionScope::TourApplication,
+        ),
+        67 => action(
+            "product.tour.run",
+            ProductControl::TourRun,
+            ProductActionScope::TourApplication,
+        ),
+        68 => action(
+            "product.tour.patchbay",
+            ProductControl::TourPatchbay,
+            ProductActionScope::TourApplication,
+        ),
+        69 => action(
+            "product.line.request",
+            ProductControl::UsbLine,
+            ProductActionScope::LineRequest,
+        ),
         _ => return None,
     })
+}
+
+const fn action(
+    id: &'static str,
+    control: ProductControl,
+    scope: ProductActionScope,
+) -> AdmittedProductAction {
+    AdmittedProductAction { id, control, scope }
+}
+
+pub(super) fn product_control(usage: u8) -> Option<ProductControl> {
+    admitted_product_action(usage).map(|action| action.control)
 }
 
 #[cfg(test)]
@@ -60,7 +121,9 @@ mod tests {
         assert_eq!(product_control(4), None);
         assert_eq!(product_control(40), None);
         for usage in [41, 43, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69] {
-            assert!(product_control(usage).is_some());
+            let action = admitted_product_action(usage).unwrap();
+            assert!(!action.id.is_empty());
+            assert_eq!(product_control(usage), Some(action.control));
         }
     }
 }
