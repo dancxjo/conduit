@@ -7,8 +7,8 @@ use conduit_text::AddressDetection;
 use conduit_tongues::{
     decode_address_detection, decode_wired_house_context, encode_address_detection,
     encode_wired_house_context, house_prompt_contract, install_house_conversation_catalog,
-    prepare_house_generation_request, HouseConversationValueError, HousePromptRefusal,
-    HOUSE_CONTEXT_TO_PROMPT_KIND,
+    install_speech_catalogs, prepare_house_generation_request, HouseConversationValueError,
+    HousePromptRefusal, AUDIO_PLAY_KIND, HOUSE_CONTEXT_TO_PROMPT_KIND, SPEECH_SYNTHESIZE_KIND,
 };
 
 fn context(provenance: HouseContextProvenanceClass) -> WiredHouseContextItem {
@@ -131,6 +131,61 @@ fn canonical_house_conversation_is_an_ordinary_checked_form() {
     let contract = house_prompt_contract();
     assert_eq!(contract.inputs.len(), 2);
     for forbidden in ["ollama", "http", "microphone", "speaker", "actuator"] {
+        assert!(!source.to_ascii_lowercase().contains(forbidden));
+    }
+}
+
+#[test]
+fn canonical_house_spoken_response_composes_text_fallback_and_speech_output() {
+    let source = format!(
+        "{}\n{}",
+        include_str!("../../../forms/house-conversation/main.conduit"),
+        include_str!("../../../forms/house-spoken-response/main.conduit"),
+    );
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
+    conduit_ai::install_model_text_catalog(&mut startup, &mut profile).unwrap();
+    install_house_conversation_catalog(&mut startup, &mut profile).unwrap();
+    install_speech_catalogs(&mut startup, &mut profile).unwrap();
+
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
+    let authored =
+        expand_canonical_form_for_authoring(&checked, "house-spoken-response", &profile).unwrap();
+    let expanded = authored.expanded;
+
+    assert_eq!(authored.input_bindings.len(), 2);
+    assert_eq!(authored.output_bindings.len(), 1);
+    assert_eq!(expanded.gears.len(), 5);
+    assert!(expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == SPEECH_SYNTHESIZE_KIND));
+    assert!(expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == AUDIO_PLAY_KIND));
+    let speech_text_cord = expanded
+        .connections
+        .iter()
+        .find(|connection| connection.value_kind.as_str() == conduit_ai::TEXT_VALUE_KIND)
+        .expect("bounded response Text reaches synthesis");
+    assert_eq!(
+        authored.output_bindings[0].gear_id, speech_text_cord.source_gear_id,
+        "the same model-derived Text backs the fallback output and speech branch",
+    );
+    for forbidden in [
+        "ollama",
+        "localhost",
+        "model_name",
+        "alsa",
+        "pipewire",
+        "device",
+        "hostid",
+        "bootid",
+        "authority",
+    ] {
         assert!(!source.to_ascii_lowercase().contains(forbidden));
     }
 }

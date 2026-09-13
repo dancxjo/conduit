@@ -14,6 +14,8 @@ use serde::{Deserialize, Serialize};
 
 pub const HOUSE_CONTEXT_TO_PROMPT_KIND: &str = "house/context-to-prompt";
 pub const HOUSE_CONTEXT_TO_PROMPT_REVISION: &str = "conduit.house/context-to-prompt@1";
+pub const HOUSE_CONVERSATION_FORM_KIND: &str = "house-conversation";
+pub const HOUSE_CONVERSATION_FORM_REVISION: &str = "conduit.house/conversation-form@1";
 pub const WIRED_HOUSE_CONTEXT_VALUE_KIND: &str = "house/wired-context@1";
 pub const MAXIMUM_HOUSE_PROMPT_BYTES: usize = 131_072;
 pub const MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES: usize =
@@ -246,6 +248,40 @@ pub fn install_house_conversation_catalog(
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
+            configuration: vec![],
+        })
+        .map_err(|error| error.to_string())
+}
+
+pub fn install_house_conversation_form_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    startup.insert(KindSignature {
+        kind: HOUSE_CONVERSATION_FORM_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(KindDefinition {
+            kind_id: kind_id(HOUSE_CONVERSATION_FORM_KIND),
+            kind_contract_revision: KindContractRevision::from(HOUSE_CONVERSATION_FORM_REVISION),
+            inputs: vec![
+                port(
+                    "detection",
+                    ADDRESS_DETECTION_VALUE_KIND,
+                    PortDirection::Input,
+                ),
+                port(
+                    "context",
+                    WIRED_HOUSE_CONTEXT_VALUE_KIND,
+                    PortDirection::Input,
+                ),
+            ],
+            outputs: vec![port(
+                "response",
+                conduit_ai::TEXT_VALUE_KIND,
+                PortDirection::Output,
+            )],
             configuration: vec![],
         })
         .map_err(|error| error.to_string())

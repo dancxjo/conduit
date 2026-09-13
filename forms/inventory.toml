@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 100
+maximum_forms = 101
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -34,6 +34,12 @@ title = "House Conversation"
 entry = "house-conversation"
 deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_conversation_is_an_ordinary_checked_form" }
 browser_safe_not_applicable = "portable House conversation has no installed browser model realization"
+[[forms]]
+slug = "house-spoken-response"
+title = "House Spoken Response"
+entry = "house-spoken-response"
+deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_spoken_response_composes_text_fallback_and_speech_output" }
+browser_safe_not_applicable = "portable speech output requires an admitted synthesis and audio-output realization"
 [[forms]]
 slug = "bench-telemetry"
 title = "Bench Telemetry"
