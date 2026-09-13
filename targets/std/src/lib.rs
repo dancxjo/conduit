@@ -64,6 +64,7 @@ pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_resource;
 pub mod hosted_speech;
+pub mod hosted_speech_recognition;
 pub mod hosted_synth;
 pub mod hosted_vector_index;
 pub mod hosted_vector_search;
