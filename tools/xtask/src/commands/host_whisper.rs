@@ -142,7 +142,9 @@ pub(super) fn prove(
     Ok(())
 }
 
-fn read_bounded_pcm(path: &std::path::Path) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub(super) fn read_bounded_pcm(
+    path: &std::path::Path,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let metadata = std::fs::metadata(path)?;
     if !metadata.is_file() {
         return Err("recorded PCM input is not a regular file".into());
@@ -157,7 +159,9 @@ fn read_bounded_pcm(path: &std::path::Path) -> Result<Vec<u8>, Box<dyn std::erro
     Ok(raw)
 }
 
-fn encode_recorded_pcm(raw: &[u8]) -> Result<(Vec<u8>, usize, u32), Box<dyn std::error::Error>> {
+pub(super) fn encode_recorded_pcm(
+    raw: &[u8],
+) -> Result<(Vec<u8>, usize, u32), Box<dyn std::error::Error>> {
     if raw.is_empty()
         || raw.len() > MAXIMUM_RAW_PCM_BYTES
         || !raw.len().is_multiple_of(BYTES_PER_SAMPLE)

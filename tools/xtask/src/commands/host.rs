@@ -24,6 +24,8 @@ mod host_esp32_inspection_tests;
 mod host_local_model;
 #[path = "host_piper.rs"]
 mod host_piper;
+#[path = "host_recorded_house.rs"]
+mod host_recorded_house;
 #[path = "host_release.rs"]
 mod host_release;
 #[path = "host_target.rs"]
@@ -181,6 +183,23 @@ enum HostCommand {
         #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=120))]
         timeout_seconds: u64,
     },
+    /// Run recorded speech through name-gated local House generation in one Plan.
+    ProveRecordedHouse {
+        #[arg(long)]
+        whisper_executable: PathBuf,
+        #[arg(long)]
+        whisper_model: PathBuf,
+        #[arg(long)]
+        pcm_s16le_16000_mono: PathBuf,
+        #[arg(long, default_value_t = 2)]
+        whisper_threads: u8,
+        #[arg(long, default_value_t = 30)]
+        whisper_timeout_seconds: u64,
+        #[arg(long)]
+        ollama_model: String,
+        #[arg(long)]
+        admitted_memory_mib: u32,
+    },
 }
 
 #[derive(Args, Debug)]
@@ -272,6 +291,26 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 pcm_s16le_16000_mono,
                 threads,
                 timeout_seconds,
+            },
+            opts,
+        ),
+        HostCommand::ProveRecordedHouse {
+            whisper_executable,
+            whisper_model,
+            pcm_s16le_16000_mono,
+            whisper_threads,
+            whisper_timeout_seconds,
+            ollama_model,
+            admitted_memory_mib,
+        } => host_recorded_house::prove(
+            host_recorded_house::RecordedHouseRequest {
+                whisper_executable,
+                whisper_model,
+                pcm_s16le_16000_mono,
+                whisper_threads,
+                whisper_timeout_seconds,
+                ollama_model,
+                admitted_memory_mib,
             },
             opts,
         ),

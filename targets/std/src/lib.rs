@@ -25,6 +25,8 @@ mod copy_task;
 mod deadline_reactor;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+#[cfg(feature = "local-model-proof")]
+pub mod recorded_house_proof;
 pub mod text_lab_live;
 pub mod text_lab_split;
 #[cfg(feature = "local-model-proof")]
@@ -816,6 +818,62 @@ impl StdHost {
                 .cmp(right.capability_id.as_str())
         });
         self.kernel_resources = kernel_preparation::KernelResourceLedger::new(&self.advertisement)?;
+        Ok(())
+    }
+
+    /// Adds one initialized Whisper clip realization and its admitted proof input.
+    #[cfg(feature = "local-model-proof")]
+    pub fn attach_whisper_clip_proof(
+        &mut self,
+        mut adapter: hosted_speech_recognition::WhisperSpeechAdapter,
+        clip: Vec<u8>,
+    ) -> Result<(), String> {
+        if self.speech_recognition.is_some() {
+            return Err("std Host already has an initialized speech recognizer".into());
+        }
+        if adapter.limits().maximum_audio_bytes < conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+            || adapter.limits().maximum_text_bytes
+                < conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16
+        {
+            return Err(
+                "initialized Whisper adapter does not satisfy its offered clip profile".into(),
+            );
+        }
+        adapter
+            .set_proof_pcm_clip(clip)
+            .map_err(|error| format!("attach proof PCM clip: {error:?}"))?;
+        let mut advertisement = self.advertisement.clone();
+        advertisement.resources.push(conduit_core::resource_offer(
+            "std/whisper-process",
+            conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS,
+            1,
+        ));
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::whisper_clip_speech_offer());
+        for offer in [
+            installed_std::test_local_model_io::house_source_offers()[1].clone(),
+            installed_std::test_local_model_io::house_text_sink_offer(),
+            installed_std::test_local_model_io::house_recognition_sink_offer(),
+        ] {
+            if !advertisement
+                .capabilities
+                .iter()
+                .any(|candidate| candidate.capability_id == offer.capability_id)
+            {
+                advertisement.capabilities.push(offer);
+            }
+        }
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        self.advertisement = advertisement;
+        self.speech_recognition = Some(adapter);
+        self.kernel_resources = kernel_resources;
         Ok(())
     }
 
