@@ -20,6 +20,16 @@ fn exact_boot_offer_is_finite_and_bases_do_not_imply_authority() {
         invariant_tsc: true,
     });
     assert_eq!(offer.validate(), Ok(()));
+    assert!(
+        offer
+            .bases
+            .iter()
+            .all(|base| { base.id != base.provider_instance_id && base.provider_generation == 1 })
+    );
+    assert_ne!(
+        offer.bases[0].provider_instance_id,
+        offer.bases[1].provider_instance_id
+    );
     assert_eq!(offer.resources[0].capacity, 262_144);
     assert_eq!(offer.resources[0].base, BaseKind::Memory);
     assert_eq!(offer.capabilities[1].maximum_in_flight, 1);
@@ -41,6 +51,25 @@ fn exact_boot_offer_is_finite_and_bases_do_not_imply_authority() {
         offer.capabilities[1].input.map(|port| port.direction),
         Some(PortDirection::Input)
     );
+}
+
+#[test]
+fn stale_or_missing_base_provider_truth_refuses_without_changing_host_identity() {
+    let features = CpuFeatures {
+        sse2: true,
+        rdrand: false,
+        invariant_tsc: true,
+    };
+    let current = offer(features);
+    let host = current.host_id;
+    let boot = current.boot_id;
+    let unaffected = current.bases[1];
+    let mut stale = offer(features);
+    stale.bases[0].provider_generation = 0;
+    assert_eq!(stale.validate(), Err(OfferError::InvalidBaseProvider));
+    assert_eq!(stale.host_id, host);
+    assert_eq!(stale.boot_id, boot);
+    assert_eq!(stale.bases[1], unaffected);
 }
 
 #[test]

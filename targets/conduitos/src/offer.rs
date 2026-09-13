@@ -11,6 +11,7 @@ use crate::pc_speaker_offer::{PcSpeakerOffer, PcSpeakerOfferError, PcSpeakerReal
 #[cfg(target_arch = "x86_64")]
 use crate::pointer_offer::{PointerOffer, PointerOfferError, PointerRealization};
 use crate::{identity::BootIdentities, machine::BaseKind};
+use alloc::format;
 
 pub const BASE_COUNT: usize = 7;
 pub const RESOURCE_COUNT: usize = 5;
@@ -36,6 +37,9 @@ pub struct CpuFeatures {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BaseOffer {
     pub id: [u8; 32],
+    /// Exact initialized provider behind this stable boot-scoped Base.
+    pub provider_instance_id: [u8; 32],
+    pub provider_generation: u64,
     pub kind: BaseKind,
     pub capacity: u32,
 }
@@ -100,6 +104,7 @@ pub struct HostOffer<'a> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OfferError {
     EmptyIdentity,
+    InvalidBaseProvider,
     DuplicateBase,
     InvalidCapacity,
     MissingBase,
@@ -113,6 +118,7 @@ impl OfferError {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::EmptyIdentity => "empty-offer-identity",
+            Self::InvalidBaseProvider => "invalid-base-provider",
             Self::DuplicateBase => "duplicate-base-identity",
             Self::InvalidCapacity => "invalid-offer-capacity",
             Self::MissingBase => "capability-base-unavailable",
@@ -142,6 +148,11 @@ impl<'a> HostOffer<'a> {
         ];
         let bases = kinds.map(|kind| BaseOffer {
             id: crate::identity::derive_base(&ids.boot, kind.as_str()),
+            provider_instance_id: crate::identity::derive_base(
+                &ids.boot,
+                &format!("{}/provider/1", kind.as_str()),
+            ),
+            provider_generation: 1,
             kind,
             capacity: match kind {
                 BaseKind::Memory => u32::try_from(runtime_arena_bytes).unwrap_or(u32::MAX),
@@ -297,12 +308,21 @@ impl<'a> HostOffer<'a> {
         {
             return Err(OfferError::EmptyIdentity);
         }
-        if self.bases.iter().enumerate().any(|(index, base)| {
+        if self.bases.iter().any(|base| {
             base.id == [0; 32]
-                || base.capacity == 0
-                || self.bases[..index]
-                    .iter()
-                    .any(|prior| prior.id == base.id || prior.kind == base.kind)
+                || base.provider_instance_id == [0; 32]
+                || base.provider_generation == 0
+                || base.provider_instance_id == base.id
+        }) {
+            return Err(OfferError::InvalidBaseProvider);
+        }
+        if self.bases.iter().enumerate().any(|(index, base)| {
+            base.capacity == 0
+                || self.bases[..index].iter().any(|prior| {
+                    prior.id == base.id
+                        || prior.provider_instance_id == base.provider_instance_id
+                        || prior.kind == base.kind
+                })
         }) {
             return Err(OfferError::DuplicateBase);
         }
