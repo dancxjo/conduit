@@ -85,6 +85,7 @@ pub struct WhisperSpeechAdapter {
     limits: WhisperLimits,
     workspace: PathBuf,
     last_receipt: Option<WhisperRecognitionReceipt>,
+    proof_pcm_clip: Option<Vec<u8>>,
 }
 
 impl WhisperDiscovery {
@@ -121,11 +122,31 @@ impl WhisperDiscovery {
             limits,
             workspace,
             last_receipt: None,
+            proof_pcm_clip: None,
         })
     }
 }
 
 impl WhisperSpeechAdapter {
+    #[cfg(feature = "local-model-proof")]
+    pub(crate) fn set_proof_pcm_clip(&mut self, clip: Vec<u8>) -> Result<(), WhisperFailure> {
+        let decoded =
+            conduit_audio::decode_pcm_clip(&clip).map_err(|_| WhisperFailure::InvalidClip)?;
+        if decoded.profile.sample_rate_hz != 16_000
+            || decoded.profile.layout != conduit_audio::PcmChannelLayout::Mono
+            || decoded.profile.representation
+                != conduit_audio::PcmSampleRepresentation::Signed16LittleEndian
+        {
+            return Err(WhisperFailure::UnsupportedPcmProfile);
+        }
+        self.proof_pcm_clip = Some(clip);
+        Ok(())
+    }
+
+    pub(crate) fn proof_pcm_clip(&self) -> Option<&[u8]> {
+        self.proof_pcm_clip.as_deref()
+    }
+
     pub fn discovery(&self) -> &WhisperDiscovery {
         &self.discovery
     }

@@ -187,6 +187,7 @@ pub(crate) use facade::*;
 const HOST_OPERATIONS_PER_NODE: u16 = 4;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_OPERATIONS_PER_NODE as usize;
 const PENDING_REQUESTS: usize = MAX_NODES;
+const PROOF_PCM_CLIP_SOURCE_OPERATION: &str = "conduit.host/proof-recorded-pcm-clip@1";
 
 pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
     OperationDriver<InstalledOperation, PORTS>,
@@ -1561,6 +1562,37 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete proof PCM source yield: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == PROOF_PCM_CLIP_SOURCE_OPERATION {
+                if !input.is_empty() && input != [0] {
+                    return Err("proof PCM clip request is malformed".to_string());
+                }
+                let clip = speech_recognition
+                    .as_deref()
+                    .and_then(
+                        crate::hosted_speech_recognition::WhisperSpeechAdapter::proof_pcm_clip,
+                    )
+                    .ok_or_else(|| "proof PCM clip source is unavailable".to_string())?;
+                conduit_audio::decode_pcm_clip(clip)
+                    .map_err(|error| format!("proof PCM clip is invalid: {error:?}"))?;
+                let value = scheduler
+                    .store_host_value(clip)
+                    .map_err(|error| format!("store proof PCM clip: {error:?}"))?;
+                let output =
+                    BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                        .map_err(|error| format!("bound proof PCM clip: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(output),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete proof PCM clip source: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_std_offers::WHISPER_SPEECH_OPERATION
                 || contract.as_str() == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION

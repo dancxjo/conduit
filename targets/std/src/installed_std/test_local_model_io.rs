@@ -15,6 +15,7 @@ pub(crate) const HOUSE_AUDIO_SOURCE_KIND: &str = "conduit-test/house-audio-sourc
 const HOUSE_AUDIO_SOURCE_REVISION: &str = "conduit-test/house-audio-source@1";
 pub(crate) const HOUSE_AUDIO_CLIP_SOURCE_KIND: &str = "conduit-test/house-audio-clip-source";
 const HOUSE_AUDIO_CLIP_SOURCE_REVISION: &str = "conduit-test/house-audio-clip-source@1";
+pub(crate) const HOUSE_AUDIO_CLIP_SOURCE_OPERATION: &str = super::PROOF_PCM_CLIP_SOURCE_OPERATION;
 pub(crate) const HOUSE_ADDRESSES_SOURCE_KIND: &str = "conduit-test/house-addresses-source";
 const HOUSE_ADDRESSES_SOURCE_REVISION: &str = "conduit-test/house-addresses-source@1";
 pub(crate) const HOUSE_CONTEXT_SOURCE_KIND: &str = "conduit-test/house-context-source";
@@ -24,6 +25,8 @@ const SINK_KIND: &str = "conduit-test/local-model-result";
 const SINK_REVISION: &str = "conduit-test/local-model-result@1";
 pub(crate) const HOUSE_TEXT_SINK_KIND: &str = "conduit-test/house-text-sink";
 const HOUSE_TEXT_SINK_REVISION: &str = "conduit-test/house-text-sink@1";
+pub(crate) const HOUSE_RECOGNITION_SINK_KIND: &str = "conduit-test/house-recognition-sink";
+const HOUSE_RECOGNITION_SINK_REVISION: &str = "conduit-test/house-recognition-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduit-test/local-model-result-kernel@1";
 const PROFILE: &str = "conduit-test/local-model-io-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/test-local-model-io@1";
@@ -58,6 +61,7 @@ pub(super) static TEST_LOCAL_MODEL_SINK_FACTORY: InstalledFactory = InstalledFac
 pub(super) struct TestLocalModelSourceOperation {
     value: ValueRef,
     emitted: bool,
+    hosted: bool,
 }
 
 pub(super) struct TestLocalModelSinkOperation {
@@ -68,6 +72,13 @@ impl TestLocalModelSourceOperation {
     pub(super) fn emit_or_complete(&self) -> OperationAction {
         if self.emitted {
             OperationAction::Complete
+        } else if self.hosted {
+            OperationAction::RequestHostOperation {
+                request: conduit_kernel::RequestId(0),
+                operation: conduit_kernel::HostOperationId(0),
+                input: conduit_kernel::BoundedValueRef::new(self.value, 1)
+                    .expect("proof clip source marker is one admitted byte"),
+            }
         } else {
             OperationAction::Emit {
                 port: PortId(0),
@@ -79,6 +90,29 @@ impl TestLocalModelSourceOperation {
     pub(super) fn advance(&mut self) -> OperationAction {
         self.emitted = true;
         OperationAction::Complete
+    }
+
+    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.hosted && !self.emitted && request == conduit_kernel::RequestId(0) =>
+            {
+                match (outcome.disposition, outcome.output, outcome.failure) {
+                    (conduit_kernel::HostOperationDisposition::Completed, Some(output), None) => {
+                        self.emitted = true;
+                        OperationAction::Emit {
+                            port: PortId(0),
+                            value: output.value,
+                        }
+                    }
+                    (conduit_kernel::HostOperationDisposition::Denied, _, _) => {
+                        InstalledOperation::fail(143)
+                    }
+                    _ => InstalledOperation::fail(144),
+                }
+            }
+            _ => InstalledOperation::fail(145),
+        }
     }
 }
 
@@ -120,13 +154,7 @@ pub(crate) fn house_source_offers() -> [CapabilityOffer; 5] {
             conduit_audio::AUDIO_PCM_INFO_ID,
             PortDirection::Output,
         ),
-        offer(
-            HOUSE_AUDIO_CLIP_SOURCE_KIND,
-            HOUSE_AUDIO_CLIP_SOURCE_REVISION,
-            SOURCE_IMPLEMENTATION,
-            conduit_audio::AUDIO_PCM_CLIP_INFO_ID,
-            PortDirection::Output,
-        ),
+        clip_source_offer(),
         offer(
             HOUSE_RECOGNIZED_SOURCE_KIND,
             HOUSE_RECOGNIZED_SOURCE_REVISION,
@@ -151,6 +179,29 @@ pub(crate) fn house_source_offers() -> [CapabilityOffer; 5] {
     ]
 }
 
+fn clip_source_offer() -> CapabilityOffer {
+    let mut offer = offer(
+        HOUSE_AUDIO_CLIP_SOURCE_KIND,
+        HOUSE_AUDIO_CLIP_SOURCE_REVISION,
+        SOURCE_IMPLEMENTATION,
+        conduit_audio::AUDIO_PCM_CLIP_INFO_ID,
+        PortDirection::Output,
+    );
+    offer
+        .host_operations
+        .push(conduit_core::HostOperationRequirement {
+            contract_id: conduit_core::HostOperationContractId::from(
+                HOUSE_AUDIO_CLIP_SOURCE_OPERATION,
+            ),
+            target_kind: None,
+            maximum_in_flight: 1,
+            maximum_input_bytes: 1,
+            maximum_output_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+        });
+    offer.limits.max_queue_bytes = conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32;
+    offer
+}
+
 pub(crate) fn sink_offer(value_kind: &str) -> CapabilityOffer {
     offer(
         SINK_KIND,
@@ -170,6 +221,19 @@ pub(crate) fn house_text_sink_offer() -> CapabilityOffer {
         conduit_ai::TEXT_VALUE_KIND,
         PortDirection::Input,
     )
+}
+
+#[cfg(feature = "local-model-proof")]
+pub(crate) fn house_recognition_sink_offer() -> CapabilityOffer {
+    let mut offer = offer(
+        HOUSE_RECOGNITION_SINK_KIND,
+        HOUSE_RECOGNITION_SINK_REVISION,
+        SINK_IMPLEMENTATION,
+        conduit_tongues::SPEECH_RECOGNITION_RESULT_KIND,
+        PortDirection::Input,
+    );
+    offer.limits.max_queue_bytes = conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32;
+    offer
 }
 
 fn offer(
@@ -306,6 +370,14 @@ pub(crate) fn install_house_text_sink_catalog(
     install_offer(startup, catalog, house_text_sink_offer());
 }
 
+#[cfg(feature = "local-model-proof")]
+pub(crate) fn install_house_recognition_sink_catalog(
+    startup: &mut StartupCatalog,
+    catalog: &mut ProfileCatalog,
+) {
+    install_offer(startup, catalog, house_recognition_sink_offer());
+}
+
 fn install_offer(
     startup: &mut StartupCatalog,
     catalog: &mut ProfileCatalog,
@@ -388,6 +460,12 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
             HOUSE_TEXT_SINK_REVISION,
             SINK_IMPLEMENTATION,
         )
+    } else if placement.kind_id.as_str() == HOUSE_RECOGNITION_SINK_KIND {
+        (
+            HOUSE_RECOGNITION_SINK_KIND,
+            HOUSE_RECOGNITION_SINK_REVISION,
+            SINK_IMPLEMENTATION,
+        )
     } else {
         (SINK_KIND, SINK_REVISION, SINK_IMPLEMENTATION)
     };
@@ -404,12 +482,21 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
 
 fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement, PortDirection::Output)?;
+    let hosted_clip = placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND;
     Ok(OperationBudget {
         value_items: 1,
-        value_bytes: 4_096,
-        host_requests: 0,
+        value_bytes: if hosted_clip {
+            conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+        } else {
+            4_096
+        },
+        host_requests: usize::from(hosted_clip),
         sign_items: 16,
-        maximum_value_bytes: 4_096,
+        maximum_value_bytes: if hosted_clip {
+            conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+        } else {
+            4_096
+        },
     })
 }
 
@@ -430,7 +517,9 @@ fn prepare_source(
 ) -> Result<InstalledOperation, String> {
     validate(placement, PortDirection::Output)?;
     #[cfg(test)]
-    let request = if placement.kind_id.as_str() == NAV_POSE_SOURCE {
+    let request = if placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND {
+        vec![0]
+    } else if placement.kind_id.as_str() == NAV_POSE_SOURCE {
         conduit_semantic_catalog::encode_navigation_pose(&navigation_pose(), 0, 0)
             .map_err(|error| format!("encode navigation pose: {error:?}"))?
     } else if placement.kind_id.as_str() == NAV_GOAL_SOURCE {
@@ -446,7 +535,11 @@ fn prepare_source(
         source_request(placement)?
     };
     #[cfg(not(test))]
-    let request = source_request(placement)?;
+    let request = if placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND {
+        vec![0]
+    } else {
+        source_request(placement)?
+    };
     let value = values
         .store(&request)
         .map_err(|error| format!("store local-model test request: {error:?}"))?;
@@ -454,6 +547,7 @@ fn prepare_source(
         TestLocalModelSourceOperation {
             value,
             emitted: false,
+            hosted: placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND,
         },
     ))
 }

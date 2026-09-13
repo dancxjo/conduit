@@ -165,7 +165,7 @@ enum HostCommand {
         #[arg(long, default_value_t = 30)]
         timeout_seconds: u64,
     },
-    /// Exercise one selected Whisper provider with a finite recorded PCM clip.
+    /// Carry a finite recorded PCM clip through ordinary Whisper Plan/Play.
     ProveWhisper {
         /// Exact local whisper.cpp-compatible executable.
         #[arg(long)]

@@ -257,7 +257,7 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             (Self::TestStructuredSink(operation), input) => operation.resume(input),
             #[cfg(any(test, feature = "local-model-proof"))]
-            (Self::TestLocalModelSource(_), _) => Self::fail(141),
+            (Self::TestLocalModelSource(operation), input) => operation.resume(input),
             #[cfg(any(test, feature = "local-model-proof"))]
             (Self::TestLocalModelSink(operation), input) => operation.resume(input),
             #[cfg(test)]
