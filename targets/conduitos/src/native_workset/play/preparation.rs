@@ -202,8 +202,31 @@ pub(super) fn prepare(
         signs,
     )
     .map_err(|_| WorksetRefusal::Kernel)?;
+    let mut applications = core::array::from_fn(|_| None);
+    for (form, application) in applications.iter_mut().enumerate().take(count) {
+        let planned = &prepared.plan.forms[form];
+        if !planned.plan.fragments[0]
+            .placements
+            .iter()
+            .any(|placement| {
+                placement.implementation_id.as_str()
+                    == super::super::application_delivery::STATE_IMPLEMENTATION
+            })
+        {
+            continue;
+        }
+        *application = Some(match super::super::resolve(&planned.form)? {
+            super::super::NativeForm::Tour => NativeApplication::Tour(Box::new(
+                conduit_tour_model::TourApplicationPort::canonical(),
+            )),
+            super::super::NativeForm::Patchbay => NativeApplication::Patchbay(
+                super::super::application_delivery::PatchbayTargets::prepare(prepared, form)?,
+            ),
+            _ => return Err(WorksetRefusal::Plan),
+        });
+    }
     Ok(NativeWorksetPlay {
-        scheduler,
+        scheduler: Box::new(scheduler),
         bindings,
         keymaps: core::array::from_fn(|_| ConduitIntlKeymap::new()),
         editors,
@@ -211,18 +234,8 @@ pub(super) fn prepare(
         held: [None; 256],
         presentations: [None; FORMS],
         application_views: core::array::from_fn(|_| None),
-        applications: core::array::from_fn(|form| {
-            prepared.plan.forms.get(form).and_then(|planned| {
-                planned.plan.fragments[0]
-                    .placements
-                    .iter()
-                    .any(|placement| {
-                        placement.implementation_id.as_str()
-                            == super::super::application_delivery::STATE_IMPLEMENTATION
-                    })
-                    .then(conduit_tour_model::TourApplicationPort::canonical)
-            })
-        }),
+        applications,
+        application_requests: core::array::from_fn(|_| None),
         input_owners: core::array::from_fn(|index| prepared.input_owners.get(index).cloned()),
         form_count: count,
         cancelled: false,

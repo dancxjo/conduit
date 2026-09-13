@@ -4,8 +4,10 @@ mod preparation;
 #[cfg(test)]
 mod tests;
 
+use super::application_delivery::NativeApplication;
 use super::{AdmittedFormInput, PreparedNativeWorkset, WorksetRefusal};
 use crate::keyboard_text_operations::PlannedOperation;
+use alloc::boxed::Box;
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition};
 use conduit_kernel::{
     FixedSignLog, FixedValueStore, KernelEvent, NodeId,
@@ -14,10 +16,10 @@ use conduit_kernel::{
 use conduit_semantic_catalog::BoundedTextState;
 
 const FORMS: usize = super::NATIVE_FORM_CAPACITY;
-const NODES: usize = 11;
-const CORDS: usize = 8;
+const NODES: usize = 14;
+const CORDS: usize = 10;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-const SIGN_ITEMS: usize = 768;
+const SIGN_ITEMS: usize = 1024;
 type Scheduler = FixedScheduler<
     OperationDriver<PlannedOperation, PORTS>,
     FixedValueStore<32, 1024>,
@@ -100,7 +102,7 @@ impl NativePresentation {
 }
 
 pub struct NativeWorksetPlay {
-    scheduler: Scheduler,
+    scheduler: Box<Scheduler>,
     bindings: [Option<Binding>; NODES],
     keymaps: [ConduitIntlKeymap; FORMS],
     editors: [Option<BoundedTextState>; FORMS],
@@ -108,7 +110,8 @@ pub struct NativeWorksetPlay {
     held: [Option<u8>; 256],
     presentations: [Option<NativePresentation>; FORMS],
     application_views: [Option<conduit_presentation::ApplicationView>; FORMS],
-    applications: [Option<conduit_tour_model::TourApplicationPort>; FORMS],
+    applications: [Option<NativeApplication>; FORMS],
+    application_requests: [Option<super::NativeApplicationRequest>; FORMS],
     input_owners: [Option<AdmittedFormInput>; FORMS],
     form_count: usize,
     cancelled: bool,
@@ -134,11 +137,49 @@ impl NativeWorksetPlay {
     pub fn application_view(&self, form: usize) -> Option<&conduit_presentation::ApplicationView> {
         self.application_views.get(form)?.as_ref()
     }
+    pub fn select_patchbay_target(
+        &mut self,
+        patchbay: usize,
+        target: usize,
+    ) -> Result<(), PlayRefusal> {
+        match self.applications.get_mut(patchbay).and_then(Option::as_mut) {
+            Some(NativeApplication::Patchbay(application)) => application.select(target)?,
+            _ => return Err(PlayRefusal::Foreground),
+        }
+        let _ = self.take_application_view(patchbay);
+        let request = self.pending[patchbay].ok_or(PlayRefusal::InputPressure)?;
+        self.output(request, Some(&[]))?;
+        self.pending[patchbay] = None;
+        self.drive()
+    }
     pub fn take_application_view(
         &mut self,
         form: usize,
     ) -> Option<conduit_presentation::ApplicationView> {
         self.application_views.get_mut(form)?.take()
+    }
+    pub fn take_application_request(
+        &mut self,
+        form: usize,
+    ) -> Option<super::NativeApplicationRequest> {
+        self.application_requests.get_mut(form)?.take()
+    }
+    pub fn complete_tour_run(
+        &mut self,
+        tour: usize,
+        proof: conduit_tour_model::TourRunProof,
+    ) -> Result<(), PlayRefusal> {
+        match self.applications.get_mut(tour).and_then(Option::as_mut) {
+            Some(NativeApplication::Tour(application)) => application
+                .complete_run(proof)
+                .map_err(|_| PlayRefusal::Kernel)?,
+            _ => return Err(PlayRefusal::Foreground),
+        }
+        let _ = self.take_application_view(tour);
+        let request = self.pending[tour].ok_or(PlayRefusal::InputPressure)?;
+        self.output(request, Some(&[]))?;
+        self.pending[tour] = None;
+        self.drive()
     }
     pub fn application_event(
         &mut self,
@@ -203,6 +244,7 @@ impl NativeWorksetPlay {
     pub fn cancel(&mut self) -> Result<(), PlayRefusal> {
         self.scheduler.cancel().map_err(|_| PlayRefusal::Kernel)?;
         self.pending.fill(None);
+        self.application_requests.fill(None);
         self.held.fill(None);
         for keymap in &mut self.keymaps {
             keymap.reset();

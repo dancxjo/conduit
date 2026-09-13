@@ -46,6 +46,7 @@ impl FormResult {
                 .map_err(|_| JourneyError::Kernel)?,
             NativeForm::MemoryLantern => self.current = Some(value),
             NativeForm::Tour => self.current = Some(value),
+            NativeForm::Patchbay => self.current = Some(value),
         }
         self.sign = Some(sign);
         Ok(())
@@ -55,6 +56,7 @@ impl FormResult {
             NativeForm::KeyboardCanvas => self.sign.as_ref().map(|_| self.recent.as_str()),
             NativeForm::MemoryLantern => self.current.as_ref().map(NativePresentation::text),
             NativeForm::Tour => self.current.as_ref().map(NativePresentation::text),
+            NativeForm::Patchbay => self.current.as_ref().map(NativePresentation::text),
         }
     }
     pub(super) fn omitted_bytes(&self, form: Option<NativeForm>) -> u64 {
@@ -106,6 +108,14 @@ impl ProductJourney {
             .ok_or(JourneyError::WrongTarget)?;
         if index == self.foreground {
             return Ok(());
+        }
+        let previous = self.foreground;
+        if self.forms[index] == Some(NativeForm::Patchbay) {
+            self.kernel
+                .as_mut()
+                .ok_or(JourneyError::Kernel)?
+                .select_patchbay_target(index, previous)
+                .map_err(JourneyError::Play)?;
         }
         self.revision
             .checked_add(1)

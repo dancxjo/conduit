@@ -5,7 +5,7 @@ use conduit_form::{ExpandedCanonicalForm, ProfileCatalog, StartupCatalog};
 
 /// Finite native product profile. Capacity is a reviewed deployment choice,
 /// not a claim that a Body conceptually consists of these particular Forms.
-pub const NATIVE_FORM_CAPACITY: usize = 3;
+pub const NATIVE_FORM_CAPACITY: usize = 4;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NativeFormProfile {
@@ -34,6 +34,7 @@ pub enum NativeForm {
     KeyboardCanvas,
     MemoryLantern,
     Tour,
+    Patchbay,
 }
 
 impl NativeForm {
@@ -42,6 +43,7 @@ impl NativeForm {
             Self::KeyboardCanvas => "conduitos-keyboard-upper",
             Self::MemoryLantern => "memory_lantern",
             Self::Tour => "tour",
+            Self::Patchbay => "patchbay",
         }
     }
     pub const fn title(self) -> &'static str {
@@ -49,6 +51,7 @@ impl NativeForm {
             Self::KeyboardCanvas => "Keyboard canvas",
             Self::MemoryLantern => "Memory Lantern",
             Self::Tour => "Tour",
+            Self::Patchbay => "Patchbay",
         }
     }
     pub const fn source(self) -> &'static str {
@@ -56,6 +59,7 @@ impl NativeForm {
             Self::KeyboardCanvas => crate::keyboard_text_plan::FORM_SOURCE,
             Self::MemoryLantern => include_str!("../../../../forms/memory-lantern/main.conduit"),
             Self::Tour => include_str!("../../../../forms/tour/main.conduit"),
+            Self::Patchbay => include_str!("../../../../forms/patchbay/main.conduit"),
         }
     }
 }
@@ -68,6 +72,7 @@ pub const fn profile() -> NativeFormProfile {
             NativeForm::KeyboardCanvas,
             NativeForm::MemoryLantern,
             NativeForm::Tour,
+            NativeForm::Patchbay,
         ],
     }
 }

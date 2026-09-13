@@ -114,14 +114,15 @@ fn canonical_memory_plans_as_an_exact_native_body_partition_before_play() {
 }
 
 #[test]
-fn three_forms_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
+fn four_forms_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
     let (ids, offer) = fixture();
     let wake = wake(&inventory());
     let prepared = prepare(&wake, &ids, &offer, "build").unwrap();
-    assert_eq!(prepared.lowered.nodes, 11);
-    assert_eq!(prepared.plan.forms.len(), 3);
+    assert_eq!(prepared.lowered.nodes, 14);
+    assert_eq!(prepared.lowered.cords, 10);
+    assert_eq!(prepared.plan.forms.len(), 4);
     assert_eq!(prepared.keyboard, offer.keyboard.unwrap().realization);
-    assert_eq!(prepared.input_owners().len(), 3);
+    assert_eq!(prepared.input_owners().len(), 4);
     for (form, owner) in prepared.plan.forms.iter().zip(prepared.input_owners()) {
         let source = form.plan.fragments[0]
             .placements

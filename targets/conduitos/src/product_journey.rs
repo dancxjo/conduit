@@ -181,6 +181,7 @@ pub struct ProductJourney {
     results: [FormResult; native_workset::NATIVE_FORM_CAPACITY],
     retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
+    application_request: Option<native_workset::NativeApplicationRequest>,
 }
 
 impl ProductJourney {
@@ -217,6 +218,7 @@ impl ProductJourney {
             results: core::array::from_fn(|_| FormResult::new()),
             retained_kernel_sign_gap: None,
             last_request_id: None,
+            application_request: None,
         })
     }
 

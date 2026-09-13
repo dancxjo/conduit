@@ -6,12 +6,14 @@ use crate::{
 };
 use alloc::format;
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
-    LayoutRect,
+    ApplicationComponent, ApplicationView, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
+    GraphicsShapeStyle, GraphicsTextRole, LayoutRect,
 };
 
 pub(super) fn scene(
     journey: &JourneyProjection,
+    foreground_title: &str,
+    application_view: Option<&ApplicationView>,
     refusal: Option<&str>,
     display: &impl PixelTarget,
 ) -> Result<GraphicsScene, Error> {
@@ -54,7 +56,7 @@ pub(super) fn scene(
         &mut scene,
         screen,
         104,
-        "Keyboard canvas",
+        foreground_title,
         GraphicsPaintRole::Foreground,
         GraphicsTextRole::Heading,
     )?;
@@ -81,7 +83,9 @@ pub(super) fn scene(
         GraphicsTextRole::Status,
     )?;
     let mut result_notice_y = 248;
-    if let Some(result) = &journey.result {
+    if let Some(view) = application_view {
+        result_notice_y = application_text(&mut scene, screen, 192, view)?;
+    } else if let Some(result) = &journey.result {
         result_notice_y = result_text(&mut scene, screen, 208, result)?;
     }
     if journey.result_omitted_bytes > 0 {
@@ -133,6 +137,57 @@ pub(super) fn scene(
         GraphicsTextRole::Body,
     )?;
     Ok(scene)
+}
+
+fn application_text(
+    scene: &mut GraphicsScene,
+    screen: LayoutRect,
+    mut y: i16,
+    view: &ApplicationView,
+) -> Result<i16, Error> {
+    view.validate().map_err(|_| Error::Presentation)?;
+    for node in &view.nodes {
+        let (role, typography) = match node.component {
+            ApplicationComponent::Heading => (GraphicsPaintRole::Accent, GraphicsTextRole::Heading),
+            ApplicationComponent::Status => {
+                (GraphicsPaintRole::Foreground, GraphicsTextRole::Status)
+            }
+            ApplicationComponent::Definition | ApplicationComponent::CodeBlock => {
+                (GraphicsPaintRole::Foreground, GraphicsTextRole::Code)
+            }
+            ApplicationComponent::Paragraph => {
+                (GraphicsPaintRole::Foreground, GraphicsTextRole::Body)
+            }
+            ApplicationComponent::Button => (GraphicsPaintRole::Accent, GraphicsTextRole::Body),
+            _ => continue,
+        };
+        let value = if node.value.is_empty() {
+            node.text.as_str()
+        } else if node.text.is_empty() {
+            node.value.as_str()
+        } else {
+            // Definition values carry the exact inspected identity. Prefer them
+            // over their short semantic label on the finite native surface.
+            node.value.as_str()
+        };
+        let limit = i16::try_from(screen.height.saturating_sub(88)).map_err(|_| Error::Scene)?;
+        let mut remaining = value;
+        while !remaining.is_empty() && y < limit {
+            let mut split = remaining
+                .len()
+                .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
+            while !remaining.is_char_boundary(split) {
+                split -= 1;
+            }
+            text(scene, screen, y, &remaining[..split], role, typography)?;
+            remaining = &remaining[split..];
+            y = y.checked_add(40).ok_or(Error::Scene)?;
+        }
+        if y >= limit {
+            break;
+        }
+    }
+    Ok(y)
 }
 
 fn result_text(
@@ -195,4 +250,82 @@ fn text(
                 .map_err(|_| Error::Scene)?,
         )
         .map_err(|_| Error::Scene)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloc::{string::String, vec};
+    use conduit_presentation::{
+        ApplicationAction, ApplicationEventKind, ApplicationNodeState, ApplicationViewNode,
+    };
+
+    #[test]
+    fn application_projection_keeps_exact_identity_and_action_on_native_surface() {
+        let exact = "expanded/form/exact";
+        let view = ApplicationView {
+            revision: 1,
+            nodes: vec![
+                ApplicationViewNode {
+                    parent: None,
+                    component: ApplicationComponent::Shell,
+                    key: "shell".into(),
+                    text: "Patchbay".into(),
+                    value: String::new(),
+                    value_capacity: 0,
+                    action: None,
+                    state: ApplicationNodeState::Ready,
+                },
+                ApplicationViewNode {
+                    parent: Some(0),
+                    component: ApplicationComponent::Definition,
+                    key: "subject".into(),
+                    text: "Form".into(),
+                    value: exact.into(),
+                    value_capacity: 64,
+                    action: None,
+                    state: ApplicationNodeState::Ready,
+                },
+                ApplicationViewNode {
+                    parent: Some(0),
+                    component: ApplicationComponent::Button,
+                    key: "inspect".into(),
+                    text: "Inspect next".into(),
+                    value: String::new(),
+                    value_capacity: 0,
+                    action: Some(0),
+                    state: ApplicationNodeState::Ready,
+                },
+            ],
+            actions: vec![ApplicationAction {
+                id: "patchbay.inspect.next".into(),
+                event: ApplicationEventKind::Activate,
+            }],
+        };
+        let mut scene = GraphicsScene::empty();
+        application_text(
+            &mut scene,
+            LayoutRect {
+                x: 0,
+                y: 0,
+                width: 800,
+                height: 600,
+            },
+            100,
+            &view,
+        )
+        .unwrap();
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.payload() == exact)
+        );
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.payload() == "Inspect next")
+        );
+    }
 }

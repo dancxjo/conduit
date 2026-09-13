@@ -35,8 +35,15 @@ impl FrontDoor {
         journey: &crate::product_journey::ProductJourney,
     ) -> Result<(), Error> {
         if let Some(workspace) = journey.workspace_projection() {
-            self.observe_body(journey.projection(), workspace)
+            let application_view = journey.foreground_application_view().cloned();
+            if let Some(view) = &application_view {
+                view.validate().map_err(|_| Error::Presentation)?;
+            }
+            self.observe_body(journey.projection(), workspace)?;
+            self.application_view = application_view;
+            Ok(())
         } else {
+            self.application_view = None;
             self.observe_journey(journey.projection())
         }
     }

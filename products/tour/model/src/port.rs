@@ -3,7 +3,7 @@
 use alloc::vec::Vec;
 use conduit_presentation::{ApplicationEvent, ApplicationView, ApplicationViewRefusal};
 
-use crate::{TourWorkspaceController, TourWorkspaceRefusal, TourWorkspaceRequest};
+use crate::{TourRunProof, TourWorkspaceController, TourWorkspaceRefusal, TourWorkspaceRequest};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourPortRefusal {
@@ -32,6 +32,13 @@ impl TourApplicationPort {
 
     pub const fn controller(&self) -> &TourWorkspaceController {
         &self.controller
+    }
+
+    /// Complete an authority-bearing Run only with exact external Play proof.
+    pub fn complete_run(&mut self, proof: TourRunProof) -> Result<(), TourPortRefusal> {
+        self.controller
+            .complete_run(proof)
+            .map_err(TourPortRefusal::Application)
     }
 
     /// An empty input emits the admitted initial view. Later inputs are exact

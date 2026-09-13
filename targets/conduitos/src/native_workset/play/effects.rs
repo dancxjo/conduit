@@ -57,12 +57,37 @@ impl NativeWorksetPlay {
                 Ok(())
             }
             Effect::Application => {
-                let output = self.applications[form]
+                let application = self.applications[form]
                     .as_mut()
-                    .ok_or(PlayRefusal::Kernel)?
-                    .apply(input)
-                    .map_err(|_| PlayRefusal::Kernel)?;
-                self.output(request, Some(&output.view))
+                    .ok_or(PlayRefusal::Kernel)?;
+                let (view, authority_request) = match application {
+                    NativeApplication::Tour(application) => {
+                        let output = application.apply(input).map_err(|_| PlayRefusal::Kernel)?;
+                        let request = output.request.map(|request| match request {
+                            conduit_tour_model::TourWorkspaceRequest::Run => {
+                                super::super::NativeApplicationRequest::RunTour
+                            }
+                            conduit_tour_model::TourWorkspaceRequest::OpenPatchbay => {
+                                super::super::NativeApplicationRequest::OpenPatchbay
+                            }
+                        });
+                        (output.view, request)
+                    }
+                    NativeApplication::Patchbay(application) => {
+                        let output = application.apply(input)?;
+                        (
+                            output.view,
+                            output
+                                .request
+                                .map(super::super::NativeApplicationRequest::EditCurrent),
+                        )
+                    }
+                };
+                if authority_request.is_some() && self.application_requests[form].is_some() {
+                    return Err(PlayRefusal::InputPressure);
+                }
+                self.application_requests[form] = authority_request;
+                self.output(request, Some(&view))
             }
             Effect::ApplicationPresentation => {
                 let view = conduit_presentation::ApplicationView::decode(input)
