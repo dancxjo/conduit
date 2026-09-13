@@ -28,6 +28,8 @@ mod host_piper;
 mod host_release;
 #[path = "host_target.rs"]
 pub(crate) mod host_target;
+#[path = "host_whisper.rs"]
+mod host_whisper;
 
 #[derive(Args, Debug)]
 pub struct HostArgs {
@@ -163,6 +165,22 @@ enum HostCommand {
         #[arg(long, default_value_t = 30)]
         timeout_seconds: u64,
     },
+    /// Exercise one selected Whisper provider with a finite recorded PCM clip.
+    ProveWhisper {
+        /// Exact local whisper.cpp-compatible executable.
+        #[arg(long)]
+        executable: PathBuf,
+        /// Exact already-local Whisper model file.
+        #[arg(long)]
+        model: PathBuf,
+        /// Raw mono signed-16-le 16 kHz PCM recording, at most six seconds.
+        #[arg(long)]
+        pcm_s16le_16000_mono: PathBuf,
+        #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u8).range(1..=32))]
+        threads: u8,
+        #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=120))]
+        timeout_seconds: u64,
+    },
 }
 
 #[derive(Args, Debug)]
@@ -237,6 +255,22 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 authorize_output,
                 maximum_frames,
                 maximum_blocks,
+                timeout_seconds,
+            },
+            opts,
+        ),
+        HostCommand::ProveWhisper {
+            executable,
+            model,
+            pcm_s16le_16000_mono,
+            threads,
+            timeout_seconds,
+        } => host_whisper::prove(
+            host_whisper::WhisperProofRequest {
+                executable,
+                model,
+                pcm_s16le_16000_mono,
+                threads,
                 timeout_seconds,
             },
             opts,
