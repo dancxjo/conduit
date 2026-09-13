@@ -33,6 +33,8 @@ pub(super) struct TourEffect {
     pub(super) segments: Vec<IndicatorSegment>,
     pub(super) text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) application_view: Option<Vec<u8>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) source_interaction: Option<SourceInteractionEvidence>,
 }
 
@@ -104,6 +106,7 @@ pub(super) enum TourHostEffect {
     KeyEvent(Box<TourKeyEventEffect>),
     PointerEvent(Box<TourKeyEventEffect>),
     ButtonTransition(Box<TourButtonTransitionEffect>),
+    ApplicationEvent(Box<TourKeyEventEffect>),
 }
 
 impl TourHostEffect {
@@ -120,6 +123,7 @@ impl TourHostEffect {
             Self::KeyEvent(effect) => effect.source_interaction = Some(source_interaction),
             Self::PointerEvent(effect) => effect.source_interaction = Some(source_interaction),
             Self::ButtonTransition(effect) => effect.source_interaction = Some(source_interaction),
+            Self::ApplicationEvent(effect) => effect.source_interaction = Some(source_interaction),
         }
     }
 }
@@ -239,6 +243,11 @@ pub(super) fn decode_manifestation(
             let text = String::from_utf8(manifestation.canonical_value.clone())
                 .map_err(|_| "planned text manifestation is not UTF-8")?;
             Ok((0, Vec::new(), Some(text)))
+        }
+        conduit_semantic_catalog::APPLICATION_VIEW_PRESENTATION_KIND => {
+            conduit_presentation::ApplicationView::decode(&manifestation.canonical_value)
+                .map_err(|error| format!("decode planned application view: {error:?}"))?;
+            Ok((0, Vec::new(), None))
         }
         conduit_data::MEASUREMENT_PLOT_PRESENTATION_KIND => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(

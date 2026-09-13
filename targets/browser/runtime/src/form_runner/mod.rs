@@ -1,6 +1,7 @@
 //! Inline Forms executed by the ordinary finite browser Host installation.
 
 pub(crate) mod abi;
+mod application_state;
 mod audio;
 mod body_start;
 mod compact_patchbay;

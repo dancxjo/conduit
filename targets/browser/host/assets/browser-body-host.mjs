@@ -2,6 +2,7 @@ import { acquireBrowserAudioCue, AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL } from "./br
 import { createBodyInputRouting } from "./browser-body-input.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 import { drainBrowserEffects } from "./browser-form-effects.mjs";
+import { manifestApplicationView } from "./application-presentation.mjs";
 
 const PRESENTATION = "conduit.resource/presentation-slot@1";
 const INPUT = "conduit.resource/browser-window-input@1";
@@ -69,6 +70,48 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const boot = { host_id: hostId, boot_id: bootId, offer_generation: 1, implementation_registry: machinery.implementations };
   const routing = foregroundForm ? createBodyInputRouting({ forms: proposal.plan.forms, foreground: foregroundForm }) : null;
   const slots = new Map();
+  const applicationChannels = new Map();
+  const applicationChannel = checkedFormId => {
+    let channel = applicationChannels.get(checkedFormId);
+    if (!channel) {
+      channel = { queue: [], bytes: 0, waiter: null, manifestation: null };
+      applicationChannels.set(checkedFormId, channel);
+    }
+    return channel;
+  };
+  const publishApplicationEvent = (checkedFormId, event) => {
+    const channel = applicationChannel(checkedFormId);
+    channel.manifestation?.nextEvent();
+    if (channel.waiter) {
+      const waiter = channel.waiter;
+      channel.waiter = null;
+      waiter.resolve(event.encoded);
+      return;
+    }
+    if (channel.queue.length >= 8 || channel.bytes + event.encoded.length > 131072) {
+      throw new Error("browser application event queue pressure");
+    }
+    channel.queue.push(event.encoded);
+    channel.bytes += event.encoded.length;
+  };
+  const nextApplicationEvent = (checkedFormId, signal) => {
+    const channel = applicationChannel(checkedFormId);
+    const queued = channel.queue.shift();
+    if (queued) {
+      channel.bytes -= queued.length;
+      return Promise.resolve(queued);
+    }
+    if (channel.waiter) throw new Error("browser application event request already pending");
+    return new Promise((resolve, reject) => {
+      const abort = () => {
+        if (channel.waiter?.abort === abort) channel.waiter = null;
+        reject(new Error("browser application event cancelled"));
+      };
+      channel.waiter = { resolve: value => { signal.removeEventListener("abort", abort); resolve(value); }, abort };
+      signal.addEventListener("abort", abort, { once: true });
+      if (signal.aborted) abort();
+    });
+  };
   // The single WASM owner leases this local preparation slot. Its bounded
   // template storage is initialized by ordinary kernel preparation before Play.
   const templateSlots = new Set();
@@ -182,13 +225,24 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         return new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
       } finally { signal.removeEventListener("abort", abort); }
     }
+    if (effect.effect_kind === "application-event") {
+      return nextApplicationEvent(effect.checked_form_id, signal);
+    }
     if (effect.effect_kind === "manifestation") {
       const output = slots.get(effect.placement_id);
       if (!output) throw new Error("browser presentation slot not acquired");
       output.dataset.planId = effect.plan_id;
       output.dataset.activePlayId = effect.active_play_id;
       output.dataset.presentationKind = effect.presentation_kind;
-      if (typeof effect.text === "string") output.textContent = effect.text;
+      if (effect.presentation_kind === "presentation/application-view" && Array.isArray(effect.application_view)) {
+        const channel = applicationChannel(effect.checked_form_id);
+        channel.manifestation = manifestApplicationView(Uint8Array.from(effect.application_view), output, {
+          eventCapacity: 8,
+          eventByteCapacity: 131072,
+          choiceScope: effect.active_play_id,
+          onEvent: event => publishApplicationEvent(effect.checked_form_id, event),
+        });
+      } else if (typeof effect.text === "string") output.textContent = effect.text;
       else if (effect.presentation_kind === "presentation/indicator" && Array.isArray(effect.segments) && effect.segments.length <= 256) {
         for (const segment of effect.segments) {
           assertCurrent();
@@ -212,7 +266,15 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     start(playSequence) {
       assertCurrent();
       if (startAccepted || !Number.isSafeInteger(playSequence) || playSequence < 1) throw new Error("browser Body start refused");
-      const request = new TextEncoder().encode(JSON.stringify({ wake: proposal.wake, plan: proposal.plan, body_evidence: proposal.body_evidence ?? null, play_sequence: playSequence, observations: observations() }));
+      const request = new TextEncoder().encode(JSON.stringify({
+        wake: proposal.wake,
+        plan: proposal.plan,
+        body_evidence: proposal.body_evidence ?? null,
+        source: proposal.source ?? "",
+        foreground_checked_form_id: foregroundForm?.() ?? proposal.plan.forms[0].form?.checked_form_id ?? proposal.plan.forms[0].plan.checked_form_id,
+        play_sequence: playSequence,
+        observations: observations(),
+      }));
       if (request.length > api.conduit_browser_body_input_capacity()) throw new Error("browser Body input bound exceeded");
       // The heap-backed input arena may grow WASM memory on first access.
       // Obtain the pointer before reading memory.buffer, which growth detaches.
