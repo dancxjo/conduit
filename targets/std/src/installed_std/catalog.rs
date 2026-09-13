@@ -137,11 +137,13 @@ use super::typed_record_operation::{
     RECORD_TO_TEXT as TYPED_RECORD_TO_TEXT_FACTORY, TEXT_TO_RECORD as TEXT_TO_TYPED_RECORD_FACTORY,
 };
 use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
+use super::whisper_speech_operation::FACTORY as WHISPER_SPEECH_FACTORY;
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
     #[cfg(any(test, feature = "local-model-proof"))]
     &RECORDED_SPEECH_FACTORY,
+    &WHISPER_SPEECH_FACTORY,
     &ADDRESS_DETECT_FACTORY,
     &RECOGNITION_TEXT_FACTORY,
     &KEYBOARD_INPUT_FACTORY,
