@@ -1614,25 +1614,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             .map_err(|error| format!("bound Piper speech block: {error:?}"))?;
                         (HostOperationDisposition::Completed, output, None)
                     }
-                    Err(
-                        crate::hosted_speech::PiperFailure::MissingProvider
-                        | crate::hosted_speech::PiperFailure::InvalidText
-                        | crate::hosted_speech::PiperFailure::EmptyText
-                        | crate::hosted_speech::PiperFailure::TextOverflow
-                        | crate::hosted_speech::PiperFailure::ProviderBusy
-                        | crate::hosted_speech::PiperFailure::NoActiveSynthesis,
-                    ) => (HostOperationDisposition::Denied, None, None),
-                    Err(crate::hosted_speech::PiperFailure::Cancelled) => {
-                        (HostOperationDisposition::Cancelled, None, None)
+                    Err(error) => {
+                        let (disposition, failure) =
+                            speech_synthesis_operation::piper_failure_outcome(error);
+                        (disposition, None, Some(failure))
                     }
-                    Err(_) => (
-                        HostOperationDisposition::Failed,
-                        None,
-                        Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: 61,
-                        }),
-                    ),
                 };
                 record_request(&mut requests, request);
                 scheduler
