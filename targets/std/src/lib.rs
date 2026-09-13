@@ -231,6 +231,21 @@ pub struct StdRunReport {
     pub kernel: Option<StdKernelExecutionReport>,
     pub control_receipts: Vec<RunControlReceipt>,
     pub speech_synthesis: Vec<SpeechSynthesisExecutionReceipt>,
+    pub speech_recognition: Vec<SpeechRecognitionExecutionReceipt>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpeechRecognitionExecutionReceipt {
+    pub plan_id: conduit_core::PlanId,
+    pub active_play_id: conduit_core::ActivePlayId,
+    pub placement_id: conduit_core::PlacementId,
+    pub implementation_id: conduit_core::ImplementationId,
+    pub executable_sha256: String,
+    pub model_sha256: String,
+    pub audio_sha256: [u8; 32],
+    pub text_sha256: Option<String>,
+    pub text_bytes: u16,
+    pub diagnostic_bytes: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

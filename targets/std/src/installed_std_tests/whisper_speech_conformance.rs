@@ -104,5 +104,13 @@ fn initialized_whisper_runs_portable_recognition_through_ordinary_plan_and_play(
             disposition: TerminalDisposition::Completed
         })
     ));
+    assert_eq!(report.speech_recognition.len(), 1);
+    let receipt = &report.speech_recognition[0];
+    assert_eq!(
+        receipt.implementation_id.as_str(),
+        conduit_std_offers::WHISPER_SPEECH_IMPLEMENTATION
+    );
+    assert_eq!(receipt.text_bytes, 21);
+    assert!(receipt.text_sha256.is_some());
     fs::remove_dir_all(root).unwrap();
 }
