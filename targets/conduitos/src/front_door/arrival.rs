@@ -33,7 +33,7 @@ impl FrontDoor {
     pub fn open_creche_reviewed(
         &mut self,
         uuid: String,
-        refusals: [Option<String>; 2],
+        refusals: [Option<String>; crate::native_workset::NATIVE_FORM_CAPACITY],
     ) -> Result<(), Error> {
         if !self.lifecycle_authority_admitted {
             return Err(Error::ActionUnavailable);

@@ -59,9 +59,9 @@ pub(super) fn scene(
         GraphicsTextRole::Heading,
     )?;
     let status = match journey.status {
-        JourneyStatus::BornLulled => "Body born. Preparing to wake its Form...",
-        JourneyStatus::Awake => "Body awake. Planning its Form...",
-        JourneyStatus::Planned => "Form ready. Starting its Play...",
+        JourneyStatus::BornLulled => "Body born. Its installed Forms are not executing yet.",
+        JourneyStatus::Awake => "Body awake. Planning its installed Forms...",
+        JourneyStatus::Planned => "Installed Forms admitted. Starting their Play...",
         JourneyStatus::QuiescentAwaitingInput => "Quiescent. Type to continue this Play.",
         JourneyStatus::SemanticCompleted => "Play semantically completed. Your result is below.",
         JourneyStatus::InputUnavailable => journey
@@ -69,7 +69,7 @@ pub(super) fn scene(
             .map(|kind| kind.recovery())
             .unwrap_or("Input unavailable. Inspect details before recovery."),
         JourneyStatus::Stopped => "Play stopped.",
-        JourneyStatus::Lulled => "Body lulled. Its Form remains included.",
+        JourneyStatus::Lulled => "Body lulled. Its installed Forms remain included.",
         _ => "Preparing your Body...",
     };
     text(
