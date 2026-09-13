@@ -63,11 +63,18 @@ impl ProductJourney {
         name: String,
         sequence: u64,
     ) -> Result<(), JourneyError> {
-        if workset.is_empty() || workset.len() > 2 {
+        let profile = native_workset::profile();
+        if workset.is_empty() || workset.len() > profile.capacity {
             return Err(JourneyError::WrongTarget);
         }
-        let mut forms = [None; 2];
+        let mut forms = [None; native_workset::NATIVE_FORM_CAPACITY];
         for (slot, resident) in forms.iter_mut().zip(workset.forms()) {
+            if !profile
+                .contains(resident)
+                .map_err(|_| JourneyError::WrongTarget)?
+            {
+                return Err(JourneyError::WrongTarget);
+            }
             *slot = Some(native_workset::resolve(resident).map_err(|_| JourneyError::WrongTarget)?);
         }
         let foreground = forms
@@ -197,6 +204,37 @@ mod tests {
             Err(JourneyError::InvalidTransition)
         );
         assert_eq!(journey.projection(), before);
+    }
+
+    #[test]
+    fn zero_one_and_profile_capacity_worksets_have_explicit_birth_outcomes() {
+        let mut zero = journey("boot-zero");
+        let mut empty = selection();
+        empty.workset = BodyWorkset::default();
+        assert_eq!(
+            zero.birth_from_creche(empty),
+            Err(JourneyError::WrongTarget)
+        );
+        assert!(zero.body.is_none());
+
+        let mut one = journey("boot-one");
+        one.birth_from_creche(selection()).unwrap();
+        assert_eq!(one.body.as_ref().unwrap().workset.len(), 1);
+
+        let mut maximum = journey("boot-maximum");
+        let mut full = selection();
+        full.workset = BodyWorkset::from_forms(
+            native_workset::profile()
+                .installed()
+                .iter()
+                .map(|form| native_workset::resident(*form).unwrap()),
+        )
+        .unwrap();
+        maximum.birth_from_creche(full).unwrap();
+        assert_eq!(
+            maximum.body.as_ref().unwrap().workset.len(),
+            native_workset::profile().capacity
+        );
     }
 
     #[test]

@@ -13,7 +13,7 @@ use conduit_kernel::{
 };
 use conduit_semantic_catalog::BoundedTextState;
 
-const FORMS: usize = 2;
+const FORMS: usize = super::NATIVE_FORM_CAPACITY;
 const NODES: usize = 8;
 const CORDS: usize = 6;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
