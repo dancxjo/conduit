@@ -151,6 +151,10 @@ fn initialized_whisper_assembles_a_bounded_clip_in_one_ordinary_play() {
         adapter,
     )
     .unwrap();
+    host.attach_proof_pcm_clip_source(
+        crate::installed_std::test_local_model_io::recorded_house_audio_clip().unwrap(),
+    )
+    .unwrap();
 
     let mut catalog = crate::installed_std::test_catalog();
     let mut startup = conduit_form::StartupCatalog::new();

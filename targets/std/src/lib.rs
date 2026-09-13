@@ -27,6 +27,8 @@ pub mod distributed_signal;
 pub mod distributed_toggle;
 pub mod text_lab_live;
 pub mod text_lab_split;
+#[cfg(feature = "local-model-proof")]
+pub mod whisper_clip_proof;
 pub use composition::{reference_advertisement, supported_nucleus_offers, StdHostComposition};
 pub use conduit_std_offers::hosted_keyboard_offer;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
@@ -784,6 +786,37 @@ impl StdHost {
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
         })
+    }
+
+    /// Attaches one bounded recorded clip as an explicit proof-only source.
+    #[cfg(feature = "local-model-proof")]
+    pub fn attach_proof_pcm_clip_source(&mut self, clip: Vec<u8>) -> Result<(), String> {
+        self.speech_recognition
+            .as_mut()
+            .ok_or_else(|| "std Host has no initialized Whisper recognizer".to_string())?
+            .set_proof_pcm_clip(clip)
+            .map_err(|error| format!("attach proof PCM clip: {error:?}"))?;
+        for offer in [
+            installed_std::test_local_model_io::house_source_offers()[1].clone(),
+            installed_std::test_local_model_io::house_text_sink_offer(),
+            installed_std::test_local_model_io::house_recognition_sink_offer(),
+        ] {
+            if !self
+                .advertisement
+                .capabilities
+                .iter()
+                .any(|candidate| candidate.capability_id == offer.capability_id)
+            {
+                self.advertisement.capabilities.push(offer);
+            }
+        }
+        self.advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        self.kernel_resources = kernel_preparation::KernelResourceLedger::new(&self.advertisement)?;
+        Ok(())
     }
 
     pub fn new_with_piper_speech_and_playback(
