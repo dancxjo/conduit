@@ -83,7 +83,7 @@ pub(super) fn execute(paths: &Paths, image: &Path, digest: &str) -> Result<(), C
             "run-control-boot-timeout",
         )?;
         for (key, marker) in [
-            ("ret", "\"status\":\"playing\""),
+            ("ret", "\"status\":\"quiescent-awaiting-input\""),
             ("f8", "\"status\":\"stopped\""),
             ("f9", "workspace-opened"),
             ("f11", "chooser-transient-shown"),

@@ -62,8 +62,8 @@ pub(super) fn scene(
         JourneyStatus::BornLulled => "Body born. Preparing to wake its Form...",
         JourneyStatus::Awake => "Body awake. Planning its Form...",
         JourneyStatus::Planned => "Form ready. Starting its Play...",
-        JourneyStatus::Playing => "Listening. Type to send a key through your Form.",
-        JourneyStatus::ResultVisible => "Play completed. Your result is below.",
+        JourneyStatus::QuiescentAwaitingInput => "Quiescent. Type to continue this Play.",
+        JourneyStatus::SemanticCompleted => "Play semantically completed. Your result is below.",
         JourneyStatus::Stopped => "Play stopped.",
         JourneyStatus::Lulled => "Body lulled. Its Form remains included.",
         _ => "Preparing your Body...",
@@ -110,8 +110,8 @@ pub(super) fn scene(
     }
     let footer_y = i16::try_from(screen.height.saturating_sub(48)).map_err(|_| Error::Scene)?;
     let lifecycle_action = match journey.status {
-        JourneyStatus::Playing => "  ·  F8 Stop",
-        JourneyStatus::Stopped | JourneyStatus::ResultVisible => "  ·  F7 Lull",
+        JourneyStatus::QuiescentAwaitingInput => "  ·  F8 Stop  ·  F7 Lull",
+        JourneyStatus::Stopped | JourneyStatus::SemanticCompleted => "  ·  F7 Lull",
         _ => "",
     };
     text(

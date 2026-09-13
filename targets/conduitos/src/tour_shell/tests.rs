@@ -359,8 +359,8 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
     assert_eq!(receipt.status.surface_id, STATUS_SURFACE);
     assert_lifecycle_status(&shell, "body", "My Body");
     assert_lifecycle_status(&shell, "wake", "Awake");
-    assert_lifecycle_status(&shell, "plan", "In use");
-    assert_lifecycle_status(&shell, "play", "Running");
+    assert_lifecycle_status(&shell, "plan", "Awaiting input");
+    assert_lifecycle_status(&shell, "play", "Quiescent");
     assert_eq!(shell.lifecycle_revision, projection.revision);
     assert_eq!(shell.lifecycle_basis.body_id, projection.body_id);
     assert_eq!(shell.lifecycle_basis.wake_id, projection.wake_id);

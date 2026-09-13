@@ -230,7 +230,7 @@ fn execute_image(
             )?;
             artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
             journey_input::key_pair(&mut qmp, &mut reader, "ret", "creche-birth")?;
-            journey_input::wait_status(&serial_path, &mut child, "playing")?;
+            journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
             artifacts.capture(&mut qmp, &mut reader, "body-awake", true)?;
             for label in [
                 "PROFILE ID",
@@ -256,10 +256,10 @@ fn execute_image(
                 )?;
             }
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
-            journey_input::wait_status(&serial_path, &mut child, "playing")?;
-            artifacts.capture(&mut qmp, &mut reader, "playing", true)?;
+            journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
+            artifacts.capture(&mut qmp, &mut reader, "quiescent-awaiting-input", true)?;
             super::journey_standing::type_hello(&mut qmp, &mut reader, &serial_path, &mut child)?;
-            artifacts.capture(&mut qmp, &mut reader, "result-visible", true)?;
+            artifacts.capture(&mut qmp, &mut reader, "input-continued", true)?;
             super::journey_workset::exercise(
                 &mut qmp,
                 &mut reader,
@@ -438,7 +438,7 @@ fn execute_image(
             "born-lulled",
             "awake",
             "planned",
-            "playing",
+            "quiescent-awaiting-input",
             "stopped",
             "lulled",
         ] {
@@ -534,12 +534,12 @@ fn execute_image(
         }
         let born = by_status["born-lulled"];
         let planned = by_status["planned"];
-        let playing = by_status["playing"];
+        let quiescent = by_status["quiescent-awaiting-input"];
         let (result, workset) = super::journey_workset::validate(&records)?;
         let lulled = by_status["lulled"];
         let plan_id = text(planned, "plan_id")?;
         super::journey_workset::validate_causality(
-            &serial, &records, opened, born, planned, playing, lulled,
+            &serial, &records, opened, born, planned, quiescent, lulled,
         )?;
         if serial.contains("CONDUIT_KERNEL_SIGN") || serial.contains("body-patchbay-open") {
             return Err(ConduitosError::refusal(
@@ -565,7 +565,7 @@ fn execute_image(
             part_id: text(born, "part_id")?,
             wake_id: text(by_status["awake"], "wake_id")?,
             plan_id,
-            active_play_id: text(playing, "active_play_id")?,
+            active_play_id: text(quiescent, "active_play_id")?,
             gear_ids: strings(planned, "gear_ids")?,
             port_ids: strings(planned, "port_ids")?,
             cord_ids: strings(planned, "cord_ids")?,

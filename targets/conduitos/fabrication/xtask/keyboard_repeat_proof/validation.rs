@@ -13,14 +13,14 @@ pub(super) fn validate(serial: &str) -> Result<Value, ConduitosError> {
         ConduitosError::refusal("keyboard-repeat-causality-invalid", "every repeated press/release must retain exact Body/Plan/Play and the bounded result through explicit Stop/Lull")
     };
     let records = journey_records::decode(serial)?;
-    let playing = records
+    let quiescent = records
         .iter()
-        .filter(|record| record["status"] == "playing")
+        .filter(|record| record["status"] == "quiescent-awaiting-input")
         .collect::<Vec<_>>();
-    if playing.len() != CHARACTERS * 2 + 1 || serial.contains("CONDUIT_KERNEL_SIGN") {
+    if quiescent.len() != CHARACTERS * 2 + 1 || serial.contains("CONDUIT_KERNEL_SIGN") {
         return Err(refusal());
     }
-    for (count, record) in playing.iter().enumerate() {
+    for (count, record) in quiescent.iter().enumerate() {
         let characters = count.div_ceil(2);
         if record["input_count"] != count as u64
             || (count == 0 && record.get("result") != Some(&Value::Null))
@@ -40,14 +40,14 @@ pub(super) fn validate(serial: &str) -> Result<Value, ConduitosError> {
             "plan_id",
             "active_play_id",
         ] {
-            if playing[0][field].as_str().is_none_or(str::is_empty)
-                || record[field] != playing[0][field]
+            if quiescent[0][field].as_str().is_none_or(str::is_empty)
+                || record[field] != quiescent[0][field]
             {
                 return Err(refusal());
             }
         }
     }
-    let final_play = playing.last().ok_or_else(refusal)?;
+    let final_play = quiescent.last().ok_or_else(refusal)?;
     for status in ["stopped", "lulled"] {
         let matching = records
             .iter()
@@ -78,7 +78,7 @@ pub(super) fn validate(serial: &str) -> Result<Value, ConduitosError> {
         return Err(refusal());
     }
     Ok(
-        json!({"first_play": playing[0], "last_play": final_play, "hid_followup_reports": reports,
+        json!({"first_play": quiescent[0], "last_play": final_play, "hid_followup_reports": reports,
         "result_retained_after_lull": true}),
     )
 }
@@ -88,7 +88,7 @@ mod tests {
     use super::*;
     fn records() -> Vec<Value> {
         let mut records = (0..=CHARACTERS * 2).map(|count| json!({
-            "status":"playing", "host_id":"host", "boot_id":"boot", "source_document_id":"source",
+            "status":"quiescent-awaiting-input", "host_id":"host", "boot_id":"boot", "source_document_id":"source",
             "checked_form_id":"checked", "expanded_form_id":"expanded", "body_id":"body", "wake_id":"wake", "plan_id":"plan", "active_play_id":"play",
             "input_count":count, "result":if count == 0 { Value::Null } else { expected_text(count.div_ceil(2)).into() },
             "result_omitted_bytes":count.div_ceil(2).saturating_sub(128)

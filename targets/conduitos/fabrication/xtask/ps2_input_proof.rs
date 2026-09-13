@@ -104,7 +104,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             )?;
         }
         journey_input::key_pair(&mut stream, &mut reader, "ret", "ps2-birth-body")?;
-        journey_input::wait_status(&serial_path, &mut child, "playing")?;
+        journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
         super::journey_standing::type_hello(&mut stream, &mut reader, &serial_path, &mut child)?;
         journey_input::key_pair(&mut stream, &mut reader, "f8", "ps2-stop")?;
         journey_input::wait_status(&serial_path, &mut child, "stopped")?;

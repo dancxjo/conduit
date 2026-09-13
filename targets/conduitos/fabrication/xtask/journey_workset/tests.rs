@@ -7,7 +7,7 @@ fn records() -> Vec<Value> {
         .map(|(index, expected)| {
             let form = identity(expected.form).unwrap();
             serde_json::json!({
-                "status": "playing", "revision": index + 10,
+                "status": "quiescent-awaiting-input", "revision": index + 10,
                 "body_id": "body", "wake_id": "wake", "plan_id": "plan", "active_play_id": "play",
                 "source_document_id": form.source_document_id,
                 "checked_form_id": form.checked_form_id,

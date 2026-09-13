@@ -30,7 +30,11 @@ fn assert_current_action(front_door: &crate::front_door::FrontDoor, action: Jour
     ));
 }
 
-fn reach_playing(journey: &mut ProductJourney, identities: &BootIdentities, offer: &HostOffer<'_>) {
+fn reach_quiescence(
+    journey: &mut ProductJourney,
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+) {
     for action in [
         JourneyAction::OpenBack,
         JourneyAction::Birth,
@@ -40,7 +44,7 @@ fn reach_playing(journey: &mut ProductJourney, identities: &BootIdentities, offe
     ] {
         invoke(journey, action, identities, offer).unwrap();
     }
-    assert_eq!(journey.status(), JourneyStatus::Playing);
+    assert_eq!(journey.status(), JourneyStatus::QuiescentAwaitingInput);
 }
 
 #[test]
@@ -119,7 +123,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
         .accept_play_input(key(4, KeyTransition::Released))
         .unwrap();
     let result = journey.projection();
-    assert_eq!(result.status, JourneyStatus::Playing);
+    assert_eq!(result.status, JourneyStatus::QuiescentAwaitingInput);
     assert_eq!(result.result.as_deref(), Some("A"));
     assert!(result.input_sign_id.is_some() && result.result_sign_id.is_some());
     front_door.observe_journey(result.clone()).unwrap();
@@ -238,7 +242,7 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
     assert!(journey.projection().active_play_id.is_none() && journey.projection().result.is_none());
 
     let (identities, offer, mut journey) = fixture();
-    reach_playing(&mut journey, &identities, &offer);
+    reach_quiescence(&mut journey, &identities, &offer);
     journey.input_lost().unwrap();
     assert_eq!(journey.status(), JourneyStatus::Stopped);
     assert!(
@@ -248,7 +252,7 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
     );
 
     let (identities, offer, mut journey) = fixture();
-    reach_playing(&mut journey, &identities, &offer);
+    reach_quiescence(&mut journey, &identities, &offer);
     invoke(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
     assert!(
         !journey
@@ -262,14 +266,14 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
 fn long_session_keeps_one_body_plan_play_and_discloses_bounded_history() {
     for device_lost in [false, true] {
         let (identities, offer, mut journey) = fixture();
-        reach_playing(&mut journey, &identities, &offer);
+        reach_quiescence(&mut journey, &identities, &offer);
         let initial = journey.projection();
         for index in 0..1_024 {
             for transition in [KeyTransition::Pressed, KeyTransition::Released] {
                 assert!(journey.accept_play_input(key(4, transition)).unwrap());
             }
             let current = journey.projection();
-            assert_eq!(current.status, JourneyStatus::Playing);
+            assert_eq!(current.status, JourneyStatus::QuiescentAwaitingInput);
             assert_eq!(current.body_id, initial.body_id);
             assert_eq!(current.plan_id, initial.plan_id);
             assert_eq!(current.active_play_id, initial.active_play_id);
@@ -317,7 +321,7 @@ fn long_session_keeps_one_body_plan_play_and_discloses_bounded_history() {
 fn exhausted_input_or_revision_preserves_pending_input_and_result() {
     for exhausted_count in [false, true] {
         let (identities, offer, mut journey) = fixture();
-        reach_playing(&mut journey, &identities, &offer);
+        reach_quiescence(&mut journey, &identities, &offer);
         if exhausted_count {
             journey.input_count = u32::MAX;
         } else {

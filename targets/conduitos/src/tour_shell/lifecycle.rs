@@ -86,7 +86,7 @@ pub(super) fn with_status(
     } else {
         match snapshot.status {
             JourneyStatus::Planned => "Ready",
-            JourneyStatus::Playing => "In use",
+            JourneyStatus::QuiescentAwaitingInput => "Awaiting input",
             _ => "Retained",
         }
     };
@@ -94,8 +94,8 @@ pub(super) fn with_status(
         "Inactive"
     } else {
         match snapshot.status {
-            JourneyStatus::Playing => "Running",
-            JourneyStatus::ResultVisible => "Completed",
+            JourneyStatus::QuiescentAwaitingInput => "Quiescent",
+            JourneyStatus::SemanticCompleted => "Completed",
             JourneyStatus::Stopped => "Stopped",
             JourneyStatus::Lulled => "Ended",
             _ => "Recorded",
