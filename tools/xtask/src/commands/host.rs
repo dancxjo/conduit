@@ -22,6 +22,8 @@ mod host_esp32_inspection;
 mod host_esp32_inspection_tests;
 #[path = "host_local_model.rs"]
 mod host_local_model;
+#[path = "host_piper.rs"]
+mod host_piper;
 #[path = "host_release.rs"]
 mod host_release;
 #[path = "host_target.rs"]
@@ -120,6 +122,25 @@ enum HostCommand {
         #[arg(long)]
         admitted_memory_mib: u32,
     },
+    /// Exercise one explicitly selected local Piper provider under finite bounds.
+    ProvePiper {
+        #[arg(long)]
+        executable: PathBuf,
+        #[arg(long)]
+        model: PathBuf,
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        library_path: Option<PathBuf>,
+        #[arg(long)]
+        text: String,
+        #[arg(long, default_value_t = 1_323_000)]
+        maximum_frames: u32,
+        #[arg(long, default_value_t = 647)]
+        maximum_blocks: u16,
+        #[arg(long, default_value_t = 30)]
+        timeout_seconds: u64,
+    },
 }
 
 #[derive(Args, Debug)]
@@ -168,6 +189,28 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
     match args.command.unwrap_or(HostCommand::Std) {
         HostCommand::Std => super::demo::run_std(opts),
         HostCommand::Browser => super::browser::run(opts),
+        HostCommand::ProvePiper {
+            executable,
+            model,
+            config,
+            library_path,
+            text,
+            maximum_frames,
+            maximum_blocks,
+            timeout_seconds,
+        } => host_piper::prove(
+            host_piper::PiperProofRequest {
+                executable,
+                model,
+                config,
+                library_path,
+                text,
+                maximum_frames,
+                maximum_blocks,
+                timeout_seconds,
+            },
+            opts,
+        ),
         HostCommand::Rpi(args) => match args.action.unwrap_or(RpiHostAction::Image) {
             RpiHostAction::Image => {
                 super::conduitos::build_rpi_image(args.board, opts).map_err(Into::into)
