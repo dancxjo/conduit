@@ -7,6 +7,11 @@ use conduit_core::SignId;
 use conduit_human::KeyEvent;
 
 impl ProductJourney {
+    pub fn foreground_input_owner(&self) -> Option<&native_workset::AdmittedFormInput> {
+        (self.status == JourneyStatus::QuiescentAwaitingInput)
+            .then(|| self.kernel.as_ref()?.input_owner(self.foreground))?
+    }
+
     pub fn owns_key_release(&self, event: KeyEvent) -> bool {
         self.status == JourneyStatus::QuiescentAwaitingInput
             && self
@@ -108,6 +113,8 @@ impl ProductJourney {
         {
             return Err(JourneyError::WrongTarget);
         }
+        let input_owners =
+            core::array::from_fn(|index| prepared.input_owners().get(index).cloned());
         let kernel = Box::new(
             native_workset::NativeWorksetPlay::prepare(&prepared).map_err(JourneyError::Workset)?,
         );
@@ -127,6 +134,7 @@ impl ProductJourney {
         self.retained_kernel_sign_gap = None;
         self.planned_play = Some(BodyPlayIdentity::bind(&plan, self.revision));
         self.plan = Some(plan);
+        self.input_owners = input_owners;
         self.kernel = Some(kernel);
         self.status = JourneyStatus::Planned;
         Ok(())

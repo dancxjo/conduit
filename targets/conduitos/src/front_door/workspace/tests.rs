@@ -23,6 +23,7 @@ fn fixture() -> (FrontDoor, JourneyProjection, WorkspaceProjection) {
             form: resident.clone(),
             title: "Memory Lantern",
             foreground: true,
+            input: None,
         }],
     };
     let door = FrontDoor::new(

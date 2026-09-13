@@ -26,24 +26,41 @@ pub(super) fn action_for(
     Some(action)
 }
 
-pub(super) fn form_receives_input(tour_open: bool, details_open: bool, usage: u8) -> bool {
-    !tour_open
-        && !details_open
-        && binding_for_usage(usage).is_none()
-        && !matches!(usage, 41 | 43 | 59 | 66..=69)
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum ProductControl {
+    Escape,
+    SelectNextForm,
+    SuggestOrDetails,
+    Lifecycle,
+    Tour,
+    TourRun,
+    TourPatchbay,
+    UsbLine,
+}
+
+pub(super) fn product_control(usage: u8) -> Option<ProductControl> {
+    Some(match usage {
+        41 => ProductControl::Escape,
+        43 => ProductControl::SelectNextForm,
+        59 => ProductControl::SuggestOrDetails,
+        60..=65 => ProductControl::Lifecycle,
+        66 => ProductControl::Tour,
+        67 => ProductControl::TourRun,
+        68 => ProductControl::TourPatchbay,
+        69 => ProductControl::UsbLine,
+        _ => return None,
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn only_the_foreground_form_receives_ordinary_keys() {
-        assert!(form_receives_input(false, false, 4));
-        assert!(form_receives_input(false, false, 40));
-        assert!(!form_receives_input(true, false, 4));
-        assert!(!form_receives_input(false, true, 4));
+    fn reserved_shell_keys_are_one_explicit_product_control_vocabulary() {
+        assert_eq!(product_control(4), None);
+        assert_eq!(product_control(40), None);
         for usage in [41, 43, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69] {
-            assert!(!form_receives_input(false, false, usage));
+            assert!(product_control(usage).is_some());
         }
     }
 }

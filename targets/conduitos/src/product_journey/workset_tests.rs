@@ -45,15 +45,33 @@ fn native_birth_keeps_two_forms_in_one_body_plan_play_and_switches_only_foregrou
     let (ids, offer, mut journey) = born();
     let born = journey.workspace_projection().unwrap();
     assert_eq!(born.forms.len(), 2);
+    assert!(born.forms.iter().all(|form| form.input.is_none()));
     run(&mut journey, &ids, &offer);
     let started = journey.projection();
     assert_eq!(started.status, JourneyStatus::QuiescentAwaitingInput);
     assert_eq!(started.gear_ids.len(), 8);
     assert_eq!(started.cord_ids.len(), 6);
+    let admitted = journey.workspace_projection().unwrap();
+    assert!(admitted.forms.iter().all(|form| {
+        form.input.as_ref().is_some_and(|input| {
+            input.form == form.form
+                && input.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND
+                && input.port_id.as_str() == conduit_semantic_catalog::KEYBOARD_PORT
+                && input.value_kind.as_str() == conduit_human::KEY_EVENT_INFO_ID
+        })
+    }));
     select(&mut journey, NativeForm::KeyboardCanvas);
+    assert_eq!(
+        journey.foreground_input_owner().unwrap().form,
+        native_workset::resident(NativeForm::KeyboardCanvas).unwrap()
+    );
     type_key(&mut journey, 4);
     assert_eq!(journey.projection().result.as_deref(), Some("A"));
     select(&mut journey, NativeForm::MemoryLantern);
+    assert_eq!(
+        journey.foreground_input_owner().unwrap().form,
+        native_workset::resident(NativeForm::MemoryLantern).unwrap()
+    );
     type_key(&mut journey, 5);
     type_key(&mut journey, 6);
     assert_eq!(journey.projection().result.as_deref(), Some("bc"));
@@ -118,6 +136,7 @@ fn one_lull_action_retires_a_listening_body_and_preserves_its_workset() {
     invoke(&mut journey, JourneyAction::Lull, &ids, &offer).unwrap();
     assert_eq!(journey.status(), JourneyStatus::Lulled);
     assert!(journey.kernel.is_none());
+    assert!(journey.foreground_input_owner().is_none());
     assert!(
         !journey
             .accept_play_input(key(4, KeyTransition::Released))

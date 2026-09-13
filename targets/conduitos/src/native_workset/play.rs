@@ -4,7 +4,7 @@ mod preparation;
 #[cfg(test)]
 mod tests;
 
-use super::{PreparedNativeWorkset, WorksetRefusal};
+use super::{AdmittedFormInput, PreparedNativeWorkset, WorksetRefusal};
 use crate::keyboard_text_operations::PlannedOperation;
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition};
 use conduit_kernel::{
@@ -53,6 +53,7 @@ pub enum PlayRefusal {
     Scheduler(conduit_kernel::scheduler::SchedulerError),
     HostFailure(conduit_kernel::Failure),
     Foreground,
+    InputOwnership,
     InputPressure,
     WorkBound,
     Cancelled,
@@ -65,6 +66,7 @@ impl PlayRefusal {
             Self::Scheduler(_) => "native-body-kernel-operation-refused",
             Self::HostFailure(failure) => failure.code.as_str(),
             Self::Foreground => "native-body-foreground-unavailable",
+            Self::InputOwnership => "native-body-input-ownership-unavailable",
             Self::InputPressure => "native-body-input-pressure",
             Self::WorkBound => "native-body-work-bound-exceeded",
             Self::Cancelled => "native-body-play-cancelled",
@@ -102,6 +104,7 @@ pub struct NativeWorksetPlay {
     pending: [Option<HostOperationRequest>; FORMS],
     held: [Option<u8>; 256],
     presentations: [Option<NativePresentation>; FORMS],
+    input_owners: [Option<AdmittedFormInput>; FORMS],
     form_count: usize,
     cancelled: bool,
 }
@@ -129,6 +132,9 @@ impl NativeWorksetPlay {
             && event.transition() == KeyTransition::Released
             && self.held[usize::from(event.usage())].is_some()
     }
+    pub fn input_owner(&self, form: usize) -> Option<&AdmittedFormInput> {
+        self.input_owners.get(form)?.as_ref()
+    }
     /// Foreground is supplied by the authoritative workspace selection. A held
     /// key keeps its original owner across subsequent selection changes.
     pub fn input(&mut self, foreground: usize, event: KeyEvent) -> Result<bool, PlayRefusal> {
@@ -144,6 +150,9 @@ impl NativeWorksetPlay {
             (None, KeyTransition::Pressed) => foreground,
             (None, KeyTransition::Released) => return Ok(false),
         };
+        if self.input_owners[owner].is_none() {
+            return Err(PlayRefusal::InputOwnership);
+        }
         let request = self.pending[owner].ok_or(PlayRefusal::InputPressure)?;
         if self.presentations[owner].is_some() {
             return Err(PlayRefusal::InputPressure);
