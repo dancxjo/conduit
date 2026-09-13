@@ -8,14 +8,14 @@ use conduit_human::KeyEvent;
 
 impl ProductJourney {
     pub fn owns_key_release(&self, event: KeyEvent) -> bool {
-        self.status == JourneyStatus::Playing
+        self.status == JourneyStatus::QuiescentAwaitingInput
             && self
                 .kernel
                 .as_ref()
                 .is_some_and(|kernel| kernel.owns_release(event))
     }
     pub fn accept_play_input(&mut self, event: KeyEvent) -> Result<bool, JourneyError> {
-        if self.status != JourneyStatus::Playing {
+        if self.status != JourneyStatus::QuiescentAwaitingInput {
             return Ok(false);
         }
         let next_count = self
@@ -67,7 +67,10 @@ impl ProductJourney {
     }
 
     pub fn input_lost(&mut self) -> Result<(), JourneyError> {
-        if !matches!(self.status, JourneyStatus::Planned | JourneyStatus::Playing) {
+        if !matches!(
+            self.status,
+            JourneyStatus::Planned | JourneyStatus::QuiescentAwaitingInput
+        ) {
             return Err(JourneyError::InputUnavailable);
         }
         if let Some(kernel) = self.kernel.as_mut() {
@@ -141,14 +144,16 @@ impl ProductJourney {
             .map_err(JourneyError::Play)?;
         self.wake = Some(wake);
         self.play = Some(play.clone());
-        self.status = JourneyStatus::Playing;
+        // This Form has no checked completion witness. Its initial structural
+        // drain leaves the admitted Play resident and awaiting later input.
+        self.status = JourneyStatus::QuiescentAwaitingInput;
         Ok(())
     }
 
     pub(super) fn stop(&mut self) -> Result<(), JourneyError> {
         if !matches!(
             self.status,
-            JourneyStatus::Playing | JourneyStatus::ResultVisible
+            JourneyStatus::QuiescentAwaitingInput | JourneyStatus::SemanticCompleted
         ) {
             return Err(JourneyError::InvalidTransition);
         }
@@ -164,7 +169,9 @@ impl ProductJourney {
     pub(super) fn lull(&mut self) -> Result<(), JourneyError> {
         if !matches!(
             self.status,
-            JourneyStatus::Playing | JourneyStatus::ResultVisible | JourneyStatus::Stopped
+            JourneyStatus::QuiescentAwaitingInput
+                | JourneyStatus::SemanticCompleted
+                | JourneyStatus::Stopped
         ) {
             return Err(JourneyError::InvalidTransition);
         }

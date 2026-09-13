@@ -145,7 +145,7 @@ pub fn run(
                 ProductInputEvent::Lost(_) => {
                     if matches!(
                         journey.status(),
-                        JourneyStatus::Planned | JourneyStatus::Playing
+                        JourneyStatus::Planned | JourneyStatus::QuiescentAwaitingInput
                     ) {
                         journey.input_lost().map_err(|error| error.as_str())?;
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
@@ -347,7 +347,7 @@ pub fn run(
                     }
                     return Ok(ProductInputControl::Continue);
                 }
-                if journey.status() == JourneyStatus::Playing
+                if journey.status() == JourneyStatus::QuiescentAwaitingInput
                     && form_receives_input(false, false, event.usage())
                 {
                     workspace_updates.accept(event, &mut journey, &mut front_door)?;

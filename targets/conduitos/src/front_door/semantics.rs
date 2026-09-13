@@ -81,7 +81,8 @@ impl FrontDoor {
                     availability(
                         matches!(
                             status,
-                            JourneyStatus::Playing | JourneyStatus::ResultVisible
+                            JourneyStatus::QuiescentAwaitingInput
+                                | JourneyStatus::SemanticCompleted
                         ),
                         "Stop",
                         status,
@@ -94,8 +95,8 @@ impl FrontDoor {
                     availability(
                         matches!(
                             status,
-                            JourneyStatus::Playing
-                                | JourneyStatus::ResultVisible
+                            JourneyStatus::QuiescentAwaitingInput
+                                | JourneyStatus::SemanticCompleted
                                 | JourneyStatus::Stopped
                         ),
                         "Lull",
@@ -162,8 +163,12 @@ pub(super) fn lifecycle_summary(journey: &JourneyProjection) -> &'static str {
         JourneyStatus::BornLulled => "Body born and retained; Wake is available.",
         JourneyStatus::Awake => "Wake active; an exact Plan is required before Play.",
         JourneyStatus::Planned => "Exact immutable Plan ready; Play is available.",
-        JourneyStatus::Playing => "Play active; the production kernel awaits keyboard input.",
-        JourneyStatus::ResultVisible => "Play result visible; Stop or Lull is available.",
+        JourneyStatus::QuiescentAwaitingInput => {
+            "Play quiescent; the same admitted kernel awaits keyboard input."
+        }
+        JourneyStatus::SemanticCompleted => {
+            "Play semantically completed; Stop or Lull is available."
+        }
         JourneyStatus::Stopped => "Play stopped; no late value was accepted.",
         JourneyStatus::Lulled => "Body retained; the prior Wake has ended.",
     }
