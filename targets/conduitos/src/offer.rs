@@ -11,6 +11,7 @@ use crate::pc_speaker_offer::{PcSpeakerOffer, PcSpeakerOfferError, PcSpeakerReal
 #[cfg(target_arch = "x86_64")]
 use crate::pointer_offer::{PointerOffer, PointerOfferError, PointerRealization};
 use crate::{identity::BootIdentities, machine::BaseKind};
+use alloc::format;
 
 pub const BASE_COUNT: usize = 7;
 pub const RESOURCE_COUNT: usize = 5;
@@ -36,8 +37,27 @@ pub struct CpuFeatures {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BaseOffer {
     pub id: [u8; 32],
+    /// Exact initialized provider behind this stable boot-scoped Base.
+    pub provider_instance_id: [u8; 32],
+    pub provider_generation: u64,
+    pub lifecycle: BaseLifecycle,
     pub kind: BaseKind,
     pub capacity: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BaseLifecycle {
+    Ready,
+    Revoked,
+    Lost,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BaseProviderBinding {
+    pub base_id: [u8; 32],
+    pub provider_instance_id: [u8; 32],
+    pub provider_generation: u64,
+    pub kind: BaseKind,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -100,6 +120,9 @@ pub struct HostOffer<'a> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OfferError {
     EmptyIdentity,
+    InvalidBaseProvider,
+    BaseUnavailable,
+    StaleBaseProvider,
     DuplicateBase,
     InvalidCapacity,
     MissingBase,
@@ -113,6 +136,9 @@ impl OfferError {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::EmptyIdentity => "empty-offer-identity",
+            Self::InvalidBaseProvider => "invalid-base-provider",
+            Self::BaseUnavailable => "base-provider-unavailable",
+            Self::StaleBaseProvider => "stale-base-provider",
             Self::DuplicateBase => "duplicate-base-identity",
             Self::InvalidCapacity => "invalid-offer-capacity",
             Self::MissingBase => "capability-base-unavailable",
@@ -142,6 +168,12 @@ impl<'a> HostOffer<'a> {
         ];
         let bases = kinds.map(|kind| BaseOffer {
             id: crate::identity::derive_base(&ids.boot, kind.as_str()),
+            provider_instance_id: crate::identity::derive_base(
+                &ids.boot,
+                &format!("{}/provider/1", kind.as_str()),
+            ),
+            provider_generation: 1,
+            lifecycle: BaseLifecycle::Ready,
             kind,
             capacity: match kind {
                 BaseKind::Memory => u32::try_from(runtime_arena_bytes).unwrap_or(u32::MAX),
@@ -239,6 +271,57 @@ impl<'a> HostOffer<'a> {
         }
     }
 
+    pub fn capability_provider(
+        &self,
+        capability: &CapabilityOffer<'_>,
+    ) -> Result<BaseProviderBinding, OfferError> {
+        let base = self
+            .bases
+            .iter()
+            .find(|base| base.kind == capability.required_base)
+            .ok_or(OfferError::MissingBase)?;
+        if base.lifecycle != BaseLifecycle::Ready {
+            return Err(OfferError::BaseUnavailable);
+        }
+        if let Some(secondary) = capability.secondary_base {
+            let secondary = self
+                .bases
+                .iter()
+                .find(|base| base.kind == secondary)
+                .ok_or(OfferError::MissingBase)?;
+            if secondary.lifecycle != BaseLifecycle::Ready {
+                return Err(OfferError::BaseUnavailable);
+            }
+        }
+        Ok(BaseProviderBinding {
+            base_id: base.id,
+            provider_instance_id: base.provider_instance_id,
+            provider_generation: base.provider_generation,
+            kind: base.kind,
+        })
+    }
+
+    pub fn require_base_provider(
+        &self,
+        expected: BaseProviderBinding,
+    ) -> Result<&BaseOffer, OfferError> {
+        let base = self
+            .bases
+            .iter()
+            .find(|base| base.kind == expected.kind)
+            .ok_or(OfferError::MissingBase)?;
+        if base.id != expected.base_id
+            || base.provider_instance_id != expected.provider_instance_id
+            || base.provider_generation != expected.provider_generation
+        {
+            return Err(OfferError::StaleBaseProvider);
+        }
+        if base.lifecycle != BaseLifecycle::Ready {
+            return Err(OfferError::BaseUnavailable);
+        }
+        Ok(base)
+    }
+
     pub fn with_keyboard(
         mut self,
         realization: KeyboardRealization,
@@ -297,12 +380,21 @@ impl<'a> HostOffer<'a> {
         {
             return Err(OfferError::EmptyIdentity);
         }
-        if self.bases.iter().enumerate().any(|(index, base)| {
+        if self.bases.iter().any(|base| {
             base.id == [0; 32]
-                || base.capacity == 0
-                || self.bases[..index]
-                    .iter()
-                    .any(|prior| prior.id == base.id || prior.kind == base.kind)
+                || base.provider_instance_id == [0; 32]
+                || base.provider_generation == 0
+                || base.provider_instance_id == base.id
+        }) {
+            return Err(OfferError::InvalidBaseProvider);
+        }
+        if self.bases.iter().enumerate().any(|(index, base)| {
+            base.capacity == 0
+                || self.bases[..index].iter().any(|prior| {
+                    prior.id == base.id
+                        || prior.provider_instance_id == base.provider_instance_id
+                        || prior.kind == base.kind
+                })
         }) {
             return Err(OfferError::DuplicateBase);
         }

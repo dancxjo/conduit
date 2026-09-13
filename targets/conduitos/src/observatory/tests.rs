@@ -64,15 +64,17 @@ fn export_is_an_exact_bounded_v2_snapshot() {
     assert_eq!(snapshot.observations.len(), 10);
     assert_eq!(snapshot.historical_observations.len(), 9);
     assert_eq!(snapshot.sealed_boot_provenance.len(), 1);
-    assert!(
-        snapshot.bases.iter().all(|base| {
-            base.kind_id.as_str() != "Limine" && base.kind_id.as_str() != "x86-bios"
-        })
-    );
+    assert!(snapshot.bases.iter().all(|base| {
+        !base.provider_instance_id.as_str().is_empty()
+            && base.provider_generation > 0
+            && base.kind_id.as_str() != "Limine"
+            && base.kind_id.as_str() != "x86-bios"
+    }));
     let report = conduit_observatory::build_report(&snapshot).unwrap();
     let linear = conduit_observatory::render_text_report(&report);
     assert_eq!(report.execution_regions.len(), 2);
     assert!(linear.contains("execution_regions 2"));
+    assert!(linear.contains("provider_generation=1"));
     assert!(linear.contains("region=region/text"));
     assert!(linear.contains("region=region/timer"));
     assert!(linear.contains("ExecutionRegionOverlap"));
