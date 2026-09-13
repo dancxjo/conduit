@@ -931,7 +931,7 @@ async function runMultiHostListing(runner, source) {
     cancelMultiSessions();
     setIndicator(runner, false);
     runner.playStatus.failure(error instanceof Error ? error.message : String(error));
-    finishRun(runner);
+    finishRun(runner, 8);
   }
 }
 
@@ -1033,9 +1033,9 @@ function nextPaint(expectedGeneration) {
   return new Promise((resolve) => requestAnimationFrame(() => resolve(expectedGeneration === generation)));
 }
 
-function finishRun(runner) {
-  if (host.runtime.conduit_tour_application_apply(6) < 0) {
-    throw new Error("shared Tour application refused Play completion");
+function finishRun(runner, outcome = 6) {
+  if (host.runtime.conduit_tour_application_apply(outcome) < 0) {
+    throw new Error("shared Tour application refused the terminal Play transition");
   }
   humanInput?.cancelPending();
   activeMemoryLine = null;
@@ -1059,6 +1059,7 @@ async function runListing(runner, source, recursive) {
   const total = hostBytes.length + bootBytes.length + sourceBytes.length;
   if (total > api.conduit_browser_form_input_capacity()) {
     runner.playStatus.failure("The listing exceeds the admitted input bound.");
+    api.conduit_tour_application_apply(8);
     return;
   }
   const input = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), total);
@@ -1077,6 +1078,7 @@ async function runListing(runner, source, recursive) {
     runner.playStatus.failure(refusal?.message
       ? `The edit was refused · ${refusal.category}: ${refusal.message}`
       : `The edit was refused (${interaction}).`);
+    api.conduit_tour_application_apply(8);
     return;
   }
   input.set(hostBytes);
@@ -1090,6 +1092,7 @@ async function runListing(runner, source, recursive) {
     runner.playStatus.failure(refusal?.message
       ? `The Form was refused before Play · ${refusal.category}: ${refusal.message}`
       : `The Form was refused before Play (${code}).`);
+    api.conduit_tour_application_apply(8);
     return;
   }
   let progress = readOutput(api);
@@ -1165,6 +1168,9 @@ async function runListing(runner, source, recursive) {
     }
     setIndicator(runner, false);
     setLifecycleDisposition(runner, "failed");
+    if (host.runtime.conduit_tour_application_apply(8) < 0) {
+      throw new Error("shared Tour application refused Play failure");
+    }
     if (receipt?.disposition === "cancelled") {
       appendRunEvidence(runner, [
         ["Lifecycle", "CancelledAfterHostLoss"],

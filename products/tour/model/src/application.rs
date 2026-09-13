@@ -57,6 +57,7 @@ pub enum TourRunState {
     Running = 1,
     Stopped = 2,
     Completed = 3,
+    Failed = 4,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -77,6 +78,7 @@ pub enum TourApplicationAction {
     Stop,
     Restore,
     Complete,
+    Fail,
 }
 
 pub const TOUR_PROJECTION_CONFORMANCE_ACTIONS: [TourApplicationAction; 6] = [
@@ -155,6 +157,10 @@ impl TourApplicationState {
                 return Err(TourApplicationRefusal::NotRunning);
             }
             TourApplicationAction::Complete => self.run = TourRunState::Completed,
+            TourApplicationAction::Fail if self.run != TourRunState::Running => {
+                return Err(TourApplicationRefusal::NotRunning);
+            }
+            TourApplicationAction::Fail => self.run = TourRunState::Failed,
         }
         self.revision = revision;
         Ok(())

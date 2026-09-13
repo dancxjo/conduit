@@ -11,6 +11,7 @@ const STOP: u8 = 4;
 const RESTORE: u8 = 5;
 const COMPLETE: u8 = 6;
 const EDIT_SOURCE: u8 = 7;
+const FAIL: u8 = 8;
 const ERROR_ACTION: i32 = -1;
 const ERROR_TRANSITION: i32 = -2;
 const MAX_CHAPTER_BYTES: usize = 2 * 1024;
@@ -88,6 +89,7 @@ pub extern "C" fn conduit_tour_application_apply(action: u8) -> i32 {
                     .unwrap_or(ERROR_TRANSITION)
             });
         }
+        FAIL => TourApplicationAction::Fail,
         _ => return ERROR_ACTION,
     };
     apply(action)
