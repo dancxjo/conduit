@@ -97,6 +97,7 @@ pub(super) fn with_status(
             JourneyStatus::QuiescentAwaitingInput => "Quiescent",
             JourneyStatus::SemanticCompleted => "Completed",
             JourneyStatus::Stopped => "Stopped",
+            JourneyStatus::InputUnavailable => "Input unavailable",
             JourneyStatus::Lulled => "Ended",
             _ => "Recorded",
         }

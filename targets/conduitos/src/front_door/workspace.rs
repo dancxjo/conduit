@@ -42,9 +42,14 @@ impl FrontDoor {
     }
 
     pub fn play_refused(&mut self, reason: &str) -> Result<(), Error> {
-        if self.journey.as_ref().map(|journey| journey.status)
-            != Some(crate::product_journey::JourneyStatus::Stopped)
-        {
+        let status = self.journey.as_ref().map(|journey| journey.status);
+        if !matches!(
+            status,
+            Some(
+                crate::product_journey::JourneyStatus::Stopped
+                    | crate::product_journey::JourneyStatus::InputUnavailable
+            )
+        ) {
             return Err(Error::Presentation);
         }
         self.refusal = Some(WorkspaceRefusal::Play(reason.into()));

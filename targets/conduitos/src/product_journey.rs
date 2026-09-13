@@ -35,6 +35,7 @@ pub enum JourneyStatus {
     QuiescentAwaitingInput,
     SemanticCompleted,
     Lulled,
+    InputUnavailable,
     Stopped,
 }
 
@@ -49,7 +50,30 @@ impl JourneyStatus {
             Self::QuiescentAwaitingInput => "quiescent-awaiting-input",
             Self::SemanticCompleted => "semantic-completed",
             Self::Lulled => "lulled",
+            Self::InputUnavailable => "input-unavailable",
             Self::Stopped => "stopped",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum JourneyLossKind {
+    InputDevice,
+    Line,
+}
+
+impl JourneyLossKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InputDevice => "input-device-lost",
+            Self::Line => "line-lost",
+        }
+    }
+
+    pub const fn recovery(self) -> &'static str {
+        match self {
+            Self::InputDevice => "Reconnect an input device, then Plan and Play again.",
+            Self::Line => "Restore or replace the Line, then Plan and Play again.",
         }
     }
 }
@@ -114,6 +138,8 @@ pub struct JourneyProjection {
     pub port_ids: Vec<String>,
     pub cord_ids: Vec<String>,
     pub input_sign_id: Option<SignId>,
+    pub loss_kind: Option<JourneyLossKind>,
+    pub loss_sign_id: Option<SignId>,
     pub result_sign_id: Option<SignId>,
     pub result: Option<String>,
     pub result_omitted_bytes: u64,
@@ -144,6 +170,8 @@ pub struct ProductJourney {
     forms: [Option<NativeForm>; 2],
     input_count: u32,
     input_sign_id: Option<SignId>,
+    loss_kind: Option<JourneyLossKind>,
+    loss_sign_id: Option<SignId>,
     results: [FormResult; 2],
     retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
@@ -177,6 +205,8 @@ impl ProductJourney {
             forms: [None; 2],
             input_count: 0,
             input_sign_id: None,
+            loss_kind: None,
+            loss_sign_id: None,
             results: core::array::from_fn(|_| FormResult::new()),
             retained_kernel_sign_gap: None,
             last_request_id: None,
@@ -300,6 +330,8 @@ impl ProductJourney {
                 .map(|connection| connection.connection_id.as_str().to_owned())
                 .collect(),
             input_sign_id: self.input_sign_id.clone(),
+            loss_kind: self.loss_kind,
+            loss_sign_id: self.loss_sign_id.clone(),
             result_sign_id: self.results[self.foreground].sign.clone(),
             result: self.foreground_result().map(|text| text.into()),
             result_omitted_bytes: self.results[self.foreground]

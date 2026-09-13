@@ -1,5 +1,5 @@
 //! One admitted native Body Plan/Play across exact resident Form partitions.
-use super::{JourneyError, JourneyStatus, ProductJourney};
+use super::{JourneyError, JourneyLossKind, JourneyStatus, ProductJourney};
 use crate::{identity::BootIdentities, native_workset, offer::HostOffer};
 use alloc::{boxed::Box, format};
 use conduit_body::{BodyPlayIdentity, WakeLifecycle};
@@ -66,7 +66,7 @@ impl ProductJourney {
         Ok(true)
     }
 
-    pub fn input_lost(&mut self) -> Result<(), JourneyError> {
+    pub fn input_lost(&mut self, kind: JourneyLossKind) -> Result<(), JourneyError> {
         if !matches!(
             self.status,
             JourneyStatus::Planned | JourneyStatus::QuiescentAwaitingInput
@@ -79,7 +79,14 @@ impl ProductJourney {
         }
         self.kernel = None;
         self.planned_play = None;
-        self.status = JourneyStatus::Stopped;
+        self.play = None;
+        self.loss_kind = Some(kind);
+        self.loss_sign_id = Some(SignId::from(format!(
+            "conduitos/product/loss/{}/{}",
+            kind.as_str(),
+            self.revision
+        )));
+        self.status = JourneyStatus::InputUnavailable;
         self.advance()
     }
 
@@ -115,6 +122,8 @@ impl ProductJourney {
         self.results = core::array::from_fn(|_| super::FormResult::new());
         self.input_count = 0;
         self.input_sign_id = None;
+        self.loss_kind = None;
+        self.loss_sign_id = None;
         self.retained_kernel_sign_gap = None;
         self.planned_play = Some(BodyPlayIdentity::bind(&plan, self.revision));
         self.plan = Some(plan);
@@ -171,6 +180,7 @@ impl ProductJourney {
             self.status,
             JourneyStatus::QuiescentAwaitingInput
                 | JourneyStatus::SemanticCompleted
+                | JourneyStatus::InputUnavailable
                 | JourneyStatus::Stopped
         ) {
             return Err(JourneyError::InvalidTransition);

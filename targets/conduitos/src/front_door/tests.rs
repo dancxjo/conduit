@@ -47,6 +47,8 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
         port_ids: vec![],
         cord_ids: vec![],
         input_sign_id: None,
+        loss_kind: None,
+        loss_sign_id: None,
         result_sign_id: None,
         result: None,
         result_omitted_bytes: 0,

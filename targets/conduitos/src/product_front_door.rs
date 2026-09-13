@@ -149,7 +149,9 @@ pub fn run(
                         journey.status(),
                         JourneyStatus::Planned | JourneyStatus::QuiescentAwaitingInput
                     ) {
-                        journey.input_lost().map_err(|error| error.as_str())?;
+                        journey
+                            .input_lost(crate::product_journey::JourneyLossKind::InputDevice)
+                            .map_err(|error| error.as_str())?;
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
                         emit_journey_sign(&journey.projection(), fabrication, &receipt);
                     }
