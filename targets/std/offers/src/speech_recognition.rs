@@ -1,9 +1,43 @@
 //! Exact hosted projection from a recognition result to bounded text.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
 };
+
+pub const WHISPER_SPEECH_PROFILE: &str = "std/whisper-s16le-16000-mono@1";
+pub const WHISPER_SPEECH_IMPLEMENTATION: &str = "std/hosted-whisper-speech@1";
+pub const WHISPER_SPEECH_ARTIFACT: &str = "conduit-std-host/whisper-speech@1";
+pub const WHISPER_SPEECH_OPERATION: &str = "conduit.host/whisper-speech-recognize@1";
+pub const WHISPER_PROCESS_RESOURCE_CLASS: &str = "conduit.resource/whisper-process-slot@1";
+
+pub fn whisper_speech_offer() -> CapabilityOffer {
+    let contract = conduit_tongues::speech_recognition_contract();
+    CapabilityOffer {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: CapabilityId::from("speech-recognize-whisper-s16le-16000-mono"),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(WHISPER_SPEECH_PROFILE),
+            implementation_id: ImplementationId::from(WHISPER_SPEECH_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(WHISPER_SPEECH_ARTIFACT),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(WHISPER_SPEECH_OPERATION),
+            target_kind: Some(kind_id(conduit_tongues::SPEECH_RECOGNITION_RESULT_KIND)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
+            maximum_output_bytes: conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
+        }],
+        resource_requirements: vec![resource_requirement(WHISPER_PROCESS_RESOURCE_CLASS, 1)],
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    }
+}
 
 pub const RECOGNITION_TO_TEXT_STD_PROFILE: &str = "std/recognition-to-text-hosted@1";
 pub const RECOGNITION_TO_TEXT_STD_IMPLEMENTATION: &str = "std/recognition-to-text@1";
@@ -51,5 +85,17 @@ mod tests {
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.limits, contract.limits);
         assert_eq!(offer.host_operations.len(), 1);
+    }
+
+    #[test]
+    fn whisper_offer_preserves_portable_recognition_and_process_bounds() {
+        let offer = whisper_speech_offer();
+        let contract = conduit_tongues::speech_recognition_contract();
+        assert_eq!(offer.kind_id, contract.kind_id);
+        assert_eq!(offer.inputs, contract.inputs);
+        assert_eq!(offer.outputs, contract.outputs);
+        assert_eq!(offer.limits, contract.limits);
+        assert_eq!(offer.resource_requirements.len(), 1);
+        assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
     }
 }
