@@ -227,6 +227,22 @@ pub struct StdRunReport {
     pub receipts: Vec<SignalReceipt>,
     pub kernel: Option<StdKernelExecutionReport>,
     pub control_receipts: Vec<RunControlReceipt>,
+    pub speech_synthesis: Vec<SpeechSynthesisExecutionReceipt>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpeechSynthesisExecutionReceipt {
+    pub plan_id: conduit_core::PlanId,
+    pub active_play_id: conduit_core::ActivePlayId,
+    pub placement_id: conduit_core::PlacementId,
+    pub implementation_id: conduit_core::ImplementationId,
+    pub executable_sha256: String,
+    pub model_sha256: String,
+    pub config_sha256: String,
+    pub text_sha256: String,
+    pub pcm_sha256: String,
+    pub frames: u32,
+    pub blocks: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -370,6 +386,7 @@ pub struct StdHost {
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
+    speech_synthesis: Option<hosted_speech::PiperSpeechAdapter>,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
@@ -441,6 +458,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -504,6 +522,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: Some(adapter),
+            speech_synthesis: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -539,6 +558,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
             vector_search: Some(adapter),
             calendar: None,
             kernel_resources,
@@ -574,8 +594,55 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
             vector_search: None,
             calendar: Some(adapter),
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
+    pub fn new_with_piper_speech(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: hosted_speech::PiperSpeechAdapter,
+    ) -> Result<Self, String> {
+        if adapter.discovery().sample_rate_hz != 22_050
+            || adapter.limits().maximum_frames < conduit_tongues::MAXIMUM_PCM_BYTES.div_ceil(2)
+            || adapter.limits().maximum_blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS
+        {
+            return Err("initialized Piper adapter does not satisfy its offered profile".into());
+        }
+        let mut advertisement =
+            composition::build_advertisement(config, composition, None, None, None, false);
+        advertisement
+            .resources
+            .push(hosted_speech::process_resource_offer());
+        advertisement.capabilities.retain(|offer| {
+            offer.implementation.implementation_id.as_str()
+                != conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+        });
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::piper_speech_offer());
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            speech_synthesis: Some(adapter),
+            vector_search: None,
+            calendar: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -594,6 +661,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -630,6 +698,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -669,6 +738,7 @@ impl StdHost {
             midi_input: None,
             midi_output: Some(midi_output),
             local_model: None,
+            speech_synthesis: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -697,6 +767,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -738,6 +809,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
             vector_search: None,
             calendar: None,
             kernel_resources,

@@ -54,6 +54,7 @@ pub enum PiperFailure {
     MissingProvider,
     InvalidProvider,
     InvalidLimits,
+    InvalidText,
     EmptyText,
     TextOverflow,
     SpawnFailed,
@@ -91,6 +92,7 @@ pub struct PiperSpeechAdapter {
     discovery: PiperDiscovery,
     limits: PiperLimits,
     session: PiperSession,
+    last_receipt: Option<PiperSynthesisReceipt>,
 }
 
 impl PiperDiscovery {
@@ -139,11 +141,16 @@ impl PiperDiscovery {
             discovery: self,
             limits,
             session: PiperSession::new(limits, sample_rate_hz),
+            last_receipt: None,
         })
     }
 }
 
 impl PiperSpeechAdapter {
+    pub(crate) fn is_active(&self) -> bool {
+        self.session.is_active()
+    }
+
     pub fn discovery(&self) -> &PiperDiscovery {
         &self.discovery
     }
@@ -194,11 +201,19 @@ impl PiperSpeechAdapter {
         &mut self,
         cancelled: impl FnMut() -> bool,
     ) -> Result<PiperSynthesisStep<'_>, PiperFailure> {
-        self.session.next(cancelled)
+        let step = self.session.next(cancelled)?;
+        if let PiperSynthesisStep::Complete(receipt) = &step {
+            self.last_receipt = Some(receipt.clone());
+        }
+        Ok(step)
     }
 
     pub fn abort(&mut self) {
         self.session.abort();
+    }
+
+    pub(crate) fn take_receipt(&mut self) -> Option<PiperSynthesisReceipt> {
+        self.last_receipt.take()
     }
 
     fn spawn(&self) -> Result<Child, PiperFailure> {

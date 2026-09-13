@@ -73,11 +73,13 @@ impl PiperSession {
         }
         let mut child = PiperChild(child);
         let mut stdin = child.0.stdin.take().ok_or(PiperFailure::SpawnFailed)?;
-        if stdin
+        if let Err(error) = stdin
             .write_all(text.as_bytes())
             .and_then(|()| stdin.write_all(b"\n"))
-            .is_err()
         {
+            if error.kind() == ErrorKind::BrokenPipe {
+                return Err(PiperFailure::ProviderLost);
+            }
             return match child.0.try_wait() {
                 Ok(Some(_)) => Err(PiperFailure::ProviderLost),
                 _ => Err(PiperFailure::WriteFailed),

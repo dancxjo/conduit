@@ -163,11 +163,22 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_operations != offer.host_operations
-        || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || placement.configuration.len() != 1
     {
         return Err("planned Piper speech identity does not match its installation".into());
+    }
+    let requires_process =
+        placement.implementation_id.as_str() == conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION;
+    if requires_process
+        != (placement.resources.len() == 1
+            && placement.resources[0].class_id.as_str()
+                == conduit_std_offers::PIPER_PROCESS_RESOURCE_CLASS
+            && placement.resources[0].units == 1
+            && placement.resources[0].protected.is_none()
+            && placement.resources[0].compute.is_none())
+    {
+        return Err("planned Piper process reservation is not exact".into());
     }
     maximum_output_bytes(placement)?;
     Ok(())
@@ -214,6 +225,27 @@ fn prepare(
 
 fn fail(code: FailureCode, detail: u16) -> OperationAction {
     OperationAction::Fail(Failure { code, detail })
+}
+
+pub(super) fn execute_piper<'a>(
+    adapter: Option<&'a mut crate::hosted_speech::PiperSpeechAdapter>,
+    input: &[u8],
+    cancelled: bool,
+) -> Result<Option<&'a [u8]>, crate::hosted_speech::PiperFailure> {
+    let adapter = adapter.ok_or(crate::hosted_speech::PiperFailure::MissingProvider)?;
+    if adapter.is_active() {
+        if input != [0] {
+            return Err(crate::hosted_speech::PiperFailure::InvalidText);
+        }
+    } else {
+        let text = core::str::from_utf8(input)
+            .map_err(|_| crate::hosted_speech::PiperFailure::InvalidText)?;
+        adapter.begin(text)?;
+    }
+    match adapter.next(|| cancelled)? {
+        crate::hosted_speech::PiperSynthesisStep::Block(block) => Ok(Some(block)),
+        crate::hosted_speech::PiperSynthesisStep::Complete(_) => Ok(None),
+    }
 }
 
 #[cfg(test)]

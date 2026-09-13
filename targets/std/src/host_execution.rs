@@ -187,6 +187,7 @@ impl StdHost {
                         retained,
                         indicator,
                         attach_live,
+                        speech_synthesis: self.speech_synthesis.as_mut(),
                     },
                 )
             } else {

@@ -1,21 +1,23 @@
 //! Explicitly initialized hosted Piper realization of portable speech synthesis.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
+    kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    ImplementationOffer,
 };
 
-pub const PIPER_SPEECH_PROFILE: &str = "std/piper-s16le-22050-mono-p2033@1";
+pub const PIPER_SPEECH_PROFILE: &str = "std/piper-s16le-22050-mono-p113@1";
 pub const PIPER_SPEECH_IMPLEMENTATION: &str = "std/hosted-piper-speech@1";
 pub const PIPER_SPEECH_ARTIFACT: &str = "conduit-std-host/piper-speech@1";
 pub const PIPER_SPEECH_OPERATION: &str = "conduit.host/piper-speech-next@1";
-pub const DETERMINISTIC_SPEECH_PROFILE: &str = "conduit-proof/speech-s16le-22050-mono-p2033@1";
+pub const PIPER_PROCESS_RESOURCE_CLASS: &str = "conduit.resource/piper-process-slot@1";
+pub const DETERMINISTIC_SPEECH_PROFILE: &str = "conduit-proof/speech-s16le-22050-mono-p113@1";
 pub const DETERMINISTIC_SPEECH_IMPLEMENTATION: &str = "conduit-proof/deterministic-speech@1";
 pub const DETERMINISTIC_SPEECH_ARTIFACT: &str = "conduit-std-host/proof-deterministic-speech@1";
-pub const PIPER_FRAMES_PER_BLOCK: u16 = 2_033;
+pub const PIPER_FRAMES_PER_BLOCK: u16 = 113;
 pub const PIPER_PCM_BLOCK_BYTES: u32 =
     conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32 + PIPER_FRAMES_PER_BLOCK as u32 * 2;
-pub const PIPER_MAXIMUM_BLOCKS: u16 = 9;
+pub const PIPER_MAXIMUM_BLOCKS: u16 = 145;
 
 pub fn piper_speech_offer() -> CapabilityOffer {
     speech_offer(
@@ -23,6 +25,7 @@ pub fn piper_speech_offer() -> CapabilityOffer {
         PIPER_SPEECH_PROFILE,
         PIPER_SPEECH_IMPLEMENTATION,
         PIPER_SPEECH_ARTIFACT,
+        true,
     )
 }
 
@@ -32,6 +35,7 @@ pub fn deterministic_speech_offer() -> CapabilityOffer {
         DETERMINISTIC_SPEECH_PROFILE,
         DETERMINISTIC_SPEECH_IMPLEMENTATION,
         DETERMINISTIC_SPEECH_ARTIFACT,
+        false,
     )
 }
 
@@ -40,6 +44,7 @@ fn speech_offer(
     profile: &str,
     implementation: &str,
     artifact: &str,
+    requires_process: bool,
 ) -> CapabilityOffer {
     let contract = conduit_tongues::synthesize_contract();
     CapabilityOffer {
@@ -66,7 +71,10 @@ fn speech_offer(
             maximum_input_bytes: conduit_tongues::MAXIMUM_TEXT_BYTES,
             maximum_output_bytes: PIPER_PCM_BLOCK_BYTES,
         }],
-        resource_requirements: Vec::new(),
+        resource_requirements: requires_process
+            .then(|| resource_requirement(PIPER_PROCESS_RESOURCE_CLASS, 1))
+            .into_iter()
+            .collect(),
         authority_requirements: Vec::new(),
         limits: contract.limits,
     }
@@ -89,6 +97,11 @@ mod tests {
             offer.host_operations[0].maximum_output_bytes,
             PIPER_PCM_BLOCK_BYTES
         );
+        assert_eq!(offer.resource_requirements.len(), 1);
+        assert_eq!(
+            offer.resource_requirements[0].class_id.as_str(),
+            PIPER_PROCESS_RESOURCE_CLASS
+        );
     }
 
     #[test]
@@ -98,5 +111,6 @@ mod tests {
         assert_eq!(piper.kind_id, deterministic.kind_id);
         assert_ne!(piper.capability_id, deterministic.capability_id);
         assert_ne!(piper.implementation, deterministic.implementation);
+        assert!(deterministic.resource_requirements.is_empty());
     }
 }
