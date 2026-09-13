@@ -1562,12 +1562,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete proof PCM source yield: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == conduit_std_offers::WHISPER_SPEECH_OPERATION {
-                let recognition = whisper_speech_operation::execute(
-                    speech_recognition.as_deref_mut(),
-                    input,
-                    || control.requested_stop().is_some(),
-                );
+            } else if contract.as_str() == conduit_std_offers::WHISPER_SPEECH_OPERATION
+                || contract.as_str() == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION
+            {
+                let recognition =
+                    if contract.as_str() == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION {
+                        whisper_speech_operation::execute_clip(
+                            speech_recognition.as_deref_mut(),
+                            input,
+                            || control.requested_stop().is_some(),
+                        )
+                    } else {
+                        whisper_speech_operation::execute(
+                            speech_recognition.as_deref_mut(),
+                            input,
+                            || control.requested_stop().is_some(),
+                        )
+                    };
                 let outcome = match recognition {
                     Ok(encoded) => {
                         let value = scheduler
@@ -2456,6 +2467,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .find(|placement| {
                         placement.implementation_id.as_str()
                             == conduit_std_offers::WHISPER_SPEECH_IMPLEMENTATION
+                            || placement.implementation_id.as_str()
+                                == conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION
                     })
                     .ok_or_else(|| "Whisper receipt has no exact planned placement".to_string())?;
                 vec![crate::SpeechRecognitionExecutionReceipt {

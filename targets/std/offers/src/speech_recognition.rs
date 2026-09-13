@@ -10,6 +10,10 @@ pub const WHISPER_SPEECH_IMPLEMENTATION: &str = "std/hosted-whisper-speech@1";
 pub const WHISPER_SPEECH_ARTIFACT: &str = "conduit-std-host/whisper-speech@1";
 pub const WHISPER_SPEECH_OPERATION: &str = "conduit.host/whisper-speech-recognize@1";
 pub const WHISPER_PROCESS_RESOURCE_CLASS: &str = "conduit.resource/whisper-process-slot@1";
+pub const WHISPER_CLIP_SPEECH_PROFILE: &str = "std/whisper-clip-s16le-16000-mono@1";
+pub const WHISPER_CLIP_SPEECH_IMPLEMENTATION: &str = "std/hosted-whisper-clip-speech@1";
+pub const WHISPER_CLIP_SPEECH_ARTIFACT: &str = "conduit-std-host/whisper-clip-speech@1";
+pub const WHISPER_CLIP_SPEECH_OPERATION: &str = "conduit.host/whisper-clip-speech-recognize@1";
 
 pub fn whisper_speech_offer() -> CapabilityOffer {
     let contract = conduit_tongues::speech_recognition_contract();
@@ -31,6 +35,34 @@ pub fn whisper_speech_offer() -> CapabilityOffer {
             target_kind: Some(kind_id(conduit_tongues::SPEECH_RECOGNITION_RESULT_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
+            maximum_output_bytes: conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
+        }],
+        resource_requirements: vec![resource_requirement(WHISPER_PROCESS_RESOURCE_CLASS, 1)],
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    }
+}
+
+pub fn whisper_clip_speech_offer() -> CapabilityOffer {
+    let contract = conduit_tongues::speech_clip_recognition_contract();
+    CapabilityOffer {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: CapabilityId::from("speech-recognize-clip-whisper-s16le-16000-mono"),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(WHISPER_CLIP_SPEECH_PROFILE),
+            implementation_id: ImplementationId::from(WHISPER_CLIP_SPEECH_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(WHISPER_CLIP_SPEECH_ARTIFACT),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(WHISPER_CLIP_SPEECH_OPERATION),
+            target_kind: Some(kind_id(conduit_tongues::SPEECH_RECOGNITION_RESULT_KIND)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
             maximum_output_bytes: conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
         }],
         resource_requirements: vec![resource_requirement(WHISPER_PROCESS_RESOURCE_CLASS, 1)],
@@ -97,5 +129,20 @@ mod tests {
         assert_eq!(offer.limits, contract.limits);
         assert_eq!(offer.resource_requirements.len(), 1);
         assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
+    }
+
+    #[test]
+    fn whisper_clip_offer_preserves_the_distinct_bounded_clip_contract() {
+        let offer = whisper_clip_speech_offer();
+        let contract = conduit_tongues::speech_clip_recognition_contract();
+        assert_eq!(offer.kind_id, contract.kind_id);
+        assert_eq!(offer.inputs, contract.inputs);
+        assert_eq!(offer.outputs, contract.outputs);
+        assert_eq!(offer.limits, contract.limits);
+        assert_eq!(offer.resource_requirements.len(), 1);
+        assert_eq!(
+            offer.host_operations[0].maximum_input_bytes,
+            conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+        );
     }
 }
