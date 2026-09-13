@@ -1,22 +1,17 @@
 //! Exact local Piper discovery and bounded streaming synthesis.
 
-use conduit_audio::{
-    PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, PCM_FRAME_HEADER_ENCODED_LEN,
-};
+use super::{session::PiperSession, PiperSynthesisStep};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::fs::File;
-use std::io::{ErrorKind, Read, Write};
-use std::os::fd::AsRawFd;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 const MAXIMUM_EXECUTABLE_BYTES: u64 = 32 * 1024 * 1024;
 const MAXIMUM_MODEL_BYTES: u64 = 256 * 1024 * 1024;
 const MAXIMUM_CONFIG_BYTES: u64 = 64 * 1024;
-const MAXIMUM_DIAGNOSTIC_BYTES: usize = 4 * 1024;
-const PIPER_CLOCK_ID: u64 = 0x5049_5045_5201;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PiperLimits {
@@ -71,6 +66,8 @@ pub enum PiperFailure {
     Cancelled,
     ProviderLost,
     ConsumerPressure,
+    ProviderBusy,
+    NoActiveSynthesis,
 }
 
 impl core::fmt::Display for PiperFailure {
@@ -93,9 +90,7 @@ pub struct PiperSynthesisReceipt {
 pub struct PiperSpeechAdapter {
     discovery: PiperDiscovery,
     limits: PiperLimits,
-    raw: Vec<u8>,
-    encoded: Vec<u8>,
-    diagnostics: Vec<u8>,
+    session: PiperSession,
 }
 
 impl PiperDiscovery {
@@ -139,13 +134,11 @@ impl PiperDiscovery {
 
     pub fn initialize(self, limits: PiperLimits) -> Result<PiperSpeechAdapter, PiperFailure> {
         let limits = limits.validate()?;
-        let block_bytes = usize::from(conduit_std_offers::PIPER_FRAMES_PER_BLOCK) * 2;
+        let sample_rate_hz = self.sample_rate_hz;
         Ok(PiperSpeechAdapter {
             discovery: self,
             limits,
-            raw: Vec::with_capacity(block_bytes * 2),
-            encoded: Vec::with_capacity(PCM_FRAME_HEADER_ENCODED_LEN + block_bytes),
-            diagnostics: Vec::with_capacity(MAXIMUM_DIAGNOSTIC_BYTES),
+            session: PiperSession::new(limits, sample_rate_hz),
         })
     }
 }
@@ -165,88 +158,47 @@ impl PiperSpeechAdapter {
         mut cancelled: impl FnMut() -> bool,
         mut consume: impl FnMut(&[u8]) -> Result<(), ()>,
     ) -> Result<PiperSynthesisReceipt, PiperFailure> {
+        self.begin(text)?;
+        loop {
+            match self.next(&mut cancelled) {
+                Ok(PiperSynthesisStep::Block(block)) => {
+                    if consume(block).is_err() {
+                        self.abort();
+                        return Err(PiperFailure::ConsumerPressure);
+                    }
+                }
+                Ok(PiperSynthesisStep::Complete(receipt)) => return Ok(receipt),
+                Err(failure) => {
+                    self.abort();
+                    return Err(failure);
+                }
+            }
+        }
+    }
+
+    pub fn begin(&mut self, text: &str) -> Result<(), PiperFailure> {
+        if self.session.is_active() {
+            return Err(PiperFailure::ProviderBusy);
+        }
         if text.is_empty() {
             return Err(PiperFailure::EmptyText);
         }
         if text.len() > self.limits.maximum_text_bytes as usize {
             return Err(PiperFailure::TextOverflow);
         }
-        self.raw.clear();
-        self.encoded.clear();
-        self.diagnostics.clear();
-        let mut child = PiperChild(self.spawn()?);
-        let mut stdin = child.0.stdin.take().ok_or(PiperFailure::SpawnFailed)?;
-        stdin
-            .write_all(text.as_bytes())
-            .and_then(|()| stdin.write_all(b"\n"))
-            .map_err(|_| PiperFailure::WriteFailed)?;
-        drop(stdin);
-        let mut stdout = child.0.stdout.take().ok_or(PiperFailure::SpawnFailed)?;
-        let mut stderr = child.0.stderr.take().ok_or(PiperFailure::SpawnFailed)?;
-        nonblocking(stdout.as_raw_fd())?;
-        nonblocking(stderr.as_raw_fd())?;
+        let child = self.spawn()?;
+        self.session.begin(child, text)
+    }
 
-        let started = Instant::now();
-        let mut frames = 0_u32;
-        let mut blocks = 0_u16;
-        let mut pcm_digest = Sha256::new();
-        let mut stdout_closed = false;
-        let mut stderr_closed = false;
-        loop {
-            if cancelled() {
-                return Err(PiperFailure::Cancelled);
-            }
-            if started.elapsed() >= self.limits.timeout {
-                return Err(PiperFailure::Timeout);
-            }
-            stdout_closed |= self.read_pcm(
-                &mut stdout,
-                &mut frames,
-                &mut blocks,
-                &mut pcm_digest,
-                &mut consume,
-            )?;
-            stderr_closed |= read_diagnostics(&mut stderr, &mut self.diagnostics)?;
-            if let Some(status) = child.0.try_wait().map_err(|_| PiperFailure::ProviderLost)? {
-                while !stdout_closed {
-                    stdout_closed |= self.read_pcm(
-                        &mut stdout,
-                        &mut frames,
-                        &mut blocks,
-                        &mut pcm_digest,
-                        &mut consume,
-                    )?;
-                }
-                while !stderr_closed {
-                    stderr_closed |= read_diagnostics(&mut stderr, &mut self.diagnostics)?;
-                }
-                if !status.success() {
-                    return Err(PiperFailure::ProviderLost);
-                }
-                if !self.raw.is_empty() {
-                    let remaining = self.raw.len();
-                    self.emit(
-                        remaining,
-                        &mut frames,
-                        &mut blocks,
-                        &mut pcm_digest,
-                        &mut consume,
-                    )?;
-                }
-                break;
-            }
-            std::thread::sleep(Duration::from_millis(1));
-        }
-        if !self.raw.is_empty() || frames == 0 {
-            return Err(PiperFailure::MalformedPcm);
-        }
-        Ok(PiperSynthesisReceipt {
-            text_sha256: format!("{:x}", Sha256::digest(text.as_bytes())),
-            pcm_sha256: format!("{:x}", pcm_digest.finalize()),
-            frames,
-            blocks,
-            diagnostic_bytes: self.diagnostics.len() as u16,
-        })
+    pub fn next(
+        &mut self,
+        cancelled: impl FnMut() -> bool,
+    ) -> Result<PiperSynthesisStep<'_>, PiperFailure> {
+        self.session.next(cancelled)
+    }
+
+    pub fn abort(&mut self) {
+        self.session.abort();
     }
 
     fn spawn(&self) -> Result<Child, PiperFailure> {
@@ -264,77 +216,6 @@ impl PiperSpeechAdapter {
             command.env("LD_LIBRARY_PATH", path);
         }
         command.spawn().map_err(|_| PiperFailure::SpawnFailed)
-    }
-
-    fn read_pcm(
-        &mut self,
-        stdout: &mut impl Read,
-        frames: &mut u32,
-        blocks: &mut u16,
-        digest: &mut Sha256,
-        consume: &mut impl FnMut(&[u8]) -> Result<(), ()>,
-    ) -> Result<bool, PiperFailure> {
-        let maximum = usize::from(conduit_std_offers::PIPER_FRAMES_PER_BLOCK) * 2;
-        let mut chunk = [0_u8; 4_096];
-        match stdout.read(&mut chunk) {
-            Ok(0) => return Ok(true),
-            Ok(read) => self.raw.extend_from_slice(&chunk[..read]),
-            Err(error) if error.kind() == ErrorKind::WouldBlock => return Ok(false),
-            Err(_) => return Err(PiperFailure::ReadFailed),
-        }
-        while self.raw.len() >= maximum {
-            self.emit(maximum, frames, blocks, digest, consume)?;
-        }
-        Ok(false)
-    }
-
-    fn emit(
-        &mut self,
-        bytes: usize,
-        frames: &mut u32,
-        blocks: &mut u16,
-        digest: &mut Sha256,
-        consume: &mut impl FnMut(&[u8]) -> Result<(), ()>,
-    ) -> Result<(), PiperFailure> {
-        if bytes == 0 || !bytes.is_multiple_of(2) {
-            return Err(PiperFailure::MalformedPcm);
-        }
-        let block_frames = u32::try_from(bytes / 2).map_err(|_| PiperFailure::OutputOverflow)?;
-        let next_frames = frames
-            .checked_add(block_frames)
-            .filter(|value| *value <= self.limits.maximum_frames)
-            .ok_or(PiperFailure::OutputOverflow)?;
-        let next_blocks = blocks
-            .checked_add(1)
-            .filter(|value| *value <= self.limits.maximum_blocks)
-            .ok_or(PiperFailure::BlockOverflow)?;
-        let payload = &self.raw[..bytes];
-        digest.update(payload);
-        let header = PcmFrameHeader::new(
-            PcmSampleRepresentation::Signed16LittleEndian,
-            self.discovery.sample_rate_hz,
-            PcmChannelLayout::Mono,
-            u16::try_from(block_frames).map_err(|_| PiperFailure::BlockOverflow)?,
-            PIPER_CLOCK_ID,
-            u64::from(*frames),
-            false,
-        )
-        .map_err(|_| PiperFailure::MalformedPcm)?;
-        self.encoded.clear();
-        self.encoded.extend_from_slice(&header.encode());
-        self.encoded.extend_from_slice(payload);
-        consume(&self.encoded).map_err(|_| PiperFailure::ConsumerPressure)?;
-        self.raw.drain(..bytes);
-        *frames = next_frames;
-        *blocks = next_blocks;
-        Ok(())
-    }
-}
-
-impl Drop for PiperSpeechAdapter {
-    fn drop(&mut self) {
-        self.raw.fill(0);
-        self.encoded.fill(0);
     }
 }
 
@@ -390,41 +271,6 @@ fn digest_file(path: &Path) -> Result<String, PiperFailure> {
         digest.update(&bytes[..read]);
     }
     Ok(format!("{:x}", digest.finalize()))
-}
-
-fn nonblocking(descriptor: i32) -> Result<(), PiperFailure> {
-    let flags = unsafe { libc::fcntl(descriptor, libc::F_GETFL) };
-    if flags < 0 || unsafe { libc::fcntl(descriptor, libc::F_SETFL, flags | libc::O_NONBLOCK) } != 0
-    {
-        return Err(PiperFailure::InvalidProvider);
-    }
-    Ok(())
-}
-
-fn read_diagnostics(
-    stderr: &mut impl Read,
-    diagnostics: &mut Vec<u8>,
-) -> Result<bool, PiperFailure> {
-    let mut chunk = [0_u8; 1_024];
-    match stderr.read(&mut chunk) {
-        Ok(0) => Ok(true),
-        Ok(read) => {
-            let remaining = MAXIMUM_DIAGNOSTIC_BYTES.saturating_sub(diagnostics.len());
-            diagnostics.extend_from_slice(&chunk[..read.min(remaining)]);
-            Ok(false)
-        }
-        Err(error) if error.kind() == ErrorKind::WouldBlock => Ok(false),
-        Err(_) => Err(PiperFailure::ReadFailed),
-    }
-}
-
-struct PiperChild(Child);
-
-impl Drop for PiperChild {
-    fn drop(&mut self) {
-        let _ = self.0.kill();
-        let _ = self.0.wait();
-    }
 }
 
 #[cfg(test)]

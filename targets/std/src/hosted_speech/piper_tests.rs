@@ -1,4 +1,5 @@
 use super::*;
+use conduit_audio::{PcmChannelLayout, PcmFrameHeader};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 
@@ -98,6 +99,48 @@ fn provider_receives_end_of_text_before_output_is_polled() {
     let mut adapter = fixture.adapter(8);
     let receipt = adapter.synthesize("Rosehip", || false, |_| Ok(())).unwrap();
     assert_eq!(receipt.frames, 1);
+}
+
+#[test]
+fn resumable_session_exposes_one_block_per_pull_and_can_abort() {
+    let fixture =
+        Fixture::new("#!/bin/sh\ncat >/dev/null\ndd if=/dev/zero bs=1 count=8132 2>/dev/null\n");
+    let mut adapter = fixture.adapter(4_066);
+
+    adapter.begin("Rosehip").unwrap();
+    assert_eq!(
+        adapter.begin("another utterance"),
+        Err(PiperFailure::ProviderBusy)
+    );
+    let first = match adapter.next(|| false).unwrap() {
+        PiperSynthesisStep::Block(block) => {
+            let (header, payload) = PcmFrameHeader::decode_frame(block).unwrap();
+            assert_eq!(header.start_frame, 0);
+            assert_eq!(header.frame_count, 2_033);
+            payload.len()
+        }
+        PiperSynthesisStep::Complete(_) => panic!("completed before yielding the first block"),
+    };
+    assert_eq!(first, 4_066);
+    match adapter.next(|| false).unwrap() {
+        PiperSynthesisStep::Block(block) => {
+            let (header, payload) = PcmFrameHeader::decode_frame(block).unwrap();
+            assert_eq!(header.start_frame, 2_033);
+            assert_eq!(payload.len(), 4_066);
+        }
+        PiperSynthesisStep::Complete(_) => panic!("completed before yielding the second block"),
+    }
+    let receipt = match adapter.next(|| false).unwrap() {
+        PiperSynthesisStep::Complete(receipt) => receipt,
+        PiperSynthesisStep::Block(_) => panic!("yielded an unexpected third block"),
+    };
+    assert_eq!((receipt.frames, receipt.blocks), (4_066, 2));
+
+    adapter.begin("restart").unwrap();
+    adapter.abort();
+    assert_eq!(adapter.next(|| false), Err(PiperFailure::NoActiveSynthesis));
+    adapter.begin("after abort").unwrap();
+    adapter.abort();
 }
 
 #[test]
