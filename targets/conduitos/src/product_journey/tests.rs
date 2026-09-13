@@ -237,7 +237,7 @@ fn missing_current_keyboard_offer_refuses_plan_before_kernel_admission() {
 }
 
 #[test]
-fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
+fn device_and_line_loss_remain_distinct_from_an_explicit_stop() {
     let (identities, offer, mut journey) = fixture();
     for action in [
         JourneyAction::OpenBack,
@@ -247,14 +247,21 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
     ] {
         invoke(&mut journey, action, &identities, &offer).unwrap();
     }
-    journey.input_lost().unwrap();
-    assert_eq!(journey.status(), JourneyStatus::Stopped);
+    journey.input_lost(JourneyLossKind::InputDevice).unwrap();
+    assert_eq!(journey.status(), JourneyStatus::InputUnavailable);
+    let device_loss = journey.projection();
+    assert_eq!(device_loss.loss_kind, Some(JourneyLossKind::InputDevice));
+    assert!(device_loss.loss_sign_id.is_some());
     assert!(journey.projection().active_play_id.is_none() && journey.projection().result.is_none());
 
     let (identities, offer, mut journey) = fixture();
     reach_quiescence(&mut journey, &identities, &offer);
-    journey.input_lost().unwrap();
-    assert_eq!(journey.status(), JourneyStatus::Stopped);
+    journey.input_lost(JourneyLossKind::Line).unwrap();
+    assert_eq!(journey.status(), JourneyStatus::InputUnavailable);
+    let line_loss = journey.projection();
+    assert_eq!(line_loss.loss_kind, Some(JourneyLossKind::Line));
+    assert_ne!(line_loss.loss_sign_id, device_loss.loss_sign_id);
+    assert!(line_loss.active_play_id.is_none());
     assert!(
         !journey
             .accept_play_input(key(4, KeyTransition::Pressed))
@@ -264,6 +271,8 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
     let (identities, offer, mut journey) = fixture();
     reach_quiescence(&mut journey, &identities, &offer);
     invoke(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
+    assert_eq!(journey.status(), JourneyStatus::Stopped);
+    assert!(journey.projection().loss_kind.is_none());
     assert!(
         !journey
             .accept_play_input(key(4, KeyTransition::Pressed))
@@ -308,12 +317,19 @@ fn long_session_keeps_one_body_plan_play_and_discloses_bounded_history() {
                     ))
         }));
         if device_lost {
-            journey.input_lost().unwrap();
+            journey.input_lost(JourneyLossKind::InputDevice).unwrap();
         } else {
             invoke(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
         }
         let stopped = journey.projection();
-        assert_eq!(stopped.status, JourneyStatus::Stopped);
+        assert_eq!(
+            stopped.status,
+            if device_lost {
+                JourneyStatus::InputUnavailable
+            } else {
+                JourneyStatus::Stopped
+            }
+        );
         assert!(stopped.kernel_sign_gap.unwrap().entries >= gap.entries);
         assert_eq!(stopped.result_omitted_bytes, 896);
         assert!(

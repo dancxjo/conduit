@@ -64,6 +64,10 @@ pub(super) fn scene(
         JourneyStatus::Planned => "Form ready. Starting its Play...",
         JourneyStatus::QuiescentAwaitingInput => "Quiescent. Type to continue this Play.",
         JourneyStatus::SemanticCompleted => "Play semantically completed. Your result is below.",
+        JourneyStatus::InputUnavailable => journey
+            .loss_kind
+            .map(|kind| kind.recovery())
+            .unwrap_or("Input unavailable. Inspect details before recovery."),
         JourneyStatus::Stopped => "Play stopped.",
         JourneyStatus::Lulled => "Body lulled. Its Form remains included.",
         _ => "Preparing your Body...",
@@ -111,7 +115,9 @@ pub(super) fn scene(
     let footer_y = i16::try_from(screen.height.saturating_sub(48)).map_err(|_| Error::Scene)?;
     let lifecycle_action = match journey.status {
         JourneyStatus::QuiescentAwaitingInput => "  ·  F8 Stop  ·  F7 Lull",
-        JourneyStatus::Stopped | JourneyStatus::SemanticCompleted => "  ·  F7 Lull",
+        JourneyStatus::InputUnavailable
+        | JourneyStatus::Stopped
+        | JourneyStatus::SemanticCompleted => "  ·  F7 Lull",
         _ => "",
     };
     text(
