@@ -33,7 +33,7 @@ impl TestSpeechSinkOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if value.byte_len <= conduit_std_offers::PIPER_PCM_BLOCK_BYTES
+            } if value.byte_len <= conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES
                 && self.blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS =>
             {
                 self.blocks += 1;
@@ -120,7 +120,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes: 0,
         host_requests: 0,
         sign_items: 16,
-        maximum_value_bytes: conduit_std_offers::PIPER_PCM_BLOCK_BYTES,
+        maximum_value_bytes: conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
     })
 }
 

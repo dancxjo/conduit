@@ -6,18 +6,19 @@ use conduit_core::{
     ImplementationOffer,
 };
 
-pub const PIPER_SPEECH_PROFILE: &str = "std/piper-s16le-22050-mono-p113@1";
+pub const PIPER_SPEECH_PROFILE: &str = "std/piper-s16le-22050-mono-p25@1";
 pub const PIPER_SPEECH_IMPLEMENTATION: &str = "std/hosted-piper-speech@1";
 pub const PIPER_SPEECH_ARTIFACT: &str = "conduit-std-host/piper-speech@1";
 pub const PIPER_SPEECH_OPERATION: &str = "conduit.host/piper-speech-next@1";
 pub const PIPER_PROCESS_RESOURCE_CLASS: &str = "conduit.resource/piper-process-slot@1";
-pub const DETERMINISTIC_SPEECH_PROFILE: &str = "conduit-proof/speech-s16le-22050-mono-p113@1";
+pub const DETERMINISTIC_SPEECH_PROFILE: &str = "conduit-proof/speech-s16le-22050-mono-p25@1";
 pub const DETERMINISTIC_SPEECH_IMPLEMENTATION: &str = "conduit-proof/deterministic-speech@1";
 pub const DETERMINISTIC_SPEECH_ARTIFACT: &str = "conduit-std-host/proof-deterministic-speech@1";
-pub const PIPER_FRAMES_PER_BLOCK: u16 = 113;
+pub const PIPER_FRAMES_PER_BLOCK: u16 = 25;
+pub const PIPER_MAXIMUM_FRAMES: u32 = conduit_tongues::MAXIMUM_PCM_BYTES / 2;
 pub const PIPER_PCM_BLOCK_BYTES: u32 =
     conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32 + PIPER_FRAMES_PER_BLOCK as u32 * 2;
-pub const PIPER_MAXIMUM_BLOCKS: u16 = 145;
+pub const PIPER_MAXIMUM_BLOCKS: u16 = 656;
 
 pub fn piper_speech_offer() -> CapabilityOffer {
     speech_offer(

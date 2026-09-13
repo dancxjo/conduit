@@ -166,7 +166,7 @@ fn initialized_piper_runs_the_unchanged_form_through_ordinary_plan_and_play() {
         conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION
     );
     assert_eq!(speech.model_sha256, expected_model_sha256);
-    assert_eq!((speech.frames, speech.blocks), (339, 3));
+    assert_eq!((speech.frames, speech.blocks), (339, 14));
     assert_eq!(speech.text_sha256.len(), 64);
     assert_eq!(speech.pcm_sha256.len(), 64);
     let kernel = report.kernel.as_ref().unwrap();

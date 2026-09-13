@@ -126,6 +126,65 @@ fn exact_grant_and_resource_run_bounded_specimen_through_production_kernel() {
 }
 
 #[test]
+fn speech_conversion_feeds_the_selected_playback_base_through_plan_and_play() {
+    let mut catalog = crate::installed_std::test_catalog();
+    let mut startup = catalog.startup_catalog().unwrap();
+    conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut catalog).unwrap();
+    let form = conduit_form::parse(
+        "form spoken_audio {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n output: audio/play\n \"Rosehip\" > synthesize.text\n synthesize.audio > convert.audio\n convert.converted > output.audio\n}\n",
+        &catalog,
+    )
+    .unwrap();
+    let mut host = host(FakePlaybackBehavior::Success);
+    let advertisements = [host.advertisement().clone()];
+    let grant = host
+        .playback_authority_grant("grant/converted-speech-playback")
+        .unwrap();
+    let playback = host.playback.as_ref().unwrap();
+    let realization = playback.realization_advertisement(host.advertisement().host_id.clone());
+    let observation = playback.resource_observation(
+        host.advertisement().host_id.clone(),
+        conduit_core::SignId::from("sign/converted-speech-playback-ready"),
+    );
+    let plan = conduit_planner::plan_selected_realizations_with_characteristics_and_authority(
+        &form,
+        conduit_planner::SelectedRealizationPlanning {
+            hosts: &advertisements,
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
+            requirements: &BTreeMap::new(),
+            advertisements: &[realization],
+            observations: &[observation],
+            policies: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
+            authority_grants: &[grant],
+        },
+    )
+    .unwrap();
+
+    let report = host
+        .run_fragment_to(
+            plan.fragments[0].clone(),
+            &mut Vec::with_capacity(2_048),
+            &mut RecordingTimer { waits: Vec::new() },
+        )
+        .unwrap();
+    assert!(matches!(
+        report.observations.last().map(|item| &item.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+    let kernel = report.kernel.unwrap();
+    let playback = &kernel.playback[0];
+    assert_eq!(playback.lifecycle, PlaybackLifecycle::StoppedClosed);
+    assert_eq!(playback.metrics.blocks_committed, 3);
+    assert_eq!(playback.metrics.frames_committed, 27);
+    assert_eq!(playback.metrics.underruns, 0);
+    assert_eq!(kernel.post_play_start_allocations, 0);
+}
+
+#[test]
 fn discovery_offer_without_independent_authority_refuses_planning() {
     let host = host(FakePlaybackBehavior::Success);
     let error = fragment(&host, false).unwrap_err();

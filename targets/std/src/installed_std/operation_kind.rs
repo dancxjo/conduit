@@ -32,6 +32,7 @@ use super::model_text_operation::ModelTextOperation;
 use super::navigation_operations::NavigationOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
 use super::pattern_comparison_operation::PatternComparisonOperation;
+use super::pcm_profile_conversion_operation::PcmProfileConversionOperation;
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
@@ -142,6 +143,7 @@ pub(super) enum InstalledOperation {
     SpeechSynthesis(SpeechSynthesisOperation),
     AudioRenderDemand(AudioRenderDemandOperation),
     AudioPlay(AudioPlayOperation),
+    PcmProfileConversion(PcmProfileConversionOperation),
     MidiOutput(MidiOutputOperation),
     MidiInput(Box<MidiInputOperation>),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
