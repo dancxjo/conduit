@@ -32,7 +32,7 @@ fn runtime(body: &BodyId, name: &str, boot: &str) -> CurrentPartRuntime {
 }
 
 #[test]
-fn body_survives_attrition_reboot_and_replacement_until_final_part_loss() {
+fn offline_revocation_and_extinction_are_separate_continuity_facts() {
     let body = body_id("body");
     let mut continuity =
         DurableBodyContinuity::establish(claim(&body, "a", 1), runtime(&body, "a", "boot-a"), 4)
@@ -43,11 +43,15 @@ fn body_survives_attrition_reboot_and_replacement_until_final_part_loss() {
     continuity
         .admit(claim(&body, "c", 1), runtime(&body, "c", "boot-c"))
         .unwrap();
-    continuity.lose_part(&part(&body, "a")).unwrap();
+    continuity.observe_offline(&part(&body, "a")).unwrap();
+    assert_eq!(continuity.current_parts(), 2);
+    assert_eq!(continuity.admitted_parts(), 3);
+    assert!(continuity.is_continuing());
+    continuity.revoke_part(&part(&body, "a")).unwrap();
     continuity
         .reboot(&part(&body, "b"), BootId::new("boot-b2"))
         .unwrap();
-    continuity.lose_part(&part(&body, "c")).unwrap();
+    continuity.revoke_part(&part(&body, "c")).unwrap();
     assert!(continuity.is_continuing());
     assert_eq!(continuity.body_id, body);
     continuity
@@ -57,8 +61,15 @@ fn body_survives_attrition_reboot_and_replacement_until_final_part_loss() {
         )
         .unwrap();
     assert_eq!(continuity.current_parts(), 2);
-    continuity.lose_part(&part(&body, "b")).unwrap();
-    continuity.lose_part(&part(&body, "replacement")).unwrap();
+    continuity.revoke_part(&part(&body, "b")).unwrap();
+    assert_eq!(
+        continuity.declare_extinct(),
+        Err(BodyContinuityRefusal::PartsRemain)
+    );
+    continuity.revoke_part(&part(&body, "replacement")).unwrap();
+    assert!(continuity.is_continuing());
+    assert!(!continuity.is_extinct());
+    continuity.declare_extinct().unwrap();
     assert!(!continuity.is_continuing());
     assert_eq!(
         continuity.admit(
