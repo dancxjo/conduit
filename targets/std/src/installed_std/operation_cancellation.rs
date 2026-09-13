@@ -61,6 +61,7 @@ impl InstalledOperation {
             Self::RoboticsSource(operation) => operation.cancel(),
             Self::RoboticsDrive(operation) => operation.cancel(),
             Self::MusicSynth(operation) => operation.cancel(),
+            Self::SpeechSynthesis(operation) => operation.cancel(),
             Self::AudioRenderDemand(operation) => operation.cancel(),
             Self::AudioPlay(operation) => operation.cancel(),
             Self::MidiOutput(operation) => operation.cancel(),
@@ -97,6 +98,8 @@ impl InstalledOperation {
             #[cfg(test)]
             Self::TestRecurrenceSink(_) => {}
             Self::TestPcmSource(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestSpeechSink(_) => {}
             #[cfg(test)]
             Self::TestJsonSource(_) => {}
             #[cfg(test)]

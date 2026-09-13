@@ -136,7 +136,7 @@ enum HostCommand {
         text: String,
         #[arg(long, default_value_t = 1_323_000)]
         maximum_frames: u32,
-        #[arg(long, default_value_t = 647)]
+        #[arg(long, default_value_t = 651)]
         maximum_blocks: u16,
         #[arg(long, default_value_t = 30)]
         timeout_seconds: u64,

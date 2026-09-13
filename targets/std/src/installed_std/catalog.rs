@@ -77,6 +77,9 @@ use super::robotics_operations::{
     ROBOTICS_OBSERVE_RANGE_FACTORY, ROBOTICS_VELOCITY_INTENT_FACTORY,
 };
 use super::sequence_normalization_operation::FACTORY as SEQUENCE_NORMALIZATION_FACTORY;
+#[cfg(test)]
+use super::speech_synthesis_operation::DETERMINISTIC_FACTORY as DETERMINISTIC_SPEECH_FACTORY;
+use super::speech_synthesis_operation::FACTORY as SPEECH_SYNTHESIS_FACTORY;
 use super::state_select_operation::STATE_SELECT_SCALAR_FACTORY;
 use super::structured_selector_operation::FACTORY as STRUCTURED_SELECTOR_FACTORY;
 use super::structured_values_operation::{
@@ -104,6 +107,8 @@ use super::test_recurrence_sink::FACTORY as TEST_RECURRENCE_SINK_FACTORY;
 use super::test_scalar_flow::{
     TEST_SCALAR_LITERAL_FACTORY, TEST_SCALAR_SINK_FACTORY, TEST_SCALAR_SOURCE_FACTORY,
 };
+#[cfg(test)]
+use super::test_speech_sink::FACTORY as TEST_SPEECH_SINK_FACTORY;
 #[cfg(test)]
 use super::test_structured_selector::{
     SINK_FACTORY as TEST_STRUCTURED_SINK_FACTORY, SOURCE_FACTORY as TEST_STRUCTURED_SOURCE_FACTORY,
@@ -233,6 +238,9 @@ const FACTORIES: &[&InstalledFactory] = &[
     &ROBOTICS_VELOCITY_INTENT_FACTORY,
     &ROBOTICS_DRIVE_DIFFERENTIAL_FACTORY,
     &MUSIC_SYNTH_FACTORY,
+    &SPEECH_SYNTHESIS_FACTORY,
+    #[cfg(test)]
+    &DETERMINISTIC_SPEECH_FACTORY,
     &AUDIO_RENDER_DEMAND_FACTORY,
     &AUDIO_PLAY_FACTORY,
     &MIDI_OUTPUT_FACTORY,
@@ -269,6 +277,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     #[cfg(test)]
     &TEST_RECURRENCE_SINK_FACTORY,
     &TEST_PCM_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_SPEECH_SINK_FACTORY,
     #[cfg(test)]
     &TEST_SCALAR_SOURCE_FACTORY,
     #[cfg(test)]

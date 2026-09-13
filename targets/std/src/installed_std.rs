@@ -83,6 +83,7 @@ mod robotics_effect;
 mod robotics_operations;
 mod sequence_normalization_operation;
 mod simple_presentation_host;
+mod speech_synthesis_operation;
 mod state_select_operation;
 mod structured_presentation_host;
 mod structured_selector_operation;
@@ -108,6 +109,8 @@ mod test_midi_source;
 mod test_recurrence_sink;
 #[cfg(test)]
 mod test_scalar_flow;
+#[cfg(test)]
+mod test_speech_sink;
 #[cfg(test)]
 pub(super) mod test_structured_selector;
 #[cfg(test)]
@@ -424,6 +427,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut address_detect_hosts = address_detect_operation::prepare_hosts(fragment);
     #[cfg(any(test, feature = "local-model-proof"))]
     let mut recorded_speech_hosts = recorded_speech_operation::prepare_hosts(fragment)?;
+    #[cfg(test)]
+    let mut speech_synthesis_hosts = speech_synthesis_operation::prepare_fake_hosts(fragment)?;
     let mut house_prompt_hosts = house_prompt_operation::prepare_hosts(fragment);
     let mut navigation_hosts = navigation_operations::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
@@ -1540,6 +1545,46 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 }
                 #[cfg(not(any(test, feature = "local-model-proof")))]
                 return Err("proof-only recorded-speech contract is unavailable".into());
+            } else if contract.as_str() == conduit_std_offers::PIPER_SPEECH_OPERATION {
+                #[cfg(test)]
+                {
+                    let block = speech_synthesis_hosts
+                        .get_mut(usize::from(request.node.0))
+                        .and_then(Option::as_mut)
+                        .ok_or_else(|| {
+                            "speech request has no admitted deterministic provider".to_string()
+                        })?
+                        .execute(input)?;
+                    let output = block
+                        .map(|block| {
+                            let value = scheduler.store_host_value(block).map_err(|error| {
+                                format!("store deterministic speech block: {error:?}")
+                            })?;
+                            BoundedValueRef::new(
+                                value,
+                                lowered_operation.binding.maximum_output_bytes,
+                            )
+                            .map_err(|error| format!("bound deterministic speech block: {error:?}"))
+                        })
+                        .transpose()?;
+                    record_request(&mut requests, request);
+                    scheduler
+                        .complete_host_operation(
+                            request.node,
+                            request.request,
+                            HostOperationOutcome {
+                                disposition: HostOperationDisposition::Completed,
+                                output,
+                                failure: None,
+                            },
+                        )
+                        .map_err(|error| {
+                            format!("complete deterministic speech operation: {error:?}")
+                        })?;
+                    continue;
+                }
+                #[cfg(not(test))]
+                return Err("Piper speech provider is unavailable".into());
             } else if contract.as_str() == conduit_std_offers::RECOGNITION_TO_TEXT_OPERATION {
                 let (disposition, output) = match conduit_tongues::project_recognized_text(input) {
                     Ok(text) => {

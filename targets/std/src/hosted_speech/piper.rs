@@ -1,8 +1,7 @@
 //! Exact local Piper discovery and bounded streaming synthesis.
 
 use conduit_audio::{
-    PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, MAXIMUM_PCM_FRAMES_PER_BLOCK,
-    PCM_FRAME_HEADER_ENCODED_LEN,
+    PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, PCM_FRAME_HEADER_ENCODED_LEN,
 };
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -29,7 +28,7 @@ pub struct PiperLimits {
 
 impl PiperLimits {
     pub fn validate(self) -> Result<Self, PiperFailure> {
-        let block_frames = u32::from(MAXIMUM_PCM_FRAMES_PER_BLOCK);
+        let block_frames = u32::from(conduit_std_offers::PIPER_FRAMES_PER_BLOCK);
         if self.maximum_text_bytes == 0
             || self.maximum_frames == 0
             || self.maximum_blocks == 0
@@ -140,7 +139,7 @@ impl PiperDiscovery {
 
     pub fn initialize(self, limits: PiperLimits) -> Result<PiperSpeechAdapter, PiperFailure> {
         let limits = limits.validate()?;
-        let block_bytes = usize::from(MAXIMUM_PCM_FRAMES_PER_BLOCK) * 2;
+        let block_bytes = usize::from(conduit_std_offers::PIPER_FRAMES_PER_BLOCK) * 2;
         Ok(PiperSpeechAdapter {
             discovery: self,
             limits,
@@ -275,7 +274,7 @@ impl PiperSpeechAdapter {
         digest: &mut Sha256,
         consume: &mut impl FnMut(&[u8]) -> Result<(), ()>,
     ) -> Result<bool, PiperFailure> {
-        let maximum = usize::from(MAXIMUM_PCM_FRAMES_PER_BLOCK) * 2;
+        let maximum = usize::from(conduit_std_offers::PIPER_FRAMES_PER_BLOCK) * 2;
         let mut chunk = [0_u8; 4_096];
         match stdout.read(&mut chunk) {
             Ok(0) => return Ok(true),
