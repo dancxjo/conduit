@@ -2,7 +2,7 @@
 
 mod arrival;
 mod input_actions;
-use input_actions::{action_for, form_receives_input, tour_action};
+use input_actions::{ProductControl, action_for, product_control, tour_action};
 mod journey_sign;
 mod scroll_input;
 mod tour_sign;
@@ -22,10 +22,12 @@ use crate::{
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::{self, BootIdentities},
     keyboard_input::{self, ProductInputControl, ProductInputEvent},
+    keyboard_text_plan,
     local_rescue::LocalRescueMatcher,
     native_compositor::InputRoute,
     offer::CAPABILITY_COUNT,
     offer_fabrication::ImageBoundHostOffer,
+    product_bases::{EffectFamily, NativeProductBases},
     product_journey::{JourneyStatus, ProductJourney},
     rescue_guest,
     tour_product::TourProduct,
@@ -36,11 +38,8 @@ use tour_sign::emit_tour_sign;
 use transient_sign::{emit_dismissed_transient, emit_shown_transient};
 
 const ENTER: u8 = 40;
-const ESCAPE: u8 = 41;
-const F9: u8 = 66;
 const F10: u8 = 67;
 const F11: u8 = 68;
-const F12: u8 = 69;
 
 #[allow(clippy::too_many_arguments)]
 pub fn run(
@@ -59,12 +58,28 @@ pub fn run(
     mut ps2_input: Option<&mut crate::arch::Ps2Input>,
     rescue_matcher: &mut LocalRescueMatcher,
 ) -> Result<(), &'static str> {
+    let effect_bases = NativeProductBases::observe(offer, framebuffer_basis, usb_line_device)
+        .map_err(|_| "product-base-provider-invalid")?;
+    effect_bases
+        .require(EffectFamily::Framebuffer)
+        .map_err(|_| "product-framebuffer-base-unavailable")?;
+    if hid_session.is_some() || ps2_input.is_some() {
+        effect_bases
+            .require(EffectFamily::Keyboard)
+            .map_err(|_| "product-keyboard-base-unavailable")?;
+    }
+    if pointer_session.is_some() {
+        effect_bases
+            .require(EffectFamily::Pointer)
+            .map_err(|_| "product-pointer-base-unavailable")?;
+    }
     let host_id = conduit_core::HostId::from(identity::hex(&identities.host));
     let boot_id = conduit_core::BootId::from(identity::hex(&identities.boot));
     let generation = conduit_core::OfferGeneration(offer.generation);
     let mut journey = ProductJourney::new(host_id.clone(), boot_id.clone(), generation)
         .map_err(|error| error.as_str())?;
-    let form = journey.form().clone();
+    // The embedded defaults are Crèche inventory, not ProductJourney state.
+    let form = keyboard_text_plan::checked_form_identity().map_err(|error| error.as_str())?;
     let mut front_door = FrontDoor::new(
         host_id.clone(),
         boot_id.clone(),
@@ -147,7 +162,9 @@ pub fn run(
                         journey.status(),
                         JourneyStatus::Planned | JourneyStatus::QuiescentAwaitingInput
                     ) {
-                        journey.input_lost().map_err(|error| error.as_str())?;
+                        journey
+                            .input_lost(crate::product_journey::JourneyLossKind::InputDevice)
+                            .map_err(|error| error.as_str())?;
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
                         emit_journey_sign(&journey.projection(), fabrication, &receipt);
                     }
@@ -174,14 +191,22 @@ pub fn run(
             if matches!(keyboard_route, InputRoute::NoTarget) {
                 return Ok(ProductInputControl::Continue);
             }
-            if event.usage() == F12 && usb_line_device.is_some() {
+            if product_control(event.usage()) == Some(ProductControl::UsbLine)
+                && usb_line_device.is_some()
+            {
                 if event.transition() == KeyTransition::Released {
+                    effect_bases
+                        .require(EffectFamily::Line)
+                        .map_err(|_| "product-line-base-unavailable")?;
                     line_requested = true;
                     return Ok(ProductInputControl::Yield);
                 }
                 return Ok(ProductInputControl::Continue);
             }
-            if event.transition() == KeyTransition::Pressed && event.usage() == F9 && !tour_open {
+            if event.transition() == KeyTransition::Pressed
+                && product_control(event.usage()) == Some(ProductControl::Tour)
+                && !tour_open
+            {
                 presenter.suspend().map_err(|error| error.as_str())?;
                 tour_open = true;
                 let shell_receipt = shell
@@ -195,7 +220,7 @@ pub fn run(
                 if scroll_input::accept(event.usage(), &mut shell, display)? {
                     return Ok(ProductInputControl::Continue);
                 }
-                if event.usage() == ESCAPE {
+                if product_control(event.usage()) == Some(ProductControl::Escape) {
                     if shell.has_transient() {
                         let dismissal = shell
                             .dismiss_transient(display)
@@ -348,12 +373,13 @@ pub fn run(
                     return Ok(ProductInputControl::Continue);
                 }
                 if journey.status() == JourneyStatus::QuiescentAwaitingInput
-                    && form_receives_input(false, false, event.usage())
+                    && journey.foreground_input_owner().is_some()
+                    && product_control(event.usage()).is_none()
                 {
                     workspace_updates.accept(event, &mut journey, &mut front_door)?;
                     return Ok(ProductInputControl::Continue);
                 }
-                if event.usage() == 43 {
+                if product_control(event.usage()) == Some(ProductControl::SelectNextForm) {
                     return Ok(ProductInputControl::Continue);
                 }
             }

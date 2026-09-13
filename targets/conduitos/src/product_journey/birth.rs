@@ -38,9 +38,10 @@ impl ProductJourney {
         if self.status != JourneyStatus::FormOpened {
             return Err(JourneyError::FormNotOpened);
         }
+        let opened = self.form.as_ref().ok_or(JourneyError::FormNotOpened)?;
         let workset = BodyWorkset::one(ResidentForm::new(
-            self.form.source_document_id.clone(),
-            self.form.checked_form_id.clone(),
+            opened.source_document_id.clone(),
+            opened.checked_form_id.clone(),
         ))
         .map_err(|_| JourneyError::WrongTarget)?;
         self.birth_workset(workset, "My Body".into(), self.birth_sequence())
@@ -62,11 +63,18 @@ impl ProductJourney {
         name: String,
         sequence: u64,
     ) -> Result<(), JourneyError> {
-        if workset.is_empty() || workset.len() > 2 {
+        let profile = native_workset::profile();
+        if workset.is_empty() || workset.len() > profile.capacity {
             return Err(JourneyError::WrongTarget);
         }
-        let mut forms = [None; 2];
+        let mut forms = [None; native_workset::NATIVE_FORM_CAPACITY];
         for (slot, resident) in forms.iter_mut().zip(workset.forms()) {
+            if !profile
+                .contains(resident)
+                .map_err(|_| JourneyError::WrongTarget)?
+            {
+                return Err(JourneyError::WrongTarget);
+            }
             *slot = Some(native_workset::resolve(resident).map_err(|_| JourneyError::WrongTarget)?);
         }
         let foreground = forms
@@ -124,11 +132,11 @@ impl ProductJourney {
         self.friendly_name = Some(name);
         self.forms = forms;
         self.foreground = foreground;
-        self.form = KeyboardTextFormIdentity {
+        self.form = Some(KeyboardTextFormIdentity {
             source_document_id: first.source_document_id,
             checked_form_id: first.checked_form_id,
             expanded_form_id: first.expanded_form_id,
-        };
+        });
         self.body = Some(body);
         self.born_sign_id = Some(born_sign);
         self.membership = Some(membership);
@@ -196,6 +204,37 @@ mod tests {
             Err(JourneyError::InvalidTransition)
         );
         assert_eq!(journey.projection(), before);
+    }
+
+    #[test]
+    fn zero_one_and_profile_capacity_worksets_have_explicit_birth_outcomes() {
+        let mut zero = journey("boot-zero");
+        let mut empty = selection();
+        empty.workset = BodyWorkset::default();
+        assert_eq!(
+            zero.birth_from_creche(empty),
+            Err(JourneyError::WrongTarget)
+        );
+        assert!(zero.body.is_none());
+
+        let mut one = journey("boot-one");
+        one.birth_from_creche(selection()).unwrap();
+        assert_eq!(one.body.as_ref().unwrap().workset.len(), 1);
+
+        let mut maximum = journey("boot-maximum");
+        let mut full = selection();
+        full.workset = BodyWorkset::from_forms(
+            native_workset::profile()
+                .installed()
+                .iter()
+                .map(|form| native_workset::resident(*form).unwrap()),
+        )
+        .unwrap();
+        maximum.birth_from_creche(full).unwrap();
+        assert_eq!(
+            maximum.body.as_ref().unwrap().workset.len(),
+            native_workset::profile().capacity
+        );
     }
 
     #[test]

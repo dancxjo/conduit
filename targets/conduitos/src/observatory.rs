@@ -96,6 +96,10 @@ pub fn prepare_export(
             host_id: host_id.clone(),
             boot_id: boot_id.clone(),
             base_id: HostBaseId::from(hex_identity(&base.id)),
+            provider_instance_id: conduit_core::BaseInstanceId::from(hex_identity(
+                &base.provider_instance_id,
+            )),
+            provider_generation: base.provider_generation,
             kind_id: HostBaseKindId::from(format!("conduitos.base/{}@1", base.kind.as_str())),
             state: OperationalState::Available,
             capacity_units: u64::from(base.capacity),
@@ -263,6 +267,11 @@ pub(crate) fn append_framebuffer_base(
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         base_id: framebuffer.base_id.clone(),
+        provider_instance_id: conduit_core::BaseInstanceId::from(format!(
+            "{}/provider/1",
+            framebuffer.base_id.as_str()
+        )),
+        provider_generation: 1,
         kind_id: HostBaseKindId::from("conduitos.base/framebuffer@1"),
         state: OperationalState::Available,
         capacity_units,

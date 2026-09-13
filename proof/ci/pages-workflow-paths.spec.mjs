@@ -161,6 +161,15 @@ test("Pages execute explicitly selects the carrier even for metadata-only change
   assert.match(consumer, /needs\.integration-products\.result == 'success'/);
   assert.match(consumer, /name: conduit-pages-carrier/);
   assert.match(consumer, /verify-pages-carrier\.mjs target\/pages-carrier "\$EXPECTED_TREE"/);
+  assert.match(consumer, /Install exact current-product truth and reseal the publication carrier/);
+  assert.match(consumer, /if: needs\.resolve\.outputs\.direct_main != 'true'/);
+  assert.match(consumer, /git fetch --no-tags origin dev/);
+  assert.match(consumer, /emit-current-product-truth\.mjs/);
+  assert.match(consumer, /target\/pages-carrier-with-truth/);
+  assert.match(
+    consumer,
+    /needs\.resolve\.outputs\.direct_main == 'true' && 'target\/pages-carrier\/site' \|\| 'target\/pages-carrier-with-truth\/site'/,
+  );
 });
 
 test("Pages recovery is restricted to the exact dev audit trigger or accepted release merge", () => {

@@ -2,7 +2,9 @@
 
 use alloc::{borrow::ToOwned, boxed::Box, format, string::String, vec::Vec};
 
-use conduit_body::{Body, BodyMembership, BodyPlan, BodyPlayIdentity, BodyState, PartId, Wake};
+use conduit_body::{
+    Body, BodyMembership, BodyPlan, BodyPlayIdentity, BodyState, PartId, Wake, WakeLifecycleEvent,
+};
 use conduit_core::{BootId, ExpandedFormId, HostId, OfferGeneration, SignId};
 
 use crate::{
@@ -35,6 +37,7 @@ pub enum JourneyStatus {
     QuiescentAwaitingInput,
     SemanticCompleted,
     Lulled,
+    InputUnavailable,
     Stopped,
 }
 
@@ -49,7 +52,30 @@ impl JourneyStatus {
             Self::QuiescentAwaitingInput => "quiescent-awaiting-input",
             Self::SemanticCompleted => "semantic-completed",
             Self::Lulled => "lulled",
+            Self::InputUnavailable => "input-unavailable",
             Self::Stopped => "stopped",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum JourneyLossKind {
+    InputDevice,
+    Line,
+}
+
+impl JourneyLossKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InputDevice => "input-device-lost",
+            Self::Line => "line-lost",
+        }
+    }
+
+    pub const fn recovery(self) -> &'static str {
+        match self {
+            Self::InputDevice => "Reconnect an input device, then Plan and Play again.",
+            Self::Line => "Restore or replace the Line, then Plan and Play again.",
         }
     }
 }
@@ -97,9 +123,9 @@ impl JourneyError {
 pub struct JourneyProjection {
     pub status: JourneyStatus,
     pub revision: u64,
-    pub source_document_id: conduit_core::SourceDocumentId,
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub expanded_form_id: ExpandedFormId,
+    pub source_document_id: Option<conduit_core::SourceDocumentId>,
+    pub checked_form_id: Option<conduit_core::CheckedFormId>,
+    pub expanded_form_id: Option<ExpandedFormId>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -108,12 +134,17 @@ pub struct JourneyProjection {
     pub born_sign_id: Option<SignId>,
     pub part_id: Option<PartId>,
     pub wake_id: Option<conduit_body::WakeId>,
+    pub wake_sign_id: Option<SignId>,
     pub plan_id: Option<conduit_core::PlanId>,
+    pub plan_sign_id: Option<SignId>,
     pub active_play_id: Option<conduit_core::ActivePlayId>,
+    pub play_sign_id: Option<SignId>,
     pub gear_ids: Vec<String>,
     pub port_ids: Vec<String>,
     pub cord_ids: Vec<String>,
     pub input_sign_id: Option<SignId>,
+    pub loss_kind: Option<JourneyLossKind>,
+    pub loss_sign_id: Option<SignId>,
     pub result_sign_id: Option<SignId>,
     pub result: Option<String>,
     pub result_omitted_bytes: u64,
@@ -126,7 +157,7 @@ pub struct ProductJourney {
     host_id: HostId,
     boot_id: BootId,
     offer_generation: OfferGeneration,
-    form: KeyboardTextFormIdentity,
+    form: Option<KeyboardTextFormIdentity>,
     status: JourneyStatus,
     revision: u64,
     request_sequence: u64,
@@ -141,10 +172,13 @@ pub struct ProductJourney {
     play: Option<BodyPlayIdentity>,
     kernel: Option<Box<NativeWorksetPlay>>,
     foreground: usize,
-    forms: [Option<NativeForm>; 2],
+    forms: [Option<NativeForm>; native_workset::NATIVE_FORM_CAPACITY],
+    input_owners: [Option<native_workset::AdmittedFormInput>; native_workset::NATIVE_FORM_CAPACITY],
     input_count: u32,
     input_sign_id: Option<SignId>,
-    results: [FormResult; 2],
+    loss_kind: Option<JourneyLossKind>,
+    loss_sign_id: Option<SignId>,
+    results: [FormResult; native_workset::NATIVE_FORM_CAPACITY],
     retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
 }
@@ -155,12 +189,11 @@ impl ProductJourney {
         boot_id: BootId,
         offer_generation: OfferGeneration,
     ) -> Result<Self, JourneyError> {
-        let form = keyboard_text_plan::checked_form_identity().map_err(JourneyError::Plan)?;
         Ok(Self {
             host_id,
             boot_id,
             offer_generation,
-            form,
+            form: None,
             status: JourneyStatus::World,
             revision: 1,
             request_sequence: 0,
@@ -175,17 +208,16 @@ impl ProductJourney {
             play: None,
             kernel: None,
             foreground: 0,
-            forms: [None; 2],
+            forms: [None; native_workset::NATIVE_FORM_CAPACITY],
+            input_owners: core::array::from_fn(|_| None),
             input_count: 0,
             input_sign_id: None,
+            loss_kind: None,
+            loss_sign_id: None,
             results: core::array::from_fn(|_| FormResult::new()),
             retained_kernel_sign_gap: None,
             last_request_id: None,
         })
-    }
-
-    pub fn form(&self) -> &KeyboardTextFormIdentity {
-        &self.form
     }
 
     pub const fn revision(&self) -> u64 {
@@ -248,12 +280,45 @@ impl ProductJourney {
     }
 
     pub fn projection(&self) -> JourneyProjection {
+        let wake_sign_id = self.wake.as_ref().and_then(|wake| {
+            wake.events.iter().find_map(|event| match event {
+                WakeLifecycleEvent::Woke { sign_id } => Some(sign_id.clone()),
+                _ => None,
+            })
+        });
+        let plan_sign_id = self.wake.as_ref().and_then(|wake| {
+            wake.events.iter().rev().find_map(|event| match event {
+                WakeLifecycleEvent::PlanReady { plan_id, sign_id }
+                    if Some(plan_id) == self.plan.as_ref().map(|plan| &plan.plan_id) =>
+                {
+                    Some(sign_id.clone())
+                }
+                _ => None,
+            })
+        });
+        let play_sign_id = self.wake.as_ref().and_then(|wake| {
+            wake.events.iter().rev().find_map(|event| match event {
+                WakeLifecycleEvent::PlayStarted {
+                    active_play_id,
+                    sign_id,
+                    ..
+                } if Some(active_play_id)
+                    == self.play.as_ref().map(|play| &play.active_play_id) =>
+                {
+                    Some(sign_id.clone())
+                }
+                _ => None,
+            })
+        });
         JourneyProjection {
             status: self.status,
             revision: self.revision,
-            source_document_id: self.form.source_document_id.clone(),
-            checked_form_id: self.form.checked_form_id.clone(),
-            expanded_form_id: self.form.expanded_form_id.clone(),
+            source_document_id: self
+                .form
+                .as_ref()
+                .map(|form| form.source_document_id.clone()),
+            checked_form_id: self.form.as_ref().map(|form| form.checked_form_id.clone()),
+            expanded_form_id: self.form.as_ref().map(|form| form.expanded_form_id.clone()),
             host_id: self.host_id.clone(),
             boot_id: self.boot_id.clone(),
             offer_generation: self.offer_generation,
@@ -262,8 +327,11 @@ impl ProductJourney {
             friendly_name: self.friendly_name.clone(),
             part_id: self.part_id.clone(),
             wake_id: self.wake.as_ref().map(|wake| wake.wake_id.clone()),
+            wake_sign_id,
             plan_id: self.plan.as_ref().map(|plan| plan.plan_id.clone()),
+            plan_sign_id,
             active_play_id: self.play.as_ref().map(|play| play.active_play_id.clone()),
+            play_sign_id,
             gear_ids: self
                 .plan
                 .iter()
@@ -302,6 +370,8 @@ impl ProductJourney {
                 .map(|connection| connection.connection_id.as_str().to_owned())
                 .collect(),
             input_sign_id: self.input_sign_id.clone(),
+            loss_kind: self.loss_kind,
+            loss_sign_id: self.loss_sign_id.clone(),
             result_sign_id: self.results[self.foreground].sign.clone(),
             result: self.foreground_result().map(|text| text.into()),
             result_omitted_bytes: self.results[self.foreground]
@@ -318,9 +388,21 @@ impl ProductJourney {
 
     fn validate_target(&self, request: &JourneyRequest) -> Result<(), JourneyError> {
         let expected = match request.action {
-            JourneyAction::OpenBack | JourneyAction::Birth => {
-                format!("form/{}", self.form.checked_form_id.as_str())
-            }
+            JourneyAction::OpenBack => format!(
+                "form/{}",
+                keyboard_text_plan::checked_form_identity()
+                    .map_err(JourneyError::Plan)?
+                    .checked_form_id
+                    .as_str()
+            ),
+            JourneyAction::Birth => format!(
+                "form/{}",
+                self.form
+                    .as_ref()
+                    .ok_or(JourneyError::FormNotOpened)?
+                    .checked_form_id
+                    .as_str()
+            ),
             JourneyAction::Wake
             | JourneyAction::Plan
             | JourneyAction::Play
@@ -342,6 +424,7 @@ impl ProductJourney {
         if self.body.is_some() {
             return Err(JourneyError::AlreadyBorn);
         }
+        self.form = Some(keyboard_text_plan::checked_form_identity().map_err(JourneyError::Plan)?);
         self.status = JourneyStatus::FormOpened;
         Ok(())
     }

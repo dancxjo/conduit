@@ -36,6 +36,7 @@ pub enum BodyContinuityRefusal {
     PartCapacityExhausted,
     BodyExtinct,
     UnknownPart,
+    PartsRemain,
 }
 
 impl DurableBodyContinuity {
@@ -85,15 +86,35 @@ impl DurableBodyContinuity {
         self.current.push(runtime);
         Ok(())
     }
-    pub fn lose_part(&mut self, part: &PartId) -> Result<(), BodyContinuityRefusal> {
+    /// Record that the current Boot for an admitted Part is no longer observed.
+    /// The durable membership claim remains valid and the Body keeps existing.
+    pub fn observe_offline(&mut self, part: &PartId) -> Result<(), BodyContinuityRefusal> {
+        if !self.claims.iter().any(|claim| &claim.part_id == part) {
+            return Err(BodyContinuityRefusal::UnknownPart);
+        }
+        if !self.current.iter().any(|runtime| &runtime.part_id == part) {
+            return Err(BodyContinuityRefusal::UnknownPart);
+        }
+        self.current.retain(|runtime| &runtime.part_id != part);
+        Ok(())
+    }
+    /// Explicitly revoke a Part's durable membership without declaring the
+    /// Body extinct. Extinction is a separate biographical fact.
+    pub fn revoke_part(&mut self, part: &PartId) -> Result<(), BodyContinuityRefusal> {
         if !self.claims.iter().any(|claim| &claim.part_id == part) {
             return Err(BodyContinuityRefusal::UnknownPart);
         }
         self.claims.retain(|claim| &claim.part_id != part);
         self.current.retain(|runtime| &runtime.part_id != part);
-        if self.claims.is_empty() {
-            self.extinct = true;
+        Ok(())
+    }
+    /// Declare the Body extinct only after every Part membership has been
+    /// explicitly revoked.
+    pub fn declare_extinct(&mut self) -> Result<(), BodyContinuityRefusal> {
+        if !self.claims.is_empty() {
+            return Err(BodyContinuityRefusal::PartsRemain);
         }
+        self.extinct = true;
         Ok(())
     }
     pub fn reboot(
@@ -114,9 +135,15 @@ impl DurableBodyContinuity {
         Ok(())
     }
     pub fn is_continuing(&self) -> bool {
-        !self.extinct && !self.claims.is_empty()
+        !self.extinct
     }
     pub fn current_parts(&self) -> usize {
         self.current.len()
+    }
+    pub fn admitted_parts(&self) -> usize {
+        self.claims.len()
+    }
+    pub const fn is_extinct(&self) -> bool {
+        self.extinct
     }
 }

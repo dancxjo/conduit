@@ -129,6 +129,46 @@ test("published Tour chapter permalinks remain deployable", async ({ page }) => 
   }
 });
 
+test("current product truth exposes exact identities, lag, and proof classes", async ({ page }) => {
+  const commit = (digit) => digit.repeat(40);
+  await page.route("**/product-truth.json", (route) => route.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({
+      schema: "conduit.product-truth/v1",
+      repository: "dancxjo/conduit",
+      development: { commit: commit("d"), integration_run_url: "https://example/dev" },
+      accepted_release: {
+        source_commit: commit("a"), main_commit: commit("b"), pull_request: 42,
+      },
+      publication: {
+        release_main_commit: commit("b"),
+        pages_url: "https://example/pages",
+        deployment_url: "https://example/deployment",
+      },
+      evidence: [
+        {
+          surface: "browser products", proof_class: "live-browser",
+          receipt_url: "https://example/browser", commit: commit("a"),
+        },
+        {
+          surface: "ConduitOS visual journey", proof_class: "freestanding-emulator",
+          receipt_url: "https://example/emulator", commit: commit("a"),
+        },
+      ],
+      lag: {
+        accepted_release_behind_development: true,
+        publication_behind_accepted_release: false,
+      },
+    }),
+  }));
+  await page.goto(`${entrance.url}current-product.html`);
+  await expect(page.getByRole("heading", { name: "Current product truth" })).toBeVisible();
+  await expect(page.getByText("the accepted release is behind development", { exact: false })).toBeVisible();
+  await expect(page.getByText("browser products — live-browser", { exact: false })).toBeVisible();
+  await expect(page.getByText("ConduitOS visual journey — freestanding-emulator", { exact: false })).toBeVisible();
+  await expect(page.locator("#product-truth")).toHaveAttribute("aria-busy", "false");
+});
+
 test("legacy /book routes redirect to canonical /tour routes", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   await page.goto(`${home}/book/`);

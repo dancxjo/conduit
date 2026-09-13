@@ -199,6 +199,17 @@ pub(crate) fn advertisement(
     {
         return Err(PreparationError::OfferMismatch);
     }
+    // Planning receives only capability truth whose exact Base provider is
+    // currently ready; co-residence in this Host is not authority.
+    for capability in [
+        &fixed.capabilities[2],
+        &fixed.capabilities[3],
+        &fixed.capabilities[4],
+    ] {
+        fixed
+            .capability_provider(capability)
+            .map_err(|_| PreparationError::OfferMismatch)?;
+    }
     let mut literal = crate::functional_offers::text_literal_offer();
     bind_native_capability(
         &mut literal,

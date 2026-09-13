@@ -50,6 +50,10 @@ pub(super) fn wake(forms: &[NativeForm]) -> Wake {
 
 #[test]
 fn native_inventory_preserves_existing_canvas_and_canonical_memory_identities() {
+    let profile = profile();
+    assert_eq!(profile.id, "conduitos/native-installed-forms@1");
+    assert_eq!(profile.capacity, NATIVE_FORM_CAPACITY);
+    assert_eq!(profile.installed(), &inventory());
     let old = crate::keyboard_text_plan::checked_form_identity().unwrap();
     let canvas = resident(NativeForm::KeyboardCanvas).unwrap();
     assert_eq!(canvas.source_document_id, old.source_document_id);
@@ -69,6 +73,18 @@ fn native_inventory_preserves_existing_canvas_and_canonical_memory_identities() 
         catalog::resolve(&substituted),
         Err(WorksetRefusal::UnknownForm)
     );
+}
+
+#[test]
+fn profile_capacity_is_the_finite_native_workset_bound() {
+    assert_eq!(NATIVE_FORM_CAPACITY, inventory().len());
+    let one = BodyWorkset::from_forms(inventory()[..1].iter().map(|form| resident(*form).unwrap()))
+        .unwrap();
+    let maximum =
+        BodyWorkset::from_forms(inventory().iter().map(|form| resident(*form).unwrap())).unwrap();
+    assert_eq!(one.len(), 1);
+    assert_eq!(maximum.len(), profile().capacity);
+    assert!(BodyWorkset::default().is_empty());
 }
 
 #[test]
@@ -100,12 +116,24 @@ fn two_forms_reserve_distinct_deliveries_from_one_initialized_keyboard() {
     assert_eq!(prepared.lowered.nodes, 8);
     assert_eq!(prepared.plan.forms.len(), 2);
     assert_eq!(prepared.keyboard, offer.keyboard.unwrap().realization);
-    for form in &prepared.plan.forms {
+    assert_eq!(prepared.input_owners().len(), 2);
+    for (form, owner) in prepared.plan.forms.iter().zip(prepared.input_owners()) {
         let keyboard = form.plan.fragments[0]
             .placements
             .iter()
             .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND)
             .unwrap();
+        assert_eq!(owner.form, form.form);
+        assert_eq!(
+            owner.kind_id.as_str(),
+            conduit_semantic_catalog::KEYBOARD_KIND
+        );
+        assert_eq!(owner.placement_id, keyboard.placement_id);
+        assert_eq!(
+            owner.port_id.as_str(),
+            conduit_semantic_catalog::KEYBOARD_PORT
+        );
+        assert_eq!(owner.value_kind.as_str(), conduit_human::KEY_EVENT_INFO_ID);
         assert_eq!(
             keyboard.implementation_id.as_str(),
             keyboard_delivery::IMPLEMENTATION

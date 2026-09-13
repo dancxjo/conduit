@@ -3,6 +3,32 @@ use super::WorksetRefusal;
 use conduit_body::ResidentForm;
 use conduit_form::{ExpandedCanonicalForm, ProfileCatalog, StartupCatalog};
 
+/// Finite native product profile. Capacity is a reviewed deployment choice,
+/// not a claim that a Body conceptually consists of these particular Forms.
+pub const NATIVE_FORM_CAPACITY: usize = 2;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NativeFormProfile {
+    pub id: &'static str,
+    pub capacity: usize,
+    installed: [NativeForm; NATIVE_FORM_CAPACITY],
+}
+
+impl NativeFormProfile {
+    pub const fn installed(&self) -> &[NativeForm] {
+        &self.installed
+    }
+
+    pub fn contains(&self, form: &ResidentForm) -> Result<bool, WorksetRefusal> {
+        for installed in self.installed {
+            if &resident(installed)? == form {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeForm {
     KeyboardCanvas,
@@ -30,8 +56,16 @@ impl NativeForm {
     }
 }
 
-pub const fn inventory() -> [NativeForm; 2] {
-    [NativeForm::KeyboardCanvas, NativeForm::MemoryLantern]
+pub const fn profile() -> NativeFormProfile {
+    NativeFormProfile {
+        id: "conduitos/native-installed-forms@1",
+        capacity: NATIVE_FORM_CAPACITY,
+        installed: [NativeForm::KeyboardCanvas, NativeForm::MemoryLantern],
+    }
+}
+
+pub const fn inventory() -> [NativeForm; NATIVE_FORM_CAPACITY] {
+    profile().installed
 }
 
 pub fn checked(form: NativeForm) -> Result<ExpandedCanonicalForm, WorksetRefusal> {
@@ -61,7 +95,7 @@ pub fn resident(form: NativeForm) -> Result<ResidentForm, WorksetRefusal> {
 }
 
 pub fn resolve(identity: &ResidentForm) -> Result<NativeForm, WorksetRefusal> {
-    for form in inventory() {
+    for form in profile().installed {
         if &resident(form)? == identity {
             return Ok(form);
         }

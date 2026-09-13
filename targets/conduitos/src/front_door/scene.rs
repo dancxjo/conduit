@@ -145,7 +145,8 @@ impl FrontDoor {
                 "EXPANDED FORM ID",
                 self.journey
                     .as_ref()
-                    .map(|value| value.expanded_form_id.as_str().into())
+                    .and_then(|value| value.expanded_form_id.as_ref())
+                    .map(|value| value.as_str().into())
                     .unwrap_or_else(|| "NONE".into()),
             ),
             10 => lifecycle_detail(

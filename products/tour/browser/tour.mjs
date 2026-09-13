@@ -1,6 +1,6 @@
 import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-membership.mjs";
 import { configureFlowStorage, renderFlow, renderFlowRefusal } from "../../patchbay/html/assets/flow.js";
-import { conceptualTourStage, createTourStage, openTourReadingState } from "./tour-state.mjs";
+import { conceptualTourStage, openTourReadingState } from "./tour-state.mjs";
 import { createTourNavigation, createTourRunnerActions, createTourWorkspace, presentTourWorkspaceSeparator } from "./tour-navigation.mjs";
 import { createTourEvidenceTables, createTourPlanPresentation, createTourRunnerField, createTourRunnerStatus, restoreTourRunnerDraft } from "./tour-runner-presentation.mjs";
 import { createProductMasthead } from "../../../semantics/presentation/assets/product-masthead.mjs";
@@ -10,6 +10,8 @@ import { createReviewedFormGallery, presentGalleryExperience, presentTourInvento
 import { openBrowserHumanInput } from "../../../targets/browser/host/assets/browser-human-input.mjs";
 import { createTourEffectPerformer } from "./tour-runner-effects.mjs";
 import { drainBrowserEffects } from "../../../targets/browser/host/assets/browser-form-effects.mjs";
+import { COMPACT_PATCHBAY_CONTRACT, compactPatchbaySnapshot } from "./tour-compact-patchbay.mjs";
+import { admitTourChapter } from "./tour-chapter-model.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -232,101 +234,47 @@ function setNavigationDisabled(disabled) {
 }
 
 function renderMarkdown(page) {
-  const lines = page.markdown.replaceAll("\r\n", "\n").split("\n");
+  // Compatibility shell responsibility: arrange the already-admitted chapter
+  // model as DOM. Lifecycle and application-action interpretation live outside
+  // this renderer; inline emphasis remains presentation-only syntax.
+  const model = admitTourChapter(page);
   let copy = appendCopy();
-  let paragraph = [];
   const stages = [];
-  let declaredStageIndex = 0;
-  const admitStage = (stage) => {
-    const declared = page.stages[declaredStageIndex++];
-    if (!declared || declared.identity !== stage.identity || declared.mode !== stage.mode) {
-      throw new Error("Tour runnable source does not match its admitted page stage");
-    }
-    return stage;
-  };
-  const flush = () => {
-    if (paragraph.length === 0) return;
-    const element = document.createElement("p");
-    appendInlineMarkdown(element, paragraph.join(" "));
-    copy.append(element);
-    paragraph = [];
-  };
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (line === "```conduit birth") {
-      flush();
-      const source = [];
-      index += 1;
-      while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      copy.append(createConduitSyntaxExample(source.join("\n"), host.runtime));
+  for (const block of model.blocks) {
+    if (block.kind === "birth-example") {
+      copy.append(createConduitSyntaxExample(block.source, host.runtime));
       chapter.append(createCrecheCallToAction());
       copy = appendCopy();
-    } else if (line === "```conduit run two-host" || line === "```conduit run two-host plan") {
-      flush();
-      const showPlan = line.endsWith(" plan");
-      const source = [];
-      index += 1;
-      while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      appendStageSelector(copy, stages, admitStage(createTourStage(source.join("\n"), showPlan ? "two-host-plan" : "two-host")));
+    } else if (block.kind === "stage") {
+      appendStageSelector(copy, stages, block.stage);
       copy = appendCopy();
-    } else if (line === "```conduit run" || line === "```conduit run recursive" || line === "```conduit compare") {
-      flush();
-      const recursive = line.endsWith(" recursive");
-      const comparison = line.endsWith(" compare");
-      const source = [];
-      index += 1;
-      while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      appendStageSelector(copy, stages, admitStage(createTourStage(
-        source.join("\n"), comparison ? "compare" : recursive ? "recursive" : "run",
-      )));
-      copy = appendCopy();
-    } else if (line === "```text") {
-      flush();
-      const source = [];
-      index += 1;
-      while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
+    } else if (block.kind === "diagram") {
       const diagram = document.createElement("pre");
       diagram.className = "concept-diagram";
       const code = document.createElement("code");
-      code.textContent = source.join("\n");
+      code.textContent = block.text;
       diagram.append(code);
       copy.append(diagram);
       copy = appendCopy();
-    } else if (line === "<!-- conduit-host-inventory -->") {
-      flush();
+    } else if (block.kind === "inventory") {
       renderInventory(readInventory(host.runtime));
       copy = appendCopy();
-    } else if (line === "<!-- conduit-physical-host -->") {
-      flush();
-      chapter.append(createCrecheCallToAction("Add a physical Host in the Crèche"));
+    } else if (block.kind === "creche-handoff") {
+      chapter.append(createCrecheCallToAction(block.label));
       copy = appendCopy();
-    } else if (line === "<!-- conduit-first-host -->") {
-      flush();
-      chapter.append(createCrecheCallToAction("Admit a first Host in the Crèche"));
-      copy = appendCopy();
-    } else if (line === "<!-- conduit-graduation -->") {
-      flush();
-      chapter.append(createCrecheCallToAction("Open graduation in the Crèche"));
-      copy = appendCopy();
-    } else if (line.startsWith("# ")) {
-      flush();
-      const heading = document.createElement("h1");
-      heading.tabIndex = -1;
-      appendInlineMarkdown(heading, line.slice(2));
+    } else if (block.kind === "heading") {
+      const heading = document.createElement(`h${block.level}`);
+      if (block.level === 1) heading.tabIndex = -1;
+      appendInlineMarkdown(heading, block.text);
       copy.append(heading);
-    } else if (line.startsWith("## ")) {
-      flush();
-      const heading = document.createElement("h2");
-      appendInlineMarkdown(heading, line.slice(3));
-      copy.append(heading);
-    } else if (line.trim() === "") {
-      flush();
+    } else if (block.kind === "paragraph") {
+      const paragraph = document.createElement("p");
+      appendInlineMarkdown(paragraph, block.text);
+      copy.append(paragraph);
     } else {
-      paragraph.push(line.trim());
+      throw new Error("Tour chapter model contains an unsupported block");
     }
   }
-  flush();
-  if (declaredStageIndex !== page.stages.length) throw new Error("Tour page declares a stage with no runnable source");
   selectLaboratoryStage(stages[0] ?? conceptualTourStage(page.title, page.companion), stages);
   document.querySelector("#laboratory-slot").replaceChildren(laboratory);
 }
@@ -594,8 +542,8 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
 }
 
 function compactPatchbayFrame() {
-  return `<figure class="compact-patchbay" aria-label="Patchbay">
-    <figcaption><span>Form · Patchbay</span><strong>Checking source…</strong></figcaption>
+  return `<figure class="compact-patchbay" aria-label="Patchbay" data-truth-source="${COMPACT_PATCHBAY_CONTRACT.truthSource}" data-operation-mode="${COMPACT_PATCHBAY_CONTRACT.operationMode}" data-operation-vocabulary="${COMPACT_PATCHBAY_CONTRACT.operationVocabulary}" data-supported-operations="${COMPACT_PATCHBAY_CONTRACT.supportedOperations.join(" ")}">
+    <figcaption><span>Checked Form projection · inspection only</span><strong>Checking source…</strong></figcaption>
     <div class="tour-flow-root" aria-label="Real Patchbay canvas"></div>
     <ol class="compact-patchbay-text" aria-label="Ordered textual equivalent" hidden></ol>
     <section class="gear-back-expansion" hidden aria-label="Reviewed Form Back topology">
@@ -673,7 +621,7 @@ function renderCompactPatchbayProjection(figure, projection) {
   }
   const runner = figure.closest(".runner");
   const expanded = figure.dataset.backExpanded === "true";
-  renderFlow(patchbaySnapshot(projection, {
+  renderFlow(compactPatchbaySnapshot(projection, {
     reviewedBack: runner?.dataset.faceBack === "true",
     backExpanded: expanded,
   }), {
@@ -748,7 +696,7 @@ function toggleGearBack(figure, faceProjection, subjectIdentity) {
   expansion.dataset.sourceDocumentId = back.source_document_id;
   expansion.dataset.checkedFormId = back.checked_form_id;
   expansion.dataset.expandedFormId = back.realization_expanded_form_id;
-  renderFlow(patchbaySnapshot(back, { realizationTopology: true }), {
+  renderFlow(compactPatchbaySnapshot(back, { realizationTopology: true }), {
     target: expansion.querySelector(".gear-back-flow"),
     lens: "form",
     onSelect: () => {},
@@ -758,62 +706,6 @@ function toggleGearBack(figure, faceProjection, subjectIdentity) {
   });
   expansion.querySelector(".close-gear-back").onclick = () => {
     if (figure.dataset.backExpanded === "true") toggleGearBack(figure, faceProjection, subjectIdentity);
-  };
-}
-
-function patchbaySnapshot(projection, options = {}) {
-  const subjects = [];
-  const relationships = [];
-  const properties = [];
-  const gears = options.realizationTopology ? projection.realization_gears : projection.gears;
-  const cords = options.realizationTopology ? projection.realization_cords : projection.cords;
-  const addProperty = (subject, name, value) => properties.push({ subject, name, value: { Text: value } });
-  const portIdentity = (gearId, direction, portId) => `${gearId}.${direction}:${portId}`;
-  const diagnosticSubjects = new Set(projection.diagnostics.flatMap((diagnostic) => diagnostic.subjects));
-  for (const gear of gears) {
-    subjects.push({ identity: gear.gear_id, role: "Gear", label: gear.gear_id, accessibility_name: `Gear ${gear.gear_id}` });
-    addProperty(gear.gear_id, "kind-id", gear.kind_id);
-    if (diagnosticSubjects.has(gear.gear_id)) addProperty(gear.gear_id, "diagnostic-state", "error");
-    if (options.reviewedBack && gear.kind_id === "text/morse") {
-      addProperty(gear.gear_id, "reviewed-back", "available");
-      addProperty(gear.gear_id, "back-expanded", String(options.backExpanded === true));
-    }
-    for (const [direction, ports] of [["receiving", gear.inputs], ["emitting", gear.outputs]]) {
-      for (const port of ports) {
-        // A Gear may intentionally use the same authored name for its input
-        // and output. Direction is therefore part of the presentation subject
-        // identity even though the authored Port label remains unchanged.
-        const identity = portIdentity(gear.gear_id, direction, port.port_id);
-        subjects.push({ identity, role: "Port", label: port.port_id, accessibility_name: `${direction} Port ${identity}` });
-        relationships.push({ source: gear.gear_id, target: identity, kind: "Contains" });
-        addProperty(identity, "semantic-id", identity);
-        addProperty(identity, "direction", direction);
-        addProperty(identity, "value-kind", port.info_kind);
-        addProperty(identity, "temporal", port.temporal);
-        if (diagnosticSubjects.has(identity)) addProperty(identity, "diagnostic-state", "error");
-      }
-    }
-  }
-  for (const [index, cord] of cords.entries()) {
-    const identity = `cord:${index}:${cord.source_gear_id}.${cord.source_port_id}->${cord.sink_gear_id}.${cord.sink_port_id}`;
-    subjects.push({ identity, role: "Cord", label: `Cord ${index + 1}`, accessibility_name: `Cord from ${cord.source_gear_id}.${cord.source_port_id} to ${cord.sink_gear_id}.${cord.sink_port_id}` });
-    addProperty(identity, "source-port", portIdentity(cord.source_gear_id, "emitting", cord.source_port_id));
-    addProperty(identity, "sink-port", portIdentity(cord.sink_gear_id, "receiving", cord.sink_port_id));
-    addProperty(identity, "value-kind", cord.info_kind);
-    // Motion on the authored Face communicates Cord direction only. It is not
-    // presented as evidence that a Play delivered an item.
-    addProperty(identity, "flow-animation", "directional");
-    addProperty(identity, "flow-label", "");
-    if (cord.invalid || diagnosticSubjects.has(identity)) addProperty(identity, "diagnostic-state", "error");
-  }
-  return {
-    presentation: {
-      identity: projection.visible_expanded_form_id || projection.source_proposal_id,
-      revision: projection.sequence,
-      basis: { source_document_id: projection.source_document_id, checked_form_id: projection.checked_form_id },
-      subjects, relationships, properties, text: [], actions: [], disclosures: [],
-    },
-    interaction: { revision: projection.sequence, selected_subject: null },
   };
 }
 

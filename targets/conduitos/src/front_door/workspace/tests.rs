@@ -14,8 +14,8 @@ fn fixture() -> (FrontDoor, JourneyProjection, WorkspaceProjection) {
     )
     .unwrap();
     let mut journey = super::super::tests::born_projection(body.body_id.clone());
-    journey.source_document_id = resident.source_document_id.clone();
-    journey.checked_form_id = resident.checked_form_id.clone();
+    journey.source_document_id = Some(resident.source_document_id.clone());
+    journey.checked_form_id = Some(resident.checked_form_id.clone());
     let workspace = WorkspaceProjection {
         body_id: body.body_id,
         revision: journey.revision,
@@ -23,6 +23,7 @@ fn fixture() -> (FrontDoor, JourneyProjection, WorkspaceProjection) {
             form: resident.clone(),
             title: "Memory Lantern",
             foreground: true,
+            input: None,
         }],
     };
     let door = FrontDoor::new(

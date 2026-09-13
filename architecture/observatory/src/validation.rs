@@ -62,11 +62,14 @@ fn validate_bases_and_provenance(
     host_boots: &BTreeSet<(conduit_core::HostId, conduit_core::BootId)>,
 ) -> Result<(), String> {
     let mut base_ids = BTreeSet::new();
+    let mut provider_ids = BTreeSet::new();
     for base in &snapshot.bases {
         if !host_boots.contains(&(base.host_id.clone(), base.boot_id.clone())) {
             return Err("Base names an unreported host/boot".to_string());
         }
         if base.base_id.as_str().is_empty()
+            || base.provider_instance_id.as_str().is_empty()
+            || base.provider_generation == 0
             || base.kind_id.as_str().is_empty()
             || base.capacity_units == 0
         {
@@ -78,6 +81,13 @@ fn validate_bases_and_provenance(
             base.base_id.clone(),
         )) {
             return Err("duplicate Base report".to_string());
+        }
+        if !provider_ids.insert((
+            base.host_id.clone(),
+            base.boot_id.clone(),
+            base.provider_instance_id.clone(),
+        )) {
+            return Err("duplicate Base provider report".to_string());
         }
     }
 

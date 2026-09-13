@@ -16,6 +16,7 @@ machinery can realize that work.
 > laptop support is an ongoing project.
 
 **[Try the interactive Tour](https://dancxjo.github.io/conduit/tour/)** ·
+**[Inspect current product truth](https://dancxjo.github.io/conduit/current-product.html)** ·
 **[Start contributing](CONTRIBUTING.md)** ·
 **[What works](STATUS.md)** ·
 **[What we're building next](docs/roadmap.md)**
@@ -59,8 +60,12 @@ connectivity, and permission are separate decisions. The
 
 These are working experimental slices with different levels of proof. Conduit
 is not yet a general desktop OS or a turnkey distributed application platform.
-The [current status](STATUS.md) distinguishes demonstrated behavior, available
-implementation, and remaining integration or hardware work.
+The [current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
+names the latest development commit, accepted release, published Pages artifact,
+lag, and exact proof receipts. The [current status](STATUS.md) explains the
+capability boundary. Source capability, browser proof, freestanding-emulator
+proof, physical/HIL proof, human enactment, and released-product proof remain
+different claims.
 
 ## Run from a checkout
 

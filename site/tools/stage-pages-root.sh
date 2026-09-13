@@ -8,8 +8,12 @@ mkdir -p "$destination"
 node targets/browser/tools/render-product-masthead.mjs site/index.html "$destination/index.html" home "The Body is the computer."
 cp site/site.css "$destination/site.css"
 cp products/shared/browser/conduit.css "$destination/conduit.css"
+cp site/current-product.html "$destination/current-product.html"
+cp site/current-product.mjs "$destination/current-product.mjs"
 
-test "$(find "$destination" -type f | wc -l)" -eq 3
+test "$(find "$destination" -type f | wc -l)" -eq 5
 test -f "$destination/index.html"
 test -f "$destination/site.css"
 test -f "$destination/conduit.css"
+test -f "$destination/current-product.html"
+test -f "$destination/current-product.mjs"
