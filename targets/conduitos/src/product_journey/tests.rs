@@ -70,6 +70,9 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert_eq!(born.status, JourneyStatus::BornLulled);
     assert!(born.body_id.is_some() && born.part_id.is_some());
     assert!(born.born_sign_id.is_some());
+    assert!(born.wake_sign_id.is_none());
+    assert!(born.plan_sign_id.is_none());
+    assert!(born.play_sign_id.is_none());
     assert!(born.wake_id.is_none() && born.plan_id.is_none());
     front_door.observe_journey(born.clone()).unwrap();
     let born_presentation = front_door.presentation().unwrap();
@@ -89,6 +92,8 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     invoke(&mut journey, JourneyAction::Wake, &identities, &offer).unwrap();
     let awake = journey.projection();
     assert!(awake.wake_id.is_some() && awake.plan_id.is_none());
+    assert!(awake.wake_sign_id.is_some());
+    assert!(awake.plan_sign_id.is_none() && awake.play_sign_id.is_none());
     front_door.observe_journey(awake.clone()).unwrap();
     assert_eq!(
         front_door.presentation().unwrap().basis.body_id,
@@ -102,6 +107,8 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     invoke(&mut journey, JourneyAction::Plan, &identities, &offer).unwrap();
     let planned = journey.projection();
     assert!(planned.plan_id.is_some() && planned.active_play_id.is_none());
+    assert!(planned.wake_sign_id.is_some() && planned.plan_sign_id.is_some());
+    assert!(planned.play_sign_id.is_none());
     front_door.observe_journey(planned.clone()).unwrap();
     let planned_presentation = front_door.presentation().unwrap();
     assert_eq!(planned_presentation.basis.plan_id, planned.plan_id);
@@ -110,6 +117,11 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     invoke(&mut journey, JourneyAction::Play, &identities, &offer).unwrap();
     let playing = journey.projection();
     assert!(playing.active_play_id.is_some());
+    assert!(playing.wake_sign_id.is_some());
+    assert!(playing.plan_sign_id.is_some());
+    assert!(playing.play_sign_id.is_some());
+    assert_ne!(playing.wake_sign_id, playing.plan_sign_id);
+    assert_ne!(playing.plan_sign_id, playing.play_sign_id);
     assert_ne!(
         playing.plan_id.as_ref().unwrap().as_str(),
         playing.active_play_id.as_ref().unwrap().as_str()
@@ -234,6 +246,9 @@ fn missing_current_keyboard_offer_refuses_plan_before_kernel_admission() {
         Err(JourneyError::Workset(native_workset::WorksetRefusal::Host))
     );
     assert!(journey.plan.is_none() && journey.kernel.is_none());
+    assert!(journey.body.is_some());
+    assert_eq!(journey.status(), JourneyStatus::Awake);
+    assert!(journey.projection().wake_sign_id.is_some());
 }
 
 #[test]
