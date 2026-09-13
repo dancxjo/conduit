@@ -99,6 +99,8 @@ fn selection_and_availability_are_visible_and_refuse_empty_or_unavailable_birth(
     press(&mut door, 44); // remove the first Form
     press(&mut door, 43);
     press(&mut door, 44); // remove the second Form
+    press(&mut door, 43);
+    press(&mut door, 44); // remove Tour
     let presentation = door.presentation().unwrap();
     assert!(
         presentation
@@ -199,11 +201,11 @@ fn shared_search_filters_visible_controls_without_losing_included_forms() {
     let ArrivalInput::Birth(selection) = press(&mut door, 60) else {
         panic!("selected Forms survive filtering")
     };
-    assert_eq!(selection.workset.len(), 2);
+    assert_eq!(selection.workset.len(), 3);
 }
 
 #[test]
-fn two_form_scene_and_refusal_fit_the_native_display_envelope() {
+fn three_form_scene_and_refusal_fit_the_native_display_envelope() {
     let mut door = door(None);
     assert!(door.scene(&super::super::tests::Sink).is_ok());
     press(&mut door, 42);
@@ -219,7 +221,7 @@ fn native_form_availability_is_reviewed_independently() {
     door.arrival = None;
     door.open_creche_reviewed(
         "00112233-4455-6677-8899-aabbccddeeff".into(),
-        [Some("Canvas unavailable".into()), None],
+        [Some("Canvas unavailable".into()), None, None],
     )
     .unwrap();
     let ArrivalInput::Birth(selection) = press(&mut door, 60) else {
@@ -228,8 +230,9 @@ fn native_form_availability_is_reviewed_independently() {
     assert_eq!(
         selection.workset.forms(),
         &[
+            crate::native_workset::resident(crate::native_workset::NativeForm::Tour).unwrap(),
             crate::native_workset::resident(crate::native_workset::NativeForm::MemoryLantern)
-                .unwrap()
+                .unwrap(),
         ]
     );
 }

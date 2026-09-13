@@ -1,7 +1,7 @@
 //! Numeric composition and all runtime storage admission before Play.
 use super::*;
 use crate::keyboard_text_operations::{
-    KeyboardOperation, PresentationOperation, StreamTransformOperation,
+    ApplicationOperation, KeyboardOperation, PresentationOperation, StreamTransformOperation,
 };
 use alloc::vec::Vec;
 use conduit_kernel::{
@@ -22,7 +22,8 @@ pub(super) fn prepare(
     {
         return Err(WorksetRefusal::Kernel);
     }
-    let mut values = FixedValueStore::<64, 256>::new(16_384).map_err(|_| WorksetRefusal::Kernel)?;
+    let mut values =
+        FixedValueStore::<32, 1024>::new(24_576).map_err(|_| WorksetRefusal::Kernel)?;
     let empty = values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?;
     let mut bindings = [None; NODES];
     let mut editors = core::array::from_fn(|_| None);
@@ -31,8 +32,8 @@ pub(super) fn prepare(
         let fragment = &prepared.plan.forms[form].plan.fragments[0];
         if part.identity.plan_id != fragment.plan_id
             || part.identity.fragment_id != fragment.fragment_id
-            || part.nodes.len() != 4
-            || fragment.placements.len() != 4
+            || part.nodes.len() != fragment.placements.len()
+            || !matches!(part.nodes.len(), 3 | 4)
         {
             return Err(WorksetRefusal::Plan);
         }
@@ -53,6 +54,31 @@ pub(super) fn prepare(
                         pending: None,
                         next: 0,
                         maximum: None,
+                    }),
+                ),
+                super::super::application_delivery::EVENT_IMPLEMENTATION => (
+                    Effect::ApplicationEvent,
+                    PlannedOperation::Keyboard(KeyboardOperation {
+                        empty,
+                        pending: None,
+                        next: 0,
+                        maximum: None,
+                    }),
+                ),
+                super::super::application_delivery::STATE_IMPLEMENTATION => (
+                    Effect::Application,
+                    PlannedOperation::Application(ApplicationOperation {
+                        empty: values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?,
+                        pending: None,
+                        next: 0,
+                        initial: true,
+                    }),
+                ),
+                super::super::application_delivery::PRESENTATION_IMPLEMENTATION => (
+                    Effect::ApplicationPresentation,
+                    PlannedOperation::Presentation(PresentationOperation {
+                        pending: None,
+                        next: 0,
                     }),
                 ),
                 crate::keyboard_text_plan::KEYMAP_IMPLEMENTATION => (
@@ -184,6 +210,19 @@ pub(super) fn prepare(
         pending: [None; FORMS],
         held: [None; 256],
         presentations: [None; FORMS],
+        application_views: core::array::from_fn(|_| None),
+        applications: core::array::from_fn(|form| {
+            prepared.plan.forms.get(form).and_then(|planned| {
+                planned.plan.fragments[0]
+                    .placements
+                    .iter()
+                    .any(|placement| {
+                        placement.implementation_id.as_str()
+                            == super::super::application_delivery::STATE_IMPLEMENTATION
+                    })
+                    .then(conduit_tour_model::TourApplicationPort::canonical)
+            })
+        }),
         input_owners: core::array::from_fn(|index| prepared.input_owners.get(index).cloned()),
         form_count: count,
         cancelled: false,

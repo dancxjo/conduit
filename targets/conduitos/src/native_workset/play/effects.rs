@@ -56,7 +56,24 @@ impl NativeWorksetPlay {
                 }
                 Ok(())
             }
-            Effect::Keyboard => Err(PlayRefusal::Kernel),
+            Effect::Application => {
+                let output = self.applications[form]
+                    .as_mut()
+                    .ok_or(PlayRefusal::Kernel)?
+                    .apply(input)
+                    .map_err(|_| PlayRefusal::Kernel)?;
+                self.output(request, Some(&output.view))
+            }
+            Effect::ApplicationPresentation => {
+                let view = conduit_presentation::ApplicationView::decode(input)
+                    .map_err(|_| PlayRefusal::Kernel)?;
+                self.output(request, None)?;
+                if self.application_views[form].replace(view).is_some() {
+                    return Err(PlayRefusal::InputPressure);
+                }
+                Ok(())
+            }
+            Effect::Keyboard | Effect::ApplicationEvent => Err(PlayRefusal::Kernel),
         }
     }
     pub(super) fn output(

@@ -41,23 +41,25 @@ fn select(journey: &mut ProductJourney, form: NativeForm) {
 }
 
 #[test]
-fn native_birth_keeps_two_forms_in_one_body_plan_play_and_switches_only_foreground() {
+fn native_birth_keeps_three_forms_in_one_body_plan_play_and_switches_only_foreground() {
     let (ids, offer, mut journey) = born();
     let born = journey.workspace_projection().unwrap();
-    assert_eq!(born.forms.len(), 2);
+    assert_eq!(born.forms.len(), 3);
     assert!(born.forms.iter().all(|form| form.input.is_none()));
     run(&mut journey, &ids, &offer);
     let started = journey.projection();
     assert_eq!(started.status, JourneyStatus::QuiescentAwaitingInput);
-    assert_eq!(started.gear_ids.len(), 8);
-    assert_eq!(started.cord_ids.len(), 6);
+    assert_eq!(started.gear_ids.len(), 11);
+    assert_eq!(started.cord_ids.len(), 8);
     let admitted = journey.workspace_projection().unwrap();
     assert!(admitted.forms.iter().all(|form| {
         form.input.as_ref().is_some_and(|input| {
             input.form == form.form
-                && input.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND
-                && input.port_id.as_str() == conduit_semantic_catalog::KEYBOARD_PORT
-                && input.value_kind.as_str() == conduit_human::KEY_EVENT_INFO_ID
+                && matches!(
+                    input.value_kind.as_str(),
+                    conduit_human::KEY_EVENT_INFO_ID
+                        | conduit_presentation::APPLICATION_EVENT_INFO_ID
+                )
         })
     }));
     select(&mut journey, NativeForm::KeyboardCanvas);
@@ -101,14 +103,45 @@ fn native_birth_keeps_two_forms_in_one_body_plan_play_and_switches_only_foregrou
 }
 
 #[test]
-fn lull_retains_both_forms_and_next_wake_prepares_fresh_plan_play() {
+fn returning_to_resident_tour_preserves_state_and_body_execution_identity() {
+    let (ids, offer, mut journey) = born();
+    run(&mut journey, &ids, &offer);
+    let execution = journey.projection();
+    select(&mut journey, NativeForm::Tour);
+    let initial = journey.foreground_application_view().unwrap().clone();
+    assert!(
+        journey
+            .accept_application_event(&conduit_presentation::ApplicationEvent {
+                revision: initial.revision,
+                action: conduit_tour_model::OPEN_PATCHBAY_ACTION_ID.into(),
+                kind: conduit_presentation::ApplicationEventKind::Activate,
+                value: alloc::vec::Vec::new(),
+            })
+            .unwrap()
+    );
+    let tour_revision = journey.foreground_application_view().unwrap().revision;
+    select(&mut journey, NativeForm::MemoryLantern);
+    type_key(&mut journey, 5);
+    select(&mut journey, NativeForm::Tour);
+    assert_eq!(
+        journey.foreground_application_view().unwrap().revision,
+        tour_revision
+    );
+    let returned = journey.projection();
+    assert_eq!(returned.body_id, execution.body_id);
+    assert_eq!(returned.plan_id, execution.plan_id);
+    assert_eq!(returned.active_play_id, execution.active_play_id);
+}
+
+#[test]
+fn lull_retains_all_forms_and_next_wake_prepares_fresh_plan_play() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
     let first = journey.projection();
     type_key(&mut journey, 4);
     invoke(&mut journey, JourneyAction::Stop, &ids, &offer).unwrap();
     invoke(&mut journey, JourneyAction::Lull, &ids, &offer).unwrap();
-    assert_eq!(journey.workspace_projection().unwrap().forms.len(), 2);
+    assert_eq!(journey.workspace_projection().unwrap().forms.len(), 3);
     assert!(
         !journey
             .accept_play_input(key(5, KeyTransition::Pressed))

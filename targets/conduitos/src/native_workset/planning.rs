@@ -90,16 +90,27 @@ fn admitted_form_input(form: &BodyFormPlan) -> Result<AdmittedFormInput, Workset
     let placement = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND)
+        .find(|placement| {
+            matches!(
+                placement.kind_id.as_str(),
+                conduit_semantic_catalog::KEYBOARD_KIND
+                    | conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
+            )
+        })
         .ok_or(WorksetRefusal::Capability)?;
     let connection = fragment
         .connections
         .iter()
         .find(|connection| connection.source_placement_id == placement.placement_id)
         .ok_or(WorksetRefusal::Plan)?;
-    if connection.source_port_id.as_str() != conduit_semantic_catalog::KEYBOARD_PORT
-        || connection.value_kind.as_str() != conduit_human::KEY_EVENT_INFO_ID
-    {
+    let keyboard = placement.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND
+        && connection.source_port_id.as_str() == conduit_semantic_catalog::KEYBOARD_PORT
+        && connection.value_kind.as_str() == conduit_human::KEY_EVENT_INFO_ID;
+    let application = placement.kind_id.as_str()
+        == conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
+        && connection.source_port_id.as_str() == conduit_semantic_catalog::APPLICATION_EVENT_PORT
+        && connection.value_kind.as_str() == conduit_presentation::APPLICATION_EVENT_INFO_ID;
+    if !keyboard && !application {
         return Err(WorksetRefusal::Plan);
     }
     Ok(AdmittedFormInput {
@@ -156,6 +167,9 @@ fn host(
     advertisement
         .capabilities
         .push(super::text_state::offer(build_id));
+    advertisement
+        .capabilities
+        .extend(super::application_delivery::offers(build_id));
     Ok((advertisement, keyboard))
 }
 
@@ -230,11 +244,11 @@ fn lower_forms(forms: &[BodyFormPlan]) -> Result<LoweredFragmentSet, WorksetRefu
             .collect::<Vec<_>>(),
         conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
         FragmentSetBounds {
-            fragments: 2,
-            nodes: 8,
-            cords: 6,
-            queue_slots: 6,
-            value_bytes: 16_384,
+            fragments: 3,
+            nodes: 11,
+            cords: 8,
+            queue_slots: 8,
+            value_bytes: 24_576,
             sign_items: 768,
             sign_bytes: 768 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
         },
