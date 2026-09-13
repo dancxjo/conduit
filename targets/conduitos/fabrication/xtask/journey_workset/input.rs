@@ -13,12 +13,13 @@ pub(in super::super) fn exercise(
     child: &mut Child,
     artifacts: &mut Artifacts,
 ) -> Result<(), ConduitosError> {
-    use NativeForm::{KeyboardCanvas as Canvas, MemoryLantern as Memory};
+    use NativeForm::{KeyboardCanvas as Canvas, MemoryLantern as Memory, Tour};
     switch(stream, reader, serial, child, Memory, 10, None)?;
     for (key, count, result) in [("o", 12, "o"), ("n", 14, "on"), ("e", 16, "one")] {
         pair(stream, reader, serial, child, key, Memory, count, result)?;
     }
     artifacts.capture(stream, reader, "memory-listening", true)?;
+    switch(stream, reader, serial, child, Tour, 16, None)?;
     switch(stream, reader, serial, child, Canvas, 16, Some("HELLO"))?;
     artifacts.capture(stream, reader, "canvas-retained", true)?;
     hid_qmp::send_named_keys(stream, reader, &["x"], true, "workset-held-press")?;
@@ -41,10 +42,12 @@ pub(in super::super) fn exercise(
     artifacts.capture(stream, reader, "memory-cleared", true)?;
     pair(stream, reader, serial, child, "h", Memory, 26, "h")?;
     pair(stream, reader, serial, child, "i", Memory, 28, "hi")?;
+    switch(stream, reader, serial, child, Tour, 28, None)?;
     switch(stream, reader, serial, child, Canvas, 28, Some("HELLOX"))?;
     pair(stream, reader, serial, child, "y", Canvas, 30, "HELLOXY")?;
     switch(stream, reader, serial, child, Memory, 30, Some("hi"))?;
     artifacts.capture(stream, reader, "memory-retained", true)?;
+    switch(stream, reader, serial, child, Tour, 30, None)?;
     switch(stream, reader, serial, child, Canvas, 30, Some("HELLOXY"))
 }
 

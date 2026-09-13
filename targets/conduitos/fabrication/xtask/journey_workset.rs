@@ -38,7 +38,7 @@ struct Expected {
 }
 
 fn expected() -> Vec<Expected> {
-    use NativeForm::{KeyboardCanvas as Canvas, MemoryLantern as Memory};
+    use NativeForm::{KeyboardCanvas as Canvas, MemoryLantern as Memory, Tour};
     let mut records = (0..=10u64)
         .map(|count| Expected {
             form: Canvas,
@@ -57,6 +57,7 @@ fn expected() -> Vec<Expected> {
         (Memory, 14, Some("on")),
         (Memory, 15, Some("one")),
         (Memory, 16, Some("one")),
+        (Tour, 16, None),
         (Canvas, 16, Some("HELLO")),
         (Canvas, 17, Some("HELLOX")),
         (Memory, 17, Some("one")),
@@ -71,10 +72,12 @@ fn expected() -> Vec<Expected> {
         (Memory, 26, Some("h")),
         (Memory, 27, Some("hi")),
         (Memory, 28, Some("hi")),
+        (Tour, 28, None),
         (Canvas, 28, Some("HELLOX")),
         (Canvas, 29, Some("HELLOXY")),
         (Canvas, 30, Some("HELLOXY")),
         (Memory, 30, Some("hi")),
+        (Tour, 30, None),
         (Canvas, 30, Some("HELLOXY")),
     ] {
         records.push(Expected {
@@ -116,11 +119,12 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     let refusal = || {
         ConduitosError::refusal(
             "product-journey-workset-invalid",
-            "two exact Forms must retain independent results and one Body/Plan/Play through switching, held release, empty editing, and Lull",
+            "three exact resident Forms must retain independent state and one Body/Plan/Play through switching, held release, empty editing, and Lull",
         )
     };
     let mut canvas = identity(NativeForm::KeyboardCanvas)?;
     let mut memory = identity(NativeForm::MemoryLantern)?;
+    let tour = identity(NativeForm::Tour)?;
     let quiescent = records
         .iter()
         .filter(|record| record["status"] == "quiescent-awaiting-input")
@@ -136,6 +140,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             let form = match candidate.form {
                 NativeForm::KeyboardCanvas => &canvas,
                 NativeForm::MemoryLantern => &memory,
+                NativeForm::Tour => &tour,
             };
             if matches(record, candidate, form) {
                 break;
@@ -156,11 +161,12 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     }
     // Presentation service may coalesce adjacent accepted inputs. Preserve the
     // critical semantic checkpoints instead of requiring one frame per event.
-    for index in [0, 10, 17, 19, 26, 31, 36] {
+    for index in [0, 10, 17, 18, 20, 22, 30, 33, 36, 39] {
         let checkpoint = expected[index];
         let form = match checkpoint.form {
             NativeForm::KeyboardCanvas => &canvas,
             NativeForm::MemoryLantern => &memory,
+            NativeForm::Tour => &tour,
         };
         if !quiescent
             .iter()
@@ -181,7 +187,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             }
             continue;
         }
-        let reviewed = [&canvas, &memory].iter().any(|form| {
+        let reviewed = [&canvas, &memory, &tour].iter().any(|form| {
             record["source_document_id"] == form.source_document_id
                 && record["checked_form_id"] == form.checked_form_id
                 && record["expanded_form_id"] == form.expanded_form_id
@@ -213,7 +219,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             .find(|record| matches(record, expected[10], &canvas))
             .ok_or_else(refusal)?,
         WorksetProof {
-            forms: vec![canvas, memory],
+            forms: vec![canvas, memory, tour],
             switches: quiescent
                 .windows(2)
                 .filter(|pair| pair[0]["checked_form_id"] != pair[1]["checked_form_id"])
