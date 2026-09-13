@@ -42,9 +42,14 @@ impl FrontDoor {
     }
 
     pub fn play_refused(&mut self, reason: &str) -> Result<(), Error> {
-        if self.journey.as_ref().map(|journey| journey.status)
-            != Some(crate::product_journey::JourneyStatus::Stopped)
-        {
+        let status = self.journey.as_ref().map(|journey| journey.status);
+        if !matches!(
+            status,
+            Some(
+                crate::product_journey::JourneyStatus::Stopped
+                    | crate::product_journey::JourneyStatus::InputUnavailable
+            )
+        ) {
             return Err(Error::Presentation);
         }
         self.refusal = Some(WorkspaceRefusal::Play(reason.into()));
@@ -86,8 +91,8 @@ impl FrontDoor {
             .iter()
             .find(|form| form.foreground)
             .ok_or(Error::Presentation)?;
-        if selected.form.source_document_id != journey.source_document_id
-            || selected.form.checked_form_id != journey.checked_form_id
+        if journey.source_document_id.as_ref() != Some(&selected.form.source_document_id)
+            || journey.checked_form_id.as_ref() != Some(&selected.form.checked_form_id)
             || self
                 .journey
                 .as_ref()
@@ -121,8 +126,11 @@ impl FrontDoor {
             }
         }
         self.revision.checked_add(1).ok_or(Error::Presentation)?;
-        self.source_document_id = journey.source_document_id.clone();
-        self.checked_form_id = journey.checked_form_id.clone();
+        self.source_document_id = journey
+            .source_document_id
+            .clone()
+            .ok_or(Error::Presentation)?;
+        self.checked_form_id = journey.checked_form_id.clone().ok_or(Error::Presentation)?;
         self.form_subject = format!("form/{}", self.checked_form_id.as_str());
         if self.selected_subject.starts_with("form/") {
             self.selected_subject = self.form_subject.clone();

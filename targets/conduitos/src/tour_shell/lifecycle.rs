@@ -97,6 +97,7 @@ pub(super) fn with_status(
             JourneyStatus::QuiescentAwaitingInput => "Quiescent",
             JourneyStatus::SemanticCompleted => "Completed",
             JourneyStatus::Stopped => "Stopped",
+            JourneyStatus::InputUnavailable => "Input unavailable",
             JourneyStatus::Lulled => "Ended",
             _ => "Recorded",
         }
@@ -154,9 +155,11 @@ pub(super) fn basis_from_projection(lifecycle: &JourneyProjection) -> Presentati
     PresentationBasis {
         body_id: lifecycle.body_id.clone(),
         wake_id: embodied.then(|| lifecycle.wake_id.clone()).flatten(),
-        source_document_id: Some(lifecycle.source_document_id.clone()),
-        checked_form_id: Some(lifecycle.checked_form_id.clone()),
-        expanded_form_id: embodied.then(|| lifecycle.expanded_form_id.clone()),
+        source_document_id: lifecycle.source_document_id.clone(),
+        checked_form_id: lifecycle.checked_form_id.clone(),
+        expanded_form_id: embodied
+            .then(|| lifecycle.expanded_form_id.clone())
+            .flatten(),
         plan_id: embodied.then(|| lifecycle.plan_id.clone()).flatten(),
         active_play_id: planned.then(|| lifecycle.active_play_id.clone()).flatten(),
         sign_ids,

@@ -97,6 +97,7 @@ impl FrontDoor {
                             status,
                             JourneyStatus::QuiescentAwaitingInput
                                 | JourneyStatus::SemanticCompleted
+                                | JourneyStatus::InputUnavailable
                                 | JourneyStatus::Stopped
                         ),
                         "Lull",
@@ -169,6 +170,10 @@ pub(super) fn lifecycle_summary(journey: &JourneyProjection) -> &'static str {
         JourneyStatus::SemanticCompleted => {
             "Play semantically completed; Stop or Lull is available."
         }
+        JourneyStatus::InputUnavailable => journey
+            .loss_kind
+            .map(|kind| kind.recovery())
+            .unwrap_or("Input unavailable; inspect the retained loss Sign before recovery."),
         JourneyStatus::Stopped => "Play stopped; no late value was accepted.",
         JourneyStatus::Lulled => "Body retained; the prior Wake has ended.",
     }

@@ -38,9 +38,10 @@ impl ProductJourney {
         if self.status != JourneyStatus::FormOpened {
             return Err(JourneyError::FormNotOpened);
         }
+        let opened = self.form.as_ref().ok_or(JourneyError::FormNotOpened)?;
         let workset = BodyWorkset::one(ResidentForm::new(
-            self.form.source_document_id.clone(),
-            self.form.checked_form_id.clone(),
+            opened.source_document_id.clone(),
+            opened.checked_form_id.clone(),
         ))
         .map_err(|_| JourneyError::WrongTarget)?;
         self.birth_workset(workset, "My Body".into(), self.birth_sequence())
@@ -124,11 +125,11 @@ impl ProductJourney {
         self.friendly_name = Some(name);
         self.forms = forms;
         self.foreground = foreground;
-        self.form = KeyboardTextFormIdentity {
+        self.form = Some(KeyboardTextFormIdentity {
             source_document_id: first.source_document_id,
             checked_form_id: first.checked_form_id,
             expanded_form_id: first.expanded_form_id,
-        };
+        });
         self.body = Some(body);
         self.born_sign_id = Some(born_sign);
         self.membership = Some(membership);

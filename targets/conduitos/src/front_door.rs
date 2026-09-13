@@ -128,7 +128,7 @@ impl FrontDoor {
         lifecycle_authority_admitted: bool,
     ) -> Self {
         let form_subject = format!("form/{}", checked_form_id.as_str());
-        let selected_subject = form_subject.clone();
+        let selected_subject = format!("host/{}/{}", host_id.as_str(), boot_id.as_str());
         Self {
             host_id,
             boot_id,
@@ -163,8 +163,14 @@ impl FrontDoor {
     }
 
     pub fn observe_journey(&mut self, projection: JourneyProjection) -> Result<(), Error> {
-        if projection.source_document_id != self.source_document_id
-            || projection.checked_form_id != self.checked_form_id
+        if projection
+            .source_document_id
+            .as_ref()
+            .is_some_and(|identity| identity != &self.source_document_id)
+            || projection
+                .checked_form_id
+                .as_ref()
+                .is_some_and(|identity| identity != &self.checked_form_id)
         {
             return Err(Error::Presentation);
         }

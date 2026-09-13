@@ -30,9 +30,9 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
     JourneyProjection {
         status: JourneyStatus::Lulled,
         revision: 9,
-        source_document_id: SourceDocumentId::from("source"),
-        checked_form_id: CheckedFormId::from("checked"),
-        expanded_form_id: conduit_core::ExpandedFormId::from("expanded"),
+        source_document_id: Some(SourceDocumentId::from("source")),
+        checked_form_id: Some(CheckedFormId::from("checked")),
+        expanded_form_id: Some(conduit_core::ExpandedFormId::from("expanded")),
         host_id: HostId::from("host"),
         boot_id: BootId::from("boot"),
         offer_generation: OfferGeneration(3),
@@ -47,6 +47,8 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
         port_ids: vec![],
         cord_ids: vec![],
         input_sign_id: None,
+        loss_kind: None,
+        loss_sign_id: None,
         result_sign_id: None,
         result: None,
         result_omitted_bytes: 0,
@@ -117,11 +119,14 @@ fn entrance_is_a_zero_body_portable_presentation_and_finite_scene() {
 #[test]
 fn open_is_inert_and_details_are_progressive() {
     let mut door = door();
-    assert!(door.accept(key(ENTER), 1).unwrap());
+    assert!(!door.form_open);
+    assert!(!door.selected_subject.starts_with("form/"));
+    assert!(door.accept(key(TAB), 1).unwrap());
+    assert!(door.accept(key(ENTER), 2).unwrap());
     assert!(door.form_open);
-    assert_eq!(door.revision(), 2);
+    assert_eq!(door.revision(), 3);
     assert!(door.presentation().unwrap().basis.body_id.is_none());
-    assert!(door.accept(key(F2), 2).unwrap());
+    assert!(door.accept(key(F2), 3).unwrap());
     let details = door.presentation().unwrap();
     assert!(door.exact_details_open());
     assert!(

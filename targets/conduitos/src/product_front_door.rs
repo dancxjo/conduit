@@ -2,7 +2,7 @@
 
 mod arrival;
 mod input_actions;
-use input_actions::{action_for, form_receives_input, tour_action};
+use input_actions::{action_for, product_control, tour_action};
 mod journey_sign;
 mod scroll_input;
 mod tour_sign;
@@ -22,6 +22,7 @@ use crate::{
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::{self, BootIdentities},
     keyboard_input::{self, ProductInputControl, ProductInputEvent},
+    keyboard_text_plan,
     local_rescue::LocalRescueMatcher,
     native_compositor::InputRoute,
     offer::CAPABILITY_COUNT,
@@ -64,7 +65,8 @@ pub fn run(
     let generation = conduit_core::OfferGeneration(offer.generation);
     let mut journey = ProductJourney::new(host_id.clone(), boot_id.clone(), generation)
         .map_err(|error| error.as_str())?;
-    let form = journey.form().clone();
+    // The embedded defaults are Crèche inventory, not ProductJourney state.
+    let form = keyboard_text_plan::checked_form_identity().map_err(|error| error.as_str())?;
     let mut front_door = FrontDoor::new(
         host_id.clone(),
         boot_id.clone(),
@@ -147,7 +149,9 @@ pub fn run(
                         journey.status(),
                         JourneyStatus::Planned | JourneyStatus::QuiescentAwaitingInput
                     ) {
-                        journey.input_lost().map_err(|error| error.as_str())?;
+                        journey
+                            .input_lost(crate::product_journey::JourneyLossKind::InputDevice)
+                            .map_err(|error| error.as_str())?;
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
                         emit_journey_sign(&journey.projection(), fabrication, &receipt);
                     }
@@ -348,7 +352,8 @@ pub fn run(
                     return Ok(ProductInputControl::Continue);
                 }
                 if journey.status() == JourneyStatus::QuiescentAwaitingInput
-                    && form_receives_input(false, false, event.usage())
+                    && journey.foreground_input_owner().is_some()
+                    && product_control(event.usage()).is_none()
                 {
                     workspace_updates.accept(event, &mut journey, &mut front_door)?;
                     return Ok(ProductInputControl::Continue);

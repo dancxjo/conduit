@@ -97,11 +97,13 @@ impl FrontDoor {
                     properties.push(property(&body, "part-id", identity(part_id.as_str())));
                 }
             }
-            properties.push(property(
-                &form,
-                "expanded-form-id",
-                identity(journey.expanded_form_id.as_str()),
-            ));
+            if let Some(expanded_form_id) = &journey.expanded_form_id {
+                properties.push(property(
+                    &form,
+                    "expanded-form-id",
+                    identity(expanded_form_id.as_str()),
+                ));
+            }
             if let Some(wake_id) = &journey.wake_id {
                 properties.push(property(&host, "wake-id", identity(wake_id.as_str())));
             }
@@ -206,9 +208,9 @@ impl FrontDoor {
                     PresentationBasis {
                         body_id: journey.body_id.clone(),
                         wake_id: journey.wake_id.clone(),
-                        source_document_id: Some(self.source_document_id.clone()),
-                        checked_form_id: Some(self.checked_form_id.clone()),
-                        expanded_form_id: Some(journey.expanded_form_id.clone()),
+                        source_document_id: journey.source_document_id.clone(),
+                        checked_form_id: journey.checked_form_id.clone(),
+                        expanded_form_id: journey.expanded_form_id.clone(),
                         plan_id: journey.plan_id.clone(),
                         active_play_id: journey.active_play_id.clone(),
                         sign_ids: journey

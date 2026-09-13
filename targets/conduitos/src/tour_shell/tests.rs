@@ -468,7 +468,12 @@ fn invoke_journey(
     let projection = journey.projection();
     let target = match action {
         JourneyAction::OpenBack | JourneyAction::Birth => {
-            format!("form/{}", projection.checked_form_id.as_str())
+            let checked = projection.checked_form_id.unwrap_or_else(|| {
+                crate::keyboard_text_plan::checked_form_identity()
+                    .unwrap()
+                    .checked_form_id
+            });
+            format!("form/{}", checked.as_str())
         }
         _ => format!("body/{}", projection.body_id.unwrap().as_str()),
     };

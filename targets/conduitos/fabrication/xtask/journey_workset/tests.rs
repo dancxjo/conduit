@@ -1,7 +1,13 @@
 use super::*;
 
 fn records() -> Vec<Value> {
-    let mut records = expected()
+    let mut records = vec![serde_json::json!({
+        "status": "world",
+        "source_document_id": null,
+        "checked_form_id": null,
+        "expanded_form_id": null
+    })];
+    records.extend(expected()
         .into_iter()
         .enumerate()
         .map(|(index, expected)| {
@@ -16,7 +22,7 @@ fn records() -> Vec<Value> {
                 "result_omitted_bytes": 0, "kernel_sign_gap": null
             })
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>());
     for status in ["stopped", "lulled"] {
         let mut record = records.last().unwrap().clone();
         record["status"] = status.into();
@@ -41,24 +47,32 @@ fn two_form_proof_rejects_restarts_identity_substitution_input_loss_and_state_lo
         "checked_form_id",
         "expanded_form_id",
     ] {
-        for index in [20, 37, 38] {
+        for index in [21, 38, 39] {
             let mut changed = valid.clone();
             changed[index][field] = "substituted".into();
             assert!(validate(&changed).is_err(), "{field} at {index}");
         }
     }
-    for index in [18, 21, 26, 36] {
+    for index in [19, 22, 27, 37] {
         let mut changed = valid.clone();
         changed[index]["result"] = "lost state".into();
         assert!(validate(&changed).is_err());
     }
     let mut lost = valid.clone();
-    lost.remove(21); // Captured release after switching to Memory.
+    lost.remove(20); // Held Canvas release after switching to Memory.
     assert!(validate(&lost).is_err());
     let mut duplicate = valid.clone();
-    duplicate.insert(21, duplicate[21].clone());
+    duplicate.insert(22, duplicate[22].clone());
     assert!(validate(&duplicate).is_err());
     let mut omitted = valid;
-    omitted[27]["result"] = Value::Null; // Empty text is a value, not absent output.
+    omitted[28]["result"] = Value::Null; // Empty text is a value, not absent output.
     assert!(validate(&omitted).is_err());
+
+    let mut coalesced = records();
+    coalesced.remove(23); // Adjacent Memory press/release projected together.
+    validate(&coalesced).unwrap();
+
+    let mut bootstrapped = records();
+    bootstrapped[0]["checked_form_id"] = "pre-birth-form".into();
+    assert!(validate(&bootstrapped).is_err());
 }

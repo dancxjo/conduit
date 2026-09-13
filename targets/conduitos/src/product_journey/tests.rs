@@ -5,6 +5,7 @@ use conduit_human::KeyTransition;
 use conduit_presentation::PresentationActionAvailability;
 
 fn front_door(journey: &ProductJourney) -> crate::front_door::FrontDoor {
+    let form = crate::keyboard_text_plan::checked_form_identity().unwrap();
     crate::front_door::FrontDoor::new(
         journey.host_id.clone(),
         journey.boot_id.clone(),
@@ -12,8 +13,8 @@ fn front_door(journey: &ProductJourney) -> crate::front_door::FrontDoor {
         "profile",
         "build",
         "image",
-        journey.form.source_document_id.clone(),
-        journey.form.checked_form_id.clone(),
+        form.source_document_id,
+        form.checked_form_id,
         7,
         true,
     )
@@ -52,11 +53,14 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     let (identities, offer, mut journey) = fixture();
     let mut front_door = front_door(&journey);
     let initial = journey.projection();
+    assert!(initial.source_document_id.is_none());
+    assert!(initial.checked_form_id.is_none());
+    assert!(initial.expanded_form_id.is_none());
     invoke(&mut journey, JourneyAction::OpenBack, &identities, &offer).unwrap();
     let opened = journey.projection();
     assert_eq!(opened.status, JourneyStatus::FormOpened);
     assert!(opened.body_id.is_none() && opened.plan_id.is_none());
-    assert_eq!(opened.checked_form_id, initial.checked_form_id);
+    assert!(opened.checked_form_id.is_some());
     front_door.observe_journey(opened.clone()).unwrap();
     assert!(front_door.presentation().unwrap().basis.body_id.is_none());
     assert_current_action(&front_door, JourneyAction::Birth);
@@ -156,7 +160,7 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
         presentation_revision: 0,
         action_id: "action/open/current".into(),
         action: JourneyAction::OpenBack,
-        target_identity: journey.projection().checked_form_id.as_str().into(),
+        target_identity: "form/stale-does-not-matter".into(),
     };
     assert_eq!(
         journey.apply(stale, &identities, &offer, "build", 1),
@@ -174,7 +178,13 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
         journey.apply(wrong, &identities, &offer, "build", 1),
         Err(JourneyError::WrongTarget)
     );
-    let seed = format!("form/{}", journey.projection().checked_form_id.as_str());
+    let seed = format!(
+        "form/{}",
+        crate::keyboard_text_plan::checked_form_identity()
+            .unwrap()
+            .checked_form_id
+            .as_str()
+    );
     let born_without_open = JourneyRequest {
         request_id: "request/born".into(),
         presentation_id: "presentation/current".into(),
@@ -227,7 +237,7 @@ fn missing_current_keyboard_offer_refuses_plan_before_kernel_admission() {
 }
 
 #[test]
-fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
+fn device_and_line_loss_remain_distinct_from_an_explicit_stop() {
     let (identities, offer, mut journey) = fixture();
     for action in [
         JourneyAction::OpenBack,
@@ -237,14 +247,21 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
     ] {
         invoke(&mut journey, action, &identities, &offer).unwrap();
     }
-    journey.input_lost().unwrap();
-    assert_eq!(journey.status(), JourneyStatus::Stopped);
+    journey.input_lost(JourneyLossKind::InputDevice).unwrap();
+    assert_eq!(journey.status(), JourneyStatus::InputUnavailable);
+    let device_loss = journey.projection();
+    assert_eq!(device_loss.loss_kind, Some(JourneyLossKind::InputDevice));
+    assert!(device_loss.loss_sign_id.is_some());
     assert!(journey.projection().active_play_id.is_none() && journey.projection().result.is_none());
 
     let (identities, offer, mut journey) = fixture();
     reach_quiescence(&mut journey, &identities, &offer);
-    journey.input_lost().unwrap();
-    assert_eq!(journey.status(), JourneyStatus::Stopped);
+    journey.input_lost(JourneyLossKind::Line).unwrap();
+    assert_eq!(journey.status(), JourneyStatus::InputUnavailable);
+    let line_loss = journey.projection();
+    assert_eq!(line_loss.loss_kind, Some(JourneyLossKind::Line));
+    assert_ne!(line_loss.loss_sign_id, device_loss.loss_sign_id);
+    assert!(line_loss.active_play_id.is_none());
     assert!(
         !journey
             .accept_play_input(key(4, KeyTransition::Pressed))
@@ -254,6 +271,8 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
     let (identities, offer, mut journey) = fixture();
     reach_quiescence(&mut journey, &identities, &offer);
     invoke(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
+    assert_eq!(journey.status(), JourneyStatus::Stopped);
+    assert!(journey.projection().loss_kind.is_none());
     assert!(
         !journey
             .accept_play_input(key(4, KeyTransition::Pressed))
@@ -298,12 +317,19 @@ fn long_session_keeps_one_body_plan_play_and_discloses_bounded_history() {
                     ))
         }));
         if device_lost {
-            journey.input_lost().unwrap();
+            journey.input_lost(JourneyLossKind::InputDevice).unwrap();
         } else {
             invoke(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
         }
         let stopped = journey.projection();
-        assert_eq!(stopped.status, JourneyStatus::Stopped);
+        assert_eq!(
+            stopped.status,
+            if device_lost {
+                JourneyStatus::InputUnavailable
+            } else {
+                JourneyStatus::Stopped
+            }
+        );
         assert!(stopped.kernel_sign_gap.unwrap().entries >= gap.entries);
         assert_eq!(stopped.result_omitted_bytes, 896);
         assert!(
