@@ -99,7 +99,7 @@ fn identity(form: NativeForm) -> Result<FormProof, ConduitosError> {
 }
 
 fn matches(record: &Value, expected: Expected, form: &FormProof) -> bool {
-    record["status"] == "playing"
+    record["status"] == "quiescent-awaiting-input"
         && record["input_count"] == expected.count
         && match expected.result {
             Some(result) => record["result"].as_str() == Some(result),
@@ -121,15 +121,15 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     };
     let mut canvas = identity(NativeForm::KeyboardCanvas)?;
     let mut memory = identity(NativeForm::MemoryLantern)?;
-    let playing = records
+    let quiescent = records
         .iter()
-        .filter(|record| record["status"] == "playing")
+        .filter(|record| record["status"] == "quiescent-awaiting-input")
         .collect::<Vec<_>>();
     let expected = expected();
-    if playing.len() != expected.len() {
+    if quiescent.len() != expected.len() {
         return Err(refusal());
     }
-    for (record, expected) in playing.iter().zip(&expected) {
+    for (record, expected) in quiescent.iter().zip(&expected) {
         let form = match expected.form {
             NativeForm::KeyboardCanvas => &canvas,
             NativeForm::MemoryLantern => &memory,
@@ -138,8 +138,8 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             return Err(refusal());
         }
         for field in ["body_id", "wake_id", "plan_id", "active_play_id"] {
-            if playing[0][field].as_str().is_none_or(str::is_empty)
-                || record[field] != playing[0][field]
+            if quiescent[0][field].as_str().is_none_or(str::is_empty)
+                || record[field] != quiescent[0][field]
             {
                 return Err(refusal());
             }
@@ -164,7 +164,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             .ok_or_else(refusal)?;
         if ["body_id", "wake_id", "plan_id", "active_play_id"]
             .iter()
-            .any(|field| record[field] != playing[0][field])
+            .any(|field| record[field] != quiescent[0][field])
             || record["input_count"] != 30
             || record["result"] != "HELLOXY"
         {
@@ -174,10 +174,10 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     canvas.final_result = "HELLOXY".into();
     memory.final_result = "hi".into();
     Ok((
-        playing[10],
+        quiescent[10],
         WorksetProof {
             forms: vec![canvas, memory],
-            switches: playing
+            switches: quiescent
                 .windows(2)
                 .filter(|pair| pair[0]["checked_form_id"] != pair[1]["checked_form_id"])
                 .count(),

@@ -32,8 +32,8 @@ pub enum JourneyStatus {
     BornLulled,
     Awake,
     Planned,
-    Playing,
-    ResultVisible,
+    QuiescentAwaitingInput,
+    SemanticCompleted,
     Lulled,
     Stopped,
 }
@@ -46,8 +46,8 @@ impl JourneyStatus {
             Self::BornLulled => "born-lulled",
             Self::Awake => "awake",
             Self::Planned => "planned",
-            Self::Playing => "playing",
-            Self::ResultVisible => "result-visible",
+            Self::QuiescentAwaitingInput => "quiescent-awaiting-input",
+            Self::SemanticCompleted => "semantic-completed",
             Self::Lulled => "lulled",
             Self::Stopped => "stopped",
         }

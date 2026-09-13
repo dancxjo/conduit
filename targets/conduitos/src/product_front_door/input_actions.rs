@@ -18,7 +18,7 @@ pub(super) fn action_for(
     if action == JourneyAction::Stop
         && !matches!(
             journey.status(),
-            JourneyStatus::Playing | JourneyStatus::ResultVisible
+            JourneyStatus::QuiescentAwaitingInput | JourneyStatus::SemanticCompleted
         )
     {
         return None;

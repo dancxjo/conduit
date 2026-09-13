@@ -38,7 +38,7 @@ fn wait_prefix(
         expected,
         |text| {
             Ok(journey_records::decode(text)?.iter().any(|record| {
-                record["status"] == "playing"
+                record["status"] == "quiescent-awaiting-input"
                     && record["result"] == expected
                     && record["input_count"] == input_count as u64
             }))
@@ -53,15 +53,15 @@ pub(super) fn validate(records: &[Value]) -> Result<&Value, ConduitosError> {
             "HELLO must traverse one unchanged Body, Plan, and Play before explicit Stop",
         )
     };
-    let playing = records
+    let quiescent = records
         .iter()
-        .filter(|record| record["status"] == "playing")
+        .filter(|record| record["status"] == "quiescent-awaiting-input")
         .collect::<Vec<_>>();
-    let first = playing.first().ok_or_else(refuse)?;
-    let result = *playing.last().ok_or_else(refuse)?;
+    let first = quiescent.first().ok_or_else(refuse)?;
+    let result = *quiescent.last().ok_or_else(refuse)?;
     for identity in ["body_id", "plan_id", "active_play_id"] {
         if first[identity].as_str().is_none_or(str::is_empty)
-            || playing
+            || quiescent
                 .iter()
                 .any(|record| record[identity] != first[identity])
         {
@@ -71,13 +71,13 @@ pub(super) fn validate(records: &[Value]) -> Result<&Value, ConduitosError> {
     // Every down/up event is accepted exactly once. A release retains the same
     // value, so checking both count and prefix catches lost or duplicated keys.
     for count in 0..=10u64 {
-        let matches = playing
+        let matches = quiescent
             .iter()
             .filter(|record| record["input_count"] == count);
         if matches.count() != 1 {
             return Err(refuse());
         }
-        let record = playing
+        let record = quiescent
             .iter()
             .find(|record| record["input_count"] == count)
             .unwrap();
@@ -90,7 +90,7 @@ pub(super) fn validate(records: &[Value]) -> Result<&Value, ConduitosError> {
             return Err(refuse());
         }
     }
-    if playing.len() != 11 || result["result"] != "HELLO" {
+    if quiescent.len() != 11 || result["result"] != "HELLO" {
         return Err(refuse());
     }
     let stopped = records
@@ -112,7 +112,7 @@ mod tests {
 
     fn records() -> Vec<Value> {
         let mut records = (0..=10u64).map(|count| serde_json::json!({
-            "status": "playing", "body_id": "body", "plan_id": "plan", "active_play_id": "play",
+            "status": "quiescent-awaiting-input", "body_id": "body", "plan_id": "plan", "active_play_id": "play",
             "input_count": count, "result": if count == 0 { Value::Null } else { Value::from(&"HELLO"[..count.div_ceil(2) as usize]) },
             "result_omitted_bytes": 0, "kernel_sign_gap": null
         })).collect::<Vec<_>>();
@@ -138,7 +138,7 @@ mod tests {
         duplicate.insert(6, duplicate[6].clone());
         assert!(validate(&duplicate).is_err());
         let mut completed = valid.clone();
-        completed[10]["status"] = "result-visible".into();
+        completed[10]["status"] = "semantic-completed".into();
         assert!(validate(&completed).is_err());
         let mut control_leak = valid;
         control_leak[1]["result"] = "\nH".into();

@@ -95,6 +95,10 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
         native.selected_subject.as_deref(),
         Some(host.identity.as_str())
     );
+    assert_eq!(
+        native.available_actions,
+        vec![EntranceAction::Inspect, EntranceAction::Birth]
+    );
     assert!(native.body_id.is_none());
     let report = compare_entrances(&presentation, &native, &browser).unwrap();
     assert!(report.equivalent);
@@ -113,6 +117,15 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
     }));
     assert!(presentation.actions.iter().any(|action| {
         action.intent == "conduit.intent/birth@1"
+            && action.target == host.identity
+            && matches!(
+                action.availability,
+                conduit_presentation::PresentationActionAvailability::Available
+            )
+    }));
+    assert!(presentation.actions.iter().any(|action| {
+        action.intent == "conduit.intent/birth@1"
+            && action.target != host.identity
             && matches!(
                 action.availability,
                 conduit_presentation::PresentationActionAvailability::Unavailable { .. }
@@ -197,6 +210,80 @@ fn opening_form_is_inert_and_only_explicit_birth_embodies_host() {
             )
     }));
     assert_eq!(projection.parts.parts.len(), 1);
+}
+
+fn creche_session(suffix: &str) -> ZeroBodyFrontDoor {
+    let mut session = ZeroBodyFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
+        HostId::from(format!("creche/{suffix}/host")),
+        BootId::from(format!("creche/{suffix}/boot")),
+    )
+    .unwrap();
+    session
+        .add_form(
+            FormCandidate::from_source_form(
+                "Patchbay front door",
+                "forms/patchbay-front-door/main.conduit",
+                SOURCE,
+                "patchbay-front-door",
+                "reviewed installed Form",
+                SignId::from(format!("creche/{suffix}/form-reviewed")),
+                2,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    session
+}
+
+#[test]
+fn creche_birth_uses_one_path_for_zero_one_and_many_reviewed_forms() {
+    for (suffix, selected) in [("zero", 0_usize), ("one", 1), ("many", 2)] {
+        let session = creche_session(suffix);
+        assert!(session.opened().is_none());
+        let mut draft = session
+            .creche_draft(format!("00112233-4455-6677-8899-{selected:012}"))
+            .unwrap();
+        assert!(draft.choices().iter().all(|choice| !choice.selected));
+        assert!(session.opened().is_none());
+        assert!(session
+            .project()
+            .unwrap()
+            .presentation
+            .properties
+            .iter()
+            .all(|property| property.name != "friendly-name"));
+        for index in 0..selected {
+            draft.select(draft.revision(), index, true).unwrap();
+        }
+        let selection = draft.selection(draft.revision()).unwrap();
+        let expected = selection.clone();
+        let revision = session.revision();
+        let embodied = session.birth_from_creche(selection, revision).unwrap();
+
+        assert_eq!(embodied.body().workset, expected.workset);
+        assert_eq!(embodied.body().workload_revision, 0);
+        assert!(embodied.wake().is_none());
+        let evidence = embodied.birth_evidence().unwrap();
+        assert_eq!(evidence.selection_revision, expected.revision);
+        assert_eq!(evidence.friendly_name, expected.friendly_name);
+        assert_eq!(evidence.workset, expected.workset);
+        assert_eq!(embodied.body().sign_ids, vec![evidence.sign_id.clone()]);
+        let projection = embodied.project().unwrap();
+        assert_eq!(
+            projection.presentation.basis.body_id.as_ref(),
+            Some(&embodied.body().body_id)
+        );
+        assert!(projection.presentation.basis.wake_id.is_none());
+        if selected == 0 {
+            assert!(projection.presentation.basis.checked_form_id.is_none());
+            assert!(projection
+                .presentation
+                .subjects
+                .iter()
+                .all(|subject| { subject.role != PresentationRole::Form }));
+        }
+    }
 }
 
 #[test]

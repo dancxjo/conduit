@@ -38,6 +38,17 @@ const laboratory = document.createElement("div");
 laboratory.className = "tour-workbench";
 laboratory.dataset.applicationComponent = "tour-laboratory";
 
+const TWO_BROWSER_LINE_PROOF = Object.freeze({
+  schema: "conduit.tour/two-browser-line-proof@1",
+  proof_class: "browser-runtime",
+  line_mechanism: "browser-memory",
+  durable_body: false,
+  durable_membership: false,
+  trust_or_authority_granted: false,
+  rejoin_proved: false,
+  household_proved: false,
+});
+
 export async function startApplication(application) {
 try {
   hostPresentation = application.presentation;
@@ -524,6 +535,9 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
   runner.className = "runner multi-host-runner";
   runner.dataset.sourceKey = sourceKey;
   runner.dataset.mode = "multi";
+  runner.dataset.proofClass = TWO_BROWSER_LINE_PROOF.proof_class;
+  runner.dataset.durableMembership = String(TWO_BROWSER_LINE_PROOF.durable_membership);
+  runner.dataset.householdProof = String(TWO_BROWSER_LINE_PROOF.household_proved);
   runner.innerHTML = `
     ${compactPatchbayFrame()}
     <div class="editor">
@@ -531,6 +545,7 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
       <div data-application-slot="${actionsSlot}"></div>
     </div>
     <div class="result multi-host-result">
+      <p class="proof-boundary" data-application-component="proof-boundary"><strong>Browser-runtime proof.</strong> Two ephemeral browser Hosts use one planned in-memory Line. No durable Body membership, trust, authority, rejoin, or household is claimed.</p>
       <div class="host-map" aria-label="Two independent browser Hosts">
         <article class="host-card host-a"><span>Host A · source</span><strong>waiting</strong><code class="host-id"></code><code class="boot-id"></code></article>
         <div class="planned-line" aria-label="One planned cross-Host Cord"><span>typed Cord</span><b>→</b><small>1 item · finite bytes</small></div>
@@ -847,6 +862,7 @@ async function ensurePeerHost() {
   }
   peerHost = initialized;
   globalThis.__conduitTourPeerHost = peerHost;
+  globalThis.__conduitTourTwoBrowserLineProof = TWO_BROWSER_LINE_PROOF;
   return peerHost;
 }
 

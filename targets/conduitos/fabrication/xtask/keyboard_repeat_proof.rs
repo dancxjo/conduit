@@ -95,7 +95,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         )?;
         artifacts.capture(&mut stream, &mut reader, "creche-ready", false)?;
         journey_input::key_pair(&mut stream, &mut reader, "ret", "keyboard-repeat-birth")?;
-        journey_input::wait_status(&serial, &mut child, "playing")?;
+        journey_input::wait_status(&serial, &mut child, "quiescent-awaiting-input")?;
         for index in 0..CHARACTERS {
             let key = char::from(ALPHABET[index % ALPHABET.len()]).to_string();
             journey_input::key_pair(&mut stream, &mut reader, &key, "keyboard-repeat-input")?;
@@ -107,7 +107,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
                 &format!("character {}", index + 1),
                 |text| {
                     Ok(journey_records::decode(text)?.last().is_some_and(|record| {
-                        record["status"] == "playing"
+                        record["status"] == "quiescent-awaiting-input"
                             && record["input_count"] == ((index + 1) * 2) as u64
                             && record["result"] == expected
                     }))

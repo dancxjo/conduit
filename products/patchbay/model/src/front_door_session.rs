@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use crate::{
     front_door_topology::FrontDoorTopology, FormEditor, PartsView, PatchbayModel,
-    PatchbayRequestId, PlanDocument, PlayDocument,
+    PatchbayRequestId, PlanDocument, PlayDocument, RetainedBirthEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,8 +28,9 @@ pub struct LocalFrontDoorProjection {
 pub struct LocalFrontDoor {
     pub(super) adapter: Arc<dyn crate::PatchbayHostAdapter>,
     pub(super) model: PatchbayModel,
-    pub(super) editor: FormEditor,
-    pub(super) form_name: String,
+    pub(super) editor: Option<FormEditor>,
+    pub(super) form_name: Option<String>,
+    pub(super) birth_evidence: Option<RetainedBirthEvidence>,
     pub(super) body: Body,
     pub(super) wake: Option<Wake>,
     pub(super) membership: BodyMembership,
@@ -138,8 +139,9 @@ impl LocalFrontDoor {
         Ok(Self {
             adapter,
             model,
-            editor,
-            form_name: "patchbay-front-door".into(),
+            editor: Some(editor),
+            form_name: Some("patchbay-front-door".into()),
+            birth_evidence: None,
             body,
             wake: Some(wake),
             membership,
@@ -156,6 +158,10 @@ impl LocalFrontDoor {
 
     pub fn body(&self) -> &Body {
         &self.body
+    }
+
+    pub fn birth_evidence(&self) -> Option<&RetainedBirthEvidence> {
+        self.birth_evidence.as_ref()
     }
 
     pub fn wake(&self) -> Option<&Wake> {
@@ -350,9 +356,16 @@ impl LocalFrontDoor {
             .as_ref()
             .ok_or("planning requires an explicit Wake after Birth")?;
         let advertisement = self.model.advertisement().clone();
-        let expanded = self
+        let editor = self
             .editor
-            .expand_form(&self.form_name)
+            .as_ref()
+            .ok_or("an idle Body has no resident Form to plan")?;
+        let form_name = self
+            .form_name
+            .as_deref()
+            .ok_or("an idle Body has no resident Form to plan")?;
+        let expanded = editor
+            .expand_form(form_name)
             .map_err(|error| error.to_string())?;
         let plan = self
             .adapter

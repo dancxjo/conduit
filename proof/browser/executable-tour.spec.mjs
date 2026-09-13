@@ -2136,6 +2136,13 @@ test("Two browser Hosts executes one unchanged Form across independent Hosts", a
   await openStep(page, 3);
   await expect(page.getByRole("heading", { name: "One Form across several Hosts" })).toBeVisible();
   const runner = page.locator(".multi-host-runner").first();
+  await expect(runner.getByText("Browser-runtime proof.", { exact: false })).toBeVisible();
+  await expect(runner.locator('[data-application-component="proof-boundary"]')).toContainText(
+    "No durable Body membership, trust, authority, rejoin, or household is claimed",
+  );
+  await expect(runner).toHaveAttribute("data-proof-class", "browser-runtime");
+  await expect(runner).toHaveAttribute("data-durable-membership", "false");
+  await expect(runner).toHaveAttribute("data-household-proof", "false");
   const source = await runner.locator("textarea").inputValue();
   expect(source).not.toMatch(/HostId|BootId|browser\/|iframe|DOM|socket|address/);
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
@@ -2151,6 +2158,17 @@ test("Two browser Hosts executes one unchanged Form across independent Hosts", a
   }));
   expect(identities.a.hostId).not.toBe(identities.b.hostId);
   expect(identities.a.bootId).not.toBe(identities.b.bootId);
+  const proofBoundary = await page.evaluate(() => globalThis.__conduitTourTwoBrowserLineProof);
+  expect(proofBoundary).toEqual({
+    schema: "conduit.tour/two-browser-line-proof@1",
+    proof_class: "browser-runtime",
+    line_mechanism: "browser-memory",
+    durable_body: false,
+    durable_membership: false,
+    trust_or_authority_granted: false,
+    rejoin_proved: false,
+    household_proved: false,
+  });
   await expect(page.locator("iframe")).toHaveCount(0);
   await expect(runner.locator('[data-application-key="cord"]')).toContainText("1 item");
   await expect(runner.locator(".run-identities")).toContainText("Terminal source receipt");

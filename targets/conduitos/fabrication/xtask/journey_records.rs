@@ -111,7 +111,8 @@ mod tests {
     #[test]
     fn incomplete_serial_tail_cannot_satisfy_a_checkpoint() {
         let complete = "CONDUIT_PRODUCT_JOURNEY {\"status\":\"awake\"}\n";
-        let partial = "CONDUIT_PRODUCT_JOURNEY {\"status\":\"playing\",\"plan_id\":\"";
+        let partial =
+            "CONDUIT_PRODUCT_JOURNEY {\"status\":\"quiescent-awaiting-input\",\"plan_id\":\"";
         let records = decode(&format!("{complete}{partial}")).unwrap();
         assert_eq!(records.len(), 1);
         assert_eq!(records[0]["status"], "awake");

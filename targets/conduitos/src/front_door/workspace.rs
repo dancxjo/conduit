@@ -129,7 +129,7 @@ impl FrontDoor {
         }
         self.form_open = false;
         // A newly admitted Play supersedes an earlier startup/input refusal.
-        if journey.status == crate::product_journey::JourneyStatus::Playing {
+        if journey.status == crate::product_journey::JourneyStatus::QuiescentAwaitingInput {
             self.refusal = None;
         }
         self.journey = Some(journey);
