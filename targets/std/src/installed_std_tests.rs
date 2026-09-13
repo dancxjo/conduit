@@ -44,6 +44,8 @@ mod timed_pattern_conformance;
 mod timing_conformance;
 mod typed_state_conformance;
 mod vector_search_conformance;
+#[cfg(feature = "local-model-proof")]
+mod whisper_speech_conformance;
 
 struct RecordingTimer {
     waits: Vec<Duration>,

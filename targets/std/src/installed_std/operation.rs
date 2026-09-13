@@ -77,6 +77,7 @@ impl Operation for InstalledOperation {
             Self::AddressDetect(operation) => operation.start(),
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::RecordedSpeech(operation) => operation.start(),
+            Self::WhisperSpeech(operation) => operation.start(),
             Self::RecognitionText(operation) => operation.start(),
             Self::HousePrompt(operation) => operation.start(),
             Self::LocalModel(operation) => operation.start(),
@@ -217,6 +218,7 @@ impl Operation for InstalledOperation {
             (Self::AddressDetect(operation), input) => operation.resume(input),
             #[cfg(any(test, feature = "local-model-proof"))]
             (Self::RecordedSpeech(operation), input) => operation.resume(input),
+            (Self::WhisperSpeech(operation), input) => operation.resume(input),
             (Self::RecognitionText(operation), input) => operation.resume(input),
             (Self::HousePrompt(operation), input) => operation.resume(input),
             (Self::LocalModel(operation), input) => operation.resume(input),
@@ -410,6 +412,7 @@ impl Operation for InstalledOperation {
             Self::AddressDetect(operation) => operation.advance(),
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::RecordedSpeech(operation) => operation.advance(),
+            Self::WhisperSpeech(operation) => operation.advance(),
             Self::RecognitionText(operation) => operation.advance(),
             Self::HousePrompt(operation) => operation.advance(),
             Self::LocalModel(operation) => operation.advance(),

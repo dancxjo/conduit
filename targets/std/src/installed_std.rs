@@ -135,6 +135,7 @@ mod toggle_operation;
 mod typed_record_operation;
 mod vector_search_host;
 mod vector_search_operation;
+mod whisper_speech_operation;
 
 pub(crate) use self::catalog::supports;
 #[cfg(test)]
@@ -219,6 +220,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         indicator,
         attach_live,
         mut speech_synthesis,
+        mut speech_recognition,
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
@@ -1559,6 +1561,36 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete proof PCM source yield: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::WHISPER_SPEECH_OPERATION {
+                let recognition = whisper_speech_operation::execute(
+                    speech_recognition.as_deref_mut(),
+                    input,
+                    || control.requested_stop().is_some(),
+                );
+                let outcome = match recognition {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(&encoded)
+                            .map_err(|error| format!("store Whisper recognition: {error:?}"))?;
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound Whisper recognition: {error:?}"))?,
+                            ),
+                            failure: None,
+                        }
+                    }
+                    Err(failure) => whisper_speech_operation::failure_outcome(failure),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete Whisper recognition: {error:?}"))?;
                 continue;
             } else if contract.as_str() == "conduit.host/proof-recorded-speech-recognize@1" {
                 #[cfg(any(test, feature = "local-model-proof"))]
