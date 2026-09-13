@@ -87,6 +87,13 @@ pub(super) fn prove(
             receipt.interpret_play_completed,
             receipt.house_play_completed
         );
+        println!(
+            "House response: bytes={} sha256={} speech-plan={} speech-outcome={:?}",
+            receipt.house_response_bytes,
+            receipt.house_response_sha256,
+            receipt.house_speech.plan_id,
+            receipt.house_speech.outcome
+        );
     }
     Ok(())
 }
