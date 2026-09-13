@@ -93,15 +93,12 @@ export function createTourWorkspace(root, readingState) {
 
 export function createTourRunnerActions(presentation, slot, runLabel, onRun, onStop, onRestore) {
   let revision = 0;
+  const application = createTourApplicationActionForwarder({ onRun, onStop, onRestore });
   return Object.freeze({
     render(running) {
       presentation.present(slot, {
         revision: ++revision,
-        actions: [
-          { id: "tour.run", event: "activate" },
-          { id: "tour.stop", event: "activate" },
-          { id: "tour.restore", event: "activate" },
-        ],
+        actions: TOUR_APPLICATION_ACTIONS.actions.map(({ id }) => ({ id, event: "activate" })),
         nodes: [
           { parent: null, component: "action-group", key: "runner-actions", text: "Play and draft actions", action: null },
           { parent: 0, component: "button", key: "run", text: runLabel, action: running ? null : 0 },
@@ -111,11 +108,10 @@ export function createTourRunnerActions(presentation, slot, runLabel, onRun, onS
       }, {
         onEvent(event) {
           presentation.nextEvent(slot);
-          if (event.action === "tour.run") onRun();
-          else if (event.action === "tour.stop") onStop();
-          else if (event.action === "tour.restore") onRestore();
+          application.forward(event);
         },
       });
     },
   });
 }
+import { createTourApplicationActionForwarder, TOUR_APPLICATION_ACTIONS } from "./tour-application-actions.mjs";
