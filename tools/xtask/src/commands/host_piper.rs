@@ -34,6 +34,11 @@ struct PiperProofReport {
     pcm_sha256: Option<String>,
     frames: Option<u32>,
     blocks: Option<u16>,
+    conversion_implementation_id: Option<String>,
+    output_sample_rate_hz: Option<u32>,
+    output_channels: Option<u8>,
+    output_frames: Option<u64>,
+    output_blocks: Option<u16>,
     diagnostic_bytes: Option<u16>,
 }
 
@@ -47,7 +52,7 @@ pub(super) fn prove(
     if opts.dry_run {
         let report = PiperProofReport {
             schema: if request.plan_play {
-                "conduit.tools/xtask/piper-plan-play-proof@1"
+                "conduit.tools/xtask/piper-plan-play-proof@2"
             } else {
                 "conduit.tools/xtask/piper-provider-proof@1"
             },
@@ -70,6 +75,11 @@ pub(super) fn prove(
             pcm_sha256: None,
             frames: None,
             blocks: None,
+            conversion_implementation_id: None,
+            output_sample_rate_hz: None,
+            output_channels: None,
+            output_frames: None,
+            output_blocks: None,
             diagnostic_bytes: None,
         };
         if opts.json {
@@ -99,11 +109,12 @@ pub(super) fn prove(
     if request.plan_play {
         let run = conduit_std_host::piper_plan_play_proof::run(discovery, limits, &request.text)?;
         let receipt = run
+            .run
             .speech_synthesis
             .first()
             .ok_or("Piper Plan/Play proof omitted its synthesis receipt")?;
         let report = PiperProofReport {
-            schema: "conduit.tools/xtask/piper-plan-play-proof@1",
+            schema: "conduit.tools/xtask/piper-plan-play-proof@2",
             proof_class: "ordinary-plan-play",
             dry_run: false,
             effects_performed: true,
@@ -119,19 +130,28 @@ pub(super) fn prove(
             pcm_sha256: Some(receipt.pcm_sha256.clone()),
             frames: Some(receipt.frames),
             blocks: Some(receipt.blocks),
+            conversion_implementation_id: Some(
+                run.conversion_implementation_id.as_str().to_string(),
+            ),
+            output_sample_rate_hz: Some(48_000),
+            output_channels: Some(2),
+            output_frames: Some(run.output_frames),
+            output_blocks: Some(receipt.blocks),
             diagnostic_bytes: None,
         };
         if opts.json {
             println!("{}", serde_json::to_string(&report)?);
         } else if !opts.quiet {
             println!(
-                "PIPER PLAN/PLAY PROVED: plan={} play={} model={} frames={} blocks={} pcm={}",
+                "PIPER PLAN/PLAY PROVED: plan={} play={} model={} source_frames={} blocks={} pcm={} conversion={} output=stereo-s16le/48000Hz output_frames={}",
                 receipt.plan_id.as_str(),
                 receipt.active_play_id.as_str(),
                 receipt.model_sha256,
                 receipt.frames,
                 receipt.blocks,
-                receipt.pcm_sha256
+                receipt.pcm_sha256,
+                run.conversion_implementation_id.as_str(),
+                run.output_frames
             );
         }
         return Ok(());
@@ -172,6 +192,11 @@ pub(super) fn prove(
         pcm_sha256: Some(receipt.pcm_sha256.clone()),
         frames: Some(receipt.frames),
         blocks: Some(receipt.blocks),
+        conversion_implementation_id: None,
+        output_sample_rate_hz: None,
+        output_channels: None,
+        output_frames: None,
+        output_blocks: None,
         diagnostic_bytes: Some(receipt.diagnostic_bytes),
     };
     if opts.json {
