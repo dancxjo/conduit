@@ -2,7 +2,9 @@
 
 use alloc::{borrow::ToOwned, boxed::Box, format, string::String, vec::Vec};
 
-use conduit_body::{Body, BodyMembership, BodyPlan, BodyPlayIdentity, BodyState, PartId, Wake};
+use conduit_body::{
+    Body, BodyMembership, BodyPlan, BodyPlayIdentity, BodyState, PartId, Wake, WakeLifecycleEvent,
+};
 use conduit_core::{BootId, ExpandedFormId, HostId, OfferGeneration, SignId};
 
 use crate::{
@@ -132,8 +134,11 @@ pub struct JourneyProjection {
     pub born_sign_id: Option<SignId>,
     pub part_id: Option<PartId>,
     pub wake_id: Option<conduit_body::WakeId>,
+    pub wake_sign_id: Option<SignId>,
     pub plan_id: Option<conduit_core::PlanId>,
+    pub plan_sign_id: Option<SignId>,
     pub active_play_id: Option<conduit_core::ActivePlayId>,
+    pub play_sign_id: Option<SignId>,
     pub gear_ids: Vec<String>,
     pub port_ids: Vec<String>,
     pub cord_ids: Vec<String>,
@@ -275,6 +280,36 @@ impl ProductJourney {
     }
 
     pub fn projection(&self) -> JourneyProjection {
+        let wake_sign_id = self.wake.as_ref().and_then(|wake| {
+            wake.events.iter().find_map(|event| match event {
+                WakeLifecycleEvent::Woke { sign_id } => Some(sign_id.clone()),
+                _ => None,
+            })
+        });
+        let plan_sign_id = self.wake.as_ref().and_then(|wake| {
+            wake.events.iter().rev().find_map(|event| match event {
+                WakeLifecycleEvent::PlanReady { plan_id, sign_id }
+                    if Some(plan_id) == self.plan.as_ref().map(|plan| &plan.plan_id) =>
+                {
+                    Some(sign_id.clone())
+                }
+                _ => None,
+            })
+        });
+        let play_sign_id = self.wake.as_ref().and_then(|wake| {
+            wake.events.iter().rev().find_map(|event| match event {
+                WakeLifecycleEvent::PlayStarted {
+                    active_play_id,
+                    sign_id,
+                    ..
+                } if Some(active_play_id)
+                    == self.play.as_ref().map(|play| &play.active_play_id) =>
+                {
+                    Some(sign_id.clone())
+                }
+                _ => None,
+            })
+        });
         JourneyProjection {
             status: self.status,
             revision: self.revision,
@@ -292,8 +327,11 @@ impl ProductJourney {
             friendly_name: self.friendly_name.clone(),
             part_id: self.part_id.clone(),
             wake_id: self.wake.as_ref().map(|wake| wake.wake_id.clone()),
+            wake_sign_id,
             plan_id: self.plan.as_ref().map(|plan| plan.plan_id.clone()),
+            plan_sign_id,
             active_play_id: self.play.as_ref().map(|play| play.active_play_id.clone()),
+            play_sign_id,
             gear_ids: self
                 .plan
                 .iter()
