@@ -21,6 +21,7 @@ use crate::{
     fabrication::FabricationRecord,
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::{self, BootIdentities},
+    keyboard_text_plan,
     keyboard_input::{self, ProductInputControl, ProductInputEvent},
     local_rescue::LocalRescueMatcher,
     native_compositor::InputRoute,
