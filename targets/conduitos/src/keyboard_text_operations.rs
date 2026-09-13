@@ -37,12 +37,21 @@ pub(crate) struct PresentationOperation {
 }
 
 #[derive(Clone, Copy)]
+pub(crate) struct ApplicationOperation {
+    pub(crate) pending: Option<RequestId>,
+    pub(crate) next: u32,
+    pub(crate) initial: bool,
+    pub(crate) empty: ValueRef,
+}
+
+#[derive(Clone, Copy)]
 pub(crate) enum PlannedOperation {
     Keyboard(KeyboardOperation),
     Keymap(StreamTransformOperation),
     Upper(StreamTransformOperation),
     TextEdit(StreamTransformOperation),
     Presentation(PresentationOperation),
+    Application(ApplicationOperation),
 }
 
 impl Operation for KeyboardOperation {
@@ -199,12 +208,70 @@ impl Operation for PresentationOperation {
     }
 }
 
+impl Operation for ApplicationOperation {
+    fn start(&mut self) -> OperationAction {
+        self.request(self.empty)
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::Value {
+                port: PortId(0),
+                value,
+            } if self.pending.is_none() && !self.initial => self.request(value),
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending == Some(request)
+                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.failure.is_none() =>
+            {
+                self.pending = None;
+                let Some(output) = outcome.output else {
+                    return fail(69);
+                };
+                self.initial = false;
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value: output.value,
+                }
+            }
+            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
+                OperationAction::Complete
+            }
+            _ => fail(69),
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+impl ApplicationOperation {
+    fn request(&mut self, value: ValueRef) -> OperationAction {
+        let request = RequestId(self.next);
+        let Some(next) = self.next.checked_add(1) else {
+            return exhausted(70);
+        };
+        self.next = next;
+        self.pending = Some(request);
+        OperationAction::RequestHostOperation {
+            request,
+            operation: conduit_kernel::HostOperationId(0),
+            input: match BoundedValueRef::new(value, value.byte_len) {
+                Ok(value) => value,
+                Err(_) => return fail(70),
+            },
+        }
+    }
+}
+
 impl Operation for PlannedOperation {
     fn start(&mut self) -> OperationAction {
         match self {
             Self::Keyboard(value) => value.start(),
             Self::Keymap(value) | Self::Upper(value) | Self::TextEdit(value) => value.start(),
             Self::Presentation(value) => value.start(),
+            Self::Application(value) => value.start(),
         }
     }
 
@@ -213,6 +280,7 @@ impl Operation for PlannedOperation {
             Self::Keyboard(value) => value.resume(input),
             Self::Keymap(value) | Self::Upper(value) | Self::TextEdit(value) => value.resume(input),
             Self::Presentation(value) => value.resume(input),
+            Self::Application(value) => value.resume(input),
         }
     }
 
@@ -221,6 +289,7 @@ impl Operation for PlannedOperation {
             Self::Keyboard(value) => value.advance(),
             Self::Keymap(value) | Self::Upper(value) | Self::TextEdit(value) => value.advance(),
             Self::Presentation(value) => value.advance(),
+            Self::Application(value) => value.advance(),
         }
     }
 
@@ -229,6 +298,7 @@ impl Operation for PlannedOperation {
             Self::Keyboard(value) => value.cancel(),
             Self::Keymap(value) | Self::Upper(value) | Self::TextEdit(value) => value.cancel(),
             Self::Presentation(value) => value.cancel(),
+            Self::Application(value) => value.cancel(),
         }
     }
 }

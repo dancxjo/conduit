@@ -45,6 +45,7 @@ impl FormResult {
                 .append(value.text())
                 .map_err(|_| JourneyError::Kernel)?,
             NativeForm::MemoryLantern => self.current = Some(value),
+            NativeForm::Tour => self.current = Some(value),
         }
         self.sign = Some(sign);
         Ok(())
@@ -53,6 +54,7 @@ impl FormResult {
         match form? {
             NativeForm::KeyboardCanvas => self.sign.as_ref().map(|_| self.recent.as_str()),
             NativeForm::MemoryLantern => self.current.as_ref().map(NativePresentation::text),
+            NativeForm::Tour => self.current.as_ref().map(NativePresentation::text),
         }
     }
     pub(super) fn omitted_bytes(&self, form: Option<NativeForm>) -> u64 {

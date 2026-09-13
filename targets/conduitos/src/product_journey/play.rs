@@ -5,11 +5,53 @@ use alloc::{boxed::Box, format};
 use conduit_body::{BodyPlayIdentity, WakeLifecycle};
 use conduit_core::SignId;
 use conduit_human::KeyEvent;
+use conduit_presentation::{ApplicationEvent, ApplicationView};
 
 impl ProductJourney {
     pub fn foreground_input_owner(&self) -> Option<&native_workset::AdmittedFormInput> {
         (self.status == JourneyStatus::QuiescentAwaitingInput)
             .then(|| self.kernel.as_ref()?.input_owner(self.foreground))?
+    }
+
+    pub fn foreground_application_view(&self) -> Option<&ApplicationView> {
+        (self.status == JourneyStatus::QuiescentAwaitingInput)
+            .then(|| self.kernel.as_ref()?.application_view(self.foreground))?
+    }
+
+    pub fn accept_application_event(
+        &mut self,
+        event: &ApplicationEvent,
+    ) -> Result<bool, JourneyError> {
+        if self.status != JourneyStatus::QuiescentAwaitingInput {
+            return Ok(false);
+        }
+        let next_count = self
+            .input_count
+            .checked_add(1)
+            .ok_or(JourneyError::InputSequenceExhausted)?;
+        self.revision
+            .checked_add(1)
+            .ok_or(JourneyError::RevisionExhausted)?;
+        let kernel = self.kernel.as_mut().ok_or(JourneyError::Kernel)?;
+        let current = kernel
+            .application_view(self.foreground)
+            .ok_or(JourneyError::InputUnavailable)?;
+        let encoded = event
+            .encode(current)
+            .map_err(|_| JourneyError::WrongTarget)?;
+        let _ = kernel.take_application_view(self.foreground);
+        kernel
+            .application_event(self.foreground, &encoded)
+            .map_err(JourneyError::Play)?;
+        let play = self.play.as_ref().ok_or(JourneyError::InvalidTransition)?;
+        self.input_sign_id = Some(SignId::from(format!(
+            "conduitos/product/input/{}/{}",
+            play.active_play_id.as_str(),
+            self.input_count
+        )));
+        self.input_count = next_count;
+        self.advance()?;
+        Ok(true)
     }
 
     pub fn owns_key_release(&self, event: KeyEvent) -> bool {

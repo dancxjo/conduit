@@ -1,4 +1,5 @@
 //! Exact initial native workset preparation, before ordinary kernel admission.
+mod application_delivery;
 mod catalog;
 mod keyboard_delivery;
 mod planning;
