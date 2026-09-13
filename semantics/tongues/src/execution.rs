@@ -1,4 +1,4 @@
-use crate::{plan_speech, OutputCondition, SPECIMEN_TEXT};
+use crate::{plan_speech_text, OutputCondition, SPECIMEN_TEXT};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerError, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
@@ -60,6 +60,7 @@ pub enum SpeechOutcome {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SpeechRunReceipt {
     pub plan_id: String,
+    pub text_sha256: String,
     pub condition: OutputCondition,
     pub outcome: SpeechOutcome,
     pub signs: Vec<crate::SpeechSign>,
@@ -189,8 +190,17 @@ pub fn run_speech(
     condition: OutputCondition,
     fault: SpeechFault,
 ) -> Result<SpeechRunReceipt, String> {
-    let planned = plan_speech(condition)?;
+    run_speech_text(SPECIMEN_TEXT, condition, fault)
+}
+
+pub fn run_speech_text(
+    text: &str,
+    condition: OutputCondition,
+    fault: SpeechFault,
+) -> Result<SpeechRunReceipt, String> {
+    let planned = plan_speech_text(text, condition)?;
     let plan_id = planned.plan.plan_id.as_str().to_owned();
+    let text_sha256 = sha256(text.as_bytes());
     let terminal = match fault {
         SpeechFault::FormatMismatch => Some(SpeechOutcome::FormatMismatch),
         SpeechFault::Pressure => Some(SpeechOutcome::Pressure),
@@ -199,14 +209,22 @@ pub fn run_speech(
         _ => None,
     };
     if let Some(outcome) = terminal {
-        return Ok(receipt(plan_id, condition, outcome, &[]));
+        return Ok(receipt(plan_id, text_sha256, condition, outcome, &[], None));
     }
 
-    let pcm = deterministic_pcm(SPECIMEN_TEXT);
+    let pcm = deterministic_pcm(text);
     if pcm.len() > crate::MAXIMUM_PCM_BYTES as usize {
-        return Ok(receipt(plan_id, condition, SpeechOutcome::Pressure, &[]));
+        return Ok(receipt(
+            plan_id,
+            text_sha256,
+            condition,
+            SpeechOutcome::Pressure,
+            &[],
+            None,
+        ));
     }
-    let (mut scheduler, pcm_ref) = scheduler(&planned, &pcm)?;
+    let pcm_bytes = u32::try_from(pcm.len()).map_err(debug)?;
+    let (mut scheduler, pcm_ref) = scheduler(&planned, text, &pcm)?;
     let mut outcome = None;
     loop {
         while let Some(request) = scheduler.next_host_request() {
@@ -303,21 +321,24 @@ pub fn run_speech(
     let events = scheduler.signs().events().collect::<Vec<_>>();
     Ok(receipt(
         plan_id,
+        text_sha256,
         condition,
         outcome.ok_or("kernel ended without outcome")?,
         &events,
+        Some(pcm_bytes),
     ))
 }
 
 fn scheduler(
     planned: &crate::PlannedSpeech,
+    text_value: &str,
     pcm: &[u8],
 ) -> Result<(SpeechScheduler, ValueRef), String> {
     let lowered = &planned.lowered;
     let mut values =
         HostedValueStore::new(4, crate::MAXIMUM_PCM_BYTES, crate::MAXIMUM_PCM_BYTES * 2)
             .map_err(debug)?;
-    let text = values.store(SPECIMEN_TEXT.as_bytes()).map_err(debug)?;
+    let text = values.store(text_value.as_bytes()).map_err(debug)?;
     let pcm_ref = values.store(pcm).map_err(debug)?;
     let mut operations = Vec::new();
     for node in &lowered.nodes {
@@ -431,15 +452,18 @@ fn debug(error: impl core::fmt::Debug) -> String {
 }
 fn receipt(
     plan_id: String,
+    text_sha256: String,
     condition: OutputCondition,
     outcome: SpeechOutcome,
     events: &[KernelEvent],
+    pcm_bytes: Option<u32>,
 ) -> SpeechRunReceipt {
-    let signs = crate::signs::outcome_signs(&outcome);
+    let signs = crate::signs::outcome_signs(&outcome, pcm_bytes);
     debug_assert!(signs.len() <= 4);
     let sign_digest = sha256(&serde_json::to_vec(&signs).expect("speech Signs serialize"));
     SpeechRunReceipt {
         plan_id,
+        text_sha256,
         condition,
         outcome,
         sign_count: signs.len(),
@@ -487,5 +511,26 @@ mod tests {
             let encoded = serde_json::to_string(&receipt.signs).unwrap();
             assert!(!encoded.contains(SPECIMEN_TEXT));
         }
+    }
+
+    #[test]
+    fn caller_supplied_bounded_text_changes_exact_plan_and_synthesis_identity() {
+        let first = run_speech_text(
+            "The upstairs temperature is 21 C.",
+            OutputCondition::DegradedWavArtifact,
+            SpeechFault::None,
+        )
+        .unwrap();
+        let second = run_speech_text(
+            "The upstairs temperature is 22 C.",
+            OutputCondition::DegradedWavArtifact,
+            SpeechFault::None,
+        )
+        .unwrap();
+        assert_ne!(first.plan_id, second.plan_id);
+        assert_ne!(first.text_sha256, second.text_sha256);
+        assert_ne!(first.outcome, second.outcome);
+        let encoded = serde_json::to_string(&first).unwrap();
+        assert!(!encoded.contains("upstairs temperature"));
     }
 }
