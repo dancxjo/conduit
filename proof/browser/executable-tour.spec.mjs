@@ -258,6 +258,11 @@ test("every executable listing uses the real Patchbay renderer for checked Form 
       await expect(source).toHaveAttribute("maxlength", "65536");
       await expect(source).toHaveAttribute("aria-describedby", /application-\d+-description-4/);
       await expect(patchbay).toHaveAttribute("data-disposition", "accepted");
+      await expect(patchbay).toHaveAttribute("data-truth-source", "checked-form-projection");
+      await expect(patchbay).toHaveAttribute("data-operation-mode", "inspection-only");
+      await expect(patchbay).toHaveAttribute("data-operation-vocabulary", "patchbay-control@1");
+      await expect(patchbay).toHaveAttribute("data-supported-operations", "open-back");
+      await expect(patchbay).toContainText("Checked Form projection · inspection only");
       await expect(patchbay.locator(".tour-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
       await expect(patchbay.locator(".react-flow").first()).toBeVisible();
       await expect(patchbay.locator(".flow-faceplate").first()).toBeVisible();

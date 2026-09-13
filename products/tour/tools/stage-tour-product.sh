@@ -12,6 +12,7 @@ mkdir -p "$destination/assets"
 cp products/tour/browser/tour.html "$destination/index.html"
 cp products/tour/browser/tour.css "$destination/tour.css"
 cp products/tour/browser/tour.mjs "$destination/tour.mjs"
+cp products/tour/browser/tour-compact-patchbay.mjs "$destination/tour-compact-patchbay.mjs"
 cp products/tour/browser/tour-state.mjs "$destination/tour-state.mjs"
 cp targets/browser/host/assets/browser-human-input.mjs "$destination/browser-human-input.mjs"
 cp targets/browser/host/assets/browser-form-effects.mjs "$destination/browser-form-effects.mjs"
@@ -90,5 +91,5 @@ node targets/browser/tools/build-browser-application-package.mjs \
 
 # Includes the shared admitted Host-effect dispatcher used by Tour and Body.
 test -f "$destination/browser-form-effects.mjs"
-test "$(find "$destination" -type f | wc -l)" -eq 59
+test "$(find "$destination" -type f | wc -l)" -eq 60
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"

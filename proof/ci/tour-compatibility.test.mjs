@@ -6,6 +6,10 @@ import { runInNewContext } from "node:vm";
 import test from "node:test";
 import { stageLegacyTourRoutes } from "../../products/tour/tools/stage-legacy-routes.mjs";
 import { openTourReadingState } from "../../products/tour/browser/tour-state.mjs";
+import {
+  COMPACT_PATCHBAY_CONTRACT,
+  compactPatchbaySnapshot,
+} from "../../products/tour/browser/tour-compact-patchbay.mjs";
 
 test("published Book routes retain their exact Tour destination, query and fragment", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "conduit-tour-compat-"));
@@ -54,4 +58,44 @@ test("legacy migration refuses malformed and over-capacity state without rewriti
     }));
     assert.equal(writes, 0);
   }
+});
+
+test("compact Tour Patchbay is an inspection-only checked Form projection", () => {
+  const projection = {
+    sequence: 7,
+    source_proposal_id: "proposal/7",
+    source_document_id: "source/7",
+    checked_form_id: "checked/7",
+    visible_expanded_form_id: "expanded/7",
+    diagnostics: [],
+    gears: [{
+      gear_id: "gear/upper",
+      kind_id: "text/upper",
+      inputs: [{ port_id: "text", info_kind: "text/utf8", temporal: "state" }],
+      outputs: [{ port_id: "text", info_kind: "text/utf8", temporal: "event" }],
+    }],
+    cords: [],
+    realization_gears: [],
+    realization_cords: [],
+  };
+  const snapshot = compactPatchbaySnapshot(projection);
+  assert.equal(snapshot.contract, COMPACT_PATCHBAY_CONTRACT);
+  assert.equal(snapshot.contract.operationMode, "inspection-only");
+  assert.deepEqual(snapshot.contract.supportedOperations, ["open-back"]);
+  assert.deepEqual(snapshot.presentation.actions, []);
+  assert.deepEqual(snapshot.presentation.basis, {
+    source_document_id: "source/7",
+    checked_form_id: "checked/7",
+  });
+  for (const invented of [
+    "body_id", "plan_id", "active_play_id", "sign_id", "authority", "delivery",
+  ]) {
+    assert.equal(JSON.stringify(snapshot).includes(invented), false);
+  }
+  assert.deepEqual(
+    snapshot.presentation.subjects
+      .filter(({ role }) => role === "Port")
+      .map(({ identity }) => identity),
+    ["gear/upper.receiving:text", "gear/upper.emitting:text"],
+  );
 });
