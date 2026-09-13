@@ -114,7 +114,7 @@ fn initialized_piper_runs_the_unchanged_form_through_ordinary_plan_and_play() {
     let mut startup = conduit_form::StartupCatalog::new();
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut catalog).unwrap();
     let form = conduit_form::parse(
-        "form real_speech {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n sink: conduit-proof/speech-pcm-sink\n \"Rosehip House\" > synthesize.text\n synthesize.audio > sink.audio\n}\n",
+        "form real_speech {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n sink: conduit-proof/speech-pcm-sink\n \"Rosehip House\" > synthesize.text\n synthesize.audio > convert.audio\n convert.converted > sink.audio\n}\n",
         &catalog,
     )
     .unwrap();
@@ -129,7 +129,7 @@ fn initialized_piper_runs_the_unchanged_form_through_ordinary_plan_and_play() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_offers::PIPER_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -145,6 +145,9 @@ fn initialized_piper_runs_the_unchanged_form_through_ordinary_plan_and_play() {
         synthesis.implementation_id.as_str(),
         conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION
     );
+    assert!(plan.fragments[0].placements.iter().any(|placement| {
+        placement.implementation_id.as_str() == conduit_std_offers::AUDIO_CONVERT_PCM_IMPLEMENTATION
+    }));
     let report = host
         .run_fragment_to(
             plan.fragments[0].clone(),
