@@ -10,8 +10,11 @@ export function createTourNavigation(runtime, presentation, navigate) {
       presentation.present("tour-navigation", encoded, {
         onEvent(event) {
           presentation.nextEvent("tour-navigation");
-          if (event.action === "tour.previous") navigate(-1);
-          else if (event.action === "tour.next") navigate(1);
+          const action = event.action === "tour.previous" ? 1 : event.action === "tour.next" ? 2 : 0;
+          if (action === 0 || runtime.conduit_tour_application_apply(action) < 0) {
+            throw new Error("shared Tour application refused the navigation transition");
+          }
+          navigate(action === 1 ? -1 : 1);
         },
       });
     },
@@ -91,9 +94,9 @@ export function createTourWorkspace(root, readingState) {
   });
 }
 
-export function createTourRunnerActions(presentation, slot, runLabel, onRun, onStop, onRestore) {
+export function createTourRunnerActions(runtime, presentation, slot, runLabel, onRun, onStop, onRestore) {
   let revision = 0;
-  const application = createTourApplicationActionForwarder({ onRun, onStop, onRestore });
+  const application = createTourApplicationActionForwarder({ runtime, onRun, onStop, onRestore });
   return Object.freeze({
     render(running) {
       presentation.present(slot, {
