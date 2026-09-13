@@ -191,7 +191,14 @@ test("Pages recovery is restricted to the exact dev audit trigger or accepted re
   assert.match(rescue, /name: conduit-staged-browser-products/);
   assert.match(rescue, /run-id: 34522795014/);
   assert.match(rescue, /digest-mismatch: error/);
+  assert.match(rescue, /continue-on-error: true/);
+  assert.match(rescue, /Rebuild the exact staged release payload after artifact expiry/);
+  assert.match(rescue, /if: steps\.staged-products\.outcome != 'success'/);
+  assert.match(rescue, /cargo build --locked -p conduit-browser-host/);
+  assert.match(rescue, /products\/patchbay\/tools\/stage-patchbay-product\.sh/);
   assert.ok(rescue.indexOf("Refuse a stale recovery") < rescue.indexOf("Reuse the exact already-built"));
+  assert.ok(rescue.indexOf("Reuse the exact already-built") < rescue.indexOf("Rebuild the exact staged release payload"));
+  assert.ok(rescue.indexOf("Rebuild the exact staged release payload") < rescue.indexOf("Seal the deploy-first Pages carrier"));
   assert.ok(rescue.indexOf("Recheck current main") < rescue.indexOf("      - name: Deploy Conduit Pages"));
   assert.doesNotMatch(rescue, /ref: \$\{\{ github\.(?:sha|ref) \}\}|ref: dev\n/);
 });
