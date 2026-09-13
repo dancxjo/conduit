@@ -23,6 +23,7 @@ pub const SOUND_TONE_PLAY_KIND: &str = "sound/tone-play";
 pub const MUSIC_PLAY_KIND: &str = "music/play";
 pub const MUSIC_SYNTH_KIND: &str = "music/synth";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
+pub const AUDIO_CONVERT_PCM_PROFILE_KIND: &str = "audio/convert-pcm-profile";
 pub const SOUND_TONE_PLAY_REVISION: &str = "conduit.std/sound-tone-play@1";
 pub const MUSIC_PLAY_REVISION: &str = "conduit.std/music-play@1";
 pub const MUSIC_SYNTH_REVISION: &str = "conduit.std/music-synth@1";
@@ -42,6 +43,10 @@ pub const SYNTH_LFO_DEPTH_KEY: &str = "lfo-depth-q16";
 pub const SYNTH_MASTER_GAIN_KEY: &str = "master-gain-q16";
 pub const SYNTH_STEAL_POLICY_KEY: &str = "voice-steal-policy";
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
+pub const AUDIO_CONVERT_PCM_PROFILE_REVISION: &str =
+    "conduit.std/audio-convert-pcm-profile@1";
+pub const AUDIO_CONVERT_OUTPUT_RATE_KEY: &str = "output-sample-rate-hz";
+pub const AUDIO_CONVERT_OUTPUT_LAYOUT_KEY: &str = "output-channel-layout";
 pub const AUDIO_PLAY_ALSA_PERIOD_FRAMES: u16 = 256;
 pub const AUDIO_PLAY_ALSA_BUFFER_FRAMES: u16 = 1_024;
 pub const AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS: u16 = 256;
@@ -218,7 +223,32 @@ pub fn audio_play_contract() -> StandardKindContract {
     )
 }
 
-pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 6] {
+pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(AUDIO_CONVERT_PCM_PROFILE_KIND),
+        plain_name: "Convert PCM profile".to_string(),
+        summary: "Convert bounded PCM blocks to one explicitly selected sample rate and channel layout."
+            .to_string(),
+        inputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
+        outputs: vec![port("converted", AUDIO_PCM_INFO_ID, PortDirection::Output)],
+        configuration: vec![
+            u64_configuration(AUDIO_CONVERT_OUTPUT_RATE_KEY, 48_000, 8_000, 192_000),
+            text_one_of_configuration(
+                AUDIO_CONVERT_OUTPUT_LAYOUT_KEY,
+                "stereo-left-right",
+                &["mono", "stereo-left-right"],
+            ),
+        ],
+        limits: audio_limits(),
+        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")".to_string(),
+    }
+}
+
+pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 7] {
     [
         (sound_tone_play_contract(), SOUND_TONE_PLAY_REVISION),
         (music_input_contract(), MUSIC_INPUT_REVISION),
@@ -226,6 +256,10 @@ pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str)
         (music_synth_contract(), MUSIC_SYNTH_REVISION),
         (audio_render_demand_contract(), AUDIO_RENDER_DEMAND_REVISION),
         (audio_play_contract(), AUDIO_PLAY_REVISION),
+        (
+            audio_convert_pcm_profile_contract(),
+            AUDIO_CONVERT_PCM_PROFILE_REVISION,
+        ),
     ]
 }
 
@@ -238,7 +272,7 @@ pub fn stream_semantics(kind: &str) -> Option<StreamSemantics> {
             CancellationDisposition::CancelAndReleaseFiniteState,
             SoundTerminalBehavior::CompletesWhenInputsClose,
         ),
-        MUSIC_INPUT_KIND | MUSIC_PLAY_KIND | MUSIC_SYNTH_KIND => (
+        MUSIC_INPUT_KIND | MUSIC_PLAY_KIND | MUSIC_SYNTH_KIND | AUDIO_CONVERT_PCM_PROFILE_KIND => (
             MAXIMUM_MUSICAL_EVENT_ITEMS,
             MAXIMUM_MUSICAL_EVENT_BYTES,
             MAXIMUM_SIMULTANEOUS_NOTES,
