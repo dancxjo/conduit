@@ -59,44 +59,58 @@ pub fn install_speech_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
-    for contract in [synthesize_contract(), audio_play_contract()] {
-        let is_synthesis = contract.kind_id.as_str() == SPEECH_SYNTHESIZE_KIND;
-        startup.insert(KindSignature {
-            kind: contract.kind_id.as_str().into(),
-            startup_parameters: if is_synthesis {
-                vec![StartupParameterSignature {
-                    name: "maximum-output-bytes".into(),
-                    value_type: "Count".into(),
-                    default: Some(MAXIMUM_PCM_BYTES.to_string()),
+    install_speech_synthesis_catalog(startup, profile)?;
+    install_contract(startup, profile, audio_play_contract(), false)?;
+    Ok(())
+}
+
+pub fn install_speech_synthesis_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    install_contract(startup, profile, synthesize_contract(), true)
+}
+
+fn install_contract(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+    contract: SpeechContract,
+    is_synthesis: bool,
+) -> Result<(), String> {
+    startup.insert(KindSignature {
+        kind: contract.kind_id.as_str().into(),
+        startup_parameters: if is_synthesis {
+            vec![StartupParameterSignature {
+                name: "maximum-output-bytes".into(),
+                value_type: "Count".into(),
+                default: Some(MAXIMUM_PCM_BYTES.to_string()),
+            }]
+        } else {
+            vec![]
+        },
+    })?;
+    profile
+        .insert(KindDefinition {
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            configuration: if is_synthesis {
+                vec![ConfigurationField {
+                    key: "maximum-output-bytes".into(),
+                    default_value: conduit_core::ConfigurationValue::U64(u64::from(
+                        MAXIMUM_PCM_BYTES,
+                    )),
+                    validation: ConfigurationRule::U64Range {
+                        minimum: 1,
+                        maximum: u64::from(MAXIMUM_PCM_BYTES),
+                    },
                 }]
             } else {
                 vec![]
             },
-        })?;
-        profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: if is_synthesis {
-                    vec![ConfigurationField {
-                        key: "maximum-output-bytes".into(),
-                        default_value: conduit_core::ConfigurationValue::U64(u64::from(
-                            MAXIMUM_PCM_BYTES,
-                        )),
-                        validation: ConfigurationRule::U64Range {
-                            minimum: 1,
-                            maximum: u64::from(MAXIMUM_PCM_BYTES),
-                        },
-                    }]
-                } else {
-                    vec![]
-                },
-            })
-            .map_err(|error| error.to_string())?;
-    }
-    Ok(())
+        })
+        .map_err(|error| error.to_string())
 }
 
 fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
