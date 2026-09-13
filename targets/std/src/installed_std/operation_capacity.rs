@@ -20,6 +20,7 @@ impl InstalledOperation {
             Self::SpeechSynthesis(_) => 0,
             Self::AudioRenderDemand(operation) => operation.allocation_capacity(),
             Self::AudioPlay(_) => 0,
+            Self::PcmProfileConversion(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),
             #[cfg(test)]

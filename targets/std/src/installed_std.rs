@@ -2,6 +2,7 @@ mod address_detect_operation;
 mod alife_host;
 mod alife_operations;
 mod audio_play_operation;
+mod pcm_profile_conversion_operation;
 pub(crate) mod body_kernel;
 mod bool_presentation;
 mod calendar_proposal_codec;
@@ -480,6 +481,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut vector_search_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
     let mut synth_output = Vec::with_capacity(synth_operation::PCM_BLOCK_BYTES as usize);
+    let mut pcm_conversion_output =
+        Vec::with_capacity(conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES as usize);
+    let mut pcm_conversion_hosts =
+        pcm_profile_conversion_operation::prepare_hosts(fragment);
     let mut synth_states = fragment
         .placements
         .iter()
@@ -1479,6 +1484,42 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 scheduler
                     .complete_host_operation(request.node, request.request, outcome)
                     .map_err(|error| format!("complete audio/play host operation: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == pcm_profile_conversion_operation::HOST_OPERATION {
+                let host = pcm_conversion_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "PCM conversion request has no exact admitted state".to_string()
+                    })?;
+                let conversion = host.convert(input, &mut pcm_conversion_output);
+                let outcome = match conversion {
+                    Ok(()) => {
+                        let value = scheduler
+                            .store_host_value(&pcm_conversion_output)
+                            .map_err(|error| format!("store converted PCM: {error:?}"))?;
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
+                                )
+                                .map_err(|error| format!("bound converted PCM: {error:?}"))?,
+                            ),
+                            failure: None,
+                        }
+                    }
+                    Err(failure) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Failed,
+                        output: None,
+                        failure: Some(failure),
+                    },
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete PCM conversion: {error:?}"))?;
                 continue;
             } else if matches!(
                 contract.as_str(),

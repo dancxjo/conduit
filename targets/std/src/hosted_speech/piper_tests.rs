@@ -40,7 +40,7 @@ impl Fixture {
             .initialize(PiperLimits {
                 maximum_text_bytes: 256,
                 maximum_frames,
-                maximum_blocks: 8,
+                maximum_blocks: 16,
                 timeout: Duration::from_secs(2),
             })
             .unwrap()
@@ -104,8 +104,8 @@ fn provider_receives_end_of_text_before_output_is_polled() {
 #[test]
 fn resumable_session_exposes_one_block_per_pull_and_can_abort() {
     let fixture =
-        Fixture::new("#!/bin/sh\ncat >/dev/null\ndd if=/dev/zero bs=1 count=452 2>/dev/null\n");
-    let mut adapter = fixture.adapter(226);
+        Fixture::new("#!/bin/sh\ncat >/dev/null\ndd if=/dev/zero bs=1 count=100 2>/dev/null\n");
+    let mut adapter = fixture.adapter(50);
 
     adapter.begin("Rosehip").unwrap();
     assert_eq!(
@@ -116,17 +116,17 @@ fn resumable_session_exposes_one_block_per_pull_and_can_abort() {
         PiperSynthesisStep::Block(block) => {
             let (header, payload) = PcmFrameHeader::decode_frame(block).unwrap();
             assert_eq!(header.start_frame, 0);
-            assert_eq!(header.frame_count, 113);
+            assert_eq!(header.frame_count, 25);
             payload.len()
         }
         PiperSynthesisStep::Complete(_) => panic!("completed before yielding the first block"),
     };
-    assert_eq!(first, 226);
+    assert_eq!(first, 50);
     match adapter.next(|| false).unwrap() {
         PiperSynthesisStep::Block(block) => {
             let (header, payload) = PcmFrameHeader::decode_frame(block).unwrap();
-            assert_eq!(header.start_frame, 113);
-            assert_eq!(payload.len(), 226);
+            assert_eq!(header.start_frame, 25);
+            assert_eq!(payload.len(), 50);
         }
         PiperSynthesisStep::Complete(_) => panic!("completed before yielding the second block"),
     }
@@ -134,7 +134,7 @@ fn resumable_session_exposes_one_block_per_pull_and_can_abort() {
         PiperSynthesisStep::Complete(receipt) => receipt,
         PiperSynthesisStep::Block(_) => panic!("yielded an unexpected third block"),
     };
-    assert_eq!((receipt.frames, receipt.blocks), (226, 2));
+    assert_eq!((receipt.frames, receipt.blocks), (50, 2));
 
     adapter.begin("restart").unwrap();
     adapter.abort();

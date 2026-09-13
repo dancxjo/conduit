@@ -52,6 +52,7 @@ use super::navigation_operations::{
 use super::operation::InstalledFactory;
 use super::pacing_operations::{TIME_DELAY_FACTORY, TIME_THROTTLE_FACTORY};
 use super::pattern_comparison_operation::FACTORY as PATTERN_COMPARISON_FACTORY;
+use super::pcm_profile_conversion_operation::FACTORY as PCM_PROFILE_CONVERSION_FACTORY;
 use super::presentation_composition::{
     GRAPHICS_ICON_FACTORY, GRAPHICS_PRESENTATION_FACTORY, GRAPHICS_RECT_FACTORY,
     GRAPHICS_TEXT_FACTORY, PRESENTATION_BADGE_FACTORY, PRESENTATION_FRAME_FACTORY,
@@ -243,6 +244,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &DETERMINISTIC_SPEECH_FACTORY,
     &AUDIO_RENDER_DEMAND_FACTORY,
     &AUDIO_PLAY_FACTORY,
+    &PCM_PROFILE_CONVERSION_FACTORY,
     &MIDI_OUTPUT_FACTORY,
     &MIDI_INPUT_FACTORY,
     &EXTERNAL_WEBSOCKET_LISTENER_FACTORY,

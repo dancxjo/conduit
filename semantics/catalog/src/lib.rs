@@ -393,7 +393,7 @@ mod supported_nucleus_tests {
     #[test]
     fn supported_nucleus_contracts_are_typed_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 56);
+        assert_eq!(contracts.len(), 57);
 
         let identities = contracts
             .iter()

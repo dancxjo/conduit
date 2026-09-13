@@ -137,9 +137,9 @@ enum HostCommand {
         /// Run the unchanged portable Form through ordinary std Plan and Play.
         #[arg(long)]
         plan_play: bool,
-        #[arg(long, default_value_t = 1_323_000)]
+        #[arg(long, default_value_t = conduit_std_offers::PIPER_MAXIMUM_FRAMES)]
         maximum_frames: u32,
-        #[arg(long, default_value_t = 11_708)]
+        #[arg(long, default_value_t = conduit_std_offers::PIPER_MAXIMUM_BLOCKS)]
         maximum_blocks: u16,
         #[arg(long, default_value_t = 30)]
         timeout_seconds: u64,

@@ -64,6 +64,7 @@ impl InstalledOperation {
             Self::SpeechSynthesis(operation) => operation.cancel(),
             Self::AudioRenderDemand(operation) => operation.cancel(),
             Self::AudioPlay(operation) => operation.cancel(),
+            Self::PcmProfileConversion(operation) => operation.cancel(),
             Self::MidiOutput(operation) => operation.cancel(),
             Self::MidiInput(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),

@@ -70,6 +70,68 @@ fn unchanged_speech_form_streams_several_blocks_through_ordinary_plan_and_play()
 }
 
 #[test]
+fn explicit_pcm_conversion_runs_between_speech_and_the_playback_profile() {
+    let mut catalog = installed_std::test_catalog();
+    let mut startup = catalog.startup_catalog().unwrap();
+    conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut catalog).unwrap();
+    let form = conduit_form::parse(
+        "form converted_speech {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n sink: conduit-proof/speech-pcm-sink\n \"Rosehip\" > synthesize.text\n synthesize.audio > convert.audio\n convert.converted > sink.audio\n}\n",
+        &catalog,
+    )
+    .unwrap();
+    let mut host = host("converted-speech-host");
+    let advertisements = [host.advertisement().clone()];
+    let placements = conduit_planner::default_placements(&form, &advertisements).unwrap();
+    let plan = conduit_planner::plan_with_options(
+        &form,
+        &advertisements,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        conduit_planner::PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .unwrap();
+    let conversion = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.kind_id.as_str()
+                == conduit_semantic_catalog::AUDIO_CONVERT_PCM_PROFILE_KIND
+        })
+        .unwrap();
+    assert_eq!(
+        conversion.implementation_id.as_str(),
+        conduit_std_offers::AUDIO_CONVERT_PCM_IMPLEMENTATION
+    );
+    let report = host
+        .run_fragment_to(
+            plan.fragments[0].clone(),
+            &mut Vec::with_capacity(1_024),
+            &mut RecordingTimer { waits: Vec::new() },
+        )
+        .unwrap();
+    assert!(matches!(
+        report.observations.last().map(|item| &item.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+    let kernel = report.kernel.unwrap();
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+}
+
+#[test]
 fn initialized_piper_runs_the_unchanged_form_through_ordinary_plan_and_play() {
     let root = std::env::temp_dir().join(format!("conduit-piper-plan-play-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
@@ -166,7 +228,7 @@ fn initialized_piper_runs_the_unchanged_form_through_ordinary_plan_and_play() {
         conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION
     );
     assert_eq!(speech.model_sha256, expected_model_sha256);
-    assert_eq!((speech.frames, speech.blocks), (339, 3));
+    assert_eq!((speech.frames, speech.blocks), (339, 14));
     assert_eq!(speech.text_sha256.len(), 64);
     assert_eq!(speech.pcm_sha256.len(), 64);
     let kernel = report.kernel.as_ref().unwrap();

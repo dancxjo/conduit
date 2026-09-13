@@ -4,6 +4,7 @@ use super::alife_operations::{
     LeniaStepOperation, OrbiumSeedOperation, ScalarFieldPresentationOperation,
 };
 use super::audio_play_operation::AudioPlayOperation;
+use super::pcm_profile_conversion_operation::PcmProfileConversionOperation;
 use super::bool_presentation::BoolPresentationOperation;
 use super::calendar_proposal_operation::CalendarProposalOperation;
 use super::calendar_provider_operation::CalendarProviderOperation;
@@ -142,6 +143,7 @@ pub(super) enum InstalledOperation {
     SpeechSynthesis(SpeechSynthesisOperation),
     AudioRenderDemand(AudioRenderDemandOperation),
     AudioPlay(AudioPlayOperation),
+    PcmProfileConversion(PcmProfileConversionOperation),
     MidiOutput(MidiOutputOperation),
     MidiInput(Box<MidiInputOperation>),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
