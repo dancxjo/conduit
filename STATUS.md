@@ -1,10 +1,12 @@
 # Current project status
 
-Reviewed against the development tree and open issues on **8 September 2026**.
+Reviewed against the development tree and open issues on **13 September 2026**.
 This is a capability summary, not a claim that every check has been rerun today.
-Published products and visual evidence follow accepted releases and can lag
-`dev`. The [recorded acceptance history](docs/history/accepted-milestones.md)
-preserves the original proof receipts and limitations.
+The [current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
+shows the exact latest development commit, accepted release, published Pages
+artifact, lag, and proof receipts. Published products follow accepted releases
+and can lag development. The [recorded acceptance history](docs/history/accepted-milestones.md)
+preserves older proof receipts and limitations.
 
 **[Watch the current ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)**
 for the clearest demonstration of the system so far.
@@ -97,9 +99,11 @@ work. These are not prerequisites for contributing a small, useful change.
 | Live transport | Actual messages crossing the named transport/session |
 | Physical/HIL evidence | The named firmware and device behavior under the recorded physical conditions |
 | Human enactment | A person completed the specified interaction; automation cannot supply this claim |
+| Released-product proof | An exact accepted commit crossed the protected release boundary; it does not upgrade browser, emulator, physical/HIL, or human evidence |
 
-Use [visual evidence](docs/visual-evidence.md) to inspect screenshots with their
-provenance, and the [proof-class reference](docs/architecture/proof-classes.md)
+Use [current product truth](https://dancxjo.github.io/conduit/current-product.html)
+for current identities and receipts, [visual evidence](docs/visual-evidence.md)
+for screenshots with provenance, and the [proof-class reference](docs/architecture/proof-classes.md)
 for precise definitions. This documentation review creates no new boot,
 browser, physical, or human acceptance receipt.
 

@@ -161,10 +161,33 @@ jobs:
         env:
           EXPECTED_TREE: ${{ needs.resolve.outputs.disposition == 'inherited' && needs.resolve.outputs.source_tree || needs.resolve.outputs.integration_tree }}
         run: node tools/ci/verify-pages-carrier.mjs target/pages-carrier "$EXPECTED_TREE"
+      - name: Install exact current-product truth and reseal the publication carrier
+        if: needs.resolve.outputs.direct_main != 'true'
+        env:
+          ACCEPTED_SOURCE_SHA: ${{ needs.resolve.outputs.source_head }}
+          ACCEPTED_MAIN_SHA: ${{ needs.resolve.outputs.merge_commit }}
+          RELEASE_PR: ${{ needs.resolve.outputs.pr_number }}
+          PRODUCT_RUN_ID: ${{ needs.resolve.outputs.run_id }}
+        run: |
+          git fetch --no-tags origin dev
+          development_sha=$(git rev-parse FETCH_HEAD)
+          cp -a target/pages-carrier/site target/pages-site-with-truth
+          node tools/ci/emit-current-product-truth.mjs \
+            target/pages-site-with-truth/product-truth.json \
+            "$GITHUB_REPOSITORY" "$development_sha" "$ACCEPTED_SOURCE_SHA" \
+            "$ACCEPTED_MAIN_SHA" "$RELEASE_PR" \
+            "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$PRODUCT_RUN_ID"
+          source_tree=$(git rev-parse 'HEAD^{tree}')
+          node tools/ci/seal-pages-carrier.mjs \
+            target/pages-site-with-truth target/pages-carrier-with-truth \
+            "$ACCEPTED_MAIN_SHA" "$source_tree"
+          node tools/ci/verify-pages-carrier.mjs target/pages-carrier-with-truth "$source_tree"
       - name: Upload the already-proven Pages carrier
         uses: actions/upload-pages-artifact@v5
         with:
-          path: target/pages-carrier/site
+          path: ${{ needs.resolve.outputs.direct_main == 'true' && 'target/pages-carrier/site' || 'target/pages-carrier-with-truth/site' }}
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
       - name: Deploy Conduit Pages

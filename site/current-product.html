@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Exact development, accepted release, publication, and proof identities for Conduit.">
+  <title>Conduit · Current Product Truth</title>
+  <link rel="stylesheet" href="./conduit.css">
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body data-application-theme="conduit.presentation/phosphor@1">
+  <a class="conduit-skip-link" href="#main-content">Skip to main content</a>
+  <!-- conduit-product-masthead -->
+  <main id="main-content" tabindex="-1" class="truth-page">
+    <section class="hero" aria-labelledby="truth-title">
+      <p class="eyebrow">Exact identities · distinct proof classes</p>
+      <h1 id="truth-title">Current product truth</h1>
+      <p class="lede">Development, acceptance, and publication are separate events. This page names each exact commit and shows any lag without turning one proof class into another.</p>
+    </section>
+    <section aria-live="polite" aria-busy="true" id="product-truth">
+      <p>Reading the publication's bounded status artifact…</p>
+      <noscript><p>JavaScript is required to render <a href="./product-truth.json">the machine-readable product-truth artifact</a>.</p></noscript>
+    </section>
+    <section class="truth-legend" aria-labelledby="proof-class-title">
+      <h2 id="proof-class-title">How to read proof classes</h2>
+      <p>Source capability says code and deterministic contracts exist. Browser and emulator proof say that an exact execution was observed in that environment. Physical/HIL and human enactment require their own receipts. Released-product proof says an accepted commit crossed the release boundary; it does not silently upgrade the other evidence.</p>
+    </section>
+  </main>
+  <script type="module" src="./current-product.mjs"></script>
+</body>
+</html>
