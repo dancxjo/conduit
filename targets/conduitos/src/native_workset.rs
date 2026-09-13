@@ -6,6 +6,7 @@ mod planning;
 mod play;
 mod text_state;
 
+pub use application_delivery::NativeApplicationRequest;
 pub use catalog::{
     NATIVE_FORM_CAPACITY, NativeForm, NativeFormProfile, checked, inventory, profile, resident,
     resolve,

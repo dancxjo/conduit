@@ -60,6 +60,12 @@ impl FrontDoor {
         {
             return super::workspace_scene::scene(
                 self.journey.as_ref().ok_or(Error::Scene)?,
+                self.workspace
+                    .as_ref()
+                    .and_then(|workspace| workspace.forms.iter().find(|form| form.foreground))
+                    .map(|form| form.title)
+                    .ok_or(Error::Scene)?,
+                self.application_view.as_ref(),
                 self.refusal.as_ref().map(|refusal| refusal.reason()),
                 display,
             );

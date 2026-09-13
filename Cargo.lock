@@ -1219,6 +1219,7 @@ dependencies = [
  "conduit-wire",
  "fontdue",
  "limine",
+ "patchbay-application",
  "patchbay-control",
  "patchbay-graph",
  "serde_json",
@@ -2732,6 +2733,18 @@ dependencies = [
  "redox_syscall 0.5.18",
  "smallvec",
  "windows-link",
+]
+
+[[package]]
+name = "patchbay-application"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-presentation",
+ "conduit-semantic-catalog",
+ "patchbay-control",
+ "patchbay-graph",
 ]
 
 [[package]]

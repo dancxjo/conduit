@@ -244,13 +244,13 @@ fn lower_forms(forms: &[BodyFormPlan]) -> Result<LoweredFragmentSet, WorksetRefu
             .collect::<Vec<_>>(),
         conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
         FragmentSetBounds {
-            fragments: 3,
-            nodes: 11,
-            cords: 8,
-            queue_slots: 8,
-            value_bytes: 24_576,
-            sign_items: 768,
-            sign_bytes: 768 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
+            fragments: 4,
+            nodes: 14,
+            cords: 10,
+            queue_slots: 10,
+            value_bytes: 32_768,
+            sign_items: 1024,
+            sign_bytes: 1024 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
         },
     )
     .map_err(|_| WorksetRefusal::Lowering)

@@ -1,7 +1,73 @@
 //! Admitted native implementations for the portable application Form seam.
 
-use alloc::{format, vec};
+use alloc::{boxed::Box, format, vec};
 use conduit_core::{CapabilityOffer, HostOperationRequirement, resource_requirement};
+
+pub(super) enum NativeApplication {
+    Tour(Box<conduit_tour_model::TourApplicationPort>),
+    Patchbay(PatchbayTargets),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum NativeApplicationRequest {
+    RunTour,
+    OpenPatchbay,
+    EditCurrent(patchbay_application::PatchbayApplicationRequest),
+}
+
+pub(super) struct PatchbayTargets {
+    ports:
+        [Option<Box<patchbay_application::PatchbayApplicationPort>>; super::NATIVE_FORM_CAPACITY],
+    selected: usize,
+}
+
+impl PatchbayTargets {
+    pub(super) fn prepare(
+        prepared: &super::PreparedNativeWorkset,
+        patchbay: usize,
+    ) -> Result<Self, super::WorksetRefusal> {
+        let mut selected = 0;
+        if selected == patchbay {
+            selected = 1;
+        }
+        let mut ports = core::array::from_fn(|_| None);
+        for (index, planned) in prepared.plan.forms.iter().enumerate() {
+            if index == patchbay {
+                continue;
+            }
+            let native = super::resolve(&planned.form)?;
+            let expanded = super::checked(native)?;
+            ports[index] = Some(Box::new(
+                patchbay_application::PatchbayApplicationPort::open(
+                    &expanded,
+                    planned.plan.plan_id.clone(),
+                    prepared.plan.plan_id.clone(),
+                )
+                .map_err(|_| super::WorksetRefusal::Plan)?,
+            ));
+        }
+        Ok(Self { ports, selected })
+    }
+
+    pub(super) fn select(&mut self, target: usize) -> Result<(), super::play::PlayRefusal> {
+        if self.ports.get(target).is_none_or(Option::is_none) {
+            return Err(super::play::PlayRefusal::Foreground);
+        }
+        self.selected = target;
+        Ok(())
+    }
+
+    pub(super) fn apply(
+        &mut self,
+        input: &[u8],
+    ) -> Result<patchbay_application::PatchbayApplicationOutput, super::play::PlayRefusal> {
+        self.ports[self.selected]
+            .as_mut()
+            .ok_or(super::play::PlayRefusal::Kernel)?
+            .apply(input)
+            .map_err(|_| super::play::PlayRefusal::Kernel)
+    }
+}
 
 pub(super) const EVENT_IMPLEMENTATION: &str = "conduitos/application-event-delivery@1";
 pub(super) const STATE_IMPLEMENTATION: &str = "conduitos/retained-application@1";

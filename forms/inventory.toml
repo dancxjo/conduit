@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 102
+maximum_forms = 103
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -464,3 +464,9 @@ slug = "tour"
 title = "Tour"
 entry = "tour"
 deterministic = { package = "conduit-tour-model", test = "application_form", case = "tour_is_a_checked_host_neutral_form_over_the_application_seam" }
+
+[[forms]]
+slug = "patchbay"
+title = "Patchbay"
+entry = "patchbay"
+deterministic = { package = "patchbay-application", test = "lib", case = "opens_the_exact_form_and_plan_and_retains_inspection" }
