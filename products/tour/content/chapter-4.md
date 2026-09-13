@@ -20,6 +20,13 @@ form hello-across {
 
 A cross-Host connection keeps its semantic Cord identity. The current connectivity chosen to realize that cross-Host Cord is a **Line**.
 
+This exercise is **browser-runtime proof**: two independent, ephemeral browser
+Hosts exchange bounded values over one in-memory Line selected by the Plan. It
+does not admit either Host as a durable Part, persist a Body, grant trust or
+effect authority, prove rejoin after restart, or establish a household. The
+[House roadmap](../../../docs/roadmap.md#the-house-and-a-physical-laptop)
+requires those separate continuity and admission results.
+
 This is not "client code plus server code". It is one unchanged Form with Gear placement decisions in an exact realization.
 
 ```conduit run two-host plan

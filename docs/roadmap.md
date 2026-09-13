@@ -46,6 +46,13 @@ through the kernel and Host runners.
 multi-Host Body experience: the house keeps its identity as browsers, computers,
 devices, and services join or leave.
 
+The Tour's two-browser exercise is deliberately not House evidence. It proves
+two ephemeral browser runtimes executing one immutable Plan across a bounded
+in-memory Line. It creates no durable Part membership, trust, authority, Body
+persistence, or restart/rejoin receipt. House admission proof must retain one
+Body across disappearance and a fresh authenticated return; a transient demo
+peer cannot satisfy that contract.
+
 | Slice | Remaining outcome |
 |---|---|
 | [House admission #2296](https://github.com/dancxjo/conduit/issues/2296) — **paused** | A persistent house admitting additional browser Hosts without rebirth |
