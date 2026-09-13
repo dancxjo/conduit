@@ -50,16 +50,17 @@ pub enum MicrophoneFailure {
     InvalidProvider = 2,
     DiscoveryFailed = 3,
     InvalidDiscovery = 4,
-    SelectionDrift = 5,
-    InvalidLimits = 6,
-    SpawnFailed = 7,
-    ProviderLost = 8,
-    ReadFailed = 9,
-    EmptyCapture = 10,
-    ShortCapture = 11,
-    OutputOverflow = 12,
-    Timeout = 13,
-    Cancelled = 14,
+    NoEndpoint = 5,
+    SelectionDrift = 6,
+    InvalidLimits = 7,
+    SpawnFailed = 8,
+    ProviderLost = 9,
+    ReadFailed = 10,
+    EmptyCapture = 11,
+    ShortCapture = 12,
+    OutputOverflow = 13,
+    Timeout = 14,
+    Cancelled = 15,
 }
 
 impl core::fmt::Display for MicrophoneFailure {
@@ -113,6 +114,9 @@ impl AlsaMicrophoneDiscovery {
         limits: MicrophoneLimits,
     ) -> Result<AlsaMicrophoneAdapter, MicrophoneFailure> {
         validate_limits(limits)?;
+        if self.observations.is_empty() {
+            return Err(MicrophoneFailure::NoEndpoint);
+        }
         let selection = self
             .observations
             .iter()

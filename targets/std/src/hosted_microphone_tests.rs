@@ -48,6 +48,30 @@ fn malformed_rows_and_invalid_limits_fail_closed() {
         }),
         Err(MicrophoneFailure::InvalidLimits)
     );
+    let (root, executable) = fixture(
+        "#!/bin/sh\nif [ \"$1\" = -l ]; then exit 0; fi\n",
+        "no-endpoint",
+    );
+    let discovery = AlsaMicrophoneDiscovery::inspect(&executable).unwrap();
+    let absent = AlsaMicrophoneObservation {
+        card_index: 0,
+        card_id: "absent".into(),
+        card_name: "absent".into(),
+        device: 0,
+        device_name: "absent".into(),
+        base_identity: "absent".into(),
+    };
+    assert!(matches!(
+        discovery.initialize(
+            &absent,
+            MicrophoneLimits {
+                capture_milliseconds: 1,
+                timeout: Duration::from_secs(1),
+            }
+        ),
+        Err(MicrophoneFailure::NoEndpoint)
+    ));
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
