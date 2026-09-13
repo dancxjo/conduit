@@ -29,6 +29,20 @@ pub struct PlannedSpeech {
 }
 
 pub fn plan_speech(condition: OutputCondition) -> Result<PlannedSpeech, String> {
+    plan_speech_text(crate::SPECIMEN_TEXT, condition)
+}
+
+pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<PlannedSpeech, String> {
+    if text.is_empty() {
+        return Err("speech Text must not be empty".into());
+    }
+    if text.len() > crate::MAXIMUM_TEXT_BYTES as usize {
+        return Err("speech Text exceeds its finite byte bound".into());
+    }
+    let encoded = serde_json::to_string(text).map_err(|error| error.to_string())?;
+    let source = format!(
+        "form tongues_text_to_speech {{\n    tts: speech/synthesize\n    output: audio/play\n    {encoded} > tts > output\n}}\n"
+    );
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_speech_catalogs(&mut startup, &mut profile)?;
@@ -63,7 +77,7 @@ pub fn plan_speech(condition: OutputCondition) -> Result<PlannedSpeech, String> 
         })
         .map_err(|error| error.to_string())?;
 
-    let syntax = parse_syntax_document(SPEECH_FORM);
+    let syntax = parse_syntax_document(&source);
     let checked = check_syntax_document(&syntax, &startup).map_err(|error| format!("{error:?}"))?;
     let expanded = expand_canonical_form(&checked, "tongues_text_to_speech", &profile)
         .map_err(|error| error.to_string())?;
@@ -172,5 +186,23 @@ mod tests {
                     && cord.byte_capacity == crate::MAXIMUM_PCM_BYTES));
             assert_eq!(output.authority.len(), 1);
         }
+    }
+
+    #[test]
+    fn bounded_text_is_part_of_exact_speech_plan_identity() {
+        let first = plan_speech_text("Rosehip says hello.", OutputCondition::DegradedWavArtifact)
+            .expect("bounded Text plans");
+        let escaped = plan_speech_text(
+            "Rosehip says \"hello\".\n",
+            OutputCondition::DegradedWavArtifact,
+        )
+        .expect("escaped bounded Text plans");
+        assert_ne!(first.plan.plan_id, escaped.plan.plan_id);
+        assert!(plan_speech_text("", OutputCondition::DegradedWavArtifact).is_err());
+        assert!(plan_speech_text(
+            &"x".repeat(crate::MAXIMUM_TEXT_BYTES as usize + 1),
+            OutputCondition::DegradedWavArtifact,
+        )
+        .is_err());
     }
 }
