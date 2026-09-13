@@ -45,6 +45,8 @@ impl PreparedApplication {
         source: &str,
         foreground_checked_form_id: &str,
     ) -> Result<Option<Self>, String> {
+        #[cfg(not(feature = "creche-surface"))]
+        let _ = (plan, source, foreground_checked_form_id);
         if placement.kind_id.as_str() != conduit_semantic_catalog::RETAINED_APPLICATION_KIND {
             return Ok(None);
         }
@@ -52,7 +54,12 @@ impl PreparedApplication {
         match application {
             "tour" => Ok(Some(Self::Tour(TourApplicationPort::canonical()))),
             "patchbay" => {
-                let target = plan.forms.iter().find(|part| {
+                #[cfg(not(feature = "creche-surface"))]
+                return Err("resident Patchbay preparation requires the Crèche surface".into());
+
+                #[cfg(feature = "creche-surface")]
+                {
+                    let target = plan.forms.iter().find(|part| {
                     part.form.checked_form_id.as_str() == foreground_checked_form_id
                         && part.plan.fragments.iter().all(|fragment| fragment.placements.iter().all(|gear| {
                             gear.configuration.iter().all(|entry| !matches!(
@@ -62,14 +69,15 @@ impl PreparedApplication {
                         }))
                 }).or_else(|| plan.forms.iter().find(|part| part.form.checked_form_id.as_str() != foreground_checked_form_id))
                     .ok_or("Patchbay has no resident Form subject")?;
-                let expanded = crate::creche::expanded_inventory_form(source, &target.form)?;
-                let port = patchbay_application::PatchbayApplicationPort::open(
-                    &expanded,
-                    target.plan.plan_id.clone(),
-                    plan.plan_id.clone(),
-                )
-                .map_err(|error| format!("prepare resident Patchbay: {error:?}"))?;
-                Ok(Some(Self::Patchbay(port)))
+                    let expanded = crate::creche::expanded_inventory_form(source, &target.form)?;
+                    let port = patchbay_application::PatchbayApplicationPort::open(
+                        &expanded,
+                        target.plan.plan_id.clone(),
+                        plan.plan_id.clone(),
+                    )
+                    .map_err(|error| format!("prepare resident Patchbay: {error:?}"))?;
+                    Ok(Some(Self::Patchbay(port)))
+                }
             }
             _ => Err(format!("unknown retained application {application:?}")),
         }
