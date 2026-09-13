@@ -20,6 +20,7 @@ mod lesson;
 pub use lesson::TOUR_LESSON_SUBJECT;
 mod navigation;
 mod pointer;
+mod port;
 mod shell_presentations;
 pub use application::*;
 pub use controller::*;
@@ -28,6 +29,7 @@ pub use gallery_experience::gallery_experience;
 pub use layout::*;
 pub use navigation::*;
 pub use pointer::*;
+pub use port::*;
 pub use shell_presentations::*;
 
 pub const CANONICAL_SPECIMEN_ID: &str = "canonical-form:meet-one-gear";

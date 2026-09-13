@@ -18,6 +18,8 @@ pub use normalized_quantity::*;
 pub use quantity_info::*;
 mod keyboard;
 pub use keyboard::*;
+mod application;
+pub use application::*;
 mod body_startup;
 pub use body_startup::*;
 mod input_semantics;
@@ -312,6 +314,7 @@ pub fn palette_contracts() -> Vec<StandardKindContract> {
     contracts.extend(alife_contracts());
     contracts.extend(robotics_hazard_contracts());
     contracts.push(keyboard_contract());
+    contracts.extend(application_contracts());
     contracts.extend(http_contracts());
     contracts
 }

@@ -37,6 +37,7 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)?;
     conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     conduit_web::install_http_catalogs(&mut startup, &mut profile)?;

@@ -458,3 +458,9 @@ title = "Record Delivery Status"
 entry = "record-delivery-status"
 deterministic = { package = "conduit-net", test = "record_delivery", case = "delivery_projection_is_an_ordinary_reusable_closing_flow_form" }
 browser_safe_not_applicable = "open reusable face is exercised inside the Desk Telegraph browser oracle"
+
+[[forms]]
+slug = "tour"
+title = "Tour"
+entry = "tour"
+deterministic = { package = "conduit-tour-model", test = "application_form", case = "tour_is_a_checked_host_neutral_form_over_the_application_seam" }
