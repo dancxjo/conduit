@@ -2,7 +2,7 @@
 
 mod arrival;
 mod input_actions;
-use input_actions::{action_for, form_receives_input, tour_action};
+use input_actions::{action_for, product_control, tour_action};
 mod journey_sign;
 mod scroll_input;
 mod tour_sign;
@@ -352,7 +352,8 @@ pub fn run(
                     return Ok(ProductInputControl::Continue);
                 }
                 if journey.status() == JourneyStatus::QuiescentAwaitingInput
-                    && form_receives_input(false, false, event.usage())
+                    && journey.foreground_input_owner().is_some()
+                    && product_control(event.usage()).is_none()
                 {
                     workspace_updates.accept(event, &mut journey, &mut front_door)?;
                     return Ok(ProductInputControl::Continue);
