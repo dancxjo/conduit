@@ -1,7 +1,7 @@
 import { acquireBrowserBodyHost } from "./browser-body-host.mjs";
 import { presentBodyPlan } from "./body-plan-inspection.mjs";
 
-const MAX_BODY_EXECUTION_CAPABILITIES = 96;
+const MAX_BODY_EXECUTION_CAPABILITIES = 112;
 
 // Product orchestration only: the admitted WASM instance and shared Host
 // adapters own execution. Claims and reports are self-reported loopback facts.
