@@ -117,6 +117,8 @@ pub mod usb_line_session;
 pub mod linear_presenter;
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 pub mod presentation_nucleus;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod product_bases;
 #[cfg(any(
     test,
     target_arch = "x86_64",

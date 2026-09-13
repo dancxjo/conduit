@@ -27,6 +27,7 @@ use crate::{
     native_compositor::InputRoute,
     offer::CAPABILITY_COUNT,
     offer_fabrication::ImageBoundHostOffer,
+    product_bases::{EffectFamily, NativeProductBases},
     product_journey::{JourneyStatus, ProductJourney},
     rescue_guest,
     tour_product::TourProduct,
@@ -60,6 +61,21 @@ pub fn run(
     mut ps2_input: Option<&mut crate::arch::Ps2Input>,
     rescue_matcher: &mut LocalRescueMatcher,
 ) -> Result<(), &'static str> {
+    let effect_bases = NativeProductBases::observe(offer, framebuffer_basis, usb_line_device)
+        .map_err(|_| "product-base-provider-invalid")?;
+    effect_bases
+        .require(EffectFamily::Framebuffer)
+        .map_err(|_| "product-framebuffer-base-unavailable")?;
+    if hid_session.is_some() || ps2_input.is_some() {
+        effect_bases
+            .require(EffectFamily::Keyboard)
+            .map_err(|_| "product-keyboard-base-unavailable")?;
+    }
+    if pointer_session.is_some() {
+        effect_bases
+            .require(EffectFamily::Pointer)
+            .map_err(|_| "product-pointer-base-unavailable")?;
+    }
     let host_id = conduit_core::HostId::from(identity::hex(&identities.host));
     let boot_id = conduit_core::BootId::from(identity::hex(&identities.boot));
     let generation = conduit_core::OfferGeneration(offer.generation);
@@ -180,6 +196,9 @@ pub fn run(
             }
             if event.usage() == F12 && usb_line_device.is_some() {
                 if event.transition() == KeyTransition::Released {
+                    effect_bases
+                        .require(EffectFamily::Line)
+                        .map_err(|_| "product-line-base-unavailable")?;
                     line_requested = true;
                     return Ok(ProductInputControl::Yield);
                 }
