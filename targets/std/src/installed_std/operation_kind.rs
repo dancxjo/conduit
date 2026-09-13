@@ -45,6 +45,7 @@ use super::rhythm_compare_operation::RhythmCompareOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::sequence_normalization_operation::SequenceNormalizationOperation;
+use super::speech_synthesis_operation::SpeechSynthesisOperation;
 use super::state_select_operation::StateSelectScalarOperation;
 use super::structured_selector_operation::StructuredSelectorOperation;
 use super::structured_values_operation::{
@@ -138,6 +139,7 @@ pub(super) enum InstalledOperation {
     RoboticsSource(RoboticsSourceOperation),
     RoboticsDrive(RoboticsDriveOperation),
     MusicSynth(MusicSynthOperation),
+    SpeechSynthesis(SpeechSynthesisOperation),
     AudioRenderDemand(AudioRenderDemandOperation),
     AudioPlay(AudioPlayOperation),
     MidiOutput(MidiOutputOperation),
@@ -170,6 +172,8 @@ pub(super) enum InstalledOperation {
     #[cfg(test)]
     TestRecurrenceSink(super::test_recurrence_sink::TestRecurrenceSinkOperation),
     TestPcmSource(Box<super::test_audio_source::TestPcmSourceOperation>),
+    #[cfg(test)]
+    TestSpeechSink(super::test_speech_sink::TestSpeechSinkOperation),
     #[cfg(test)]
     TestJsonSource(TestJsonSourceOperation),
     #[cfg(test)]

@@ -34,6 +34,11 @@ pub(crate) fn test_pcm_source_offer() -> conduit_core::CapabilityOffer {
 }
 
 #[cfg(test)]
+pub(crate) fn test_speech_sink_offer() -> conduit_core::CapabilityOffer {
+    super::test_speech_sink::offer()
+}
+
+#[cfg(test)]
 pub(crate) fn test_midi_source_offer() -> conduit_core::CapabilityOffer {
     super::test_midi_source::offer()
 }

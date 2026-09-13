@@ -55,7 +55,7 @@ impl Drop for Fixture {
 #[test]
 fn bounded_process_output_becomes_ordered_canonical_pcm_blocks() {
     let fixture = Fixture::new(
-        "#!/bin/sh\nprintf '\\001\\000\\002\\000\\003\\000'\nprintf 'fixture diagnostic' >&2\n",
+        "#!/bin/sh\ncat >/dev/null\nprintf '\\001\\000\\002\\000\\003\\000'\nprintf 'fixture diagnostic' >&2\n",
     );
     let discovery =
         PiperDiscovery::inspect(&fixture.executable, &fixture.model, &fixture.config, None)
@@ -102,7 +102,8 @@ fn provider_receives_end_of_text_before_output_is_polled() {
 
 #[test]
 fn text_output_and_consumer_bounds_fail_distinctly() {
-    let fixture = Fixture::new("#!/bin/sh\nprintf '\\001\\000\\002\\000\\003\\000'\n");
+    let fixture =
+        Fixture::new("#!/bin/sh\ncat >/dev/null\nprintf '\\001\\000\\002\\000\\003\\000'\n");
     let mut adapter = fixture.adapter(2);
     assert_eq!(
         adapter.synthesize("Rosehip", || false, |_| Ok(())),
@@ -132,5 +133,31 @@ fn cancellation_and_provider_failure_are_not_completion() {
     assert_eq!(
         adapter.synthesize("Rosehip", || false, |_| Ok(())),
         Err(PiperFailure::ProviderLost)
+    );
+}
+
+#[test]
+fn timeout_and_partial_sample_are_distinct_failures() {
+    let fixture = Fixture::new("#!/bin/sh\nsleep 1\n");
+    let mut adapter =
+        PiperDiscovery::inspect(&fixture.executable, &fixture.model, &fixture.config, None)
+            .unwrap()
+            .initialize(PiperLimits {
+                maximum_text_bytes: 256,
+                maximum_frames: 8,
+                maximum_blocks: 8,
+                timeout: Duration::from_millis(10),
+            })
+            .unwrap();
+    assert_eq!(
+        adapter.synthesize("Rosehip", || false, |_| Ok(())),
+        Err(PiperFailure::Timeout)
+    );
+
+    let fixture = Fixture::new("#!/bin/sh\ncat >/dev/null\nprintf '\\001'\n");
+    let mut adapter = fixture.adapter(8);
+    assert_eq!(
+        adapter.synthesize("Rosehip", || false, |_| Ok(())),
+        Err(PiperFailure::MalformedPcm)
     );
 }

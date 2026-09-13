@@ -33,6 +33,7 @@ mod secret_knock_body_admission;
 mod secret_knock_conformance;
 mod sequence_normalization_conformance;
 mod sound_replanning;
+mod speech_synthesis_conformance;
 mod structured_selector_conformance;
 mod structured_values_conformance;
 mod talking_polaroid_body;
