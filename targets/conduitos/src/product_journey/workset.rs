@@ -8,6 +8,7 @@ pub struct WorkspaceForm {
     pub form: ResidentForm,
     pub title: &'static str,
     pub foreground: bool,
+    pub input: Option<native_workset::AdmittedFormInput>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -84,6 +85,7 @@ impl ProductJourney {
                     form: form.clone(),
                     title: self.forms[index].expect("admitted workset").title(),
                     foreground: index == self.foreground,
+                    input: self.input_owners[index].clone(),
                 })
                 .collect(),
         })

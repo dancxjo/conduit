@@ -1,7 +1,9 @@
 //! Separate exact Form partitions, one Body Plan, and combined resource bounds.
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_body::{BodyFormPlan, BodyPlan, Wake};
-use conduit_core::{HostAdvertisement, Plan, ResourceClassId, ResourcePoolId};
+use conduit_core::{
+    HostAdvertisement, KindId, PlacementId, Plan, PortId, ResourceClassId, ResourcePoolId,
+};
 use conduit_plan_lowering::fragment_set::{
     FragmentSetBounds, LoweredFragmentSet, lower_local_fragment_set,
 };
@@ -19,6 +21,16 @@ pub struct PreparedNativeWorkset {
     pub(super) lowered: LoweredFragmentSet,
     /// Exact initialized physical provider behind the logical deliveries.
     pub(super) keyboard: crate::keyboard_offer::KeyboardRealization,
+    pub(super) input_owners: Vec<AdmittedFormInput>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdmittedFormInput {
+    pub form: conduit_body::ResidentForm,
+    pub kind_id: KindId,
+    pub placement_id: PlacementId,
+    pub port_id: PortId,
+    pub value_kind: KindId,
 }
 
 impl PreparedNativeWorkset {
@@ -30,6 +42,9 @@ impl PreparedNativeWorkset {
     }
     pub fn keyboard(&self) -> crate::keyboard_offer::KeyboardRealization {
         self.keyboard
+    }
+    pub fn input_owners(&self) -> &[AdmittedFormInput] {
+        &self.input_owners
     }
     pub fn into_plan(self) -> BodyPlan {
         self.plan
@@ -48,6 +63,11 @@ pub fn prepare(
     let (advertisement, keyboard) = host(identities, offer, build_id)?;
     let forms = plan_forms(wake.workset.forms(), &advertisement)?;
     let plan = BodyPlan::seal(wake, forms).map_err(|_| WorksetRefusal::Plan)?;
+    let input_owners = plan
+        .forms
+        .iter()
+        .map(admitted_form_input)
+        .collect::<Result<Vec<_>, _>>()?;
     validate_combined(&advertisement, plan.forms.iter().map(|form| &form.plan))?;
     let lowered = lower_forms(&plan.forms)?;
     Ok(PreparedNativeWorkset {
@@ -55,6 +75,33 @@ pub fn prepare(
         plan,
         lowered,
         keyboard,
+        input_owners,
+    })
+}
+
+fn admitted_form_input(form: &BodyFormPlan) -> Result<AdmittedFormInput, WorksetRefusal> {
+    let fragment = form.plan.fragments.first().ok_or(WorksetRefusal::Plan)?;
+    let placement = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND)
+        .ok_or(WorksetRefusal::Capability)?;
+    let connection = fragment
+        .connections
+        .iter()
+        .find(|connection| connection.source_placement_id == placement.placement_id)
+        .ok_or(WorksetRefusal::Plan)?;
+    if connection.source_port_id.as_str() != conduit_semantic_catalog::KEYBOARD_PORT
+        || connection.value_kind.as_str() != conduit_human::KEY_EVENT_INFO_ID
+    {
+        return Err(WorksetRefusal::Plan);
+    }
+    Ok(AdmittedFormInput {
+        form: form.form.clone(),
+        kind_id: placement.kind_id.clone(),
+        placement_id: placement.placement_id.clone(),
+        port_id: connection.source_port_id.clone(),
+        value_kind: connection.value_kind.clone(),
     })
 }
 

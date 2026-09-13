@@ -184,6 +184,7 @@ pub(super) fn prepare(
         pending: [None; FORMS],
         held: [None; 256],
         presentations: [None; FORMS],
+        input_owners: core::array::from_fn(|index| prepared.input_owners.get(index).cloned()),
         form_count: count,
         cancelled: false,
     })
