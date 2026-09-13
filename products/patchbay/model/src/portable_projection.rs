@@ -136,7 +136,7 @@ impl PatchbayPresentation {
     }
 }
 
-fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<PresentationAction> {
+pub(super) fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<PresentationAction> {
     let current: &[&str] = match lifecycle {
         WakeLifecycle::AwaitingPlan
         | WakeLifecycle::Unsatisfied

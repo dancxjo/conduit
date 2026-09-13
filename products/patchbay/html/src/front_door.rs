@@ -161,7 +161,7 @@ mod tests {
             .subjects
             .iter()
             .any(|subject| subject.role == PresentationRole::Body));
-        assert_eq!(snapshot.presentation.actions.len(), 2);
+        assert_eq!(snapshot.presentation.actions.len(), 3);
         assert_eq!(snapshot.presentation.disclosures.len(), 2);
         let form = snapshot
             .presentation
@@ -178,5 +178,19 @@ mod tests {
         assert_eq!(actions.len(), 2);
         assert_eq!(actions[0].label, "Open");
         assert_eq!(actions[1].label, "Birth");
+        let host = snapshot
+            .presentation
+            .subjects
+            .iter()
+            .find(|subject| subject.role == PresentationRole::Host)
+            .unwrap();
+        let creche_birth = snapshot
+            .presentation
+            .actions
+            .iter()
+            .find(|action| action.target == host.identity)
+            .unwrap();
+        assert_eq!(creche_birth.label, "Name Body and choose Forms");
+        assert!(creche_birth.availability.is_available());
     }
 }

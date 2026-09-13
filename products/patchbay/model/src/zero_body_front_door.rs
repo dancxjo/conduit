@@ -443,7 +443,7 @@ impl ZeroBodyFrontDoor {
         LocalFrontDoor::born_from_form(self.adapter, self.model, form, self.revision)
     }
 
-    fn require_revision(&self, revision: u64) -> Result<(), String> {
+    pub(super) fn require_revision(&self, revision: u64) -> Result<(), String> {
         if revision != self.revision {
             Err(format!(
                 "stale front-door revision {revision}; current is {}",
