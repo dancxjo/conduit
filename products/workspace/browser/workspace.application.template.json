@@ -184,7 +184,7 @@
       "role": "browser-body-host",
       "kind": "module",
       "path": "browser-body-host.mjs",
-      "maximum_bytes": 16384,
+      "maximum_bytes": 24576,
       "dependencies": [
         {
           "role": "browser-human-input",
@@ -201,8 +201,31 @@
         {
           "role": "browser-audio-cue",
           "specifier": "./browser-audio-cue.mjs"
+        },
+        {
+          "role": "application-presentation",
+          "specifier": "./application-presentation.mjs"
         }
       ]
+    },
+    {
+      "role": "application-presentation",
+      "kind": "module",
+      "path": "application-presentation.mjs",
+      "maximum_bytes": 40960,
+      "dependencies": [
+        {
+          "role": "application-theme",
+          "specifier": "./application-theme.mjs"
+        }
+      ]
+    },
+    {
+      "role": "application-theme",
+      "kind": "module",
+      "path": "application-theme.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": []
     },
     {
       "role": "browser-human-input",

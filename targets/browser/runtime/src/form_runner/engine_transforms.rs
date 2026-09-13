@@ -16,6 +16,47 @@ pub(in crate::form_runner) fn complete_transform(
     operation: &HostOperationRequirement,
     request: HostOperationRequest,
 ) -> Result<bool, String> {
+    if operation.contract_id.as_str() == crate::installed_browser::application::STATE_OPERATION {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?
+            .to_vec();
+        let index = usize::from(request.node.0);
+        let result = scheduler.applications[index]
+            .as_mut()
+            .ok_or("browser application state was not prepared before Play")?
+            .execute(&input);
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler
+                            .kernel
+                            .store_host_value(&bytes)
+                            .map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(_) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(conduit_kernel::Failure {
+                    code: conduit_kernel::FailureCode::InvalidInput,
+                    detail: 70,
+                }),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if operation.contract_id.as_str() == crate::installed_browser::text_state::HOST_OPERATION {
         let input = scheduler
             .kernel

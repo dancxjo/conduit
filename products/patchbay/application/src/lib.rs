@@ -46,6 +46,7 @@ pub struct PatchbayApplicationPort {
     body_plan_id: PlanId,
     revision: u32,
     selected: usize,
+    edit_requested: bool,
 }
 
 impl PatchbayApplicationPort {
@@ -60,6 +61,7 @@ impl PatchbayApplicationPort {
             body_plan_id,
             revision: 1,
             selected: 0,
+            edit_requested: false,
         })
     }
 
@@ -127,6 +129,11 @@ impl PatchbayApplicationPort {
                 // Reuse the shared semantic action identity; realization remains
                 // outside application state and cannot acquire ambient authority.
                 debug_assert_eq!(PatchbayAction::ConfigureGear.as_str(), "configure-gear");
+                self.edit_requested = true;
+                self.revision = self
+                    .revision
+                    .checked_add(1)
+                    .ok_or(PatchbayApplicationRefusal::RevisionExhausted)?;
                 Ok(Some(PatchbayApplicationRequest::EditCurrent {
                     expanded_form_id: self.graph.expanded_form_id.clone(),
                     subject_identity: inspection.subject_identity,
@@ -148,7 +155,7 @@ impl PatchbayApplicationPort {
                 event: ApplicationEventKind::Activate,
             },
         ];
-        let nodes = vec![
+        let mut nodes = vec![
             node(
                 None,
                 ApplicationComponent::Shell,
@@ -227,6 +234,17 @@ impl PatchbayApplicationPort {
                 Some(1),
             ),
         ];
+        if self.edit_requested {
+            nodes.push(node(
+                Some(1),
+                ApplicationComponent::Status,
+                "edit-request",
+                "Edit requested against the exact inspected subject; no authority was inferred.",
+                "",
+                0,
+                None,
+            ));
+        }
         let view = ApplicationView {
             revision: self.revision,
             nodes,
@@ -318,7 +336,7 @@ mod tests {
             Some(PatchbayApplicationRequest::EditCurrent { .. })
         ));
         let stale = ApplicationEvent {
-            revision: view.revision + 1,
+            revision: view.revision,
             action: INSPECT_NEXT_ACTION_ID.into(),
             kind: ApplicationEventKind::Activate,
             value: Vec::new(),

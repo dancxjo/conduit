@@ -130,6 +130,25 @@ impl TourSession {
                     source_interaction: self.source_interaction.clone(),
                 }),
             )),
+            engine::BrowserHostEffect::ApplicationEvent => Ok(TourHostEffect::ApplicationEvent(
+                Box::new(TourKeyEventEffect {
+                    schema: "conduit.browser/application-event-effect@1",
+                    effect_kind: "application-event",
+                    source_document_id: fragment.source_document_id.as_str().into(),
+                    checked_form_id: fragment.checked_form_id.as_str().into(),
+                    expanded_form_id: fragment.expanded_form_id.as_str().into(),
+                    plan_id: fragment.plan_id.as_str().into(),
+                    fragment_id: fragment.fragment_id.as_str().into(),
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: pending.request.request.0,
+                    maximum_output_bytes: conduit_presentation::MAX_APPLICATION_EVENT_ENCODED_BYTES
+                        as u32,
+                    source_interaction: self.source_interaction.clone(),
+                }),
+            )),
             engine::BrowserHostEffect::Manifestation(manifestation) => {
                 let partition = self
                     .fragments
@@ -175,6 +194,9 @@ impl TourSession {
                     unit_millis,
                     segments,
                     text,
+                    application_view: (manifestation.kind_id
+                        == conduit_semantic_catalog::APPLICATION_VIEW_PRESENTATION_KIND)
+                        .then(|| manifestation.canonical_value.clone()),
                     source_interaction: self.source_interaction.clone(),
                 };
                 self.latest_presentation = Some(presentation);

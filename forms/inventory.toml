@@ -463,10 +463,14 @@ browser_safe_not_applicable = "open reusable face is exercised inside the Desk T
 slug = "tour"
 title = "Tour"
 entry = "tour"
+initial_body_order = 12
 deterministic = { package = "conduit-tour-model", test = "application_form", case = "tour_is_a_checked_host_neutral_form_over_the_application_seam" }
+browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "resident Tour keeps state across foreground switches in one browser Body Play" }
 
 [[forms]]
 slug = "patchbay"
 title = "Patchbay"
 entry = "patchbay"
+initial_body_order = 13
 deterministic = { package = "patchbay-application", test = "lib", case = "opens_the_exact_form_and_plan_and_retains_inspection" }
+browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "resident Patchbay inspects and begins an exact edit in one browser Body Play" }

@@ -599,6 +599,7 @@ dependencies = [
  "conduit-wire",
  "conduit-workspace-model",
  "ed25519-dalek",
+ "patchbay-application",
  "serde",
  "serde_json",
  "sha2 0.10.9",
