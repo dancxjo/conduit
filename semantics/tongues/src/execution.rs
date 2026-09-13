@@ -533,4 +533,19 @@ mod tests {
         let encoded = serde_json::to_string(&first).unwrap();
         assert!(!encoded.contains("upstairs temperature"));
     }
+
+    #[test]
+    fn maximum_admitted_text_stays_within_one_pcm_frame_block() {
+        let text = "x".repeat(crate::MAXIMUM_TEXT_BYTES as usize);
+        let receipt = run_speech_text(
+            &text,
+            OutputCondition::DegradedWavArtifact,
+            SpeechFault::None,
+        )
+        .unwrap();
+        let SpeechOutcome::WavArtifact { wav_bytes, .. } = receipt.outcome else {
+            panic!("maximum admitted text must produce the degraded artifact");
+        };
+        assert!(wav_bytes <= crate::MAXIMUM_PCM_BYTES);
+    }
 }
