@@ -27,7 +27,7 @@ impl InstalledOperation {
                 operation.values.capacity() + operation.waits.capacity()
             }
             Self::TestPcmSource(_) => 0,
-            #[cfg(test)]
+            #[cfg(any(test, feature = "local-model-proof"))]
             Self::TestSpeechSink(_) => 0,
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => {

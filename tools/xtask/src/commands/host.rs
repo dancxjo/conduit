@@ -134,9 +134,12 @@ enum HostCommand {
         library_path: Option<PathBuf>,
         #[arg(long)]
         text: String,
+        /// Run the unchanged portable Form through ordinary std Plan and Play.
+        #[arg(long)]
+        plan_play: bool,
         #[arg(long, default_value_t = 1_323_000)]
         maximum_frames: u32,
-        #[arg(long, default_value_t = 651)]
+        #[arg(long, default_value_t = 11_708)]
         maximum_blocks: u16,
         #[arg(long, default_value_t = 30)]
         timeout_seconds: u64,
@@ -195,6 +198,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             config,
             library_path,
             text,
+            plan_play,
             maximum_frames,
             maximum_blocks,
             timeout_seconds,
@@ -205,6 +209,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 config,
                 library_path,
                 text,
+                plan_play,
                 maximum_frames,
                 maximum_blocks,
                 timeout_seconds,

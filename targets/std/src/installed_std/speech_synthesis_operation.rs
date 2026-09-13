@@ -73,11 +73,18 @@ impl SpeechSynthesisOperation {
                         self.finished = true;
                         OperationAction::Complete
                     }
-                    (HostOperationDisposition::Denied, _, _) => {
+                    (HostOperationDisposition::Denied, _, Some(failure))
+                    | (HostOperationDisposition::Cancelled, _, Some(failure))
+                    | (HostOperationDisposition::Failed, _, Some(failure)) => {
+                        OperationAction::Fail(failure)
+                    }
+                    (HostOperationDisposition::Denied, _, None) => {
                         fail(FailureCode::HostOperationDenied, 3)
                     }
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 4),
-                    (HostOperationDisposition::Failed, _, _) => {
+                    (HostOperationDisposition::Cancelled, _, None) => {
+                        fail(FailureCode::Cancelled, 4)
+                    }
+                    (HostOperationDisposition::Failed, _, None) => {
                         fail(FailureCode::HostOperationFailed, 5)
                     }
                     (HostOperationDisposition::Completed, Some(_), None) => {
@@ -163,11 +170,22 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_operations != offer.host_operations
-        || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || placement.configuration.len() != 1
     {
         return Err("planned Piper speech identity does not match its installation".into());
+    }
+    let requires_process =
+        placement.implementation_id.as_str() == conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION;
+    if requires_process
+        != (placement.resources.len() == 1
+            && placement.resources[0].class_id.as_str()
+                == conduit_std_offers::PIPER_PROCESS_RESOURCE_CLASS
+            && placement.resources[0].units == 1
+            && placement.resources[0].protected.is_none()
+            && placement.resources[0].compute.is_none())
+    {
+        return Err("planned Piper process reservation is not exact".into());
     }
     maximum_output_bytes(placement)?;
     Ok(())
@@ -214,6 +232,126 @@ fn prepare(
 
 fn fail(code: FailureCode, detail: u16) -> OperationAction {
     OperationAction::Fail(Failure { code, detail })
+}
+
+pub(super) fn execute_piper<'a>(
+    adapter: Option<&'a mut crate::hosted_speech::PiperSpeechAdapter>,
+    input: &[u8],
+    cancelled: bool,
+) -> Result<Option<&'a [u8]>, crate::hosted_speech::PiperFailure> {
+    let adapter = adapter.ok_or(crate::hosted_speech::PiperFailure::MissingProvider)?;
+    if adapter.is_active() {
+        if input != [0] {
+            return Err(crate::hosted_speech::PiperFailure::InvalidText);
+        }
+    } else {
+        let text = core::str::from_utf8(input)
+            .map_err(|_| crate::hosted_speech::PiperFailure::InvalidText)?;
+        adapter.begin(text)?;
+    }
+    match adapter.next(|| cancelled)? {
+        crate::hosted_speech::PiperSynthesisStep::Block(block) => Ok(Some(block)),
+        crate::hosted_speech::PiperSynthesisStep::Complete(_) => Ok(None),
+    }
+}
+
+pub(super) fn piper_failure_outcome(
+    failure: crate::hosted_speech::PiperFailure,
+) -> (HostOperationDisposition, Failure) {
+    use crate::hosted_speech::PiperFailure as Piper;
+    let (disposition, code, detail) = match failure {
+        Piper::MissingProvider => (
+            HostOperationDisposition::Denied,
+            FailureCode::HostOperationDenied,
+            61,
+        ),
+        Piper::InvalidProvider => (
+            HostOperationDisposition::Denied,
+            FailureCode::HostOperationDenied,
+            62,
+        ),
+        Piper::InvalidLimits => (
+            HostOperationDisposition::Denied,
+            FailureCode::HostOperationDenied,
+            63,
+        ),
+        Piper::InvalidText => (
+            HostOperationDisposition::Denied,
+            FailureCode::InvalidInput,
+            64,
+        ),
+        Piper::EmptyText => (
+            HostOperationDisposition::Denied,
+            FailureCode::InvalidInput,
+            65,
+        ),
+        Piper::TextOverflow => (
+            HostOperationDisposition::Denied,
+            FailureCode::WorkBudgetExhausted,
+            66,
+        ),
+        Piper::SpawnFailed => (
+            HostOperationDisposition::Failed,
+            FailureCode::HostOperationFailed,
+            67,
+        ),
+        Piper::WriteFailed => (
+            HostOperationDisposition::Failed,
+            FailureCode::HostOperationFailed,
+            68,
+        ),
+        Piper::ReadFailed => (
+            HostOperationDisposition::Failed,
+            FailureCode::HostOperationFailed,
+            69,
+        ),
+        Piper::MalformedPcm => (
+            HostOperationDisposition::Failed,
+            FailureCode::InvalidInput,
+            70,
+        ),
+        Piper::OutputOverflow => (
+            HostOperationDisposition::Failed,
+            FailureCode::WorkBudgetExhausted,
+            71,
+        ),
+        Piper::BlockOverflow => (
+            HostOperationDisposition::Failed,
+            FailureCode::WorkBudgetExhausted,
+            72,
+        ),
+        Piper::Timeout => (
+            HostOperationDisposition::Failed,
+            FailureCode::HostOperationFailed,
+            73,
+        ),
+        Piper::Cancelled => (
+            HostOperationDisposition::Cancelled,
+            FailureCode::Cancelled,
+            74,
+        ),
+        Piper::ProviderLost => (
+            HostOperationDisposition::Failed,
+            FailureCode::HostOperationFailed,
+            75,
+        ),
+        Piper::ConsumerPressure => (
+            HostOperationDisposition::Failed,
+            FailureCode::StorageExhausted,
+            76,
+        ),
+        Piper::ProviderBusy => (
+            HostOperationDisposition::Denied,
+            FailureCode::HostOperationDenied,
+            77,
+        ),
+        Piper::NoActiveSynthesis => (
+            HostOperationDisposition::Denied,
+            FailureCode::InvalidLifecycle,
+            78,
+        ),
+    };
+    (disposition, Failure { code, detail })
 }
 
 #[cfg(test)]
@@ -406,5 +544,52 @@ mod tests {
             assert_eq!(payload.len(), 8);
         }
         assert_eq!(host.execute(&[0]).unwrap(), None);
+    }
+
+    #[test]
+    fn provider_failures_keep_distinct_kernel_details() {
+        use crate::hosted_speech::PiperFailure as Piper;
+        let cases = [
+            Piper::MalformedPcm,
+            Piper::OutputOverflow,
+            Piper::Timeout,
+            Piper::Cancelled,
+            Piper::ProviderLost,
+            Piper::ConsumerPressure,
+        ];
+        let mut details = Vec::new();
+        for failure in cases {
+            let (disposition, mapped) = piper_failure_outcome(failure);
+            if failure == Piper::Cancelled {
+                assert_eq!(disposition, HostOperationDisposition::Cancelled);
+                assert_eq!(mapped.code, FailureCode::Cancelled);
+            } else {
+                assert_eq!(disposition, HostOperationDisposition::Failed);
+            }
+            assert!(!details.contains(&mapped.detail));
+            details.push(mapped.detail);
+        }
+
+        let mut operation = SpeechSynthesisOperation {
+            continuation: value(9, 1),
+            pending: Some(RequestId(0)),
+            next_request: 1,
+            emitted_blocks: 0,
+            maximum_blocks: 1,
+            started: true,
+            finished: false,
+        };
+        let (_, failure) = piper_failure_outcome(Piper::Timeout);
+        assert_eq!(
+            operation.resume(OperationInput::HostOperationCompleted {
+                request: RequestId(0),
+                outcome: conduit_kernel::HostOperationOutcome {
+                    disposition: HostOperationDisposition::Failed,
+                    output: None,
+                    failure: Some(failure),
+                },
+            }),
+            OperationAction::Fail(failure)
+        );
     }
 }

@@ -7,12 +7,11 @@ use conduit_core::{
 use conduit_form::{KindDefinition, ProfileCatalog};
 use conduit_kernel::{OperationAction, OperationInput, PortId};
 
-const KIND: &str = "conduit-test/speech-pcm-sink";
-const REVISION: &str = "conduit-test/speech-pcm-sink@1";
-const PROFILE: &str = "conduit-test/speech-pcm-sink-kernel@1";
-pub(super) const IMPLEMENTATION: &str = "conduit-test/speech-pcm-sink@1";
-const ARTIFACT: &str = "conduit-std-host/test-speech-pcm-sink@1";
-const EXPECTED_BLOCKS: u8 = 3;
+pub(crate) const KIND: &str = "conduit-proof/speech-pcm-sink";
+const REVISION: &str = "conduit-proof/speech-pcm-sink@1";
+const PROFILE: &str = "conduit-proof/speech-pcm-sink-kernel@1";
+pub(super) const IMPLEMENTATION: &str = "conduit-proof/speech-pcm-sink@1";
+const ARTIFACT: &str = "conduit-std-host/proof-speech-pcm-sink@1";
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: IMPLEMENTATION,
@@ -21,7 +20,7 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 };
 
 pub(super) struct TestSpeechSinkOperation {
-    blocks: u8,
+    blocks: u16,
 }
 
 impl TestSpeechSinkOperation {
@@ -30,30 +29,29 @@ impl TestSpeechSinkOperation {
     }
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        let OperationInput::Value {
-            port: PortId(0),
-            value,
-        } = input
-        else {
-            return InstalledOperation::fail(180);
-        };
-        if value.byte_len > conduit_std_offers::PIPER_PCM_BLOCK_BYTES {
-            return InstalledOperation::fail(181);
-        }
-        self.blocks = self.blocks.saturating_add(1);
-        if self.blocks == EXPECTED_BLOCKS {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
+        match input {
+            OperationInput::Value {
+                port: PortId(0),
+                value,
+            } if value.byte_len <= conduit_std_offers::PIPER_PCM_BLOCK_BYTES
+                && self.blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS =>
+            {
+                self.blocks += 1;
+                OperationAction::Await
+            }
+            OperationInput::Closed { port: PortId(0) } if self.blocks != 0 => {
+                OperationAction::Complete
+            }
+            _ => InstalledOperation::fail(180),
         }
     }
 }
 
-pub(super) fn offer() -> CapabilityOffer {
+pub(crate) fn offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
-        capability_id: CapabilityId::from("test-speech-pcm-sink"),
+        capability_id: CapabilityId::from("proof-speech-pcm-sink"),
         kind_id: kind_id(KIND),
         kind_contract_revision: KindContractRevision::from(REVISION),
         implementation: conduit_core::ImplementationOffer {
@@ -68,13 +66,14 @@ pub(super) fn offer() -> CapabilityOffer {
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 1,
-            max_queue_items: EXPECTED_BLOCKS.into(),
-            max_queue_bytes: u32::from(EXPECTED_BLOCKS) * conduit_std_offers::PIPER_PCM_BLOCK_BYTES,
+            max_queue_items: conduit_std_offers::PIPER_MAXIMUM_BLOCKS,
+            max_queue_bytes: u32::from(conduit_std_offers::PIPER_MAXIMUM_BLOCKS)
+                * conduit_std_offers::PIPER_PCM_BLOCK_BYTES,
         },
     }
 }
 
-pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
+pub(crate) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(KIND),
