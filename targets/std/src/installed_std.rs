@@ -2444,6 +2444,39 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         Vec::new()
     };
 
+    let speech_recognition_receipts = if let Some(adapter) = speech_recognition {
+        let discovery = adapter.discovery();
+        let executable_sha256 = discovery.executable_sha256.clone();
+        let model_sha256 = discovery.model_sha256.clone();
+        match adapter.take_receipt() {
+            Some(receipt) => {
+                let placement = fragment
+                    .placements
+                    .iter()
+                    .find(|placement| {
+                        placement.implementation_id.as_str()
+                            == conduit_std_offers::WHISPER_SPEECH_IMPLEMENTATION
+                    })
+                    .ok_or_else(|| "Whisper receipt has no exact planned placement".to_string())?;
+                vec![crate::SpeechRecognitionExecutionReceipt {
+                    plan_id: fragment.plan_id.clone(),
+                    active_play_id: active_play.active_play_id.clone(),
+                    placement_id: placement.placement_id.clone(),
+                    implementation_id: placement.implementation_id.clone(),
+                    executable_sha256,
+                    model_sha256,
+                    audio_sha256: receipt.audio_sha256,
+                    text_sha256: receipt.text_sha256,
+                    text_bytes: receipt.text_bytes,
+                    diagnostic_bytes: receipt.diagnostic_bytes,
+                }]
+            }
+            None => Vec::new(),
+        }
+    } else {
+        Vec::new()
+    };
+
     for driver in scheduler.drivers() {
         robotics_effect::write_simulated_drive_effect(
             _output,
@@ -2586,6 +2619,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         receipts: Vec::new(),
         control_receipts,
         speech_synthesis: speech_synthesis_receipts,
+        speech_recognition: speech_recognition_receipts,
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),

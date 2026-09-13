@@ -744,6 +744,7 @@ fn run_signal_profile<
         receipts,
         control_receipts: Vec::new(),
         speech_synthesis: Vec::new(),
+        speech_recognition: Vec::new(),
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),
