@@ -98,6 +98,26 @@ fn unavailable_execution_lane_is_rejected_before_play() {
 }
 
 #[test]
+fn revoked_presentation_base_refuses_that_plan_without_collapsing_the_host() {
+    let (identities, mut offer) = fixture();
+    offer
+        .bases
+        .iter_mut()
+        .find(|base| base.kind == crate::machine::BaseKind::Serial)
+        .unwrap()
+        .lifecycle = crate::offer::BaseLifecycle::Revoked;
+    assert_eq!(offer.validate(), Ok(()));
+    assert!(offer.bases.iter().any(|base| {
+        base.kind == crate::machine::BaseKind::Memory
+            && base.lifecycle == crate::offer::BaseLifecycle::Ready
+    }));
+    assert_eq!(
+        prepare(&identities, &offer, "build").err(),
+        Some(PreparationError::OfferMismatch)
+    );
+}
+
+#[test]
 fn stale_boot_and_unavailable_implementation_fail_closed() {
     let (identities, mut offer) = fixture();
     offer.boot_id = [3; 32];

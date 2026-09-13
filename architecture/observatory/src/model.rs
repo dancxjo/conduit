@@ -87,6 +87,8 @@ pub struct BaseReport {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub base_id: HostBaseId,
+    pub provider_instance_id: conduit_core::BaseInstanceId,
+    pub provider_generation: u64,
     pub kind_id: HostBaseKindId,
     pub state: OperationalState,
     pub capacity_units: u64,

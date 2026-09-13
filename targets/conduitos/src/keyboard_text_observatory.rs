@@ -67,6 +67,10 @@ pub fn completed_snapshot(
             host_id: host_id.clone(),
             boot_id: boot_id.clone(),
             base_id: HostBaseId::from(crate::identity::hex(&base.id)),
+            provider_instance_id: conduit_core::BaseInstanceId::from(crate::identity::hex(
+                &base.provider_instance_id,
+            )),
+            provider_generation: base.provider_generation,
             kind_id: HostBaseKindId::from(format!("conduitos.base/{}@1", base.kind.as_str())),
             state: OperationalState::Available,
             capacity_units: u64::from(base.capacity),
@@ -90,6 +94,11 @@ pub fn completed_snapshot(
             host_id: host_id.clone(),
             boot_id: boot_id.clone(),
             base_id: HostBaseId::from(crate::identity::hex(&id)),
+            provider_instance_id: conduit_core::BaseInstanceId::from(format!(
+                "{}/provider/1",
+                crate::identity::hex(&id)
+            )),
+            provider_generation: 1,
             kind_id: HostBaseKindId::from(format!("conduitos.base/{kind}@1")),
             state: OperationalState::Available,
             capacity_units: capacity,

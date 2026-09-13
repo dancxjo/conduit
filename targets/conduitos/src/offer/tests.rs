@@ -73,6 +73,40 @@ fn stale_or_missing_base_provider_truth_refuses_without_changing_host_identity()
 }
 
 #[test]
+fn one_revoked_base_refuses_only_its_exact_capability_binding() {
+    let features = CpuFeatures {
+        sse2: true,
+        rdrand: false,
+        invariant_tsc: true,
+    };
+    let mut offer = offer(features);
+    let timer = offer.capability_provider(&offer.capabilities[0]).unwrap();
+    let serial = offer.capability_provider(&offer.capabilities[1]).unwrap();
+    offer
+        .bases
+        .iter_mut()
+        .find(|base| base.kind == BaseKind::Timer)
+        .unwrap()
+        .lifecycle = BaseLifecycle::Revoked;
+    assert_eq!(offer.validate(), Ok(()));
+    assert_eq!(
+        offer.require_base_provider(timer),
+        Err(OfferError::BaseUnavailable)
+    );
+    assert_eq!(
+        offer.require_base_provider(serial).unwrap().kind,
+        BaseKind::Serial
+    );
+
+    let mut stale = serial;
+    stale.provider_generation += 1;
+    assert_eq!(
+        offer.require_base_provider(stale),
+        Err(OfferError::StaleBaseProvider)
+    );
+}
+
+#[test]
 fn isa_admission_rejects_stale_missing_and_disagreeing_facts() {
     let offer = offer(CpuFeatures {
         sse2: true,
