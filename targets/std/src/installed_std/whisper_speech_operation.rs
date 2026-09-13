@@ -12,10 +12,16 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     budget,
     prepare,
 };
+pub(super) static CLIP_FACTORY: InstalledFactory = InstalledFactory {
+    implementation_id: conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION,
+    budget: clip_budget,
+    prepare: prepare_clip,
+};
 
 pub(super) struct WhisperSpeechOperation {
     pending: bool,
     emitted: bool,
+    maximum_input_bytes: u32,
 }
 
 impl WhisperSpeechOperation {
@@ -29,10 +35,7 @@ impl WhisperSpeechOperation {
                 port: PortId(0),
                 value,
             } if !self.pending && !self.emitted => {
-                let Ok(input) = BoundedValueRef::new(
-                    value,
-                    conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
-                ) else {
+                let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
                     return fail(FailureCode::InvalidInput, 1);
                 };
                 self.pending = true;
@@ -88,6 +91,16 @@ pub(super) fn execute(
         .recognize(input, cancelled)
 }
 
+pub(super) fn execute_clip(
+    adapter: Option<&mut crate::hosted_speech_recognition::WhisperSpeechAdapter>,
+    input: &[u8],
+    cancelled: impl FnMut() -> bool,
+) -> Result<Vec<u8>, crate::hosted_speech_recognition::WhisperFailure> {
+    adapter
+        .ok_or(crate::hosted_speech_recognition::WhisperFailure::MissingProvider)?
+        .recognize_clip(input, cancelled)
+}
+
 pub(super) fn failure_outcome(
     failure: crate::hosted_speech_recognition::WhisperFailure,
 ) -> HostOperationOutcome {
@@ -98,7 +111,10 @@ pub(super) fn failure_outcome(
             FailureCode::HostOperationDenied,
             1,
         ),
-        Whisper::InvalidPcm | Whisper::UnsupportedPcmProfile | Whisper::AudioOverflow => (
+        Whisper::InvalidPcm
+        | Whisper::InvalidClip
+        | Whisper::UnsupportedPcmProfile
+        | Whisper::AudioOverflow => (
             HostOperationDisposition::Failed,
             FailureCode::InvalidInput,
             2,
@@ -133,6 +149,13 @@ pub(super) fn failure_outcome(
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
     let offer = conduit_std_offers::whisper_speech_offer();
+    validate_offer(placement, &offer)
+}
+
+fn validate_offer(
+    placement: &PlannedGear,
+    offer: &conduit_core::CapabilityOffer,
+) -> Result<(), String> {
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
@@ -163,6 +186,17 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     })
 }
 
+fn clip_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+    validate_offer(placement, &conduit_std_offers::whisper_clip_speech_offer())?;
+    Ok(OperationBudget {
+        value_items: 1,
+        value_bytes: conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
+        host_requests: 1,
+        sign_items: 16,
+        maximum_value_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+    })
+}
+
 fn prepare(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
@@ -171,6 +205,19 @@ fn prepare(
     Ok(InstalledOperation::WhisperSpeech(WhisperSpeechOperation {
         pending: false,
         emitted: false,
+        maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
+    }))
+}
+
+fn prepare_clip(
+    placement: &PlannedGear,
+    _values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledOperation, String> {
+    validate_offer(placement, &conduit_std_offers::whisper_clip_speech_offer())?;
+    Ok(InstalledOperation::WhisperSpeech(WhisperSpeechOperation {
+        pending: false,
+        emitted: false,
+        maximum_input_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
     }))
 }
 

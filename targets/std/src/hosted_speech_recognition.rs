@@ -26,7 +26,7 @@ pub struct WhisperLimits {
 impl WhisperLimits {
     fn validate(self) -> Result<Self, WhisperFailure> {
         if self.maximum_audio_bytes == 0
-            || self.maximum_audio_bytes as usize > conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES
+            || self.maximum_audio_bytes as usize > conduit_audio::MAXIMUM_PCM_CLIP_BYTES
             || self.maximum_text_bytes == 0
             || self.maximum_text_bytes as usize > conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES
             || !(1..=32).contains(&self.threads)
@@ -53,6 +53,7 @@ pub enum WhisperFailure {
     InvalidProvider,
     InvalidLimits,
     InvalidPcm,
+    InvalidClip,
     UnsupportedPcmProfile,
     AudioOverflow,
     SpawnFailed,
@@ -136,7 +137,7 @@ impl WhisperSpeechAdapter {
     pub fn recognize(
         &mut self,
         encoded: &[u8],
-        mut cancelled: impl FnMut() -> bool,
+        cancelled: impl FnMut() -> bool,
     ) -> Result<Vec<u8>, WhisperFailure> {
         if encoded.len() > self.limits.maximum_audio_bytes as usize {
             return Err(WhisperFailure::AudioOverflow);
@@ -151,6 +152,46 @@ impl WhisperSpeechAdapter {
             return Err(WhisperFailure::UnsupportedPcmProfile);
         }
         let audio_sha256: [u8; 32] = Sha256::digest(encoded).into();
+        self.recognize_payload(payload, audio_sha256, cancelled)
+    }
+
+    pub fn recognize_clip(
+        &mut self,
+        encoded: &[u8],
+        cancelled: impl FnMut() -> bool,
+    ) -> Result<Vec<u8>, WhisperFailure> {
+        if encoded.len() > self.limits.maximum_audio_bytes as usize {
+            return Err(WhisperFailure::AudioOverflow);
+        }
+        let clip =
+            conduit_audio::decode_pcm_clip(encoded).map_err(|_| WhisperFailure::InvalidClip)?;
+        if clip.profile.representation != PcmSampleRepresentation::Signed16LittleEndian
+            || clip.profile.layout != PcmChannelLayout::Mono
+            || clip.profile.sample_rate_hz != 16_000
+        {
+            return Err(WhisperFailure::UnsupportedPcmProfile);
+        }
+        let payload_bytes = clip
+            .blocks
+            .iter()
+            .try_fold(0_usize, |total, block| {
+                total.checked_add(block.payload.len())
+            })
+            .ok_or(WhisperFailure::AudioOverflow)?;
+        let mut payload = Vec::with_capacity(payload_bytes);
+        for block in clip.blocks {
+            payload.extend_from_slice(block.payload);
+        }
+        let audio_sha256: [u8; 32] = Sha256::digest(encoded).into();
+        self.recognize_payload(&payload, audio_sha256, cancelled)
+    }
+
+    fn recognize_payload(
+        &mut self,
+        payload: &[u8],
+        audio_sha256: [u8; 32],
+        mut cancelled: impl FnMut() -> bool,
+    ) -> Result<Vec<u8>, WhisperFailure> {
         let wav = self.workspace.join("input.wav");
         let output_base = self.workspace.join("result");
         write_wav(&wav, payload)?;

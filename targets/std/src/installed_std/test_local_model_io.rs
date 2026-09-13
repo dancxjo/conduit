@@ -13,6 +13,8 @@ pub(crate) const HOUSE_RECOGNIZED_SOURCE_KIND: &str = "conduit-test/house-recogn
 const HOUSE_RECOGNIZED_SOURCE_REVISION: &str = "conduit-test/house-recognized-source@1";
 pub(crate) const HOUSE_AUDIO_SOURCE_KIND: &str = "conduit-test/house-audio-source";
 const HOUSE_AUDIO_SOURCE_REVISION: &str = "conduit-test/house-audio-source@1";
+pub(crate) const HOUSE_AUDIO_CLIP_SOURCE_KIND: &str = "conduit-test/house-audio-clip-source";
+const HOUSE_AUDIO_CLIP_SOURCE_REVISION: &str = "conduit-test/house-audio-clip-source@1";
 pub(crate) const HOUSE_ADDRESSES_SOURCE_KIND: &str = "conduit-test/house-addresses-source";
 const HOUSE_ADDRESSES_SOURCE_REVISION: &str = "conduit-test/house-addresses-source@1";
 pub(crate) const HOUSE_CONTEXT_SOURCE_KIND: &str = "conduit-test/house-context-source";
@@ -109,13 +111,20 @@ pub(crate) fn source_offer(value_kind: &str) -> CapabilityOffer {
 }
 
 #[cfg(feature = "local-model-proof")]
-pub(crate) fn house_source_offers() -> [CapabilityOffer; 4] {
+pub(crate) fn house_source_offers() -> [CapabilityOffer; 5] {
     [
         offer(
             HOUSE_AUDIO_SOURCE_KIND,
             HOUSE_AUDIO_SOURCE_REVISION,
             SOURCE_IMPLEMENTATION,
             conduit_audio::AUDIO_PCM_INFO_ID,
+            PortDirection::Output,
+        ),
+        offer(
+            HOUSE_AUDIO_CLIP_SOURCE_KIND,
+            HOUSE_AUDIO_CLIP_SOURCE_REVISION,
+            SOURCE_IMPLEMENTATION,
+            conduit_audio::AUDIO_PCM_CLIP_INFO_ID,
             PortDirection::Output,
         ),
         offer(
@@ -327,6 +336,11 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
                 HOUSE_AUDIO_SOURCE_REVISION,
                 SOURCE_IMPLEMENTATION,
             ),
+            HOUSE_AUDIO_CLIP_SOURCE_KIND => (
+                HOUSE_AUDIO_CLIP_SOURCE_KIND,
+                HOUSE_AUDIO_CLIP_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
             HOUSE_RECOGNIZED_SOURCE_KIND => (
                 HOUSE_RECOGNIZED_SOURCE_KIND,
                 HOUSE_RECOGNIZED_SOURCE_REVISION,
@@ -447,6 +461,8 @@ fn prepare_source(
 fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
     let request = if placement.kind_id.as_str() == HOUSE_AUDIO_SOURCE_KIND {
         recorded_house_audio()?
+    } else if placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND {
+        recorded_house_audio_clip()?
     } else if placement.kind_id.as_str() == HOUSE_RECOGNIZED_SOURCE_KIND {
         b"Rosehip House, what is the temperature upstairs?".to_vec()
     } else if placement.kind_id.as_str() == HOUSE_ADDRESSES_SOURCE_KIND {
@@ -602,6 +618,32 @@ pub(crate) fn recorded_house_audio() -> Result<Vec<u8>, String> {
     .map_err(|error| format!("build recorded House PCM header: {error:?}"))?
     .encode_frame(&payload)
     .map_err(|error| format!("encode recorded House PCM: {error:?}"))
+}
+
+pub(crate) fn recorded_house_audio_clip() -> Result<Vec<u8>, String> {
+    let first = recorded_house_audio_block(0, &[12, -8, 24, -16])?;
+    let second = recorded_house_audio_block(4, &[20, -12, 8, -4])?;
+    conduit_audio::encode_pcm_clip(&[&first, &second])
+        .map_err(|error| format!("encode recorded House PCM clip: {error:?}"))
+}
+
+fn recorded_house_audio_block(start_frame: u64, samples: &[i16]) -> Result<Vec<u8>, String> {
+    let payload = samples
+        .iter()
+        .flat_map(|sample| sample.to_le_bytes())
+        .collect::<Vec<_>>();
+    conduit_audio::PcmFrameHeader::new(
+        conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
+        16_000,
+        conduit_audio::PcmChannelLayout::Mono,
+        samples.len() as u16,
+        1,
+        start_frame,
+        false,
+    )
+    .map_err(|error| format!("build recorded House PCM clip frame: {error:?}"))?
+    .encode_frame(&payload)
+    .map_err(|error| format!("encode recorded House PCM clip frame: {error:?}"))
 }
 
 fn prepare_sink(
