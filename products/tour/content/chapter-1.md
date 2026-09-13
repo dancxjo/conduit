@@ -18,6 +18,7 @@ Start with one tiny Form:
 
 ```conduit run
 form meet-one-gear {
+    complete
     words: text/literal("hello")
     change: text/upper
     result: presentation/text

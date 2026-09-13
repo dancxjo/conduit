@@ -47,6 +47,7 @@ fn native_birth_keeps_two_forms_in_one_body_plan_play_and_switches_only_foregrou
     assert_eq!(born.forms.len(), 2);
     run(&mut journey, &ids, &offer);
     let started = journey.projection();
+    assert_eq!(started.status, JourneyStatus::QuiescentAwaitingInput);
     assert_eq!(started.gear_ids.len(), 8);
     assert_eq!(started.cord_ids.len(), 6);
     select(&mut journey, NativeForm::KeyboardCanvas);
@@ -63,6 +64,7 @@ fn native_birth_keeps_two_forms_in_one_body_plan_play_and_switches_only_foregrou
     type_key(&mut journey, 42);
     assert_eq!(journey.projection().result.as_deref(), Some("b"));
     let final_view = journey.projection();
+    assert_eq!(final_view.status, JourneyStatus::QuiescentAwaitingInput);
     assert_eq!(final_view.body_id, started.body_id);
     assert_eq!(final_view.plan_id, started.plan_id);
     assert_eq!(final_view.active_play_id, started.active_play_id);

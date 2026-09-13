@@ -191,7 +191,7 @@ impl PatchbayApplication {
         match self.control.play_terminal() {
             Some(conduit_core::TerminalDisposition::Completed) => flow(
                 "PLAY_COMPLETED",
-                "PLAY completed",
+                "PLAY semantically completed",
                 "Completion evidence retained",
                 [action(PatchbayAction::Lull, "LULL", "Shift+F6")],
             ),

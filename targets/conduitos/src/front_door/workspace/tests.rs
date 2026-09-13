@@ -96,7 +96,7 @@ fn stopped_play_refusal_remains_visible_until_a_new_play_starts() {
         door.refusal.as_ref().unwrap().heading(),
         "Play stopped. Details:"
     );
-    journey.status = JourneyStatus::Playing;
+    journey.status = JourneyStatus::QuiescentAwaitingInput;
     door.observe_body(journey, workspace).unwrap();
     assert!(door.refusal.is_none());
 }

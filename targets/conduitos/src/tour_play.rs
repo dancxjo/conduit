@@ -205,6 +205,10 @@ mod tests {
         );
         assert_eq!(prepared.plan.checked_form_id, prepared.checked_form_id);
         assert_eq!(prepared.plan.expanded_form_id, prepared.expanded_form_id);
+        assert_eq!(
+            prepared.plan.completion_policy,
+            conduit_core::PlanCompletionPolicy::SemanticCompletion
+        );
 
         let mut clock = Clock::default();
         let mut serial = Serial::default();
