@@ -69,7 +69,7 @@ fn resident_form_proof_rejects_restarts_identity_substitution_input_loss_and_sta
     assert!(validate(&omitted).is_err());
 
     let mut coalesced = records();
-    coalesced.remove(24); // Adjacent Memory press/release projected together.
+    coalesced.remove(25); // Adjacent Memory press/release projected together.
     validate(&coalesced).unwrap();
 
     let mut bootstrapped = records();

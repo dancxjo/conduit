@@ -64,7 +64,7 @@ impl FrontDoor {
         if journey.body_id.as_ref() != Some(&workspace.body_id)
             || journey.revision != workspace.revision
             || workspace.forms.is_empty()
-            || workspace.forms.len() > 2
+            || workspace.forms.len() > crate::native_workset::NATIVE_FORM_CAPACITY
             || workspace
                 .forms
                 .iter()

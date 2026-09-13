@@ -50,6 +50,7 @@ fn expected() -> Vec<Expected> {
     // press/release is accepted exactly once; the held X release belongs to
     // Canvas even though Memory is foreground by then.
     for (form, count, result) in [
+        (Tour, 10, None),
         (Memory, 10, None),
         (Memory, 11, Some("o")),
         (Memory, 12, Some("o")),
@@ -57,9 +58,9 @@ fn expected() -> Vec<Expected> {
         (Memory, 14, Some("on")),
         (Memory, 15, Some("one")),
         (Memory, 16, Some("one")),
-        (Tour, 16, None),
         (Canvas, 16, Some("HELLO")),
         (Canvas, 17, Some("HELLOX")),
+        (Tour, 17, None),
         (Memory, 17, Some("one")),
         (Memory, 18, Some("one")),
         (Memory, 19, Some("on")),
@@ -72,12 +73,11 @@ fn expected() -> Vec<Expected> {
         (Memory, 26, Some("h")),
         (Memory, 27, Some("hi")),
         (Memory, 28, Some("hi")),
-        (Tour, 28, None),
         (Canvas, 28, Some("HELLOX")),
         (Canvas, 29, Some("HELLOXY")),
         (Canvas, 30, Some("HELLOXY")),
-        (Memory, 30, Some("hi")),
         (Tour, 30, None),
+        (Memory, 30, Some("hi")),
         (Canvas, 30, Some("HELLOXY")),
     ] {
         records.push(Expected {
@@ -161,7 +161,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     }
     // Presentation service may coalesce adjacent accepted inputs. Preserve the
     // critical semantic checkpoints instead of requiring one frame per event.
-    for index in [0, 10, 17, 18, 20, 22, 30, 33, 36, 39] {
+    for index in [0, 10, 11, 18, 20, 21, 23, 31, 34, 36, 39] {
         let checkpoint = expected[index];
         let form = match checkpoint.form {
             NativeForm::KeyboardCanvas => &canvas,
