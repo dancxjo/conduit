@@ -2,6 +2,10 @@
 
 **[Explore the current ConduitOS visual journey →](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)**
 
+The [current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
+names the exact accepted release and publication behind this journey, states
+whether they lag development, and links the latest proof receipts.
+
 Seventeen real QEMU screenshots show boot, Body and Play lifecycle, a
 hot-plugged Line, Tour, and Patchbay interaction. Each checkpoint explains the
 action, visible result, concepts, and asserted behavior, with links to the exact

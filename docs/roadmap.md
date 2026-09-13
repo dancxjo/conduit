@@ -1,6 +1,6 @@
 # What we're building next
 
-This is a navigation snapshot of open work, reviewed on **8 September 2026**.
+This is a navigation snapshot of open work, reviewed on **13 September 2026**.
 Follow the linked issue for its current state, dependencies, acceptance criteria,
 and scope. An open issue is planned or unfinished work, not a claim that someone
 is actively implementing it. Paused work is marked below.
@@ -9,7 +9,10 @@ Conduit's direction is one continuing Body running ordinary reusable Forms
 across the machinery available to it. The near-term task is to make those
 capabilities understandable and useful through real product experiences.
 [Current status](../STATUS.md) describes the implementation; the
-[canon](conduit-canon.md) describes the enduring design.
+[canon](conduit-canon.md) describes the enduring design. The published
+[current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
+names exact development, accepted-release, publication, lag, and proof-receipt
+identities; this roadmap does not substitute planned work for any of those.
 
 ## ConduitOS shell
 
@@ -101,7 +104,9 @@ Existing deterministic robotics code does not finish the physical capstone.
 The [release-train work #3038](https://github.com/dancxjo/conduit/issues/3038)
 tracks finishing good releases, terminating known failures, and suppressing
 superseded queues. Follow the [current CI guide](contributing/ci.md); automation
-owns normal integration and release bookkeeping.
+owns normal integration and release bookkeeping. Its published product-truth
+artifact keeps source capability, browser, freestanding-emulator, physical/HIL,
+human-enactment, and released-product proof distinct.
 
 Small improvements to setup, examples, explanations, accessibility, and error
 messages are useful across all these areas. The [contributor guide](../CONTRIBUTING.md)

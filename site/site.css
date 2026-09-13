@@ -4,6 +4,16 @@ body { margin: 0; min-height: 100vh; background:
   radial-gradient(circle at 80% -10%, color-mix(in srgb, var(--conduit-structure-primary) 10%, transparent), transparent 32rem),
   linear-gradient(180deg, var(--conduit-background), color-mix(in srgb, var(--conduit-background) 96%, var(--conduit-text-primary)) 58%, var(--conduit-background));
 }
+
+.truth-page { max-width: 78rem; margin: 0 auto; padding: 2rem; }
+.truth-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; margin: 1.5rem 0 2.5rem; }
+.truth-card { border: 1px solid var(--conduit-border, #52616b); border-radius: .75rem; padding: 1rem; }
+.truth-card h2 { font-size: 1rem; margin-top: 0; }
+.truth-card a { font-family: ui-monospace, monospace; }
+.truth-lag { border-left: .3rem solid #46c37b; padding: .75rem 1rem; }
+.truth-lag.behind { border-left-color: #e9b44c; }
+.truth-evidence { line-height: 1.8; }
+.truth-error { border-left: .3rem solid #dc6c64; padding: .75rem 1rem; }
 a { color: inherit; }
 
 main { width: 100%; }
