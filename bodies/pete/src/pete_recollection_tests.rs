@@ -318,6 +318,22 @@ fn selected_historical_experience_yields_one_grounded_model_recollection() {
         result.grounded_answer.model_run_identity,
         "run/recollection/1"
     );
+    let lineage = result.evidence_lineage().unwrap();
+    let patchbay = patchbay_model::PatchbayEvidenceLineage::project(&lineage).unwrap();
+    assert_eq!(
+        patchbay
+            .row("model-inference/run/recollection/1")
+            .unwrap()
+            .causal_inputs,
+        ["selected-experience/experience/battery/1"]
+    );
+    assert_eq!(
+        patchbay
+            .row("retrieval-candidate/experience/battery/1")
+            .unwrap()
+            .causal_inputs,
+        ["original-fact/sign/create/battery/1"]
+    );
 }
 
 #[test]
