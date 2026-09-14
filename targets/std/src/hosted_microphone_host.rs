@@ -7,7 +7,15 @@ impl crate::StdHost {
         adapter: AlsaMicrophoneAdapter,
     ) -> Result<Self, String> {
         let mut host = Self::new_with_composition(config, composition);
-        let mut advertisement = host.advertisement.clone();
+        host.attach_microphone(adapter)?;
+        Ok(host)
+    }
+
+    pub fn attach_microphone(&mut self, adapter: AlsaMicrophoneAdapter) -> Result<(), String> {
+        if self.microphone.is_some() {
+            return Err("std Host already has an initialized microphone".into());
+        }
+        let mut advertisement = self.advertisement.clone();
         advertisement.resources.push(conduit_core::resource_offer(
             adapter.resource_pool_id().as_str(),
             conduit_std_offers::MICROPHONE_CAPTURE_RESOURCE_CLASS,
@@ -24,10 +32,10 @@ impl crate::StdHost {
         });
         let kernel_resources =
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
-        host.advertisement = advertisement;
-        host.microphone = Some(adapter);
-        host.kernel_resources = kernel_resources;
-        Ok(host)
+        self.advertisement = advertisement;
+        self.microphone = Some(adapter);
+        self.kernel_resources = kernel_resources;
+        Ok(())
     }
 
     pub fn attach_whisper_clip_recognizer(
