@@ -84,6 +84,9 @@ mod portable_route_projection;
 mod portable_vector_search_projection;
 mod portable_world_projection;
 mod presentation_layout;
+mod presenter_control;
+#[cfg(test)]
+mod presenter_control_tests;
 mod presenter_plans;
 #[cfg(test)]
 mod presenter_plans_tests;
@@ -286,6 +289,7 @@ pub use presentation_layout::{
     PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,
     PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
 };
+pub use presenter_control::*;
 pub use presenter_plans::*;
 pub use presenter_topology::*;
 pub use prewake::*;

@@ -3,16 +3,17 @@
 //! These records are a projection and a replanning request. They do not mutate
 //! a Plan, schedule a renderer, or grant authority.
 
-use conduit_body::BodyId;
+use conduit_body::{BodyId, BodyPlan, BodyPlayIdentity};
 use conduit_core::{
     verify_plan, ActivePlayId, ActivePlayIdentity, BootId, CapabilityId, HostId, ImplementationId,
     PlacementId, Plan, PlanId, SourceDocumentId,
 };
 use conduit_presentation::{
-    Presentation, PresentationAction, PresentationActionAvailability, PresentationDisclosure,
-    PresentationDisclosureLevel, PresentationProperty, PresentationPropertyValue,
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText,
+    Manifestation, ManifestationLifecycle, ManifestationSet, Presentation, PresentationAction,
+    PresentationActionAvailability, PresentationDisclosure, PresentationDisclosureLevel,
+    PresentationProperty, PresentationPropertyValue, PresentationRelationship,
+    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
+    PresenterTopologyAdmission,
 };
 use serde::{Deserialize, Serialize};
 
@@ -47,7 +48,7 @@ pub struct PresenterChain {
 pub struct PresenterTopology {
     pub schema: String,
     pub body_id: BodyId,
-    pub source_document_id: SourceDocumentId,
+    pub source_document_id: Option<SourceDocumentId>,
     pub presentation_id: String,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
@@ -76,7 +77,7 @@ pub enum PresenterTopologyChange {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PresenterTopologyRequest {
     pub body_id: BodyId,
-    pub source_document_id: SourceDocumentId,
+    pub source_document_id: Option<SourceDocumentId>,
     pub presentation_id: String,
     pub basis_plan_id: PlanId,
     pub change: PresenterTopologyChange,
@@ -116,9 +117,147 @@ impl core::fmt::Display for PresenterTopologyRefusal {
 impl std::error::Error for PresenterTopologyRefusal {}
 
 impl PresenterTopology {
+    /// Project from the Body-wide Plan selection and exact terminal receipts.
+    pub fn from_body_plan_truth(
+        presentation: &Presentation,
+        body_plan: &BodyPlan,
+        body_play: &BodyPlayIdentity,
+        manifestations: &[Manifestation],
+    ) -> Result<Self, PresenterTopologyRefusal> {
+        if !body_play.validate_for(body_plan)
+            || presentation.basis.body_id.as_ref() != Some(&body_plan.body_id)
+        {
+            return Err(PresenterTopologyRefusal::SupersededBodyTruth);
+        }
+        let selected = body_plan
+            .presenter_topologies
+            .iter()
+            .find(|topology| match &topology.presentation.form {
+                Some(form) => {
+                    presentation.basis.source_document_id.as_ref() == Some(&form.source_document_id)
+                        && presentation.basis.checked_form_id.as_ref()
+                            == Some(&form.checked_form_id)
+                }
+                None => {
+                    presentation.basis.source_document_id.is_none()
+                        && presentation.basis.checked_form_id.is_none()
+                }
+            })
+            .ok_or(PresenterTopologyRefusal::InvalidTopology)?;
+        let mut chains = Vec::with_capacity(selected.chains.len());
+        for (chain_index, selected_chain) in selected.chains.iter().enumerate() {
+            let admission = PresenterTopologyAdmission::from_plan(&selected_chain.plan)
+                .map_err(map_admission_error)?;
+            let admitted = admission
+                .chains
+                .iter()
+                .find(|chain| {
+                    chain
+                        .stages
+                        .iter()
+                        .map(|stage| &stage.placement_id)
+                        .eq(selected_chain.stage_placement_ids.iter())
+                })
+                .ok_or(PresenterTopologyRefusal::InvalidTopology)?;
+            let terminal = admitted
+                .stages
+                .last()
+                .ok_or(PresenterTopologyRefusal::InvalidTopology)?;
+            let manifestation = manifestations
+                .iter()
+                .find(|value| {
+                    value.plan_id == selected_chain.plan.plan_id
+                        && value.placement_id == terminal.placement_id
+                })
+                .ok_or(PresenterTopologyRefusal::UnavailablePresenter)?;
+            manifestation
+                .validate_against(presentation, &selected_chain.plan)
+                .map_err(|_| PresenterTopologyRefusal::SupersededBodyTruth)?;
+            chains.push(chain_from_admission(chain_index, admitted, manifestation));
+        }
+        Self::new(
+            body_plan.body_id.clone(),
+            presentation.basis.source_document_id.clone(),
+            presentation.identity.as_str().into(),
+            body_plan.plan_id.clone(),
+            body_play.active_play_id.clone(),
+            chains,
+        )
+    }
+
+    /// Project Patchbay control state from the sealed Plan topology and exact
+    /// terminal Manifestations. No chain or placement fact is supplied by the
+    /// renderer or by Patchbay.
+    pub fn from_plan_truth(
+        body_id: BodyId,
+        presentation: &Presentation,
+        plan: &Plan,
+        active_play_id: ActivePlayId,
+        manifestations: &ManifestationSet,
+    ) -> Result<Self, PresenterTopologyRefusal> {
+        if presentation.basis.body_id.as_ref() != Some(&body_id)
+            || presentation.basis.source_document_id.as_ref() != Some(&plan.source_document_id)
+            || manifestations.presentation_id != presentation.identity
+            || manifestations.presentation_revision != presentation.revision
+        {
+            return Err(PresenterTopologyRefusal::SupersededBodyTruth);
+        }
+        let admission = PresenterTopologyAdmission::from_plan(plan).map_err(map_admission_error)?;
+        let chains = admission
+            .chains
+            .into_iter()
+            .enumerate()
+            .map(|(chain_index, chain)| {
+                let terminal = chain
+                    .stages
+                    .last()
+                    .ok_or(PresenterTopologyRefusal::InvalidTopology)?;
+                let manifestation = manifestations
+                    .manifestations
+                    .iter()
+                    .find(|value| value.placement_id == terminal.placement_id)
+                    .ok_or(PresenterTopologyRefusal::UnavailablePresenter)?;
+                let available = manifestation.lifecycle == ManifestationLifecycle::Available;
+                let stage_count = chain.stages.len();
+                let stages = chain
+                    .stages
+                    .into_iter()
+                    .enumerate()
+                    .map(|(stage_index, stage)| PresenterStage {
+                        stage_id: stage.placement_id.as_str().into(),
+                        placement_id: stage.placement_id,
+                        capability_id: stage.capability_id,
+                        implementation_id: stage.implementation_id,
+                        host_id: stage.host_id,
+                        boot_id: stage.boot_id,
+                        input_kind: stage.input_kind.as_str().into(),
+                        output_kind: (stage_index + 1 < stage_count)
+                            .then(|| stage.output_kind.as_str().into()),
+                        capacity_cost: u32::from(stage.input_item_capacity),
+                        available,
+                        authorized: true,
+                    })
+                    .collect();
+                Ok(PresenterChain {
+                    chain_id: format!("chain/{chain_index}"),
+                    stages,
+                    manifestation_id: manifestation.manifestation_id.as_str().into(),
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Self::new(
+            body_id,
+            Some(plan.source_document_id.clone()),
+            presentation.identity.as_str().into(),
+            plan.plan_id.clone(),
+            active_play_id,
+            chains,
+        )
+    }
+
     pub fn new(
         body_id: BodyId,
-        source_document_id: SourceDocumentId,
+        source_document_id: Option<SourceDocumentId>,
         presentation_id: String,
         plan_id: PlanId,
         active_play_id: ActivePlayId,
@@ -258,7 +397,7 @@ impl PresenterTopology {
         replacement_play: ActivePlayIdentity,
     ) -> Result<PresenterTopologyReplacement, PresenterTopologyRefusal> {
         if !verify_plan(replacement_plan)
-            || replacement_plan.source_document_id != self.source_document_id
+            || Some(&replacement_plan.source_document_id) != self.source_document_id.as_ref()
             || replacement_play.plan_id != replacement_plan.plan_id
             || replacement_play.active_play_id == self.active_play_id
         {
@@ -271,6 +410,57 @@ impl PresenterTopology {
         )?;
         validate_chains_against_plan(&result.current.chains, replacement_plan)?;
         Ok(result)
+    }
+}
+
+fn map_admission_error(
+    error: conduit_presentation::PresenterTopologyError,
+) -> PresenterTopologyRefusal {
+    match error {
+        conduit_presentation::PresenterTopologyError::IncompatibleType
+        | conduit_presentation::PresenterTopologyError::InvalidStageContract => {
+            PresenterTopologyRefusal::IncompatibleType
+        }
+        conduit_presentation::PresenterTopologyError::Cycle => PresenterTopologyRefusal::Cycle,
+        conduit_presentation::PresenterTopologyError::ChainLengthBound => {
+            PresenterTopologyRefusal::ChainLengthBound
+        }
+        conduit_presentation::PresenterTopologyError::ParallelChainBound => {
+            PresenterTopologyRefusal::ParallelChainBound
+        }
+        _ => PresenterTopologyRefusal::InvalidTopology,
+    }
+}
+
+fn chain_from_admission(
+    chain_index: usize,
+    chain: &conduit_presentation::PlannedPresenterChain,
+    manifestation: &Manifestation,
+) -> PresenterChain {
+    let available = manifestation.lifecycle == ManifestationLifecycle::Available;
+    let stage_count = chain.stages.len();
+    PresenterChain {
+        chain_id: format!("chain/{chain_index}"),
+        stages: chain
+            .stages
+            .iter()
+            .enumerate()
+            .map(|(stage_index, stage)| PresenterStage {
+                stage_id: stage.placement_id.as_str().into(),
+                placement_id: stage.placement_id.clone(),
+                capability_id: stage.capability_id.clone(),
+                implementation_id: stage.implementation_id.clone(),
+                host_id: stage.host_id.clone(),
+                boot_id: stage.boot_id.clone(),
+                input_kind: stage.input_kind.as_str().into(),
+                output_kind: (stage_index + 1 < stage_count)
+                    .then(|| stage.output_kind.as_str().into()),
+                capacity_cost: u32::from(stage.input_item_capacity),
+                available,
+                authorized: true,
+            })
+            .collect(),
+        manifestation_id: manifestation.manifestation_id.as_str().into(),
     }
 }
 
@@ -371,9 +561,8 @@ pub fn project_presenter_topology(
 ) -> Result<Presentation, PresenterTopologyRefusal> {
     topology.validate()?;
     if base.basis.body_id.as_ref() != Some(&topology.body_id)
-        || base.basis.source_document_id.as_ref() != Some(&topology.source_document_id)
-        || base.basis.plan_id.as_ref() != Some(&topology.plan_id)
-        || base.basis.active_play_id.as_ref() != Some(&topology.active_play_id)
+        || base.basis.source_document_id != topology.source_document_id
+        || base.identity.as_str() != topology.presentation_id
     {
         return Err(PresenterTopologyRefusal::StaleRequest);
     }

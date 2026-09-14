@@ -44,6 +44,12 @@ pub(in crate::server) fn proposed_server() -> PatchbayHtmlServer {
         BodyPlanningSession::prepare(&evidence.body, 1, "sign/proposal-wake".into(), forms)
             .unwrap(),
     );
+    if let Some(mut control) = server.presenter_control.take() {
+        control
+            .install_initial_graphical(server.body_planning.as_mut().unwrap())
+            .unwrap();
+        server.presenter_control = Some(control);
+    }
     server
 }
 
