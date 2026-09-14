@@ -4,10 +4,33 @@ use conduit_ai::{
     LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits, LocalModelOffer,
 };
 use conduit_core::{BootId, HostId, OfferGeneration, PlannedGear};
+use conduit_kernel::{HostOperationDisposition, HostOperationOutcome};
+use sha2::Digest;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
+
+fn complete_remote_work(
+    runtime: &mut crate::InstalledRemoteFragment,
+    work: crate::RemoteHostWork,
+    output: Option<Vec<u8>>,
+) {
+    let output = output.map(|bytes| {
+        let value = runtime.store_host_value(&bytes).unwrap();
+        conduit_kernel::BoundedValueRef::new(value.value, work.maximum_output_bytes).unwrap()
+    });
+    runtime
+        .complete_host_operation(
+            work.request,
+            HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output,
+                failure: None,
+            },
+        )
+        .unwrap();
+}
 
 struct FakeModel {
     offer: LocalModelOffer,
@@ -433,6 +456,7 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
         );
     }
 
+    let mut line_endpoints = Vec::new();
     for line in &exact.lines {
         let source = exact
             .plan
@@ -511,7 +535,198 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
             sink.sessions_mut().get_mut(sink_endpoint).unwrap(),
         )
         .expect("every exact distributed House Line reaches Ready");
+        line_endpoints.push((source_index, source_endpoint, sink_index, sink_endpoint));
     }
+
+    let capture_clip = crate::installed_std::test_local_model_io::recorded_house_audio_clip()
+        .expect("recorded House PCM clip fixture is canonical");
+    let capture_egress = line_endpoints
+        .iter()
+        .find(|(source, _, sink, _)| *source == 0 && *sink == 1)
+        .copied()
+        .unwrap();
+    let capture_transfer = (0..32)
+        .find_map(|_| {
+            if let Some(transfer) = runtimes[0].next_egress(capture_egress.1).unwrap() {
+                return Some(transfer);
+            }
+            if let Some(request) = runtimes[0].next_host_request() {
+                let work = runtimes[0].describe_host_request(request).unwrap();
+                assert_eq!(
+                    work.contract_id.as_str(),
+                    conduit_std_offers::MICROPHONE_CLIP_OPERATION
+                );
+                assert_eq!(work.input, b"capture");
+                complete_remote_work(&mut runtimes[0], work, Some(capture_clip.clone()));
+            }
+            let _ = runtimes[0].step().unwrap();
+            None
+        })
+        .expect("capture fragment emits its exact bounded clip");
+    assert_eq!(capture_transfer.bytes, capture_clip);
+    runtimes[0].accept_egress(&capture_transfer).unwrap();
+    assert!(matches!(
+        runtimes[1]
+            .admit_ingress(
+                capture_egress.3,
+                capture_transfer.sequence,
+                &capture_transfer.bytes
+            )
+            .unwrap(),
+        conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. }
+    ));
+    runtimes[0].deliver_egress(&capture_transfer).unwrap();
+
+    let response = b"The upstairs temperature is 21 C.".to_vec();
+    let mut recognized = None::<String>;
+    let mut addresses = None::<conduit_text::AddressSet>;
+    let mut detection = None::<conduit_text::AddressDetection>;
+    let mut context = None::<Vec<conduit_ai::WiredHouseContextItem>>;
+    let cognition_egress = line_endpoints
+        .iter()
+        .find(|(source, _, sink, _)| *source == 1 && *sink == 2)
+        .copied()
+        .unwrap();
+    let response_transfer = (0..128)
+        .find_map(|_| {
+            if let Some(transfer) = runtimes[1].next_egress(cognition_egress.1).unwrap() {
+                return Some(transfer);
+            }
+            if let Some(request) = runtimes[1].next_host_request() {
+                let work = runtimes[1].describe_host_request(request).unwrap();
+                let output = match work.contract_id.as_str() {
+                    conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION => {
+                        assert_eq!(work.input, capture_clip);
+                        Some(
+                            conduit_tongues::encode_speech_recognition_result(
+                                &conduit_tongues::SpeechRecognitionResult {
+                                    disposition:
+                                        conduit_tongues::SpeechRecognitionDisposition::Recognized,
+                                    text: Some(
+                                        "Rosehip House, what is the temperature upstairs?".into(),
+                                    ),
+                                    audio_sha256: sha2::Sha256::digest(&work.input).into(),
+                                },
+                            )
+                            .unwrap(),
+                        )
+                    }
+                    conduit_std_offers::RECOGNITION_TO_TEXT_OPERATION => {
+                        Some(conduit_tongues::project_recognized_text(&work.input).unwrap())
+                    }
+                    conduit_std_offers::ADDRESS_DETECT_RECOGNIZED_OPERATION => {
+                        recognized = Some(String::from_utf8(work.input.clone()).unwrap());
+                        match (&recognized, &addresses) {
+                            (Some(recognized), Some(addresses)) => Some(
+                                conduit_text::encode_address_detection(
+                                    &addresses.detect(recognized).unwrap(),
+                                )
+                                .unwrap(),
+                            ),
+                            _ => None,
+                        }
+                    }
+                    conduit_std_offers::ADDRESS_DETECT_ADDRESSES_OPERATION => {
+                        addresses = Some(conduit_text::decode_address_set(&work.input).unwrap());
+                        match (&recognized, &addresses) {
+                            (Some(recognized), Some(addresses)) => Some(
+                                conduit_text::encode_address_detection(
+                                    &addresses.detect(recognized).unwrap(),
+                                )
+                                .unwrap(),
+                            ),
+                            _ => None,
+                        }
+                    }
+                    conduit_std_offers::HOUSE_PROMPT_DETECTION_OPERATION => {
+                        detection =
+                            Some(conduit_tongues::decode_address_detection(&work.input).unwrap());
+                        match (&detection, &context) {
+                            (Some(detection), Some(context)) => Some(
+                                conduit_tongues::prepare_house_generation_request(
+                                    detection, context, 2_048,
+                                )
+                                .unwrap()
+                                .encoded_request
+                                .into_bytes(),
+                            ),
+                            _ => None,
+                        }
+                    }
+                    conduit_std_offers::HOUSE_PROMPT_CONTEXT_OPERATION => {
+                        context =
+                            Some(conduit_tongues::decode_wired_house_context(&work.input).unwrap());
+                        match (&detection, &context) {
+                            (Some(detection), Some(context)) => Some(
+                                conduit_tongues::prepare_house_generation_request(
+                                    detection, context, 2_048,
+                                )
+                                .unwrap()
+                                .encoded_request
+                                .into_bytes(),
+                            ),
+                            _ => None,
+                        }
+                    }
+                    conduit_ai::LOCAL_MODEL_OPERATION => Some(
+                        serde_json::to_vec(&conduit_ai::ModelDerivedResult {
+                            provenance: conduit_ai::ModelResultProvenance::ModelDerived,
+                            payload_kind: conduit_ai::GENERATED_RESULT_VALUE_KIND.into(),
+                            payload: response.clone(),
+                            implementation_identity: "fixture/model".into(),
+                            request_identity: "request/distributed-house".into(),
+                            run_identity: "run/distributed-house".into(),
+                            confidence: None,
+                            disposition: conduit_ai::ModelResultDisposition::Produced,
+                            determinism: LlmDeterminismProfile::ProviderNondeterministic,
+                            accounting: conduit_ai::ModelWorkAccounting {
+                                input_bytes: work.input.len() as u64,
+                                context_items: 1,
+                                output_bytes: response.len() as u64,
+                                work_units: 1,
+                                history_items: 0,
+                            },
+                        })
+                        .unwrap(),
+                    ),
+                    conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION => {
+                        Some(conduit_ai::project_generated_text(&work.input).unwrap())
+                    }
+                    other => panic!("unexpected distributed cognition host operation: {other}"),
+                };
+                complete_remote_work(&mut runtimes[1], work, output);
+            }
+            let _ = runtimes[1].step().unwrap();
+            None
+        })
+        .expect("cognition fragment emits the exact projected model response");
+    assert_eq!(response_transfer.bytes, response);
+    runtimes[1].accept_egress(&response_transfer).unwrap();
+    assert!(matches!(
+        runtimes[2]
+            .admit_ingress(
+                cognition_egress.3,
+                response_transfer.sequence,
+                &response_transfer.bytes,
+            )
+            .unwrap(),
+        conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. }
+    ));
+    runtimes[1].deliver_egress(&response_transfer).unwrap();
+    let speech_work = (0..32)
+        .find_map(|_| {
+            if let Some(request) = runtimes[2].next_host_request() {
+                return Some(runtimes[2].describe_host_request(request).unwrap());
+            }
+            let _ = runtimes[2].step().unwrap();
+            None
+        })
+        .expect("output fragment requests speech synthesis");
+    assert_eq!(
+        speech_work.contract_id.as_str(),
+        conduit_std_offers::PIPER_SPEECH_OPERATION
+    );
+    assert_eq!(speech_work.input, response);
 
     let capture_fragment = exact
         .plan
