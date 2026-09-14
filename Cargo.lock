@@ -838,6 +838,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-ai",
  "conduit-audio",
+ "conduit-body",
  "conduit-core",
  "conduit-create-oi",
  "conduit-embedded-build",
@@ -854,6 +855,9 @@ dependencies = [
  "conduit-signal",
  "conduit-ssd1306",
  "conduit-std-offers",
+ "conduit-text",
+ "conduit-time",
+ "conduit-tongues",
  "patchbay-model",
  "serde",
  "serde_json",
