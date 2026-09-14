@@ -113,6 +113,14 @@ pub(super) fn product_control(usage: u8) -> Option<ProductControl> {
     admitted_product_action(usage).map(|action| action.control)
 }
 
+pub(super) fn tour_action(usage: u8) -> Option<&'static str> {
+    match usage {
+        super::F10 => Some(conduit_tour_model::RUN_ACTION_ID),
+        super::F11 => Some(conduit_tour_model::OPEN_PATCHBAY_ACTION_ID),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -125,12 +133,5 @@ mod tests {
             assert!(!action.id.is_empty());
             assert_eq!(product_control(usage), Some(action.control));
         }
-    }
-}
-pub(super) fn tour_action(usage: u8) -> Option<&'static str> {
-    match usage {
-        super::F10 => Some(conduit_tour_model::RUN_ACTION_ID),
-        super::F11 => Some(conduit_tour_model::OPEN_PATCHBAY_ACTION_ID),
-        _ => None,
     }
 }
