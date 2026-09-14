@@ -49,6 +49,12 @@ Their presence is not an additional physical or release acceptance claim:
   atomic workload transition, typed failure disposition, bounded Resource
   collections, and causal evidence have dedicated implementation and tests.
   See [Body lifecycle boundaries](docs/architecture/body-lifecycle-waists.md).
+- **Portable bounded navigation (#2232):** finite goal, pose, traversability,
+  route, trajectory, and local-control contracts compose as one ordinary Form.
+  The std Host runs that Form through the production planner and kernel to emit
+  an expiring portable body-motion request. Deterministic routing and control do
+  not claim Pete/Create attachment, physical movement, or attended safe-stop
+  proof; those belong to the continuous Pete capstone in #2234.
 - **ConduitOS compositor:** retained surfaces, damage, and input routing exist
   under [the native compositor](targets/conduitos/src/native_compositor.rs).
   Tour now reports distinct retained workspace/status surfaces, and its journey
