@@ -193,52 +193,43 @@ impl PresenterControl {
             (false, true) => PatchbayPresenterMode::Speech,
             (false, false) => return Err(()),
         };
+        let mut stages = Vec::with_capacity(manifestations.len());
+        for manifestation in &manifestations {
+            let planned = self
+                .graphical
+                .iter()
+                .chain(self.speech.iter())
+                .find(|stage| stage.placement_id == manifestation.placement_id)
+                .and_then(|stage| {
+                    stage
+                        .plan
+                        .fragments
+                        .iter()
+                        .flat_map(|fragment| &fragment.placements)
+                        .find(|placement| placement.placement_id == manifestation.placement_id)
+                })
+                .ok_or(())?;
+            let resource = planned.resources.first().ok_or(())?;
+            stages.push(PatchbayPresenterStage {
+                manifestation_id: manifestation.manifestation_id.as_str().into(),
+                implementation_id: manifestation.presenter_implementation_id.as_str().into(),
+                host_id: manifestation.host_id.as_str().into(),
+                boot_id: manifestation.boot_id.as_str().into(),
+                resource_pool_id: resource.pool_id.as_str().into(),
+                resource_class_id: resource.class_id.as_str().into(),
+                reserved_units: resource.units,
+                maximum_active_instances: planned.limits.max_active_instances,
+                maximum_queue_items: planned.limits.max_queue_items,
+                maximum_queue_bytes: planned.limits.max_queue_bytes,
+                available: manifestation.lifecycle == ManifestationLifecycle::Available,
+            });
+        }
         let view = PatchbayPresenterTopology {
             presentation_id: presentation.identity.as_str().into(),
             body_plan_id: body_plan.plan_id.clone(),
             active_play_id: play.active_play_id.as_str().into(),
             mode,
-            stages: manifestations
-                .iter()
-                .map(|manifestation| {
-                    let planned = self
-                        .graphical
-                        .iter()
-                        .chain(self.speech.iter())
-                        .find(|stage| stage.placement_id == manifestation.placement_id)
-                        .and_then(|stage| {
-                            stage
-                                .plan
-                                .fragments
-                                .iter()
-                                .flat_map(|fragment| &fragment.placements)
-                                .find(|placement| {
-                                    placement.placement_id == manifestation.placement_id
-                                })
-                        })
-                        .expect("Manifestation was prepared from its retained Presenter Plan");
-                    let resource = planned
-                        .resources
-                        .first()
-                        .expect("Presenter admission reserves its target resource");
-                    PatchbayPresenterStage {
-                        manifestation_id: manifestation.manifestation_id.as_str().into(),
-                        implementation_id: manifestation
-                            .presenter_implementation_id
-                            .as_str()
-                            .into(),
-                        host_id: manifestation.host_id.as_str().into(),
-                        boot_id: manifestation.boot_id.as_str().into(),
-                        resource_pool_id: resource.pool_id.as_str().into(),
-                        resource_class_id: resource.class_id.as_str().into(),
-                        reserved_units: resource.units,
-                        maximum_active_instances: planned.limits.max_active_instances,
-                        maximum_queue_items: planned.limits.max_queue_items,
-                        maximum_queue_bytes: planned.limits.max_queue_bytes,
-                        available: manifestation.lifecycle == ManifestationLifecycle::Available,
-                    }
-                })
-                .collect(),
+            stages,
         };
         self.sequence = self.sequence.checked_add(1).ok_or(())?;
         self.presentation = Some(presentation);
