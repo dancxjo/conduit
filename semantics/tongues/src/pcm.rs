@@ -1,9 +1,11 @@
 use sha2::Digest;
 
 pub(crate) fn deterministic_pcm(text: &str) -> Vec<u8> {
-    let mut payload = Vec::with_capacity(text.len() * 64);
+    let samples_per_byte =
+        (usize::from(conduit_audio::MAXIMUM_PCM_FRAMES_PER_BLOCK) / text.len()).clamp(1, 32);
+    let mut payload = Vec::with_capacity(text.len() * samples_per_byte * 2);
     for (index, byte) in text.bytes().enumerate() {
-        for sample in 0..32u16 {
+        for sample in 0..u16::try_from(samples_per_byte).unwrap() {
             let value = (i16::from(byte) - 64) * 128
                 + i16::try_from((index + usize::from(sample)) % 32).unwrap() * 8;
             payload.extend_from_slice(&value.to_le_bytes());

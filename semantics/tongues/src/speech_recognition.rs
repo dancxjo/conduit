@@ -1,6 +1,9 @@
 //! Portable bounded speech-recognition meaning and one exact fixture adapter.
 
-use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, AUDIO_PCM_INFO_ID};
+use conduit_audio::{
+    PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, AUDIO_PCM_CLIP_INFO_ID,
+    AUDIO_PCM_INFO_ID, MAXIMUM_PCM_CLIP_BYTES,
+};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
     PortDirection, PortTemporal,
@@ -12,6 +15,8 @@ use std::{string::String, vec, vec::Vec};
 
 pub const SPEECH_RECOGNIZE_KIND: &str = "speech/recognize";
 pub const SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize@1";
+pub const SPEECH_RECOGNIZE_CLIP_KIND: &str = "speech/recognize-clip";
+pub const SPEECH_RECOGNIZE_CLIP_REVISION: &str = "conduit.speech/recognize-clip@1";
 pub const SPEECH_RECOGNITION_RESULT_KIND: &str = "speech/recognition-result@1";
 pub const SPEECH_RECOGNITION_TO_TEXT_KIND: &str = "speech/recognition-to-text";
 pub const SPEECH_RECOGNITION_TO_TEXT_REVISION: &str = "conduit.speech/recognition-to-text@1";
@@ -113,6 +118,24 @@ pub fn speech_recognition_contract() -> SpeechRecognitionContract {
     }
 }
 
+pub fn speech_clip_recognition_contract() -> SpeechRecognitionContract {
+    SpeechRecognitionContract {
+        kind_id: kind_id(SPEECH_RECOGNIZE_CLIP_KIND),
+        kind_contract_revision: KindContractRevision::from(SPEECH_RECOGNIZE_CLIP_REVISION),
+        inputs: vec![port("clip", AUDIO_PCM_CLIP_INFO_ID, PortDirection::Input)],
+        outputs: vec![port(
+            "result",
+            SPEECH_RECOGNITION_RESULT_KIND,
+            PortDirection::Output,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_PCM_CLIP_BYTES as u32,
+        },
+    }
+}
+
 pub fn speech_recognition_to_text_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(SPEECH_RECOGNITION_TO_TEXT_KIND),
@@ -141,6 +164,7 @@ pub fn install_speech_recognition_catalog(
 ) -> Result<(), String> {
     for contract in [
         speech_recognition_contract(),
+        speech_clip_recognition_contract(),
         speech_recognition_to_text_contract(),
     ] {
         startup.insert(KindSignature {

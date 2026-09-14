@@ -57,6 +57,7 @@ pub struct FrontDoor {
     arrival: Option<arrival::Arrival>,
     refusal: Option<workspace::WorkspaceRefusal>,
     workspace: Option<crate::product_journey::WorkspaceProjection>,
+    application_view: Option<conduit_presentation::ApplicationView>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -151,6 +152,7 @@ impl FrontDoor {
             arrival: None,
             refusal: None,
             workspace: None,
+            application_view: None,
         }
     }
 

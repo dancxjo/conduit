@@ -89,6 +89,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
     startup.insert(conduit_form::KindSignature {
         kind: conduit_semantic_catalog::BOOL_PRESENTATION_KIND.into(),
         startup_parameters: Vec::new(),

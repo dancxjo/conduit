@@ -66,6 +66,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
         .expect("test observer kind is distinct from typed tick");
     test_text_source::install_catalog(&mut catalog);
     test_audio_source::install_catalog(&mut catalog);
+    super::test_speech_sink::install_catalog(&mut catalog);
     test_midi_source::install_catalog(&mut catalog);
     test_scalar_flow::install_catalog(&mut catalog);
     test_gate::install_catalog(&mut catalog);

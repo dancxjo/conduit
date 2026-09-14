@@ -2,12 +2,12 @@ use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use conduit_form::{ProfileCatalog, StartupCatalog};
 use conduit_tongues::{
     decode_speech_recognition_result, encode_speech_recognition_result,
-    install_speech_recognition_catalog, project_recognized_text, speech_recognition_contract,
-    speech_recognition_to_text_contract, RecognitionTextRefusal, RecordedSpeechRecognizer,
-    SpeechRecognitionAttempt, SpeechRecognitionDisposition, SpeechRecognitionRefusal,
-    SpeechRecognitionValueError, MAXIMUM_RECOGNITION_AUDIO_BYTES, MAXIMUM_RECOGNITION_FIXTURES,
-    MAXIMUM_RECOGNIZED_TEXT_BYTES, SPEECH_RECOGNITION_RESULT_KIND, SPEECH_RECOGNITION_TO_TEXT_KIND,
-    SPEECH_RECOGNIZE_KIND,
+    install_speech_recognition_catalog, project_recognized_text, speech_clip_recognition_contract,
+    speech_recognition_contract, speech_recognition_to_text_contract, RecognitionTextRefusal,
+    RecordedSpeechRecognizer, SpeechRecognitionAttempt, SpeechRecognitionDisposition,
+    SpeechRecognitionRefusal, SpeechRecognitionValueError, MAXIMUM_RECOGNITION_AUDIO_BYTES,
+    MAXIMUM_RECOGNITION_FIXTURES, MAXIMUM_RECOGNIZED_TEXT_BYTES, SPEECH_RECOGNITION_RESULT_KIND,
+    SPEECH_RECOGNITION_TO_TEXT_KIND, SPEECH_RECOGNIZE_KIND,
 };
 
 fn pcm(samples: &[i16]) -> Vec<u8> {
@@ -152,4 +152,21 @@ fn portable_contract_contains_no_engine_device_or_host_facts() {
     for forbidden in ["Whisper", "browser", "microphone", "Host", "HTTP"] {
         assert!(!debug.contains(forbidden), "found {forbidden}");
     }
+}
+
+#[test]
+fn clip_recognition_is_separate_from_the_accepted_single_frame_contract() {
+    let frame = speech_recognition_contract();
+    let clip = speech_clip_recognition_contract();
+    assert_ne!(clip.kind_id, frame.kind_id);
+    assert_ne!(clip.kind_contract_revision, frame.kind_contract_revision);
+    assert_eq!(
+        clip.inputs[0].value_kind.as_str(),
+        conduit_audio::AUDIO_PCM_CLIP_INFO_ID
+    );
+    assert_eq!(clip.outputs, frame.outputs);
+    assert_eq!(
+        clip.limits.max_queue_bytes,
+        conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+    );
 }

@@ -35,6 +35,8 @@ pub(in super::super) fn validate(
         || playing.get("plan_id") == playing.get("active_play_id")
         || born.get("body_id") != lulled.get("body_id")
         || !inspected_plan
+        || !serial.contains("CONDUIT_WORKSPACE_CHECKPOINT resident-tour-ran")
+        || !serial.contains("CONDUIT_WORKSPACE_CHECKPOINT patchbay-edit-requested")
     {
         return Err(ConduitosError::refusal(
             "product-journey-causality-invalid",

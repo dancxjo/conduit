@@ -13,20 +13,30 @@ pub(in super::super) fn exercise(
     child: &mut Child,
     artifacts: &mut Artifacts,
 ) -> Result<(), ConduitosError> {
-    use NativeForm::{KeyboardCanvas as Canvas, MemoryLantern as Memory};
-    switch(stream, reader, serial, child, Memory, 10, None)?;
-    for (key, count, result) in [("o", 12, "o"), ("n", 14, "on"), ("e", 16, "one")] {
+    use NativeForm::{KeyboardCanvas as Canvas, MemoryLantern as Memory, Patchbay, Tour};
+    switch(stream, reader, serial, child, Patchbay, 10, None)?;
+    artifacts.capture(stream, reader, "patchbay-current-canvas", true)?;
+    application_action(stream, reader, serial, child, "f10", Patchbay, 11)?;
+    application_action(stream, reader, serial, child, "f11", Patchbay, 12)?;
+    artifacts.capture(stream, reader, "patchbay-edit-requested", true)?;
+    switch(stream, reader, serial, child, Tour, 12, None)?;
+    application_action(stream, reader, serial, child, "f10", Tour, 13)?;
+    artifacts.capture(stream, reader, "resident-tour-result", true)?;
+    switch(stream, reader, serial, child, Memory, 13, None)?;
+    for (key, count, result) in [("o", 15, "o"), ("n", 17, "on"), ("e", 19, "one")] {
         pair(stream, reader, serial, child, key, Memory, count, result)?;
     }
     artifacts.capture(stream, reader, "memory-listening", true)?;
-    switch(stream, reader, serial, child, Canvas, 16, Some("HELLO"))?;
+    switch(stream, reader, serial, child, Canvas, 19, Some("HELLO"))?;
     artifacts.capture(stream, reader, "canvas-retained", true)?;
     hid_qmp::send_named_keys(stream, reader, &["x"], true, "workset-held-press")?;
-    wait(serial, child, Canvas, 17, Some("HELLOX"))?;
-    switch(stream, reader, serial, child, Memory, 17, Some("one"))?;
+    wait(serial, child, Canvas, 20, Some("HELLOX"))?;
+    switch(stream, reader, serial, child, Patchbay, 20, None)?;
+    switch(stream, reader, serial, child, Tour, 20, None)?;
+    switch(stream, reader, serial, child, Memory, 20, Some("one"))?;
     hid_qmp::send_named_keys(stream, reader, &["x"], false, "workset-held-release")?;
-    wait(serial, child, Memory, 18, Some("one"))?;
-    for (count, result) in [(20, "on"), (22, "o"), (24, "")] {
+    wait(serial, child, Memory, 21, Some("one"))?;
+    for (count, result) in [(23, "on"), (25, "o"), (27, "")] {
         pair(
             stream,
             reader,
@@ -39,13 +49,29 @@ pub(in super::super) fn exercise(
         )?;
     }
     artifacts.capture(stream, reader, "memory-cleared", true)?;
-    pair(stream, reader, serial, child, "h", Memory, 26, "h")?;
-    pair(stream, reader, serial, child, "i", Memory, 28, "hi")?;
-    switch(stream, reader, serial, child, Canvas, 28, Some("HELLOX"))?;
-    pair(stream, reader, serial, child, "y", Canvas, 30, "HELLOXY")?;
-    switch(stream, reader, serial, child, Memory, 30, Some("hi"))?;
+    pair(stream, reader, serial, child, "h", Memory, 29, "h")?;
+    pair(stream, reader, serial, child, "i", Memory, 31, "hi")?;
+    switch(stream, reader, serial, child, Canvas, 31, Some("HELLOX"))?;
+    pair(stream, reader, serial, child, "y", Canvas, 33, "HELLOXY")?;
+    switch(stream, reader, serial, child, Patchbay, 33, None)?;
+    artifacts.capture(stream, reader, "patchbay-current-canvas-returned", true)?;
+    switch(stream, reader, serial, child, Tour, 33, None)?;
+    switch(stream, reader, serial, child, Memory, 33, Some("hi"))?;
     artifacts.capture(stream, reader, "memory-retained", true)?;
-    switch(stream, reader, serial, child, Canvas, 30, Some("HELLOXY"))
+    switch(stream, reader, serial, child, Canvas, 33, Some("HELLOXY"))
+}
+
+fn application_action(
+    stream: &mut UnixStream,
+    reader: &mut qmp::Reader,
+    serial: &Path,
+    child: &mut Child,
+    key: &str,
+    form: NativeForm,
+    count: u64,
+) -> Result<(), ConduitosError> {
+    journey_input::key_pair(stream, reader, key, "workset-application-action")?;
+    wait(serial, child, form, count, None)
 }
 
 fn wait(

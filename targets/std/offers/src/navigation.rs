@@ -47,10 +47,10 @@ pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
             NAVIGATION_ROUTE_GRID4_PROFILE,
             NAVIGATION_ROUTE_GRID4_IMPLEMENTATION,
             &[
-                NAVIGATION_ROUTE_GRID4_POSE_OPERATION,
                 NAVIGATION_ROUTE_GRID4_GOAL_OPERATION,
-                NAVIGATION_ROUTE_GRID4_TRAVERSABILITY_OPERATION,
+                NAVIGATION_ROUTE_GRID4_POSE_OPERATION,
                 NAVIGATION_ROUTE_GRID4_TIME_OPERATION,
+                NAVIGATION_ROUTE_GRID4_TRAVERSABILITY_OPERATION,
             ],
         ),
         navigation_offer(
@@ -70,8 +70,8 @@ pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
             NAVIGATION_LOCAL_CONTROL_IMPLEMENTATION,
             &[
                 NAVIGATION_LOCAL_CONTROL_POSE_OPERATION,
-                NAVIGATION_LOCAL_CONTROL_TRAJECTORY_OPERATION,
                 NAVIGATION_LOCAL_CONTROL_TIME_OPERATION,
+                NAVIGATION_LOCAL_CONTROL_TRAJECTORY_OPERATION,
             ],
         ),
     ]

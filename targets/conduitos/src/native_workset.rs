@@ -1,10 +1,12 @@
 //! Exact initial native workset preparation, before ordinary kernel admission.
+mod application_delivery;
 mod catalog;
 mod keyboard_delivery;
 mod planning;
 mod play;
 mod text_state;
 
+pub use application_delivery::NativeApplicationRequest;
 pub use catalog::{
     NATIVE_FORM_CAPACITY, NativeForm, NativeFormProfile, checked, inventory, profile, resident,
     resolve,

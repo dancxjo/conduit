@@ -365,6 +365,55 @@ pub fn run(
                 return Ok(ProductInputControl::Continue);
             }
             if !tour_open && !front_door.exact_details_open() {
+                if event.transition() == KeyTransition::Pressed
+                    && matches!(event.usage(), F10 | F11)
+                    && let Some(view) = journey.foreground_application_view().cloned()
+                {
+                    let action_index = usize::from(event.usage() == F11);
+                    let action = view
+                        .actions
+                        .get(action_index)
+                        .ok_or("application-action-unavailable")?;
+                    journey
+                        .accept_application_event(&ApplicationEvent {
+                            revision: view.revision,
+                            action: action.id.clone(),
+                            kind: action.event,
+                            value: alloc::vec::Vec::new(),
+                        })
+                        .map_err(|error| error.as_str())?;
+                    match journey.take_application_request() {
+                        Some(crate::native_workset::NativeApplicationRequest::RunTour) => {
+                            let mut prepared =
+                                crate::tour_play::prepare(identities, offer, fabrication.build_id)
+                                    .map_err(|error| error.as_str())?;
+                            let evidence = crate::tour_play::run(
+                                &mut prepared,
+                                &mut clock,
+                                &mut serial,
+                                &mut interrupts,
+                                &mut idle,
+                            )
+                            .map_err(|_| "resident-tour-play-refused")?;
+                            journey
+                                .complete_tour_run(&evidence)
+                                .map_err(|error| error.as_str())?;
+                            arch::early_write(b"CONDUIT_WORKSPACE_CHECKPOINT resident-tour-ran\n");
+                        }
+                        Some(crate::native_workset::NativeApplicationRequest::EditCurrent(_)) => {
+                            arch::early_write(
+                                b"CONDUIT_WORKSPACE_CHECKPOINT patchbay-edit-requested\n",
+                            );
+                        }
+                        Some(crate::native_workset::NativeApplicationRequest::OpenPatchbay) => {
+                            return Err("resident-patchbay-request-not-routed");
+                        }
+                        None => {}
+                    }
+                    let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                    return Ok(ProductInputControl::Continue);
+                }
                 if let Some(changed) = workspace_input::select(event, &mut journey)? {
                     if changed {
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;

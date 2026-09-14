@@ -1,12 +1,15 @@
 //! Repository-only live local-model proof through ordinary Form, Plan, and Play.
 
-use crate::hosted_local_model::{HostedLocalModelAdapter, OllamaLocalModelAdapter};
+use crate::hosted_local_model::{
+    HostedLocalModelAdapter, LocalModelAdapterTerminal, OllamaLocalModelAdapter,
+};
 use crate::{StdHost, StdHostComposition, StdHostConfig, TimerAdapter};
 use conduit_ai::LocalModelKindProfile;
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
 use serde::Serialize;
 use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct LocalModelLiveProofReceipt {
@@ -25,6 +28,45 @@ pub struct LocalModelLiveProofReceipt {
     pub extract_play_completed: bool,
     pub interpret_play_completed: bool,
     pub house_play_completed: bool,
+    pub house_response_bytes: u32,
+    pub house_response_sha256: String,
+    pub house_speech: conduit_tongues::SpeechRunReceipt,
+}
+
+struct CapturingLocalModelAdapter {
+    inner: Box<dyn HostedLocalModelAdapter>,
+    generated_text: Arc<Mutex<Option<Vec<u8>>>>,
+}
+
+impl HostedLocalModelAdapter for CapturingLocalModelAdapter {
+    fn offer(&self) -> &conduit_ai::LocalModelOffer {
+        self.inner.offer()
+    }
+
+    fn execute(
+        &mut self,
+        placement: &conduit_core::PlannedGear,
+        input: &[u8],
+        output: &mut Vec<u8>,
+    ) -> LocalModelAdapterTerminal {
+        let terminal = self.inner.execute(placement, input, output);
+        if placement.kind_id.as_str() == conduit_ai::LLM_GENERATE_KIND
+            && matches!(
+                terminal,
+                LocalModelAdapterTerminal::Produced | LocalModelAdapterTerminal::Truncated
+            )
+        {
+            if let Ok(result) = serde_json::from_slice::<conduit_ai::ModelDerivedResult>(output) {
+                if result.payload_kind == conduit_ai::GENERATED_RESULT_VALUE_KIND {
+                    let Ok(mut captured) = self.generated_text.lock() else {
+                        return LocalModelAdapterTerminal::Failed;
+                    };
+                    *captured = Some(result.payload);
+                }
+            }
+        }
+        terminal
+    }
 }
 
 struct NoopTimer;
@@ -37,6 +79,7 @@ pub fn run(
     adapter: OllamaLocalModelAdapter,
 ) -> Result<LocalModelLiveProofReceipt, Box<dyn std::error::Error>> {
     let model_content_identity = adapter.offer().identity.model_content_identity.clone();
+    let generated_text = Arc::new(Mutex::new(None));
     let mut additional_capabilities = Vec::new();
     for profile in [
         LocalModelKindProfile::Generate,
@@ -66,14 +109,33 @@ pub fn run(
             offer_generation: OfferGeneration(1),
         },
         StdHostComposition::minimal(),
-        Box::new(adapter),
+        Box::new(CapturingLocalModelAdapter {
+            inner: Box::new(adapter),
+            generated_text: Arc::clone(&generated_text),
+        }),
         additional_capabilities,
     )?;
     let generate = run_profile(&mut host, LocalModelKindProfile::Generate)?;
     let classify = run_profile(&mut host, LocalModelKindProfile::ClassifyFiniteLabels)?;
     let extract = run_profile(&mut host, LocalModelKindProfile::ExtractValidatedInfo)?;
     let interpret = run_profile(&mut host, LocalModelKindProfile::InterpretSignEvidence)?;
+    *generated_text
+        .lock()
+        .map_err(|_| "local proof response capture lock is poisoned")? = None;
     let house = run_house(&mut host)?;
+    let house_response = generated_text
+        .lock()
+        .map_err(|_| "local proof response capture lock is poisoned")?
+        .take()
+        .ok_or("House model produced no captured text response")?;
+    let house_response = String::from_utf8(house_response)?;
+    let house_response_bytes = u32::try_from(house_response.len())?;
+    let house_response_sha256 = sha256(house_response.as_bytes());
+    let house_speech = conduit_tongues::run_speech_text(
+        &house_response,
+        conduit_tongues::OutputCondition::DegradedWavArtifact,
+        conduit_tongues::SpeechFault::None,
+    )?;
     Ok(LocalModelLiveProofReceipt {
         proof_class: "live-local-model",
         host_id: host.advertisement.host_id.as_str().into(),
@@ -90,6 +152,9 @@ pub fn run(
         extract_play_completed: extract.1,
         interpret_play_completed: interpret.1,
         house_play_completed: house.1,
+        house_response_bytes,
+        house_response_sha256,
+        house_speech,
     })
 }
 
@@ -221,4 +286,9 @@ fn run_expanded(
             )
         })?;
     Ok((plan_id, report.kernel.is_some()))
+}
+
+fn sha256(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    format!("{:x}", Sha256::digest(bytes))
 }

@@ -13,6 +13,10 @@ pub(crate) const HOUSE_RECOGNIZED_SOURCE_KIND: &str = "conduit-test/house-recogn
 const HOUSE_RECOGNIZED_SOURCE_REVISION: &str = "conduit-test/house-recognized-source@1";
 pub(crate) const HOUSE_AUDIO_SOURCE_KIND: &str = "conduit-test/house-audio-source";
 const HOUSE_AUDIO_SOURCE_REVISION: &str = "conduit-test/house-audio-source@1";
+pub(crate) const HOUSE_AUDIO_CLIP_SOURCE_KIND: &str = "conduit-test/house-audio-clip-source";
+const HOUSE_AUDIO_CLIP_SOURCE_REVISION: &str = "conduit-test/house-audio-clip-source@1";
+#[cfg(feature = "local-model-proof")]
+pub(crate) const HOUSE_AUDIO_CLIP_SOURCE_OPERATION: &str = super::PROOF_PCM_CLIP_SOURCE_OPERATION;
 pub(crate) const HOUSE_ADDRESSES_SOURCE_KIND: &str = "conduit-test/house-addresses-source";
 const HOUSE_ADDRESSES_SOURCE_REVISION: &str = "conduit-test/house-addresses-source@1";
 pub(crate) const HOUSE_CONTEXT_SOURCE_KIND: &str = "conduit-test/house-context-source";
@@ -22,9 +26,27 @@ const SINK_KIND: &str = "conduit-test/local-model-result";
 const SINK_REVISION: &str = "conduit-test/local-model-result@1";
 pub(crate) const HOUSE_TEXT_SINK_KIND: &str = "conduit-test/house-text-sink";
 const HOUSE_TEXT_SINK_REVISION: &str = "conduit-test/house-text-sink@1";
+pub(crate) const HOUSE_RECOGNITION_SINK_KIND: &str = "conduit-test/house-recognition-sink";
+const HOUSE_RECOGNITION_SINK_REVISION: &str = "conduit-test/house-recognition-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduit-test/local-model-result-kernel@1";
 const PROFILE: &str = "conduit-test/local-model-io-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/test-local-model-io@1";
+#[cfg(test)]
+const NAV_POSE_SOURCE: &str = "conduit-test/navigation-pose-source";
+#[cfg(test)]
+const NAV_POSE_SOURCE_REVISION: &str = "conduit-test/navigation-pose-source@1";
+#[cfg(test)]
+const NAV_GOAL_SOURCE: &str = "conduit-test/navigation-goal-source";
+#[cfg(test)]
+const NAV_GOAL_SOURCE_REVISION: &str = "conduit-test/navigation-goal-source@1";
+#[cfg(test)]
+const NAV_GRID_SOURCE: &str = "conduit-test/navigation-grid-source";
+#[cfg(test)]
+const NAV_GRID_SOURCE_REVISION: &str = "conduit-test/navigation-grid-source@1";
+#[cfg(test)]
+const NAV_TIME_SOURCE: &str = "conduit-test/navigation-time-source";
+#[cfg(test)]
+const NAV_TIME_SOURCE_REVISION: &str = "conduit-test/navigation-time-source@1";
 
 pub(super) static TEST_LOCAL_MODEL_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
@@ -40,6 +62,7 @@ pub(super) static TEST_LOCAL_MODEL_SINK_FACTORY: InstalledFactory = InstalledFac
 pub(super) struct TestLocalModelSourceOperation {
     value: ValueRef,
     emitted: bool,
+    hosted: bool,
 }
 
 pub(super) struct TestLocalModelSinkOperation {
@@ -50,6 +73,13 @@ impl TestLocalModelSourceOperation {
     pub(super) fn emit_or_complete(&self) -> OperationAction {
         if self.emitted {
             OperationAction::Complete
+        } else if self.hosted {
+            OperationAction::RequestHostOperation {
+                request: conduit_kernel::RequestId(0),
+                operation: conduit_kernel::HostOperationId(0),
+                input: conduit_kernel::BoundedValueRef::new(self.value, 1)
+                    .expect("proof clip source marker is one admitted byte"),
+            }
         } else {
             OperationAction::Emit {
                 port: PortId(0),
@@ -61,6 +91,29 @@ impl TestLocalModelSourceOperation {
     pub(super) fn advance(&mut self) -> OperationAction {
         self.emitted = true;
         OperationAction::Complete
+    }
+
+    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.hosted && !self.emitted && request == conduit_kernel::RequestId(0) =>
+            {
+                match (outcome.disposition, outcome.output, outcome.failure) {
+                    (conduit_kernel::HostOperationDisposition::Completed, Some(output), None) => {
+                        self.emitted = true;
+                        OperationAction::Emit {
+                            port: PortId(0),
+                            value: output.value,
+                        }
+                    }
+                    (conduit_kernel::HostOperationDisposition::Denied, _, _) => {
+                        InstalledOperation::fail(143)
+                    }
+                    _ => InstalledOperation::fail(144),
+                }
+            }
+            _ => InstalledOperation::fail(145),
+        }
     }
 }
 
@@ -93,7 +146,7 @@ pub(crate) fn source_offer(value_kind: &str) -> CapabilityOffer {
 }
 
 #[cfg(feature = "local-model-proof")]
-pub(crate) fn house_source_offers() -> [CapabilityOffer; 4] {
+pub(crate) fn house_source_offers() -> [CapabilityOffer; 5] {
     [
         offer(
             HOUSE_AUDIO_SOURCE_KIND,
@@ -102,6 +155,7 @@ pub(crate) fn house_source_offers() -> [CapabilityOffer; 4] {
             conduit_audio::AUDIO_PCM_INFO_ID,
             PortDirection::Output,
         ),
+        clip_source_offer(),
         offer(
             HOUSE_RECOGNIZED_SOURCE_KIND,
             HOUSE_RECOGNIZED_SOURCE_REVISION,
@@ -126,6 +180,30 @@ pub(crate) fn house_source_offers() -> [CapabilityOffer; 4] {
     ]
 }
 
+#[cfg(feature = "local-model-proof")]
+fn clip_source_offer() -> CapabilityOffer {
+    let mut offer = offer(
+        HOUSE_AUDIO_CLIP_SOURCE_KIND,
+        HOUSE_AUDIO_CLIP_SOURCE_REVISION,
+        SOURCE_IMPLEMENTATION,
+        conduit_audio::AUDIO_PCM_CLIP_INFO_ID,
+        PortDirection::Output,
+    );
+    offer
+        .host_operations
+        .push(conduit_core::HostOperationRequirement {
+            contract_id: conduit_core::HostOperationContractId::from(
+                HOUSE_AUDIO_CLIP_SOURCE_OPERATION,
+            ),
+            target_kind: None,
+            maximum_in_flight: 1,
+            maximum_input_bytes: 1,
+            maximum_output_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+        });
+    offer.limits.max_queue_bytes = conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32;
+    offer
+}
+
 pub(crate) fn sink_offer(value_kind: &str) -> CapabilityOffer {
     offer(
         SINK_KIND,
@@ -145,6 +223,19 @@ pub(crate) fn house_text_sink_offer() -> CapabilityOffer {
         conduit_ai::TEXT_VALUE_KIND,
         PortDirection::Input,
     )
+}
+
+#[cfg(feature = "local-model-proof")]
+pub(crate) fn house_recognition_sink_offer() -> CapabilityOffer {
+    let mut offer = offer(
+        HOUSE_RECOGNITION_SINK_KIND,
+        HOUSE_RECOGNITION_SINK_REVISION,
+        SINK_IMPLEMENTATION,
+        conduit_tongues::SPEECH_RECOGNITION_RESULT_KIND,
+        PortDirection::Input,
+    );
+    offer.limits.max_queue_bytes = conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32;
+    offer
 }
 
 fn offer(
@@ -203,6 +294,66 @@ pub(crate) fn install_catalog(
     }
 }
 
+#[cfg(test)]
+pub(crate) fn install_navigation_catalog(
+    startup: &mut StartupCatalog,
+    catalog: &mut ProfileCatalog,
+) {
+    for offer in navigation_source_offers() {
+        install_offer(startup, catalog, offer);
+    }
+    let request_kind = conduit_semantic_catalog::robotics_motion_request_type();
+    install_offer(
+        startup,
+        catalog,
+        sink_offer(request_kind.profile().unwrap().value_kind().as_str()),
+    );
+}
+
+#[cfg(test)]
+pub(crate) fn navigation_source_offers() -> [CapabilityOffer; 4] {
+    let pose = conduit_semantic_catalog::navigation_pose_type();
+    let goal = conduit_semantic_catalog::navigation_goal_type();
+    let grid = conduit_semantic_catalog::navigation_traversability_type();
+    let time = conduit_semantic_catalog::navigation_time_type();
+    [
+        source_offer_for(
+            NAV_POSE_SOURCE,
+            pose.profile().unwrap().value_kind().as_str(),
+        ),
+        source_offer_for(
+            NAV_GOAL_SOURCE,
+            goal.profile().unwrap().value_kind().as_str(),
+        ),
+        source_offer_for(
+            NAV_GRID_SOURCE,
+            grid.profile().unwrap().value_kind().as_str(),
+        ),
+        source_offer_for(
+            NAV_TIME_SOURCE,
+            time.profile().unwrap().value_kind().as_str(),
+        ),
+    ]
+}
+
+#[cfg(test)]
+fn source_offer_for(kind: &str, value_kind: &str) -> CapabilityOffer {
+    let revision = match kind {
+        NAV_POSE_SOURCE => NAV_POSE_SOURCE_REVISION,
+        NAV_GOAL_SOURCE => NAV_GOAL_SOURCE_REVISION,
+        NAV_GRID_SOURCE => NAV_GRID_SOURCE_REVISION,
+        NAV_TIME_SOURCE => NAV_TIME_SOURCE_REVISION,
+        _ => unreachable!("navigation source inventory is closed"),
+    };
+    offer(
+        kind,
+        revision,
+        SOURCE_IMPLEMENTATION,
+        value_kind,
+        PortDirection::Output,
+    )
+}
+
 #[cfg(feature = "local-model-proof")]
 pub(crate) fn install_house_source_catalog(
     startup: &mut StartupCatalog,
@@ -219,6 +370,14 @@ pub(crate) fn install_house_text_sink_catalog(
     catalog: &mut ProfileCatalog,
 ) {
     install_offer(startup, catalog, house_text_sink_offer());
+}
+
+#[cfg(feature = "local-model-proof")]
+pub(crate) fn install_house_recognition_sink_catalog(
+    startup: &mut StartupCatalog,
+    catalog: &mut ProfileCatalog,
+) {
+    install_offer(startup, catalog, house_recognition_sink_offer());
 }
 
 fn install_offer(
@@ -251,6 +410,11 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
                 HOUSE_AUDIO_SOURCE_REVISION,
                 SOURCE_IMPLEMENTATION,
             ),
+            HOUSE_AUDIO_CLIP_SOURCE_KIND => (
+                HOUSE_AUDIO_CLIP_SOURCE_KIND,
+                HOUSE_AUDIO_CLIP_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
             HOUSE_RECOGNIZED_SOURCE_KIND => (
                 HOUSE_RECOGNIZED_SOURCE_KIND,
                 HOUSE_RECOGNIZED_SOURCE_REVISION,
@@ -266,12 +430,42 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
                 HOUSE_CONTEXT_SOURCE_REVISION,
                 SOURCE_IMPLEMENTATION,
             ),
+            #[cfg(test)]
+            NAV_POSE_SOURCE => (
+                NAV_POSE_SOURCE,
+                NAV_POSE_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
+            #[cfg(test)]
+            NAV_GOAL_SOURCE => (
+                NAV_GOAL_SOURCE,
+                NAV_GOAL_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
+            #[cfg(test)]
+            NAV_GRID_SOURCE => (
+                NAV_GRID_SOURCE,
+                NAV_GRID_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
+            #[cfg(test)]
+            NAV_TIME_SOURCE => (
+                NAV_TIME_SOURCE,
+                NAV_TIME_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
             _ => (SOURCE_KIND, SOURCE_REVISION, SOURCE_IMPLEMENTATION),
         }
     } else if placement.kind_id.as_str() == HOUSE_TEXT_SINK_KIND {
         (
             HOUSE_TEXT_SINK_KIND,
             HOUSE_TEXT_SINK_REVISION,
+            SINK_IMPLEMENTATION,
+        )
+    } else if placement.kind_id.as_str() == HOUSE_RECOGNITION_SINK_KIND {
+        (
+            HOUSE_RECOGNITION_SINK_KIND,
+            HOUSE_RECOGNITION_SINK_REVISION,
             SINK_IMPLEMENTATION,
         )
     } else {
@@ -290,12 +484,21 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
 
 fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement, PortDirection::Output)?;
+    let hosted_clip = placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND;
     Ok(OperationBudget {
         value_items: 1,
-        value_bytes: 4_096,
-        host_requests: 0,
+        value_bytes: if hosted_clip {
+            conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+        } else {
+            4_096
+        },
+        host_requests: usize::from(hosted_clip),
         sign_items: 16,
-        maximum_value_bytes: 4_096,
+        maximum_value_bytes: if hosted_clip {
+            conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+        } else {
+            4_096
+        },
     })
 }
 
@@ -315,8 +518,47 @@ fn prepare_source(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement, PortDirection::Output)?;
+    #[cfg(test)]
+    let request = if placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND {
+        vec![0]
+    } else if placement.kind_id.as_str() == NAV_POSE_SOURCE {
+        conduit_semantic_catalog::encode_navigation_pose(&navigation_pose(), 0, 0)
+            .map_err(|error| format!("encode navigation pose: {error:?}"))?
+    } else if placement.kind_id.as_str() == NAV_GOAL_SOURCE {
+        conduit_semantic_catalog::encode_navigation_goal(&navigation_goal())
+            .map_err(|error| format!("encode navigation goal: {error:?}"))?
+    } else if placement.kind_id.as_str() == NAV_GRID_SOURCE {
+        conduit_semantic_catalog::encode_navigation_traversability(&navigation_grid())
+            .map_err(|error| format!("encode navigation grid: {error:?}"))?
+    } else if placement.kind_id.as_str() == NAV_TIME_SOURCE {
+        conduit_semantic_catalog::encode_navigation_time(&navigation_time())
+            .map_err(|error| format!("encode navigation time: {error:?}"))?
+    } else {
+        source_request(placement)?
+    };
+    #[cfg(not(test))]
+    let request = if placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND {
+        vec![0]
+    } else {
+        source_request(placement)?
+    };
+    let value = values
+        .store(&request)
+        .map_err(|error| format!("store local-model test request: {error:?}"))?;
+    Ok(InstalledOperation::TestLocalModelSource(
+        TestLocalModelSourceOperation {
+            value,
+            emitted: false,
+            hosted: placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND,
+        },
+    ))
+}
+
+fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
     let request = if placement.kind_id.as_str() == HOUSE_AUDIO_SOURCE_KIND {
         recorded_house_audio()?
+    } else if placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND {
+        recorded_house_audio_clip()?
     } else if placement.kind_id.as_str() == HOUSE_RECOGNIZED_SOURCE_KIND {
         b"Rosehip House, what is the temperature upstairs?".to_vec()
     } else if placement.kind_id.as_str() == HOUSE_ADDRESSES_SOURCE_KIND {
@@ -388,15 +630,70 @@ fn prepare_source(
     } else {
         b"Conduit bounded local model request".to_vec()
     };
-    let value = values
-        .store(&request)
-        .map_err(|error| format!("store local-model test request: {error:?}"))?;
-    Ok(InstalledOperation::TestLocalModelSource(
-        TestLocalModelSourceOperation {
-            value,
-            emitted: false,
+    Ok(request)
+}
+
+#[cfg(test)]
+fn navigation_time() -> conduit_semantic_catalog::NavigationTime {
+    conduit_semantic_catalog::NavigationTime {
+        clock_identity: "clock/fixture".into(),
+        now_ms: 500,
+    }
+}
+
+#[cfg(test)]
+fn navigation_pose() -> conduit_semantic_catalog::NavigationPose {
+    conduit_semantic_catalog::NavigationPose {
+        source_identity: "pose/fixture".into(),
+        sample_sequence: 7,
+        clock_identity: "clock/fixture".into(),
+        frame: "map/local".into(),
+        x_mm: 50,
+        y_mm: 50,
+        heading_microdegrees: 0,
+        validity: conduit_semantic_catalog::Validity {
+            observed_at_ms: 400,
+            valid_until_ms: 600,
         },
-    ))
+    }
+}
+
+#[cfg(test)]
+fn navigation_goal() -> conduit_semantic_catalog::NavigationGoal {
+    conduit_semantic_catalog::NavigationGoal {
+        identity: "goal/B".into(),
+        clock_identity: "clock/fixture".into(),
+        valid_until_ms: 1_000,
+        target: conduit_semantic_catalog::GoalTarget::Reach {
+            frame: "map/local".into(),
+            x_mm: 250,
+            y_mm: 250,
+            heading_microdegrees: 0,
+            position_tolerance_mm: 5,
+            heading_tolerance_microdegrees: 2_000_000,
+        },
+    }
+}
+
+#[cfg(test)]
+fn navigation_grid() -> conduit_semantic_catalog::Traversability4x4 {
+    let mut cells = [conduit_semantic_catalog::TraversabilityCell::Free; 16];
+    cells[1] = conduit_semantic_catalog::TraversabilityCell::Blocked;
+    conduit_semantic_catalog::Traversability4x4 {
+        source_identity: "grid/fixture".into(),
+        sample_sequence: 11,
+        clock_identity: "clock/fixture".into(),
+        frame: "map/local".into(),
+        origin_x_mm: 0,
+        origin_y_mm: 0,
+        cell_width_mm: 100,
+        cell_height_mm: 100,
+        validity: conduit_semantic_catalog::Validity {
+            observed_at_ms: 400,
+            valid_until_ms: 600,
+        },
+        cells,
+    }
 }
 
 pub(crate) fn recorded_house_audio() -> Result<Vec<u8>, String> {
@@ -417,6 +714,32 @@ pub(crate) fn recorded_house_audio() -> Result<Vec<u8>, String> {
     .map_err(|error| format!("build recorded House PCM header: {error:?}"))?
     .encode_frame(&payload)
     .map_err(|error| format!("encode recorded House PCM: {error:?}"))
+}
+
+pub(crate) fn recorded_house_audio_clip() -> Result<Vec<u8>, String> {
+    let first = recorded_house_audio_block(0, &[12, -8, 24, -16])?;
+    let second = recorded_house_audio_block(4, &[20, -12, 8, -4])?;
+    conduit_audio::encode_pcm_clip(&[&first, &second])
+        .map_err(|error| format!("encode recorded House PCM clip: {error:?}"))
+}
+
+fn recorded_house_audio_block(start_frame: u64, samples: &[i16]) -> Result<Vec<u8>, String> {
+    let payload = samples
+        .iter()
+        .flat_map(|sample| sample.to_le_bytes())
+        .collect::<Vec<_>>();
+    conduit_audio::PcmFrameHeader::new(
+        conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
+        16_000,
+        conduit_audio::PcmChannelLayout::Mono,
+        samples.len() as u16,
+        1,
+        start_frame,
+        false,
+    )
+    .map_err(|error| format!("build recorded House PCM clip frame: {error:?}"))?
+    .encode_frame(&payload)
+    .map_err(|error| format!("encode recorded House PCM clip frame: {error:?}"))
 }
 
 fn prepare_sink(

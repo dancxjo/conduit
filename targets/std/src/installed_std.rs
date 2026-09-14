@@ -39,17 +39,20 @@ mod local_model_operation;
 mod logic_operations;
 mod math_host;
 mod math_operations;
+mod microphone_clip_operation;
 mod midi_input_operation;
 mod midi_output_operation;
 mod model_host;
 mod model_text_operation;
 mod morse_operations;
+mod navigation_operations;
 mod operation;
 mod operation_cancellation;
 mod operation_capacity;
 mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
+mod pcm_profile_conversion_operation;
 mod preparation;
 pub(super) use preparation::{
     lower_fragment_with_continuity, state_storage_profile, validate_retained_inputs,
@@ -75,6 +78,7 @@ pub(crate) mod recorded_speech_operation;
 mod recurrence_codec;
 mod recurrence_encoding;
 mod recurrence_operation;
+mod remote_fragment_kernel;
 mod render_demand_operation;
 pub(super) mod rhythm_compare_host;
 mod rhythm_compare_operation;
@@ -82,6 +86,7 @@ mod robotics_effect;
 mod robotics_operations;
 mod sequence_normalization_operation;
 mod simple_presentation_host;
+mod speech_synthesis_operation;
 mod state_select_operation;
 mod structured_presentation_host;
 mod structured_selector_operation;
@@ -107,6 +112,8 @@ mod test_midi_source;
 mod test_recurrence_sink;
 #[cfg(test)]
 mod test_scalar_flow;
+#[cfg(any(test, feature = "local-model-proof"))]
+pub(crate) mod test_speech_sink;
 #[cfg(test)]
 pub(super) mod test_structured_selector;
 #[cfg(test)]
@@ -130,12 +137,14 @@ mod toggle_operation;
 mod typed_record_operation;
 mod vector_search_host;
 mod vector_search_operation;
+mod whisper_speech_operation;
 
 pub(crate) use self::catalog::supports;
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
 use self::operation::InstalledOperation;
+pub use self::remote_fragment_kernel::{InstalledRemoteFragment, RemoteHostWork};
 #[cfg(test)]
 use self::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TICK_FACTORY};
 use super::{
@@ -178,9 +187,10 @@ const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 64;
 
 pub(crate) use facade::*;
-const HOST_OPERATIONS_PER_NODE: u16 = 3;
+const HOST_OPERATIONS_PER_NODE: u16 = 4;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_OPERATIONS_PER_NODE as usize;
 const PENDING_REQUESTS: usize = MAX_NODES;
+const PROOF_PCM_CLIP_SOURCE_OPERATION: &str = "conduit.host/proof-recorded-pcm-clip@1";
 
 pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
     OperationDriver<InstalledOperation, PORTS>,
@@ -213,6 +223,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         retained,
         indicator,
         attach_live,
+        mut speech_synthesis,
+        mut speech_recognition,
+        mut microphone,
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
@@ -423,7 +436,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut address_detect_hosts = address_detect_operation::prepare_hosts(fragment);
     #[cfg(any(test, feature = "local-model-proof"))]
     let mut recorded_speech_hosts = recorded_speech_operation::prepare_hosts(fragment)?;
+    #[cfg(test)]
+    let mut speech_synthesis_hosts = speech_synthesis_operation::prepare_fake_hosts(fragment)?;
     let mut house_prompt_hosts = house_prompt_operation::prepare_hosts(fragment);
+    let mut navigation_hosts = navigation_operations::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
     let mut record_delivery_hosts = record_delivery_operation::prepare_hosts(fragment)?;
     let mut structured_presentation_host =
@@ -472,6 +488,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut vector_search_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
     let mut synth_output = Vec::with_capacity(synth_operation::PCM_BLOCK_BYTES as usize);
+    let mut pcm_conversion_output =
+        Vec::with_capacity(conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES as usize);
+    let mut pcm_conversion_hosts = pcm_profile_conversion_operation::prepare_hosts(fragment);
     let mut synth_states = fragment
         .placements
         .iter()
@@ -638,6 +657,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if let Some(adapter) = &mut vector_search {
                     adapter.cancel();
                 }
+            } else if cancelled_operation.contract_id.as_str()
+                == conduit_std_offers::PIPER_SPEECH_OPERATION
+            {
+                if let Some(adapter) = &mut speech_synthesis {
+                    adapter.abort();
+                }
             } else {
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
@@ -654,7 +679,52 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if [
+            if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
+                if input != b"capture" {
+                    return Err("microphone clip capture request is not exact".into());
+                }
+                let adapter = microphone.as_deref_mut().ok_or_else(|| {
+                    "microphone clip request has no initialized adapter".to_string()
+                })?;
+                let capture = adapter.capture_clip(|| control.requested_stop().is_some());
+                let (disposition, output, failure) = match capture {
+                    Ok(clip) => {
+                        let value = scheduler.store_host_value(&clip).map_err(|error| {
+                            format!("store captured microphone clip: {error:?}")
+                        })?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map_err(|error| format!("bound captured microphone clip: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output), None)
+                    }
+                    Err(crate::hosted_microphone::MicrophoneFailure::Cancelled) => {
+                        (HostOperationDisposition::Cancelled, None, None)
+                    }
+                    Err(error) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: error as u16,
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete microphone clip capture: {error:?}"))?;
+                continue;
+            } else if [
                 conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION,
                 conduit_std_offers::TYPED_RECORD_DEFRAME_HOST_OPERATION,
                 conduit_std_offers::TEXT_TO_TYPED_RECORD_HOST_OPERATION,
@@ -1466,6 +1536,42 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .complete_host_operation(request.node, request.request, outcome)
                     .map_err(|error| format!("complete audio/play host operation: {error:?}"))?;
                 continue;
+            } else if contract.as_str() == pcm_profile_conversion_operation::HOST_OPERATION {
+                let host = pcm_conversion_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "PCM conversion request has no exact admitted state".to_string()
+                    })?;
+                let conversion = host.convert(input, &mut pcm_conversion_output);
+                let outcome = match conversion {
+                    Ok(()) => {
+                        let value = scheduler
+                            .store_host_value(&pcm_conversion_output)
+                            .map_err(|error| format!("store converted PCM: {error:?}"))?;
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
+                                )
+                                .map_err(|error| format!("bound converted PCM: {error:?}"))?,
+                            ),
+                            failure: None,
+                        }
+                    }
+                    Err(failure) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Failed,
+                        output: None,
+                        failure: Some(failure),
+                    },
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete PCM conversion: {error:?}"))?;
+                continue;
             } else if matches!(
                 contract.as_str(),
                 conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION
@@ -1506,6 +1612,78 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete proof PCM source yield: {error:?}"))?;
                 continue;
+            } else if contract.as_str() == PROOF_PCM_CLIP_SOURCE_OPERATION {
+                if !input.is_empty() && input != [0] {
+                    return Err("proof PCM clip request is malformed".to_string());
+                }
+                let clip = speech_recognition
+                    .as_deref()
+                    .and_then(
+                        crate::hosted_speech_recognition::WhisperSpeechAdapter::proof_pcm_clip,
+                    )
+                    .ok_or_else(|| "proof PCM clip source is unavailable".to_string())?;
+                conduit_audio::decode_pcm_clip(clip)
+                    .map_err(|error| format!("proof PCM clip is invalid: {error:?}"))?;
+                let value = scheduler
+                    .store_host_value(clip)
+                    .map_err(|error| format!("store proof PCM clip: {error:?}"))?;
+                let output =
+                    BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                        .map_err(|error| format!("bound proof PCM clip: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(output),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete proof PCM clip source: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::WHISPER_SPEECH_OPERATION
+                || contract.as_str() == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION
+            {
+                let recognition =
+                    if contract.as_str() == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION {
+                        whisper_speech_operation::execute_clip(
+                            speech_recognition.as_deref_mut(),
+                            input,
+                            || control.requested_stop().is_some(),
+                        )
+                    } else {
+                        whisper_speech_operation::execute(
+                            speech_recognition.as_deref_mut(),
+                            input,
+                            || control.requested_stop().is_some(),
+                        )
+                    };
+                let outcome = match recognition {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(&encoded)
+                            .map_err(|error| format!("store Whisper recognition: {error:?}"))?;
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound Whisper recognition: {error:?}"))?,
+                            ),
+                            failure: None,
+                        }
+                    }
+                    Err(failure) => whisper_speech_operation::failure_outcome(failure),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete Whisper recognition: {error:?}"))?;
+                continue;
             } else if contract.as_str() == "conduit.host/proof-recorded-speech-recognize@1" {
                 #[cfg(any(test, feature = "local-model-proof"))]
                 {
@@ -1538,6 +1716,87 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 }
                 #[cfg(not(any(test, feature = "local-model-proof")))]
                 return Err("proof-only recorded-speech contract is unavailable".into());
+            } else if contract.as_str() == conduit_std_offers::PIPER_SPEECH_OPERATION {
+                #[cfg(test)]
+                if speech_synthesis_hosts
+                    .get(usize::from(request.node.0))
+                    .is_some_and(Option::is_some)
+                {
+                    let block = speech_synthesis_hosts
+                        .get_mut(usize::from(request.node.0))
+                        .and_then(Option::as_mut)
+                        .ok_or_else(|| {
+                            "speech request has no admitted deterministic provider".to_string()
+                        })?
+                        .execute(input)?;
+                    let output = block
+                        .map(|block| {
+                            let value = scheduler.store_host_value(block).map_err(|error| {
+                                format!("store deterministic speech block: {error:?}")
+                            })?;
+                            BoundedValueRef::new(
+                                value,
+                                lowered_operation.binding.maximum_output_bytes,
+                            )
+                            .map_err(|error| format!("bound deterministic speech block: {error:?}"))
+                        })
+                        .transpose()?;
+                    record_request(&mut requests, request);
+                    scheduler
+                        .complete_host_operation(
+                            request.node,
+                            request.request,
+                            HostOperationOutcome {
+                                disposition: HostOperationDisposition::Completed,
+                                output,
+                                failure: None,
+                            },
+                        )
+                        .map_err(|error| {
+                            format!("complete deterministic speech operation: {error:?}")
+                        })?;
+                    continue;
+                }
+                let completion = speech_synthesis_operation::execute_piper(
+                    speech_synthesis.as_deref_mut(),
+                    input,
+                    control.requested_stop().is_some(),
+                );
+                let (disposition, output, failure) = match completion {
+                    Ok(block) => {
+                        let output = block
+                            .map(|block| scheduler.store_host_value(block))
+                            .transpose()
+                            .map_err(|error| format!("store Piper speech block: {error:?}"))?
+                            .map(|value| {
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                            })
+                            .transpose()
+                            .map_err(|error| format!("bound Piper speech block: {error:?}"))?;
+                        (HostOperationDisposition::Completed, output, None)
+                    }
+                    Err(error) => {
+                        let (disposition, failure) =
+                            speech_synthesis_operation::piper_failure_outcome(error);
+                        (disposition, None, Some(failure))
+                    }
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete Piper speech operation: {error:?}"))?;
+                continue;
             } else if contract.as_str() == conduit_std_offers::RECOGNITION_TO_TEXT_OPERATION {
                 let (disposition, output) = match conduit_tongues::project_recognized_text(input) {
                     Ok(text) => {
@@ -1593,6 +1852,34 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete model-text projection: {error:?}"))?;
+                continue;
+            } else if navigation_operations::is_host_operation(contract.as_str()) {
+                let completion = navigation_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "navigation request has no admitted host".to_string())?
+                    .execute(contract.as_str(), input)?;
+                let output = completion
+                    .map(|encoded| {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded navigation result: {error:?}")
+                        })?;
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                            .map_err(|error| format!("bound navigation result: {error:?}"))
+                    })
+                    .transpose()?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete navigation operation: {error:?}"))?;
                 continue;
             } else if matches!(
                 contract.as_str(),
@@ -2099,7 +2386,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         match status {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Drained if lifecycle::drained_completes(fragment, attach_live) => {
-                break TerminalDisposition::Completed
+                break TerminalDisposition::Completed;
             }
             SchedulerStatus::Drained => {
                 lifecycle::await_live_control(control);
@@ -2194,7 +2481,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             SchedulerStatus::Cancelled => {
                 break TerminalDisposition::Cancelled {
                     reason: CancellationReason::OperatorRequested,
-                }
+                };
             }
         }
     };
@@ -2213,6 +2500,76 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     }
     #[cfg(test)]
     let post_play_start_allocations = play_start_probe.finish();
+
+    let speech_synthesis_receipts = if let Some(adapter) = speech_synthesis {
+        let discovery = adapter.discovery();
+        let executable_sha256 = discovery.executable_sha256.clone();
+        let model_sha256 = discovery.model_sha256.clone();
+        let config_sha256 = discovery.config_sha256.clone();
+        match adapter.take_receipt() {
+            Some(receipt) => {
+                let placement = fragment
+                    .placements
+                    .iter()
+                    .find(|placement| {
+                        placement.implementation_id.as_str()
+                            == conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION
+                    })
+                    .ok_or_else(|| "Piper receipt has no exact planned placement".to_string())?;
+                vec![crate::SpeechSynthesisExecutionReceipt {
+                    plan_id: fragment.plan_id.clone(),
+                    active_play_id: active_play.active_play_id.clone(),
+                    placement_id: placement.placement_id.clone(),
+                    implementation_id: placement.implementation_id.clone(),
+                    executable_sha256,
+                    model_sha256,
+                    config_sha256,
+                    text_sha256: receipt.text_sha256,
+                    pcm_sha256: receipt.pcm_sha256,
+                    frames: receipt.frames,
+                    blocks: receipt.blocks,
+                }]
+            }
+            None => Vec::new(),
+        }
+    } else {
+        Vec::new()
+    };
+
+    let speech_recognition_receipts = if let Some(adapter) = speech_recognition {
+        let discovery = adapter.discovery();
+        let executable_sha256 = discovery.executable_sha256.clone();
+        let model_sha256 = discovery.model_sha256.clone();
+        match adapter.take_receipt() {
+            Some(receipt) => {
+                let placement = fragment
+                    .placements
+                    .iter()
+                    .find(|placement| {
+                        placement.implementation_id.as_str()
+                            == conduit_std_offers::WHISPER_SPEECH_IMPLEMENTATION
+                            || placement.implementation_id.as_str()
+                                == conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION
+                    })
+                    .ok_or_else(|| "Whisper receipt has no exact planned placement".to_string())?;
+                vec![crate::SpeechRecognitionExecutionReceipt {
+                    plan_id: fragment.plan_id.clone(),
+                    active_play_id: active_play.active_play_id.clone(),
+                    placement_id: placement.placement_id.clone(),
+                    implementation_id: placement.implementation_id.clone(),
+                    executable_sha256,
+                    model_sha256,
+                    audio_sha256: receipt.audio_sha256,
+                    text_sha256: receipt.text_sha256,
+                    text_bytes: receipt.text_bytes,
+                    diagnostic_bytes: receipt.diagnostic_bytes,
+                }]
+            }
+            None => Vec::new(),
+        }
+    } else {
+        Vec::new()
+    };
 
     for driver in scheduler.drivers() {
         robotics_effect::write_simulated_drive_effect(
@@ -2355,6 +2712,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         observations,
         receipts: Vec::new(),
         control_receipts,
+        speech_synthesis: speech_synthesis_receipts,
+        speech_recognition: speech_recognition_receipts,
+        microphone: microphone
+            .and_then(crate::hosted_microphone::AlsaMicrophoneAdapter::take_receipt)
+            .into_iter()
+            .collect(),
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),

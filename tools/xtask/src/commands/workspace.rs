@@ -86,6 +86,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                     "0",
                     "workspace-arrival.spec.mjs",
                     "workspace-library.spec.mjs",
+                    "workspace-resident-applications.spec.mjs",
                 ],
             ),
             &root,

@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 100
+maximum_forms = 103
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -34,6 +34,12 @@ title = "House Conversation"
 entry = "house-conversation"
 deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_conversation_is_an_ordinary_checked_form" }
 browser_safe_not_applicable = "portable House conversation has no installed browser model realization"
+[[forms]]
+slug = "house-spoken-response"
+title = "House Spoken Response"
+entry = "house-spoken-response"
+deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_spoken_response_composes_text_fallback_and_speech_output" }
+browser_safe_not_applicable = "portable speech output requires an admitted synthesis and audio-output realization"
 [[forms]]
 slug = "bench-telemetry"
 title = "Bench Telemetry"
@@ -452,3 +458,19 @@ title = "Record Delivery Status"
 entry = "record-delivery-status"
 deterministic = { package = "conduit-net", test = "record_delivery", case = "delivery_projection_is_an_ordinary_reusable_closing_flow_form" }
 browser_safe_not_applicable = "open reusable face is exercised inside the Desk Telegraph browser oracle"
+
+[[forms]]
+slug = "tour"
+title = "Tour"
+entry = "tour"
+initial_body_order = 12
+deterministic = { package = "conduit-tour-model", test = "application_form", case = "tour_is_a_checked_host_neutral_form_over_the_application_seam" }
+browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "resident Tour keeps state across foreground switches in one browser Body Play" }
+
+[[forms]]
+slug = "patchbay"
+title = "Patchbay"
+entry = "patchbay"
+initial_body_order = 13
+deterministic = { package = "patchbay-application", test = "lib", case = "opens_the_exact_form_and_plan_and_retains_inspection" }
+browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "resident Patchbay inspects and begins an exact edit in one browser Body Play" }

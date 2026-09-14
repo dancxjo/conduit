@@ -66,8 +66,10 @@ impl Operation for InstalledOperation {
             Self::RoboticsSource(operation) => operation.start(),
             Self::RoboticsDrive(operation) => operation.start(),
             Self::MusicSynth(operation) => operation.start(),
+            Self::SpeechSynthesis(operation) => operation.start(),
             Self::AudioRenderDemand(operation) => operation.start(),
             Self::AudioPlay(operation) => operation.start(),
+            Self::PcmProfileConversion(operation) => operation.start(),
             Self::MidiOutput(operation) => operation.start(),
             Self::MidiInput(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
@@ -75,10 +77,13 @@ impl Operation for InstalledOperation {
             Self::AddressDetect(operation) => operation.start(),
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::RecordedSpeech(operation) => operation.start(),
+            Self::WhisperSpeech(operation) => operation.start(),
+            Self::MicrophoneClip(operation) => operation.start(),
             Self::RecognitionText(operation) => operation.start(),
             Self::HousePrompt(operation) => operation.start(),
             Self::LocalModel(operation) => operation.start(),
             Self::ModelText(operation) => operation.start(),
+            Self::Navigation(operation) => operation.start(),
             Self::VectorSearch(operation) => operation.start(),
             Self::HttpClient(operation) => operation.start(),
             Self::HttpServer(operation) => operation.start(),
@@ -101,6 +106,8 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestRecurrenceSink(operation) => operation.start(),
             Self::TestPcmSource(operation) => operation.emit_or_complete(),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::TestSpeechSink(operation) => operation.start(),
             #[cfg(test)]
             Self::TestJsonSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
@@ -201,8 +208,10 @@ impl Operation for InstalledOperation {
             (Self::RoboticsSource(operation), input) => operation.resume(input),
             (Self::RoboticsDrive(operation), input) => operation.resume(input),
             (Self::MusicSynth(operation), input) => operation.resume(input),
+            (Self::SpeechSynthesis(operation), input) => operation.resume(input),
             (Self::AudioRenderDemand(operation), input) => operation.resume(input),
             (Self::AudioPlay(operation), input) => operation.resume(input),
+            (Self::PcmProfileConversion(operation), input) => operation.resume(input),
             (Self::MidiOutput(operation), input) => operation.resume(input),
             (Self::MidiInput(operation), _) => operation.resume(),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
@@ -210,10 +219,12 @@ impl Operation for InstalledOperation {
             (Self::AddressDetect(operation), input) => operation.resume(input),
             #[cfg(any(test, feature = "local-model-proof"))]
             (Self::RecordedSpeech(operation), input) => operation.resume(input),
+            (Self::WhisperSpeech(operation), input) => operation.resume(input),
             (Self::RecognitionText(operation), input) => operation.resume(input),
             (Self::HousePrompt(operation), input) => operation.resume(input),
             (Self::LocalModel(operation), input) => operation.resume(input),
             (Self::ModelText(operation), input) => operation.resume(input),
+            (Self::Navigation(operation), input) => operation.resume(input),
             (Self::VectorSearch(operation), input) => operation.resume(input),
             (Self::HttpClient(operation), input) => operation.resume(input),
             (Self::HttpServer(operation), input) => operation.resume(input),
@@ -236,6 +247,9 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             (Self::TestRecurrenceSink(operation), input) => operation.resume(input),
             (Self::TestPcmSource(operation), input) => operation.resume(input),
+            (Self::MicrophoneClip(operation), input) => operation.resume(input),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            (Self::TestSpeechSink(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestJsonSource(_), _) => Self::fail(104),
             #[cfg(test)]
@@ -245,7 +259,7 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             (Self::TestStructuredSink(operation), input) => operation.resume(input),
             #[cfg(any(test, feature = "local-model-proof"))]
-            (Self::TestLocalModelSource(_), _) => Self::fail(141),
+            (Self::TestLocalModelSource(operation), input) => operation.resume(input),
             #[cfg(any(test, feature = "local-model-proof"))]
             (Self::TestLocalModelSink(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -389,8 +403,10 @@ impl Operation for InstalledOperation {
             Self::RoboticsSource(operation) => operation.advance(),
             Self::RoboticsDrive(operation) => operation.advance(),
             Self::MusicSynth(operation) => operation.advance(),
+            Self::SpeechSynthesis(operation) => operation.advance(),
             Self::AudioRenderDemand(operation) => operation.advance(),
             Self::AudioPlay(_) => OperationAction::Await,
+            Self::PcmProfileConversion(operation) => operation.advance(),
             Self::MidiOutput(_) => OperationAction::Await,
             Self::MidiInput(operation) => operation.advance(),
             Self::ExternalWebSocketListener(operation) => operation.advance(),
@@ -398,10 +414,12 @@ impl Operation for InstalledOperation {
             Self::AddressDetect(operation) => operation.advance(),
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::RecordedSpeech(operation) => operation.advance(),
+            Self::WhisperSpeech(operation) => operation.advance(),
             Self::RecognitionText(operation) => operation.advance(),
             Self::HousePrompt(operation) => operation.advance(),
             Self::LocalModel(operation) => operation.advance(),
             Self::ModelText(operation) => operation.advance(),
+            Self::Navigation(operation) => operation.advance(),
             Self::VectorSearch(operation) => operation.advance(),
             Self::HttpClient(operation) => operation.advance(),
             Self::HttpServer(operation) => operation.advance(),
@@ -423,6 +441,9 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestRecurrenceSink(_) => OperationAction::Await,
             Self::TestPcmSource(operation) => operation.advance(),
+            Self::MicrophoneClip(operation) => operation.advance(),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::TestSpeechSink(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.advance(),
             #[cfg(test)]

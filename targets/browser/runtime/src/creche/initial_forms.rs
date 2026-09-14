@@ -221,6 +221,29 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
     Ok(checked)
 }
 
+pub(crate) fn expanded_inventory_form(
+    source: &str,
+    resident: &conduit_body::ResidentForm,
+) -> Result<conduit_form::ExpandedCanonicalForm, String> {
+    for entry in check_inventory(source)? {
+        if entry.checked.source_document_id != resident.source_document_id {
+            continue;
+        }
+        if let Some(form) = entry
+            .checked
+            .forms
+            .iter()
+            .find(|form| form.checked_form_id == resident.checked_form_id)
+        {
+            let (_, catalog) =
+                crate::installed_browser::catalogs_for_presentation(entry.presentation)?;
+            return conduit_form::expand_canonical_form(&entry.checked, &form.name, &catalog)
+                .map_err(|error| format!("expand resident application subject: {error:?}"));
+        }
+    }
+    Err("resident application subject is absent from the reviewed inventory".into())
+}
+
 pub(super) fn check_source(source: &str) -> Result<conduit_form::CheckedSyntaxDocument, String> {
     check_source_for_presentation(
         source,

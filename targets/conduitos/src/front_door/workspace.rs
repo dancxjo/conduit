@@ -35,8 +35,15 @@ impl FrontDoor {
         journey: &crate::product_journey::ProductJourney,
     ) -> Result<(), Error> {
         if let Some(workspace) = journey.workspace_projection() {
-            self.observe_body(journey.projection(), workspace)
+            let application_view = journey.foreground_application_view().cloned();
+            if let Some(view) = &application_view {
+                view.validate().map_err(|_| Error::Presentation)?;
+            }
+            self.observe_body(journey.projection(), workspace)?;
+            self.application_view = application_view;
+            Ok(())
         } else {
+            self.application_view = None;
             self.observe_journey(journey.projection())
         }
     }
@@ -64,7 +71,7 @@ impl FrontDoor {
         if journey.body_id.as_ref() != Some(&workspace.body_id)
             || journey.revision != workspace.revision
             || workspace.forms.is_empty()
-            || workspace.forms.len() > 2
+            || workspace.forms.len() > crate::native_workset::NATIVE_FORM_CAPACITY
             || workspace
                 .forms
                 .iter()

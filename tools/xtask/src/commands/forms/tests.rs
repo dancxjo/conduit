@@ -211,6 +211,8 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
         ("night-radio", "night-radio"),
         ("secret-knock", "secret-knock-demo"),
         ("pocket-theremin", "pocket-theremin"),
+        ("tour", "tour"),
+        ("patchbay", "patchbay"),
     ];
     assert_eq!(forms.len(), expected.len());
     for (form, (slug, entry)) in forms.iter().zip(expected) {

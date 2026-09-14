@@ -32,6 +32,76 @@ fn index(prepared: &PreparedNativeWorkset, form: NativeForm) -> usize {
         .position(|form| form.form == identity)
         .unwrap()
 }
+
+#[test]
+fn tour_initial_view_and_event_cross_the_same_production_kernel() {
+    let (prepared, mut play) = kernel();
+    let tour = index(&prepared, NativeForm::Tour);
+    let initial = play.take_application_view(tour).unwrap();
+    let event = conduit_presentation::ApplicationEvent {
+        revision: initial.revision,
+        action: conduit_tour_model::OPEN_PATCHBAY_ACTION_ID.into(),
+        kind: conduit_presentation::ApplicationEventKind::Activate,
+        value: alloc::vec::Vec::new(),
+    };
+    play.application_event(tour, &event.encode(&initial).unwrap())
+        .unwrap();
+    let current = play.take_application_view(tour).unwrap();
+    assert_eq!(current.revision, initial.revision + 1);
+    assert!(current.nodes.iter().any(|node| {
+        node.component == conduit_presentation::ApplicationComponent::PatchbayCanvas
+    }));
+}
+
+#[test]
+fn patchbay_inspects_the_selected_form_and_emits_bounded_edit_authority() {
+    let (prepared, mut play) = kernel();
+    let tour = index(&prepared, NativeForm::Tour);
+    let patchbay = index(&prepared, NativeForm::Patchbay);
+    play.select_patchbay_target(patchbay, tour).unwrap();
+    let initial = play.take_application_view(patchbay).unwrap();
+    assert!(
+        initial
+            .nodes
+            .iter()
+            .any(|node| node.key == "form" && node.text == "tour")
+    );
+    let inspect = conduit_presentation::ApplicationEvent {
+        revision: initial.revision,
+        action: patchbay_application::INSPECT_NEXT_ACTION_ID.into(),
+        kind: conduit_presentation::ApplicationEventKind::Activate,
+        value: alloc::vec::Vec::new(),
+    };
+    play.application_event(patchbay, &inspect.encode(&initial).unwrap())
+        .unwrap();
+    let inspected = play.take_application_view(patchbay).unwrap();
+    assert_eq!(inspected.revision, initial.revision + 1);
+    let edit = conduit_presentation::ApplicationEvent {
+        revision: inspected.revision,
+        action: patchbay_application::EDIT_CURRENT_ACTION_ID.into(),
+        kind: conduit_presentation::ApplicationEventKind::Activate,
+        value: alloc::vec::Vec::new(),
+    };
+    play.application_event(patchbay, &edit.encode(&inspected).unwrap())
+        .unwrap();
+    assert!(matches!(
+        play.take_application_request(patchbay),
+        Some(native_workset::NativeApplicationRequest::EditCurrent(
+            patchbay_application::PatchbayApplicationRequest::EditCurrent { .. }
+        ))
+    ));
+    let latest = play.take_application_view(patchbay).unwrap();
+    let repeated_edit = conduit_presentation::ApplicationEvent {
+        revision: latest.revision,
+        action: patchbay_application::EDIT_CURRENT_ACTION_ID.into(),
+        kind: conduit_presentation::ApplicationEventKind::Activate,
+        value: alloc::vec::Vec::new(),
+    };
+    play.application_event(patchbay, &repeated_edit.encode(&latest).unwrap())
+        .unwrap();
+    play.cancel().unwrap();
+    assert!(play.take_application_request(patchbay).is_none());
+}
 #[test]
 fn switching_forms_keeps_independent_state_and_repeated_input_in_one_kernel() {
     let (prepared, mut play) = kernel();

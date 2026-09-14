@@ -49,7 +49,7 @@ pub(super) fn wake(forms: &[NativeForm]) -> Wake {
 }
 
 #[test]
-fn native_inventory_preserves_existing_canvas_and_canonical_memory_identities() {
+fn native_inventory_preserves_existing_forms_and_adds_the_canonical_tour_identity() {
     let profile = profile();
     assert_eq!(profile.id, "conduitos/native-installed-forms@1");
     assert_eq!(profile.capacity, NATIVE_FORM_CAPACITY);
@@ -63,6 +63,11 @@ fn native_inventory_preserves_existing_canvas_and_canonical_memory_identities() 
         NativeForm::MemoryLantern.source(),
         include_str!("../../../../forms/memory-lantern/main.conduit")
     );
+    assert_eq!(
+        NativeForm::Tour.source(),
+        include_str!("../../../../forms/tour/main.conduit")
+    );
+    assert_ne!(canvas, resident(NativeForm::Tour).unwrap());
     assert_eq!(
         catalog::resolve(&canvas).unwrap(),
         NativeForm::KeyboardCanvas
@@ -109,49 +114,73 @@ fn canonical_memory_plans_as_an_exact_native_body_partition_before_play() {
 }
 
 #[test]
-fn two_forms_reserve_distinct_deliveries_from_one_initialized_keyboard() {
+fn four_forms_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
     let (ids, offer) = fixture();
     let wake = wake(&inventory());
     let prepared = prepare(&wake, &ids, &offer, "build").unwrap();
-    assert_eq!(prepared.lowered.nodes, 8);
-    assert_eq!(prepared.plan.forms.len(), 2);
+    assert_eq!(prepared.lowered.nodes, 14);
+    assert_eq!(prepared.lowered.cords, 10);
+    assert_eq!(prepared.plan.forms.len(), 4);
     assert_eq!(prepared.keyboard, offer.keyboard.unwrap().realization);
-    assert_eq!(prepared.input_owners().len(), 2);
+    assert_eq!(prepared.input_owners().len(), 4);
     for (form, owner) in prepared.plan.forms.iter().zip(prepared.input_owners()) {
-        let keyboard = form.plan.fragments[0]
+        let source = form.plan.fragments[0]
             .placements
             .iter()
-            .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND)
+            .find(|placement| {
+                matches!(
+                    placement.kind_id.as_str(),
+                    conduit_semantic_catalog::KEYBOARD_KIND
+                        | conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
+                )
+            })
             .unwrap();
         assert_eq!(owner.form, form.form);
-        assert_eq!(
-            owner.kind_id.as_str(),
-            conduit_semantic_catalog::KEYBOARD_KIND
-        );
-        assert_eq!(owner.placement_id, keyboard.placement_id);
-        assert_eq!(
-            owner.port_id.as_str(),
-            conduit_semantic_catalog::KEYBOARD_PORT
-        );
-        assert_eq!(owner.value_kind.as_str(), conduit_human::KEY_EVENT_INFO_ID);
-        assert_eq!(
-            keyboard.implementation_id.as_str(),
-            keyboard_delivery::IMPLEMENTATION
-        );
-        assert!(
-            keyboard
-                .resources
-                .iter()
-                .any(
-                    |resource| resource.class_id.as_str() == keyboard_delivery::RESOURCE
-                        && resource.units == 1
-                )
-        );
-        assert!(
-            !keyboard.resources.iter().any(
+        assert_eq!(owner.placement_id, source.placement_id);
+        if source.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND {
+            assert_eq!(
+                owner.kind_id.as_str(),
+                conduit_semantic_catalog::KEYBOARD_KIND
+            );
+            assert_eq!(
+                owner.port_id.as_str(),
+                conduit_semantic_catalog::KEYBOARD_PORT
+            );
+            assert_eq!(owner.value_kind.as_str(), conduit_human::KEY_EVENT_INFO_ID);
+            assert_eq!(
+                source.implementation_id.as_str(),
+                keyboard_delivery::IMPLEMENTATION
+            );
+            assert!(
+                source
+                    .resources
+                    .iter()
+                    .any(
+                        |resource| resource.class_id.as_str() == keyboard_delivery::RESOURCE
+                            && resource.units == 1
+                    )
+            );
+            assert!(!source.resources.iter().any(
                 |resource| resource.class_id.as_str() == crate::keyboard_offer::DEVICE_RESOURCE
-            )
-        );
+            ));
+        } else {
+            assert_eq!(
+                owner.kind_id.as_str(),
+                conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
+            );
+            assert_eq!(
+                owner.port_id.as_str(),
+                conduit_semantic_catalog::APPLICATION_EVENT_PORT
+            );
+            assert_eq!(
+                owner.value_kind.as_str(),
+                conduit_presentation::APPLICATION_EVENT_INFO_ID
+            );
+            assert_eq!(
+                source.implementation_id.as_str(),
+                application_delivery::EVENT_IMPLEMENTATION
+            );
+        }
     }
     assert!(
         prepared

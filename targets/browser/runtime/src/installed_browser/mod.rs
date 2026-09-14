@@ -1,5 +1,6 @@
 //! Finite implementation registry installed by the ordinary browser Host.
 
+pub(crate) mod application;
 pub(crate) mod body_startup;
 mod button_indicator;
 mod delay;
@@ -61,6 +62,7 @@ mod values;
 #[cfg(test)]
 mod secret_knock_trigger_plan;
 
+pub(crate) use application::EVENT_OPERATION as APPLICATION_EVENT_OPERATION;
 pub(crate) use factory::{
     advertisement, backs, catalogs, factory, local_bases, selected_human_machinery,
     BrowserManifestation,

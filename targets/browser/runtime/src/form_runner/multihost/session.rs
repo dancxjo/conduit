@@ -459,6 +459,7 @@ impl Session {
             unit_millis,
             segments,
             text,
+            application_view: None,
             source_interaction: Some(self.source_interaction.clone()),
         })
     }

@@ -5,7 +5,7 @@ use conduit_form::{ExpandedCanonicalForm, ProfileCatalog, StartupCatalog};
 
 /// Finite native product profile. Capacity is a reviewed deployment choice,
 /// not a claim that a Body conceptually consists of these particular Forms.
-pub const NATIVE_FORM_CAPACITY: usize = 2;
+pub const NATIVE_FORM_CAPACITY: usize = 4;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NativeFormProfile {
@@ -33,6 +33,8 @@ impl NativeFormProfile {
 pub enum NativeForm {
     KeyboardCanvas,
     MemoryLantern,
+    Tour,
+    Patchbay,
 }
 
 impl NativeForm {
@@ -40,18 +42,24 @@ impl NativeForm {
         match self {
             Self::KeyboardCanvas => "conduitos-keyboard-upper",
             Self::MemoryLantern => "memory_lantern",
+            Self::Tour => "tour",
+            Self::Patchbay => "patchbay",
         }
     }
     pub const fn title(self) -> &'static str {
         match self {
             Self::KeyboardCanvas => "Keyboard canvas",
             Self::MemoryLantern => "Memory Lantern",
+            Self::Tour => "Tour",
+            Self::Patchbay => "Patchbay",
         }
     }
     pub const fn source(self) -> &'static str {
         match self {
             Self::KeyboardCanvas => crate::keyboard_text_plan::FORM_SOURCE,
             Self::MemoryLantern => include_str!("../../../../forms/memory-lantern/main.conduit"),
+            Self::Tour => include_str!("../../../../forms/tour/main.conduit"),
+            Self::Patchbay => include_str!("../../../../forms/patchbay/main.conduit"),
         }
     }
 }
@@ -60,7 +68,12 @@ pub const fn profile() -> NativeFormProfile {
     NativeFormProfile {
         id: "conduitos/native-installed-forms@1",
         capacity: NATIVE_FORM_CAPACITY,
-        installed: [NativeForm::KeyboardCanvas, NativeForm::MemoryLantern],
+        installed: [
+            NativeForm::KeyboardCanvas,
+            NativeForm::MemoryLantern,
+            NativeForm::Tour,
+            NativeForm::Patchbay,
+        ],
     }
 }
 
@@ -78,6 +91,8 @@ pub fn checked(form: NativeForm) -> Result<ExpandedCanonicalForm, WorksetRefusal
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(|_| WorksetRefusal::Catalog)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)
+        .map_err(|_| WorksetRefusal::Catalog)?;
+    conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)
         .map_err(|_| WorksetRefusal::Catalog)?;
     let syntax = conduit_form::parse_syntax_document(form.source());
     let checked = conduit_form::check_syntax_document(&syntax, &startup)

@@ -41,10 +41,8 @@ impl KernelTables {
             host_bindings: FixedHostOperationBindings::new(HOST_OPERATIONS_PER_NODE),
         };
         for partition in partitions {
-            if partition.nodes.len() != partition.node_specs.len()
-                || !partition.remote_endpoints.is_empty()
-            {
-                return Err("invalid local kernel partition tables".into());
+            if partition.nodes.len() != partition.node_specs.len() {
+                return Err("invalid kernel partition tables".into());
             }
             for (node, spec) in partition.nodes.iter().zip(&partition.node_specs) {
                 if usize::from(node.node.0) != tables.active_nodes {
@@ -114,5 +112,24 @@ impl KernelTables {
             sign,
         )
         .map_err(|error| format!("install std scheduler: {error:?}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generic_tables_retain_lowered_remote_cord_endpoints() {
+        let exact = conduit_signal_conformance::exact_distributed_signal_plan().unwrap();
+        let fragment = exact
+            .plan
+            .fragments
+            .iter()
+            .find(|fragment| fragment.host_id == exact.source_advertisement.host_id)
+            .unwrap();
+        let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment).unwrap();
+        assert_eq!(lowered.remote_endpoints.len(), 1);
+        assert!(KernelTables::prepare(&[&lowered]).is_ok());
     }
 }

@@ -220,6 +220,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     "schema": "conduit.patchbay/body-execution-proposal@1",
                     "wake": realization.wake, "plan": realization.plan,
                     "body_evidence": candidate.evidence(),
+                    "source": source,
                 }))?;
                 *slot = Some(candidate);
                 return Ok(bytes);

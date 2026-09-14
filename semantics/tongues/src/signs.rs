@@ -1,5 +1,4 @@
-use crate::pcm::deterministic_pcm;
-use crate::{OutputCondition, SpeechOutcome, SPECIMEN_TEXT};
+use crate::{OutputCondition, SpeechOutcome};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -13,11 +12,11 @@ pub enum SpeechSign {
     Terminal,
 }
 
-pub(crate) fn outcome_signs(outcome: &SpeechOutcome) -> Vec<SpeechSign> {
+pub(crate) fn outcome_signs(outcome: &SpeechOutcome, pcm_bytes: Option<u32>) -> Vec<SpeechSign> {
     let mut signs = match outcome {
         SpeechOutcome::Played { pcm_sha256 } => vec![
             SpeechSign::Synthesized {
-                pcm_bytes: u32::try_from(deterministic_pcm(SPECIMEN_TEXT).len()).unwrap(),
+                pcm_bytes: pcm_bytes.expect("played speech has synthesized PCM"),
                 pcm_sha256: pcm_sha256.clone(),
             },
             SpeechSign::Presented {
@@ -30,7 +29,7 @@ pub(crate) fn outcome_signs(outcome: &SpeechOutcome) -> Vec<SpeechSign> {
             pcm_sha256,
         } => vec![
             SpeechSign::Synthesized {
-                pcm_bytes: u32::try_from(deterministic_pcm(SPECIMEN_TEXT).len()).unwrap(),
+                pcm_bytes: pcm_bytes.expect("WAV speech has synthesized PCM"),
                 pcm_sha256: pcm_sha256.clone(),
             },
             SpeechSign::Degraded {

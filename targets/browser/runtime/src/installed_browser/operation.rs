@@ -1,6 +1,7 @@
 //! Generic finite kernel verbs used by installed browser implementations.
 
 use conduit_core::Scalar;
+use conduit_kernel::ValueStorage;
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef,
@@ -17,6 +18,37 @@ impl BrowserOperation {
         Self(Box::new(SourceOperation {
             value,
             emitted: false,
+        }))
+    }
+
+    pub(crate) fn host_source(
+        values: &mut conduit_kernel::HostedValueStore,
+        maximum_output_bytes: u32,
+    ) -> Result<Self, String> {
+        let request = values
+            .store(&[])
+            .map_err(|error| format!("store browser source request: {error:?}"))?;
+        Ok(Self::installed(HostSourceOperation {
+            request,
+            maximum_output_bytes,
+            pending: None,
+            next: 0,
+        }))
+    }
+
+    pub(crate) fn application_state(
+        values: &mut conduit_kernel::HostedValueStore,
+        maximum_input_bytes: u32,
+    ) -> Result<Self, String> {
+        let initial = values
+            .store(&[0])
+            .map_err(|error| format!("store application initial request: {error:?}"))?;
+        Ok(Self::installed(ApplicationStateOperation {
+            initial,
+            maximum_input_bytes,
+            pending: None,
+            next: 0,
+            initial_sent: false,
         }))
     }
 
@@ -80,6 +112,139 @@ impl BrowserOperation {
             released: [None; 2],
             retain_resumed: false,
         }))
+    }
+}
+
+struct HostSourceOperation {
+    request: ValueRef,
+    maximum_output_bytes: u32,
+    pending: Option<RequestId>,
+    next: u32,
+}
+
+struct ApplicationStateOperation {
+    initial: ValueRef,
+    maximum_input_bytes: u32,
+    pending: Option<RequestId>,
+    next: u32,
+    initial_sent: bool,
+}
+
+impl ApplicationStateOperation {
+    fn request(&mut self, value: ValueRef, bound: u32) -> OperationAction {
+        let request = RequestId(self.next);
+        self.pending = Some(request);
+        match BoundedValueRef::new(value, bound) {
+            Ok(input) => OperationAction::RequestHostOperation {
+                request,
+                operation: HostOperationId(0),
+                input,
+            },
+            Err(_) => fail(5),
+        }
+    }
+}
+
+impl Operation for ApplicationStateOperation {
+    fn start(&mut self) -> OperationAction {
+        self.request(self.initial, 1)
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::Value {
+                port: PortId(0),
+                value,
+            } if self.pending.is_none() => self.request(value, self.maximum_input_bytes),
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending == Some(request)
+                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.failure.is_none() =>
+            {
+                self.pending = None;
+                let Some(next) = self.next.checked_add(1) else {
+                    return identity_exhausted(5);
+                };
+                self.next = next;
+                self.initial_sent = true;
+                match outcome.output {
+                    Some(output) => OperationAction::Emit {
+                        port: PortId(0),
+                        value: output.value,
+                    },
+                    None => fail(5),
+                }
+            }
+            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
+                OperationAction::Complete
+            }
+            _ => fail(5),
+        }
+    }
+
+    fn advance(&mut self) -> OperationAction {
+        if self.initial_sent {
+            OperationAction::Await
+        } else {
+            fail(5)
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+impl HostSourceOperation {
+    fn request(&mut self) -> OperationAction {
+        let request = RequestId(self.next);
+        self.pending = Some(request);
+        OperationAction::RequestHostOperation {
+            request,
+            operation: HostOperationId(0),
+            input: BoundedValueRef::new(self.request, 0).expect("source request is empty"),
+        }
+    }
+}
+
+impl Operation for HostSourceOperation {
+    fn start(&mut self) -> OperationAction {
+        self.request()
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending == Some(request)
+                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.failure.is_none() =>
+            {
+                self.pending = None;
+                let Some(output) = outcome.output else {
+                    return fail(4);
+                };
+                if output.value.byte_len > self.maximum_output_bytes {
+                    return fail(4);
+                }
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value: output.value,
+                }
+            }
+            _ => fail(4),
+        }
+    }
+
+    fn advance(&mut self) -> OperationAction {
+        let Some(next) = self.next.checked_add(1) else {
+            return identity_exhausted(4);
+        };
+        self.next = next;
+        self.request()
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
     }
 }
 

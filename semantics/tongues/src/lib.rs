@@ -2,7 +2,6 @@
 
 mod analysis;
 mod analysis_math;
-#[cfg(feature = "speech")]
 mod contract;
 #[cfg(feature = "speech")]
 mod execution;
@@ -26,7 +25,6 @@ mod specimen;
 mod speech_recognition;
 
 pub use analysis::*;
-#[cfg(feature = "speech")]
 pub use contract::*;
 #[cfg(feature = "speech")]
 pub use execution::*;

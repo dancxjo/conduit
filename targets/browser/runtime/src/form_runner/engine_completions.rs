@@ -55,6 +55,14 @@ pub(in crate::form_runner) fn complete_host_effect_with_output(
                 .map_err(|error| format!("decode browser button transition: {error:?}"))?;
             conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES
         }
+        BrowserHostEffect::ApplicationEvent => {
+            if output.is_empty()
+                || output.len() > crate::installed_browser::application::EVENT_BYTES as usize
+            {
+                return Err("application event exceeds its planned bound".into());
+            }
+            crate::installed_browser::application::EVENT_BYTES
+        }
         _ => return Err("browser Host effect does not accept completion output".into()),
     };
     let value = scheduler.store_host_value(output).map_err(debug_error)?;

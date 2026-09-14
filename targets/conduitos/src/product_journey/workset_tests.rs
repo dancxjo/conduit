@@ -1,5 +1,9 @@
 use super::test_support::{fixture, invoke, key};
 use super::*;
+use crate::machine::{
+    BaseError, IdleBase, InterruptBase, InterruptState, MonotonicClockBase, SerialBase,
+};
+use alloc::vec::Vec;
 use conduit_body::BodyWorkset;
 use conduit_creche_model::birth::BirthSelection;
 use conduit_human::KeyTransition;
@@ -41,23 +45,25 @@ fn select(journey: &mut ProductJourney, form: NativeForm) {
 }
 
 #[test]
-fn native_birth_keeps_two_forms_in_one_body_plan_play_and_switches_only_foreground() {
+fn native_birth_keeps_four_forms_in_one_body_plan_play_and_switches_only_foreground() {
     let (ids, offer, mut journey) = born();
     let born = journey.workspace_projection().unwrap();
-    assert_eq!(born.forms.len(), 2);
+    assert_eq!(born.forms.len(), 4);
     assert!(born.forms.iter().all(|form| form.input.is_none()));
     run(&mut journey, &ids, &offer);
     let started = journey.projection();
     assert_eq!(started.status, JourneyStatus::QuiescentAwaitingInput);
-    assert_eq!(started.gear_ids.len(), 8);
-    assert_eq!(started.cord_ids.len(), 6);
+    assert_eq!(started.gear_ids.len(), 14);
+    assert_eq!(started.cord_ids.len(), 10);
     let admitted = journey.workspace_projection().unwrap();
     assert!(admitted.forms.iter().all(|form| {
         form.input.as_ref().is_some_and(|input| {
             input.form == form.form
-                && input.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND
-                && input.port_id.as_str() == conduit_semantic_catalog::KEYBOARD_PORT
-                && input.value_kind.as_str() == conduit_human::KEY_EVENT_INFO_ID
+                && matches!(
+                    input.value_kind.as_str(),
+                    conduit_human::KEY_EVENT_INFO_ID
+                        | conduit_presentation::APPLICATION_EVENT_INFO_ID
+                )
         })
     }));
     select(&mut journey, NativeForm::KeyboardCanvas);
@@ -101,14 +107,186 @@ fn native_birth_keeps_two_forms_in_one_body_plan_play_and_switches_only_foregrou
 }
 
 #[test]
-fn lull_retains_both_forms_and_next_wake_prepares_fresh_plan_play() {
+fn returning_to_resident_tour_preserves_state_and_body_execution_identity() {
+    let (ids, offer, mut journey) = born();
+    run(&mut journey, &ids, &offer);
+    let execution = journey.projection();
+    select(&mut journey, NativeForm::Tour);
+    let initial = journey.foreground_application_view().unwrap().clone();
+    assert!(
+        journey
+            .accept_application_event(&conduit_presentation::ApplicationEvent {
+                revision: initial.revision,
+                action: conduit_tour_model::OPEN_PATCHBAY_ACTION_ID.into(),
+                kind: conduit_presentation::ApplicationEventKind::Activate,
+                value: alloc::vec::Vec::new(),
+            })
+            .unwrap()
+    );
+    let tour_revision = initial.revision + 1;
+    assert!(
+        journey
+            .foreground_application_view()
+            .unwrap()
+            .nodes
+            .iter()
+            .any(|node| node.key == "form" && node.text == "tour")
+    );
+    select(&mut journey, NativeForm::MemoryLantern);
+    type_key(&mut journey, 5);
+    select(&mut journey, NativeForm::Tour);
+    assert_eq!(
+        journey.foreground_application_view().unwrap().revision,
+        tour_revision
+    );
+    let returned = journey.projection();
+    assert_eq!(returned.body_id, execution.body_id);
+    assert_eq!(returned.plan_id, execution.plan_id);
+    assert_eq!(returned.active_play_id, execution.active_play_id);
+}
+
+#[test]
+fn resident_patchbay_opens_the_previously_used_exact_form_and_plan() {
+    let (ids, offer, mut journey) = born();
+    run(&mut journey, &ids, &offer);
+    select(&mut journey, NativeForm::Tour);
+    let before = journey.projection();
+    let expected_form = before.expanded_form_id.clone().unwrap();
+    let expected_plan = before.plan_id.clone().unwrap();
+    select(&mut journey, NativeForm::Patchbay);
+    let view = journey.foreground_application_view().unwrap();
+    assert!(
+        view.nodes.iter().any(|node| {
+            node.key == "identity"
+                && node.text.contains(expected_form.as_str())
+                && node.text.contains(expected_plan.as_str())
+        }),
+        "{view:?} expected {expected_form:?} {expected_plan:?}"
+    );
+    let execution = journey.projection();
+    assert_eq!(execution.body_id, before.body_id);
+    select(&mut journey, NativeForm::MemoryLantern);
+    select(&mut journey, NativeForm::Patchbay);
+    assert!(
+        journey
+            .foreground_application_view()
+            .unwrap()
+            .nodes
+            .iter()
+            .any(|node| node.key == "form" && node.text == "memory_lantern")
+    );
+    assert_eq!(
+        journey.projection().active_play_id,
+        execution.active_play_id
+    );
+}
+
+#[test]
+fn resident_tour_run_crosses_the_real_plan_play_and_returns_proof_to_the_same_body() {
+    let (ids, offer, mut journey) = born();
+    run(&mut journey, &ids, &offer);
+    select(&mut journey, NativeForm::Tour);
+    let execution = journey.projection();
+    let view = journey.foreground_application_view().unwrap().clone();
+    journey
+        .accept_application_event(&conduit_presentation::ApplicationEvent {
+            revision: view.revision,
+            action: conduit_tour_model::RUN_ACTION_ID.into(),
+            kind: conduit_presentation::ApplicationEventKind::Activate,
+            value: Vec::new(),
+        })
+        .unwrap();
+    assert_eq!(
+        journey.take_application_request(),
+        Some(native_workset::NativeApplicationRequest::RunTour)
+    );
+    let mut prepared = crate::tour_play::prepare(&ids, &offer, "build").unwrap();
+    let mut clock = TestClock::default();
+    let mut serial = TestSerial::default();
+    let mut interrupts = TestInterrupts::default();
+    let mut idle = TestIdle::default();
+    let evidence = crate::tour_play::run(
+        &mut prepared,
+        &mut clock,
+        &mut serial,
+        &mut interrupts,
+        &mut idle,
+    )
+    .unwrap();
+    journey.complete_tour_run(&evidence).unwrap();
+    assert_eq!(serial.0, [conduit_tour_model::CANONICAL_RESULT.as_bytes()]);
+    assert!(
+        journey
+            .foreground_application_view()
+            .unwrap()
+            .nodes
+            .iter()
+            .any(|node| { node.key == "result" && node.text.contains("Result visible") })
+    );
+    let after = journey.projection();
+    assert_eq!(after.body_id, execution.body_id);
+    assert_eq!(after.plan_id, execution.plan_id);
+    assert_eq!(after.active_play_id, execution.active_play_id);
+}
+
+#[derive(Default)]
+struct TestClock(u64);
+impl MonotonicClockBase for TestClock {
+    fn now(&mut self) -> u64 {
+        self.0 += 1;
+        self.0
+    }
+}
+#[derive(Default)]
+struct TestSerial(Vec<Vec<u8>>);
+impl SerialBase for TestSerial {
+    fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
+        self.0.push(bytes.into());
+        Ok(())
+    }
+    fn presentation_count(&self) -> u32 {
+        self.0.len() as u32
+    }
+}
+#[derive(Default)]
+struct TestInterrupts(bool);
+impl InterruptBase for TestInterrupts {
+    fn enable(&mut self) {
+        self.0 = true;
+    }
+    fn disable(&mut self) -> InterruptState {
+        let state = InterruptState { enabled: self.0 };
+        self.0 = false;
+        state
+    }
+    fn restore(&mut self, state: InterruptState) {
+        self.0 = state.enabled;
+    }
+    fn is_enabled(&self) -> bool {
+        self.0
+    }
+}
+#[derive(Default)]
+struct TestIdle(u32);
+impl IdleBase for TestIdle {
+    fn wait_for_interrupt(&mut self) -> Result<(), BaseError> {
+        self.0 += 1;
+        Ok(())
+    }
+    fn idle_count(&self) -> u32 {
+        self.0
+    }
+}
+
+#[test]
+fn lull_retains_all_forms_and_next_wake_prepares_fresh_plan_play() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
     let first = journey.projection();
     type_key(&mut journey, 4);
     invoke(&mut journey, JourneyAction::Stop, &ids, &offer).unwrap();
     invoke(&mut journey, JourneyAction::Lull, &ids, &offer).unwrap();
-    assert_eq!(journey.workspace_projection().unwrap().forms.len(), 2);
+    assert_eq!(journey.workspace_projection().unwrap().forms.len(), 4);
     assert!(
         !journey
             .accept_play_input(key(5, KeyTransition::Pressed))

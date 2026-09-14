@@ -26,11 +26,14 @@ use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
 };
 use super::math_operations::MathScalarOperation;
+use super::microphone_clip_operation::MicrophoneClipOperation;
 use super::midi_input_operation::MidiInputOperation;
 use super::midi_output_operation::MidiOutputOperation;
 use super::model_text_operation::ModelTextOperation;
+use super::navigation_operations::NavigationOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
 use super::pattern_comparison_operation::PatternComparisonOperation;
+use super::pcm_profile_conversion_operation::PcmProfileConversionOperation;
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
@@ -44,6 +47,7 @@ use super::rhythm_compare_operation::RhythmCompareOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::sequence_normalization_operation::SequenceNormalizationOperation;
+use super::speech_synthesis_operation::SpeechSynthesisOperation;
 use super::state_select_operation::StateSelectScalarOperation;
 use super::structured_selector_operation::StructuredSelectorOperation;
 use super::structured_values_operation::{
@@ -78,6 +82,8 @@ use conduit_kernel::{Failure, FailureCode, OperationAction};
 pub(super) enum InstalledOperation {
     #[cfg(any(test, feature = "local-model-proof"))]
     RecordedSpeech(super::recorded_speech_operation::RecordedSpeechOperation),
+    WhisperSpeech(super::whisper_speech_operation::WhisperSpeechOperation),
+    MicrophoneClip(MicrophoneClipOperation),
     AddressDetect(super::address_detect_operation::AddressDetectOperation),
     RecognitionText(super::recognition_text_operation::RecognitionTextOperation),
     TypedState(Box<crate::state_value::TypedStateOperation>),
@@ -137,8 +143,10 @@ pub(super) enum InstalledOperation {
     RoboticsSource(RoboticsSourceOperation),
     RoboticsDrive(RoboticsDriveOperation),
     MusicSynth(MusicSynthOperation),
+    SpeechSynthesis(SpeechSynthesisOperation),
     AudioRenderDemand(AudioRenderDemandOperation),
     AudioPlay(AudioPlayOperation),
+    PcmProfileConversion(PcmProfileConversionOperation),
     MidiOutput(MidiOutputOperation),
     MidiInput(Box<MidiInputOperation>),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
@@ -146,6 +154,7 @@ pub(super) enum InstalledOperation {
     HousePrompt(HousePromptOperation),
     LocalModel(LocalModelOperation),
     ModelText(ModelTextOperation),
+    Navigation(NavigationOperation),
     VectorSearch(VectorSearchOperation),
     HttpClient(HttpClientOperation),
     HttpServer(HttpServerOperation),
@@ -168,6 +177,8 @@ pub(super) enum InstalledOperation {
     #[cfg(test)]
     TestRecurrenceSink(super::test_recurrence_sink::TestRecurrenceSinkOperation),
     TestPcmSource(Box<super::test_audio_source::TestPcmSourceOperation>),
+    #[cfg(any(test, feature = "local-model-proof"))]
+    TestSpeechSink(super::test_speech_sink::TestSpeechSinkOperation),
     #[cfg(test)]
     TestJsonSource(TestJsonSourceOperation),
     #[cfg(test)]
