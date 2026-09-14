@@ -82,18 +82,22 @@ impl PresenterControlSession {
         {
             return Err(PresenterControlError::StaleRequest);
         }
-        self.graphical = Some(self.prepare(
-            self.graphical_kind,
-            self.graphical_identity.clone(),
+        let mut candidate = self.clone();
+        let mut next_planning = planning.clone();
+        candidate.graphical = Some(candidate.prepare(
+            candidate.graphical_kind,
+            candidate.graphical_identity.clone(),
             "graphical",
         )?);
-        let forms = planning.current_plan().forms.clone();
-        planning
+        let forms = next_planning.current_plan().forms.clone();
+        next_planning
             .replace_proposal_with_presenters(
                 forms,
-                vec![self.body_topology(PresenterTopologyMode::Graphical)?],
+                vec![candidate.body_topology(PresenterTopologyMode::Graphical)?],
             )
             .map_err(PresenterControlError::BodyPlanning)?;
+        *self = candidate;
+        *planning = next_planning;
         Ok(())
     }
 
@@ -121,52 +125,51 @@ impl PresenterControlSession {
         if planning.current_plan().plan_id != *basis_plan_id {
             return Err(PresenterControlError::StaleRequest);
         }
-        let prior_graphical = self.graphical.clone();
-        let prior_speech = self.speech.clone();
+        let mut candidate = self.clone();
+        let mut next_planning = planning.clone();
         if matches!(
             mode,
             PresenterTopologyMode::Graphical | PresenterTopologyMode::GraphicalAndSpeech
-        ) && self.graphical.is_none()
+        ) && candidate.graphical.is_none()
         {
-            self.graphical = Some(self.prepare(
-                self.graphical_kind,
-                self.graphical_identity.clone(),
+            candidate.graphical = Some(candidate.prepare(
+                candidate.graphical_kind,
+                candidate.graphical_identity.clone(),
                 "graphical-restored",
             )?);
         }
         if matches!(
             mode,
             PresenterTopologyMode::Speech | PresenterTopologyMode::GraphicalAndSpeech
-        ) && self.speech.is_none()
+        ) && candidate.speech.is_none()
         {
-            self.speech = Some(self.prepare(
+            candidate.speech = Some(candidate.prepare(
                 RendererAdapterKind::TestSpeech,
-                self.speech_identity.clone(),
+                candidate.speech_identity.clone(),
                 "speech",
             )?);
         }
-        let topology = self.body_topology(mode)?;
-        let forms = planning.current_plan().forms.clone();
-        if let Err(error) =
-            planning.replan_with_presenters(forms, vec![topology], transition.clone())
-        {
-            self.graphical = prior_graphical;
-            self.speech = prior_speech;
-            return Err(PresenterControlError::BodyPlanning(error));
-        }
+        let topology = candidate.body_topology(mode)?;
+        let forms = next_planning.current_plan().forms.clone();
+        next_planning
+            .replan_with_presenters(forms, vec![topology], transition.clone())
+            .map_err(PresenterControlError::BodyPlanning)?;
         if mode == PresenterTopologyMode::Graphical {
-            self.speech = None;
+            candidate.speech = None;
         } else if mode == PresenterTopologyMode::Speech {
-            self.graphical = None;
+            candidate.graphical = None;
         }
-        let play = BodyPlayIdentity::bind(planning.current_plan(), transition.play_sequence);
-        PresenterTopology::from_body_plan_truth(
-            &self.presentation,
-            planning.current_plan(),
+        let play = BodyPlayIdentity::bind(next_planning.current_plan(), transition.play_sequence);
+        let projected = PresenterTopology::from_body_plan_truth(
+            &candidate.presentation,
+            next_planning.current_plan(),
             &play,
-            &self.manifestations(),
+            &candidate.manifestations(),
         )
-        .map_err(PresenterControlError::Projection)
+        .map_err(PresenterControlError::Projection)?;
+        *self = candidate;
+        *planning = next_planning;
+        Ok(projected)
     }
 
     pub fn presentation(&self) -> &Presentation {
@@ -193,25 +196,39 @@ impl PresenterControlSession {
         if !selector_matches {
             return Err(PresenterControlError::StaleRequest);
         }
-        let mut refresh = |current: &RendererExecution| {
-            let sequence = self.sequence;
-            self.sequence = self.sequence.saturating_add(1);
+        let mut sequence = self.sequence;
+        let refresh = |current: &RendererExecution, sequence: &mut u64| {
+            let current_sequence = *sequence;
+            *sequence = sequence.saturating_add(1);
             let mut next = RendererExecution::prepare_planned_sequence(
                 presentation.clone(),
                 current.plan.clone(),
                 current.manifestation.target_subject.clone(),
-                sequence,
-                SignId::from(format!("presenter-control/refresh/{sequence}/prepared")),
+                current_sequence,
+                SignId::from(format!(
+                    "presenter-control/refresh/{current_sequence}/prepared"
+                )),
             )
             .map_err(|_| PresenterControlError::InvalidRealization)?;
             next.mark_available(SignId::from(format!(
-                "presenter-control/refresh/{sequence}/available"
+                "presenter-control/refresh/{current_sequence}/available"
             )))
             .map_err(|_| PresenterControlError::InvalidRealization)?;
             Ok(next)
         };
-        self.graphical = self.graphical.as_ref().map(&mut refresh).transpose()?;
-        self.speech = self.speech.as_ref().map(&mut refresh).transpose()?;
+        let graphical = self
+            .graphical
+            .as_ref()
+            .map(|current| refresh(current, &mut sequence))
+            .transpose()?;
+        let speech = self
+            .speech
+            .as_ref()
+            .map(|current| refresh(current, &mut sequence))
+            .transpose()?;
+        self.graphical = graphical;
+        self.speech = speech;
+        self.sequence = sequence;
         self.presentation = presentation;
         Ok(())
     }
