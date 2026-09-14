@@ -5,7 +5,7 @@ use conduit_kernel::{CordId, RemoteEndpointId};
 use conduit_plan_lowering::lowering::{
     LoweredPlanFragment, LoweredRemoteEndpoint, RemoteCordDirection,
 };
-use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
+use conduit_wire::{SessionBinding, SessionMachine, SessionMessage, SessionRole, WireError};
 
 const MAXIMUM_REMOTE_ENDPOINTS: usize = 16;
 
@@ -33,6 +33,62 @@ impl RemoteCordSession {
 
 pub struct RemoteCordSessions {
     sessions: Vec<RemoteCordSession>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RemoteCordActivationFailure {
+    DirectionMismatch,
+    BindingMismatch,
+    Wire(WireError),
+    DidNotActivate,
+}
+
+pub fn activate_in_process(
+    source: &mut RemoteCordSession,
+    sink: &mut RemoteCordSession,
+) -> Result<(), RemoteCordActivationFailure> {
+    if source.direction != RemoteCordDirection::Egress
+        || sink.direction != RemoteCordDirection::Ingress
+    {
+        return Err(RemoteCordActivationFailure::DirectionMismatch);
+    }
+    if source.binding != sink.binding {
+        return Err(RemoteCordActivationFailure::BindingMismatch);
+    }
+    let hello = source.binding.hello_frame();
+    source
+        .machine
+        .admit_outbound(hello)
+        .map_err(RemoteCordActivationFailure::Wire)?;
+    sink.machine
+        .admit_inbound(hello)
+        .map_err(RemoteCordActivationFailure::Wire)?;
+    sink.machine
+        .admit_outbound(hello)
+        .map_err(RemoteCordActivationFailure::Wire)?;
+    source
+        .machine
+        .admit_inbound(hello)
+        .map_err(RemoteCordActivationFailure::Wire)?;
+    let ready = source.binding.frame(SessionMessage::Ready);
+    source
+        .machine
+        .admit_outbound(ready)
+        .map_err(RemoteCordActivationFailure::Wire)?;
+    sink.machine
+        .admit_inbound(ready)
+        .map_err(RemoteCordActivationFailure::Wire)?;
+    sink.machine
+        .admit_outbound(ready)
+        .map_err(RemoteCordActivationFailure::Wire)?;
+    source
+        .machine
+        .admit_inbound(ready)
+        .map_err(RemoteCordActivationFailure::Wire)?;
+    if !source.machine.is_active() || !sink.machine.is_active() {
+        return Err(RemoteCordActivationFailure::DidNotActivate);
+    }
+    Ok(())
 }
 
 impl RemoteCordSessions {
@@ -146,8 +202,8 @@ mod tests {
             conduit_plan_lowering::lowering::lower_plan_fragment(source_fragment).unwrap();
         let sink_lowered =
             conduit_plan_lowering::lowering::lower_plan_fragment(sink_fragment).unwrap();
-        let source = RemoteCordSessions::prepare(source_fragment, &source_lowered).unwrap();
-        let sink = RemoteCordSessions::prepare(sink_fragment, &sink_lowered).unwrap();
+        let mut source = RemoteCordSessions::prepare(source_fragment, &source_lowered).unwrap();
+        let mut sink = RemoteCordSessions::prepare(sink_fragment, &sink_lowered).unwrap();
         assert_eq!(source.len(), 1);
         assert_eq!(sink.len(), 1);
         assert_eq!(
@@ -162,5 +218,12 @@ mod tests {
             sink.iter().next().unwrap().direction,
             RemoteCordDirection::Ingress
         );
+        activate_in_process(
+            source.get_mut(RemoteEndpointId(0)).unwrap(),
+            sink.get_mut(RemoteEndpointId(0)).unwrap(),
+        )
+        .unwrap();
+        assert!(source.iter().next().unwrap().machine().is_active());
+        assert!(sink.iter().next().unwrap().machine().is_active());
     }
 }
