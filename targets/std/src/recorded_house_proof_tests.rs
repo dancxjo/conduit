@@ -334,3 +334,102 @@ fn addressed_microphone_response_is_spoken_and_committed_in_the_same_play() {
     fs::remove_dir_all(whisper_root).unwrap();
     fs::remove_dir_all(unaddressed_root).unwrap();
 }
+
+#[test]
+fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
+    let model = local_offer();
+    let host = StdHost::new_with_composition(
+        StdHostConfig {
+            host_id: HostId::from("host/house-template"),
+            boot_id: BootId::from("boot/house-template"),
+            offer_generation: OfferGeneration(1),
+        },
+        StdHostComposition::minimal(),
+    );
+    let mut template = host.advertisement().clone();
+    template
+        .resources
+        .extend(crate::hosted_local_model::resource_offers(&model.limits));
+    template.resources.extend([
+        conduit_core::resource_offer(
+            "std/microphone/fixture",
+            conduit_std_offers::MICROPHONE_CAPTURE_RESOURCE_CLASS,
+            1,
+        ),
+        conduit_core::resource_offer(
+            "std/whisper-process",
+            conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS,
+            1,
+        ),
+        crate::hosted_speech::process_resource_offer(),
+        conduit_core::resource_offer(
+            "std/audio/alsa/fixture/card-FIXTURE/device-0",
+            conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS,
+            1,
+        ),
+    ]);
+    template
+        .capabilities
+        .extend(model.capability_offers().unwrap());
+    template.capabilities.extend([
+        conduit_std_offers::house_prompt_std_offer(),
+        conduit_std_offers::model_result_to_text_std_offer(),
+        conduit_std_offers::address_detect_offer(),
+        conduit_std_offers::recognition_to_text_std_offer(),
+        conduit_std_offers::text_literal_offer(),
+        conduit_std_offers::microphone_clip_offer(),
+        conduit_std_offers::whisper_clip_speech_offer(),
+        conduit_std_offers::piper_speech_offer(),
+        conduit_std_offers::audio_convert_pcm_profile_offer(),
+        conduit_std_offers::audio_play_alsa_hw_offer(),
+    ]);
+    template
+        .capabilities
+        .extend(crate::installed_std::test_local_model_io::house_source_offers());
+    template.capabilities.retain(|offer| {
+        offer.implementation.implementation_id.as_str()
+            != conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+    });
+    template.resources.sort();
+    template.capabilities.sort_by(|left, right| {
+        left.capability_id
+            .as_str()
+            .cmp(right.capability_id.as_str())
+    });
+
+    let exact = crate::distributed_house_plan::exact_distributed_spoken_house_plan(&template)
+        .expect("unchanged House Form plans across exact Hosts");
+    assert_eq!(exact.plan.fragments.len(), 3);
+    assert_eq!(exact.lines.len(), 2);
+    assert_eq!(exact.plan.checked_form_id.as_str(), exact.checked_form_id);
+    for fragment in &exact.plan.fragments {
+        assert!(exact.hosts.iter().any(|host| {
+            host.host_id == fragment.host_id
+                && host.boot_id == fragment.boot_id
+                && host.offer_generation == fragment.offer_generation
+        }));
+    }
+    let remote_connections = exact
+        .plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| fragment.connections.iter())
+        .filter(|connection| connection.selected_line.is_some())
+        .collect::<Vec<_>>();
+    assert_eq!(remote_connections.len(), exact.lines.len() * 2);
+    for connection in remote_connections {
+        let selected = connection.selected_line.as_ref().unwrap();
+        assert_eq!(
+            selected.binding.base.as_str(),
+            crate::distributed_house_plan::REMOTE_BASE
+        );
+        assert_eq!(
+            selected.binding.limits.maximum_payload_bytes,
+            connection.byte_capacity
+        );
+        assert_eq!(
+            selected.binding.limits.maximum_in_flight_items,
+            connection.item_capacity
+        );
+    }
+}

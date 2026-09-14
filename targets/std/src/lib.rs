@@ -23,6 +23,7 @@ mod composition_test_offers;
 pub mod confined_gear;
 mod copy_task;
 mod deadline_reactor;
+pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
 #[cfg(feature = "local-model-proof")]
@@ -57,6 +58,7 @@ pub mod hosted_http;
 pub mod hosted_indicator;
 pub mod hosted_job;
 pub mod hosted_keyboard;
+mod house_conversation_topology;
 #[cfg(unix)]
 pub mod pico_indicator;
 pub use host_execution::HostedRunAdapters;
