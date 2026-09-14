@@ -1,4 +1,5 @@
 //! Exact bridge from selected autobiography records to generic grounded answers.
+//! Selection grants neither present-time truth nor authority beyond the checked read.
 
 use crate::{BoundedAutobiography, MemoryRefusal};
 use conduit_ai::{
