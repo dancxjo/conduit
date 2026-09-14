@@ -1,9 +1,13 @@
 //! Quiet foreground surface for the born Body, projected from its current journey.
 use super::Error;
 use crate::{
-    display::PixelTarget,
+    display::{PixelTarget, SPACE_LG, SPACE_SM, SPACE_XL},
     product_journey::{JourneyProjection, JourneyStatus},
 };
+
+const TEXT_STEP: i16 = (SPACE_XL + SPACE_SM) as i16;
+const TEXT_BOX_HEIGHT: u16 = SPACE_XL + SPACE_SM * 2;
+const FOOTER_RESERVE: u16 = TEXT_BOX_HEIGHT + TEXT_STEP as u16;
 use alloc::format;
 use conduit_presentation::{
     ApplicationComponent, ApplicationView, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
@@ -39,7 +43,7 @@ pub(super) fn scene(
     text(
         &mut scene,
         screen,
-        24,
+        SPACE_LG as i16,
         "Conduit",
         GraphicsPaintRole::Foreground,
         GraphicsTextRole::Muted,
@@ -47,7 +51,7 @@ pub(super) fn scene(
     text(
         &mut scene,
         screen,
-        64,
+        (SPACE_XL * 2) as i16,
         journey.friendly_name.as_deref().unwrap_or("My Body"),
         GraphicsPaintRole::Accent,
         GraphicsTextRole::Title,
@@ -55,7 +59,7 @@ pub(super) fn scene(
     text(
         &mut scene,
         screen,
-        104,
+        (SPACE_XL * 3 + SPACE_SM) as i16,
         foreground_title,
         GraphicsPaintRole::Foreground,
         GraphicsTextRole::Heading,
@@ -77,7 +81,7 @@ pub(super) fn scene(
     text(
         &mut scene,
         screen,
-        144,
+        (SPACE_XL * 4 + SPACE_SM * 2) as i16,
         status,
         GraphicsPaintRole::Foreground,
         GraphicsTextRole::Status,
@@ -116,7 +120,8 @@ pub(super) fn scene(
             GraphicsTextRole::Code,
         )?;
     }
-    let footer_y = i16::try_from(screen.height.saturating_sub(48)).map_err(|_| Error::Scene)?;
+    let footer_y =
+        i16::try_from(screen.height.saturating_sub(TEXT_BOX_HEIGHT)).map_err(|_| Error::Scene)?;
     let lifecycle_action = match journey.status {
         JourneyStatus::QuiescentAwaitingInput => "  ·  F8 Stop  ·  F7 Lull",
         JourneyStatus::InputUnavailable
@@ -170,7 +175,8 @@ fn application_text(
             // over their short semantic label on the finite native surface.
             node.value.as_str()
         };
-        let limit = i16::try_from(screen.height.saturating_sub(88)).map_err(|_| Error::Scene)?;
+        let limit = i16::try_from(screen.height.saturating_sub(FOOTER_RESERVE))
+            .map_err(|_| Error::Scene)?;
         let mut remaining = value;
         while !remaining.is_empty() && y < limit {
             let mut split = remaining
@@ -181,7 +187,7 @@ fn application_text(
             }
             text(scene, screen, y, &remaining[..split], role, typography)?;
             remaining = &remaining[split..];
-            y = y.checked_add(40).ok_or(Error::Scene)?;
+            y = y.checked_add(TEXT_STEP).ok_or(Error::Scene)?;
         }
         if y >= limit {
             break;
@@ -205,7 +211,7 @@ fn result_text(
             GraphicsPaintRole::Muted,
             GraphicsTextRole::Status,
         )?;
-        return y.checked_add(40).ok_or(Error::Scene);
+        return y.checked_add(TEXT_STEP).ok_or(Error::Scene);
     }
     let mut remaining = value;
     while !remaining.is_empty() {
@@ -224,7 +230,7 @@ fn result_text(
             GraphicsTextRole::Body,
         )?;
         remaining = &remaining[split..];
-        y = y.checked_add(40).ok_or(Error::Scene)?;
+        y = y.checked_add(TEXT_STEP).ok_or(Error::Scene)?;
     }
     Ok(y)
 }
@@ -238,10 +244,10 @@ fn text(
     typography: GraphicsTextRole,
 ) -> Result<(), Error> {
     let bounds = LayoutRect {
-        x: 32,
+        x: SPACE_XL as i16,
         y,
-        width: screen.width.saturating_sub(64),
-        height: 48,
+        width: screen.width.saturating_sub(SPACE_XL * 2),
+        height: TEXT_BOX_HEIGHT,
     };
     scene
         .push(

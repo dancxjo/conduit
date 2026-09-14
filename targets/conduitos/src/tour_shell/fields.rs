@@ -10,18 +10,23 @@ pub(super) fn project(
     scroll_y: u16,
     mut scene: Option<&mut GraphicsScene>,
 ) -> Result<u16, TourShellError> {
+    let panel_inset = crate::display::SPACE_MD;
+    let header_height = crate::display::SPACE_XL + crate::display::SPACE_XS;
     let width = bounds
         .width
-        .checked_sub(24)
+        .checked_sub(panel_inset * 2)
         .filter(|width| *width >= 16)
         .ok_or(TourShellError::Scene)?;
     let viewport = LayoutRect {
         x: 0,
-        y: 36,
+        y: header_height as i16,
         width: bounds.width,
-        height: bounds.height.checked_sub(36).ok_or(TourShellError::Scene)?,
+        height: bounds
+            .height
+            .checked_sub(header_height)
+            .ok_or(TourShellError::Scene)?,
     };
-    let mut next_y = 44_u16;
+    let mut next_y = header_height + crate::display::SPACE_SM;
     for item in &presentation.text {
         let subject = presentation
             .subjects
@@ -46,13 +51,13 @@ pub(super) fn project(
         let y = i32::from(next_y) - i32::from(scroll_y);
         next_y = next_y
             .checked_add(height)
-            .and_then(|end| end.checked_add(12))
+            .and_then(|end| end.checked_add(crate::display::SPACE_MD))
             .filter(|end| *end <= super::scroll::MAX_SCROLL_CONTENT_HEIGHT)
             .ok_or(TourShellError::Scene)?;
         // Validate the payload even when this field is currently off screen.
         let command = GraphicsCommand::text(
             LayoutRect {
-                x: 12,
+                x: panel_inset as i16,
                 y: i16::try_from(y).map_err(|_| TourShellError::Scene)?,
                 width,
                 height,
@@ -62,7 +67,7 @@ pub(super) fn project(
             &text,
         )
         .map_err(|_| TourShellError::Scene)?;
-        if y + i32::from(height) > 36
+        if y + i32::from(height) > i32::from(header_height)
             && y < i32::from(bounds.height)
             && let Some(scene) = scene.as_deref_mut()
         {
