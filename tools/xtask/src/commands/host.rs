@@ -24,6 +24,8 @@ mod host_esp32_inspection_tests;
 mod host_local_model;
 #[path = "host_microphone.rs"]
 mod host_microphone;
+#[path = "host_microphone_house.rs"]
+mod host_microphone_house;
 #[path = "host_piper.rs"]
 mod host_piper;
 #[path = "host_recorded_house.rs"]
@@ -225,6 +227,8 @@ enum HostCommand {
         #[arg(long)]
         authorize_capture: bool,
     },
+    /// Capture one clip through the address-gated local House model Plan.
+    ProveMicrophoneHouse(host_microphone_house::MicrophoneHouseArgs),
 }
 
 #[derive(Args, Debug)]
@@ -365,6 +369,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             },
             opts,
         ),
+        HostCommand::ProveMicrophoneHouse(request) => host_microphone_house::prove(request, opts),
         HostCommand::Rpi(args) => match args.action.unwrap_or(RpiHostAction::Image) {
             RpiHostAction::Image => {
                 super::conduitos::build_rpi_image(args.board, opts).map_err(Into::into)

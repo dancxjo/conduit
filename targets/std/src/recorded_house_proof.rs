@@ -1,6 +1,7 @@
 //! Recorded speech through address-gated House generation in one ordinary Plan/Play.
 
 use crate::hosted_local_model::{HostedLocalModelAdapter, LocalModelAdapterTerminal};
+use crate::hosted_microphone::{AlsaMicrophoneAdapter, MicrophoneCaptureReceipt};
 use crate::hosted_speech_recognition::WhisperSpeechAdapter;
 use crate::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
 use conduit_core::{BaseImplementationId, ObservationKind, TerminalDisposition};
@@ -8,18 +9,11 @@ use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog,
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
-#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
-pub struct RecordedHouseProofReceipt {
-    pub plan_id: String,
-    pub play_id: String,
-    pub whisper_implementation_id: String,
-    pub local_model_implementation_id: String,
-    pub clip_sha256: String,
-    pub recognized_text_sha256: Option<String>,
-    pub recognized_text_bytes: u16,
-    pub response_sha256: String,
-    pub response_bytes: u32,
-    pub local_model_invocations: u16,
+pub use crate::recorded_house_receipt::{MicrophoneHouseProofReceipt, RecordedHouseProofReceipt};
+
+enum HouseAudioSource {
+    Recorded(Vec<u8>),
+    Microphone(Box<AlsaMicrophoneAdapter>),
 }
 
 struct CapturingModel {
@@ -75,10 +69,60 @@ pub fn run(
 ) -> Result<RecordedHouseProofReceipt, Box<dyn std::error::Error>> {
     conduit_audio::decode_pcm_clip(&clip)
         .map_err(|error| format!("decode admitted House proof clip: {error:?}"))?;
+    Ok(run_with_source(
+        config,
+        composition,
+        local_model,
+        whisper,
+        HouseAudioSource::Recorded(clip),
+    )?
+    .0)
+}
+
+pub fn run_microphone(
+    config: StdHostConfig,
+    composition: StdHostComposition,
+    local_model: Box<dyn HostedLocalModelAdapter>,
+    whisper: WhisperSpeechAdapter,
+    microphone: AlsaMicrophoneAdapter,
+) -> Result<MicrophoneHouseProofReceipt, Box<dyn std::error::Error>> {
+    let (house, microphone) = run_with_source(
+        config,
+        composition,
+        local_model,
+        whisper,
+        HouseAudioSource::Microphone(Box::new(microphone)),
+    )?;
+    let microphone = microphone.ok_or("microphone House Play omitted capture receipt")?;
+    Ok(MicrophoneHouseProofReceipt {
+        house,
+        microphone_implementation_id: conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION.into(),
+        microphone_executable_sha256: microphone.executable_sha256,
+        microphone_base_identity: microphone.base_identity,
+        microphone_card_id: microphone.card_id,
+        microphone_device: microphone.device,
+        capture_milliseconds: microphone.capture_milliseconds,
+        raw_pcm_sha256: microphone.raw_pcm_sha256,
+        raw_pcm_bytes: microphone.raw_pcm_bytes,
+        microphone_diagnostic_bytes: microphone.diagnostic_bytes,
+    })
+}
+
+fn run_with_source(
+    config: StdHostConfig,
+    composition: StdHostComposition,
+    local_model: Box<dyn HostedLocalModelAdapter>,
+    whisper: WhisperSpeechAdapter,
+    source: HouseAudioSource,
+) -> Result<(RecordedHouseProofReceipt, Option<MicrophoneCaptureReceipt>), Box<dyn std::error::Error>>
+{
     let capture = Arc::new(Mutex::new(ModelCapture::default()));
     let local_model_implementation_id = conduit_ai::LOCAL_MODEL_IMPLEMENTATION.to_string();
     let mut additional = crate::installed_std::test_local_model_io::house_source_offers().to_vec();
     additional.push(crate::installed_std::test_local_model_io::house_text_sink_offer());
+    if matches!(&source, HouseAudioSource::Microphone(_)) {
+        additional.push(conduit_std_offers::text_literal_offer());
+    }
     let mut host = StdHost::new_with_local_model_capabilities(
         config,
         composition,
@@ -88,11 +132,19 @@ pub fn run(
         }),
         additional,
     )?;
-    host.attach_whisper_clip_proof(whisper, clip)?;
+    let microphone_source = matches!(&source, HouseAudioSource::Microphone(_));
+    match source {
+        HouseAudioSource::Recorded(clip) => host.attach_whisper_clip_proof(whisper, clip)?,
+        HouseAudioSource::Microphone(microphone) => {
+            host.attach_microphone(*microphone)?;
+            host.attach_whisper_clip_recognizer(whisper)?;
+        }
+    }
 
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_microphone_clip_catalogs(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profiles)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profiles)?;
@@ -105,14 +157,26 @@ pub fn run(
         &mut startup,
         &mut profiles,
     );
+    let (audio_kind, audio_wiring) = if microphone_source {
+        (
+            conduit_semantic_catalog::MICROPHONE_CLIP_SOURCE_KIND,
+            "\"capture\" > audio.request\n audio.clip > recognize.clip",
+        )
+    } else {
+        (
+            crate::installed_std::test_local_model_io::HOUSE_AUDIO_CLIP_SOURCE_KIND,
+            "audio.value > recognize.clip",
+        )
+    };
     let source = format!(
-        "{}\n{}\nform recorded-house-proof {{\n audio: {}\n recognize: speech/recognize-clip\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n audio.value > recognize.clip\n recognize.result > recognized.result\n recognized.text > addressed.recognized\n addresses.value > addressed.addresses\n addressed.detection > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
+        "{}\n{}\nform recorded-house-proof {{\n audio: {}\n recognize: speech/recognize-clip\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n {}\n recognize.result > recognized.result\n recognized.text > addressed.recognized\n addresses.value > addressed.addresses\n addressed.detection > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
         include_str!("../../../forms/addressed-utterance/main.conduit"),
         include_str!("../../../forms/house-conversation/main.conduit"),
-        crate::installed_std::test_local_model_io::HOUSE_AUDIO_CLIP_SOURCE_KIND,
+        audio_kind,
         crate::installed_std::test_local_model_io::HOUSE_ADDRESSES_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_CONTEXT_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,
+        audio_wiring,
     );
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|error| {
@@ -144,8 +208,35 @@ pub fn run(
             byte_capacity: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
         },
     );
+    if microphone_source {
+        let trigger_connection = expanded
+            .connections
+            .iter()
+            .find(|connection| {
+                connection.sink_gear_id.as_str().ends_with("/audio")
+                    && connection.sink_port_id.as_str() == "request"
+            })
+            .ok_or("expanded microphone House Form omitted the capture trigger Cord")?;
+        connection_limits.insert(
+            (
+                trigger_connection.source_gear_id.clone(),
+                trigger_connection.source_port_id.clone(),
+                trigger_connection.sink_gear_id.clone(),
+                trigger_connection.sink_port_id.clone(),
+            ),
+            conduit_planner::ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: 16,
+            },
+        );
+    }
     let advertisements = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &advertisements)?;
+    let authority_grants = if microphone_source {
+        vec![host.microphone_authority_grant("grant/microphone-house-proof")?]
+    } else {
+        Vec::new()
+    };
     let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
         &expanded,
         &advertisements,
@@ -156,7 +247,7 @@ pub fn run(
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: conduit_tongues::RECOGNITION_RESULT_QUEUE_BYTES,
-            authority_grants: &[],
+            authority_grants: &authority_grants,
             protected_resource_grants: &[],
             line_offers: &[],
         },
@@ -191,18 +282,22 @@ pub fn run(
         .response
         .as_ref()
         .ok_or("recorded House model emitted no response")?;
-    Ok(RecordedHouseProofReceipt {
-        plan_id,
-        play_id: recognition.active_play_id.as_str().to_string(),
-        whisper_implementation_id: recognition.implementation_id.as_str().to_string(),
-        local_model_implementation_id,
-        clip_sha256: hex(&recognition.audio_sha256),
-        recognized_text_sha256: recognition.text_sha256.clone(),
-        recognized_text_bytes: recognition.text_bytes,
-        response_sha256: sha256(response),
-        response_bytes: u32::try_from(response.len())?,
-        local_model_invocations: captured.invocations,
-    })
+    let microphone = report.microphone.into_iter().next();
+    Ok((
+        RecordedHouseProofReceipt {
+            plan_id,
+            play_id: recognition.active_play_id.as_str().to_string(),
+            whisper_implementation_id: recognition.implementation_id.as_str().to_string(),
+            local_model_implementation_id,
+            clip_sha256: hex(&recognition.audio_sha256),
+            recognized_text_sha256: recognition.text_sha256.clone(),
+            recognized_text_bytes: recognition.text_bytes,
+            response_sha256: sha256(response),
+            response_bytes: u32::try_from(response.len())?,
+            local_model_invocations: captured.invocations,
+        },
+        microphone,
+    ))
 }
 
 fn sha256(bytes: &[u8]) -> String {
