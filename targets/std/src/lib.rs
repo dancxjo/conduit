@@ -115,6 +115,7 @@ pub mod pool_webchat;
 pub mod r1_control;
 pub mod r1_control_input;
 pub mod reaction_diffusion;
+pub mod remote_cord_sessions;
 pub mod ros2_base;
 pub use reaction_diffusion::*;
 pub mod sound_recovery;
