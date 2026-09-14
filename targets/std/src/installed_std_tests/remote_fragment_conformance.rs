@@ -170,6 +170,14 @@ fn generic_remote_fragment_routes_through_latest_and_atomic_tee() {
                 return Some(transfer);
             }
             if let Some(request) = source_runtime.next_host_request() {
+                let work = source_runtime.describe_host_request(request).unwrap();
+                assert_eq!(work.request, request);
+                assert_eq!(
+                    work.contract_id,
+                    conduit_core::wait_host_operation_requirement().contract_id
+                );
+                assert_eq!(work.input.len(), request.input.value.byte_len as usize);
+                assert_eq!(work.maximum_output_bytes, 0);
                 source_runtime
                     .complete_host_operation(
                         request,
