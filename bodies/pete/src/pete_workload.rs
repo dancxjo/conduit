@@ -32,6 +32,8 @@ pub struct PeteResidentForm {
     pub form: ResidentForm,
     pub required_kinds: Vec<KindId>,
     pub may_request_motion: bool,
+    /// Exact checked expansion supplied to ordinary planning; not a placement.
+    pub expanded: conduit_form::ExpandedCanonicalForm,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -48,6 +50,15 @@ pub enum PeteWorkloadRefusal {
     Catalog(String),
     InvalidForm,
     Workset(BodyWorksetError),
+    MotionUnavailable,
+    AuthorityAbsent,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PeteWorkloadProfile {
+    ObservationOnly,
+    Conversational,
+    EmbodiedAttended,
 }
 
 impl ReviewedPeteWorkload {
@@ -57,6 +68,38 @@ impl ReviewedPeteWorkload {
             .add(self.navigation.clone())
             .map_err(PeteWorkloadRefusal::Workset)?;
         Ok(workset)
+    }
+
+    pub fn for_profile(
+        &self,
+        profile: PeteWorkloadProfile,
+        motion_available: bool,
+        motion_authorized: bool,
+    ) -> Result<BodyWorkset, PeteWorkloadRefusal> {
+        match profile {
+            PeteWorkloadProfile::ObservationOnly => BodyWorkset::from_forms(
+                self.resident_forms
+                    .iter()
+                    .filter(|item| {
+                        matches!(
+                            item.role,
+                            PeteWorkloadRole::Situation
+                                | PeteWorkloadRole::AutobiographicalMemory
+                                | PeteWorkloadRole::HistoricalIndex
+                        )
+                    })
+                    .map(|item| item.form.clone()),
+            )
+            .map_err(PeteWorkloadRefusal::Workset),
+            PeteWorkloadProfile::Conversational => Ok(self.initial.clone()),
+            PeteWorkloadProfile::EmbodiedAttended if !motion_available => {
+                Err(PeteWorkloadRefusal::MotionUnavailable)
+            }
+            PeteWorkloadProfile::EmbodiedAttended if !motion_authorized => {
+                Err(PeteWorkloadRefusal::AuthorityAbsent)
+            }
+            PeteWorkloadProfile::EmbodiedAttended => self.with_navigation(),
+        }
     }
 }
 
@@ -186,6 +229,7 @@ fn check_resident(
         ),
         required_kinds,
         may_request_motion,
+        expanded: expanded.expanded,
     })
 }
 
