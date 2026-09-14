@@ -4,7 +4,10 @@ use super::{PiperFailure, PiperLimits, PiperSynthesisReceipt};
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use sha2::{Digest, Sha256};
 use std::io::{ErrorKind, Read, Write};
+#[cfg(unix)]
 use std::os::fd::AsRawFd;
+#[cfg(windows)]
+use std::os::windows::io::AsRawHandle;
 use std::process::{Child, ChildStderr, ChildStdout};
 use std::time::{Duration, Instant};
 
@@ -88,8 +91,16 @@ impl PiperSession {
         drop(stdin);
         let stdout = child.0.stdout.take().ok_or(PiperFailure::SpawnFailed)?;
         let stderr = child.0.stderr.take().ok_or(PiperFailure::SpawnFailed)?;
-        nonblocking(stdout.as_raw_fd())?;
-        nonblocking(stderr.as_raw_fd())?;
+        #[cfg(unix)]
+        {
+            nonblocking(stdout.as_raw_fd())?;
+            nonblocking(stderr.as_raw_fd())?;
+        }
+        #[cfg(windows)]
+        {
+            nonblocking(stdout.as_raw_handle())?;
+            nonblocking(stderr.as_raw_handle())?;
+        }
 
         self.raw.clear();
         self.encoded.clear();
@@ -288,9 +299,30 @@ impl Drop for PiperSession {
     }
 }
 
+#[cfg(unix)]
 fn nonblocking(descriptor: i32) -> Result<(), PiperFailure> {
     let flags = unsafe { libc::fcntl(descriptor, libc::F_GETFL) };
     if flags < 0 || unsafe { libc::fcntl(descriptor, libc::F_SETFL, flags | libc::O_NONBLOCK) } != 0
+    {
+        return Err(PiperFailure::InvalidProvider);
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn nonblocking(handle: std::os::windows::io::RawHandle) -> Result<(), PiperFailure> {
+    const PIPE_NOWAIT: u32 = 1;
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn SetNamedPipeHandleState(
+            named_pipe: std::os::windows::io::RawHandle,
+            mode: *const u32,
+            maximum_collection_count: *const u32,
+            collection_data_timeout: *const u32,
+        ) -> i32;
+    }
+    let mode = PIPE_NOWAIT;
+    if unsafe { SetNamedPipeHandleState(handle, &mode, core::ptr::null(), core::ptr::null()) } == 0
     {
         return Err(PiperFailure::InvalidProvider);
     }
