@@ -17,6 +17,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
 };
+use conduit_wire::SessionMessage;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RemoteValueTransfer {
@@ -199,6 +200,25 @@ impl InstalledRemoteFragment {
         self.scheduler
             .cancel()
             .map_err(|error| format!("cancel remote std fragment: {error:?}"))
+    }
+
+    /// Records an exact admitted Line failure before cancelling kernel work.
+    /// A malformed zero code leaves both the session and kernel unchanged.
+    pub fn fail_remote_line(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        code: u16,
+    ) -> Result<(), String> {
+        let session = self
+            .sessions
+            .get_mut(endpoint)
+            .ok_or_else(|| "remote Line failure names no admitted endpoint".to_string())?;
+        let binding = session.binding().clone();
+        session
+            .machine_mut()
+            .admit_outbound(binding.frame(SessionMessage::Failed { code }))
+            .map_err(|error| format!("record remote Line failure: {error:?}"))?;
+        self.cancel()
     }
     fn endpoint_cord(
         &self,

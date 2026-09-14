@@ -190,6 +190,19 @@ fn generic_remote_fragment_routes_through_latest_and_atomic_tee() {
         .admit_ingress(middle_ingress, transfer.sequence, &transfer.bytes)
         .unwrap();
     source_runtime.deliver_egress(&transfer).unwrap();
+    assert_eq!(
+        source_runtime
+            .fail_remote_line(source_endpoint, 0)
+            .unwrap_err(),
+        "record remote Line failure: InvalidState"
+    );
+    source_runtime
+        .fail_remote_line(source_endpoint, 73)
+        .unwrap();
+    assert!(source_runtime
+        .next_egress(source_endpoint)
+        .unwrap_err()
+        .contains("Cancelled"));
     middle_runtime.close_ingress(middle_ingress).unwrap();
     let egress = middle_runtime
         .sessions()

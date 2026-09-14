@@ -225,5 +225,19 @@ mod tests {
         .unwrap();
         assert!(source.iter().next().unwrap().machine().is_active());
         assert!(sink.iter().next().unwrap().machine().is_active());
+        let mut malformed = source
+            .iter()
+            .next()
+            .unwrap()
+            .binding()
+            .frame(SessionMessage::Ready);
+        malformed.identity.protocol_version = malformed.identity.protocol_version.saturating_add(1);
+        assert_eq!(
+            sink.get_mut(RemoteEndpointId(0))
+                .unwrap()
+                .machine_mut()
+                .admit_inbound(malformed),
+            Err(WireError::WrongProtocolVersion)
+        );
     }
 }
