@@ -864,6 +864,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-pete-workload-conformance"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-pete",
+ "conduit-planner",
+ "conduit-std-host",
+ "patchbay-model",
+]
+
+[[package]]
 name = "conduit-plan-lowering"
 version = "0.1.0"
 dependencies = [

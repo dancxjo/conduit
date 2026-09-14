@@ -99,6 +99,7 @@ package_test_shard!(
         "conduit-synth",
         "conduit-composite",
         "conduit-pete",
+        "conduit-pete-workload-conformance",
         "conduit-tongues",
         "conduit-creche-model",
         "conduit-workspace-model",

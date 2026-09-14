@@ -105,3 +105,35 @@ fn authored_meaning_has_no_deployment_role_or_mechanism_facts() {
         }
     }
 }
+
+#[test]
+fn no_motion_profiles_remain_useful_and_attended_motion_fails_closed() {
+    let workload = reviewed_pete_workload().unwrap();
+    let observation = workload
+        .for_profile(PeteWorkloadProfile::ObservationOnly, false, false)
+        .unwrap();
+    assert_eq!(observation.len(), 3);
+    assert!(!observation.contains(&workload.navigation));
+
+    let conversational = workload
+        .for_profile(PeteWorkloadProfile::Conversational, false, false)
+        .unwrap();
+    assert_eq!(conversational, workload.initial);
+    assert!(!conversational.contains(&workload.navigation));
+
+    assert_eq!(
+        workload.for_profile(PeteWorkloadProfile::EmbodiedAttended, false, false),
+        Err(PeteWorkloadRefusal::MotionUnavailable)
+    );
+    assert_eq!(
+        workload.for_profile(PeteWorkloadProfile::EmbodiedAttended, true, false),
+        Err(PeteWorkloadRefusal::AuthorityAbsent)
+    );
+    assert_eq!(
+        workload
+            .for_profile(PeteWorkloadProfile::EmbodiedAttended, true, true)
+            .unwrap()
+            .len(),
+        5
+    );
+}

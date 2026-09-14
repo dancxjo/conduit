@@ -79,6 +79,7 @@ members = [
 	# Explicit proof and conformance packages.
 	"proof/conformance/alife-distributed",
 	"proof/conformance/network-r1",
+	"proof/conformance/pete-workload",
 	"proof/conformance/signal",
 	"proof/fixtures/rp2040-pio-audio-extension",
 
