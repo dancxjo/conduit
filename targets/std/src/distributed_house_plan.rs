@@ -271,7 +271,11 @@ fn lines(
                 byte_capacity: conduit_tongues::RECOGNITION_RESULT_QUEUE_BYTES,
             });
         let line_id = format!("line/distributed-house/{index}");
-        let offer = process_owned_line_offer_with_limits(
+        let maximum_frame_bytes = connection_limits
+            .byte_capacity
+            .checked_add(8_192)
+            .ok_or("distributed House Line frame capacity overflow")?;
+        let mut offer = process_owned_line_offer_with_limits(
             &line_id,
             &format!("binding/distributed-house/{index}"),
             BaseImplementationId::from(REMOTE_BASE),
@@ -282,9 +286,11 @@ fn lines(
                 maximum_in_flight_items: connection_limits.item_capacity,
                 maximum_payload_bytes: connection_limits.byte_capacity,
                 maximum_buffered_bytes: connection_limits.byte_capacity,
-                maximum_frame_bytes: connection_limits.byte_capacity,
+                maximum_frame_bytes,
             },
         );
+        offer.contract.scope = conduit_core::LineScope::LocalNetwork;
+        offer.contract.security = conduit_core::LineSecurity::PlaintextNetwork;
         candidates.insert(
             (
                 connection.source_gear_id.clone(),

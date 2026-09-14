@@ -433,6 +433,38 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
         );
     }
 
+    for line in &exact.lines {
+        let source = exact
+            .plan
+            .fragments
+            .iter()
+            .find(|fragment| fragment.host_id == line.binding.source.host_id)
+            .unwrap();
+        let sink = exact
+            .plan
+            .fragments
+            .iter()
+            .find(|fragment| fragment.host_id == line.binding.sink.host_id)
+            .unwrap();
+        let connection = source
+            .connections
+            .iter()
+            .find(|connection| {
+                connection
+                    .selected_line
+                    .as_ref()
+                    .is_some_and(|selected| selected.line_id == line.line_id)
+            })
+            .unwrap();
+        conduit_wire::SessionBinding::from_planned_connection(
+            exact.plan.plan_id.clone(),
+            source.fragment_id.clone(),
+            sink.fragment_id.clone(),
+            connection,
+        )
+        .expect("every distributed House Line admits its exact session contract and limits");
+    }
+
     let accepted_plan = exact.plan.clone();
     for lost in [
         crate::distributed_house_plan::DistributedHouseRole::Cognition,
