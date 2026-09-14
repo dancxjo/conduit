@@ -6,7 +6,7 @@
 
 use conduit_body::{
     Body, BodyFormPlan, BodyId, BodyLifecycleError, BodyPlan, BodyPlanError, BodyPlayIdentity,
-    BodyWorkset, Wake, WakeId, WakeLifecycle,
+    BodyPresenterTopology, BodyWorkset, Wake, WakeId, WakeLifecycle,
 };
 use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, KindId, PlanId, SignId,
@@ -214,10 +214,21 @@ impl BodyPlanningSession {
         wake_sign_id: SignId,
         forms: Vec<BodyFormPlan>,
     ) -> Result<Self, BodyPlanningSessionError> {
+        Self::prepare_with_presenters(body, wake_sequence, wake_sign_id, forms, Vec::new())
+    }
+
+    pub fn prepare_with_presenters(
+        body: &Body,
+        wake_sequence: u64,
+        wake_sign_id: SignId,
+        forms: Vec<BodyFormPlan>,
+        presenter_topologies: Vec<BodyPresenterTopology>,
+    ) -> Result<Self, BodyPlanningSessionError> {
         let (body, wake) = body
             .wake(wake_sequence, wake_sign_id)
             .map_err(BodyPlanningSessionError::Lifecycle)?;
-        let plan = BodyPlan::seal(&wake, forms).map_err(BodyPlanningSessionError::Plan)?;
+        let plan = BodyPlan::seal_with_presenters(&wake, forms, presenter_topologies)
+            .map_err(BodyPlanningSessionError::Plan)?;
         Ok(Self {
             execution_claims: Vec::new(),
             body,
@@ -233,6 +244,15 @@ impl BodyPlanningSession {
         &mut self,
         forms: Vec<BodyFormPlan>,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
+        let presenter_topologies = self.current_plan().presenter_topologies.clone();
+        self.replace_proposal_with_presenters(forms, presenter_topologies)
+    }
+
+    pub fn replace_proposal_with_presenters(
+        &mut self,
+        forms: Vec<BodyFormPlan>,
+        presenter_topologies: Vec<BodyPresenterTopology>,
+    ) -> Result<&BodyPlan, BodyPlanningSessionError> {
         if self.has_outstanding_execution_claim()
             || self.wake.lifecycle != WakeLifecycle::AwaitingPlan
             || !self.wake.plans.is_empty()
@@ -244,7 +264,8 @@ impl BodyPlanningSession {
                 BodyLifecycleError::PlanCapacityExhausted,
             ));
         }
-        let plan = BodyPlan::seal(&self.wake, forms).map_err(BodyPlanningSessionError::Plan)?;
+        let plan = BodyPlan::seal_with_presenters(&self.wake, forms, presenter_topologies)
+            .map_err(BodyPlanningSessionError::Plan)?;
         if plan.plan_id == self.current_plan().plan_id {
             return Err(BodyPlanningSessionError::StaleCurrentPlan);
         }
@@ -288,6 +309,16 @@ impl BodyPlanningSession {
         forms: Vec<BodyFormPlan>,
         transition: BodyPlanningTransition,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
+        let presenter_topologies = self.current_plan().presenter_topologies.clone();
+        self.replan_with_presenters(forms, presenter_topologies, transition)
+    }
+
+    pub fn replan_with_presenters(
+        &mut self,
+        forms: Vec<BodyFormPlan>,
+        presenter_topologies: Vec<BodyPresenterTopology>,
+        transition: BodyPlanningTransition,
+    ) -> Result<&BodyPlan, BodyPlanningSessionError> {
         if self.has_outstanding_execution_claim() {
             return Err(BodyPlanningSessionError::StaleCurrentPlan);
         }
@@ -303,7 +334,8 @@ impl BodyPlanningSession {
         if wake.lifecycle != WakeLifecycle::Unsatisfied {
             return Err(BodyPlanningSessionError::StaleCurrentPlan);
         }
-        let replacement = BodyPlan::seal(&wake, forms).map_err(BodyPlanningSessionError::Plan)?;
+        let replacement = BodyPlan::seal_with_presenters(&wake, forms, presenter_topologies)
+            .map_err(BodyPlanningSessionError::Plan)?;
         wake = wake
             .body_plan_ready(&replacement, transition.plan_ready_sign_id)
             .map_err(BodyPlanningSessionError::Lifecycle)?;
