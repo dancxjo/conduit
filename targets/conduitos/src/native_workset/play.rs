@@ -22,7 +22,7 @@ const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS
 const SIGN_ITEMS: usize = 1024;
 type Scheduler = FixedScheduler<
     OperationDriver<PlannedOperation, PORTS>,
-    FixedValueStore<32, 1024>,
+    FixedValueStore<10, 3072>,
     FixedSignLog<SIGN_ITEMS>,
     NODES,
     CORDS,
@@ -163,6 +163,29 @@ impl NativeWorksetPlay {
         form: usize,
     ) -> Option<super::NativeApplicationRequest> {
         self.application_requests.get_mut(form)?.take()
+    }
+    pub fn set_presenter_topology(
+        &mut self,
+        topology: &patchbay_application::PatchbayPresenterTopology,
+    ) -> Result<(), PlayRefusal> {
+        for form in 0..self.form_count {
+            let is_patchbay = match self.applications[form].as_mut() {
+                Some(NativeApplication::Patchbay(application)) => {
+                    application.set_presenter_topology(topology);
+                    true
+                }
+                _ => false,
+            };
+            if !is_patchbay {
+                continue;
+            }
+            let _ = self.take_application_view(form);
+            let request = self.pending[form].ok_or(PlayRefusal::InputPressure)?;
+            self.output(request, Some(&[]))?;
+            self.pending[form] = None;
+            self.drive()?;
+        }
+        Ok(())
     }
     pub fn complete_tour_run(
         &mut self,

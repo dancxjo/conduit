@@ -31,7 +31,7 @@ fn chain(id: &str, implementation: &str) -> PresenterChain {
 fn topology(chains: Vec<PresenterChain>) -> PresenterTopology {
     PresenterTopology::new(
         body_id("self", 0),
-        SourceDocumentId::from("source/self"),
+        Some(SourceDocumentId::from("source/self")),
         "presentation/patchbay".into(),
         PlanId::from("plan/a"),
         ActivePlayId::from("play/a"),
@@ -259,7 +259,7 @@ fn cycle_overlength_lost_host_and_superseded_body_refuse_distinctly() {
 
 #[test]
 fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls() {
-    let current = topology(vec![
+    let mut current = topology(vec![
         chain("graphical", "conduit.presenter/native-graphical@1"),
         chain("speech", "conduit.presenter/test-speech@1"),
     ]);
@@ -268,7 +268,7 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
         PresentationBasis {
             body_id: Some(current.body_id.clone()),
             wake_id: None,
-            source_document_id: Some(current.source_document_id.clone()),
+            source_document_id: current.source_document_id.clone(),
             checked_form_id: Some(CheckedFormId::from("checked/self")),
             expanded_form_id: Some(ExpandedFormId::from("expanded/self")),
             plan_id: Some(current.plan_id.clone()),
@@ -288,6 +288,7 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
         vec![],
     )
     .unwrap();
+    current.presentation_id = base.identity.as_str().into();
     let portable = project_presenter_topology(&base, &current).unwrap();
     portable.validate().unwrap();
     assert_eq!(portable.basis, base.basis);
@@ -306,6 +307,16 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
             .iter()
             .any(|action| action.intent.contains(operation)));
     }
+    let native_lines = conduit_presentation::render_linear_presentation(&portable)
+        .unwrap()
+        .lines;
+    assert!(native_lines
+        .iter()
+        .any(|line| line.contains("Presenter topology")));
+    assert!(native_lines
+        .iter()
+        .any(|line| line.contains("Add Presenter")));
+    assert!(native_lines.iter().any(|line| line.contains("test-speech")));
 }
 
 #[test]
@@ -333,7 +344,7 @@ fn public_replanning_seam_requires_exact_verified_planner_output() {
     let current_play = bind_active_play(&plans.direct.plan_id, &direct.host_id, &direct.boot_id, 1);
     let current = PresenterTopology::new(
         body_id("planned", 2),
-        plans.direct.source_document_id.clone(),
+        Some(plans.direct.source_document_id.clone()),
         "presentation/patchbay".into(),
         plans.direct.plan_id.clone(),
         current_play.active_play_id,

@@ -46,5 +46,6 @@ pub(in crate::server) fn retain(
     snapshot.body_host_offer_evidence = prior.body_host_offer_evidence.clone();
     snapshot.body_host_planning_offer = prior.body_host_planning_offer.clone();
     snapshot.body_planning = prior.body_planning.clone();
+    snapshot.presenter_topology = prior.presenter_topology.clone();
     Ok((next, snapshot))
 }

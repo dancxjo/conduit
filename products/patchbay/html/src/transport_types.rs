@@ -77,6 +77,9 @@ pub struct RendererSnapshot {
     /// Ordinary Body/Wake/Plan state derived from policy-admitted offers.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_planning: Option<patchbay_model::BodyPlanningSessionSnapshot>,
+    /// Portable semantic projection of the selected Body Presenter chains.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub presenter_topology: Option<Presentation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub debugger: Option<DebuggerPresentation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
