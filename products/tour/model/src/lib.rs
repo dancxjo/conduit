@@ -9,6 +9,7 @@ use conduit_presentation::{
     StatusKind,
 };
 
+mod application;
 mod controller;
 mod gallery;
 mod gallery_experience;
@@ -20,6 +21,7 @@ pub use lesson::TOUR_LESSON_SUBJECT;
 mod navigation;
 mod pointer;
 mod shell_presentations;
+pub use application::*;
 pub use controller::*;
 pub use gallery::*;
 pub use gallery_experience::gallery_experience;

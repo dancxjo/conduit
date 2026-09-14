@@ -2,8 +2,9 @@
 
 use conduit_presentation::{ApplicationEvent, GraphicsScene};
 use conduit_tour_model::{
-    CANONICAL_SPECIMEN_ID, TourPointerOutcome, TourRunProof, TourWorkspaceController,
-    TourWorkspaceRefusal, TourWorkspaceRequest,
+    CANONICAL_SPECIMEN_ID, TourApplicationAction, TourApplicationRefusal, TourApplicationState,
+    TourPointerOutcome, TourRunProof, TourWorkspaceController, TourWorkspaceRefusal,
+    TourWorkspaceRequest,
 };
 
 use crate::{
@@ -28,6 +29,7 @@ pub struct TourProductUpdate {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourProductError {
+    Application(TourApplicationRefusal),
     Controller(TourWorkspaceRefusal),
     Preparation(PreparationError),
     Play(TourPlayError),
@@ -37,6 +39,7 @@ pub enum TourProductError {
 impl TourProductError {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Application(_) => "tour-application-refused",
             Self::Controller(_) => "tour-controller-refused",
             Self::Preparation(error) => error.as_str(),
             Self::Play(_) => "tour-play-refused",
@@ -53,6 +56,7 @@ impl TourProductError {
 }
 
 pub struct TourProduct {
+    application: TourApplicationState,
     controller: TourWorkspaceController,
     inspection: Option<inspection::RunInspection>,
     graph: Result<patchbay_graph::PatchbayGraph, TourWorkspaceSceneRefusal>,
@@ -61,6 +65,7 @@ pub struct TourProduct {
 impl TourProduct {
     pub fn canonical(revision: u32) -> Self {
         Self {
+            application: TourApplicationState::canonical(),
             controller: TourWorkspaceController::canonical(revision),
             inspection: None,
             graph: crate::tour_workspace::canonical_graph(),
@@ -69,6 +74,19 @@ impl TourProduct {
 
     pub const fn controller(&self) -> &TourWorkspaceController {
         &self.controller
+    }
+
+    pub const fn application(&self) -> &TourApplicationState {
+        &self.application
+    }
+
+    pub fn accept_application_action(
+        &mut self,
+        action: TourApplicationAction,
+    ) -> Result<(), TourProductError> {
+        self.application
+            .apply(action)
+            .map_err(TourProductError::Application)
     }
 
     pub fn select_gear(&mut self, revision: u32, gear: &str) -> Result<(), TourProductError> {
@@ -137,6 +155,7 @@ impl TourProduct {
         let play = match request {
             TourWorkspaceRequest::OpenPatchbay => None,
             TourWorkspaceRequest::Run => {
+                self.accept_application_action(TourApplicationAction::Run)?;
                 let mut prepared = crate::tour_play::prepare(identities, offer, build_id)
                     .map_err(TourProductError::Preparation)?;
                 let mut inspection = inspection::RunInspection::from_plan(&prepared.plan)
@@ -147,6 +166,7 @@ impl TourProduct {
                 self.controller
                     .complete_run(run_proof(&evidence))
                     .map_err(TourProductError::Controller)?;
+                self.accept_application_action(TourApplicationAction::Complete)?;
                 inspection.observations = evidence.observations.clone();
                 self.inspection = Some(inspection);
                 Some(evidence)
@@ -465,5 +485,18 @@ mod tests {
                 subject: "meet-one-gear/result".into()
             }
         );
+    }
+
+    #[test]
+    fn native_projection_runs_the_shared_application_conformance_trace() {
+        let mut product = TourProduct::canonical(1);
+        for action in conduit_tour_model::TOUR_PROJECTION_CONFORMANCE_ACTIONS {
+            product.accept_application_action(action).unwrap();
+        }
+        let mut expected = TourApplicationState::canonical();
+        for action in conduit_tour_model::TOUR_PROJECTION_CONFORMANCE_ACTIONS {
+            expected.apply(action).unwrap();
+        }
+        assert_eq!(product.application(), &expected);
     }
 }

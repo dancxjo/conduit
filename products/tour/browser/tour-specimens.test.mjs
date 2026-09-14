@@ -96,6 +96,7 @@ test("presentation forwards only explicit application actions", () => {
   ]);
   const observed = [];
   const actions = createTourApplicationActionForwarder({
+    runtime: { conduit_tour_application_apply: () => 0 },
     onRun: () => observed.push("run"),
     onStop: () => observed.push("stop"),
     onRestore: () => observed.push("restore"),

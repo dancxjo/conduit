@@ -96,6 +96,9 @@ try {
     onFailure: showTourFailure,
   });
   guidedPages = parseTourPages(chapters);
+  if (host.runtime.conduit_tour_application_reset(guidedPages.length) < 0) {
+    throw new Error("shared Tour application refused its chapter inventory");
+  }
   setupTourModes();
   const initialRoute = routing.admit(guidedPages, gallery.forms);
   await renderRoute(initialRoute.destination);
@@ -140,6 +143,10 @@ function requireTourAbi(api) {
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_browser_form_reviewed_gallery",
     "conduit_tour_navigation_view", "conduit_tour_navigation_view_ptr", "conduit_tour_navigation_view_len",
+    "conduit_tour_application_reset", "conduit_tour_application_open_chapter",
+    "conduit_tour_application_apply", "conduit_tour_application_state",
+    "conduit_tour_application_chapters", "conduit_tour_application_chapters_ptr",
+    "conduit_tour_application_chapters_len",
     "conduit_tour_encode_button_transition",
     "conduit_tour_project_patchbay", "conduit_tour_project_patchbay_recursive",
     "conduit_syntax_input_ptr", "conduit_syntax_input_capacity",
@@ -154,10 +161,24 @@ function requireTourAbi(api) {
   if (required.some((name) => !(name in api))) throw new Error("executable-tour ABI is incomplete");
 }
 
+function readTourApplicationChapters(api) {
+  if (api.conduit_tour_application_chapters() < 0) {
+    throw new Error("shared Tour chapter catalog is unavailable");
+  }
+  return JSON.parse(decoder.decode(new Uint8Array(
+    api.memory.buffer,
+    api.conduit_tour_application_chapters_ptr(),
+    api.conduit_tour_application_chapters_len(),
+  )));
+}
+
 async function renderPage(index, routeChange = "none") {
   retireActiveLaboratory();
   if (routeChange === "push") await routing.move(index, "push");
   currentPage = index;
+  if (host.runtime.conduit_tour_application_open_chapter(index) < 0) {
+    throw new Error("shared Tour application refused the chapter transition");
+  }
   setTourMode("guided");
   workspace.showLesson();
   chapter.replaceChildren();
@@ -430,6 +451,9 @@ function createRunner(source, recursive = false, presentation = {}) {
   const runnerPresentation = hostPresentationFor(runner);
   const initialSource = readingState.drafts.get(sourceKey) ?? source;
   createTourRunnerField(runnerPresentation, fieldSlot, listingId, "Conduit · editable", initialSource, (value) => {
+    if (host.runtime.conduit_tour_application_apply(7) < 0) {
+      throw new Error("shared Tour application refused the source transition");
+    }
     readingState.drafts.set(sourceKey, value);
     persistTourState();
     refreshCompactPatchbay(runner, value, recursive);
@@ -445,7 +469,7 @@ function createRunner(source, recursive = false, presentation = {}) {
     refreshCompactPatchbay(runner, textarea.value, recursive);
   });
   runner.actionControls = createTourRunnerActions(
-    runnerPresentation, actionsSlot, presentation.runLabel ?? "Run",
+    host.runtime, runnerPresentation, actionsSlot, presentation.runLabel ?? "Run",
     () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
     () => restoreTourRunnerDraft({
       runner, textarea, source, sourceKey, readingState, syntaxEditor,
@@ -515,6 +539,9 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
   const initialSource = readingState.drafts.get(sourceKey) ?? source;
   createTourRunnerField(
     runnerPresentation, fieldSlot, listingId, "Conduit · editable · unchanged across Hosts", initialSource, (value) => {
+      if (host.runtime.conduit_tour_application_apply(7) < 0) {
+        throw new Error("shared Tour application refused the source transition");
+      }
       readingState.drafts.set(sourceKey, value);
       persistTourState();
       refreshCompactPatchbay(runner, value, false);
@@ -523,7 +550,7 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
   const syntaxEditor = attachConduitSyntaxEditor(textarea, host.runtime);
   runner.actionControls = createTourRunnerActions(
-    runnerPresentation, actionsSlot, "Run across two Hosts",
+    host.runtime, runnerPresentation, actionsSlot, "Run across two Hosts",
     () => runMultiHostListing(runner, textarea.value), () => stopListing(runner),
     () => restoreTourRunnerDraft({
       runner, textarea, source, sourceKey, readingState, syntaxEditor,
@@ -896,7 +923,7 @@ async function runMultiHostListing(runner, source) {
     cancelMultiSessions();
     setIndicator(runner, false);
     runner.playStatus.failure(error instanceof Error ? error.message : String(error));
-    finishRun(runner);
+    finishRun(runner, 8);
   }
 }
 
@@ -998,7 +1025,10 @@ function nextPaint(expectedGeneration) {
   return new Promise((resolve) => requestAnimationFrame(() => resolve(expectedGeneration === generation)));
 }
 
-function finishRun(runner) {
+function finishRun(runner, outcome = 6) {
+  if (host.runtime.conduit_tour_application_apply(outcome) < 0) {
+    throw new Error("shared Tour application refused the terminal Play transition");
+  }
   humanInput?.cancelPending();
   activeMemoryLine = null;
   running = false;
@@ -1021,6 +1051,7 @@ async function runListing(runner, source, recursive) {
   const total = hostBytes.length + bootBytes.length + sourceBytes.length;
   if (total > api.conduit_browser_form_input_capacity()) {
     runner.playStatus.failure("The listing exceeds the admitted input bound.");
+    api.conduit_tour_application_apply(8);
     return;
   }
   const input = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), total);
@@ -1039,6 +1070,7 @@ async function runListing(runner, source, recursive) {
     runner.playStatus.failure(refusal?.message
       ? `The edit was refused · ${refusal.category}: ${refusal.message}`
       : `The edit was refused (${interaction}).`);
+    api.conduit_tour_application_apply(8);
     return;
   }
   input.set(hostBytes);
@@ -1052,6 +1084,7 @@ async function runListing(runner, source, recursive) {
     runner.playStatus.failure(refusal?.message
       ? `The Form was refused before Play · ${refusal.category}: ${refusal.message}`
       : `The Form was refused before Play (${code}).`);
+    api.conduit_tour_application_apply(8);
     return;
   }
   let progress = readOutput(api);
@@ -1108,6 +1141,9 @@ async function runListing(runner, source, recursive) {
     ]);
     humanInput?.cancelPending();
     runner.querySelector(".input-button").hidden = true;
+    if (host.runtime.conduit_tour_application_apply(6) < 0) {
+      throw new Error("shared Tour application refused Play completion");
+    }
     running = false;
     activeRunner = null;
     setNavigationDisabled(false);
@@ -1124,6 +1160,9 @@ async function runListing(runner, source, recursive) {
     }
     setIndicator(runner, false);
     setLifecycleDisposition(runner, "failed");
+    if (host.runtime.conduit_tour_application_apply(8) < 0) {
+      throw new Error("shared Tour application refused Play failure");
+    }
     if (receipt?.disposition === "cancelled") {
       appendRunEvidence(runner, [
         ["Lifecycle", "CancelledAfterHostLoss"],
