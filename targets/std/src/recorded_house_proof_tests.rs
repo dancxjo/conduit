@@ -465,6 +465,54 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
         .expect("every distributed House Line admits its exact session contract and limits");
     }
 
+    let mut runtimes = exact
+        .hosts
+        .iter()
+        .map(|host| {
+            let fragment = exact
+                .plan
+                .fragments
+                .iter()
+                .find(|fragment| fragment.host_id == host.host_id)
+                .unwrap();
+            crate::InstalledRemoteFragment::prepare(host, fragment, 1)
+                .expect("every distributed House fragment prepares in the one std kernel")
+        })
+        .collect::<Vec<_>>();
+    for line in &exact.lines {
+        let source_index = exact
+            .hosts
+            .iter()
+            .position(|host| host.host_id == line.binding.source.host_id)
+            .unwrap();
+        let sink_index = exact
+            .hosts
+            .iter()
+            .position(|host| host.host_id == line.binding.sink.host_id)
+            .unwrap();
+        assert!(source_index < sink_index);
+        let (sources, sinks) = runtimes.split_at_mut(sink_index);
+        let source = &mut sources[source_index];
+        let sink = &mut sinks[0];
+        let source_endpoint = source
+            .sessions()
+            .iter()
+            .find(|session| session.binding().attachment.line_id == line.line_id)
+            .unwrap()
+            .endpoint;
+        let sink_endpoint = sink
+            .sessions()
+            .iter()
+            .find(|session| session.binding().attachment.line_id == line.line_id)
+            .unwrap()
+            .endpoint;
+        crate::remote_cord_sessions::activate_in_process(
+            source.sessions_mut().get_mut(source_endpoint).unwrap(),
+            sink.sessions_mut().get_mut(sink_endpoint).unwrap(),
+        )
+        .expect("every exact distributed House Line reaches Ready");
+    }
+
     let accepted_plan = exact.plan.clone();
     for lost in [
         crate::distributed_house_plan::DistributedHouseRole::Cognition,
