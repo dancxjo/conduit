@@ -284,10 +284,34 @@ impl BodyPlanningSession {
         play_sequence: u64,
         play_started_sign_id: SignId,
     ) -> Result<Self, BodyPlanningSessionError> {
+        Self::start_with_presenters(
+            body,
+            wake_sequence,
+            wake_sign_id,
+            forms,
+            Vec::new(),
+            plan_ready_sign_id,
+            play_sequence,
+            play_started_sign_id,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn start_with_presenters(
+        body: &Body,
+        wake_sequence: u64,
+        wake_sign_id: SignId,
+        forms: Vec<BodyFormPlan>,
+        presenter_topologies: Vec<BodyPresenterTopology>,
+        plan_ready_sign_id: SignId,
+        play_sequence: u64,
+        play_started_sign_id: SignId,
+    ) -> Result<Self, BodyPlanningSessionError> {
         let (body, wake) = body
             .wake(wake_sequence, wake_sign_id)
             .map_err(BodyPlanningSessionError::Lifecycle)?;
-        let plan = BodyPlan::seal(&wake, forms).map_err(BodyPlanningSessionError::Plan)?;
+        let plan = BodyPlan::seal_with_presenters(&wake, forms, presenter_topologies)
+            .map_err(BodyPlanningSessionError::Plan)?;
         let wake = wake
             .body_plan_ready(&plan, plan_ready_sign_id)
             .map_err(BodyPlanningSessionError::Lifecycle)?;
