@@ -2821,6 +2821,7 @@ dependencies = [
  "conduit-browser-runtime",
  "conduit-core",
  "conduit-creche-model",
+ "conduit-data",
  "conduit-form",
  "conduit-human",
  "conduit-kernel",
