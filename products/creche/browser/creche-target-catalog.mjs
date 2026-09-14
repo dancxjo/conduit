@@ -12,8 +12,8 @@ const encoder = new TextEncoder();
 // Finite workflow ceilings shared by the catalog and its existing-computer adapter.
 // The release-ABI conformance test checks advertisement capacity plus join framing.
 export const PHYSICAL_HOST_EVIDENCE_MAXIMA = Object.freeze({
-  maximumOperationEvidenceBytes: 120 * 1024,
-  maximumRetainedEvidenceBytes: 144 * 1024,
+  maximumOperationEvidenceBytes: 136 * 1024,
+  maximumRetainedEvidenceBytes: 160 * 1024,
 });
 
 export const PHYSICAL_HOST_INTENTIONS = Object.freeze([
