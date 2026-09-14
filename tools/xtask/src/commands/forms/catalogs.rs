@@ -113,5 +113,6 @@ pub(super) fn catalogs(
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;
+    conduit_pete::install_pete_memory_catalog(&mut startup, &mut profile)?;
     Ok((startup, profile))
 }

@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 103
+maximum_forms = 104
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -269,6 +269,12 @@ title = "Phase Synchronization"
 entry = "phase-synchronization"
 deterministic = { package = "conduit-time", test = "rhythm_composition", case = "canonical_rhythm_forms_compose_as_gears_in_an_independent_closed_form" }
 browser_safe_not_applicable = "portable phase synchronization has no installed browser realization"
+[[forms]]
+slug = "pete-memory"
+title = "Pete Memory"
+entry = "pete-memory"
+deterministic = { package = "conduit-pete", test = "lib", case = "canonical_memory_form_is_checked_and_host_neutral" }
+browser_safe_not_applicable = "Pete autobiographical retention has no installed browser realization"
 [[forms]]
 slug = "pete-situation"
 title = "Pete Situation"
