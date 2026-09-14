@@ -400,6 +400,21 @@ pub fn run(
                                 .map_err(|error| error.as_str())?;
                             arch::early_write(b"CONDUIT_WORKSPACE_CHECKPOINT resident-tour-ran\n");
                         }
+                        Some(crate::native_workset::NativeApplicationRequest::EditCurrent(
+                            request @ patchbay_application::PatchbayApplicationRequest::ChangePresenters { .. },
+                        )) => {
+                            journey
+                                .replan_presenters(
+                                    request,
+                                    identities,
+                                    offer,
+                                    fabrication.build_id,
+                                )
+                                .map_err(|error| error.as_str())?;
+                            arch::early_write(
+                                b"CONDUIT_WORKSPACE_CHECKPOINT patchbay-presenters-replanned\n",
+                            );
+                        }
                         Some(crate::native_workset::NativeApplicationRequest::EditCurrent(_)) => {
                             arch::early_write(
                                 b"CONDUIT_WORKSPACE_CHECKPOINT patchbay-edit-requested\n",
