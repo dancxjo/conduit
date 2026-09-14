@@ -32,12 +32,12 @@ fn records() -> Vec<Value> {
 }
 
 #[test]
-fn two_form_proof_rejects_restarts_identity_substitution_input_loss_and_state_loss() {
+fn resident_form_proof_rejects_restarts_identity_substitution_input_loss_and_state_loss() {
     let valid = records();
     let (initial, proof) = validate(&valid).unwrap();
     assert_eq!(initial["result"], "HELLO");
-    assert_eq!(proof.forms.len(), 2);
-    assert_eq!(proof.switches, 6);
+    assert_eq!(proof.forms.len(), 4);
+    assert_eq!(proof.switches, 12);
     for field in [
         "body_id",
         "wake_id",
@@ -47,29 +47,29 @@ fn two_form_proof_rejects_restarts_identity_substitution_input_loss_and_state_lo
         "checked_form_id",
         "expanded_form_id",
     ] {
-        for index in [21, 38, 39] {
+        for index in [23, 41, 42] {
             let mut changed = valid.clone();
             changed[index][field] = "substituted".into();
             assert!(validate(&changed).is_err(), "{field} at {index}");
         }
     }
-    for index in [19, 22, 27, 37] {
+    for index in [21, 24, 29, 40] {
         let mut changed = valid.clone();
         changed[index]["result"] = "lost state".into();
         assert!(validate(&changed).is_err());
     }
     let mut lost = valid.clone();
-    lost.remove(20); // Held Canvas release after switching to Memory.
+    lost.remove(23); // Held Canvas release after switching through Patchbay and Tour.
     assert!(validate(&lost).is_err());
     let mut duplicate = valid.clone();
     duplicate.insert(22, duplicate[22].clone());
     assert!(validate(&duplicate).is_err());
     let mut omitted = valid;
-    omitted[28]["result"] = Value::Null; // Empty text is a value, not absent output.
+    omitted[31]["result"] = Value::Null; // Empty text is a value, not absent output.
     assert!(validate(&omitted).is_err());
 
     let mut coalesced = records();
-    coalesced.remove(23); // Adjacent Memory press/release projected together.
+    coalesced.remove(27); // Adjacent Memory press/release projected together.
     validate(&coalesced).unwrap();
 
     let mut bootstrapped = records();

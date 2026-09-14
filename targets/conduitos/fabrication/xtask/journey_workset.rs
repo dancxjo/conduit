@@ -19,6 +19,8 @@ pub(super) struct WorksetProof {
     pub input_count: u64,
     pub held_release_crossed_selection: bool,
     pub memory_cleared_and_edited_again: bool,
+    pub resident_tour_ran: bool,
+    pub patchbay_edit_requested: bool,
 }
 
 #[derive(Serialize)]
@@ -38,7 +40,7 @@ struct Expected {
 }
 
 fn expected() -> Vec<Expected> {
-    use NativeForm::{KeyboardCanvas as Canvas, MemoryLantern as Memory};
+    use NativeForm::{KeyboardCanvas as Canvas, MemoryLantern as Memory, Patchbay, Tour};
     let mut records = (0..=10u64)
         .map(|count| Expected {
             form: Canvas,
@@ -49,6 +51,33 @@ fn expected() -> Vec<Expected> {
     // Tab changes the foreground without consuming a Form input. Each ordinary
     // press/release is accepted exactly once; the held X release belongs to
     // Canvas even though Memory is foreground by then.
+    records.extend([
+        Expected {
+            form: Patchbay,
+            count: 10,
+            result: None,
+        },
+        Expected {
+            form: Patchbay,
+            count: 11,
+            result: None,
+        },
+        Expected {
+            form: Patchbay,
+            count: 12,
+            result: None,
+        },
+        Expected {
+            form: Tour,
+            count: 12,
+            result: None,
+        },
+        Expected {
+            form: Tour,
+            count: 13,
+            result: None,
+        },
+    ]);
     for (form, count, result) in [
         (Memory, 10, None),
         (Memory, 11, Some("o")),
@@ -59,6 +88,8 @@ fn expected() -> Vec<Expected> {
         (Memory, 16, Some("one")),
         (Canvas, 16, Some("HELLO")),
         (Canvas, 17, Some("HELLOX")),
+        (Patchbay, 17, None),
+        (Tour, 17, None),
         (Memory, 17, Some("one")),
         (Memory, 18, Some("one")),
         (Memory, 19, Some("on")),
@@ -74,12 +105,14 @@ fn expected() -> Vec<Expected> {
         (Canvas, 28, Some("HELLOX")),
         (Canvas, 29, Some("HELLOXY")),
         (Canvas, 30, Some("HELLOXY")),
+        (Patchbay, 30, None),
+        (Tour, 30, None),
         (Memory, 30, Some("hi")),
         (Canvas, 30, Some("HELLOXY")),
     ] {
         records.push(Expected {
             form,
-            count,
+            count: count + 3,
             result,
         });
     }
@@ -116,11 +149,13 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     let refusal = || {
         ConduitosError::refusal(
             "product-journey-workset-invalid",
-            "two exact Forms must retain independent results and one Body/Plan/Play through switching, held release, empty editing, and Lull",
+            "four exact resident Forms must retain independent state and one Body/Plan/Play through switching, inspection, held release, empty editing, and Lull",
         )
     };
     let mut canvas = identity(NativeForm::KeyboardCanvas)?;
     let mut memory = identity(NativeForm::MemoryLantern)?;
+    let tour = identity(NativeForm::Tour)?;
+    let patchbay = identity(NativeForm::Patchbay)?;
     let quiescent = records
         .iter()
         .filter(|record| record["status"] == "quiescent-awaiting-input")
@@ -136,6 +171,8 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             let form = match candidate.form {
                 NativeForm::KeyboardCanvas => &canvas,
                 NativeForm::MemoryLantern => &memory,
+                NativeForm::Tour => &tour,
+                NativeForm::Patchbay => &patchbay,
             };
             if matches(record, candidate, form) {
                 break;
@@ -156,11 +193,13 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     }
     // Presentation service may coalesce adjacent accepted inputs. Preserve the
     // critical semantic checkpoints instead of requiring one frame per event.
-    for index in [0, 10, 17, 19, 26, 31, 36] {
+    for index in [0, 10, 11, 12, 19, 21, 22, 23, 25, 33, 36, 38, 39, 42] {
         let checkpoint = expected[index];
         let form = match checkpoint.form {
             NativeForm::KeyboardCanvas => &canvas,
             NativeForm::MemoryLantern => &memory,
+            NativeForm::Tour => &tour,
+            NativeForm::Patchbay => &patchbay,
         };
         if !quiescent
             .iter()
@@ -181,7 +220,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             }
             continue;
         }
-        let reviewed = [&canvas, &memory].iter().any(|form| {
+        let reviewed = [&canvas, &memory, &tour, &patchbay].iter().any(|form| {
             record["source_document_id"] == form.source_document_id
                 && record["checked_form_id"] == form.checked_form_id
                 && record["expanded_form_id"] == form.expanded_form_id
@@ -198,7 +237,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
         if ["body_id", "wake_id", "plan_id", "active_play_id"]
             .iter()
             .any(|field| record[field] != quiescent[0][field])
-            || record["input_count"] != 30
+            || record["input_count"] != 33
             || record["result"] != "HELLOXY"
         {
             return Err(refusal());
@@ -213,14 +252,16 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             .find(|record| matches(record, expected[10], &canvas))
             .ok_or_else(refusal)?,
         WorksetProof {
-            forms: vec![canvas, memory],
+            forms: vec![canvas, memory, tour, patchbay],
             switches: quiescent
                 .windows(2)
                 .filter(|pair| pair[0]["checked_form_id"] != pair[1]["checked_form_id"])
                 .count(),
-            input_count: 30,
+            input_count: 33,
             held_release_crossed_selection: true,
             memory_cleared_and_edited_again: true,
+            resident_tour_ran: true,
+            patchbay_edit_requested: true,
         },
     ))
 }

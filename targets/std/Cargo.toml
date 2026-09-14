@@ -6,7 +6,7 @@ edition = "2021"
 [features]
 default = []
 bluetooth-bluez = ["dep:bluer", "dep:dbus", "dep:futures", "dep:tokio", "dep:uuid"]
-local-model-proof = []
+local-model-proof = ["conduit-tongues/speech"]
 pete-create = ["dep:conduit-create-oi"]
 isolated-file-base = []
 isolated-base-proof = ["isolated-file-base"]

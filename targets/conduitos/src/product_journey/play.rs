@@ -5,11 +5,101 @@ use alloc::{boxed::Box, format};
 use conduit_body::{BodyPlayIdentity, WakeLifecycle};
 use conduit_core::SignId;
 use conduit_human::KeyEvent;
+use conduit_presentation::{ApplicationEvent, ApplicationView};
 
 impl ProductJourney {
     pub fn foreground_input_owner(&self) -> Option<&native_workset::AdmittedFormInput> {
         (self.status == JourneyStatus::QuiescentAwaitingInput)
             .then(|| self.kernel.as_ref()?.input_owner(self.foreground))?
+    }
+
+    pub fn foreground_application_view(&self) -> Option<&ApplicationView> {
+        (self.status == JourneyStatus::QuiescentAwaitingInput)
+            .then(|| self.kernel.as_ref()?.application_view(self.foreground))?
+    }
+
+    pub fn take_application_request(&mut self) -> Option<native_workset::NativeApplicationRequest> {
+        self.application_request.take()
+    }
+
+    pub fn complete_tour_run(
+        &mut self,
+        evidence: &crate::tour_play::TourPlayEvidence,
+    ) -> Result<(), JourneyError> {
+        if self.status != JourneyStatus::QuiescentAwaitingInput {
+            return Err(JourneyError::InvalidTransition);
+        }
+        let tour = self
+            .forms
+            .iter()
+            .position(|form| *form == Some(native_workset::NativeForm::Tour))
+            .ok_or(JourneyError::Kernel)?;
+        self.kernel
+            .as_mut()
+            .ok_or(JourneyError::Kernel)?
+            .complete_tour_run(
+                tour,
+                conduit_tour_model::TourRunProof {
+                    specimen_id: conduit_tour_model::CANONICAL_SPECIMEN_ID.into(),
+                    source_document_id: evidence.source_document_id.clone(),
+                    checked_form_id: evidence.checked_form_id.clone(),
+                    expanded_form_id: evidence.expanded_form_id.clone(),
+                    plan_id: evidence.plan_id.clone(),
+                    active_play_id: evidence.active_play_id.clone(),
+                    result: evidence.result.into(),
+                },
+            )
+            .map_err(JourneyError::Play)?;
+        self.advance()
+    }
+
+    pub fn accept_application_event(
+        &mut self,
+        event: &ApplicationEvent,
+    ) -> Result<bool, JourneyError> {
+        if self.status != JourneyStatus::QuiescentAwaitingInput {
+            return Ok(false);
+        }
+        let next_count = self
+            .input_count
+            .checked_add(1)
+            .ok_or(JourneyError::InputSequenceExhausted)?;
+        self.revision
+            .checked_add(1)
+            .ok_or(JourneyError::RevisionExhausted)?;
+        let kernel = self.kernel.as_mut().ok_or(JourneyError::Kernel)?;
+        let current = kernel
+            .application_view(self.foreground)
+            .ok_or(JourneyError::InputUnavailable)?;
+        let encoded = event
+            .encode(current)
+            .map_err(|_| JourneyError::WrongTarget)?;
+        let _ = kernel.take_application_view(self.foreground);
+        kernel
+            .application_event(self.foreground, &encoded)
+            .map_err(JourneyError::Play)?;
+        let application_request = kernel.take_application_request(self.foreground);
+        let play = self.play.as_ref().ok_or(JourneyError::InvalidTransition)?;
+        self.input_sign_id = Some(SignId::from(format!(
+            "conduitos/product/input/{}/{}",
+            play.active_play_id.as_str(),
+            self.input_count
+        )));
+        self.input_count = next_count;
+        self.advance()?;
+        if application_request == Some(native_workset::NativeApplicationRequest::OpenPatchbay) {
+            let patchbay = native_workset::resident(native_workset::NativeForm::Patchbay)
+                .map_err(JourneyError::Workset)?;
+            self.select_form(&patchbay, self.revision)?;
+        } else if application_request.is_some() {
+            if self.application_request.is_some() {
+                return Err(JourneyError::Play(
+                    native_workset::PlayRefusal::InputPressure,
+                ));
+            }
+            self.application_request = application_request;
+        }
+        Ok(true)
     }
 
     pub fn owns_key_release(&self, event: KeyEvent) -> bool {
@@ -37,6 +127,7 @@ impl ProductJourney {
                 kernel.cancel().map_err(JourneyError::Play)?;
                 self.retained_kernel_sign_gap = kernel.sign_retention_gap();
                 self.kernel = None;
+                self.application_request = None;
                 self.status = JourneyStatus::Stopped;
                 self.advance()?;
                 return Err(JourneyError::Play(error));
@@ -83,6 +174,7 @@ impl ProductJourney {
             self.retained_kernel_sign_gap = kernel.sign_retention_gap();
         }
         self.kernel = None;
+        self.application_request = None;
         self.planned_play = None;
         self.play = None;
         self.loss_kind = Some(kind);
@@ -132,6 +224,7 @@ impl ProductJourney {
         self.loss_kind = None;
         self.loss_sign_id = None;
         self.retained_kernel_sign_gap = None;
+        self.application_request = None;
         self.planned_play = Some(BodyPlayIdentity::bind(&plan, self.revision));
         self.plan = Some(plan);
         self.input_owners = input_owners;
@@ -179,6 +272,7 @@ impl ProductJourney {
             self.retained_kernel_sign_gap = kernel.sign_retention_gap();
         }
         self.kernel = None;
+        self.application_request = None;
         self.status = JourneyStatus::Stopped;
         Ok(())
     }
@@ -214,6 +308,7 @@ impl ProductJourney {
             self.retained_kernel_sign_gap = kernel.sign_retention_gap();
         }
         self.kernel = None;
+        self.application_request = None;
         self.body = Some(retained);
         self.wake = Some(lulled);
         self.status = JourneyStatus::Lulled;

@@ -20,6 +20,8 @@ pub(super) struct BodyStartRequest {
     /// the Host must durably record the returned start before dispatching effects.
     #[serde(default)]
     pub body_evidence: Option<conduit_body::BodyBiographyEvidence>,
+    pub source: String,
+    pub foreground_checked_form_id: String,
 }
 
 #[derive(serde::Serialize)]
@@ -189,6 +191,12 @@ pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodySta
             .zip(&lowered.partitions)
             .collect::<Vec<_>>(),
         startup.as_ref(),
+        Some(engine::preparation::ApplicationPreparation {
+            plan: &request.plan,
+            active_play_id: &play.active_play_id,
+            source: &request.source,
+            foreground_checked_form_id: &request.foreground_checked_form_id,
+        }),
     )?;
     let mut session = TourSession {
         _resource_admissions: Some(resources),

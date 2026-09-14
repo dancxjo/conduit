@@ -27,7 +27,10 @@ pub enum ArrivalInput {
 
 impl FrontDoor {
     pub fn open_creche(&mut self, uuid: String, refusal: Option<String>) -> Result<(), Error> {
-        self.open_creche_reviewed(uuid, [refusal.clone(), refusal])
+        self.open_creche_reviewed(
+            uuid,
+            [refusal.clone(), refusal.clone(), refusal.clone(), refusal],
+        )
     }
 
     pub fn open_creche_reviewed(

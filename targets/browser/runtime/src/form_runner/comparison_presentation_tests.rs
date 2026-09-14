@@ -246,6 +246,7 @@ fn canonical_secret_knock_demo_runs_two_attempts_in_one_play() {
             engine::BrowserHostEffect::Snapshot { .. } => "snapshot",
             engine::BrowserHostEffect::KeyEvent => "key",
             engine::BrowserHostEffect::PointerEvent => "pointer",
+            engine::BrowserHostEffect::ApplicationEvent => "application-event",
         }).collect::<Vec<_>>()
     );
 }

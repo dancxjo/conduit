@@ -17,8 +17,10 @@ impl InstalledOperation {
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::RoboticsSource(operation) => operation.allocation_capacity(),
             Self::MusicSynth(_) => 0,
+            Self::SpeechSynthesis(_) => 0,
             Self::AudioRenderDemand(operation) => operation.allocation_capacity(),
             Self::AudioPlay(_) => 0,
+            Self::PcmProfileConversion(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),
             #[cfg(test)]
@@ -26,6 +28,9 @@ impl InstalledOperation {
                 operation.values.capacity() + operation.waits.capacity()
             }
             Self::TestPcmSource(_) => 0,
+            Self::MicrophoneClip(_) => 0,
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::TestSpeechSink(_) => 0,
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => {
                 operation.values.capacity() + operation.waits.capacity()

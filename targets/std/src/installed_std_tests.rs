@@ -23,6 +23,7 @@ mod logic_conformance;
 mod math_conformance;
 mod midi_input_conformance;
 mod midi_output_conformance;
+mod navigation_conformance;
 mod pattern_comparison_conformance;
 mod presentation_composition;
 mod recurrence_conformance;
@@ -32,6 +33,7 @@ mod secret_knock_body_admission;
 mod secret_knock_conformance;
 mod sequence_normalization_conformance;
 mod sound_replanning;
+mod speech_synthesis_conformance;
 mod structured_selector_conformance;
 mod structured_values_conformance;
 mod talking_polaroid_body;
@@ -42,6 +44,8 @@ mod timed_pattern_conformance;
 mod timing_conformance;
 mod typed_state_conformance;
 mod vector_search_conformance;
+#[cfg(feature = "local-model-proof")]
+mod whisper_speech_conformance;
 
 struct RecordingTimer {
     waits: Vec<Duration>,

@@ -1,0 +1,14 @@
+[package]
+name = "patchbay-application"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-form = { path = "../../../architecture/form" }
+conduit-presentation = { path = "../../../semantics/presentation" }
+patchbay-control = { path = "../control" }
+patchbay-graph = { path = "../graph" }
+
+[dev-dependencies]
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["form-catalog"] }

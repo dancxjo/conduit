@@ -25,8 +25,13 @@ mod copy_task;
 mod deadline_reactor;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+#[cfg(feature = "local-model-proof")]
+pub mod recorded_house_proof;
+mod recorded_house_receipt;
 pub mod text_lab_live;
 pub mod text_lab_split;
+#[cfg(feature = "local-model-proof")]
+pub mod whisper_clip_proof;
 pub use composition::{reference_advertisement, supported_nucleus_offers, StdHostComposition};
 pub use conduit_std_offers::hosted_keyboard_offer;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
@@ -57,12 +62,16 @@ pub use host_execution::HostedRunAdapters;
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
 pub mod hosted_messaging;
+pub mod hosted_microphone;
 pub mod hosted_midi;
 pub mod hosted_model;
 pub mod hosted_model_compute;
 pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_resource;
+pub mod hosted_speech;
+pub mod hosted_speech_recognition;
+mod hosted_spoken_output_host;
 pub mod hosted_synth;
 pub mod hosted_vector_index;
 pub mod hosted_vector_search;
@@ -75,6 +84,7 @@ mod installed_std_tests;
 pub mod isolated_base;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub mod isolated_copy_base;
+pub mod microphone_whisper_proof;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub use isolated_copy_base::provider_main as isolated_copy_provider_main;
 #[cfg(all(target_os = "linux", feature = "isolated-http-base"))]
@@ -86,6 +96,8 @@ mod kernel_preparation;
 mod kernel_signal;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
+#[cfg(feature = "local-model-proof")]
+pub mod piper_plan_play_proof;
 mod run_control;
 pub mod state_value;
 pub use run_control::{
@@ -226,6 +238,38 @@ pub struct StdRunReport {
     pub receipts: Vec<SignalReceipt>,
     pub kernel: Option<StdKernelExecutionReport>,
     pub control_receipts: Vec<RunControlReceipt>,
+    pub speech_synthesis: Vec<SpeechSynthesisExecutionReceipt>,
+    pub speech_recognition: Vec<SpeechRecognitionExecutionReceipt>,
+    pub microphone: Vec<hosted_microphone::MicrophoneCaptureReceipt>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpeechRecognitionExecutionReceipt {
+    pub plan_id: conduit_core::PlanId,
+    pub active_play_id: conduit_core::ActivePlayId,
+    pub placement_id: conduit_core::PlacementId,
+    pub implementation_id: conduit_core::ImplementationId,
+    pub executable_sha256: String,
+    pub model_sha256: String,
+    pub audio_sha256: [u8; 32],
+    pub text_sha256: Option<String>,
+    pub text_bytes: u16,
+    pub diagnostic_bytes: u16,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpeechSynthesisExecutionReceipt {
+    pub plan_id: conduit_core::PlanId,
+    pub active_play_id: conduit_core::ActivePlayId,
+    pub placement_id: conduit_core::PlacementId,
+    pub implementation_id: conduit_core::ImplementationId,
+    pub executable_sha256: String,
+    pub model_sha256: String,
+    pub config_sha256: String,
+    pub text_sha256: String,
+    pub pcm_sha256: String,
+    pub frames: u32,
+    pub blocks: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -369,6 +413,9 @@ pub struct StdHost {
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
+    speech_synthesis: Option<hosted_speech::PiperSpeechAdapter>,
+    speech_recognition: Option<hosted_speech_recognition::WhisperSpeechAdapter>,
+    microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
@@ -440,6 +487,9 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
+            speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -503,6 +553,9 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: Some(adapter),
+            speech_synthesis: None,
+            speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -538,6 +591,9 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
+            speech_recognition: None,
+            microphone: None,
             vector_search: Some(adapter),
             calendar: None,
             kernel_resources,
@@ -573,8 +629,326 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
+            speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: Some(adapter),
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
+    pub fn new_with_piper_speech(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: hosted_speech::PiperSpeechAdapter,
+    ) -> Result<Self, String> {
+        if adapter.discovery().sample_rate_hz != 22_050
+            || adapter.limits().maximum_frames < conduit_tongues::MAXIMUM_PCM_BYTES.div_ceil(2)
+            || adapter.limits().maximum_blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS
+        {
+            return Err("initialized Piper adapter does not satisfy its offered profile".into());
+        }
+        let mut advertisement =
+            composition::build_advertisement(config, composition, None, None, None, false);
+        advertisement
+            .resources
+            .push(hosted_speech::process_resource_offer());
+        advertisement.capabilities.retain(|offer| {
+            offer.implementation.implementation_id.as_str()
+                != conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+        });
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::piper_speech_offer());
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::audio_convert_pcm_profile_offer());
+        // Unit-test compositions already install this proof sink through
+        // `composition_test_offers`; workspace feature unification must not
+        // advertise the same capability identity a second time.
+        #[cfg(all(feature = "local-model-proof", not(test)))]
+        advertisement
+            .capabilities
+            .push(installed_std::test_speech_sink::offer());
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            speech_synthesis: Some(adapter),
+            speech_recognition: None,
+            microphone: None,
+            vector_search: None,
+            calendar: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
+    pub fn new_with_whisper_speech_recognition(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: hosted_speech_recognition::WhisperSpeechAdapter,
+    ) -> Result<Self, String> {
+        if adapter.limits().maximum_audio_bytes
+            < conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32
+            || adapter.limits().maximum_text_bytes
+                < conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16
+        {
+            return Err("initialized Whisper adapter does not satisfy its offered profile".into());
+        }
+        let mut advertisement =
+            composition::build_advertisement(config, composition, None, None, None, false);
+        advertisement.resources.push(conduit_core::resource_offer(
+            "std/whisper-process",
+            conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS,
+            1,
+        ));
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::whisper_speech_offer());
+        #[cfg(all(test, feature = "local-model-proof"))]
+        advertisement.capabilities.extend([
+            installed_std::test_local_model_io::house_source_offers()[0].clone(),
+            installed_std::test_local_model_io::house_text_sink_offer(),
+        ]);
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            speech_synthesis: None,
+            speech_recognition: Some(adapter),
+            microphone: None,
+            vector_search: None,
+            calendar: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
+    pub fn new_with_whisper_clip_speech_recognition(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: hosted_speech_recognition::WhisperSpeechAdapter,
+    ) -> Result<Self, String> {
+        if adapter.limits().maximum_audio_bytes < conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+            || adapter.limits().maximum_text_bytes
+                < conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16
+        {
+            return Err(
+                "initialized Whisper adapter does not satisfy its offered clip profile".into(),
+            );
+        }
+        let mut advertisement =
+            composition::build_advertisement(config, composition, None, None, None, false);
+        advertisement.resources.push(conduit_core::resource_offer(
+            "std/whisper-process",
+            conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS,
+            1,
+        ));
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::whisper_clip_speech_offer());
+        #[cfg(all(test, feature = "local-model-proof"))]
+        advertisement.capabilities.extend([
+            installed_std::test_local_model_io::house_source_offers()[1].clone(),
+            installed_std::test_local_model_io::house_text_sink_offer(),
+        ]);
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            speech_synthesis: None,
+            speech_recognition: Some(adapter),
+            microphone: None,
+            vector_search: None,
+            calendar: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
+    /// Attaches one bounded recorded clip as an explicit proof-only source.
+    #[cfg(feature = "local-model-proof")]
+    pub fn attach_proof_pcm_clip_source(&mut self, clip: Vec<u8>) -> Result<(), String> {
+        self.speech_recognition
+            .as_mut()
+            .ok_or_else(|| "std Host has no initialized Whisper recognizer".to_string())?
+            .set_proof_pcm_clip(clip)
+            .map_err(|error| format!("attach proof PCM clip: {error:?}"))?;
+        for offer in [
+            installed_std::test_local_model_io::house_source_offers()[1].clone(),
+            installed_std::test_local_model_io::house_text_sink_offer(),
+            installed_std::test_local_model_io::house_recognition_sink_offer(),
+        ] {
+            if !self
+                .advertisement
+                .capabilities
+                .iter()
+                .any(|candidate| candidate.capability_id == offer.capability_id)
+            {
+                self.advertisement.capabilities.push(offer);
+            }
+        }
+        self.advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        self.kernel_resources = kernel_preparation::KernelResourceLedger::new(&self.advertisement)?;
+        Ok(())
+    }
+
+    /// Adds one initialized Whisper clip realization and its admitted proof input.
+    #[cfg(feature = "local-model-proof")]
+    pub fn attach_whisper_clip_proof(
+        &mut self,
+        mut adapter: hosted_speech_recognition::WhisperSpeechAdapter,
+        clip: Vec<u8>,
+    ) -> Result<(), String> {
+        if self.speech_recognition.is_some() {
+            return Err("std Host already has an initialized speech recognizer".into());
+        }
+        if adapter.limits().maximum_audio_bytes < conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+            || adapter.limits().maximum_text_bytes
+                < conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16
+        {
+            return Err(
+                "initialized Whisper adapter does not satisfy its offered clip profile".into(),
+            );
+        }
+        adapter
+            .set_proof_pcm_clip(clip)
+            .map_err(|error| format!("attach proof PCM clip: {error:?}"))?;
+        let mut advertisement = self.advertisement.clone();
+        advertisement.resources.push(conduit_core::resource_offer(
+            "std/whisper-process",
+            conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS,
+            1,
+        ));
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::whisper_clip_speech_offer());
+        for offer in [
+            installed_std::test_local_model_io::house_source_offers()[1].clone(),
+            installed_std::test_local_model_io::house_text_sink_offer(),
+            installed_std::test_local_model_io::house_recognition_sink_offer(),
+        ] {
+            if !advertisement
+                .capabilities
+                .iter()
+                .any(|candidate| candidate.capability_id == offer.capability_id)
+            {
+                advertisement.capabilities.push(offer);
+            }
+        }
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        self.advertisement = advertisement;
+        self.speech_recognition = Some(adapter);
+        self.kernel_resources = kernel_resources;
+        Ok(())
+    }
+
+    pub fn new_with_piper_speech_and_playback(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: hosted_speech::PiperSpeechAdapter,
+        playback: hosted_audio::HostedPlaybackSelection,
+    ) -> Result<Self, String> {
+        if adapter.discovery().sample_rate_hz != 22_050
+            || adapter.limits().maximum_frames < conduit_tongues::MAXIMUM_PCM_BYTES.div_ceil(2)
+            || adapter.limits().maximum_blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS
+        {
+            return Err("initialized Piper adapter does not satisfy its offered profile".into());
+        }
+        if playback.boot_id != config.boot_id
+            || playback.offer_generation != config.offer_generation
+        {
+            return Err(
+                "playback observation does not match the advertised Boot/generation".into(),
+            );
+        }
+        let mut advertisement = composition::build_advertisement(
+            config,
+            composition,
+            Some(&playback),
+            None,
+            None,
+            false,
+        );
+        advertisement
+            .resources
+            .push(hosted_speech::process_resource_offer());
+        advertisement.capabilities.retain(|offer| {
+            offer.implementation.implementation_id.as_str()
+                != conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+        });
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::piper_speech_offer());
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::audio_convert_pcm_profile_offer());
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: Some(playback),
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            speech_synthesis: Some(adapter),
+            speech_recognition: None,
+            microphone: None,
+            vector_search: None,
+            calendar: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -593,6 +967,9 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
+            speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -613,7 +990,7 @@ impl StdHost {
                 "playback observation does not match the advertised Boot/generation".into(),
             );
         }
-        let advertisement = composition::build_advertisement(
+        let mut advertisement = composition::build_advertisement(
             config,
             composition,
             Some(&playback),
@@ -621,6 +998,14 @@ impl StdHost {
             None,
             false,
         );
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::audio_convert_pcm_profile_offer());
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
@@ -629,6 +1014,9 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
+            speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -668,6 +1056,9 @@ impl StdHost {
             midi_input: None,
             midi_output: Some(midi_output),
             local_model: None,
+            speech_synthesis: None,
+            speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -696,6 +1087,9 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
+            speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,
@@ -737,6 +1131,9 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            speech_synthesis: None,
+            speech_recognition: None,
+            microphone: None,
             vector_search: None,
             calendar: None,
             kernel_resources,

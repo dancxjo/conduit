@@ -4,8 +4,10 @@ mod preparation;
 #[cfg(test)]
 mod tests;
 
+use super::application_delivery::NativeApplication;
 use super::{AdmittedFormInput, PreparedNativeWorkset, WorksetRefusal};
 use crate::keyboard_text_operations::PlannedOperation;
+use alloc::boxed::Box;
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition};
 use conduit_kernel::{
     FixedSignLog, FixedValueStore, KernelEvent, NodeId,
@@ -14,13 +16,13 @@ use conduit_kernel::{
 use conduit_semantic_catalog::BoundedTextState;
 
 const FORMS: usize = super::NATIVE_FORM_CAPACITY;
-const NODES: usize = 8;
-const CORDS: usize = 6;
+const NODES: usize = 14;
+const CORDS: usize = 10;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-const SIGN_ITEMS: usize = 768;
+const SIGN_ITEMS: usize = 1024;
 type Scheduler = FixedScheduler<
     OperationDriver<PlannedOperation, PORTS>,
-    FixedValueStore<64, 256>,
+    FixedValueStore<32, 1024>,
     FixedSignLog<SIGN_ITEMS>,
     NODES,
     CORDS,
@@ -39,6 +41,9 @@ enum Effect {
     Upper,
     Edit,
     Presentation,
+    ApplicationEvent,
+    Application,
+    ApplicationPresentation,
 }
 #[derive(Clone, Copy)]
 struct Binding {
@@ -97,13 +102,16 @@ impl NativePresentation {
 }
 
 pub struct NativeWorksetPlay {
-    scheduler: Scheduler,
+    scheduler: Box<Scheduler>,
     bindings: [Option<Binding>; NODES],
     keymaps: [ConduitIntlKeymap; FORMS],
     editors: [Option<BoundedTextState>; FORMS],
     pending: [Option<HostOperationRequest>; FORMS],
     held: [Option<u8>; 256],
     presentations: [Option<NativePresentation>; FORMS],
+    application_views: [Option<conduit_presentation::ApplicationView>; FORMS],
+    applications: [Option<NativeApplication>; FORMS],
+    application_requests: [Option<super::NativeApplicationRequest>; FORMS],
     input_owners: [Option<AdmittedFormInput>; FORMS],
     form_count: usize,
     cancelled: bool,
@@ -125,6 +133,75 @@ impl NativeWorksetPlay {
     }
     pub fn take_presentation(&mut self, form: usize) -> Option<NativePresentation> {
         self.presentations.get_mut(form)?.take()
+    }
+    pub fn application_view(&self, form: usize) -> Option<&conduit_presentation::ApplicationView> {
+        self.application_views.get(form)?.as_ref()
+    }
+    pub fn select_patchbay_target(
+        &mut self,
+        patchbay: usize,
+        target: usize,
+    ) -> Result<(), PlayRefusal> {
+        match self.applications.get_mut(patchbay).and_then(Option::as_mut) {
+            Some(NativeApplication::Patchbay(application)) => application.select(target)?,
+            _ => return Err(PlayRefusal::Foreground),
+        }
+        let _ = self.take_application_view(patchbay);
+        let request = self.pending[patchbay].ok_or(PlayRefusal::InputPressure)?;
+        self.output(request, Some(&[]))?;
+        self.pending[patchbay] = None;
+        self.drive()
+    }
+    pub fn take_application_view(
+        &mut self,
+        form: usize,
+    ) -> Option<conduit_presentation::ApplicationView> {
+        self.application_views.get_mut(form)?.take()
+    }
+    pub fn take_application_request(
+        &mut self,
+        form: usize,
+    ) -> Option<super::NativeApplicationRequest> {
+        self.application_requests.get_mut(form)?.take()
+    }
+    pub fn complete_tour_run(
+        &mut self,
+        tour: usize,
+        proof: conduit_tour_model::TourRunProof,
+    ) -> Result<(), PlayRefusal> {
+        match self.applications.get_mut(tour).and_then(Option::as_mut) {
+            Some(NativeApplication::Tour(application)) => application
+                .complete_run(proof)
+                .map_err(|_| PlayRefusal::Kernel)?,
+            _ => return Err(PlayRefusal::Foreground),
+        }
+        let _ = self.take_application_view(tour);
+        let request = self.pending[tour].ok_or(PlayRefusal::InputPressure)?;
+        self.output(request, Some(&[]))?;
+        self.pending[tour] = None;
+        self.drive()
+    }
+    pub fn application_event(
+        &mut self,
+        foreground: usize,
+        encoded: &[u8],
+    ) -> Result<(), PlayRefusal> {
+        if self.cancelled {
+            return Err(PlayRefusal::Cancelled);
+        }
+        if foreground >= self.form_count {
+            return Err(PlayRefusal::Foreground);
+        }
+        let owner = self.input_owners[foreground]
+            .as_ref()
+            .ok_or(PlayRefusal::InputOwnership)?;
+        if owner.value_kind.as_str() != conduit_presentation::APPLICATION_EVENT_INFO_ID {
+            return Err(PlayRefusal::InputOwnership);
+        }
+        let request = self.pending[foreground].ok_or(PlayRefusal::InputPressure)?;
+        self.output(request, Some(encoded))?;
+        self.pending[foreground] = None;
+        self.drive()
     }
     /// A captured release still belongs here when another surface has focus.
     pub fn owns_release(&self, event: KeyEvent) -> bool {
@@ -167,6 +244,7 @@ impl NativeWorksetPlay {
     pub fn cancel(&mut self) -> Result<(), PlayRefusal> {
         self.scheduler.cancel().map_err(|_| PlayRefusal::Kernel)?;
         self.pending.fill(None);
+        self.application_requests.fill(None);
         self.held.fill(None);
         for keymap in &mut self.keymaps {
             keymap.reset();
@@ -185,7 +263,7 @@ impl NativeWorksetPlay {
         for _ in 0..512 {
             while let Some(request) = self.scheduler.next_host_request() {
                 let binding = self.binding(request.node)?;
-                if binding.effect == Effect::Keyboard {
+                if matches!(binding.effect, Effect::Keyboard | Effect::ApplicationEvent) {
                     if self.pending[usize::from(binding.form)]
                         .replace(request)
                         .is_some()

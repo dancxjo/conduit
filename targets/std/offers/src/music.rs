@@ -30,6 +30,15 @@ pub const AUDIO_PLAY_ALSA_HW_ARTIFACT: &str = "conduit-std-host/alsa-aplay-hw@1"
 pub const AUDIO_PLAY_ALSA_HW_OPERATION: &str = "conduit.host/audio-play-alsa-hw@1";
 pub const AUDIO_PLAYBACK_RESOURCE_CLASS: &str = "conduit.resource/audio-playback-alsa-hw@1";
 pub const AUDIO_PLAYBACK_AUTHORITY_CONTRACT: &str = "conduit.authority/audio-playback@1";
+pub const AUDIO_CONVERT_PCM_PROFILE: &str = "std/pcm-s16le-mono-22050-to-stereo-48000@1";
+pub const AUDIO_CONVERT_PCM_IMPLEMENTATION: &str =
+    "std/kernel-pcm-nearest-s16le-mono-22050-to-stereo-48000@1";
+pub const AUDIO_CONVERT_PCM_ARTIFACT: &str = "conduit-std-host/pcm-profile-conversion@1";
+pub const AUDIO_CONVERT_PCM_OPERATION: &str = "conduit.host/pcm-profile-convert@1";
+pub const AUDIO_CONVERT_PCM_OUTPUT_FRAMES: u16 = 55;
+pub const AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BLOCKS: u16 = crate::PIPER_MAXIMUM_BLOCKS;
+pub const AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES: u32 =
+    conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32 + AUDIO_CONVERT_PCM_OUTPUT_FRAMES as u32 * 4;
 
 pub const MUSIC_INPUT_MIDI_PROFILE: &str = "std/midi1-raw-input-monotonic-us@1";
 pub const MUSIC_INPUT_MIDI_IMPLEMENTATION: &str = "std/kernel-music-input-midi1@1";
@@ -165,6 +174,36 @@ pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
             max_queue_items: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_ITEMS,
             max_queue_bytes: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_BYTES,
         },
+    }
+}
+
+pub fn audio_convert_pcm_profile_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::audio_convert_pcm_profile_contract();
+    CapabilityOffer {
+        startup_parameters: conduit_semantic_catalog::startup_face(&contract.configuration),
+        shorthand: None,
+        capability_id: CapabilityId::from("audio-convert-pcm-profile"),
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindContractRevision::from(
+            conduit_semantic_catalog::AUDIO_CONVERT_PCM_PROFILE_REVISION,
+        ),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        implementation: implementation(
+            AUDIO_CONVERT_PCM_PROFILE,
+            AUDIO_CONVERT_PCM_IMPLEMENTATION,
+            AUDIO_CONVERT_PCM_ARTIFACT,
+        ),
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(AUDIO_CONVERT_PCM_OPERATION),
+            target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: crate::PIPER_PCM_BLOCK_BYTES,
+            maximum_output_bytes: AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
+        }],
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
     }
 }
 
@@ -331,5 +370,11 @@ mod tests {
             synth.outputs,
             conduit_semantic_catalog::music_synth_contract().outputs
         );
+        let conversion = audio_convert_pcm_profile_offer();
+        assert_eq!(
+            conversion.inputs,
+            conduit_semantic_catalog::audio_convert_pcm_profile_contract().inputs
+        );
+        assert_eq!(conversion.host_operations.len(), 1);
     }
 }

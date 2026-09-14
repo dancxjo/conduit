@@ -42,16 +42,24 @@ pub(super) fn prepare_scheduler(
     prepare_partition_scheduler(&[(fragment, lowered)])
 }
 
+pub(in crate::form_runner) struct ApplicationPreparation<'a> {
+    pub plan: &'a conduit_body::BodyPlan,
+    pub active_play_id: &'a conduit_core::ActivePlayId,
+    pub source: &'a str,
+    pub foreground_checked_form_id: &'a str,
+}
+
 /// Compose already-lowered exact partitions without synthesizing a Plan.
 pub(in crate::form_runner) fn prepare_partition_scheduler(
     partitions: &[(&PlanFragment, &LoweredPlanFragment)],
 ) -> Result<TourScheduler, String> {
-    prepare_body_scheduler(partitions, None)
+    prepare_body_scheduler(partitions, None, None)
 }
 
 pub(in crate::form_runner) fn prepare_body_scheduler(
     partitions: &[(&PlanFragment, &LoweredPlanFragment)],
     startup: Option<&conduit_body::BodyStartup>,
+    application: Option<ApplicationPreparation<'_>>,
 ) -> Result<TourScheduler, String> {
     if partitions.is_empty()
         || partitions.len() > conduit_body::MAX_BODY_FORMS
@@ -99,6 +107,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
     let mut measurement_hysteresis = core::array::from_fn(|_| None);
     let mut garden_steps = core::array::from_fn(|_| None);
     let mut stroke_captures = core::array::from_fn(|_| None);
+    let mut applications = core::array::from_fn(|_| None);
     for (fragment, node) in partitions
         .iter()
         .flat_map(|(fragment, part)| part.nodes.iter().map(move |node| (*fragment, node)))
@@ -187,6 +196,17 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
                 placement,
             )?
             .map(Box::new);
+        if let Some(context) = application.as_ref() {
+            applications[usize::from(node.node.0)] =
+                super::super::application_state::PreparedApplication::prepare(
+                    placement,
+                    context.plan,
+                    context.active_play_id,
+                    context.source,
+                    context.foreground_checked_form_id,
+                )?
+                .map(Box::new);
+        }
         if placement.host_operations.iter().any(|operation| {
             operation.contract_id.as_str()
                 == crate::installed_browser::pointer_selector::HOST_OPERATION
@@ -302,6 +322,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
         measurement_hysteresis,
         garden_steps,
         stroke_captures,
+        applications,
         attempts,
         comparisons,
         snapshots,

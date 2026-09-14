@@ -85,6 +85,8 @@ pub(super) struct TourScheduler {
         MAXIMUM_BROWSER_GEARS],
     stroke_captures: [Option<Box<crate::installed_browser::stroke_capture::PreparedStrokeCapture>>;
         MAXIMUM_BROWSER_GEARS],
+    applications:
+        [Option<Box<super::application_state::PreparedApplication>>; MAXIMUM_BROWSER_GEARS],
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -114,6 +116,7 @@ pub(super) enum BrowserHostEffect {
     KeyEvent,
     PointerEvent,
     ButtonTransition,
+    ApplicationEvent,
     Manifestation(BrowserManifestation),
 }
 
@@ -296,6 +299,14 @@ fn drive_with_boundary<'a>(
                 return Ok(DriveStatus::Effect(PendingHostEffect {
                     request,
                     effect: BrowserHostEffect::ButtonTransition,
+                }));
+            }
+            if operation.contract_id.as_str()
+                == crate::installed_browser::APPLICATION_EVENT_OPERATION
+            {
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::ApplicationEvent,
                 }));
             }
             let installation = factory(&placement.implementation_id)

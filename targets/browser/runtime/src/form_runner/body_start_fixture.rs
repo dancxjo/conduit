@@ -118,6 +118,8 @@ pub(in crate::form_runner) fn request_from_sources(sources: &[&str]) -> BodyStar
         })
         .collect();
     BodyStartRequest {
+        foreground_checked_form_id: plan.forms[0].form.checked_form_id.as_str().into(),
+        source: String::new(),
         wake,
         plan,
         play_sequence: 7,

@@ -27,6 +27,7 @@ pub struct StdHostComposition {
     pub layout: bool,
     pub presentation: bool,
     pub robotics: bool,
+    pub navigation: bool,
     pub files: bool,
     pub external_websocket: bool,
     pub http: bool,
@@ -50,6 +51,7 @@ impl StdHostComposition {
             layout: true,
             presentation: true,
             robotics: true,
+            navigation: true,
             files: true,
             external_websocket: false,
             http: true,
@@ -74,6 +76,7 @@ impl StdHostComposition {
             layout: false,
             presentation: false,
             robotics: false,
+            navigation: false,
             files: false,
             external_websocket: false,
             http: false,
@@ -135,6 +138,11 @@ impl StdHostComposition {
 
     pub const fn with_robotics(mut self) -> Self {
         self.robotics = true;
+        self
+    }
+
+    pub const fn with_navigation(mut self) -> Self {
+        self.navigation = true;
         self
     }
 
@@ -298,6 +306,9 @@ pub(super) fn build_advertisement(
             conduit_std_offers::robotics_velocity_intent_offer(),
             conduit_std_offers::robotics_drive_differential_offer(),
         ]);
+    }
+    if composition.navigation {
+        capabilities.extend(conduit_std_offers::navigation_std_offers());
     }
     if composition.files {
         capabilities.extend([

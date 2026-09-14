@@ -41,13 +41,19 @@ use super::logic_operations::{
     LOGIC_COMPARE_SCALAR_FACTORY, LOGIC_NOT_FACTORY, LOGIC_SELECT_SCALAR_FACTORY,
 };
 use super::math_operations::{MATH_CLAMP_FACTORY, MATH_DEADBAND_FACTORY, MATH_SCALE_FACTORY};
+use super::microphone_clip_operation::FACTORY as MICROPHONE_CLIP_FACTORY;
 use super::midi_input_operation::MIDI_INPUT_FACTORY;
 use super::midi_output_operation::MIDI_OUTPUT_FACTORY;
 use super::model_text_operation::FACTORY as MODEL_TEXT_FACTORY;
 use super::morse_operations::{INDICATOR_PRESENTATION_FACTORY, TEXT_MORSE_FACTORY};
+use super::navigation_operations::{
+    CONTROL_FACTORY as NAVIGATION_CONTROL_FACTORY, ROUTE_FACTORY as NAVIGATION_ROUTE_FACTORY,
+    TIME_FACTORY as NAVIGATION_TIME_FACTORY,
+};
 use super::operation::InstalledFactory;
 use super::pacing_operations::{TIME_DELAY_FACTORY, TIME_THROTTLE_FACTORY};
 use super::pattern_comparison_operation::FACTORY as PATTERN_COMPARISON_FACTORY;
+use super::pcm_profile_conversion_operation::FACTORY as PCM_PROFILE_CONVERSION_FACTORY;
 use super::presentation_composition::{
     GRAPHICS_ICON_FACTORY, GRAPHICS_PRESENTATION_FACTORY, GRAPHICS_RECT_FACTORY,
     GRAPHICS_TEXT_FACTORY, PRESENTATION_BADGE_FACTORY, PRESENTATION_FRAME_FACTORY,
@@ -73,6 +79,9 @@ use super::robotics_operations::{
     ROBOTICS_OBSERVE_RANGE_FACTORY, ROBOTICS_VELOCITY_INTENT_FACTORY,
 };
 use super::sequence_normalization_operation::FACTORY as SEQUENCE_NORMALIZATION_FACTORY;
+#[cfg(test)]
+use super::speech_synthesis_operation::DETERMINISTIC_FACTORY as DETERMINISTIC_SPEECH_FACTORY;
+use super::speech_synthesis_operation::FACTORY as SPEECH_SYNTHESIS_FACTORY;
 use super::state_select_operation::STATE_SELECT_SCALAR_FACTORY;
 use super::structured_selector_operation::FACTORY as STRUCTURED_SELECTOR_FACTORY;
 use super::structured_values_operation::{
@@ -100,6 +109,8 @@ use super::test_recurrence_sink::FACTORY as TEST_RECURRENCE_SINK_FACTORY;
 use super::test_scalar_flow::{
     TEST_SCALAR_LITERAL_FACTORY, TEST_SCALAR_SINK_FACTORY, TEST_SCALAR_SOURCE_FACTORY,
 };
+#[cfg(any(test, feature = "local-model-proof"))]
+use super::test_speech_sink::FACTORY as TEST_SPEECH_SINK_FACTORY;
 #[cfg(test)]
 use super::test_structured_selector::{
     SINK_FACTORY as TEST_STRUCTURED_SINK_FACTORY, SOURCE_FACTORY as TEST_STRUCTURED_SOURCE_FACTORY,
@@ -127,11 +138,17 @@ use super::typed_record_operation::{
     RECORD_TO_TEXT as TYPED_RECORD_TO_TEXT_FACTORY, TEXT_TO_RECORD as TEXT_TO_TYPED_RECORD_FACTORY,
 };
 use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
+use super::whisper_speech_operation::{
+    CLIP_FACTORY as WHISPER_CLIP_SPEECH_FACTORY, FACTORY as WHISPER_SPEECH_FACTORY,
+};
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
     #[cfg(any(test, feature = "local-model-proof"))]
     &RECORDED_SPEECH_FACTORY,
+    &WHISPER_SPEECH_FACTORY,
+    &WHISPER_CLIP_SPEECH_FACTORY,
+    &MICROPHONE_CLIP_FACTORY,
     &ADDRESS_DETECT_FACTORY,
     &RECOGNITION_TEXT_FACTORY,
     &KEYBOARD_INPUT_FACTORY,
@@ -192,6 +209,9 @@ const FACTORIES: &[&InstalledFactory] = &[
     &LOGIC_SELECT_SCALAR_FACTORY,
     &LOCAL_MODEL_FACTORY,
     &MODEL_TEXT_FACTORY,
+    &NAVIGATION_ROUTE_FACTORY,
+    &NAVIGATION_TIME_FACTORY,
+    &NAVIGATION_CONTROL_FACTORY,
     &EXACT_VECTOR_SEARCH_FACTORY,
     &HNSW_FACTORY,
     &MATH_CLAMP_FACTORY,
@@ -226,8 +246,12 @@ const FACTORIES: &[&InstalledFactory] = &[
     &ROBOTICS_VELOCITY_INTENT_FACTORY,
     &ROBOTICS_DRIVE_DIFFERENTIAL_FACTORY,
     &MUSIC_SYNTH_FACTORY,
+    &SPEECH_SYNTHESIS_FACTORY,
+    #[cfg(test)]
+    &DETERMINISTIC_SPEECH_FACTORY,
     &AUDIO_RENDER_DEMAND_FACTORY,
     &AUDIO_PLAY_FACTORY,
+    &PCM_PROFILE_CONVERSION_FACTORY,
     &MIDI_OUTPUT_FACTORY,
     &MIDI_INPUT_FACTORY,
     &EXTERNAL_WEBSOCKET_LISTENER_FACTORY,
@@ -262,6 +286,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     #[cfg(test)]
     &TEST_RECURRENCE_SINK_FACTORY,
     &TEST_PCM_SOURCE_FACTORY,
+    #[cfg(any(test, feature = "local-model-proof"))]
+    &TEST_SPEECH_SINK_FACTORY,
     #[cfg(test)]
     &TEST_SCALAR_SOURCE_FACTORY,
     #[cfg(test)]

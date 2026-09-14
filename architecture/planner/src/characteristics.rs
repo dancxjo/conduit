@@ -327,7 +327,7 @@ pub fn plan_selected_realizations_with_characteristics_and_options(
     crate::characteristic_sealing::seal_characteristics(plan, advertisements)
 }
 
-fn validate_advertisements(
+pub(crate) fn validate_advertisements(
     hosts: &[HostAdvertisement],
     advertisements: &[RealizationAdvertisement],
 ) -> Result<(), PlannerError> {
