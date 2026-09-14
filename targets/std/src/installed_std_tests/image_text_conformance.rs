@@ -343,6 +343,32 @@ fn authored_image_text_plans_an_exact_remote_framed_record_session() {
         .unwrap()
         .machine()
         .is_active());
+    let stale = conduit_kernel::RemoteEndpointId(sink_endpoint.0.saturating_add(1));
+    assert_eq!(
+        sink_runtime.admit_ingress(stale, 0, &expected).unwrap_err(),
+        "remote endpoint direction or identity mismatch"
+    );
+    assert!(sink_runtime
+        .admit_ingress(sink_endpoint, 1, &expected)
+        .unwrap_err()
+        .contains("RemoteSequenceRejected"));
+    assert_eq!(
+        sink_runtime
+            .admit_ingress(sink_endpoint, 0, &expected)
+            .unwrap(),
+        conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 }
+    );
+    assert_eq!(
+        sink_runtime
+            .admit_ingress(sink_endpoint, 1, &expected)
+            .unwrap(),
+        conduit_kernel::scheduler::RemoteIngressOutcome::Full { sequence: 1 }
+    );
+    sink_runtime.cancel().unwrap();
+    assert!(sink_runtime
+        .close_ingress(sink_endpoint)
+        .unwrap_err()
+        .contains("Cancelled"));
 
     let binding = conduit_wire::SessionBinding::from_planned_connection(
         plan.plan_id.clone(),
