@@ -432,4 +432,17 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
             connection.item_capacity
         );
     }
+
+    let accepted_plan = exact.plan.clone();
+    for lost in [
+        crate::distributed_house_plan::DistributedHouseRole::Cognition,
+        crate::distributed_house_plan::DistributedHouseRole::Output,
+    ] {
+        let refusal = crate::distributed_house_plan::replan_distributed_spoken_house_after_loss(
+            &template, lost,
+        )
+        .unwrap_err();
+        assert!(refusal.contains("UnknownHost"), "{refusal}");
+        assert_eq!(exact.plan, accepted_plan);
+    }
 }

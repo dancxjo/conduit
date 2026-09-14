@@ -19,6 +19,23 @@ pub struct DistributedHousePlan {
     pub lines: Vec<LineOffer>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DistributedHouseRole {
+    Capture,
+    Cognition,
+    Output,
+}
+
+impl DistributedHouseRole {
+    fn index(self) -> usize {
+        match self {
+            Self::Capture => 0,
+            Self::Cognition => 1,
+            Self::Output => 2,
+        }
+    }
+}
+
 pub fn exact_distributed_spoken_house_plan(
     template: &HostAdvertisement,
 ) -> Result<DistributedHousePlan, Box<dyn std::error::Error>> {
@@ -28,43 +45,7 @@ pub fn exact_distributed_spoken_house_plan(
         role_host(template, "cognition"),
         role_host(template, "output"),
     ];
-    let defaults = conduit_planner::default_expanded_placements(
-        &topology.expanded,
-        std::slice::from_ref(template),
-    )?;
-    let capture_sources = topology
-        .expanded
-        .connections
-        .iter()
-        .filter(|connection| connection.sink_gear_id.as_str().ends_with("/audio"))
-        .map(|connection| connection.source_gear_id.clone())
-        .collect::<BTreeSet<_>>();
-    let placements = PlacementChoices {
-        by_gear: defaults
-            .by_gear
-            .into_iter()
-            .map(|(gear_id, choice)| {
-                let role =
-                    if gear_id.as_str().ends_with("/audio") || capture_sources.contains(&gear_id) {
-                        0
-                    } else if gear_id.as_str().ends_with("/synthesize")
-                        || gear_id.as_str().ends_with("/convert")
-                        || gear_id.as_str().ends_with("/output")
-                    {
-                        2
-                    } else {
-                        1
-                    };
-                (
-                    gear_id,
-                    PlacementChoice {
-                        host_id: hosts[role].host_id.clone(),
-                        capability_id: choice.capability_id,
-                    },
-                )
-            })
-            .collect(),
-    };
+    let placements = exact_placements(template, &topology.expanded, &hosts)?;
     let authority_grants = authority_grants(&hosts, &placements)?;
     let (lines, line_candidates) = lines(
         &topology.expanded,
@@ -96,6 +77,118 @@ pub fn exact_distributed_spoken_house_plan(
         plan,
         hosts,
         lines,
+    })
+}
+
+pub fn replan_distributed_spoken_house_after_loss(
+    template: &HostAdvertisement,
+    lost: DistributedHouseRole,
+) -> Result<conduit_core::Plan, String> {
+    let exact = exact_distributed_spoken_house_plan(template).map_err(|error| error.to_string())?;
+    let lost_host = &exact.hosts[lost.index()];
+    let current_hosts = exact
+        .hosts
+        .iter()
+        .filter(|host| host.host_id != lost_host.host_id)
+        .cloned()
+        .collect::<Vec<_>>();
+    let current_lines = exact
+        .lines
+        .iter()
+        .filter(|line| {
+            line.binding.source.host_id != lost_host.host_id
+                && line.binding.sink.host_id != lost_host.host_id
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    let topology =
+        crate::house_conversation_topology::build(true, true).map_err(|error| error.to_string())?;
+    let placements = exact_placements(template, &topology.expanded, &exact.hosts)
+        .map_err(|error| error.to_string())?;
+    let authority_grants =
+        authority_grants(&exact.hosts, &placements).map_err(|error| error.to_string())?;
+    let line_candidates = exact
+        .lines
+        .iter()
+        .filter_map(|line| {
+            let connection =
+                topology
+                    .expanded
+                    .connections
+                    .iter()
+                    .enumerate()
+                    .find(|(index, _)| {
+                        line.line_id.as_str() == format!("line/distributed-house/{index}")
+                    })?;
+            Some((
+                (
+                    connection.1.source_gear_id.clone(),
+                    connection.1.sink_gear_id.clone(),
+                ),
+                vec![line.line_id.clone()],
+            ))
+        })
+        .collect::<LineCandidates>();
+    conduit_planner::plan_expanded_canonical_with_connection_limits(
+        &topology.expanded,
+        &current_hosts,
+        &placements,
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from(REMOTE_BASE),
+        ],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &line_candidates,
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_tongues::RECOGNITION_RESULT_QUEUE_BYTES,
+            authority_grants: &authority_grants,
+            protected_resource_grants: &[],
+            line_offers: &current_lines,
+        },
+        &topology.connection_limits,
+    )
+    .map_err(|error| format!("{error:?}"))
+}
+
+fn exact_placements(
+    template: &HostAdvertisement,
+    form: &conduit_form::ExpandedCanonicalForm,
+    hosts: &[HostAdvertisement; 3],
+) -> Result<PlacementChoices, conduit_planner::PlannerError> {
+    let defaults =
+        conduit_planner::default_expanded_placements(form, std::slice::from_ref(template))?;
+    let capture_sources = form
+        .connections
+        .iter()
+        .filter(|connection| connection.sink_gear_id.as_str().ends_with("/audio"))
+        .map(|connection| connection.source_gear_id.clone())
+        .collect::<BTreeSet<_>>();
+    Ok(PlacementChoices {
+        by_gear: defaults
+            .by_gear
+            .into_iter()
+            .map(|(gear_id, choice)| {
+                let role =
+                    if gear_id.as_str().ends_with("/audio") || capture_sources.contains(&gear_id) {
+                        0
+                    } else if gear_id.as_str().ends_with("/synthesize")
+                        || gear_id.as_str().ends_with("/convert")
+                        || gear_id.as_str().ends_with("/output")
+                    {
+                        2
+                    } else {
+                        1
+                    };
+                (
+                    gear_id,
+                    PlacementChoice {
+                        host_id: hosts[role].host_id.clone(),
+                        capability_id: choice.capability_id,
+                    },
+                )
+            })
+            .collect(),
     })
 }
 
