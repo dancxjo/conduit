@@ -39,6 +39,18 @@ pub(super) struct MicrophoneHouseArgs {
     authorize_capture: bool,
 }
 
+pub(super) struct InitializedMicrophoneHouse {
+    pub microphone: conduit_std_host::hosted_microphone::AlsaMicrophoneAdapter,
+    pub whisper: conduit_std_host::hosted_speech_recognition::WhisperSpeechAdapter,
+    pub local_model: Box<dyn conduit_std_host::hosted_local_model::HostedLocalModelAdapter>,
+}
+
+impl MicrophoneHouseArgs {
+    pub(super) fn capture_authorized(&self) -> bool {
+        self.authorize_capture
+    }
+}
+
 #[derive(Serialize)]
 struct Report {
     schema: &'static str,
@@ -70,6 +82,34 @@ pub(super) fn prove(
     if !request.authorize_capture {
         return Err("live microphone House proof requires --authorize-capture".into());
     }
+    let initialized = initialize(&request)?;
+    let receipt = conduit_std_host::recorded_house_proof::run_microphone(
+        StdHostConfig {
+            host_id: conduit_core::HostId::from("host/microphone-house-proof"),
+            boot_id: conduit_core::BootId::from("boot/microphone-house-proof"),
+            offer_generation: conduit_core::OfferGeneration(1),
+        },
+        StdHostComposition::minimal(),
+        initialized.local_model,
+        initialized.whisper,
+        initialized.microphone,
+    )?;
+    emit(
+        Report {
+            schema: "conduit.tools/xtask/microphone-house-plan-play-proof@1",
+            proof_class: "explicit-microphone-addressed-local-model-plan-play",
+            dry_run: false,
+            effects_performed: true,
+            capture_authorized: true,
+            receipt: Some(receipt),
+        },
+        opts,
+    )
+}
+
+pub(super) fn initialize(
+    request: &MicrophoneHouseArgs,
+) -> Result<InitializedMicrophoneHouse, Box<dyn std::error::Error>> {
     let discovery = AlsaMicrophoneDiscovery::inspect(&request.arecord_executable)?;
     let matches = discovery
         .observations
@@ -104,31 +144,14 @@ pub(super) fn prove(
         request.admitted_memory_mib,
         vec![LocalModelKindProfile::Generate],
     )?;
-    let receipt = conduit_std_host::recorded_house_proof::run_microphone(
-        StdHostConfig {
-            host_id: conduit_core::HostId::from("host/microphone-house-proof"),
-            boot_id: conduit_core::BootId::from("boot/microphone-house-proof"),
-            offer_generation: conduit_core::OfferGeneration(1),
-        },
-        StdHostComposition::minimal(),
-        Box::new(local_model),
-        whisper,
+    Ok(InitializedMicrophoneHouse {
         microphone,
-    )?;
-    emit(
-        Report {
-            schema: "conduit.tools/xtask/microphone-house-plan-play-proof@1",
-            proof_class: "explicit-microphone-addressed-local-model-plan-play",
-            dry_run: false,
-            effects_performed: true,
-            capture_authorized: true,
-            receipt: Some(receipt),
-        },
-        opts,
-    )
+        whisper,
+        local_model: Box::new(local_model),
+    })
 }
 
-fn validate(request: &MicrophoneHouseArgs) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) fn validate(request: &MicrophoneHouseArgs) -> Result<(), Box<dyn std::error::Error>> {
     if request.card_id.is_empty() || request.card_id.len() > 64 {
         return Err("microphone card id must contain 1 to 64 bytes".into());
     }
