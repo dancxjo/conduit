@@ -173,6 +173,49 @@ impl PresenterControlSession {
         &self.presentation
     }
 
+    /// Retarget the selected Presenter Plans at a fresh immutable projection of
+    /// the same Body/Form subject. Runtime evolution changes Presentation
+    /// identity; it does not make the renderer the owner of that evolution.
+    pub fn refresh_presentation(
+        &mut self,
+        presentation: Presentation,
+    ) -> Result<(), PresenterControlError> {
+        let selector_matches = match &self.selector.form {
+            Some(form) => {
+                presentation.basis.source_document_id.as_ref() == Some(&form.source_document_id)
+                    && presentation.basis.checked_form_id.as_ref() == Some(&form.checked_form_id)
+            }
+            None => {
+                presentation.basis.source_document_id.is_none()
+                    && presentation.basis.checked_form_id.is_none()
+            }
+        };
+        if !selector_matches {
+            return Err(PresenterControlError::StaleRequest);
+        }
+        let mut refresh = |current: &RendererExecution| {
+            let sequence = self.sequence;
+            self.sequence = self.sequence.saturating_add(1);
+            let mut next = RendererExecution::prepare_planned_sequence(
+                presentation.clone(),
+                current.plan.clone(),
+                current.manifestation.target_subject.clone(),
+                sequence,
+                SignId::from(format!("presenter-control/refresh/{sequence}/prepared")),
+            )
+            .map_err(|_| PresenterControlError::InvalidRealization)?;
+            next.mark_available(SignId::from(format!(
+                "presenter-control/refresh/{sequence}/available"
+            )))
+            .map_err(|_| PresenterControlError::InvalidRealization)?;
+            Ok(next)
+        };
+        self.graphical = self.graphical.as_ref().map(&mut refresh).transpose()?;
+        self.speech = self.speech.as_ref().map(&mut refresh).transpose()?;
+        self.presentation = presentation;
+        Ok(())
+    }
+
     pub fn project_current(
         &self,
         planning: &BodyPlanningSession,

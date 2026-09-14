@@ -151,6 +151,41 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   expect(errors).toEqual([]);
 });
 
+test("visible Presenter controls replace Patchbay's own topology through fresh Body Plans", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  const { initial, proposed } = await prepareBody(page);
+  await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
+  await page.getByRole("group", { name: "Body Play input", exact: true }).hover();
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.getByRole("button", { name: "Cancel Body Play", exact: true }).click();
+  await expect(page.locator("#body-execution-status")).toContainText("Body Play cancelled");
+  await expect(page.locator("#presenter-topology")).toBeVisible();
+  await expect(page.locator('[data-application-collection="presenter-topology-chains"] [data-application-component="artifact"]')).toHaveCount(1);
+
+  const graphicalPlan = (await snapshot(page)).body_planning.current_plan_id;
+  await page.getByRole("button", { name: "Add Presenter", exact: true }).click();
+  await expect(page.locator('[data-application-collection="presenter-topology-chains"] [data-application-component="artifact"]')).toHaveCount(2);
+  const parallel = await snapshot(page);
+  expect(parallel.body_planning.current_plan_id).not.toBe(graphicalPlan);
+  expect(parallel.presentation.basis.source_document_id ?? null).toBeNull();
+  expect(parallel.body_workbench.body_id).toBe(initial.body_workbench.body_id);
+
+  await page.getByRole("button", { name: "Remove Presenter chain", exact: true }).first().click();
+  await expect(page.locator('[data-application-collection="presenter-topology-chains"] [data-application-component="artifact"]')).toHaveCount(1);
+  const speech = await snapshot(page);
+  expect(speech.body_planning.current_plan_id).not.toBe(parallel.body_planning.current_plan_id);
+  expect(speech.presenter_topology.subjects.some(subject => subject.accessibility_name.includes("test-speech"))).toBe(true);
+
+  await page.getByRole("button", { name: "Add Presenter", exact: true }).click();
+  await expect(page.locator('[data-application-collection="presenter-topology-chains"] [data-application-component="artifact"]')).toHaveCount(2);
+  const restored = await snapshot(page);
+  expect(restored.body_planning.current_plan_id).not.toBe(speech.body_planning.current_plan_id);
+  expect(restored.presentation.basis.source_document_id ?? null).toBeNull();
+  expect(errors).toEqual([]);
+});
+
 test("reopening Awake biography does not claim restored execution accounting", async ({ page }) => {
   await prepareBody(page);
   await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();

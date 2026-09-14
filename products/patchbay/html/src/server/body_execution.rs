@@ -114,7 +114,12 @@ impl PatchbayHtmlServer {
             .ok_or_else(|| ServerError::Interaction("BodyWorkloadAbsent".into()))?;
         let (session, mut snapshot) = history::retain(&self.snapshot, session, &planning)?;
         snapshot.body_planning = Some(planning.snapshot());
-        if let (Some(control), Some(play)) = (&self.presenter_control, started_play.as_ref()) {
+        if let (Some(control), Some(play)) = (&mut self.presenter_control, started_play.as_ref()) {
+            control
+                .refresh_presentation(snapshot.presentation.clone())
+                .map_err(|error| {
+                    ServerError::Interaction(format!("Presenter refresh: {error:?}"))
+                })?;
             let topology = control.project_current(&planning, play).map_err(|error| {
                 ServerError::Interaction(format!("Presenter projection: {error:?}"))
             })?;

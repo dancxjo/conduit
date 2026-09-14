@@ -59,19 +59,19 @@ impl PatchbayHtmlServer {
             }
             PresenterTopologyModeWire::Speech => PresenterTopologyMode::Speech,
         };
-        let control = self
+        let mut control = self
             .presenter_control
-            .as_mut()
+            .clone()
             .ok_or_else(|| ServerError::Interaction("PresenterControlUnavailable".into()))?;
-        let planning = self
+        let mut planning = self
             .body_planning
-            .as_mut()
+            .clone()
             .ok_or_else(|| ServerError::Interaction("BodyPlanningUnavailable".into()))?;
-        let topology = control
+        control
             .request_mode(
                 &request.basis_plan_id,
                 mode,
-                planning,
+                &mut planning,
                 BodyPlanningTransition {
                     unsatisfied_sign_id: Some(SignId::from(format!(
                         "patchbay-html/presenter/{sequence}/unsatisfied"
@@ -86,15 +86,32 @@ impl PatchbayHtmlServer {
                 },
             )
             .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
-        self.snapshot.presenter_topology = Some(
+        let session = self
+            .body_workload
+            .as_ref()
+            .ok_or_else(|| ServerError::Interaction("BodyWorkloadAbsent".into()))?;
+        let (session, mut snapshot) =
+            super::body_execution::history::retain(&self.snapshot, session, &planning)?;
+        snapshot.body_planning = Some(planning.snapshot());
+        control
+            .refresh_presentation(snapshot.presentation.clone())
+            .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
+        let play = conduit_body::BodyPlayIdentity::bind(planning.current_plan(), sequence);
+        let topology = control
+            .project_current(&planning, &play)
+            .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
+        snapshot.presenter_topology = Some(
             patchbay_model::project_presenter_topology(control.presentation(), &topology)
                 .map_err(|error| ServerError::Interaction(format!("{error:?}")))?,
         );
-        self.snapshot.body_planning = Some(planning.snapshot());
-        self.snapshot.interaction.revision = sequence;
-        self.snapshot.interaction.last_request_id = Some("presenter-topology".into());
-        self.snapshot.interaction.last_disposition = Some("Succeeded(BodyReplanned)".into());
-        self.encoded_snapshot = self.snapshot.encode()?;
+        snapshot.interaction.revision = sequence;
+        snapshot.interaction.last_request_id = Some("presenter-topology".into());
+        snapshot.interaction.last_disposition = Some("Succeeded(BodyReplanned)".into());
+        self.encoded_snapshot = snapshot.encode()?;
+        self.body_workload = Some(session);
+        self.body_planning = Some(planning);
+        self.presenter_control = Some(control);
+        self.snapshot = snapshot;
         Ok(self.encoded_snapshot.clone())
     }
 }
@@ -159,7 +176,13 @@ mod tests {
                 "disposition": "completed", "terminal_sign_id": sign(2),
             })))
             .unwrap();
-        let source_presentation = server.snapshot.presentation.identity.as_str().to_owned();
+        let source_forms = server
+            .body_planning
+            .as_ref()
+            .unwrap()
+            .current_plan()
+            .forms
+            .clone();
         assert!(server.snapshot.presenter_topology.is_some());
 
         let invoke = |server: &mut PatchbayHtmlServer, mode: &str| {
@@ -197,8 +220,8 @@ mod tests {
         let restored = invoke(&mut server, "graphical-and-speech");
         assert_eq!(chains(&restored), 2);
         assert_eq!(
-            server.snapshot.presentation.identity.as_str(),
-            source_presentation
+            server.body_planning.as_ref().unwrap().current_plan().forms,
+            source_forms
         );
         for intent in ["add", "remove", "replace", "reorder", "toggle-parallel"] {
             assert!(restored
