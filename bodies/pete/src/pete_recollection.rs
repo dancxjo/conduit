@@ -104,3 +104,7 @@ pub fn assemble_pete_recollection(
         historical_not_current: true,
     })
 }
+
+#[cfg(test)]
+#[path = "pete_recollection_tests.rs"]
+mod tests;
