@@ -2,8 +2,9 @@
 
 use conduit_body::{
     AdmissionManager, AdmissionRefusal, AdmissionSigns, AmbientAdmissionProof,
-    AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory, CandidateObservation,
-    DiscoveryProofId, MembershipProofId, PartId, SpawnAdmissionProof, SpawnInvitationSecret,
+    AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyMembership, CandidateInventory,
+    CandidateObservation, DiscoveryProofId, MembershipProofId, PartId, SpawnAdmissionProof,
+    SpawnInvitationSecret,
 };
 use conduit_core::{HostAdvertisement, LinkBindingId, OfferGeneration, SignId};
 use conduit_std_host::browser_admission::{
@@ -31,41 +32,71 @@ struct AdmittedBrowser {
 }
 
 fn main() -> Result<(), String> {
+    let imported = imported_house()?;
     let mut physical = physical_body::PhysicalBody::prepare()?;
+    if imported.is_some() && physical.plan().is_some() {
+        return Err(
+            "Crèche Body evidence and the physical Pico fixture are exclusive proof entrances"
+                .into(),
+        );
+    }
     let browser_basis = physical
         .plan()
         .is_none()
         .then(planning::cross_browser_form_basis)
         .transpose()?;
-    let body = physical.birth(browser_basis)?;
-    let mut membership = BodyMembership::new(body.body_id.clone()).map_err(debug("membership"))?;
-    let here = PartId::bind(&body.body_id, "part/here", 1).map_err(debug("Here identity"))?;
-    let (here_host, here_boot) = physical.here_identity();
-    membership
-        .admit(
-            &body.body_id,
-            membership.revision,
-            here.clone(),
-            MembershipProofId::bind("proof/here").map_err(debug("Here proof"))?,
-            SignId::from("browser-parts-capstone/here-admitted"),
-        )
-        .map_err(debug("admit Here"))?;
-    membership
-        .observe_present(
-            &body.body_id,
-            membership.revision,
-            &here,
-            AuthenticatedHostObservation {
-                host_id: here_host,
-                boot_id: here_boot,
-                offer_generation: OfferGeneration(1),
-                proof_id: MembershipProofId::bind("proof/here-present")
-                    .map_err(debug("Here presence proof"))?,
-                sequence: 1,
-            },
-            SignId::from("browser-parts-capstone/here-present"),
-        )
-        .map_err(debug("observe Here"))?;
+    let (body, mut membership, here, friendly_name) = match imported {
+        Some(evidence) => {
+            let here = evidence
+                .membership
+                .parts
+                .iter()
+                .find(|part| part.current.is_some())
+                .ok_or("Crèche House evidence has no current first Host")?
+                .part_id
+                .clone();
+            (
+                evidence.body,
+                evidence.membership,
+                here,
+                Some(evidence.friendly_name),
+            )
+        }
+        None => {
+            let body = physical.birth(browser_basis.clone())?;
+            let mut membership =
+                BodyMembership::new(body.body_id.clone()).map_err(debug("membership"))?;
+            let here =
+                PartId::bind(&body.body_id, "part/here", 1).map_err(debug("Here identity"))?;
+            let (here_host, here_boot) = physical.here_identity();
+            membership
+                .admit(
+                    &body.body_id,
+                    membership.revision,
+                    here.clone(),
+                    MembershipProofId::bind("proof/here").map_err(debug("Here proof"))?,
+                    SignId::from("browser-parts-capstone/here-admitted"),
+                )
+                .map_err(debug("admit Here"))?;
+            membership
+                .observe_present(
+                    &body.body_id,
+                    membership.revision,
+                    &here,
+                    AuthenticatedHostObservation {
+                        host_id: here_host,
+                        boot_id: here_boot,
+                        offer_generation: OfferGeneration(1),
+                        proof_id: MembershipProofId::bind("proof/here-present")
+                            .map_err(debug("Here presence proof"))?,
+                        sequence: 1,
+                    },
+                    SignId::from("browser-parts-capstone/here-present"),
+                )
+                .map_err(debug("observe Here"))?;
+            (body, membership, here, None)
+        }
+    };
     let mut candidates =
         CandidateInventory::new(body.body_id.clone()).map_err(debug("candidate inventory"))?;
     let mut manager = AdmissionManager::new(body.body_id.clone()).map_err(debug("manager"))?;
@@ -249,13 +280,51 @@ fn main() -> Result<(), String> {
         &after_offline,
         &plan,
         &replacement,
-        pico.is_some(),
-        navigation_receipt,
+        receipt::ReceiptContext {
+            physical_pico: pico.is_some(),
+            navigation: navigation_receipt,
+            friendly_name: friendly_name.as_deref(),
+        },
     )?;
     receipt::retain_if_requested(&machine_receipt)?;
     println!("{machine_receipt}");
     drop((second, third, pico));
     Ok(())
+}
+
+fn imported_house() -> Result<Option<BodyBiographyEvidence>, String> {
+    let mut arguments = std::env::args().skip(1);
+    let Some(argument) = arguments.next() else {
+        return Ok(None);
+    };
+    if argument != "--body-evidence" {
+        return Err(format!(
+            "unknown browser Parts capstone argument {argument}"
+        ));
+    }
+    let path = arguments.next().ok_or("--body-evidence requires a path")?;
+    if arguments.next().is_some() {
+        return Err("browser Parts capstone accepts only one --body-evidence path".into());
+    }
+    let encoded = std::fs::read(&path).map_err(|error| format!("read Body evidence: {error}"))?;
+    let evidence: BodyBiographyEvidence = serde_json::from_slice(&encoded)
+        .map_err(|error| format!("decode Body evidence: {error}"))?;
+    evidence
+        .validate()
+        .map_err(|error| format!("validate Body evidence: {error:?}"))?;
+    if evidence.friendly_name != "Rosehip House" {
+        return Err("House admission proof requires the exact friendly name Rosehip House".into());
+    }
+    let (source, checked) = planning::cross_browser_form_basis()?;
+    if evidence.body.workset.len() != 1
+        || !evidence
+            .body
+            .workset
+            .contains(&conduit_body::ResidentForm::new(source, checked))
+    {
+        return Err("Rosehip House must be born with the reviewed Button Across the Room Form for this proof".into());
+    }
+    Ok(Some(evidence))
 }
 
 fn admit_ambient(

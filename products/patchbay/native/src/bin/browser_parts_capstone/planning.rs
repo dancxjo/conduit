@@ -11,7 +11,7 @@ use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
 
-const SOURCE: &str = include_str!("../../../../../../forms/webchat/main.conduit");
+const SOURCE: &str = include_str!("../../../../../../forms/button-across-room/main.conduit");
 
 pub(super) struct CrossBrowserPlan {
     pub(super) plan: conduit_core::Plan,
@@ -22,15 +22,14 @@ pub(super) fn cross_browser_form_basis(
 ) -> Result<(conduit_core::SourceDocumentId, conduit_core::CheckedFormId), String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile)?;
-    conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup)
-        .map_err(|error| format!("canonical webchat check: {error:?}"))?;
+        .map_err(|error| format!("canonical Button Across the Room check: {error:?}"))?;
     let form = checked
         .forms
         .iter()
-        .find(|form| form.name == "webchat-browser-demo")
-        .ok_or("canonical webchat Form is absent")?;
+        .find(|form| form.name == "button_across_room")
+        .ok_or("canonical Button Across the Room Form is absent")?;
     Ok((checked.source_document_id, form.checked_form_id.clone()))
 }
 
@@ -40,15 +39,14 @@ pub(super) fn cross_browser_plan(
 ) -> Result<CrossBrowserPlan, String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile)?;
-    conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup)
-        .map_err(|error| format!("canonical webchat check: {error:?}"))?;
-    let expanded = expand_canonical_form(&checked, "webchat-browser-demo", &profile)
-        .map_err(|error| format!("canonical webchat expansion: {error:?}"))?;
+        .map_err(|error| format!("canonical Button Across the Room check: {error:?}"))?;
+    let expanded = expand_canonical_form(&checked, "button_across_room", &profile)
+        .map_err(|error| format!("canonical Button Across the Room expansion: {error:?}"))?;
     let mut by_gear = BTreeMap::new();
     for gear in &expanded.gears {
-        let target = if gear.kind_id.as_str() == conduit_presentation::INTERACTION_KIND {
+        let target = if gear.kind_id.as_str() == conduit_semantic_catalog::BUTTON_SOURCE_KIND {
             source
         } else {
             sink
@@ -131,7 +129,7 @@ pub(super) fn cross_browser_plan(
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &line_candidates,
-            connection_item_capacity: 4,
+            connection_item_capacity: 1,
             connection_byte_capacity: 1_024,
             authority_grants: &[],
             protected_resource_grants: &[],

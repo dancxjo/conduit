@@ -76,6 +76,26 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /browser-admission-stage:\n    needs: \[plan, browser-runtimes\]/);
   assert.match(productWorkflow, /stage-creche-product\.sh[^\n]+unused browser-proof/);
   assert.match(productWorkflow, /name: browser-admission-\$\{\{ matrix\.shard \}\}/);
+  assert.match(
+    productWorkflow,
+    /cargo build --locked[^\n]+-p patchbay-native --bin browser-parts-capstone --bin webchat-server/,
+  );
+  assert.match(
+    productWorkflow,
+    /name: conduit-development-browser-products[\s\S]*?target\/debug\/browser-parts-capstone/,
+  );
+  assert.match(
+    productWorkflow,
+    /name: conduit-development-browser-products[\s\S]*?target\/debug\/webchat-server/,
+  );
+  assert.match(
+    productWorkflow,
+    /name: conduit-staged-browser-products[\s\S]*?target\/debug\/browser-parts-capstone/,
+  );
+  assert.match(
+    productWorkflow,
+    /name: conduit-staged-browser-products[\s\S]*?target\/debug\/webchat-server/,
+  );
   assert.match(productWorkflow, /--workers 1/);
   assert.match(productWorkflow, /--retries 0/);
   assert.match(
