@@ -96,14 +96,6 @@ try {
     onFailure: showTourFailure,
   });
   guidedPages = parseTourPages(chapters);
-  const sharedChapters = readTourApplicationChapters(host.runtime);
-  if (guidedPages.length !== sharedChapters.length || guidedPages.some((page, index) => {
-    const shared = sharedChapters[index];
-    return page.identity !== shared?.identity || page.route !== shared.route
-      || page.companion !== shared.companion;
-  })) {
-    throw new Error("authored Tour chapters disagree with the shared application model");
-  }
   if (host.runtime.conduit_tour_application_reset(guidedPages.length) < 0) {
     throw new Error("shared Tour application refused its chapter inventory");
   }
