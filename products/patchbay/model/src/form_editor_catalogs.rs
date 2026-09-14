@@ -53,6 +53,16 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Fo
         .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
+    conduit_data::install_measurement_window_catalog(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
+    conduit_data::install_measurement_summary_catalog(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
+    conduit_data::install_measurement_threshold_catalog(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
+    conduit_data::install_measurement_plot_catalog(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
+    conduit_data::install_little_seismograph_fixture_catalog(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
     Ok((startup, profile))
 }
 
@@ -68,6 +78,26 @@ mod tests {
         .unwrap();
         assert!(
             editor.view().checked.source_document_id.is_some(),
+            "{:?}",
+            editor.view().checked.diagnostics
+        );
+    }
+
+    #[test]
+    fn standard_editor_catalog_checks_the_canonical_little_seismograph() {
+        let source = include_str!("../../../../forms/little-seismograph/main.conduit");
+        let editor = crate::FormEditor::from_source(
+            "forms/little-seismograph/main.conduit".into(),
+            source.into(),
+        )
+        .unwrap();
+        assert!(
+            editor
+                .view()
+                .checked
+                .forms
+                .iter()
+                .any(|form| form.name == "little-seismograph-display"),
             "{:?}",
             editor.view().checked.diagnostics
         );

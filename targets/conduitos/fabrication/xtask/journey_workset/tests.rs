@@ -12,9 +12,14 @@ fn records() -> Vec<Value> {
         .enumerate()
         .map(|(index, expected)| {
             let form = identity(expected.form).unwrap();
+            let (plan_id, active_play_id) = if index < 14 {
+                ("plan", "play")
+            } else {
+                ("replanned-plan", "replanned-play")
+            };
             serde_json::json!({
                 "status": "quiescent-awaiting-input", "revision": index + 10,
-                "body_id": "body", "wake_id": "wake", "plan_id": "plan", "active_play_id": "play",
+                "body_id": "body", "wake_id": "wake", "plan_id": plan_id, "active_play_id": active_play_id,
                 "source_document_id": form.source_document_id,
                 "checked_form_id": form.checked_form_id,
                 "expanded_form_id": form.expanded_form_id,
@@ -38,6 +43,7 @@ fn resident_form_proof_rejects_restarts_identity_substitution_input_loss_and_sta
     assert_eq!(initial["result"], "HELLO");
     assert_eq!(proof.forms.len(), 4);
     assert_eq!(proof.switches, 12);
+    assert!(proof.patchbay_presenters_replanned);
     for field in [
         "body_id",
         "wake_id",
@@ -64,12 +70,18 @@ fn resident_form_proof_rejects_restarts_identity_substitution_input_loss_and_sta
     let mut duplicate = valid.clone();
     duplicate.insert(22, duplicate[22].clone());
     assert!(validate(&duplicate).is_err());
+    let mut stale_realization = valid.clone();
+    for record in &mut stale_realization[15..] {
+        record["plan_id"] = "plan".into();
+        record["active_play_id"] = "play".into();
+    }
+    assert!(validate(&stale_realization).is_err());
     let mut omitted = valid;
     omitted[31]["result"] = Value::Null; // Empty text is a value, not absent output.
     assert!(validate(&omitted).is_err());
 
     let mut coalesced = records();
-    coalesced.remove(27); // Adjacent Memory press/release projected together.
+    coalesced.remove(28); // Adjacent Memory press/release projected together.
     validate(&coalesced).unwrap();
 
     let mut bootstrapped = records();

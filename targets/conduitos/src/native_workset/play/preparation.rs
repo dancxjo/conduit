@@ -23,7 +23,7 @@ pub(super) fn prepare(
         return Err(WorksetRefusal::Kernel);
     }
     let mut values =
-        FixedValueStore::<32, 1024>::new(24_576).map_err(|_| WorksetRefusal::Kernel)?;
+        FixedValueStore::<10, 3072>::new(24_576).map_err(|_| WorksetRefusal::Kernel)?;
     let empty = values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?;
     let mut bindings = [None; NODES];
     let mut editors = core::array::from_fn(|_| None);

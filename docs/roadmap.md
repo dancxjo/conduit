@@ -95,9 +95,12 @@ robotics Body. Its [memory #2231](https://github.com/dancxjo/conduit/issues/2231
 [resident workload #2233](https://github.com/dancxjo/conduit/issues/2233), and
 [continuous physical capstone #2234](https://github.com/dancxjo/conduit/issues/2234)
 slices are **paused**. [Navigation #2232](https://github.com/dancxjo/conduit/issues/2232)
-remains open for [portable goal, path, trajectory, and local-control
-semantics](architecture/portable-navigation.md).
-Existing deterministic robotics code does not finish the physical capstone.
+is complete: [portable goal, path, trajectory, and local-control
+semantics](architecture/portable-navigation.md) now run as an ordinary bounded
+Form through the std production kernel. Pete/Create attachment, attended
+movement and safe-stop proof, and the complete live Patchbay causal view remain
+owned by the continuous physical capstone; deterministic navigation proof does
+not finish that physical work.
 
 ## Contributor and release experience
 

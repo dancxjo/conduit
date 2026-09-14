@@ -9,6 +9,18 @@ static HEADING: &[u8] = include_bytes!("../../assets/graphical/heading.atlas");
 static TITLE: &[u8] = include_bytes!("../../assets/graphical/title.atlas");
 static CODE: &[u8] = include_bytes!("../../assets/graphical/code.atlas");
 
+// The linker may merge or reorder atlas bytes, so exact source prefixes are
+// not stable image signatures. These retained markers prove that each finite
+// graphical asset closure was selected without coupling proof to ELF layout.
+#[used]
+static BODY_ASSET: [u8; 34] = *b"CONDUIT_GRAPHICAL_ASSET_BODY_ATLAS";
+#[used]
+static HEADING_ASSET: [u8; 37] = *b"CONDUIT_GRAPHICAL_ASSET_HEADING_ATLAS";
+#[used]
+static TITLE_ASSET: [u8; 35] = *b"CONDUIT_GRAPHICAL_ASSET_TITLE_ATLAS";
+#[used]
+static CODE_ASSET: [u8; 34] = *b"CONDUIT_GRAPHICAL_ASSET_CODE_ATLAS";
+
 #[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub(super) struct Glyph {

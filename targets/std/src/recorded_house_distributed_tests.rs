@@ -447,4 +447,52 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
         assert!(refusal.contains("UnknownHost"), "{refusal}");
         assert_eq!(exact.plan, accepted_plan);
     }
+
+    let replacement =
+        crate::distributed_house_plan::replan_distributed_spoken_house_after_replacement(
+            &template,
+            crate::distributed_house_plan::DistributedHouseRole::Capture,
+            BootId::from("boot/house-capture-replacement"),
+            OfferGeneration(2),
+        )
+        .expect("fresh capture Host truth produces a new exact Plan");
+    let prior_capture = &exact.hosts[0];
+    let replacement_capture = &replacement.hosts[0];
+    assert_eq!(replacement_capture.host_id, prior_capture.host_id);
+    assert_ne!(replacement_capture.boot_id, prior_capture.boot_id);
+    assert!(replacement_capture.offer_generation > prior_capture.offer_generation);
+    let prior_pools = prior_capture
+        .resources
+        .iter()
+        .map(|resource| resource.pool_id.clone())
+        .collect::<std::collections::BTreeSet<_>>();
+    let replacement_pools = replacement_capture
+        .resources
+        .iter()
+        .map(|resource| resource.pool_id.clone())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert!(prior_pools.is_disjoint(&replacement_pools));
+    let bound_pools = replacement.plan.fragments[0]
+        .placements
+        .iter()
+        .flat_map(|placement| &placement.resources)
+        .map(|resource| resource.pool_id.clone())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert!(!bound_pools.is_empty());
+    assert!(bound_pools.is_subset(&replacement_pools));
+    assert_eq!(replacement.plan.checked_form_id, exact.plan.checked_form_id);
+    assert_ne!(replacement.plan.plan_id, exact.plan.plan_id);
+    assert_eq!(exact.plan, accepted_plan);
+    let stale_fragment_refusal = match crate::InstalledRemoteFragment::prepare(
+        replacement_capture,
+        &exact.plan.fragments[0],
+        2,
+    ) {
+        Ok(_) => panic!("old fragment must refuse the replacement Boot"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        stale_fragment_refusal,
+        "remote fragment preparation requires its exact Host and Boot"
+    );
 }

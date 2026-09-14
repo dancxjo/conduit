@@ -2,7 +2,8 @@
 
 use conduit_core::{
     authority_grant, process_owned_line_offer_with_limits, AuthorityGrant, BaseImplementationId,
-    BootId, HostAdvertisement, HostId, LineId, LineOffer, LinkLimits,
+    BootId, HostAdvertisement, HostId, LineId, LineOffer, LinkLimits, OfferGeneration,
+    ResourcePoolId,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
 use std::collections::{BTreeMap, BTreeSet};
@@ -34,17 +35,64 @@ impl DistributedHouseRole {
             Self::Output => 2,
         }
     }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::Capture => "capture",
+            Self::Cognition => "cognition",
+            Self::Output => "output",
+        }
+    }
 }
 
 pub fn exact_distributed_spoken_house_plan(
     template: &HostAdvertisement,
 ) -> Result<DistributedHousePlan, Box<dyn std::error::Error>> {
+    exact_distributed_spoken_house_plan_with_replacement(template, None)
+}
+
+/// Replan the unchanged House conversation after one same-named Host returns
+/// with fresh Boot, offer-generation, and resource-pool truth.
+pub fn replan_distributed_spoken_house_after_replacement(
+    template: &HostAdvertisement,
+    role: DistributedHouseRole,
+    boot_id: BootId,
+    offer_generation: OfferGeneration,
+) -> Result<DistributedHousePlan, Box<dyn std::error::Error>> {
+    if boot_id == role_host(template, role.label()).boot_id
+        || offer_generation <= template.offer_generation
+    {
+        return Err("replacement House Host requires fresh Boot and offer generation".into());
+    }
+    exact_distributed_spoken_house_plan_with_replacement(
+        template,
+        Some((role, boot_id, offer_generation)),
+    )
+}
+
+fn exact_distributed_spoken_house_plan_with_replacement(
+    template: &HostAdvertisement,
+    replacement: Option<(DistributedHouseRole, BootId, OfferGeneration)>,
+) -> Result<DistributedHousePlan, Box<dyn std::error::Error>> {
     let topology = crate::house_conversation_topology::build(true, true)?;
-    let hosts = [
+    let mut hosts = [
         role_host(template, "capture"),
         role_host(template, "cognition"),
         role_host(template, "output"),
     ];
+    if let Some((role, boot_id, offer_generation)) = replacement {
+        let host = &mut hosts[role.index()];
+        host.boot_id = boot_id;
+        host.offer_generation = offer_generation;
+        for resource in &mut host.resources {
+            resource.pool_id = ResourcePoolId::from(format!(
+                "{}/replacement-{}-{}",
+                resource.pool_id.as_str(),
+                role.label(),
+                offer_generation.0
+            ));
+        }
+    }
     let placements = exact_placements(template, &topology.expanded, &hosts)?;
     let authority_grants = authority_grants(&hosts, &placements)?;
     let (lines, line_candidates) = lines(

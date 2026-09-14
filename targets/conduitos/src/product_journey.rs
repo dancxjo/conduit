@@ -96,6 +96,7 @@ pub enum JourneyError {
     InputUnavailable,
     InputSequenceExhausted,
     RevisionExhausted,
+    Presenter(native_workset::PlayRefusal),
 }
 
 impl JourneyError {
@@ -115,6 +116,7 @@ impl JourneyError {
             Self::InputUnavailable => "product-input-unavailable",
             Self::InputSequenceExhausted => "product-input-sequence-exhausted",
             Self::RevisionExhausted => "product-presentation-revision-exhausted",
+            Self::Presenter(error) => error.as_str(),
         }
     }
 }
@@ -182,6 +184,7 @@ pub struct ProductJourney {
     retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
     application_request: Option<native_workset::NativeApplicationRequest>,
+    presenter_control: Option<crate::presenter_control::PresenterControl>,
 }
 
 impl ProductJourney {
@@ -219,6 +222,7 @@ impl ProductJourney {
             retained_kernel_sign_gap: None,
             last_request_id: None,
             application_request: None,
+            presenter_control: None,
         })
     }
 

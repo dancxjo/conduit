@@ -58,6 +58,10 @@ impl PatchbayHtmlServer {
             // the mutation boundary, not merely when the proposal was fetched.
             self.body_execution_proposal()?;
         }
+        let started_play = match &request.action {
+            ExecutionAction::Started { play, .. } => Some(play.clone()),
+            _ => None,
+        };
         let mut planning = self
             .body_planning
             .clone()
@@ -110,6 +114,22 @@ impl PatchbayHtmlServer {
             .ok_or_else(|| ServerError::Interaction("BodyWorkloadAbsent".into()))?;
         let (session, mut snapshot) = history::retain(&self.snapshot, session, &planning)?;
         snapshot.body_planning = Some(planning.snapshot());
+        if let (Some(control), Some(play)) = (&mut self.presenter_control, started_play.as_ref()) {
+            control
+                .refresh_presentation(snapshot.presentation.clone())
+                .map_err(|error| {
+                    ServerError::Interaction(format!("Presenter refresh: {error:?}"))
+                })?;
+            let topology = control.project_current(&planning, play).map_err(|error| {
+                ServerError::Interaction(format!("Presenter projection: {error:?}"))
+            })?;
+            snapshot.presenter_topology = Some(
+                patchbay_model::project_presenter_topology(control.presentation(), &topology)
+                    .map_err(|error| {
+                        ServerError::Interaction(format!("Presenter projection: {error:?}"))
+                    })?,
+            );
+        }
         snapshot.interaction.revision = snapshot
             .interaction
             .revision

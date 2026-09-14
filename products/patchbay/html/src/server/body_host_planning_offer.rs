@@ -111,7 +111,7 @@ impl PatchbayHtmlServer {
                 evidence.host_id.as_str()
             ))
         };
-        let next_planning = if let Some(current) = &self.body_planning {
+        let mut next_planning = if let Some(current) = &self.body_planning {
             let mut next = current.clone();
             if current.wake().lifecycle == conduit_body::WakeLifecycle::Lulled {
                 next.prepare_next_wake(&biography.body, sequence, sign("wake"), forms)
@@ -132,6 +132,15 @@ impl PatchbayHtmlServer {
             )
             .map_err(|error| ServerError::Interaction(format!("Body initial plan: {error:?}")))?
         };
+        if next_planning.current_plan().presenter_topologies.is_empty() {
+            if let Some(control) = self.presenter_control.as_mut() {
+                control
+                    .install_initial_graphical(&mut next_planning)
+                    .map_err(|error| {
+                        ServerError::Interaction(format!("Presenter initial plan: {error:?}"))
+                    })?;
+            }
+        }
         let session = self
             .body_workload
             .as_ref()

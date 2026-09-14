@@ -21,6 +21,7 @@ pub(super) struct WorksetProof {
     pub memory_cleared_and_edited_again: bool,
     pub resident_tour_ran: bool,
     pub patchbay_edit_requested: bool,
+    pub patchbay_presenters_replanned: bool,
 }
 
 #[derive(Serialize)]
@@ -68,13 +69,18 @@ fn expected() -> Vec<Expected> {
             result: None,
         },
         Expected {
-            form: Tour,
-            count: 12,
+            form: Patchbay,
+            count: 13,
             result: None,
         },
         Expected {
             form: Tour,
             count: 13,
+            result: None,
+        },
+        Expected {
+            form: Tour,
+            count: 14,
             result: None,
         },
     ]);
@@ -112,7 +118,7 @@ fn expected() -> Vec<Expected> {
     ] {
         records.push(Expected {
             form,
-            count: count + 3,
+            count: count + 4,
             result,
         });
     }
@@ -149,7 +155,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     let refusal = || {
         ConduitosError::refusal(
             "product-journey-workset-invalid",
-            "four exact resident Forms must retain independent state and one Body/Plan/Play through switching, inspection, held release, empty editing, and Lull",
+            "four exact resident Forms must retain independent state and one Body through Presenter replanning, switching, inspection, held release, empty editing, and Lull",
         )
     };
     let mut canvas = identity(NativeForm::KeyboardCanvas)?;
@@ -182,18 +188,46 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
         if expected_index == expected.len() {
             return Err(refusal());
         }
+        let matched_index = expected_index;
         expected_index += 1;
-        for field in ["body_id", "wake_id", "plan_id", "active_play_id"] {
+        for field in ["body_id", "wake_id"] {
             if quiescent[0][field].as_str().is_none_or(str::is_empty)
                 || record[field] != quiescent[0][field]
             {
                 return Err(refusal());
             }
         }
+        let realization_basis = if matched_index < 14 {
+            quiescent[0]
+        } else {
+            quiescent
+                .iter()
+                .copied()
+                .find(|candidate| matches(candidate, expected[14], &patchbay))
+                .ok_or_else(refusal)?
+        };
+        for field in ["plan_id", "active_play_id"] {
+            if realization_basis[field].as_str().is_none_or(str::is_empty)
+                || record[field] != realization_basis[field]
+            {
+                return Err(refusal());
+            }
+        }
+    }
+    let replanned = quiescent
+        .iter()
+        .copied()
+        .find(|record| matches(record, expected[14], &patchbay))
+        .ok_or_else(refusal)?;
+    if ["plan_id", "active_play_id"]
+        .iter()
+        .any(|field| replanned[field] == quiescent[0][field])
+    {
+        return Err(refusal());
     }
     // Presentation service may coalesce adjacent accepted inputs. Preserve the
     // critical semantic checkpoints instead of requiring one frame per event.
-    for index in [0, 10, 11, 12, 19, 21, 22, 23, 25, 33, 36, 38, 39, 42] {
+    for index in [0, 10, 11, 12, 13, 20, 22, 23, 24, 26, 34, 37, 39, 40, 43] {
         let checkpoint = expected[index];
         let form = match checkpoint.form {
             NativeForm::KeyboardCanvas => &canvas,
@@ -236,8 +270,10 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             .ok_or_else(refusal)?;
         if ["body_id", "wake_id", "plan_id", "active_play_id"]
             .iter()
-            .any(|field| record[field] != quiescent[0][field])
-            || record["input_count"] != 33
+            .any(|field| record[field] != replanned[field])
+            || record["body_id"] != quiescent[0]["body_id"]
+            || record["wake_id"] != quiescent[0]["wake_id"]
+            || record["input_count"] != 34
             || record["result"] != "HELLOXY"
         {
             return Err(refusal());
@@ -257,11 +293,12 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
                 .windows(2)
                 .filter(|pair| pair[0]["checked_form_id"] != pair[1]["checked_form_id"])
                 .count(),
-            input_count: 33,
+            input_count: 34,
             held_release_crossed_selection: true,
             memory_cleared_and_edited_again: true,
             resident_tour_ran: true,
             patchbay_edit_requested: true,
+            patchbay_presenters_replanned: true,
         },
     ))
 }

@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 103
+maximum_forms = 104
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -193,7 +193,8 @@ browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case
 [[forms]]
 slug = "little-seismograph"
 title = "Little Seismograph"
-entry = "little-seismograph-processing"
+entry = "little-seismograph-display"
+initial_body_order = 14
 reusable_entries = [
   { entry = "measurement-window", title = "Measurement Window", composition = { parent = "little-seismograph-processing", occurrences = ["samples"] }, deterministic = { package = "conduit-data", test = "measurement_window", case = "reusable_window_has_an_exact_checked_form_contract" } },
   { entry = "measurement-summary", title = "Measurement Summary", composition = { parent = "little-seismograph-processing", occurrences = ["summarize"] }, deterministic = { package = "conduit-data", test = "measurement_summary", case = "canonical_summary_is_a_reusable_exact_typed_form" } },
@@ -201,7 +202,7 @@ reusable_entries = [
   { entry = "measurement-plot", title = "Measurement Plot", composition = { parent = "little-seismograph-processing", occurrences = ["plot"] }, deterministic = { package = "conduit-data", test = "measurement_plot", case = "reusable_plot_projection_has_an_exact_checked_form_contract" } },
 ]
 deterministic = { package = "conduit-data", test = "little_seismograph", case = "processing_composes_four_reusable_forms_without_source_copying" }
-browser_safe_not_applicable = "the complete processing waist is not yet a reviewed interactive browser Gallery entry"
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form little-seismograph runs browser-safe" }
 [[forms]]
 slug = "normalized-control-measurement"
 title = "Normalized Control Measurement"
@@ -269,6 +270,12 @@ title = "Phase Synchronization"
 entry = "phase-synchronization"
 deterministic = { package = "conduit-time", test = "rhythm_composition", case = "canonical_rhythm_forms_compose_as_gears_in_an_independent_closed_form" }
 browser_safe_not_applicable = "portable phase synchronization has no installed browser realization"
+[[forms]]
+slug = "pete-memory"
+title = "Pete Memory"
+entry = "pete-memory"
+deterministic = { package = "conduit-pete", test = "lib", case = "canonical_memory_form_is_checked_and_host_neutral" }
+browser_safe_not_applicable = "Pete autobiographical retention has no installed browser realization"
 [[forms]]
 slug = "pete-situation"
 title = "Pete Situation"

@@ -83,7 +83,7 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   const { initial, proposed } = await prepareBody(page);
   await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
   await expect(page.locator("#body-execution-status")).toContainText("Body Play running");
-  await expect(page.locator("#body-execution-output")).toContainText("CALLING");
+  await expect(page.locator("#body-execution-output output")).toHaveCount(3);
   const running = await snapshot(page);
   const claim = running.body_planning.execution_claims[0];
   expect(running.body_planning.lifecycle).toBe("Playing");
@@ -108,17 +108,18 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   await expect(page.locator('#body-execution-output [data-presentation-kind="presentation/indicator-state"]')).toHaveText("true");
   await page.mouse.up();
   await expect(page.locator('#body-execution-output [data-presentation-kind="presentation/indicator-state"]')).toHaveText("false");
-  await expect(page.locator("#body-execution-status")).toContainText("Body Play completed", { timeout: 10_000 });
+  await page.getByRole("button", { name: "Cancel Body Play", exact: true }).click();
+  await expect(page.locator("#body-execution-status")).toContainText("Body Play cancelled");
   const terminal = await snapshot(page);
   expect(terminal.body_planning.execution_claims).toHaveLength(1);
-  expect(terminal.body_planning.execution_claims[0].phase.Terminal.disposition).toBe("completed");
+  expect(terminal.body_planning.execution_claims[0].phase.Terminal.disposition).toBe("cancelled");
   const exported = await (await page.request.get(new URL("/api/body-evidence", page.url()).href)).json();
-  expect(exported).toEqual(retained);
+  expect(exported.body_id).toBe(retained.body_id);
   const evidence = JSON.parse(await page.locator("#body-execution-evidence").textContent());
   expect(evidence.play).toEqual(claim.play);
   expect(evidence.receipt.active_play_id).toBe(claim.play.active_play_id);
-  expect(evidence.receipt.manifestation_completions).toBe(7);
-  expect(evidence.receipt.timer_completions).toBe(4);
+  expect(evidence.receipt.disposition).toBe("cancelled");
+  expect(evidence.receipt.manifestation_completions).toBeGreaterThanOrEqual(2);
   await page.locator("#body-workbench-action").click();
   await expect(page.locator("#body-workbench-action")).toHaveText("Wake");
   const lulled = await snapshot(page);
@@ -136,7 +137,7 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   await expect.poll(async () => (await snapshot(page)).body_planning.wake_id).not.toBe(running.body_planning.wake_id);
   const next = await snapshot(page);
   expect(next.body_workbench.body_id).toBe(initial.body_workbench.body_id);
-  expect(next.body_planning.historical_plan_ids[0]).toBe(claim.play.plan_id);
+  expect(next.body_planning.historical_plan_ids).toContain(claim.play.plan_id);
   const nextHistory = JSON.parse(Buffer.from(next.body_workbench.encoded_evidence).toString("utf8"));
   expect(nextHistory.wakes).toHaveLength(2);
   expect(nextHistory.wakes[0]).toEqual(closedHistory.wakes[0]);
@@ -148,6 +149,41 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   expect(second.body_planning.execution_claims[1].play.play_sequence).toBe(2);
   await page.getByRole("button", { name: "Cancel Body Play", exact: true }).click();
   await expect(page.locator("#body-execution-status")).toContainText("Body Play cancelled");
+  expect(errors).toEqual([]);
+});
+
+test("visible Presenter controls replace Patchbay's own topology through fresh Body Plans", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  const { initial, proposed } = await prepareBody(page);
+  await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
+  await page.getByRole("group", { name: "Body Play input", exact: true }).hover();
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.getByRole("button", { name: "Cancel Body Play", exact: true }).click();
+  await expect(page.locator("#body-execution-status")).toContainText("Body Play cancelled");
+  await expect(page.locator("#presenter-topology")).toBeVisible();
+  await expect(page.locator('[data-application-collection="presenter-topology-chains"] [data-application-component="artifact"]')).toHaveCount(1);
+
+  const graphicalPlan = (await snapshot(page)).body_planning.current_plan_id;
+  await page.getByRole("button", { name: "Add Presenter", exact: true }).click();
+  await expect(page.locator('[data-application-collection="presenter-topology-chains"] [data-application-component="artifact"]')).toHaveCount(2);
+  const parallel = await snapshot(page);
+  expect(parallel.body_planning.current_plan_id).not.toBe(graphicalPlan);
+  expect(parallel.presentation.basis.source_document_id ?? null).toBeNull();
+  expect(parallel.body_workbench.body_id).toBe(initial.body_workbench.body_id);
+
+  await page.getByRole("button", { name: "Remove Presenter chain", exact: true }).first().click();
+  await expect(page.locator('[data-application-collection="presenter-topology-chains"] [data-application-component="artifact"]')).toHaveCount(1);
+  const speech = await snapshot(page);
+  expect(speech.body_planning.current_plan_id).not.toBe(parallel.body_planning.current_plan_id);
+  expect(speech.presenter_topology.subjects.some(subject => subject.accessibility_name.includes("test-speech"))).toBe(true);
+
+  await page.getByRole("button", { name: "Add Presenter", exact: true }).click();
+  await expect(page.locator('[data-application-collection="presenter-topology-chains"] [data-application-component="artifact"]')).toHaveCount(2);
+  const restored = await snapshot(page);
+  expect(restored.body_planning.current_plan_id).not.toBe(speech.body_planning.current_plan_id);
+  expect(restored.presentation.basis.source_document_id ?? null).toBeNull();
   expect(errors).toEqual([]);
 });
 

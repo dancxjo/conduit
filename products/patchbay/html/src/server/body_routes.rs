@@ -21,6 +21,9 @@ impl PatchbayHtmlServer {
             "POST /api/body-host-planning-offer HTTP/1.1" => {
                 self.deliver_body_host_planning_offer(stream, body)
             }
+            "POST /api/presenter-topology HTTP/1.1" => {
+                self.deliver_presenter_topology(stream, body)
+            }
             "GET /api/body-planning-requirements HTTP/1.1" => {
                 self.deliver_body_planning_requirements(stream)
             }

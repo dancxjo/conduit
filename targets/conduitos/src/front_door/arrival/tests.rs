@@ -207,13 +207,38 @@ fn shared_search_filters_visible_controls_without_losing_included_forms() {
 }
 
 #[test]
-fn three_form_scene_and_refusal_fit_the_native_display_envelope() {
+fn four_form_scene_keeps_choices_status_and_birth_visually_separate() {
     let mut door = door(None);
     assert!(door.scene(&super::super::tests::Sink).is_ok());
     press(&mut door, 42);
     press(&mut door, 60);
     let scene = door.scene(&super::super::tests::Sink).unwrap();
     assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+    let choices: alloc::vec::Vec<_> = scene
+        .commands()
+        .iter()
+        .filter(|command| {
+            command.payload().starts_with("●  ") || command.payload().starts_with("○  ")
+        })
+        .collect();
+    assert_eq!(choices.len(), 4);
+    assert!(choices.windows(2).all(|rows| {
+        rows[1].bounds.y - rows[0].bounds.y
+            >= crate::display::profile::line_height(conduit_presentation::GraphicsTextRole::Body)
+                as i16
+    }));
+    let selected = scene
+        .commands()
+        .iter()
+        .find(|command| command.payload().starts_with("Selected:"))
+        .unwrap();
+    let birth = scene
+        .commands()
+        .iter()
+        .find(|command| command.payload().contains("Enter / F3"))
+        .unwrap();
+    assert!(selected.bounds.y > choices.last().unwrap().bounds.y);
+    assert!(birth.bounds.y > selected.bounds.y);
     crate::display::render_scene(&mut super::super::tests::Sink, &scene).unwrap();
 }
 

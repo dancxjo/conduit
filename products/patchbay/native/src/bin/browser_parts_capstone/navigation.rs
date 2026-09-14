@@ -19,7 +19,7 @@ use serde_json::{json, Value};
 
 use super::planning::CrossBrowserPlan;
 
-const SOURCE: &str = include_str!("../../../../../../forms/webchat/main.conduit");
+const SOURCE: &str = include_str!("../../../../../../forms/button-across-room/main.conduit");
 
 pub(super) fn cord_line_receipt(
     body: &Body,
@@ -52,26 +52,27 @@ pub(super) fn cord_line_receipt(
     .map_err(debug("project navigation Parts"))?;
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile)?;
-    conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     let mut editor = FormEditor::from_source_with_catalogs(
-        "forms/webchat/main.conduit".into(),
+        "forms/button-across-room/main.conduit".into(),
         SOURCE.into(),
         startup,
         profile,
     )
     .map_err(|error| error.to_string())?;
     editor
-        .open_back("webchat-browser-demo")
+        .open_back("button_across_room")
         .map_err(|error| error.to_string())?;
     let expanded = editor
-        .expand_form("webchat-browser-demo")
+        .expand_form("button_across_room")
         .map_err(|error| error.to_string())?;
     if !body.workset.contains(&conduit_body::ResidentForm::new(
         expanded.source_document_id.clone(),
         expanded.checked_form_id.clone(),
     )) {
-        return Err("live navigation Body does not bind the canonical webchat Form".into());
+        return Err(
+            "live navigation Body does not bind the canonical Button Across the Room Form".into(),
+        );
     }
     let plan_document = PlanDocument::from_plan(
         PatchbayRequestId::new("browser-parts-capstone/navigation-plan")

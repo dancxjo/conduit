@@ -20,6 +20,7 @@ use crate::{RendererSelfInspection, RendererSelfInspectionError};
 pub enum RendererAdapterKind {
     NativeWayland,
     HtmlDomSvg,
+    TestSpeech,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,11 +64,22 @@ impl RendererExecution {
         identity: RendererAdapterIdentity,
         sign_id: SignId,
     ) -> Result<Self, RendererExecutionError> {
+        Self::prepare_with_offer_generation(presentation, adapter, identity, 1, sign_id)
+    }
+
+    pub fn prepare_with_offer_generation(
+        presentation: Presentation,
+        adapter: RendererAdapterKind,
+        identity: RendererAdapterIdentity,
+        offer_generation: u64,
+        sign_id: SignId,
+    ) -> Result<Self, RendererExecutionError> {
         presentation.validate().map_err(|_| {
             RendererExecutionError::Manifestation(ManifestationError::InvalidPresentation)
         })?;
         let form = renderer_form()?;
-        let advertisement = renderer_host(adapter, &identity);
+        let mut advertisement = renderer_host(adapter, &identity);
+        advertisement.offer_generation = OfferGeneration(offer_generation);
         let placements = default_placements(&form, core::slice::from_ref(&advertisement))
             .map_err(|_| RendererExecutionError::Planning)?;
         let plan = plan(&form, &[advertisement], &placements, &[])
@@ -79,6 +91,16 @@ impl RendererExecution {
         presentation: Presentation,
         plan: Plan,
         target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, RendererExecutionError> {
+        Self::prepare_planned_sequence(presentation, plan, target_subject, 0, sign_id)
+    }
+
+    pub fn prepare_planned_sequence(
+        presentation: Presentation,
+        plan: Plan,
+        target_subject: String,
+        play_sequence: u64,
         sign_id: SignId,
     ) -> Result<Self, RendererExecutionError> {
         presentation.validate().map_err(|_| {
@@ -100,7 +122,12 @@ impl RendererExecution {
             return Err(RendererExecutionError::AmbiguousPlacement);
         }
         let placement_id = placement.placement_id.clone();
-        let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+        let active_play = bind_active_play(
+            &plan.plan_id,
+            &fragment.host_id,
+            &fragment.boot_id,
+            play_sequence,
+        );
         let active_play_id = active_play.active_play_id.clone();
         let manifestation = Manifestation::prepared(
             &presentation,
@@ -211,6 +238,13 @@ pub(crate) fn renderer_host(
             "patchbay-html/dom-svg@1",
             "presentation/base/dom-svg@1",
             "conduit.resource/browser-document@1",
+        ),
+        RendererAdapterKind::TestSpeech => (
+            "renderer-test-speech",
+            "presentation/renderer-test-speech@1",
+            "patchbay/test-speech@1",
+            "presentation/base/test-speech@1",
+            "conduit.resource/test-speech-sink@1",
         ),
     };
     let limits = CapabilityLimits {

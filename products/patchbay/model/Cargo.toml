@@ -18,6 +18,7 @@ conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-
 conduit-body = { path = "../../../architecture/body" }
 conduit-creche-model = { path = "../../creche/model" }
 conduit-browser-runtime = { path = "../../../targets/browser/runtime" }
+conduit-data = { path = "../../../semantics/data" }
 conduit-ai = { path = "../../../semantics/ai", features = ["form-catalog"] }
 conduit-signal = { path = "../../../semantics/signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../../proof/conformance/signal" }

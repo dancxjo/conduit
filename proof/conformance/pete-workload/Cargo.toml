@@ -1,0 +1,14 @@
+[package]
+name = "conduit-pete-workload-conformance"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+conduit-body = { path = "../../../architecture/body" }
+conduit-ai = { path = "../../../semantics/ai" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-pete = { path = "../../../bodies/pete" }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-std-host = { path = "../../../targets/std" }
+patchbay-model = { path = "../../../products/patchbay/model" }

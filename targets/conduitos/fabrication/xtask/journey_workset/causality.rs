@@ -37,6 +37,7 @@ pub(in super::super) fn validate(
         || !inspected_plan
         || !serial.contains("CONDUIT_WORKSPACE_CHECKPOINT resident-tour-ran")
         || !serial.contains("CONDUIT_WORKSPACE_CHECKPOINT patchbay-edit-requested")
+        || !serial.contains("CONDUIT_WORKSPACE_CHECKPOINT patchbay-presenters-replanned")
     {
         return Err(ConduitosError::refusal(
             "product-journey-causality-invalid",

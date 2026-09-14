@@ -7,15 +7,25 @@ use serde_json::{json, Value};
 
 const RECEIPT_PATH_ENV: &str = "CONDUIT_B9_MEMBERSHIP_RECEIPT_PATH";
 
+pub(super) struct ReceiptContext<'a> {
+    pub(super) physical_pico: bool,
+    pub(super) navigation: Option<Value>,
+    pub(super) friendly_name: Option<&'a str>,
+}
+
 pub(super) fn machine_receipt(
     body: &Body,
     membership: &BodyMembership,
     view: &PartsView,
     active_plan: &Plan,
     replacement_plan: &Plan,
-    physical_pico: bool,
-    navigation: Option<Value>,
+    context: ReceiptContext<'_>,
 ) -> Result<String, String> {
+    let ReceiptContext {
+        physical_pico,
+        navigation,
+        friendly_name,
+    } = context;
     let parts = view
         .parts
         .iter()
@@ -40,6 +50,8 @@ pub(super) fn machine_receipt(
         "schema": "conduit.body/mixed-membership-capstone@1",
         "proof_class": if physical_pico { "live-browser-plus-physical-hardware" } else { "live-browser" },
         "body_id": body.body_id.as_str(),
+        "friendly_name": friendly_name,
+        "birth_source": if friendly_name.is_some() { "validated-creche-biography" } else { "capstone-fixture" },
         "source_document_id": active_plan.source_document_id.as_str(),
         "checked_form_id": active_plan.checked_form_id.as_str(),
         "membership_revision": membership.revision.0,
