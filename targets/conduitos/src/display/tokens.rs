@@ -1,7 +1,16 @@
 //! Bounded native visual constants; no graphical assets or rendering machinery.
-pub const SPACING: [u16; 5] = [4, 8, 12, 24, 32];
+pub const SPACE_XS: u16 = 4;
+pub const SPACE_SM: u16 = 8;
+pub const SPACE_MD: u16 = 12;
+pub const SPACE_LG: u16 = 24;
+pub const SPACE_XL: u16 = 32;
+pub const SPACING: [u16; 5] = [SPACE_XS, SPACE_SM, SPACE_MD, SPACE_LG, SPACE_XL];
 pub const BORDER: u16 = 1;
 pub const RADIUS: u16 = 6;
+pub const ICON_SM: u16 = 16;
+pub const ICON_MD: u16 = 24;
+pub const CONTROL_HEIGHT: u16 = 24;
+pub const ACTION_WIDTH: u16 = 72;
 pub const BACKGROUND: (u8, u8, u8) = (15, 23, 32);
 pub const FOREGROUND: (u8, u8, u8) = (225, 232, 240);
 pub const ACCENT: (u8, u8, u8) = (83, 178, 255);

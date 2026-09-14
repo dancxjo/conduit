@@ -44,6 +44,20 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
         height: 320,
     };
     let top = inspector_scene(bounds, &presentation, 0).unwrap();
+    let close = top
+        .commands()
+        .iter()
+        .find(|command| command.payload() == "Close")
+        .unwrap();
+    assert_eq!(
+        close.bounds.x,
+        super::super::controls::inspector_close_bounds(bounds.width).x
+            + (crate::display::SPACE_SM * 2 + crate::display::ICON_SM) as i16
+    );
+    assert!(top.commands().iter().any(|command| {
+        command.style == GraphicsShapeStyle::RoundedStroke
+            && command.bounds == super::super::controls::inspector_close_bounds(bounds.width)
+    }));
     let fields: alloc::vec::Vec<_> = top
         .commands()
         .iter()
@@ -90,6 +104,38 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
             .commands()
             .iter()
             .all(|command| !command.payload().contains("HELLO"))
+    );
+}
+
+#[test]
+fn transient_chooser_uses_the_shared_icon_button_language() {
+    let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
+    let presentation = state
+        .transient_presentation(
+            conduit_tour_model::TourTransientKind::Chooser,
+            "Choose a Patchbay Gear",
+        )
+        .unwrap();
+    let bounds = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 420,
+        height: 320,
+    };
+    let scene = transient_scene(bounds, &presentation, 0).unwrap();
+    let rounded = scene
+        .commands()
+        .iter()
+        .filter(|command| command.style == GraphicsShapeStyle::RoundedStroke)
+        .count();
+    assert_eq!(rounded, conduit_tour_model::CANONICAL_PATCHBAY_GEARS.len());
+    assert_eq!(
+        scene
+            .commands()
+            .iter()
+            .filter(|command| command.kind == conduit_presentation::GraphicsCommandKind::Icon)
+            .count(),
+        conduit_tour_model::CANONICAL_PATCHBAY_GEARS.len()
     );
 }
 

@@ -62,6 +62,7 @@ fn panel_scene(
     title: &str,
     detail: &str,
 ) -> Result<GraphicsScene, TourShellError> {
+    let inset = crate::display::SPACE_MD;
     let local = LayoutRect {
         x: 0,
         y: 0,
@@ -92,10 +93,10 @@ fn panel_scene(
         )
         .map_err(|_| TourShellError::Scene)?;
     let title_bounds = LayoutRect {
-        x: 12,
-        y: 12,
-        width: local.width.saturating_sub(24),
-        height: 24,
+        x: inset as i16,
+        y: inset as i16,
+        width: local.width.saturating_sub(inset * 2),
+        height: crate::display::CONTROL_HEIGHT,
     };
     scene
         .push(
@@ -110,10 +111,14 @@ fn panel_scene(
         return Ok(scene);
     }
     let detail_bounds = LayoutRect {
-        x: 12,
-        y: 38,
-        width: local.width.saturating_sub(24),
-        height: local.height.saturating_sub(48).max(1),
+        x: inset as i16,
+        y: (crate::display::SPACE_XL + crate::display::SPACE_SM - crate::display::BORDER * 2)
+            as i16,
+        width: local.width.saturating_sub(inset * 2),
+        height: local
+            .height
+            .saturating_sub(crate::display::SPACE_XL + crate::display::ICON_SM)
+            .max(1),
     };
     scene
         .push(
@@ -182,20 +187,23 @@ pub(super) fn status_scene(
             width: column,
             height: bounds.height,
         };
+        let icon_inset = crate::display::SPACE_SM;
+        let icon_extent = crate::display::ICON_MD;
+        let text_leading = icon_inset + icon_extent + icon_inset;
         let text_bounds = LayoutRect {
-            x: cell.x + 40,
-            y: 8,
-            width: column.saturating_sub(48).max(1),
-            height: bounds.height.saturating_sub(8).max(1),
+            x: cell.x + text_leading as i16,
+            y: icon_inset as i16,
+            width: column.saturating_sub(text_leading + icon_inset).max(1),
+            height: bounds.height.saturating_sub(icon_inset).max(1),
         };
         scene
             .push(
                 GraphicsCommand::icon(
                     LayoutRect {
-                        x: cell.x + 8,
-                        y: 8,
-                        width: 24,
-                        height: 24,
+                        x: cell.x + icon_inset as i16,
+                        y: icon_inset as i16,
+                        width: icon_extent,
+                        height: icon_extent,
                     },
                     cell,
                     GraphicsPaintRole::Status,
@@ -231,45 +239,14 @@ pub(super) fn inspector_scene(
             && subject.role == conduit_presentation::PresentationRole::Action
     }) {
         let button = super::controls::inspector_close_bounds(bounds.width);
-        scene
-            .push(
-                GraphicsCommand::rect(
-                    button,
-                    button,
-                    GraphicsPaintRole::Accent,
-                    GraphicsShapeStyle::Stroke,
-                )
-                .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
-        let text = LayoutRect {
-            x: button.x + 28,
-            y: button.y + 4,
-            width: button.width.saturating_sub(36).max(1),
-            height: button.height - 8,
-        };
-        scene
-            .push(
-                GraphicsCommand::icon(
-                    LayoutRect {
-                        x: button.x + 8,
-                        y: button.y + 4,
-                        width: 16,
-                        height: 16,
-                    },
-                    button,
-                    GraphicsPaintRole::Accent,
-                    PresentationIconKey::Close,
-                )
-                .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
-        scene
-            .push(
-                GraphicsCommand::text(text, button, GraphicsPaintRole::Foreground, &action.label)
-                    .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
+        crate::native_components::action_button(
+            &mut scene,
+            button,
+            button,
+            &action.label,
+            Some(PresentationIconKey::Close),
+        )
+        .map_err(|_| TourShellError::Scene)?;
     }
     super::fields::project(bounds, presentation, scroll_y, Some(&mut scene))?;
     Ok(scene)
@@ -312,47 +289,15 @@ fn chooser_scene(
         {
             continue;
         }
-        scene
-            .push(
-                GraphicsCommand::rect(
-                    row,
-                    viewport,
-                    GraphicsPaintRole::Accent,
-                    GraphicsShapeStyle::Stroke,
-                )
-                .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
         let label = alloc::format!("Select {gear}");
-        let icon_size = row.height.saturating_sub(8).clamp(1, 16);
-        let text = LayoutRect {
-            x: row.x + 32,
-            y: row.y + 4,
-            width: row.width.saturating_sub(40).max(1),
-            height: row.height.saturating_sub(8).max(1),
-        };
-        scene
-            .push(
-                GraphicsCommand::icon(
-                    LayoutRect {
-                        x: row.x + 8,
-                        y: row.y + 4,
-                        width: icon_size,
-                        height: icon_size,
-                    },
-                    viewport,
-                    GraphicsPaintRole::Accent,
-                    PresentationIconKey::GenericGear,
-                )
-                .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
-        scene
-            .push(
-                GraphicsCommand::text(text, viewport, GraphicsPaintRole::Foreground, &label)
-                    .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
+        crate::native_components::action_button(
+            &mut scene,
+            row,
+            viewport,
+            &label,
+            Some(PresentationIconKey::GenericGear),
+        )
+        .map_err(|_| TourShellError::Scene)?;
     }
     Ok(scene)
 }

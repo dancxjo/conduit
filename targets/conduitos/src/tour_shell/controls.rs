@@ -5,11 +5,12 @@ use conduit_presentation::{LayoutRect, PresentationRole};
 use conduit_tour_model::INSPECTOR_CLOSE_ACTION_ID;
 
 pub(super) fn inspector_close_bounds(width: u16) -> LayoutRect {
+    let inset = crate::display::SPACE_SM;
     LayoutRect {
-        x: width.saturating_sub(80) as i16,
-        y: 8,
-        width: 72,
-        height: 24,
+        x: width.saturating_sub(crate::display::ACTION_WIDTH + inset) as i16,
+        y: inset as i16,
+        width: crate::display::ACTION_WIDTH,
+        height: crate::display::CONTROL_HEIGHT,
     }
 }
 
