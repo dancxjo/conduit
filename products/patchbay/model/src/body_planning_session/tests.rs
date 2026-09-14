@@ -1,7 +1,10 @@
 use super::*;
 use crate::FormCandidate;
-use conduit_body::{BodyWorkset, ResidentForm, WakePlanState};
-use conduit_core::{BaseImplementationId, BootId, HostId};
+use conduit_body::{
+    BodyPresentationSelector, BodyPresenterChainPlan, BodyPresenterTopology, BodyWorkset,
+    ResidentForm, WakePlanState,
+};
+use conduit_core::{BaseImplementationId, BootId, HostId, PlacementId};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_std_host::StdHost;
 
@@ -161,4 +164,70 @@ fn selected_host_loss_is_machine_readable_and_keeps_the_plan() {
     assert_eq!(session.wake().lifecycle, WakeLifecycle::Unsatisfied);
     assert_eq!(session.wake().plans[0].state, WakePlanState::Unsatisfied);
     assert_eq!(session.current_plan().plan_id, plan_id);
+}
+
+#[test]
+fn presenter_replan_changes_plan_play_without_changing_body_or_authored_forms() {
+    let (candidate, expanded) = form();
+    let body_form = planned_form(&candidate, &expanded, "host/body", "boot/body");
+    let resident = body_form.form.clone();
+    let body = Body::born_with_forms(
+        BodyWorkset::one(resident.clone()).unwrap(),
+        1,
+        SignId::from("sign/body-born"),
+    )
+    .unwrap();
+    let presenter_plans = crate::patchbay_presenter_plans().unwrap();
+    let renderer = |plan: &conduit_core::Plan| {
+        plan.fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .last()
+            .unwrap()
+            .placement_id
+            .clone()
+    };
+    let selector = BodyPresentationSelector {
+        form: Some(resident),
+        source_placement_id: PlacementId::from("hello/presentation"),
+    };
+    let graphical = BodyPresenterChainPlan {
+        stage_placement_ids: vec![renderer(&presenter_plans.direct)],
+        plan: presenter_plans.direct,
+    };
+    let speech = BodyPresenterChainPlan {
+        stage_placement_ids: vec![renderer(&presenter_plans.recursive)],
+        plan: presenter_plans.recursive,
+    };
+    let initial_topology = BodyPresenterTopology {
+        presentation: selector.clone(),
+        chains: vec![graphical.clone()],
+    };
+    let mut session = BodyPlanningSession::prepare_with_presenters(
+        &body,
+        2,
+        SignId::from("sign/woke"),
+        vec![body_form.clone()],
+        vec![initial_topology],
+    )
+    .unwrap();
+    let initial_plan = session.current_plan().clone();
+    let initial_form = initial_plan.forms[0].clone();
+    session
+        .replace_proposal_with_presenters(
+            vec![body_form],
+            vec![BodyPresenterTopology {
+                presentation: selector,
+                chains: vec![graphical, speech],
+            }],
+        )
+        .unwrap();
+    assert_eq!(session.body().body_id, body.body_id);
+    assert_eq!(session.current_plan().forms, vec![initial_form]);
+    assert_ne!(session.current_plan().plan_id, initial_plan.plan_id);
+    assert_eq!(
+        session.current_plan().presenter_topologies[0].chains.len(),
+        2
+    );
+    assert_eq!(session.plan(&initial_plan.plan_id), Some(&initial_plan));
 }

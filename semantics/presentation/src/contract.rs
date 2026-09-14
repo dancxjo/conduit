@@ -10,11 +10,13 @@ use conduit_core::{
 pub const RENDERER_KIND: &str = "presentation/renderer";
 pub const INTERACTION_KIND: &str = "presentation/interaction";
 pub const PRESENTATION_TEE_KIND: &str = "presentation/tee";
+pub const PRESENTER_STAGE_KIND: &str = "presentation/presenter-stage";
 pub const PRESENTATION_VALUE_KIND: &str = "presentation/presentation@1";
 pub const MANIFESTATION_VALUE_KIND: &str = "presentation/manifestation@1";
 pub const RENDERER_CONTRACT_REVISION: &str = "conduit.presentation/renderer@1";
 pub const INTERACTION_CONTRACT_REVISION: &str = "conduit.presentation/interaction@1";
 pub const PRESENTATION_TEE_CONTRACT_REVISION: &str = "conduit.presentation/tee@1";
+pub const PRESENTER_STAGE_CONTRACT_REVISION: &str = "conduit.presentation/presenter-stage@1";
 pub const MAX_RENDERER_VALUE_BYTES: u32 = crate::MAX_PRESENTATION_TOTAL_BYTES as u32;
 
 pub fn renderer_inputs() -> alloc::vec::Vec<PortDescriptor> {
@@ -72,6 +74,38 @@ pub fn presentation_tee_outputs() -> alloc::vec::Vec<PortDescriptor> {
         direction: PortDirection::Output,
         temporal: PortTemporal::Value,
     }]
+}
+
+/// A bounded linear Presenter stage transforms one portable Presentation into
+/// another. A terminal `presentation/renderer` consumes the final value and
+/// produces the Manifestation. The ordinary Plan Cords define ordering.
+pub fn presenter_stage_inputs() -> alloc::vec::Vec<PortDescriptor> {
+    renderer_inputs()
+}
+
+pub fn presenter_stage_outputs() -> alloc::vec::Vec<PortDescriptor> {
+    presentation_tee_outputs()
+}
+
+pub fn presenter_stage_offer(
+    capability_id: CapabilityId,
+    implementation: ImplementationOffer,
+    limits: CapabilityLimits,
+) -> CapabilityOffer {
+    CapabilityOffer {
+        startup_parameters: alloc::vec::Vec::new(),
+        shorthand: None,
+        capability_id,
+        kind_id: kind_id(PRESENTER_STAGE_KIND),
+        kind_contract_revision: KindContractRevision::from(PRESENTER_STAGE_CONTRACT_REVISION),
+        implementation,
+        inputs: presenter_stage_inputs(),
+        outputs: presenter_stage_outputs(),
+        host_operations: alloc::vec::Vec::new(),
+        resource_requirements: alloc::vec::Vec::new(),
+        authority_requirements: alloc::vec::Vec::new(),
+        limits,
+    }
 }
 
 /// Exact host-owned implementation facts beneath the one portable Face.
@@ -189,6 +223,17 @@ pub fn presentation_tee_kind_definition() -> conduit_form::KindDefinition {
         kind_contract_revision: KindContractRevision::from(PRESENTATION_TEE_CONTRACT_REVISION),
         inputs: presentation_tee_inputs(),
         outputs: presentation_tee_outputs(),
+        configuration: alloc::vec::Vec::new(),
+    }
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn presenter_stage_kind_definition() -> conduit_form::KindDefinition {
+    conduit_form::KindDefinition {
+        kind_id: kind_id(PRESENTER_STAGE_KIND),
+        kind_contract_revision: KindContractRevision::from(PRESENTER_STAGE_CONTRACT_REVISION),
+        inputs: presenter_stage_inputs(),
+        outputs: presenter_stage_outputs(),
         configuration: alloc::vec::Vec::new(),
     }
 }
