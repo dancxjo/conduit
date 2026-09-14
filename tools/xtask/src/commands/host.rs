@@ -32,6 +32,8 @@ mod host_piper;
 mod host_recorded_house;
 #[path = "host_release.rs"]
 mod host_release;
+#[path = "host_spoken_microphone_house.rs"]
+mod host_spoken_microphone_house;
 #[path = "host_target.rs"]
 pub(crate) mod host_target;
 #[path = "host_whisper.rs"]
@@ -229,6 +231,8 @@ enum HostCommand {
     },
     /// Capture one clip through the address-gated local House model Plan.
     ProveMicrophoneHouse(host_microphone_house::MicrophoneHouseArgs),
+    /// Carry an authorized microphone-addressed House response to selected playback.
+    ProveSpokenMicrophoneHouse(host_spoken_microphone_house::SpokenMicrophoneHouseArgs),
 }
 
 #[derive(Args, Debug)]
@@ -369,6 +373,9 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             },
             opts,
         ),
+        HostCommand::ProveSpokenMicrophoneHouse(request) => {
+            host_spoken_microphone_house::prove(request, opts)
+        }
         HostCommand::ProveMicrophoneHouse(request) => host_microphone_house::prove(request, opts),
         HostCommand::Rpi(args) => match args.action.unwrap_or(RpiHostAction::Image) {
             RpiHostAction::Image => {

@@ -25,3 +25,15 @@ pub struct MicrophoneHouseProofReceipt {
     pub raw_pcm_bytes: u32,
     pub microphone_diagnostic_bytes: u16,
 }
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct SpokenMicrophoneHouseProofReceipt {
+    pub microphone_house: MicrophoneHouseProofReceipt,
+    pub speech_implementation_id: String,
+    pub source_pcm_frames: u32,
+    pub conversion_implementation_id: String,
+    pub target_pcm_frames: u64,
+    pub playback_resource_pool_id: String,
+    pub playback_blocks_committed: u64,
+    pub playback_frames_committed: u64,
+}

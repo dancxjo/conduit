@@ -9,7 +9,29 @@ use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog,
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
-pub use crate::recorded_house_receipt::{MicrophoneHouseProofReceipt, RecordedHouseProofReceipt};
+pub use crate::recorded_house_receipt::{
+    MicrophoneHouseProofReceipt, RecordedHouseProofReceipt, SpokenMicrophoneHouseProofReceipt,
+};
+
+struct SpokenOutput {
+    speech: crate::hosted_speech::PiperSpeechAdapter,
+    playback: crate::hosted_audio::HostedPlaybackSelection,
+}
+
+struct SpokenReceipt {
+    speech_implementation_id: String,
+    source_pcm_frames: u32,
+    target_pcm_frames: u64,
+    playback_resource_pool_id: String,
+    playback_blocks_committed: u64,
+    playback_frames_committed: u64,
+}
+
+struct HouseRunReceipt {
+    house: RecordedHouseProofReceipt,
+    microphone: Option<MicrophoneCaptureReceipt>,
+    spoken: Option<SpokenReceipt>,
+}
 
 enum HouseAudioSource {
     Recorded(Vec<u8>),
@@ -75,8 +97,9 @@ pub fn run(
         local_model,
         whisper,
         HouseAudioSource::Recorded(clip),
+        None,
     )?
-    .0)
+    .house)
 }
 
 pub fn run_microphone(
@@ -86,15 +109,60 @@ pub fn run_microphone(
     whisper: WhisperSpeechAdapter,
     microphone: AlsaMicrophoneAdapter,
 ) -> Result<MicrophoneHouseProofReceipt, Box<dyn std::error::Error>> {
-    let (house, microphone) = run_with_source(
+    let run = run_with_source(
         config,
         composition,
         local_model,
         whisper,
         HouseAudioSource::Microphone(Box::new(microphone)),
+        None,
     )?;
-    let microphone = microphone.ok_or("microphone House Play omitted capture receipt")?;
-    Ok(MicrophoneHouseProofReceipt {
+    let microphone = run
+        .microphone
+        .ok_or("microphone House Play omitted capture receipt")?;
+    Ok(microphone_receipt(run.house, microphone))
+}
+
+pub fn run_spoken_microphone(
+    config: StdHostConfig,
+    composition: StdHostComposition,
+    local_model: Box<dyn HostedLocalModelAdapter>,
+    whisper: WhisperSpeechAdapter,
+    microphone: AlsaMicrophoneAdapter,
+    speech: crate::hosted_speech::PiperSpeechAdapter,
+    playback: crate::hosted_audio::HostedPlaybackSelection,
+) -> Result<SpokenMicrophoneHouseProofReceipt, Box<dyn std::error::Error>> {
+    let run = run_with_source(
+        config,
+        composition,
+        local_model,
+        whisper,
+        HouseAudioSource::Microphone(Box::new(microphone)),
+        Some(SpokenOutput { speech, playback }),
+    )?;
+    let microphone = run
+        .microphone
+        .ok_or("spoken House Play omitted capture receipt")?;
+    let spoken = run
+        .spoken
+        .ok_or("spoken House Play omitted output receipt")?;
+    Ok(SpokenMicrophoneHouseProofReceipt {
+        microphone_house: microphone_receipt(run.house, microphone),
+        speech_implementation_id: spoken.speech_implementation_id,
+        source_pcm_frames: spoken.source_pcm_frames,
+        conversion_implementation_id: conduit_std_offers::AUDIO_CONVERT_PCM_IMPLEMENTATION.into(),
+        target_pcm_frames: spoken.target_pcm_frames,
+        playback_resource_pool_id: spoken.playback_resource_pool_id,
+        playback_blocks_committed: spoken.playback_blocks_committed,
+        playback_frames_committed: spoken.playback_frames_committed,
+    })
+}
+
+fn microphone_receipt(
+    house: RecordedHouseProofReceipt,
+    microphone: MicrophoneCaptureReceipt,
+) -> MicrophoneHouseProofReceipt {
+    MicrophoneHouseProofReceipt {
         house,
         microphone_implementation_id: conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION.into(),
         microphone_executable_sha256: microphone.executable_sha256,
@@ -105,7 +173,7 @@ pub fn run_microphone(
         raw_pcm_sha256: microphone.raw_pcm_sha256,
         raw_pcm_bytes: microphone.raw_pcm_bytes,
         microphone_diagnostic_bytes: microphone.diagnostic_bytes,
-    })
+    }
 }
 
 fn run_with_source(
@@ -114,8 +182,8 @@ fn run_with_source(
     local_model: Box<dyn HostedLocalModelAdapter>,
     whisper: WhisperSpeechAdapter,
     source: HouseAudioSource,
-) -> Result<(RecordedHouseProofReceipt, Option<MicrophoneCaptureReceipt>), Box<dyn std::error::Error>>
-{
+    spoken: Option<SpokenOutput>,
+) -> Result<HouseRunReceipt, Box<dyn std::error::Error>> {
     let capture = Arc::new(Mutex::new(ModelCapture::default()));
     let local_model_implementation_id = conduit_ai::LOCAL_MODEL_IMPLEMENTATION.to_string();
     let mut additional = crate::installed_std::test_local_model_io::house_source_offers().to_vec();
@@ -140,12 +208,18 @@ fn run_with_source(
             host.attach_whisper_clip_recognizer(whisper)?;
         }
     }
+    if let Some(spoken) = spoken {
+        host.attach_piper_speech_and_playback(spoken.speech, spoken.playback)?;
+    }
+    let spoken_output = host.speech_synthesis.is_some();
 
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_microphone_clip_catalogs(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profiles)?;
+    conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profiles)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profiles)?;
@@ -168,15 +242,33 @@ fn run_with_source(
             "audio.value > recognize.clip",
         )
     };
+    let (output_declarations, output_wiring) = if spoken_output {
+        (
+            format!(
+                "synthesize: speech/synthesize(maximum-output-bytes = {})\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n output: audio/play",
+                conduit_tongues::MAXIMUM_PCM_BYTES
+            ),
+            "house.response > synthesize.text\n synthesize.audio > convert.audio\n convert.converted > output.audio",
+        )
+    } else {
+        (
+            format!(
+                "sink: {}",
+                crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND
+            ),
+            "house.response > sink.value",
+        )
+    };
     let source = format!(
-        "{}\n{}\nform recorded-house-proof {{\n audio: {}\n recognize: speech/recognize-clip\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n {}\n recognize.result > recognized.result\n recognized.text > addressed.recognized\n addresses.value > addressed.addresses\n addressed.detection > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
+        "{}\n{}\nform recorded-house-proof {{\n audio: {}\n recognize: speech/recognize-clip\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n {}\n {}\n recognize.result > recognized.result\n recognized.text > addressed.recognized\n addresses.value > addressed.addresses\n addressed.detection > house.detection\n context.value > house.context\n {}\n}}\n",
         include_str!("../../../forms/addressed-utterance/main.conduit"),
         include_str!("../../../forms/house-conversation/main.conduit"),
         audio_kind,
         crate::installed_std::test_local_model_io::HOUSE_ADDRESSES_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_CONTEXT_SOURCE_KIND,
-        crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,
+        output_declarations,
         audio_wiring,
+        output_wiring,
     );
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|error| {
@@ -230,18 +322,48 @@ fn run_with_source(
             },
         );
     }
+    if spoken_output {
+        for connection in &expanded.connections {
+            let byte_capacity = if connection.source_gear_id.as_str().ends_with("/synthesize")
+                && connection.source_port_id.as_str() == "audio"
+            {
+                conduit_tongues::MAXIMUM_PCM_BYTES
+            } else if connection.source_gear_id.as_str().ends_with("/convert")
+                && connection.source_port_id.as_str() == "converted"
+            {
+                conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES
+            } else {
+                continue;
+            };
+            connection_limits.insert(
+                (
+                    connection.source_gear_id.clone(),
+                    connection.source_port_id.clone(),
+                    connection.sink_gear_id.clone(),
+                    connection.sink_port_id.clone(),
+                ),
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity,
+                },
+            );
+        }
+    }
     let advertisements = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &advertisements)?;
-    let authority_grants = if microphone_source {
-        vec![host.microphone_authority_grant("grant/microphone-house-proof")?]
-    } else {
-        Vec::new()
-    };
+    let mut authority_grants = Vec::new();
+    if microphone_source {
+        authority_grants.push(host.microphone_authority_grant("grant/microphone-house-proof")?);
+    }
+    if spoken_output {
+        authority_grants.push(host.playback_authority_grant("grant/spoken-house-playback")?);
+    }
+    let bases = [BaseImplementationId::from("conduit.base/local@1")];
     let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
         &expanded,
         &advertisements,
         &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
+        &bases,
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -253,6 +375,25 @@ fn run_with_source(
         },
         &connection_limits,
     )?;
+    let plan = if spoken_output {
+        let playback = host
+            .playback
+            .as_ref()
+            .ok_or("spoken House host omitted selected playback")?;
+        let realization = playback.realization_advertisement(host.advertisement().host_id.clone());
+        let observation = playback.resource_observation(
+            host.advertisement().host_id.clone(),
+            conduit_core::SignId::from("sign/spoken-house-playback-ready"),
+        );
+        conduit_planner::seal_exact_plan_with_selected_realizations(
+            plan,
+            &advertisements,
+            &[realization],
+            &[observation],
+        )?
+    } else {
+        plan
+    };
     let plan_id = plan.plan_id.as_str().to_string();
     let fragment = plan
         .fragments
@@ -282,9 +423,41 @@ fn run_with_source(
         .response
         .as_ref()
         .ok_or("recorded House model emitted no response")?;
+    let spoken = if spoken_output {
+        let synthesis = report
+            .speech_synthesis
+            .first()
+            .ok_or("spoken House Play omitted synthesis receipt")?;
+        if synthesis.text_sha256 != sha256(response) {
+            return Err("spoken House synthesis input differs from the model response".into());
+        }
+        let playback = report
+            .kernel
+            .as_ref()
+            .and_then(|kernel| kernel.playback.first())
+            .ok_or("spoken House Play omitted playback receipt")?;
+        let target_pcm_frames = u64::from(synthesis.frames)
+            .checked_mul(48_000)
+            .and_then(|frames| frames.checked_add(22_049))
+            .map(|frames| frames / 22_050)
+            .ok_or("spoken House converted frame count overflowed")?;
+        if playback.metrics.frames_committed != target_pcm_frames {
+            return Err("spoken House playback frame extent differs from conversion".into());
+        }
+        Some(SpokenReceipt {
+            speech_implementation_id: synthesis.implementation_id.as_str().to_string(),
+            source_pcm_frames: synthesis.frames,
+            target_pcm_frames,
+            playback_resource_pool_id: playback.resource_pool_id.clone(),
+            playback_blocks_committed: u64::from(playback.metrics.blocks_committed),
+            playback_frames_committed: playback.metrics.frames_committed,
+        })
+    } else {
+        None
+    };
     let microphone = report.microphone.into_iter().next();
-    Ok((
-        RecordedHouseProofReceipt {
+    Ok(HouseRunReceipt {
+        house: RecordedHouseProofReceipt {
             plan_id,
             play_id: recognition.active_play_id.as_str().to_string(),
             whisper_implementation_id: recognition.implementation_id.as_str().to_string(),
@@ -297,7 +470,8 @@ fn run_with_source(
             local_model_invocations: captured.invocations,
         },
         microphone,
-    ))
+        spoken,
+    })
 }
 
 fn sha256(bytes: &[u8]) -> String {
@@ -310,187 +484,5 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_ai::{
-        LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelIdentity,
-        LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits, LocalModelOffer,
-    };
-    use conduit_core::{BootId, HostId, OfferGeneration, PlannedGear};
-    use std::fs;
-    use std::os::unix::fs::PermissionsExt;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::time::Duration;
-
-    struct FakeModel {
-        offer: LocalModelOffer,
-        calls: Arc<AtomicUsize>,
-    }
-
-    impl HostedLocalModelAdapter for FakeModel {
-        fn offer(&self) -> &LocalModelOffer {
-            &self.offer
-        }
-
-        fn execute(
-            &mut self,
-            placement: &PlannedGear,
-            input: &[u8],
-            output: &mut Vec<u8>,
-        ) -> LocalModelAdapterTerminal {
-            self.calls.fetch_add(1, Ordering::Relaxed);
-            let contract = conduit_ai::llm_contract(placement.kind_id.as_str()).unwrap();
-            let payload = b"The upstairs temperature is 21 C.".to_vec();
-            let result = conduit_ai::ModelDerivedResult {
-                provenance: conduit_ai::ModelResultProvenance::ModelDerived,
-                payload_kind: contract.result_payload_kind.as_str().into(),
-                payload: payload.clone(),
-                implementation_identity: "fixture/model".into(),
-                request_identity: "request/fixture".into(),
-                run_identity: "run/fixture".into(),
-                confidence: None,
-                disposition: conduit_ai::ModelResultDisposition::Produced,
-                determinism: self.offer.determinism,
-                accounting: conduit_ai::ModelWorkAccounting {
-                    input_bytes: input.len() as u64,
-                    context_items: 1,
-                    output_bytes: payload.len() as u64,
-                    work_units: 1,
-                    history_items: 0,
-                },
-            };
-            output.clear();
-            output.extend_from_slice(&serde_json::to_vec(&result).unwrap());
-            LocalModelAdapterTerminal::Produced
-        }
-    }
-
-    fn local_offer() -> LocalModelOffer {
-        LocalModelOffer {
-            identity: LocalModelIdentity {
-                runtime_name: "fixture".into(),
-                runtime_version: "1".into(),
-                runtime_build_identity: "fixture/build-1".into(),
-                model_name: "fixture-model".into(),
-                model_content_identity: "sha256-fixture".into(),
-                architecture: "fixture".into(),
-                parameter_profile: "tiny".into(),
-                quantization: "exact".into(),
-            },
-            limits: LocalModelLimits {
-                work: LlmWorkBounds {
-                    maximum_input_bytes: 4_096,
-                    maximum_context_items: 1,
-                    maximum_output_bytes: 4_096,
-                    maximum_work_units: 4_096,
-                    maximum_history_items: 0,
-                },
-                model_bytes: 1,
-                admitted_memory_mib: 1,
-                compute: conduit_ai::LocalModelComputeNeed {
-                    minimum_lanes: 1,
-                    preferred_lanes: 1,
-                    maximum_lanes: 1,
-                    minimum_service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
-                },
-                maximum_in_flight: 1,
-                maximum_queue_items: 4,
-                maximum_queue_bytes: 16_384,
-                cancellation_supported: true,
-                cache_policy: LocalModelCachePolicy::OneLoadedModelUntilShutdown,
-            },
-            supported_profiles: vec![LocalModelKindProfile::Generate],
-            initialized: true,
-            lifecycle: LocalModelLifecycleState::Ready,
-            determinism: LlmDeterminismProfile::ProviderNondeterministic,
-        }
-    }
-
-    fn whisper_fixture(
-        transcript: &str,
-        suffix: &str,
-    ) -> (
-        crate::hosted_speech_recognition::WhisperSpeechAdapter,
-        std::path::PathBuf,
-    ) {
-        let root = std::env::temp_dir().join(format!(
-            "conduit-recorded-house-proof-{}-{suffix}",
-            std::process::id()
-        ));
-        let _ = fs::remove_dir_all(&root);
-        fs::create_dir(&root).unwrap();
-        let executable = root.join("whisper-cli");
-        let model = root.join("whisper-model.bin");
-        fs::write(
-            &executable,
-            format!(
-                "#!/bin/sh\nout=\nwhile [ $# -gt 0 ]; do if [ \"$1\" = --output-file ]; then out=$2; shift 2; else shift; fi; done\nprintf '{}\\n' > \"${{out}}.txt\"\n",
-                transcript
-            ),
-        )
-        .unwrap();
-        fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
-        fs::write(&model, b"whisper model fixture").unwrap();
-        let adapter =
-            crate::hosted_speech_recognition::WhisperDiscovery::inspect(&executable, &model)
-                .unwrap()
-                .initialize(crate::hosted_speech_recognition::WhisperLimits {
-                    maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
-                    maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
-                    threads: 1,
-                    timeout: Duration::from_secs(2),
-                })
-                .unwrap();
-        (adapter, root)
-    }
-
-    #[test]
-    fn addressed_recorded_clip_reaches_the_model_in_one_plan_play() {
-        let (whisper, root) = whisper_fixture(
-            "Rosehip House, what is the temperature upstairs?",
-            "addressed",
-        );
-        let receipt = run(
-            StdHostConfig {
-                host_id: HostId::from("recorded-house-host"),
-                boot_id: BootId::from("recorded-house-boot"),
-                offer_generation: OfferGeneration(1),
-            },
-            StdHostComposition::minimal(),
-            Box::new(FakeModel {
-                offer: local_offer(),
-                calls: Arc::new(AtomicUsize::new(0)),
-            }),
-            whisper,
-            crate::installed_std::test_local_model_io::recorded_house_audio_clip().unwrap(),
-        )
-        .unwrap();
-        assert_eq!(receipt.local_model_invocations, 1);
-        assert!(receipt.recognized_text_sha256.is_some());
-        assert_eq!(receipt.response_bytes, 33);
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn unaddressed_recorded_clip_never_invokes_the_model() {
-        let (whisper, root) = whisper_fixture("What is the temperature upstairs?", "unaddressed");
-        let calls = Arc::new(AtomicUsize::new(0));
-        let result = run(
-            StdHostConfig {
-                host_id: HostId::from("unaddressed-recorded-house-host"),
-                boot_id: BootId::from("unaddressed-recorded-house-boot"),
-                offer_generation: OfferGeneration(1),
-            },
-            StdHostComposition::minimal(),
-            Box::new(FakeModel {
-                offer: local_offer(),
-                calls: Arc::clone(&calls),
-            }),
-            whisper,
-            crate::installed_std::test_local_model_io::recorded_house_audio_clip().unwrap(),
-        );
-        assert!(result.is_err());
-        assert_eq!(calls.load(Ordering::Relaxed), 0);
-        fs::remove_dir_all(root).unwrap();
-    }
-}
+#[path = "recorded_house_proof_tests.rs"]
+mod tests;
