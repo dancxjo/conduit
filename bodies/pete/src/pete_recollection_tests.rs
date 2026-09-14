@@ -16,30 +16,68 @@ use conduit_core::{
 };
 
 fn retained_memory() -> BoundedAutobiography {
-    let mut memory = BoundedAutobiography::new(4).unwrap();
-    memory
-        .retain(
-            ExperienceCandidate {
-                identity: "experience/battery/1".into(),
-                kind: ExperienceKind::ObservedSign,
-                content: b"Battery was 41 percent".to_vec(),
-                provenance: vec![ExperienceProvenance {
-                    source_identity: "sign/create/battery/1".into(),
-                    event_at_millis: 100,
-                    recorded_at_millis: 101,
-                    body_identity: "body/pete".into(),
-                    host_identity: Some("host/brainstem".into()),
-                    boot_identity: Some("boot/1".into()),
-                    plan_identity: Some("plan/1".into()),
-                    play_identity: Some("play/1".into()),
-                }],
-                sensitivity: Sensitivity::LocalPrivate,
-                supersedes: None,
-                explicit_remember: true,
-            },
-            true,
-        )
-        .unwrap();
+    let mut memory = BoundedAutobiography::new(8).unwrap();
+    for (identity, source, event, kind, content) in [
+        (
+            "experience/battery/1",
+            "sign/create/battery/1",
+            100,
+            ExperienceKind::ObservedSign,
+            "Battery was 41 percent",
+        ),
+        (
+            "experience/human/1",
+            "sign/human/utterance/1",
+            110,
+            ExperienceKind::HumanStatement,
+            "What happened?",
+        ),
+        (
+            "experience/model/1",
+            "model/run/response/1",
+            120,
+            ExperienceKind::ModelDerived,
+            "I will check.",
+        ),
+        (
+            "experience/action/1",
+            "request/drive/1",
+            130,
+            ExperienceKind::ActionRequest,
+            "Drive forward",
+        ),
+        (
+            "experience/effect/1",
+            "sign/drive/refused/1",
+            140,
+            ExperienceKind::EffectResult,
+            "Drive refused by safety",
+        ),
+    ] {
+        memory
+            .retain(
+                ExperienceCandidate {
+                    identity: identity.into(),
+                    kind,
+                    content: content.as_bytes().to_vec(),
+                    provenance: vec![ExperienceProvenance {
+                        source_identity: source.into(),
+                        event_at_millis: event,
+                        recorded_at_millis: event + 1,
+                        body_identity: "body/pete".into(),
+                        host_identity: Some("host/brainstem".into()),
+                        boot_identity: Some("boot/1".into()),
+                        plan_identity: Some("plan/1".into()),
+                        play_identity: Some("play/1".into()),
+                    }],
+                    sensitivity: Sensitivity::LocalPrivate,
+                    supersedes: None,
+                    explicit_remember: true,
+                },
+                true,
+            )
+            .unwrap();
+    }
     memory
 }
 
@@ -191,6 +229,22 @@ fn policy() -> GroundedAnswerPolicy {
     }
 }
 
+fn candidates() -> Vec<PeteRetrievalCandidate> {
+    [
+        "experience/battery/1",
+        "experience/human/1",
+        "experience/model/1",
+        "experience/action/1",
+        "experience/effect/1",
+    ]
+    .into_iter()
+    .map(|identity| PeteRetrievalCandidate {
+        experience_identity: identity.into(),
+        bases: vec![PeteRetrievalBasis::Lexical, PeteRetrievalBasis::Temporal],
+    })
+    .collect()
+}
+
 fn claim(request: &GroundedAnswerRequest) -> ProposedGroundedClaim {
     let chunk = &request.context.items[0].reranked.candidate.chunk;
     ProposedGroundedClaim {
@@ -208,9 +262,31 @@ fn claim(request: &GroundedAnswerRequest) -> ProposedGroundedClaim {
 #[test]
 fn selected_historical_experience_yields_one_grounded_model_recollection() {
     let memory = retained_memory();
+    assert_eq!(memory.records(true).unwrap().len(), 5);
+    assert_eq!(
+        memory.select_temporal(
+            200,
+            &conduit_ai::TemporalRetrievalIntent::EvidenceWithin {
+                start: 100,
+                end: 140,
+            },
+            true,
+        ),
+        Ok(conduit_ai::TemporalEvidenceSelection::Selected {
+            identities: vec![
+                "experience/battery/1".into(),
+                "experience/human/1".into(),
+                "experience/model/1".into(),
+                "experience/action/1".into(),
+                "experience/effect/1".into(),
+            ]
+        })
+    );
     let request = request();
+    let candidates = candidates();
     let result = assemble_pete_recollection(PeteRecollectionInputs {
         memory: &memory,
+        retrieval_candidates: &candidates,
         selected_experience_identities: &["experience/battery/1".into()],
         read_authorized: true,
         policy: &policy(),
@@ -229,12 +305,26 @@ fn selected_historical_experience_yields_one_grounded_model_recollection() {
         ModelResultProvenance::ModelDerived
     );
     assert!(result.historical_not_current);
+    assert_eq!(result.retrieval_candidates, candidates);
+    assert_eq!(
+        result.selected_experiences[0].experience_kind,
+        ExperienceKind::ObservedSign
+    );
+    assert_eq!(
+        result.selected_experiences[0].original_source_identities,
+        ["sign/create/battery/1"]
+    );
+    assert_eq!(
+        result.grounded_answer.model_run_identity,
+        "run/recollection/1"
+    );
 }
 
 #[test]
 fn hallucinated_citation_and_unselected_context_both_refuse() {
     let memory = retained_memory();
     let request = request();
+    let candidates = candidates();
     let mut false_claim = claim(&request);
     let ProposedClaimSupport::Supported { citations } = &mut false_claim.support else {
         unreachable!()
@@ -243,6 +333,7 @@ fn hallucinated_citation_and_unselected_context_both_refuse() {
     assert!(matches!(
         assemble_pete_recollection(PeteRecollectionInputs {
             memory: &memory,
+            retrieval_candidates: &candidates,
             selected_experience_identities: &["experience/battery/1".into()],
             read_authorized: true,
             policy: &policy(),
@@ -259,6 +350,7 @@ fn hallucinated_citation_and_unselected_context_both_refuse() {
     assert_eq!(
         assemble_pete_recollection(PeteRecollectionInputs {
             memory: &memory,
+            retrieval_candidates: &candidates,
             selected_experience_identities: &["experience/not-selected".into()],
             read_authorized: true,
             policy: &policy(),
@@ -267,6 +359,50 @@ fn hallucinated_citation_and_unselected_context_both_refuse() {
             model_result: &model_result(),
             proposed_claims: &[claim(&request)],
         }),
-        Err(PeteRecollectionRefusal::SelectedRecordUnavailable)
+        Err(PeteRecollectionRefusal::SelectedRecordNotCandidate)
+    );
+}
+
+#[test]
+fn unavailable_memory_and_candidate_without_retained_truth_refuse_distinctly() {
+    let mut memory = retained_memory();
+    let request = request();
+    let candidates = candidates();
+    memory.set_provider_available(false);
+    assert_eq!(
+        assemble_pete_recollection(PeteRecollectionInputs {
+            memory: &memory,
+            retrieval_candidates: &candidates,
+            selected_experience_identities: &["experience/battery/1".into()],
+            read_authorized: true,
+            policy: &policy(),
+            request: &request,
+            assessment: &GroundingInputAssessment::Sufficient,
+            model_result: &model_result(),
+            proposed_claims: &[claim(&request)],
+        }),
+        Err(PeteRecollectionRefusal::Memory(
+            MemoryRefusal::ProviderUnavailable
+        ))
+    );
+
+    memory.set_provider_available(true);
+    let unknown = [PeteRetrievalCandidate {
+        experience_identity: "experience/not-retained".into(),
+        bases: vec![PeteRetrievalBasis::Metadata],
+    }];
+    assert_eq!(
+        assemble_pete_recollection(PeteRecollectionInputs {
+            memory: &memory,
+            retrieval_candidates: &unknown,
+            selected_experience_identities: &["experience/not-retained".into()],
+            read_authorized: true,
+            policy: &policy(),
+            request: &request,
+            assessment: &GroundingInputAssessment::Sufficient,
+            model_result: &model_result(),
+            proposed_claims: &[claim(&request)],
+        }),
+        Err(PeteRecollectionRefusal::CandidateRecordUnavailable)
     );
 }
