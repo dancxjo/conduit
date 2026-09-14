@@ -8,8 +8,9 @@ import test from "node:test";
 
 const checkpoints = [
   "front-door-ready", "body-awake", "quiescent-awaiting-input",
-  "input-continued", "memory-listening", "canvas-retained", "memory-cleared",
-  "memory-retained", "lulled", "usb-line-current", "peer-attached", "line-value-visible",
+  "input-continued", "patchbay-current-canvas", "patchbay-edit-requested",
+  "resident-tour-result", "memory-listening", "canvas-retained", "memory-cleared",
+  "patchbay-current-canvas-returned", "memory-retained", "lulled", "usb-line-current", "peer-attached", "line-value-visible",
   "line-lost", "tour-opened", "tour-result-visible", "confirmation-transient",
   "confirmation-dismissed", "refusal-transient", "refusal-dismissed",
   "tour-patchbay-open", "chooser-pointer-focused", "pointer-hover-or-focus",
@@ -32,9 +33,13 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.match(page, /src="quiescent-awaiting-input\.png"/);
     assert.match(page, /src="input-continued\.png"/);
     assert.match(page, /structural drain remains distinct from semantic completion/);
+    assert.match(page, /src="patchbay-current-canvas\.png"/);
+    assert.match(page, /src="patchbay-edit-requested\.png"/);
+    assert.match(page, /src="resident-tour-result\.png"/);
     assert.match(page, /src="memory-listening\.png"/);
     assert.match(page, /src="canvas-retained\.png"/);
     assert.match(page, /src="memory-cleared\.png"/);
+    assert.match(page, /src="patchbay-current-canvas-returned\.png"/);
     assert.match(page, /src="memory-retained\.png"/);
     assert.match(page, /src="confirmation-transient\.png"/);
     assert.match(page, /src="inspector-focused\.png"/);
