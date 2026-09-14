@@ -368,7 +368,12 @@ impl PatchbayApplication {
             | PatchbayAction::RemoveCord
             | PatchbayAction::ConnectPorts
             | PatchbayAction::RerouteCord
-            | PatchbayAction::ConfigureGear => {
+            | PatchbayAction::ConfigureGear
+            | PatchbayAction::AddPresenter
+            | PatchbayAction::RemovePresenter
+            | PatchbayAction::ReplacePresenter
+            | PatchbayAction::ReorderPresenter
+            | PatchbayAction::ToggleParallelPresenters => {
                 return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected)
             }
         };

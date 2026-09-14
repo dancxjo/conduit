@@ -23,6 +23,11 @@ pub enum PatchbayAction {
     ConnectPorts,
     RerouteCord,
     ConfigureGear,
+    AddPresenter,
+    RemovePresenter,
+    ReplacePresenter,
+    ReorderPresenter,
+    ToggleParallelPresenters,
 }
 
 impl PatchbayAction {
@@ -45,6 +50,11 @@ impl PatchbayAction {
             Self::ConnectPorts => "connect-ports",
             Self::RerouteCord => "reroute-cord",
             Self::ConfigureGear => "configure-gear",
+            Self::AddPresenter => "presenter-topology-add",
+            Self::RemovePresenter => "presenter-topology-remove",
+            Self::ReplacePresenter => "presenter-topology-replace",
+            Self::ReorderPresenter => "presenter-topology-reorder",
+            Self::ToggleParallelPresenters => "presenter-topology-toggle-parallel",
         }
     }
 
@@ -67,6 +77,11 @@ impl PatchbayAction {
             "connect-ports" => Self::ConnectPorts,
             "reroute-cord" => Self::RerouteCord,
             "configure-gear" => Self::ConfigureGear,
+            "presenter-topology-add" => Self::AddPresenter,
+            "presenter-topology-remove" => Self::RemovePresenter,
+            "presenter-topology-replace" => Self::ReplacePresenter,
+            "presenter-topology-reorder" => Self::ReorderPresenter,
+            "presenter-topology-toggle-parallel" => Self::ToggleParallelPresenters,
             _ => return None,
         })
     }
@@ -90,6 +105,11 @@ impl PatchbayAction {
             Self::ConnectPorts => "conduit.intent/connect-ports@1",
             Self::RerouteCord => "conduit.intent/reroute-cord@1",
             Self::ConfigureGear => "conduit.intent/configure-gear@1",
+            Self::AddPresenter => "conduit.intent/presenter-topology-add@1",
+            Self::RemovePresenter => "conduit.intent/presenter-topology-remove@1",
+            Self::ReplacePresenter => "conduit.intent/presenter-topology-replace@1",
+            Self::ReorderPresenter => "conduit.intent/presenter-topology-reorder@1",
+            Self::ToggleParallelPresenters => "conduit.intent/presenter-topology-toggle-parallel@1",
         }
     }
 }
@@ -158,6 +178,11 @@ mod tests {
             PatchbayAction::Play,
             PatchbayAction::Stop,
             PatchbayAction::Lull,
+            PatchbayAction::AddPresenter,
+            PatchbayAction::RemovePresenter,
+            PatchbayAction::ReplacePresenter,
+            PatchbayAction::ReorderPresenter,
+            PatchbayAction::ToggleParallelPresenters,
         ] {
             assert_eq!(PatchbayAction::from_name(action.as_str()), Some(action));
             assert!(PatchbayControlRequest::new(

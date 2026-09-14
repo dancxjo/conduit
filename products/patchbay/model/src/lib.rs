@@ -85,6 +85,9 @@ mod presentation_layout;
 mod presenter_plans;
 #[cfg(test)]
 mod presenter_plans_tests;
+mod presenter_topology;
+#[cfg(test)]
+mod presenter_topology_tests;
 mod prewake;
 pub mod proof;
 mod readable_body_history;
@@ -278,6 +281,7 @@ pub use presentation_layout::{
     PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
 };
 pub use presenter_plans::*;
+pub use presenter_topology::*;
 pub use prewake::*;
 pub use readable_body_history::{
     BodyHistoryAccess, BodyHistoryEntry, BodyHistoryExactEvidence, BodyHistoryInspectTarget,
