@@ -688,6 +688,9 @@ mod tests {
         ])
         .expect("explicit std Create observation entrance parses");
         assert!(matches!(pete.command, Command::Pete(_)));
+        let pete_workload = Cli::try_parse_from(["xtask", "pete", "workload-check"])
+            .expect("non-actuating Pete workload check entrance parses");
+        assert!(matches!(pete_workload.command, Command::Pete(_)));
         let pete_speaker = Cli::try_parse_from([
             "xtask",
             "pete",

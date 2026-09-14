@@ -33,6 +33,7 @@ pub mod pete_std_observe;
 pub mod pete_std_speaker;
 #[cfg(test)]
 mod pete_std_test_support;
+pub mod pete_workload_check;
 #[path = "../../../../targets/rp2040/firmware/pico-w-signal/fabrication/xtask/mod.rs"]
 pub mod pico;
 pub mod proofs;
