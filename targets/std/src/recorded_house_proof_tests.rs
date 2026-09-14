@@ -754,6 +754,33 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
         .cancel()
         .expect("playback fragment cancellation stays fragment-local");
 
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profiles = conduit_form::ProfileCatalog::new();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles).unwrap();
+    let source = include_str!("../../../forms/greet/main.conduit");
+    let checked =
+        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+            .unwrap();
+    let expanded = conduit_form::expand_canonical_form(&checked, "welcome", &profiles).unwrap();
+    let mut unrelated_host = StdHost::new();
+    let unrelated_plan = unrelated_host.plan_expanded_local(&expanded).unwrap();
+    let unrelated_report = unrelated_host
+        .run_fragment_to(
+            unrelated_plan.fragments[0].clone(),
+            &mut Vec::new(),
+            &mut ThreadTimer,
+        )
+        .expect("unrelated admitted Form remains runnable after House machinery loss");
+    assert!(matches!(
+        unrelated_report
+            .observations
+            .last()
+            .map(|observation| &observation.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+
     let accepted_plan = exact.plan.clone();
     for lost in [
         crate::distributed_house_plan::DistributedHouseRole::Cognition,
