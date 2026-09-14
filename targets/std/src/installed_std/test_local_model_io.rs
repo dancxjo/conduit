@@ -15,6 +15,7 @@ pub(crate) const HOUSE_AUDIO_SOURCE_KIND: &str = "conduit-test/house-audio-sourc
 const HOUSE_AUDIO_SOURCE_REVISION: &str = "conduit-test/house-audio-source@1";
 pub(crate) const HOUSE_AUDIO_CLIP_SOURCE_KIND: &str = "conduit-test/house-audio-clip-source";
 const HOUSE_AUDIO_CLIP_SOURCE_REVISION: &str = "conduit-test/house-audio-clip-source@1";
+#[cfg(feature = "local-model-proof")]
 pub(crate) const HOUSE_AUDIO_CLIP_SOURCE_OPERATION: &str = super::PROOF_PCM_CLIP_SOURCE_OPERATION;
 pub(crate) const HOUSE_ADDRESSES_SOURCE_KIND: &str = "conduit-test/house-addresses-source";
 const HOUSE_ADDRESSES_SOURCE_REVISION: &str = "conduit-test/house-addresses-source@1";
@@ -179,6 +180,7 @@ pub(crate) fn house_source_offers() -> [CapabilityOffer; 5] {
     ]
 }
 
+#[cfg(feature = "local-model-proof")]
 fn clip_source_offer() -> CapabilityOffer {
     let mut offer = offer(
         HOUSE_AUDIO_CLIP_SOURCE_KIND,

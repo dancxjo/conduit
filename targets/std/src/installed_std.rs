@@ -78,6 +78,7 @@ pub(crate) mod recorded_speech_operation;
 mod recurrence_codec;
 mod recurrence_encoding;
 mod recurrence_operation;
+mod remote_fragment_kernel;
 mod render_demand_operation;
 pub(super) mod rhythm_compare_host;
 mod rhythm_compare_operation;
@@ -143,6 +144,7 @@ pub(crate) use self::catalog::supports;
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
 use self::operation::InstalledOperation;
+pub use self::remote_fragment_kernel::InstalledRemoteFragment;
 #[cfg(test)]
 use self::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TICK_FACTORY};
 use super::{

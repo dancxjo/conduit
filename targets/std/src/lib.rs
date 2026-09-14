@@ -27,6 +27,7 @@ pub mod distributed_signal;
 pub mod distributed_toggle;
 #[cfg(feature = "local-model-proof")]
 pub mod recorded_house_proof;
+#[cfg(feature = "local-model-proof")]
 mod recorded_house_receipt;
 pub mod text_lab_live;
 pub mod text_lab_split;
@@ -78,6 +79,7 @@ pub mod hosted_vector_search;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+pub use installed_std::InstalledRemoteFragment;
 #[cfg(test)]
 mod installed_std_tests;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
@@ -115,6 +117,7 @@ pub mod pool_webchat;
 pub mod r1_control;
 pub mod r1_control_input;
 pub mod reaction_diffusion;
+pub mod remote_cord_sessions;
 pub mod ros2_base;
 pub use reaction_diffusion::*;
 pub mod sound_recovery;

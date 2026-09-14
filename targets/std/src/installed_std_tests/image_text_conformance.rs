@@ -316,6 +316,60 @@ fn authored_image_text_plans_an_exact_remote_framed_record_session() {
         .iter()
         .any(|candidate| candidate.connection_id == connection.connection_id));
 
+    let mut source_runtime =
+        crate::InstalledRemoteFragment::prepare(&source_host, source_fragment, 1).unwrap();
+    let mut sink_runtime =
+        crate::InstalledRemoteFragment::prepare(&sink_host, sink_fragment, 1).unwrap();
+    assert_eq!(source_fragment.placements.len(), 5);
+    let source_endpoint = source_runtime.sessions().iter().next().unwrap().endpoint;
+    let sink_endpoint = sink_runtime.sessions().iter().next().unwrap().endpoint;
+    crate::remote_cord_sessions::activate_in_process(
+        source_runtime
+            .sessions_mut()
+            .get_mut(source_endpoint)
+            .unwrap(),
+        sink_runtime.sessions_mut().get_mut(sink_endpoint).unwrap(),
+    )
+    .unwrap();
+    assert!(source_runtime
+        .sessions()
+        .get(source_endpoint)
+        .unwrap()
+        .machine()
+        .is_active());
+    assert!(sink_runtime
+        .sessions()
+        .get(sink_endpoint)
+        .unwrap()
+        .machine()
+        .is_active());
+    let stale = conduit_kernel::RemoteEndpointId(sink_endpoint.0.saturating_add(1));
+    assert_eq!(
+        sink_runtime.admit_ingress(stale, 0, &expected).unwrap_err(),
+        "remote endpoint direction or identity mismatch"
+    );
+    assert!(sink_runtime
+        .admit_ingress(sink_endpoint, 1, &expected)
+        .unwrap_err()
+        .contains("RemoteSequenceRejected"));
+    assert_eq!(
+        sink_runtime
+            .admit_ingress(sink_endpoint, 0, &expected)
+            .unwrap(),
+        conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 }
+    );
+    assert_eq!(
+        sink_runtime
+            .admit_ingress(sink_endpoint, 1, &expected)
+            .unwrap(),
+        conduit_kernel::scheduler::RemoteIngressOutcome::Full { sequence: 1 }
+    );
+    sink_runtime.cancel().unwrap();
+    assert!(sink_runtime
+        .close_ingress(sink_endpoint)
+        .unwrap_err()
+        .contains("Cancelled"));
+
     let binding = conduit_wire::SessionBinding::from_planned_connection(
         plan.plan_id.clone(),
         source_fragment.fragment_id.clone(),
