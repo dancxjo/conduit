@@ -8,6 +8,10 @@ use conduit_ai::{
     GroundedAnswer, GroundedAnswerPolicy, GroundedAnswerRefusal, GroundedAnswerRequest,
     GroundingInputAssessment, ModelDerivedResult, ProposedGroundedClaim,
 };
+use conduit_observatory::{
+    EvidenceLineageEdge, EvidenceLineageNode, EvidenceLineageRefusal, EvidenceLineageReport,
+    EvidenceLineageStage,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PeteRecollectionTrace {
@@ -39,6 +43,73 @@ pub struct PeteSelectedExperienceTrace {
     pub experience_kind: ExperienceKind,
     pub sensitivity: Sensitivity,
     pub original_source_identities: Vec<String>,
+}
+
+impl PeteRecollectionTrace {
+    pub fn evidence_lineage(&self) -> Result<EvidenceLineageReport, EvidenceLineageRefusal> {
+        let model_identity = format!(
+            "model-inference/{}",
+            self.grounded_answer.model_run_identity
+        );
+        let mut nodes = Vec::new();
+        let mut edges = Vec::new();
+        for candidate in &self.retrieval_candidates {
+            nodes.push(EvidenceLineageNode {
+                identity: candidate_identity(&candidate.experience_identity),
+                stage: EvidenceLineageStage::RetrievalCandidate,
+            });
+        }
+        for selected in &self.selected_experiences {
+            let candidate = candidate_identity(&selected.experience_identity);
+            let selected_identity = selected_identity(&selected.experience_identity);
+            nodes.push(EvidenceLineageNode {
+                identity: selected_identity.clone(),
+                stage: EvidenceLineageStage::SelectedEvidence,
+            });
+            edges.push(EvidenceLineageEdge {
+                from: candidate.clone(),
+                to: selected_identity.clone(),
+            });
+            for source in &selected.original_source_identities {
+                let source_identity = source_identity(source);
+                if !nodes.iter().any(|node| node.identity == source_identity) {
+                    nodes.push(EvidenceLineageNode {
+                        identity: source_identity.clone(),
+                        stage: EvidenceLineageStage::OriginalFact,
+                    });
+                }
+                edges.push(EvidenceLineageEdge {
+                    from: source_identity,
+                    to: candidate.clone(),
+                });
+            }
+            edges.push(EvidenceLineageEdge {
+                from: selected_identity,
+                to: model_identity.clone(),
+            });
+        }
+        nodes.push(EvidenceLineageNode {
+            identity: model_identity,
+            stage: EvidenceLineageStage::ModelInference,
+        });
+        EvidenceLineageReport::new(
+            format!("recollection/{}", self.grounded_answer.request_identity),
+            nodes,
+            edges,
+        )
+    }
+}
+
+fn candidate_identity(identity: &str) -> String {
+    format!("retrieval-candidate/{identity}")
+}
+
+fn selected_identity(identity: &str) -> String {
+    format!("selected-experience/{identity}")
+}
+
+fn source_identity(identity: &str) -> String {
+    format!("original-fact/{identity}")
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -35,6 +35,7 @@ mod debugger_watch_tests;
 mod degradation_explanation;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
+mod evidence_lineage;
 mod execution_disposition_explanation;
 mod face_configuration;
 mod face_controls;
@@ -187,6 +188,7 @@ pub use dormant_readmission_explanation::{
     explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
     MAX_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
+pub use evidence_lineage::{PatchbayEvidenceLineage, PatchbayEvidenceLineageRow};
 pub use execution_disposition_explanation::{
     explain_execution_disposition, ExecutionDispositionExplanation,
 };
