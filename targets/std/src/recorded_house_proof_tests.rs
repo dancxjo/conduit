@@ -513,6 +513,32 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
         .expect("every exact distributed House Line reaches Ready");
     }
 
+    let capture_fragment = exact
+        .plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id == exact.hosts[0].host_id)
+        .unwrap();
+    let mut stale_capture = exact.hosts[0].clone();
+    stale_capture.boot_id = BootId::from("boot/house-capture-stale");
+    assert_eq!(
+        crate::InstalledRemoteFragment::prepare(&stale_capture, capture_fragment, 1)
+            .err()
+            .unwrap(),
+        "remote fragment preparation requires its exact Host and Boot"
+    );
+    let capture_endpoint = runtimes[0].sessions().iter().next().unwrap().endpoint;
+    runtimes[0]
+        .fail_remote_line(capture_endpoint, 71)
+        .expect("exact capture Line loss is retained before cancellation");
+    assert!(runtimes[0]
+        .next_egress(capture_endpoint)
+        .unwrap_err()
+        .contains("Cancelled"));
+    runtimes[2]
+        .cancel()
+        .expect("playback fragment cancellation stays fragment-local");
+
     let accepted_plan = exact.plan.clone();
     for lost in [
         crate::distributed_house_plan::DistributedHouseRole::Cognition,
