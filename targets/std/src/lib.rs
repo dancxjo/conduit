@@ -27,6 +27,7 @@ pub mod distributed_signal;
 pub mod distributed_toggle;
 #[cfg(feature = "local-model-proof")]
 pub mod recorded_house_proof;
+#[cfg(feature = "local-model-proof")]
 mod recorded_house_receipt;
 pub mod text_lab_live;
 pub mod text_lab_split;
