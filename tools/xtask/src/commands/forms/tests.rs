@@ -53,10 +53,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .find(|result| result.slug == "little-seismograph")
         .expect("Little Seismograph is explicitly reviewed");
     assert_eq!(little_seismograph.title, "Little Seismograph");
-    assert_eq!(
-        little_seismograph.form_entry,
-        "little-seismograph-processing"
-    );
+    assert_eq!(little_seismograph.form_entry, "little-seismograph-display");
     assert_eq!(
         little_seismograph.source_path,
         "forms/little-seismograph/main.conduit"
@@ -213,6 +210,7 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
         ("pocket-theremin", "pocket-theremin"),
         ("tour", "tour"),
         ("patchbay", "patchbay"),
+        ("little-seismograph", "little-seismograph-display"),
     ];
     assert_eq!(forms.len(), expected.len());
     for (form, (slug, entry)) in forms.iter().zip(expected) {

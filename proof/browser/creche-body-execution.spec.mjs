@@ -172,6 +172,82 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
   }
 });
 
+test("Rosehip House runs reusable bounded measurement processing and history in one Body", async ({ page }) => {
+  const temporary = await mkdtemp(join(tmpdir(), "conduit-rosehip-measurement-"));
+  const processes = [];
+  try {
+    const creche = await startStaticProduct("target/creche-product", "/conduit/creche/");
+    processes.push(creche.child);
+    await page.goto(creche.url);
+    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+    const birth = page.locator(".body-birth-runner");
+    await birth.getByLabel("Friendly Body name", { exact: true }).fill("Rosehip House");
+    for (const checkbox of await birth.getByRole("checkbox").all()) {
+      if (await checkbox.isChecked()) await checkbox.uncheck();
+    }
+    await selectBirthForm(birth, "Button Across the Room");
+    await selectBirthForm(birth, "Little Seismograph");
+    await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
+    const bodyId = await birth.getAttribute("data-body-id");
+    expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
+    await openCrecheStep(page, "2. First Host");
+    await page.getByRole("button", { name: "Give this Body its first Host", exact: true }).click();
+    await openCrecheStep(page, "4. Graduate");
+    await page.getByRole("button", { name: "Finish without hosted Patchbay", exact: true }).click();
+    await page.getByRole("button", { name: "End the Crèche", exact: true }).click();
+    const downloading = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Save Body evidence", exact: true }).click();
+    const evidencePath = join(temporary, "rosehip-measurement.json");
+    await (await downloading).saveAs(evidencePath);
+    const born = JSON.parse(await readFile(evidencePath, "utf8"));
+    expect(born.body_id).toBe(bodyId);
+    expect(born.body.workset.forms).toHaveLength(2);
+
+    const probe = await startPresenceProbe(["--body-evidence", evidencePath]);
+    processes.push(probe.process);
+    const patchbay = spawn("target/debug/patchbay-html", [
+      "--body-evidence", evidencePath, "--external-reader", "--body-invitation", probe.url,
+      "--form", "button-across-room", "forms/button-across-room/main.conduit",
+      "--form", "little-seismograph-display", "forms/little-seismograph/main.conduit",
+    ], { cwd: new URL("../..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });
+    processes.push(patchbay);
+    const url = await new Promise((resolve, reject) => {
+      let output = "";
+      const timeout = setTimeout(() => reject(new Error(`Rosehip Patchbay start timed out: ${output}`)), 10_000);
+      const inspect = chunk => {
+        output += chunk;
+        const match = output.match(/PATCHBAY_HTML_URL=(http:\/\/127\.0\.0\.1:\d+)/);
+        if (match) { clearTimeout(timeout); resolve(match[1]); }
+      };
+      patchbay.stdout.on("data", inspect);
+      patchbay.stderr.on("data", inspect);
+      patchbay.once("exit", code => { clearTimeout(timeout); reject(new Error(`Rosehip Patchbay exited ${code}: ${output}`)); });
+    });
+    await page.goto(url);
+    await page.getByRole("button", { name: "Join this Body", exact: true }).click();
+    await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
+    const snapshot = () => page.request.get(`${url}/api/snapshot`).then(response => response.json());
+    await expect.poll(async () => (await snapshot()).body_host_offer_evidence?.stage, { timeout: 10_000 }).toBe("AdmittedMembership");
+    await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
+    await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
+    await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
+    await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
+    const proposal = await page.request.get(`${url}/api/body-execution-proposal`).then(response => response.json());
+    expect(proposal.plan.body_id).toBe(bodyId);
+    expect(proposal.plan.forms).toHaveLength(2);
+    await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
+    await expect(page.locator("#body-execution-status")).toContainText("Body Play running", { timeout: 10_000 });
+    await expect(page.locator('[data-presentation-kind="presentation/measurement-plot"]')).toHaveText("plot 1 samples · 0 omitted");
+    await expect(page.locator('[data-presentation-kind="presentation/measurement-threshold"]')).toHaveText("threshold Above · Some(RoseAbove)");
+    await page.getByRole("button", { name: "Cancel Body Play", exact: true }).click();
+    await expect(page.locator("#body-execution-status")).toContainText("Body Play cancelled", { timeout: 10_000 });
+    expect((await snapshot()).body_planning.body_id).toBe(bodyId);
+  } finally {
+    for (const process of processes) if (process.exitCode === null) process.kill("SIGTERM");
+    await rm(temporary, { recursive: true });
+  }
+});
+
 test("Rosehip House is born once in Crèche and later admits independent browser Hosts", async ({ page, browser }) => {
   const temporary = await mkdtemp(join(tmpdir(), "conduit-rosehip-house-"));
   const processes = [];
