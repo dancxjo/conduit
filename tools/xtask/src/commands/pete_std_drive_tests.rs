@@ -71,6 +71,16 @@ fn exact_pty_path_runs_kernel_motion_then_ttl_zero_and_post_observation() {
     peer.join().unwrap();
     assert!(matches!(evidence.outcome, Outcome::Completed));
     assert!(matches!(
+        evidence
+            .missing_authority_refusal
+            .as_ref()
+            .map(|report| report.terminal.as_str()),
+        Some(value) if value.contains("MissingAuthority")
+    ));
+    assert_eq!(evidence.navigation.linear_mm, 12);
+    assert_eq!(evidence.navigation.ttl_ms, 250);
+    assert_eq!(evidence.request.linear_microunits, 96_000);
+    assert!(matches!(
         evidence.dispatch.as_ref().map(|report| report.terminal.as_str()),
         Some(value) if value.contains("MotionAdmitted")
     ));
@@ -146,7 +156,7 @@ fn provider_loss_during_mandatory_zero_is_failed_not_safe_success() {
 fn success_script(mut master: std::fs::File) {
     establish_safe_script(&mut master);
     observation_script(&mut master, 0);
-    expect(&mut master, &[145, 0, 50, 0, 50]);
+    expect(&mut master, &[145, 0, 48, 0, 48]);
     expect(&mut master, &[145, 0, 0, 0, 0]);
     observation_script(&mut master, 12);
 }
@@ -159,7 +169,24 @@ fn pre_observation_script(mut master: std::fs::File) {
 fn provider_loss_after_motion_script(mut master: std::fs::File) {
     establish_safe_script(&mut master);
     observation_script(&mut master, 0);
-    expect(&mut master, &[145, 0, 50, 0, 50]);
+    expect(&mut master, &[145, 0, 48, 0, 48]);
+}
+
+#[test]
+fn reviewed_navigation_produces_the_exact_bounded_drive_request() {
+    let (evidence, linear, angular) = navigation_intent(1_000, "robot/create1/0").unwrap();
+    assert_eq!(
+        evidence.route_identity,
+        "robot/create1/0/reviewed-forward-route"
+    );
+    assert_eq!(
+        evidence.goal_identity,
+        "robot/create1/0/reviewed-forward-goal"
+    );
+    assert_eq!(evidence.linear_mm, 12);
+    assert_eq!(evidence.interval_ms, 250);
+    assert_eq!(linear.raw_microunits(), 96_000);
+    assert_eq!(angular, Scalar::ZERO);
 }
 
 fn establish_safe_script(master: &mut std::fs::File) {
