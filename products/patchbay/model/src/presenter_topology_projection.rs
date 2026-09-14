@@ -51,11 +51,12 @@ pub fn project_presenter_topology(
         subject: root.clone(),
         level: PresentationDisclosureLevel::Primary,
     });
-    actions.push(topology_action(&root, "add", "Add Presenter"));
+    actions.push(topology_action(&root, "add", "Add Presenter", true));
     actions.push(topology_action(
         &root,
         "toggle-parallel",
         "Toggle parallel chains",
+        true,
     ));
     for (chain_order, chain) in topology.chains.iter().enumerate() {
         let chain_subject = format!("{root}/chain/{}", chain.chain_id);
@@ -82,16 +83,19 @@ pub fn project_presenter_topology(
             &chain_subject,
             "remove",
             "Remove Presenter chain",
+            true,
         ));
         actions.push(topology_action(
             &chain_subject,
             "replace",
             "Replace Presenter",
+            true,
         ));
         actions.push(topology_action(
             &chain_subject,
             "reorder",
             "Reorder Presenter stages",
+            chain.stages.len() > 1,
         ));
         for (stage_order, stage) in chain.stages.iter().enumerate() {
             let stage_subject = format!("{chain_subject}/stage/{}", stage.stage_id);
@@ -156,13 +160,25 @@ pub fn project_presenter_topology(
     .map_err(|_| PresenterTopologyRefusal::InvalidTopology)
 }
 
-fn topology_action(target: &str, operation: &str, label: &str) -> PresentationAction {
+fn topology_action(
+    target: &str,
+    operation: &str,
+    label: &str,
+    available: bool,
+) -> PresentationAction {
     PresentationAction {
         identity: format!("action/presenter-topology/{operation}/{target}"),
         intent: format!("conduit.intent/presenter-topology-{operation}@1"),
         target: target.into(),
         label: label.into(),
         disclosure: PresentationDisclosureLevel::CurrentAction,
-        availability: PresentationActionAvailability::Available,
+        availability: if available {
+            PresentationActionAvailability::Available
+        } else {
+            PresentationActionAvailability::Unavailable {
+                reason_code: "IncompatibleType".into(),
+                explanation: "A one-stage Presenter chain has no valid reordered sequence.".into(),
+            }
+        },
     }
 }
