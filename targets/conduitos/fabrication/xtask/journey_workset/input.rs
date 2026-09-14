@@ -19,24 +19,26 @@ pub(in super::super) fn exercise(
     application_action(stream, reader, serial, child, "f10", Patchbay, 11)?;
     application_action(stream, reader, serial, child, "f11", Patchbay, 12)?;
     artifacts.capture(stream, reader, "patchbay-edit-requested", true)?;
-    switch(stream, reader, serial, child, Tour, 12, None)?;
-    application_action(stream, reader, serial, child, "f10", Tour, 13)?;
+    application_action(stream, reader, serial, child, "f1", Patchbay, 13)?;
+    artifacts.capture(stream, reader, "patchbay-presenters-replanned", true)?;
+    switch(stream, reader, serial, child, Tour, 13, None)?;
+    application_action(stream, reader, serial, child, "f10", Tour, 14)?;
     artifacts.capture(stream, reader, "resident-tour-result", true)?;
-    switch(stream, reader, serial, child, Memory, 13, None)?;
-    for (key, count, result) in [("o", 15, "o"), ("n", 17, "on"), ("e", 19, "one")] {
+    switch(stream, reader, serial, child, Memory, 14, None)?;
+    for (key, count, result) in [("o", 16, "o"), ("n", 18, "on"), ("e", 20, "one")] {
         pair(stream, reader, serial, child, key, Memory, count, result)?;
     }
     artifacts.capture(stream, reader, "memory-listening", true)?;
-    switch(stream, reader, serial, child, Canvas, 19, Some("HELLO"))?;
+    switch(stream, reader, serial, child, Canvas, 20, Some("HELLO"))?;
     artifacts.capture(stream, reader, "canvas-retained", true)?;
     hid_qmp::send_named_keys(stream, reader, &["x"], true, "workset-held-press")?;
-    wait(serial, child, Canvas, 20, Some("HELLOX"))?;
-    switch(stream, reader, serial, child, Patchbay, 20, None)?;
-    switch(stream, reader, serial, child, Tour, 20, None)?;
-    switch(stream, reader, serial, child, Memory, 20, Some("one"))?;
+    wait(serial, child, Canvas, 21, Some("HELLOX"))?;
+    switch(stream, reader, serial, child, Patchbay, 21, None)?;
+    switch(stream, reader, serial, child, Tour, 21, None)?;
+    switch(stream, reader, serial, child, Memory, 21, Some("one"))?;
     hid_qmp::send_named_keys(stream, reader, &["x"], false, "workset-held-release")?;
-    wait(serial, child, Memory, 21, Some("one"))?;
-    for (count, result) in [(23, "on"), (25, "o"), (27, "")] {
+    wait(serial, child, Memory, 22, Some("one"))?;
+    for (count, result) in [(24, "on"), (26, "o"), (28, "")] {
         pair(
             stream,
             reader,
@@ -49,16 +51,16 @@ pub(in super::super) fn exercise(
         )?;
     }
     artifacts.capture(stream, reader, "memory-cleared", true)?;
-    pair(stream, reader, serial, child, "h", Memory, 29, "h")?;
-    pair(stream, reader, serial, child, "i", Memory, 31, "hi")?;
-    switch(stream, reader, serial, child, Canvas, 31, Some("HELLOX"))?;
-    pair(stream, reader, serial, child, "y", Canvas, 33, "HELLOXY")?;
-    switch(stream, reader, serial, child, Patchbay, 33, None)?;
+    pair(stream, reader, serial, child, "h", Memory, 30, "h")?;
+    pair(stream, reader, serial, child, "i", Memory, 32, "hi")?;
+    switch(stream, reader, serial, child, Canvas, 32, Some("HELLOX"))?;
+    pair(stream, reader, serial, child, "y", Canvas, 34, "HELLOXY")?;
+    switch(stream, reader, serial, child, Patchbay, 34, None)?;
     artifacts.capture(stream, reader, "patchbay-current-canvas-returned", true)?;
-    switch(stream, reader, serial, child, Tour, 33, None)?;
-    switch(stream, reader, serial, child, Memory, 33, Some("hi"))?;
+    switch(stream, reader, serial, child, Tour, 34, None)?;
+    switch(stream, reader, serial, child, Memory, 34, Some("hi"))?;
     artifacts.capture(stream, reader, "memory-retained", true)?;
-    switch(stream, reader, serial, child, Canvas, 33, Some("HELLOXY"))
+    switch(stream, reader, serial, child, Canvas, 34, Some("HELLOXY"))
 }
 
 fn application_action(

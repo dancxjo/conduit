@@ -38,6 +38,7 @@ use tour_sign::emit_tour_sign;
 use transient_sign::{emit_dismissed_transient, emit_shown_transient};
 
 const ENTER: u8 = 40;
+const F1: u8 = 58;
 const F10: u8 = 67;
 const F11: u8 = 68;
 
@@ -366,10 +367,15 @@ pub fn run(
             }
             if !tour_open && !front_door.exact_details_open() {
                 if event.transition() == KeyTransition::Pressed
-                    && matches!(event.usage(), F10 | F11)
+                    && matches!(event.usage(), F1 | F10 | F11)
                     && let Some(view) = journey.foreground_application_view().cloned()
                 {
-                    let action_index = usize::from(event.usage() == F11);
+                    let action_index = match event.usage() {
+                        F10 => 0,
+                        F11 => 1,
+                        F1 => 2,
+                        _ => unreachable!(),
+                    };
                     let action = view
                         .actions
                         .get(action_index)

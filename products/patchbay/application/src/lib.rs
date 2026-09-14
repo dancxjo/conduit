@@ -183,7 +183,7 @@ impl PatchbayApplicationPort {
             },
         ];
         if self.presenter_topology.is_some() {
-            actions.insert(1, presenter::action());
+            actions.push(presenter::action());
         }
         let mut nodes = vec![
             node(
@@ -420,6 +420,9 @@ mod tests {
         });
         let output = port.apply(&[]).unwrap();
         let view = ApplicationView::decode(&output.view).unwrap();
+        assert_eq!(view.actions[0].id, INSPECT_NEXT_ACTION_ID);
+        assert_eq!(view.actions[1].id, EDIT_CURRENT_ACTION_ID);
+        assert_eq!(view.actions[2].id, CHANGE_PRESENTERS_ACTION_ID);
         assert!(view
             .nodes
             .iter()
