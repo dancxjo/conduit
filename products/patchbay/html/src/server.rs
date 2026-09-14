@@ -21,6 +21,7 @@ mod interaction;
 mod navigation;
 mod observation;
 mod parts;
+mod presenter_control;
 mod text_lab_loss;
 mod timeline;
 mod transition;
@@ -118,6 +119,7 @@ pub struct PatchbayHtmlServer {
     body_workload: Option<patchbay_model::PatchbayBodyWorkloadSession>,
     body_planning_forms: Vec<patchbay_model::FormCandidate>,
     body_planning: Option<patchbay_model::BodyPlanningSession>,
+    presenter_control: Option<patchbay_model::PresenterControlSession>,
     body_admission: Option<Vec<u8>>,
     browser_wasm: Option<Vec<u8>>,
     text_lab_base: Option<String>,
@@ -171,6 +173,7 @@ impl PatchbayHtmlServer {
             body_workload,
             body_planning_forms: Vec::new(),
             body_planning: None,
+            presenter_control: None,
             body_admission: None,
             browser_wasm: None,
             text_lab_base: None,
@@ -208,6 +211,63 @@ impl PatchbayHtmlServer {
         }
         patchbay_model::body_planning_requirements(workset, &forms)
             .map_err(|error| ServerError::Interaction(format!("Body planning forms: {error:?}")))?;
+        let selector_form = if self
+            .snapshot
+            .presentation
+            .basis
+            .source_document_id
+            .is_none()
+            && self.snapshot.presentation.basis.checked_form_id.is_none()
+        {
+            Some(None)
+        } else {
+            workset
+                .forms()
+                .iter()
+                .find(|resident| {
+                    self.snapshot.presentation.basis.source_document_id.as_ref()
+                        == Some(&resident.source_document_id)
+                        && self.snapshot.presentation.basis.checked_form_id.as_ref()
+                            == Some(&resident.checked_form_id)
+                })
+                .cloned()
+                .map(Some)
+        };
+        if let Some(form) = selector_form {
+            let manifestation = &self.snapshot.renderer.manifestation;
+            self.presenter_control = Some(
+                patchbay_model::PresenterControlSession::new(
+                    self.snapshot.presentation.clone(),
+                    conduit_body::BodyPresentationSelector {
+                        form,
+                        source_placement_id: self
+                            .snapshot
+                            .presentation
+                            .basis
+                            .expanded_form_id
+                            .clone()
+                            .map(|id| conduit_core::PlacementId::from(id.as_str()))
+                            .unwrap_or_else(|| {
+                                conduit_core::PlacementId::from("patchbay/presentation")
+                            }),
+                    },
+                    patchbay_model::RendererAdapterKind::HtmlDomSvg,
+                    patchbay_model::RendererAdapterIdentity {
+                        host_id: manifestation.host_id.clone(),
+                        boot_id: manifestation.boot_id.clone(),
+                        target_subject: manifestation.target_subject.clone(),
+                    },
+                    patchbay_model::RendererAdapterIdentity {
+                        host_id: conduit_core::HostId::from("patchbay-html/test-speech"),
+                        boot_id: conduit_core::BootId::from("patchbay-html/test-speech-boot"),
+                        target_subject: "patchbay-html/speech-receipt".into(),
+                    },
+                )
+                .map_err(|error| {
+                    ServerError::Interaction(format!("Presenter control: {error:?}"))
+                })?,
+            );
+        }
         self.body_planning_forms = forms;
         Ok(self)
     }

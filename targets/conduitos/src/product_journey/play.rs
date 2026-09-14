@@ -1,7 +1,7 @@
 //! One admitted native Body Plan/Play across exact resident Form partitions.
 use super::{JourneyError, JourneyLossKind, JourneyStatus, ProductJourney};
 use crate::{identity::BootIdentities, native_workset, offer::HostOffer};
-use alloc::{boxed::Box, format};
+use alloc::{boxed::Box, format, vec};
 use conduit_body::{BodyPlayIdentity, WakeLifecycle};
 use conduit_core::SignId;
 use conduit_human::KeyEvent;
@@ -197,7 +197,7 @@ impl ProductJourney {
         if wake.lifecycle != WakeLifecycle::AwaitingPlan {
             return Err(JourneyError::InvalidTransition);
         }
-        let prepared = native_workset::prepare(wake, identities, offer, build_id)
+        let mut prepared = native_workset::prepare(wake, identities, offer, build_id)
             .map_err(JourneyError::Workset)?;
         if prepared.advertisement().host_id != self.host_id
             || prepared.advertisement().boot_id != self.boot_id
@@ -205,6 +205,27 @@ impl ProductJourney {
         {
             return Err(JourneyError::WrongTarget);
         }
+        let presenter_control = if self
+            .forms
+            .contains(&Some(native_workset::NativeForm::Patchbay))
+        {
+            let control = crate::presenter_control::PresenterControl::graphical(
+                self.host_id.clone(),
+                self.boot_id.clone(),
+            )
+            .map_err(|_| JourneyError::Kernel)?;
+            let selector = crate::presenter_control::patchbay_selector(prepared.plan())
+                .map_err(|_| JourneyError::Kernel)?;
+            let topology = control
+                .topology(selector)
+                .map_err(|_| JourneyError::Kernel)?;
+            prepared = prepared
+                .with_presenters(wake, vec![topology])
+                .map_err(JourneyError::Workset)?;
+            Some(control)
+        } else {
+            None
+        };
         let input_owners =
             core::array::from_fn(|index| prepared.input_owners().get(index).cloned());
         let kernel = Box::new(
@@ -225,6 +246,7 @@ impl ProductJourney {
         self.loss_sign_id = None;
         self.retained_kernel_sign_gap = None;
         self.application_request = None;
+        self.presenter_control = presenter_control;
         self.planned_play = Some(BodyPlayIdentity::bind(&plan, self.revision));
         self.plan = Some(plan);
         self.input_owners = input_owners;
@@ -252,12 +274,111 @@ impl ProductJourney {
             .ok_or(JourneyError::Kernel)?
             .start()
             .map_err(JourneyError::Play)?;
+        if let Some(control) = self.presenter_control.as_mut() {
+            let topology = control
+                .activate(plan, play)
+                .map_err(|_| JourneyError::Kernel)?;
+            self.kernel
+                .as_mut()
+                .ok_or(JourneyError::Kernel)?
+                .set_presenter_topology(&topology)
+                .map_err(JourneyError::Presenter)?;
+        }
         self.wake = Some(wake);
         self.play = Some(play.clone());
         // This Form has no checked completion witness. Its initial structural
         // drain leaves the admitted Play resident and awaiting later input.
         self.status = JourneyStatus::QuiescentAwaitingInput;
         Ok(())
+    }
+
+    pub fn replan_presenters(
+        &mut self,
+        request: patchbay_application::PatchbayApplicationRequest,
+        identities: &BootIdentities,
+        offer: &HostOffer<'_>,
+        build_id: &str,
+    ) -> Result<(), JourneyError> {
+        let (basis_plan_id, mode) = match request {
+            patchbay_application::PatchbayApplicationRequest::ChangePresenters {
+                body_plan_id,
+                mode,
+            } => (body_plan_id, mode),
+            _ => return Err(JourneyError::WrongTarget),
+        };
+        if self.status != JourneyStatus::QuiescentAwaitingInput
+            || self.plan.as_ref().map(|plan| &plan.plan_id) != Some(&basis_plan_id)
+        {
+            return Err(JourneyError::StalePresentation);
+        }
+        self.revision
+            .checked_add(1)
+            .ok_or(JourneyError::RevisionExhausted)?;
+        let current = self.plan.as_ref().ok_or(JourneyError::InvalidTransition)?;
+        let mut wake = self.wake.clone().ok_or(JourneyError::BodyAbsent)?;
+        wake = wake
+            .became_unsatisfied(
+                &current.plan_id,
+                SignId::from(format!("conduitos/presenter/{}/unsatisfied", self.revision)),
+            )
+            .map_err(|_| JourneyError::InvalidTransition)?;
+        let mut control = self
+            .presenter_control
+            .clone()
+            .ok_or(JourneyError::InvalidTransition)?;
+        control.request(mode).map_err(|_| JourneyError::Kernel)?;
+        let mut prepared = native_workset::prepare(&wake, identities, offer, build_id)
+            .map_err(JourneyError::Workset)?;
+        let selector = crate::presenter_control::patchbay_selector(prepared.plan())
+            .map_err(|_| JourneyError::Kernel)?;
+        let topology = control
+            .topology(selector)
+            .map_err(|_| JourneyError::Kernel)?;
+        prepared = prepared
+            .with_presenters(&wake, vec![topology])
+            .map_err(JourneyError::Workset)?;
+        let plan = prepared.plan().clone();
+        wake = wake
+            .body_plan_ready(
+                &plan,
+                SignId::from(format!("conduitos/presenter/{}/planned", self.revision)),
+            )
+            .map_err(|_| JourneyError::InvalidTransition)?;
+        let play = BodyPlayIdentity::bind(&plan, self.revision);
+        wake = wake
+            .body_play_started(
+                &plan,
+                &play,
+                SignId::from(format!("conduitos/presenter/{}/playing", self.revision)),
+            )
+            .map_err(|_| JourneyError::InvalidTransition)?;
+        let mut kernel = Box::new(
+            native_workset::NativeWorksetPlay::prepare(&prepared).map_err(JourneyError::Workset)?,
+        );
+        kernel.start().map_err(JourneyError::Play)?;
+        let topology = control
+            .activate(&plan, &play)
+            .map_err(|_| JourneyError::Kernel)?;
+        if let Err(error) = kernel.set_presenter_topology(&topology) {
+            let _ = kernel.cancel();
+            return Err(JourneyError::Presenter(error));
+        }
+        if let Some(prior) = self.kernel.as_mut() {
+            if let Err(error) = prior.cancel() {
+                let _ = kernel.cancel();
+                return Err(JourneyError::Play(error));
+            }
+            self.retained_kernel_sign_gap = prior.sign_retention_gap();
+        }
+        self.wake = Some(wake);
+        self.plan = Some(plan);
+        self.planned_play = Some(play.clone());
+        self.play = Some(play);
+        self.kernel = Some(kernel);
+        self.presenter_control = Some(control);
+        self.application_request = None;
+        self.status = JourneyStatus::QuiescentAwaitingInput;
+        self.advance()
     }
 
     pub(super) fn stop(&mut self) -> Result<(), JourneyError> {

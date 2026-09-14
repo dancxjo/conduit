@@ -13,6 +13,7 @@ use conduit_observatory::{
 
 mod body_biography;
 mod body_biography_entrance;
+mod body_plan_projection;
 mod body_planning_session;
 mod body_workload_session;
 mod build_birth;
@@ -35,6 +36,7 @@ mod debugger_watch_tests;
 mod degradation_explanation;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
+mod evidence_lineage;
 mod execution_disposition_explanation;
 mod face_configuration;
 mod face_controls;
@@ -82,9 +84,16 @@ mod portable_route_projection;
 mod portable_vector_search_projection;
 mod portable_world_projection;
 mod presentation_layout;
+mod presenter_control;
+#[cfg(test)]
+mod presenter_control_tests;
 mod presenter_plans;
 #[cfg(test)]
 mod presenter_plans_tests;
+mod presenter_topology;
+mod presenter_topology_projection;
+#[cfg(test)]
+mod presenter_topology_tests;
 mod prewake;
 pub mod proof;
 mod readable_body_history;
@@ -117,6 +126,9 @@ pub use body_biography::{
 pub use body_biography_entrance::{
     PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError,
     MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
+};
+pub use body_plan_projection::{
+    project_body_plan, BodyPlanFormProjection, BodyPlanPlacementProjection, BodyPlanProjection,
 };
 pub use body_planning_session::{
     body_planning_requirements, plan_body_workset_on_host, BodyExecutionClaim,
@@ -184,6 +196,7 @@ pub use dormant_readmission_explanation::{
     explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
     MAX_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
+pub use evidence_lineage::{PatchbayEvidenceLineage, PatchbayEvidenceLineageRow};
 pub use execution_disposition_explanation::{
     explain_execution_disposition, ExecutionDispositionExplanation,
 };
@@ -277,7 +290,10 @@ pub use presentation_layout::{
     PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,
     PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
 };
+pub use presenter_control::*;
 pub use presenter_plans::*;
+pub use presenter_topology::*;
+pub use presenter_topology_projection::*;
 pub use prewake::*;
 pub use readable_body_history::{
     BodyHistoryAccess, BodyHistoryEntry, BodyHistoryExactEvidence, BodyHistoryInspectTarget,

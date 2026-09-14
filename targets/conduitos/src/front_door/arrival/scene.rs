@@ -145,10 +145,10 @@ impl Arrival {
                     )?;
                 }
                 ("initial-forms", PresentationMechanism::ChoiceGroup { label, options, .. }) => {
-                    line(272, label, false, GraphicsTextRole::Label)?;
+                    line(256, label, false, GraphicsTextRole::Label)?;
                     for (index, choice) in options.iter().enumerate() {
                         line(
-                            300 + index as i16 * 24,
+                            280 + index as i16 * 20,
                             &format!(
                                 "{}  {}{}",
                                 if choice.selected { "●" } else { "○" },
@@ -169,18 +169,18 @@ impl Arrival {
                     choice_count = options.len();
                 }
                 ("initial-forms", PresentationMechanism::Status { title, detail, .. }) => {
-                    line(272, title, false, GraphicsTextRole::Status)?;
+                    line(256, title, false, GraphicsTextRole::Status)?;
                     if !detail.is_empty() {
-                        line(300, detail, false, GraphicsTextRole::Muted)?;
+                        line(280, detail, false, GraphicsTextRole::Muted)?;
                     }
                     choice_count = 0;
                 }
                 ("selected-forms", PresentationMechanism::Status { title, .. }) => {
-                    line(348, title, false, GraphicsTextRole::Status)?;
+                    line(368, title, false, GraphicsTextRole::Status)?;
                 }
                 ("birth-body", PresentationMechanism::Action(action)) => {
                     line(
-                        376,
+                        392,
                         &format!("{}  ·  Enter / F3", action.label),
                         self.focus == choice_count + 4,
                         GraphicsTextRole::Action,
@@ -221,7 +221,7 @@ impl Arrival {
                 GraphicsCommand::icon(
                     LayoutRect {
                         x: x - 24,
-                        y: y + 376,
+                        y: y + 392,
                         width: 16,
                         height: 16,
                     },

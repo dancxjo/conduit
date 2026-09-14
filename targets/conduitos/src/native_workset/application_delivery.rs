@@ -67,6 +67,15 @@ impl PatchbayTargets {
             .apply(input)
             .map_err(|_| super::play::PlayRefusal::Kernel)
     }
+
+    pub(super) fn set_presenter_topology(
+        &mut self,
+        topology: &patchbay_application::PatchbayPresenterTopology,
+    ) {
+        for port in self.ports.iter_mut().flatten() {
+            port.set_presenter_topology(topology.clone());
+        }
+    }
 }
 
 pub(super) const EVENT_IMPLEMENTATION: &str = "conduitos/application-event-delivery@1";
@@ -76,7 +85,7 @@ pub(super) const EVENT_OPERATION: &str = "conduit.host/application-next-event@1"
 pub(super) const STATE_OPERATION: &str = "conduit.host/application-apply-event@1";
 pub(super) const PRESENTATION_OPERATION: &str = "conduit.host/present-application-view@1";
 pub(super) const EVENT_BYTES: u32 = 128;
-pub(super) const VIEW_BYTES: u32 = 1024;
+pub(super) const VIEW_BYTES: u32 = 3 * 1024;
 
 pub(super) fn offers(build: &str) -> [CapabilityOffer; 3] {
     [

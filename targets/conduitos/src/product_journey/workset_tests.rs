@@ -44,6 +44,31 @@ fn select(journey: &mut ProductJourney, form: NativeForm) {
         .unwrap();
 }
 
+fn request_presenter_change(
+    journey: &mut ProductJourney,
+) -> patchbay_application::PatchbayApplicationRequest {
+    let view = journey.foreground_application_view().unwrap().clone();
+    let action = view
+        .actions
+        .iter()
+        .find(|action| action.id == patchbay_application::CHANGE_PRESENTERS_ACTION_ID)
+        .unwrap();
+    assert!(
+        journey
+            .accept_application_event(&conduit_presentation::ApplicationEvent {
+                revision: view.revision,
+                action: action.id.clone(),
+                kind: action.event,
+                value: Vec::new(),
+            })
+            .unwrap()
+    );
+    match journey.take_application_request().unwrap() {
+        native_workset::NativeApplicationRequest::EditCurrent(request) => request,
+        _ => panic!("Patchbay Presenter action must cross the typed application seam"),
+    }
+}
+
 #[test]
 fn native_birth_keeps_four_forms_in_one_body_plan_play_and_switches_only_foreground() {
     let (ids, offer, mut journey) = born();
@@ -104,6 +129,105 @@ fn native_birth_keeps_four_forms_in_one_body_plan_play_and_switches_only_foregro
         Err(JourneyError::StalePresentation)
     );
     assert_eq!(journey.projection(), before);
+}
+
+#[test]
+fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
+    let (ids, offer, mut journey) = born();
+    run(&mut journey, &ids, &offer);
+    select(&mut journey, NativeForm::Patchbay);
+    let initial = journey.projection();
+    let initial_view = journey.foreground_application_view().unwrap();
+    assert_eq!(
+        initial_view
+            .nodes
+            .iter()
+            .filter(|node| node.key.starts_with("presenter-stage-"))
+            .count(),
+        1
+    );
+    let initial_graphics = initial_view
+        .nodes
+        .iter()
+        .find(|node| node.key == "presenter-facts-0")
+        .unwrap()
+        .value
+        .clone();
+
+    let add = request_presenter_change(&mut journey);
+    let stale_add = add.clone();
+    journey
+        .replan_presenters(add, &ids, &offer, "build")
+        .unwrap();
+    let parallel = journey.projection();
+    assert_eq!(parallel.body_id, initial.body_id);
+    assert_ne!(parallel.plan_id, initial.plan_id);
+    assert_ne!(parallel.active_play_id, initial.active_play_id);
+    assert_eq!(
+        journey
+            .foreground_application_view()
+            .unwrap()
+            .nodes
+            .iter()
+            .filter(|node| node.key.starts_with("presenter-stage-"))
+            .count(),
+        2
+    );
+    let before_stale = journey.projection();
+    assert_eq!(
+        journey.replan_presenters(stale_add, &ids, &offer, "build"),
+        Err(JourneyError::StalePresentation)
+    );
+    assert_eq!(journey.projection(), before_stale);
+
+    let remove_graphics = request_presenter_change(&mut journey);
+    journey
+        .replan_presenters(remove_graphics, &ids, &offer, "build")
+        .unwrap();
+    let speech = journey.projection();
+    assert_eq!(speech.body_id, initial.body_id);
+    assert_ne!(speech.plan_id, parallel.plan_id);
+    let speech_view = journey.foreground_application_view().unwrap();
+    assert_eq!(
+        speech_view
+            .nodes
+            .iter()
+            .filter(|node| node.key.starts_with("presenter-stage-"))
+            .count(),
+        1
+    );
+    assert!(
+        speech_view
+            .nodes
+            .iter()
+            .any(|node| { node.key == "presenter-impl-0" && node.value.contains("test-speech") })
+    );
+
+    let restore_graphics = request_presenter_change(&mut journey);
+    journey
+        .replan_presenters(restore_graphics, &ids, &offer, "build")
+        .unwrap();
+    let restored = journey.projection();
+    assert_eq!(restored.body_id, initial.body_id);
+    assert_ne!(restored.plan_id, speech.plan_id);
+    let restored_view = journey.foreground_application_view().unwrap();
+    assert_eq!(
+        restored_view
+            .nodes
+            .iter()
+            .filter(|node| node.key.starts_with("presenter-stage-"))
+            .count(),
+        2
+    );
+    assert_ne!(
+        restored_view
+            .nodes
+            .iter()
+            .find(|node| node.key == "presenter-facts-0")
+            .unwrap()
+            .value,
+        initial_graphics
+    );
 }
 
 #[test]

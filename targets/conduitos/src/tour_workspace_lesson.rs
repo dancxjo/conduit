@@ -104,7 +104,7 @@ fn measured_text_height(text: &str, width: u16) -> Result<u16, TourWorkspaceScen
         )
         .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?
         .finish_height();
-        return u16::try_from(height).map_err(|_| TourWorkspaceSceneRefusal::MissingRegion);
+        u16::try_from(height).map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)
     }
     #[cfg(not(feature = "native-compositor"))]
     {

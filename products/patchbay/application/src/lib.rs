@@ -15,12 +15,21 @@ use patchbay_graph::{PatchbayGraph, PatchbayGraphError, PatchbayInspection};
 
 pub const INSPECT_NEXT_ACTION_ID: &str = "patchbay.inspect.next";
 pub const EDIT_CURRENT_ACTION_ID: &str = "patchbay.edit.current";
+mod presenter;
+pub use presenter::{
+    PatchbayPresenterMode, PatchbayPresenterStage, PatchbayPresenterTopology,
+    CHANGE_PRESENTERS_ACTION_ID,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PatchbayApplicationRequest {
     EditCurrent {
         expanded_form_id: conduit_core::ExpandedFormId,
         subject_identity: String,
+    },
+    ChangePresenters {
+        body_plan_id: PlanId,
+        mode: PatchbayPresenterMode,
     },
 }
 
@@ -47,6 +56,7 @@ pub struct PatchbayApplicationPort {
     revision: u32,
     selected: usize,
     edit_requested: bool,
+    presenter_topology: Option<PatchbayPresenterTopology>,
 }
 
 impl PatchbayApplicationPort {
@@ -62,7 +72,13 @@ impl PatchbayApplicationPort {
             revision: 1,
             selected: 0,
             edit_requested: false,
+            presenter_topology: None,
         })
+    }
+
+    pub fn set_presenter_topology(&mut self, topology: PatchbayPresenterTopology) {
+        self.body_plan_id = topology.body_plan_id.clone();
+        self.presenter_topology = Some(topology);
     }
 
     pub const fn graph(&self) -> &PatchbayGraph {
@@ -139,13 +155,24 @@ impl PatchbayApplicationPort {
                     subject_identity: inspection.subject_identity,
                 }))
             }
+            CHANGE_PRESENTERS_ACTION_ID => {
+                let topology = self
+                    .presenter_topology
+                    .as_ref()
+                    .ok_or(PatchbayApplicationRefusal::UnknownAction)?;
+                let mode = topology.next_mode();
+                Ok(Some(PatchbayApplicationRequest::ChangePresenters {
+                    body_plan_id: topology.body_plan_id.clone(),
+                    mode,
+                }))
+            }
             _ => Err(PatchbayApplicationRefusal::UnknownAction),
         }
     }
 
     fn view(&self) -> Result<ApplicationView, PatchbayApplicationRefusal> {
         let inspection = self.inspection()?;
-        let actions = vec![
+        let mut actions = vec![
             ApplicationAction {
                 id: INSPECT_NEXT_ACTION_ID.into(),
                 event: ApplicationEventKind::Activate,
@@ -155,6 +182,9 @@ impl PatchbayApplicationPort {
                 event: ApplicationEventKind::Activate,
             },
         ];
+        if self.presenter_topology.is_some() {
+            actions.push(presenter::action());
+        }
         let mut nodes = vec![
             node(
                 None,
@@ -231,7 +261,11 @@ impl PatchbayApplicationPort {
                 "Edit current",
                 "",
                 0,
-                Some(1),
+                Some(if self.presenter_topology.is_some() {
+                    2
+                } else {
+                    1
+                }),
             ),
         ];
         if self.edit_requested {
@@ -244,6 +278,9 @@ impl PatchbayApplicationPort {
                 0,
                 None,
             ));
+        }
+        if let Some(topology) = &self.presenter_topology {
+            presenter::append_nodes(topology, &mut nodes);
         }
         let view = ApplicationView {
             revision: self.revision,
@@ -350,6 +387,69 @@ mod tests {
             Err(PatchbayApplicationRefusal::Event(
                 ApplicationViewRefusal::StaleRevision
             ))
+        );
+    }
+
+    #[test]
+    fn presenter_topology_is_visible_and_requests_the_exact_body_plan() {
+        let form = form();
+        let mut port = PatchbayApplicationPort::open(
+            &form,
+            PlanId::from("plan/current"),
+            PlanId::from("body-plan/current"),
+        )
+        .unwrap();
+        port.set_presenter_topology(PatchbayPresenterTopology {
+            presentation_id: "presentation/current".into(),
+            body_plan_id: PlanId::from("body-plan/current"),
+            active_play_id: "play/current".into(),
+            mode: PatchbayPresenterMode::Graphical,
+            stages: vec![PatchbayPresenterStage {
+                manifestation_id: "manifestation/graphical".into(),
+                implementation_id: "presentation/renderer-conduitos-native@1".into(),
+                host_id: "host/current".into(),
+                boot_id: "boot/current".into(),
+                resource_pool_id: "pool/presenter".into(),
+                resource_class_id: "resource/presenter".into(),
+                reserved_units: 1,
+                maximum_active_instances: 1,
+                maximum_queue_items: 1,
+                maximum_queue_bytes: 4096,
+                available: true,
+            }],
+        });
+        let output = port.apply(&[]).unwrap();
+        let view = ApplicationView::decode(&output.view).unwrap();
+        assert_eq!(view.actions[0].id, INSPECT_NEXT_ACTION_ID);
+        assert_eq!(view.actions[1].id, EDIT_CURRENT_ACTION_ID);
+        assert_eq!(view.actions[2].id, CHANGE_PRESENTERS_ACTION_ID);
+        assert!(view
+            .nodes
+            .iter()
+            .any(|node| { node.key == "presenter-stage-0" && node.text.contains("available") }));
+        let action = view
+            .actions
+            .iter()
+            .find(|action| action.id == CHANGE_PRESENTERS_ACTION_ID)
+            .unwrap();
+        let changed = port
+            .apply(
+                &ApplicationEvent {
+                    revision: view.revision,
+                    action: action.id.clone(),
+                    kind: action.event,
+                    value: Vec::new(),
+                }
+                .encode(&view)
+                .unwrap(),
+            )
+            .unwrap();
+        assert_eq!(
+            changed.request,
+            Some(PatchbayApplicationRequest::ChangePresenters {
+                body_plan_id: PlanId::from("body-plan/current"),
+                mode: PatchbayPresenterMode::GraphicalAndSpeech,
+            })
         );
     }
 }

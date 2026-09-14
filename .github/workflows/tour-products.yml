@@ -197,8 +197,8 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
           cargo build --locked -p patchbay-html --bin patchbay-static-assets
           cp target/debug/patchbay-static-assets target/browser-product-runtimes/patchbay-static-assets
-          cargo build --locked -p patchbay-html --bin patchbay-html -p conduit-std-host --bin browser-admission-probe
-          cp target/debug/patchbay-html target/debug/browser-admission-probe target/browser-product-runtimes/
+          cargo build --locked -p patchbay-html --bin patchbay-html -p patchbay-native --bin browser-parts-capstone --bin webchat-server -p conduit-std-host --bin browser-admission-probe
+          cp target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe target/browser-product-runtimes/
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-browser-product-runtimes
@@ -371,9 +371,9 @@ jobs:
         run: |
           mkdir -p target/debug target/wasm32-unknown-unknown/release
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
-          cp target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-admission-probe target/debug/
+          cp target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-parts-capstone target/browser-product-runtimes/webchat-server target/browser-product-runtimes/browser-admission-probe target/debug/
           cp target/browser-product-runtimes/patchbay-runtime.wasm target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
-          chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-admission-probe
+          chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe
           chmod 755 target/browser-product-runtimes/patchbay-static-assets
           site/tools/stage-pages-root.sh target/pages-root
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
@@ -387,6 +387,8 @@ jobs:
           path: |
             target/debug/conduit-browser-host
             target/debug/patchbay-html
+            target/debug/browser-parts-capstone
+            target/debug/webchat-server
             target/debug/browser-admission-probe
             target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
             target/pages-root
@@ -436,7 +438,7 @@ jobs:
           name: conduit-development-browser-products
           path: target
       - name: Restore executable Host permission
-        run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-admission-probe
+        run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe
       - name: Prove foreground input and Body retirement contracts
         if: matrix.shard == 'creche-workspace'
         run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs proof/browser/workspace-handoff.test.mjs
@@ -845,7 +847,7 @@ jobs:
         run: |
           mkdir -p target/debug
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
-          cp target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-admission-probe target/debug/
+          cp target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-parts-capstone target/browser-product-runtimes/webchat-server target/browser-product-runtimes/browser-admission-probe target/debug/
           mkdir -p target/wasm32-unknown-unknown/release
           cp target/browser-product-runtimes/patchbay-runtime.wasm target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
           chmod 755 target/debug/conduit-browser-host
@@ -865,6 +867,8 @@ jobs:
           path: |
             target/debug/conduit-browser-host
             target/debug/patchbay-html
+            target/debug/browser-parts-capstone
+            target/debug/webchat-server
             target/debug/browser-admission-probe
             target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
             target/pages-root
@@ -914,7 +918,7 @@ jobs:
           name: conduit-staged-browser-products
           path: target
       - name: Restore executable Host permission
-        run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-admission-probe
+        run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe
       - name: Prove foreground input and Body retirement contracts
         if: matrix.shard == 'creche-machines'
         run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs proof/browser/workspace-handoff.test.mjs

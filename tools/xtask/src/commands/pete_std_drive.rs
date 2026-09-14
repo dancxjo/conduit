@@ -11,10 +11,11 @@ use conduit_create_oi::{
 };
 use conduit_pete::{
     bounded_drive_plan, dispatch_create_drive_execution, prepare_create_drive_execution,
-    supervise_create_drive_execution, CreateDriveExecutionReport, CreateDriveExecutionTerminal,
-    CreateDriveObservation, CreateObservationSession, CreatePortableObservation,
-    SafeDispositionCause, BOUNDED_DRIVE_FORM, BOUNDED_DRIVE_GRANT, CREATE_DRIVE_IMPLEMENTATION,
-    CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY, CREATE_DRIVE_REDUCED_SAFETY_PROFILE,
+    supervise_create_drive_execution, CreateDriveExecutionRefusal, CreateDriveExecutionReport,
+    CreateDriveExecutionTerminal, CreateDriveObservation, CreateObservationSession,
+    CreatePortableObservation, DriveRefusal, SafeDispositionCause, BOUNDED_DRIVE_FORM,
+    BOUNDED_DRIVE_GRANT, CREATE_DRIVE_IMPLEMENTATION, CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY,
+    CREATE_DRIVE_REDUCED_SAFETY_PROFILE,
 };
 use conduit_robotics::ChargingState;
 use conduit_std_host::std_create_uart::{
@@ -31,8 +32,7 @@ const EVIDENCE_SCHEMA: &str = "conduit.pete/std-create-drive-evidence@1";
 const MAXIMUM_ID_BYTES: usize = 128;
 const MAXIMUM_PATH_BYTES: usize = 4_096;
 const MAXIMUM_READ_TIMEOUT_MS: u32 = 5_000;
-const LINEAR_MICROUNITS: i64 = 100_000;
-const ANGULAR_MICROUNITS: i64 = 0;
+const CREATE_MAXIMUM_WHEEL_SPEED_MM_S: i64 = 500;
 const SAFETY_MAXIMUM_AGE_MS: u32 = 1_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, ValueEnum)]
@@ -101,18 +101,41 @@ struct Evidence {
     authority_contract: &'static str,
     authority_grant_id: &'static str,
     implementation: &'static str,
+    navigation: NavigationEvidence,
     request: MotionRequestEvidence,
     pre_observation: ObservationEvidence,
+    missing_authority_refusal: Option<DriveReportEvidence>,
     dispatch: Option<DriveReportEvidence>,
     terminal: Option<DriveReportEvidence>,
     post_observation: Option<ObservationEvidence>,
     outcome: Outcome,
 }
 
+struct EvidenceContext {
+    pre_observation: ObservationEvidence,
+    navigation: NavigationEvidence,
+    linear: Scalar,
+    angular: Scalar,
+    required_floor_ack: Option<String>,
+    supplied_floor_ack_matched: bool,
+}
+
 #[derive(Serialize)]
 struct MotionRequestEvidence {
     linear_microunits: i64,
     angular_microunits: i64,
+    ttl_ms: u32,
+}
+
+#[derive(Serialize)]
+struct NavigationEvidence {
+    route_identity: String,
+    goal_identity: String,
+    pose_source_identity: String,
+    clock_identity: String,
+    linear_mm: i32,
+    angular_microdegrees: i32,
+    interval_ms: u32,
     ttl_ms: u32,
 }
 
@@ -148,7 +171,7 @@ pub fn run(args: StdDriveArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::err
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would observe exact Create safety truth and request one 50 mm/s, 250 ms reduced-safety drive over {}",
+                "would observe exact Create safety truth, derive one bounded motion intent through portable navigation, refuse it without authority, then request one attended reduced-safety drive over {}",
                 args.serial_path.display()
             );
         }
@@ -197,6 +220,7 @@ fn execute(args: &StdDriveArgs) -> Result<Evidence, Box<dyn std::error::Error>> 
         mode,
         safety,
     };
+    let (navigation, linear, angular) = navigation_intent(pre_at, &args.robot_id)?;
     let plan = bounded_drive_plan(&drive_observation, true)
         .map_err(|error| format!("drive planning: {error:?}"))?;
     let required_ack = floor_ack_token(args, plan.plan_id.as_str());
@@ -206,9 +230,15 @@ fn execute(args: &StdDriveArgs) -> Result<Evidence, Box<dyn std::error::Error>> 
         args,
         &base,
         plan.plan_id.as_str(),
-        observation_evidence(pre, pre_at),
-        (args.motion_environment == MotionEnvironment::Floor).then_some(required_ack),
-        ack_matches,
+        EvidenceContext {
+            pre_observation: observation_evidence(pre, pre_at),
+            navigation,
+            linear,
+            angular,
+            required_floor_ack: (args.motion_environment == MotionEnvironment::Floor)
+                .then_some(required_ack),
+            supplied_floor_ack_matched: ack_matches,
+        },
     );
     if !ack_matches {
         evidence.outcome = Outcome::Refused {
@@ -218,14 +248,34 @@ fn execute(args: &StdDriveArgs) -> Result<Evidence, Box<dyn std::error::Error>> 
         return Ok(evidence);
     }
 
-    let mut execution = prepare_create_drive_execution(
-        &plan,
-        &drive_observation,
-        Scalar::from_raw_microunits(LINEAR_MICROUNITS),
-        Scalar::from_raw_microunits(ANGULAR_MICROUNITS),
-    )
-    .map_err(|error| format!("drive preparation: {error}"))?;
+    let mut refused_execution =
+        prepare_create_drive_execution(&plan, &drive_observation, linear, angular)
+            .map_err(|error| format!("drive preparation: {error}"))?;
     let now = monotonic_millis().map_err(|error| format!("monotonic clock: {error:?}"))?;
+    let refused = dispatch_create_drive_execution(
+        &mut refused_execution,
+        &mut provider,
+        now,
+        None,
+        SafetyObservation {
+            observed_at_tick: now,
+            ..safety
+        },
+    );
+    if refused.terminal
+        != CreateDriveExecutionTerminal::Refused(CreateDriveExecutionRefusal::Drive(
+            DriveRefusal::MissingAuthority,
+        ))
+    {
+        evidence.outcome = Outcome::Failed {
+            stage: "missing_authority_preflight",
+            code: format!("{:?}", refused.terminal),
+        };
+        return Ok(evidence);
+    }
+    evidence.missing_authority_refusal = Some(report_evidence(&refused));
+    let mut execution = prepare_create_drive_execution(&plan, &drive_observation, linear, angular)
+        .map_err(|error| format!("authorized drive preparation: {error}"))?;
     let safety_class = match args.motion_environment {
         MotionEnvironment::WheelsOffFloor => MotionSafetyAuthority::ReducedWheelsOffFloor,
         MotionEnvironment::Floor => MotionSafetyAuthority::ReducedFloorAcknowledged,
@@ -341,13 +391,86 @@ fn safety_from(
         .ok_or_else(|| "local safety envelope emitted no observation".into())
 }
 
+fn navigation_intent(
+    now_ms: u64,
+    robot_id: &str,
+) -> Result<(NavigationEvidence, Scalar, Scalar), Box<dyn std::error::Error>> {
+    use conduit_semantic_catalog::{
+        local_control, time_parameterize, ControlDecision, NavigationPose, NavigationRoute,
+        NavigationTime, Validity, Waypoint,
+    };
+
+    let clock_identity = "pete/create-monotonic-ms".to_owned();
+    let pose = NavigationPose {
+        source_identity: format!("{robot_id}/odometry"),
+        sample_sequence: 1,
+        clock_identity: clock_identity.clone(),
+        frame: "pete/start-local".into(),
+        x_mm: 0,
+        y_mm: 0,
+        heading_microdegrees: 0,
+        validity: Validity {
+            observed_at_ms: now_ms,
+            valid_until_ms: now_ms.saturating_add(1_000),
+        },
+    };
+    let route = NavigationRoute {
+        identity: format!("{robot_id}/reviewed-forward-route"),
+        goal_identity: format!("{robot_id}/reviewed-forward-goal"),
+        planner_identity: "conduit/navigation/reviewed-straight-route@1".into(),
+        planning_input_identity: format!("{robot_id}/attended-action-proposal"),
+        frame: pose.frame.clone(),
+        target_heading_microdegrees: 0,
+        position_tolerance_mm: 1,
+        heading_tolerance_microdegrees: 1_000_000,
+        waypoints: vec![
+            Waypoint { x_mm: 0, y_mm: 0 },
+            Waypoint { x_mm: 12, y_mm: 0 },
+        ],
+    };
+    let time = NavigationTime {
+        clock_identity: clock_identity.clone(),
+        now_ms,
+    };
+    let trajectory = time_parameterize(&route, &time, 250, 12, 1_000_000)
+        .map_err(|error| format!("navigation time parameterization: {error:?}"))?;
+    let ControlDecision::Motion(intent) = local_control(&pose, &trajectory, &time)
+        .map_err(|error| format!("navigation local control: {error:?}"))?
+    else {
+        return Err("reviewed navigation did not produce a bounded motion intent".into());
+    };
+    if intent.ttl_ms != 250 || intent.interval_ms != 250 || intent.angular_microdegrees != 0 {
+        return Err("reviewed straight navigation intent violated the drive proof shape".into());
+    }
+    let linear_raw = i64::from(intent.linear_mm)
+        .checked_mul(1_000)
+        .and_then(|value| value.checked_mul(Scalar::SCALE))
+        .and_then(|value| {
+            value.checked_div(i64::from(intent.interval_ms) * CREATE_MAXIMUM_WHEEL_SPEED_MM_S)
+        })
+        .ok_or("navigation velocity normalization overflow")?;
+    let evidence = NavigationEvidence {
+        route_identity: route.identity,
+        goal_identity: route.goal_identity,
+        pose_source_identity: pose.source_identity,
+        clock_identity,
+        linear_mm: intent.linear_mm,
+        angular_microdegrees: intent.angular_microdegrees,
+        interval_ms: intent.interval_ms,
+        ttl_ms: intent.ttl_ms,
+    };
+    Ok((
+        evidence,
+        Scalar::from_raw_microunits(linear_raw),
+        Scalar::ZERO,
+    ))
+}
+
 fn base_evidence(
     args: &StdDriveArgs,
     base: &conduit_std_host::std_create_uart::StdCreateUartIdentity,
     plan_id: &str,
-    pre_observation: ObservationEvidence,
-    required_floor_ack: Option<String>,
-    supplied_floor_ack_matched: bool,
+    context: EvidenceContext,
 ) -> Evidence {
     Evidence {
         schema: EVIDENCE_SCHEMA,
@@ -365,17 +488,19 @@ fn base_evidence(
         independent_watchdog: "absent",
         unavailable_auxiliary_inputs: ["emergency_stop", "tilt", "impact"],
         motion_environment: args.motion_environment,
-        required_floor_ack,
-        supplied_floor_ack_matched,
+        required_floor_ack: context.required_floor_ack,
+        supplied_floor_ack_matched: context.supplied_floor_ack_matched,
         authority_contract: CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY,
         authority_grant_id: BOUNDED_DRIVE_GRANT,
         implementation: CREATE_DRIVE_IMPLEMENTATION,
+        navigation: context.navigation,
         request: MotionRequestEvidence {
-            linear_microunits: LINEAR_MICROUNITS,
-            angular_microunits: ANGULAR_MICROUNITS,
+            linear_microunits: context.linear.raw_microunits(),
+            angular_microunits: context.angular.raw_microunits(),
             ttl_ms: 250,
         },
-        pre_observation,
+        pre_observation: context.pre_observation,
+        missing_authority_refusal: None,
         dispatch: None,
         terminal: None,
         post_observation: None,

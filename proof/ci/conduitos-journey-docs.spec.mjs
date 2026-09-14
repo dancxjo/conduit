@@ -8,7 +8,7 @@ import test from "node:test";
 
 const checkpoints = [
   "front-door-ready", "body-awake", "quiescent-awaiting-input",
-  "input-continued", "patchbay-current-canvas", "patchbay-edit-requested",
+  "input-continued", "patchbay-current-canvas", "patchbay-edit-requested", "patchbay-presenters-replanned",
   "resident-tour-result", "memory-listening", "canvas-retained", "memory-cleared",
   "patchbay-current-canvas-returned", "memory-retained", "lulled", "usb-line-current", "peer-attached", "line-value-visible",
   "line-lost", "tour-opened", "tour-result-visible", "confirmation-transient",
@@ -35,6 +35,7 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.match(page, /structural drain remains distinct from semantic completion/);
     assert.match(page, /src="patchbay-current-canvas\.png"/);
     assert.match(page, /src="patchbay-edit-requested\.png"/);
+    assert.match(page, /src="patchbay-presenters-replanned\.png"/);
     assert.match(page, /src="resident-tour-result\.png"/);
     assert.match(page, /src="memory-listening\.png"/);
     assert.match(page, /src="canvas-retained\.png"/);

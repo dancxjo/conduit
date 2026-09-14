@@ -6,6 +6,11 @@ const cases = [
   ["memory-lantern", { keys: "ready", presentationKind: "presentation/text", text: "ready" }],
   ["desk-telegraph", { keys: "calling\n", presentationKind: "presentation/text", text: "calling" }],
   ["night-radio", { keys: "night report\n", presentationKind: "presentation/text", text: "night report" }],
+  ["little-seismograph", {
+    keys: "",
+    presentationKind: "presentation/measurement-plot",
+    text: "plot 1 samples · 0 omitted",
+  }],
 ];
 const selectedCases = new Set(JSON.parse(process.env.CONDUIT_FORM_CASES_JSON ?? "null") ?? cases.map(([slug]) => `reviewed Form ${slug} runs browser-safe`));
 

@@ -1,0 +1,8 @@
+form pete-memory (
+    > candidate: ExperienceCandidate
+    retained: RetainedExperience >
+) {
+    memory: pete/memory-retain
+    candidate > memory.candidate
+    memory.retained > retained
+}
