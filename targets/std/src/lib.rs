@@ -78,6 +78,7 @@ pub mod hosted_vector_search;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+pub use installed_std::InstalledRemoteFragment;
 #[cfg(test)]
 mod installed_std_tests;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
