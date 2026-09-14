@@ -316,6 +316,34 @@ fn authored_image_text_plans_an_exact_remote_framed_record_session() {
         .iter()
         .any(|candidate| candidate.connection_id == connection.connection_id));
 
+    let mut source_runtime =
+        crate::InstalledRemoteFragment::prepare(&source_host, source_fragment, 1).unwrap();
+    let mut sink_runtime =
+        crate::InstalledRemoteFragment::prepare(&sink_host, sink_fragment, 1).unwrap();
+    assert_eq!(source_fragment.placements.len(), 5);
+    let source_endpoint = source_runtime.sessions().iter().next().unwrap().endpoint;
+    let sink_endpoint = sink_runtime.sessions().iter().next().unwrap().endpoint;
+    crate::remote_cord_sessions::activate_in_process(
+        source_runtime
+            .sessions_mut()
+            .get_mut(source_endpoint)
+            .unwrap(),
+        sink_runtime.sessions_mut().get_mut(sink_endpoint).unwrap(),
+    )
+    .unwrap();
+    assert!(source_runtime
+        .sessions()
+        .get(source_endpoint)
+        .unwrap()
+        .machine()
+        .is_active());
+    assert!(sink_runtime
+        .sessions()
+        .get(sink_endpoint)
+        .unwrap()
+        .machine()
+        .is_active());
+
     let binding = conduit_wire::SessionBinding::from_planned_connection(
         plan.plan_id.clone(),
         source_fragment.fragment_id.clone(),
