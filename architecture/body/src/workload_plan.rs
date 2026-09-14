@@ -32,7 +32,9 @@ pub const MAX_BODY_PRESENTER_STAGES: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BodyPresentationSelector {
-    pub form: ResidentForm,
+    /// The exact resident Form when the Presentation is Form-scoped. `None`
+    /// selects the Body-scoped Presentation without inventing a source Form.
+    pub form: Option<ResidentForm>,
     pub source_placement_id: PlacementId,
 }
 
@@ -210,14 +212,13 @@ fn bind_body_plan(
     }
     bytes.extend_from_slice(&(presenter_topologies.len() as u32).to_le_bytes());
     for topology in presenter_topologies {
-        push(
-            &mut bytes,
-            topology.presentation.form.source_document_id.as_str(),
-        );
-        push(
-            &mut bytes,
-            topology.presentation.form.checked_form_id.as_str(),
-        );
+        if let Some(form) = &topology.presentation.form {
+            push(&mut bytes, "form");
+            push(&mut bytes, form.source_document_id.as_str());
+            push(&mut bytes, form.checked_form_id.as_str());
+        } else {
+            push(&mut bytes, "body");
+        }
         push(
             &mut bytes,
             topology.presentation.source_placement_id.as_str(),
@@ -242,7 +243,11 @@ fn validate_presenter_topologies(
         return Err(BodyPlanError::PresenterTopologyCapacityExceeded);
     }
     for (index, topology) in topologies.iter().enumerate() {
-        if !wake.workset.contains(&topology.presentation.form)
+        if topology
+            .presentation
+            .form
+            .as_ref()
+            .is_some_and(|form| !wake.workset.contains(form))
             || topology
                 .presentation
                 .source_placement_id

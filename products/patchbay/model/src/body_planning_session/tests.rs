@@ -188,7 +188,7 @@ fn presenter_replan_changes_plan_play_without_changing_body_or_authored_forms() 
             .clone()
     };
     let selector = BodyPresentationSelector {
-        form: resident,
+        form: Some(resident),
         source_placement_id: PlacementId::from("hello/presentation"),
     };
     let graphical = BodyPresenterChainPlan {
