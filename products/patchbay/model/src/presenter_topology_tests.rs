@@ -307,6 +307,16 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
             .iter()
             .any(|action| action.intent.contains(operation)));
     }
+    let native_lines = conduit_presentation::render_linear_presentation(&portable)
+        .unwrap()
+        .lines;
+    assert!(native_lines
+        .iter()
+        .any(|line| line.contains("Presenter topology")));
+    assert!(native_lines
+        .iter()
+        .any(|line| line.contains("Add Presenter")));
+    assert!(native_lines.iter().any(|line| line.contains("test-speech")));
 }
 
 #[test]
