@@ -8,7 +8,7 @@ use super::{
     MAX_NODES, MAX_QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS,
 };
 use crate::remote_cord_sessions::RemoteCordSessions;
-use conduit_core::{bind_active_play, HostAdvertisement, PlanFragment};
+use conduit_core::{bind_active_play, HostAdvertisement, HostOperationContractId, PlanFragment};
 use conduit_kernel::scheduler::{HostOperationRequest, RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, CordId, HostOperationOutcome, HostedSignLog, HostedValueStore,
@@ -25,6 +25,14 @@ pub struct RemoteValueTransfer {
     pub cord: CordId,
     pub sequence: u64,
     pub bytes: Vec<u8>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RemoteHostWork {
+    pub request: HostOperationRequest,
+    pub contract_id: HostOperationContractId,
+    pub maximum_output_bytes: u32,
+    pub input: Vec<u8>,
 }
 
 pub struct InstalledRemoteFragment {
@@ -125,6 +133,30 @@ impl InstalledRemoteFragment {
     }
     pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
         self.scheduler.next_host_request()
+    }
+    pub fn describe_host_request(
+        &self,
+        request: HostOperationRequest,
+    ) -> Result<RemoteHostWork, String> {
+        let operation = self
+            .lowered
+            .host_operations
+            .iter()
+            .find(|operation| {
+                operation.node == request.node && operation.operation == request.operation
+            })
+            .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
+        let input = self
+            .scheduler
+            .host_value(request.input.value)
+            .map_err(|error| format!("read remote std host input: {error:?}"))?
+            .to_vec();
+        Ok(RemoteHostWork {
+            request,
+            contract_id: operation.contract_id.clone(),
+            maximum_output_bytes: operation.binding.maximum_output_bytes,
+            input,
+        })
     }
     pub fn complete_host_operation(
         &mut self,

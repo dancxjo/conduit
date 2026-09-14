@@ -4,10 +4,33 @@ use conduit_ai::{
     LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits, LocalModelOffer,
 };
 use conduit_core::{BootId, HostId, OfferGeneration, PlannedGear};
+use conduit_kernel::{HostOperationDisposition, HostOperationOutcome};
+use sha2::Digest;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
+
+fn complete_remote_work(
+    runtime: &mut crate::InstalledRemoteFragment,
+    work: crate::RemoteHostWork,
+    output: Option<Vec<u8>>,
+) {
+    let output = output.map(|bytes| {
+        let value = runtime.store_host_value(&bytes).unwrap();
+        conduit_kernel::BoundedValueRef::new(value.value, work.maximum_output_bytes).unwrap()
+    });
+    runtime
+        .complete_host_operation(
+            work.request,
+            HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output,
+                failure: None,
+            },
+        )
+        .unwrap();
+}
 
 struct FakeModel {
     offer: LocalModelOffer,
@@ -334,3 +357,6 @@ fn addressed_microphone_response_is_spoken_and_committed_in_the_same_play() {
     fs::remove_dir_all(whisper_root).unwrap();
     fs::remove_dir_all(unaddressed_root).unwrap();
 }
+
+#[path = "recorded_house_distributed_tests.rs"]
+mod distributed;

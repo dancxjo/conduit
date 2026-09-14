@@ -23,6 +23,8 @@ mod composition_test_offers;
 pub mod confined_gear;
 mod copy_task;
 mod deadline_reactor;
+#[cfg(feature = "local-model-proof")]
+pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
 #[cfg(feature = "local-model-proof")]
@@ -57,6 +59,8 @@ pub mod hosted_http;
 pub mod hosted_indicator;
 pub mod hosted_job;
 pub mod hosted_keyboard;
+#[cfg(feature = "local-model-proof")]
+mod house_conversation_topology;
 #[cfg(unix)]
 pub mod pico_indicator;
 pub use host_execution::HostedRunAdapters;
@@ -79,7 +83,7 @@ pub mod hosted_vector_search;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
-pub use installed_std::InstalledRemoteFragment;
+pub use installed_std::{InstalledRemoteFragment, RemoteHostWork};
 #[cfg(test)]
 mod installed_std_tests;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]

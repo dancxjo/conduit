@@ -144,7 +144,7 @@ pub(crate) use self::catalog::supports;
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
 use self::operation::InstalledOperation;
-pub use self::remote_fragment_kernel::InstalledRemoteFragment;
+pub use self::remote_fragment_kernel::{InstalledRemoteFragment, RemoteHostWork};
 #[cfg(test)]
 use self::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TICK_FACTORY};
 use super::{
