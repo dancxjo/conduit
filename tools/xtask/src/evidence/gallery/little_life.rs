@@ -62,13 +62,17 @@ fn write_exhibit(
             &destination.join(filename),
         )?;
     }
+    copy_file(
+        &evidence_root.join("manifest.json"),
+        &destination.join("manifest.json"),
+    )?;
     let frames = [("t000.png", "t = 0"), ("t001.png", "t = 1"), ("t008.png", "t = 8"), ("t032.png", "t = 32")]
         .into_iter()
         .map(|(path, label)| format!("<figure><img src=\"{path}\" alt=\"Orbium scalar field at {label}\"><figcaption>{label}</figcaption></figure>"))
         .collect::<Vec<_>>()
         .join("\n");
     let body = format!(
-        "<nav><a href=\"{home}\">Gallery home</a></nav>\n<h1>Little Life</h1>\n<p>One deterministic Orbium seed entered an ordinary 32-step fixed-point Lenia Plan/Play. These four retained checkpoints show the bounded evolution.</p>\n<div class=\"comparison\">{frames}</div>\n<p><a href=\"presentation.txt\">Complete scalar-field terminal presentation</a> · <a href=\"execution.json\">Plan/Play execution report</a></p>\n<p>Exact accepted commit: <code>{}</code>. Generation zero is deterministic semantic seed lowering; later images derive from the installed std terminal scalar-field presentation. This is not a native graphical renderer, physical display, or human-perception claim.</p>",
+        "<nav><a href=\"{home}\">Gallery home</a></nav>\n<h1>Little Life</h1>\n<p>One deterministic Orbium seed entered an ordinary 32-step fixed-point Lenia Plan/Play. These four retained checkpoints show the bounded evolution.</p>\n<div class=\"comparison\">{frames}</div>\n<p><a href=\"presentation.txt\">Complete scalar-field terminal presentation</a> · <a href=\"execution.json\">Plan/Play execution report</a> · <a href=\"manifest.json\">digest-bound manifest</a></p>\n<p>Exact accepted commit: <code>{}</code>. Generation zero is deterministic semantic seed lowering; later images derive from the installed std terminal scalar-field presentation. This is not a native graphical renderer, physical display, or human-perception claim.</p>",
         evidence.commit
     );
     write_html(&destination.join("index.html"), "Little Life", &body)

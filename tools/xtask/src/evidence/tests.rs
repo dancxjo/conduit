@@ -776,6 +776,9 @@ fn gallery_publishes_current_history_and_provenance() {
             .unwrap()
     );
     assert!(site_root
+        .join("current/one-form-two-faces/manifest.json")
+        .is_file());
+    assert!(site_root
         .join(format!("commits/{commit}/manifest.json"))
         .is_file());
     let console_page =
@@ -790,6 +793,9 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read(site_root.join("current/hears-speaks/output.wav")).unwrap(),
         fs::read(site_root.join(format!("commits/{commit}/hears-speaks/output.wav"))).unwrap()
     );
+    assert!(site_root
+        .join("current/hears-speaks/manifest.json")
+        .is_file());
     let life_page = fs::read_to_string(site_root.join("current/little-life/index.html")).unwrap();
     assert!(life_page.contains("t = 0"));
     assert!(life_page.contains("t = 32"));
@@ -798,6 +804,9 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read(site_root.join("current/little-life/t032.png")).unwrap(),
         fs::read(site_root.join(format!("commits/{commit}/little-life/t032.png"))).unwrap()
     );
+    assert!(site_root
+        .join("current/little-life/manifest.json")
+        .is_file());
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()

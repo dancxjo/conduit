@@ -60,13 +60,17 @@ fn write_exhibit(
             &destination.join(filename),
         )?;
     }
+    copy_file(
+        &evidence_root.join("manifest.json"),
+        &destination.join("manifest.json"),
+    )?;
     let presentation = required_output(evidence, "two-faces.native-frame")?
         .provenance
         .presentation_id
         .as_deref()
         .ok_or("Two Faces native frame lacks Presentation identity")?;
     let body = format!(
-        "<nav><a href=\"{home}\">Gallery home</a></nav>\n<h1>One Form, Two Faces</h1>\n<p>The same portable Presentation identity was manifested by distinct native and pinned-browser renderer Plans. Pixel equality is neither expected nor claimed.</p>\n<div class=\"comparison\"><figure><img src=\"native.png\" alt=\"Native software-rendered Patchbay manifestation\"><figcaption>Native software renderer · <a href=\"native.json\">receipt</a></figcaption></figure><figure><img src=\"browser.png\" alt=\"Pinned Chromium Patchbay manifestation\"><figcaption>Pinned Chromium DOM/SVG renderer · <a href=\"browser.json\">receipt</a></figcaption></figure></div>\n<p>Shared Presentation: <code>{presentation}</code>.</p>\n<p>Exact accepted commit: <code>{}</code>. This is retained native software-render and live pinned-browser evidence, not visual equality, physical display, or human-perception proof.</p>",
+        "<nav><a href=\"{home}\">Gallery home</a></nav>\n<h1>One Form, Two Faces</h1>\n<p>The same portable Presentation identity was manifested by distinct native and pinned-browser renderer Plans. Pixel equality is neither expected nor claimed.</p>\n<div class=\"comparison\"><figure><img src=\"native.png\" alt=\"Native software-rendered Patchbay manifestation\"><figcaption>Native software renderer · <a href=\"native.json\">receipt</a></figcaption></figure><figure><img src=\"browser.png\" alt=\"Pinned Chromium Patchbay manifestation\"><figcaption>Pinned Chromium DOM/SVG renderer · <a href=\"browser.json\">receipt</a></figcaption></figure></div>\n<p>Shared Presentation: <code>{presentation}</code> · <a href=\"manifest.json\">digest-bound manifest</a>.</p>\n<p>Exact accepted commit: <code>{}</code>. This is retained native software-render and live pinned-browser evidence, not visual equality, physical display, or human-perception proof.</p>",
         evidence.commit
     );
     write_html(
