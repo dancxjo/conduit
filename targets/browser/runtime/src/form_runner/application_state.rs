@@ -1,7 +1,9 @@
 //! Retained shared application models prepared from exact Body Plan truth.
 
 use conduit_body::BodyPlan;
-use conduit_core::{ActivePlayId, ConfigurationValue, PlannedGear};
+#[cfg(feature = "creche-surface")]
+use conduit_core::ConfigurationValue;
+use conduit_core::{ActivePlayId, PlannedGear};
 use conduit_tour_model::{TourApplicationPort, TourRunProof, TourWorkspaceRequest};
 
 fn proof_from_manifestation(
@@ -285,6 +287,7 @@ fn run_resident_stage(
 
 pub(super) enum PreparedApplication {
     Tour(TourApplicationPort),
+    #[cfg(feature = "creche-surface")]
     Patchbay(patchbay_application::PatchbayApplicationPort),
 }
 
@@ -351,6 +354,7 @@ impl PreparedApplication {
                 }
                 Ok(output.view)
             }
+            #[cfg(feature = "creche-surface")]
             Self::Patchbay(port) => port
                 .apply(input)
                 .map(|output| output.view)
