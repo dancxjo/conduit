@@ -32,6 +32,15 @@ problem or desire, Conduit idea, executable demonstration, then payoff.
 matter are consumed by the application; keep their canonical Form identities
 and stage declarations aligned when changing a lesson.
 
-The native ConduitOS Tour shows the first chapter’s prose beside its canonical
-Form. Focus the left pane and use Page Up, Page Down, Home, or End to read it;
-scrolling leaves the laboratory in place.
+The native ConduitOS Tour consumes the same seven-page application port,
+chapter/stage catalog, Form source identities, and semantic actions as the
+browser Tour. It uses the bounded ConduitOS compositor instead of the browser
+DOM. Focus the left pane and use Page Up, Page Down, Home, or End to read it;
+scrolling leaves the laboratory in place. `F3`/`F4` select stages, `F5`/`F6`
+select chapters, `F10` runs the current exercise, and `F11` opens the resident
+Patchbay over the active Forms on the same Body.
+
+Linux and Windows packages use their platform desktop presentation
+implementations over that same portable application state. A Host can choose a
+different direct or recursive realization for a Form, but it does not get a
+private Tour program or progress state.

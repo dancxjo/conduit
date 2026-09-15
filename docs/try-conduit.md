@@ -2,9 +2,9 @@
 
 Start with the [live Tour](https://dancxjo.github.io/conduit/tour/) or the
 [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
-to see the project before building it. The journey shows seventeen checkpoints
-from a real QEMU session, including Body lifecycle, a hot-plugged Line, Tour,
-and Patchbay.
+to see the project before building it. The journey shows a bounded sequence of
+checkpoints from a real QEMU session, including Body lifecycle, a hot-plugged Line, every
+Tour page and runnable exercise, foreground Form switching, and Patchbay.
 
 The commands below run from a checkout. You do not need an installed `conduit`
 binary or `just`. See [contributor setup](../CONTRIBUTING.md) for prerequisites.
@@ -76,7 +76,16 @@ cargo xtask conduitos live-boot x86_64
 The first command builds `target/conduitos/live/x86_64-pc/conduitos-x86_64.iso`.
 The second verifies and boots that artifact in visible QEMU. The graphical
 session stays open until QEMU closes. It includes the normal front door,
-compositor, keyboard, and pointer paths.
+compositor, keyboard, and pointer paths. Birth a Body from the Crèche, then use
+the resident Tour and Patchbay: they are Forms in the same Body-wide Plan and
+Play, not special programs outside Conduit.
+
+In the native Tour, `F3`/`F4` move between stages, `F5`/`F6` move between
+chapters, `F10` runs the current exercise, and `F11` opens Patchbay. Patchbay
+shows the active Forms on the present Body and their exact current identities.
+The browser, Linux, Windows, and ConduitOS presentations consume the same
+portable Tour application state and action identities; each Host supplies its
+own presentation implementation.
 
 ```bash
 cargo xtask conduitos live-matrix
