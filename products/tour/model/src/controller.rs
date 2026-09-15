@@ -352,6 +352,20 @@ mod tests {
         );
         assert_eq!(controller.state().progress.chapter, 1);
         assert_eq!(controller.state().revision, 2);
+        let application_view = controller.state().presentation().unwrap().lower().unwrap();
+        assert!(
+            application_view
+                .nodes
+                .iter()
+                .any(|node| node.text.contains("Faces, Backs, and implementation"))
+        );
+        let workspace = controller.state().workspace_presentation().unwrap();
+        assert!(
+            workspace
+                .text
+                .iter()
+                .any(|text| text.text.contains("stable semantics"))
+        );
         assert_eq!(
             controller.request(&event(2, PREVIOUS_CHAPTER_ACTION_ID)),
             Ok(None)

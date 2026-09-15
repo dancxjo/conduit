@@ -109,6 +109,11 @@ impl TourWorkspaceState {
     }
 
     pub fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
+        let chapter = TOUR_CHAPTERS
+            .get(usize::from(self.progress.chapter))
+            .ok_or(SemanticPresentationRefusal::InvalidNavigation)?;
+        let chapter_title = crate::lesson::chapter_title(self.progress.chapter)
+            .map_err(|_| SemanticPresentationRefusal::InvalidNavigation)?;
         let status = match self.phase {
             TourWorkspacePhase::LessonReady => (StatusKind::Ordinary, "Lesson ready"),
             TourWorkspacePhase::ResultVisible => (StatusKind::Success, "Result visible"),
@@ -158,12 +163,12 @@ impl TourWorkspaceState {
                                     "lesson-status",
                                     PresentationMechanism::Status {
                                         kind: status.0,
-                                        title: status.1.into(),
+                                        title: chapter_title,
                                         detail: format!(
                                             "Chapter {} of {} · {}",
                                             self.progress.chapter + 1,
                                             self.progress.chapter_count,
-                                            TOUR_CHAPTERS[self.progress.chapter as usize].identity
+                                            chapter.identity
                                         ),
                                     },
                                     vec![],
