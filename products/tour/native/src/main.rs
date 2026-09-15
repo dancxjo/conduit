@@ -107,18 +107,19 @@ impl NativeTour {
                 self.notice = match output.request {
                     Some(TourWorkspaceRequest::Run { chapter, stage }) => {
                         match HostedTourExecutor::run(chapter, stage).and_then(|proof| {
-                            self.port.complete_run(proof).map_err(|_| {
-                                conduit_tour_native::HostedTourExecutorRefusal::Execution
+                            self.port.complete_run(proof).map_err(|error| {
+                                conduit_tour_native::HostedTourExecutorRefusal::Execution(format!(
+                                    "shared Tour completion refused: {error:?}"
+                                ))
                             })
                         }) {
                             Ok(()) => {
-                                if let Ok(result) = self.port.apply(&[]) {
-                                    if let Ok(view) = ApplicationView::decode(&result.view) {
-                                        if let Ok(presentation) = DesktopPresenter::project(&view) {
-                                            self.view = view;
-                                            self.presentation = presentation;
-                                        }
-                                    }
+                                if let Ok(result) = self.port.apply(&[])
+                                    && let Ok(view) = ApplicationView::decode(&result.view)
+                                    && let Ok(presentation) = DesktopPresenter::project(&view)
+                                {
+                                    self.view = view;
+                                    self.presentation = presentation;
                                 }
                                 format!(
                                     "Exercise {}.{} completed on this Host.",

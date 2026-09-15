@@ -24,6 +24,7 @@ conduit-std-host = { path = "../../targets/std" }
 conduit-std-offers = { path = "../../targets/std/offers" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["form-catalog"] }
 conduit-time = { path = "../../semantics/time" }
+conduit-text = { path = "../../semantics/text" }
 conduit-wire = { path = "../../architecture/wire" }
 conduit-web = { path = "../../semantics/web", default-features = false, features = ["form-catalog"] }
 conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
