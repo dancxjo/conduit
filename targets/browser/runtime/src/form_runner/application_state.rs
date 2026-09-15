@@ -26,18 +26,23 @@ fn run_resident_tour(chapter: u8, stage_index: u8) -> Result<TourRunProof, Strin
         .get(usize::from(chapter))
         .and_then(|chapter| chapter.stages.get(usize::from(stage_index)))
         .ok_or("resident Tour requested an unknown exact stage")?;
-    if chapter != 0 || stage_index > 1 || stage.mode != conduit_tour_model::TourStageMode::Run {
+    if chapter != 0 || stage.mode != conduit_tour_model::TourStageMode::Run {
         return Err("resident browser Host does not yet implement this exact Tour stage".into());
     }
     let expected = stage
         .expected_text
         .ok_or("resident Tour stage has no exact expected text")?;
+    let expected_manifestations = stage
+        .expected_manifestations
+        .ok_or("resident Tour stage has no exact manifestation count")?;
     let source = conduit_tour_model::tour_stage_source(chapter, stage_index)
         .map_err(|error| error.to_string())?;
     let (mut session, effect) =
         super::TourSession::prepare("browser/resident-tour", "boot/resident-tour", &source, 1)?;
+    let mut manifestations = 0_u8;
     let mut proof = match effect {
         super::TourHostEffect::Manifestation(effect) => {
+            manifestations += 1;
             proof_from_manifestation(&effect, stage.identity, expected)
         }
         _ => return Err("resident Tour stage requested an unsupported Host effect".into()),
@@ -46,19 +51,29 @@ fn run_resident_tour(chapter: u8, stage_index: u8) -> Result<TourRunProof, Strin
         match session.advance()? {
             super::TourProgress::Effect(effect) => match *effect {
                 super::TourHostEffect::Manifestation(effect) => {
+                    manifestations = manifestations
+                        .checked_add(1)
+                        .ok_or("resident Tour manifestation count exhausted")?;
                     proof = proof
                         .or_else(|| proof_from_manifestation(&effect, stage.identity, expected));
                 }
                 _ => return Err("resident Tour stage requested an unsupported Host effect".into()),
             },
             super::TourProgress::Receipt(_) => {
+                if manifestations != expected_manifestations {
+                    return Err(
+                        "resident Tour stage completed with the wrong manifestation count".into(),
+                    );
+                }
                 let mut proof = proof.ok_or_else(|| {
                     "resident Tour stage completed without its expected manifestation".to_string()
                 })?;
                 proof.terminal = conduit_tour_model::TourRunTerminal::Completed;
                 return Ok(proof);
             }
-            super::TourProgress::Waiting { .. } if proof.is_some() => {
+            super::TourProgress::Waiting { .. }
+                if proof.is_some() && manifestations == expected_manifestations =>
+            {
                 let receipt = session.cancel()?;
                 if receipt.disposition != "cancelled" {
                     return Err("resident Tour open exercise did not stop exactly".into());
@@ -151,10 +166,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn browser_resident_tour_runs_the_first_two_chapter_one_exercises_exactly() {
+    fn browser_resident_tour_runs_every_chapter_one_exercise_exactly() {
         let expected = [
             ("canonical-form:meet-one-gear", "HELLO"),
             ("canonical-form:edit-one-gear", "MAKE THIS LOUD"),
+            ("canonical-form:branch-a-cord", "SOS"),
         ];
         for (stage, (identity, result)) in expected.into_iter().enumerate() {
             let proof = run_resident_tour(0, stage as u8).unwrap();
@@ -179,7 +195,7 @@ mod tests {
     #[test]
     fn browser_resident_tour_refuses_an_unimplemented_exact_stage() {
         assert_eq!(
-            run_resident_tour(0, 2),
+            run_resident_tour(1, 0),
             Err("resident browser Host does not yet implement this exact Tour stage".into())
         );
     }
