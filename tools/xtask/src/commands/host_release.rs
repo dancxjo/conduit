@@ -158,13 +158,25 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
 
 fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
-        Command::new("cargo").args(["build", "--locked", "--release", "-p", "conduit"]),
+        Command::new("cargo").args([
+            "build",
+            "--locked",
+            "--release",
+            "-p",
+            "conduit",
+            "-p",
+            "conduit-tour-native",
+        ]),
         "compile hosted Linux release",
     )?;
     fs::create_dir_all(output)?;
     copy(
         "target/release/conduit",
         &output.join("conduit-linux-x86_64"),
+    )?;
+    copy(
+        "target/release/conduit-tour",
+        &output.join("conduit-tour-linux-x86_64"),
     )?;
     require_success(
         Command::new("cargo")
@@ -196,10 +208,16 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
         "conduit-host-hosted/build-native@1",
         "conduit-host-hosted/launch@1",
         source_identity,
-        &[(
-            "conduit-linux-x86_64",
-            "application/vnd.conduit.host+executable",
-        )],
+        &[
+            (
+                "conduit-linux-x86_64",
+                "application/vnd.conduit.host+executable",
+            ),
+            (
+                "conduit-tour-linux-x86_64",
+                "application/vnd.conduit.application+executable",
+            ),
+        ],
     )?;
     seal(
         output,
@@ -246,13 +264,25 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
 
 fn build_windows(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
-        Command::new("cargo").args(["build", "--locked", "--release", "-p", "conduit"]),
+        Command::new("cargo").args([
+            "build",
+            "--locked",
+            "--release",
+            "-p",
+            "conduit",
+            "-p",
+            "conduit-tour-native",
+        ]),
         "compile hosted Windows x86_64 release",
     )?;
     fs::create_dir_all(output)?;
     copy(
         "target/release/conduit.exe",
         &output.join("conduit-windows-x86_64.exe"),
+    )?;
+    copy(
+        "target/release/conduit-tour.exe",
+        &output.join("conduit-tour-windows-x86_64.exe"),
     )?;
     seal(
         output,
@@ -263,10 +293,16 @@ fn build_windows(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
         "conduit-host-hosted/build-native@1",
         "conduit-host-hosted/launch@1",
         source_identity,
-        &[(
-            "conduit-windows-x86_64.exe",
-            "application/vnd.microsoft.portable-executable",
-        )],
+        &[
+            (
+                "conduit-windows-x86_64.exe",
+                "application/vnd.microsoft.portable-executable",
+            ),
+            (
+                "conduit-tour-windows-x86_64.exe",
+                "application/vnd.microsoft.portable-executable",
+            ),
+        ],
     )
 }
 
