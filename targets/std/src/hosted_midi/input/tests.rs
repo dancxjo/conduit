@@ -100,7 +100,10 @@ fn nonblocking_pressure_waits_without_consumption_then_observes_loss() {
         }))
     ));
     drop(writer);
-    assert_eq!(session.wait_readable(Duration::ZERO), Ok(true));
+    // Closing the write end makes the pipe readable with `POLLHUP`, but the
+    // kernel is allowed to publish that state after the close returns. Keep
+    // the assertion finite without requiring an instantaneous notification.
+    assert_eq!(session.wait_readable(Duration::from_millis(100)), Ok(true));
     assert_eq!(session.poll(12), Err(MidiInputFailure::ProviderLost));
 }
 
