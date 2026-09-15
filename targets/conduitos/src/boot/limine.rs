@@ -13,7 +13,7 @@ use limine::{
     request::{
         BootloaderInfoRequest, DateAtBootRequest, ExecutableAddressRequest,
         ExecutableCmdlineRequest, ExecutableFileRequest, FirmwareTypeRequest, FramebufferRequest,
-        HhdmRequest, MemoryMapRequest, ModuleRequest,
+        HhdmRequest, MemoryMapRequest, ModuleRequest, RsdpRequest,
     },
 };
 
@@ -46,6 +46,9 @@ static MEMORY_MAP: MemoryMapRequest = MemoryMapRequest::new();
 #[used]
 #[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static HHDM: HhdmRequest = HhdmRequest::new();
+#[used]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
+static RSDP: RsdpRequest = RsdpRequest::new();
 #[used]
 #[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static EXECUTABLE_ADDRESS: ExecutableAddressRequest = ExecutableAddressRequest::new();
@@ -172,6 +175,9 @@ pub fn normalize_boot() -> Result<BootRecord, BootError> {
         .ok_or(BootError::MalformedImageRange)?;
 
     let mut normalized = BootNormalizer::new(firmware, timestamp, hhdm, image_start, image_length)?;
+    if let Some(rsdp) = RSDP.get_response() {
+        normalized.set_rsdp_address(rsdp.address() as u64);
+    }
     let memory = MEMORY_MAP
         .get_response()
         .ok_or(BootError::MissingMemoryMap)?;

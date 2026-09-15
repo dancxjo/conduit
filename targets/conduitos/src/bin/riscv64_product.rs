@@ -117,6 +117,7 @@ pub extern "C" fn conduitos_riscv64_product_start() -> ! {
         firmware: Firmware::Sbi,
         timestamp: counter,
         hhdm_offset: 0,
+        rsdp_address: None,
         image_physical_start: image_start as u64,
         image_length: image_end.saturating_sub(image_start) as u64,
         memory_region_count: 1,

@@ -38,6 +38,16 @@ pub enum TourPlayError {
     ResultMissing,
 }
 
+impl TourPlayError {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Machine(error) => error.as_str(),
+            Self::ResultMismatch => "tour-result-mismatch",
+            Self::ResultMissing => "tour-result-missing",
+        }
+    }
+}
+
 pub fn prepare(
     identities: &BootIdentities,
     offer: &HostOffer<'_>,

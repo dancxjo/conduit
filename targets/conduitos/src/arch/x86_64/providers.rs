@@ -3,14 +3,42 @@ use crate::machine::{
     MonotonicClockBase, SerialBase, TimerBase, TimerToken,
 };
 
-use super::{TIMER_IRQ_VECTOR, cpu, gdt, idt, irq, pic, pit, serial};
+use super::{TIMER_IRQ_VECTOR, acpi, cpu, gdt, idt, interrupt_controller, irq, pic, serial};
 
-pub fn initialize_machine() {
+pub fn initialize_machine(
+    record: &crate::boot::BootRecord,
+    image_virtual_to_physical: fn(u64) -> Option<u64>,
+) {
     cpu::disable_interrupts();
     serial::initialize();
+    crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-gdt\n");
     gdt::initialize();
+    crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-idt\n");
     idt::initialize();
+    crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-pic\n");
     pic::initialize();
+    crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-acpi\n");
+    let topology = acpi::discover(
+        record.hhdm_offset,
+        record.rsdp_address,
+        image_virtual_to_physical,
+    )
+    .unwrap_or_else(|error| {
+        crate::arch::early_write(b"CONDUIT_MACHINE_REFUSAL ");
+        crate::arch::early_write(error.as_str().as_bytes());
+        crate::arch::early_write(b"\n");
+        cpu::deterministic_exit(false)
+    });
+    crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-controller\n");
+    if let Err(error) =
+        interrupt_controller::initialize(record.hhdm_offset, topology, image_virtual_to_physical)
+    {
+        crate::arch::early_write(b"CONDUIT_MACHINE_REFUSAL ");
+        crate::arch::early_write(error.as_str().as_bytes());
+        crate::arch::early_write(b"\n");
+        cpu::deterministic_exit(false);
+    }
+    crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-ready\n");
 }
 
 pub struct Clock {
@@ -65,29 +93,45 @@ impl Default for Timer {
 
 impl TimerBase for Timer {
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
-        let token = self.slots.arm(interest)?;
+        let token = self.slots.arm(interest).inspect_err(|error| {
+            crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL ");
+            crate::arch::early_write(error.as_str().as_bytes());
+            crate::arch::early_write(b"\n");
+        })?;
         self.active = Some(token);
-        pic::unmask_timer();
-        pit::arm_one_shot();
+        interrupt_controller::arm_timer();
         Ok(token)
     }
 
     fn cancel(&mut self, token: TimerToken) -> Result<KernelInterest, BaseError> {
-        pic::mask_timer();
+        interrupt_controller::cancel_timer();
         self.active = None;
         self.slots.cancel(token)
     }
 
     fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError> {
-        let Some(vector) = irq::pop()? else {
+        let Some(vector) = irq::pop().inspect_err(|error| {
+            crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL ");
+            crate::arch::early_write(error.as_str().as_bytes());
+            crate::arch::early_write(b"\n");
+        })?
+        else {
             return Ok(None);
         };
         if vector != TIMER_IRQ_VECTOR {
+            crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL unexpected-vector\n");
             return Err(BaseError::Unavailable);
         }
-        let token = self.active.take().ok_or(BaseError::StaleWake)?;
-        pic::mask_timer();
-        let interest = self.slots.wake(token)?;
+        let token = self.active.take().ok_or_else(|| {
+            crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL stale-wake\n");
+            BaseError::StaleWake
+        })?;
+        interrupt_controller::cancel_timer();
+        let interest = self.slots.wake(token).inspect_err(|error| {
+            crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL ");
+            crate::arch::early_write(error.as_str().as_bytes());
+            crate::arch::early_write(b"\n");
+        })?;
         self.wakes = self.wakes.checked_add(1).ok_or(BaseError::Unavailable)?;
         Ok(Some(interest))
     }

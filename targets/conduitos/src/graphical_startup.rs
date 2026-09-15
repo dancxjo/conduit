@@ -54,6 +54,7 @@ pub fn run(record: boot::BootRecord) -> ! {
     {
         emit_refusal("runtime-arena-initialization-failed");
     }
+    arch::initialize_machine(&record, boot::executable_physical_address);
     let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
     let identities = identity::derive(entropy, record.timestamp, record.image_physical_start);
     let mut presentation_display = match boot::framebuffer_display() {
