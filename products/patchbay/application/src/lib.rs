@@ -344,7 +344,7 @@ impl PatchbayApplicationPort {
                 node(
                     Some(1),
                     ApplicationComponent::Heading,
-                    "selected-form",
+                    "form",
                     &form.title,
                     "",
                     0,
