@@ -427,6 +427,7 @@ fn two_faces_evidence_is_pinned_exact_bounded_and_admitted() {
         .expect("locate stable product gate");
 
     assert!(evidence.contains("mcr.microsoft.com/playwright:v1.62.0-noble"));
+    assert!(evidence.contains("CONDUIT_CHECKOUT_SHA: ${{ env.CONDUIT_CANDIDATE_SHA }}"));
     assert!(evidence.contains("cargo xtask evidence one-form-two-faces --locked"));
     assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
     assert!(evidence.contains("--proof journey-one-form-two-faces"));
