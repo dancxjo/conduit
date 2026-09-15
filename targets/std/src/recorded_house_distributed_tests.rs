@@ -231,7 +231,7 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
     );
     runtimes[0].deliver_egress(&capture_transfer).unwrap();
 
-    let response = b"The upstairs temperature is 21 C.".to_vec();
+    let response = b"The upstairs temperature is 21 degrees Celsius.".to_vec();
     let mut recognized = None::<String>;
     let mut addresses = None::<conduit_text::AddressSet>;
     let mut detection = None::<conduit_text::AddressDetection>;

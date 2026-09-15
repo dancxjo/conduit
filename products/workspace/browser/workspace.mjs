@@ -110,7 +110,7 @@ export async function startApplication(application) {
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
       for (const button of activities.querySelectorAll('[data-checked-form-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedFormId === selected));
       const visible = new Set(partition?.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id)) ?? []);
-      for (const output of root.querySelectorAll('[data-form-output] output')) output.hidden = !visible.has(output.dataset.placementId);
+      for (const output of root.querySelectorAll('[data-form-output] > output')) output.hidden = !visible.has(output.dataset.placementId);
       for (const button of strip.querySelectorAll('[data-inspect="form"], [data-inspect="flow"]')) button.disabled = !form;
     };
     function render() {

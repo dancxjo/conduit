@@ -6,7 +6,7 @@ test -f "$runtime"
 test ! -e "$destination"
 mkdir -p "$destination/forms"
 cp products/workspace/browser/workspace.html "$destination/index.html"
-cp products/workspace/browser/workspace.css products/workspace/browser/workspace.mjs products/workspace/browser/workspace-session.mjs products/workspace/browser/workspace-membership.mjs products/workspace/browser/workspace-play.mjs products/workspace/browser/workspace-library.mjs products/workspace/browser/workspace-handoff.mjs products/workspace/browser/workspace-surface.mjs "$destination/"
+cp products/workspace/browser/workspace.css products/workspace/browser/resident-tour.css products/workspace/browser/workspace.mjs products/workspace/browser/workspace-session.mjs products/workspace/browser/workspace-membership.mjs products/workspace/browser/workspace-play.mjs products/workspace/browser/workspace-library.mjs products/workspace/browser/workspace-handoff.mjs products/workspace/browser/workspace-surface.mjs "$destination/"
 for asset in creche-lifecycle.mjs creche-form-selection.mjs creche-names.mjs; do
   cp "products/creche/browser/$asset" "$destination/$asset"
 done
