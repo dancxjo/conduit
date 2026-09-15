@@ -55,6 +55,45 @@ fn ordinary_source_checks_plans_lowers_and_installs() {
 }
 
 #[test]
+fn shared_fanout_stage_checks_against_native_morse_and_indicator_offers() {
+    let (identities, offer) = fixture();
+    let source = conduit_tour_model::tour_stage_source(0, 2).unwrap();
+    let form =
+        crate::ordinary_form::checked_expanded_text_form_named(&source, "branch-a-cord").unwrap();
+    assert_eq!(form.gears.len(), 5);
+    assert_eq!(form.connections.len(), 4);
+    let advertisement = advertisement(&identities, &offer, "build").unwrap();
+    let hosts = [advertisement];
+    let placements = default_expanded_placements(&form, &hosts).unwrap();
+    let plan = conduit_planner::plan_expanded_canonical_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        conduit_planner::PlanningOptions {
+            connection_bases: &alloc::collections::BTreeMap::new(),
+            line_candidates: &alloc::collections::BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_text::MAX_TEXT_BYTES,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .unwrap();
+    let planned = &plan.fragments[0].placements;
+    assert!(planned.iter().any(|placement| {
+        placement.kind_id.as_str() == conduit_text::TEXT_MORSE_KIND
+            && placement.implementation_id.as_str() == crate::offer::TEXT_MORSE_IMPLEMENTATION
+    }));
+    assert!(planned.iter().any(|placement| {
+        placement.kind_id.as_str() == conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
+            && placement.implementation_id.as_str()
+                == crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION
+    }));
+}
+
+#[test]
 fn resealed_wrong_lane_requirement_is_rejected_before_play() {
     let (identities, offer) = fixture();
     let prepared = prepare(&identities, &offer, "build").unwrap();

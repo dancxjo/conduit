@@ -11,6 +11,10 @@ pub(crate) fn checked_expanded_text_form_named(
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
+    conduit_text::install_morse_catalogs(&mut startup, &mut profile)
+        .map_err(|_| PreparationError::FormRejected)?;
+    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)
+        .map_err(|_| PreparationError::FormRejected)?;
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
         .map_err(|_| PreparationError::FormRejected)?;
     conduit_form::expand_canonical_form(&checked, form_name, &profile)

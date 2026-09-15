@@ -171,6 +171,14 @@ pub(crate) fn advertisement(
         || fixed.capabilities[2].implementation != crate::offer::TEXT_LITERAL_IMPLEMENTATION
         || fixed.capabilities[3].implementation != crate::offer::TEXT_UPPER_IMPLEMENTATION
         || fixed.capabilities[4].implementation != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
+        || fixed.capabilities[5].kind != conduit_text::TEXT_MORSE_KIND
+        || fixed.capabilities[5].contract_revision != conduit_text::TEXT_MORSE_CONTRACT_REVISION
+        || fixed.capabilities[5].implementation != crate::offer::TEXT_MORSE_IMPLEMENTATION
+        || fixed.capabilities[6].kind != conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
+        || fixed.capabilities[6].contract_revision
+            != conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION
+        || fixed.capabilities[6].implementation
+            != crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION
         || fixed.capabilities[2].required_base != crate::machine::BaseKind::Memory
         || fixed.capabilities[2].host_operation.is_some()
         || fixed.capabilities[2].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
@@ -205,6 +213,8 @@ pub(crate) fn advertisement(
         &fixed.capabilities[2],
         &fixed.capabilities[3],
         &fixed.capabilities[4],
+        &fixed.capabilities[5],
+        &fixed.capabilities[6],
     ] {
         fixed
             .capability_provider(capability)
@@ -229,6 +239,15 @@ pub(crate) fn advertisement(
         build_id,
         "presentation-text",
     );
+    let mut morse = crate::functional_offers::text_morse_offer();
+    bind_native_capability(&mut morse, &fixed.capabilities[5], build_id, "text-morse");
+    let mut indicator = crate::functional_offers::indicator_presentation_offer();
+    bind_native_capability(
+        &mut indicator,
+        &fixed.capabilities[6],
+        build_id,
+        "presentation-indicator",
+    );
     let mut advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(hex_identity(&identities.host)),
@@ -247,7 +266,7 @@ pub(crate) fn advertisement(
                 )
             })
             .collect::<Vec<ResourceOffer>>(),
-        capabilities: vec![literal, upper, presentation],
+        capabilities: vec![literal, upper, presentation, morse, indicator],
         planner_capabilities: Vec::new(),
     };
     if let Some(keyboard) = fixed.keyboard {
