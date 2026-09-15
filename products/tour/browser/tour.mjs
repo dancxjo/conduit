@@ -424,6 +424,7 @@ function createRunner(source, recursive = false, presentation = {}) {
   runner.dataset.recursive = String(recursive);
   runner.innerHTML = `
     ${compactPatchbayFrame()}
+    <div class="runner-divider runner-divider-horizontal"><input class="pane-divider-control pane-divider-control-horizontal tour-patchbay-height" type="range" min="35" max="70" step="1" value="55" aria-label="Patchbay height" aria-valuetext="55 percent"></div>
     <div class="editor">
       <div data-application-slot="${fieldSlot}"></div>
       ${recursive ? "" : `<label class="source-output-controls">Structured output
@@ -436,6 +437,7 @@ function createRunner(source, recursive = false, presentation = {}) {
       </label>`}
       <div data-application-slot="${actionsSlot}"></div>
     </div>
+    <div class="runner-divider runner-divider-vertical"><input class="pane-divider-control pane-divider-control-vertical tour-source-width" type="range" min="40" max="75" step="1" value="60" aria-label="Source width" aria-valuetext="60 percent"></div>
     <div class="result">
       <div class="indicator" role="img" aria-label="Indicator off"></div>
       <button type="button" class="input-button" hidden>Hold to control indicator</button>
@@ -512,10 +514,12 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
   runner.dataset.householdProof = String(TWO_BROWSER_LINE_PROOF.household_proved);
   runner.innerHTML = `
     ${compactPatchbayFrame()}
+    <div class="runner-divider runner-divider-horizontal"><input class="pane-divider-control pane-divider-control-horizontal tour-patchbay-height" type="range" min="35" max="70" step="1" value="55" aria-label="Patchbay height" aria-valuetext="55 percent"></div>
     <div class="editor">
       <div data-application-slot="${fieldSlot}"></div>
       <div data-application-slot="${actionsSlot}"></div>
     </div>
+    <div class="runner-divider runner-divider-vertical"><input class="pane-divider-control pane-divider-control-vertical tour-source-width" type="range" min="40" max="75" step="1" value="60" aria-label="Source width" aria-valuetext="60 percent"></div>
     <div class="result multi-host-result">
       <p class="proof-boundary" data-application-component="proof-boundary"><strong>Browser-runtime proof.</strong> Two ephemeral browser Hosts use one planned in-memory Line. No durable Body membership, trust, authority, rejoin, or household is claimed.</p>
       <div class="host-map" aria-label="Two independent browser Hosts">

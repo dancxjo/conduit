@@ -398,7 +398,7 @@ test("Tour workspace bounds each pane and persists accessible desktop split geom
   const separator = page.getByRole("separator", { name: "Lesson and laboratory boundary" });
   await expect(separator).toBeVisible();
   await expect(separator).toHaveAttribute("data-application-component", "separator");
-  await expect(page.locator(".tour-divider").getByRole("slider")).toHaveCount(0);
+  await expect(page.locator(".tour-divider").getByRole("slider", { name: "Narrative width" })).toBeVisible();
   await expect(page.locator(".tour-divider").getByRole("button")).toHaveCount(0);
   const measures = await page.evaluate(() => {
     const content = document.querySelector(".tour-content").getBoundingClientRect();
@@ -422,8 +422,14 @@ test("Tour workspace bounds each pane and persists accessible desktop split geom
   expect(measures.patchbay.bottom).toBeLessThanOrEqual(measures.editor.top + 1);
   expect(Math.abs(measures.editor.top - measures.result.top)).toBeLessThan(2);
 
-  await page.getByText("Pane layout", { exact: true }).click();
   const width = page.getByRole("slider", { name: "Narrative width" });
+  const divider = await width.boundingBox();
+  expect(divider).not.toBeNull();
+  await page.mouse.move(divider.x + divider.width / 2, divider.y + divider.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(measures.content.left + measures.content.width * 0.6, divider.y + divider.height / 2, { steps: 4 });
+  await page.mouse.up();
+  await expect(width).toHaveValue("60");
   await width.focus();
   await width.press("End");
   await expect(width).toHaveValue("65");
@@ -452,7 +458,6 @@ test("Tour workspace bounds each pane and persists accessible desktop split geom
   await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await page.getByText("Pane layout", { exact: true }).click();
   await expect(width).toHaveValue("65");
   await expect(patchbayHeight).toHaveValue("70");
   await expect(sourceWidth).toHaveValue("40");
@@ -479,8 +484,7 @@ test("narrow Tour switches deliberately between the lesson and the same live lab
   await expect(page.locator("#chapter")).toBeFocused();
   await expect(laboratory).toBeHidden();
   expect(await page.evaluate(() => document.scrollingElement.scrollTop)).toBe(0);
-  await page.getByText("Pane layout", { exact: true }).click();
-  await expect(page.getByRole("slider", { name: "Patchbay height" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Patchbay height" })).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
 

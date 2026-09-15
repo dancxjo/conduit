@@ -156,6 +156,7 @@ export function registerTourGalleryExecutionTests(openStep) {
     await openGallery(page);
     const runner = await openForm(page, "Pocket Theremin");
     await expect(runner.locator(".structured-output-profile")).toHaveValue("1");
+    await expect(runner.getByRole("slider", { name: "Theremin pitch" })).toBeVisible();
     await runner.getByRole("button", { name: "Run", exact: true }).click();
     await expect(runner.locator(".input-button")).toBeVisible();
     const identities = await captureRunIdentities(runner);
