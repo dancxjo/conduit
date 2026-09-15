@@ -2,6 +2,10 @@
 
 use super::*;
 
+fn empty_slots<T>(count: usize) -> Vec<Option<T>> {
+    core::iter::repeat_with(|| None).take(count).collect()
+}
+
 pub(super) fn validate_envelope(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
@@ -13,9 +17,9 @@ pub(super) fn validate_envelope(
         .map(|route| route.targets.len())
         .sum::<usize>();
     if lowered.nodes.is_empty()
-        || lowered.nodes.len() > MAXIMUM_BROWSER_GEARS
+        || lowered.nodes.len() > MAXIMUM_BROWSER_FORM_GEARS
         || lowered.cords.is_empty()
-        || lowered.cords.len() > MAXIMUM_BROWSER_CORDS
+        || lowered.cords.len() > MAXIMUM_BROWSER_FORM_CORDS
         || lowered.cord_value_slots as usize > BROWSER_QUEUE_SLOTS
         || lowered.routes.len() > BROWSER_ROUTE_SLOTS
         || route_targets > BROWSER_ROUTE_TARGETS
@@ -89,25 +93,25 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
     )
     .map_err(|error| format!("browser value store: {error:?}"))?;
     let mut operations = Vec::with_capacity(MAXIMUM_BROWSER_GEARS);
-    let mut mappings = [None; MAXIMUM_BROWSER_GEARS];
-    let mut snapshots = core::array::from_fn(|_| None);
-    let mut selectors = core::array::from_fn(|_| None);
-    let mut attempts = core::array::from_fn(|_| None);
-    let mut comparisons = core::array::from_fn(|_| None);
-    let mut timing = core::array::from_fn(|_| None);
-    let mut keymaps = core::array::from_fn(|_| None);
-    let mut text_states = core::array::from_fn(|_| None);
-    let mut deliveries = core::array::from_fn(|_| None);
-    let mut histories = core::array::from_fn(|_| None);
-    let mut replay_sources = core::array::from_fn(|_| None);
-    let mut replay_controls = core::array::from_fn(|_| None);
-    let mut template_stores = core::array::from_fn(|_| None);
-    let mut structured_selectors = core::array::from_fn(|_| None);
-    let mut measurement_windows = core::array::from_fn(|_| None);
-    let mut measurement_hysteresis = core::array::from_fn(|_| None);
-    let mut garden_steps = core::array::from_fn(|_| None);
-    let mut stroke_captures = core::array::from_fn(|_| None);
-    let mut applications = core::array::from_fn(|_| None);
+    let mut mappings = empty_slots(active_nodes);
+    let mut snapshots = empty_slots(active_nodes);
+    let mut selectors = empty_slots(active_nodes);
+    let mut attempts = empty_slots(active_nodes);
+    let mut comparisons = empty_slots(active_nodes);
+    let mut timing = empty_slots(active_nodes);
+    let mut keymaps = empty_slots(active_nodes);
+    let mut text_states = empty_slots(active_nodes);
+    let mut deliveries = empty_slots(active_nodes);
+    let mut histories = empty_slots(active_nodes);
+    let mut replay_sources = empty_slots(active_nodes);
+    let mut replay_controls = empty_slots(active_nodes);
+    let mut template_stores = empty_slots(active_nodes);
+    let mut structured_selectors = empty_slots(active_nodes);
+    let mut measurement_windows = empty_slots(active_nodes);
+    let mut measurement_hysteresis = empty_slots(active_nodes);
+    let mut garden_steps = empty_slots(active_nodes);
+    let mut stroke_captures = empty_slots(active_nodes);
+    let mut applications = empty_slots(active_nodes);
     for (fragment, node) in partitions
         .iter()
         .flat_map(|(fragment, part)| part.nodes.iter().map(move |node| (*fragment, node)))

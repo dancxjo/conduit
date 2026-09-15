@@ -13,7 +13,7 @@ function fixture({ timer = false, inputUnits = 0, text = "hello", quiescent = fa
     ...(timer ? { effect_kind: "timer", duration_millis: 10_000 } : { effect_kind: "manifestation", presentation_kind: "presentation/text", text }) };
   const api = {
     memory,
-    conduit_browser_form_human_machinery() { output({ schema: "conduit.browser/selected-human-machinery@1", implementations: [{ id: "browser/dom-presentation@1", revision: 1 }, { id: "browser/pointer-events@1", revision: 1 }] });return 0; },
+    conduit_browser_form_human_machinery() { output({ schema: "conduit.browser/selected-human-machinery@1", limits: { maximum_gears: 32 }, implementations: [{ id: "browser/dom-presentation@1", revision: 1 }, { id: "browser/pointer-events@1", revision: 1 }] });return 0; },
     conduit_browser_form_output_ptr: () => 0, conduit_browser_form_output_len: () => length,
     conduit_browser_body_input_ptr: () => 256 * 1024, conduit_browser_body_input_capacity: () => 256 * 1024,
     conduit_browser_body_start(length) {
@@ -101,6 +101,20 @@ test("wrong Boot, excessive demand, unsupported pools, and lost slots refuse", (
   assert.throws(() => owner.start(1), /resources lost/);
   assert.equal(f.count().starts, 0);
   owner.close();
+});
+
+test("Body placement admission follows the runtime envelope instead of a duplicated page constant", () => {
+  const f = fixture();
+  const fragment = f.proposal.plan.forms[0].plan.fragments[0];
+  fragment.placements = Array.from({ length: 32 }, (_, index) => ({
+    placement_id: `placement-${index}`,
+    gear_id: `gear-${index}`,
+    resources: [],
+  }));
+  const owner = acquireBrowserBodyHost(f);
+  owner.close();
+  fragment.placements.push({ placement_id: "placement-overflow", gear_id: "gear-overflow", resources: [] });
+  assert.throws(() => acquireBrowserBodyHost(f), /placement bound exceeded/);
 });
 
 test("closing pending timer work settles the dispatcher and releases the owner", async () => {

@@ -5,7 +5,7 @@ import { createBodyInputRouting } from "../../targets/browser/host/assets/browse
 function setup() {
   let selected = "notes", waiting;
   const forms = ["notes", "morse"].map(form => ({ form: { checked_form_id: form }, plan: { fragments: [{ placements: [{ placement_id: `${form}/keys`, kind_id: "input/keyboard" }] }] } }));
-  const routing = createBodyInputRouting({ forms, foreground: () => selected });
+  const routing = createBodyInputRouting({ forms, foreground: () => selected, maximumPlacements: 32 });
   routing.attach({ nextKeyboard: () => new Promise((resolve, reject) => { waiting = { resolve, reject }; }) });
   const next = (form, signal = new AbortController().signal) => routing.next("keyboard", `${form}/keys`, signal);
   const capture = (usage, phase = 0) => {
@@ -89,7 +89,7 @@ test("input pressure has a finite boundary and closes outstanding delivery", asy
 test('pointer delivery follows its captured Form and unrelated input cannot fill its queue', async () => {
   let selected = 'pointer', consume, stopped = false;
   const forms = ['pointer', 'notes'].map(form => ({ form: { checked_form_id: form }, plan: { fragments: [{ placements: [{ placement_id: `${form}/input`, kind_id: form === 'pointer' ? 'input/pointer-source' : 'input/keyboard' }] }] } }));
-  const routing = createBodyInputRouting({ forms, foreground: () => selected });
+  const routing = createBodyInputRouting({ forms, foreground: () => selected, maximumPlacements: 32 });
   routing.attach({ observePointer(listener) { consume = listener; return () => { stopped = true; }; } });
   const signal = new AbortController().signal;
   const waiting = routing.next('pointer', 'pointer/input', signal);

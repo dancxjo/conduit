@@ -171,6 +171,9 @@ impl WorkspaceBody {
                 self.require_host(&fragment.host_id, &fragment.boot_id)?;
             }
         }
+        // Reserve the whole Wake boundary up front: Woke now and the eventual
+        // retained Lull. A proposal must not publish a Wake that cannot close.
+        self.make_lifecycle_room(2, 1)?;
         let sequence = self.next_sequence()?;
         let (body, wake) = self
             .evidence
@@ -354,11 +357,34 @@ impl WorkspaceBody {
 
     fn next_sequence(&self) -> Result<u64, WorkspaceBodyError> {
         self.evidence
-            .records
-            .last()
-            .map_or(0, |record| record.sequence)
+            .last_sequence()
             .checked_add(1)
             .ok_or(WorkspaceBodyError::SequenceExhausted)
+    }
+
+    fn make_lifecycle_room(
+        &mut self,
+        body_signs: usize,
+        wakes: usize,
+    ) -> Result<(), WorkspaceBodyError> {
+        while self.evidence.body.sign_ids.len().saturating_add(body_signs)
+            > conduit_body::MAX_BODY_SIGNS
+            || self.evidence.wakes.len().saturating_add(wakes)
+                > conduit_body::MAX_BODY_BIOGRAPHY_WAKES
+            || self.evidence.records.len().saturating_add(5)
+                > conduit_body::MAX_BODY_BIOGRAPHY_RECORDS
+        {
+            if !self
+                .evidence
+                .compact_oldest_terminal_wake()
+                .map_err(WorkspaceBodyError::Biography)?
+            {
+                return Err(WorkspaceBodyError::Biography(
+                    BodyBiographyError::CapacityExhausted,
+                ));
+            }
+        }
+        Ok(())
     }
 }
 

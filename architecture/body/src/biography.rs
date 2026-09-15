@@ -16,6 +16,17 @@ pub const MAX_BODY_BIOGRAPHY_RECORDS: usize = 64;
 pub const MAX_BODY_BIOGRAPHY_WAKES: usize = 8;
 pub const MAX_BODY_FRIENDLY_NAME_BYTES: usize = 64;
 
+/// Machine-readable boundary for exact lifecycle detail compacted out of the
+/// retained window. Current Body truth and all later records remain exact.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BodyBiographyCompaction {
+    pub wakes: u64,
+    pub records: u64,
+    pub through_sequence: u64,
+    pub through_sign_id: SignId,
+    pub first_wake_id: crate::WakeId,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyGraduationChoice {
     HostedPatchbay,
@@ -97,6 +108,8 @@ pub struct BodyBiographyEvidence {
     pub membership: BodyMembership,
     pub graduation: Option<BodyGraduationEvidence>,
     pub records: Vec<BodyBiographyRecord>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compaction: Option<BodyBiographyCompaction>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub wakes: Vec<crate::Wake>,
 }
@@ -134,6 +147,7 @@ impl BodyBiographyEvidence {
             friendly_name,
             membership,
             graduation: None,
+            compaction: None,
             wakes: Vec::new(),
             records: vec![BodyBiographyRecord {
                 sequence: body.birth_sequence,
@@ -324,8 +338,11 @@ impl BodyBiographyEvidence {
         self.validate()
     }
 
-    fn last_sequence(&self) -> u64 {
-        self.records.last().map_or(0, |record| record.sequence)
+    pub fn last_sequence(&self) -> u64 {
+        let retained = self.records.last().map_or(0, |record| record.sequence);
+        self.compaction
+            .as_ref()
+            .map_or(retained, |summary| retained.max(summary.through_sequence))
     }
 }
 

@@ -171,26 +171,52 @@ fn workload_edits_are_revision_checked_and_cannot_mutate_an_active_plan() {
 }
 
 #[test]
-fn refused_start_can_lull_and_finite_history_exhaustion_preserves_its_prior_truth() {
+fn repeated_refused_starts_compact_history_without_exhausting_the_body() {
     let mut body = born();
-    body.propose(plans(&body), &host(), &boot()).unwrap();
-    body.lull(&host(), &boot(), None).unwrap();
-    let mut refused = false;
-    for _ in 0..16 {
-        let before = body.evidence().clone();
-        if body.propose(plans(&body), &host(), &boot()).is_err() {
-            assert_eq!(body.evidence(), &before);
-            refused = true;
-            break;
-        }
-        let before = body.evidence().clone();
-        if body.lull(&host(), &boot(), None).is_err() {
-            assert_eq!(body.evidence(), &before);
-            refused = true;
-            break;
-        }
+    let identity = body.evidence().body_id.clone();
+    for _ in 0..64 {
+        body.propose(plans(&body), &host(), &boot()).unwrap();
+        body.lull(&host(), &boot(), None).unwrap();
+        body.evidence().validate().unwrap();
     }
-    assert!(refused, "history must have an explicit finite boundary");
+    assert_eq!(body.evidence().body_id, identity);
+    assert_eq!(body.evidence().body.state, BodyState::Lulled);
+    assert!(
+        body.evidence()
+            .compaction
+            .as_ref()
+            .is_some_and(|summary| summary.wakes > 0)
+    );
+}
+
+#[test]
+fn repeated_started_plays_compact_without_growing_the_retained_window() {
+    let mut body = born();
+    let identity = body.evidence().body_id.clone();
+    for _ in 0..32 {
+        let play = start(&mut body);
+        body.lull(&host(), &boot(), Some(&play)).unwrap();
+        body.evidence().validate().unwrap();
+        assert!(body.evidence().body.sign_ids.len() <= conduit_body::MAX_BODY_SIGNS);
+        assert!(body.evidence().wakes.len() <= conduit_body::MAX_BODY_BIOGRAPHY_WAKES);
+        assert!(body.evidence().records.len() <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS);
+    }
+    let mut restored = WorkspaceBody::open(
+        serde_json::from_str(&serde_json::to_string(body.evidence()).unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(restored.evidence().body_id, identity);
+    let summary = restored.evidence().compaction.as_ref().unwrap();
+    assert!(summary.wakes > 0);
+    assert!(summary.records >= summary.wakes * 5);
+    let play = start(&mut restored);
+    let realization = restored.realization().unwrap();
+    let startup = restored
+        .evidence()
+        .startup_for_play(&realization.plan, &play)
+        .unwrap();
+    assert!(!startup.eligible(conduit_body::StartupScope::Body));
+    assert!(startup.eligible(conduit_body::StartupScope::Wake));
 }
 
 #[test]

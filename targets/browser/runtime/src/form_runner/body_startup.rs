@@ -18,9 +18,8 @@ pub(super) fn prepare(
         return Err("startup history does not contain the exact proposed Body Wake".into());
     }
     let sequence = evidence
-        .records
-        .last()
-        .and_then(|record| record.sequence.checked_add(1))
+        .last_sequence()
+        .checked_add(1)
         .ok_or("startup history sequence exhausted")?;
     let mut projected = evidence.clone();
     projected

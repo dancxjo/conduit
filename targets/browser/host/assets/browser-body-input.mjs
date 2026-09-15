@@ -1,8 +1,9 @@
 // Route acquired input to the foreground Form inside one immutable Body Plan.
 // This only delivers Host observations; it never advances or replaces Play.
 import { BrowserInputRefusal } from "./browser-human-input.mjs";
-export function createBodyInputRouting({ forms, foreground }) {
-  if (!Array.isArray(forms) || forms.length < 1 || forms.length > 16 || typeof foreground !== "function") {
+export function createBodyInputRouting({ forms, foreground, maximumPlacements }) {
+  if (!Array.isArray(forms) || forms.length < 1 || forms.length > 16 || typeof foreground !== "function" ||
+      !Number.isSafeInteger(maximumPlacements) || maximumPlacements < 1) {
     throw new BrowserInputRefusal("InvalidInventory", "invalid Body input routing inventory");
   }
   const placementForms = new Map();
@@ -14,7 +15,7 @@ export function createBodyInputRouting({ forms, foreground }) {
     if (typeof form !== "string" || !form || form.length > 256 || formIds.has(form)) throw new BrowserInputRefusal("InvalidFormIdentity", "invalid Body input Form identity");
     formIds.add(form);
     for (const fragment of partition.plan.fragments) for (const placement of fragment.placements) {
-      if (typeof placement.placement_id !== "string" || !placement.placement_id || placement.placement_id.length > 256 || placementForms.has(placement.placement_id) || placementForms.size === 16) throw new BrowserInputRefusal("PlacementBound", "Body input placement bound exceeded");
+      if (typeof placement.placement_id !== "string" || !placement.placement_id || placement.placement_id.length > 256 || placementForms.has(placement.placement_id) || placementForms.size === maximumPlacements) throw new BrowserInputRefusal("PlacementBound", "Body input placement bound exceeded");
       placementForms.set(placement.placement_id, form);
       if (inputKinds.has(placement.kind_id)) placementInputs.set(placement.placement_id, inputKinds.get(placement.kind_id));
     }
