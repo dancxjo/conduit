@@ -19,6 +19,7 @@ pub struct TourStage {
     pub mode: TourStageMode,
     pub expected_text: Option<&'static str>,
     pub expected_manifestations: Option<u8>,
+    pub expected_timer_completions: Option<u8>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -46,18 +47,21 @@ const CHAPTER_ONE_STAGES: [TourStage; 3] = [
         mode: TourStageMode::Run,
         expected_text: Some("HELLO"),
         expected_manifestations: Some(1),
+        expected_timer_completions: None,
     },
     TourStage {
         identity: "canonical-form:edit-one-gear",
         mode: TourStageMode::Run,
         expected_text: Some("MAKE THIS LOUD"),
         expected_manifestations: Some(1),
+        expected_timer_completions: None,
     },
     TourStage {
         identity: "canonical-form:branch-a-cord",
         mode: TourStageMode::Run,
         expected_text: Some("SOS"),
         expected_manifestations: Some(2),
+        expected_timer_completions: None,
     },
 ];
 const CHAPTER_TWO_STAGES: [TourStage; 1] = [TourStage {
@@ -65,12 +69,14 @@ const CHAPTER_TWO_STAGES: [TourStage; 1] = [TourStage {
     mode: TourStageMode::Compare,
     expected_text: Some("Direct and recursive realizations agree"),
     expected_manifestations: Some(2),
+    expected_timer_completions: None,
 }];
 const CHAPTER_THREE_STAGES: [TourStage; 1] = [TourStage {
     identity: "canonical-form:count-over-time",
     mode: TourStageMode::Run,
-    expected_text: None,
-    expected_manifestations: None,
+    expected_text: Some("1"),
+    expected_manifestations: Some(2),
+    expected_timer_completions: Some(2),
 }];
 const CHAPTER_FOUR_STAGES: [TourStage; 2] = [
     TourStage {
@@ -78,12 +84,14 @@ const CHAPTER_FOUR_STAGES: [TourStage; 2] = [
         mode: TourStageMode::TwoHost,
         expected_text: Some("HELLO"),
         expected_manifestations: None,
+        expected_timer_completions: None,
     },
     TourStage {
         identity: "canonical-form:hello-across",
         mode: TourStageMode::TwoHostPlan,
         expected_text: Some("HELLO"),
         expected_manifestations: None,
+        expected_timer_completions: None,
     },
 ];
 const NO_STAGES: [TourStage; 0] = [];

@@ -125,8 +125,76 @@ fn run_resident_tour(chapter: u8, stage_index: u8) -> Result<TourRunProof, Strin
         conduit_tour_model::TourStageMode::Run if chapter == 0 => {
             run_resident_stage(stage, &source)
         }
+        conduit_tour_model::TourStageMode::Run if chapter == 2 => {
+            run_resident_timer(stage, &source)
+        }
         _ => Err("resident browser Host does not yet implement this exact Tour stage".into()),
     }
+}
+
+#[inline(never)]
+fn run_resident_timer(
+    stage: &conduit_tour_model::TourStage,
+    source: &str,
+) -> Result<TourRunProof, String> {
+    let expected = stage
+        .expected_text
+        .ok_or("resident Tour timer stage has no exact expected text")?;
+    let expected_timers = stage
+        .expected_timer_completions
+        .ok_or("resident Tour timer stage has no exact tick count")?;
+    let (mut session, initial) =
+        super::TourSession::prepare("browser/resident-tour", "boot/resident-tour", source, 1)?;
+    let super::TourHostEffect::Timer(timer) = initial else {
+        return Err("resident Tour timer stage did not request its admitted timer".into());
+    };
+    if timer.duration_millis != 120 {
+        return Err("resident Tour timer stage requested the wrong duration".into());
+    }
+    let super::TourProgress::Effect(initial_count) = session.advance()? else {
+        return Err("resident Tour timer stage did not expose its initial count".into());
+    };
+    let super::TourHostEffect::Manifestation(initial_count) = *initial_count else {
+        return Err("resident Tour timer tick requested an unsupported Host effect".into());
+    };
+    if initial_count.text.as_deref() != Some("0") {
+        return Err("resident Tour timer stage exposed the wrong initial count".into());
+    }
+    let super::TourProgress::Effect(second_timer) = session.advance()? else {
+        return Err("resident Tour timer stage did not retain its continuing timer".into());
+    };
+    let super::TourHostEffect::Timer(second_timer) = *second_timer else {
+        return Err("resident Tour timer stage requested an unsupported continuing effect".into());
+    };
+    if second_timer.duration_millis != 120 {
+        return Err("resident Tour timer stage changed its admitted duration".into());
+    }
+    let super::TourProgress::Effect(ticked_count) = session.advance()? else {
+        return Err("resident Tour timer tick did not produce a manifestation".into());
+    };
+    let super::TourHostEffect::Manifestation(manifestation) = *ticked_count else {
+        return Err("resident Tour timer tick requested an unsupported manifestation".into());
+    };
+    let proof = proof_from_manifestation(&manifestation, stage.identity, expected)
+        .ok_or("resident Tour timer tick produced the wrong result")?;
+    let super::TourProgress::Effect(next) = session.advance()? else {
+        return Err("resident Tour timer stage did not retain its next admitted tick".into());
+    };
+    let super::TourHostEffect::Timer(next) = *next else {
+        return Err("resident Tour timer stage requested an unsupported continuing effect".into());
+    };
+    if next.duration_millis != 120 {
+        return Err("resident Tour timer stage changed its admitted duration".into());
+    }
+    let receipt = session.cancel()?;
+    if receipt.disposition != "cancelled"
+        || receipt.timer_completions != u32::from(expected_timers)
+        || receipt.manifestation_completions
+            != u32::from(stage.expected_manifestations.unwrap_or_default())
+    {
+        return Err("resident Tour timer stage did not stop at its exact finite bound".into());
+    }
+    Ok(proof)
 }
 
 #[inline(never)]
@@ -304,8 +372,13 @@ mod tests {
         assert_ne!(proof.expanded_form_id, comparison.expanded_form_id);
         assert_ne!(proof.plan_id, comparison.plan_id);
 
+        let timed = run_resident_tour(2, 0).unwrap();
+        assert_eq!(timed.specimen_id, "canonical-form:count-over-time");
+        assert_eq!(timed.result, "1");
+        assert_eq!(timed.terminal, conduit_tour_model::TourRunTerminal::Stopped);
+
         assert_eq!(
-            run_resident_tour(2, 0),
+            run_resident_tour(3, 0),
             Err("resident browser Host does not yet implement this exact Tour stage".into())
         );
     }
