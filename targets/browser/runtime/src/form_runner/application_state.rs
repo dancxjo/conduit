@@ -90,13 +90,22 @@ impl PreparedApplication {
                 let output = port
                     .apply(input)
                     .map_err(|error| format!("resident Tour event: {error:?}"))?;
-                if output.request == Some(TourWorkspaceRequest::Run) {
+                if output.request
+                    == Some(TourWorkspaceRequest::Run {
+                        chapter: 0,
+                        stage: 0,
+                    })
+                {
                     port.complete_run(run_canonical_tour()?)
                         .map_err(|error| format!("complete resident Tour run: {error:?}"))?;
                     return port
                         .apply(&[])
                         .map(|output| output.view)
                         .map_err(|error| format!("project resident Tour result: {error:?}"));
+                } else if matches!(output.request, Some(TourWorkspaceRequest::Run { .. })) {
+                    return Err(
+                        "resident browser Host does not yet implement this exact Tour stage".into(),
+                    );
                 }
                 Ok(output.view)
             }

@@ -136,7 +136,10 @@ impl TourProduct {
             .map_err(TourProductError::Controller)?;
         let play = match request {
             None | Some(TourWorkspaceRequest::OpenPatchbay) => None,
-            Some(TourWorkspaceRequest::Run) => {
+            Some(TourWorkspaceRequest::Run {
+                chapter: 0,
+                stage: 0,
+            }) => {
                 let mut prepared = crate::tour_play::prepare(identities, offer, build_id)
                     .map_err(TourProductError::Preparation)?;
                 let mut inspection = inspection::RunInspection::from_plan(&prepared.plan)
@@ -150,6 +153,11 @@ impl TourProduct {
                 inspection.observations = evidence.observations.clone();
                 self.inspection = Some(inspection);
                 Some(evidence)
+            }
+            Some(TourWorkspaceRequest::Run { .. }) => {
+                return Err(TourProductError::Controller(
+                    TourWorkspaceRefusal::WrongSpecimen,
+                ));
             }
         };
         Ok(TourProductUpdate { request, play })
@@ -290,7 +298,13 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(update.request, Some(TourWorkspaceRequest::Run));
+        assert_eq!(
+            update.request,
+            Some(TourWorkspaceRequest::Run {
+                chapter: 0,
+                stage: 0
+            })
+        );
         let evidence = update.play.unwrap();
         let graph = product.graph.as_ref().unwrap();
         assert_eq!(graph.source_document_id, evidence.source_document_id);

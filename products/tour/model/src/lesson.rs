@@ -70,6 +70,44 @@ fn chapter_markdown(chapter: u8) -> Result<&'static str, &'static str> {
         .ok_or("tour-lesson-chapter-refused")
 }
 
+pub(crate) fn stage_source(chapter: u8, stage: u8) -> Result<String, &'static str> {
+    let markdown = chapter_markdown(chapter)?;
+    let mut sources = Vec::new();
+    let mut lines = markdown.lines();
+    while let Some(line) = lines.next() {
+        if !matches!(
+            line,
+            "```conduit run"
+                | "```conduit run recursive"
+                | "```conduit compare"
+                | "```conduit run two-host"
+                | "```conduit run two-host plan"
+        ) {
+            continue;
+        }
+        let mut source = String::new();
+        let mut terminated = false;
+        for line in lines.by_ref() {
+            if line == "```" {
+                terminated = true;
+                break;
+            }
+            if !source.is_empty() {
+                source.push('\n');
+            }
+            source.push_str(line);
+        }
+        if !terminated {
+            return Err("tour-stage-source-malformed");
+        }
+        sources.push(source);
+    }
+    sources
+        .get(usize::from(stage))
+        .cloned()
+        .ok_or("tour-stage-source-refused")
+}
+
 fn prose(markdown: &str) -> Result<Vec<(bool, String)>, &'static str> {
     let mut blocks = Vec::new();
     let mut metadata = false;
@@ -140,6 +178,16 @@ mod tests {
         );
         assert_eq!(chapter_title(6).unwrap(), "Birth, spores, and the Crèche");
         assert_eq!(chapter_title(7), Err("tour-lesson-chapter-refused"));
+        let sources = (0..crate::TOUR_CHAPTER_COUNT)
+            .flat_map(|chapter| {
+                (0..crate::TOUR_CHAPTERS[usize::from(chapter)].stages.len() as u8)
+                    .map(move |stage| stage_source(chapter, stage).unwrap())
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(sources.len(), 7);
+        assert!(sources[0].contains("form meet-one-gear"));
+        assert!(sources[3].contains("form same-morse-caller"));
+        assert!(sources[6].contains("form hello-across"));
     }
     #[test]
     fn malformed_or_over_capacity_content_is_refused() {

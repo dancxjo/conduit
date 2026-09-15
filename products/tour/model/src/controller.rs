@@ -3,14 +3,14 @@ use conduit_core::{ActivePlayId, CheckedFormId, ExpandedFormId, PlanId, SourceDo
 use conduit_presentation::{ApplicationEvent, ApplicationViewRefusal};
 
 use crate::{
-    CANONICAL_RESULT, CANONICAL_SPECIMEN_ID, NEXT_CHAPTER_ACTION_ID, OPEN_PATCHBAY_ACTION_ID,
-    PREVIOUS_CHAPTER_ACTION_ID, RUN_ACTION_ID, TourApplicationAction, TourApplicationRefusal,
-    TourRunState, TourWorkspacePhase, TourWorkspaceState,
+    CANONICAL_RESULT, NEXT_CHAPTER_ACTION_ID, OPEN_PATCHBAY_ACTION_ID, PREVIOUS_CHAPTER_ACTION_ID,
+    RUN_ACTION_ID, TourApplicationAction, TourApplicationRefusal, TourRunState, TourWorkspacePhase,
+    TourWorkspaceState,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourWorkspaceRequest {
-    Run,
+    Run { chapter: u8, stage: u8 },
     OpenPatchbay,
 }
 
@@ -152,8 +152,15 @@ impl TourWorkspaceController {
                 if self.state.progress.run == TourRunState::Running {
                     return Err(TourWorkspaceRefusal::RunAlreadyPending);
                 }
+                let chapter = self.state.progress.chapter;
+                let stage = self.state.progress.stage;
+                if self.state.progress.current_stage().is_none() {
+                    return Err(TourWorkspaceRefusal::Event(
+                        ApplicationViewRefusal::UnknownAction,
+                    ));
+                }
                 self.apply_progress(TourApplicationAction::Run)?;
-                Ok(Some(TourWorkspaceRequest::Run))
+                Ok(Some(TourWorkspaceRequest::Run { chapter, stage }))
             }
             OPEN_PATCHBAY_ACTION_ID => {
                 if self.state.progress.run == TourRunState::Running {
@@ -167,10 +174,12 @@ impl TourWorkspaceController {
             }
             PREVIOUS_CHAPTER_ACTION_ID => {
                 self.apply_progress(TourApplicationAction::PreviousChapter)?;
+                self.sync_stage()?;
                 Ok(None)
             }
             NEXT_CHAPTER_ACTION_ID => {
                 self.apply_progress(TourApplicationAction::NextChapter)?;
+                self.sync_stage()?;
                 Ok(None)
             }
             _ => Err(TourWorkspaceRefusal::Event(
@@ -183,7 +192,10 @@ impl TourWorkspaceController {
         if self.state.progress.run != TourRunState::Running {
             return Err(TourWorkspaceRefusal::RunNotPending);
         }
-        if proof.specimen_id != CANONICAL_SPECIMEN_ID {
+        let Some(stage) = self.state.progress.current_stage() else {
+            return Err(TourWorkspaceRefusal::WrongSpecimen);
+        };
+        if proof.specimen_id != stage.identity {
             return Err(TourWorkspaceRefusal::WrongSpecimen);
         }
         if proof.result != CANONICAL_RESULT {
@@ -226,6 +238,27 @@ impl TourWorkspaceController {
         Ok(())
     }
 
+    fn sync_stage(&mut self) -> Result<(), TourWorkspaceRefusal> {
+        let Some(stage) = self.state.progress.current_stage() else {
+            self.state.specimen_id = crate::TOUR_CHAPTERS[usize::from(self.state.progress.chapter)]
+                .companion
+                .into();
+            self.state.source.clear();
+            self.state.result = None;
+            self.state.phase = TourWorkspacePhase::LessonReady;
+            self.state.focused_key = "lesson".into();
+            return Ok(());
+        };
+        self.state.specimen_id = stage.identity.into();
+        self.state.source =
+            crate::lesson::stage_source(self.state.progress.chapter, self.state.progress.stage)
+                .map_err(|_| TourWorkspaceRefusal::Presentation)?;
+        self.state.result = None;
+        self.state.phase = TourWorkspacePhase::LessonReady;
+        self.state.focused_key = "source".into();
+        Ok(())
+    }
+
     pub(crate) fn next_revision(&self) -> Result<u32, TourWorkspaceRefusal> {
         self.state
             .revision
@@ -240,6 +273,7 @@ mod tests {
     use conduit_presentation::{ApplicationEventKind, ApplicationViewRefusal};
 
     use super::*;
+    use crate::CANONICAL_SPECIMEN_ID;
 
     fn event(revision: u32, action: &str) -> ApplicationEvent {
         ApplicationEvent {
@@ -306,7 +340,10 @@ mod tests {
         );
         assert_eq!(
             controller.request(&event(4, RUN_ACTION_ID)),
-            Ok(Some(TourWorkspaceRequest::Run))
+            Ok(Some(TourWorkspaceRequest::Run {
+                chapter: 0,
+                stage: 0
+            }))
         );
         assert_eq!(controller.state().progress.run, TourRunState::Running);
         let mut wrong = proof();
@@ -352,6 +389,11 @@ mod tests {
         );
         assert_eq!(controller.state().progress.chapter, 1);
         assert_eq!(controller.state().revision, 2);
+        assert_eq!(
+            controller.state().specimen_id,
+            "canonical-form:same-morse-caller"
+        );
+        assert!(controller.state().source.contains("form same-morse-caller"));
         let application_view = controller.state().presentation().unwrap().lower().unwrap();
         assert!(
             application_view
@@ -372,6 +414,8 @@ mod tests {
         );
         assert_eq!(controller.state().progress.chapter, 0);
         assert_eq!(controller.state().revision, 3);
+        assert_eq!(controller.state().specimen_id, CANONICAL_SPECIMEN_ID);
+        assert_eq!(controller.state().source, crate::CANONICAL_SOURCE);
         let before = controller.state().clone();
         assert_eq!(
             controller.request(&event(3, PREVIOUS_CHAPTER_ACTION_ID)),
@@ -395,7 +439,10 @@ mod tests {
         let mut pending = TourWorkspaceController::canonical(1);
         assert_eq!(
             pending.request(&event(1, RUN_ACTION_ID)),
-            Ok(Some(TourWorkspaceRequest::Run))
+            Ok(Some(TourWorkspaceRequest::Run {
+                chapter: 0,
+                stage: 0
+            }))
         );
         let before = pending.state().clone();
         assert_eq!(

@@ -130,6 +130,7 @@ pub enum TourRunState {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TourProgressState {
     pub chapter: u8,
+    pub stage: u8,
     pub chapter_count: u8,
     pub run: TourRunState,
     pub source_is_canonical: bool,
@@ -216,15 +217,24 @@ impl TourApplicationState {
             TourApplicationAction::OpenChapter(chapter) if chapter >= self.chapter_count => {
                 return Err(TourApplicationRefusal::LastChapter);
             }
-            TourApplicationAction::OpenChapter(chapter) => self.chapter = chapter,
+            TourApplicationAction::OpenChapter(chapter) => {
+                self.chapter = chapter;
+                self.stage = 0;
+            }
             TourApplicationAction::PreviousChapter if self.chapter == 0 => {
                 return Err(TourApplicationRefusal::FirstChapter);
             }
-            TourApplicationAction::PreviousChapter => self.chapter -= 1,
+            TourApplicationAction::PreviousChapter => {
+                self.chapter -= 1;
+                self.stage = 0;
+            }
             TourApplicationAction::NextChapter if self.chapter + 1 >= self.chapter_count => {
                 return Err(TourApplicationRefusal::LastChapter);
             }
-            TourApplicationAction::NextChapter => self.chapter += 1,
+            TourApplicationAction::NextChapter => {
+                self.chapter += 1;
+                self.stage = 0;
+            }
             TourApplicationAction::Run if self.run == TourRunState::Running => {
                 return Err(TourApplicationRefusal::AlreadyRunning);
             }
@@ -266,10 +276,18 @@ impl TourProgressState {
     pub const fn canonical() -> Self {
         Self {
             chapter: 0,
+            stage: 0,
             chapter_count: TOUR_CHAPTER_COUNT,
             run: TourRunState::Ready,
             source_is_canonical: true,
         }
+    }
+
+    pub fn current_stage(&self) -> Option<&'static TourStage> {
+        TOUR_CHAPTERS
+            .get(usize::from(self.chapter))?
+            .stages
+            .get(usize::from(self.stage))
     }
 }
 

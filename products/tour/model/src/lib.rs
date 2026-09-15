@@ -95,7 +95,11 @@ impl TourWorkspaceState {
     }
 
     pub fn run_availability(&self) -> ActionAvailability {
-        if self.progress.run == TourRunState::Running {
+        if self.progress.current_stage().is_none() {
+            ActionAvailability::Unavailable {
+                detail: "This chapter is conceptual; no Play is requested".into(),
+            }
+        } else if self.progress.run == TourRunState::Running {
             ActionAvailability::Busy {
                 detail: "Canonical Play is active".into(),
             }
@@ -412,6 +416,21 @@ mod tests {
             identities
                 .iter()
                 .all(|identity| identity == CANONICAL_SPECIMEN_ID)
+        );
+    }
+
+    #[test]
+    fn conceptual_chapter_has_no_fake_run_action() {
+        let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::LessonReady);
+        state.progress.chapter = 4;
+        state.progress.stage = 0;
+        let view = state.presentation().unwrap().lower().unwrap();
+        assert!(!view.actions.iter().any(|action| action.id == RUN_ACTION_ID));
+        assert_eq!(
+            state.run_availability(),
+            ActionAvailability::Unavailable {
+                detail: "This chapter is conceptual; no Play is requested".into()
+            }
         );
     }
 }
