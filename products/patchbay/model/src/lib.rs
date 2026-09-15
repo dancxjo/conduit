@@ -309,7 +309,7 @@ pub use recursive_recovery_explanation::{
 };
 pub use renderer_conformance::{
     compare_entrances, EntranceEquivalenceError, EntranceEquivalenceReport,
-    ENTRANCE_EQUIVALENCE_SCHEMA,
+    ENTRANCE_EQUIVALENCE_SCHEMA, ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID,
 };
 pub use renderer_execution::{
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,
