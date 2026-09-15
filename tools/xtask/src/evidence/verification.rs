@@ -217,6 +217,11 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
     {
         verify_one_form_two_faces(&root, &manifest)?;
     }
+    if request.result == ExpectedEvidenceResult::Complete
+        && request.proof_id == "journey-little-life"
+    {
+        verify_little_life(&root, &manifest)?;
+    }
 
     reject_undeclared_files(&root, &root, &paths)?;
     println!(
@@ -434,6 +439,199 @@ fn verify_two_faces_receipt(root: &Path, manifest: &Manifest, native: bool) -> R
                 ));
             }
         }
+    }
+    Ok(())
+}
+
+fn verify_little_life(root: &Path, manifest: &Manifest) -> Result<(), String> {
+    let expected = [
+        ("little-life.t0", EvidenceKind::Screenshot, "t000.png"),
+        ("little-life.t1", EvidenceKind::Screenshot, "t001.png"),
+        ("little-life.t8", EvidenceKind::Screenshot, "t008.png"),
+        ("little-life.t32", EvidenceKind::Screenshot, "t032.png"),
+        (
+            "little-life.presentation",
+            EvidenceKind::ConsoleTranscript,
+            "presentation.txt",
+        ),
+        (
+            "little-life.execution",
+            EvidenceKind::MachineReadableManifest,
+            "execution.json",
+        ),
+    ];
+    if manifest.outputs.len() != expected.len() {
+        return Err("complete Little Life evidence must contain exactly six outputs".into());
+    }
+    let mut identity = None;
+    for (id, kind, path) in expected {
+        let output = manifest
+            .outputs
+            .iter()
+            .find(|output| output.id == id)
+            .ok_or_else(|| format!("complete Little Life evidence is missing '{id}'"))?;
+        let generation = id
+            .strip_prefix("little-life.t")
+            .and_then(|value| value.parse::<u64>().ok());
+        let seed = generation == Some(0);
+        if !output.required
+            || output.kind != kind
+            || output.path != Path::new(path)
+            || output.media_type
+                != match kind {
+                    EvidenceKind::Screenshot => "image/png",
+                    EvidenceKind::ConsoleTranscript => "text/plain; charset=utf-8",
+                    EvidenceKind::MachineReadableManifest => "application/json",
+                    EvidenceKind::Audio => unreachable!(),
+                }
+            || output.provenance.scenario_id != "little-life.orbium-lenia@1"
+            || output.provenance.asserted_semantic_disposition.as_deref() != Some("completed")
+            || output.provenance.physical_evidence != Some(false)
+            || output
+                .provenance
+                .plan_id
+                .as_deref()
+                .is_none_or(str::is_empty)
+            || output
+                .provenance
+                .active_play_id
+                .as_deref()
+                .is_none_or(str::is_empty)
+        {
+            return Err(format!("Little Life output '{id}' lacks exact provenance"));
+        }
+        let current = (
+            output.provenance.plan_id.as_deref().unwrap(),
+            output.provenance.active_play_id.as_deref().unwrap(),
+        );
+        if identity.is_some_and(|prior| prior != current) {
+            return Err("Little Life outputs do not share one exact Plan and Play".into());
+        }
+        identity = Some(current);
+        if let Some(generation) = generation {
+            let expected_renderer = if seed {
+                "presentation/gray8-bitmap@1"
+            } else {
+                "std/kernel-present-scalar-field@1"
+            };
+            let expected_class = if seed {
+                "deterministic-orbium-seed-bitmap"
+            } else {
+                "std-scalar-field-terminal-presentation"
+            };
+            let expected_step = format!("generation-{generation}");
+            if output.provenance.step_id.as_deref() != Some(expected_step.as_str())
+                || output.provenance.renderer_id.as_deref() != Some(expected_renderer)
+                || output.provenance.proof_class.as_deref() != Some(expected_class)
+            {
+                return Err(format!("Little Life checkpoint '{id}' has wrong semantics"));
+            }
+            verify_png_dimensions(root, output, if seed { (32, 32) } else { (640, 320) })?;
+        } else if id == "little-life.presentation"
+            && (output.provenance.step_id.as_deref() != Some("generation-32")
+                || output.provenance.renderer_id.as_deref()
+                    != Some("std/kernel-present-scalar-field@1")
+                || output.provenance.proof_class.as_deref()
+                    != Some("std-scalar-field-terminal-presentation"))
+        {
+            return Err("Little Life transcript has wrong proof provenance".into());
+        } else if id == "little-life.execution"
+            && (output.provenance.step_id.as_deref() != Some("plan-terminal")
+                || output.provenance.renderer_id.is_some()
+                || output.provenance.proof_class.as_deref()
+                    != Some("ordinary-plan-play-execution-report"))
+        {
+            return Err("Little Life execution report has wrong proof provenance".into());
+        }
+    }
+    verify_little_life_transcript(root)?;
+    verify_little_life_execution(root, identity.unwrap())
+}
+
+fn verify_png_dimensions(
+    root: &Path,
+    output: &ManifestOutput,
+    expected: (u32, u32),
+) -> Result<(), String> {
+    let bytes = fs::read(root.join(&output.path))
+        .map_err(|error| format!("read Little Life PNG: {error}"))?;
+    if bytes.len() < 24 || &bytes[..8] != b"\x89PNG\r\n\x1a\n" || &bytes[12..16] != b"IHDR" {
+        return Err(format!("Little Life output '{}' is not a PNG", output.id));
+    }
+    let width = u32::from_be_bytes(bytes[16..20].try_into().unwrap());
+    let height = u32::from_be_bytes(bytes[20..24].try_into().unwrap());
+    if (width, height) != expected
+        || output.provenance.image_width != Some(width)
+        || output.provenance.image_height != Some(height)
+    {
+        return Err(format!(
+            "Little Life output '{}' has wrong dimensions",
+            output.id
+        ));
+    }
+    Ok(())
+}
+
+fn verify_little_life_transcript(root: &Path) -> Result<(), String> {
+    let transcript = fs::read_to_string(root.join("presentation.txt"))
+        .map_err(|error| format!("read Little Life transcript: {error}"))?;
+    let mut lines = transcript.lines();
+    let mut generations = Vec::new();
+    while let Some(line) = lines.next() {
+        if !line.starts_with("SCALAR-FIELD title=\"Orbium evolution\"") {
+            continue;
+        }
+        let generation = line
+            .split_whitespace()
+            .find_map(|part| part.strip_prefix("generation="))
+            .and_then(|value| value.parse::<u64>().ok())
+            .ok_or("Little Life transcript has a malformed generation")?;
+        generations.push(generation);
+        for _ in 0..16 {
+            let row = lines
+                .next()
+                .ok_or("Little Life scalar-field presentation is truncated")?;
+            if row.len() != 32 || !row.bytes().all(|byte| b" .:-=+*#%@".contains(&byte)) {
+                return Err("Little Life scalar-field presentation has invalid cells".into());
+            }
+        }
+    }
+    if generations != (1..=32).collect::<Vec<_>>() {
+        return Err(
+            "Little Life transcript does not contain exactly generations 1 through 32".into(),
+        );
+    }
+    Ok(())
+}
+
+fn verify_little_life_execution(root: &Path, identity: (&str, &str)) -> Result<(), String> {
+    let report: Value = serde_json::from_slice(
+        &fs::read(root.join("execution.json"))
+            .map_err(|error| format!("read Little Life execution report: {error}"))?,
+    )
+    .map_err(|error| format!("decode Little Life execution report: {error}"))?;
+    let plans = report
+        .get("plans")
+        .and_then(Value::as_array)
+        .filter(|plans| plans.len() == 1)
+        .ok_or("Little Life execution report must contain exactly one Plan")?;
+    if plans[0].get("plan_id").and_then(Value::as_str) != Some(identity.0) {
+        return Err("Little Life execution Plan disagrees with manifest provenance".into());
+    }
+    let terminal = report
+        .get("observations")
+        .and_then(Value::as_array)
+        .and_then(|observations| {
+            observations.iter().find(|observation| {
+                observation
+                    .pointer("/kind/PlanTerminal/disposition")
+                    .and_then(Value::as_str)
+                    == Some("Completed")
+            })
+        })
+        .ok_or("Little Life execution report lacks a completed Plan terminal")?;
+    if terminal.get("active_play_id").and_then(Value::as_str) != Some(identity.1) {
+        return Err("Little Life execution Play disagrees with manifest provenance".into());
     }
     Ok(())
 }
