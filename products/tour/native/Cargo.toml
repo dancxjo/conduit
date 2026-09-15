@@ -5,6 +5,8 @@ edition = "2024"
 publish = false
 
 [dependencies]
+conduit = { path = "../../conduit" }
+conduit-core = { path = "../../../architecture/core" }
 conduit-presentation = { path = "../../../semantics/presentation" }
 conduit-tour-model = { path = "../model" }
 embedded-graphics = "=0.8.1"

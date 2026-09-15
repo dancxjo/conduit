@@ -1,7 +1,9 @@
 //! Native Linux and Windows presentation adapter for the shared Tour application Form.
 
+mod executor;
 mod presenter;
 
+pub use executor::{HostedTourExecutor, HostedTourExecutorRefusal};
 pub use presenter::{DesktopPresentation, DesktopPresenter, DesktopPresenterRefusal};
 
 /// Exact platform implementation advertised by this compiled desktop artifact.

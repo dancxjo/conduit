@@ -32,6 +32,9 @@ serde_json = "1"
 
 [dev-dependencies]
 
+[lib]
+path = "src/lib.rs"
+
 [[test]]
 name = "hello"
 path = "tests/hello.rs"
