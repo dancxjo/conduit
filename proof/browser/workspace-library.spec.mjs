@@ -20,6 +20,34 @@ async function birth(page) {
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
 }
 
+test("five ordinary Forms start together beyond the old aggregate placement ceiling", async ({ page }) => {
+  await page.goto(entrance.url);
+  for (const title of ["Tour", "Pocket Theremin", "Firefly Choir"]) {
+    await page.getByRole("checkbox", { name: title, exact: true }).check();
+  }
+  await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  const state = await current(page);
+  expect(state.initial_forms).toHaveLength(5);
+  expect(state.refusal).toBeUndefined();
+});
+
+test("repeated Wake and Lull compacts retained evidence instead of exhausting lifecycle Signs", async ({ page }) => {
+  await birth(page);
+  const identity = (await current(page)).body_id;
+  for (let index = 0; index < 12; index++) {
+    await page.getByRole("button", { name: "Lull Body", exact: true }).click();
+    await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+    await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+    await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  }
+  expect((await current(page)).body_id).toBe(identity);
+  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
+  await page.reload();
+  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  expect((await current(page)).body_id).toBe(identity);
+});
+
 test("Use installs into the same Body; repeated Use preserves Play and removal survives reload", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await birth(page);

@@ -5,8 +5,8 @@
 //! Host offer, placement, implementation, Plan, Play, or mutable editor state.
 
 use crate::installed_browser::{
-    backs, catalogs_for_presentation, PresentationProfile, MAXIMUM_BROWSER_CORDS,
-    MAXIMUM_BROWSER_GEARS,
+    backs, catalogs_for_presentation, PresentationProfile, MAXIMUM_BROWSER_FORM_CORDS,
+    MAXIMUM_BROWSER_FORM_GEARS,
 };
 use conduit_form::ExpandedCanonicalForm;
 use serde::Serialize;
@@ -330,7 +330,7 @@ fn project_incompatible_cord(
 }
 
 fn admit_draft_topology(gears: &[CompactGear], cords: &[CompactCord]) -> Result<(), String> {
-    if gears.len() > MAXIMUM_BROWSER_GEARS || cords.len() > MAXIMUM_BROWSER_CORDS {
+    if gears.len() > MAXIMUM_BROWSER_FORM_GEARS || cords.len() > MAXIMUM_BROWSER_FORM_CORDS {
         return Err("invalid compact Patchbay draft exceeds its topology bound".into());
     }
     let ports = gears.iter().try_fold(0usize, |count, gear| {
@@ -345,15 +345,15 @@ fn admit_draft_topology(gears: &[CompactGear], cords: &[CompactCord]) -> Result<
 }
 
 fn admit_topology(form: &ExpandedCanonicalForm) -> Result<(), String> {
-    if form.gears.len() > MAXIMUM_BROWSER_GEARS {
+    if form.gears.len() > MAXIMUM_BROWSER_FORM_GEARS {
         return Err(format!(
-            "compact Tour Patchbay Gear bound exceeded: {} > {MAXIMUM_BROWSER_GEARS}",
+            "compact Tour Patchbay Gear bound exceeded: {} > {MAXIMUM_BROWSER_FORM_GEARS}",
             form.gears.len()
         ));
     }
-    if form.connections.len() > MAXIMUM_BROWSER_CORDS {
+    if form.connections.len() > MAXIMUM_BROWSER_FORM_CORDS {
         return Err(format!(
-            "compact Tour Patchbay Cord bound exceeded: {} > {MAXIMUM_BROWSER_CORDS}",
+            "compact Tour Patchbay Cord bound exceeded: {} > {MAXIMUM_BROWSER_FORM_CORDS}",
             form.connections.len()
         ));
     }
@@ -430,8 +430,8 @@ mod tests {
         assert_eq!(direct.realization_cords, direct.cords);
         assert_ne!(recursive.realization_gears, recursive.gears);
         assert_ne!(recursive.realization_cords, recursive.cords);
-        assert!(recursive.realization_gears.len() <= MAXIMUM_BROWSER_GEARS);
-        assert!(recursive.realization_cords.len() <= MAXIMUM_BROWSER_CORDS);
+        assert!(recursive.realization_gears.len() <= MAXIMUM_BROWSER_FORM_GEARS);
+        assert!(recursive.realization_cords.len() <= MAXIMUM_BROWSER_FORM_CORDS);
         assert_eq!(direct.checked_form_id, recursive.checked_form_id);
         assert_eq!(
             direct.visible_expanded_form_id,
@@ -468,7 +468,7 @@ mod tests {
             .contains(&"wrong/light.receiving:pattern".to_owned()));
 
         let mut oversized = String::from("form oversized {\n");
-        for index in 0..=MAXIMUM_BROWSER_GEARS {
+        for index in 0..=MAXIMUM_BROWSER_FORM_GEARS {
             oversized.push_str(&format!("g{index}: text/literal(\"x\")\n"));
         }
         oversized.push('}');

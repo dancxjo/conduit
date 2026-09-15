@@ -16,6 +16,24 @@ impl BodyBiographyEvidence {
         {
             return Err(BodyBiographyError::InvalidMetadata);
         }
+        if self.compaction.as_ref().is_some_and(|summary| {
+            summary.wakes == 0
+                || summary.records == 0
+                || summary.through_sequence <= self.body.birth_sequence
+                || self
+                    .wakes
+                    .iter()
+                    .any(|wake| wake.wake_id == summary.first_wake_id)
+        }) {
+            return Err(BodyBiographyError::InvalidEvidence);
+        }
+        if let Some(summary) = &self.compaction {
+            crate::identity::validate_ids(&[
+                summary.through_sign_id.as_str(),
+                summary.first_wake_id.as_str(),
+            ])
+            .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+        }
         if let Some(graduation) = &self.graduation {
             validate_graduation(graduation)?;
         }

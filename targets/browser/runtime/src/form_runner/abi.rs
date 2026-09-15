@@ -122,6 +122,7 @@ pub extern "C" fn conduit_tour_human_machinery() -> i32 {
         .collect::<Vec<_>>();
     write_output(&serde_json::json!({
         "schema": "conduit.browser/selected-human-machinery@1",
+        "limits": crate::installed_browser::envelope_limits(),
         "implementations": implementations,
     }))
     .map(|()| STATUS_READY)

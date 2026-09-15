@@ -2,6 +2,78 @@ use super::*;
 use crate::{BodyState, Wake, WakeLifecycleEvent};
 
 impl BodyBiographyEvidence {
+    /// Remove one oldest completed Wake from the retained exact window. The
+    /// operation is loss-explicit and preserves the birth event, current Body
+    /// state, workload history, and a monotonic sequence boundary.
+    pub fn compact_oldest_terminal_wake(&mut self) -> Result<bool, BodyBiographyError> {
+        self.validate()?;
+        let Some((index, wake)) = self
+            .wakes
+            .iter()
+            .enumerate()
+            .find(|(_, wake)| {
+                matches!(
+                    wake.lifecycle,
+                    crate::WakeLifecycle::Lulled | crate::WakeLifecycle::Failed
+                )
+            })
+            .map(|(index, wake)| (index, wake.clone()))
+        else {
+            return Ok(false);
+        };
+        if matches!(&self.body.state, BodyState::Awake { wake_id } if wake_id == &wake.wake_id) {
+            return Ok(false);
+        }
+        let removed: Vec<_> = self
+            .records
+            .iter()
+            .filter(|record| match &record.kind {
+                BodyBiographyRecordKind::WakeEvent { wake_id, .. }
+                | BodyBiographyRecordKind::LullRetained { wake_id } => wake_id == &wake.wake_id,
+                _ => false,
+            })
+            .cloned()
+            .collect();
+        if removed.is_empty() {
+            return Err(BodyBiographyError::InvalidEvidence);
+        }
+        let first_wake_id = self
+            .compaction
+            .as_ref()
+            .map(|value| value.first_wake_id.clone())
+            .unwrap_or_else(|| wake.wake_id.clone());
+        let prior_wakes = self.compaction.as_ref().map_or(0, |value| value.wakes);
+        let prior_records = self.compaction.as_ref().map_or(0, |value| value.records);
+        let through = removed.last().expect("non-empty removed records");
+        self.records
+            .retain(|record| !removed.iter().any(|old| old.sequence == record.sequence));
+        self.wakes.remove(index);
+        self.body.events.retain(|event| match event {
+            BodyLifecycleEvent::Woke { wake_id, .. }
+            | BodyLifecycleEvent::LullRetained { wake_id, .. } => wake_id != &wake.wake_id,
+            _ => true,
+        });
+        self.body.sign_ids = self
+            .body
+            .events
+            .iter()
+            .map(|event| event.sign_id().clone())
+            .collect();
+        self.compaction = Some(crate::BodyBiographyCompaction {
+            wakes: prior_wakes
+                .checked_add(1)
+                .ok_or(BodyBiographyError::CapacityExhausted)?,
+            records: prior_records
+                .checked_add(removed.len() as u64)
+                .ok_or(BodyBiographyError::CapacityExhausted)?,
+            through_sequence: through.sequence,
+            through_sign_id: through.sign_id.clone(),
+            first_wake_id,
+        });
+        self.validate()?;
+        Ok(true)
+    }
+
     /// Retain an exact extension of one Wake and its Body lifecycle atomically.
     /// Workload changes must already have their own biography records. Execution
     /// termination is not a Lull: callers must supply that distinct transition.
