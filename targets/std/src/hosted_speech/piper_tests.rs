@@ -2,9 +2,19 @@ use super::*;
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Mutex, MutexGuard,
+};
 
 static FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+static PROVIDER_PROCESS: Mutex<()> = Mutex::new(());
+
+fn provider_process() -> MutexGuard<'static, ()> {
+    PROVIDER_PROCESS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
 
 struct Fixture {
     root: PathBuf,
@@ -58,6 +68,7 @@ impl Drop for Fixture {
 
 #[test]
 fn bounded_process_output_becomes_ordered_canonical_pcm_blocks() {
+    let _provider_process = provider_process();
     let fixture = Fixture::new(
         "#!/bin/sh\ncat >/dev/null\nprintf '\\001\\000\\002\\000\\003\\000'\nprintf 'fixture diagnostic' >&2\n",
     );
@@ -98,6 +109,7 @@ fn bounded_process_output_becomes_ordered_canonical_pcm_blocks() {
 
 #[test]
 fn provider_receives_end_of_text_before_output_is_polled() {
+    let _provider_process = provider_process();
     let fixture = Fixture::new("#!/bin/sh\ncat >/dev/null\nprintf '\\001\\000'\n");
     let mut adapter = fixture.adapter(8);
     let receipt = adapter.synthesize("Rosehip", || false, |_| Ok(())).unwrap();
@@ -106,6 +118,7 @@ fn provider_receives_end_of_text_before_output_is_polled() {
 
 #[test]
 fn resumable_session_exposes_one_block_per_pull_and_can_abort() {
+    let _provider_process = provider_process();
     let fixture =
         Fixture::new("#!/bin/sh\ncat >/dev/null\ndd if=/dev/zero bs=1 count=100 2>/dev/null\n");
     let mut adapter = fixture.adapter(50);
@@ -148,6 +161,7 @@ fn resumable_session_exposes_one_block_per_pull_and_can_abort() {
 
 #[test]
 fn text_output_and_consumer_bounds_fail_distinctly() {
+    let _provider_process = provider_process();
     let fixture =
         Fixture::new("#!/bin/sh\ncat >/dev/null\nprintf '\\001\\000\\002\\000\\003\\000'\n");
     let mut adapter = fixture.adapter(2);
@@ -168,6 +182,7 @@ fn text_output_and_consumer_bounds_fail_distinctly() {
 
 #[test]
 fn cancellation_and_provider_failure_are_not_completion() {
+    let _provider_process = provider_process();
     let fixture = Fixture::new("#!/bin/sh\nsleep 2\n");
     let mut adapter = fixture.adapter(8);
     assert_eq!(
@@ -184,6 +199,7 @@ fn cancellation_and_provider_failure_are_not_completion() {
 
 #[test]
 fn timeout_and_partial_sample_are_distinct_failures() {
+    let _provider_process = provider_process();
     let fixture = Fixture::new("#!/bin/sh\nsleep 2\n");
     let mut adapter =
         PiperDiscovery::inspect(&fixture.executable, &fixture.model, &fixture.config, None)
