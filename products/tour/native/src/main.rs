@@ -6,7 +6,7 @@ use conduit_tour_model::{
     PREVIOUS_CHAPTER_ACTION_ID, PREVIOUS_STAGE_ACTION_ID, RUN_ACTION_ID, TourApplicationPort,
     TourWorkspaceRequest,
 };
-use conduit_tour_native::{DesktopPresentation, DesktopPresenter};
+use conduit_tour_native::{DesktopPresentation, DesktopPresenter, HostedTourExecutor};
 use embedded_graphics::{
     mono_font::{MonoTextStyle, ascii::FONT_6X10},
     pixelcolor::Rgb888,
@@ -102,18 +102,39 @@ impl NativeTour {
         };
         match self.port.apply(&encoded) {
             Ok(output) => {
+                let run_requested =
+                    matches!(output.request, Some(TourWorkspaceRequest::Run { .. }));
                 self.notice = match output.request {
-                    Some(TourWorkspaceRequest::Run { chapter, stage }) => format!(
-                        "Exercise {}.{} is admitted; hosted execution wiring is next.",
-                        chapter + 1,
-                        stage + 1
-                    ),
+                    Some(TourWorkspaceRequest::Run { chapter, stage }) => {
+                        match HostedTourExecutor::run(chapter, stage).and_then(|proof| {
+                            self.port.complete_run(proof).map_err(|_| {
+                                conduit_tour_native::HostedTourExecutorRefusal::Execution
+                            })
+                        }) {
+                            Ok(()) => {
+                                if let Ok(result) = self.port.apply(&[]) {
+                                    if let Ok(view) = ApplicationView::decode(&result.view) {
+                                        if let Ok(presentation) = DesktopPresenter::project(&view) {
+                                            self.view = view;
+                                            self.presentation = presentation;
+                                        }
+                                    }
+                                }
+                                format!(
+                                    "Exercise {}.{} completed on this Host.",
+                                    chapter + 1,
+                                    stage + 1
+                                )
+                            }
+                            Err(error) => format!("Hosted exercise refused: {error:?}"),
+                        }
+                    }
                     Some(TourWorkspaceRequest::OpenPatchbay) => {
                         "Patchbay opened for the exact current Form.".into()
                     }
                     None => "Shared Tour state updated.".into(),
                 };
-                if let Ok(view) = ApplicationView::decode(&output.view) {
+                if !run_requested && let Ok(view) = ApplicationView::decode(&output.view) {
                     match DesktopPresenter::project(&view) {
                         Ok(presentation) => {
                             self.view = view;

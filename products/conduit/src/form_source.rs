@@ -16,6 +16,16 @@ pub(crate) fn load(path: &Path) -> Result<CanonicalSource, String> {
     load_with_catalogs(path, startup, profiles)
 }
 
+pub(crate) fn parse(source: &str) -> Result<CanonicalSource, String> {
+    let (startup, profiles) = standard_catalogs()?;
+    Ok(CanonicalSource {
+        source: source.into(),
+        syntax: conduit_form::parse_syntax_document(source),
+        startup,
+        profiles,
+    })
+}
+
 fn load_with_catalogs(
     path: &Path,
     startup: StartupCatalog,

@@ -1166,6 +1166,8 @@ dependencies = [
 name = "conduit-tour-native"
 version = "0.1.0"
 dependencies = [
+ "conduit",
+ "conduit-core",
  "conduit-presentation",
  "conduit-tour-model",
  "embedded-graphics",
