@@ -4,7 +4,7 @@
 extern crate alloc;
 
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_core::PlanId;
+use conduit_core::{ActivePlayId, PlanId};
 use conduit_form::ExpandedCanonicalForm;
 use conduit_presentation::{
     ApplicationAction, ApplicationComponent, ApplicationEvent, ApplicationEventKind,
@@ -15,6 +15,7 @@ use patchbay_graph::{PatchbayGraph, PatchbayGraphError, PatchbayInspection};
 
 pub const INSPECT_NEXT_ACTION_ID: &str = "patchbay.inspect.next";
 pub const EDIT_CURRENT_ACTION_ID: &str = "patchbay.edit.current";
+pub const SELECT_FORM_ACTION_PREFIX: &str = "patchbay.form.";
 mod presenter;
 pub use presenter::{
     PatchbayPresenterMode, PatchbayPresenterStage, PatchbayPresenterTopology,
@@ -47,14 +48,52 @@ pub enum PatchbayApplicationRefusal {
     UnknownAction,
     NoSubject,
     RevisionExhausted,
+    EmptyActiveForms,
+    TooManyActiveForms,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PatchbayActiveFormState {
+    Playing,
+    Lulled,
+}
+
+pub struct PatchbayActiveForm {
+    graph: PatchbayGraph,
+    title: String,
+    checked_form_id: String,
+    plan_id: PlanId,
+    state: PatchbayActiveFormState,
+    focused: bool,
+}
+
+impl PatchbayActiveForm {
+    pub fn project(
+        form: &ExpandedCanonicalForm,
+        title: impl Into<String>,
+        checked_form_id: impl Into<String>,
+        plan_id: PlanId,
+        state: PatchbayActiveFormState,
+        focused: bool,
+    ) -> Result<Self, PatchbayApplicationRefusal> {
+        Ok(Self {
+            graph: PatchbayGraph::from_expanded(form).map_err(PatchbayApplicationRefusal::Graph)?,
+            title: title.into(),
+            checked_form_id: checked_form_id.into(),
+            plan_id,
+            state,
+            focused,
+        })
+    }
 }
 
 pub struct PatchbayApplicationPort {
-    graph: PatchbayGraph,
-    plan_id: PlanId,
+    forms: Vec<PatchbayActiveForm>,
     body_plan_id: PlanId,
+    active_play_id: Option<ActivePlayId>,
     revision: u32,
-    selected: usize,
+    selected_form: Option<usize>,
+    selected_subject: usize,
     edit_requested: bool,
     presenter_topology: Option<PatchbayPresenterTopology>,
 }
@@ -65,12 +104,38 @@ impl PatchbayApplicationPort {
         plan_id: PlanId,
         body_plan_id: PlanId,
     ) -> Result<Self, PatchbayApplicationRefusal> {
-        Ok(Self {
-            graph: PatchbayGraph::from_expanded(form).map_err(PatchbayApplicationRefusal::Graph)?,
+        let checked_form_id = String::from(form.checked_form_id.as_str());
+        let entry = PatchbayActiveForm::project(
+            form,
+            form.name.clone(),
+            checked_form_id,
             plan_id,
+            PatchbayActiveFormState::Playing,
+            true,
+        )?;
+        let mut port = Self::open_active(vec![entry], body_plan_id, None)?;
+        port.selected_form = Some(0);
+        Ok(port)
+    }
+
+    pub fn open_active(
+        forms: Vec<PatchbayActiveForm>,
+        body_plan_id: PlanId,
+        active_play_id: Option<ActivePlayId>,
+    ) -> Result<Self, PatchbayApplicationRefusal> {
+        if forms.is_empty() {
+            return Err(PatchbayApplicationRefusal::EmptyActiveForms);
+        }
+        if forms.len() + 3 > conduit_presentation::MAX_APPLICATION_ACTIONS {
+            return Err(PatchbayApplicationRefusal::TooManyActiveForms);
+        }
+        Ok(Self {
+            forms,
             body_plan_id,
+            active_play_id,
             revision: 1,
-            selected: 0,
+            selected_form: None,
+            selected_subject: 0,
             edit_requested: false,
             presenter_topology: None,
         })
@@ -81,20 +146,21 @@ impl PatchbayApplicationPort {
         self.presenter_topology = Some(topology);
     }
 
-    pub const fn graph(&self) -> &PatchbayGraph {
-        &self.graph
+    pub fn graph(&self) -> &PatchbayGraph {
+        &self.forms[0].graph
     }
-    pub const fn plan_id(&self) -> &PlanId {
-        &self.plan_id
+    pub fn plan_id(&self) -> &PlanId {
+        &self.forms[0].plan_id
     }
 
     pub fn inspection(&self) -> Result<PatchbayInspection, PatchbayApplicationRefusal> {
-        let subject = self
+        let form = self.selected_active_form()?;
+        let subject = form
             .graph
             .subject_identities()
-            .nth(self.selected)
+            .nth(self.selected_subject)
             .ok_or(PatchbayApplicationRefusal::NoSubject)?;
-        self.graph
+        form.graph
             .inspect(subject)
             .map_err(PatchbayApplicationRefusal::Graph)
     }
@@ -129,11 +195,15 @@ impl PatchbayApplicationPort {
         }
         match event.action.as_str() {
             INSPECT_NEXT_ACTION_ID => {
-                let count = self.graph.subject_identities().count();
+                let count = self
+                    .selected_active_form()?
+                    .graph
+                    .subject_identities()
+                    .count();
                 if count == 0 {
                     return Err(PatchbayApplicationRefusal::NoSubject);
                 }
-                self.selected = (self.selected + 1) % count;
+                self.selected_subject = (self.selected_subject + 1) % count;
                 self.revision = self
                     .revision
                     .checked_add(1)
@@ -151,7 +221,7 @@ impl PatchbayApplicationPort {
                     .checked_add(1)
                     .ok_or(PatchbayApplicationRefusal::RevisionExhausted)?;
                 Ok(Some(PatchbayApplicationRequest::EditCurrent {
-                    expanded_form_id: self.graph.expanded_form_id.clone(),
+                    expanded_form_id: self.selected_active_form()?.graph.expanded_form_id.clone(),
                     subject_identity: inspection.subject_identity,
                 }))
             }
@@ -166,22 +236,44 @@ impl PatchbayApplicationPort {
                     mode,
                 }))
             }
+            action if action.starts_with(SELECT_FORM_ACTION_PREFIX) => {
+                let index = action[SELECT_FORM_ACTION_PREFIX.len()..]
+                    .parse::<usize>()
+                    .map_err(|_| PatchbayApplicationRefusal::UnknownAction)?;
+                if index >= self.forms.len() {
+                    return Err(PatchbayApplicationRefusal::UnknownAction);
+                }
+                self.selected_form = Some(index);
+                self.selected_subject = 0;
+                self.edit_requested = false;
+                self.revision = self
+                    .revision
+                    .checked_add(1)
+                    .ok_or(PatchbayApplicationRefusal::RevisionExhausted)?;
+                Ok(None)
+            }
             _ => Err(PatchbayApplicationRefusal::UnknownAction),
         }
     }
 
     fn view(&self) -> Result<ApplicationView, PatchbayApplicationRefusal> {
-        let inspection = self.inspection()?;
-        let mut actions = vec![
-            ApplicationAction {
-                id: INSPECT_NEXT_ACTION_ID.into(),
+        let mut actions = Vec::with_capacity(self.forms.len() + 3);
+        for index in 0..self.forms.len() {
+            actions.push(ApplicationAction {
+                id: format!("{SELECT_FORM_ACTION_PREFIX}{index}"),
                 event: ApplicationEventKind::Activate,
-            },
-            ApplicationAction {
-                id: EDIT_CURRENT_ACTION_ID.into(),
-                event: ApplicationEventKind::Activate,
-            },
-        ];
+            });
+        }
+        let inspect_action = actions.len();
+        actions.push(ApplicationAction {
+            id: INSPECT_NEXT_ACTION_ID.into(),
+            event: ApplicationEventKind::Activate,
+        });
+        let edit_action = actions.len();
+        actions.push(ApplicationAction {
+            id: EDIT_CURRENT_ACTION_ID.into(),
+            event: ApplicationEventKind::Activate,
+        });
         if self.presenter_topology.is_some() {
             actions.push(presenter::action());
         }
@@ -198,76 +290,118 @@ impl PatchbayApplicationPort {
             node(
                 Some(0),
                 ApplicationComponent::Main,
-                "current",
-                "Current flow",
+                "active-forms",
+                "Active Forms on this Body",
                 "",
                 0,
                 None,
             ),
-            node(
-                Some(1),
-                ApplicationComponent::Heading,
-                "form",
-                &self.graph.form_name,
-                "",
-                0,
-                None,
-            ),
-            node(
+        ];
+        if let Some(active_play_id) = &self.active_play_id {
+            nodes.push(node(
                 Some(1),
                 ApplicationComponent::Status,
-                "identity",
+                "body-play",
                 &format!(
-                    "Form {} · Plan {} · Body Plan {}",
-                    self.graph.expanded_form_id.as_str(),
-                    self.plan_id.as_str(),
-                    self.body_plan_id.as_str()
+                    "Body Plan {} · Play {}",
+                    self.body_plan_id.as_str(),
+                    active_play_id.as_str()
                 ),
                 "",
                 0,
                 None,
-            ),
-            node(
-                Some(1),
-                ApplicationComponent::Definition,
-                "subject",
-                &format!("{:?}", inspection.subject_kind),
-                &inspection.subject_identity,
-                768,
-                None,
-            ),
-            node(
-                Some(1),
-                ApplicationComponent::Paragraph,
-                "facts",
-                &inspection.exact_facts.join(" · "),
-                "",
-                0,
-                None,
-            ),
-            node(
+            ));
+        }
+        for (index, form) in self.forms.iter().enumerate() {
+            let state = match form.state {
+                PatchbayActiveFormState::Playing => "Playing",
+                PatchbayActiveFormState::Lulled => "Lulled",
+            };
+            let focus = if form.focused { " · foreground" } else { "" };
+            nodes.push(node(
                 Some(1),
                 ApplicationComponent::Button,
-                "inspect-next",
-                "Inspect next",
+                &format!("active-form-{index}"),
+                &form.title,
                 "",
                 0,
-                Some(0),
-            ),
-            node(
+                Some(index as u8),
+            ));
+            nodes.push(node(
                 Some(1),
-                ApplicationComponent::Button,
-                "edit-current",
-                "Edit current",
+                ApplicationComponent::Status,
+                &format!("active-form-status-{index}"),
+                &format!("{state}{focus} · checked {}", form.checked_form_id),
                 "",
                 0,
-                Some(if self.presenter_topology.is_some() {
-                    2
-                } else {
-                    1
-                }),
-            ),
-        ];
+                None,
+            ));
+        }
+        if let Some(index) = self.selected_form {
+            let form = &self.forms[index];
+            let inspection = self.inspection()?;
+            nodes.extend([
+                node(
+                    Some(1),
+                    ApplicationComponent::Heading,
+                    "form",
+                    &form.title,
+                    "",
+                    0,
+                    None,
+                ),
+                node(
+                    Some(1),
+                    ApplicationComponent::Status,
+                    "identity",
+                    &format!(
+                        "Expanded Form {} · Plan {} · Body Plan {}",
+                        form.graph.expanded_form_id.as_str(),
+                        form.plan_id.as_str(),
+                        self.body_plan_id.as_str()
+                    ),
+                    "",
+                    0,
+                    None,
+                ),
+                node(
+                    Some(1),
+                    ApplicationComponent::Definition,
+                    "subject",
+                    &format!("{:?}", inspection.subject_kind),
+                    &inspection.subject_identity,
+                    768,
+                    None,
+                ),
+                node(
+                    Some(1),
+                    ApplicationComponent::Paragraph,
+                    "facts",
+                    &inspection.exact_facts.join(" · "),
+                    "",
+                    0,
+                    None,
+                ),
+                node(
+                    Some(1),
+                    ApplicationComponent::Button,
+                    "inspect-next",
+                    "Inspect next",
+                    "",
+                    0,
+                    Some(inspect_action as u8),
+                ),
+                node(
+                    Some(1),
+                    ApplicationComponent::Button,
+                    "edit-current",
+                    "Edit current",
+                    "",
+                    0,
+                    Some(edit_action as u8),
+                ),
+            ]);
+        }
         if self.edit_requested {
             nodes.push(node(
                 Some(1),
@@ -280,7 +414,7 @@ impl PatchbayApplicationPort {
             ));
         }
         if let Some(topology) = &self.presenter_topology {
-            presenter::append_nodes(topology, &mut nodes);
+            presenter::append_nodes(topology, &mut nodes, (actions.len() - 1) as u8);
         }
         let view = ApplicationView {
             revision: self.revision,
@@ -289,6 +423,12 @@ impl PatchbayApplicationPort {
         };
         view.validate().map_err(PatchbayApplicationRefusal::Event)?;
         Ok(view)
+    }
+
+    fn selected_active_form(&self) -> Result<&PatchbayActiveForm, PatchbayApplicationRefusal> {
+        self.selected_form
+            .and_then(|index| self.forms.get(index))
+            .ok_or(PatchbayApplicationRefusal::NoSubject)
     }
 }
 
@@ -314,142 +454,4 @@ fn node(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_form::{ProfileCatalog, StartupCatalog};
-
-    fn form() -> ExpandedCanonicalForm {
-        let mut startup = StartupCatalog::new();
-        let mut profile = ProfileCatalog::new();
-        conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile).unwrap();
-        let syntax = conduit_form::parse_syntax_document(include_str!(
-            "../../../../forms/tour/main.conduit"
-        ));
-        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
-        conduit_form::expand_canonical_form(&checked, "tour", &profile).unwrap()
-    }
-
-    #[test]
-    fn opens_the_exact_form_and_plan_and_retains_inspection() {
-        let form = form();
-        let mut port = PatchbayApplicationPort::open(
-            &form,
-            PlanId::from("plan/current"),
-            PlanId::from("body-plan/current"),
-        )
-        .unwrap();
-        let initial = port.apply(&[]).unwrap();
-        let view = ApplicationView::decode(&initial.view).unwrap();
-        let event = ApplicationEvent {
-            revision: view.revision,
-            action: INSPECT_NEXT_ACTION_ID.into(),
-            kind: ApplicationEventKind::Activate,
-            value: Vec::new(),
-        };
-        let next = port.apply(&event.encode(&view).unwrap()).unwrap();
-        assert_eq!(ApplicationView::decode(&next.view).unwrap().revision, 2);
-        assert_eq!(port.graph().expanded_form_id, form.expanded_form_id);
-        assert_eq!(port.plan_id().as_str(), "plan/current");
-    }
-
-    #[test]
-    fn stale_events_and_edit_authority_remain_explicit() {
-        let form = form();
-        let mut port = PatchbayApplicationPort::open(
-            &form,
-            PlanId::from("plan/current"),
-            PlanId::from("body-plan/current"),
-        )
-        .unwrap();
-        let view = ApplicationView::decode(&port.apply(&[]).unwrap().view).unwrap();
-        let edit = ApplicationEvent {
-            revision: view.revision,
-            action: EDIT_CURRENT_ACTION_ID.into(),
-            kind: ApplicationEventKind::Activate,
-            value: Vec::new(),
-        };
-        assert!(matches!(
-            port.apply(&edit.encode(&view).unwrap()).unwrap().request,
-            Some(PatchbayApplicationRequest::EditCurrent { .. })
-        ));
-        let stale = ApplicationEvent {
-            revision: view.revision,
-            action: INSPECT_NEXT_ACTION_ID.into(),
-            kind: ApplicationEventKind::Activate,
-            value: Vec::new(),
-        };
-        let stale_view = ApplicationView {
-            revision: stale.revision,
-            ..view
-        };
-        assert_eq!(
-            port.apply(&stale.encode(&stale_view).unwrap()),
-            Err(PatchbayApplicationRefusal::Event(
-                ApplicationViewRefusal::StaleRevision
-            ))
-        );
-    }
-
-    #[test]
-    fn presenter_topology_is_visible_and_requests_the_exact_body_plan() {
-        let form = form();
-        let mut port = PatchbayApplicationPort::open(
-            &form,
-            PlanId::from("plan/current"),
-            PlanId::from("body-plan/current"),
-        )
-        .unwrap();
-        port.set_presenter_topology(PatchbayPresenterTopology {
-            presentation_id: "presentation/current".into(),
-            body_plan_id: PlanId::from("body-plan/current"),
-            active_play_id: "play/current".into(),
-            mode: PatchbayPresenterMode::Graphical,
-            stages: vec![PatchbayPresenterStage {
-                manifestation_id: "manifestation/graphical".into(),
-                implementation_id: "presentation/renderer-conduitos-native@1".into(),
-                host_id: "host/current".into(),
-                boot_id: "boot/current".into(),
-                resource_pool_id: "pool/presenter".into(),
-                resource_class_id: "resource/presenter".into(),
-                reserved_units: 1,
-                maximum_active_instances: 1,
-                maximum_queue_items: 1,
-                maximum_queue_bytes: 4096,
-                available: true,
-            }],
-        });
-        let output = port.apply(&[]).unwrap();
-        let view = ApplicationView::decode(&output.view).unwrap();
-        assert_eq!(view.actions[0].id, INSPECT_NEXT_ACTION_ID);
-        assert_eq!(view.actions[1].id, EDIT_CURRENT_ACTION_ID);
-        assert_eq!(view.actions[2].id, CHANGE_PRESENTERS_ACTION_ID);
-        assert!(view
-            .nodes
-            .iter()
-            .any(|node| { node.key == "presenter-stage-0" && node.text.contains("available") }));
-        let action = view
-            .actions
-            .iter()
-            .find(|action| action.id == CHANGE_PRESENTERS_ACTION_ID)
-            .unwrap();
-        let changed = port
-            .apply(
-                &ApplicationEvent {
-                    revision: view.revision,
-                    action: action.id.clone(),
-                    kind: action.event,
-                    value: Vec::new(),
-                }
-                .encode(&view)
-                .unwrap(),
-            )
-            .unwrap();
-        assert_eq!(
-            changed.request,
-            Some(PatchbayApplicationRequest::ChangePresenters {
-                body_plan_id: PlanId::from("body-plan/current"),
-                mode: PatchbayPresenterMode::GraphicalAndSpeech,
-            })
-        );
-    }
-}
+mod tests;

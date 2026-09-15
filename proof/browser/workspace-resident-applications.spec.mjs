@@ -79,6 +79,13 @@ test("resident Tour runs every exercise and keeps state across foreground switch
 
   await page.locator("[data-checked-form-id]").filter({ hasText: "Patchbay" }).click();
   const patchbay = visibleFormOutput(page);
+  await expect(patchbay).toContainText("Active Forms on this Body");
+  await expect(patchbay).toContainText("Memory Lantern");
+  await expect(patchbay).toContainText("Tour");
+  await expect(patchbay).toContainText("Patchbay");
+  await expect(patchbay).toContainText("Playing");
+  await expect(patchbay).toContainText("foreground");
+  await patchbay.getByRole("button", { name: "Tour", exact: true }).click();
   await expect(patchbay).toContainText("tour/events");
   await expect(patchbay).toContainText("Body Plan");
   await page.getByRole("button", { name: "Inspect next", exact: true }).click();
@@ -103,6 +110,8 @@ test("resident Patchbay inspects and begins an exact edit in one browser Body Pl
   const born = await current(page);
   await page.locator("[data-checked-form-id]").filter({ hasText: "Patchbay" }).click();
   const patchbay = visibleFormOutput(page);
+  await expect(patchbay).toContainText("Active Forms on this Body");
+  await patchbay.getByRole("button", { name: "Memory Lantern", exact: true }).click();
   await expect(patchbay).toContainText("memory_lantern");
   await expect(patchbay).toContainText("Body Plan");
   await page.getByRole("button", { name: "Inspect next", exact: true }).click();

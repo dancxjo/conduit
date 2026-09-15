@@ -1,8 +1,6 @@
 //! Retained shared application models prepared from exact Body Plan truth.
 
 use conduit_body::BodyPlan;
-#[cfg(feature = "creche-surface")]
-use conduit_core::ConfigurationValue;
 use conduit_core::{ActivePlayId, PlannedGear};
 use conduit_tour_model::{TourApplicationPort, TourRunProof, TourWorkspaceRequest};
 
@@ -286,7 +284,7 @@ fn run_resident_stage(
 }
 
 pub(super) enum PreparedApplication {
-    Tour(TourApplicationPort),
+    Tour(Box<TourApplicationPort>),
     #[cfg(feature = "creche-surface")]
     Patchbay(patchbay_application::PatchbayApplicationPort),
 }
@@ -295,39 +293,46 @@ impl PreparedApplication {
     pub(super) fn prepare(
         placement: &PlannedGear,
         plan: &BodyPlan,
-        _active_play_id: &ActivePlayId,
+        active_play_id: &ActivePlayId,
         source: &str,
         foreground_checked_form_id: &str,
     ) -> Result<Option<Self>, String> {
         #[cfg(not(feature = "creche-surface"))]
-        let _ = (plan, source, foreground_checked_form_id);
+        let _ = (plan, active_play_id, source, foreground_checked_form_id);
         if placement.kind_id.as_str() != conduit_semantic_catalog::RETAINED_APPLICATION_KIND {
             return Ok(None);
         }
         let application = crate::installed_browser::application::application_id(placement)?;
         match application {
-            "tour" => Ok(Some(Self::Tour(TourApplicationPort::canonical()))),
+            "tour" => Ok(Some(Self::Tour(Box::new(TourApplicationPort::canonical())))),
             "patchbay" => {
                 #[cfg(not(feature = "creche-surface"))]
                 return Err("resident Patchbay preparation requires the Crèche surface".into());
 
                 #[cfg(feature = "creche-surface")]
                 {
-                    let target = plan.forms.iter().find(|part| {
-                    part.form.checked_form_id.as_str() == foreground_checked_form_id
-                        && part.plan.fragments.iter().all(|fragment| fragment.placements.iter().all(|gear| {
-                            gear.configuration.iter().all(|entry| !matches!(
-                                (&*entry.key, &entry.value),
-                                (conduit_semantic_catalog::APPLICATION_ID_CONFIGURATION, ConfigurationValue::Text(value)) if value == "patchbay"
-                            ))
-                        }))
-                }).or_else(|| plan.forms.iter().find(|part| part.form.checked_form_id.as_str() != foreground_checked_form_id))
-                    .ok_or("Patchbay has no resident Form subject")?;
-                    let expanded = crate::creche::expanded_inventory_form(source, &target.form)?;
-                    let port = patchbay_application::PatchbayApplicationPort::open(
-                        &expanded,
-                        target.plan.plan_id.clone(),
+                    let mut active = Vec::with_capacity(plan.forms.len());
+                    for part in &plan.forms {
+                        let expanded = crate::creche::expanded_inventory_form(source, &part.form)?;
+                        let title = crate::creche::inventory_form_title(source, &part.form)?;
+                        active.push(
+                            patchbay_application::PatchbayActiveForm::project(
+                                &expanded,
+                                title,
+                                part.form.checked_form_id.as_str(),
+                                part.plan.plan_id.clone(),
+                                patchbay_application::PatchbayActiveFormState::Playing,
+                                part.form.checked_form_id.as_str() == foreground_checked_form_id,
+                            )
+                            .map_err(|error| {
+                                format!("project resident Patchbay Form: {error:?}")
+                            })?,
+                        );
+                    }
+                    let port = patchbay_application::PatchbayApplicationPort::open_active(
+                        active,
                         plan.plan_id.clone(),
+                        Some(active_play_id.clone()),
                     )
                     .map_err(|error| format!("prepare resident Patchbay: {error:?}"))?;
                     Ok(Some(Self::Patchbay(port)))
