@@ -700,6 +700,56 @@ fn verify_hears_speaks(root: &Path, manifest: &Manifest) -> Result<(), String> {
             return Err(format!("hears/speaks output '{id}' is not a bounded WAV"));
         }
     }
+    verify_hears_speaks_providers(root)?;
+    Ok(())
+}
+
+fn verify_hears_speaks_providers(root: &Path) -> Result<(), String> {
+    let receipt: Value = serde_json::from_slice(
+        &fs::read(root.join("receipt.json"))
+            .map_err(|error| format!("read hears/speaks receipt: {error}"))?,
+    )
+    .map_err(|error| format!("decode hears/speaks receipt: {error}"))?;
+    if receipt.pointer("/providers/schema").and_then(Value::as_str)
+        != Some("conduit.journey/hears-speaks-providers@1")
+    {
+        return Err("hears/speaks receipt lacks provider provenance".into());
+    }
+    for pointer in [
+        "/providers/whisper/executable_sha256",
+        "/providers/whisper/model_sha256",
+        "/providers/local_model/model_content_identity",
+        "/providers/piper/executable_sha256",
+        "/providers/piper/model_sha256",
+        "/providers/piper/config_sha256",
+    ] {
+        let value = receipt
+            .pointer(pointer)
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        let digest = value.strip_prefix("sha256:").unwrap_or(value);
+        if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(format!(
+                "hears/speaks provider identity '{pointer}' is not a SHA-256 digest"
+            ));
+        }
+    }
+    for pointer in [
+        "/providers/whisper/implementation",
+        "/providers/local_model/runtime_version",
+        "/providers/local_model/model_name",
+        "/providers/piper/implementation",
+    ] {
+        if receipt
+            .pointer(pointer)
+            .and_then(Value::as_str)
+            .is_none_or(str::is_empty)
+        {
+            return Err(format!(
+                "hears/speaks provider identity '{pointer}' is missing"
+            ));
+        }
+    }
     Ok(())
 }
 

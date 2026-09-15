@@ -18,11 +18,17 @@ pub fn front_door_snapshot() -> Result<RendererSnapshot, String> {
 }
 
 pub fn one_form_two_faces_snapshot() -> Result<RendererSnapshot, String> {
-    let session = ZeroBodyFrontDoor::with_identity(
+    let mut session = ZeroBodyFrontDoor::with_identity(
         std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter),
         HostId::from(patchbay_model::ONE_FORM_TWO_FACES_HOST_ID),
         BootId::from(patchbay_model::ONE_FORM_TWO_FACES_BOOT_ID),
     )?;
+    let form = session
+        .form_ids()
+        .into_iter()
+        .next()
+        .ok_or("two-faces entrance has no reviewed Form")?;
+    session.open_form(&form, session.revision())?;
     snapshot_for_zero_body_front_door(&session)
 }
 
