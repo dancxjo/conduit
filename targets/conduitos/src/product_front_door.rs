@@ -384,6 +384,31 @@ pub fn run(
                         .map_err(|error| error.as_str())?;
                     match journey.take_application_request() {
                         Some(crate::native_workset::NativeApplicationRequest::RunTour {
+                            chapter: 0,
+                            stage: 2,
+                        }) => {
+                            let mut prepared = crate::tour_play::prepare_morse_stage(
+                                identities,
+                                offer,
+                                fabrication.build_id,
+                            )
+                            .map_err(|error| error.as_str())?;
+                            let evidence = crate::tour_play::run_morse_stage(
+                                &mut prepared,
+                                &mut clock,
+                                &mut serial,
+                                &mut interrupts,
+                                &mut idle,
+                            )
+                            .map_err(|_| "resident-tour-morse-play-refused")?;
+                            journey
+                                .complete_tour_run(&evidence)
+                                .map_err(|error| error.as_str())?;
+                            arch::early_write(
+                                b"CONDUIT_WORKSPACE_CHECKPOINT resident-tour-fanout-ran\n",
+                            );
+                        }
+                        Some(crate::native_workset::NativeApplicationRequest::RunTour {
                             chapter,
                             stage,
                         }) => {

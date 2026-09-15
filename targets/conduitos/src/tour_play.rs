@@ -22,6 +22,7 @@ pub struct TourPlayEvidence {
     pub plan_id: conduit_core::PlanId,
     pub active_play_id: conduit_core::ActivePlayId,
     pub result: &'static str,
+    pub manifestations: u8,
     pub run: MachineRunReceipt,
     pub observations: crate::text_composition::TextObservations,
 }
@@ -148,8 +149,46 @@ where
         plan_id: prepared.plan_id.clone(),
         active_play_id: prepared.active_play.active_play_id.clone(),
         result: expected,
+        manifestations: 1,
         run,
         observations,
+    })
+}
+
+pub fn prepare_morse_stage(
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<crate::tour_morse_plan::PreparedTourMorsePlay, PreparationError> {
+    crate::tour_morse_plan::prepare(identities, offer, build_id)
+}
+
+pub fn run_morse_stage<C, S, I, D>(
+    prepared: &mut crate::tour_morse_plan::PreparedTourMorsePlay,
+    clock: &mut C,
+    serial: &mut S,
+    interrupts: &mut I,
+    idle: &mut D,
+) -> Result<TourPlayEvidence, TourPlayError>
+where
+    C: MonotonicClockBase,
+    S: SerialBase,
+    I: InterruptBase,
+    D: IdleBase,
+{
+    let run = crate::tour_morse_play::run(prepared, clock, serial, interrupts, idle)
+        .map_err(TourPlayError::Machine)?;
+    Ok(TourPlayEvidence {
+        specimen_id: "canonical-form:branch-a-cord",
+        source_document_id: prepared.source_document_id.clone(),
+        checked_form_id: prepared.checked_form_id.clone(),
+        expanded_form_id: prepared.expanded_form_id.clone(),
+        plan_id: prepared.plan_id.clone(),
+        active_play_id: prepared.active_play.active_play_id.clone(),
+        result: "SOS",
+        manifestations: 2,
+        run,
+        observations: crate::text_composition::TextObservations::default(),
     })
 }
 
