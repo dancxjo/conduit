@@ -984,7 +984,7 @@ jobs:
     env:
       NPM_CONFIG_AUDIT: "false"
       NPM_CONFIG_FUND: "false"
-      CONDUIT_CHECKOUT_SHA: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
     steps:
       - uses: actions/checkout@v7
         with:
