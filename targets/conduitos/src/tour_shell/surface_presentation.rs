@@ -122,7 +122,7 @@ impl TourShellPresenter {
                 } else if slot == Slot::Inspector {
                     fields::project(bounds, presentation, 0, None)?
                 } else {
-                    scene::SCROLL_CONTENT_HEIGHT
+                    bounds.height
                 },
             )?;
         }
