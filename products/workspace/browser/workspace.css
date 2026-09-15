@@ -17,6 +17,8 @@ a { color:var(--muted); text-decoration:none; }
 .body-heading { text-align:right; }
 .body-heading h1 { margin:0 0 .3rem; font-size:1.2rem; font-weight:500; color:var(--ink); }
 .body-state { color:var(--muted); font:.75rem ui-monospace,monospace; }
+.membership-shortcuts { display:flex; justify-content:flex-end; gap:.35rem; margin-top:.5rem; }
+.membership-shortcuts button { padding:.35rem .55rem; font-size:.72rem; color:var(--muted); }
 .form-surface { min-height:32rem; padding:2.5rem; border:1px solid var(--line); border-radius:.5rem; }
 .surface-content { text-align:center; }
 .surface-content h2 { color:var(--ink); margin:0 0 .75rem; font-size:1.2rem; font-weight:500; }
@@ -48,6 +50,20 @@ a { color:var(--muted); text-decoration:none; }
 .inspection-explanation { color:var(--muted); line-height:1.7; }
 [data-inspection-content] pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:.75rem; line-height:1.6; max-height:25rem; overflow:auto; padding:1rem; background:var(--field); color:var(--ink); }
 [data-inspection-content] summary { padding:1rem 0; cursor:pointer; color:var(--muted); }
+.membership-intro,.membership-panel p { color:var(--muted); line-height:1.6; }
+.membership-kicker { color:var(--amber) !important; font-size:.75rem; letter-spacing:.08em; text-transform:uppercase; }
+.member-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr)); gap:1rem; margin:1.5rem 0; }
+.member-card { padding:1rem; border:1px solid var(--line); border-radius:.35rem; background:var(--panel); }
+.member-card h3,.membership-panel h3 { margin:.2rem 0; font-size:1rem; }
+.member-card p { margin:.35rem 0; font-size:.85rem; }
+.membership-panel details { margin-top:1rem; color:var(--muted); }
+.membership-panel pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:18rem; overflow:auto; padding:1rem; background:var(--field); color:var(--ink); font-size:.72rem; }
+.membership-panel label { display:grid; gap:.5rem; color:var(--muted); font-size:.8rem; }
+.membership-panel textarea { min-height:7rem; resize:vertical; padding:.75rem; background:var(--field); color:var(--ink); border:1px solid var(--line); border-radius:.3rem; overflow-wrap:anywhere; }
+.membership-actions { display:flex; gap:.5rem; margin-top:.75rem; }
+.membership-panel dl { display:grid; grid-template-columns:max-content 1fr; gap:.5rem 1rem; font-size:.8rem; }
+.membership-panel dt { color:var(--muted); }.membership-panel dd { margin:0; overflow-wrap:anywhere; }
+.transport-note { border-left:2px solid var(--line); padding-left:.8rem; font-size:.8rem; }
 .workspace-creche { width:min(46rem,100%); margin:0 auto 2rem; padding:2rem; border:1px solid var(--line); border-radius:.5rem; background:var(--panel); }
 .birth-presentation { display:grid; gap:1rem; }
 .birth-presentation [data-application-component="shell"], .birth-presentation [data-application-component="stack"] { display:grid; gap:1rem; align-content:start; }

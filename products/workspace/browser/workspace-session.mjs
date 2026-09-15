@@ -44,8 +44,7 @@ export function openWorkspaceSession({ host, storage }) {
     return ++sequence;
   };
   const save = () => {
-    const current = workspace ? request('Current') : null;
-    const snapshot = current ? { schema: current.schema, evidence: current.evidence, foreground: current.foreground } : call('conduit_creche_durable_snapshot');
+    const snapshot = workspace ? request('Durable') : call('conduit_creche_durable_snapshot');
     if (!snapshot) return write;
     write = write.then(() => storage.writeJson('body-session', snapshot)).catch(error => {
       persistenceFailure ??= error;
@@ -95,11 +94,36 @@ export function openWorkspaceSession({ host, storage }) {
     save,
     settled: () => write,
     persistenceFailure: () => persistenceFailure,
+    inspectInvitation(claim, now = Date.now()) { return request('InspectInvitation', { claim, now_millis: now }); },
+    async createInvitation(secret, nonce, now = Date.now(), expires = now + 10 * 60_000) {
+      if (persistenceFailure) throw persistenceFailure;
+      const claim = request('CreateInvitation', { ...here, secret: Array.from(secret), nonce: Array.from(nonce), now_millis: now, expires_at_millis: expires });
+      await save();
+      return claim;
+    },
+    async admitInvitation(advertisement, proof, now = Date.now()) {
+      if (persistenceFailure) throw persistenceFailure;
+      const receipt = request('AdmitInvitation', { ...here, advertisement, proof, now_millis: now });
+      workspace = receipt.body;
+      write = write.then(() => storage.writeJson('body-session', receipt.durable)).catch(error => {
+        persistenceFailure ??= error;
+        throw error;
+      });
+      await write;
+      return receipt;
+    },
+    async openAdmitted(durable) {
+      if (workspace) throw new Error('Close the current Body before joining another Body');
+      request('OpenAdmitted', { evidence: durable.evidence, admission: durable.admission, ...here });
+      if (durable.foreground) request('SelectForm', { form: durable.foreground });
+      await save();
+      return workspace;
+    },
     async restore() {
       const snapshot = await storage.readJson('body-session');
       if (snapshot === null) return null;
       if (snapshot.schema === 'conduit.workspace/body@1') {
-        request('Restore', { evidence: snapshot.evidence, ...here });
+        request('Restore', { evidence: snapshot.evidence, admission: snapshot.admission ?? null, ...here });
         if (snapshot.foreground) request('SelectForm', { form: snapshot.foreground });
         await save();
         return workspace;
