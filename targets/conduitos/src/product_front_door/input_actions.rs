@@ -5,6 +5,7 @@ use crate::{
     product_bindings::binding_for_usage,
     product_journey::{JourneyAction, JourneyStatus, ProductJourney},
 };
+use conduit_presentation::{ApplicationAction, ApplicationView};
 
 pub(super) fn action_for(
     usage: u8,
@@ -121,9 +122,28 @@ pub(super) fn tour_action(usage: u8) -> Option<&'static str> {
     }
 }
 
+pub(super) fn resident_application_action(
+    usage: u8,
+    view: &ApplicationView,
+) -> Option<&ApplicationAction> {
+    tour_action(usage)
+        .and_then(|action_id| view.actions.iter().find(|action| action.id == action_id))
+        .or_else(|| {
+            let compatibility_index = match usage {
+                super::F10 => 0,
+                super::F11 => 1,
+                super::F1 => 2,
+                _ => return None,
+            };
+            view.actions.get(compatibility_index)
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::{string::ToString, vec};
+    use conduit_presentation::{ApplicationEventKind, ApplicationView};
     #[test]
     fn reserved_shell_keys_are_one_explicit_product_control_vocabulary() {
         assert_eq!(product_control(4), None);
@@ -133,5 +153,28 @@ mod tests {
             assert!(!action.id.is_empty());
             assert_eq!(product_control(usage), Some(action.control));
         }
+    }
+
+    #[test]
+    fn resident_tour_keys_select_semantic_actions_after_navigation_actions() {
+        let actions = vec![
+            ApplicationAction {
+                id: conduit_tour_model::NEXT_CHAPTER_ACTION_ID.to_string(),
+                event: ApplicationEventKind::Activate,
+            },
+            ApplicationAction {
+                id: conduit_tour_model::RUN_ACTION_ID.to_string(),
+                event: ApplicationEventKind::Activate,
+            },
+        ];
+        let view = ApplicationView {
+            revision: 1,
+            nodes: vec![],
+            actions,
+        };
+        assert_eq!(
+            resident_application_action(super::super::F10, &view).map(|action| action.id.as_str()),
+            Some(conduit_tour_model::RUN_ACTION_ID)
+        );
     }
 }
