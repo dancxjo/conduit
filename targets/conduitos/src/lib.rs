@@ -181,6 +181,8 @@ pub mod tour_play;
 pub mod tour_product;
 #[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 pub mod tour_shell;
+mod tour_timer_kernel;
 mod tour_timer_offer;
 pub mod tour_timer_plan;
+mod tour_timer_play;
 pub mod tour_workspace;

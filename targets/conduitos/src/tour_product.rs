@@ -8,7 +8,10 @@ use conduit_tour_model::{
 
 use crate::{
     identity::BootIdentities,
-    machine::{IdleBase, InterruptBase, MonotonicClockBase, SerialBase},
+    machine::{
+        BaseError, IdleBase, InterruptBase, KernelInterest, MonotonicClockBase, SerialBase,
+        TimerBase, TimerToken,
+    },
     offer::HostOffer,
     ordinary_plan::PreparationError,
     tour_play::{TourPlayError, TourPlayEvidence},
@@ -130,6 +133,39 @@ impl TourProduct {
         I: InterruptBase,
         D: IdleBase,
     {
+        self.accept_with_timer(
+            event,
+            identities,
+            offer,
+            build_id,
+            clock,
+            &mut UnavailableTourTimer,
+            serial,
+            interrupts,
+            idle,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn accept_with_timer<C, T, S, I, D>(
+        &mut self,
+        event: &ApplicationEvent,
+        identities: &BootIdentities,
+        offer: &HostOffer<'_>,
+        build_id: &str,
+        clock: &mut C,
+        timer: &mut T,
+        serial: &mut S,
+        interrupts: &mut I,
+        idle: &mut D,
+    ) -> Result<TourProductUpdate, TourProductError>
+    where
+        C: MonotonicClockBase,
+        T: TimerBase,
+        S: SerialBase,
+        I: InterruptBase,
+        D: IdleBase,
+    {
         let request = self
             .controller
             .request(event)
@@ -178,6 +214,28 @@ impl TourProduct {
                 self.inspection = None;
                 Some(evidence)
             }
+            Some(TourWorkspaceRequest::Run {
+                chapter: 2,
+                stage: 0,
+            }) => {
+                let mut prepared =
+                    crate::tour_play::prepare_timer_stage(identities, offer, build_id)
+                        .map_err(TourProductError::Preparation)?;
+                let evidence = crate::tour_play::run_timer_stage(
+                    &mut prepared,
+                    clock,
+                    timer,
+                    serial,
+                    interrupts,
+                    idle,
+                )
+                .map_err(TourProductError::Play)?;
+                self.controller
+                    .complete_run(run_proof(&evidence))
+                    .map_err(TourProductError::Controller)?;
+                self.inspection = None;
+                Some(evidence)
+            }
             Some(TourWorkspaceRequest::Run { chapter, stage }) => {
                 let (mut prepared, specimen_id, expected) =
                     crate::tour_play::prepare_stage(identities, offer, build_id, chapter, stage)
@@ -215,7 +273,7 @@ fn run_proof(evidence: &TourPlayEvidence) -> TourRunProof {
         plan_id: evidence.plan_id.clone(),
         active_play_id: evidence.active_play_id.clone(),
         result: evidence.result.into(),
-        terminal: conduit_tour_model::TourRunTerminal::Completed,
+        terminal: evidence.terminal,
         comparison: evidence
             .comparison_expanded_form_id
             .as_ref()
@@ -227,6 +285,26 @@ fn run_proof(evidence: &TourPlayEvidence) -> TourRunProof {
                 },
             ),
         multi_host: None,
+    }
+}
+
+struct UnavailableTourTimer;
+
+impl TimerBase for UnavailableTourTimer {
+    fn arm(&mut self, _interest: KernelInterest) -> Result<TimerToken, BaseError> {
+        Err(BaseError::Unavailable)
+    }
+
+    fn cancel(&mut self, _token: TimerToken) -> Result<KernelInterest, BaseError> {
+        Err(BaseError::Unavailable)
+    }
+
+    fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError> {
+        Ok(None)
+    }
+
+    fn wake_count(&self) -> u32 {
+        0
     }
 }
 
@@ -701,4 +779,7 @@ mod tests {
             TOUR_CHAPTER_COUNT
         );
     }
+
+    #[path = "tour_product_timer_tests.rs"]
+    mod timer_tests;
 }

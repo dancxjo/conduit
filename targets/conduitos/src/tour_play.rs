@@ -25,6 +25,7 @@ pub struct TourPlayEvidence {
     pub manifestations: u8,
     pub comparison_expanded_form_id: Option<conduit_core::ExpandedFormId>,
     pub comparison_plan_id: Option<conduit_core::PlanId>,
+    pub terminal: conduit_tour_model::TourRunTerminal,
     pub run: MachineRunReceipt,
     pub observations: crate::text_composition::TextObservations,
 }
@@ -154,6 +155,7 @@ where
         manifestations: 1,
         comparison_expanded_form_id: None,
         comparison_plan_id: None,
+        terminal: conduit_tour_model::TourRunTerminal::Completed,
         run,
         observations,
     })
@@ -193,6 +195,7 @@ where
         manifestations: 2,
         comparison_expanded_form_id: None,
         comparison_plan_id: None,
+        terminal: conduit_tour_model::TourRunTerminal::Completed,
         run,
         observations: crate::text_composition::TextObservations::default(),
     })
@@ -232,6 +235,49 @@ where
         manifestations: 2,
         comparison_expanded_form_id: Some(prepared.recursive.expanded_form_id.clone()),
         comparison_plan_id: Some(prepared.recursive.plan_id.clone()),
+        terminal: conduit_tour_model::TourRunTerminal::Completed,
+        run,
+        observations: crate::text_composition::TextObservations::default(),
+    })
+}
+
+pub fn prepare_timer_stage(
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<crate::tour_timer_plan::PreparedTourTimerPlan, PreparationError> {
+    crate::tour_timer_plan::prepare(identities, offer, build_id)
+}
+
+pub fn run_timer_stage<C, T, S, I, D>(
+    prepared: &mut crate::tour_timer_plan::PreparedTourTimerPlan,
+    clock: &mut C,
+    timer: &mut T,
+    serial: &mut S,
+    interrupts: &mut I,
+    idle: &mut D,
+) -> Result<TourPlayEvidence, TourPlayError>
+where
+    C: MonotonicClockBase,
+    T: crate::machine::TimerBase,
+    S: SerialBase,
+    I: InterruptBase,
+    D: IdleBase,
+{
+    let run = crate::tour_timer_play::run(prepared, clock, timer, serial, interrupts, idle)
+        .map_err(TourPlayError::Machine)?;
+    Ok(TourPlayEvidence {
+        specimen_id: "canonical-form:count-over-time",
+        source_document_id: prepared.plan.source_document_id.clone(),
+        checked_form_id: prepared.plan.checked_form_id.clone(),
+        expanded_form_id: prepared.plan.expanded_form_id.clone(),
+        plan_id: prepared.plan.plan_id.clone(),
+        active_play_id: prepared.active_play.active_play_id.clone(),
+        result: "1",
+        manifestations: 2,
+        comparison_expanded_form_id: None,
+        comparison_plan_id: None,
+        terminal: conduit_tour_model::TourRunTerminal::Stopped,
         run,
         observations: crate::text_composition::TextObservations::default(),
     })
