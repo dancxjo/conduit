@@ -18,7 +18,99 @@ fn proof_from_manifestation(
         active_play_id: conduit_core::ActivePlayId(effect.active_play_id.clone()),
         result: expected.into(),
         terminal: conduit_tour_model::TourRunTerminal::Stopped,
+        comparison: None,
     })
+}
+
+fn run_resident_compare(
+    stage: &conduit_tour_model::TourStage,
+    source: &str,
+) -> Result<TourRunProof, String> {
+    let expected = stage
+        .expected_text
+        .ok_or("resident Tour comparison has no exact result")?;
+    let (mut proof, direct_segments, direct_unit_millis) =
+        run_direct_comparison(stage, source, expected)?;
+    complete_recursive_comparison(&mut proof, source, &direct_segments, direct_unit_millis)?;
+    Ok(proof)
+}
+
+#[inline(never)]
+fn run_direct_comparison(
+    stage: &conduit_tour_model::TourStage,
+    source: &str,
+    expected: &str,
+) -> Result<(TourRunProof, Vec<super::protocol::IndicatorSegment>, u16), String> {
+    let (mut direct_session, direct) =
+        super::TourSession::prepare("browser/resident-tour", "boot/resident-tour", source, 1)?;
+    let super::TourHostEffect::Manifestation(direct) = direct else {
+        return Err("resident Tour comparison requested an unsupported Host effect".into());
+    };
+    if direct.realization != "direct" {
+        return Err("resident Tour direct realization was not selected".into());
+    }
+    if !matches!(
+        direct_session.advance()?,
+        super::TourProgress::Waiting { .. }
+    ) || direct_session.cancel()?.disposition != "cancelled"
+    {
+        return Err("resident Tour direct realization did not stop exactly".into());
+    }
+    let direct_segments = direct.segments.clone();
+    let direct_unit_millis = direct.unit_millis;
+    let proof = TourRunProof {
+        specimen_id: stage.identity.into(),
+        source_document_id: conduit_core::SourceDocumentId(direct.source_document_id.clone()),
+        checked_form_id: conduit_core::CheckedFormId(direct.checked_form_id.clone()),
+        expanded_form_id: conduit_core::ExpandedFormId(direct.expanded_form_id.clone()),
+        plan_id: conduit_core::PlanId(direct.plan_id.clone()),
+        active_play_id: conduit_core::ActivePlayId(direct.active_play_id.clone()),
+        result: expected.into(),
+        terminal: conduit_tour_model::TourRunTerminal::Completed,
+        comparison: None,
+    };
+    Ok((proof, direct_segments, direct_unit_millis))
+}
+
+#[inline(never)]
+fn complete_recursive_comparison(
+    proof: &mut TourRunProof,
+    source: &str,
+    direct_segments: &[super::protocol::IndicatorSegment],
+    direct_unit_millis: u16,
+) -> Result<(), String> {
+    let (mut recursive_session, recursive) = super::TourSession::prepare_recursive(
+        "browser/resident-tour",
+        "boot/resident-tour",
+        source,
+        2,
+    )?;
+    let super::TourHostEffect::Manifestation(recursive) = recursive else {
+        return Err("resident Tour comparison requested an unsupported Host effect".into());
+    };
+    if proof.source_document_id.as_str() != recursive.source_document_id
+        || proof.checked_form_id.as_str() != recursive.checked_form_id
+        || proof.expanded_form_id.as_str() == recursive.expanded_form_id
+        || proof.plan_id.as_str() == recursive.plan_id
+        || direct_segments != recursive.segments
+        || direct_unit_millis != recursive.unit_millis
+        || recursive.realization != "recursive"
+        || recursive.realization_backs.is_empty()
+    {
+        return Err("resident Tour realizations did not preserve the same Form behavior".into());
+    }
+    if !matches!(
+        recursive_session.advance()?,
+        super::TourProgress::Waiting { .. }
+    ) || recursive_session.cancel()?.disposition != "cancelled"
+    {
+        return Err("resident Tour recursive realization did not stop exactly".into());
+    }
+    proof.comparison = Some(conduit_tour_model::TourComparisonProof {
+        expanded_form_id: conduit_core::ExpandedFormId(recursive.expanded_form_id.clone()),
+        plan_id: conduit_core::PlanId(recursive.plan_id.clone()),
+    });
+    Ok(())
 }
 
 fn run_resident_tour(chapter: u8, stage_index: u8) -> Result<TourRunProof, String> {
@@ -26,19 +118,30 @@ fn run_resident_tour(chapter: u8, stage_index: u8) -> Result<TourRunProof, Strin
         .get(usize::from(chapter))
         .and_then(|chapter| chapter.stages.get(usize::from(stage_index)))
         .ok_or("resident Tour requested an unknown exact stage")?;
-    if chapter != 0 || stage.mode != conduit_tour_model::TourStageMode::Run {
-        return Err("resident browser Host does not yet implement this exact Tour stage".into());
+    let source = conduit_tour_model::tour_stage_source(chapter, stage_index)
+        .map_err(|error| error.to_string())?;
+    match stage.mode {
+        conduit_tour_model::TourStageMode::Compare => run_resident_compare(stage, &source),
+        conduit_tour_model::TourStageMode::Run if chapter == 0 => {
+            run_resident_stage(stage, &source)
+        }
+        _ => Err("resident browser Host does not yet implement this exact Tour stage".into()),
     }
+}
+
+#[inline(never)]
+fn run_resident_stage(
+    stage: &conduit_tour_model::TourStage,
+    source: &str,
+) -> Result<TourRunProof, String> {
     let expected = stage
         .expected_text
         .ok_or("resident Tour stage has no exact expected text")?;
     let expected_manifestations = stage
         .expected_manifestations
         .ok_or("resident Tour stage has no exact manifestation count")?;
-    let source = conduit_tour_model::tour_stage_source(chapter, stage_index)
-        .map_err(|error| error.to_string())?;
     let (mut session, effect) =
-        super::TourSession::prepare("browser/resident-tour", "boot/resident-tour", &source, 1)?;
+        super::TourSession::prepare("browser/resident-tour", "boot/resident-tour", source, 1)?;
     let mut manifestations = 0_u8;
     let mut proof = match effect {
         super::TourHostEffect::Manifestation(effect) => {
@@ -193,9 +296,16 @@ mod tests {
     }
 
     #[test]
-    fn browser_resident_tour_refuses_an_unimplemented_exact_stage() {
+    fn browser_resident_tour_compares_realizations_and_refuses_an_unimplemented_stage() {
+        let proof = run_resident_tour(1, 0).unwrap();
+        assert_eq!(proof.specimen_id, "canonical-form:same-morse-caller");
+        assert_eq!(proof.result, "Direct and recursive realizations agree");
+        let comparison = proof.comparison.unwrap();
+        assert_ne!(proof.expanded_form_id, comparison.expanded_form_id);
+        assert_ne!(proof.plan_id, comparison.plan_id);
+
         assert_eq!(
-            run_resident_tour(1, 0),
+            run_resident_tour(2, 0),
             Err("resident browser Host does not yet implement this exact Tour stage".into())
         );
     }

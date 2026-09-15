@@ -63,8 +63,8 @@ const CHAPTER_ONE_STAGES: [TourStage; 3] = [
 const CHAPTER_TWO_STAGES: [TourStage; 1] = [TourStage {
     identity: "canonical-form:same-morse-caller",
     mode: TourStageMode::Compare,
-    expected_text: None,
-    expected_manifestations: None,
+    expected_text: Some("Direct and recursive realizations agree"),
+    expected_manifestations: Some(2),
 }];
 const CHAPTER_THREE_STAGES: [TourStage; 1] = [TourStage {
     identity: "canonical-form:count-over-time",

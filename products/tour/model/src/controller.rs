@@ -24,6 +24,13 @@ pub struct TourRunProof {
     pub active_play_id: ActivePlayId,
     pub result: String,
     pub terminal: TourRunTerminal,
+    pub comparison: Option<TourComparisonProof>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TourComparisonProof {
+    pub expanded_form_id: ExpandedFormId,
+    pub plan_id: PlanId,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -41,6 +48,7 @@ pub enum TourWorkspaceRefusal {
     WrongSpecimen,
     WrongResult,
     MissingExpectedResult,
+    MissingComparison,
     MissingIdentity,
     RevisionExhausted,
     Chapter(TourApplicationRefusal),
@@ -58,6 +66,7 @@ impl TourWorkspaceRefusal {
             Self::WrongSpecimen => "wrong-specimen",
             Self::WrongResult => "wrong-result",
             Self::MissingExpectedResult => "missing-expected-result",
+            Self::MissingComparison => "missing-comparison",
             Self::MissingIdentity => "missing-identity",
             Self::RevisionExhausted => "revision-exhausted",
             Self::Chapter(_) => "chapter-navigation-refused",
@@ -223,6 +232,9 @@ impl TourWorkspaceController {
         if proof.result != expected {
             return Err(TourWorkspaceRefusal::WrongResult);
         }
+        if stage.mode == crate::TourStageMode::Compare && proof.comparison.is_none() {
+            return Err(TourWorkspaceRefusal::MissingComparison);
+        }
         if [
             proof.source_document_id.as_str(),
             proof.checked_form_id.as_str(),
@@ -232,6 +244,10 @@ impl TourWorkspaceController {
         ]
         .iter()
         .any(|identity| identity.is_empty())
+            || proof.comparison.as_ref().is_some_and(|comparison| {
+                comparison.expanded_form_id.as_str().is_empty()
+                    || comparison.plan_id.as_str().is_empty()
+            })
         {
             return Err(TourWorkspaceRefusal::MissingIdentity);
         }
@@ -350,6 +366,7 @@ mod tests {
             active_play_id: ActivePlayId::from("play"),
             result: CANONICAL_RESULT.to_string(),
             terminal: TourRunTerminal::Completed,
+            comparison: None,
         }
     }
 
