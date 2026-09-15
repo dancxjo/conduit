@@ -1,5 +1,14 @@
 use super::*;
 
+const HEARS_SPEAKS_PROVIDER_RECEIPT: &[u8] = br#"{
+  "providers": {
+    "schema": "conduit.journey/hears-speaks-providers@1",
+    "whisper": {"implementation":"whisper.cpp","executable_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","model_sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+    "local_model": {"runtime_version":"ollama version 1","model_name":"fixture","model_content_identity":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
+    "piper": {"implementation":"piper","executable_sha256":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","model_sha256":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","config_sha256":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
+  }
+}"#;
+
 fn temporary_root(name: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("conduit-evidence-{name}-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
@@ -105,7 +114,7 @@ fn complete_hears_speaks_manifest_requires_typed_audio_and_receipts() {
             EvidenceKind::MachineReadableManifest,
             "receipt.json",
             "application/json",
-            b"{}".as_slice(),
+            HEARS_SPEAKS_PROVIDER_RECEIPT,
         ),
     ];
     let mut evidence = EvidenceManifest::new(
@@ -585,7 +594,7 @@ fn complete_hears_speaks_evidence(root: &Path) {
             EvidenceKind::MachineReadableManifest,
             "receipt.json",
             "application/json",
-            b"{}".as_slice(),
+            HEARS_SPEAKS_PROVIDER_RECEIPT,
         ),
     ];
     let mut evidence = EvidenceManifest::new(
@@ -755,6 +764,10 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read_to_string(site_root.join("current/patchbay/overview/index.html")).unwrap();
     assert!(index.contains(&commit));
     assert!(index.contains("latest 32 published main commits"));
+    assert!(index.contains("Things Conduit can embody"));
+    assert!(index.contains("journey-card"));
+    assert!(index.contains("Follow highlights"));
+    assert!(index.contains("<audio controls"));
     assert!(index.contains("Current x86_64 ConduitOS emulator console evidence"));
     assert!(scenario.contains("1440x1000"));
     assert!(scenario.contains("Exact provenance"));
@@ -768,7 +781,8 @@ fn gallery_publishes_current_history_and_provenance() {
     let two_faces_page =
         fs::read_to_string(site_root.join("current/one-form-two-faces/index.html")).unwrap();
     assert!(two_faces_page.contains("One Form, Two Faces"));
-    assert!(two_faces_page.contains("Pixel equality is neither expected nor claimed"));
+    assert!(two_faces_page.contains("One meaning, two manifestations"));
+    assert!(two_faces_page.contains("Pixel equality, physical display output"));
     assert!(two_faces_page.contains("presentation/two-faces"));
     assert_eq!(
         fs::read(site_root.join("current/one-form-two-faces/native.png")).unwrap(),
@@ -788,6 +802,8 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(console_page.contains(&commit));
     let audio_page = fs::read_to_string(site_root.join("current/hears-speaks/index.html")).unwrap();
     assert!(audio_page.contains("<audio controls"));
+    assert!(audio_page.contains("A question became an answer"));
+    assert!(audio_page.contains("Evidence and exact downloads"));
     assert!(audio_page.contains("not a live microphone"));
     assert_eq!(
         fs::read(site_root.join("current/hears-speaks/output.wav")).unwrap(),
@@ -797,8 +813,11 @@ fn gallery_publishes_current_history_and_provenance() {
         .join("current/hears-speaks/manifest.json")
         .is_file());
     let life_page = fs::read_to_string(site_root.join("current/little-life/index.html")).unwrap();
-    assert!(life_page.contains("t = 0"));
-    assert!(life_page.contains("t = 32"));
+    assert!(life_page.contains("Generation 0"));
+    assert!(life_page.contains("Generation 32"));
+    assert!(life_page.contains("id=\"life-scrub\""));
+    assert!(life_page.contains("prefers-reduced-motion: reduce"));
+    assert!(life_page.contains("Accepted retained checkpoints only"));
     assert!(life_page.contains("not a native graphical renderer"));
     assert_eq!(
         fs::read(site_root.join("current/little-life/t032.png")).unwrap(),

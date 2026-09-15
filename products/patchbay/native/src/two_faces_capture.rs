@@ -20,11 +20,17 @@ pub(super) fn run(root: &Path) -> Result<(), String> {
     if !metadata.is_dir() {
         return Err("two-faces evidence root must be an existing directory".into());
     }
-    let session = ZeroBodyFrontDoor::with_identity(
+    let mut session = ZeroBodyFrontDoor::with_identity(
         std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter),
         HostId::from(ONE_FORM_TWO_FACES_HOST_ID),
         BootId::from(ONE_FORM_TWO_FACES_BOOT_ID),
     )?;
+    let form = session
+        .form_ids()
+        .into_iter()
+        .next()
+        .ok_or("two-faces entrance has no reviewed Form")?;
+    session.open_form(&form, session.revision())?;
     let projection = session.project()?;
     let lines = ordinary_front_door_lines(&projection.presentation, &projection.navigation, None)?;
     let mut execution = RendererExecution::prepare(

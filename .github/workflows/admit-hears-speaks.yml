@@ -1,0 +1,126 @@
+name: Admit trusted Hears and Speaks evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      accepted_source_sha:
+        description: Exact successful promotion head that produced the provider evidence
+        required: true
+        type: string
+      promotion_run_id:
+        description: Successful promotion run containing the full accepted Pages carrier
+        required: true
+        type: number
+      evidence_sha256:
+        description: SHA-256 of hears-speaks.tar.gz on the commit-bound evidence release
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: tour-and-creche-pages
+  cancel-in-progress: false
+
+jobs:
+  admit-and-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      ACCEPTED_SOURCE_SHA: ${{ inputs.accepted_source_sha }}
+      PROMOTION_RUN_ID: ${{ inputs.promotion_run_id }}
+      EVIDENCE_SHA256: ${{ inputs.evidence_sha256 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out trusted publication machinery
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Admit one exact successful stable source and promotion
+        run: |
+          [[ "$ACCEPTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EVIDENCE_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PROMOTION_RUN_ID")
+          test "$(jq -r .name <<<"$run")" = promotion
+          test "$(jq -r .event <<<"$run")" = pull_request
+          test "$(jq -r .conclusion <<<"$run")" = success
+          test "$(jq -r .head_sha <<<"$run")" = "$ACCEPTED_SOURCE_SHA"
+          git fetch --no-tags origin "$ACCEPTED_SOURCE_SHA" main
+          test "$(git rev-parse "$ACCEPTED_SOURCE_SHA^{tree}")" = "$(git rev-parse origin/main^{tree})"
+      - name: Check out the exact accepted product source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.accepted_source_sha }}
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Receive the exact promoted full Pages carrier
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-pages-carrier-with-conduitos
+          path: target/accepted-carrier
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.promotion_run_id }}
+          github-token: ${{ github.token }}
+      - name: Receive the small host-local evidence archive
+        run: |
+          git fetch --no-tags origin "refs/tags/journey-evidence/$ACCEPTED_SOURCE_SHA"
+          test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$ACCEPTED_SOURCE_SHA"
+          mkdir "$RUNNER_TEMP/evidence-download"
+          gh release download "journey-evidence/$ACCEPTED_SOURCE_SHA" \
+            --repo "$GITHUB_REPOSITORY" --pattern hears-speaks.tar.gz \
+            --dir "$RUNNER_TEMP/evidence-download"
+          echo "$EVIDENCE_SHA256  $RUNNER_TEMP/evidence-download/hears-speaks.tar.gz" | sha256sum --check --strict
+          entries=$(tar -tzf "$RUNNER_TEMP/evidence-download/hears-speaks.tar.gz")
+          test "$(wc -l <<<"$entries")" -le 16
+          ! grep -Eq '(^/|(^|/)\.\.(/|$))' <<<"$entries"
+          mkdir "$RUNNER_TEMP/hears-speaks"
+          tar -xzf "$RUNNER_TEMP/evidence-download/hears-speaks.tar.gz" \
+            --no-same-owner --no-same-permissions -C "$RUNNER_TEMP/hears-speaks"
+      - name: Verify and publish only exact provider-produced evidence
+        run: |
+          source_tree=$(git rev-parse 'HEAD^{tree}')
+          node tools/ci/verify-pages-carrier.mjs target/accepted-carrier "$source_tree"
+          cargo xtask evidence verify --locked \
+            --root "$RUNNER_TEMP/hears-speaks" \
+            --commit "$ACCEPTED_SOURCE_SHA" --result complete \
+            --proof journey-hears-speaks --suite journey-gallery
+          cp -a target/accepted-carrier/site/journeys "$RUNNER_TEMP/gallery"
+          mkdir "$RUNNER_TEMP/two-faces" "$RUNNER_TEMP/little-life"
+          for file in manifest.json native.png native.json browser.png browser.json; do
+            cp "$RUNNER_TEMP/gallery/current/one-form-two-faces/$file" "$RUNNER_TEMP/two-faces/$file"
+          done
+          for file in manifest.json t000.png t001.png t008.png t032.png presentation.txt execution.json; do
+            cp "$RUNNER_TEMP/gallery/current/little-life/$file" "$RUNNER_TEMP/little-life/$file"
+          done
+          cargo xtask evidence gallery --locked \
+            --hears-speaks-evidence-root "$RUNNER_TEMP/hears-speaks" \
+            --two-faces-evidence-root "$RUNNER_TEMP/two-faces" \
+            --little-life-evidence-root "$RUNNER_TEMP/little-life" \
+            --site-root "$RUNNER_TEMP/gallery" --commit "$ACCEPTED_SOURCE_SHA"
+          cp -a target/accepted-carrier/site "$RUNNER_TEMP/site"
+          find "$RUNNER_TEMP/site/journeys" -depth -delete
+          cp -a "$RUNNER_TEMP/gallery" "$RUNNER_TEMP/site/journeys"
+          node tools/ci/seal-pages-carrier.mjs \
+            "$RUNNER_TEMP/site" "$RUNNER_TEMP/provider-carrier" \
+            "$ACCEPTED_SOURCE_SHA" "$source_tree"
+          node tools/ci/verify-pages-carrier.mjs "$RUNNER_TEMP/provider-carrier" "$source_tree"
+      - name: Upload the resealed full carrier
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/provider-carrier/site
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+      - name: Deploy Conduit Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
