@@ -200,7 +200,7 @@ fn complete_little_life_evidence(root: &Path) {
     )
     .unwrap();
     let mut evidence = EvidenceManifest::new(
-        &root,
+        root,
         Path::new(env!("CARGO_MANIFEST_DIR")),
         "journey-little-life",
         "journey-gallery",
