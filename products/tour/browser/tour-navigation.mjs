@@ -39,18 +39,14 @@ export function createTourWorkspace(root, readingState) {
   const content = root.querySelector(".tour-content");
   const laboratory = root.querySelector("#laboratory-slot");
   const width = root.querySelector("#tour-narrative-width");
-  const patchbayHeight = root.querySelector("#tour-patchbay-height");
-  const sourceWidth = root.querySelector("#tour-source-width");
   const reset = root.querySelector("[data-tour-reset-layout]");
   const viewButtons = [...root.querySelectorAll("[data-tour-view]")];
-  if (!content || !laboratory || !width || !patchbayHeight || !sourceWidth || !reset || viewButtons.length !== 2) {
+  if (!content || !laboratory || !width || !reset || viewButtons.length !== 2) {
     throw new Error("Tour workspace controls are incomplete");
   }
 
   const exposePercent = (control, value) => {
     control.setAttribute("aria-valuetext", `${value} percent`);
-    const output = root.querySelector(`#${control.id}-output`);
-    if (output) output.value = `${value}%`;
   };
   const setWidth = (value, persist) => {
     const admitted = Number(value);
@@ -62,12 +58,33 @@ export function createTourWorkspace(root, readingState) {
     content.style.setProperty("--tour-narrative-percent", `${admitted}%`);
     if (persist) readingState.setNarrativePercent(admitted);
   };
-  const setLaboratoryGeometry = (control, property, setter, value, persist) => {
+  const setLaboratoryGeometry = (selector, property, setter, value, persist) => {
     const admitted = Number(value);
-    control.value = String(admitted);
-    exposePercent(control, admitted);
+    for (const control of root.querySelectorAll(selector)) {
+      control.value = String(admitted);
+      exposePercent(control, admitted);
+    }
     laboratory.style.setProperty(property, `${admitted}%`);
     if (persist) setter(admitted);
+  };
+  const dragDivider = (control, event, measure) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    control.setPointerCapture(event.pointerId);
+    const move = (pointer) => {
+      const value = measure(pointer);
+      control.value = String(Math.max(Number(control.min), Math.min(Number(control.max), Math.round(value))));
+      control.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    const finish = () => {
+      control.removeEventListener("pointermove", move);
+      control.removeEventListener("pointerup", finish);
+      control.removeEventListener("pointercancel", finish);
+    };
+    control.addEventListener("pointermove", move);
+    control.addEventListener("pointerup", finish);
+    control.addEventListener("pointercancel", finish);
+    move(event);
   };
   const show = (view, focus = false) => {
     if (view !== "lesson" && view !== "laboratory") throw new Error("Tour workspace view is not admitted");
@@ -77,15 +94,33 @@ export function createTourWorkspace(root, readingState) {
   };
 
   setWidth(readingState.workspace.narrativePercent, false);
-  setLaboratoryGeometry(patchbayHeight, "--tour-patchbay-percent", readingState.setPatchbayPercent, readingState.workspace.patchbayPercent, false);
-  setLaboratoryGeometry(sourceWidth, "--tour-source-percent", readingState.setSourcePercent, readingState.workspace.sourcePercent, false);
+  setLaboratoryGeometry(".tour-patchbay-height", "--tour-patchbay-percent", readingState.setPatchbayPercent, readingState.workspace.patchbayPercent, false);
+  setLaboratoryGeometry(".tour-source-width", "--tour-source-percent", readingState.setSourcePercent, readingState.workspace.sourcePercent, false);
   width.addEventListener("input", () => setWidth(width.value, true));
-  patchbayHeight.addEventListener("input", () => setLaboratoryGeometry(patchbayHeight, "--tour-patchbay-percent", readingState.setPatchbayPercent, patchbayHeight.value, true));
-  sourceWidth.addEventListener("input", () => setLaboratoryGeometry(sourceWidth, "--tour-source-percent", readingState.setSourcePercent, sourceWidth.value, true));
+  width.addEventListener("pointerdown", (event) => dragDivider(width, event, (pointer) => {
+    const bounds = content.getBoundingClientRect();
+    return (pointer.clientX - bounds.left) * 100 / bounds.width;
+  }));
+  laboratory.addEventListener("input", (event) => {
+    if (event.target.matches(".tour-patchbay-height")) setLaboratoryGeometry(".tour-patchbay-height", "--tour-patchbay-percent", readingState.setPatchbayPercent, event.target.value, true);
+    else if (event.target.matches(".tour-source-width")) setLaboratoryGeometry(".tour-source-width", "--tour-source-percent", readingState.setSourcePercent, event.target.value, true);
+  });
+  laboratory.addEventListener("pointerdown", (event) => {
+    const control = event.target.closest(".pane-divider-control");
+    if (!control) return;
+    const bounds = (control.matches(".tour-patchbay-height") ? laboratory : control.closest(".runner")).getBoundingClientRect();
+    dragDivider(control, event, (pointer) => control.matches(".tour-patchbay-height")
+      ? (pointer.clientY - bounds.top) * 100 / bounds.height
+      : (pointer.clientX - bounds.left) * 100 / bounds.width);
+  });
+  new MutationObserver(() => {
+    setLaboratoryGeometry(".tour-patchbay-height", "--tour-patchbay-percent", readingState.setPatchbayPercent, readingState.workspace.patchbayPercent, false);
+    setLaboratoryGeometry(".tour-source-width", "--tour-source-percent", readingState.setSourcePercent, readingState.workspace.sourcePercent, false);
+  }).observe(laboratory, { childList: true });
   reset.addEventListener("click", () => {
     setWidth(46, true);
-    setLaboratoryGeometry(patchbayHeight, "--tour-patchbay-percent", readingState.setPatchbayPercent, 55, true);
-    setLaboratoryGeometry(sourceWidth, "--tour-source-percent", readingState.setSourcePercent, 60, true);
+    setLaboratoryGeometry(".tour-patchbay-height", "--tour-patchbay-percent", readingState.setPatchbayPercent, 55, true);
+    setLaboratoryGeometry(".tour-source-width", "--tour-source-percent", readingState.setSourcePercent, 60, true);
   });
   for (const button of viewButtons) button.addEventListener("click", () => show(button.dataset.tourView, true));
   return Object.freeze({

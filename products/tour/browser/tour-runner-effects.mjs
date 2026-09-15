@@ -20,7 +20,9 @@ export function createTourEffectPerformer({ api, runner, humanInput, openHumanIn
       return encoded;
     } else if (progress.effect_kind === "pointer-event") {
       runner.querySelector(".input-button").hidden = false;
-      runner.querySelector(".input-button").textContent = "Choose a horizontal position";
+      if (!runner.querySelector(".input-button").matches("input[type=range]")) {
+        runner.querySelector(".input-button").textContent = "Choose a horizontal position";
+      }
       runner.playStatus.ordinary("Click a horizontal position on the controller to choose a pitch.");
       const event = await nextPointer(openHumanInput, runner, signal);
       if (!isCurrent()) return;
