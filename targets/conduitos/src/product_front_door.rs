@@ -262,12 +262,13 @@ pub fn run(
                         kind: ApplicationEventKind::Activate,
                         value: alloc::vec::Vec::new(),
                     };
-                    let update = match tour.accept(
+                    let update = match tour.accept_with_timer(
                         &event,
                         identities,
                         offer,
                         fabrication.build_id,
                         &mut clock,
+                        &mut timer,
                         &mut serial,
                         &mut interrupts,
                         &mut idle,
@@ -569,6 +570,10 @@ pub fn run(
                 Ok(())
             },
         )?;
+        // The keyboard receive was published before the F12 release yielded
+        // ownership to the Line. Its exact pending transfer remains the
+        // hand-back boundary when the finite Line session ends.
+        arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-resumed-after-line\n");
     }
     let mut execute_tour = |tour: &mut TourProduct, event: &ApplicationEvent| {
         tour.accept_with_timer(
