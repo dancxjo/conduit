@@ -11,6 +11,78 @@ test.beforeEach(async ({ page }) => {
 });
 test.afterEach(() => entrance?.child.kill());
 
+test("resident application styles are package-bound, scoped, and responsive", async ({ page }, testInfo) => {
+  await page.goto(entrance.url);
+  await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+  for (const title of ["Tour", "Patchbay"]) {
+    await page.getByRole("checkbox", { name: title, exact: true }).check();
+  }
+  await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await expect(page.locator('style[data-application-resource="resident-tour-style"]')).toHaveCount(1);
+
+  const packagedStyle = await page.evaluate(async () => {
+    const manifest = await fetch("./workspace.application.json").then(response => response.json());
+    return manifest.resources.find(resource => resource.role === "resident-tour-style");
+  });
+  expect(packagedStyle).toMatchObject({ kind: "style", path: "resident-tour.css", maximum_bytes: 8192 });
+  expect(packagedStyle.sha256).toMatch(/^sha256:[0-9a-f]{64}$/);
+
+  await page.locator("[data-checked-form-id]").filter({ hasText: "Tour" }).click();
+  const tour = visibleFormOutput(page);
+  await expect(tour).toHaveAttribute("data-presentation-kind", "presentation/application-view");
+  await expect(tour.locator(':scope > [data-application-key="tour"]')).toHaveCSS("display", "grid");
+  await expect(tour).toHaveCSS("font-size", "16px");
+  const source = tour.locator('[data-application-key="source"]');
+  await expect(source).toHaveCSS("font-size", "13.6px");
+  await expect(tour.locator('[data-application-key="result"]')).toContainText("Not run");
+  await expect(tour.locator('[data-application-key="result"]')).toBeVisible();
+  expect((await source.evaluate(element => getComputedStyle(element).fontFamily)).toLowerCase()).toContain("mono");
+  const desktop = await tour.evaluate(element => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+  }));
+  expect(desktop.scrollWidth).toBeLessThanOrEqual(desktop.clientWidth);
+  expect(desktop.clientHeight).toBeLessThanOrEqual(704);
+  expect(desktop.scrollHeight).toBeLessThan(1400);
+  await page.screenshot({ path: testInfo.outputPath("resident-tour-styled.png"), fullPage: true });
+
+  await page.locator("[data-checked-form-id]").filter({ hasText: "Patchbay" }).click();
+  const patchbay = visibleFormOutput(page);
+  await expect(patchbay).toHaveAttribute("data-presentation-kind", "presentation/application-view");
+  await expect(patchbay).toHaveCSS("font-size", "16px");
+  await expect(patchbay.locator(':scope > [data-application-key="tour"]')).toHaveCount(0);
+
+  await page.locator("[data-checked-form-id]").filter({ hasText: "Memory Lantern" }).click();
+  await page.locator("#form-input").focus();
+  await page.keyboard.type("large");
+  const text = visibleFormOutput(page);
+  await expect(text).toHaveAttribute("data-presentation-kind", "presentation/text");
+  await expect(text).toHaveCSS("font-size", "56px");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator("[data-checked-form-id]").filter({ hasText: "Tour" }).click();
+  const narrow = await visibleFormOutput(page).evaluate(element => {
+    const lesson = element.querySelector('[data-application-key="lesson"]').getBoundingClientRect();
+    const patchbay = element.querySelector('[data-application-key="patchbay-panel"]').getBoundingClientRect();
+    return {
+      documentWidth: document.documentElement.scrollWidth,
+      outputClientWidth: element.clientWidth,
+      outputScrollWidth: element.scrollWidth,
+      outputWidth: element.getBoundingClientRect().width,
+      lesson: { x: lesson.x, width: lesson.width },
+      patchbay: { x: patchbay.x, width: patchbay.width },
+    };
+  });
+  expect(narrow.documentWidth).toBeLessThanOrEqual(390);
+  expect(narrow.outputScrollWidth).toBeLessThanOrEqual(narrow.outputClientWidth);
+  expect(Math.abs(narrow.lesson.x - narrow.patchbay.x)).toBeLessThan(1);
+  expect(Math.abs(narrow.lesson.width - narrow.patchbay.width)).toBeLessThan(1);
+  await page.screenshot({ path: testInfo.outputPath("resident-tour-styled-narrow.png"), fullPage: true });
+});
+
 test("resident Tour runs every exercise and keeps state across foreground switches", async ({ page }, testInfo) => {
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
