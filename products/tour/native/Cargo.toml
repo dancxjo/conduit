@@ -1,0 +1,26 @@
+[package]
+name = "conduit-tour-native"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+conduit = { path = "../../conduit" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-std-host = { path = "../../../targets/std" }
+conduit-tour-model = { path = "../model" }
+embedded-graphics = "=0.8.1"
+softbuffer = { version = "0.4", default-features = false }
+winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+softbuffer = { version = "0.4", default-features = false, features = ["wayland", "wayland-dlopen", "x11", "x11-dlopen"] }
+winit = { version = "0.30", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen", "x11"] }
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "conduit-tour"
+path = "src/main.rs"

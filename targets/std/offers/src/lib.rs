@@ -28,6 +28,8 @@ mod presentation_sinks;
 pub use presentation_sinks::*;
 mod text;
 pub use text::*;
+mod morse_composition;
+pub use morse_composition::*;
 mod text_state;
 pub use text_state::*;
 mod state_input;

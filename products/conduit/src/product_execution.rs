@@ -74,12 +74,14 @@ pub(crate) struct ProductExecutionContext {
 }
 
 impl ProductExecutionContext {
-    #[cfg(test)]
+    // Used by the library entrance; the binary compiles this module independently.
+    #[allow(dead_code)]
     pub(crate) fn advertisements(&self) -> &[HostAdvertisement] {
         &self.advertisements
     }
 
     #[cfg(test)]
+    #[allow(dead_code)]
     pub(crate) fn line_offers(&self) -> &[LineOffer] {
         &self.line_offers
     }
@@ -341,7 +343,8 @@ impl ProductExecutionContext {
             .min()
     }
 
-    #[cfg(test)]
+    // Used by the library entrance; the binary compiles this module independently.
+    #[allow(dead_code)]
     pub(crate) fn execute<W: Write>(
         &mut self,
         plan: Plan,

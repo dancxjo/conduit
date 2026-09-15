@@ -322,7 +322,10 @@ fn resident_tour_run_crosses_the_real_plan_play_and_returns_proof_to_the_same_bo
         .unwrap();
     assert_eq!(
         journey.take_application_request(),
-        Some(native_workset::NativeApplicationRequest::RunTour)
+        Some(native_workset::NativeApplicationRequest::RunTour {
+            chapter: 0,
+            stage: 0
+        })
     );
     let mut prepared = crate::tour_play::prepare(&ids, &offer, "build").unwrap();
     let mut clock = TestClock::default();
@@ -351,6 +354,38 @@ fn resident_tour_run_crosses_the_real_plan_play_and_returns_proof_to_the_same_bo
     assert_eq!(after.body_id, execution.body_id);
     assert_eq!(after.plan_id, execution.plan_id);
     assert_eq!(after.active_play_id, execution.active_play_id);
+}
+
+#[test]
+fn resident_tour_retains_the_exact_requested_stage_across_the_application_seam() {
+    let (ids, offer, mut journey) = born();
+    run(&mut journey, &ids, &offer);
+    select(&mut journey, NativeForm::Tour);
+    let initial = journey.foreground_application_view().unwrap().clone();
+    journey
+        .accept_application_event(&conduit_presentation::ApplicationEvent {
+            revision: initial.revision,
+            action: conduit_tour_model::NEXT_CHAPTER_ACTION_ID.into(),
+            kind: conduit_presentation::ApplicationEventKind::Activate,
+            value: Vec::new(),
+        })
+        .unwrap();
+    let comparison = journey.foreground_application_view().unwrap().clone();
+    journey
+        .accept_application_event(&conduit_presentation::ApplicationEvent {
+            revision: comparison.revision,
+            action: conduit_tour_model::RUN_ACTION_ID.into(),
+            kind: conduit_presentation::ApplicationEventKind::Activate,
+            value: Vec::new(),
+        })
+        .unwrap();
+    assert_eq!(
+        journey.take_application_request(),
+        Some(native_workset::NativeApplicationRequest::RunTour {
+            chapter: 1,
+            stage: 0
+        })
+    );
 }
 
 #[derive(Default)]

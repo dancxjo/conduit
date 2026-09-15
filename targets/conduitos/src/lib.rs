@@ -169,9 +169,24 @@ pub mod text_upper;
 pub mod timer_nucleus;
 mod timing_plan;
 pub mod timing_profile;
+mod tour_comparison_kernel;
+pub mod tour_comparison_plan;
+mod tour_comparison_play;
+mod tour_morse_kernel;
+mod tour_morse_operations;
+mod tour_morse_plan;
+mod tour_morse_play;
 pub mod tour_play;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod tour_product;
 #[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 pub mod tour_shell;
+mod tour_timer_kernel;
+mod tour_timer_offer;
+pub mod tour_timer_plan;
+mod tour_timer_play;
+mod tour_two_host;
+mod tour_two_host_kernel;
+pub mod tour_two_host_plan;
+mod tour_two_host_play;
 pub mod tour_workspace;

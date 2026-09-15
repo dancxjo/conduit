@@ -10,7 +10,7 @@ pub(super) enum NativeApplication {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NativeApplicationRequest {
-    RunTour,
+    RunTour { chapter: u8, stage: u8 },
     OpenPatchbay,
     EditCurrent(patchbay_application::PatchbayApplicationRequest),
 }

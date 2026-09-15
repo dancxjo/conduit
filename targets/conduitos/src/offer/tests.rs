@@ -51,6 +51,31 @@ fn exact_boot_offer_is_finite_and_bases_do_not_imply_authority() {
         offer.capabilities[1].input.map(|port| port.direction),
         Some(PortDirection::Input)
     );
+    let morse = &offer.capabilities[5];
+    assert_eq!(morse.kind, conduit_text::TEXT_MORSE_KIND);
+    assert_eq!(morse.implementation, TEXT_MORSE_IMPLEMENTATION);
+    assert_eq!(
+        morse.output.map(|port| port.value_kind),
+        Some(conduit_text::MORSE_PATTERN_VALUE_KIND)
+    );
+    assert_eq!(
+        morse.maximum_output_bytes,
+        conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32
+    );
+    let indicator = &offer.capabilities[6];
+    assert_eq!(
+        indicator.kind,
+        conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
+    );
+    assert_eq!(
+        indicator.implementation,
+        INDICATOR_PRESENTATION_IMPLEMENTATION
+    );
+    assert_eq!(indicator.required_base, BaseKind::Serial);
+    assert_eq!(
+        indicator.input.map(|port| port.value_kind),
+        Some(conduit_text::MORSE_PATTERN_VALUE_KIND)
+    );
 }
 
 #[test]

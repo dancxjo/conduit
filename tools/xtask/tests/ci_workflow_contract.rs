@@ -362,6 +362,20 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
 }
 
 #[test]
+fn hosted_release_jobs_run_the_packaged_tour_journey_on_linux_and_windows() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let releases = workflow
+        .split("\n  host-releases:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  raspberry-pi-release:\n").next())
+        .expect("locate host releases job");
+    assert!(releases.contains("conduit-tour-linux-x86_64 --journey"));
+    assert!(releases.contains("conduit-tour-windows-x86_64.exe --journey"));
+}
+
+#[test]
 fn browser_release_installs_its_exact_wasm_target() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
@@ -395,6 +409,98 @@ fn product_descendants_use_explicit_direct_result_admission() {
     assert!(carrier.contains(
         "if: always() && !cancelled() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'"
     ));
+}
+
+#[test]
+fn two_faces_evidence_is_pinned_exact_bounded_and_admitted() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let evidence = workflow
+        .split("\n  journey-evidence:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
+        .expect("locate sibling journey evidence job");
+    let gate = workflow
+        .split("\n  products-proof:\n")
+        .nth(1)
+        .expect("locate stable product gate");
+
+    assert!(evidence.contains("mcr.microsoft.com/playwright:v1.62.0-noble"));
+    assert!(evidence.contains(
+        "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
+    ));
+    assert!(evidence.contains(
+        "cargo xtask evidence one-form-two-faces --locked --output \"$RUNNER_TEMP/one-form-two-faces\""
+    ));
+    assert!(evidence.contains("--root \"$RUNNER_TEMP/one-form-two-faces\""));
+    assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
+    assert!(evidence.contains("--proof journey-one-form-two-faces"));
+    assert!(evidence.contains("--suite journey-gallery"));
+    assert!(evidence.contains("retention-days: 14"));
+    assert!(gate.contains("JOURNEY_REQUIRED: ${{ needs.plan.outputs.browser_runtime_required }}"));
+    assert!(gate.contains("JOURNEY_RESULT: ${{ needs.journey-evidence.result }}"));
+    assert!(gate.contains("test \"$JOURNEY_RESULT\" = success"));
+}
+
+#[test]
+fn little_life_evidence_is_exact_bounded_and_part_of_carrier_admission() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let evidence = workflow
+        .split("\n  little-life-evidence:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
+        .expect("locate Little Life evidence job");
+    let gate = workflow
+        .split("\n  products-proof:\n")
+        .nth(1)
+        .expect("locate stable product gate");
+
+    assert!(evidence.contains("if: needs.plan.outputs.pages_carrier_required == 'true'"));
+    assert!(evidence.contains(
+        "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
+    ));
+    assert!(evidence.contains(
+        "cargo xtask evidence little-life --locked --output \"$RUNNER_TEMP/little-life\""
+    ));
+    assert!(evidence.contains("--root \"$RUNNER_TEMP/little-life\""));
+    assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
+    assert!(evidence.contains("--proof journey-little-life"));
+    assert!(evidence.contains("--suite journey-gallery"));
+    assert!(evidence.contains("retention-days: 14"));
+    assert!(gate.contains("LITTLE_LIFE_RESULT: ${{ needs.little-life-evidence.result }}"));
+    assert!(gate.contains("test \"$LITTLE_LIFE_RESULT\" = success"));
+}
+
+#[test]
+fn sibling_gallery_is_exact_sealed_and_part_of_carrier_admission() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let gallery = workflow
+        .split("\n  journey-gallery:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
+        .expect("locate sibling gallery job");
+    let gate = workflow
+        .split("\n  products-proof:\n")
+        .nth(1)
+        .expect("locate stable product gate");
+
+    assert!(gallery.contains("needs: [plan, journey-evidence, little-life-evidence]"));
+    assert!(gallery.contains("conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(gallery.contains("conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(gallery.contains("--two-faces-evidence-root"));
+    assert!(gallery.contains("--little-life-evidence-root"));
+    assert!(gallery.contains("$RUNNER_TEMP/journey-gallery-carrier"));
+    assert!(gallery.contains("seal-pages-carrier.mjs"));
+    assert!(gallery.contains("verify-pages-carrier.mjs"));
+    assert!(gallery.contains("name: conduit-journey-gallery-${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(gallery.contains("retention-days: 14"));
+    assert!(gate.contains("JOURNEY_GALLERY_RESULT: ${{ needs.journey-gallery.result }}"));
+    assert!(gate.contains("test \"$JOURNEY_GALLERY_RESULT\" = success"));
 }
 
 #[test]

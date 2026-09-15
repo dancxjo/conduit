@@ -104,6 +104,7 @@ package_test_shard!(
         "conduit-creche-model",
         "conduit-workspace-model",
         "conduit-tour-model",
+        "conduit-tour-native",
         "patchbay-application",
         "patchbay-control",
         "conduit",

@@ -128,13 +128,21 @@ jobs:
         with:
           name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
           path: target/conduitos-acceptance
+      - name: Receive the sealed sibling journey gallery
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-journey-gallery-${{ github.event.pull_request.head.sha }}
+          path: target/journey-gallery-carrier
       - name: Append only validated promotion evidence and reseal the carrier
         run: |
           source_commit=$(git rev-parse HEAD)
           source_tree=$(git rev-parse 'HEAD^{tree}')
           node tools/ci/verify-pages-carrier.mjs target/pages-carrier-base "$source_tree"
+          node tools/ci/verify-pages-carrier.mjs target/journey-gallery-carrier "$source_tree"
           rm -rf target/pages-site target/pages-carrier-with-conduitos
           cp -a target/pages-carrier-base/site target/pages-site
+          node tools/ci/stage-journey-pages-evidence.mjs \
+            target/journey-gallery-carrier/site target/pages-site "$source_commit"
           node tools/ci/stage-conduitos-pages-evidence.mjs \
             target/conduitos-acceptance/journey-frames target/pages-site "$source_commit"
           node tools/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier-with-conduitos "$source_commit" "$source_tree"

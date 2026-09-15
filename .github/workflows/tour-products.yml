@@ -544,6 +544,14 @@ jobs:
           sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross
       - name: Compile and seal the reviewed generic existing-computer releases
         run: cargo +1.98.1 xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
+      - name: Run the packaged Linux Tour journey
+        if: matrix.platform == 'linux'
+        run: |
+          chmod +x target/creche-host-releases/conduit-tour-linux-x86_64
+          target/creche-host-releases/conduit-tour-linux-x86_64 --journey
+      - name: Run the packaged Windows Tour journey
+        if: matrix.platform == 'windows'
+        run: target/creche-host-releases/conduit-tour-windows-x86_64.exe --journey
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-${{ matrix.artifact }}
@@ -965,6 +973,135 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  journey-evidence:
+    needs: plan
+    if: needs.plan.outputs.browser_runtime_required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+      CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - name: Install the native linker and pinned browser dependency
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential
+          npm --prefix proof/browser ci --ignore-scripts --prefer-offline
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Retain one Presentation through native and browser renderers
+        run: cargo xtask evidence one-form-two-faces --locked --output "$RUNNER_TEMP/one-form-two-faces"
+      - name: Verify the bounded exact-candidate sibling manifest
+        run: >-
+          cargo xtask evidence verify --locked
+          --root "$RUNNER_TEMP/one-form-two-faces"
+          --commit "$CONDUIT_CANDIDATE_SHA"
+          --result complete
+          --proof journey-one-form-two-faces
+          --suite journey-gallery
+      - name: Retain the exact One Form, Two Faces evidence
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/one-form-two-faces
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  little-life-evidence:
+    needs: plan
+    if: needs.plan.outputs.pages_carrier_required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Run the bounded Orbium evolution through ordinary Conduit Plan and Play
+        run: cargo xtask evidence little-life --locked --output "$RUNNER_TEMP/little-life"
+      - name: Verify the exact six-output candidate manifest
+        run: >-
+          cargo xtask evidence verify --locked
+          --root "$RUNNER_TEMP/little-life"
+          --commit "$CONDUIT_CANDIDATE_SHA"
+          --result complete
+          --proof journey-little-life
+          --suite journey-gallery
+      - name: Retain the exact Little Life evidence
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/little-life
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  journey-gallery:
+    needs: [plan, journey-evidence, little-life-evidence]
+    if: >-
+      always() && !cancelled() &&
+      needs.plan.outputs.pages_carrier_required == 'true' &&
+      needs.journey-evidence.result == 'success' &&
+      needs.little-life-evidence.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Receive the exact sibling journey evidence
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/journey-inputs/one-form-two-faces
+      - uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/journey-inputs/little-life
+      - name: Build and seal the exact sibling journey gallery
+        run: |
+          cargo xtask evidence gallery --locked \
+            --two-faces-evidence-root "$RUNNER_TEMP/journey-inputs/one-form-two-faces" \
+            --little-life-evidence-root "$RUNNER_TEMP/journey-inputs/little-life" \
+            --site-root "$RUNNER_TEMP/journey-gallery-site" \
+            --commit "$CONDUIT_CANDIDATE_SHA"
+          source_tree=$(git rev-parse 'HEAD^{tree}')
+          node tools/ci/seal-pages-carrier.mjs \
+            "$RUNNER_TEMP/journey-gallery-site" "$RUNNER_TEMP/journey-gallery-carrier" \
+            "$CONDUIT_CANDIDATE_SHA" "$source_tree"
+          node tools/ci/verify-pages-carrier.mjs \
+            "$RUNNER_TEMP/journey-gallery-carrier" "$source_tree"
+      - name: Retain the sealed exact sibling journey gallery
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-journey-gallery-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/journey-gallery-carrier
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+          compression-level: 0
+
   pages-carrier:
     needs: [plan, products-stage, browser-proof]
     if: always() && !cancelled() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'
@@ -1093,7 +1230,7 @@ jobs:
           retention-days: 14
 
   products-proof:
-    needs: [plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, pages-carrier, proof-receipts]
+    needs: [plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, little-life-evidence, journey-gallery, pages-carrier, proof-receipts]
     # A deliberately cancelled duplicate lifecycle run is not new proof
     # failure. Real dependency failures still reach this gate and fail it.
     if: ${{ always() && !cancelled() }}
@@ -1108,10 +1245,14 @@ jobs:
           DEBUGGER_REQUIRED: ${{ needs.plan.outputs.patchbay_debugger_required }}
           CARRIER_REQUIRED: ${{ needs.plan.outputs.pages_carrier_required }}
           BROWSER_ADMISSION_REQUIRED: ${{ needs.plan.outputs.browser_admission_required }}
+          JOURNEY_REQUIRED: ${{ needs.plan.outputs.browser_runtime_required }}
           BROWSER_ADMISSION_RESULT: ${{ needs.browser-admission-proof.result }}
           TOUR_PATCHBAY_RESULT: ${{ needs.tour-patchbay-proof.result }}
           STAGE_RESULT: ${{ needs.products-stage.result }}
           BROWSER_RESULT: ${{ needs.browser-proof.result }}
+          JOURNEY_RESULT: ${{ needs.journey-evidence.result }}
+          LITTLE_LIFE_RESULT: ${{ needs.little-life-evidence.result }}
+          JOURNEY_GALLERY_RESULT: ${{ needs.journey-gallery.result }}
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
           RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
           DEVELOPMENT_ADMISSION: ${{ inputs.development_admission }}
@@ -1129,7 +1270,12 @@ jobs:
           if test "$BROWSER_ADMISSION_REQUIRED" = true; then
             test "$BROWSER_ADMISSION_RESULT" = success
           fi
+          if test "$JOURNEY_REQUIRED" = true; then
+            test "$JOURNEY_RESULT" = success
+          fi
           if test "$CARRIER_REQUIRED" = true; then
+            test "$LITTLE_LIFE_RESULT" = success
+            test "$JOURNEY_GALLERY_RESULT" = success
             test "$STAGE_RESULT" = success
             test "$BROWSER_RESULT" = success
             test "$CARRIER_RESULT" = success

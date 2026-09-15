@@ -151,6 +151,139 @@ fn complete_hears_speaks_manifest_requires_typed_audio_and_receipts() {
 }
 
 #[test]
+fn complete_little_life_manifest_requires_exact_checkpoints_and_completed_play() {
+    let root = temporary_root("little-life");
+    complete_little_life_evidence(&root);
+    let document: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
+    verify(&VerificationRequest {
+        root: root.clone(),
+        commit: document["git_commit"].as_str().unwrap().into(),
+        result: ExpectedEvidenceResult::Complete,
+        proof_id: "journey-little-life".into(),
+        suite_id: "journey-gallery".into(),
+    })
+    .unwrap();
+    fs::remove_dir_all(root).unwrap();
+}
+
+fn complete_little_life_evidence(root: &Path) {
+    let plan = "little-life-plan";
+    let play = "little-life-play";
+    for (generation, width, height) in [(0, 32, 32), (1, 640, 320), (8, 640, 320), (32, 640, 320)] {
+        let mut png = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
+        png.extend_from_slice(&u32::to_be_bytes(width));
+        png.extend_from_slice(&u32::to_be_bytes(height));
+        fs::write(root.join(format!("t{generation:03}.png")), png).unwrap();
+    }
+    let mut transcript = String::new();
+    for generation in 1..=32 {
+        transcript.push_str(&format!(
+            "SCALAR-FIELD title=\"Orbium evolution\" generation={generation} width=32 height=32 profile=fixed-q16.16\n"
+        ));
+        for _ in 0..16 {
+            transcript.push_str("                                \n");
+        }
+    }
+    fs::write(root.join("presentation.txt"), transcript).unwrap();
+    fs::write(
+        root.join("execution.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "schema": "conduit.observatory.snapshot/v2",
+            "plans": [{"plan_id": plan}],
+            "observations": [{
+                "active_play_id": play,
+                "kind": {"PlanTerminal": {"disposition": "Completed"}}
+            }]
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let mut evidence = EvidenceManifest::new(
+        root,
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        "journey-little-life",
+        "journey-gallery",
+    )
+    .unwrap();
+    for generation in [0, 1, 8, 32] {
+        let seed = generation == 0;
+        evidence
+            .declare(EvidenceOutput {
+                id: format!("little-life.t{generation}"),
+                kind: EvidenceKind::Screenshot,
+                path: format!("t{generation:03}.png").into(),
+                media_type: "image/png".into(),
+                required: true,
+                provenance: EvidenceProvenance {
+                    scenario_id: "little-life.orbium-lenia@1".into(),
+                    step_id: Some(format!("generation-{generation}")),
+                    plan_id: Some(plan.into()),
+                    active_play_id: Some(play.into()),
+                    renderer_id: Some(if seed {
+                        "presentation/gray8-bitmap@1".into()
+                    } else {
+                        "std/kernel-present-scalar-field@1".into()
+                    }),
+                    asserted_semantic_disposition: Some("completed".into()),
+                    proof_class: Some(if seed {
+                        "deterministic-orbium-seed-bitmap".into()
+                    } else {
+                        "std-scalar-field-terminal-presentation".into()
+                    }),
+                    image_width: Some(if seed { 32 } else { 640 }),
+                    image_height: Some(if seed { 32 } else { 320 }),
+                    physical_evidence: Some(false),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+    }
+    for (id, kind, path, media_type, step, renderer, proof_class) in [
+        (
+            "little-life.presentation",
+            EvidenceKind::ConsoleTranscript,
+            "presentation.txt",
+            "text/plain; charset=utf-8",
+            "generation-32",
+            Some("std/kernel-present-scalar-field@1"),
+            "std-scalar-field-terminal-presentation",
+        ),
+        (
+            "little-life.execution",
+            EvidenceKind::MachineReadableManifest,
+            "execution.json",
+            "application/json",
+            "plan-terminal",
+            None,
+            "ordinary-plan-play-execution-report",
+        ),
+    ] {
+        evidence
+            .declare(EvidenceOutput {
+                id: id.into(),
+                kind,
+                path: path.into(),
+                media_type: media_type.into(),
+                required: true,
+                provenance: EvidenceProvenance {
+                    scenario_id: "little-life.orbium-lenia@1".into(),
+                    step_id: Some(step.into()),
+                    plan_id: Some(plan.into()),
+                    active_play_id: Some(play.into()),
+                    renderer_id: renderer.map(str::to_owned),
+                    asserted_semantic_disposition: Some("completed".into()),
+                    proof_class: Some(proof_class.into()),
+                    physical_evidence: Some(false),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+    }
+    evidence.finish(EvidenceResult::Complete).unwrap();
+}
+
+#[test]
 fn missing_required_output_is_manifested_as_incomplete_and_refused() {
     let root = temporary_root("missing");
     let mut evidence = manifest(&root);
@@ -485,19 +618,134 @@ fn complete_hears_speaks_evidence(root: &Path) {
     evidence.finish(EvidenceResult::Complete).unwrap();
 }
 
+fn complete_two_faces_evidence(root: &Path) {
+    let png = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01";
+    let presentation = "presentation/two-faces";
+    let files = [
+        (
+            "two-faces.native-frame",
+            EvidenceKind::Screenshot,
+            "native.png",
+            png.as_slice(),
+        ),
+        (
+            "two-faces.native-receipt",
+            EvidenceKind::MachineReadableManifest,
+            "native.json",
+            br#"{"presentation_id":"presentation/two-faces","presentation_revision":1,"renderer_plan_id":"native-plan","renderer_play_id":"native-play","manifestation_id":"native-manifestation","renderer_implementation":"presentation/renderer-wayland@1","lifecycle":"available","pixel_equality_claimed":false}"#.as_slice(),
+        ),
+        (
+            "two-faces.browser-frame",
+            EvidenceKind::Screenshot,
+            "browser.png",
+            png.as_slice(),
+        ),
+        (
+            "two-faces.browser-receipt",
+            EvidenceKind::MachineReadableManifest,
+            "browser.json",
+            br#"{"presentation_id":"presentation/two-faces","presentation_revision":1,"renderer_plan_id":"browser-plan","renderer_play_id":"browser-play","manifestation_id":"browser-manifestation","renderer_implementation":"presentation/renderer-dom-svg@1","lifecycle":"available","browser_engine":"chromium","browser_version":"151.0","viewport":"1366x768","device_scale_factor":"1","locale":"en-US","timezone":"UTC","pixel_equality_claimed":false}"#.as_slice(),
+        ),
+    ];
+    let mut evidence = EvidenceManifest::new(
+        root,
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        "journey-one-form-two-faces",
+        "journey-gallery",
+    )
+    .unwrap();
+    for (id, kind, path, bytes) in files {
+        fs::write(root.join(path), bytes).unwrap();
+        let native = id.contains("native");
+        evidence
+            .declare(EvidenceOutput {
+                id: id.into(),
+                kind,
+                path: path.into(),
+                media_type: if kind == EvidenceKind::Screenshot {
+                    "image/png".into()
+                } else {
+                    "application/json".into()
+                },
+                required: true,
+                provenance: EvidenceProvenance {
+                    scenario_id: "one-form-two-faces.front-door@1".into(),
+                    presentation_id: Some(presentation.into()),
+                    presentation_revision: Some("1".into()),
+                    plan_id: Some(
+                        if native {
+                            "native-plan"
+                        } else {
+                            "browser-plan"
+                        }
+                        .into(),
+                    ),
+                    active_play_id: Some(
+                        if native {
+                            "native-play"
+                        } else {
+                            "browser-play"
+                        }
+                        .into(),
+                    ),
+                    manifestation_id: Some(
+                        if native {
+                            "native-manifestation"
+                        } else {
+                            "browser-manifestation"
+                        }
+                        .into(),
+                    ),
+                    renderer_id: Some(
+                        if native {
+                            "presentation/renderer-wayland@1"
+                        } else {
+                            "presentation/renderer-dom-svg@1"
+                        }
+                        .into(),
+                    ),
+                    asserted_semantic_disposition: Some("manifestation-available".into()),
+                    proof_class: Some(
+                        if native {
+                            "native-software-renderer"
+                        } else {
+                            "live-browser"
+                        }
+                        .into(),
+                    ),
+                    browser_engine: (!native).then(|| "chromium".into()),
+                    browser_version: (!native).then(|| "151.0".into()),
+                    viewport: (!native).then(|| "1366x768".into()),
+                    device_scale_factor: (!native).then(|| "1".into()),
+                    locale: (!native).then(|| "en-US".into()),
+                    timezone: (!native).then(|| "UTC".into()),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+    }
+    evidence.finish(EvidenceResult::Complete).unwrap();
+}
+
 #[test]
 fn gallery_publishes_current_history_and_provenance() {
     let evidence_root = temporary_root("gallery-evidence");
     let conduitos_root = temporary_root("gallery-conduitos-evidence");
     let hears_speaks_root = temporary_root("gallery-hears-speaks-evidence");
+    let two_faces_root = temporary_root("gallery-two-faces-evidence");
+    let little_life_root = temporary_root("gallery-little-life-evidence");
     let site_root = temporary_root("gallery-site");
     let commit = complete_browser_evidence(&evidence_root);
     complete_conduitos_evidence(&conduitos_root, &commit);
     complete_hears_speaks_evidence(&hears_speaks_root);
+    complete_two_faces_evidence(&two_faces_root);
+    complete_little_life_evidence(&little_life_root);
     publish_gallery(&GalleryRequest {
-        evidence_root: evidence_root.clone(),
+        evidence_root: Some(evidence_root.clone()),
         conduitos_evidence_root: Some(conduitos_root.clone()),
         hears_speaks_evidence_root: Some(hears_speaks_root.clone()),
+        two_faces_evidence_root: Some(two_faces_root.clone()),
+        little_life_evidence_root: Some(little_life_root.clone()),
         site_root: site_root.clone(),
         commit: commit.clone(),
     })
@@ -517,6 +765,19 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read(site_root.join("current/patchbay/overview.png")).unwrap(),
         fs::read(site_root.join(format!("commits/{commit}/patchbay/overview.png"))).unwrap()
     );
+    let two_faces_page =
+        fs::read_to_string(site_root.join("current/one-form-two-faces/index.html")).unwrap();
+    assert!(two_faces_page.contains("One Form, Two Faces"));
+    assert!(two_faces_page.contains("Pixel equality is neither expected nor claimed"));
+    assert!(two_faces_page.contains("presentation/two-faces"));
+    assert_eq!(
+        fs::read(site_root.join("current/one-form-two-faces/native.png")).unwrap(),
+        fs::read(site_root.join(format!("commits/{commit}/one-form-two-faces/native.png")))
+            .unwrap()
+    );
+    assert!(site_root
+        .join("current/one-form-two-faces/manifest.json")
+        .is_file());
     assert!(site_root
         .join(format!("commits/{commit}/manifest.json"))
         .is_file());
@@ -532,6 +793,20 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read(site_root.join("current/hears-speaks/output.wav")).unwrap(),
         fs::read(site_root.join(format!("commits/{commit}/hears-speaks/output.wav"))).unwrap()
     );
+    assert!(site_root
+        .join("current/hears-speaks/manifest.json")
+        .is_file());
+    let life_page = fs::read_to_string(site_root.join("current/little-life/index.html")).unwrap();
+    assert!(life_page.contains("t = 0"));
+    assert!(life_page.contains("t = 32"));
+    assert!(life_page.contains("not a native graphical renderer"));
+    assert_eq!(
+        fs::read(site_root.join("current/little-life/t032.png")).unwrap(),
+        fs::read(site_root.join(format!("commits/{commit}/little-life/t032.png"))).unwrap()
+    );
+    assert!(site_root
+        .join("current/little-life/manifest.json")
+        .is_file());
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
@@ -564,9 +839,11 @@ fn gallery_publishes_current_history_and_provenance() {
     .unwrap();
     fs::write(evidence_root.join("output-1"), b"tampered-evidence!!").unwrap();
     assert!(publish_gallery(&GalleryRequest {
-        evidence_root: evidence_root.clone(),
+        evidence_root: Some(evidence_root.clone()),
         conduitos_evidence_root: None,
         hears_speaks_evidence_root: None,
+        two_faces_evidence_root: None,
+        little_life_evidence_root: None,
         site_root: site_root.clone(),
         commit,
     })
@@ -578,6 +855,59 @@ fn gallery_publishes_current_history_and_provenance() {
     fs::remove_dir_all(evidence_root).unwrap();
     fs::remove_dir_all(conduitos_root).unwrap();
     fs::remove_dir_all(hears_speaks_root).unwrap();
+    fs::remove_dir_all(two_faces_root).unwrap();
+    fs::remove_dir_all(little_life_root).unwrap();
+    fs::remove_dir_all(site_root).unwrap();
+}
+
+#[test]
+fn gallery_accepts_a_verified_sibling_without_paused_patchbay_evidence() {
+    let little_life_root = temporary_root("gallery-sibling-only-evidence");
+    let site_root = temporary_root("gallery-sibling-only-site");
+    complete_little_life_evidence(&little_life_root);
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(little_life_root.join(MANIFEST_FILE)).unwrap()).unwrap();
+    let commit = manifest["git_commit"].as_str().unwrap().to_owned();
+
+    publish_gallery(&GalleryRequest {
+        evidence_root: None,
+        conduitos_evidence_root: None,
+        hears_speaks_evidence_root: None,
+        two_faces_evidence_root: None,
+        little_life_evidence_root: Some(little_life_root.clone()),
+        site_root: site_root.clone(),
+        commit: commit.clone(),
+    })
+    .unwrap();
+
+    let index = fs::read_to_string(site_root.join("index.html")).unwrap();
+    assert!(index.contains(&commit));
+    assert!(index.contains("Little Life"));
+    assert!(!index.contains("Current Patchbay evidence"));
+    assert!(!site_root.join("current/patchbay").exists());
+    assert!(site_root.join("current/little-life/t032.png").is_file());
+    assert!(site_root
+        .join(format!("commits/{commit}/little-life/index.html"))
+        .is_file());
+
+    fs::remove_dir_all(little_life_root).unwrap();
+    fs::remove_dir_all(site_root).unwrap();
+}
+
+#[test]
+fn gallery_refuses_publication_without_any_evidence_input() {
+    let site_root = temporary_root("gallery-no-input-site");
+    assert!(publish_gallery(&GalleryRequest {
+        evidence_root: None,
+        conduitos_evidence_root: None,
+        hears_speaks_evidence_root: None,
+        two_faces_evidence_root: None,
+        little_life_evidence_root: None,
+        site_root: site_root.clone(),
+        commit: "0123456789abcdef0123456789abcdef01234567".into(),
+    })
+    .unwrap_err()
+    .contains("at least one verified evidence input"));
     fs::remove_dir_all(site_root).unwrap();
 }
 

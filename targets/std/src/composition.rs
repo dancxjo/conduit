@@ -226,6 +226,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::recognition_to_text_std_offer(),
             installed_std::text_offer(),
         ]);
+        capabilities.extend(conduit_std_offers::morse_composition_offers());
     }
     if composition.input {
         capabilities.extend([

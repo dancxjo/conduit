@@ -121,8 +121,13 @@ unsafe extern "C" {
     fn conduitos_domain_page_fault_stub();
 }
 
-pub fn run_isolation_proof(hhdm: u64, host: [u8; 32], boot_id: [u8; 32]) -> ! {
-    super::initialize_machine();
+pub fn run_isolation_proof(
+    record: &crate::boot::BootRecord,
+    host: [u8; 32],
+    boot_id: [u8; 32],
+) -> ! {
+    super::initialize_machine(record, crate::boot::executable_physical_address);
+    let hhdm = record.hhdm_offset;
     let exact = scope(host, boot_id, 1);
     let sibling_scope = scope(host, boot_id, 2);
     let mut table =

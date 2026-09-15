@@ -58,6 +58,7 @@ pub extern "C" fn conduitos_riscv64_a3_start() -> ! {
             firmware: conduitos::boot::Firmware::Sbi,
             timestamp: counter,
             hhdm_offset: 0,
+            rsdp_address: None,
             image_physical_start: 0x8020_0000,
             image_length: 0,
             memory_region_count: 1,

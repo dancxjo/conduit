@@ -1,6 +1,6 @@
 # Current project status
 
-Reviewed against the development tree and open issues on **13 September 2026**.
+Reviewed against the development tree and open issues on **15 September 2026**.
 This is a capability summary, not a claim that every check has been rerun today.
 The [current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
 shows the exact latest development commit, accepted release, published Pages
@@ -18,10 +18,10 @@ for the clearest demonstration of the system so far.
 | **Language and composition** | Canonical `.conduit` parsing, located diagnostics, checking, recursive Forms through Faces/Backs, exact typed Ports, and separate source/checked/expanded identities. Ordinary examples run through planning and the production kernel. | Supported semantics and implementations are finite; a catalog entry does not promise an implementation on every Host. See [Forms](forms/README.md). |
 | **Planning and execution** | One port-aware kernel, explicit fan-out, bounded queues and operations, resource and authority admission, immutable Plans, cancellation, pressure, and correlated Signs. Shared code serves hosted, browser, and embedded paths. | Deadline guarantees belong to specific admitted profiles. General SMP, preemption, and physical real-time guarantees are not established by cooperative execution. |
 | **Body lifecycle** | Zero/one/many initial Forms, durable Part membership, current/offline Host presence, Body-wide workload admission, one current Plan and at most one active Play. Multi-Form execution and workload changes have hosted and browser evidence. | This is implemented, not merely the old #2062 proposal. Quiescence versus semantic completion still needs the runtime correction in [#3006](https://github.com/dancxjo/conduit/issues/3006). |
-| **Tour and browser Hosts** | An executable Tour with real browser/WASM execution, embedded Patchbay, independent browser Hosts, and admitted browser operations. Camera/microphone paths have bounded acquisition and failure handling. | Browser permission, device availability, tab lifetime, and supported profile still apply; no blanket background or physical-media guarantee. |
-| **Patchbay** | Native and browser inspection and editing; Body workbench; execution activity, bounded Watches, observation replay, and scoped breakpoint/causal-trace support. | Replay of observations is distinct from re-executing a program. Missing telemetry remains a gap. These features do not establish distributed stop-the-world debugging. |
+| **Tour and browser Hosts** | One seven-page Tour application owns the portable chapter/stage catalog, Form sources, presentation state, and semantic actions used by browser, hosted desktop, and ConduitOS presenters. Browser/WASM execution, embedded Patchbay, independent browser Hosts, and admitted browser operations remain available. | Browser permission, device availability, tab lifetime, and supported profile still apply. Browser, hosted, and emulator proofs establish different environments; none alone establishes physical-media behavior. |
+| **Patchbay** | A resident native projection shows the active Forms on the present Body with exact Plan/Play identities and presenter topology; broader native and browser inspection/editing, bounded Watches, observation replay, and scoped breakpoint/causal-trace support also exist. | Patchbay is a projection over authoritative Body and execution truth, not a second scheduler. Replay is distinct from re-execution, and these features do not establish distributed stop-the-world debugging. |
 | **Crèche and fabrication** | Birth a Body with reviewed Forms, prepare target-native artifacts, inspect membership, and retain Body evidence into Patchbay. Fabrication packages cover hosted computers, browser, ConduitOS, and board families. | Building or downloading an artifact is distinct from installing, booting, admitting a Part, and executing work. Consult each [target](targets/README.md). |
-| **ConduitOS** | Five product targets: x86_64 and IA-32 PC, AArch64 and RISC-V64 virt, and LoongArch64 virt. x86_64 has the graphical shell, Tour/Patchbay, keyboard and pointer input, and USB attachment journey; the other four have serial product media. | The illustrated journey is **freestanding-emulator** proof. The physical laptop campaign is open. A target's boot proof does not establish graphics, drivers, or hardware parity. |
+| **ConduitOS** | Five product targets: x86_64 and IA-32 PC, AArch64 and RISC-V64 virt, and LoongArch64 virt. The x86_64 graphical journey births a Body, runs every Tour exercise across all seven pages, switches resident Forms, opens simplified Patchbay, replans presenters, and exercises keyboard, pointer, timer, and USB Line paths; the other four targets have serial product media. | The illustrated journey is **freestanding-emulator** proof. The physical laptop campaign is open. A target's boot proof does not establish graphics, drivers, or hardware parity. |
 | **Lines and physical Pico work** | Recorded WebSocket/USB CDC execution and one-Body Pico W control, including new-Plan recovery and continuation over an already-admitted fallback Line. | This is bounded, device-specific physical evidence. It does not imply arbitrary discovery, federation, public-Internet security, or a general reconnect policy. |
 | **Standard semantics and local tasks** | Executable text, time, state/flow, logic/math, input, presentation, and other reviewed families; protected local file-copy operations exist. Catalog and target gap reports derive availability from code. | The old “copy a file is disabled” record describes a retired prototype. ConduitOS storage and physical file-copy remain separate unfinished work. |
 
@@ -60,6 +60,13 @@ Their presence is not an additional physical or release acceptance claim:
   Tour now reports distinct retained workspace/status surfaces, and its journey
   verifier checks their identities. The broader shell proof and interaction
   polish remain tracked in [#3043–#3049](docs/roadmap.md#conduitos-shell).
+- **Shared hosted/native Tour (#3359):** the development tree carries one
+  portable Tour application through browser, Linux, Windows, and ConduitOS
+  presentation implementations. Deterministic model tests and the pinned local
+  x86_64 QEMU journey cover every current page and runnable exercise, including
+  direct/recursive comparison, standing timer lifecycle, explicit fan-out, and
+  two-Host execution. This source-level record does not claim accepted release,
+  physical hardware, or unattended human usability evidence.
 - **House speech:** recorded-audio recognition, address detection, model context,
   and conversation components exist. The attended, live named-house speech
   experience remains open in [#2297](https://github.com/dancxjo/conduit/issues/2297).

@@ -109,7 +109,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /Restore an identical admitted ConduitOS image/);
   assert.match(productWorkflow, /if: steps\.image-cache\.outputs\.cache-hit != 'true'/);
   assert.match(productWorkflow, /conduitos-releases:\n    needs: conduitos-release-images/);
-  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, pages-carrier, proof-receipts\]/);
+  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, little-life-evidence, journey-gallery, pages-carrier, proof-receipts\]/);
   assert.match(productWorkflow, /if test "\$PRODUCT_REQUIRED" != true/);
   assert.match(productWorkflow, /test "\$STAGE_RESULT" = success/);
   assert.match(productWorkflow, /test "\$TOUR_PATCHBAY_RESULT" = success/);
@@ -133,6 +133,9 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   const promotionWorkflow = readFileSync(".github/workflows/promotion.yml", "utf8");
   assert.match(promotionWorkflow, /pages-carrier-with-conduitos:\n    needs: \[products, conduitos-spore-acceptance\]/);
   assert.match(promotionWorkflow, /stage-conduitos-pages-evidence\.mjs/);
+  assert.match(promotionWorkflow, /name: conduit-journey-gallery-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
+  assert.match(promotionWorkflow, /verify-pages-carrier\.mjs target\/journey-gallery-carrier/);
+  assert.match(promotionWorkflow, /stage-journey-pages-evidence\.mjs/);
   assert.match(promotionWorkflow, /name: conduit-pages-carrier-with-conduitos/);
 });
 

@@ -2,7 +2,7 @@
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::text_operations::{TextPresentationOperation, TextTransformOperation};
-use conduit_core::{ConfigurationValue, PlannedGear};
+use conduit_core::{ConfigurationValue, HostOperationContractId, KindId, PlannedGear};
 use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOutcome, ValueRef};
 
 pub(super) static TEXT_MORSE_FACTORY: InstalledFactory = InstalledFactory {
@@ -16,6 +16,101 @@ pub(super) static INDICATOR_PRESENTATION_FACTORY: InstalledFactory = InstalledFa
     budget: indicator_budget,
     prepare: prepare_indicator,
 };
+
+macro_rules! composition_factory {
+    ($name:ident, $implementation:ident) => {
+        pub(super) static $name: InstalledFactory = InstalledFactory {
+            implementation_id: conduit_std_offers::$implementation,
+            budget: composition_budget,
+            prepare: prepare_composition,
+        };
+    };
+}
+
+composition_factory!(TEXT_CHARACTERS_FACTORY, TEXT_CHARACTERS_IMPLEMENTATION);
+composition_factory!(MORSE_LOOKUP_FACTORY, MORSE_LOOKUP_IMPLEMENTATION);
+composition_factory!(MORSE_INTERSPERSE_FACTORY, MORSE_INTERSPERSE_IMPLEMENTATION);
+composition_factory!(MORSE_FLATTEN_FACTORY, MORSE_FLATTEN_IMPLEMENTATION);
+composition_factory!(
+    MORSE_SYMBOLS_TO_PATTERN_FACTORY,
+    MORSE_SYMBOLS_TO_PATTERN_IMPLEMENTATION
+);
+
+fn composition_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+    validate_composition(placement)?;
+    Ok(OperationBudget {
+        value_items: 4,
+        value_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32 * 4,
+        host_requests: 4,
+        sign_items: 64,
+        maximum_value_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+    })
+}
+
+fn prepare_composition(
+    placement: &PlannedGear,
+    _values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledOperation, String> {
+    validate_composition(placement)?;
+    Ok(InstalledOperation::TextUpper(
+        TextTransformOperation::bounded_input(4, placement.host_operations[0].maximum_input_bytes),
+    ))
+}
+
+fn validate_composition(placement: &PlannedGear) -> Result<(), String> {
+    let offer = conduit_std_offers::morse_composition_offers()
+        .into_iter()
+        .find(|offer| offer.implementation.implementation_id == placement.implementation_id)
+        .ok_or_else(|| "unknown std Morse composition implementation".to_string())?;
+    validate(placement, &offer)
+}
+
+pub(super) fn is_composition_operation(
+    contract: &HostOperationContractId,
+    target: &KindId,
+) -> bool {
+    matches!(
+        contract.as_str(),
+        conduit_std_offers::TEXT_CHARACTERS_IMPLEMENTATION
+            | conduit_std_offers::MORSE_LOOKUP_IMPLEMENTATION
+            | conduit_std_offers::MORSE_INTERSPERSE_IMPLEMENTATION
+            | conduit_std_offers::MORSE_FLATTEN_IMPLEMENTATION
+            | conduit_std_offers::MORSE_SYMBOLS_TO_PATTERN_IMPLEMENTATION
+    ) && contract.as_str() == target.as_str()
+}
+
+pub(super) fn compose(
+    placement: &PlannedGear,
+    input: &[u8],
+    output: &mut Vec<u8>,
+) -> Result<(), String> {
+    match placement.kind_id.as_str() {
+        conduit_text::TEXT_CHARACTERS_KIND => {
+            let text =
+                core::str::from_utf8(input).map_err(|_| "text/characters input is not UTF-8")?;
+            conduit_text::morse_characters_from_text_into(text, output).map_err(debug_error)?
+        }
+        conduit_text::MORSE_LOOKUP_KIND => {
+            conduit_text::morse_lookup_characters_into(input, output).map_err(debug_error)?
+        }
+        conduit_text::MORSE_INTERSPERSE_KIND => {
+            conduit_text::morse_intersperse_gaps_into(input, output).map_err(debug_error)?
+        }
+        conduit_text::MORSE_FLATTEN_KIND => {
+            conduit_text::morse_flatten_groups_into(input, output).map_err(debug_error)?
+        }
+        conduit_text::MORSE_SYMBOLS_TO_PATTERN_KIND => {
+            conduit_text::morse_symbols_to_pattern_into(input, unit_millis(placement)?, output)
+                .map_err(debug_error)?
+        }
+        kind => return Err(format!("unsupported std Morse composition kind '{kind}'")),
+    }
+    Ok(())
+}
+
+fn debug_error(error: impl core::fmt::Debug) -> String {
+    format!("{error:?}")
+}
 
 fn text_morse_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_text_morse(placement)?;
@@ -119,10 +214,21 @@ pub(super) fn encode(
 }
 
 pub(super) fn completed_with_output(value: ValueRef) -> HostOperationOutcome {
+    completed_with_bound(value, conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32)
+}
+
+pub(super) fn composition_completed_with_output(
+    placement: &PlannedGear,
+    value: ValueRef,
+) -> HostOperationOutcome {
+    completed_with_bound(value, placement.host_operations[0].maximum_output_bytes)
+}
+
+fn completed_with_bound(value: ValueRef, maximum_bytes: u32) -> HostOperationOutcome {
     HostOperationOutcome {
         disposition: HostOperationDisposition::Completed,
         output: Some(
-            BoundedValueRef::new(value, conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32)
+            BoundedValueRef::new(value, maximum_bytes)
                 .expect("Morse output was checked against its admitted bound"),
         ),
         failure: None,

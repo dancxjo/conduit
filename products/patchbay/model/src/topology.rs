@@ -6,7 +6,9 @@ use std::collections::VecDeque;
 use crate::topology_hosts::render_hosts;
 
 pub const MAX_TOPOLOGY_LINES: usize = 256;
-pub const MAX_RETAINED_REPORT_BYTES: usize = 64 * 1024;
+// The complete standard Hosted adapter report remains below 96 KiB while the
+// independent line bound prevents an oversized presentation projection.
+pub const MAX_RETAINED_REPORT_BYTES: usize = 96 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TopologyViewError {

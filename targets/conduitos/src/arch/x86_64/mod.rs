@@ -1,11 +1,14 @@
+mod acpi;
 mod cpu;
 mod ftdi_line;
 mod gdt;
 mod hid;
 mod hid_pointer;
 mod idt;
+mod interrupt_controller;
 mod io;
 mod irq;
+mod mmio;
 mod opl2;
 mod pc_speaker;
 mod pic;

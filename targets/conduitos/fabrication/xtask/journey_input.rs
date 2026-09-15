@@ -98,6 +98,29 @@ pub(super) fn wait_tour_status(
     )
 }
 
+pub(super) fn wait_tour_status_count(
+    serial: &Path,
+    child: &mut Child,
+    status: &str,
+    count: usize,
+) -> Result<(), ConduitosError> {
+    wait_for_record(
+        serial,
+        child,
+        "product-journey-tour-stage-timeout",
+        status,
+        |text| {
+            journey_records::tour(text).map(|records| {
+                records
+                    .iter()
+                    .filter(|record| record.get("status").and_then(Value::as_str) == Some(status))
+                    .count()
+                    >= count
+            })
+        },
+    )
+}
+
 pub(super) fn wait_pointer_status(
     serial: &Path,
     child: &mut Child,

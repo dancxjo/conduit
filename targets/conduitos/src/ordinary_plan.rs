@@ -171,6 +171,68 @@ pub(crate) fn advertisement(
         || fixed.capabilities[2].implementation != crate::offer::TEXT_LITERAL_IMPLEMENTATION
         || fixed.capabilities[3].implementation != crate::offer::TEXT_UPPER_IMPLEMENTATION
         || fixed.capabilities[4].implementation != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
+        || fixed.capabilities[5].kind != conduit_text::TEXT_MORSE_KIND
+        || fixed.capabilities[5].contract_revision != conduit_text::TEXT_MORSE_CONTRACT_REVISION
+        || fixed.capabilities[5].implementation != crate::offer::TEXT_MORSE_IMPLEMENTATION
+        || fixed.capabilities[6].kind != conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
+        || fixed.capabilities[6].contract_revision
+            != conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION
+        || fixed.capabilities[6].implementation
+            != crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION
+        || [
+            (
+                conduit_text::TEXT_CHARACTERS_KIND,
+                crate::offer::TEXT_CHARACTERS_IMPLEMENTATION,
+            ),
+            (
+                conduit_text::MORSE_LOOKUP_KIND,
+                crate::offer::MORSE_LOOKUP_IMPLEMENTATION,
+            ),
+            (
+                conduit_text::MORSE_INTERSPERSE_KIND,
+                crate::offer::MORSE_INTERSPERSE_IMPLEMENTATION,
+            ),
+            (
+                conduit_text::MORSE_FLATTEN_KIND,
+                crate::offer::MORSE_FLATTEN_IMPLEMENTATION,
+            ),
+            (
+                conduit_text::MORSE_SYMBOLS_TO_PATTERN_KIND,
+                crate::offer::MORSE_SYMBOLS_TO_PATTERN_IMPLEMENTATION,
+            ),
+        ]
+        .iter()
+        .zip(&fixed.capabilities[7..])
+        .any(|((kind, implementation), capability)| {
+            capability.kind != *kind
+                || capability.contract_revision != conduit_text::MORSE_COMPOSITION_CONTRACT_REVISION
+                || capability.implementation != *implementation
+                || capability.required_base != crate::machine::BaseKind::Memory
+        })
+        || [
+            (
+                conduit_time::TIME_EVERY_KIND,
+                conduit_time::TIME_EVERY_CONTRACT_REVISION,
+                crate::offer::TIME_EVERY_IMPLEMENTATION,
+            ),
+            (
+                conduit_semantic_catalog::STATE_COUNT_KIND,
+                conduit_semantic_catalog::STATE_COUNT_CONTRACT_REVISION,
+                crate::offer::STATE_COUNT_IMPLEMENTATION,
+            ),
+            (
+                conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
+                conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
+                crate::offer::COUNT_PRESENTATION_IMPLEMENTATION,
+            ),
+        ]
+        .iter()
+        .zip(&fixed.capabilities[12..])
+        .any(|((kind, revision, implementation), capability)| {
+            capability.kind != *kind
+                || capability.contract_revision != *revision
+                || capability.implementation != *implementation
+        })
         || fixed.capabilities[2].required_base != crate::machine::BaseKind::Memory
         || fixed.capabilities[2].host_operation.is_some()
         || fixed.capabilities[2].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
@@ -205,6 +267,16 @@ pub(crate) fn advertisement(
         &fixed.capabilities[2],
         &fixed.capabilities[3],
         &fixed.capabilities[4],
+        &fixed.capabilities[5],
+        &fixed.capabilities[6],
+        &fixed.capabilities[7],
+        &fixed.capabilities[8],
+        &fixed.capabilities[9],
+        &fixed.capabilities[10],
+        &fixed.capabilities[11],
+        &fixed.capabilities[12],
+        &fixed.capabilities[13],
+        &fixed.capabilities[14],
     ] {
         fixed
             .capability_provider(capability)
@@ -229,6 +301,39 @@ pub(crate) fn advertisement(
         build_id,
         "presentation-text",
     );
+    let mut morse = crate::functional_offers::text_morse_offer();
+    bind_native_capability(&mut morse, &fixed.capabilities[5], build_id, "text-morse");
+    let mut indicator = crate::functional_offers::indicator_presentation_offer();
+    bind_native_capability(
+        &mut indicator,
+        &fixed.capabilities[6],
+        build_id,
+        "presentation-indicator",
+    );
+    let mut composition = crate::functional_offers::morse_composition_offers();
+    for ((index, capability), name) in composition.iter_mut().enumerate().zip([
+        "text-characters",
+        "morse-lookup",
+        "morse-intersperse",
+        "morse-flatten",
+        "morse-symbols-to-pattern",
+    ]) {
+        bind_native_capability(capability, &fixed.capabilities[7 + index], build_id, name);
+    }
+    let mut every = crate::functional_offers::time_every_offer();
+    bind_native_capability(&mut every, &fixed.capabilities[12], build_id, "time-every");
+    let mut count = crate::functional_offers::state_count_offer();
+    bind_native_capability(&mut count, &fixed.capabilities[13], build_id, "state-count");
+    let mut count_presentation = crate::presentation_offers::presentation_offer_for(
+        conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
+    )
+    .expect("ConduitOS owns count presentation");
+    bind_native_capability(
+        &mut count_presentation,
+        &fixed.capabilities[14],
+        build_id,
+        "presentation-count",
+    );
     let mut advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(hex_identity(&identities.host)),
@@ -247,9 +352,13 @@ pub(crate) fn advertisement(
                 )
             })
             .collect::<Vec<ResourceOffer>>(),
-        capabilities: vec![literal, upper, presentation],
+        capabilities: vec![literal, upper, presentation, morse, indicator],
         planner_capabilities: Vec::new(),
     };
+    advertisement.capabilities.append(&mut composition);
+    advertisement
+        .capabilities
+        .extend([every, count, count_presentation]);
     if let Some(keyboard) = fixed.keyboard {
         crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;

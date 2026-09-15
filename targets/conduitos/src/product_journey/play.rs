@@ -40,7 +40,7 @@ impl ProductJourney {
             .complete_tour_run(
                 tour,
                 conduit_tour_model::TourRunProof {
-                    specimen_id: conduit_tour_model::CANONICAL_SPECIMEN_ID.into(),
+                    specimen_id: evidence.specimen_id.into(),
                     source_document_id: evidence.source_document_id.clone(),
                     checked_form_id: evidence.checked_form_id.clone(),
                     expanded_form_id: evidence.expanded_form_id.clone(),

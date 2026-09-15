@@ -15,7 +15,7 @@ use alloc::format;
 
 pub const BASE_COUNT: usize = 7;
 pub const RESOURCE_COUNT: usize = 5;
-pub const CAPABILITY_COUNT: usize = 5;
+pub const CAPABILITY_COUNT: usize = 15;
 pub const TIMER_SLOT_CAPACITY: u16 = 1;
 pub const SERIAL_OPERATION_CAPACITY: u16 = 2;
 pub const SERIAL_MAXIMUM_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
@@ -26,6 +26,17 @@ pub const TICK_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-tick
 pub const TEXT_LITERAL_IMPLEMENTATION: &str = "conduitos/kernel-text-literal@1";
 pub const TEXT_UPPER_IMPLEMENTATION: &str = "conduitos/kernel-text-upper@1";
 pub const TEXT_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-text@1";
+pub const TEXT_MORSE_IMPLEMENTATION: &str = "conduitos/kernel-text-morse@1";
+pub const INDICATOR_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-indicator@1";
+pub const TEXT_CHARACTERS_IMPLEMENTATION: &str = "conduitos/kernel-text-characters@1";
+pub const MORSE_LOOKUP_IMPLEMENTATION: &str = "conduitos/kernel-morse-lookup@1";
+pub const MORSE_INTERSPERSE_IMPLEMENTATION: &str = "conduitos/kernel-morse-intersperse@1";
+pub const MORSE_FLATTEN_IMPLEMENTATION: &str = "conduitos/kernel-morse-flatten@1";
+pub const MORSE_SYMBOLS_TO_PATTERN_IMPLEMENTATION: &str =
+    "conduitos/kernel-morse-symbols-to-pattern@1";
+pub const TIME_EVERY_IMPLEMENTATION: &str = "conduitos/kernel-time-every@1";
+pub const STATE_COUNT_IMPLEMENTATION: &str = "conduitos/kernel-state-count@1";
+pub const COUNT_PRESENTATION_IMPLEMENTATION: &str = "conduitos/presentation-count@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CpuFeatures {
@@ -258,6 +269,16 @@ impl<'a> HostOffer<'a> {
                 crate::text_offer::literal(build_id),
                 crate::text_offer::upper(build_id),
                 crate::text_offer::presentation(build_id),
+                crate::text_offer::morse(build_id),
+                crate::text_offer::indicator(build_id),
+                crate::text_offer::characters(build_id),
+                crate::text_offer::morse_lookup(build_id),
+                crate::text_offer::morse_intersperse(build_id),
+                crate::text_offer::morse_flatten(build_id),
+                crate::text_offer::morse_symbols_to_pattern(build_id),
+                crate::tour_timer_offer::every(build_id),
+                crate::tour_timer_offer::count(build_id),
+                crate::tour_timer_offer::presentation(build_id),
             ],
             cpu_features,
             runtime_arena_bytes,
@@ -444,7 +465,16 @@ impl<'a> HostOffer<'a> {
                 return Err(OfferError::MissingBase);
             }
             for port in [capability.input, capability.output].into_iter().flatten() {
-                if port.name.is_empty() || port.value_kind.is_empty() || !port.closes {
+                let standing_input = capability.kind == conduit_semantic_catalog::STATE_COUNT_KIND
+                    && port.direction == PortDirection::Input
+                    && port.name == "bump";
+                let standing_output = capability.kind == conduit_time::TIME_EVERY_KIND
+                    && port.direction == PortDirection::Output
+                    && port.name == "tick";
+                if port.name.is_empty()
+                    || port.value_kind.is_empty()
+                    || (!port.closes && !standing_input && !standing_output)
+                {
                     return Err(OfferError::InvalidCapacity);
                 }
             }

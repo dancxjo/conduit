@@ -3,9 +3,11 @@ use super::{qmp_display, ConduitosError};
 use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
-// The ordinary journey fills this finite envelope. A later failure can still
-// be recorded in the manifest even when no additional diagnostic frame fits.
-const MAX_CHECKPOINTS: usize = 32;
+// The complete seven-page Tour adds per-exercise and per-page evidence to the
+// ordinary resident-Form journey. Forty-two retains the exact forty-one
+// normal checkpoints plus one
+// failure frame without coalescing distinct proof checkpoints.
+const MAX_CHECKPOINTS: usize = 42;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
@@ -46,7 +48,7 @@ impl Artifacts {
         if self.entries.len() >= MAX_CHECKPOINTS {
             return Err(ConduitosError::refusal(
                 "qemu-display-checkpoint-bound",
-                "at most thirty-two captures admitted",
+                "at most forty-two captures admitted",
             ));
         }
         let mut serial = Vec::new();

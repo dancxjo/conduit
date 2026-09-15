@@ -92,6 +92,30 @@ and `current/hears-speaks/` pages with native browser audio controls. Omitting
 that input clears a stale current audio exhibit instead of silently carrying
 it across releases.
 
+The One Form, Two Faces sibling uses a separate four-output manifest. Its
+supported entrance is `cargo xtask evidence one-form-two-faces`, which feeds
+one deterministic front-door Presentation into the native software renderer
+and the pinned Chromium DOM/SVG renderer. It retains `native.png`,
+`native.json`, `browser.png`, and `browser.json`; complete verification requires
+exact renderer and manifestation provenance plus the same Presentation identity,
+revision, and semantic basis across both receipts. The renderer Plans, Plays,
+Manifestations, and pixels remain deliberately distinct.
+
+The gallery accepts that sibling only through
+`--two-faces-evidence-root <directory>` bound to the same accepted commit as
+the other inputs. Its side-by-side page states that neither pixel equality,
+physical-display output, nor human perception is established. Omitting the
+input clears stale `current/one-form-two-faces/` content.
+
+Little Life uses a separate six-output manifest rather than consuming a
+ConduitOS capture slot. `cargo xtask evidence little-life` retains PNGs at
+generations 0, 1, 8, and 32, the complete 32-generation scalar-field terminal
+transcript, and the ordinary Plan/Play execution report. Generation zero is
+the deterministic Orbium seed lowered through the semantic gray8 bitmap
+contract. The later PNGs are derived from the exact cells emitted by the
+installed std scalar-field terminal presentation. They do not claim a native
+graphical manifestation, physical display, or human perception.
+
 ## Canonical Patchbay camera
 
 The documentation renderer is only the `chromium` project in

@@ -2,13 +2,16 @@
 
 use conduit_presentation::{ApplicationEvent, GraphicsScene};
 use conduit_tour_model::{
-    CANONICAL_SPECIMEN_ID, TourPointerOutcome, TourRunProof, TourWorkspaceController,
-    TourWorkspaceRefusal, TourWorkspaceRequest,
+    TourPointerOutcome, TourRunProof, TourWorkspaceController, TourWorkspaceRefusal,
+    TourWorkspaceRequest,
 };
 
 use crate::{
     identity::BootIdentities,
-    machine::{IdleBase, InterruptBase, MonotonicClockBase, SerialBase},
+    machine::{
+        BaseError, IdleBase, InterruptBase, KernelInterest, MonotonicClockBase, SerialBase,
+        TimerBase, TimerToken,
+    },
     offer::HostOffer,
     ordinary_plan::PreparationError,
     tour_play::{TourPlayError, TourPlayEvidence},
@@ -39,7 +42,7 @@ impl TourProductError {
         match self {
             Self::Controller(_) => "tour-controller-refused",
             Self::Preparation(error) => error.as_str(),
-            Self::Play(_) => "tour-play-refused",
+            Self::Play(error) => error.as_str(),
             Self::Scene(_) => "tour-scene-refused",
         }
     }
@@ -130,6 +133,39 @@ impl TourProduct {
         I: InterruptBase,
         D: IdleBase,
     {
+        self.accept_with_timer(
+            event,
+            identities,
+            offer,
+            build_id,
+            clock,
+            &mut UnavailableTourTimer,
+            serial,
+            interrupts,
+            idle,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn accept_with_timer<C, T, S, I, D>(
+        &mut self,
+        event: &ApplicationEvent,
+        identities: &BootIdentities,
+        offer: &HostOffer<'_>,
+        build_id: &str,
+        clock: &mut C,
+        timer: &mut T,
+        serial: &mut S,
+        interrupts: &mut I,
+        idle: &mut D,
+    ) -> Result<TourProductUpdate, TourProductError>
+    where
+        C: MonotonicClockBase,
+        T: TimerBase,
+        S: SerialBase,
+        I: InterruptBase,
+        D: IdleBase,
+    {
         let request = self
             .controller
             .request(event)
@@ -138,26 +174,104 @@ impl TourProduct {
             None | Some(TourWorkspaceRequest::OpenPatchbay) => None,
             Some(TourWorkspaceRequest::Run {
                 chapter: 0,
+                stage: 2,
+            }) => {
+                let mut prepared =
+                    crate::tour_play::prepare_morse_stage(identities, offer, build_id)
+                        .map_err(TourProductError::Preparation)?;
+                let evidence = crate::tour_play::run_morse_stage(
+                    &mut prepared,
+                    clock,
+                    serial,
+                    interrupts,
+                    idle,
+                )
+                .map_err(TourProductError::Play)?;
+                self.controller
+                    .complete_run(run_proof(&evidence))
+                    .map_err(TourProductError::Controller)?;
+                self.inspection = None;
+                Some(evidence)
+            }
+            Some(TourWorkspaceRequest::Run {
+                chapter: 1,
                 stage: 0,
             }) => {
-                let mut prepared = crate::tour_play::prepare(identities, offer, build_id)
+                let mut prepared =
+                    crate::tour_play::prepare_comparison_stage(identities, offer, build_id)
+                        .map_err(TourProductError::Preparation)?;
+                let evidence = crate::tour_play::run_comparison_stage(
+                    &mut prepared,
+                    clock,
+                    serial,
+                    interrupts,
+                    idle,
+                )
+                .map_err(TourProductError::Play)?;
+                self.controller
+                    .complete_run(run_proof(&evidence))
+                    .map_err(TourProductError::Controller)?;
+                self.inspection = None;
+                Some(evidence)
+            }
+            Some(TourWorkspaceRequest::Run {
+                chapter: 2,
+                stage: 0,
+            }) => {
+                let mut prepared =
+                    crate::tour_play::prepare_timer_stage(identities, offer, build_id)
+                        .map_err(TourProductError::Preparation)?;
+                let evidence = crate::tour_play::run_timer_stage(
+                    &mut prepared,
+                    clock,
+                    timer,
+                    serial,
+                    interrupts,
+                    idle,
+                )
+                .map_err(TourProductError::Play)?;
+                self.controller
+                    .complete_run(run_proof(&evidence))
+                    .map_err(TourProductError::Controller)?;
+                self.inspection = None;
+                Some(evidence)
+            }
+            Some(TourWorkspaceRequest::Run {
+                chapter: 3,
+                stage: 0 | 1,
+            }) => {
+                let mut prepared = crate::tour_two_host::prepare(identities, offer, build_id)
                     .map_err(TourProductError::Preparation)?;
+                let evidence = crate::tour_two_host::run(&mut prepared, serial)
+                    .map_err(TourProductError::Play)?;
+                self.controller
+                    .complete_run(run_proof(&evidence))
+                    .map_err(TourProductError::Controller)?;
+                self.inspection = None;
+                Some(evidence)
+            }
+            Some(TourWorkspaceRequest::Run { chapter, stage }) => {
+                let (mut prepared, specimen_id, expected) =
+                    crate::tour_play::prepare_stage(identities, offer, build_id, chapter, stage)
+                        .map_err(TourProductError::Preparation)?;
                 let mut inspection = inspection::RunInspection::from_plan(&prepared.plan)
                     .map_err(TourProductError::Preparation)?;
-                let evidence =
-                    crate::tour_play::run(&mut prepared, clock, serial, interrupts, idle)
-                        .map_err(TourProductError::Play)?;
+                let evidence = crate::tour_play::run_stage(
+                    &mut prepared,
+                    specimen_id,
+                    expected,
+                    clock,
+                    serial,
+                    interrupts,
+                    idle,
+                )
+                .map_err(TourProductError::Play)?;
                 self.controller
                     .complete_run(run_proof(&evidence))
                     .map_err(TourProductError::Controller)?;
                 inspection.observations = evidence.observations.clone();
                 self.inspection = Some(inspection);
                 Some(evidence)
-            }
-            Some(TourWorkspaceRequest::Run { .. }) => {
-                return Err(TourProductError::Controller(
-                    TourWorkspaceRefusal::WrongSpecimen,
-                ));
             }
         };
         Ok(TourProductUpdate { request, play })
@@ -166,16 +280,45 @@ impl TourProduct {
 
 fn run_proof(evidence: &TourPlayEvidence) -> TourRunProof {
     TourRunProof {
-        specimen_id: CANONICAL_SPECIMEN_ID.into(),
+        specimen_id: evidence.specimen_id.into(),
         source_document_id: evidence.source_document_id.clone(),
         checked_form_id: evidence.checked_form_id.clone(),
         expanded_form_id: evidence.expanded_form_id.clone(),
         plan_id: evidence.plan_id.clone(),
         active_play_id: evidence.active_play_id.clone(),
         result: evidence.result.into(),
-        terminal: conduit_tour_model::TourRunTerminal::Completed,
-        comparison: None,
-        multi_host: None,
+        terminal: evidence.terminal,
+        comparison: evidence
+            .comparison_expanded_form_id
+            .as_ref()
+            .zip(evidence.comparison_plan_id.as_ref())
+            .map(
+                |(expanded_form_id, plan_id)| conduit_tour_model::TourComparisonProof {
+                    expanded_form_id: expanded_form_id.clone(),
+                    plan_id: plan_id.clone(),
+                },
+            ),
+        multi_host: evidence.multi_host.clone(),
+    }
+}
+
+struct UnavailableTourTimer;
+
+impl TimerBase for UnavailableTourTimer {
+    fn arm(&mut self, _interest: KernelInterest) -> Result<TimerToken, BaseError> {
+        Err(BaseError::Unavailable)
+    }
+
+    fn cancel(&mut self, _token: TimerToken) -> Result<KernelInterest, BaseError> {
+        Err(BaseError::Unavailable)
+    }
+
+    fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError> {
+        Ok(None)
+    }
+
+    fn wake_count(&self) -> u32 {
+        0
     }
 }
 
@@ -185,8 +328,8 @@ mod tests {
 
     use conduit_presentation::{ApplicationEventKind, GraphicsPaintRole};
     use conduit_tour_model::{
-        CANONICAL_RESULT, NEXT_CHAPTER_ACTION_ID, OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID,
-        TOUR_CHAPTER_COUNT, TourWorkspacePhase,
+        CANONICAL_RESULT, NEXT_CHAPTER_ACTION_ID, NEXT_STAGE_ACTION_ID, OPEN_PATCHBAY_ACTION_ID,
+        RUN_ACTION_ID, TOUR_CHAPTER_COUNT, TourWorkspacePhase,
     };
 
     use super::*;
@@ -404,6 +547,187 @@ mod tests {
     }
 
     #[test]
+    fn second_authored_stage_gets_its_own_native_plan_play_and_result() {
+        let (identities, offer) = fixture();
+        let mut product = TourProduct::canonical(10);
+        let mut clock = Clock::default();
+        let mut serial = Serial::default();
+        let mut interrupts = Interrupts::default();
+        let mut idle = Idle::default();
+        product
+            .accept(
+                &event(10, NEXT_STAGE_ACTION_ID),
+                &identities,
+                &offer,
+                "build",
+                &mut clock,
+                &mut serial,
+                &mut interrupts,
+                &mut idle,
+            )
+            .unwrap();
+        let update = product
+            .accept(
+                &event(11, RUN_ACTION_ID),
+                &identities,
+                &offer,
+                "build",
+                &mut clock,
+                &mut serial,
+                &mut interrupts,
+                &mut idle,
+            )
+            .unwrap();
+        let evidence = update.play.unwrap();
+        assert_eq!(evidence.specimen_id, "canonical-form:edit-one-gear");
+        assert_eq!(evidence.result, "MAKE THIS LOUD");
+        assert_eq!(serial.0, [b"MAKE THIS LOUD".as_slice()]);
+        let proof = product.controller().last_run().unwrap();
+        assert_eq!(proof.specimen_id, evidence.specimen_id);
+        assert_eq!(proof.plan_id, evidence.plan_id);
+        assert_eq!(proof.active_play_id, evidence.active_play_id);
+    }
+
+    #[test]
+    fn explicit_fanout_stage_manifests_text_and_native_morse_from_one_source() {
+        let (identities, offer) = fixture();
+        let mut product = TourProduct::canonical(10);
+        let mut clock = Clock::default();
+        let mut serial = Serial::default();
+        let mut interrupts = Interrupts::default();
+        let mut idle = Idle::default();
+        for revision in [10, 11] {
+            product
+                .accept(
+                    &event(revision, NEXT_STAGE_ACTION_ID),
+                    &identities,
+                    &offer,
+                    "build",
+                    &mut clock,
+                    &mut serial,
+                    &mut interrupts,
+                    &mut idle,
+                )
+                .unwrap();
+        }
+        product.scene(1280, 800).unwrap();
+        let update = product
+            .accept(
+                &event(12, RUN_ACTION_ID),
+                &identities,
+                &offer,
+                "build",
+                &mut clock,
+                &mut serial,
+                &mut interrupts,
+                &mut idle,
+            )
+            .unwrap();
+        let evidence = update.play.unwrap();
+        assert_eq!(evidence.specimen_id, "canonical-form:branch-a-cord");
+        assert_eq!(evidence.result, "SOS");
+        assert_eq!(evidence.manifestations, 2);
+        assert_eq!(evidence.run.logical_operations, 5);
+        assert_eq!(serial.0.len(), 2);
+        assert!(serial.0.iter().any(|value| value == b"SOS"));
+        let encoded = serial.0.iter().find(|value| *value != b"SOS").unwrap();
+        let pattern = conduit_text::MorsePattern::decode(encoded).unwrap();
+        assert_eq!(pattern.unit_millis, 80);
+        assert_eq!(pattern.to_text().unwrap(), "SOS");
+        let proof = product.controller().last_run().unwrap();
+        assert_eq!(proof.specimen_id, evidence.specimen_id);
+        assert_eq!(proof.plan_id, evidence.plan_id);
+        assert_eq!(proof.active_play_id, evidence.active_play_id);
+    }
+
+    #[test]
+    fn every_tour_page_projects_into_the_bounded_native_scene() {
+        let (identities, offer) = fixture();
+        let mut product = TourProduct::canonical(10);
+        let mut clock = Clock::default();
+        let mut serial = Serial::default();
+        let mut interrupts = Interrupts::default();
+        let mut idle = Idle::default();
+        product.scene(1280, 800).unwrap();
+        for (revision, action) in [
+            NEXT_STAGE_ACTION_ID,
+            NEXT_STAGE_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+            NEXT_STAGE_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            product
+                .accept(
+                    &event(u32::try_from(revision).unwrap() + 10, action),
+                    &identities,
+                    &offer,
+                    "build",
+                    &mut clock,
+                    &mut serial,
+                    &mut interrupts,
+                    &mut idle,
+                )
+                .unwrap();
+            product.scene(1280, 800).unwrap();
+        }
+    }
+
+    #[test]
+    fn comparison_stage_executes_distinct_direct_and_recursive_native_plays() {
+        let (identities, offer) = fixture();
+        let mut product = TourProduct::canonical(10);
+        let mut clock = Clock::default();
+        let mut serial = Serial::default();
+        let mut interrupts = Interrupts::default();
+        let mut idle = Idle::default();
+        product
+            .accept(
+                &event(10, NEXT_CHAPTER_ACTION_ID),
+                &identities,
+                &offer,
+                "build",
+                &mut clock,
+                &mut serial,
+                &mut interrupts,
+                &mut idle,
+            )
+            .unwrap();
+        let update = product
+            .accept(
+                &event(11, RUN_ACTION_ID),
+                &identities,
+                &offer,
+                "build",
+                &mut clock,
+                &mut serial,
+                &mut interrupts,
+                &mut idle,
+            )
+            .unwrap();
+        let evidence = update.play.unwrap();
+        assert_eq!(evidence.specimen_id, "canonical-form:same-morse-caller");
+        assert_eq!(evidence.result, "Direct and recursive realizations agree");
+        assert_eq!(evidence.manifestations, 2);
+        assert_eq!(evidence.run.logical_operations, 10);
+        assert_eq!(serial.0.len(), 2);
+        assert_eq!(serial.0[0], serial.0[1]);
+        let pattern = conduit_text::MorsePattern::decode(&serial.0[0]).unwrap();
+        assert_eq!(pattern.unit_millis, 40);
+        assert_eq!(pattern.to_text().unwrap(), "HELLO");
+        let proof = product.controller().last_run().unwrap();
+        let comparison = proof.comparison.as_ref().unwrap();
+        assert_ne!(proof.expanded_form_id, comparison.expanded_form_id);
+        assert_ne!(proof.plan_id, comparison.plan_id);
+    }
+
+    #[test]
     fn patchbay_action_changes_the_shared_state_without_inventing_a_play() {
         let (identities, offer) = fixture();
         let mut product = TourProduct::canonical(3);
@@ -509,4 +833,7 @@ mod tests {
             TOUR_CHAPTER_COUNT
         );
     }
+
+    #[path = "tour_product_timer_tests.rs"]
+    mod timer_tests;
 }

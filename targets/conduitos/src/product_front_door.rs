@@ -135,6 +135,7 @@ pub fn run(
     let mut tour_open = false;
     let mut consumed_birth_key = None;
     let mut clock = arch::Clock::new();
+    let mut timer = arch::Timer::new();
     let mut serial = arch::Serial::new();
     let mut interrupts = arch::Interrupts::new();
     let mut idle = arch::Idle::new();
@@ -261,12 +262,13 @@ pub fn run(
                         kind: ApplicationEventKind::Activate,
                         value: alloc::vec::Vec::new(),
                     };
-                    let update = match tour.accept(
+                    let update = match tour.accept_with_timer(
                         &event,
                         identities,
                         offer,
                         fabrication.build_id,
                         &mut clock,
+                        &mut timer,
                         &mut serial,
                         &mut interrupts,
                         &mut idle,
@@ -383,12 +385,48 @@ pub fn run(
                         })
                         .map_err(|error| error.as_str())?;
                     match journey.take_application_request() {
-                        Some(crate::native_workset::NativeApplicationRequest::RunTour) => {
-                            let mut prepared =
-                                crate::tour_play::prepare(identities, offer, fabrication.build_id)
-                                    .map_err(|error| error.as_str())?;
-                            let evidence = crate::tour_play::run(
+                        Some(crate::native_workset::NativeApplicationRequest::RunTour {
+                            chapter: 0,
+                            stage: 2,
+                        }) => {
+                            let mut prepared = crate::tour_play::prepare_morse_stage(
+                                identities,
+                                offer,
+                                fabrication.build_id,
+                            )
+                            .map_err(|error| error.as_str())?;
+                            let evidence = crate::tour_play::run_morse_stage(
                                 &mut prepared,
+                                &mut clock,
+                                &mut serial,
+                                &mut interrupts,
+                                &mut idle,
+                            )
+                            .map_err(|_| "resident-tour-morse-play-refused")?;
+                            journey
+                                .complete_tour_run(&evidence)
+                                .map_err(|error| error.as_str())?;
+                            arch::early_write(
+                                b"CONDUIT_WORKSPACE_CHECKPOINT resident-tour-fanout-ran\n",
+                            );
+                        }
+                        Some(crate::native_workset::NativeApplicationRequest::RunTour {
+                            chapter,
+                            stage,
+                        }) => {
+                            let (mut prepared, specimen_id, expected) =
+                                crate::tour_play::prepare_stage(
+                                    identities,
+                                    offer,
+                                    fabrication.build_id,
+                                    chapter,
+                                    stage,
+                                )
+                                .map_err(|error| error.as_str())?;
+                            let evidence = crate::tour_play::run_stage(
+                                &mut prepared,
+                                specimen_id,
+                                expected,
                                 &mut clock,
                                 &mut serial,
                                 &mut interrupts,
@@ -532,14 +570,19 @@ pub fn run(
                 Ok(())
             },
         )?;
+        // The keyboard receive was published before the F12 release yielded
+        // ownership to the Line. Its exact pending transfer remains the
+        // hand-back boundary when the finite Line session ends.
+        arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-resumed-after-line\n");
     }
     let mut execute_tour = |tour: &mut TourProduct, event: &ApplicationEvent| {
-        tour.accept(
+        tour.accept_with_timer(
             event,
             identities,
             offer,
             fabrication.build_id,
             &mut clock,
+            &mut timer,
             &mut serial,
             &mut interrupts,
             &mut idle,

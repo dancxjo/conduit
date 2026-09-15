@@ -66,6 +66,7 @@ pub struct BootRecord {
     pub firmware: Firmware,
     pub timestamp: u64,
     pub hhdm_offset: u64,
+    pub rsdp_address: Option<u64>,
     pub image_physical_start: u64,
     pub image_length: u64,
     pub memory_region_count: u16,
@@ -128,6 +129,7 @@ pub struct BootNormalizer {
     firmware: Firmware,
     timestamp: u64,
     hhdm_offset: u64,
+    rsdp_address: Option<u64>,
     image_start: u64,
     image_length: u64,
     previous_region_end: Option<u64>,
@@ -155,6 +157,7 @@ impl BootNormalizer {
             firmware,
             timestamp,
             hhdm_offset,
+            rsdp_address: None,
             image_start,
             image_length,
             previous_region_end: None,
@@ -237,11 +240,16 @@ impl BootNormalizer {
         Ok(())
     }
 
+    pub fn set_rsdp_address(&mut self, address: u64) {
+        self.rsdp_address = Some(address);
+    }
+
     pub fn finish(self) -> Result<BootRecord, BootError> {
         Ok(BootRecord {
             firmware: self.firmware,
             timestamp: self.timestamp,
             hhdm_offset: self.hhdm_offset,
+            rsdp_address: self.rsdp_address,
             image_physical_start: self.image_start,
             image_length: self.image_length,
             memory_region_count: self.region_count,

@@ -16,13 +16,26 @@ pub(super) fn validate(
     pointer_records: &[Value],
     opened: &Value,
 ) -> Result<TransientEvidence, ConduitosError> {
-    if records.len() != 6 {
+    const CONFIRMATIONS: usize = 8;
+    const PAIRS: usize = CONFIRMATIONS + 2;
+    if records.len() != PAIRS * 2 {
         return Err(refusal(
             "product-journey-transient-record-count",
-            "confirmation, refusal, and chooser must each be shown and dismissed",
+            "eight confirmations, one refusal, and one chooser must each be shown and dismissed",
         ));
     }
-    let expected = ["confirmation", "refusal", "chooser"];
+    let expected = [
+        "confirmation",
+        "confirmation",
+        "confirmation",
+        "confirmation",
+        "confirmation",
+        "confirmation",
+        "confirmation",
+        "confirmation",
+        "refusal",
+        "chooser",
+    ];
     for (index, kind) in expected.into_iter().enumerate() {
         let shown = &records[index * 2];
         let dismissed = &records[index * 2 + 1];
@@ -54,7 +67,7 @@ pub(super) fn validate(
             }
         }
     }
-    let refusal_record = &records[2];
+    let refusal_record = &records[CONFIRMATIONS * 2];
     let cause = text(refusal_record, "cause")?;
     if cause != "unknown-action" {
         return Err(refusal(
@@ -62,8 +75,8 @@ pub(super) fn validate(
             cause,
         ));
     }
-    let chooser = &records[4];
-    let chooser_dismissed = &records[5];
+    let chooser = &records[(CONFIRMATIONS + 1) * 2];
+    let chooser_dismissed = &records[(CONFIRMATIONS + 1) * 2 + 1];
     let chooser_manifestation_id = text(chooser, "manifestation_id")?;
     let pointer = pointer_records
         .iter()
@@ -82,7 +95,10 @@ pub(super) fn validate(
         ));
     }
     Ok(TransientEvidence {
-        kinds: expected.iter().map(|kind| (*kind).into()).collect(),
+        kinds: ["confirmation", "refusal", "chooser"]
+            .iter()
+            .map(|kind| (*kind).into())
+            .collect(),
         refusal_cause: cause,
         chooser_manifestation_id,
         stale_input_refused: true,
@@ -118,9 +134,23 @@ mod tests {
     fn requires_three_related_transients_and_exact_stale_chooser_route() {
         let opened = base_context();
         let mut records = Vec::new();
-        for (index, kind) in ["confirmation", "refusal", "chooser"].iter().enumerate() {
+        for (index, kind) in [
+            "confirmation",
+            "confirmation",
+            "confirmation",
+            "confirmation",
+            "confirmation",
+            "confirmation",
+            "confirmation",
+            "confirmation",
+            "refusal",
+            "chooser",
+        ]
+        .iter()
+        .enumerate()
+        {
             records.push(shown(kind, index as u64 * 2 + 1));
-            records.push(dismissed(index as u64 * 2 + 2, kind == &"chooser"));
+            records.push(dismissed(kind, index as u64 * 2 + 2, kind == &"chooser"));
         }
         let pointer = vec![json!({
             "status":"transient-focused",
@@ -128,7 +158,7 @@ mod tests {
             "routed_manifestation_id":"manifestation/chooser"
         })];
         validate(&records, &pointer, &opened).unwrap();
-        records[5]["stale_input_refused"] = json!(false);
+        records[19]["stale_input_refused"] = json!(false);
         assert!(validate(&records, &pointer, &opened).is_err());
     }
 
@@ -152,12 +182,7 @@ mod tests {
         })
     }
 
-    fn dismissed(frame: u64, stale: bool) -> Value {
-        let kind = match frame {
-            2 => "confirmation",
-            4 => "refusal",
-            _ => "chooser",
-        };
+    fn dismissed(kind: &str, frame: u64, stale: bool) -> Value {
         json!({
             "status":"dismissed", "surface_id":"conduitos/shell/transient",
             "manifestation_id":format!("manifestation/{kind}"),

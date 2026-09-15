@@ -17,6 +17,15 @@ pub fn front_door_snapshot() -> Result<RendererSnapshot, String> {
     snapshot_for_zero_body_front_door(&session)
 }
 
+pub fn one_form_two_faces_snapshot() -> Result<RendererSnapshot, String> {
+    let session = ZeroBodyFrontDoor::with_identity(
+        std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter),
+        HostId::from(patchbay_model::ONE_FORM_TWO_FACES_HOST_ID),
+        BootId::from(patchbay_model::ONE_FORM_TWO_FACES_BOOT_ID),
+    )?;
+    snapshot_for_zero_body_front_door(&session)
+}
+
 pub(crate) fn snapshot_for_zero_body_front_door(
     session: &ZeroBodyFrontDoor,
 ) -> Result<RendererSnapshot, String> {

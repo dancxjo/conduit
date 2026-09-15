@@ -34,6 +34,10 @@ pub const TEXT_UPPER_HOST_OPERATION: &str = "conduit.host/text-upper@1";
 pub const TEXT_UPPER_HOST_OPERATION_TARGET: &str = "text/uppercase-utf8";
 pub const TEXT_JOIN_HOST_OPERATION: &str = "conduit.host/text-join@1";
 pub const TEXT_JOIN_HOST_OPERATION_TARGET: &str = "text/prefix-concat-utf8";
+pub const TEXT_MORSE_HOST_OPERATION: &str = "conduit.host/text-to-morse@1";
+pub const TEXT_MORSE_HOST_OPERATION_TARGET: &str = "text/morse-pattern";
+pub const INDICATOR_PRESENTATION_HOST_OPERATION: &str = "conduit.host/present-indicator@1";
+pub const INDICATOR_PRESENTATION_HOST_OPERATION_TARGET: &str = "presentation/serial-indicator";
 pub const JSON_ENCODE_HOST_OPERATION: &str = "conduit.host/json-encode@1";
 pub const JSON_DECODE_HOST_OPERATION: &str = "conduit.host/json-decode@1";
 
@@ -239,6 +243,128 @@ pub fn text_join_offer() -> CapabilityOffer {
         }],
         Some((TEXT_JOIN_HOST_OPERATION, TEXT_JOIN_HOST_OPERATION_TARGET)),
     )
+}
+
+pub fn text_morse_offer() -> CapabilityOffer {
+    let contract = conduit_text::text_morse_semantics();
+    CapabilityOffer {
+        startup_parameters: vec![FaceStartupParameter {
+            name: conduit_text::MORSE_UNIT_MILLIS_KEY.into(),
+            value_type: "Count".into(),
+            has_default: true,
+        }],
+        shorthand: Some((port_id("text"), port_id("pattern"))),
+        capability_id: CapabilityId::from("conduitos-text-morse-v1"),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(TEXT_PROFILE),
+            implementation_id: ImplementationId::from(crate::offer::TEXT_MORSE_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(TEXT_ARTIFACT),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(TEXT_MORSE_HOST_OPERATION),
+            target_kind: Some(kind_id(TEXT_MORSE_HOST_OPERATION_TARGET)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_text::MAXIMUM_MORSE_INPUT_BYTES as u32,
+            maximum_output_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+        }],
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    }
+}
+
+pub fn indicator_presentation_offer() -> CapabilityOffer {
+    conduit_semantic_catalog::realization_offer(
+        conduit_semantic_catalog::indicator_presentation_contract(),
+        conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: "conduitos-presentation-indicator-v1",
+            execution_profile: TEXT_PROFILE,
+            implementation: crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION,
+            artifact: TEXT_ARTIFACT,
+        },
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(INDICATOR_PRESENTATION_HOST_OPERATION),
+            target_kind: Some(kind_id(INDICATOR_PRESENTATION_HOST_OPERATION_TARGET)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+            maximum_output_bytes: 0,
+        }],
+        vec![resource_requirement(
+            conduit_core::PRESENTATION_RESOURCE_CLASS,
+            1,
+        )],
+        Vec::new(),
+    )
+}
+
+pub fn morse_composition_offers() -> Vec<CapabilityOffer> {
+    [
+        (
+            conduit_text::text_characters_semantics(),
+            crate::offer::TEXT_CHARACTERS_IMPLEMENTATION,
+        ),
+        (
+            conduit_text::morse_lookup_semantics(),
+            crate::offer::MORSE_LOOKUP_IMPLEMENTATION,
+        ),
+        (
+            conduit_text::morse_intersperse_semantics(),
+            crate::offer::MORSE_INTERSPERSE_IMPLEMENTATION,
+        ),
+        (
+            conduit_text::morse_flatten_semantics(),
+            crate::offer::MORSE_FLATTEN_IMPLEMENTATION,
+        ),
+        (
+            conduit_text::morse_symbols_to_pattern_semantics(),
+            crate::offer::MORSE_SYMBOLS_TO_PATTERN_IMPLEMENTATION,
+        ),
+    ]
+    .into_iter()
+    .map(|(contract, implementation)| {
+        let input = contract.inputs[0].clone();
+        let output = contract.outputs[0].clone();
+        let mut offer = CapabilityOffer {
+            startup_parameters: contract
+                .configuration
+                .iter()
+                .map(|(name, _)| FaceStartupParameter {
+                    name: (*name).into(),
+                    value_type: "Count".into(),
+                    has_default: true,
+                })
+                .collect(),
+            shorthand: Some((input.port_id.clone(), output.port_id.clone())),
+            capability_id: CapabilityId::from(implementation),
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from(TEXT_PROFILE),
+                implementation_id: ImplementationId::from(implementation),
+                artifact_id: ArtifactId::from(TEXT_ARTIFACT),
+            },
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(implementation),
+                target_kind: Some(kind_id(implementation)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: contract.limits.max_queue_bytes,
+                maximum_output_bytes: contract.limits.max_queue_bytes,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+            limits: contract.limits,
+        };
+        offer.limits.max_active_instances = 1;
+        offer
+    })
+    .collect()
 }
 
 pub fn keymap_offer() -> CapabilityOffer {
