@@ -246,7 +246,7 @@ mod tests {
         vec![WiredHouseContextItem {
             item_identity: "context/temperature".into(),
             value_kind: "temperature/summary@1".into(),
-            canonical_value: b"21 C".to_vec(),
+            canonical_value: b"21 degrees Celsius".to_vec(),
             provenance: HouseContextProvenanceClass::ObservedSign,
             source_identity: "sign/temperature/1".into(),
         }]
