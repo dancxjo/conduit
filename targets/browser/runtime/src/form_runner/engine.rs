@@ -21,7 +21,8 @@ use crate::installed_browser::{
     factory, BrowserManifestation, BrowserOperation, BROWSER_HOST_OPERATIONS_PER_GEAR,
     BROWSER_HOST_OPERATION_BINDINGS, BROWSER_PENDING_REQUESTS, BROWSER_PORTS_PER_GEAR,
     BROWSER_QUEUE_SLOTS, BROWSER_ROUTE_SLOTS, BROWSER_ROUTE_TARGETS, BROWSER_SIGN_ITEMS,
-    BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS, MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS,
+    BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS, MAXIMUM_BROWSER_CORDS,
+    MAXIMUM_BROWSER_FORM_CORDS, MAXIMUM_BROWSER_FORM_GEARS, MAXIMUM_BROWSER_GEARS,
     MAXIMUM_BROWSER_VALUE_BYTES,
 };
 use conduit_core::PlanFragment;
@@ -53,40 +54,31 @@ type BrowserKernel = FixedScheduler<
 pub(super) struct TourScheduler {
     pub(super) failure: Option<conduit_kernel::Failure>,
     kernel: BrowserKernel,
-    snapshots: [Option<Box<resource_effect::SnapshotState>>; MAXIMUM_BROWSER_GEARS],
-    selectors: [Option<crate::installed_browser::pointer_selector::PreparedSelector>;
-        MAXIMUM_BROWSER_GEARS],
-    mappings: [Option<conduit_semantic_catalog::QuantityMapping>; MAXIMUM_BROWSER_GEARS],
-    attempts: [Option<conduit_semantic_catalog::BoundedButtonAttemptCodec>; MAXIMUM_BROWSER_GEARS],
-    comparisons:
-        [Option<conduit_semantic_catalog::BoundedPatternComparisonCodec>; MAXIMUM_BROWSER_GEARS],
-    timing: [Option<crate::installed_browser::timing::PreparedTiming>; MAXIMUM_BROWSER_GEARS],
-    keymaps: [Option<crate::installed_browser::keymap::PreparedKeymap>; MAXIMUM_BROWSER_GEARS],
-    text_states: [Option<Box<crate::installed_browser::text_state::PreparedTextState>>;
-        MAXIMUM_BROWSER_GEARS],
-    deliveries: [Option<conduit_net::BoundedRecordDeliveryStatusCodec>; MAXIMUM_BROWSER_GEARS],
-    histories:
-        [Option<crate::installed_browser::historical::PreparedHistory>; MAXIMUM_BROWSER_GEARS],
-    replay_sources: [Option<Box<crate::installed_browser::replay_source::PreparedReplaySource>>;
-        MAXIMUM_BROWSER_GEARS],
-    replay_controls: [Option<Box<crate::installed_browser::replay_control::PreparedReplayControl>>;
-        MAXIMUM_BROWSER_GEARS],
-    template_stores: [Option<
-        Box<crate::installed_browser::template_storage::PreparedTemplateStore>,
-    >; MAXIMUM_BROWSER_GEARS],
-    structured_selectors: [Option<crate::installed_browser::structured_selector::PreparedSelector>;
-        MAXIMUM_BROWSER_GEARS],
-    measurement_windows: [Option<Box<crate::installed_browser::measurement_window::PreparedWindow>>;
-        MAXIMUM_BROWSER_GEARS],
-    measurement_hysteresis: [Option<
-        Box<crate::installed_browser::measurement_hysteresis::PreparedHysteresis>,
-    >; MAXIMUM_BROWSER_GEARS],
-    garden_steps: [Option<Box<crate::installed_browser::garden_step::PreparedGardenStep>>;
-        MAXIMUM_BROWSER_GEARS],
-    stroke_captures: [Option<Box<crate::installed_browser::stroke_capture::PreparedStrokeCapture>>;
-        MAXIMUM_BROWSER_GEARS],
-    applications:
-        [Option<Box<super::application_state::PreparedApplication>>; MAXIMUM_BROWSER_GEARS],
+    snapshots: Vec<Option<Box<resource_effect::SnapshotState>>>,
+    selectors: Vec<Option<crate::installed_browser::pointer_selector::PreparedSelector>>,
+    mappings: Vec<Option<conduit_semantic_catalog::QuantityMapping>>,
+    attempts: Vec<Option<conduit_semantic_catalog::BoundedButtonAttemptCodec>>,
+    comparisons: Vec<Option<conduit_semantic_catalog::BoundedPatternComparisonCodec>>,
+    timing: Vec<Option<crate::installed_browser::timing::PreparedTiming>>,
+    keymaps: Vec<Option<crate::installed_browser::keymap::PreparedKeymap>>,
+    text_states: Vec<Option<Box<crate::installed_browser::text_state::PreparedTextState>>>,
+    deliveries: Vec<Option<conduit_net::BoundedRecordDeliveryStatusCodec>>,
+    histories: Vec<Option<crate::installed_browser::historical::PreparedHistory>>,
+    replay_sources: Vec<Option<Box<crate::installed_browser::replay_source::PreparedReplaySource>>>,
+    replay_controls:
+        Vec<Option<Box<crate::installed_browser::replay_control::PreparedReplayControl>>>,
+    template_stores:
+        Vec<Option<Box<crate::installed_browser::template_storage::PreparedTemplateStore>>>,
+    structured_selectors:
+        Vec<Option<crate::installed_browser::structured_selector::PreparedSelector>>,
+    measurement_windows:
+        Vec<Option<Box<crate::installed_browser::measurement_window::PreparedWindow>>>,
+    measurement_hysteresis:
+        Vec<Option<Box<crate::installed_browser::measurement_hysteresis::PreparedHysteresis>>>,
+    garden_steps: Vec<Option<Box<crate::installed_browser::garden_step::PreparedGardenStep>>>,
+    stroke_captures:
+        Vec<Option<Box<crate::installed_browser::stroke_capture::PreparedStrokeCapture>>>,
+    applications: Vec<Option<Box<super::application_state::PreparedApplication>>>,
 }
 
 impl core::ops::Deref for TourScheduler {

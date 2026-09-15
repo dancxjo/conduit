@@ -40,6 +40,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       !outputRoot?.isConnected || !inputTarget?.isConnected) {
     throw new Error("invalid browser Body acquisition inputs");
   }
+  if (api.conduit_browser_form_human_machinery() < 0) throw new Error("browser machinery unavailable");
+  const machinery = readOutput(api);
+  const maximumPlacements = machinery?.limits?.maximum_gears;
+  if (machinery.schema !== "conduit.browser/selected-human-machinery@1" || !Array.isArray(machinery.implementations) || machinery.implementations.length > 64 ||
+      !Number.isSafeInteger(maximumPlacements) || maximumPlacements < 1) throw new Error("invalid browser machinery");
   const placements = [];
   for (const form of proposal.plan.forms) {
     if (form.plan.fragments.length !== 1) throw new Error("browser Body requires local partitions");
@@ -48,7 +53,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       throw new Error("Body proposal does not name this browser Host and Boot");
     }
     placements.push(...fragment.placements);
-    if (placements.length > 16) throw new Error("browser Body placement bound exceeded");
+    if (placements.length > maximumPlacements) throw new Error("browser Body placement bound exceeded");
   }
   const demand = new Map();
   for (const placement of placements) {
@@ -64,11 +69,8 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   for (const [kind, units] of demand) {
     if (units > ([PRESENTATION, INPUT, AUDIO_CUE_RESOURCE].includes(kind) ? 16 : 1)) throw new Error("browser Body resource demand exceeds local bounds");
   }
-  if (api.conduit_browser_form_human_machinery() < 0) throw new Error("browser machinery unavailable");
-  const machinery = readOutput(api);
-  if (machinery.schema !== "conduit.browser/selected-human-machinery@1" || !Array.isArray(machinery.implementations) || machinery.implementations.length > 64) throw new Error("invalid browser machinery");
   const boot = { host_id: hostId, boot_id: bootId, offer_generation: 1, implementation_registry: machinery.implementations };
-  const routing = foregroundForm ? createBodyInputRouting({ forms: proposal.plan.forms, foreground: foregroundForm }) : null;
+  const routing = foregroundForm ? createBodyInputRouting({ forms: proposal.plan.forms, foreground: foregroundForm, maximumPlacements }) : null;
   const slots = new Map();
   const applicationChannels = new Map();
   const applicationChannel = checkedFormId => {

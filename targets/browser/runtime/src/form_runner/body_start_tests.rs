@@ -5,6 +5,28 @@ mod fixture;
 pub(in crate::form_runner) use fixture::{request, request_from_sources};
 
 #[test]
+fn ordinary_five_form_body_is_not_confined_to_the_single_form_gear_table() {
+    let sources = (0..5)
+        .map(|index| format!("form body_{index} {{\n message: text/literal(\"hello\")\n first: text/upper\n second: text/upper\n result: presentation/text\n message > first > second > result\n}}\n"))
+        .collect::<Vec<_>>();
+    let source_refs = sources.iter().map(String::as_str).collect::<Vec<_>>();
+    let request = request_from_sources(&source_refs);
+    let placements = request
+        .plan
+        .forms
+        .iter()
+        .flat_map(|form| &form.plan.fragments)
+        .map(|fragment| fragment.placements.len())
+        .sum::<usize>();
+    assert!(placements > crate::installed_browser::MAXIMUM_BROWSER_FORM_GEARS);
+    assert!(placements <= crate::installed_browser::MAXIMUM_BROWSER_GEARS);
+    let (session, started) = prepare(request).unwrap();
+    assert_eq!(session.fragments.len(), 5);
+    assert_eq!(started.play.wake_id, started.wake_at_start.wake_id);
+    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+}
+
+#[test]
 fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
     let request = request_from_sources(&[
         include_str!("../../../../../forms/button-across-room/main.conduit"),
