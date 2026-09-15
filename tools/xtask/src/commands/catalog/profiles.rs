@@ -67,6 +67,12 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     offer
         .validate()
         .map_err(|error| CatalogError::new("conduitos-offer-invalid", error.as_str()))?;
+    let mut portable_offers = conduit_std_host::supported_nucleus_offers();
+    portable_offers.extend([
+        conduitos::functional_offers::text_morse_offer(),
+        conduitos::functional_offers::indicator_presentation_offer(),
+    ]);
+    portable_offers.extend(conduitos::functional_offers::morse_composition_offers());
     let mut advertisement = HostAdvertisement {
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: HostId::from("catalog-conduitos-reference"),
@@ -79,13 +85,14 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
             .capabilities
             .iter()
             .map(|capability| {
-                let mut exact = conduit_std_host::supported_nucleus_offers()
-                    .into_iter()
+                let mut exact = portable_offers
+                    .iter()
                     .find(|candidate| {
                         candidate.kind_id.as_str() == capability.kind
                             && candidate.kind_contract_revision.as_str()
                                 == capability.contract_revision
                     })
+                    .cloned()
                     .ok_or_else(|| {
                         CatalogError::new("conduitos-capability-not-in-catalog", capability.kind)
                     })?;

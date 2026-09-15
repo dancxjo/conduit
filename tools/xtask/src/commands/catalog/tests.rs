@@ -41,12 +41,26 @@ fn exact_profile_offers_drive_positive_cells() {
 
     let os = build_report(&[CatalogHost::Conduitos], None).unwrap();
     let advertised = profiles::advertisement(CatalogHost::Conduitos).unwrap();
+    let advertised_catalog_kinds = advertised
+        .capabilities
+        .iter()
+        .filter(|offer| {
+            os.entries.iter().any(|entry| {
+                entry.kind_id == offer.kind_id.as_str()
+                    && entry.contract_revision == offer.kind_contract_revision.as_str()
+            })
+        })
+        .map(|offer| (&offer.kind_id, &offer.kind_contract_revision))
+        .collect::<std::collections::BTreeSet<_>>();
+    let direct = os
+        .entries
+        .iter()
+        .filter(|entry| matches!(entry.coverage, Coverage::Direct))
+        .count();
     assert_eq!(
-        os.entries
-            .iter()
-            .filter(|entry| matches!(entry.coverage, Coverage::Direct))
-            .count(),
-        advertised.capabilities.len()
+        direct,
+        advertised_catalog_kinds.len(),
+        "recursive leaf offers and repeated exact offers must not inflate catalog coverage"
     );
     let missing = os
         .entries
@@ -58,10 +72,7 @@ fn exact_profile_offers_drive_positive_cells() {
         .iter()
         .filter(|entry| matches!(entry.coverage, Coverage::Recursive))
         .count();
-    assert_eq!(
-        missing + advertised.capabilities.len() + recursive,
-        os.catalog_entry_count
-    );
+    assert_eq!(missing + direct + recursive, os.catalog_entry_count);
     let gear_face = os
         .entries
         .iter()
