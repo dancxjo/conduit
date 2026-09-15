@@ -1,6 +1,6 @@
 //! The canonical product source-loading boundary.
 
-use conduit_form::{ExpandedCanonicalForm, ProfileCatalog, StartupCatalog};
+use conduit_form::{CanonicalBackCatalog, ExpandedCanonicalForm, ProfileCatalog, StartupCatalog};
 use std::fs;
 use std::path::Path;
 
@@ -51,6 +51,16 @@ fn load_with_catalogs(
 
 impl CanonicalSource {
     pub(crate) fn expand_entry(&self) -> Result<ExpandedCanonicalForm, String> {
+        self.expand_entry_with_backs(false)
+    }
+
+    // Used by the library entrance; the binary compiles this module independently.
+    #[allow(dead_code)]
+    pub(crate) fn expand_entry_recursive(&self) -> Result<ExpandedCanonicalForm, String> {
+        self.expand_entry_with_backs(true)
+    }
+
+    fn expand_entry_with_backs(&self, recursive: bool) -> Result<ExpandedCanonicalForm, String> {
         if let Some(diagnostic) = self.syntax.diagnostics.first() {
             return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
         }
@@ -62,8 +72,15 @@ impl CanonicalSource {
             .ok_or_else(|| "canonical Form source contains no Form".to_string())?
             .name
             .clone();
-        conduit_form::expand_canonical_form(&checked, &entry, &self.profiles)
-            .map_err(|diagnostic| diagnostic.to_string())
+        if recursive {
+            let mut backs = CanonicalBackCatalog::new();
+            conduit_text::install_morse_backs(&self.startup, &self.profiles, &mut backs)?;
+            conduit_form::expand_canonical_form_with_backs(&checked, &entry, &self.profiles, &backs)
+                .map_err(|diagnostic| diagnostic.to_string())
+        } else {
+            conduit_form::expand_canonical_form(&checked, &entry, &self.profiles)
+                .map_err(|diagnostic| diagnostic.to_string())
+        }
     }
 }
 

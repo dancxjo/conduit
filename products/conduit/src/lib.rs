@@ -28,7 +28,7 @@ pub fn execute_hosted_form(
     source: &str,
     output: &mut impl Write,
 ) -> Result<HostedFormExecution, String> {
-    execute_source(form_source::parse(source)?, output, None)
+    execute_source(form_source::parse(source)?, output, None, false)
 }
 
 /// File-based form of [`execute_hosted_form`], used by the installed CLI entrance.
@@ -36,7 +36,7 @@ pub fn execute_hosted_form_file(
     path: &Path,
     output: &mut impl Write,
 ) -> Result<HostedFormExecution, String> {
-    execute_source(form_source::load(path)?, output, None)
+    execute_source(form_source::load(path)?, output, None, false)
 }
 
 /// Execute with an explicit admitted Stop channel for standing Forms.
@@ -45,15 +45,29 @@ pub fn execute_hosted_form_controlled(
     output: &mut impl Write,
     control: &conduit_std_host::RunControl,
 ) -> Result<HostedFormExecution, String> {
-    execute_source(form_source::parse(source)?, output, Some(control))
+    execute_source(form_source::parse(source)?, output, Some(control), false)
+}
+
+/// Recursively realize reviewed Backs and execute with an explicit Stop channel.
+pub fn execute_hosted_form_recursive_controlled(
+    source: &str,
+    output: &mut impl Write,
+    control: &conduit_std_host::RunControl,
+) -> Result<HostedFormExecution, String> {
+    execute_source(form_source::parse(source)?, output, Some(control), true)
 }
 
 fn execute_source(
     source: form_source::CanonicalSource,
     output: &mut impl Write,
     control: Option<&conduit_std_host::RunControl>,
+    recursive: bool,
 ) -> Result<HostedFormExecution, String> {
-    let form = source.expand_entry()?;
+    let form = if recursive {
+        source.expand_entry_recursive()?
+    } else {
+        source.expand_entry()?
+    };
     let mut context = product_execution::ProductExecutionContext::local_std()?;
     let plan = context.plan(&form, None)?;
     let execution = match control {

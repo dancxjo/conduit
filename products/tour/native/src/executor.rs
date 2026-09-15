@@ -1,7 +1,8 @@
 use std::io::Write;
 
 use conduit_tour_model::{
-    TOUR_CHAPTERS, TourRunProof, TourRunTerminal, TourStageMode, tour_stage_source,
+    TOUR_CHAPTERS, TourComparisonProof, TourRunProof, TourRunTerminal, TourStageMode,
+    tour_stage_source,
 };
 
 const HOSTED_EVIDENCE_BYTES: usize = 64 * 1024;
@@ -25,9 +26,12 @@ impl HostedTourExecutor {
             .get(usize::from(chapter))
             .and_then(|chapter| chapter.stages.get(usize::from(stage)))
             .ok_or(HostedTourExecutorRefusal::UnknownStage)?;
-        // Comparison and multi-Host stages stay explicitly unsupported until
-        // their distinct secondary-Plan/Line evidence is retained here.
-        if stage_contract.mode != TourStageMode::Run || !matches!(chapter, 0 | 2) {
+        // Multi-Host stages stay explicitly unsupported until their exact
+        // secondary fragments, Plays, and planned Line are retained here.
+        let supported = matches!(stage_contract.mode, TourStageMode::Run)
+            && matches!(chapter, 0 | 2)
+            || matches!(stage_contract.mode, TourStageMode::Compare) && chapter == 1;
+        if !supported {
             return Err(HostedTourExecutorRefusal::UnsupportedStage);
         }
         let source = tour_stage_source(chapter, stage)
@@ -38,11 +42,59 @@ impl HostedTourExecutor {
         let expected_manifestations = stage_contract
             .expected_manifestations
             .ok_or(HostedTourExecutorRefusal::WrongTerminal)?;
-        let (execution, output, terminal) = if chapter == 0 && stage == 0 {
+        let mut comparison = None;
+        let (execution, output, terminal, result_is_verified) = if stage_contract.mode
+            == TourStageMode::Compare
+        {
+            let direct_control = conduit_std_host::RunControl::default();
+            let mut direct_output = StopAfterManifestations::new(&direct_control, 1);
+            let direct = conduit::execute_hosted_form_controlled(
+                &source,
+                &mut direct_output,
+                &direct_control,
+            )
+            .map_err(HostedTourExecutorRefusal::Execution)?;
+            let recursive_control = conduit_std_host::RunControl::default();
+            let mut recursive_output = StopAfterManifestations::new(&recursive_control, 1);
+            let recursive = conduit::execute_hosted_form_recursive_controlled(
+                &source,
+                &mut recursive_output,
+                &recursive_control,
+            )
+            .map_err(HostedTourExecutorRefusal::Execution)?;
+            let direct_rendered = core::str::from_utf8(&direct_output.output.bytes)
+                .map_err(|_| HostedTourExecutorRefusal::WrongResult)?;
+            let recursive_rendered = core::str::from_utf8(&recursive_output.output.bytes)
+                .map_err(|_| HostedTourExecutorRefusal::WrongResult)?;
+            let direct_manifestations = manifestation_lines(direct_rendered);
+            let recursive_manifestations = manifestation_lines(recursive_rendered);
+            if !direct_output.stop_requested
+                || !recursive_output.stop_requested
+                || direct_manifestations.len() + recursive_manifestations.len()
+                    != usize::from(expected_manifestations)
+                || direct_manifestations != recursive_manifestations
+                || direct.source_document_id != recursive.source_document_id
+                || direct.checked_form_id != recursive.checked_form_id
+                || direct.expanded_form_id == recursive.expanded_form_id
+                || direct.plan.plan_id == recursive.plan.plan_id
+            {
+                return Err(HostedTourExecutorRefusal::WrongResult);
+            }
+            comparison = Some(TourComparisonProof {
+                expanded_form_id: recursive.expanded_form_id,
+                plan_id: recursive.plan.plan_id,
+            });
+            (
+                direct,
+                direct_output.output.bytes,
+                TourRunTerminal::Stopped,
+                true,
+            )
+        } else if chapter == 0 && stage == 0 {
             let mut output = BoundedEvidence::new();
             let execution = conduit::execute_hosted_form(&source, &mut output)
                 .map_err(HostedTourExecutorRefusal::Execution)?;
-            (execution, output.bytes, TourRunTerminal::Completed)
+            (execution, output.bytes, TourRunTerminal::Completed, false)
         } else {
             let control = conduit_std_host::RunControl::default();
             let mut output =
@@ -52,11 +104,16 @@ impl HostedTourExecutor {
             if !output.stop_requested {
                 return Err(HostedTourExecutorRefusal::WrongTerminal);
             }
-            (execution, output.output.bytes, TourRunTerminal::Stopped)
+            (
+                execution,
+                output.output.bytes,
+                TourRunTerminal::Stopped,
+                false,
+            )
         };
         let rendered =
             core::str::from_utf8(&output).map_err(|_| HostedTourExecutorRefusal::WrongResult)?;
-        if !has_expected_result(rendered, expected) {
+        if !result_is_verified && !has_expected_result(rendered, expected) {
             return Err(HostedTourExecutorRefusal::WrongResult);
         }
         let active_play_id = execution
@@ -95,9 +152,54 @@ impl HostedTourExecutor {
             active_play_id,
             result: expected.into(),
             terminal,
-            comparison: None,
+            comparison,
             multi_host: None,
         })
+    }
+}
+
+struct StopAfterManifestations<'a> {
+    control: &'a conduit_std_host::RunControl,
+    expected_manifestations: usize,
+    output: BoundedEvidence,
+    stop_requested: bool,
+}
+
+impl<'a> StopAfterManifestations<'a> {
+    fn new(control: &'a conduit_std_host::RunControl, expected_manifestations: usize) -> Self {
+        Self {
+            control,
+            expected_manifestations,
+            output: BoundedEvidence::new(),
+            stop_requested: false,
+        }
+    }
+
+    fn maybe_stop(&mut self) {
+        let Ok(rendered) = core::str::from_utf8(&self.output.bytes) else {
+            return;
+        };
+        if !self.stop_requested && manifestation_count(rendered) >= self.expected_manifestations {
+            self.stop_requested = self
+                .control
+                .request_stop(
+                    conduit_std_host::RunControlRequestId::new("tour/native/comparison-complete")
+                        .expect("static hosted Tour control identity is valid"),
+                )
+                .is_ok();
+        }
+    }
+}
+
+impl Write for StopAfterManifestations<'_> {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.output.write_all(bytes)?;
+        self.maybe_stop();
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
@@ -129,14 +231,7 @@ impl<'a> StopAfterEvidence<'a> {
             return;
         };
         let has_result = has_expected_result(rendered, self.expected);
-        let manifestations = rendered
-            .lines()
-            .filter(|line| {
-                line.starts_with("PRESENTATION-TEXT")
-                    || line.starts_with("indicator unit-ms=")
-                    || line.starts_with("count value=")
-            })
-            .count();
+        let manifestations = manifestation_count(rendered);
         if !self.stop_requested && has_result && manifestations >= self.expected_manifestations {
             self.stop_requested = self
                 .control
@@ -147,6 +242,21 @@ impl<'a> StopAfterEvidence<'a> {
                 .is_ok();
         }
     }
+}
+
+fn manifestation_count(rendered: &str) -> usize {
+    manifestation_lines(rendered).len()
+}
+
+fn manifestation_lines(rendered: &str) -> Vec<&str> {
+    rendered
+        .lines()
+        .filter(|line| {
+            line.starts_with("PRESENTATION-TEXT")
+                || line.starts_with("indicator unit-ms=")
+                || line.starts_with("count value=")
+        })
+        .collect()
 }
 
 fn has_expected_result(rendered: &str, expected: &str) -> bool {
@@ -222,11 +332,17 @@ mod tests {
     }
 
     #[test]
+    fn comparison_retains_distinct_recursive_form_and_plan_with_equal_output() {
+        let proof = HostedTourExecutor::run(1, 0).unwrap();
+        let recursive = proof.comparison.unwrap();
+        assert_ne!(proof.expanded_form_id, recursive.expanded_form_id);
+        assert_ne!(proof.plan_id, recursive.plan_id);
+        assert_eq!(proof.result, "Direct and recursive realizations agree");
+        assert_eq!(proof.terminal, TourRunTerminal::Stopped);
+    }
+
+    #[test]
     fn distinct_unimplemented_hosted_lifecycles_do_not_gain_fake_success() {
-        assert_eq!(
-            HostedTourExecutor::run(1, 0),
-            Err(HostedTourExecutorRefusal::UnsupportedStage)
-        );
         assert_eq!(
             HostedTourExecutor::run(4, 0),
             Err(HostedTourExecutorRefusal::UnknownStage)
