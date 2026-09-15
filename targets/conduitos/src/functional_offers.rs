@@ -302,6 +302,71 @@ pub fn indicator_presentation_offer() -> CapabilityOffer {
     )
 }
 
+pub fn morse_composition_offers() -> Vec<CapabilityOffer> {
+    [
+        (
+            conduit_text::text_characters_semantics(),
+            crate::offer::TEXT_CHARACTERS_IMPLEMENTATION,
+        ),
+        (
+            conduit_text::morse_lookup_semantics(),
+            crate::offer::MORSE_LOOKUP_IMPLEMENTATION,
+        ),
+        (
+            conduit_text::morse_intersperse_semantics(),
+            crate::offer::MORSE_INTERSPERSE_IMPLEMENTATION,
+        ),
+        (
+            conduit_text::morse_flatten_semantics(),
+            crate::offer::MORSE_FLATTEN_IMPLEMENTATION,
+        ),
+        (
+            conduit_text::morse_symbols_to_pattern_semantics(),
+            crate::offer::MORSE_SYMBOLS_TO_PATTERN_IMPLEMENTATION,
+        ),
+    ]
+    .into_iter()
+    .map(|(contract, implementation)| {
+        let input = contract.inputs[0].clone();
+        let output = contract.outputs[0].clone();
+        let mut offer = CapabilityOffer {
+            startup_parameters: contract
+                .configuration
+                .iter()
+                .map(|(name, _)| FaceStartupParameter {
+                    name: (*name).into(),
+                    value_type: "Count".into(),
+                    has_default: true,
+                })
+                .collect(),
+            shorthand: Some((input.port_id.clone(), output.port_id.clone())),
+            capability_id: CapabilityId::from(implementation),
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from(TEXT_PROFILE),
+                implementation_id: ImplementationId::from(implementation),
+                artifact_id: ArtifactId::from(TEXT_ARTIFACT),
+            },
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(implementation),
+                target_kind: Some(kind_id(implementation)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: contract.limits.max_queue_bytes,
+                maximum_output_bytes: contract.limits.max_queue_bytes,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+            limits: contract.limits,
+        };
+        offer.limits.max_active_instances = 1;
+        offer
+    })
+    .collect()
+}
+
 pub fn keymap_offer() -> CapabilityOffer {
     realize_input_host_operation_contract(
         conduit_semantic_catalog::keymap_contract(),
