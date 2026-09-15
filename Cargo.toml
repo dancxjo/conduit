@@ -51,6 +51,7 @@ members = [
 	"products/creche/model",
 	"products/workspace/model",
 	"products/tour/model",
+	"products/tour/native",
 	"products/patchbay/hosted",
 	"products/patchbay/html",
 	"products/patchbay/model",
