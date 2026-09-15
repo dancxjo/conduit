@@ -3,8 +3,9 @@
 use crate::{
     machine::BaseKind,
     offer::{
-        CapabilityOffer, PortDirection, PortOffer, SERIAL_MAXIMUM_BYTES,
-        TEXT_LITERAL_IMPLEMENTATION, TEXT_PRESENTATION_IMPLEMENTATION, TEXT_UPPER_IMPLEMENTATION,
+        CapabilityOffer, INDICATOR_PRESENTATION_IMPLEMENTATION, PortDirection, PortOffer,
+        SERIAL_MAXIMUM_BYTES, TEXT_LITERAL_IMPLEMENTATION, TEXT_MORSE_IMPLEMENTATION,
+        TEXT_PRESENTATION_IMPLEMENTATION, TEXT_UPPER_IMPLEMENTATION,
     },
 };
 
@@ -75,6 +76,55 @@ pub(super) fn presentation(build_id: &str) -> CapabilityOffer<'_> {
         output: None,
         maximum_in_flight: 1,
         maximum_input_bytes: SERIAL_MAXIMUM_BYTES,
+        maximum_output_bytes: 0,
+    }
+}
+
+pub(super) fn morse(build_id: &str) -> CapabilityOffer<'_> {
+    CapabilityOffer {
+        kind: conduit_text::TEXT_MORSE_KIND,
+        contract_revision: conduit_text::TEXT_MORSE_CONTRACT_REVISION,
+        implementation: TEXT_MORSE_IMPLEMENTATION,
+        artifact_build: build_id,
+        host_operation: Some("conduit.host/text-to-morse@1"),
+        required_base: BaseKind::Memory,
+        secondary_base: None,
+        input: Some(PortOffer {
+            name: "text",
+            value_kind: conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            direction: PortDirection::Input,
+            closes: true,
+        }),
+        output: Some(PortOffer {
+            name: "pattern",
+            value_kind: conduit_text::MORSE_PATTERN_VALUE_KIND,
+            direction: PortDirection::Output,
+            closes: true,
+        }),
+        maximum_in_flight: 1,
+        maximum_input_bytes: conduit_text::MAXIMUM_MORSE_INPUT_BYTES as u32,
+        maximum_output_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+    }
+}
+
+pub(super) fn indicator(build_id: &str) -> CapabilityOffer<'_> {
+    CapabilityOffer {
+        kind: conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
+        contract_revision: conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION,
+        implementation: INDICATOR_PRESENTATION_IMPLEMENTATION,
+        artifact_build: build_id,
+        host_operation: Some("conduit.host/present-indicator@1"),
+        required_base: BaseKind::Serial,
+        secondary_base: None,
+        input: Some(PortOffer {
+            name: "pattern",
+            value_kind: conduit_text::MORSE_PATTERN_VALUE_KIND,
+            direction: PortDirection::Input,
+            closes: true,
+        }),
+        output: None,
+        maximum_in_flight: 1,
+        maximum_input_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
         maximum_output_bytes: 0,
     }
 }

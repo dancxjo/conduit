@@ -15,7 +15,7 @@ use alloc::format;
 
 pub const BASE_COUNT: usize = 7;
 pub const RESOURCE_COUNT: usize = 5;
-pub const CAPABILITY_COUNT: usize = 5;
+pub const CAPABILITY_COUNT: usize = 7;
 pub const TIMER_SLOT_CAPACITY: u16 = 1;
 pub const SERIAL_OPERATION_CAPACITY: u16 = 2;
 pub const SERIAL_MAXIMUM_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
@@ -26,6 +26,8 @@ pub const TICK_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-tick
 pub const TEXT_LITERAL_IMPLEMENTATION: &str = "conduitos/kernel-text-literal@1";
 pub const TEXT_UPPER_IMPLEMENTATION: &str = "conduitos/kernel-text-upper@1";
 pub const TEXT_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-text@1";
+pub const TEXT_MORSE_IMPLEMENTATION: &str = "conduitos/kernel-text-morse@1";
+pub const INDICATOR_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-indicator@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CpuFeatures {
@@ -258,6 +260,8 @@ impl<'a> HostOffer<'a> {
                 crate::text_offer::literal(build_id),
                 crate::text_offer::upper(build_id),
                 crate::text_offer::presentation(build_id),
+                crate::text_offer::morse(build_id),
+                crate::text_offer::indicator(build_id),
             ],
             cpu_features,
             runtime_arena_bytes,
