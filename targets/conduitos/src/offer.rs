@@ -15,7 +15,7 @@ use alloc::format;
 
 pub const BASE_COUNT: usize = 7;
 pub const RESOURCE_COUNT: usize = 5;
-pub const CAPABILITY_COUNT: usize = 7;
+pub const CAPABILITY_COUNT: usize = 12;
 pub const TIMER_SLOT_CAPACITY: u16 = 1;
 pub const SERIAL_OPERATION_CAPACITY: u16 = 2;
 pub const SERIAL_MAXIMUM_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
@@ -28,6 +28,12 @@ pub const TEXT_UPPER_IMPLEMENTATION: &str = "conduitos/kernel-text-upper@1";
 pub const TEXT_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-text@1";
 pub const TEXT_MORSE_IMPLEMENTATION: &str = "conduitos/kernel-text-morse@1";
 pub const INDICATOR_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-indicator@1";
+pub const TEXT_CHARACTERS_IMPLEMENTATION: &str = "conduitos/kernel-text-characters@1";
+pub const MORSE_LOOKUP_IMPLEMENTATION: &str = "conduitos/kernel-morse-lookup@1";
+pub const MORSE_INTERSPERSE_IMPLEMENTATION: &str = "conduitos/kernel-morse-intersperse@1";
+pub const MORSE_FLATTEN_IMPLEMENTATION: &str = "conduitos/kernel-morse-flatten@1";
+pub const MORSE_SYMBOLS_TO_PATTERN_IMPLEMENTATION: &str =
+    "conduitos/kernel-morse-symbols-to-pattern@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CpuFeatures {
@@ -262,6 +268,11 @@ impl<'a> HostOffer<'a> {
                 crate::text_offer::presentation(build_id),
                 crate::text_offer::morse(build_id),
                 crate::text_offer::indicator(build_id),
+                crate::text_offer::characters(build_id),
+                crate::text_offer::morse_lookup(build_id),
+                crate::text_offer::morse_intersperse(build_id),
+                crate::text_offer::morse_flatten(build_id),
+                crate::text_offer::morse_symbols_to_pattern(build_id),
             ],
             cpu_features,
             runtime_arena_bytes,

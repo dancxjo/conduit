@@ -169,6 +169,7 @@ pub mod text_upper;
 pub mod timer_nucleus;
 mod timing_plan;
 pub mod timing_profile;
+pub mod tour_comparison_plan;
 mod tour_morse_kernel;
 mod tour_morse_operations;
 mod tour_morse_plan;
