@@ -1,6 +1,9 @@
 //! Exact Plan and production-kernel preparation for the canonical Tour specimen.
 
-use conduit_tour_model::{CANONICAL_LITERAL, CANONICAL_RESULT, CANONICAL_SOURCE};
+use conduit_tour_model::{
+    CANONICAL_LITERAL, CANONICAL_RESULT, CANONICAL_SOURCE, CANONICAL_SPECIMEN_ID, TOUR_CHAPTERS,
+    TourStageMode, tour_stage_source,
+};
 
 use crate::{
     composition::{MachineRunError, MachineRunReceipt},
@@ -12,6 +15,7 @@ use crate::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TourPlayEvidence {
+    pub specimen_id: &'static str,
     pub source_document_id: conduit_core::SourceDocumentId,
     pub checked_form_id: conduit_core::CheckedFormId,
     pub expanded_form_id: conduit_core::ExpandedFormId,
@@ -44,6 +48,37 @@ pub fn prepare(
     )
 }
 
+pub fn prepare_stage(
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    build_id: &str,
+    chapter: u8,
+    stage: u8,
+) -> Result<(PreparedOrdinaryPlay, &'static str, &'static str), PreparationError> {
+    let contract = TOUR_CHAPTERS
+        .get(usize::from(chapter))
+        .and_then(|chapter| chapter.stages.get(usize::from(stage)))
+        .ok_or(PreparationError::FormRejected)?;
+    if contract.mode != TourStageMode::Run || chapter != 0 || stage > 1 {
+        return Err(PreparationError::FormRejected);
+    }
+    let source = tour_stage_source(chapter, stage).map_err(|_| PreparationError::FormRejected)?;
+    let form_name = contract
+        .identity
+        .strip_prefix("canonical-form:")
+        .ok_or(PreparationError::FormRejected)?;
+    let literal = match stage {
+        0 => CANONICAL_LITERAL,
+        1 => "make this loud",
+        _ => return Err(PreparationError::FormRejected),
+    };
+    let expected = contract
+        .expected_text
+        .ok_or(PreparationError::FormRejected)?;
+    crate::ordinary_plan::prepare_source(identities, offer, build_id, &source, form_name, literal)
+        .map(|prepared| (prepared, contract.identity, expected))
+}
+
 pub fn run<C, S, I, D>(
     prepared: &mut PreparedOrdinaryPlay,
     clock: &mut C,
@@ -57,8 +92,35 @@ where
     I: InterruptBase,
     D: IdleBase,
 {
+    run_stage(
+        prepared,
+        CANONICAL_SPECIMEN_ID,
+        CANONICAL_RESULT,
+        clock,
+        serial,
+        interrupts,
+        idle,
+    )
+}
+
+pub fn run_stage<C, S, I, D>(
+    prepared: &mut PreparedOrdinaryPlay,
+    specimen_id: &'static str,
+    expected: &'static str,
+    clock: &mut C,
+    serial: &mut S,
+    interrupts: &mut I,
+    idle: &mut D,
+) -> Result<TourPlayEvidence, TourPlayError>
+where
+    C: MonotonicClockBase,
+    S: SerialBase,
+    I: InterruptBase,
+    D: IdleBase,
+{
     let mut exact_serial = ExactTourSerial {
         inner: serial,
+        expected,
         observed: false,
         mismatch: false,
     };
@@ -79,12 +141,13 @@ where
         return Err(TourPlayError::ResultMissing);
     }
     Ok(TourPlayEvidence {
+        specimen_id,
         source_document_id: prepared.source_document_id.clone(),
         checked_form_id: prepared.checked_form_id.clone(),
         expanded_form_id: prepared.expanded_form_id.clone(),
         plan_id: prepared.plan_id.clone(),
         active_play_id: prepared.active_play.active_play_id.clone(),
-        result: CANONICAL_RESULT,
+        result: expected,
         run,
         observations,
     })
@@ -92,13 +155,14 @@ where
 
 struct ExactTourSerial<'a, S> {
     inner: &'a mut S,
+    expected: &'static str,
     observed: bool,
     mismatch: bool,
 }
 
 impl<S: SerialBase> SerialBase for ExactTourSerial<'_, S> {
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
-        if bytes != CANONICAL_RESULT.as_bytes() || self.observed {
+        if bytes != self.expected.as_bytes() || self.observed {
             self.mismatch = true;
             return Err(BaseError::UnsupportedValue);
         }
@@ -259,6 +323,7 @@ mod tests {
         let mut serial = Serial::default();
         let mut exact = ExactTourSerial {
             inner: &mut serial,
+            expected: CANONICAL_RESULT,
             observed: false,
             mismatch: false,
         };
@@ -268,6 +333,7 @@ mod tests {
         let mut serial = Serial::default();
         let mut exact = ExactTourSerial {
             inner: &mut serial,
+            expected: CANONICAL_RESULT,
             observed: false,
             mismatch: false,
         };

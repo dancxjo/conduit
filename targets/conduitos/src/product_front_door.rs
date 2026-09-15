@@ -384,14 +384,22 @@ pub fn run(
                         .map_err(|error| error.as_str())?;
                     match journey.take_application_request() {
                         Some(crate::native_workset::NativeApplicationRequest::RunTour {
-                            chapter: 0,
-                            stage: 0,
+                            chapter,
+                            stage,
                         }) => {
-                            let mut prepared =
-                                crate::tour_play::prepare(identities, offer, fabrication.build_id)
-                                    .map_err(|error| error.as_str())?;
-                            let evidence = crate::tour_play::run(
+                            let (mut prepared, specimen_id, expected) =
+                                crate::tour_play::prepare_stage(
+                                    identities,
+                                    offer,
+                                    fabrication.build_id,
+                                    chapter,
+                                    stage,
+                                )
+                                .map_err(|error| error.as_str())?;
+                            let evidence = crate::tour_play::run_stage(
                                 &mut prepared,
+                                specimen_id,
+                                expected,
                                 &mut clock,
                                 &mut serial,
                                 &mut interrupts,
@@ -402,9 +410,6 @@ pub fn run(
                                 .complete_tour_run(&evidence)
                                 .map_err(|error| error.as_str())?;
                             arch::early_write(b"CONDUIT_WORKSPACE_CHECKPOINT resident-tour-ran\n");
-                        }
-                        Some(crate::native_workset::NativeApplicationRequest::RunTour { .. }) => {
-                            return Err("resident-tour-stage-not-realized");
                         }
                         Some(crate::native_workset::NativeApplicationRequest::EditCurrent(
                             request @ patchbay_application::PatchbayApplicationRequest::ChangePresenters { .. },
