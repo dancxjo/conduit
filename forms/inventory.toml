@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 104
+maximum_forms = 105
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -179,6 +179,12 @@ slug = "lenia-orbium"
 title = "Lenia Orbium"
 entry = "lenia-orbium-demo"
 reusable_entries = [{ entry = "lenia", title = "Lenia", composition = { parent = "lenia-orbium-demo", occurrences = ["organism"] } }]
+[[forms]]
+slug = "little-life"
+title = "Little Life"
+entry = "little-life"
+deterministic = { package = "conduit", test = "little_life", case = "canonical_little_life_completes_exactly_thirty_two_presented_generations", plan_play_evidence = true }
+browser_safe_not_applicable = "the journey uses the installed std scalar-field terminal presentation; retained PNGs are derived documentary evidence rather than browser execution"
 [[forms]]
 slug = "linguistic-annotations"
 title = "Linguistic Annotations"

@@ -32,7 +32,11 @@ pub const NUMERIC_PROFILE_KEY: &str = "numeric_profile";
 pub const TITLE_KEY: &str = "title";
 pub const MINIMUM_KEY: &str = "minimum";
 pub const MAXIMUM_KEY: &str = "maximum";
-pub const MAXIMUM_PRESENTED_FIELDS: u16 = 4;
+/// Finite upper bound for one admitted scalar-field presentation stream.
+///
+/// Thirty-two generations cover the bounded Little Life journey while keeping
+/// preparation responsible for every value, byte, request, and Sign.
+pub const MAXIMUM_PRESENTED_FIELDS: u16 = 32;
 
 pub fn install_lenia_catalogs(
     startup: &mut StartupCatalog,

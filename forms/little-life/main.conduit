@@ -1,0 +1,11 @@
+# One deterministic Orbium seen before and during thirty-two admitted steps.
+form little-life {
+    seed: alife/orbium-seed(width = 32, height = 32, seed = 1)
+    clock: time/tick(count = 32, period-ms = 0)
+    organism: alife/lenia-step(kernel_radius = 13, kernel_mu = 0.5, kernel_sigma = 0.15, growth_mu = 0.15, growth_sigma = 0.015, dt = 0.1, boundary = "wrap", numeric_profile = "fixed-q16.16")
+    evolving: presentation/scalar-field(title = "Orbium evolution", minimum = 0.0, maximum = 1.0)
+
+    seed.field > organism.initial
+    clock > organism.tick
+    organism.field > evolving.field
+}

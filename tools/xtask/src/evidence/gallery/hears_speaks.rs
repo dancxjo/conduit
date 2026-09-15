@@ -62,8 +62,12 @@ fn write_exhibit(
             &destination.join(filename),
         )?;
     }
+    copy_file(
+        &evidence_root.join("manifest.json"),
+        &destination.join("manifest.json"),
+    )?;
     let body = format!(
-        "<nav><a href=\"{home}\">Gallery home</a></nav>\n<h1>Conduit Hears and Speaks</h1>\n<p>One fixed recorded clip crossed Whisper, addressed House generation, Piper synthesis, PCM conversion, and bounded WAV retention in one completed Plan/Play.</p>\n<h2>Question Conduit heard</h2>\n<audio controls preload=\"metadata\" src=\"input.wav\"></audio>\n<p><a href=\"input.wav\">Download input WAV</a> · <a href=\"input.pcm\">raw admitted PCM</a> · <a href=\"recognition.json\">recognition receipt</a></p>\n<h2>Answer Conduit spoke</h2>\n<audio controls preload=\"metadata\" src=\"output.wav\"></audio>\n<p><a href=\"output.wav\">Download output WAV</a> · <a href=\"response.json\">response receipt</a> · <a href=\"receipt.json\">same-Play receipt</a></p>\n<p>Exact accepted commit: <code>{}</code>. This is hosted recorded-audio evidence, not a live microphone, browser, emulator, physical device, or human-listening claim.</p>",
+        "<nav><a href=\"{home}\">Gallery home</a></nav>\n<h1>Conduit Hears and Speaks</h1>\n<p>One fixed recorded clip crossed Whisper, addressed House generation, Piper synthesis, PCM conversion, and bounded WAV retention in one completed Plan/Play.</p>\n<h2>Question Conduit heard</h2>\n<audio controls preload=\"metadata\" src=\"input.wav\"></audio>\n<p><a href=\"input.wav\">Download input WAV</a> · <a href=\"input.pcm\">raw admitted PCM</a> · <a href=\"recognition.json\">recognition receipt</a></p>\n<h2>Answer Conduit spoke</h2>\n<audio controls preload=\"metadata\" src=\"output.wav\"></audio>\n<p><a href=\"output.wav\">Download output WAV</a> · <a href=\"response.json\">response receipt</a> · <a href=\"receipt.json\">same-Play receipt</a> · <a href=\"manifest.json\">digest-bound manifest</a></p>\n<p>Exact accepted commit: <code>{}</code>. This is hosted recorded-audio evidence, not a live microphone, browser, emulator, physical device, or human-listening claim.</p>",
         evidence.commit
     );
     write_html(

@@ -149,6 +149,23 @@ verifier requires a shared Presentation identity and revision but deliberately
 does not require pixel equality. The native frame proves the repository's
 software rendering path, not a physical display or human viewing.
 
+## Watch a Little Life evolve
+
+Retain the deterministic Orbium seed and three checkpoints from one ordinary
+32-step Lenia Plan/Play:
+
+```bash
+cargo xtask evidence little-life
+```
+
+The exact six-output manifest under `target/journeys/little-life/` contains
+`t000.png`, `t001.png`, `t008.png`, `t032.png`, the complete scalar-field
+terminal transcript, and the neutral execution report. Generation zero is the
+deterministic semantic seed lowered to a gray8 bitmap. Generations 1, 8, and 32
+are derived from cells emitted by the installed std scalar-field terminal
+presentation. These files are not native graphical renderer, physical-display,
+or human-perception proof.
+
 ## Explore distributed execution
 
 ```bash

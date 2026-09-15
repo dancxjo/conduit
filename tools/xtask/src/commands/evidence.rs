@@ -17,6 +17,8 @@ pub struct EvidenceArgs {
 enum EvidenceCommand {
     /// Retain native and pinned-browser pixels for one exact Presentation.
     OneFormTwoFaces(TwoFacesArgs),
+    /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
+    LittleLife(EvidenceLittleLifeArgs),
     /// Recompute and validate one evidence manifest and its declared files.
     Verify(EvidenceVerifyArgs),
     /// Promote verified complete evidence into a bounded static gallery.
@@ -29,6 +31,13 @@ enum EvidenceCommand {
 struct TwoFacesArgs {
     /// New directory that will receive the bounded sibling evidence manifest.
     #[arg(long, default_value = "target/journeys/one-form-two-faces")]
+    output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+struct EvidenceLittleLifeArgs {
+    /// New directory that will receive the exact bounded evidence inventory.
+    #[arg(long, default_value = "target/journeys/little-life")]
     output: PathBuf,
 }
 
@@ -49,9 +58,9 @@ struct EvidenceDocsVerifyArgs {
 
 #[derive(Args, Debug)]
 struct EvidenceGalleryArgs {
-    /// Complete evidence directory already bound to the checked commit.
+    /// Optional complete Patchbay evidence directory bound to the checked commit.
     #[arg(long)]
-    evidence_root: PathBuf,
+    evidence_root: Option<PathBuf>,
 
     /// Optional complete x86_64 ConduitOS console evidence for the same commit.
     #[arg(long)]
@@ -64,6 +73,10 @@ struct EvidenceGalleryArgs {
     /// Optional complete One Form, Two Faces evidence for the same commit.
     #[arg(long)]
     two_faces_evidence_root: Option<PathBuf>,
+
+    /// Optional complete Little Life evolution evidence for the same commit.
+    #[arg(long)]
+    little_life_evidence_root: Option<PathBuf>,
 
     /// Existing or empty gallery root to update atomically by accepted commit.
     #[arg(long)]
@@ -106,6 +119,7 @@ enum EvidenceResultArg {
 pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         EvidenceCommand::OneFormTwoFaces(args) => two_faces::run(args.output),
+        EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
         EvidenceCommand::Verify(args) => {
             let result = match args.result {
                 EvidenceResultArg::Complete => ExpectedEvidenceResult::Complete,
@@ -127,6 +141,7 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
             conduitos_evidence_root: args.conduitos_evidence_root,
             hears_speaks_evidence_root: args.hears_speaks_evidence_root,
             two_faces_evidence_root: args.two_faces_evidence_root,
+            little_life_evidence_root: args.little_life_evidence_root,
             site_root: args.site_root,
             commit: args.commit,
         })
