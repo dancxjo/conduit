@@ -284,7 +284,7 @@ fn run_resident_stage(
 }
 
 pub(super) enum PreparedApplication {
-    Tour(TourApplicationPort),
+    Tour(Box<TourApplicationPort>),
     #[cfg(feature = "creche-surface")]
     Patchbay(patchbay_application::PatchbayApplicationPort),
 }
@@ -304,7 +304,7 @@ impl PreparedApplication {
         }
         let application = crate::installed_browser::application::application_id(placement)?;
         match application {
-            "tour" => Ok(Some(Self::Tour(TourApplicationPort::canonical()))),
+            "tour" => Ok(Some(Self::Tour(Box::new(TourApplicationPort::canonical())))),
             "patchbay" => {
                 #[cfg(not(feature = "creche-surface"))]
                 return Err("resident Patchbay preparation requires the Crèche surface".into());
