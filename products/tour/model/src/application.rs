@@ -61,12 +61,31 @@ pub enum TourRunState {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct TourApplicationState {
-    pub revision: u32,
+pub struct TourProgressState {
     pub chapter: u8,
     pub chapter_count: u8,
     pub run: TourRunState,
     pub source_is_canonical: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TourApplicationState {
+    pub revision: u32,
+    pub progress: TourProgressState,
+}
+
+impl core::ops::Deref for TourApplicationState {
+    type Target = TourProgressState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.progress
+    }
+}
+
+impl core::ops::DerefMut for TourApplicationState {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.progress
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -104,10 +123,7 @@ impl TourApplicationState {
     pub const fn canonical() -> Self {
         Self {
             revision: 1,
-            chapter: 0,
-            chapter_count: TOUR_CHAPTER_COUNT,
-            run: TourRunState::Ready,
-            source_is_canonical: true,
+            progress: TourProgressState::canonical(),
         }
     }
 
@@ -116,7 +132,10 @@ impl TourApplicationState {
             return Err(TourApplicationRefusal::InvalidChapterCount);
         }
         Ok(Self {
-            chapter_count,
+            progress: TourProgressState {
+                chapter_count,
+                ..TourProgressState::canonical()
+            },
             ..Self::canonical()
         })
     }
@@ -173,6 +192,17 @@ impl TourApplicationState {
             .ok_or(TourApplicationRefusal::RevisionExhausted)?;
         self.source_is_canonical = false;
         Ok(())
+    }
+}
+
+impl TourProgressState {
+    pub const fn canonical() -> Self {
+        Self {
+            chapter: 0,
+            chapter_count: TOUR_CHAPTER_COUNT,
+            run: TourRunState::Ready,
+            source_is_canonical: true,
+        }
     }
 }
 

@@ -45,6 +45,8 @@ pub const CANONICAL_SOURCE: &str = concat!(
     "}"
 );
 pub const RUN_ACTION_ID: &str = "tour.run";
+pub const PREVIOUS_CHAPTER_ACTION_ID: &str = "tour.chapter.previous";
+pub const NEXT_CHAPTER_ACTION_ID: &str = "tour.chapter.next";
 pub const OPEN_PATCHBAY_ACTION_ID: &str = "tour.open-patchbay";
 pub const OPEN_CHOOSER_ACTION_ID: &str = "tour.chooser.open";
 pub const TRANSIENT_CLOSE_ACTION_ID: &str = "tour.transient.close";
@@ -63,12 +65,12 @@ pub enum TourWorkspacePhase {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TourWorkspaceState {
     pub revision: u32,
+    pub progress: TourProgressState,
     pub phase: TourWorkspacePhase,
     pub focused_key: String,
     pub specimen_id: String,
     pub source: String,
     pub result: Option<String>,
-    pub run_pending: bool,
     pub hovered_patchbay_subject: Option<String>,
     pub selected_patchbay_subject: Option<String>,
 }
@@ -77,6 +79,7 @@ impl TourWorkspaceState {
     pub fn canonical(revision: u32, phase: TourWorkspacePhase) -> Self {
         Self {
             revision,
+            progress: TourProgressState::canonical(),
             phase,
             focused_key: match phase {
                 TourWorkspacePhase::LessonReady => "source".into(),
@@ -86,14 +89,13 @@ impl TourWorkspaceState {
             specimen_id: CANONICAL_SPECIMEN_ID.into(),
             source: CANONICAL_SOURCE.into(),
             result: (phase == TourWorkspacePhase::ResultVisible).then(|| CANONICAL_RESULT.into()),
-            run_pending: false,
             hovered_patchbay_subject: None,
             selected_patchbay_subject: None,
         }
     }
 
     pub fn run_availability(&self) -> ActionAvailability {
-        if self.run_pending {
+        if self.progress.run == TourRunState::Running {
             ActionAvailability::Busy {
                 detail: "Canonical Play is active".into(),
             }
@@ -157,7 +159,12 @@ impl TourWorkspaceState {
                                     PresentationMechanism::Status {
                                         kind: status.0,
                                         title: status.1.into(),
-                                        detail: self.specimen_id.clone(),
+                                        detail: format!(
+                                            "Chapter {} of {} · {}",
+                                            self.progress.chapter + 1,
+                                            self.progress.chapter_count,
+                                            TOUR_CHAPTERS[self.progress.chapter as usize].identity
+                                        ),
                                     },
                                     vec![],
                                 )],
@@ -213,6 +220,31 @@ impl TourWorkspaceState {
                                     label: "Tour actions".into(),
                                 },
                                 vec![
+                                    action(
+                                        "previous-chapter",
+                                        PREVIOUS_CHAPTER_ACTION_ID,
+                                        "Previous chapter",
+                                        if self.progress.chapter == 0 {
+                                            ActionAvailability::Unavailable {
+                                                detail: "This is the first chapter".into(),
+                                            }
+                                        } else {
+                                            ActionAvailability::Available
+                                        },
+                                    ),
+                                    action(
+                                        "next-chapter",
+                                        NEXT_CHAPTER_ACTION_ID,
+                                        "Next chapter",
+                                        if self.progress.chapter + 1 >= self.progress.chapter_count
+                                        {
+                                            ActionAvailability::Unavailable {
+                                                detail: "This is the final chapter".into(),
+                                            }
+                                        } else {
+                                            ActionAvailability::Available
+                                        },
+                                    ),
                                     action(
                                         "run",
                                         RUN_ACTION_ID,
@@ -300,7 +332,9 @@ mod tests {
         ] {
             for pending in [false, true] {
                 let mut state = TourWorkspaceState::canonical(1, phase);
-                state.run_pending = pending;
+                if pending {
+                    state.progress.run = TourRunState::Running;
+                }
                 let view = state.presentation().unwrap().lower().unwrap();
                 assert_eq!(
                     state.run_action_available(),
@@ -344,9 +378,9 @@ mod tests {
                     .any(|node| node.key == state.focused_key)
             );
             let expected_actions = if phase == TourWorkspacePhase::ResultVisible {
-                1
-            } else {
                 2
+            } else {
+                3
             };
             assert_eq!(lowered.actions.len(), expected_actions);
             assert_eq!(

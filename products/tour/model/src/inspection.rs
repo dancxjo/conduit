@@ -68,7 +68,7 @@ pub(crate) fn fields(
     field(
         "play",
         "Plan / Play / Signs",
-        if state.run_pending {
+        if state.progress.run == crate::TourRunState::Running {
             "Run requested".into()
         } else if let Some(result) = &state.result {
             format!("Tour result: {result}\nPer-Gear Signs unavailable")

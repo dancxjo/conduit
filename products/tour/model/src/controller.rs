@@ -3,8 +3,9 @@ use conduit_core::{ActivePlayId, CheckedFormId, ExpandedFormId, PlanId, SourceDo
 use conduit_presentation::{ApplicationEvent, ApplicationViewRefusal};
 
 use crate::{
-    CANONICAL_RESULT, CANONICAL_SPECIMEN_ID, OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID,
-    TourWorkspacePhase, TourWorkspaceState,
+    CANONICAL_RESULT, CANONICAL_SPECIMEN_ID, NEXT_CHAPTER_ACTION_ID, OPEN_PATCHBAY_ACTION_ID,
+    PREVIOUS_CHAPTER_ACTION_ID, RUN_ACTION_ID, TourApplicationAction, TourApplicationRefusal,
+    TourRunState, TourWorkspacePhase, TourWorkspaceState,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -34,6 +35,7 @@ pub enum TourWorkspaceRefusal {
     WrongResult,
     MissingIdentity,
     RevisionExhausted,
+    Chapter(TourApplicationRefusal),
 }
 
 impl TourWorkspaceRefusal {
@@ -49,6 +51,7 @@ impl TourWorkspaceRefusal {
             Self::WrongResult => "wrong-result",
             Self::MissingIdentity => "missing-identity",
             Self::RevisionExhausted => "revision-exhausted",
+            Self::Chapter(_) => "chapter-navigation-refused",
         }
     }
 }
@@ -137,31 +140,38 @@ impl TourWorkspaceController {
     pub fn request(
         &mut self,
         event: &ApplicationEvent,
-    ) -> Result<TourWorkspaceRequest, TourWorkspaceRefusal> {
+    ) -> Result<Option<TourWorkspaceRequest>, TourWorkspaceRefusal> {
         let view = self
             .state
             .presentation()
             .and_then(|presentation| presentation.lower())
             .map_err(|_| TourWorkspaceRefusal::Presentation)?;
         event.validate(&view).map_err(TourWorkspaceRefusal::Event)?;
-        let revision = self.next_revision()?;
         match event.action.as_str() {
             RUN_ACTION_ID => {
-                if self.state.run_pending {
+                if self.state.progress.run == TourRunState::Running {
                     return Err(TourWorkspaceRefusal::RunAlreadyPending);
                 }
-                self.state.run_pending = true;
-                self.state.revision = revision;
-                Ok(TourWorkspaceRequest::Run)
+                self.apply_progress(TourApplicationAction::Run)?;
+                Ok(Some(TourWorkspaceRequest::Run))
             }
             OPEN_PATCHBAY_ACTION_ID => {
-                if self.state.run_pending {
+                if self.state.progress.run == TourRunState::Running {
                     return Err(TourWorkspaceRefusal::RunAlreadyPending);
                 }
+                let revision = self.next_revision()?;
                 self.state.phase = TourWorkspacePhase::PatchbayOpen;
                 self.state.focused_key = "patchbay".into();
                 self.state.revision = revision;
-                Ok(TourWorkspaceRequest::OpenPatchbay)
+                Ok(Some(TourWorkspaceRequest::OpenPatchbay))
+            }
+            PREVIOUS_CHAPTER_ACTION_ID => {
+                self.apply_progress(TourApplicationAction::PreviousChapter)?;
+                Ok(None)
+            }
+            NEXT_CHAPTER_ACTION_ID => {
+                self.apply_progress(TourApplicationAction::NextChapter)?;
+                Ok(None)
             }
             _ => Err(TourWorkspaceRefusal::Event(
                 ApplicationViewRefusal::UnknownAction,
@@ -170,7 +180,7 @@ impl TourWorkspaceController {
     }
 
     pub fn complete_run(&mut self, proof: TourRunProof) -> Result<(), TourWorkspaceRefusal> {
-        if !self.state.run_pending {
+        if self.state.progress.run != TourRunState::Running {
             return Err(TourWorkspaceRefusal::RunNotPending);
         }
         if proof.specimen_id != CANONICAL_SPECIMEN_ID {
@@ -191,13 +201,28 @@ impl TourWorkspaceController {
         {
             return Err(TourWorkspaceRefusal::MissingIdentity);
         }
-        let revision = self.next_revision()?;
-        self.state.run_pending = false;
+        self.apply_progress(TourApplicationAction::Complete)?;
         self.state.phase = TourWorkspacePhase::ResultVisible;
         self.state.focused_key = "result".into();
         self.state.result = Some(proof.result.clone());
         self.last_run = Some(proof);
-        self.state.revision = revision;
+        Ok(())
+    }
+
+    fn apply_progress(
+        &mut self,
+        action: TourApplicationAction,
+    ) -> Result<(), TourWorkspaceRefusal> {
+        let mut application = crate::TourApplicationState {
+            revision: self.state.revision,
+            progress: self.state.progress,
+        };
+        application.apply(action).map_err(|error| match error {
+            TourApplicationRefusal::RevisionExhausted => TourWorkspaceRefusal::RevisionExhausted,
+            error => TourWorkspaceRefusal::Chapter(error),
+        })?;
+        self.state.revision = application.revision;
+        self.state.progress = application.progress;
         Ok(())
     }
 
@@ -281,9 +306,9 @@ mod tests {
         );
         assert_eq!(
             controller.request(&event(4, RUN_ACTION_ID)),
-            Ok(TourWorkspaceRequest::Run)
+            Ok(Some(TourWorkspaceRequest::Run))
         );
-        assert!(controller.state().run_pending);
+        assert_eq!(controller.state().progress.run, TourRunState::Running);
         let mut wrong = proof();
         wrong.result = "painted success".into();
         assert_eq!(
@@ -307,10 +332,40 @@ mod tests {
         let mut controller = TourWorkspaceController::canonical(8);
         assert_eq!(
             controller.request(&event(8, OPEN_PATCHBAY_ACTION_ID)),
-            Ok(TourWorkspaceRequest::OpenPatchbay)
+            Ok(Some(TourWorkspaceRequest::OpenPatchbay))
         );
         assert_eq!(controller.state().phase, TourWorkspacePhase::PatchbayOpen);
         assert_eq!(controller.state().focused_key, "patchbay");
+    }
+
+    #[test]
+    fn resident_navigation_uses_the_canonical_seven_chapter_state() {
+        let mut controller = TourWorkspaceController::canonical(1);
+        assert_eq!(
+            controller.state().progress.chapter_count,
+            crate::TOUR_CHAPTER_COUNT
+        );
+        assert_eq!(controller.state().progress.chapter, 0);
+        assert_eq!(
+            controller.request(&event(1, NEXT_CHAPTER_ACTION_ID)),
+            Ok(None)
+        );
+        assert_eq!(controller.state().progress.chapter, 1);
+        assert_eq!(controller.state().revision, 2);
+        assert_eq!(
+            controller.request(&event(2, PREVIOUS_CHAPTER_ACTION_ID)),
+            Ok(None)
+        );
+        assert_eq!(controller.state().progress.chapter, 0);
+        assert_eq!(controller.state().revision, 3);
+        let before = controller.state().clone();
+        assert_eq!(
+            controller.request(&event(3, PREVIOUS_CHAPTER_ACTION_ID)),
+            Err(TourWorkspaceRefusal::Event(
+                ApplicationViewRefusal::UnknownAction
+            ))
+        );
+        assert_eq!(controller.state(), &before);
     }
 
     #[test]
@@ -326,7 +381,7 @@ mod tests {
         let mut pending = TourWorkspaceController::canonical(1);
         assert_eq!(
             pending.request(&event(1, RUN_ACTION_ID)),
-            Ok(TourWorkspaceRequest::Run)
+            Ok(Some(TourWorkspaceRequest::Run))
         );
         let before = pending.state().clone();
         assert_eq!(
