@@ -398,7 +398,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut math_host = math_host::MathHost::prepare(fragment)?;
     let presentation_construction =
         presentation_construction_host::PresentationConstructionHost::prepare();
-    let mut text_output_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
+    let mut text_output_buffer = Vec::with_capacity(
+        (contract::MAX_TEXT_BYTES as usize).max(conduit_text::MAXIMUM_MORSE_PATTERN_BYTES),
+    );
     let mut input_keymaps = [conduit_human::ConduitIntlKeymap::new(); MAX_NODES];
     let mut text_state_hosts = fragment
         .placements
@@ -2222,6 +2224,32 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         morse_operations::completed_with_output(value),
                     )
                     .map_err(|error| format!("complete text/morse host operation: {error:?}"))?;
+                continue;
+            } else if lowered_operation
+                .target_kind
+                .as_ref()
+                .is_some_and(|target| morse_operations::is_composition_operation(contract, target))
+            {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or_else(|| {
+                        "Morse composition request has no exact placement".to_string()
+                    })?;
+                morse_operations::compose(placement, input, &mut text_output_buffer)?;
+                let value = scheduler
+                    .store_host_value(&text_output_buffer)
+                    .map_err(|error| format!("store Morse composition output: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        morse_operations::composition_completed_with_output(placement, value),
+                    )
+                    .map_err(|error| {
+                        format!("complete Morse composition host operation: {error:?}")
+                    })?;
                 continue;
             } else if contract == &gate_bool_contract_id
                 && lowered_operation.target_kind.as_ref() == Some(&gate_bool_target_kind)
