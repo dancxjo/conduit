@@ -485,19 +485,131 @@ fn complete_hears_speaks_evidence(root: &Path) {
     evidence.finish(EvidenceResult::Complete).unwrap();
 }
 
+fn complete_two_faces_evidence(root: &Path) {
+    let png = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01";
+    let presentation = "presentation/two-faces";
+    let files = [
+        (
+            "two-faces.native-frame",
+            EvidenceKind::Screenshot,
+            "native.png",
+            png.as_slice(),
+        ),
+        (
+            "two-faces.native-receipt",
+            EvidenceKind::MachineReadableManifest,
+            "native.json",
+            br#"{"presentation_id":"presentation/two-faces","presentation_revision":1,"renderer_plan_id":"native-plan","renderer_play_id":"native-play","manifestation_id":"native-manifestation","renderer_implementation":"presentation/renderer-wayland@1","lifecycle":"available","pixel_equality_claimed":false}"#.as_slice(),
+        ),
+        (
+            "two-faces.browser-frame",
+            EvidenceKind::Screenshot,
+            "browser.png",
+            png.as_slice(),
+        ),
+        (
+            "two-faces.browser-receipt",
+            EvidenceKind::MachineReadableManifest,
+            "browser.json",
+            br#"{"presentation_id":"presentation/two-faces","presentation_revision":1,"renderer_plan_id":"browser-plan","renderer_play_id":"browser-play","manifestation_id":"browser-manifestation","renderer_implementation":"presentation/renderer-dom-svg@1","lifecycle":"available","browser_engine":"chromium","browser_version":"151.0","viewport":"1366x768","device_scale_factor":"1","locale":"en-US","timezone":"UTC","pixel_equality_claimed":false}"#.as_slice(),
+        ),
+    ];
+    let mut evidence = EvidenceManifest::new(
+        root,
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        "journey-one-form-two-faces",
+        "journey-gallery",
+    )
+    .unwrap();
+    for (id, kind, path, bytes) in files {
+        fs::write(root.join(path), bytes).unwrap();
+        let native = id.contains("native");
+        evidence
+            .declare(EvidenceOutput {
+                id: id.into(),
+                kind,
+                path: path.into(),
+                media_type: if kind == EvidenceKind::Screenshot {
+                    "image/png".into()
+                } else {
+                    "application/json".into()
+                },
+                required: true,
+                provenance: EvidenceProvenance {
+                    scenario_id: "one-form-two-faces.front-door@1".into(),
+                    presentation_id: Some(presentation.into()),
+                    presentation_revision: Some("1".into()),
+                    plan_id: Some(
+                        if native {
+                            "native-plan"
+                        } else {
+                            "browser-plan"
+                        }
+                        .into(),
+                    ),
+                    active_play_id: Some(
+                        if native {
+                            "native-play"
+                        } else {
+                            "browser-play"
+                        }
+                        .into(),
+                    ),
+                    manifestation_id: Some(
+                        if native {
+                            "native-manifestation"
+                        } else {
+                            "browser-manifestation"
+                        }
+                        .into(),
+                    ),
+                    renderer_id: Some(
+                        if native {
+                            "presentation/renderer-wayland@1"
+                        } else {
+                            "presentation/renderer-dom-svg@1"
+                        }
+                        .into(),
+                    ),
+                    asserted_semantic_disposition: Some("manifestation-available".into()),
+                    proof_class: Some(
+                        if native {
+                            "native-software-renderer"
+                        } else {
+                            "live-browser"
+                        }
+                        .into(),
+                    ),
+                    browser_engine: (!native).then(|| "chromium".into()),
+                    browser_version: (!native).then(|| "151.0".into()),
+                    viewport: (!native).then(|| "1366x768".into()),
+                    device_scale_factor: (!native).then(|| "1".into()),
+                    locale: (!native).then(|| "en-US".into()),
+                    timezone: (!native).then(|| "UTC".into()),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+    }
+    evidence.finish(EvidenceResult::Complete).unwrap();
+}
+
 #[test]
 fn gallery_publishes_current_history_and_provenance() {
     let evidence_root = temporary_root("gallery-evidence");
     let conduitos_root = temporary_root("gallery-conduitos-evidence");
     let hears_speaks_root = temporary_root("gallery-hears-speaks-evidence");
+    let two_faces_root = temporary_root("gallery-two-faces-evidence");
     let site_root = temporary_root("gallery-site");
     let commit = complete_browser_evidence(&evidence_root);
     complete_conduitos_evidence(&conduitos_root, &commit);
     complete_hears_speaks_evidence(&hears_speaks_root);
+    complete_two_faces_evidence(&two_faces_root);
     publish_gallery(&GalleryRequest {
         evidence_root: evidence_root.clone(),
         conduitos_evidence_root: Some(conduitos_root.clone()),
         hears_speaks_evidence_root: Some(hears_speaks_root.clone()),
+        two_faces_evidence_root: Some(two_faces_root.clone()),
         site_root: site_root.clone(),
         commit: commit.clone(),
     })
@@ -516,6 +628,16 @@ fn gallery_publishes_current_history_and_provenance() {
     assert_eq!(
         fs::read(site_root.join("current/patchbay/overview.png")).unwrap(),
         fs::read(site_root.join(format!("commits/{commit}/patchbay/overview.png"))).unwrap()
+    );
+    let two_faces_page =
+        fs::read_to_string(site_root.join("current/one-form-two-faces/index.html")).unwrap();
+    assert!(two_faces_page.contains("One Form, Two Faces"));
+    assert!(two_faces_page.contains("Pixel equality is neither expected nor claimed"));
+    assert!(two_faces_page.contains("presentation/two-faces"));
+    assert_eq!(
+        fs::read(site_root.join("current/one-form-two-faces/native.png")).unwrap(),
+        fs::read(site_root.join(format!("commits/{commit}/one-form-two-faces/native.png")))
+            .unwrap()
     );
     assert!(site_root
         .join(format!("commits/{commit}/manifest.json"))
@@ -567,6 +689,7 @@ fn gallery_publishes_current_history_and_provenance() {
         evidence_root: evidence_root.clone(),
         conduitos_evidence_root: None,
         hears_speaks_evidence_root: None,
+        two_faces_evidence_root: None,
         site_root: site_root.clone(),
         commit,
     })
@@ -578,6 +701,7 @@ fn gallery_publishes_current_history_and_provenance() {
     fs::remove_dir_all(evidence_root).unwrap();
     fs::remove_dir_all(conduitos_root).unwrap();
     fs::remove_dir_all(hears_speaks_root).unwrap();
+    fs::remove_dir_all(two_faces_root).unwrap();
     fs::remove_dir_all(site_root).unwrap();
 }
 

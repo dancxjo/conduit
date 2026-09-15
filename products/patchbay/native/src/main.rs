@@ -84,6 +84,7 @@ mod parts_keyboard;
 mod parts_temporal_presentation_tests;
 mod parts_view;
 mod pico_parts;
+mod png_capture;
 mod portable_keyboard;
 #[cfg(test)]
 mod portable_keyboard_tests;
@@ -95,6 +96,7 @@ mod resource;
 mod semantic_history;
 mod semantic_invocation;
 mod temporal_presentation;
+mod two_faces_capture;
 mod viewport_input;
 #[cfg(test)]
 mod viewport_tests;
@@ -491,6 +493,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     if arguments.first_run_proof {
         first_run_proof::run(arguments)?;
+        return Ok(());
+    }
+    if let Some(path) = arguments.two_faces_capture.as_deref() {
+        two_faces_capture::run(path)?;
         return Ok(());
     }
     let event_loop = EventLoop::new()?;

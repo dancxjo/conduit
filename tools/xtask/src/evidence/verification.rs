@@ -6,6 +6,7 @@ use std::{
 };
 
 use serde::Deserialize;
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use super::{
@@ -211,6 +212,11 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
     {
         verify_hears_speaks(&root, &manifest)?;
     }
+    if request.result == ExpectedEvidenceResult::Complete
+        && request.proof_id == "journey-one-form-two-faces"
+    {
+        verify_one_form_two_faces(&root, &manifest)?;
+    }
 
     reject_undeclared_files(&root, &root, &paths)?;
     println!(
@@ -237,6 +243,199 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
             })
             .collect(),
     })
+}
+
+fn verify_one_form_two_faces(root: &Path, manifest: &Manifest) -> Result<(), String> {
+    let expected = [
+        (
+            "two-faces.native-frame",
+            EvidenceKind::Screenshot,
+            "native.png",
+        ),
+        (
+            "two-faces.native-receipt",
+            EvidenceKind::MachineReadableManifest,
+            "native.json",
+        ),
+        (
+            "two-faces.browser-frame",
+            EvidenceKind::Screenshot,
+            "browser.png",
+        ),
+        (
+            "two-faces.browser-receipt",
+            EvidenceKind::MachineReadableManifest,
+            "browser.json",
+        ),
+    ];
+    if manifest.outputs.len() != expected.len() {
+        return Err("complete two-faces evidence must contain exactly four outputs".into());
+    }
+    let mut presentation = None;
+    for (id, kind, path) in expected {
+        let output = manifest
+            .outputs
+            .iter()
+            .find(|output| output.id == id)
+            .ok_or_else(|| format!("complete two-faces evidence is missing '{id}'"))?;
+        let native = id.contains("native");
+        if !output.required
+            || output.kind != kind
+            || output.path != Path::new(path)
+            || output.media_type
+                != if kind == EvidenceKind::Screenshot {
+                    "image/png"
+                } else {
+                    "application/json"
+                }
+            || output.provenance.scenario_id != "one-form-two-faces.front-door@1"
+            || output.provenance.proof_class.as_deref()
+                != Some(if native {
+                    "native-software-renderer"
+                } else {
+                    "live-browser"
+                })
+            || output.provenance.renderer_id.as_deref()
+                != Some(if native {
+                    "presentation/renderer-wayland@1"
+                } else {
+                    "presentation/renderer-dom-svg@1"
+                })
+            || output.provenance.asserted_semantic_disposition.as_deref()
+                != Some("manifestation-available")
+            || [
+                output.provenance.presentation_id.as_deref(),
+                output.provenance.presentation_revision.as_deref(),
+                output.provenance.plan_id.as_deref(),
+                output.provenance.active_play_id.as_deref(),
+                output.provenance.manifestation_id.as_deref(),
+            ]
+            .into_iter()
+            .any(|value| value.is_none_or(str::is_empty))
+            || (!native
+                && [
+                    output.provenance.browser_engine.as_deref(),
+                    output.provenance.browser_version.as_deref(),
+                    output.provenance.viewport.as_deref(),
+                    output.provenance.device_scale_factor.as_deref(),
+                    output.provenance.locale.as_deref(),
+                    output.provenance.timezone.as_deref(),
+                ]
+                .into_iter()
+                .any(|value| value.is_none_or(str::is_empty)))
+        {
+            return Err(format!(
+                "two-faces output '{id}' lacks exact typed provenance"
+            ));
+        }
+        let identity = (
+            output.provenance.presentation_id.as_deref().unwrap(),
+            output.provenance.presentation_revision.as_deref().unwrap(),
+        );
+        if presentation.is_some_and(|prior| prior != identity) {
+            return Err("two-faces outputs do not share one Presentation identity".into());
+        }
+        presentation = Some(identity);
+        if kind == EvidenceKind::Screenshot {
+            let bytes = fs::read(root.join(path))
+                .map_err(|error| format!("read two-faces PNG: {error}"))?;
+            if bytes.len() < 24 || &bytes[..8] != b"\x89PNG\r\n\x1a\n" || &bytes[12..16] != b"IHDR"
+            {
+                return Err(format!("two-faces output '{id}' is not a bounded PNG"));
+            }
+        }
+    }
+    for native in [true, false] {
+        verify_two_faces_receipt(root, manifest, native)?;
+    }
+    Ok(())
+}
+
+fn verify_two_faces_receipt(root: &Path, manifest: &Manifest, native: bool) -> Result<(), String> {
+    let side = if native { "native" } else { "browser" };
+    let output = manifest
+        .outputs
+        .iter()
+        .find(|output| output.id == format!("two-faces.{side}-receipt"))
+        .ok_or_else(|| format!("two-faces evidence lacks {side} receipt"))?;
+    let receipt: Value = serde_json::from_slice(
+        &fs::read(root.join(&output.path))
+            .map_err(|error| format!("read two-faces {side} receipt: {error}"))?,
+    )
+    .map_err(|error| format!("decode two-faces {side} receipt: {error}"))?;
+    let expected = [
+        (
+            "presentation_id",
+            output.provenance.presentation_id.as_deref(),
+        ),
+        (
+            "presentation_revision",
+            output.provenance.presentation_revision.as_deref(),
+        ),
+        ("renderer_plan_id", output.provenance.plan_id.as_deref()),
+        (
+            "renderer_play_id",
+            output.provenance.active_play_id.as_deref(),
+        ),
+        (
+            "manifestation_id",
+            output.provenance.manifestation_id.as_deref(),
+        ),
+        (
+            "renderer_implementation",
+            output.provenance.renderer_id.as_deref(),
+        ),
+    ];
+    for (field, provenance) in expected {
+        let value = receipt
+            .get(field)
+            .ok_or_else(|| format!("two-faces {side} receipt lacks required field '{field}'"))?;
+        let value = value
+            .as_str()
+            .map(str::to_owned)
+            .or_else(|| value.as_u64().map(|value| value.to_string()));
+        if value.as_deref() != provenance {
+            return Err(format!(
+                "two-faces {side} receipt field '{field}' disagrees with manifest provenance"
+            ));
+        }
+    }
+    if receipt.get("lifecycle").and_then(Value::as_str) != Some("available")
+        || receipt
+            .get("pixel_equality_claimed")
+            .and_then(Value::as_bool)
+            != Some(false)
+    {
+        return Err(format!(
+            "two-faces {side} receipt makes an invalid manifestation claim"
+        ));
+    }
+    if !native {
+        for (field, provenance) in [
+            (
+                "browser_engine",
+                output.provenance.browser_engine.as_deref(),
+            ),
+            (
+                "browser_version",
+                output.provenance.browser_version.as_deref(),
+            ),
+            ("viewport", output.provenance.viewport.as_deref()),
+            (
+                "device_scale_factor",
+                output.provenance.device_scale_factor.as_deref(),
+            ),
+            ("locale", output.provenance.locale.as_deref()),
+            ("timezone", output.provenance.timezone.as_deref()),
+        ] {
+            if receipt.get(field).and_then(Value::as_str) != provenance {
+                return Err(format!(
+                    "two-faces browser receipt field '{field}' disagrees with manifest provenance"
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn verify_hears_speaks(root: &Path, manifest: &Manifest) -> Result<(), String> {

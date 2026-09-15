@@ -31,7 +31,7 @@ pub use demo::{
 pub use form_sources::{
     load_form_sources, FormSource, FormSourceError, MAX_ADDITIONAL_FORMS, MAX_FORM_LABEL_BYTES,
 };
-pub use front_door::front_door_snapshot;
+pub use front_door::{front_door_snapshot, one_form_two_faces_snapshot};
 pub use learned_demo::learned_demonstration_snapshot;
 pub use server::{PatchbayHtmlServer, ServerError, MAX_HTTP_REQUEST_BYTES, MAX_THEME_CSS_BYTES};
 pub use snapshot::{SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA};

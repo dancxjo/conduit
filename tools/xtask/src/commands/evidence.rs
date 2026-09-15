@@ -4,6 +4,9 @@ use clap::{Args, Subcommand, ValueEnum};
 
 use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 
+#[path = "evidence_two_faces.rs"]
+mod two_faces;
+
 #[derive(Args, Debug)]
 pub struct EvidenceArgs {
     #[command(subcommand)]
@@ -12,12 +15,21 @@ pub struct EvidenceArgs {
 
 #[derive(Subcommand, Debug)]
 enum EvidenceCommand {
+    /// Retain native and pinned-browser pixels for one exact Presentation.
+    OneFormTwoFaces(TwoFacesArgs),
     /// Recompute and validate one evidence manifest and its declared files.
     Verify(EvidenceVerifyArgs),
     /// Promote verified complete evidence into a bounded static gallery.
     Gallery(EvidenceGalleryArgs),
     /// Verify canonical documentation links structurally and against a built gallery.
     DocsVerify(EvidenceDocsVerifyArgs),
+}
+
+#[derive(Args, Debug)]
+struct TwoFacesArgs {
+    /// New directory that will receive the bounded sibling evidence manifest.
+    #[arg(long, default_value = "target/journeys/one-form-two-faces")]
+    output: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -48,6 +60,10 @@ struct EvidenceGalleryArgs {
     /// Optional complete Hears and Speaks audio evidence for the same commit.
     #[arg(long)]
     hears_speaks_evidence_root: Option<PathBuf>,
+
+    /// Optional complete One Form, Two Faces evidence for the same commit.
+    #[arg(long)]
+    two_faces_evidence_root: Option<PathBuf>,
 
     /// Existing or empty gallery root to update atomically by accepted commit.
     #[arg(long)]
@@ -89,6 +105,7 @@ enum EvidenceResultArg {
 
 pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
+        EvidenceCommand::OneFormTwoFaces(args) => two_faces::run(args.output),
         EvidenceCommand::Verify(args) => {
             let result = match args.result {
                 EvidenceResultArg::Complete => ExpectedEvidenceResult::Complete,
@@ -109,6 +126,7 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
             evidence_root: args.evidence_root,
             conduitos_evidence_root: args.conduitos_evidence_root,
             hears_speaks_evidence_root: args.hears_speaks_evidence_root,
+            two_faces_evidence_root: args.two_faces_evidence_root,
             site_root: args.site_root,
             commit: args.commit,
         })

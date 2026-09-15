@@ -92,6 +92,21 @@ and `current/hears-speaks/` pages with native browser audio controls. Omitting
 that input clears a stale current audio exhibit instead of silently carrying
 it across releases.
 
+The One Form, Two Faces sibling uses a separate four-output manifest. Its
+supported entrance is `cargo xtask evidence one-form-two-faces`, which feeds
+one deterministic front-door Presentation into the native software renderer
+and the pinned Chromium DOM/SVG renderer. It retains `native.png`,
+`native.json`, `browser.png`, and `browser.json`; complete verification requires
+exact renderer and manifestation provenance plus the same Presentation identity,
+revision, and semantic basis across both receipts. The renderer Plans, Plays,
+Manifestations, and pixels remain deliberately distinct.
+
+The gallery accepts that sibling only through
+`--two-faces-evidence-root <directory>` bound to the same accepted commit as
+the other inputs. Its side-by-side page states that neither pixel equality,
+physical-display output, nor human perception is established. Omitting the
+input clears stale `current/one-form-two-faces/` content.
+
 ## Canonical Patchbay camera
 
 The documentation renderer is only the `chromium` project in

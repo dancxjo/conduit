@@ -973,6 +973,49 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  journey-evidence:
+    needs: plan
+    if: needs.plan.outputs.browser_runtime_required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - name: Install the native linker and pinned browser dependency
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential
+          npm --prefix proof/browser ci --ignore-scripts --prefer-offline
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Retain one Presentation through native and browser renderers
+        run: cargo xtask evidence one-form-two-faces --locked
+      - name: Verify the bounded exact-candidate sibling manifest
+        run: >-
+          cargo xtask evidence verify --locked
+          --root target/journeys/one-form-two-faces
+          --commit "$CONDUIT_CANDIDATE_SHA"
+          --result complete
+          --proof journey-one-form-two-faces
+          --suite journey-gallery
+      - name: Retain the exact One Form, Two Faces evidence
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/journeys/one-form-two-faces
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
   pages-carrier:
     needs: [plan, products-stage, browser-proof]
     if: always() && !cancelled() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'
@@ -1101,7 +1144,7 @@ jobs:
           retention-days: 14
 
   products-proof:
-    needs: [plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, pages-carrier, proof-receipts]
+    needs: [plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, pages-carrier, proof-receipts]
     # A deliberately cancelled duplicate lifecycle run is not new proof
     # failure. Real dependency failures still reach this gate and fail it.
     if: ${{ always() && !cancelled() }}
@@ -1120,6 +1163,7 @@ jobs:
           TOUR_PATCHBAY_RESULT: ${{ needs.tour-patchbay-proof.result }}
           STAGE_RESULT: ${{ needs.products-stage.result }}
           BROWSER_RESULT: ${{ needs.browser-proof.result }}
+          JOURNEY_RESULT: ${{ needs.journey-evidence.result }}
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
           RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
           DEVELOPMENT_ADMISSION: ${{ inputs.development_admission }}
@@ -1136,6 +1180,9 @@ jobs:
           fi
           if test "$BROWSER_ADMISSION_REQUIRED" = true; then
             test "$BROWSER_ADMISSION_RESULT" = success
+          fi
+          if test "${{ needs.plan.outputs.browser_runtime_required }}" = true; then
+            test "$JOURNEY_RESULT" = success
           fi
           if test "$CARRIER_REQUIRED" = true; then
             test "$STAGE_RESULT" = success
