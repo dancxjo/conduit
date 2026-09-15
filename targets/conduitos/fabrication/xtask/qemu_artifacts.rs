@@ -3,8 +3,8 @@ use super::{qmp_display, ConduitosError};
 use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
-// The ordinary journey includes four resident-Form checkpoints. Keep a spare
-// failure frame within the finite manifest envelope.
+// The ordinary journey fills this finite envelope. A later failure can still
+// be recorded in the manifest even when no additional diagnostic frame fits.
 const MAX_CHECKPOINTS: usize = 32;
 
 pub(super) struct Artifacts {

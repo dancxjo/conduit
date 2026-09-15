@@ -6,7 +6,7 @@ The [current-product truth surface](https://dancxjo.github.io/conduit/current-pr
 names the exact accepted release and publication behind this journey, states
 whether they lag development, and links the latest proof receipts.
 
-Seventeen real QEMU screenshots show boot, Body and Play lifecycle, a
+Thirty-two real QEMU screenshots show boot, current Host offers, Body and Play lifecycle, a
 hot-plugged Line, Tour, and Patchbay interaction. Each checkpoint explains the
 action, visible result, concepts, and asserted behavior, with links to the exact
 capture provenance. This is the published accepted journey, not a fresh capture
@@ -18,7 +18,7 @@ hardware has a separate proof boundary.
 Publication verifies a complete, correlated 1280 by 800 RGBA8 journey from the
 exact Crèche-produced Spore, then includes it in the accepted Pages carrier.
 
-The journey page presents all seventeen real screenshots inline in transition
+The journey page presents all thirty-two real screenshots inline in transition
 order. Each checkpoint separately explains what a user can see, the action that
 led there, the semantic behavior the harness proved, and the Conduit concepts in
 view. Its image also links to a focused provenance page with exact manifest

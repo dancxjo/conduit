@@ -254,6 +254,9 @@ fn execute_image(
                     &format!("\"label\":\"{label}\""),
                     "product-journey-plan-inspection-timeout",
                 )?;
+                if label == "CURRENT OFFERS" {
+                    artifacts.capture(&mut qmp, &mut reader, "host-current-offers", true)?;
+                }
             }
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
             journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
