@@ -167,7 +167,7 @@ impl TourWorkspaceState {
                             node(
                                 "lesson",
                                 PresentationMechanism::Panel {
-                                    title: "A first Form".into(),
+                                    title: chapter_title.clone(),
                                 },
                                 vec![node(
                                     "lesson-status",
@@ -221,10 +221,7 @@ impl TourWorkspaceState {
                                     PresentationMechanism::Status {
                                         kind: status.0,
                                         title: status.1.into(),
-                                        detail: self
-                                            .result
-                                            .clone()
-                                            .unwrap_or_else(|| "Not run".into()),
+                                        detail: result_detail(self),
                                     },
                                     vec![],
                                 )],
@@ -313,22 +310,45 @@ impl TourWorkspaceState {
     }
 }
 
+fn result_detail(state: &TourWorkspaceState) -> String {
+    let Some(result) = state.result.as_deref() else {
+        return "Not run".into();
+    };
+    match state.progress.current_stage().map(|stage| stage.mode) {
+        Some(TourStageMode::Compare) => {
+            format!("{result}. Same source and checked Form; distinct expanded Forms and Plans.")
+        }
+        Some(TourStageMode::TwoHost | TourStageMode::TwoHostPlan) => format!(
+            "{result} · one value delivered over one planned Line between two Host fragments."
+        ),
+        Some(TourStageMode::Run) if state.progress.chapter == 2 => {
+            format!("0 → {result} · stopped with the next 120 ms timer pending.")
+        }
+        _ => result.into(),
+    }
+}
+
 fn format_phase(phase: TourWorkspacePhase) -> &'static str {
     match phase {
-        TourWorkspacePhase::LessonReady => "meet-one-gear graph ready",
-        TourWorkspacePhase::ResultVisible => "meet-one-gear graph played",
-        TourWorkspacePhase::PatchbayOpen => "meet-one-gear graph inspection",
+        TourWorkspacePhase::LessonReady => "ready",
+        TourWorkspacePhase::ResultVisible => "played",
+        TourWorkspacePhase::PatchbayOpen => "open for inspection",
     }
 }
 
 fn patchbay_label(state: &TourWorkspaceState) -> String {
+    let base = format!(
+        "Active Form {}; {}",
+        state.specimen_id,
+        format_phase(state.phase)
+    );
     match (
         state.selected_patchbay_subject.as_deref(),
         state.hovered_patchbay_subject.as_deref(),
     ) {
-        (Some(selected), _) => format!("{}; selected {selected}", format_phase(state.phase)),
-        (None, Some(hovered)) => format!("{}; hover {hovered}", format_phase(state.phase)),
-        (None, None) => format_phase(state.phase).into(),
+        (Some(selected), _) => format!("{base}; selected {selected}"),
+        (None, Some(hovered)) => format!("{base}; hover {hovered}"),
+        (None, None) => base,
     }
 }
 
@@ -366,6 +386,27 @@ fn node(
 mod tests {
     use super::*;
     use conduit_presentation::{ApplicationComponent, ApplicationView};
+
+    #[test]
+    fn later_exercises_explain_their_shared_execution_evidence() {
+        let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::ResultVisible);
+        state.progress.chapter = 1;
+        state.specimen_id = "canonical-form:same-morse-caller".into();
+        state.result = Some("Direct and recursive realizations agree".into());
+        assert!(result_detail(&state).contains("distinct expanded Forms and Plans"));
+
+        state.progress.chapter = 2;
+        state.specimen_id = "canonical-form:count-over-time".into();
+        state.result = Some("1".into());
+        assert!(result_detail(&state).contains("0 → 1"));
+        assert!(result_detail(&state).contains("120 ms timer pending"));
+
+        state.progress.chapter = 3;
+        state.specimen_id = "canonical-form:hello-across".into();
+        state.result = Some("hello across one Cord".into());
+        assert!(result_detail(&state).contains("one planned Line"));
+        assert!(patchbay_label(&state).starts_with("Active Form canonical-form:hello-across"));
+    }
 
     #[test]
     fn run_availability_is_shared_by_semantic_and_shell_controls() {
