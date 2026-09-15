@@ -27,7 +27,9 @@ impl HostedLocalModelAdapter for FakeLocalModel {
     ) -> LocalModelAdapterTerminal {
         output.clear();
         let encoded = match placement.kind_id.as_str() {
-            conduit_ai::LLM_GENERATE_KIND => b"The upstairs temperature is 21 C.".to_vec(),
+            conduit_ai::LLM_GENERATE_KIND => {
+                b"The upstairs temperature is 21 degrees Celsius.".to_vec()
+            }
             conduit_ai::LLM_CLASSIFY_KIND => {
                 serde_json::to_vec(&conduit_ai::FiniteClassification {
                     label: "conduit".into(),
