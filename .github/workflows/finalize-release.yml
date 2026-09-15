@@ -45,28 +45,32 @@ jobs:
           test "$(jq -r '.[0].headRefOid' <<<"$pulls")" = "$HEAD_SHA"
           pr_number=$(jq -r '.[0].number' <<<"$pulls")
           pr_url=$(jq -r '.[0].url' <<<"$pulls")
+          base_sha=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr_number" --jq .base.sha)
+          [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags origin "$snapshot"
-          git fetch --no-tags origin "refs/heads/$HEAD_BRANCH"
-          test "$(git rev-parse FETCH_HEAD)" = "$HEAD_SHA"
-          git merge-base --is-ancestor "$snapshot" "$HEAD_SHA"
           state=$(jq -r '.[0].state' <<<"$pulls")
           if test "$state" = OPEN; then
-            base_sha=$(git rev-parse origin/main)
+            git fetch --no-tags origin "refs/heads/$HEAD_BRANCH"
+            test "$(git rev-parse FETCH_HEAD)" = "$HEAD_SHA"
+            test "$(git rev-parse origin/main)" = "$base_sha"
             gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
             pull=$(gh pr view "$pr_number" --json state,mergeCommit)
             test "$(jq -r .state <<<"$pull")" = MERGED
             merge_sha=$(jq -r .mergeCommit.oid <<<"$pull")
           else
             test "$state" = MERGED
+            # Auto-merge may have removed the branch before workflow_run starts.
+            # The immutable PR head remains fetchable and must still be exact.
+            git fetch --no-tags origin "refs/pull/$pr_number/head"
+            test "$(git rev-parse FETCH_HEAD)" = "$HEAD_SHA"
             merge_sha=$(jq -r '.[0].mergeCommit.oid' <<<"$pulls")
             [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]]
             git fetch --no-tags origin "$merge_sha"
-            base_sha=$(git rev-parse "$merge_sha^1")
           fi
+          git merge-base --is-ancestor "$snapshot" "$HEAD_SHA"
           git fetch --no-tags origin main
           test "$(git rev-parse origin/main)" = "$merge_sha"
-          test "$(git rev-parse "$merge_sha^1")" = "$base_sha"
-          test "$(git rev-parse "$merge_sha^2")" = "$HEAD_SHA"
+          git merge-base --is-ancestor "$base_sha" "$merge_sha"
           test "$(git rev-parse "$merge_sha^{tree}")" = "$(git rev-parse "$HEAD_SHA^{tree}")"
           printf 'pr_number=%s\n' "$pr_number" >> "$GITHUB_OUTPUT"
           printf 'merge_sha=%s\n' "$merge_sha" >> "$GITHUB_OUTPUT"
@@ -105,32 +109,46 @@ jobs:
           release_merge=${HEAD_BRANCH#sync-release/}
           [[ "$release_merge" =~ ^[0-9a-f]{40}$ ]]
           [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
-          pulls=$(gh pr list --state open --base dev --head "$HEAD_BRANCH" --json number,url,headRefOid)
+          pulls=$(gh pr list --state all --base dev --head "$HEAD_BRANCH" --json number,url,headRefOid,state,mergeCommit)
           test "$(jq length <<<"$pulls")" = 1
           test "$(jq -r '.[0].headRefOid' <<<"$pulls")" = "$HEAD_SHA"
+          state=$(jq -r '.[0].state' <<<"$pulls")
+          test "$state" = OPEN -o "$state" = MERGED
+          pr_number=$(jq -r '.[0].number' <<<"$pulls")
           pr_url=$(jq -r '.[0].url' <<<"$pulls")
-          base_sha=$(git rev-parse origin/dev)
+          base_sha=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr_number" --jq .base.sha)
+          [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags origin main
-          git fetch --no-tags origin "refs/heads/$HEAD_BRANCH"
+          if test "$state" = OPEN; then
+            test "$(git rev-parse origin/dev)" = "$base_sha"
+            git fetch --no-tags origin "refs/heads/$HEAD_BRANCH"
+          else
+            # Preserve exact-head verification after auto-merge removes the branch.
+            git fetch --no-tags origin "refs/pull/$pr_number/head"
+          fi
           test "$(git rev-parse FETCH_HEAD)" = "$HEAD_SHA"
           git merge-base --is-ancestor "$release_merge" origin/main
           git merge-base --is-ancestor "$release_merge" "$HEAD_SHA"
           expected_tree=$(git merge-tree --write-tree "$base_sha" "$HEAD_SHA")
           [[ "$expected_tree" =~ ^[0-9a-f]{40}$ ]]
           base_tree=$(git rev-parse "$base_sha^{tree}")
-          if test "$expected_tree" = "$base_tree"; then
+          if test "$state" = OPEN && test "$expected_tree" = "$base_tree"; then
             gh pr close "$pr_url" --comment "Development already contains the accepted release tree; no synchronization commit is required."
             printf 'base_sha=%s\n' "$base_sha" >> "$GITHUB_OUTPUT"
             printf 'merge_sha=\n' >> "$GITHUB_OUTPUT"
             printf 'changed=false\n' >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
-          merge_sha=$(gh pr view "$pr_url" --json state,mergeCommit --jq 'select(.state == "MERGED") | .mergeCommit.oid')
+          if test "$state" = OPEN; then
+            gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
+            merge_sha=$(gh pr view "$pr_url" --json state,mergeCommit --jq 'select(.state == "MERGED") | .mergeCommit.oid')
+          else
+            merge_sha=$(jq -r '.[0].mergeCommit.oid' <<<"$pulls")
+          fi
           [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags origin dev
           test "$(git rev-parse origin/dev)" = "$merge_sha"
-          test "$(git rev-parse "$merge_sha^1")" = "$base_sha"
+          git merge-base --is-ancestor "$base_sha" "$merge_sha"
           test "$(git rev-parse "$merge_sha^{tree}")" = "$expected_tree"
           printf 'base_sha=%s\n' "$base_sha" >> "$GITHUB_OUTPUT"
           printf 'merge_sha=%s\n' "$merge_sha" >> "$GITHUB_OUTPUT"
