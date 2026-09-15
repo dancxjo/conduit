@@ -50,7 +50,7 @@ impl HostedLocalModelAdapter for FakeModel {
     ) -> LocalModelAdapterTerminal {
         self.calls.fetch_add(1, Ordering::Relaxed);
         let contract = conduit_ai::llm_contract(placement.kind_id.as_str()).unwrap();
-        let payload = b"The upstairs temperature is 21 C.".to_vec();
+        let payload = b"The upstairs temperature is 21 degrees Celsius.".to_vec();
         let result = conduit_ai::ModelDerivedResult {
             provenance: conduit_ai::ModelResultProvenance::ModelDerived,
             payload_kind: contract.result_payload_kind.as_str().into(),
@@ -176,7 +176,7 @@ fn addressed_recorded_clip_reaches_the_model_in_one_plan_play() {
     .unwrap();
     assert_eq!(receipt.local_model_invocations, 1);
     assert!(receipt.recognized_text_sha256.is_some());
-    assert_eq!(receipt.response_bytes, 33);
+    assert_eq!(receipt.response_bytes, 47);
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -238,7 +238,10 @@ fn addressed_recorded_clip_is_spoken_to_a_bounded_wav_in_the_same_play() {
         receipt.recognized_text,
         "Rosehip House, what is the temperature upstairs?"
     );
-    assert_eq!(receipt.response_text, "The upstairs temperature is 21 C.");
+    assert_eq!(
+        receipt.response_text,
+        "The upstairs temperature is 21 degrees Celsius."
+    );
     assert_eq!(receipt.source_pcm_frames, 339);
     assert_eq!(receipt.target_pcm_frames, 738);
     assert_eq!(receipt.wav_pcm_bytes, 738 * 4);

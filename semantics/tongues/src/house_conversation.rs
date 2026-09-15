@@ -148,6 +148,7 @@ pub enum HousePromptRefusal {
 struct PromptProjection<'a> {
     schema: &'static str,
     request_identity: &'a str,
+    response_instruction: &'static str,
     addressed_utterance: &'a str,
     context: Vec<PromptContextItem<'a>>,
 }
@@ -218,6 +219,8 @@ pub fn prepare_house_generation_request(
     let prompt = serde_json::to_string(&PromptProjection {
         schema: "conduit.house/model-context-presentation@1",
         request_identity: &request.request_identity,
+        response_instruction:
+            "Answer briefly using only the wired context. Say temperature units in full, including degrees Celsius.",
         addressed_utterance: &request.addressed_utterance,
         context,
     })

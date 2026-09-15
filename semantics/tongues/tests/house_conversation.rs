@@ -15,7 +15,7 @@ fn context(provenance: HouseContextProvenanceClass) -> WiredHouseContextItem {
     WiredHouseContextItem {
         item_identity: "context/upstairs-temperature".into(),
         value_kind: "temperature/summary@1".into(),
-        canonical_value: b"21 C, observed 18 seconds ago".to_vec(),
+        canonical_value: b"21 degrees Celsius, observed 18 seconds ago".to_vec(),
         provenance,
         source_identity: "sign/temperature/42".into(),
     }
@@ -80,7 +80,10 @@ fn addressed_house_context_becomes_bounded_provider_neutral_model_input() {
         .contains("what is the temperature upstairs?"));
     assert!(request
         .encoded_request
-        .contains("21 C, observed 18 seconds ago"));
+        .contains("21 degrees Celsius, observed 18 seconds ago"));
+    assert!(request
+        .encoded_request
+        .contains("Say temperature units in full, including degrees Celsius."));
     assert!(request.encoded_request.contains("observed-sign"));
     assert!(request.encoded_request.contains("sign/temperature/42"));
     for forbidden in ["ollama", "localhost", "11434", "model_name", "HostId"] {
