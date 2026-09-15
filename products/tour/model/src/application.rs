@@ -10,43 +10,110 @@ pub struct TourChapter {
     pub identity: &'static str,
     pub route: &'static str,
     pub companion: &'static str,
+    pub stages: &'static [TourStage],
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TourStage {
+    pub identity: &'static str,
+    pub mode: TourStageMode,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TourStageMode {
+    Run,
+    Compare,
+    TwoHost,
+    TwoHostPlan,
+}
+
+impl TourStageMode {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Run => "run",
+            Self::Compare => "compare",
+            Self::TwoHost => "two-host",
+            Self::TwoHostPlan => "two-host-plan",
+        }
+    }
+}
+
+const CHAPTER_ONE_STAGES: [TourStage; 3] = [
+    TourStage {
+        identity: "canonical-form:meet-one-gear",
+        mode: TourStageMode::Run,
+    },
+    TourStage {
+        identity: "canonical-form:edit-one-gear",
+        mode: TourStageMode::Run,
+    },
+    TourStage {
+        identity: "canonical-form:branch-a-cord",
+        mode: TourStageMode::Run,
+    },
+];
+const CHAPTER_TWO_STAGES: [TourStage; 1] = [TourStage {
+    identity: "canonical-form:same-morse-caller",
+    mode: TourStageMode::Compare,
+}];
+const CHAPTER_THREE_STAGES: [TourStage; 1] = [TourStage {
+    identity: "canonical-form:count-over-time",
+    mode: TourStageMode::Run,
+}];
+const CHAPTER_FOUR_STAGES: [TourStage; 2] = [
+    TourStage {
+        identity: "canonical-form:hello-across",
+        mode: TourStageMode::TwoHost,
+    },
+    TourStage {
+        identity: "canonical-form:hello-across",
+        mode: TourStageMode::TwoHostPlan,
+    },
+];
+const NO_STAGES: [TourStage; 0] = [];
 
 pub const TOUR_CHAPTERS: [TourChapter; TOUR_CHAPTER_COUNT as usize] = [
     TourChapter {
         identity: "form-basics",
         route: "one-program-many-computers",
         companion: "form-laboratory",
+        stages: &CHAPTER_ONE_STAGES,
     },
     TourChapter {
         identity: "faces-and-backs",
         route: "faces-backs-and-implementation",
         companion: "recursive-form",
+        stages: &CHAPTER_TWO_STAGES,
     },
     TourChapter {
         identity: "host-realization",
         route: "hosts-make-forms-real",
         companion: "host-inventory",
+        stages: &CHAPTER_THREE_STAGES,
     },
     TourChapter {
         identity: "multi-host-form",
         route: "one-form-across-several-hosts",
         companion: "multi-host-plan",
+        stages: &CHAPTER_FOUR_STAGES,
     },
     TourChapter {
         identity: "body-continuity",
         route: "the-body-one-computer-one-machine-or-many",
         companion: "body-continuity",
+        stages: &NO_STAGES,
     },
     TourChapter {
         identity: "body-wide-realization",
         route: "many-forms-one-body-wide-realization",
         companion: "body-workload",
+        stages: &NO_STAGES,
     },
     TourChapter {
         identity: "birth-and-spores",
         route: "birth-spores-and-the-creche",
         companion: "creche-handoff",
+        stages: &NO_STAGES,
     },
 ];
 
@@ -243,5 +310,25 @@ mod tests {
             Err(TourApplicationRefusal::NotRunning)
         );
         assert_eq!(state, before);
+    }
+
+    #[test]
+    fn canonical_catalog_owns_every_executable_stage_identity_and_mode() {
+        let stages = TOUR_CHAPTERS
+            .iter()
+            .flat_map(|chapter| chapter.stages)
+            .collect::<alloc::vec::Vec<_>>();
+        assert_eq!(stages.len(), 7);
+        assert_eq!(TOUR_CHAPTERS[0].stages.len(), 3);
+        assert_eq!(TOUR_CHAPTERS[1].stages.len(), 1);
+        assert_eq!(TOUR_CHAPTERS[2].stages.len(), 1);
+        assert_eq!(TOUR_CHAPTERS[3].stages.len(), 2);
+        assert!(
+            TOUR_CHAPTERS[4..]
+                .iter()
+                .all(|chapter| chapter.stages.is_empty())
+        );
+        assert_eq!(stages[0].identity, "canonical-form:meet-one-gear");
+        assert_eq!(stages[6].mode, TourStageMode::TwoHostPlan);
     }
 }

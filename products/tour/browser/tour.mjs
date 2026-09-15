@@ -96,6 +96,16 @@ try {
     onFailure: showTourFailure,
   });
   guidedPages = parseTourPages(chapters);
+  const sharedChapters = readTourApplicationChapters(host.runtime);
+  const admittedCatalog = guidedPages.map(({ identity, route, companion, stages }) => ({
+    identity,
+    route,
+    companion,
+    stages: stages.map(({ identity: stageIdentity, mode }) => ({ identity: stageIdentity, mode })),
+  }));
+  if (JSON.stringify(admittedCatalog) !== JSON.stringify(sharedChapters)) {
+    throw new Error("authored Tour chapters do not match the shared application catalog");
+  }
   if (host.runtime.conduit_tour_application_reset(guidedPages.length) < 0) {
     throw new Error("shared Tour application refused its chapter inventory");
   }
