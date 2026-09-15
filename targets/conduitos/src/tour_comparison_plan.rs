@@ -1,7 +1,8 @@
 //! Distinct direct and recursively expanded Plans for the shared comparison Tour Form.
 
 use alloc::collections::BTreeMap;
-use conduit_core::{BaseImplementationId, Plan};
+use conduit_core::{ActivePlayIdentity, BaseImplementationId, Plan, bind_active_play};
+use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_planner::{
     ConnectionQueueLimits, PlanningOptions, default_expanded_placements,
     plan_expanded_canonical_with_connection_limits,
@@ -20,6 +21,11 @@ const CORD_BYTES: u32 = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32;
 pub struct PreparedComparisonPlans {
     pub direct: Plan,
     pub recursive: Plan,
+    pub direct_active: ActivePlayIdentity,
+    pub recursive_active: ActivePlayIdentity,
+    pub(crate) direct_kernel: crate::tour_comparison_kernel::ComparisonKernel,
+    pub(crate) recursive_kernel: crate::tour_comparison_kernel::ComparisonKernel,
+    pub(crate) scratch: crate::tour_comparison_play::ComparisonScratch,
 }
 
 pub fn prepare(
@@ -43,7 +49,41 @@ pub fn prepare(
     let direct =
         plan(&direct, &advertisement, offer).map_err(|_| PreparationError::PlanRejected)?;
     let recursive = plan(&recursive, &advertisement, offer)?;
-    Ok(PreparedComparisonPlans { direct, recursive })
+    let direct_lowered = lower_plan_fragment(&direct.fragments[0])
+        .map_err(|_| PreparationError::LoweringRejected)?;
+    let recursive_lowered = lower_plan_fragment(&recursive.fragments[0])
+        .map_err(|_| PreparationError::LoweringRejected)?;
+    let direct_kernel = crate::tour_comparison_kernel::ComparisonKernel::prepare_direct(
+        &direct.fragments[0],
+        &direct_lowered,
+    )
+    .map_err(|_| PreparationError::KernelRejected)?;
+    let recursive_kernel = crate::tour_comparison_kernel::ComparisonKernel::prepare_recursive(
+        &recursive.fragments[0],
+        &recursive_lowered,
+    )
+    .map_err(|_| PreparationError::KernelRejected)?;
+    let direct_active = bind_active_play(
+        &direct.plan_id,
+        &direct.fragments[0].host_id,
+        &direct.fragments[0].boot_id,
+        0,
+    );
+    let recursive_active = bind_active_play(
+        &recursive.plan_id,
+        &recursive.fragments[0].host_id,
+        &recursive.fragments[0].boot_id,
+        0,
+    );
+    Ok(PreparedComparisonPlans {
+        direct,
+        recursive,
+        direct_active,
+        recursive_active,
+        direct_kernel,
+        recursive_kernel,
+        scratch: crate::tour_comparison_play::ComparisonScratch::prepared(),
+    })
 }
 
 fn plan(
