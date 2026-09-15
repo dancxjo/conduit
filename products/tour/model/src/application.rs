@@ -248,6 +248,8 @@ impl TourApplicationState {
             TourApplicationAction::OpenChapter(chapter) => {
                 self.chapter = chapter;
                 self.stage = 0;
+                self.run = TourRunState::Ready;
+                self.source_is_canonical = true;
             }
             TourApplicationAction::PreviousChapter if self.chapter == 0 => {
                 return Err(TourApplicationRefusal::FirstChapter);
@@ -255,6 +257,8 @@ impl TourApplicationState {
             TourApplicationAction::PreviousChapter => {
                 self.chapter -= 1;
                 self.stage = 0;
+                self.run = TourRunState::Ready;
+                self.source_is_canonical = true;
             }
             TourApplicationAction::NextChapter if self.chapter + 1 >= self.chapter_count => {
                 return Err(TourApplicationRefusal::LastChapter);
@@ -262,18 +266,28 @@ impl TourApplicationState {
             TourApplicationAction::NextChapter => {
                 self.chapter += 1;
                 self.stage = 0;
+                self.run = TourRunState::Ready;
+                self.source_is_canonical = true;
             }
             TourApplicationAction::PreviousStage if self.stage == 0 => {
                 return Err(TourApplicationRefusal::FirstStage);
             }
-            TourApplicationAction::PreviousStage => self.stage -= 1,
+            TourApplicationAction::PreviousStage => {
+                self.stage -= 1;
+                self.run = TourRunState::Ready;
+                self.source_is_canonical = true;
+            }
             TourApplicationAction::NextStage
                 if usize::from(self.stage) + 1
                     >= TOUR_CHAPTERS[usize::from(self.chapter)].stages.len() =>
             {
                 return Err(TourApplicationRefusal::LastStage);
             }
-            TourApplicationAction::NextStage => self.stage += 1,
+            TourApplicationAction::NextStage => {
+                self.stage += 1;
+                self.run = TourRunState::Ready;
+                self.source_is_canonical = true;
+            }
             TourApplicationAction::Run if self.run == TourRunState::Running => {
                 return Err(TourApplicationRefusal::AlreadyRunning);
             }
@@ -348,7 +362,7 @@ mod tests {
         state.apply(TourApplicationAction::Restore).unwrap();
         state.apply(TourApplicationAction::PreviousChapter).unwrap();
         assert_eq!(state.chapter, 0);
-        assert_eq!(state.run, TourRunState::Stopped);
+        assert_eq!(state.run, TourRunState::Ready);
         assert!(state.source_is_canonical);
         assert_eq!(state.revision, 7);
     }

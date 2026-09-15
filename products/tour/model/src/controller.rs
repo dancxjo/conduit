@@ -449,6 +449,32 @@ mod tests {
     }
 
     #[test]
+    fn completing_one_exercise_leaves_the_next_exact_exercise_runnable() {
+        let mut controller = TourWorkspaceController::canonical(1);
+        assert_eq!(
+            controller.request(&event(1, RUN_ACTION_ID)),
+            Ok(Some(TourWorkspaceRequest::Run {
+                chapter: 0,
+                stage: 0,
+            }))
+        );
+        assert_eq!(controller.complete_run(proof()), Ok(()));
+        assert_eq!(
+            controller.request(&event(3, NEXT_STAGE_ACTION_ID)),
+            Ok(None)
+        );
+        assert_eq!(controller.state().progress.stage, 1);
+        assert_eq!(controller.state().progress.run, TourRunState::Ready);
+        assert_eq!(
+            controller.request(&event(4, RUN_ACTION_ID)),
+            Ok(Some(TourWorkspaceRequest::Run {
+                chapter: 0,
+                stage: 1,
+            }))
+        );
+    }
+
+    #[test]
     fn patchbay_navigation_uses_the_current_portable_action() {
         let mut controller = TourWorkspaceController::canonical(8);
         assert_eq!(
