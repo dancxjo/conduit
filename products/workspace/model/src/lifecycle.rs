@@ -1,9 +1,10 @@
 use alloc::vec::Vec;
 use conduit_body::{
-    BodyBiographyError, BodyBiographyEvidence, BodyFormPlan, BodyLifecycleError, BodyPlan,
-    BodyPlanError, BodyPlayIdentity, BodyState, MembershipState, ResidentForm, Wake,
+    AdmissionManager, AdmissionRefusal, AdmissionSigns, BodyBiographyError, BodyBiographyEvidence,
+    BodyFormPlan, BodyLifecycleError, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyState,
+    MembershipCredential, MembershipState, ResidentForm, SpawnAdmissionProof, Wake,
 };
-use conduit_core::{BootId, HostId, SignId, bind_sign};
+use conduit_core::{BootId, HostAdvertisement, HostId, SignId, bind_sign};
 use serde::{Deserialize, Serialize};
 
 /// An exact current proposal and its optional admitted Play, never a scheduler.
@@ -24,6 +25,7 @@ pub struct WorkspaceBody {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WorkspaceBodyError {
     Biography(BodyBiographyError),
+    Admission(AdmissionRefusal),
     Lifecycle(BodyLifecycleError),
     Plan(BodyPlanError),
     NotLulled,
@@ -53,6 +55,18 @@ impl WorkspaceBody {
         })
     }
 
+    /// Open a freshly admitted Body snapshot for the exact receiving Host.
+    /// Unlike reload continuity, the current Boot must already be present.
+    pub fn open_admitted(
+        evidence: BodyBiographyEvidence,
+        host: &HostId,
+        boot: &BootId,
+    ) -> Result<Self, WorkspaceBodyError> {
+        let body = Self::open(evidence)?;
+        body.require_host(host, boot)?;
+        Ok(body)
+    }
+
     pub fn evidence(&self) -> &BodyBiographyEvidence {
         &self.evidence
     }
@@ -62,6 +76,71 @@ impl WorkspaceBody {
 
     pub fn foreground(&self) -> Option<&ResidentForm> {
         self.foreground.as_ref()
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn issue_invitation(
+        &self,
+        admissions: &mut AdmissionManager,
+        secret: conduit_body::SpawnInvitationSecret,
+        nonce: [u8; 32],
+        now_millis: u64,
+        expires_at_millis: u64,
+        authority_host: &HostId,
+        authority_boot: &BootId,
+    ) -> Result<conduit_body::SpawnInvitationClaim, WorkspaceBodyError> {
+        self.require_host(authority_host, authority_boot)?;
+        admissions
+            .issue_spawn_invitation(secret, nonce, now_millis, expires_at_millis)
+            .map(|invitation| invitation.claim())
+            .map_err(WorkspaceBodyError::Admission)
+    }
+
+    /// Complete one canonical single-use invitation at the Body authority.
+    /// Admission and authenticated presence are separate membership events;
+    /// neither grants Form or effect authority.
+    pub fn admit_invited_host(
+        &mut self,
+        admissions: &mut AdmissionManager,
+        advertisement: &HostAdvertisement,
+        proof: &SpawnAdmissionProof,
+        now_millis: u64,
+        authority_host: &HostId,
+        authority_boot: &BootId,
+    ) -> Result<MembershipCredential, WorkspaceBodyError> {
+        self.require_host(authority_host, authority_boot)?;
+        let first_sequence = self.next_sequence()?;
+        let second_sequence = first_sequence
+            .checked_add(1)
+            .ok_or(WorkspaceBodyError::SequenceExhausted)?;
+        let signs = AdmissionSigns {
+            part_admitted: sign(authority_host, authority_boot, first_sequence),
+            host_attached: sign(authority_host, authority_boot, second_sequence),
+            candidate_admitted: sign(authority_host, authority_boot, second_sequence),
+        };
+        let mut membership = self.evidence.membership.clone();
+        let mut next_admissions = admissions.clone();
+        let prior_events = membership.events.len();
+        let credential = next_admissions
+            .complete_spawn(&mut membership, advertisement, proof, now_millis, signs)
+            .map_err(WorkspaceBodyError::Admission)?;
+        let events = membership.events[prior_events..]
+            .iter()
+            .zip([first_sequence, second_sequence])
+            .map(|(event, sequence)| (event.change_id.clone(), sequence))
+            .collect::<Vec<_>>();
+        if events.len() != 2 {
+            return Err(WorkspaceBodyError::Biography(
+                BodyBiographyError::InvalidEvidence,
+            ));
+        }
+        let mut evidence = self.evidence.clone();
+        evidence
+            .append_membership_events(membership, &events)
+            .map_err(WorkspaceBodyError::Biography)?;
+        self.evidence = evidence;
+        *admissions = next_admissions;
+        Ok(credential)
     }
 
     /// Foreground is presentation focus within the current workset. Selecting a

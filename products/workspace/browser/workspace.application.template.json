@@ -13,7 +13,7 @@
       "role": "application-module",
       "kind": "module",
       "path": "workspace.mjs",
-      "maximum_bytes": 16384,
+      "maximum_bytes": 24576,
       "dependencies": [
         {
           "role": "browser-host-bootstrap",
@@ -30,6 +30,10 @@
         {
           "role": "workspace-session",
           "specifier": "./workspace-session.mjs"
+        },
+        {
+          "role": "workspace-membership",
+          "specifier": "./workspace-membership.mjs"
         },
         {
           "role": "workspace-play",
@@ -144,7 +148,14 @@
       "role": "workspace-session",
       "kind": "module",
       "path": "workspace-session.mjs",
-      "maximum_bytes": 8192,
+      "maximum_bytes": 12288,
+      "dependencies": []
+    },
+    {
+      "role": "workspace-membership",
+      "kind": "module",
+      "path": "workspace-membership.mjs",
+      "maximum_bytes": 16384,
       "dependencies": []
     },
     {

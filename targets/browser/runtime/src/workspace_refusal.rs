@@ -20,6 +20,7 @@ impl From<WorkspaceBodyError> for Refusal {
         use WorkspaceBodyError::*;
         let code = match error {
             Biography(error) => format!("Biography.{error:?}"),
+            Admission(error) => format!("Admission.{error:?}"),
             Lifecycle(error) => format!("Lifecycle.{error:?}"),
             Plan(error) => format!("Plan.{error:?}"),
             NotLulled => "NotLulled".into(),

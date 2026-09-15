@@ -61,6 +61,19 @@ pub struct SpawnInvitationClaim {
 }
 
 impl SpawnInvitationClaim {
+    /// Validate the portable, public portion before a Host elects to sign it.
+    /// This grants no membership, presence, or authority.
+    pub fn inspect(&self, now_millis: u64) -> Result<(), AdmissionRefusal> {
+        crate::identity::validate_ids(&[self.invitation_id.as_str(), self.body_id.as_str()])?;
+        if self.nonce == [0; 32] {
+            return Err(AdmissionRefusal::StaleNonce);
+        }
+        if self.expires_at_millis <= now_millis {
+            return Err(AdmissionRefusal::Expired);
+        }
+        Ok(())
+    }
+
     pub fn signing_transcript(
         &self,
         host_id: &HostId,
