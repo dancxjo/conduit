@@ -27,8 +27,14 @@ a { color:var(--muted); text-decoration:none; }
 #form-input:focus { outline:1px solid var(--line); outline-offset:0; border-radius:.35rem; }
 .input-prompt { color:var(--muted); font-size:2rem; }
 #form-input:has(output:not(:empty):not([hidden])) .input-prompt { display:none; }
-.signal-manifestation { max-width:100%; color:var(--amber); font:3.5rem/1.4 ui-monospace,monospace; white-space:pre-wrap; }
-.signal-manifestation output { display:block; }
+.signal-manifestation { max-width:100%; color:var(--amber); }
+.signal-manifestation > output { display:block; max-width:100%; }
+.signal-manifestation > output:not([data-presentation-kind="presentation/application-view"]) { font:3.5rem/1.4 ui-monospace,monospace; white-space:pre-wrap; }
+.signal-manifestation > output[data-presentation-kind="presentation/application-view"] {
+  width:100%; min-width:0; max-height:min(68vh,44rem); overflow:auto; scrollbar-gutter:stable;
+  color:var(--ink); font:var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+  overflow-wrap:anywhere; white-space:normal; text-align:left;
+}
 .surface-guidance { color:var(--muted); font-size:.8rem; }
 .body-controls { display:flex; justify-content:center; gap:.75rem; margin-top:1.2rem; }
 .body-controls button { font-size:.8rem; }
@@ -93,7 +99,7 @@ a { color:var(--muted); text-decoration:none; }
   .body-header { min-height:6rem; }
   .workspace-creche,.form-surface,.workspace-panel { padding:1.25rem; }
   #form-input { padding:1rem 0; }
-  .signal-manifestation { font-size:2.5rem; }
+  .signal-manifestation > output:not([data-presentation-kind="presentation/application-view"]) { font-size:2.5rem; }
   .truth-strip { flex-wrap:wrap; }
   .current-flow { order:3; flex-basis:100%; justify-content:center; }
   .birth-presentation [data-application-key="initial-forms"] { grid-template-columns:1fr; }

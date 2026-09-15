@@ -84,9 +84,12 @@ out to them.
 
 This slice proves browser arrival. The Crèche model, view, and actions are already
 shared with native first boot; multi-Form native arrival remains separate work.
-Tour and Patchbay are not yet installable resident Forms here. The flow strip
-describes the exact selected Plan and exposes evidence, but its inspection panel
-is not yet the Patchbay editor.
+Tour and Patchbay are installable resident Forms and project their portable
+semantic application views through the ordinary browser presentation slot. The
+Workspace package owns the scoped browser styling for those views; neither the
+authored Forms nor their portable presentation transport carry CSS, DOM, or URL
+facts. The flow strip describes the exact selected Plan and exposes evidence,
+while its small inspection panel remains distinct from the resident Patchbay.
 
 Body continuity currently retains the workset and foreground identity, not each
 Form's internal state or text. History keeps the existing finite Body bounds
