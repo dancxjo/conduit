@@ -60,6 +60,97 @@ fn complete_manifest_digest_binds_exact_bytes() {
 }
 
 #[test]
+fn complete_hears_speaks_manifest_requires_typed_audio_and_receipts() {
+    let root = temporary_root("hears-speaks");
+    let wav =
+        b"RIFF\x24\0\0\0WAVEfmt \x10\0\0\0\x01\0\x01\0\x80>\0\0\0}\0\0\x02\0\x10\0data\0\0\0\0";
+    let declarations = [
+        (
+            "hears-speaks.input-pcm",
+            EvidenceKind::Audio,
+            "input.pcm",
+            "audio/L16; rate=16000; channels=1",
+            b"\0\0".as_slice(),
+        ),
+        (
+            "hears-speaks.input-wav",
+            EvidenceKind::Audio,
+            "input.wav",
+            "audio/wav",
+            wav.as_slice(),
+        ),
+        (
+            "hears-speaks.recognition",
+            EvidenceKind::MachineReadableManifest,
+            "recognition.json",
+            "application/json",
+            b"{}".as_slice(),
+        ),
+        (
+            "hears-speaks.response",
+            EvidenceKind::MachineReadableManifest,
+            "response.json",
+            "application/json",
+            b"{}".as_slice(),
+        ),
+        (
+            "hears-speaks.output-wav",
+            EvidenceKind::Audio,
+            "output.wav",
+            "audio/wav",
+            wav.as_slice(),
+        ),
+        (
+            "hears-speaks.receipt",
+            EvidenceKind::MachineReadableManifest,
+            "receipt.json",
+            "application/json",
+            b"{}".as_slice(),
+        ),
+    ];
+    let mut evidence = EvidenceManifest::new(
+        &root,
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        "journey-hears-speaks",
+        "journey-gallery",
+    )
+    .unwrap();
+    for (id, kind, path, media_type, bytes) in declarations {
+        fs::write(root.join(path), bytes).unwrap();
+        evidence
+            .declare(EvidenceOutput {
+                id: id.into(),
+                kind,
+                path: path.into(),
+                media_type: media_type.into(),
+                required: true,
+                provenance: EvidenceProvenance {
+                    scenario_id: "hears-speaks.recorded-addressed-house@1".into(),
+                    plan_id: Some("plan".into()),
+                    active_play_id: Some("play".into()),
+                    asserted_semantic_disposition: Some("completed".into()),
+                    proof_class: Some("hosted-recorded-audio-plan-play".into()),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+    }
+    evidence.finish(EvidenceResult::Complete).unwrap();
+    let document: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
+    let commit = document["git_commit"].as_str().unwrap().to_owned();
+    verify(&VerificationRequest {
+        root: root.clone(),
+        commit,
+        result: ExpectedEvidenceResult::Complete,
+        proof_id: "journey-hears-speaks".into(),
+        suite_id: "journey-gallery".into(),
+    })
+    .unwrap();
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn missing_required_output_is_manifested_as_incomplete_and_refused() {
     let root = temporary_root("missing");
     let mut evidence = manifest(&root);
@@ -317,16 +408,96 @@ fn complete_conduitos_evidence(root: &Path, commit: &str) {
     evidence.finish(EvidenceResult::Complete).unwrap();
 }
 
+fn complete_hears_speaks_evidence(root: &Path) {
+    let wav =
+        b"RIFF\x24\0\0\0WAVEfmt \x10\0\0\0\x01\0\x01\0\x80>\0\0\0}\0\0\x02\0\x10\0data\0\0\0\0";
+    let files = [
+        (
+            "hears-speaks.input-pcm",
+            EvidenceKind::Audio,
+            "input.pcm",
+            "audio/L16; rate=16000; channels=1",
+            b"\0\0".as_slice(),
+        ),
+        (
+            "hears-speaks.input-wav",
+            EvidenceKind::Audio,
+            "input.wav",
+            "audio/wav",
+            wav.as_slice(),
+        ),
+        (
+            "hears-speaks.recognition",
+            EvidenceKind::MachineReadableManifest,
+            "recognition.json",
+            "application/json",
+            b"{}".as_slice(),
+        ),
+        (
+            "hears-speaks.response",
+            EvidenceKind::MachineReadableManifest,
+            "response.json",
+            "application/json",
+            b"{}".as_slice(),
+        ),
+        (
+            "hears-speaks.output-wav",
+            EvidenceKind::Audio,
+            "output.wav",
+            "audio/wav",
+            wav.as_slice(),
+        ),
+        (
+            "hears-speaks.receipt",
+            EvidenceKind::MachineReadableManifest,
+            "receipt.json",
+            "application/json",
+            b"{}".as_slice(),
+        ),
+    ];
+    let mut evidence = EvidenceManifest::new(
+        root,
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        "journey-hears-speaks",
+        "journey-gallery",
+    )
+    .unwrap();
+    for (id, kind, path, media_type, bytes) in files {
+        fs::write(root.join(path), bytes).unwrap();
+        evidence
+            .declare(EvidenceOutput {
+                id: id.into(),
+                kind,
+                path: path.into(),
+                media_type: media_type.into(),
+                required: true,
+                provenance: EvidenceProvenance {
+                    scenario_id: "hears-speaks.recorded-addressed-house@1".into(),
+                    plan_id: Some("plan".into()),
+                    active_play_id: Some("play".into()),
+                    asserted_semantic_disposition: Some("completed".into()),
+                    proof_class: Some("hosted-recorded-audio-plan-play".into()),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+    }
+    evidence.finish(EvidenceResult::Complete).unwrap();
+}
+
 #[test]
 fn gallery_publishes_current_history_and_provenance() {
     let evidence_root = temporary_root("gallery-evidence");
     let conduitos_root = temporary_root("gallery-conduitos-evidence");
+    let hears_speaks_root = temporary_root("gallery-hears-speaks-evidence");
     let site_root = temporary_root("gallery-site");
     let commit = complete_browser_evidence(&evidence_root);
     complete_conduitos_evidence(&conduitos_root, &commit);
+    complete_hears_speaks_evidence(&hears_speaks_root);
     publish_gallery(&GalleryRequest {
         evidence_root: evidence_root.clone(),
         conduitos_evidence_root: Some(conduitos_root.clone()),
+        hears_speaks_evidence_root: Some(hears_speaks_root.clone()),
         site_root: site_root.clone(),
         commit: commit.clone(),
     })
@@ -354,6 +525,13 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(console_page.contains("NOT PHYSICAL HARDWARE EVIDENCE"));
     assert!(console_page.contains("freestanding-emulator"));
     assert!(console_page.contains(&commit));
+    let audio_page = fs::read_to_string(site_root.join("current/hears-speaks/index.html")).unwrap();
+    assert!(audio_page.contains("<audio controls"));
+    assert!(audio_page.contains("not a live microphone"));
+    assert_eq!(
+        fs::read(site_root.join("current/hears-speaks/output.wav")).unwrap(),
+        fs::read(site_root.join(format!("commits/{commit}/hears-speaks/output.wav"))).unwrap()
+    );
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
@@ -388,6 +566,7 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(publish_gallery(&GalleryRequest {
         evidence_root: evidence_root.clone(),
         conduitos_evidence_root: None,
+        hears_speaks_evidence_root: None,
         site_root: site_root.clone(),
         commit,
     })
@@ -398,6 +577,7 @@ fn gallery_publishes_current_history_and_provenance() {
     );
     fs::remove_dir_all(evidence_root).unwrap();
     fs::remove_dir_all(conduitos_root).unwrap();
+    fs::remove_dir_all(hears_speaks_root).unwrap();
     fs::remove_dir_all(site_root).unwrap();
 }
 

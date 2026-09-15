@@ -30,6 +30,12 @@ pub const AUDIO_PLAY_ALSA_HW_ARTIFACT: &str = "conduit-std-host/alsa-aplay-hw@1"
 pub const AUDIO_PLAY_ALSA_HW_OPERATION: &str = "conduit.host/audio-play-alsa-hw@1";
 pub const AUDIO_PLAYBACK_RESOURCE_CLASS: &str = "conduit.resource/audio-playback-alsa-hw@1";
 pub const AUDIO_PLAYBACK_AUTHORITY_CONTRACT: &str = "conduit.authority/audio-playback@1";
+pub const AUDIO_WAV_ARTIFACT_PROFILE: &str = "std/wav-artifact-s16le-48000-stereo@1";
+pub const AUDIO_WAV_ARTIFACT_IMPLEMENTATION: &str = "std/kernel-audio-write-wav@1";
+pub const AUDIO_WAV_ARTIFACT_ARTIFACT: &str = "conduit-std-host/wav-artifact@1";
+pub const AUDIO_WAV_ARTIFACT_OPERATION: &str = "conduit.host/audio-wav-write@1";
+pub const AUDIO_WAV_ARTIFACT_RESOURCE_CLASS: &str = "conduit.resource/storage/artifact@1";
+pub const AUDIO_WAV_ARTIFACT_AUTHORITY_CONTRACT: &str = "conduit.authority/artifact-write@1";
 pub const AUDIO_CONVERT_PCM_PROFILE: &str = "std/pcm-s16le-mono-22050-to-stereo-48000@1";
 pub const AUDIO_CONVERT_PCM_IMPLEMENTATION: &str =
     "std/kernel-pcm-nearest-s16le-mono-22050-to-stereo-48000@1";
@@ -167,6 +173,44 @@ pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
         authority_requirements: vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(AUDIO_PLAYBACK_AUTHORITY_CONTRACT),
             host_operation_contract_id: HostOperationContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
+            subject_kind: kind_id(AUDIO_PCM_INFO_ID),
+        }],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_ITEMS,
+            max_queue_bytes: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_BYTES,
+        },
+    }
+}
+
+pub fn audio_write_wav_artifact_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::audio_play_contract();
+    CapabilityOffer {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: CapabilityId::from("audio-write-wav-artifact"),
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindContractRevision::from(
+            conduit_semantic_catalog::AUDIO_PLAY_REVISION,
+        ),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        implementation: implementation(
+            AUDIO_WAV_ARTIFACT_PROFILE,
+            AUDIO_WAV_ARTIFACT_IMPLEMENTATION,
+            AUDIO_WAV_ARTIFACT_ARTIFACT,
+        ),
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(AUDIO_WAV_ARTIFACT_OPERATION),
+            target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            maximum_output_bytes: 0,
+        }],
+        resource_requirements: vec![resource_requirement(AUDIO_WAV_ARTIFACT_RESOURCE_CLASS, 1)],
+        authority_requirements: vec![AuthorityRequirement {
+            contract_id: AuthorityContractId::from(AUDIO_WAV_ARTIFACT_AUTHORITY_CONTRACT),
+            host_operation_contract_id: HostOperationContractId::from(AUDIO_WAV_ARTIFACT_OPERATION),
             subject_kind: kind_id(AUDIO_PCM_INFO_ID),
         }],
         limits: CapabilityLimits {

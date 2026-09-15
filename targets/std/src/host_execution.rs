@@ -190,6 +190,7 @@ impl StdHost {
                         speech_synthesis: self.speech_synthesis.as_mut(),
                         speech_recognition: self.speech_recognition.as_mut(),
                         microphone: self.microphone.as_mut(),
+                        wav_artifact: self.wav_artifact.as_ref(),
                     },
                 )
             } else {

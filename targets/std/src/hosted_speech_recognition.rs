@@ -8,6 +8,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 const MAXIMUM_EXECUTABLE_BYTES: u64 = 64 * 1024 * 1024;
@@ -86,6 +87,19 @@ pub struct WhisperSpeechAdapter {
     workspace: PathBuf,
     last_receipt: Option<WhisperRecognitionReceipt>,
     proof_pcm_clip: Option<Vec<u8>>,
+    evidence_text: Option<WhisperEvidenceText>,
+}
+
+#[derive(Clone)]
+pub struct WhisperEvidenceText(Arc<Mutex<Vec<u8>>>);
+
+impl WhisperEvidenceText {
+    pub fn bytes(&self) -> Result<Vec<u8>, WhisperFailure> {
+        self.0
+            .lock()
+            .map(|bytes| bytes.clone())
+            .map_err(|_| WhisperFailure::ReadFailed)
+    }
 }
 
 impl WhisperDiscovery {
@@ -123,11 +137,23 @@ impl WhisperDiscovery {
             workspace,
             last_receipt: None,
             proof_pcm_clip: None,
+            evidence_text: None,
         })
     }
 }
 
 impl WhisperSpeechAdapter {
+    /// Retain the bounded transcript from this adapter for proof publication.
+    /// The complete maximum is allocated before Play so capture cannot hide
+    /// runtime growth.
+    pub fn enable_evidence_text(&mut self) -> WhisperEvidenceText {
+        let capture = WhisperEvidenceText(Arc::new(Mutex::new(Vec::with_capacity(
+            self.limits.maximum_text_bytes as usize,
+        ))));
+        self.evidence_text = Some(capture.clone());
+        capture
+    }
+
     #[cfg(feature = "local-model-proof")]
     pub(crate) fn set_proof_pcm_clip(&mut self, clip: Vec<u8>) -> Result<(), WhisperFailure> {
         let decoded =
@@ -254,6 +280,11 @@ impl WhisperSpeechAdapter {
         let transcript = transcript.trim();
         if transcript.len() > self.limits.maximum_text_bytes as usize {
             return Err(WhisperFailure::OutputOverflow);
+        }
+        if let Some(capture) = &self.evidence_text {
+            let mut bytes = capture.0.lock().map_err(|_| WhisperFailure::ReadFailed)?;
+            bytes.clear();
+            bytes.extend_from_slice(transcript.as_bytes());
         }
         let result = SpeechRecognitionResult {
             disposition: if transcript.is_empty() {
@@ -460,11 +491,13 @@ mod tests {
         let mut adapter = discovery
             .initialize(limits(Duration::from_secs(2)))
             .unwrap();
+        let evidence = adapter.enable_evidence_text();
         let audio = pcm(&[1, -2, 3, -4]);
         let encoded = adapter.recognize(&audio, || false).unwrap();
         let result = conduit_tongues::decode_speech_recognition_result(&encoded).unwrap();
         assert_eq!(result.disposition, SpeechRecognitionDisposition::Recognized);
         assert_eq!(result.text.as_deref(), Some("Rosehip House, status"));
+        assert_eq!(evidence.bytes().unwrap(), b"Rosehip House, status");
         let receipt = adapter.take_receipt().unwrap();
         assert_eq!(receipt.audio_sha256, Sha256::digest(&audio).as_slice());
         assert_eq!(adapter.discovery().model_sha256, expected_model);

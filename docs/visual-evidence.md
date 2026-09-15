@@ -75,6 +75,23 @@ the resulting directory but does not define its meaning.
 The manifest contract originated in #821; the first Patchbay captures were
 added through #822.
 
+Audio exhibits use the same envelope without pretending that sound is a
+screenshot. `cargo xtask host journey-hears-speaks` declares `audio` outputs
+for its input PCM, listenable input WAV, and synthesized output WAV, alongside
+machine-readable recognition, response, and same-Play receipts. Complete
+verification requires that exact six-output set, audio media types, RIFF/WAVE
+framing for both listenable files, and shared Plan/Play provenance. Publication
+and CI transport remain separate acceptance gates; a local complete manifest
+does not itself make an exhibit current or accepted.
+
+The bounded gallery publisher accepts a verified audio exhibit only through
+`cargo xtask evidence gallery --hears-speaks-evidence-root <directory>` and
+only when its manifest is bound to the same accepted commit as the other
+gallery inputs. It copies the exact declared files into both commit-addressed
+and `current/hears-speaks/` pages with native browser audio controls. Omitting
+that input clears a stale current audio exhibit instead of silently carrying
+it across releases.
+
 ## Canonical Patchbay camera
 
 The documentation renderer is only the `chromium` project in
