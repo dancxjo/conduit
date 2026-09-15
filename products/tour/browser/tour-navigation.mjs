@@ -36,18 +36,14 @@ export function createTourWorkspace(root, readingState) {
   const content = root.querySelector(".tour-content");
   const laboratory = root.querySelector("#laboratory-slot");
   const width = root.querySelector("#tour-narrative-width");
-  const patchbayHeight = root.querySelector("#tour-patchbay-height");
-  const sourceWidth = root.querySelector("#tour-source-width");
   const reset = root.querySelector("[data-tour-reset-layout]");
   const viewButtons = [...root.querySelectorAll("[data-tour-view]")];
-  if (!content || !laboratory || !width || !patchbayHeight || !sourceWidth || !reset || viewButtons.length !== 2) {
+  if (!content || !laboratory || !width || !reset || viewButtons.length !== 2) {
     throw new Error("Tour workspace controls are incomplete");
   }
 
   const exposePercent = (control, value) => {
     control.setAttribute("aria-valuetext", `${value} percent`);
-    const output = root.querySelector(`#${control.id}-output`);
-    if (output) output.value = `${value}%`;
   };
   const setWidth = (value, persist) => {
     const admitted = Number(value);
@@ -59,10 +55,12 @@ export function createTourWorkspace(root, readingState) {
     content.style.setProperty("--tour-narrative-percent", `${admitted}%`);
     if (persist) readingState.setNarrativePercent(admitted);
   };
-  const setLaboratoryGeometry = (control, property, setter, value, persist) => {
+  const setLaboratoryGeometry = (selector, property, setter, value, persist) => {
     const admitted = Number(value);
-    control.value = String(admitted);
-    exposePercent(control, admitted);
+    for (const control of root.querySelectorAll(selector)) {
+      control.value = String(admitted);
+      exposePercent(control, admitted);
+    }
     laboratory.style.setProperty(property, `${admitted}%`);
     if (persist) setter(admitted);
   };
@@ -74,15 +72,21 @@ export function createTourWorkspace(root, readingState) {
   };
 
   setWidth(readingState.workspace.narrativePercent, false);
-  setLaboratoryGeometry(patchbayHeight, "--tour-patchbay-percent", readingState.setPatchbayPercent, readingState.workspace.patchbayPercent, false);
-  setLaboratoryGeometry(sourceWidth, "--tour-source-percent", readingState.setSourcePercent, readingState.workspace.sourcePercent, false);
+  setLaboratoryGeometry(".tour-patchbay-height", "--tour-patchbay-percent", readingState.setPatchbayPercent, readingState.workspace.patchbayPercent, false);
+  setLaboratoryGeometry(".tour-source-width", "--tour-source-percent", readingState.setSourcePercent, readingState.workspace.sourcePercent, false);
   width.addEventListener("input", () => setWidth(width.value, true));
-  patchbayHeight.addEventListener("input", () => setLaboratoryGeometry(patchbayHeight, "--tour-patchbay-percent", readingState.setPatchbayPercent, patchbayHeight.value, true));
-  sourceWidth.addEventListener("input", () => setLaboratoryGeometry(sourceWidth, "--tour-source-percent", readingState.setSourcePercent, sourceWidth.value, true));
+  laboratory.addEventListener("input", (event) => {
+    if (event.target.matches(".tour-patchbay-height")) setLaboratoryGeometry(".tour-patchbay-height", "--tour-patchbay-percent", readingState.setPatchbayPercent, event.target.value, true);
+    else if (event.target.matches(".tour-source-width")) setLaboratoryGeometry(".tour-source-width", "--tour-source-percent", readingState.setSourcePercent, event.target.value, true);
+  });
+  new MutationObserver(() => {
+    setLaboratoryGeometry(".tour-patchbay-height", "--tour-patchbay-percent", readingState.setPatchbayPercent, readingState.workspace.patchbayPercent, false);
+    setLaboratoryGeometry(".tour-source-width", "--tour-source-percent", readingState.setSourcePercent, readingState.workspace.sourcePercent, false);
+  }).observe(laboratory, { childList: true });
   reset.addEventListener("click", () => {
     setWidth(46, true);
-    setLaboratoryGeometry(patchbayHeight, "--tour-patchbay-percent", readingState.setPatchbayPercent, 55, true);
-    setLaboratoryGeometry(sourceWidth, "--tour-source-percent", readingState.setSourcePercent, 60, true);
+    setLaboratoryGeometry(".tour-patchbay-height", "--tour-patchbay-percent", readingState.setPatchbayPercent, 55, true);
+    setLaboratoryGeometry(".tour-source-width", "--tour-source-percent", readingState.setSourcePercent, 60, true);
   });
   for (const button of viewButtons) button.addEventListener("click", () => show(button.dataset.tourView, true));
   return Object.freeze({

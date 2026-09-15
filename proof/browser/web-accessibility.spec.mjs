@@ -56,7 +56,6 @@ test("dynamic workspaces use focused headings instead of broad live regions", as
   await page.goto(`${entrance.url}tour/`);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   await expect(page.locator("#chapter")).not.toHaveAttribute("aria-live", /.+/);
-  await page.getByText("Pane layout", { exact: true }).click();
   const range = page.getByRole("slider", { name: "Patchbay height" });
   await expect(range).toHaveAttribute("aria-valuetext", "55 percent");
   await range.press("ArrowRight");
