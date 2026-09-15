@@ -430,7 +430,10 @@ fn two_faces_evidence_is_pinned_exact_bounded_and_admitted() {
     assert!(evidence.contains(
         "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
     ));
-    assert!(evidence.contains("cargo xtask evidence one-form-two-faces --locked"));
+    assert!(evidence.contains(
+        "cargo xtask evidence one-form-two-faces --locked --output \"$RUNNER_TEMP/one-form-two-faces\""
+    ));
+    assert!(evidence.contains("--root \"$RUNNER_TEMP/one-form-two-faces\""));
     assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
     assert!(evidence.contains("--proof journey-one-form-two-faces"));
     assert!(evidence.contains("--suite journey-gallery"));
@@ -459,7 +462,10 @@ fn little_life_evidence_is_exact_bounded_and_part_of_carrier_admission() {
     assert!(evidence.contains(
         "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
     ));
-    assert!(evidence.contains("cargo xtask evidence little-life --locked"));
+    assert!(evidence.contains(
+        "cargo xtask evidence little-life --locked --output \"$RUNNER_TEMP/little-life\""
+    ));
+    assert!(evidence.contains("--root \"$RUNNER_TEMP/little-life\""));
     assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
     assert!(evidence.contains("--proof journey-little-life"));
     assert!(evidence.contains("--suite journey-gallery"));
@@ -488,6 +494,7 @@ fn sibling_gallery_is_exact_sealed_and_part_of_carrier_admission() {
     assert!(gallery.contains("conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}"));
     assert!(gallery.contains("--two-faces-evidence-root"));
     assert!(gallery.contains("--little-life-evidence-root"));
+    assert!(gallery.contains("$RUNNER_TEMP/journey-gallery-carrier"));
     assert!(gallery.contains("seal-pages-carrier.mjs"));
     assert!(gallery.contains("verify-pages-carrier.mjs"));
     assert!(gallery.contains("name: conduit-journey-gallery-${{ env.CONDUIT_CANDIDATE_SHA }}"));

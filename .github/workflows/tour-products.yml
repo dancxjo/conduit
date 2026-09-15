@@ -999,11 +999,11 @@ jobs:
         with:
           cache-on-failure: false
       - name: Retain one Presentation through native and browser renderers
-        run: cargo xtask evidence one-form-two-faces --locked
+        run: cargo xtask evidence one-form-two-faces --locked --output "$RUNNER_TEMP/one-form-two-faces"
       - name: Verify the bounded exact-candidate sibling manifest
         run: >-
           cargo xtask evidence verify --locked
-          --root target/journeys/one-form-two-faces
+          --root "$RUNNER_TEMP/one-form-two-faces"
           --commit "$CONDUIT_CANDIDATE_SHA"
           --result complete
           --proof journey-one-form-two-faces
@@ -1012,7 +1012,7 @@ jobs:
         uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: target/journeys/one-form-two-faces
+          path: ${{ runner.temp }}/one-form-two-faces
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -1033,11 +1033,11 @@ jobs:
         with:
           cache-on-failure: false
       - name: Run the bounded Orbium evolution through ordinary Conduit Plan and Play
-        run: cargo xtask evidence little-life --locked
+        run: cargo xtask evidence little-life --locked --output "$RUNNER_TEMP/little-life"
       - name: Verify the exact six-output candidate manifest
         run: >-
           cargo xtask evidence verify --locked
-          --root target/journeys/little-life
+          --root "$RUNNER_TEMP/little-life"
           --commit "$CONDUIT_CANDIDATE_SHA"
           --result complete
           --proof journey-little-life
@@ -1046,7 +1046,7 @@ jobs:
         uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: target/journeys/little-life
+          path: ${{ runner.temp }}/little-life
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -1074,29 +1074,29 @@ jobs:
         uses: ./.github/actions/download-artifact-retry
         with:
           name: conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: target/journey-inputs/one-form-two-faces
+          path: ${{ runner.temp }}/journey-inputs/one-form-two-faces
       - uses: ./.github/actions/download-artifact-retry
         with:
           name: conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: target/journey-inputs/little-life
+          path: ${{ runner.temp }}/journey-inputs/little-life
       - name: Build and seal the exact sibling journey gallery
         run: |
           cargo xtask evidence gallery --locked \
-            --two-faces-evidence-root target/journey-inputs/one-form-two-faces \
-            --little-life-evidence-root target/journey-inputs/little-life \
-            --site-root target/journey-gallery-site \
+            --two-faces-evidence-root "$RUNNER_TEMP/journey-inputs/one-form-two-faces" \
+            --little-life-evidence-root "$RUNNER_TEMP/journey-inputs/little-life" \
+            --site-root "$RUNNER_TEMP/journey-gallery-site" \
             --commit "$CONDUIT_CANDIDATE_SHA"
           source_tree=$(git rev-parse 'HEAD^{tree}')
           node tools/ci/seal-pages-carrier.mjs \
-            target/journey-gallery-site target/journey-gallery-carrier \
+            "$RUNNER_TEMP/journey-gallery-site" "$RUNNER_TEMP/journey-gallery-carrier" \
             "$CONDUIT_CANDIDATE_SHA" "$source_tree"
           node tools/ci/verify-pages-carrier.mjs \
-            target/journey-gallery-carrier "$source_tree"
+            "$RUNNER_TEMP/journey-gallery-carrier" "$source_tree"
       - name: Retain the sealed exact sibling journey gallery
         uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-journey-gallery-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: target/journey-gallery-carrier
+          path: ${{ runner.temp }}/journey-gallery-carrier
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 14
