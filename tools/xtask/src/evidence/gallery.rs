@@ -11,11 +11,13 @@ use super::{
 
 mod conduitos;
 mod hears_speaks;
+mod little_life;
 mod retention;
 mod two_faces;
 
 use conduitos::{write_conduitos_commit, write_conduitos_current};
 use hears_speaks::{write_hears_speaks_commit, write_hears_speaks_current};
+use little_life::{write_little_life_commit, write_little_life_current};
 use retention::{trim_indexed_history_to_bounds, validate_existing_tree};
 use two_faces::{write_two_faces_commit, write_two_faces_current};
 
@@ -35,10 +37,11 @@ const SCENARIOS: &[(&str, &str)] = &[
 ];
 
 pub struct GalleryRequest {
-    pub evidence_root: PathBuf,
+    pub evidence_root: Option<PathBuf>,
     pub conduitos_evidence_root: Option<PathBuf>,
     pub hears_speaks_evidence_root: Option<PathBuf>,
     pub two_faces_evidence_root: Option<PathBuf>,
+    pub little_life_evidence_root: Option<PathBuf>,
     pub site_root: PathBuf,
     pub commit: String,
 }
@@ -53,13 +56,28 @@ pub(super) struct GalleryIndex {
 }
 
 pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
-    let evidence = verify(&VerificationRequest {
-        root: request.evidence_root.clone(),
-        commit: request.commit.clone(),
-        result: ExpectedEvidenceResult::Complete,
-        proof_id: "browser-host".into(),
-        suite_id: "prove.browser-host".into(),
-    })?;
+    validate_commit(&request.commit)?;
+    if request.evidence_root.is_none()
+        && request.conduitos_evidence_root.is_none()
+        && request.hears_speaks_evidence_root.is_none()
+        && request.two_faces_evidence_root.is_none()
+        && request.little_life_evidence_root.is_none()
+    {
+        return Err("gallery publication requires at least one verified evidence input".into());
+    }
+    let evidence = request
+        .evidence_root
+        .as_ref()
+        .map(|root| {
+            verify(&VerificationRequest {
+                root: root.clone(),
+                commit: request.commit.clone(),
+                result: ExpectedEvidenceResult::Complete,
+                proof_id: "browser-host".into(),
+                suite_id: "prove.browser-host".into(),
+            })
+        })
+        .transpose()?;
     let conduitos = request
         .conduitos_evidence_root
         .as_ref()
@@ -99,6 +117,19 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
             })
         })
         .transpose()?;
+    let little_life = request
+        .little_life_evidence_root
+        .as_ref()
+        .map(|root| {
+            verify(&VerificationRequest {
+                root: root.clone(),
+                commit: request.commit.clone(),
+                result: ExpectedEvidenceResult::Complete,
+                proof_id: "journey-little-life".into(),
+                suite_id: "journey-gallery".into(),
+            })
+        })
+        .transpose()?;
     fs::create_dir_all(&request.site_root).map_err(|error| {
         format!(
             "cannot create gallery root {}: {error}",
@@ -114,8 +145,8 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
     })?;
     let mut index = load_index(&site_root)?;
     validate_existing_tree(&site_root, &index)?;
-    index.commits.retain(|commit| commit != &evidence.commit);
-    index.commits.insert(0, evidence.commit.clone());
+    index.commits.retain(|commit| commit != &request.commit);
+    index.commits.insert(0, request.commit.clone());
     let evicted = index
         .commits
         .split_off(index.commits.len().min(RETAINED_COMMITS));
@@ -127,10 +158,18 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
                 .map_err(|error| format!("cannot evict gallery history: {error}"))?;
         }
     }
-    index.current_commit = evidence.commit.clone();
+    index.current_commit = request.commit.clone();
 
-    write_commit_snapshot(&site_root, &request.evidence_root, &evidence)?;
-    write_current_pages(&site_root, &request.evidence_root, &evidence)?;
+    if let (Some(root), Some(evidence)) = (&request.evidence_root, &evidence) {
+        write_commit_snapshot(&site_root, root, evidence)?;
+        write_current_pages(&site_root, root, evidence)?;
+    } else {
+        let current = site_root.join("current/patchbay");
+        if current.exists() {
+            fs::remove_dir_all(current)
+                .map_err(|error| format!("cannot clear stale Patchbay evidence: {error}"))?;
+        }
+    }
     if let (Some(root), Some(conduitos)) = (&request.conduitos_evidence_root, &conduitos) {
         write_conduitos_commit(&site_root, root, conduitos)?;
         write_conduitos_current(&site_root, root, conduitos)?;
@@ -163,13 +202,23 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
                 .map_err(|error| format!("cannot clear stale Two Faces evidence: {error}"))?;
         }
     }
+    if let (Some(root), Some(evidence)) = (&request.little_life_evidence_root, &little_life) {
+        write_little_life_commit(&site_root, root, evidence)?;
+        write_little_life_current(&site_root, root, evidence)?;
+    } else {
+        let current = site_root.join("current/little-life");
+        if current.exists() {
+            fs::remove_dir_all(current)
+                .map_err(|error| format!("cannot clear stale Little Life evidence: {error}"))?;
+        }
+    }
     fs::write(site_root.join(".nojekyll"), b"")
         .map_err(|error| format!("cannot write gallery marker: {error}"))?;
     write_gallery_index(&site_root, &index, conduitos.is_some())?;
     trim_indexed_history_to_bounds(&site_root, &mut index, conduitos.is_some())?;
     println!(
         "published gallery source for {} with {} retained commits",
-        evidence.commit,
+        request.commit,
         index.commits.len()
     );
     Ok(())
@@ -315,9 +364,7 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
                 .join("conduitos/x86_64/index.html")
                 .is_file()
             {
-                format!(
-                    " · <a href=\"commits/{commit}/conduitos/x86_64/\">ConduitOS x86_64</a>"
-                )
+                format!(" · <a href=\"commits/{commit}/conduitos/x86_64/\">ConduitOS x86_64</a>")
             } else {
                 String::new()
             };
@@ -341,8 +388,28 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
             } else {
                 String::new()
             };
+            let little_life = if root
+                .join("commits")
+                .join(commit)
+                .join("little-life/index.html")
+                .is_file()
+            {
+                format!(" · <a href=\"commits/{commit}/little-life/\">Little Life</a>")
+            } else {
+                String::new()
+            };
+            let patchbay = if root
+                .join("commits")
+                .join(commit)
+                .join("patchbay/index.html")
+                .is_file()
+            {
+                format!(" · <a href=\"commits/{commit}/patchbay/\">Patchbay</a>")
+            } else {
+                String::new()
+            };
             format!(
-                "<li><code>{commit}</code>: <a href=\"commits/{commit}/patchbay/\">Patchbay</a>{conduitos}{hears_speaks}{two_faces}</li>"
+                "<li><code>{commit}</code>{patchbay}{conduitos}{hears_speaks}{two_faces}{little_life}</li>"
             )
         })
         .collect::<Vec<_>>()
@@ -362,8 +429,18 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
     } else {
         ""
     };
+    let little_life = if root.join("current/little-life/index.html").is_file() {
+        "\n<p><a href=\"current/little-life/\">Current Little Life evolution journey</a></p>"
+    } else {
+        ""
+    };
+    let patchbay = if root.join("current/patchbay/index.html").is_file() {
+        "\n<p><a href=\"current/patchbay/\">Current Patchbay evidence</a></p>"
+    } else {
+        ""
+    };
     let body = format!(
-        "<h1>Conduit evidence gallery</h1>\n<p>Current accepted main: <code>{}</code></p>\n<p><a href=\"current/patchbay/\">Current Patchbay evidence</a></p>{conduitos}{hears_speaks}{two_faces}\n<h2>Retained accepted commits</h2>\n<ul>{history}</ul>\n<p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; these images, transcripts, and audio files are documentary evidence.</p>",
+        "<h1>Conduit evidence gallery</h1>\n<p>Current accepted main: <code>{}</code></p>{patchbay}{conduitos}{hears_speaks}{two_faces}{little_life}\n<h2>Retained accepted commits</h2>\n<ul>{history}</ul>\n<p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; these images, transcripts, and audio files are documentary evidence.</p>",
         escape_html(&index.current_commit)
     );
     write_html(&root.join("index.html"), "Conduit evidence gallery", &body)
@@ -461,7 +538,7 @@ pub(super) fn write_html(path: &Path, title: &str, body: &str) -> Result<(), Str
             .map_err(|error| format!("cannot create gallery page directory: {error}"))?;
     }
     let document = format!(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>body{{margin:2rem auto;max-width:92rem;padding:0 1rem;font:16px/1.5 system-ui,sans-serif;background:#101714;color:#e8f5ed}}a{{color:#70e0aa}}code{{overflow-wrap:anywhere}}img{{display:block;max-width:100%;height:auto;border:1px solid #466455}}.comparison{{display:grid;grid-template-columns:repeat(auto-fit,minmax(22rem,1fr));gap:1rem}}figure{{margin:0}}dl{{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.4rem 1rem}}dt{{font-weight:700}}dd{{margin:0}}</style></head><body>{body}</body></html>",
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>body{{margin:2rem auto;max-width:92rem;padding:0 1rem;font:16px/1.5 system-ui,sans-serif;background:#101714;color:#e8f5ed}}a{{color:#70e0aa}}code{{overflow-wrap:anywhere}}img{{display:block;max-width:100%;height:auto;border:1px solid #466455}}figure{{margin:0}}figcaption{{font-weight:700;margin-top:.35rem}}.comparison{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem}}dl{{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.4rem 1rem}}dt{{font-weight:700}}dd{{margin:0}}@media(max-width:48rem){{.comparison{{grid-template-columns:1fr}}}}</style></head><body>{body}</body></html>",
         escape_html(title)
     );
     fs::write(path, document).map_err(|error| format!("cannot write gallery page: {error}"))

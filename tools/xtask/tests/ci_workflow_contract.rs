@@ -441,6 +441,31 @@ fn two_faces_evidence_is_pinned_exact_bounded_and_admitted() {
 }
 
 #[test]
+fn little_life_evidence_is_exact_bounded_and_part_of_carrier_admission() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let evidence = workflow
+        .split("\n  little-life-evidence:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
+        .expect("locate Little Life evidence job");
+    let gate = workflow
+        .split("\n  products-proof:\n")
+        .nth(1)
+        .expect("locate stable product gate");
+
+    assert!(evidence.contains("if: needs.plan.outputs.pages_carrier_required == 'true'"));
+    assert!(evidence.contains("cargo xtask evidence little-life --locked"));
+    assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
+    assert!(evidence.contains("--proof journey-little-life"));
+    assert!(evidence.contains("--suite journey-gallery"));
+    assert!(evidence.contains("retention-days: 14"));
+    assert!(gate.contains("LITTLE_LIFE_RESULT: ${{ needs.little-life-evidence.result }}"));
+    assert!(gate.contains("test \"$LITTLE_LIFE_RESULT\" = success"));
+}
+
+#[test]
 fn stacked_diff_base_does_not_select_the_controller_version() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow =

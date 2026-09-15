@@ -1017,6 +1017,40 @@ jobs:
           retention-days: 14
           compression-level: 0
 
+  little-life-evidence:
+    needs: plan
+    if: needs.plan.outputs.pages_carrier_required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Run the bounded Orbium evolution through ordinary Conduit Plan and Play
+        run: cargo xtask evidence little-life --locked
+      - name: Verify the exact six-output candidate manifest
+        run: >-
+          cargo xtask evidence verify --locked
+          --root target/journeys/little-life
+          --commit "$CONDUIT_CANDIDATE_SHA"
+          --result complete
+          --proof journey-little-life
+          --suite journey-gallery
+      - name: Retain the exact Little Life evidence
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/journeys/little-life
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
   pages-carrier:
     needs: [plan, products-stage, browser-proof]
     if: always() && !cancelled() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'
@@ -1145,7 +1179,7 @@ jobs:
           retention-days: 14
 
   products-proof:
-    needs: [plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, pages-carrier, proof-receipts]
+    needs: [plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, little-life-evidence, pages-carrier, proof-receipts]
     # A deliberately cancelled duplicate lifecycle run is not new proof
     # failure. Real dependency failures still reach this gate and fail it.
     if: ${{ always() && !cancelled() }}
@@ -1166,6 +1200,7 @@ jobs:
           STAGE_RESULT: ${{ needs.products-stage.result }}
           BROWSER_RESULT: ${{ needs.browser-proof.result }}
           JOURNEY_RESULT: ${{ needs.journey-evidence.result }}
+          LITTLE_LIFE_RESULT: ${{ needs.little-life-evidence.result }}
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
           RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
           DEVELOPMENT_ADMISSION: ${{ inputs.development_admission }}
@@ -1187,6 +1222,7 @@ jobs:
             test "$JOURNEY_RESULT" = success
           fi
           if test "$CARRIER_REQUIRED" = true; then
+            test "$LITTLE_LIFE_RESULT" = success
             test "$STAGE_RESULT" = success
             test "$BROWSER_RESULT" = success
             test "$CARRIER_RESULT" = success

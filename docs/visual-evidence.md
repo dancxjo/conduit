@@ -107,6 +107,15 @@ the other inputs. Its side-by-side page states that neither pixel equality,
 physical-display output, nor human perception is established. Omitting the
 input clears stale `current/one-form-two-faces/` content.
 
+Little Life uses a separate six-output manifest rather than consuming a
+ConduitOS capture slot. `cargo xtask evidence little-life` retains PNGs at
+generations 0, 1, 8, and 32, the complete 32-generation scalar-field terminal
+transcript, and the ordinary Plan/Play execution report. Generation zero is
+the deterministic Orbium seed lowered through the semantic gray8 bitmap
+contract. The later PNGs are derived from the exact cells emitted by the
+installed std scalar-field terminal presentation. They do not claim a native
+graphical manifestation, physical display, or human perception.
+
 ## Canonical Patchbay camera
 
 The documentation renderer is only the `chromium` project in

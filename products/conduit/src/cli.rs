@@ -42,6 +42,9 @@ pub(crate) enum Command {
         /// Exact canonical Body construction source used for Host and Line truth.
         #[arg(long)]
         body: Option<PathBuf>,
+        /// Do not attach standard-input cancellation; wait for the Play's own terminal outcome.
+        #[arg(long)]
+        await_terminal: bool,
     },
     /// Check, inspect, or build canonical Host construction truth.
     Host {
@@ -204,6 +207,15 @@ mod tests {
                 .expect("run command parses")
                 .command,
             Command::Run { .. }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "run", "finite.conduit", "--await-terminal"])
+                .expect("explicit terminal-wait run parses")
+                .command,
+            Command::Run {
+                await_terminal: true,
+                ..
+            }
         ));
         assert!(matches!(
             Cli::try_parse_from([

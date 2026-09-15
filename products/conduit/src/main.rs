@@ -130,6 +130,7 @@ fn run_with_placements(
     placements_path: Option<&str>,
     report_path: Option<&Path>,
     body_path: Option<&Path>,
+    await_terminal: bool,
 ) -> Result<(), String> {
     let source = form_source::load(Path::new(path))?;
     let form = source.expand_entry()?;
@@ -142,25 +143,30 @@ fn run_with_placements(
     let completion_policy = plan.completion_policy;
     let mut stdout = io::stdout().lock();
     let control = conduit_std_host::RunControl::default();
-    let input_thread = if completion_policy == conduit_core::PlanCompletionPolicy::Live {
-        writeln!(
-            stdout,
-            "Play is live; press Enter or close standard input to cancel it explicitly"
-        )
-        .map_err(|error| error.to_string())?;
-        let input_control = control.clone();
-        Some(std::thread::spawn(move || {
-            let mut line = String::new();
-            let _ = io::stdin().lock().read_line(&mut line);
-            let _ = input_control.request_stop(
-                conduit_std_host::RunControlRequestId::new("conduct-run/operator-interrupt")
-                    .expect("static run-control identity is valid"),
-            );
-        }))
+    let input_thread =
+        if completion_policy == conduit_core::PlanCompletionPolicy::Live && !await_terminal {
+            writeln!(
+                stdout,
+                "Play is live; press Enter or close standard input to cancel it explicitly"
+            )
+            .map_err(|error| error.to_string())?;
+            let input_control = control.clone();
+            Some(std::thread::spawn(move || {
+                let mut line = String::new();
+                let _ = io::stdin().lock().read_line(&mut line);
+                let _ = input_control.request_stop(
+                    conduit_std_host::RunControlRequestId::new("conduct-run/operator-interrupt")
+                        .expect("static run-control identity is valid"),
+                );
+            }))
+        } else {
+            None
+        };
+    let execution = if await_terminal {
+        context.execute(plan, &mut stdout)?
     } else {
-        None
+        context.execute_attached(plan, &mut stdout, &control)?
     };
-    let execution = context.execute_attached(plan, &mut stdout, &control)?;
     if let Some(input_thread) = input_thread {
         input_thread
             .join()
@@ -204,11 +210,13 @@ fn main() {
             placements,
             report,
             body,
+            await_terminal,
         } => run_with_placements(
             &form.to_string_lossy(),
             placements.as_deref().map(Path::to_string_lossy).as_deref(),
             report.as_deref(),
             body.as_deref(),
+            await_terminal,
         ),
         cli::Command::Host { command } => construction::host(command),
         cli::Command::Body { command } => construction::body(command),
