@@ -185,4 +185,8 @@ mod tour_timer_kernel;
 mod tour_timer_offer;
 pub mod tour_timer_plan;
 mod tour_timer_play;
+mod tour_two_host;
+mod tour_two_host_kernel;
+pub mod tour_two_host_plan;
+mod tour_two_host_play;
 pub mod tour_workspace;

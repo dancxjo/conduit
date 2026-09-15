@@ -26,6 +26,16 @@ pub fn derive_base(boot_id: &[u8; 32], kind: &str) -> [u8; 32] {
     hash.finalize().into()
 }
 
+/// Derives the exact isolated Host and Boot used by the native two-Host Tour.
+/// The peer is a separate hosted execution subject even when both subjects are
+/// demonstrated by one physical ConduitOS Body.
+pub fn derive_tour_peer(ids: &BootIdentities) -> BootIdentities {
+    BootIdentities {
+        host: subject_digest(b"conduit-tour-peer-host/v1", &ids.host, &ids.boot, b"host"),
+        boot: subject_digest(b"conduit-tour-peer-boot/v1", &ids.host, &ids.boot, b"boot"),
+    }
+}
+
 pub fn derive_usb_device(
     boot_id: &[u8; 32],
     base_id: &[u8; 32],

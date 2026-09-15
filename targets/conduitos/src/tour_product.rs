@@ -236,6 +236,20 @@ impl TourProduct {
                 self.inspection = None;
                 Some(evidence)
             }
+            Some(TourWorkspaceRequest::Run {
+                chapter: 3,
+                stage: 0 | 1,
+            }) => {
+                let mut prepared = crate::tour_two_host::prepare(identities, offer, build_id)
+                    .map_err(TourProductError::Preparation)?;
+                let evidence = crate::tour_two_host::run(&mut prepared, serial)
+                    .map_err(TourProductError::Play)?;
+                self.controller
+                    .complete_run(run_proof(&evidence))
+                    .map_err(TourProductError::Controller)?;
+                self.inspection = None;
+                Some(evidence)
+            }
             Some(TourWorkspaceRequest::Run { chapter, stage }) => {
                 let (mut prepared, specimen_id, expected) =
                     crate::tour_play::prepare_stage(identities, offer, build_id, chapter, stage)
@@ -284,7 +298,7 @@ fn run_proof(evidence: &TourPlayEvidence) -> TourRunProof {
                     plan_id: plan_id.clone(),
                 },
             ),
-        multi_host: None,
+        multi_host: evidence.multi_host.clone(),
     }
 }
 
