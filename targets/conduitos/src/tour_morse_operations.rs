@@ -8,6 +8,7 @@ use conduit_kernel::{
 
 const MORSE_REQUEST: RequestId = RequestId(5);
 const INDICATOR_REQUEST: RequestId = RequestId(6);
+const LEAF_REQUEST: RequestId = RequestId(7);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct MorseOperation {
@@ -79,6 +80,69 @@ pub(super) struct IndicatorOperation {
     pub complete: bool,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct LeafOperation {
+    pub maximum_input_bytes: u32,
+    pub pending: bool,
+    pub emitted: bool,
+}
+
+impl Operation for LeafOperation {
+    fn start(&mut self) -> OperationAction {
+        OperationAction::Await
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::Value {
+                port: PortId(0),
+                value,
+            } if !self.pending && !self.emitted => {
+                let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
+                    return invalid(80);
+                };
+                self.pending = true;
+                OperationAction::RequestHostOperation {
+                    request: LEAF_REQUEST,
+                    operation: conduit_kernel::HostOperationId(0),
+                    input,
+                }
+            }
+            OperationInput::HostOperationCompleted { request, outcome }
+                if request == LEAF_REQUEST
+                    && self.pending
+                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.failure.is_none() =>
+            {
+                let Some(output) = outcome.output else {
+                    return invalid(81);
+                };
+                self.pending = false;
+                self.emitted = true;
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value: output.value,
+                }
+            }
+            OperationInput::HostOperationCompleted { request, outcome }
+                if request == LEAF_REQUEST
+                    && self.pending
+                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+            {
+                failure(conduit_kernel::FailureCode::Cancelled, 82)
+            }
+            OperationInput::Closed { port: PortId(0) } if self.emitted && !self.pending => {
+                OperationAction::Complete
+            }
+            _ => invalid(83),
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
+}
+
 impl Operation for IndicatorOperation {
     fn start(&mut self) -> OperationAction {
         OperationAction::Await
@@ -139,6 +203,7 @@ pub(super) enum TourMorseOperation {
     TextPresentation(PresentationOperation),
     Morse(MorseOperation),
     Indicator(IndicatorOperation),
+    Leaf(LeafOperation),
 }
 
 impl Operation for TourMorseOperation {
@@ -149,6 +214,7 @@ impl Operation for TourMorseOperation {
             Self::TextPresentation(operation) => operation.start(),
             Self::Morse(operation) => operation.start(),
             Self::Indicator(operation) => operation.start(),
+            Self::Leaf(operation) => operation.start(),
         }
     }
 
@@ -159,6 +225,7 @@ impl Operation for TourMorseOperation {
             Self::TextPresentation(operation) => operation.resume(input),
             Self::Morse(operation) => operation.resume(input),
             Self::Indicator(operation) => operation.resume(input),
+            Self::Leaf(operation) => operation.resume(input),
         }
     }
 
@@ -169,6 +236,7 @@ impl Operation for TourMorseOperation {
             Self::TextPresentation(operation) => operation.advance(),
             Self::Morse(operation) => operation.advance(),
             Self::Indicator(operation) => operation.advance(),
+            Self::Leaf(operation) => operation.advance(),
         }
     }
 
@@ -179,6 +247,7 @@ impl Operation for TourMorseOperation {
             Self::TextPresentation(operation) => operation.cancel(),
             Self::Morse(operation) => operation.cancel(),
             Self::Indicator(operation) => operation.cancel(),
+            Self::Leaf(operation) => operation.cancel(),
         }
     }
 }
