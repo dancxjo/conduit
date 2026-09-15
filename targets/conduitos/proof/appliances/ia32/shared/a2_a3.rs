@@ -166,6 +166,7 @@ extern "C" fn conduitos_ia32_a3_rust_entry() -> ! {
         firmware: conduitos::boot::Firmware::Uefi32,
         timestamp: counter,
         hhdm_offset: 0,
+        rsdp_address: None,
         image_physical_start: 0x0010_0000,
         image_length: 0,
         memory_region_count: 1,

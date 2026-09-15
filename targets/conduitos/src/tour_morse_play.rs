@@ -132,8 +132,9 @@ where
                 if kernel.pending_host_operations() == 0 {
                     return Err(MachineRunError::FalseIdle);
                 }
-                idle.wait_for_interrupt()
-                    .map_err(|_| MachineRunError::InterruptBaseFailure)?;
+                // Every host operation in this runner is synchronously
+                // serviceable at the top of the loop.
+                continue;
             }
             SchedulerStatus::Drained => {
                 return Ok(MachineRunReceipt {

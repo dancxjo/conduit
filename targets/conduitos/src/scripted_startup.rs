@@ -286,7 +286,6 @@ pub fn run(context: Context) -> ! {
     let pc_speaker_boot_id = identity::hex(&identities.boot);
     arch::early_write(b"CONDUIT_BOOT_STAGE inspection\n");
     let allocation_before_play = BOOT_ARENA.seal();
-    arch::initialize_machine();
     let mut opl2 = arch::Opl2::new();
     arch::early_write(b"CONDUIT_BOOT_STAGE opl2-play-started\n");
     let opl2_report = match conduitos::opl2_play::run_with_evidence(

@@ -92,7 +92,7 @@ fn run_one<S: SerialBase, D: IdleBase>(
     kernel: &mut ComparisonKernel,
     scratch: &mut ComparisonScratch,
     serial: &mut S,
-    idle: &mut D,
+    _idle: &mut D,
     direct: bool,
 ) -> Result<RunStats, MachineRunError> {
     for _ in 0..MAXIMUM_KERNEL_STEPS {
@@ -134,8 +134,9 @@ fn run_one<S: SerialBase, D: IdleBase>(
                 if kernel.pending_host_operations() == 0 {
                     return Err(MachineRunError::FalseIdle);
                 }
-                idle.wait_for_interrupt()
-                    .map_err(|_| MachineRunError::InterruptBaseFailure)?;
+                // Comparison host operations are local and synchronous; let
+                // the next ownership-loop iteration service them directly.
+                continue;
             }
             SchedulerStatus::Drained => {
                 return Ok(RunStats {

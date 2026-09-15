@@ -4,7 +4,6 @@
 //! USB device, HID interface, or semantic input capability.
 
 use core::{
-    arch::asm,
     hint::spin_loop,
     ptr::{read_volatile, write_volatile},
 };
@@ -123,20 +122,13 @@ static mut DMA: DmaStorage = DmaStorage {
     _erst_padding: [0; 48],
 };
 
-#[repr(C, align(4096))]
-struct PageTable([u64; 512]);
-
-static mut MMIO_PDPT: PageTable = PageTable([0; 512]);
-static mut MMIO_PD: PageTable = PageTable([0; 512]);
-const MMIO_PML4_INDEX: usize = 509;
-const MMIO_VIRTUAL_BASE: u64 = 0xffff_fe80_0000_0000;
-
 pub fn initialize_xhci(
     hhdm: u64,
     image_virtual_to_physical: fn(u64) -> Option<u64>,
 ) -> Result<XhciReady, XhciError> {
     let pci = discover()?;
-    let mmio = map_mmio(pci.bar, hhdm, image_virtual_to_physical)?;
+    let mmio = super::mmio::map(pci.bar, hhdm, image_virtual_to_physical)
+        .map_err(|_| XhciError::InvalidLayout)?;
     let dma_virtual = core::ptr::addr_of_mut!(DMA) as u64;
     let dma_physical =
         image_virtual_to_physical(dma_virtual).ok_or(XhciError::DmaAddressInvalid)?;
@@ -181,39 +173,6 @@ struct RegisterState {
     operational: usize,
     runtime_interrupter: usize,
     doorbell: usize,
-}
-
-fn map_mmio(
-    physical: u64,
-    hhdm: u64,
-    image_virtual_to_physical: fn(u64) -> Option<u64>,
-) -> Result<usize, XhciError> {
-    let page_offset = physical & 0x1f_ffff;
-    let physical_page = physical & !0x1f_ffff;
-    let pdpt_physical = image_virtual_to_physical(core::ptr::addr_of!(MMIO_PDPT) as u64)
-        .ok_or(XhciError::DmaAddressInvalid)?;
-    let pd_physical = image_virtual_to_physical(core::ptr::addr_of!(MMIO_PD) as u64)
-        .ok_or(XhciError::DmaAddressInvalid)?;
-    if pdpt_physical & 0xfff != 0 || pd_physical & 0xfff != 0 {
-        return Err(XhciError::DmaAddressInvalid);
-    }
-    let cr3: u64;
-    unsafe {
-        asm!("mov {}, cr3", out(reg) cr3, options(nostack, nomem, preserves_flags));
-    }
-    let pml4_virtual = hhdm
-        .checked_add(cr3 & !0xfff)
-        .ok_or(XhciError::InvalidLayout)?;
-    let pml4 = usize::try_from(pml4_virtual).map_err(|_| XhciError::InvalidLayout)? as *mut u64;
-    unsafe {
-        MMIO_PDPT.0 = [0; 512];
-        MMIO_PD.0 = [0; 512];
-        MMIO_PDPT.0[0] = pd_physical | 0x3;
-        MMIO_PD.0[0] = physical_page | 0x9b;
-        write_volatile(pml4.add(MMIO_PML4_INDEX), pdpt_physical | 0x3);
-        asm!("mov cr3, {}", in(reg) cr3, options(nostack, preserves_flags));
-    }
-    usize::try_from(MMIO_VIRTUAL_BASE + page_offset).map_err(|_| XhciError::InvalidLayout)
 }
 
 unsafe fn initialize_registers(mmio: usize, dma_physical: u64) -> Result<RegisterState, XhciError> {

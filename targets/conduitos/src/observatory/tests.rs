@@ -24,6 +24,7 @@ fn fixture() -> (BootRecord, BootIdentities, HostOffer<'static>) {
         firmware: crate::boot::Firmware::X86Bios,
         timestamp: 1,
         hhdm_offset: 2,
+        rsdp_address: None,
         image_physical_start: 3,
         image_length: 4,
         memory_region_count: 5,

@@ -42,7 +42,7 @@ impl TourProductError {
         match self {
             Self::Controller(_) => "tour-controller-refused",
             Self::Preparation(error) => error.as_str(),
-            Self::Play(_) => "tour-play-refused",
+            Self::Play(error) => error.as_str(),
             Self::Scene(_) => "tour-scene-refused",
         }
     }

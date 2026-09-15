@@ -2,7 +2,7 @@ use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use crate::machine::BaseError;
 
-use super::{TIMER_IRQ_VECTOR, pic};
+use super::{TIMER_IRQ_VECTOR, interrupt_controller};
 
 const FACT_CAPACITY: u32 = 4;
 static HEAD: AtomicU32 = AtomicU32::new(0);
@@ -22,7 +22,7 @@ extern "C" fn conduitos_timer_irq_handler() {
         ENTRIES[index].store(u32::from(TIMER_IRQ_VECTOR), Ordering::Relaxed);
         TAIL.store(tail.wrapping_add(1), Ordering::Release);
     }
-    pic::end_timer_interrupt();
+    interrupt_controller::end_timer_interrupt();
 }
 
 pub(super) fn pop() -> Result<Option<u8>, BaseError> {
