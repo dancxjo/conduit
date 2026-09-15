@@ -16,6 +16,8 @@ pub(crate) fn load(path: &Path) -> Result<CanonicalSource, String> {
     load_with_catalogs(path, startup, profiles)
 }
 
+// Used by the library entrance; the binary compiles this module independently.
+#[allow(dead_code)]
 pub(crate) fn parse(source: &str) -> Result<CanonicalSource, String> {
     let (startup, profiles) = standard_catalogs()?;
     Ok(CanonicalSource {
@@ -69,6 +71,8 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
+    conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profiles)?;

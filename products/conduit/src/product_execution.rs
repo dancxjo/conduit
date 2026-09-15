@@ -343,6 +343,8 @@ impl ProductExecutionContext {
             .min()
     }
 
+    // Used by the library entrance; the binary compiles this module independently.
+    #[allow(dead_code)]
     pub(crate) fn execute<W: Write>(
         &mut self,
         plan: Plan,
