@@ -169,6 +169,10 @@ pub mod text_upper;
 pub mod timer_nucleus;
 mod timing_plan;
 pub mod timing_profile;
+mod tour_morse_kernel;
+mod tour_morse_operations;
+mod tour_morse_plan;
+mod tour_morse_play;
 pub mod tour_play;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod tour_product;

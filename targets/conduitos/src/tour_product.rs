@@ -136,6 +136,27 @@ impl TourProduct {
             .map_err(TourProductError::Controller)?;
         let play = match request {
             None | Some(TourWorkspaceRequest::OpenPatchbay) => None,
+            Some(TourWorkspaceRequest::Run {
+                chapter: 0,
+                stage: 2,
+            }) => {
+                let mut prepared =
+                    crate::tour_play::prepare_morse_stage(identities, offer, build_id)
+                        .map_err(TourProductError::Preparation)?;
+                let evidence = crate::tour_play::run_morse_stage(
+                    &mut prepared,
+                    clock,
+                    serial,
+                    interrupts,
+                    idle,
+                )
+                .map_err(TourProductError::Play)?;
+                self.controller
+                    .complete_run(run_proof(&evidence))
+                    .map_err(TourProductError::Controller)?;
+                self.inspection = None;
+                Some(evidence)
+            }
             Some(TourWorkspaceRequest::Run { chapter, stage }) => {
                 let (mut prepared, specimen_id, expected) =
                     crate::tour_play::prepare_stage(identities, offer, build_id, chapter, stage)
@@ -439,6 +460,57 @@ mod tests {
         assert_eq!(evidence.specimen_id, "canonical-form:edit-one-gear");
         assert_eq!(evidence.result, "MAKE THIS LOUD");
         assert_eq!(serial.0, [b"MAKE THIS LOUD".as_slice()]);
+        let proof = product.controller().last_run().unwrap();
+        assert_eq!(proof.specimen_id, evidence.specimen_id);
+        assert_eq!(proof.plan_id, evidence.plan_id);
+        assert_eq!(proof.active_play_id, evidence.active_play_id);
+    }
+
+    #[test]
+    fn explicit_fanout_stage_manifests_text_and_native_morse_from_one_source() {
+        let (identities, offer) = fixture();
+        let mut product = TourProduct::canonical(10);
+        let mut clock = Clock::default();
+        let mut serial = Serial::default();
+        let mut interrupts = Interrupts::default();
+        let mut idle = Idle::default();
+        for revision in [10, 11] {
+            product
+                .accept(
+                    &event(revision, NEXT_STAGE_ACTION_ID),
+                    &identities,
+                    &offer,
+                    "build",
+                    &mut clock,
+                    &mut serial,
+                    &mut interrupts,
+                    &mut idle,
+                )
+                .unwrap();
+        }
+        let update = product
+            .accept(
+                &event(12, RUN_ACTION_ID),
+                &identities,
+                &offer,
+                "build",
+                &mut clock,
+                &mut serial,
+                &mut interrupts,
+                &mut idle,
+            )
+            .unwrap();
+        let evidence = update.play.unwrap();
+        assert_eq!(evidence.specimen_id, "canonical-form:branch-a-cord");
+        assert_eq!(evidence.result, "SOS");
+        assert_eq!(evidence.manifestations, 2);
+        assert_eq!(evidence.run.logical_operations, 5);
+        assert_eq!(serial.0.len(), 2);
+        assert!(serial.0.iter().any(|value| value == b"SOS"));
+        let encoded = serial.0.iter().find(|value| *value != b"SOS").unwrap();
+        let pattern = conduit_text::MorsePattern::decode(encoded).unwrap();
+        assert_eq!(pattern.unit_millis, 80);
+        assert_eq!(pattern.to_text().unwrap(), "SOS");
         let proof = product.controller().last_run().unwrap();
         assert_eq!(proof.specimen_id, evidence.specimen_id);
         assert_eq!(proof.plan_id, evidence.plan_id);
