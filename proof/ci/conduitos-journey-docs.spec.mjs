@@ -12,7 +12,10 @@ const checkpoints = [
   "resident-tour-result", "memory-listening", "canvas-retained", "memory-cleared",
   "patchbay-current-canvas-returned", "memory-retained", "lulled", "usb-line-current", "peer-attached", "line-value-visible",
   "line-lost", "tour-opened", "tour-result-visible", "confirmation-transient",
-  "confirmation-dismissed", "refusal-transient", "refusal-dismissed",
+  "confirmation-dismissed", "tour-one-exercise-two", "tour-one-exercise-three",
+  "tour-two-exercise-one", "tour-three-exercise-one", "tour-four-exercise-one",
+  "tour-four-exercise-two", "tour-chapter-five", "tour-chapter-six", "tour-chapter-seven",
+  "tour-one-exercise-one-returned", "refusal-transient", "refusal-dismissed",
   "tour-patchbay-open", "chooser-pointer-focused", "pointer-hover-or-focus",
   "pointer-selected", "inspector-focused", "inspector-long-text", "inspector-closed",
 ];
@@ -44,6 +47,9 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.match(page, /src="patchbay-current-canvas-returned\.png"/);
     assert.match(page, /src="memory-retained\.png"/);
     assert.match(page, /src="confirmation-transient\.png"/);
+    assert.match(page, /src="tour-one-exercise-two\.png"/);
+    assert.match(page, /src="tour-chapter-seven\.png"/);
+    assert.match(page, /src="tour-one-exercise-one-returned\.png"/);
     assert.match(page, /src="inspector-focused\.png"/);
     assert.match(page, /src="inspector-long-text\.png"/);
     assert.ok(page.indexOf("Crèche ready") < page.indexOf("Tour opened"), "walkthrough is not in journey order");
