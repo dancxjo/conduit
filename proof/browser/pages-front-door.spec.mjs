@@ -49,6 +49,7 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
   await expect(page.getByRole("link", { name: "Learn Conduit" })).toHaveAttribute("href", "/conduit/tour");
   await expect(page.getByRole("link", { name: "Birth a Body", exact: true })).toHaveAttribute("href", "/conduit/workspace/");
+  await expect(page.getByRole("link", { name: "Get Conduit" })).toHaveAttribute("href", "#get-conduit");
   await expect(page.getByText("One physical computer")).toBeVisible();
   await expect(page.getByText("Several unlike computers")).toBeVisible();
   await expect(page.getByRole("link", { name: "Patchbay", exact: true }).first()).toHaveAttribute("href", "/conduit/patchbay/");
@@ -113,6 +114,30 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
   await page.reload();
   await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
   await expect(page.locator("body")).toHaveAttribute("data-embodied", "false");
+});
+
+test("the main site exposes exact reviewed Host and ConduitOS releases", async ({ page }) => {
+  await page.goto(entrance.url);
+  await page.getByRole("link", { name: "Get Conduit" }).click();
+  await expect(page).toHaveURL(/#get-conduit$/);
+  await expect(page.getByRole("heading", { name: "Run it here. Or boot the whole machine." })).toBeVisible();
+
+  const expected = new Map([
+    ["Linux x86_64 executable Download", "/conduit/creche/artifacts/conduit-linux-x86_64"],
+    ["Windows x86_64 executable Download", "/conduit/creche/artifacts/conduit-windows-x86_64.exe"],
+    ["macOS Apple silicon executable Download", "/conduit/creche/artifacts/conduit-macos-aarch64"],
+    ["Browser WASM Host page Open", "/conduit/creche/artifacts/index.html"],
+    ["PC · x86_64 Q35 · UEFI ISO", "/conduit/creche/artifacts/conduitos-x86_64-pc.iso"],
+    ["PC · IA-32 Legacy PC profile ISO", "/conduit/creche/artifacts/conduitos-ia32-pc.iso"],
+    ["AArch64 QEMU virt · UEFI ISO", "/conduit/creche/artifacts/conduitos-aarch64-virt.iso"],
+    ["RISC-V 64 QEMU virt · UEFI ISO", "/conduit/creche/artifacts/conduitos-riscv64-virt.iso"],
+    ["LoongArch64 QEMU virt · UEFI ISO", "/conduit/creche/artifacts/conduitos-loongarch64-virt.iso"],
+  ]);
+  for (const [name, href] of expected) {
+    await expect(page.getByRole("link", { name, exact: true })).toHaveAttribute("href", href);
+  }
+  await expect(page.getByLabel("Download and installation boundary")).toContainText("generic reviewed releases");
+  await expect(page.getByLabel("Download and installation boundary")).toContainText("Downloading an image is not proof that it booted on your hardware");
 });
 
 test("published Tour chapter permalinks remain deployable", async ({ page }) => {
