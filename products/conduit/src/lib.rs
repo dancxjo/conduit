@@ -1,11 +1,14 @@
 //! Reusable public product entrances shared by packaged Conduit applications.
 
 mod form_source;
+mod hosted_two_std;
 mod product_execution;
 
 use std::{io::Write, path::Path};
 
 use conduit_core::{HostAdvertisement, LineOffer, Observation, Plan};
+
+pub use hosted_two_std::{execute_hosted_two_std_form, HostedTwoHostExecution};
 
 /// Exact result of running authored source through the installed hosted Host.
 pub struct HostedFormExecution {
@@ -104,5 +107,27 @@ mod tests {
             .observations
             .iter()
             .any(|observation| observation.active_play_id.is_some()));
+    }
+
+    #[test]
+    fn two_host_entrance_retains_fragments_plays_line_and_delivery() {
+        let mut output = Vec::new();
+        let execution = execute_hosted_two_std_form(
+            "form hello-across {\n  message: text/literal(\"hello across one Cord\")\n  show: presentation/text\n  message > show\n}\n",
+            &mut output,
+        )
+        .unwrap();
+        assert_eq!(execution.result, "hello across one Cord");
+        assert_eq!(
+            String::from_utf8(output).unwrap(),
+            "hello across one Cord\n"
+        );
+        assert_ne!(execution.source_fragment_id, execution.sink_fragment_id);
+        assert_ne!(
+            execution.source_active_play_id,
+            execution.sink_active_play_id
+        );
+        assert_eq!(execution.transferred_values, 1);
+        assert!(!execution.line_id.as_str().is_empty());
     }
 }

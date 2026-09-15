@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use conduit_tour_model::{
-    TOUR_CHAPTERS, TourComparisonProof, TourRunProof, TourRunTerminal, TourStageMode,
-    tour_stage_source,
+    TOUR_CHAPTERS, TourComparisonProof, TourMultiHostProof, TourRunProof, TourRunTerminal,
+    TourStageMode, tour_stage_source,
 };
 
 const HOSTED_EVIDENCE_BYTES: usize = 64 * 1024;
@@ -26,11 +26,13 @@ impl HostedTourExecutor {
             .get(usize::from(chapter))
             .and_then(|chapter| chapter.stages.get(usize::from(stage)))
             .ok_or(HostedTourExecutorRefusal::UnknownStage)?;
-        // Multi-Host stages stay explicitly unsupported until their exact
-        // secondary fragments, Plays, and planned Line are retained here.
         let supported = matches!(stage_contract.mode, TourStageMode::Run)
             && matches!(chapter, 0 | 2)
-            || matches!(stage_contract.mode, TourStageMode::Compare) && chapter == 1;
+            || matches!(stage_contract.mode, TourStageMode::Compare) && chapter == 1
+            || matches!(
+                stage_contract.mode,
+                TourStageMode::TwoHost | TourStageMode::TwoHostPlan
+            ) && chapter == 3;
         if !supported {
             return Err(HostedTourExecutorRefusal::UnsupportedStage);
         }
@@ -42,6 +44,12 @@ impl HostedTourExecutor {
         let expected_manifestations = stage_contract
             .expected_manifestations
             .ok_or(HostedTourExecutorRefusal::WrongTerminal)?;
+        if matches!(
+            stage_contract.mode,
+            TourStageMode::TwoHost | TourStageMode::TwoHostPlan
+        ) {
+            return run_two_host(stage_contract.identity, &source, expected);
+        }
         let mut comparison = None;
         let (execution, output, terminal, result_is_verified) = if stage_contract.mode
             == TourStageMode::Compare
@@ -156,6 +164,40 @@ impl HostedTourExecutor {
             multi_host: None,
         })
     }
+}
+
+fn run_two_host(
+    specimen_id: &str,
+    source: &str,
+    expected: &str,
+) -> Result<TourRunProof, HostedTourExecutorRefusal> {
+    let mut output = BoundedEvidence::new();
+    let execution = conduit::execute_hosted_two_std_form(source, &mut output)
+        .map_err(HostedTourExecutorRefusal::Execution)?;
+    let rendered =
+        core::str::from_utf8(&output.bytes).map_err(|_| HostedTourExecutorRefusal::WrongResult)?;
+    if execution.result != expected || !has_expected_result(rendered, expected) {
+        return Err(HostedTourExecutorRefusal::WrongResult);
+    }
+    Ok(TourRunProof {
+        specimen_id: specimen_id.into(),
+        source_document_id: execution.source_document_id,
+        checked_form_id: execution.checked_form_id,
+        expanded_form_id: execution.expanded_form_id,
+        plan_id: execution.plan_id,
+        active_play_id: execution.source_active_play_id.clone(),
+        result: execution.result,
+        terminal: TourRunTerminal::Completed,
+        comparison: None,
+        multi_host: Some(TourMultiHostProof {
+            source_fragment_id: execution.source_fragment_id.as_str().into(),
+            sink_fragment_id: execution.sink_fragment_id.as_str().into(),
+            source_active_play_id: execution.source_active_play_id.as_str().into(),
+            sink_active_play_id: execution.sink_active_play_id.as_str().into(),
+            line_id: execution.line_id.as_str().into(),
+            transferred_values: execution.transferred_values,
+        }),
+    })
 }
 
 struct StopAfterManifestations<'a> {
@@ -339,6 +381,19 @@ mod tests {
         assert_ne!(proof.plan_id, recursive.plan_id);
         assert_eq!(proof.result, "Direct and recursive realizations agree");
         assert_eq!(proof.terminal, TourRunTerminal::Stopped);
+    }
+
+    #[test]
+    fn two_host_stages_retain_both_fragments_plays_line_and_delivery() {
+        for stage in 0..=1 {
+            let proof = HostedTourExecutor::run(3, stage).unwrap();
+            let multi = proof.multi_host.unwrap();
+            assert_ne!(multi.source_fragment_id, multi.sink_fragment_id);
+            assert_ne!(multi.source_active_play_id, multi.sink_active_play_id);
+            assert_eq!(multi.transferred_values, 1);
+            assert_eq!(proof.result, "hello across one Cord");
+            assert_eq!(proof.terminal, TourRunTerminal::Completed);
+        }
     }
 
     #[test]
