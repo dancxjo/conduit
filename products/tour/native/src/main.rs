@@ -24,6 +24,14 @@ use winit::{
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("--journey")) {
+        let report = conduit_tour_native::run_hosted_tour_journey()?;
+        println!(
+            "TOUR JOURNEY COMPLETE chapters={} exercises={} patchbays={}",
+            report.chapters_visited, report.exercises_completed, report.patchbays_opened
+        );
+        return Ok(());
+    }
     let event_loop = EventLoop::new()?;
     let mut application = NativeTour::new()?;
     event_loop.run_app(&mut application)?;
