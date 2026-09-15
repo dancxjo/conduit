@@ -1506,7 +1506,11 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
       invitation_provision: { invitation_id: evidence.binding.invitation_id },
     },
   });
-  expect(hostedPackage.files).toEqual(["conduit-linux-x86_64", "conduit-spore.json"]);
+  expect(hostedPackage.files).toEqual([
+    "conduit-linux-x86_64",
+    "conduit-tour-linux-x86_64",
+    "conduit-spore.json",
+  ]);
   expect(hostedPackage.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "ExplicitInstallerRequired"');
@@ -1531,7 +1535,7 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
       os: "windows",
       architecture: "x86_64",
       machine: "windows-computer",
-      executable: "conduit-windows-x86_64.exe",
+      executables: ["conduit-windows-x86_64.exe", "conduit-tour-windows-x86_64.exe"],
     },
     {
       id: "std/aarch64/macos-computer",
@@ -1540,7 +1544,7 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
       os: "macos",
       architecture: "aarch64",
       machine: "macos-computer",
-      executable: "conduit-macos-aarch64",
+      executables: ["conduit-macos-aarch64"],
     },
   ];
   for (const [index, profile] of profiles.entries()) {
@@ -1568,9 +1572,9 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
       fabrication_package_id: "hosted-native@1",
       image_content_digest: release.bundle_sha256,
       spore_artifact: {
-        files: expect.arrayContaining([
-          expect.objectContaining({ path: profile.executable, mode: 0o100755 }),
-        ]),
+        files: expect.arrayContaining(profile.executables.map(path =>
+          expect.objectContaining({ path, mode: 0o100755 })
+        )),
       },
     });
   }
