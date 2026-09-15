@@ -131,6 +131,24 @@ response JSON, the exact same-Play receipt, the synthesized output WAV, and a
 digest-bound evidence manifest. This is hosted-provider evidence from one
 recorded clip; it is not live-microphone, browser, emulator, or physical proof.
 
+## Manifest one Presentation twice
+
+After installing the pinned browser proof dependencies, retain the same
+deterministic front-door Presentation through the native software renderer and
+pinned Chromium DOM/SVG renderer:
+
+```bash
+npm --prefix proof/browser ci --ignore-scripts --prefer-offline
+cargo xtask evidence one-form-two-faces
+```
+
+The command refuses an existing output directory. On success,
+`target/journeys/one-form-two-faces/` contains native and browser PNGs, their
+distinct renderer receipts, and one four-output digest-bound manifest. The
+verifier requires a shared Presentation identity and revision but deliberately
+does not require pixel equality. The native frame proves the repository's
+software rendering path, not a physical display or human viewing.
+
 ## Explore distributed execution
 
 ```bash

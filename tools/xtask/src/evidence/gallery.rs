@@ -12,10 +12,12 @@ use super::{
 mod conduitos;
 mod hears_speaks;
 mod retention;
+mod two_faces;
 
 use conduitos::{write_conduitos_commit, write_conduitos_current};
 use hears_speaks::{write_hears_speaks_commit, write_hears_speaks_current};
 use retention::{trim_indexed_history_to_bounds, validate_existing_tree};
+use two_faces::{write_two_faces_commit, write_two_faces_current};
 
 const GALLERY_SCHEMA: &str = "conduit.visual-evidence-gallery/v1";
 const RETAINED_COMMITS: usize = 32;
@@ -36,6 +38,7 @@ pub struct GalleryRequest {
     pub evidence_root: PathBuf,
     pub conduitos_evidence_root: Option<PathBuf>,
     pub hears_speaks_evidence_root: Option<PathBuf>,
+    pub two_faces_evidence_root: Option<PathBuf>,
     pub site_root: PathBuf,
     pub commit: String,
 }
@@ -79,6 +82,19 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
                 commit: request.commit.clone(),
                 result: ExpectedEvidenceResult::Complete,
                 proof_id: "journey-hears-speaks".into(),
+                suite_id: "journey-gallery".into(),
+            })
+        })
+        .transpose()?;
+    let two_faces = request
+        .two_faces_evidence_root
+        .as_ref()
+        .map(|root| {
+            verify(&VerificationRequest {
+                root: root.clone(),
+                commit: request.commit.clone(),
+                result: ExpectedEvidenceResult::Complete,
+                proof_id: "journey-one-form-two-faces".into(),
                 suite_id: "journey-gallery".into(),
             })
         })
@@ -135,6 +151,16 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
             fs::remove_dir_all(current).map_err(|error| {
                 format!("cannot clear stale Hears and Speaks evidence: {error}")
             })?;
+        }
+    }
+    if let (Some(root), Some(evidence)) = (&request.two_faces_evidence_root, &two_faces) {
+        write_two_faces_commit(&site_root, root, evidence)?;
+        write_two_faces_current(&site_root, root, evidence)?;
+    } else {
+        let current = site_root.join("current/one-form-two-faces");
+        if current.exists() {
+            fs::remove_dir_all(current)
+                .map_err(|error| format!("cannot clear stale Two Faces evidence: {error}"))?;
         }
     }
     fs::write(site_root.join(".nojekyll"), b"")
@@ -305,8 +331,18 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
             } else {
                 String::new()
             };
+            let two_faces = if root
+                .join("commits")
+                .join(commit)
+                .join("one-form-two-faces/index.html")
+                .is_file()
+            {
+                format!(" · <a href=\"commits/{commit}/one-form-two-faces/\">One Form, Two Faces</a>")
+            } else {
+                String::new()
+            };
             format!(
-                "<li><code>{commit}</code>: <a href=\"commits/{commit}/patchbay/\">Patchbay</a>{conduitos}{hears_speaks}</li>"
+                "<li><code>{commit}</code>: <a href=\"commits/{commit}/patchbay/\">Patchbay</a>{conduitos}{hears_speaks}{two_faces}</li>"
             )
         })
         .collect::<Vec<_>>()
@@ -321,8 +357,13 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
     } else {
         ""
     };
+    let two_faces = if root.join("current/one-form-two-faces/index.html").is_file() {
+        "\n<p><a href=\"current/one-form-two-faces/\">Current One Form, Two Faces journey</a></p>"
+    } else {
+        ""
+    };
     let body = format!(
-        "<h1>Conduit evidence gallery</h1>\n<p>Current accepted main: <code>{}</code></p>\n<p><a href=\"current/patchbay/\">Current Patchbay evidence</a></p>{conduitos}{hears_speaks}\n<h2>Retained accepted commits</h2>\n<ul>{history}</ul>\n<p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; these images, transcripts, and audio files are documentary evidence.</p>",
+        "<h1>Conduit evidence gallery</h1>\n<p>Current accepted main: <code>{}</code></p>\n<p><a href=\"current/patchbay/\">Current Patchbay evidence</a></p>{conduitos}{hears_speaks}{two_faces}\n<h2>Retained accepted commits</h2>\n<ul>{history}</ul>\n<p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; these images, transcripts, and audio files are documentary evidence.</p>",
         escape_html(&index.current_commit)
     );
     write_html(&root.join("index.html"), "Conduit evidence gallery", &body)
@@ -420,7 +461,7 @@ pub(super) fn write_html(path: &Path, title: &str, body: &str) -> Result<(), Str
             .map_err(|error| format!("cannot create gallery page directory: {error}"))?;
     }
     let document = format!(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>body{{margin:2rem auto;max-width:92rem;padding:0 1rem;font:16px/1.5 system-ui,sans-serif;background:#101714;color:#e8f5ed}}a{{color:#70e0aa}}code{{overflow-wrap:anywhere}}img{{display:block;max-width:100%;height:auto;border:1px solid #466455}}dl{{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.4rem 1rem}}dt{{font-weight:700}}dd{{margin:0}}</style></head><body>{body}</body></html>",
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>body{{margin:2rem auto;max-width:92rem;padding:0 1rem;font:16px/1.5 system-ui,sans-serif;background:#101714;color:#e8f5ed}}a{{color:#70e0aa}}code{{overflow-wrap:anywhere}}img{{display:block;max-width:100%;height:auto;border:1px solid #466455}}.comparison{{display:grid;grid-template-columns:repeat(auto-fit,minmax(22rem,1fr));gap:1rem}}figure{{margin:0}}dl{{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.4rem 1rem}}dt{{font-weight:700}}dd{{margin:0}}</style></head><body>{body}</body></html>",
         escape_html(title)
     );
     fs::write(path, document).map_err(|error| format!("cannot write gallery page: {error}"))

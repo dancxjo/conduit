@@ -412,6 +412,31 @@ fn product_descendants_use_explicit_direct_result_admission() {
 }
 
 #[test]
+fn two_faces_evidence_is_pinned_exact_bounded_and_admitted() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let evidence = workflow
+        .split("\n  journey-evidence:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
+        .expect("locate sibling journey evidence job");
+    let gate = workflow
+        .split("\n  products-proof:\n")
+        .nth(1)
+        .expect("locate stable product gate");
+
+    assert!(evidence.contains("mcr.microsoft.com/playwright:v1.62.0-noble"));
+    assert!(evidence.contains("cargo xtask evidence one-form-two-faces --locked"));
+    assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
+    assert!(evidence.contains("--proof journey-one-form-two-faces"));
+    assert!(evidence.contains("--suite journey-gallery"));
+    assert!(evidence.contains("retention-days: 14"));
+    assert!(gate.contains("JOURNEY_RESULT: ${{ needs.journey-evidence.result }}"));
+    assert!(gate.contains("test \"$JOURNEY_RESULT\" = success"));
+}
+
+#[test]
 fn stacked_diff_base_does_not_select_the_controller_version() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow =
