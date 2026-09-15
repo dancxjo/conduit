@@ -41,7 +41,7 @@ pub(super) fn run(output: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
         .current_dir(&workspace)
         .args([
             "run",
-            "forms/journeys/little-life/main.conduit",
+            "forms/little-life/main.conduit",
             "--await-terminal",
             "--report",
         ])
