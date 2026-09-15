@@ -610,6 +610,7 @@ mod tests {
                 )
                 .unwrap();
         }
+        product.scene(1280, 800).unwrap();
         let update = product
             .accept(
                 &event(12, RUN_ACTION_ID),
@@ -637,6 +638,45 @@ mod tests {
         assert_eq!(proof.specimen_id, evidence.specimen_id);
         assert_eq!(proof.plan_id, evidence.plan_id);
         assert_eq!(proof.active_play_id, evidence.active_play_id);
+    }
+
+    #[test]
+    fn every_tour_page_projects_into_the_bounded_native_scene() {
+        let (identities, offer) = fixture();
+        let mut product = TourProduct::canonical(10);
+        let mut clock = Clock::default();
+        let mut serial = Serial::default();
+        let mut interrupts = Interrupts::default();
+        let mut idle = Idle::default();
+        product.scene(1280, 800).unwrap();
+        for (revision, action) in [
+            NEXT_STAGE_ACTION_ID,
+            NEXT_STAGE_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+            NEXT_STAGE_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+            NEXT_CHAPTER_ACTION_ID,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            product
+                .accept(
+                    &event(u32::try_from(revision).unwrap() + 10, action),
+                    &identities,
+                    &offer,
+                    "build",
+                    &mut clock,
+                    &mut serial,
+                    &mut interrupts,
+                    &mut idle,
+                )
+                .unwrap();
+            product.scene(1280, 800).unwrap();
+        }
     }
 
     #[test]
