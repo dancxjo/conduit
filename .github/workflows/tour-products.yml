@@ -1051,6 +1051,57 @@ jobs:
           retention-days: 14
           compression-level: 0
 
+  journey-gallery:
+    needs: [plan, journey-evidence, little-life-evidence]
+    if: >-
+      always() && !cancelled() &&
+      needs.plan.outputs.pages_carrier_required == 'true' &&
+      needs.journey-evidence.result == 'success' &&
+      needs.little-life-evidence.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Receive the exact sibling journey evidence
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/journey-inputs/one-form-two-faces
+      - uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/journey-inputs/little-life
+      - name: Build and seal the exact sibling journey gallery
+        run: |
+          cargo xtask evidence gallery --locked \
+            --two-faces-evidence-root target/journey-inputs/one-form-two-faces \
+            --little-life-evidence-root target/journey-inputs/little-life \
+            --site-root target/journey-gallery-site \
+            --commit "$CONDUIT_CANDIDATE_SHA"
+          source_tree=$(git rev-parse 'HEAD^{tree}')
+          node tools/ci/seal-pages-carrier.mjs \
+            target/journey-gallery-site target/journey-gallery-carrier \
+            "$CONDUIT_CANDIDATE_SHA" "$source_tree"
+          node tools/ci/verify-pages-carrier.mjs \
+            target/journey-gallery-carrier "$source_tree"
+      - name: Retain the sealed exact sibling journey gallery
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-journey-gallery-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/journey-gallery-carrier
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+          compression-level: 0
+
   pages-carrier:
     needs: [plan, products-stage, browser-proof]
     if: always() && !cancelled() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'
@@ -1179,7 +1230,7 @@ jobs:
           retention-days: 14
 
   products-proof:
-    needs: [plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, little-life-evidence, pages-carrier, proof-receipts]
+    needs: [plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, little-life-evidence, journey-gallery, pages-carrier, proof-receipts]
     # A deliberately cancelled duplicate lifecycle run is not new proof
     # failure. Real dependency failures still reach this gate and fail it.
     if: ${{ always() && !cancelled() }}
@@ -1201,6 +1252,7 @@ jobs:
           BROWSER_RESULT: ${{ needs.browser-proof.result }}
           JOURNEY_RESULT: ${{ needs.journey-evidence.result }}
           LITTLE_LIFE_RESULT: ${{ needs.little-life-evidence.result }}
+          JOURNEY_GALLERY_RESULT: ${{ needs.journey-gallery.result }}
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
           RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
           DEVELOPMENT_ADMISSION: ${{ inputs.development_admission }}
@@ -1223,6 +1275,7 @@ jobs:
           fi
           if test "$CARRIER_REQUIRED" = true; then
             test "$LITTLE_LIFE_RESULT" = success
+            test "$JOURNEY_GALLERY_RESULT" = success
             test "$STAGE_RESULT" = success
             test "$BROWSER_RESULT" = success
             test "$CARRIER_RESULT" = success

@@ -456,6 +456,9 @@ fn little_life_evidence_is_exact_bounded_and_part_of_carrier_admission() {
         .expect("locate stable product gate");
 
     assert!(evidence.contains("if: needs.plan.outputs.pages_carrier_required == 'true'"));
+    assert!(evidence.contains(
+        "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
+    ));
     assert!(evidence.contains("cargo xtask evidence little-life --locked"));
     assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
     assert!(evidence.contains("--proof journey-little-life"));
@@ -463,6 +466,34 @@ fn little_life_evidence_is_exact_bounded_and_part_of_carrier_admission() {
     assert!(evidence.contains("retention-days: 14"));
     assert!(gate.contains("LITTLE_LIFE_RESULT: ${{ needs.little-life-evidence.result }}"));
     assert!(gate.contains("test \"$LITTLE_LIFE_RESULT\" = success"));
+}
+
+#[test]
+fn sibling_gallery_is_exact_sealed_and_part_of_carrier_admission() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let gallery = workflow
+        .split("\n  journey-gallery:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
+        .expect("locate sibling gallery job");
+    let gate = workflow
+        .split("\n  products-proof:\n")
+        .nth(1)
+        .expect("locate stable product gate");
+
+    assert!(gallery.contains("needs: [plan, journey-evidence, little-life-evidence]"));
+    assert!(gallery.contains("conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(gallery.contains("conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(gallery.contains("--two-faces-evidence-root"));
+    assert!(gallery.contains("--little-life-evidence-root"));
+    assert!(gallery.contains("seal-pages-carrier.mjs"));
+    assert!(gallery.contains("verify-pages-carrier.mjs"));
+    assert!(gallery.contains("name: conduit-journey-gallery-${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(gallery.contains("retention-days: 14"));
+    assert!(gate.contains("JOURNEY_GALLERY_RESULT: ${{ needs.journey-gallery.result }}"));
+    assert!(gate.contains("test \"$JOURNEY_GALLERY_RESULT\" = success"));
 }
 
 #[test]
