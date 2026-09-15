@@ -47,6 +47,8 @@ pub const CANONICAL_SOURCE: &str = concat!(
 pub const RUN_ACTION_ID: &str = "tour.run";
 pub const PREVIOUS_CHAPTER_ACTION_ID: &str = "tour.chapter.previous";
 pub const NEXT_CHAPTER_ACTION_ID: &str = "tour.chapter.next";
+pub const PREVIOUS_STAGE_ACTION_ID: &str = "tour.stage.previous";
+pub const NEXT_STAGE_ACTION_ID: &str = "tour.stage.next";
 pub const OPEN_PATCHBAY_ACTION_ID: &str = "tour.open-patchbay";
 pub const OPEN_CHOOSER_ACTION_ID: &str = "tour.chooser.open";
 pub const TRANSIENT_CLOSE_ACTION_ID: &str = "tour.transient.close";
@@ -255,6 +257,35 @@ impl TourWorkspaceState {
                                         },
                                     ),
                                     action(
+                                        "previous-stage",
+                                        PREVIOUS_STAGE_ACTION_ID,
+                                        "Previous exercise",
+                                        if self.progress.stage == 0 {
+                                            ActionAvailability::Unavailable {
+                                                detail: "This is the first exercise on this page"
+                                                    .into(),
+                                            }
+                                        } else {
+                                            ActionAvailability::Available
+                                        },
+                                    ),
+                                    action(
+                                        "next-stage",
+                                        NEXT_STAGE_ACTION_ID,
+                                        "Next exercise",
+                                        if self.progress.current_stage().is_none()
+                                            || usize::from(self.progress.stage) + 1
+                                                >= chapter.stages.len()
+                                        {
+                                            ActionAvailability::Unavailable {
+                                                detail: "This is the final exercise on this page"
+                                                    .into(),
+                                            }
+                                        } else {
+                                            ActionAvailability::Available
+                                        },
+                                    ),
+                                    action(
                                         "run",
                                         RUN_ACTION_ID,
                                         "Run Form",
@@ -387,9 +418,9 @@ mod tests {
                     .any(|node| node.key == state.focused_key)
             );
             let expected_actions = if phase == TourWorkspacePhase::ResultVisible {
-                2
-            } else {
                 3
+            } else {
+                4
             };
             assert_eq!(lowered.actions.len(), expected_actions);
             assert_eq!(

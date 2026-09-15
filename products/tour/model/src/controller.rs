@@ -3,9 +3,9 @@ use conduit_core::{ActivePlayId, CheckedFormId, ExpandedFormId, PlanId, SourceDo
 use conduit_presentation::{ApplicationEvent, ApplicationViewRefusal};
 
 use crate::{
-    CANONICAL_RESULT, NEXT_CHAPTER_ACTION_ID, OPEN_PATCHBAY_ACTION_ID, PREVIOUS_CHAPTER_ACTION_ID,
-    RUN_ACTION_ID, TourApplicationAction, TourApplicationRefusal, TourRunState, TourWorkspacePhase,
-    TourWorkspaceState,
+    CANONICAL_RESULT, NEXT_CHAPTER_ACTION_ID, NEXT_STAGE_ACTION_ID, OPEN_PATCHBAY_ACTION_ID,
+    PREVIOUS_CHAPTER_ACTION_ID, PREVIOUS_STAGE_ACTION_ID, RUN_ACTION_ID, TourApplicationAction,
+    TourApplicationRefusal, TourRunState, TourWorkspacePhase, TourWorkspaceState,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -179,6 +179,16 @@ impl TourWorkspaceController {
             }
             NEXT_CHAPTER_ACTION_ID => {
                 self.apply_progress(TourApplicationAction::NextChapter)?;
+                self.sync_stage()?;
+                Ok(None)
+            }
+            PREVIOUS_STAGE_ACTION_ID => {
+                self.apply_progress(TourApplicationAction::PreviousStage)?;
+                self.sync_stage()?;
+                Ok(None)
+            }
+            NEXT_STAGE_ACTION_ID => {
+                self.apply_progress(TourApplicationAction::NextStage)?;
                 self.sync_stage()?;
                 Ok(None)
             }
@@ -424,6 +434,28 @@ mod tests {
             ))
         );
         assert_eq!(controller.state(), &before);
+    }
+
+    #[test]
+    fn resident_exercise_navigation_updates_exact_source_and_run_request() {
+        let mut controller = TourWorkspaceController::canonical(1);
+        assert_eq!(
+            controller.request(&event(1, NEXT_STAGE_ACTION_ID)),
+            Ok(None)
+        );
+        assert_eq!(controller.state().progress.stage, 1);
+        assert_eq!(
+            controller.state().specimen_id,
+            "canonical-form:edit-one-gear"
+        );
+        assert!(controller.state().source.contains("form edit-one-gear"));
+        assert_eq!(
+            controller.request(&event(2, RUN_ACTION_ID)),
+            Ok(Some(TourWorkspaceRequest::Run {
+                chapter: 0,
+                stage: 1
+            }))
+        );
     }
 
     #[test]

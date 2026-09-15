@@ -161,6 +161,8 @@ pub enum TourApplicationAction {
     OpenChapter(u8),
     PreviousChapter,
     NextChapter,
+    PreviousStage,
+    NextStage,
     Run,
     Stop,
     Restore,
@@ -182,6 +184,8 @@ pub enum TourApplicationRefusal {
     InvalidChapterCount,
     FirstChapter,
     LastChapter,
+    FirstStage,
+    LastStage,
     AlreadyRunning,
     NotRunning,
     RevisionExhausted,
@@ -235,6 +239,17 @@ impl TourApplicationState {
                 self.chapter += 1;
                 self.stage = 0;
             }
+            TourApplicationAction::PreviousStage if self.stage == 0 => {
+                return Err(TourApplicationRefusal::FirstStage);
+            }
+            TourApplicationAction::PreviousStage => self.stage -= 1,
+            TourApplicationAction::NextStage
+                if usize::from(self.stage) + 1
+                    >= TOUR_CHAPTERS[usize::from(self.chapter)].stages.len() =>
+            {
+                return Err(TourApplicationRefusal::LastStage);
+            }
+            TourApplicationAction::NextStage => self.stage += 1,
             TourApplicationAction::Run if self.run == TourRunState::Running => {
                 return Err(TourApplicationRefusal::AlreadyRunning);
             }
