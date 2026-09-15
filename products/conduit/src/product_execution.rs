@@ -74,7 +74,7 @@ pub(crate) struct ProductExecutionContext {
 }
 
 impl ProductExecutionContext {
-    #[cfg(test)]
+    // Used by the library entrance; the binary compiles this module independently.
     #[allow(dead_code)]
     pub(crate) fn advertisements(&self) -> &[HostAdvertisement] {
         &self.advertisements
