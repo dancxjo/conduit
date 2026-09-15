@@ -63,14 +63,19 @@ impl NativeWorksetPlay {
                 let (view, authority_request) = match application {
                     NativeApplication::Tour(application) => {
                         let output = application.apply(input).map_err(|_| PlayRefusal::Kernel)?;
-                        let request = output.request.map(|request| match request {
-                            conduit_tour_model::TourWorkspaceRequest::Run => {
-                                super::super::NativeApplicationRequest::RunTour
+                        let request = match output.request {
+                            Some(conduit_tour_model::TourWorkspaceRequest::Run {
+                                chapter: 0,
+                                stage: 0,
+                            }) => Some(super::super::NativeApplicationRequest::RunTour),
+                            Some(conduit_tour_model::TourWorkspaceRequest::Run { .. }) => {
+                                return Err(PlayRefusal::Kernel);
                             }
-                            conduit_tour_model::TourWorkspaceRequest::OpenPatchbay => {
-                                super::super::NativeApplicationRequest::OpenPatchbay
+                            Some(conduit_tour_model::TourWorkspaceRequest::OpenPatchbay) => {
+                                Some(super::super::NativeApplicationRequest::OpenPatchbay)
                             }
-                        });
+                            None => None,
+                        };
                         (output.view, request)
                     }
                     NativeApplication::Patchbay(application) => {

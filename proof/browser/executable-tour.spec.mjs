@@ -867,7 +867,11 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
 });
 
 test("the Tour renders admitted Markdown emphasis semantically and leaves raw HTML inert", async ({ page }) => {
-  const body = "---\npage: markdown-proof\nroute: markdown-proof\ncompanion: prose-proof\n---\n# Markdown proof\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>";
+  const canonical = await readFile(
+    new URL("../../products/tour/content/chapter-1.md", import.meta.url),
+    "utf8",
+  );
+  const body = `${canonical}\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>`;
   await page.route("**/tour/chapter-1.md", (route) => route.fulfill({
     contentType: "text/markdown; charset=utf-8",
     body,
@@ -882,7 +886,8 @@ test("the Tour renders admitted Markdown emphasis semantically and leaves raw HT
   });
   await openStep(page, 0);
   await expect(page.locator("em")).toHaveText(["asterisk", "underscore"]);
-  await expect(page.locator(".chapter-copy strong")).toHaveText(["strong asterisk", "strong underscore"]);
+  await expect(page.getByText("strong asterisk", { exact: true })).toBeVisible();
+  await expect(page.getByText("strong underscore", { exact: true })).toBeVisible();
   await expect(page.locator("#chapter")).not.toContainText("*asterisk*");
   await expect(page.locator("#chapter")).not.toContainText("_underscore_");
   await expect(page.locator("#chapter img")).toHaveCount(0);

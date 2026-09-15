@@ -50,11 +50,9 @@ impl TourApplicationPort {
         } else {
             let event =
                 ApplicationEvent::decode(encoded, &current).map_err(TourPortRefusal::Event)?;
-            Some(
-                self.controller
-                    .request(&event)
-                    .map_err(TourPortRefusal::Application)?,
-            )
+            self.controller
+                .request(&event)
+                .map_err(TourPortRefusal::Application)?
         };
         Ok(TourPortOutput {
             view: self.view()?.encode().map_err(TourPortRefusal::Event)?,
@@ -74,7 +72,7 @@ impl TourApplicationPort {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::OPEN_PATCHBAY_ACTION_ID;
+    use crate::{NEXT_CHAPTER_ACTION_ID, OPEN_PATCHBAY_ACTION_ID};
     use conduit_presentation::ApplicationEventKind;
 
     #[test]
@@ -125,5 +123,24 @@ mod tests {
             ))
         );
         assert_eq!(port.controller().state().revision, view.revision);
+    }
+
+    #[test]
+    fn chapter_navigation_is_a_state_transition_not_a_host_request() {
+        let mut port = TourApplicationPort::canonical();
+        let initial = ApplicationView::decode(&port.apply(&[]).unwrap().view).unwrap();
+        let event = ApplicationEvent {
+            revision: initial.revision,
+            action: NEXT_CHAPTER_ACTION_ID.into(),
+            kind: ApplicationEventKind::Activate,
+            value: Vec::new(),
+        };
+        let output = port.apply(&event.encode(&initial).unwrap()).unwrap();
+        assert!(output.request.is_none());
+        assert_eq!(port.controller().state().progress.chapter, 1);
+        assert_eq!(
+            ApplicationView::decode(&output.view).unwrap().revision,
+            initial.revision + 1
+        );
     }
 }

@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 });
 test.afterEach(() => entrance?.child.kill());
 
-test("resident Tour keeps state across foreground switches in one browser Body Play", async ({ page }, testInfo) => {
+test("resident Tour runs every exercise and keeps state across foreground switches", async ({ page }, testInfo) => {
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   for (const title of ["Tour", "Patchbay"]) {
@@ -24,9 +24,50 @@ test("resident Tour keeps state across foreground switches in one browser Body P
   expect(born.initial_forms).toHaveLength(3);
 
   await page.locator("[data-checked-form-id]").filter({ hasText: "Tour" }).click();
-  await expect(visibleFormOutput(page)).toContainText("Tour");
+  const tour = visibleFormOutput(page);
+  await expect(tour).toContainText("One Program, Many Computers");
   await page.getByRole("button", { name: "Run Form", exact: true }).click();
-  await expect(visibleFormOutput(page)).toContainText("HELLO");
+  await expect(tour).toContainText("HELLO");
+
+  await page.getByRole("button", { name: "Next exercise", exact: true }).click();
+  await expect(tour).toContainText("edit-one-gear");
+  await page.getByRole("button", { name: "Run Form", exact: true }).click();
+  await expect(tour).toContainText("MAKE THIS LOUD");
+
+  await page.getByRole("button", { name: "Next exercise", exact: true }).click();
+  await expect(tour).toContainText("branch-a-cord");
+  await page.getByRole("button", { name: "Run Form", exact: true }).click();
+  await expect(tour).toContainText("SOS");
+
+  await page.getByRole("button", { name: "Next chapter", exact: true }).click();
+  await expect(tour).toContainText("Faces, Backs, and implementation");
+  await page.getByRole("button", { name: "Run Form", exact: true }).click();
+  await expect(tour).toContainText("Direct and recursive realizations agree");
+  await expect(tour).toContainText("distinct expanded Forms and Plans");
+
+  await page.getByRole("button", { name: "Next chapter", exact: true }).click();
+  await expect(tour).toContainText("Hosts make Forms real");
+  await page.getByRole("button", { name: "Run Form", exact: true }).click();
+  await expect(tour).toContainText("0 → 1");
+  await expect(tour).toContainText("120 ms timer pending");
+
+  await page.getByRole("button", { name: "Next chapter", exact: true }).click();
+  await expect(tour).toContainText("One Form across several Hosts");
+  await page.getByRole("button", { name: "Run Form", exact: true }).click();
+  await expect(tour).toContainText("one value delivered over one planned Line");
+  await page.getByRole("button", { name: "Next exercise", exact: true }).click();
+  await page.getByRole("button", { name: "Run Form", exact: true }).click();
+  await expect(tour).toContainText("one value delivered over one planned Line");
+
+  for (const title of [
+    "The Body: one computer, one machine or many",
+    "Many Forms, one Body-wide realization",
+    "Birth, spores, and the Crèche",
+  ]) {
+    await page.getByRole("button", { name: "Next chapter", exact: true }).click();
+    await expect(tour).toContainText(title);
+    await expect(page.getByRole("button", { name: "Run Form", exact: true })).toHaveCount(0);
+  }
   await page.screenshot({ path: testInfo.outputPath("resident-tour-result.png"), fullPage: true });
 
   await page.locator("[data-checked-form-id]").filter({ hasText: "Memory Lantern" }).click();
@@ -34,7 +75,7 @@ test("resident Tour keeps state across foreground switches in one browser Body P
   await page.keyboard.type("kept");
   await expect(visibleFormOutput(page)).toHaveText("kept");
   await page.locator("[data-checked-form-id]").filter({ hasText: "Tour" }).click();
-  await expect(visibleFormOutput(page)).toContainText("HELLO");
+  await expect(visibleFormOutput(page)).toContainText("Birth, spores, and the Crèche");
 
   await page.locator("[data-checked-form-id]").filter({ hasText: "Patchbay" }).click();
   const patchbay = visibleFormOutput(page);

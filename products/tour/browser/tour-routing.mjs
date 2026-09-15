@@ -6,6 +6,15 @@ const MAXIMUM_STAGES_PER_PAGE = 8;
 const IDENTITY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const FORM_IDENTITY = /^[a-z][a-z0-9_-]*$/;
 
+export function canonicalTourCatalog(catalog) {
+  return catalog.map(({ identity, route, companion, stages }) => [
+    identity,
+    route,
+    companion,
+    stages.map(({ identity: stageIdentity, mode }) => [stageIdentity, mode]),
+  ]);
+}
+
 export function parseTourPages(chapters) {
   if (!Array.isArray(chapters) || chapters.length === 0 || chapters.length > MAXIMUM_TOUR_PAGES) {
     throw new Error("Tour page count is outside its admitted bound");

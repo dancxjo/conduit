@@ -33,6 +33,10 @@ pub extern "C" fn conduit_tour_application_chapters() -> i32 {
                 "identity": chapter.identity,
                 "route": chapter.route,
                 "companion": chapter.companion,
+                "stages": chapter.stages.iter().map(|stage| serde_json::json!({
+                    "identity": stage.identity,
+                    "mode": stage.mode.as_str(),
+                })).collect::<Vec<_>>(),
             })
         })
         .collect::<Vec<_>>();
@@ -139,5 +143,26 @@ mod tests {
             expected.apply(action).unwrap();
         }
         assert_eq!(state(), expected);
+    }
+
+    #[test]
+    fn browser_catalog_exports_the_shared_seven_exercise_inventory() {
+        assert_eq!(conduit_tour_application_chapters(), 0);
+        let encoded = CHAPTERS.with(|chapters| {
+            CHAPTERS_LEN.with(|length| chapters.borrow()[..*length.borrow()].to_vec())
+        });
+        let catalog: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
+        let chapters = catalog.as_array().unwrap();
+        assert_eq!(
+            chapters.len(),
+            conduit_tour_model::TOUR_CHAPTER_COUNT as usize
+        );
+        assert_eq!(chapters[0]["stages"].as_array().unwrap().len(), 3);
+        assert_eq!(chapters[3]["stages"].as_array().unwrap().len(), 2);
+        assert_eq!(chapters[6]["stages"].as_array().unwrap().len(), 0);
+        assert_eq!(
+            chapters[1]["stages"][0]["identity"],
+            "canonical-form:same-morse-caller"
+        );
     }
 }

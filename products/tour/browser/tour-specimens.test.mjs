@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { conceptualTourStage, createTourStage, identifyTourSpecimen } from "./tour-state.mjs";
-import { parseTourPages } from "./tour-routing.mjs";
+import { canonicalTourCatalog, parseTourPages } from "./tour-routing.mjs";
 import { admitTourChapter } from "./tour-chapter-model.mjs";
+
+test("shared Tour catalog comparison ignores JSON object key order", () => {
+  const authored = [{ identity: "forms", route: "forms-route", companion: "lab", stages: [
+    { identity: "canonical-form:hello", mode: "run" },
+  ] }];
+  const runtime = [{ stages: [{ mode: "run", identity: "canonical-form:hello" }],
+    companion: "lab", route: "forms-route", identity: "forms" }];
+  assert.deepEqual(canonicalTourCatalog(authored), canonicalTourCatalog(runtime));
+});
 import { createTourApplicationActionForwarder, TOUR_APPLICATION_ACTIONS } from "./tour-application-actions.mjs";
 
 const source = (name, message = "hello") => `form ${name} {\n  words: text/literal("${message}")\n}`;
