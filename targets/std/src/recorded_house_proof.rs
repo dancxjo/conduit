@@ -2,32 +2,49 @@
 
 use crate::hosted_local_model::{HostedLocalModelAdapter, LocalModelAdapterTerminal};
 use crate::hosted_microphone::{AlsaMicrophoneAdapter, MicrophoneCaptureReceipt};
-use crate::hosted_speech_recognition::WhisperSpeechAdapter;
+use crate::hosted_speech_recognition::{WhisperEvidenceText, WhisperSpeechAdapter};
 use crate::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
 use conduit_core::{BaseImplementationId, ObservationKind, TerminalDisposition};
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 pub use crate::recorded_house_receipt::{
-    MicrophoneHouseProofReceipt, RecordedHouseProofReceipt, SpokenMicrophoneHouseProofReceipt,
+    MicrophoneHouseProofReceipt, RecordedHouseProofReceipt, RecordedHouseWavJourneyReceipt,
+    SpokenMicrophoneHouseProofReceipt,
 };
 
-struct SpokenOutput {
-    speech: crate::hosted_speech::PiperSpeechAdapter,
-    playback: crate::hosted_audio::HostedPlaybackSelection,
+enum SpokenOutput {
+    Playback {
+        speech: crate::hosted_speech::PiperSpeechAdapter,
+        playback: crate::hosted_audio::HostedPlaybackSelection,
+    },
+    WavArtifact {
+        speech: crate::hosted_speech::PiperSpeechAdapter,
+        artifact: crate::hosted_wav_artifact::WavArtifactSelection,
+    },
 }
 
-struct SpokenReceipt {
-    speech_implementation_id: String,
-    source_pcm_frames: u32,
-    target_pcm_frames: u64,
-    playback_resource_pool_id: String,
-    playback_blocks_committed: u64,
-    playback_frames_committed: u64,
+enum SpokenReceipt {
+    Playback {
+        speech_implementation_id: String,
+        source_pcm_frames: u32,
+        target_pcm_frames: u64,
+        playback_resource_pool_id: String,
+        playback_blocks_committed: u64,
+        playback_frames_committed: u64,
+    },
+    WavArtifact {
+        speech_implementation_id: String,
+        source_pcm_frames: u32,
+        target_pcm_frames: u64,
+        pcm_bytes: u32,
+        blocks: u16,
+    },
 }
 
 struct HouseRunReceipt {
     house: RecordedHouseProofReceipt,
+    response: Vec<u8>,
     microphone: Option<MicrophoneCaptureReceipt>,
     spoken: Option<SpokenReceipt>,
 }
@@ -137,7 +154,7 @@ pub fn run_spoken_microphone(
         local_model,
         whisper,
         HouseAudioSource::Microphone(Box::new(microphone)),
-        Some(SpokenOutput { speech, playback }),
+        Some(SpokenOutput::Playback { speech, playback }),
     )?;
     let microphone = run
         .microphone
@@ -145,16 +162,88 @@ pub fn run_spoken_microphone(
     let spoken = run
         .spoken
         .ok_or("spoken House Play omitted output receipt")?;
+    let SpokenReceipt::Playback {
+        speech_implementation_id,
+        source_pcm_frames,
+        target_pcm_frames,
+        playback_resource_pool_id,
+        playback_blocks_committed,
+        playback_frames_committed,
+    } = spoken
+    else {
+        return Err("spoken microphone House Play returned a WAV artifact receipt".into());
+    };
     Ok(SpokenMicrophoneHouseProofReceipt {
         microphone_house: microphone_receipt(run.house, microphone),
-        speech_implementation_id: spoken.speech_implementation_id,
-        source_pcm_frames: spoken.source_pcm_frames,
+        speech_implementation_id,
+        source_pcm_frames,
         conversion_implementation_id: conduit_std_offers::AUDIO_CONVERT_PCM_IMPLEMENTATION.into(),
-        target_pcm_frames: spoken.target_pcm_frames,
-        playback_resource_pool_id: spoken.playback_resource_pool_id,
-        playback_blocks_committed: spoken.playback_blocks_committed,
-        playback_frames_committed: spoken.playback_frames_committed,
+        target_pcm_frames,
+        playback_resource_pool_id,
+        playback_blocks_committed,
+        playback_frames_committed,
     })
+}
+
+pub fn run_recorded_with_wav(
+    config: StdHostConfig,
+    composition: StdHostComposition,
+    local_model: Box<dyn HostedLocalModelAdapter>,
+    mut whisper: WhisperSpeechAdapter,
+    clip: Vec<u8>,
+    speech: crate::hosted_speech::PiperSpeechAdapter,
+    artifact: crate::hosted_wav_artifact::WavArtifactSelection,
+) -> Result<RecordedHouseWavJourneyReceipt, Box<dyn std::error::Error>> {
+    conduit_audio::decode_pcm_clip(&clip)
+        .map_err(|error| format!("decode admitted House journey clip: {error:?}"))?;
+    let recognized = whisper.enable_evidence_text();
+    let run = run_with_source(
+        config,
+        composition,
+        local_model,
+        whisper,
+        HouseAudioSource::Recorded(clip),
+        Some(SpokenOutput::WavArtifact { speech, artifact }),
+    )?;
+    let recognized_text = evidence_text(&recognized, "Whisper")?;
+    let response_text =
+        String::from_utf8(run.response.clone()).map_err(|_| "House model response is not UTF-8")?;
+    let spoken = run
+        .spoken
+        .ok_or("recorded House journey omitted output receipt")?;
+    let SpokenReceipt::WavArtifact {
+        speech_implementation_id,
+        source_pcm_frames,
+        target_pcm_frames,
+        pcm_bytes,
+        blocks,
+    } = spoken
+    else {
+        return Err("recorded House journey returned a playback receipt".into());
+    };
+    Ok(RecordedHouseWavJourneyReceipt {
+        house: run.house,
+        recognized_text,
+        response_text,
+        speech_implementation_id,
+        source_pcm_frames,
+        conversion_implementation_id: conduit_std_offers::AUDIO_CONVERT_PCM_IMPLEMENTATION.into(),
+        target_pcm_frames,
+        wav_pcm_bytes: pcm_bytes,
+        wav_blocks_written: blocks,
+    })
+}
+
+fn evidence_text(
+    evidence: &WhisperEvidenceText,
+    provider: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    String::from_utf8(
+        evidence
+            .bytes()
+            .map_err(|error| format!("{provider} evidence: {error}"))?,
+    )
+    .map_err(|_| format!("{provider} evidence is not UTF-8").into())
 }
 
 fn microphone_receipt(
@@ -208,7 +297,14 @@ fn run_with_source(
         }
     }
     if let Some(spoken) = spoken {
-        host.attach_piper_speech_and_playback(spoken.speech, spoken.playback)?;
+        match spoken {
+            SpokenOutput::Playback { speech, playback } => {
+                host.attach_piper_speech_and_playback(speech, playback)?;
+            }
+            SpokenOutput::WavArtifact { speech, artifact } => {
+                host.attach_piper_speech_and_wav_artifact(speech, artifact)?;
+            }
+        }
     }
     let spoken_output = host.speech_synthesis.is_some();
 
@@ -222,7 +318,11 @@ fn run_with_source(
         authority_grants.push(host.microphone_authority_grant("grant/microphone-house-proof")?);
     }
     if spoken_output {
-        authority_grants.push(host.playback_authority_grant("grant/spoken-house-playback")?);
+        authority_grants.push(if host.playback.is_some() {
+            host.playback_authority_grant("grant/spoken-house-playback")?
+        } else {
+            host.wav_artifact_authority_grant("grant/recorded-house-wav")?
+        });
     }
     let bases = [BaseImplementationId::from("conduit.base/local@1")];
     let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
@@ -241,7 +341,7 @@ fn run_with_source(
         },
         &connection_limits,
     )?;
-    let plan = if spoken_output {
+    let plan = if host.playback.is_some() {
         let playback = host
             .playback
             .as_ref()
@@ -297,27 +397,46 @@ fn run_with_source(
         if synthesis.text_sha256 != sha256(response) {
             return Err("spoken House synthesis input differs from the model response".into());
         }
-        let playback = report
-            .kernel
-            .as_ref()
-            .and_then(|kernel| kernel.playback.first())
-            .ok_or("spoken House Play omitted playback receipt")?;
         let target_pcm_frames = u64::from(synthesis.frames)
             .checked_mul(48_000)
             .and_then(|frames| frames.checked_add(22_049))
             .map(|frames| frames / 22_050)
             .ok_or("spoken House converted frame count overflowed")?;
-        if playback.metrics.frames_committed != target_pcm_frames {
-            return Err("spoken House playback frame extent differs from conversion".into());
+        let speech_implementation_id = synthesis.implementation_id.as_str().to_string();
+        if host.playback.is_some() {
+            let playback = report
+                .kernel
+                .as_ref()
+                .and_then(|kernel| kernel.playback.first())
+                .ok_or("spoken House Play omitted playback receipt")?;
+            if playback.metrics.frames_committed != target_pcm_frames {
+                return Err("spoken House playback frame extent differs from conversion".into());
+            }
+            Some(SpokenReceipt::Playback {
+                speech_implementation_id,
+                source_pcm_frames: synthesis.frames,
+                target_pcm_frames,
+                playback_resource_pool_id: playback.resource_pool_id.clone(),
+                playback_blocks_committed: u64::from(playback.metrics.blocks_committed),
+                playback_frames_committed: playback.metrics.frames_committed,
+            })
+        } else {
+            let wav = report
+                .kernel
+                .as_ref()
+                .and_then(|kernel| kernel.wav_artifacts.first())
+                .ok_or("spoken House Play omitted WAV artifact receipt")?;
+            if !wav.completed || u64::from(wav.frames) != target_pcm_frames {
+                return Err("spoken House WAV extent differs from conversion".into());
+            }
+            Some(SpokenReceipt::WavArtifact {
+                speech_implementation_id,
+                source_pcm_frames: synthesis.frames,
+                target_pcm_frames,
+                pcm_bytes: wav.pcm_bytes,
+                blocks: wav.blocks,
+            })
         }
-        Some(SpokenReceipt {
-            speech_implementation_id: synthesis.implementation_id.as_str().to_string(),
-            source_pcm_frames: synthesis.frames,
-            target_pcm_frames,
-            playback_resource_pool_id: playback.resource_pool_id.clone(),
-            playback_blocks_committed: u64::from(playback.metrics.blocks_committed),
-            playback_frames_committed: playback.metrics.frames_committed,
-        })
     } else {
         None
     };
@@ -335,6 +454,7 @@ fn run_with_source(
             response_bytes: u32::try_from(response.len())?,
             local_model_invocations: captured.invocations,
         },
+        response: response.clone(),
         microphone,
         spoken,
     })

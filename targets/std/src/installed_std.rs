@@ -137,6 +137,7 @@ mod toggle_operation;
 mod typed_record_operation;
 mod vector_search_host;
 mod vector_search_operation;
+mod wav_artifact_operation;
 mod whisper_speech_operation;
 
 pub(crate) use self::catalog::supports;
@@ -226,6 +227,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut speech_synthesis,
         mut speech_recognition,
         mut microphone,
+        wav_artifact,
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
@@ -526,6 +528,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let mut wav_artifact_sessions = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_offers::AUDIO_WAV_ARTIFACT_IMPLEMENTATION
+            {
+                wav_artifact_operation::prepare_session(placement, wav_artifact).map(Some)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     let mut midi_input_sessions = fragment
         .placements
         .iter()
@@ -620,6 +635,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 session
                     .stop()
                     .map_err(|error| format!("stop cancelled audio/play: {error:?}"))?;
+            } else if cancelled_operation.contract_id.as_str()
+                == wav_artifact_operation::HOST_OPERATION
+            {
+                // The incomplete artifact is never finalized on cancellation.
             } else if matches!(
                 cancelled_operation.contract_id.as_str(),
                 http::CLIENT_OPERATION
@@ -1535,6 +1554,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 scheduler
                     .complete_host_operation(request.node, request.request, outcome)
                     .map_err(|error| format!("complete audio/play host operation: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == wav_artifact_operation::HOST_OPERATION {
+                let session = wav_artifact_sessions
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "WAV artifact request has no exact admitted session".to_string()
+                    })?;
+                let outcome = wav_artifact_operation::execute(session, input);
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete WAV artifact host operation: {error:?}"))?;
                 continue;
             } else if contract.as_str() == pcm_profile_conversion_operation::HOST_OPERATION {
                 let host = pcm_conversion_hosts
@@ -2686,6 +2718,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .flatten()
         .map(crate::hosted_audio::PlaybackSession::report)
         .collect();
+    let wav_artifacts = wav_artifact_sessions
+        .iter()
+        .flatten()
+        .map(crate::hosted_wav_artifact::WavArtifactSession::report)
+        .collect();
     for session in midi_input_sessions.iter_mut().flatten() {
         if session.report().lifecycle == crate::hosted_midi::MidiInputLifecycle::Open {
             session.cancel();
@@ -2727,6 +2764,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids,
             playback,
+            wav_artifacts,
             midi_input,
             midi_output,
             identity: execution_identity,

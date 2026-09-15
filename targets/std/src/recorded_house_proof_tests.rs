@@ -181,6 +181,77 @@ fn addressed_recorded_clip_reaches_the_model_in_one_plan_play() {
 }
 
 #[test]
+fn addressed_recorded_clip_is_spoken_to_a_bounded_wav_in_the_same_play() {
+    use crate::hosted_speech::{PiperDiscovery, PiperLimits};
+    use crate::hosted_wav_artifact::WavArtifactSelection;
+
+    let root =
+        std::env::temp_dir().join(format!("conduit-recorded-house-wav-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir(&root).unwrap();
+    let (whisper, whisper_root) =
+        whisper_fixture("Rosehip House, what is the temperature upstairs?", "wav");
+    let executable = root.join("piper");
+    let model = root.join("voice.onnx");
+    let config = root.join("voice.onnx.json");
+    fs::write(
+        &executable,
+        "#!/bin/sh\ncat >/dev/null\ndd if=/dev/zero bs=1 count=678 2>/dev/null\n",
+    )
+    .unwrap();
+    fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::write(&model, b"bounded piper model").unwrap();
+    fs::write(&config, br#"{"audio":{"sample_rate":22050}}"#).unwrap();
+    let speech = PiperDiscovery::inspect(&executable, &model, &config, None)
+        .unwrap()
+        .initialize(PiperLimits {
+            maximum_text_bytes: conduit_tongues::MAXIMUM_TEXT_BYTES,
+            maximum_frames: conduit_tongues::MAXIMUM_PCM_BYTES.div_ceil(2),
+            maximum_blocks: conduit_std_offers::PIPER_MAXIMUM_BLOCKS,
+            timeout: Duration::from_secs(2),
+        })
+        .unwrap();
+    let destination = root.join("answer.wav");
+    let receipt = run_recorded_with_wav(
+        StdHostConfig {
+            host_id: HostId::from("recorded-house-wav-host"),
+            boot_id: BootId::from("recorded-house-wav-boot"),
+            offer_generation: OfferGeneration(1),
+        },
+        StdHostComposition::minimal(),
+        Box::new(FakeModel {
+            offer: local_offer(),
+            calls: Arc::new(AtomicUsize::new(0)),
+        }),
+        whisper,
+        crate::installed_std::test_local_model_io::recorded_house_audio_clip().unwrap(),
+        speech,
+        WavArtifactSelection::new(
+            &destination,
+            BootId::from("recorded-house-wav-boot"),
+            OfferGeneration(1),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        receipt.recognized_text,
+        "Rosehip House, what is the temperature upstairs?"
+    );
+    assert_eq!(receipt.response_text, "The upstairs temperature is 21 C.");
+    assert_eq!(receipt.source_pcm_frames, 339);
+    assert_eq!(receipt.target_pcm_frames, 738);
+    assert_eq!(receipt.wav_pcm_bytes, 738 * 4);
+    assert_eq!(fs::read(&destination).unwrap().len(), 44 + 738 * 4);
+    assert_eq!(
+        &fs::read(&destination).unwrap()[..12],
+        b"RIFF\xac\x0b\0\0WAVE"
+    );
+    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(whisper_root).unwrap();
+}
+
+#[test]
 fn unaddressed_recorded_clip_never_invokes_the_model() {
     let (whisper, root) = whisper_fixture("What is the temperature upstairs?", "unaddressed");
     let calls = Arc::new(AtomicUsize::new(0));

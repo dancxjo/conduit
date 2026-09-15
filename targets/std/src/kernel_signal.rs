@@ -755,6 +755,7 @@ fn run_signal_profile<
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids,
             playback: Vec::new(),
+            wav_artifacts: Vec::new(),
             midi_input: Vec::new(),
             midi_output: Vec::new(),
             identity: execution_identity,

@@ -77,6 +77,7 @@ use super::timing_operations::{DebounceOperation, TimeoutOperation};
 use super::toggle_operation::StateToggleOperation;
 use super::typed_record_operation::TypedRecordOperation;
 use super::vector_search_operation::VectorSearchOperation;
+use super::wav_artifact_operation::WavArtifactOperation;
 use conduit_kernel::{Failure, FailureCode, OperationAction};
 
 pub(super) enum InstalledOperation {
@@ -146,6 +147,7 @@ pub(super) enum InstalledOperation {
     SpeechSynthesis(SpeechSynthesisOperation),
     AudioRenderDemand(AudioRenderDemandOperation),
     AudioPlay(AudioPlayOperation),
+    WavArtifact(WavArtifactOperation),
     PcmProfileConversion(PcmProfileConversionOperation),
     MidiOutput(MidiOutputOperation),
     MidiInput(Box<MidiInputOperation>),

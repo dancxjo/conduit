@@ -37,3 +37,16 @@ pub struct SpokenMicrophoneHouseProofReceipt {
     pub playback_blocks_committed: u64,
     pub playback_frames_committed: u64,
 }
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct RecordedHouseWavJourneyReceipt {
+    pub house: RecordedHouseProofReceipt,
+    pub recognized_text: String,
+    pub response_text: String,
+    pub speech_implementation_id: String,
+    pub source_pcm_frames: u32,
+    pub conversion_implementation_id: String,
+    pub target_pcm_frames: u64,
+    pub wav_pcm_bytes: u32,
+    pub wav_blocks_written: u16,
+}

@@ -206,6 +206,11 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
     {
         verify_conduitos_console(&root, &manifest, &request.commit)?;
     }
+    if request.result == ExpectedEvidenceResult::Complete
+        && request.proof_id == "journey-hears-speaks"
+    {
+        verify_hears_speaks(&root, &manifest)?;
+    }
 
     reject_undeclared_files(&root, &root, &paths)?;
     println!(
@@ -232,6 +237,73 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
             })
             .collect(),
     })
+}
+
+fn verify_hears_speaks(root: &Path, manifest: &Manifest) -> Result<(), String> {
+    let expected = [
+        (
+            "hears-speaks.input-pcm",
+            EvidenceKind::Audio,
+            "audio/L16; rate=16000; channels=1",
+        ),
+        ("hears-speaks.input-wav", EvidenceKind::Audio, "audio/wav"),
+        (
+            "hears-speaks.recognition",
+            EvidenceKind::MachineReadableManifest,
+            "application/json",
+        ),
+        (
+            "hears-speaks.response",
+            EvidenceKind::MachineReadableManifest,
+            "application/json",
+        ),
+        ("hears-speaks.output-wav", EvidenceKind::Audio, "audio/wav"),
+        (
+            "hears-speaks.receipt",
+            EvidenceKind::MachineReadableManifest,
+            "application/json",
+        ),
+    ];
+    if manifest.outputs.len() != expected.len() {
+        return Err("complete hears/speaks evidence must contain exactly six outputs".into());
+    }
+    for (id, kind, media_type) in expected {
+        let output = manifest
+            .outputs
+            .iter()
+            .find(|output| output.id == id)
+            .ok_or_else(|| format!("complete hears/speaks evidence is missing '{id}'"))?;
+        if !output.required
+            || output.kind != kind
+            || output.media_type != media_type
+            || output.provenance.scenario_id != "hears-speaks.recorded-addressed-house@1"
+            || output.provenance.proof_class.as_deref() != Some("hosted-recorded-audio-plan-play")
+            || output.provenance.asserted_semantic_disposition.as_deref() != Some("completed")
+            || [
+                output.provenance.plan_id.as_deref(),
+                output.provenance.active_play_id.as_deref(),
+            ]
+            .into_iter()
+            .any(|value| value.is_none_or(str::is_empty))
+        {
+            return Err(format!(
+                "hears/speaks output '{id}' lacks exact typed provenance"
+            ));
+        }
+    }
+    for id in ["hears-speaks.input-wav", "hears-speaks.output-wav"] {
+        let output = manifest
+            .outputs
+            .iter()
+            .find(|output| output.id == id)
+            .unwrap();
+        let bytes = fs::read(root.join(&output.path))
+            .map_err(|error| format!("read hears/speaks WAV: {error}"))?;
+        if bytes.len() < 44 || &bytes[..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
+            return Err(format!("hears/speaks output '{id}' is not a bounded WAV"));
+        }
+    }
+    Ok(())
 }
 
 fn verify_conduitos_console(root: &Path, manifest: &Manifest, commit: &str) -> Result<(), String> {

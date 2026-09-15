@@ -99,6 +99,29 @@ This runs QEMU and writes the manifest and checkpoint PNGs under
 [visual evidence guide](visual-evidence.md) explains their provenance. A local
 run does not publish or replace the accepted gallery.
 
+## Hear and answer with local providers
+
+With already-local Whisper, Ollama, and Piper providers, retain one addressed
+recording and its synthesized answer as bounded journey evidence:
+
+```bash
+cargo xtask host journey-hears-speaks \
+  --whisper-executable /path/to/whisper-cli \
+  --whisper-model /path/to/ggml-model.bin \
+  --pcm-s16le-16000-mono /path/to/question.pcm \
+  --ollama-model model:tag --admitted-memory-mib 8192 \
+  --piper-executable /path/to/piper \
+  --piper-model /path/to/voice.onnx \
+  --piper-config /path/to/voice.onnx.json
+```
+
+The command refuses an existing output directory and removes its newly created
+directory if any provider or proof step fails. On success,
+`target/journeys/hears-speaks/` contains the raw and WAV input, recognition and
+response JSON, the exact same-Play receipt, the synthesized output WAV, and a
+digest-bound evidence manifest. This is hosted-provider evidence from one
+recorded clip; it is not live-microphone, browser, emulator, or physical proof.
+
 ## Explore distributed execution
 
 ```bash
