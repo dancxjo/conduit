@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const checkpoints = [
-  "front-door-ready", "body-awake", "quiescent-awaiting-input",
+  "front-door-ready", "body-awake", "host-current-offers", "quiescent-awaiting-input",
   "input-continued", "patchbay-current-canvas", "patchbay-edit-requested", "patchbay-presenters-replanned",
   "resident-tour-result", "memory-listening", "canvas-retained", "memory-cleared",
   "patchbay-current-canvas-returned", "memory-retained", "lulled", "usb-line-current", "peer-attached", "line-value-visible",
@@ -30,6 +30,7 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.match(page, /What the harness proves/);
     assert.match(page, /Concepts in view/);
     assert.match(page, /src="front-door-ready\.png"/);
+    assert.match(page, /src="host-current-offers\.png"/);
     assert.match(page, /src="quiescent-awaiting-input\.png"/);
     assert.match(page, /src="input-continued\.png"/);
     assert.match(page, /structural drain remains distinct from semantic completion/);

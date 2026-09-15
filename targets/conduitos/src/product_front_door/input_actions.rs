@@ -126,8 +126,18 @@ pub(super) fn resident_application_action(
     usage: u8,
     view: &ApplicationView,
 ) -> Option<&ApplicationAction> {
-    tour_action(usage)
+    let patchbay_action = match usage {
+        super::F10 => Some(patchbay_application::INSPECT_NEXT_ACTION_ID),
+        super::F11 => Some(patchbay_application::EDIT_CURRENT_ACTION_ID),
+        super::F1 => Some(patchbay_application::CHANGE_PRESENTERS_ACTION_ID),
+        _ => None,
+    };
+    patchbay_action
         .and_then(|action_id| view.actions.iter().find(|action| action.id == action_id))
+        .or_else(|| {
+            tour_action(usage)
+                .and_then(|action_id| view.actions.iter().find(|action| action.id == action_id))
+        })
         .or_else(|| {
             let compatibility_index = match usage {
                 super::F10 => 0,
@@ -176,5 +186,57 @@ mod tests {
             resident_application_action(super::super::F10, &view).map(|action| action.id.as_str()),
             Some(conduit_tour_model::RUN_ACTION_ID)
         );
+    }
+
+    #[test]
+    fn resident_patchbay_keys_select_semantic_actions_after_form_actions() {
+        let mut actions = (0..4)
+            .map(|index| ApplicationAction {
+                id: format!(
+                    "{}{}",
+                    patchbay_application::SELECT_FORM_ACTION_PREFIX,
+                    index
+                ),
+                event: ApplicationEventKind::Activate,
+            })
+            .collect::<Vec<_>>();
+        actions.extend([
+            ApplicationAction {
+                id: patchbay_application::INSPECT_NEXT_ACTION_ID.to_string(),
+                event: ApplicationEventKind::Activate,
+            },
+            ApplicationAction {
+                id: patchbay_application::EDIT_CURRENT_ACTION_ID.to_string(),
+                event: ApplicationEventKind::Activate,
+            },
+            ApplicationAction {
+                id: patchbay_application::CHANGE_PRESENTERS_ACTION_ID.to_string(),
+                event: ApplicationEventKind::Activate,
+            },
+        ]);
+        let view = ApplicationView {
+            revision: 1,
+            nodes: vec![],
+            actions,
+        };
+        for (usage, expected) in [
+            (
+                super::super::F10,
+                patchbay_application::INSPECT_NEXT_ACTION_ID,
+            ),
+            (
+                super::super::F11,
+                patchbay_application::EDIT_CURRENT_ACTION_ID,
+            ),
+            (
+                super::super::F1,
+                patchbay_application::CHANGE_PRESENTERS_ACTION_ID,
+            ),
+        ] {
+            assert_eq!(
+                resident_application_action(usage, &view).map(|action| action.id.as_str()),
+                Some(expected)
+            );
+        }
     }
 }
