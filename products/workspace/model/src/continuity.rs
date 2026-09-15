@@ -15,11 +15,13 @@ impl WorkspaceBody {
         boot: &BootId,
     ) -> Result<Self, WorkspaceBodyError> {
         evidence.validate().map_err(WorkspaceBodyError::Biography)?;
-        let mut parts = evidence
-            .membership
-            .parts
-            .iter()
-            .filter(|part| part.state == MembershipState::Admitted);
+        let mut parts = evidence.membership.parts.iter().filter(|part| {
+            part.state == MembershipState::Admitted
+                && part
+                    .current
+                    .as_ref()
+                    .is_some_and(|current| &current.host_id == host)
+        });
         let part = parts.next().ok_or(WorkspaceBodyError::StaleHost)?;
         if parts.next().is_some() {
             return Err(WorkspaceBodyError::StaleHost);
@@ -47,7 +49,30 @@ impl WorkspaceBody {
             Ok(sequence)
         };
         let mut membership = evidence.membership.clone();
-        let mut changes = Vec::with_capacity(2);
+        let mut changes = Vec::with_capacity(membership.parts.len() + 1);
+        let remote = membership
+            .parts
+            .iter()
+            .filter_map(|part| {
+                part.current
+                    .as_ref()
+                    .filter(|current| &current.host_id != host)
+                    .map(|current| (part.part_id.clone(), current.boot_id.clone()))
+            })
+            .collect::<Vec<_>>();
+        for (remote_part, remote_boot) in remote {
+            let at = next()?;
+            let detached = membership
+                .observe_offline(
+                    &evidence.body_id,
+                    membership.revision,
+                    &remote_part,
+                    &remote_boot,
+                    bind_sign(host, boot, None, at).sign_id,
+                )
+                .map_err(|_| WorkspaceBodyError::StaleHost)?;
+            changes.push((detached, at));
+        }
         let at = next()?;
         let detached = membership
             .observe_offline(

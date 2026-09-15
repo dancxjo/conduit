@@ -13,7 +13,9 @@
   <div class="workspace-shell">
     <header class="body-header">
       <a class="conduit-mark" href="../" aria-label="Conduit home"><span aria-hidden="true">c.</span> conduit</a>
-      <div class="body-heading"><h1 data-body-name>Your body</h1><span class="body-state" data-body-state>Opening…</span></div>
+      <div class="body-heading"><h1 data-body-name>Your body</h1><span class="body-state" data-body-state>Opening…</span>
+        <div class="membership-shortcuts"><button type="button" data-open-membership aria-controls="workspace-membership" aria-expanded="false" hidden>Parts / Hosts</button><button type="button" data-invite-host hidden>Invite</button></div>
+      </div>
 
     </header>
     <main>
@@ -36,6 +38,10 @@
       <section class="workspace-panel form-library-panel" id="workspace-library" aria-labelledby="library-title" hidden>
         <div class="panel-heading"><h2 id="library-title" tabindex="-1">Forms for your Body</h2><button type="button" data-close-library>Back to the surface</button></div>
         <div data-application-slot="workspace-form-library"></div>
+      </section>
+      <section class="workspace-panel membership-panel" id="workspace-membership" aria-labelledby="membership-title" hidden>
+        <div class="panel-heading"><h2 id="membership-title" tabindex="-1">Parts and Hosts</h2><button type="button" data-close-membership>Back to the surface</button></div>
+        <div data-membership-content></div>
       </section>
       <section class="workspace-panel" id="workspace-inspection" aria-labelledby="inspection-title" hidden>
         <div class="panel-heading"><h2 id="inspection-title" tabindex="-1">Inside this Form</h2><button type="button" data-close-inspection aria-label="Close inspection">Back to the surface <span aria-hidden="true">↗</span></button></div>

@@ -11,6 +11,21 @@ a new arrival first names its Body in the shared Crèche. Exact source and check
 identities accompany that handoff, and the consumed link cannot reinstall a Form
 after its removal.
 
+Use **Parts / Hosts** in the Body header to inspect canonical admitted Parts,
+current or offline Host presence, and exact evidence. **Invite** creates one
+Body-bound, single-use, ten-minute admission link. Opening it presents the Body
+and inviter before the receiving browser explicitly joins; creating or opening
+the link alone changes no membership. Successful admission records the new Part
+and authenticated Host presence as separate canonical events and survives reload.
+
+The deployed static application currently rendezvous through the browser's
+same-origin `BroadcastChannel`. This proves the journey with distinct browser
+Host identities in one browser storage partition; the inviting Workspace must
+remain open. Arbitrary remote-internet rendezvous is visibly unsupported. The
+link carries only the bounded invitation capability needed to sign that one
+admission, never the browser Host's durable signing key, Form authority, or
+ambient effect authority.
+
 Open the repository browser experience:
 
 ```sh

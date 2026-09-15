@@ -7,6 +7,7 @@ import { configureWorkspaceInput } from "./workspace-surface.mjs";
 import { openWorkspaceLibrary } from "./workspace-library.mjs";
 import { readWorkspaceHandoff, consumeWorkspaceHandoff } from "./workspace-handoff.mjs";
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
+import { openWorkspaceMembership, readBodyInvitation } from "./workspace-membership.mjs";
 
 export async function startApplication(application) {
   const root = document.querySelector('.workspace-shell');
@@ -25,8 +26,9 @@ export async function startApplication(application) {
     notice.dataset.disposition = 'refused';
   };
   try {
-    await acquireBrowserBodyContinuity();
-    const host = await initializeBrowserHost({ runtimeBytes: application.bytes('runtime') });
+    const invitation = readBodyInvitation(globalThis.location);
+    if (!invitation) await acquireBrowserBodyContinuity();
+    const host = await initializeBrowserHost({ runtimeBytes: application.bytes('runtime'), durable: !invitation });
     const session = openWorkspaceSession({ host, storage: application.storage });
     const source = application.text('reviewed-form-inventory');
     const inventory = readReviewedFormInventory(host.runtime, source);
@@ -40,7 +42,7 @@ export async function startApplication(application) {
       const chime = typeof window.AudioContext === 'function' ? inventory.forms.find(form => form.name === 'startup_chime') : null;
       selection = { selected: [scratch, chime].filter(Boolean), refusals: [] };
     }
-    await session.restore();
+    if (!invitation) await session.restore();
     if (handoff && !session.current()) {
       selection = openFormSelection(inventory, persistedFormSelection(inventory, selection.selected), handoff);
       await application.storage.writeJson('form-selection', persistedFormSelection(inventory, selection.selected));
@@ -50,7 +52,7 @@ export async function startApplication(application) {
     let selected = session.foreground()?.checked_form_id;
     let playback = { state: 'Lulled', detail: 'Its Forms can wake here.' };
     let play = null;
-    let library = null, editing = false;
+    let library = null, membership = null, editing = false;
     const bodyChanged = () => {
       saving = saving.then(() => session.save()).then(async () => {
         if (!session.current()?.here_part_id) {
@@ -74,6 +76,7 @@ export async function startApplication(application) {
     };
     const inspect = kind => {
       library?.hide();
+      membership && (membership.isOpen() ? membership.close() : null);
       const body = session.current();
       const form = inventory.forms.find(form => form.checked_form_id === selected);
       const evidence = session.evidence();
@@ -112,14 +115,20 @@ export async function startApplication(application) {
     };
     function render() {
       const body = session.current();
+      membership?.render();
       const arriving = !body || !body.here_part_id;
-      nursery.hidden = !arriving;
-      surface.hidden = arriving || !inspection.hidden || library?.isOpen();
-      activities.hidden = arriving;
-      strip.hidden = arriving;
+      const joining = membership?.isJoining();
+      nursery.hidden = !arriving || joining;
+      surface.hidden = arriving || !inspection.hidden || library?.isOpen() || membership?.isOpen();
+      activities.hidden = arriving || membership?.isOpen();
+      strip.hidden = arriving || membership?.isOpen();
       root.querySelector('[data-body-name]').textContent = body?.friendly_name ?? 'Your body starts here';
       root.querySelector('[data-body-state]').textContent = body ? body.state.toLowerCase() : 'Crèche';
-      if (arriving) {
+      if (arriving && joining) {
+        document.title = 'Body invitation · Conduit';
+        return;
+      }
+      if (arriving && !joining) {
         document.title = 'Birth your Body · Conduit';
         const slot = nursery.querySelector('[data-creche-content]');
         slot.replaceChildren(body
@@ -216,6 +225,14 @@ export async function startApplication(application) {
       presentationFor: application.presentationFor, onUse: useForm, onRemove: removeForm, onFailure: fail,
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
+    globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
+    membership = openWorkspaceMembership({ root, session, host, invitation,
+      async beforeAdmission() {
+        if (['Playing', 'Idle', 'Completed', 'Failed'].includes(playback.state)) await play?.lull();
+      },
+      onChanged: render,
+      onFailure: fail,
+    });
     wakeButton.addEventListener('click', () => play?.wake().catch(fail));
     lullButton.addEventListener('click', () => play?.lull().catch(fail));
     if (session.current()?.here_part_id) await session.arrive();
@@ -223,9 +240,8 @@ export async function startApplication(application) {
     if (handoff && session.current()?.here_part_id) {
       await consumeWorkspaceHandoff({ host, applicationId: application.manifest.applicationId });
       await useForm(handoff, session.current().workload_revision);
-    } else if (session.current()?.here_part_id && session.current().initial_forms.length) await play.wake();
+    } else if (!invitation && session.current()?.here_part_id && session.current().initial_forms.length) await play.wake();
     if (handoffFailure) fail(handoffFailure);
-    globalThis.addEventListener('pagehide', () => play?.close());
-    globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
+    globalThis.addEventListener('pagehide', () => { play?.close(); membership?.close(); });
   } catch (error) { fail(error); }
 }

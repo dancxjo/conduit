@@ -344,6 +344,30 @@ fn body_directed_invitation_is_secret_redacted_short_lived_and_single_use() {
 }
 
 #[test]
+fn portable_invitation_claim_is_deterministic_and_inspected_before_signing() {
+    let body = body();
+    let mut manager = AdmissionManager::new(body.body_id).unwrap();
+    let invitation = manager
+        .issue_spawn_invitation(
+            SpawnInvitationSecret::from_csprng_bytes([41; 32]).unwrap(),
+            [42; 32],
+            NOW,
+            EXPIRES,
+        )
+        .unwrap();
+    let claim = invitation.claim();
+    claim.inspect(NOW).unwrap();
+    assert_eq!(
+        serde_json::to_vec(&claim).unwrap(),
+        serde_json::to_vec(&claim).unwrap()
+    );
+    assert_eq!(claim.inspect(EXPIRES), Err(AdmissionRefusal::Expired));
+    let mut malformed = claim;
+    malformed.nonce = [0; 32];
+    assert_eq!(malformed.inspect(NOW), Err(AdmissionRefusal::StaleNonce));
+}
+
+#[test]
 fn spawn_invitations_are_distinct_at_the_same_instant_and_proof_attempts_are_bounded() {
     let body = body();
     let mut manager = AdmissionManager::new(body.body_id.clone()).unwrap();

@@ -1,6 +1,9 @@
 //! Workspace lifecycle orchestration. The existing browser Body slot executes.
-use conduit_body::{BodyBiographyEvidence, BodyPlayIdentity, ResidentForm, Wake};
-use conduit_core::{BootId, HostId};
+use conduit_body::{
+    AdmissionManager, BodyBiographyEvidence, BodyPlayIdentity, ResidentForm, SpawnAdmissionProof,
+    SpawnInvitationClaim, SpawnInvitationSecret, Wake,
+};
+use conduit_core::{BootId, HostAdvertisement, HostId};
 use conduit_workspace_model::WorkspaceBody;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -13,6 +16,7 @@ thread_local! {
     static INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; CAPACITY].into_boxed_slice());
     static OUTPUT: RefCell<Vec<u8>> = RefCell::new(Vec::with_capacity(CAPACITY));
     static BODY: RefCell<Option<WorkspaceBody>> = const { RefCell::new(None) };
+    static ADMISSIONS: RefCell<Option<AdmissionManager>> = const { RefCell::new(None) };
 }
 
 #[derive(Deserialize)]
@@ -21,8 +25,35 @@ enum Request {
     Arrive,
     Restore {
         evidence: BodyBiographyEvidence,
+        admission: Option<AdmissionManager>,
         host_id: HostId,
         boot_id: BootId,
+    },
+    OpenAdmitted {
+        evidence: BodyBiographyEvidence,
+        admission: AdmissionManager,
+        host_id: HostId,
+        boot_id: BootId,
+    },
+    Durable,
+    InspectInvitation {
+        claim: SpawnInvitationClaim,
+        now_millis: u64,
+    },
+    CreateInvitation {
+        host_id: HostId,
+        boot_id: BootId,
+        secret: Vec<u8>,
+        nonce: [u8; 32],
+        now_millis: u64,
+        expires_at_millis: u64,
+    },
+    AdmitInvitation {
+        host_id: HostId,
+        boot_id: BootId,
+        advertisement: HostAdvertisement,
+        proof: ReceivedSpawnProof,
+        now_millis: u64,
     },
     Current,
     SelectForm {
@@ -60,6 +91,17 @@ enum Request {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReceivedSpawnProof {
+    invitation_id: conduit_body::SpawnInvitationId,
+    body_id: conduit_body::BodyId,
+    host_id: HostId,
+    boot_id: BootId,
+    nonce: [u8; 32],
+    signature: Vec<u8>,
+}
+
+#[derive(Deserialize)]
 enum WorksetEdit {
     Install,
     Remove,
@@ -72,6 +114,14 @@ struct Snapshot<'a> {
     realization: Option<&'a conduit_workspace_model::WorkspaceRealization>,
     foreground: Option<&'a ResidentForm>,
     foreground_flow: String,
+}
+
+#[derive(Serialize)]
+struct DurableSnapshot<'a> {
+    schema: &'static str,
+    evidence: &'a BodyBiographyEvidence,
+    admission: &'a AdmissionManager,
+    foreground: Option<&'a ResidentForm>,
 }
 
 #[no_mangle]
@@ -131,13 +181,17 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 }
                 let evidence = crate::creche::workspace_evidence()?;
                 let body = WorkspaceBody::open(evidence).map_err(debug)?;
+                let admissions = AdmissionManager::new(body.evidence().body_id.clone())
+                    .map_err(|error| Refusal::new("Admission.Initialize", format!("{error:?}")))?;
                 let bytes = snapshot(&body)?;
                 crate::creche::handoff_workspace();
                 *slot = Some(body);
+                ADMISSIONS.with(|state| *state.borrow_mut() = Some(admissions));
                 return Ok(bytes);
             }
             Request::Restore {
                 evidence,
+                admission,
                 host_id,
                 boot_id,
             } => {
@@ -146,9 +200,34 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 }
                 let body =
                     WorkspaceBody::resume_here(evidence, &host_id, &boot_id).map_err(debug)?;
+                let admissions = admission.unwrap_or(AdmissionManager::new(body.evidence().body_id.clone())
+                    .map_err(|error| Refusal::new("Admission.Initialize", format!("{error:?}")))?);
+                if admissions.body_id != body.evidence().body_id {
+                    return Err(Refusal::new(
+                        "Admission.WrongBody",
+                        "Retained admission state names another Body",
+                    ));
+                }
                 let bytes = snapshot(&body)?;
                 *slot = Some(body);
+                ADMISSIONS.with(|state| *state.borrow_mut() = Some(admissions));
                 return Ok(bytes);
+            }
+            Request::OpenAdmitted { evidence, admission, host_id, boot_id } => {
+                if slot.is_some() { return Err("Workspace already has a Body".into()); }
+                if admission.body_id != evidence.body_id {
+                    return Err(Refusal::new("Admission.WrongBody", "Admission state names another Body"));
+                }
+                let body = WorkspaceBody::open_admitted(evidence, &host_id, &boot_id).map_err(debug)?;
+                let bytes = snapshot(&body)?;
+                *slot = Some(body);
+                ADMISSIONS.with(|state| *state.borrow_mut() = Some(admission));
+                return Ok(bytes);
+            }
+            Request::InspectInvitation { claim, now_millis } => {
+                claim.inspect(now_millis).map_err(|error| Refusal::new(
+                    &format!("Admission.{error:?}"), "Invitation is malformed, stale, or expired"))?;
+                return encode(&claim);
             }
             _ => {}
         }
@@ -156,6 +235,55 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         let mut candidate = current.clone();
         match request {
             Request::Current => return snapshot(current),
+            Request::Durable => return ADMISSIONS.with(|admissions| {
+                let admissions = admissions.borrow();
+                let admissions = admissions.as_ref().ok_or("Workspace admission state is missing")?;
+                encode(&DurableSnapshot { schema: "conduit.workspace/body@1", evidence: current.evidence(), admission: admissions, foreground: current.foreground() })
+            }),
+            Request::CreateInvitation { host_id, boot_id, secret, nonce, now_millis, expires_at_millis } => {
+                let secret = <[u8; 32]>::try_from(secret.as_slice())
+                    .map_err(|_| Refusal::new("Admission.WeakSecret", "Invitation secret must have exactly 32 bytes"))?;
+                let secret = SpawnInvitationSecret::from_csprng_bytes(secret)
+                    .map_err(|error| Refusal::new(&format!("Admission.{error:?}"), "Invitation entropy was refused"))?;
+                let claim = ADMISSIONS.with(|admissions| {
+                    let mut admissions = admissions.borrow_mut();
+                    let admissions = admissions.as_mut().ok_or("Workspace admission state is missing")?;
+                    current.issue_invitation(admissions, secret, nonce, now_millis, expires_at_millis, &host_id, &boot_id).map_err(debug)
+                })?;
+                return encode(&claim);
+            }
+            Request::AdmitInvitation { host_id, boot_id, advertisement, proof, now_millis } => {
+                let signature = <[u8; conduit_body::ADMISSION_SIGNATURE_BYTES]>::try_from(
+                    proof.signature.as_slice(),
+                )
+                .map_err(|_| Refusal::new("Admission.InvalidProof", "Admission signature has the wrong bound"))?;
+                let proof = SpawnAdmissionProof {
+                    invitation_id: proof.invitation_id,
+                    body_id: proof.body_id,
+                    host_id: proof.host_id,
+                    boot_id: proof.boot_id,
+                    nonce: proof.nonce,
+                    signature,
+                };
+                let mut next_admissions = ADMISSIONS.with(|admissions| {
+                    admissions
+                        .borrow()
+                        .clone()
+                        .ok_or("Workspace admission state is missing")
+                })?;
+                let credential = candidate.admit_invited_host(
+                    &mut next_admissions,
+                    &advertisement,
+                    &proof,
+                    now_millis,
+                    &host_id,
+                    &boot_id,
+                ).map_err(debug)?;
+                let response = encode(&serde_json::json!({ "schema": "conduit.workspace/admission-receipt@1", "credential": credential, "body": snapshot_value(&candidate)?, "durable": durable_value(&candidate, &next_admissions)? }))?;
+                *slot = Some(candidate);
+                ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
+                return Ok(response);
+            }
             Request::LibraryView {
                 source,
                 query,
@@ -250,7 +378,10 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .lull(&host_id, &boot_id, terminated_play.as_ref())
                     .map_err(debug)?;
             }
-            Request::Arrive | Request::Restore { .. } => {
+            Request::Arrive
+            | Request::Restore { .. }
+            | Request::OpenAdmitted { .. }
+            | Request::InspectInvitation { .. } => {
                 unreachable!("handled before current Body")
             }
         }
@@ -258,6 +389,28 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         *slot = Some(candidate);
         Ok(bytes)
     })
+}
+fn snapshot_value(body: &WorkspaceBody) -> Result<serde_json::Value, Refusal> {
+    serde_json::to_value(Snapshot {
+        schema: "conduit.workspace/body@1",
+        evidence: body.evidence(),
+        realization: body.realization(),
+        foreground: body.foreground(),
+        foreground_flow: body.foreground_flow(),
+    })
+    .map_err(|error| Refusal::new("EncodingFailure", error.to_string()))
+}
+fn durable_value(
+    body: &WorkspaceBody,
+    admissions: &AdmissionManager,
+) -> Result<serde_json::Value, Refusal> {
+    serde_json::to_value(DurableSnapshot {
+        schema: "conduit.workspace/body@1",
+        evidence: body.evidence(),
+        admission: admissions,
+        foreground: body.foreground(),
+    })
+    .map_err(|error| Refusal::new("EncodingFailure", error.to_string()))
 }
 
 fn snapshot(body: &WorkspaceBody) -> Result<Vec<u8>, Refusal> {
