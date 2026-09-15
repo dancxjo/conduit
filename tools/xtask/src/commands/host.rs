@@ -210,6 +210,13 @@ enum HostCommand {
     },
     /// Retain one recorded House question and synthesized answer as journey evidence.
     JourneyHearsSpeaks(host_hears_speaks::HearsSpeaksArgs),
+    /// Use one pinned, already-installed provider profile on forebrain or victus.
+    JourneyHearsSpeaksLocal {
+        #[arg(long)]
+        profile: PathBuf,
+        #[arg(long, default_value = "target/journeys/hears-speaks")]
+        output: PathBuf,
+    },
     /// Explicitly capture one bounded microphone clip and recognize it through Whisper.
     ProveMicrophoneWhisper {
         #[arg(long)]
@@ -352,6 +359,9 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             opts,
         ),
         HostCommand::JourneyHearsSpeaks(request) => host_hears_speaks::run(request, opts),
+        HostCommand::JourneyHearsSpeaksLocal { profile, output } => {
+            host_hears_speaks::run_local(&profile, output, opts)
+        }
         HostCommand::ProveMicrophoneWhisper {
             arecord_executable,
             card_id,

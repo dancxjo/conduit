@@ -15,7 +15,30 @@ use conduit_std_host::hosted_wav_artifact::WavArtifactSelection;
 use conduit_std_host::{StdHostComposition, StdHostConfig};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::Duration;
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LocalProviderProfile {
+    schema: String,
+    host: String,
+    whisper_executable: PathBuf,
+    whisper_executable_sha256: String,
+    whisper_model: PathBuf,
+    whisper_model_sha256: String,
+    pcm_s16le_16000_mono: PathBuf,
+    ollama_model: String,
+    ollama_model_content_identity: String,
+    admitted_memory_mib: u32,
+    piper_executable: PathBuf,
+    piper_executable_sha256: String,
+    piper_model: PathBuf,
+    piper_model_sha256: String,
+    piper_config: PathBuf,
+    piper_config_sha256: String,
+    piper_library_path: Option<PathBuf>,
+}
 
 #[derive(Args, Debug)]
 pub(super) struct HearsSpeaksArgs {
@@ -74,24 +97,41 @@ pub(super) fn run(
     let (clip, _, _) = encode_recorded_pcm(&raw)?;
     fs::write(request.output.join("input.pcm"), &raw)?;
     write_mono_wav(&request.output.join("input.wav"), &raw)?;
-    let whisper = WhisperDiscovery::inspect(&request.whisper_executable, &request.whisper_model)?
-        .initialize(WhisperLimits {
+    let whisper_discovery =
+        WhisperDiscovery::inspect(&request.whisper_executable, &request.whisper_model)?;
+    let whisper_identity = serde_json::json!({
+        "implementation": "whisper.cpp",
+        "executable_sha256": whisper_discovery.executable_sha256,
+        "model_sha256": whisper_discovery.model_sha256,
+        "model_bytes": whisper_discovery.model_bytes,
+    });
+    let whisper = whisper_discovery.initialize(WhisperLimits {
         maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
         maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
         threads: request.whisper_threads,
         timeout: Duration::from_secs(request.whisper_timeout_seconds),
     })?;
-    let local_model = OllamaDiscovery::discover(&request.ollama_model)?.initialize(
+    let local_model_discovery = OllamaDiscovery::discover(&request.ollama_model)?;
+    let local_model_identity = serde_json::to_value(&local_model_discovery)?;
+    let local_model = local_model_discovery.initialize(
         request.admitted_memory_mib,
         vec![LocalModelKindProfile::Generate],
     )?;
-    let speech = PiperDiscovery::inspect(
+    let piper_discovery = PiperDiscovery::inspect(
         &request.piper_executable,
         &request.piper_model,
         &request.piper_config,
         request.piper_library_path,
-    )?
-    .initialize(PiperLimits {
+    )?;
+    let piper_identity = serde_json::json!({
+        "implementation": "piper",
+        "executable_sha256": piper_discovery.executable_sha256,
+        "model_sha256": piper_discovery.model_sha256,
+        "config_sha256": piper_discovery.config_sha256,
+        "model_bytes": piper_discovery.model_bytes,
+        "sample_rate_hz": piper_discovery.sample_rate_hz,
+    });
+    let speech = piper_discovery.initialize(PiperLimits {
         maximum_text_bytes: conduit_tongues::MAXIMUM_TEXT_BYTES,
         maximum_frames: conduit_std_offers::PIPER_MAXIMUM_FRAMES,
         maximum_blocks: conduit_std_offers::PIPER_MAXIMUM_BLOCKS,
@@ -133,9 +173,22 @@ pub(super) fn run(
             "bytes": receipt.house.response_bytes,
         }))?,
     )?;
+    let mut retained_receipt = serde_json::to_value(&receipt)?;
+    retained_receipt
+        .as_object_mut()
+        .ok_or("journey receipt did not serialize as an object")?
+        .insert(
+            "providers".into(),
+            serde_json::json!({
+                "schema": "conduit.journey/hears-speaks-providers@1",
+                "whisper": whisper_identity,
+                "local_model": local_model_identity,
+                "piper": piper_identity,
+            }),
+        );
     fs::write(
         request.output.join("receipt.json"),
-        serde_json::to_vec_pretty(&receipt)?,
+        serde_json::to_vec_pretty(&retained_receipt)?,
     )?;
     write_manifest(
         &request.output,
@@ -152,6 +205,98 @@ pub(super) fn run(
             receipt.house.play_id,
             request.output.display()
         );
+    }
+    Ok(())
+}
+
+pub(super) fn run_local(
+    profile_path: &Path,
+    output: PathBuf,
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let profile: LocalProviderProfile = serde_json::from_slice(&fs::read(profile_path)?)?;
+    if profile.schema != "conduit.journey/hears-speaks-local-provider@1" {
+        return Err("unsupported Hears and Speaks local-provider profile".into());
+    }
+    let hostname = String::from_utf8(Command::new("hostname").output()?.stdout)?;
+    let hostname = hostname.trim().split('.').next().unwrap_or("");
+    if !matches!(hostname, "forebrain" | "victus") || hostname != profile.host {
+        return Err(format!(
+            "local provider profile is for '{}' but this admitted host is '{}'",
+            profile.host, hostname
+        )
+        .into());
+    }
+    let whisper = WhisperDiscovery::inspect(&profile.whisper_executable, &profile.whisper_model)?;
+    require_digest(
+        "Whisper executable",
+        &whisper.executable_sha256,
+        &profile.whisper_executable_sha256,
+    )?;
+    require_digest(
+        "Whisper model",
+        &whisper.model_sha256,
+        &profile.whisper_model_sha256,
+    )?;
+    let local_model = OllamaDiscovery::discover(&profile.ollama_model)?;
+    require_digest(
+        "Ollama model",
+        &local_model.model_content_identity,
+        &profile.ollama_model_content_identity,
+    )?;
+    let piper = PiperDiscovery::inspect(
+        &profile.piper_executable,
+        &profile.piper_model,
+        &profile.piper_config,
+        profile.piper_library_path.clone(),
+    )?;
+    require_digest(
+        "Piper executable",
+        &piper.executable_sha256,
+        &profile.piper_executable_sha256,
+    )?;
+    require_digest(
+        "Piper model",
+        &piper.model_sha256,
+        &profile.piper_model_sha256,
+    )?;
+    require_digest(
+        "Piper config",
+        &piper.config_sha256,
+        &profile.piper_config_sha256,
+    )?;
+    run(
+        HearsSpeaksArgs {
+            whisper_executable: profile.whisper_executable,
+            whisper_model: profile.whisper_model,
+            pcm_s16le_16000_mono: profile.pcm_s16le_16000_mono,
+            whisper_threads: 2,
+            whisper_timeout_seconds: 60,
+            ollama_model: profile.ollama_model,
+            admitted_memory_mib: profile.admitted_memory_mib,
+            piper_executable: profile.piper_executable,
+            piper_model: profile.piper_model,
+            piper_config: profile.piper_config,
+            piper_library_path: profile.piper_library_path,
+            piper_timeout_seconds: 60,
+            output,
+        },
+        opts,
+    )
+}
+
+fn require_digest(label: &str, actual: &str, expected: &str) -> Result<(), String> {
+    let actual = actual.strip_prefix("sha256:").unwrap_or(actual);
+    let expected = expected.strip_prefix("sha256:").unwrap_or(expected);
+    if expected.len() != 64 || !expected.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(format!(
+            "{label} profile identity is not one SHA-256 digest"
+        ));
+    }
+    if !actual.eq_ignore_ascii_case(expected) {
+        return Err(format!(
+            "{label} differs from the host-local pinned identity"
+        ));
     }
     Ok(())
 }

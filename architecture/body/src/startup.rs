@@ -81,12 +81,14 @@ impl BodyBiographyEvidence {
             return Err(BodyStartupRefusal::StalePlay);
         }
         let first_wake = self
-            .body
-            .events
-            .iter()
-            .find_map(|event| match event {
-                BodyLifecycleEvent::Woke { wake_id, .. } => Some(wake_id),
-                _ => None,
+            .compaction
+            .as_ref()
+            .map(|summary| &summary.first_wake_id)
+            .or_else(|| {
+                self.body.events.iter().find_map(|event| match event {
+                    BodyLifecycleEvent::Woke { wake_id, .. } => Some(wake_id),
+                    _ => None,
+                })
             })
             .ok_or(BodyStartupRefusal::MissingStartupEvidence)?;
         let wake_sign_id = wake

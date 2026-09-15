@@ -29,7 +29,7 @@ test("one Presentation manifests as retained native and pinned-browser faces",as
     expect(snapshot.presentation.identity).toBe(native.presentation_id);
     expect(snapshot.presentation.revision).toBe(native.presentation_revision);
     expect(snapshot.presentation.basis).toEqual(native.presentation_basis);
-    await expect(page.getByRole("heading",{name:"Entrance choices"})).toBeVisible();
+    await expect(page.getByRole("article",{name:"Openable Form Morse Network; not born"})).toBeVisible();
     await expect(page.locator("#flow-root")).toHaveAttribute("data-presentation-id",native.presentation_id);
     await page.screenshot({
       path:path.join(evidenceRoot,"browser.png"),

@@ -84,6 +84,60 @@ framing for both listenable files, and shared Plan/Play provenance. Publication
 and CI transport remain separate acceptance gates; a local complete manifest
 does not itself make an exhibit current or accepted.
 
+Provider-backed audio is deliberately a host-local rung on `forebrain` and
+`victus`, not a reason to copy multi-gigabyte model stores into ordinary CI.
+Create a private JSON profile on each machine and run:
+
+```sh
+cargo xtask host journey-hears-speaks-local --locked \
+  --profile /absolute/path/hears-speaks-provider.json \
+  --output target/journeys/hears-speaks
+```
+
+The profile schema is `conduit.journey/hears-speaks-local-provider@1`. It names
+the exact host, already-installed Whisper executable and model, input PCM,
+already-local Ollama model, admitted memory, and already-installed Piper
+executable, voice, config, and optional library directory. Each executable,
+model, voice, and config entry has a corresponding SHA-256 field; the Ollama
+entry uses `ollama_model_content_identity`. The entrance accepts only
+`forebrain` or `victus`, verifies every declared digest before starting, and
+uses provider discovery that refuses an absent Ollama model. It contains no
+download or fallback path. This follows Tongues' separation between small
+checked-in contracts and locally installed, checksum-identified model assets;
+the license of a provider executable never implies the license of its weights.
+
+The retained `receipt.json` records the discovered Whisper executable/model,
+Ollama runtime/model, and Piper executable/voice/config identities. Thus the
+same six-output evidence format proves which locally installed provider bundle
+actually ran without publishing that bundle. Use a separately reviewed local
+profile on each host; copying a profile between machines is intentionally
+refused by its exact `host` field.
+
+After a release head has passed promotion, an operator may admit the small
+evidence directory without uploading any provider assets:
+
+```sh
+tar -C target/journeys/hears-speaks -czf hears-speaks.tar.gz \
+  input.pcm input.wav recognition.json response.json output.wav receipt.json manifest.json
+sha256sum hears-speaks.tar.gz
+gh release create "journey-evidence/$ACCEPTED_SOURCE_SHA" \
+  hears-speaks.tar.gz --target "$ACCEPTED_SOURCE_SHA" \
+  --title "Hears and Speaks evidence for $ACCEPTED_SOURCE_SHA"
+gh workflow run admit-hears-speaks.yml \
+  -f accepted_source_sha="$ACCEPTED_SOURCE_SHA" \
+  -f promotion_run_id="$PROMOTION_RUN_ID" \
+  -f evidence_sha256="$ARCHIVE_SHA256"
+```
+
+The trusted default-branch workflow accepts only a successful promotion head
+whose tree equals current `main`, downloads that run's already-sealed complete
+Pages carrier, verifies the archive digest and exact evidence manifest, then
+reseals and deploys the full site with the audio gallery added. A later commit
+cannot reuse the archive because the manifest, release tag, promotion run, and
+accepted tree must all agree. The archive contains only the bounded outputs;
+Whisper, Ollama, Piper, and their model stores remain local to the machine that
+ran them.
+
 The bounded gallery publisher accepts a verified audio exhibit only through
 `cargo xtask evidence gallery --hears-speaks-evidence-root <directory>` and
 only when its manifest is bound to the same accepted commit as the other

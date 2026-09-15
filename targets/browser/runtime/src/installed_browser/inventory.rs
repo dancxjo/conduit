@@ -144,12 +144,15 @@ mod tests {
                 .iter()
                 .find(|offer| offer.implementation.implementation_id.as_str() == implementation)
                 .unwrap();
-            assert_eq!(offer.limits.max_active_instances, 16);
+            assert_eq!(
+                offer.limits.max_active_instances,
+                super::super::MAXIMUM_BROWSER_GEARS as u16
+            );
         }
         assert!(advertisement.resources.iter().any(|resource| {
             resource.pool_id.as_str() == "browser/window-input"
                 && resource.class_id.as_str() == super::super::input::WINDOW_INPUT_RESOURCE_CLASS
-                && resource.capacity_units == 16
+                && resource.capacity_units == super::super::MAXIMUM_BROWSER_GEARS as u32
         }));
         assert!(
             inventory
@@ -169,8 +172,8 @@ mod tests {
             .artifact_id
             .as_deref()
             .is_some_and(|identity| !identity.is_empty())));
-        assert_eq!(inventory.limits.maximum_gears, 16);
-        assert_eq!(inventory.limits.maximum_cords, 24);
+        assert_eq!(inventory.limits.maximum_gears, 32);
+        assert_eq!(inventory.limits.maximum_cords, 48);
         assert_eq!(inventory.limits.maximum_value_bytes, 4_096);
         assert_eq!(inventory.limits.total_value_bytes, 512 * 1_024);
         assert!(advertisement.capabilities.iter().all(|offer| {

@@ -24,13 +24,13 @@ thread_local! {
 enum Request {
     Arrive,
     Restore {
-        evidence: BodyBiographyEvidence,
+        evidence: Box<BodyBiographyEvidence>,
         admission: Option<AdmissionManager>,
         host_id: HostId,
         boot_id: BootId,
     },
     OpenAdmitted {
-        evidence: BodyBiographyEvidence,
+        evidence: Box<BodyBiographyEvidence>,
         admission: AdmissionManager,
         host_id: HostId,
         boot_id: BootId,
@@ -199,7 +199,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     return Err("Workspace already has a Body".into());
                 }
                 let body =
-                    WorkspaceBody::resume_here(evidence, &host_id, &boot_id).map_err(debug)?;
+                    WorkspaceBody::resume_here(*evidence, &host_id, &boot_id).map_err(debug)?;
                 let admissions = admission.unwrap_or(AdmissionManager::new(body.evidence().body_id.clone())
                     .map_err(|error| Refusal::new("Admission.Initialize", format!("{error:?}")))?);
                 if admissions.body_id != body.evidence().body_id {
@@ -218,7 +218,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 if admission.body_id != evidence.body_id {
                     return Err(Refusal::new("Admission.WrongBody", "Admission state names another Body"));
                 }
-                let body = WorkspaceBody::open_admitted(evidence, &host_id, &boot_id).map_err(debug)?;
+                let body = WorkspaceBody::open_admitted(*evidence, &host_id, &boot_id).map_err(debug)?;
                 let bytes = snapshot(&body)?;
                 *slot = Some(body);
                 ADMISSIONS.with(|state| *state.borrow_mut() = Some(admission));
