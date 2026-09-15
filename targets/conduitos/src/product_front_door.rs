@@ -2,7 +2,9 @@
 
 mod arrival;
 mod input_actions;
-use input_actions::{ProductControl, action_for, product_control, tour_action};
+use input_actions::{
+    ProductControl, action_for, product_control, resident_application_action, tour_action,
+};
 mod journey_sign;
 mod scroll_input;
 mod tour_sign;
@@ -370,15 +372,7 @@ pub fn run(
                     && matches!(event.usage(), F1 | F10 | F11)
                     && let Some(view) = journey.foreground_application_view().cloned()
                 {
-                    let action_index = match event.usage() {
-                        F10 => 0,
-                        F11 => 1,
-                        F1 => 2,
-                        _ => unreachable!(),
-                    };
-                    let action = view
-                        .actions
-                        .get(action_index)
+                    let action = resident_application_action(event.usage(), &view)
                         .ok_or("application-action-unavailable")?;
                     journey
                         .accept_application_event(&ApplicationEvent {

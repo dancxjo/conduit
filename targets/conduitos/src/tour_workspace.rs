@@ -393,7 +393,7 @@ mod tests {
         assert!(
             scene.commands()[1]
                 .payload()
-                .starts_with("A first Form\n\n")
+                .starts_with("One Program, Many Computers\n\n")
         );
         assert!(scene.commands()[7].payload().starts_with("Output\n\n"));
         assert!(scene.commands()[5].payload().ends_with("}"));

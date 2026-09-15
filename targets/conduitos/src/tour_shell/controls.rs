@@ -14,6 +14,16 @@ pub(super) fn inspector_close_bounds(width: u16) -> LayoutRect {
     }
 }
 
+pub(super) fn transient_close_bounds(width: u16, height: u16) -> LayoutRect {
+    let inset = crate::display::SPACE_MD;
+    LayoutRect {
+        x: width.saturating_sub(crate::display::ACTION_WIDTH + inset) as i16,
+        y: height.saturating_sub(crate::display::CONTROL_HEIGHT + inset) as i16,
+        width: crate::display::ACTION_WIDTH,
+        height: crate::display::CONTROL_HEIGHT,
+    }
+}
+
 impl TourShellPresenter {
     pub fn chooser_open_hit(
         &self,
