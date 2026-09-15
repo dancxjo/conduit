@@ -175,6 +175,7 @@ fn run_proof(evidence: &TourPlayEvidence) -> TourRunProof {
         result: evidence.result.into(),
         terminal: conduit_tour_model::TourRunTerminal::Completed,
         comparison: None,
+        multi_host: None,
     }
 }
 

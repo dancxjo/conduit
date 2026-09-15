@@ -25,12 +25,23 @@ pub struct TourRunProof {
     pub result: String,
     pub terminal: TourRunTerminal,
     pub comparison: Option<TourComparisonProof>,
+    pub multi_host: Option<TourMultiHostProof>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TourComparisonProof {
     pub expanded_form_id: ExpandedFormId,
     pub plan_id: PlanId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TourMultiHostProof {
+    pub source_fragment_id: String,
+    pub sink_fragment_id: String,
+    pub source_active_play_id: String,
+    pub sink_active_play_id: String,
+    pub line_id: String,
+    pub transferred_values: u32,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -49,6 +60,7 @@ pub enum TourWorkspaceRefusal {
     WrongResult,
     MissingExpectedResult,
     MissingComparison,
+    MissingMultiHostProof,
     MissingIdentity,
     RevisionExhausted,
     Chapter(TourApplicationRefusal),
@@ -67,6 +79,7 @@ impl TourWorkspaceRefusal {
             Self::WrongResult => "wrong-result",
             Self::MissingExpectedResult => "missing-expected-result",
             Self::MissingComparison => "missing-comparison",
+            Self::MissingMultiHostProof => "missing-multi-host-proof",
             Self::MissingIdentity => "missing-identity",
             Self::RevisionExhausted => "revision-exhausted",
             Self::Chapter(_) => "chapter-navigation-refused",
@@ -235,6 +248,13 @@ impl TourWorkspaceController {
         if stage.mode == crate::TourStageMode::Compare && proof.comparison.is_none() {
             return Err(TourWorkspaceRefusal::MissingComparison);
         }
+        if matches!(
+            stage.mode,
+            crate::TourStageMode::TwoHost | crate::TourStageMode::TwoHostPlan
+        ) && proof.multi_host.is_none()
+        {
+            return Err(TourWorkspaceRefusal::MissingMultiHostProof);
+        }
         if [
             proof.source_document_id.as_str(),
             proof.checked_form_id.as_str(),
@@ -250,6 +270,24 @@ impl TourWorkspaceController {
             })
         {
             return Err(TourWorkspaceRefusal::MissingIdentity);
+        }
+        if proof.comparison.as_ref().is_some_and(|comparison| {
+            comparison.expanded_form_id == proof.expanded_form_id
+                || comparison.plan_id == proof.plan_id
+        }) {
+            return Err(TourWorkspaceRefusal::MissingComparison);
+        }
+        if proof.multi_host.as_ref().is_some_and(|multi| {
+            multi.source_fragment_id.is_empty()
+                || multi.sink_fragment_id.is_empty()
+                || multi.source_active_play_id.is_empty()
+                || multi.sink_active_play_id.is_empty()
+                || multi.line_id.is_empty()
+                || multi.source_fragment_id == multi.sink_fragment_id
+                || multi.source_active_play_id == multi.sink_active_play_id
+                || multi.transferred_values != 1
+        }) {
+            return Err(TourWorkspaceRefusal::MissingMultiHostProof);
         }
         self.apply_progress(match proof.terminal {
             TourRunTerminal::Completed => TourApplicationAction::Complete,
@@ -367,6 +405,7 @@ mod tests {
             result: CANONICAL_RESULT.to_string(),
             terminal: TourRunTerminal::Completed,
             comparison: None,
+            multi_host: None,
         }
     }
 

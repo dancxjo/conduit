@@ -49,6 +49,7 @@ impl ProductJourney {
                     result: evidence.result.into(),
                     terminal: conduit_tour_model::TourRunTerminal::Completed,
                     comparison: None,
+                    multi_host: None,
                 },
             )
             .map_err(JourneyError::Play)?;

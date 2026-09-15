@@ -19,6 +19,7 @@ fn proof_from_manifestation(
         result: expected.into(),
         terminal: conduit_tour_model::TourRunTerminal::Stopped,
         comparison: None,
+        multi_host: None,
     })
 }
 
@@ -68,6 +69,7 @@ fn run_direct_comparison(
         result: expected.into(),
         terminal: conduit_tour_model::TourRunTerminal::Completed,
         comparison: None,
+        multi_host: None,
     };
     Ok((proof, direct_segments, direct_unit_millis))
 }
@@ -128,8 +130,33 @@ fn run_resident_tour(chapter: u8, stage_index: u8) -> Result<TourRunProof, Strin
         conduit_tour_model::TourStageMode::Run if chapter == 2 => {
             run_resident_timer(stage, &source)
         }
+        conduit_tour_model::TourStageMode::TwoHost
+        | conduit_tour_model::TourStageMode::TwoHostPlan => run_resident_multi(stage, &source),
         _ => Err("resident browser Host does not yet implement this exact Tour stage".into()),
     }
+}
+
+#[inline(never)]
+fn run_resident_multi(
+    stage: &conduit_tour_model::TourStage,
+    source: &str,
+) -> Result<TourRunProof, String> {
+    let expected = stage
+        .expected_text
+        .ok_or("resident Tour two-Host stage has no exact expected text")?;
+    let multi = super::multihost::run_resident(source)?;
+    let mut proof = proof_from_manifestation(&multi.manifestation, stage.identity, expected)
+        .ok_or("resident Tour sink Host produced the wrong exact value")?;
+    proof.terminal = conduit_tour_model::TourRunTerminal::Completed;
+    proof.multi_host = Some(conduit_tour_model::TourMultiHostProof {
+        source_fragment_id: multi.source_fragment_id,
+        sink_fragment_id: multi.sink_fragment_id,
+        source_active_play_id: multi.source_active_play_id,
+        sink_active_play_id: multi.sink_active_play_id,
+        line_id: multi.line_id,
+        transferred_values: multi.transferred_values,
+    });
+    Ok(proof)
 }
 
 #[inline(never)]
@@ -364,7 +391,7 @@ mod tests {
     }
 
     #[test]
-    fn browser_resident_tour_compares_realizations_and_refuses_an_unimplemented_stage() {
+    fn browser_resident_tour_runs_later_exact_exercises() {
         let proof = run_resident_tour(1, 0).unwrap();
         assert_eq!(proof.specimen_id, "canonical-form:same-morse-caller");
         assert_eq!(proof.result, "Direct and recursive realizations agree");
@@ -377,9 +404,20 @@ mod tests {
         assert_eq!(timed.result, "1");
         assert_eq!(timed.terminal, conduit_tour_model::TourRunTerminal::Stopped);
 
+        for stage in 0..=1 {
+            let across = run_resident_tour(3, stage).unwrap();
+            assert_eq!(across.specimen_id, "canonical-form:hello-across");
+            assert_eq!(across.result, "hello across one Cord");
+            let multi = across.multi_host.unwrap();
+            assert_ne!(multi.source_fragment_id, multi.sink_fragment_id);
+            assert_ne!(multi.source_active_play_id, multi.sink_active_play_id);
+            assert!(!multi.line_id.is_empty());
+            assert_eq!(multi.transferred_values, 1);
+        }
+
         assert_eq!(
-            run_resident_tour(3, 0),
-            Err("resident browser Host does not yet implement this exact Tour stage".into())
+            run_resident_tour(4, 0),
+            Err("resident Tour requested an unknown exact stage".into())
         );
     }
 }
