@@ -60,6 +60,7 @@ pub(crate) fn action() -> ApplicationAction {
 pub(crate) fn append_nodes(
     topology: &PatchbayPresenterTopology,
     nodes: &mut Vec<ApplicationViewNode>,
+    action: u8,
 ) {
     nodes.push(node(
         ApplicationComponent::Heading,
@@ -130,7 +131,7 @@ pub(crate) fn append_nodes(
         label,
         "",
         0,
-        Some(1),
+        Some(action),
     ));
 }
 
