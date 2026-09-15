@@ -173,6 +173,7 @@ fn run_proof(evidence: &TourPlayEvidence) -> TourRunProof {
         plan_id: evidence.plan_id.clone(),
         active_play_id: evidence.active_play_id.clone(),
         result: evidence.result.into(),
+        terminal: conduit_tour_model::TourRunTerminal::Completed,
     }
 }
 

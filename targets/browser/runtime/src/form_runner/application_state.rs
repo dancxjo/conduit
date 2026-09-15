@@ -4,32 +4,70 @@ use conduit_body::BodyPlan;
 use conduit_core::{ActivePlayId, ConfigurationValue, PlannedGear};
 use conduit_tour_model::{TourApplicationPort, TourRunProof, TourWorkspaceRequest};
 
-fn run_canonical_tour() -> Result<TourRunProof, String> {
-    let (mut session, effect) = super::TourSession::prepare(
-        "browser/resident-tour",
-        "boot/resident-tour",
-        conduit_tour_model::CANONICAL_SOURCE,
-        1,
-    )?;
-    let super::TourHostEffect::Manifestation(effect) = effect else {
-        return Err("canonical Tour run did not produce its planned manifestation".into());
-    };
-    if effect.text.as_deref() != Some(conduit_tour_model::CANONICAL_RESULT) {
-        return Err("canonical Tour run produced the wrong manifestation".into());
-    }
-    let proof = TourRunProof {
-        specimen_id: conduit_tour_model::CANONICAL_SPECIMEN_ID.into(),
+fn proof_from_manifestation(
+    effect: &super::TourEffect,
+    specimen_id: &str,
+    expected: &str,
+) -> Option<TourRunProof> {
+    (effect.text.as_deref() == Some(expected)).then(|| TourRunProof {
+        specimen_id: specimen_id.into(),
         source_document_id: conduit_core::SourceDocumentId(effect.source_document_id.clone()),
         checked_form_id: conduit_core::CheckedFormId(effect.checked_form_id.clone()),
         expanded_form_id: conduit_core::ExpandedFormId(effect.expanded_form_id.clone()),
         plan_id: conduit_core::PlanId(effect.plan_id.clone()),
         active_play_id: conduit_core::ActivePlayId(effect.active_play_id.clone()),
-        result: conduit_tour_model::CANONICAL_RESULT.into(),
-    };
-    if !matches!(session.advance()?, super::TourProgress::Receipt(_)) {
-        return Err("canonical Tour run did not reach its terminal receipt".into());
+        result: expected.into(),
+        terminal: conduit_tour_model::TourRunTerminal::Stopped,
+    })
+}
+
+fn run_resident_tour(chapter: u8, stage_index: u8) -> Result<TourRunProof, String> {
+    let stage = conduit_tour_model::TOUR_CHAPTERS
+        .get(usize::from(chapter))
+        .and_then(|chapter| chapter.stages.get(usize::from(stage_index)))
+        .ok_or("resident Tour requested an unknown exact stage")?;
+    if chapter != 0 || stage_index > 1 || stage.mode != conduit_tour_model::TourStageMode::Run {
+        return Err("resident browser Host does not yet implement this exact Tour stage".into());
     }
-    Ok(proof)
+    let expected = stage
+        .expected_text
+        .ok_or("resident Tour stage has no exact expected text")?;
+    let source = conduit_tour_model::tour_stage_source(chapter, stage_index)
+        .map_err(|error| error.to_string())?;
+    let (mut session, effect) =
+        super::TourSession::prepare("browser/resident-tour", "boot/resident-tour", &source, 1)?;
+    let mut proof = match effect {
+        super::TourHostEffect::Manifestation(effect) => {
+            proof_from_manifestation(&effect, stage.identity, expected)
+        }
+        _ => return Err("resident Tour stage requested an unsupported Host effect".into()),
+    };
+    loop {
+        match session.advance()? {
+            super::TourProgress::Effect(effect) => match *effect {
+                super::TourHostEffect::Manifestation(effect) => {
+                    proof = proof
+                        .or_else(|| proof_from_manifestation(&effect, stage.identity, expected));
+                }
+                _ => return Err("resident Tour stage requested an unsupported Host effect".into()),
+            },
+            super::TourProgress::Receipt(_) => {
+                let mut proof = proof.ok_or_else(|| {
+                    "resident Tour stage completed without its expected manifestation".to_string()
+                })?;
+                proof.terminal = conduit_tour_model::TourRunTerminal::Completed;
+                return Ok(proof);
+            }
+            super::TourProgress::Waiting { .. } if proof.is_some() => {
+                let receipt = session.cancel()?;
+                if receipt.disposition != "cancelled" {
+                    return Err("resident Tour open exercise did not stop exactly".into());
+                }
+                return Ok(proof.expect("proof checked above"));
+            }
+            _ => return Err("resident Tour stage did not reach an exact terminal receipt".into()),
+        }
+    }
 }
 
 pub(super) enum PreparedApplication {
@@ -90,22 +128,13 @@ impl PreparedApplication {
                 let output = port
                     .apply(input)
                     .map_err(|error| format!("resident Tour event: {error:?}"))?;
-                if output.request
-                    == Some(TourWorkspaceRequest::Run {
-                        chapter: 0,
-                        stage: 0,
-                    })
-                {
-                    port.complete_run(run_canonical_tour()?)
+                if let Some(TourWorkspaceRequest::Run { chapter, stage }) = output.request {
+                    port.complete_run(run_resident_tour(chapter, stage)?)
                         .map_err(|error| format!("complete resident Tour run: {error:?}"))?;
                     return port
                         .apply(&[])
                         .map(|output| output.view)
                         .map_err(|error| format!("project resident Tour result: {error:?}"));
-                } else if matches!(output.request, Some(TourWorkspaceRequest::Run { .. })) {
-                    return Err(
-                        "resident browser Host does not yet implement this exact Tour stage".into(),
-                    );
                 }
                 Ok(output.view)
             }
@@ -114,5 +143,44 @@ impl PreparedApplication {
                 .map(|output| output.view)
                 .map_err(|error| format!("resident Patchbay event: {error:?}")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn browser_resident_tour_runs_the_first_two_chapter_one_exercises_exactly() {
+        let expected = [
+            ("canonical-form:meet-one-gear", "HELLO"),
+            ("canonical-form:edit-one-gear", "MAKE THIS LOUD"),
+        ];
+        for (stage, (identity, result)) in expected.into_iter().enumerate() {
+            let proof = run_resident_tour(0, stage as u8).unwrap();
+            assert_eq!(proof.specimen_id, identity);
+            assert_eq!(proof.result, result);
+            assert!(!proof.source_document_id.as_str().is_empty());
+            assert!(!proof.checked_form_id.as_str().is_empty());
+            assert!(!proof.expanded_form_id.as_str().is_empty());
+            assert!(!proof.plan_id.as_str().is_empty());
+            assert!(!proof.active_play_id.as_str().is_empty());
+        }
+        assert_eq!(
+            run_resident_tour(0, 0).unwrap().terminal,
+            conduit_tour_model::TourRunTerminal::Completed
+        );
+        assert_eq!(
+            run_resident_tour(0, 1).unwrap().terminal,
+            conduit_tour_model::TourRunTerminal::Stopped
+        );
+    }
+
+    #[test]
+    fn browser_resident_tour_refuses_an_unimplemented_exact_stage() {
+        assert_eq!(
+            run_resident_tour(0, 2),
+            Err("resident browser Host does not yet implement this exact Tour stage".into())
+        );
     }
 }

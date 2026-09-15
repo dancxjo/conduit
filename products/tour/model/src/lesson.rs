@@ -70,7 +70,7 @@ fn chapter_markdown(chapter: u8) -> Result<&'static str, &'static str> {
         .ok_or("tour-lesson-chapter-refused")
 }
 
-pub(crate) fn stage_source(chapter: u8, stage: u8) -> Result<String, &'static str> {
+pub fn tour_stage_source(chapter: u8, stage: u8) -> Result<String, &'static str> {
     let markdown = chapter_markdown(chapter)?;
     let mut sources = Vec::new();
     let mut lines = markdown.lines();
@@ -181,7 +181,7 @@ mod tests {
         let sources = (0..crate::TOUR_CHAPTER_COUNT)
             .flat_map(|chapter| {
                 (0..crate::TOUR_CHAPTERS[usize::from(chapter)].stages.len() as u8)
-                    .map(move |stage| stage_source(chapter, stage).unwrap())
+                    .map(move |stage| tour_stage_source(chapter, stage).unwrap())
             })
             .collect::<Vec<_>>();
         assert_eq!(sources.len(), 7);

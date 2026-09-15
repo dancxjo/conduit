@@ -17,7 +17,7 @@ mod inspection;
 pub use inspection::canonical_gear_contract;
 mod layout;
 mod lesson;
-pub use lesson::TOUR_LESSON_SUBJECT;
+pub use lesson::{TOUR_LESSON_SUBJECT, tour_stage_source};
 mod navigation;
 mod pointer;
 mod port;
@@ -79,9 +79,13 @@ pub struct TourWorkspaceState {
 
 impl TourWorkspaceState {
     pub fn canonical(revision: u32, phase: TourWorkspacePhase) -> Self {
+        let mut progress = TourProgressState::canonical();
+        if phase == TourWorkspacePhase::ResultVisible {
+            progress.run = TourRunState::Completed;
+        }
         Self {
             revision,
-            progress: TourProgressState::canonical(),
+            progress,
             phase,
             focused_key: match phase {
                 TourWorkspacePhase::LessonReady => "source".into(),
@@ -105,7 +109,7 @@ impl TourWorkspaceState {
             ActionAvailability::Busy {
                 detail: "Canonical Play is active".into(),
             }
-        } else if self.phase == TourWorkspacePhase::ResultVisible {
+        } else if self.progress.run == TourRunState::Completed {
             ActionAvailability::Unavailable {
                 detail: "Canonical Play already completed".into(),
             }

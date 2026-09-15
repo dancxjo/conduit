@@ -3,7 +3,7 @@ use conduit_core::{ActivePlayId, CheckedFormId, ExpandedFormId, PlanId, SourceDo
 use conduit_presentation::{ApplicationEvent, ApplicationViewRefusal};
 
 use crate::{
-    CANONICAL_RESULT, NEXT_CHAPTER_ACTION_ID, NEXT_STAGE_ACTION_ID, OPEN_PATCHBAY_ACTION_ID,
+    NEXT_CHAPTER_ACTION_ID, NEXT_STAGE_ACTION_ID, OPEN_PATCHBAY_ACTION_ID,
     PREVIOUS_CHAPTER_ACTION_ID, PREVIOUS_STAGE_ACTION_ID, RUN_ACTION_ID, TourApplicationAction,
     TourApplicationRefusal, TourRunState, TourWorkspacePhase, TourWorkspaceState,
 };
@@ -23,6 +23,13 @@ pub struct TourRunProof {
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     pub result: String,
+    pub terminal: TourRunTerminal,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TourRunTerminal {
+    Completed,
+    Stopped,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,6 +40,7 @@ pub enum TourWorkspaceRefusal {
     RunNotPending,
     WrongSpecimen,
     WrongResult,
+    MissingExpectedResult,
     MissingIdentity,
     RevisionExhausted,
     Chapter(TourApplicationRefusal),
@@ -49,6 +57,7 @@ impl TourWorkspaceRefusal {
             Self::RunNotPending => "run-not-pending",
             Self::WrongSpecimen => "wrong-specimen",
             Self::WrongResult => "wrong-result",
+            Self::MissingExpectedResult => "missing-expected-result",
             Self::MissingIdentity => "missing-identity",
             Self::RevisionExhausted => "revision-exhausted",
             Self::Chapter(_) => "chapter-navigation-refused",
@@ -208,7 +217,10 @@ impl TourWorkspaceController {
         if proof.specimen_id != stage.identity {
             return Err(TourWorkspaceRefusal::WrongSpecimen);
         }
-        if proof.result != CANONICAL_RESULT {
+        let Some(expected) = stage.expected_text else {
+            return Err(TourWorkspaceRefusal::MissingExpectedResult);
+        };
+        if proof.result != expected {
             return Err(TourWorkspaceRefusal::WrongResult);
         }
         if [
@@ -223,7 +235,10 @@ impl TourWorkspaceController {
         {
             return Err(TourWorkspaceRefusal::MissingIdentity);
         }
-        self.apply_progress(TourApplicationAction::Complete)?;
+        self.apply_progress(match proof.terminal {
+            TourRunTerminal::Completed => TourApplicationAction::Complete,
+            TourRunTerminal::Stopped => TourApplicationAction::Stop,
+        })?;
         self.state.phase = TourWorkspacePhase::ResultVisible;
         self.state.focused_key = "result".into();
         self.state.result = Some(proof.result.clone());
@@ -260,9 +275,11 @@ impl TourWorkspaceController {
             return Ok(());
         };
         self.state.specimen_id = stage.identity.into();
-        self.state.source =
-            crate::lesson::stage_source(self.state.progress.chapter, self.state.progress.stage)
-                .map_err(|_| TourWorkspaceRefusal::Presentation)?;
+        self.state.source = crate::lesson::tour_stage_source(
+            self.state.progress.chapter,
+            self.state.progress.stage,
+        )
+        .map_err(|_| TourWorkspaceRefusal::Presentation)?;
         self.state.result = None;
         self.state.phase = TourWorkspacePhase::LessonReady;
         self.state.focused_key = "source".into();
@@ -283,7 +300,7 @@ mod tests {
     use conduit_presentation::{ApplicationEventKind, ApplicationViewRefusal};
 
     use super::*;
-    use crate::CANONICAL_SPECIMEN_ID;
+    use crate::{CANONICAL_RESULT, CANONICAL_SPECIMEN_ID};
 
     fn event(revision: u32, action: &str) -> ApplicationEvent {
         ApplicationEvent {
@@ -332,6 +349,7 @@ mod tests {
             plan_id: PlanId::from("plan"),
             active_play_id: ActivePlayId::from("play"),
             result: CANONICAL_RESULT.to_string(),
+            terminal: TourRunTerminal::Completed,
         }
     }
 
@@ -456,6 +474,13 @@ mod tests {
                 stage: 1
             }))
         );
+        let mut evidence = proof();
+        evidence.specimen_id = "canonical-form:edit-one-gear".into();
+        evidence.result = "MAKE THIS LOUD".into();
+        evidence.terminal = TourRunTerminal::Stopped;
+        controller.complete_run(evidence).unwrap();
+        assert_eq!(controller.state().progress.run, TourRunState::Stopped);
+        assert_eq!(controller.state().result.as_deref(), Some("MAKE THIS LOUD"));
     }
 
     #[test]

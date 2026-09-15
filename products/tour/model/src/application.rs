@@ -17,6 +17,7 @@ pub struct TourChapter {
 pub struct TourStage {
     pub identity: &'static str,
     pub mode: TourStageMode,
+    pub expected_text: Option<&'static str>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -42,32 +43,39 @@ const CHAPTER_ONE_STAGES: [TourStage; 3] = [
     TourStage {
         identity: "canonical-form:meet-one-gear",
         mode: TourStageMode::Run,
+        expected_text: Some("HELLO"),
     },
     TourStage {
         identity: "canonical-form:edit-one-gear",
         mode: TourStageMode::Run,
+        expected_text: Some("MAKE THIS LOUD"),
     },
     TourStage {
         identity: "canonical-form:branch-a-cord",
         mode: TourStageMode::Run,
+        expected_text: Some("SOS"),
     },
 ];
 const CHAPTER_TWO_STAGES: [TourStage; 1] = [TourStage {
     identity: "canonical-form:same-morse-caller",
     mode: TourStageMode::Compare,
+    expected_text: None,
 }];
 const CHAPTER_THREE_STAGES: [TourStage; 1] = [TourStage {
     identity: "canonical-form:count-over-time",
     mode: TourStageMode::Run,
+    expected_text: None,
 }];
 const CHAPTER_FOUR_STAGES: [TourStage; 2] = [
     TourStage {
         identity: "canonical-form:hello-across",
         mode: TourStageMode::TwoHost,
+        expected_text: Some("HELLO"),
     },
     TourStage {
         identity: "canonical-form:hello-across",
         mode: TourStageMode::TwoHostPlan,
+        expected_text: Some("HELLO"),
     },
 ];
 const NO_STAGES: [TourStage; 0] = [];
