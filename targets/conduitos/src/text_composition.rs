@@ -109,8 +109,10 @@ where
                 if kernel.pending_host_operations() == 0 {
                     return Err(MachineRunError::FalseIdle);
                 }
-                idle.wait_for_interrupt()
-                    .map_err(|_| MachineRunError::InterruptBaseFailure)?;
+                // The pending operations in this runner are local, synchronous
+                // host requests. Return to the ownership loop so it can service
+                // them; no external fact has been admitted to wake this Play.
+                continue;
             }
             SchedulerStatus::Drained => {
                 return Ok(MachineRunReceipt {

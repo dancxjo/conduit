@@ -45,7 +45,7 @@ fn run_isolation_proof(record: &boot::BootRecord) {
     let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
     let identities =
         conduitos::identity::derive(entropy, record.timestamp, record.image_physical_start);
-    arch::run_isolation_proof(record.hhdm_offset, identities.host, identities.boot);
+    arch::run_isolation_proof(record, identities.host, identities.boot);
 }
 
 #[cfg(target_os = "none")]

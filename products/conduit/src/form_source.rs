@@ -1,6 +1,6 @@
 //! The canonical product source-loading boundary.
 
-use conduit_form::{ExpandedCanonicalForm, ProfileCatalog, StartupCatalog};
+use conduit_form::{CanonicalBackCatalog, ExpandedCanonicalForm, ProfileCatalog, StartupCatalog};
 use std::fs;
 use std::path::Path;
 
@@ -14,6 +14,18 @@ pub(crate) struct CanonicalSource {
 pub(crate) fn load(path: &Path) -> Result<CanonicalSource, String> {
     let (startup, profiles) = standard_catalogs()?;
     load_with_catalogs(path, startup, profiles)
+}
+
+// Used by the library entrance; the binary compiles this module independently.
+#[allow(dead_code)]
+pub(crate) fn parse(source: &str) -> Result<CanonicalSource, String> {
+    let (startup, profiles) = standard_catalogs()?;
+    Ok(CanonicalSource {
+        source: source.into(),
+        syntax: conduit_form::parse_syntax_document(source),
+        startup,
+        profiles,
+    })
 }
 
 fn load_with_catalogs(
@@ -39,6 +51,16 @@ fn load_with_catalogs(
 
 impl CanonicalSource {
     pub(crate) fn expand_entry(&self) -> Result<ExpandedCanonicalForm, String> {
+        self.expand_entry_with_backs(false)
+    }
+
+    // Used by the library entrance; the binary compiles this module independently.
+    #[allow(dead_code)]
+    pub(crate) fn expand_entry_recursive(&self) -> Result<ExpandedCanonicalForm, String> {
+        self.expand_entry_with_backs(true)
+    }
+
+    fn expand_entry_with_backs(&self, recursive: bool) -> Result<ExpandedCanonicalForm, String> {
         if let Some(diagnostic) = self.syntax.diagnostics.first() {
             return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
         }
@@ -50,8 +72,15 @@ impl CanonicalSource {
             .ok_or_else(|| "canonical Form source contains no Form".to_string())?
             .name
             .clone();
-        conduit_form::expand_canonical_form(&checked, &entry, &self.profiles)
-            .map_err(|diagnostic| diagnostic.to_string())
+        if recursive {
+            let mut backs = CanonicalBackCatalog::new();
+            conduit_text::install_morse_backs(&self.startup, &self.profiles, &mut backs)?;
+            conduit_form::expand_canonical_form_with_backs(&checked, &entry, &self.profiles, &backs)
+                .map_err(|diagnostic| diagnostic.to_string())
+        } else {
+            conduit_form::expand_canonical_form(&checked, &entry, &self.profiles)
+                .map_err(|diagnostic| diagnostic.to_string())
+        }
     }
 }
 
@@ -59,6 +88,8 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
+    conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profiles)?;

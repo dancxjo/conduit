@@ -60,6 +60,8 @@ struct JourneyProof {
     tour_plan_id: String,
     tour_active_play_id: String,
     tour_result: String,
+    tour_pages_visited: Vec<u64>,
+    tour_exercises: Vec<Value>,
     tour_workspace_presentation_id: String,
     tour_workspace_manifestation_id: String,
     tour_status_presentation_id: String,
@@ -313,6 +315,12 @@ fn execute_image(
             )?;
             artifacts.capture(&mut qmp, &mut reader, "line-lost", true)?;
             drop(line_peer);
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_BOOT_STAGE keyboard-resumed-after-line",
+                "product-journey-keyboard-resume-timeout",
+            )?;
             journey_input::key_pair(&mut qmp, &mut reader, "f9", "tour-open")?;
             journey_input::wait_tour_status(&serial_path, &mut child, "tour-opened")?;
             artifacts.capture(&mut qmp, &mut reader, "tour-opened", true)?;
@@ -324,6 +332,13 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-confirmation")?;
             journey_input::wait_transient_status(&serial_path, &mut child, "dismissed")?;
             artifacts.capture(&mut qmp, &mut reader, "confirmation-dismissed", true)?;
+            super::journey_tour::exercise_remaining(
+                &mut qmp,
+                &mut reader,
+                &serial_path,
+                &mut child,
+                &mut artifacts,
+            )?;
             journey_input::key_pair(&mut qmp, &mut reader, "f10", "refused-repeat-run")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
@@ -333,7 +348,7 @@ fn execute_image(
             )?;
             artifacts.capture(&mut qmp, &mut reader, "refusal-transient", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-refusal")?;
-            journey_input::wait_transient_status_count(&serial_path, &mut child, "dismissed", 2)?;
+            journey_input::wait_transient_status_count(&serial_path, &mut child, "dismissed", 9)?;
             artifacts.capture(&mut qmp, &mut reader, "refusal-dismissed", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "f11", "tour-patchbay")?;
             journey_input::wait_tour_status(&serial_path, &mut child, "patchbay-open")?;
@@ -453,6 +468,7 @@ fn execute_image(
             .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
             .collect::<BTreeMap<_, _>>();
         super::journey_tour::validate(&tour_records, opened)?;
+        super::journey_tour::validate_complete_tour(&tour_records)?;
         let tour_opened = tour_by_status["tour-opened"];
         let tour_result = tour_by_status["result-visible"];
         if usb_line_records.len() != 4 {
@@ -581,6 +597,14 @@ fn execute_image(
             tour_plan_id: text(tour_result, "plan_id")?,
             tour_active_play_id: text(tour_result, "active_play_id")?,
             tour_result: text(tour_result, "result")?,
+            tour_pages_visited: (0..7).collect(),
+            tour_exercises: tour_records
+                .iter()
+                .filter(|record| {
+                    record.get("status").and_then(Value::as_str) == Some("result-visible")
+                })
+                .cloned()
+                .collect(),
             tour_workspace_presentation_id: text(tour_result, "workspace_presentation_id")?,
             tour_workspace_manifestation_id: text(tour_result, "workspace_manifestation_id")?,
             tour_status_presentation_id: text(tour_result, "status_presentation_id")?,

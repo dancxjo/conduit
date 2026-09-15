@@ -304,7 +304,7 @@ fn decode_gapped_groups(input: &[u8]) -> Result<Vec<(u8, &[u8])>, MorseError> {
     Ok(groups)
 }
 
-fn decode_symbols(input: &[u8]) -> Result<&[u8], MorseError> {
+pub(super) fn decode_symbols(input: &[u8]) -> Result<&[u8], MorseError> {
     if input.len() < 4 || input[0] != VERSION {
         return Err(MorseError::MalformedEncoding);
     }
@@ -335,6 +335,10 @@ fn decode_symbols(input: &[u8]) -> Result<&[u8], MorseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{
+        morse_characters_from_text_into, morse_flatten_groups_into, morse_intersperse_gaps_into,
+        morse_lookup_characters_into, morse_symbols_to_pattern_into, MAXIMUM_MORSE_PATTERN_BYTES,
+    };
 
     #[test]
     fn every_stage_has_a_distinct_canonical_value_and_matches_direct_morse() {
@@ -347,6 +351,32 @@ mod tests {
         assert_eq!(pattern.to_text().unwrap(), "HELLO 2026");
         assert_eq!(morse_pattern_to_symbols(&encoded).unwrap(), symbols);
         assert_eq!(morse_symbols_to_text(&symbols).unwrap(), b"HELLO 2026");
+    }
+
+    #[test]
+    fn admitted_output_variants_match_allocating_semantics_and_refuse_small_storage() {
+        let characters = morse_characters_from_text("HELLO").unwrap();
+        let groups = morse_lookup_characters(&characters).unwrap();
+        let gapped = morse_intersperse_gaps(&groups).unwrap();
+        let symbols = morse_flatten_groups(&gapped).unwrap();
+        let pattern = morse_symbols_to_pattern(&symbols, 40).unwrap();
+
+        let mut output = Vec::with_capacity(MAXIMUM_MORSE_PATTERN_BYTES);
+        morse_characters_from_text_into("HELLO", &mut output).unwrap();
+        assert_eq!(output, characters);
+        morse_lookup_characters_into(&characters, &mut output).unwrap();
+        assert_eq!(output, groups);
+        morse_intersperse_gaps_into(&groups, &mut output).unwrap();
+        assert_eq!(output, gapped);
+        morse_flatten_groups_into(&gapped, &mut output).unwrap();
+        assert_eq!(output, symbols);
+        morse_symbols_to_pattern_into(&symbols, 40, &mut output).unwrap();
+        assert_eq!(output, pattern);
+
+        assert_eq!(
+            morse_characters_from_text_into("HELLO", &mut Vec::new()),
+            Err(MorseError::OutputCapacity)
+        );
     }
 
     #[test]
