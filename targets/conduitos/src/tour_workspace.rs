@@ -203,12 +203,7 @@ pub(crate) fn scene_with_graph(
         } else {
             label
         };
-        scene
-            .push(
-                GraphicsCommand::text(inset(bounds), bounds, paint, label)
-                    .map_err(TourWorkspaceSceneRefusal::Graphics)?,
-            )
-            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+        append_panel_text(&mut scene, bounds, paint, label)?;
     }
     graph::append(
         &mut scene,
@@ -258,6 +253,44 @@ pub(crate) fn scene_with_graph(
         )
         .map_err(TourWorkspaceSceneRefusal::Graphics)?;
     Ok(scene)
+}
+
+fn append_panel_text(
+    scene: &mut GraphicsScene,
+    clip: LayoutRect,
+    paint: GraphicsPaintRole,
+    text: &str,
+) -> Result<(), TourWorkspaceSceneRefusal> {
+    let mut bounds = inset(clip);
+    let mut remaining = text;
+    while !remaining.is_empty() {
+        let end = lesson::chunk_end(remaining);
+        let chunk = &remaining[..end];
+        let height = lesson::measured_text_height(chunk, bounds.width)?;
+        scene
+            .push(
+                GraphicsCommand::text(
+                    LayoutRect {
+                        height: height.min(bounds.height).max(1),
+                        ..bounds
+                    },
+                    clip,
+                    paint,
+                    chunk,
+                )
+                .map_err(TourWorkspaceSceneRefusal::Graphics)?,
+            )
+            .map_err(TourWorkspaceSceneRefusal::Graphics)?;
+        bounds.y = bounds
+            .y
+            .checked_add(
+                i16::try_from(height).map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)?,
+            )
+            .ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
+        bounds.height = bounds.height.saturating_sub(height).max(1);
+        remaining = remaining[end..].trim_start();
+    }
+    Ok(())
 }
 
 /// Reserve the shell's status edge in every workspace state and reserve the

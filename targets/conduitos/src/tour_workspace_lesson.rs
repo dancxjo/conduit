@@ -94,7 +94,10 @@ pub(super) fn append(
     Ok(())
 }
 
-fn measured_text_height(text: &str, width: u16) -> Result<u16, TourWorkspaceSceneRefusal> {
+pub(super) fn measured_text_height(
+    text: &str,
+    width: u16,
+) -> Result<u16, TourWorkspaceSceneRefusal> {
     #[cfg(feature = "native-compositor")]
     {
         let height = crate::display::typography::TextLayout::new(
@@ -113,7 +116,7 @@ fn measured_text_height(text: &str, width: u16) -> Result<u16, TourWorkspaceScen
     }
 }
 
-fn chunk_end(text: &str) -> usize {
+pub(super) fn chunk_end(text: &str) -> usize {
     if text.len() <= MAX_GRAPHICS_TEXT_BYTES {
         return text.len();
     }
