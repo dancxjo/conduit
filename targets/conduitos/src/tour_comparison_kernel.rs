@@ -170,8 +170,7 @@ impl<const N: usize, const C: usize> BoxedKernel<N, C> {
         {
             return Err(SchedulerError::InvalidPlan);
         }
-        let mut values =
-            FixedValueStore::<VALUE_SLOTS, MAX_VALUE_BYTES>::new(VALUE_BUDGET as u32)?;
+        let mut values = FixedValueStore::<VALUE_SLOTS, MAX_VALUE_BYTES>::new(VALUE_BUDGET as u32)?;
         let mut drivers = Vec::with_capacity(N);
         let mut kinds = Vec::with_capacity(N);
         for placement in &fragment.placements {
