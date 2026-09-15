@@ -140,6 +140,69 @@ fn transient_chooser_uses_the_shared_icon_button_language() {
 }
 
 #[test]
+fn non_chooser_transients_render_meaningful_content_without_placeholder_rows() {
+    let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::LessonReady);
+    let bounds = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 640,
+        height: 256,
+    };
+    for (kind, title, detail) in [
+        (
+            conduit_tour_model::TourTransientKind::Confirmation,
+            "Confirmation",
+            "Play completed",
+        ),
+        (
+            conduit_tour_model::TourTransientKind::Refusal,
+            "Refusal detail",
+            "Action refused",
+        ),
+    ] {
+        let presentation = state.transient_presentation(kind, detail).unwrap();
+        let scene = transient_scene(bounds, &presentation, 0).unwrap();
+        for label in [title, detail, "Close"] {
+            assert!(
+                scene
+                    .commands()
+                    .iter()
+                    .any(|command| command.payload() == label),
+                "missing visible {label}"
+            );
+        }
+        assert!(scene.commands().iter().all(|command| {
+            command.paint != conduit_presentation::GraphicsPaintRole::Status
+                || command.style != GraphicsShapeStyle::Fill
+        }));
+        assert!(scene.commands().iter().all(|command| {
+            command.paint != conduit_presentation::GraphicsPaintRole::Background
+                || command.style != GraphicsShapeStyle::Fill
+                || command.bounds == bounds
+        }));
+        assert!(transient_scene(bounds, &presentation, 1).is_err());
+    }
+    let mut missing_close = state
+        .transient_presentation(
+            conduit_tour_model::TourTransientKind::Confirmation,
+            "Play completed",
+        )
+        .unwrap();
+    missing_close
+        .subjects
+        .retain(|subject| subject.identity != conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID);
+    assert!(transient_scene(bounds, &missing_close, 0).is_err());
+    let mut blank_detail = state
+        .transient_presentation(
+            conduit_tour_model::TourTransientKind::Refusal,
+            "Action refused",
+        )
+        .unwrap();
+    blank_detail.text[0].text.clear();
+    assert!(transient_scene(bounds, &blank_detail, 0).is_err());
+}
+
+#[test]
 fn inspection_rejects_oversized_fields_even_when_scrolled_out_of_view() {
     let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
     state.selected_patchbay_subject = Some("meet-one-gear/change".into());

@@ -188,6 +188,9 @@ impl TourShellPresenter {
                 route.local_y,
             ));
         }
+        if state.slot == Slot::Transient {
+            return Ok(None);
+        }
         row_at(state.scroll.content_y(route.local_y)?)
     }
 }

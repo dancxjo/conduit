@@ -261,7 +261,76 @@ pub(super) fn transient_scene(
     }) {
         return chooser_scene(bounds, presentation, scroll_y);
     }
-    scroll_scene(bounds, "DETAIL", first_text(presentation), scroll_y)
+    dialog_scene(bounds, presentation, scroll_y)
+}
+
+fn dialog_scene(
+    bounds: LayoutRect,
+    presentation: &Presentation,
+    scroll_y: u16,
+) -> Result<GraphicsScene, TourShellError> {
+    if scroll_y != 0 {
+        return Err(TourShellError::Identity);
+    }
+    let diagnostic = presentation
+        .subjects
+        .iter()
+        .find(|subject| subject.role == conduit_presentation::PresentationRole::Diagnostic)
+        .ok_or(TourShellError::Identity)?;
+    let detail = presentation
+        .text
+        .iter()
+        .find(|text| text.subject == diagnostic.identity)
+        .map(|text| text.text.as_str())
+        .filter(|text| !text.is_empty())
+        .ok_or(TourShellError::Identity)?;
+    let close = presentation
+        .subjects
+        .iter()
+        .find(|subject| {
+            subject.identity == conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID
+                && subject.role == conduit_presentation::PresentationRole::Action
+        })
+        .ok_or(TourShellError::Identity)?;
+    let local = LayoutRect {
+        x: 0,
+        y: 0,
+        width: bounds.width,
+        height: bounds.height,
+    };
+    let mut scene = panel_scene(bounds, &diagnostic.label, "")?;
+    let inset = crate::display::SPACE_MD;
+    let detail_y = crate::display::SPACE_XL + crate::display::SPACE_SM;
+    let close_bounds = super::controls::transient_close_bounds(bounds.width, bounds.height);
+    let detail_height = u16::try_from(close_bounds.y)
+        .map_err(|_| TourShellError::Scene)?
+        .saturating_sub(detail_y + crate::display::SPACE_SM)
+        .max(1);
+    scene
+        .push(
+            GraphicsCommand::text(
+                LayoutRect {
+                    x: inset as i16,
+                    y: detail_y as i16,
+                    width: bounds.width.saturating_sub(inset * 2).max(1),
+                    height: detail_height,
+                },
+                local,
+                GraphicsPaintRole::Foreground,
+                detail,
+            )
+            .map_err(|_| TourShellError::Scene)?,
+        )
+        .map_err(|_| TourShellError::Scene)?;
+    crate::native_components::action_button(
+        &mut scene,
+        close_bounds,
+        local,
+        &close.label,
+        Some(PresentationIconKey::Close),
+    )
+    .map_err(|_| TourShellError::Scene)?;
+    Ok(scene)
 }
 
 fn chooser_scene(
@@ -298,55 +367,6 @@ fn chooser_scene(
             Some(PresentationIconKey::GenericGear),
         )
         .map_err(|_| TourShellError::Scene)?;
-    }
-    Ok(scene)
-}
-
-fn scroll_scene(
-    bounds: LayoutRect,
-    title: &str,
-    detail: &str,
-    scroll_y: u16,
-) -> Result<GraphicsScene, TourShellError> {
-    if scroll_y > SCROLL_CONTENT_HEIGHT {
-        return Err(TourShellError::Identity);
-    }
-    let viewport = LayoutRect {
-        x: 0,
-        y: 0,
-        width: bounds.width,
-        height: bounds.height,
-    };
-    let mut scene = panel_scene(bounds, title, detail)?;
-    for row in 0..5_u16 {
-        let content_y = 76_u16
-            .checked_add(row.checked_mul(140).ok_or(TourShellError::Identity)?)
-            .ok_or(TourShellError::Identity)?;
-        let visible_y = i32::from(content_y) - i32::from(scroll_y);
-        let Ok(y) = i16::try_from(visible_y) else {
-            continue;
-        };
-        let row_bounds = LayoutRect {
-            x: 12,
-            y,
-            width: viewport.width.saturating_sub(24),
-            height: 60,
-        };
-        scene
-            .push(
-                GraphicsCommand::rect(
-                    row_bounds,
-                    viewport,
-                    if row % 2 == 0 {
-                        GraphicsPaintRole::Status
-                    } else {
-                        GraphicsPaintRole::Background
-                    },
-                    GraphicsShapeStyle::Fill,
-                )
-                .map_err(|_| TourShellError::Scene)?,
-            )
-            .map_err(|_| TourShellError::Scene)?;
     }
     Ok(scene)
 }
