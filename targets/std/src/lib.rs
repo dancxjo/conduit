@@ -80,6 +80,7 @@ mod hosted_spoken_output_host;
 pub mod hosted_synth;
 pub mod hosted_vector_index;
 pub mod hosted_vector_search;
+pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
@@ -289,6 +290,7 @@ pub struct StdKernelExecutionReport {
     pub value_allocation_capacity_after: (usize, usize),
     pub presentation_ids: Vec<conduit_core::PresentationId>,
     pub playback: Vec<hosted_audio::PlaybackReport>,
+    pub wav_artifacts: Vec<hosted_wav_artifact::WavArtifactReport>,
     pub midi_input: Vec<hosted_midi::MidiInputReport>,
     pub midi_output: Vec<hosted_midi::MidiOutputReport>,
     pub identity: conduit_plan_lowering::lowering::KernelExecutionIdentityMap,
@@ -417,6 +419,7 @@ pub struct StdHost {
     advertisement: HostAdvertisement,
     image_identity: Option<conduit_host_fabrication::ImageBootIdentity>,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
+    wav_artifact: Option<hosted_wav_artifact::WavArtifactSelection>,
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
@@ -491,6 +494,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -557,6 +561,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: Some(adapter),
@@ -595,6 +600,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -633,6 +639,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -691,6 +698,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -743,6 +751,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -796,6 +805,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -948,6 +958,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: Some(playback),
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -971,6 +982,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -1018,6 +1030,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: Some(playback),
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -1060,6 +1073,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            wav_artifact: None,
             midi_input: None,
             midi_output: Some(midi_output),
             local_model: None,
@@ -1091,6 +1105,7 @@ impl StdHost {
             advertisement,
             image_identity: Some(image_identity),
             playback: None,
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -1135,6 +1150,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: Some(playback),
+            wav_artifact: None,
             midi_input: None,
             midi_output: None,
             local_model: None,
@@ -1216,6 +1232,43 @@ impl StdHost {
             .authority_requirements
             .first()
             .ok_or_else(|| "playback capability has no authority contract".to_string())?;
+        Ok(conduit_core::AuthorityGrant {
+            grant_id: conduit_core::AuthorityGrantId::from(grant_id),
+            contract_id: requirement.contract_id.clone(),
+            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            subject_kind: requirement.subject_kind.clone(),
+            host_id: self.advertisement.host_id.clone(),
+            boot_id: self.advertisement.boot_id.clone(),
+            capability_id: capability.capability_id.clone(),
+        })
+    }
+
+    pub fn wav_artifact_authority_grant(
+        &self,
+        grant_id: &str,
+    ) -> Result<conduit_core::AuthorityGrant, String> {
+        let artifact = self
+            .wav_artifact
+            .as_ref()
+            .ok_or_else(|| "std Host has no selected WAV artifact destination".to_string())?;
+        if artifact.boot_id != self.advertisement.boot_id
+            || artifact.offer_generation != self.advertisement.offer_generation
+        {
+            return Err("selected WAV artifact destination is stale for this Host".into());
+        }
+        let capability = self
+            .advertisement
+            .capabilities
+            .iter()
+            .find(|offer| {
+                offer.implementation.implementation_id.as_str()
+                    == conduit_std_offers::AUDIO_WAV_ARTIFACT_IMPLEMENTATION
+            })
+            .ok_or_else(|| "selected WAV artifact capability is not advertised".to_string())?;
+        let requirement = capability
+            .authority_requirements
+            .first()
+            .ok_or_else(|| "WAV artifact capability has no authority contract".to_string())?;
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),

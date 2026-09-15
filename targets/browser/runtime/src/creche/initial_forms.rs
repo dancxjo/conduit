@@ -244,6 +244,18 @@ pub(crate) fn expanded_inventory_form(
     Err("resident application subject is absent from the reviewed inventory".into())
 }
 
+pub(crate) fn inventory_form_title(
+    source: &str,
+    resident: &conduit_body::ResidentForm,
+) -> Result<String, String> {
+    reviewed_inventory(source)?
+        .forms
+        .into_iter()
+        .find(|form| form.checked_form_id == resident.checked_form_id.as_str())
+        .map(|form| form.title)
+        .ok_or_else(|| "resident Form is absent from the reviewed inventory".into())
+}
+
 pub(super) fn check_source(source: &str) -> Result<conduit_form::CheckedSyntaxDocument, String> {
     check_source_for_presentation(
         source,

@@ -2,9 +2,8 @@
 
 use conduit_presentation::{ApplicationEvent, GraphicsScene};
 use conduit_tour_model::{
-    CANONICAL_SPECIMEN_ID, TourApplicationAction, TourApplicationRefusal, TourApplicationState,
-    TourPointerOutcome, TourRunProof, TourWorkspaceController, TourWorkspaceRefusal,
-    TourWorkspaceRequest,
+    CANONICAL_SPECIMEN_ID, TourPointerOutcome, TourRunProof, TourWorkspaceController,
+    TourWorkspaceRefusal, TourWorkspaceRequest,
 };
 
 use crate::{
@@ -23,13 +22,12 @@ mod pointer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TourProductUpdate {
-    pub request: TourWorkspaceRequest,
+    pub request: Option<TourWorkspaceRequest>,
     pub play: Option<TourPlayEvidence>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourProductError {
-    Application(TourApplicationRefusal),
     Controller(TourWorkspaceRefusal),
     Preparation(PreparationError),
     Play(TourPlayError),
@@ -39,7 +37,6 @@ pub enum TourProductError {
 impl TourProductError {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Application(_) => "tour-application-refused",
             Self::Controller(_) => "tour-controller-refused",
             Self::Preparation(error) => error.as_str(),
             Self::Play(_) => "tour-play-refused",
@@ -56,7 +53,6 @@ impl TourProductError {
 }
 
 pub struct TourProduct {
-    application: TourApplicationState,
     controller: TourWorkspaceController,
     inspection: Option<inspection::RunInspection>,
     graph: Result<patchbay_graph::PatchbayGraph, TourWorkspaceSceneRefusal>,
@@ -65,7 +61,6 @@ pub struct TourProduct {
 impl TourProduct {
     pub fn canonical(revision: u32) -> Self {
         Self {
-            application: TourApplicationState::canonical(),
             controller: TourWorkspaceController::canonical(revision),
             inspection: None,
             graph: crate::tour_workspace::canonical_graph(),
@@ -74,19 +69,6 @@ impl TourProduct {
 
     pub const fn controller(&self) -> &TourWorkspaceController {
         &self.controller
-    }
-
-    pub const fn application(&self) -> &TourApplicationState {
-        &self.application
-    }
-
-    pub fn accept_application_action(
-        &mut self,
-        action: TourApplicationAction,
-    ) -> Result<(), TourProductError> {
-        self.application
-            .apply(action)
-            .map_err(TourProductError::Application)
     }
 
     pub fn select_gear(&mut self, revision: u32, gear: &str) -> Result<(), TourProductError> {
@@ -153,9 +135,11 @@ impl TourProduct {
             .request(event)
             .map_err(TourProductError::Controller)?;
         let play = match request {
-            TourWorkspaceRequest::OpenPatchbay => None,
-            TourWorkspaceRequest::Run => {
-                self.accept_application_action(TourApplicationAction::Run)?;
+            None | Some(TourWorkspaceRequest::OpenPatchbay) => None,
+            Some(TourWorkspaceRequest::Run {
+                chapter: 0,
+                stage: 0,
+            }) => {
                 let mut prepared = crate::tour_play::prepare(identities, offer, build_id)
                     .map_err(TourProductError::Preparation)?;
                 let mut inspection = inspection::RunInspection::from_plan(&prepared.plan)
@@ -166,10 +150,14 @@ impl TourProduct {
                 self.controller
                     .complete_run(run_proof(&evidence))
                     .map_err(TourProductError::Controller)?;
-                self.accept_application_action(TourApplicationAction::Complete)?;
                 inspection.observations = evidence.observations.clone();
                 self.inspection = Some(inspection);
                 Some(evidence)
+            }
+            Some(TourWorkspaceRequest::Run { .. }) => {
+                return Err(TourProductError::Controller(
+                    TourWorkspaceRefusal::WrongSpecimen,
+                ));
             }
         };
         Ok(TourProductUpdate { request, play })
@@ -185,6 +173,9 @@ fn run_proof(evidence: &TourPlayEvidence) -> TourRunProof {
         plan_id: evidence.plan_id.clone(),
         active_play_id: evidence.active_play_id.clone(),
         result: evidence.result.into(),
+        terminal: conduit_tour_model::TourRunTerminal::Completed,
+        comparison: None,
+        multi_host: None,
     }
 }
 
@@ -194,7 +185,8 @@ mod tests {
 
     use conduit_presentation::{ApplicationEventKind, GraphicsPaintRole};
     use conduit_tour_model::{
-        CANONICAL_RESULT, OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID, TourWorkspacePhase,
+        CANONICAL_RESULT, NEXT_CHAPTER_ACTION_ID, OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID,
+        TOUR_CHAPTER_COUNT, TourWorkspacePhase,
     };
 
     use super::*;
@@ -309,7 +301,13 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(update.request, TourWorkspaceRequest::Run);
+        assert_eq!(
+            update.request,
+            Some(TourWorkspaceRequest::Run {
+                chapter: 0,
+                stage: 0
+            })
+        );
         let evidence = update.play.unwrap();
         let graph = product.graph.as_ref().unwrap();
         assert_eq!(graph.source_document_id, evidence.source_document_id);
@@ -421,7 +419,7 @@ mod tests {
                 &mut Idle::default(),
             )
             .unwrap();
-        assert_eq!(update.request, TourWorkspaceRequest::OpenPatchbay);
+        assert_eq!(update.request, Some(TourWorkspaceRequest::OpenPatchbay));
         assert_eq!(update.play, None);
         assert_eq!(
             product.controller().state().phase,
@@ -488,15 +486,27 @@ mod tests {
     }
 
     #[test]
-    fn native_projection_runs_the_shared_application_conformance_trace() {
+    fn native_product_navigates_the_shared_canonical_chapter_state() {
+        let (identities, offer) = fixture();
         let mut product = TourProduct::canonical(1);
-        for action in conduit_tour_model::TOUR_PROJECTION_CONFORMANCE_ACTIONS {
-            product.accept_application_action(action).unwrap();
-        }
-        let mut expected = TourApplicationState::canonical();
-        for action in conduit_tour_model::TOUR_PROJECTION_CONFORMANCE_ACTIONS {
-            expected.apply(action).unwrap();
-        }
-        assert_eq!(product.application(), &expected);
+        let update = product
+            .accept(
+                &event(1, NEXT_CHAPTER_ACTION_ID),
+                &identities,
+                &offer,
+                "build",
+                &mut Clock::default(),
+                &mut Serial::default(),
+                &mut Interrupts::default(),
+                &mut Idle::default(),
+            )
+            .unwrap();
+        assert_eq!(update.request, None);
+        assert_eq!(update.play, None);
+        assert_eq!(product.controller().state().progress.chapter, 1);
+        assert_eq!(
+            product.controller().state().progress.chapter_count,
+            TOUR_CHAPTER_COUNT
+        );
     }
 }

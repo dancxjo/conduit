@@ -10,9 +10,11 @@ use super::{
 };
 
 mod conduitos;
+mod hears_speaks;
 mod retention;
 
 use conduitos::{write_conduitos_commit, write_conduitos_current};
+use hears_speaks::{write_hears_speaks_commit, write_hears_speaks_current};
 use retention::{trim_indexed_history_to_bounds, validate_existing_tree};
 
 const GALLERY_SCHEMA: &str = "conduit.visual-evidence-gallery/v1";
@@ -33,6 +35,7 @@ const SCENARIOS: &[(&str, &str)] = &[
 pub struct GalleryRequest {
     pub evidence_root: PathBuf,
     pub conduitos_evidence_root: Option<PathBuf>,
+    pub hears_speaks_evidence_root: Option<PathBuf>,
     pub site_root: PathBuf,
     pub commit: String,
 }
@@ -64,6 +67,19 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
                 result: ExpectedEvidenceResult::Complete,
                 proof_id: "conduitos-x86_64".into(),
                 suite_id: "conduitos.prove.x86_64".into(),
+            })
+        })
+        .transpose()?;
+    let hears_speaks = request
+        .hears_speaks_evidence_root
+        .as_ref()
+        .map(|root| {
+            verify(&VerificationRequest {
+                root: root.clone(),
+                commit: request.commit.clone(),
+                result: ExpectedEvidenceResult::Complete,
+                proof_id: "journey-hears-speaks".into(),
+                suite_id: "journey-gallery".into(),
             })
         })
         .transpose()?;
@@ -107,6 +123,17 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
         if current.exists() {
             fs::remove_dir_all(current).map_err(|error| {
                 format!("cannot clear stale ConduitOS current evidence: {error}")
+            })?;
+        }
+    }
+    if let (Some(root), Some(evidence)) = (&request.hears_speaks_evidence_root, &hears_speaks) {
+        write_hears_speaks_commit(&site_root, root, evidence)?;
+        write_hears_speaks_current(&site_root, root, evidence)?;
+    } else {
+        let current = site_root.join("current/hears-speaks");
+        if current.exists() {
+            fs::remove_dir_all(current).map_err(|error| {
+                format!("cannot clear stale Hears and Speaks evidence: {error}")
             })?;
         }
     }
@@ -268,8 +295,18 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
             } else {
                 String::new()
             };
+            let hears_speaks = if root
+                .join("commits")
+                .join(commit)
+                .join("hears-speaks/index.html")
+                .is_file()
+            {
+                format!(" · <a href=\"commits/{commit}/hears-speaks/\">Hears and Speaks</a>")
+            } else {
+                String::new()
+            };
             format!(
-                "<li><code>{commit}</code>: <a href=\"commits/{commit}/patchbay/\">Patchbay</a>{conduitos}</li>"
+                "<li><code>{commit}</code>: <a href=\"commits/{commit}/patchbay/\">Patchbay</a>{conduitos}{hears_speaks}</li>"
             )
         })
         .collect::<Vec<_>>()
@@ -279,11 +316,16 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
     } else {
         ""
     };
+    let hears_speaks = if root.join("current/hears-speaks/index.html").is_file() {
+        "\n<p><a href=\"current/hears-speaks/\">Current Hears and Speaks audio journey</a></p>"
+    } else {
+        ""
+    };
     let body = format!(
-        "<h1>Conduit visual evidence</h1>\n<p>Current accepted main: <code>{}</code></p>\n<p><a href=\"current/patchbay/\">Current Patchbay evidence</a></p>{conduitos}\n<h2>Retained accepted commits</h2>\n<ul>{history}</ul>\n<p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; these images and transcripts are documentary evidence.</p>",
+        "<h1>Conduit evidence gallery</h1>\n<p>Current accepted main: <code>{}</code></p>\n<p><a href=\"current/patchbay/\">Current Patchbay evidence</a></p>{conduitos}{hears_speaks}\n<h2>Retained accepted commits</h2>\n<ul>{history}</ul>\n<p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; these images, transcripts, and audio files are documentary evidence.</p>",
         escape_html(&index.current_commit)
     );
-    write_html(&root.join("index.html"), "Conduit visual evidence", &body)
+    write_html(&root.join("index.html"), "Conduit evidence gallery", &body)
 }
 
 fn write_scenario_index(

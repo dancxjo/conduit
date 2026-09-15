@@ -17,7 +17,7 @@ mod inspection;
 pub use inspection::canonical_gear_contract;
 mod layout;
 mod lesson;
-pub use lesson::TOUR_LESSON_SUBJECT;
+pub use lesson::{TOUR_LESSON_SUBJECT, tour_stage_source};
 mod navigation;
 mod pointer;
 mod port;
@@ -45,6 +45,10 @@ pub const CANONICAL_SOURCE: &str = concat!(
     "}"
 );
 pub const RUN_ACTION_ID: &str = "tour.run";
+pub const PREVIOUS_CHAPTER_ACTION_ID: &str = "tour.chapter.previous";
+pub const NEXT_CHAPTER_ACTION_ID: &str = "tour.chapter.next";
+pub const PREVIOUS_STAGE_ACTION_ID: &str = "tour.stage.previous";
+pub const NEXT_STAGE_ACTION_ID: &str = "tour.stage.next";
 pub const OPEN_PATCHBAY_ACTION_ID: &str = "tour.open-patchbay";
 pub const OPEN_CHOOSER_ACTION_ID: &str = "tour.chooser.open";
 pub const TRANSIENT_CLOSE_ACTION_ID: &str = "tour.transient.close";
@@ -63,20 +67,25 @@ pub enum TourWorkspacePhase {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TourWorkspaceState {
     pub revision: u32,
+    pub progress: TourProgressState,
     pub phase: TourWorkspacePhase,
     pub focused_key: String,
     pub specimen_id: String,
     pub source: String,
     pub result: Option<String>,
-    pub run_pending: bool,
     pub hovered_patchbay_subject: Option<String>,
     pub selected_patchbay_subject: Option<String>,
 }
 
 impl TourWorkspaceState {
     pub fn canonical(revision: u32, phase: TourWorkspacePhase) -> Self {
+        let mut progress = TourProgressState::canonical();
+        if phase == TourWorkspacePhase::ResultVisible {
+            progress.run = TourRunState::Completed;
+        }
         Self {
             revision,
+            progress,
             phase,
             focused_key: match phase {
                 TourWorkspacePhase::LessonReady => "source".into(),
@@ -86,18 +95,21 @@ impl TourWorkspaceState {
             specimen_id: CANONICAL_SPECIMEN_ID.into(),
             source: CANONICAL_SOURCE.into(),
             result: (phase == TourWorkspacePhase::ResultVisible).then(|| CANONICAL_RESULT.into()),
-            run_pending: false,
             hovered_patchbay_subject: None,
             selected_patchbay_subject: None,
         }
     }
 
     pub fn run_availability(&self) -> ActionAvailability {
-        if self.run_pending {
+        if self.progress.current_stage().is_none() {
+            ActionAvailability::Unavailable {
+                detail: "This chapter is conceptual; no Play is requested".into(),
+            }
+        } else if self.progress.run == TourRunState::Running {
             ActionAvailability::Busy {
                 detail: "Canonical Play is active".into(),
             }
-        } else if self.phase == TourWorkspacePhase::ResultVisible {
+        } else if self.progress.run == TourRunState::Completed {
             ActionAvailability::Unavailable {
                 detail: "Canonical Play already completed".into(),
             }
@@ -107,6 +119,11 @@ impl TourWorkspaceState {
     }
 
     pub fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
+        let chapter = TOUR_CHAPTERS
+            .get(usize::from(self.progress.chapter))
+            .ok_or(SemanticPresentationRefusal::InvalidNavigation)?;
+        let chapter_title = crate::lesson::chapter_title(self.progress.chapter)
+            .map_err(|_| SemanticPresentationRefusal::InvalidNavigation)?;
         let status = match self.phase {
             TourWorkspacePhase::LessonReady => (StatusKind::Ordinary, "Lesson ready"),
             TourWorkspacePhase::ResultVisible => (StatusKind::Success, "Result visible"),
@@ -150,14 +167,19 @@ impl TourWorkspaceState {
                             node(
                                 "lesson",
                                 PresentationMechanism::Panel {
-                                    title: "A first Form".into(),
+                                    title: chapter_title.clone(),
                                 },
                                 vec![node(
                                     "lesson-status",
                                     PresentationMechanism::Status {
                                         kind: status.0,
-                                        title: status.1.into(),
-                                        detail: self.specimen_id.clone(),
+                                        title: chapter_title,
+                                        detail: format!(
+                                            "Chapter {} of {} · {}",
+                                            self.progress.chapter + 1,
+                                            self.progress.chapter_count,
+                                            chapter.identity
+                                        ),
                                     },
                                     vec![],
                                 )],
@@ -199,10 +221,7 @@ impl TourWorkspaceState {
                                     PresentationMechanism::Status {
                                         kind: status.0,
                                         title: status.1.into(),
-                                        detail: self
-                                            .result
-                                            .clone()
-                                            .unwrap_or_else(|| "Not run".into()),
+                                        detail: result_detail(self),
                                     },
                                     vec![],
                                 )],
@@ -213,6 +232,60 @@ impl TourWorkspaceState {
                                     label: "Tour actions".into(),
                                 },
                                 vec![
+                                    action(
+                                        "previous-chapter",
+                                        PREVIOUS_CHAPTER_ACTION_ID,
+                                        "Previous chapter",
+                                        if self.progress.chapter == 0 {
+                                            ActionAvailability::Unavailable {
+                                                detail: "This is the first chapter".into(),
+                                            }
+                                        } else {
+                                            ActionAvailability::Available
+                                        },
+                                    ),
+                                    action(
+                                        "next-chapter",
+                                        NEXT_CHAPTER_ACTION_ID,
+                                        "Next chapter",
+                                        if self.progress.chapter + 1 >= self.progress.chapter_count
+                                        {
+                                            ActionAvailability::Unavailable {
+                                                detail: "This is the final chapter".into(),
+                                            }
+                                        } else {
+                                            ActionAvailability::Available
+                                        },
+                                    ),
+                                    action(
+                                        "previous-stage",
+                                        PREVIOUS_STAGE_ACTION_ID,
+                                        "Previous exercise",
+                                        if self.progress.stage == 0 {
+                                            ActionAvailability::Unavailable {
+                                                detail: "This is the first exercise on this page"
+                                                    .into(),
+                                            }
+                                        } else {
+                                            ActionAvailability::Available
+                                        },
+                                    ),
+                                    action(
+                                        "next-stage",
+                                        NEXT_STAGE_ACTION_ID,
+                                        "Next exercise",
+                                        if self.progress.current_stage().is_none()
+                                            || usize::from(self.progress.stage) + 1
+                                                >= chapter.stages.len()
+                                        {
+                                            ActionAvailability::Unavailable {
+                                                detail: "This is the final exercise on this page"
+                                                    .into(),
+                                            }
+                                        } else {
+                                            ActionAvailability::Available
+                                        },
+                                    ),
                                     action(
                                         "run",
                                         RUN_ACTION_ID,
@@ -237,22 +310,45 @@ impl TourWorkspaceState {
     }
 }
 
+fn result_detail(state: &TourWorkspaceState) -> String {
+    let Some(result) = state.result.as_deref() else {
+        return "Not run".into();
+    };
+    match state.progress.current_stage().map(|stage| stage.mode) {
+        Some(TourStageMode::Compare) => {
+            format!("{result}. Same source and checked Form; distinct expanded Forms and Plans.")
+        }
+        Some(TourStageMode::TwoHost | TourStageMode::TwoHostPlan) => format!(
+            "{result} · one value delivered over one planned Line between two Host fragments."
+        ),
+        Some(TourStageMode::Run) if state.progress.chapter == 2 => {
+            format!("0 → {result} · stopped with the next 120 ms timer pending.")
+        }
+        _ => result.into(),
+    }
+}
+
 fn format_phase(phase: TourWorkspacePhase) -> &'static str {
     match phase {
-        TourWorkspacePhase::LessonReady => "meet-one-gear graph ready",
-        TourWorkspacePhase::ResultVisible => "meet-one-gear graph played",
-        TourWorkspacePhase::PatchbayOpen => "meet-one-gear graph inspection",
+        TourWorkspacePhase::LessonReady => "ready",
+        TourWorkspacePhase::ResultVisible => "played",
+        TourWorkspacePhase::PatchbayOpen => "open for inspection",
     }
 }
 
 fn patchbay_label(state: &TourWorkspaceState) -> String {
+    let base = format!(
+        "Active Form {}; {}",
+        state.specimen_id,
+        format_phase(state.phase)
+    );
     match (
         state.selected_patchbay_subject.as_deref(),
         state.hovered_patchbay_subject.as_deref(),
     ) {
-        (Some(selected), _) => format!("{}; selected {selected}", format_phase(state.phase)),
-        (None, Some(hovered)) => format!("{}; hover {hovered}", format_phase(state.phase)),
-        (None, None) => format_phase(state.phase).into(),
+        (Some(selected), _) => format!("{base}; selected {selected}"),
+        (None, Some(hovered)) => format!("{base}; hover {hovered}"),
+        (None, None) => base,
     }
 }
 
@@ -292,6 +388,27 @@ mod tests {
     use conduit_presentation::{ApplicationComponent, ApplicationView};
 
     #[test]
+    fn later_exercises_explain_their_shared_execution_evidence() {
+        let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::ResultVisible);
+        state.progress.chapter = 1;
+        state.specimen_id = "canonical-form:same-morse-caller".into();
+        state.result = Some("Direct and recursive realizations agree".into());
+        assert!(result_detail(&state).contains("distinct expanded Forms and Plans"));
+
+        state.progress.chapter = 2;
+        state.specimen_id = "canonical-form:count-over-time".into();
+        state.result = Some("1".into());
+        assert!(result_detail(&state).contains("0 → 1"));
+        assert!(result_detail(&state).contains("120 ms timer pending"));
+
+        state.progress.chapter = 3;
+        state.specimen_id = "canonical-form:hello-across".into();
+        state.result = Some("hello across one Cord".into());
+        assert!(result_detail(&state).contains("one planned Line"));
+        assert!(patchbay_label(&state).starts_with("Active Form canonical-form:hello-across"));
+    }
+
+    #[test]
     fn run_availability_is_shared_by_semantic_and_shell_controls() {
         for phase in [
             TourWorkspacePhase::LessonReady,
@@ -300,7 +417,9 @@ mod tests {
         ] {
             for pending in [false, true] {
                 let mut state = TourWorkspaceState::canonical(1, phase);
-                state.run_pending = pending;
+                if pending {
+                    state.progress.run = TourRunState::Running;
+                }
                 let view = state.presentation().unwrap().lower().unwrap();
                 assert_eq!(
                     state.run_action_available(),
@@ -344,9 +463,9 @@ mod tests {
                     .any(|node| node.key == state.focused_key)
             );
             let expected_actions = if phase == TourWorkspacePhase::ResultVisible {
-                1
+                3
             } else {
-                2
+                4
             };
             assert_eq!(lowered.actions.len(), expected_actions);
             assert_eq!(
@@ -373,6 +492,21 @@ mod tests {
             identities
                 .iter()
                 .all(|identity| identity == CANONICAL_SPECIMEN_ID)
+        );
+    }
+
+    #[test]
+    fn conceptual_chapter_has_no_fake_run_action() {
+        let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::LessonReady);
+        state.progress.chapter = 4;
+        state.progress.stage = 0;
+        let view = state.presentation().unwrap().lower().unwrap();
+        assert!(!view.actions.iter().any(|action| action.id == RUN_ACTION_ID));
+        assert_eq!(
+            state.run_availability(),
+            ActionAvailability::Unavailable {
+                detail: "This chapter is conceptual; no Play is requested".into()
+            }
         );
     }
 }

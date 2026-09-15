@@ -34,6 +34,7 @@ const CAPTURE_DECLARATION_SCHEMA: &str = "conduit.capture-declarations/v1";
 #[serde(rename_all = "kebab-case")]
 pub enum EvidenceKind {
     Screenshot,
+    Audio,
     MachineReadableManifest,
     ConsoleTranscript,
 }

@@ -20,6 +20,8 @@ mod host_esp32_inspection;
 #[cfg(test)]
 #[path = "host_esp32_inspection_tests.rs"]
 mod host_esp32_inspection_tests;
+#[path = "host_hears_speaks.rs"]
+mod host_hears_speaks;
 #[path = "host_local_model.rs"]
 mod host_local_model;
 #[path = "host_microphone.rs"]
@@ -206,6 +208,8 @@ enum HostCommand {
         #[arg(long)]
         admitted_memory_mib: u32,
     },
+    /// Retain one recorded House question and synthesized answer as journey evidence.
+    JourneyHearsSpeaks(host_hears_speaks::HearsSpeaksArgs),
     /// Explicitly capture one bounded microphone clip and recognize it through Whisper.
     ProveMicrophoneWhisper {
         #[arg(long)]
@@ -347,6 +351,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             },
             opts,
         ),
+        HostCommand::JourneyHearsSpeaks(request) => host_hears_speaks::run(request, opts),
         HostCommand::ProveMicrophoneWhisper {
             arecord_executable,
             card_id,

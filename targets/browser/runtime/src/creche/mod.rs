@@ -13,7 +13,7 @@ mod session;
 #[cfg(feature = "form-runner")]
 mod workspace;
 #[cfg(feature = "form-runner")]
-pub(crate) use initial_forms::expanded_inventory_form;
+pub(crate) use initial_forms::{expanded_inventory_form, inventory_form_title};
 #[cfg(feature = "form-runner")]
 pub(crate) use workspace::{
     handoff_workspace, plan_workspace_forms, require_workspace_form, workspace_evidence,

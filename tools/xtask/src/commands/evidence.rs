@@ -45,6 +45,10 @@ struct EvidenceGalleryArgs {
     #[arg(long)]
     conduitos_evidence_root: Option<PathBuf>,
 
+    /// Optional complete Hears and Speaks audio evidence for the same commit.
+    #[arg(long)]
+    hears_speaks_evidence_root: Option<PathBuf>,
+
     /// Existing or empty gallery root to update atomically by accepted commit.
     #[arg(long)]
     site_root: PathBuf,
@@ -104,6 +108,7 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
         EvidenceCommand::Gallery(args) => evidence::publish_gallery(&evidence::GalleryRequest {
             evidence_root: args.evidence_root,
             conduitos_evidence_root: args.conduitos_evidence_root,
+            hears_speaks_evidence_root: args.hears_speaks_evidence_root,
             site_root: args.site_root,
             commit: args.commit,
         })
