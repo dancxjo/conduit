@@ -22,6 +22,7 @@ pub struct PreparedTourTimerPlan {
     pub active_play: ActivePlayIdentity,
     pub planned_sign_items: u16,
     pub planned_sign_bytes: u32,
+    pub(crate) kernel: crate::tour_timer_kernel::TourTimerKernel,
 }
 
 pub fn prepare(
@@ -75,11 +76,14 @@ pub fn prepare(
         &plan.fragments[0].boot_id,
         0,
     );
+    let kernel = crate::tour_timer_kernel::TourTimerKernel::prepare(&plan.fragments[0], &lowered)
+        .map_err(|_| PreparationError::KernelRejected)?;
     Ok(PreparedTourTimerPlan {
         plan,
         active_play,
         planned_sign_items: lowered.sign_items,
         planned_sign_bytes: lowered.sign_bytes,
+        kernel,
     })
 }
 

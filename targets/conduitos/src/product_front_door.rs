@@ -135,6 +135,7 @@ pub fn run(
     let mut tour_open = false;
     let mut consumed_birth_key = None;
     let mut clock = arch::Clock::new();
+    let mut timer = arch::Timer::new();
     let mut serial = arch::Serial::new();
     let mut interrupts = arch::Interrupts::new();
     let mut idle = arch::Idle::new();
@@ -570,12 +571,13 @@ pub fn run(
         )?;
     }
     let mut execute_tour = |tour: &mut TourProduct, event: &ApplicationEvent| {
-        tour.accept(
+        tour.accept_with_timer(
             event,
             identities,
             offer,
             fabrication.build_id,
             &mut clock,
+            &mut timer,
             &mut serial,
             &mut interrupts,
             &mut idle,
