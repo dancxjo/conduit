@@ -1159,6 +1159,7 @@ jobs:
           DEBUGGER_REQUIRED: ${{ needs.plan.outputs.patchbay_debugger_required }}
           CARRIER_REQUIRED: ${{ needs.plan.outputs.pages_carrier_required }}
           BROWSER_ADMISSION_REQUIRED: ${{ needs.plan.outputs.browser_admission_required }}
+          JOURNEY_REQUIRED: ${{ needs.plan.outputs.browser_runtime_required }}
           BROWSER_ADMISSION_RESULT: ${{ needs.browser-admission-proof.result }}
           TOUR_PATCHBAY_RESULT: ${{ needs.tour-patchbay-proof.result }}
           STAGE_RESULT: ${{ needs.products-stage.result }}
@@ -1181,7 +1182,7 @@ jobs:
           if test "$BROWSER_ADMISSION_REQUIRED" = true; then
             test "$BROWSER_ADMISSION_RESULT" = success
           fi
-          if test "${{ needs.plan.outputs.browser_runtime_required }}" = true; then
+          if test "$JOURNEY_REQUIRED" = true; then
             test "$JOURNEY_RESULT" = success
           fi
           if test "$CARRIER_REQUIRED" = true; then

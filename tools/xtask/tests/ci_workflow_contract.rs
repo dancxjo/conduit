@@ -432,6 +432,7 @@ fn two_faces_evidence_is_pinned_exact_bounded_and_admitted() {
     assert!(evidence.contains("--proof journey-one-form-two-faces"));
     assert!(evidence.contains("--suite journey-gallery"));
     assert!(evidence.contains("retention-days: 14"));
+    assert!(gate.contains("JOURNEY_REQUIRED: ${{ needs.plan.outputs.browser_runtime_required }}"));
     assert!(gate.contains("JOURNEY_RESULT: ${{ needs.journey-evidence.result }}"));
     assert!(gate.contains("test \"$JOURNEY_RESULT\" = success"));
 }
