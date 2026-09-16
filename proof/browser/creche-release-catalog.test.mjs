@@ -1,8 +1,28 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { acquireHostRelease } from "../../products/creche/browser/creche-release-bundle.mjs";
 import { openReleaseCatalog, createMemoryReleaseCache } from "../../products/creche/browser/creche-release-catalog.mjs";
 
 const encoder = new TextEncoder();
+
+test("a missing release manifest refuses before payload acquisition", async () => {
+  const profile = {
+    target_id: "std/x86_64/computer",
+    package_id: "hosted-native@1",
+    output: "native-bundle",
+    builder_adapter: "conduit-host-hosted/build-native@1",
+    deployment_adapter: "conduit-host-hosted/launch@1",
+    manifest_path: "https://mirror.example/releases/hosted-linux-x86_64.json",
+  };
+  await assert.rejects(
+    acquireHostRelease(profile, undefined, { fetcher: async () => new Response("missing", { status: 404 }) }),
+    (error) => error.code === "ArtifactUnavailable"
+      && error.evidence.operation === "obtain"
+      && error.evidence.authority_requested === false
+      && error.evidence.artifact_work_started === false
+      && error.evidence.external_work_started === false,
+  );
+});
 
 test("selected target alone is fetched, verified, and reused from immutable cache", async () => {
   const payload = encoder.encode("reviewed-host-bundle");

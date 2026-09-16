@@ -58,8 +58,8 @@ export async function acquireExactReleaseBytes({ url, expected, maximumBytes, si
   }
   let response;
   try { response = await fetcher(url, { signal, cache: "no-store" }); }
-  catch (error) { refuse("ArtifactUnavailable", `reviewed Host release ${label} is unavailable`, error); }
-  if (!response?.ok) refuse("ArtifactUnavailable", `reviewed Host release ${label} returned HTTP ${response?.status}`);
+  catch (error) { refuse("ArtifactUnavailable", `reviewed Host release ${label} is unavailable`, error, label !== "manifest"); }
+  if (!response?.ok) refuse("ArtifactUnavailable", `reviewed Host release ${label} returned HTTP ${response?.status}`, undefined, label !== "manifest");
   const bytes = new Uint8Array(await response.arrayBuffer());
   if (bytes.byteLength < 1 || bytes.byteLength > maximumBytes
     || expected && (bytes.byteLength !== expected.bytes || await sha256(bytes) !== expected.sha256)) {
@@ -120,14 +120,16 @@ async function sha256(bytes) {
   return `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
-function refuse(code, message, cause) {
+function refuse(code, message, cause, artifactWorkStarted = false) {
   const error = new Error(message, cause ? { cause } : undefined);
   error.code = code;
   error.evidence = Object.freeze({
     schema: "conduit.release/host-bundle-failure@1",
     terminal: code,
     message,
+    operation: "obtain",
     authority_requested: false,
+    artifact_work_started: artifactWorkStarted,
     external_work_started: false,
   });
   throw error;
