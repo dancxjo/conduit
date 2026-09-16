@@ -214,6 +214,10 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
             "plan_id": start.plan.plan_id,
             "active_play_id": active_play_id,
             "endpoints": endpoints.iter().map(|endpoint| endpoint.0).collect::<Vec<_>>(),
+            "egress_endpoints": sessions.iter().filter_map(|session| {
+                (session.direction == conduit_plan_lowering::lowering::RemoteCordDirection::Egress)
+                    .then_some(session.endpoint.0)
+            }).collect::<Vec<_>>(),
             "initial_frames": initial_frames,
         }))?;
         STATE.with(|state| {
@@ -247,6 +251,21 @@ fn encode_frame(
     Ok(bytes)
 }
 
+fn message_name(message: SessionMessage<'_>) -> &'static str {
+    match message {
+        SessionMessage::Hello(_) => "hello",
+        SessionMessage::Ready => "ready",
+        SessionMessage::Offered { .. } => "offered",
+        SessionMessage::Pressure { .. } => "pressure",
+        SessionMessage::Accepted { .. } => "accepted",
+        SessionMessage::Delivered { .. } => "delivered",
+        SessionMessage::InputClosed { .. } => "input-closed",
+        SessionMessage::Cancelled { .. } => "cancelled",
+        SessionMessage::Failed { .. } => "failed",
+        SessionMessage::Terminal { .. } => "terminal",
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn conduit_browser_remote_exchange(length: u32) -> i32 {
     with_state(|state| {
@@ -259,6 +278,7 @@ pub extern "C" fn conduit_browser_remote_exchange(length: u32) -> i32 {
             .find(|session| session.binding.identity() == frame.identity)
             .ok_or_else(|| "browser remote frame names no admitted session".to_string())?;
         let message = frame.message;
+        let message_label = message_name(message);
         session
             .machine
             .admit_inbound(frame)
@@ -326,6 +346,8 @@ pub extern "C" fn conduit_browser_remote_exchange(length: u32) -> i32 {
         bytes.fill(0);
         write_json(&serde_json::json!({
             "schema": "conduit.browser/remote-session-exchange@1",
+            "endpoint": session.endpoint.0,
+            "message": message_label,
             "responses": responses,
             "active": session.machine.is_active(),
         }))?;
