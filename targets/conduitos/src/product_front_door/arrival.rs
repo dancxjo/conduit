@@ -95,6 +95,10 @@ pub(super) fn birth_and_wake(
         let receipt = refresh(door, journey, presenter, display)?;
         emit_journey_sign(&journey.projection(), fabrication, &receipt);
     }
+    door.open_home().map_err(|e| e.as_str())?;
+    let receipt = refresh(door, journey, presenter, display)?;
+    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+    arch::early_write(b"CONDUIT_HOME_CHECKPOINT ready\n");
     arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT body-awake\n");
     Ok(())
 }

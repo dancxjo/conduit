@@ -162,9 +162,21 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     let mut memory = identity(NativeForm::MemoryLantern)?;
     let tour = identity(NativeForm::Tour)?;
     let patchbay = identity(NativeForm::Patchbay)?;
+    let mut saw_pre_input_baseline = false;
     let quiescent = records
         .iter()
         .filter(|record| record["status"] == "quiescent-awaiting-input")
+        .filter(|record| {
+            if record["input_count"].as_u64() != Some(0) {
+                return true;
+            }
+            // Home may switch among installed Forms before the first Form input.
+            // Keep one lifecycle baseline; those launcher-only projections do
+            // not become additional workset execution checkpoints.
+            let keep = !saw_pre_input_baseline;
+            saw_pre_input_baseline = true;
+            keep
+        })
         .collect::<Vec<_>>();
     let expected = expected();
     if quiescent.len() > expected.len() {

@@ -4,10 +4,10 @@ use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
 // The complete seven-page Tour adds per-exercise and per-page evidence to the
-// ordinary resident-Form journey. Forty-two retains the exact forty-one
-// normal checkpoints plus one
+// ordinary resident-Form journey. Forty-six retains the exact forty-five
+// normal checkpoints, including Home/Prompt/Forms/return, plus one
 // failure frame without coalescing distinct proof checkpoints.
-const MAX_CHECKPOINTS: usize = 42;
+const MAX_CHECKPOINTS: usize = 46;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
@@ -48,7 +48,7 @@ impl Artifacts {
         if self.entries.len() >= MAX_CHECKPOINTS {
             return Err(ConduitosError::refusal(
                 "qemu-display-checkpoint-bound",
-                "at most forty-two captures admitted",
+                "at most forty-six captures admitted",
             ));
         }
         let mut serial = Vec::new();
@@ -99,6 +99,7 @@ impl Artifacts {
             .to_owned();
         let unchanged = expect_change && self.previous_pixels.as_ref() == Some(&pixels);
         self.entries.push(json!({"index":self.entries.len(),"checkpoint":checkpoint,
+            "journey_step_ids":journey_step_ids(checkpoint),
             "elapsed_millis":self.started.elapsed().as_millis(),"serial_byte_end":serial.len(),
             "guest_record":record,"guest_boot_record":boot,"frame":frame,"expected_change":expect_change,"unchanged":unchanged,
             "health_refusal":health_refusal.as_ref().map(|error|json!({"reason":error.reason,"detail":error.detail}))}));
@@ -157,6 +158,18 @@ impl Artifacts {
             serde_json::to_vec_pretty(&manifest).expect("serializable manifest"),
         )
         .map_err(io_error)
+    }
+}
+
+fn journey_step_ids(checkpoint: &str) -> &'static [&'static str] {
+    match checkpoint {
+        "body-awake" => &["home.arrived"],
+        "home-forms" => &["forms.opened", "form.selected"],
+        "home-prompt" => &["prompt.opened"],
+        "input-continued" => &["form.run", "play.observed"],
+        "home-patchbay-open" => &["patchbay.opened"],
+        "home-returned" => &["home.returned"],
+        _ => &[],
     }
 }
 fn io_error(error: std::io::Error) -> ConduitosError {

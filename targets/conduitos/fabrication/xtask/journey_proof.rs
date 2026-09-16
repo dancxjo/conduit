@@ -234,6 +234,70 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "ret", "creche-birth")?;
             journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
             artifacts.capture(&mut qmp, &mut reader, "body-awake", true)?;
+            for _ in 0..5 {
+                journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-prompt")?;
+            }
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_STATE launcher 5",
+                "product-journey-home-prompt-selection-timeout",
+            )?;
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-prompt")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_STATE prompt 5",
+                "product-journey-home-prompt-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-prompt", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-leave-prompt")?;
+            for _ in 0..3 {
+                journey_input::key_pair(&mut qmp, &mut reader, "up", "home-select-forms")?;
+            }
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-forms")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_STATE forms 2",
+                "product-journey-home-forms-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-forms", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-leave-forms")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "up", "home-select-patchbay")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-patchbay")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_CHECKPOINT patchbay-opened",
+                "product-journey-home-patchbay-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-patchbay-open", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "patchbay-return-home")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_CHECKPOINT returned",
+                "product-journey-home-return-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-returned", true)?;
+            for _ in 0..2 {
+                journey_input::key_pair(&mut qmp, &mut reader, "right", "home-select-forms-again")?;
+            }
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-forms-again")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_STATE forms 2",
+                "product-journey-home-forms-return-timeout",
+            )?;
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-keyboard")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_CHECKPOINT form-opened conduitos-keyboard-upper",
+                "product-journey-home-keyboard-timeout",
+            )?;
             for label in [
                 "PROFILE ID",
                 "BUILD ID",
