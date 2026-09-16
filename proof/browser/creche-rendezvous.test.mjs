@@ -61,11 +61,18 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
   assert.equal(remote.identity.boot_id, "boot/test");
   assert.equal(remote.identity.plan_id, "plan/retained");
   assert.deepEqual(remote.hello_frames, [[0x43, 0x4e, 0x44, 0x53, 4]]);
+  await assert.rejects(() => join.line.prepareRemote({ plan_id: "plan/overlap" }), { code: "RemotePlayActive" });
   await join.line.sendSessionFrame(new Uint8Array([0x43, 0x4e, 0x44, 0x53, 4]));
   assert.deepEqual(
     [...await join.line.receiveSessionFrame()],
     [0x43, 0x4e, 0x44, 0x53, 4, 2],
   );
+  await join.line.releaseRemote();
+  assert.equal(FakeWebSocket.last.sent.at(-1).kind, "release-remote");
+  const next = await join.line.prepareRemote({ plan_id: "plan/retained-next" });
+  assert.equal(next.identity.plan_id, "plan/retained-next");
+  await join.line.releaseRemote();
+  await assert.rejects(() => join.line.releaseRemote(), { code: "RemotePlayAbsent" });
   await join.line.close();
   assert.equal(FakeWebSocket.last.sent.at(-1).kind, "close");
   assert.equal(FakeWebSocket.last.readyState, 3);
@@ -123,6 +130,8 @@ class FakeWebSocket extends EventTarget {
         plan_id: request.plan.plan_id, active_play_id: "play/retained", play_sequence: 1,
       },
       hello_frames: [[0x43, 0x4e, 0x44, 0x53, 4]],
+    } : request.kind === "release-remote" ? {
+      kind: "remote-released", protocol: 1,
     } : {
       kind: "join", protocol: 1, spore_id: request.spore_id, image_id: request.image_id,
       advertisement, invitation_id: request.claim.invitation_id, body_id: request.claim.body_id,

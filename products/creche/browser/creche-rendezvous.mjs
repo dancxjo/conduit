@@ -92,16 +92,18 @@ export async function connectRendezvousHost(code, {
           await line.close("conduit-terminal");
           return Object.freeze(join);
         }
-        let intentional = false;
+        let intentional = false, remotePrepared = false;
         const joinedLine = Object.freeze({
           schema: "conduit.creche/joined-host-line@1",
           line_id: decoded.line_id,
           onClosed(callback) { void line.closed.then(() => callback(Object.freeze({ intentional }))); },
           async prepareRemote(plan) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
             await send(line, { kind: "prepare-remote", protocol: PROTOCOL, plan });
             const prepared = await receive(line, signal);
             requireRemotePrepared(prepared, descriptor.advertisement);
+            remotePrepared = true;
             return Object.freeze(prepared);
           },
           async sendSessionFrame(frame) {
@@ -112,6 +114,16 @@ export async function connectRendezvousHost(code, {
           async receiveSessionFrame() {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
             return requireSessionFrame(await line.receiveBytes(signal));
+          },
+          async releaseRemote() {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!remotePrepared) refuse("RemotePlayAbsent", "joined Host Line has no remote Play");
+            await send(line, { kind: "release-remote", protocol: PROTOCOL });
+            const released = await receive(line, signal);
+            if (released?.kind !== "remote-released" || released.protocol !== PROTOCOL) {
+              refuse("RemoteRelease", "joined Host did not release the exact remote Play");
+            }
+            remotePrepared = false;
           },
           async close() {
             if (intentional) return;
