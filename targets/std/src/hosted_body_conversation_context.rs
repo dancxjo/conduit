@@ -166,8 +166,12 @@ impl BodyConversationContextSource {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_body::{Body, BodyConversationContextBasis, BodyConversationHost};
-    use conduit_core::{ActivePlayId, CheckedFormId, HostId, PlanId, SignId, SourceDocumentId};
+    use conduit_body::{
+        Body, BodyConversationContextBasis, BodyConversationHost, BodyConversationLine, WakeId,
+    };
+    use conduit_core::{
+        ActivePlayId, CheckedFormId, HostId, LineAvailability, PlanId, SignId, SourceDocumentId,
+    };
 
     fn context(revision: u64, present: bool) -> BodyConversationContext {
         let body = Body::born(
@@ -287,5 +291,66 @@ mod tests {
             .history()
             .iter()
             .any(|item| item.text == "retained history"));
+    }
+
+    #[test]
+    fn line_workload_and_new_wake_replace_current_truth_while_prior_wake_is_stale() {
+        let initial = context(4, true);
+        let source = BodyConversationContextSource::new(&initial).unwrap();
+        let first = match source.poll_after(None, |_| ()) {
+            BodyConversationContextPoll::Current { fingerprint, .. } => fingerprint,
+            other => panic!("initial current context not published: {other:?}"),
+        };
+
+        let mut changed = initial.clone();
+        changed.basis.revision = 5;
+        changed.active_forms.push("form/voice".into());
+        changed.lines.push(BodyConversationLine {
+            line_id: "line/latimer-to-kitchen".into(),
+            source_host_id: HostId::from("host/latimer"),
+            target_host_id: HostId::from("host/kitchen"),
+            availability: Some(LineAvailability::Unavailable),
+            availability_sign_id: Some(SignId::from("sign/line/unavailable")),
+        });
+        assert_eq!(
+            source.replace(&changed),
+            Ok(BodyConversationContextReplacement::Published)
+        );
+        let changed_fingerprint = match source.poll_after(Some(first), <[u8]>::to_vec) {
+            BodyConversationContextPoll::Current { fingerprint, value } => {
+                let observed = conduit_chat::decode_body_conversation_context(&value).unwrap();
+                assert_eq!(observed.active_forms, ["form/home", "form/voice"]);
+                assert_eq!(
+                    observed.lines[0].availability,
+                    Some(LineAvailability::Unavailable)
+                );
+                fingerprint
+            }
+            other => panic!("line/workload replacement not published: {other:?}"),
+        };
+
+        let mut rewoken = changed.clone();
+        rewoken.wake_sequence = 8;
+        rewoken.wake_id = serde_json::from_str::<WakeId>("\"wake/current-context/8\"").unwrap();
+        rewoken.basis.wake_sequence = 8;
+        rewoken.basis.wake_id = rewoken.wake_id.clone();
+        rewoken.basis.revision = 0;
+        assert_eq!(
+            source.replace(&rewoken),
+            Ok(BodyConversationContextReplacement::Published)
+        );
+        assert!(matches!(
+            source.poll_after(Some(changed_fingerprint), <[u8]>::to_vec),
+            BodyConversationContextPoll::Current { value, .. }
+                if conduit_chat::decode_body_conversation_context(&value)
+                    .is_ok_and(|context| context.basis.wake_sequence == 8 && context.basis.revision == 0)
+        ));
+
+        let mut late_prior_wake = changed;
+        late_prior_wake.basis.revision = u64::MAX;
+        assert_eq!(
+            source.replace(&late_prior_wake),
+            Err(BodyConversationContextUpdateRefusal::StaleBasis)
+        );
     }
 }
