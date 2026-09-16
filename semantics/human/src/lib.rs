@@ -10,6 +10,7 @@ mod image_text_codec;
 mod input_chord;
 mod input_keymap;
 mod key_event;
+mod visual_impression;
 mod visual_observation;
 
 pub use human_interaction::*;
@@ -20,4 +21,5 @@ pub use image_text_codec::*;
 pub use input_chord::*;
 pub use input_keymap::*;
 pub use key_event::*;
+pub use visual_impression::*;
 pub use visual_observation::*;
