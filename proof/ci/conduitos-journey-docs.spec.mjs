@@ -31,9 +31,13 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.equal(result.status, 0, result.stderr);
     const page = readFileSync(path.join(fixture.site, "current/conduitos/x86_64/index.html"), "utf8");
     assert.match(page, /What you see/);
-    assert.match(page, /What just happened/);
-    assert.match(page, /What the harness proves/);
+    assert.match(page, /What happened/);
+    assert.match(page, /What Conduit established/);
     assert.match(page, /Concepts in view/);
+    assert.match(page, /Focused artifact and exact correlation/);
+    assert.match(page, /What this proves/);
+    assert.match(page, /What it does not prove/);
+    assert.match(page, /cargo xtask conduitos journey-proof/);
     assert.match(page, /src="front-door-ready\.png"/);
     assert.match(page, /src="host-current-offers\.png"/);
     assert.match(page, /src="home-prompt\.png"/);
@@ -59,6 +63,10 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.match(page, /src="inspector-focused\.png"/);
     assert.match(page, /src="inspector-long-text\.png"/);
     assert.ok(page.indexOf("Crèche ready") < page.indexOf("Tour opened"), "walkthrough is not in journey order");
+    const journeys = readFileSync(path.join(fixture.site, "journeys/index.html"), "utf8");
+    assert.match(journeys, /A computer is born/);
+    assert.match(journeys, /href="\.\.\/current\/conduitos\/x86_64\/"/);
+    assert.doesNotMatch(journeys, /conduit-conduitos-journey-card/);
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }
@@ -85,6 +93,11 @@ function makeFixture() {
   const site = path.join(root, "site");
   mkdirSync(evidence);
   mkdirSync(site);
+  mkdirSync(path.join(site, "journeys"));
+  writeFileSync(
+    path.join(site, "journeys/index.html"),
+    "<!doctype html><body><div class=\"cards\"><!-- conduit-conduitos-journey-card@1 --></div></body>",
+  );
   const digest = createHash("sha256").update(png).digest("hex");
   const entries = checkpoints.map((checkpoint, index) => {
     writeFileSync(path.join(evidence, `${checkpoint}.png`), png);

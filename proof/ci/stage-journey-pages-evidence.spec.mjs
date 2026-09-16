@@ -12,17 +12,18 @@ const inventories = new Map([
   ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "presentation.txt", "execution.json"]],
 ]);
 
-test("stages only the exact sealed sibling gallery and links it from Pages", () => {
+test("stages only the exact sealed sibling gallery behind the authored entrance", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "conduit-journey-stage-"));
   const gallery = path.join(root, "gallery");
   const site = path.join(root, "site");
   fixture(gallery);
   mkdirSync(site);
-  writeFileSync(path.join(site, "index.html"), "<!doctype html><body><h1>Conduit</h1></body>");
+  const homepage = "<!doctype html><body><a href=\"/conduit/journeys/\">Journeys</a></body>";
+  writeFileSync(path.join(site, "index.html"), homepage);
 
   execFileSync("node", [script, gallery, site, commit]);
 
-  assert.match(readFileSync(path.join(site, "index.html"), "utf8"), /href="journeys\/"/);
+  assert.equal(readFileSync(path.join(site, "index.html"), "utf8"), homepage);
   assert.equal(
     readFileSync(path.join(site, "journeys/current/little-life/t032.png"), "utf8"),
     "little-life:t032.png",
@@ -31,6 +32,22 @@ test("stages only the exact sealed sibling gallery and links it from Pages", () 
     readFileSync(path.join(site, `journeys/commits/${commit}/one-form-two-faces/native.png`), "utf8"),
     "one-form-two-faces:native.png",
   );
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("refuses a Pages root without an authored Journeys entrance", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "conduit-journey-stage-no-entrance-"));
+  const gallery = path.join(root, "gallery");
+  const site = path.join(root, "site");
+  fixture(gallery);
+  mkdirSync(site);
+  writeFileSync(path.join(site, "index.html"), "<!doctype html><body><h1>Conduit</h1></body>");
+
+  assert.throws(
+    () => execFileSync("node", [script, gallery, site, commit], { stdio: "pipe" }),
+    /Command failed/,
+  );
+  assert.equal(readFileSync(path.join(site, "index.html"), "utf8"), "<!doctype html><body><h1>Conduit</h1></body>");
   rmSync(root, { recursive: true, force: true });
 });
 
