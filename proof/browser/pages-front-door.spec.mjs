@@ -30,7 +30,7 @@ test.afterEach(() => entrance?.child.kill());
 
 test("Birth on the front page hands the Lulled Body to an explicit Wake", async ({ page }) => {
   await page.goto(entrance.url);
-  await page.getByRole("link", { name: "Birth a Body", exact: true }).click();
+  await page.getByRole("link", { name: "Open your Body", exact: true }).click();
   await expect(page.getByRole("heading", { name: "A Body of your own", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "Wake Body", exact: true }).click();
@@ -71,7 +71,7 @@ test("Browser Home enacts the shared journey through the real Patchbay", async (
   ]);
 });
 
-test("Conduit home and its product faces are stable sibling endpoints", async ({ page }) => {
+test("Conduit home makes the Body primary while compatibility endpoints remain reachable", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   const tour = `${home}/tour/`;
   const creche = `${home}/creche/`;
@@ -88,12 +88,16 @@ test("Conduit home and its product faces are stable sibling endpoints", async ({
   await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
   await expect(page.getByRole("link", { name: "Follow a real journey" })).toHaveAttribute("href", "/conduit/journeys/");
-  await expect(page.getByRole("link", { name: "Learn Conduit" })).toHaveAttribute("href", "/conduit/tour");
-  await expect(page.getByRole("link", { name: "Birth a Body", exact: true })).toHaveAttribute("href", "/conduit/workspace/");
+  await expect(page.getByRole("link", { name: "Open your Body", exact: true })).toHaveAttribute("href", "/conduit/workspace/");
+  await expect(page.getByRole("heading", { name: "Start with the Body." })).toBeVisible();
+  await expect(page.getByText("With no retained Body, this entrance presents bounded setup.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Your Body/ })).toHaveAttribute("href", "/conduit/workspace/");
+  await expect(page.getByRole("link", { name: "legacy Tour", exact: true })).toHaveAttribute("href", "/conduit/tour/");
+  await expect(page.getByRole("link", { name: "standalone Crèche", exact: true })).toHaveAttribute("href", "/conduit/creche/");
+  await expect(page.getByRole("link", { name: "standalone Patchbay", exact: true })).toHaveAttribute("href", "/conduit/patchbay/");
   await expect(page.getByRole("link", { name: "Get Conduit" })).toHaveAttribute("href", "#get-conduit");
   await expect(page.getByText("One physical computer")).toBeVisible();
   await expect(page.getByText("Several unlike computers")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Patchbay", exact: true }).first()).toHaveAttribute("href", "/conduit/patchbay/");
   const productNavigation = page.getByRole("navigation", { name: "Conduit products" });
   const productLinks = productNavigation.getByRole("link");
   await expect(productLinks).toHaveCount(5);
@@ -277,7 +281,7 @@ test("the shared shell follows dark and light preferences without changing appli
         colorScheme === "dark" ? "rgb(147, 210, 247)" : "rgb(23, 54, 77)",
       );
       const focusTarget = path === ""
-        ? page.getByRole("link", { name: "Learn Conduit" })
+        ? page.getByRole("link", { name: "Open your Body" })
         : primaryNavigation.getByRole("link", { name: path === "/tour/" ? "Tour" : path === "/creche/" ? "Crèche" : "Patchbay" });
       await page.keyboard.press("Tab");
       await focusTarget.focus();
