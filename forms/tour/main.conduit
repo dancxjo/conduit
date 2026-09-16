@@ -1,5 +1,5 @@
 form tour (
-  application: Text = "tour"
+  application: Text = "tutorial"
 ) {
   events: input/application-event
   state: application/retained(application = application)
