@@ -5,7 +5,7 @@ use std::sync::{
 
 use conduit_core::{
     AdmissionUnit, BoundedDeliveryQueue, DeliveryAdmission, DeliveryContract,
-    DeliveryPressurePolicy, DeliveryRefusal, EvolutionSemantics,
+    DeliveryPressurePolicy, DeliveryQueueState, DeliveryRefusal, EvolutionSemantics,
 };
 
 #[derive(Debug)]
@@ -74,8 +74,10 @@ fn fanout_branches_keep_independent_pressure_meaning_and_resource_claims() {
     assert_eq!(first_releases.load(Ordering::SeqCst), 1);
     assert_eq!(second_releases.load(Ordering::SeqCst), 1);
 
+    preserve.close().unwrap();
     let preserved_first = preserve.pop_front().unwrap();
-    let retained_second = newest.pop_front().unwrap();
+    let mut cancelled_newest = newest.cancel().unwrap();
+    let retained_second = cancelled_newest.pop_front().unwrap();
     assert_eq!(
         (preserved_first.item, preserved_first.branch),
         (1, "preserve")
@@ -90,6 +92,12 @@ fn fanout_branches_keep_independent_pressure_meaning_and_resource_claims() {
     assert_eq!(newest.accounting().admitted, 2);
     assert_eq!(newest.accounting().refused_pressure, 0);
     assert_eq!(newest.accounting().coalesced, 1);
+    assert_eq!(preserve.accounting().delivered, 1);
+    assert_eq!(preserve.accounting().cancelled, 0);
+    assert_eq!(preserve.state(), DeliveryQueueState::Closed);
+    assert_eq!(newest.accounting().delivered, 0);
+    assert_eq!(newest.accounting().cancelled, 1);
+    assert_eq!(newest.state(), DeliveryQueueState::Cancelled);
 
     drop(preserved_first);
     drop(retained_second);
