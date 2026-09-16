@@ -12,6 +12,8 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// Enter Conduit Home through the native presentation available on this Host.
+    Home,
     /// Birth and provision a Body through the browser Crèche.
     Creche,
     /// Enter the current Body through the shared Patchbay front door.
@@ -100,6 +102,9 @@ pub(crate) enum HostCommand {
     },
     /// Offer this already-running local Host to the browser Crèche.
     Rendezvous {
+        /// Installed durable Host state owned by the running service.
+        #[arg(long)]
+        state_dir: PathBuf,
         /// Line carrier used to reach this running Host.
         #[arg(long, value_enum, default_value_t = RendezvousCarrier::Websocket)]
         carrier: RendezvousCarrier,
@@ -175,6 +180,12 @@ mod tests {
     #[test]
     fn public_command_tree_parses() {
         assert!(matches!(
+            Cli::try_parse_from(["conduit", "home"])
+                .expect("Home entrance parses")
+                .command,
+            Command::Home
+        ));
+        assert!(matches!(
             Cli::try_parse_from(["conduit", "creche"])
                 .expect("Crèche entrance parses")
                 .command,
@@ -229,15 +240,23 @@ mod tests {
             }
         ));
         assert!(matches!(
-            Cli::try_parse_from(["conduit", "host", "rendezvous", "--timeout-seconds", "30"])
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "rendezvous",
+                "--state-dir",
+                "installed-host",
+                "--timeout-seconds", "30"
+            ])
                 .expect("Host rendezvous entrance parses")
                 .command,
             Command::Host {
                 command: HostCommand::Rendezvous {
+                    state_dir,
                     carrier: RendezvousCarrier::Websocket,
                     timeout_seconds: 30
                 }
-            }
+            } if state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "patchbay", "--on", "browser"])
