@@ -38,14 +38,14 @@ pub(super) struct PortableSpawnAdmissionRequest {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-struct PortableAdmissionReceipt {
-    schema: String,
-    credential: MembershipCredential,
-    host_advertisement: HostAdvertisement,
-    membership_admitted: bool,
-    current_offers_available: bool,
-    plan_created: bool,
-    play_created: bool,
+pub(super) struct PortableAdmissionReceipt {
+    pub(super) schema: String,
+    pub(super) credential: MembershipCredential,
+    pub(super) host_advertisement: HostAdvertisement,
+    pub(super) membership_admitted: bool,
+    pub(super) current_offers_available: bool,
+    pub(super) plan_created: bool,
+    pub(super) play_created: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -321,7 +321,7 @@ pub(crate) fn accept_body_invitation(
         return Err("accepting a Body invitation requires --authorize-join".into());
     }
     let installation = read_installation(&state_dir.join("installation.json"))?;
-    if installation.body_state.is_some() {
+    if installation.body_state.is_some() || installation.joined_body_state.is_some() {
         return Err("this installed Host already owns a Body".into());
     }
     let bytes = if invitation_path == Path::new("-") {

@@ -307,6 +307,14 @@ fn main() {
                     authorize_admission,
                 },
         } => durable_host::admit_body_request(&request, &state_dir, authorize_admission),
+        cli::Command::Body {
+            command:
+                cli::BodyCommand::CompleteJoin {
+                    receipt,
+                    state_dir,
+                    authorize_membership,
+                },
+        } => durable_host::complete_body_join(&receipt, &state_dir, authorize_membership),
         cli::Command::Body { command } => construction::body(command),
         cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),

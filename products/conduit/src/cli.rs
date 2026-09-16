@@ -8,7 +8,7 @@ use std::path::PathBuf;
     name = "conduit",
     about = "Run Forms and grow a living Conduit Body",
     long_about = "Run Forms and grow a living Conduit Body.\n\nUse `conduit body invite` to issue bounded joining authority, `conduit body accept` on an installed machine to prepare its signed admission request, and `conduit body admit` on the owning machine to commit membership and current presence. Use `conduit host obtain` to resolve a reviewed target release. Body binding remains separate from `conduit host carry`, which downloads, launches, writes, or flashes an exact artifact through an explicit carrier. Inspect durable identity and current runtime truth with `conduit host service status`.",
-    after_help = "BODY GROWTH\n  1. conduit body invite --state-dir <OWNER_STATE> > invitation.json\n  2. conduit body accept invitation.json --state-dir <JOINING_STATE> --authorize-join > request.json\n  3. conduit body admit request.json --state-dir <OWNER_STATE> --authorize-admission > receipt.json\n  4. conduit host obtain <TARGET> --catalog <CATALOG> --catalog-id <ID> --mirror <MIRROR> --cache <CACHE>\n  5. conduit host carry <CARRIER> --help\n\nInvitation, request, and receipt documents are bounded JSON suitable for standard input/output. Admission reports membership and current offers without creating a Plan or Play. Artifact preparation never implies carrier execution, boot, admission, Plan, or Play."
+    after_help = "BODY GROWTH\n  1. conduit body invite --state-dir <OWNER_STATE> > invitation.json\n  2. conduit body accept invitation.json --state-dir <JOINING_STATE> --authorize-join > request.json\n  3. conduit body admit request.json --state-dir <OWNER_STATE> --authorize-admission > receipt.json\n  4. conduit body complete-join receipt.json --state-dir <JOINING_STATE> --authorize-membership\n  5. conduit host obtain <TARGET> --catalog <CATALOG> --catalog-id <ID> --mirror <MIRROR> --cache <CACHE>\n  6. conduit host carry <CARRIER> --help\n\nInvitation, request, and receipt documents are bounded JSON suitable for standard input/output. Admission reports membership and current offers without creating a Plan or Play. Artifact preparation never implies carrier execution, boot, admission, Plan, or Play."
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -296,6 +296,16 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_admission: bool,
     },
+    /// Retain the owner's exact admission receipt as this Host's durable membership.
+    CompleteJoin {
+        /// Owner-issued `conduit.body/spawn-admission-receipt@1` document.
+        receipt: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicitly authorize retaining membership in the admitted Body.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_membership: bool,
+    },
     Check {
         source: PathBuf,
     },
@@ -331,6 +341,7 @@ mod tests {
             "conduit body invite",
             "conduit body accept",
             "conduit body admit",
+            "conduit body complete-join",
             "conduit host obtain",
             "conduit host carry",
             "conduit host service status",
@@ -345,6 +356,25 @@ mod tests {
 
     #[test]
     fn public_command_tree_parses() {
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "body",
+                "complete-join",
+                "receipt.json",
+                "--state-dir",
+                "installed",
+                "--authorize-membership",
+            ])
+            .expect("joining-side membership completion parses")
+            .command,
+            Command::Body {
+                command: BodyCommand::CompleteJoin {
+                    authorize_membership: true,
+                    ..
+                }
+            }
+        ));
         assert!(matches!(
             Cli::try_parse_from([
                 "conduit",
