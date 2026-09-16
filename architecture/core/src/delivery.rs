@@ -117,11 +117,11 @@ pub struct DeliveryAccounting {
     pub refused_pressure: u64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum DeliveryAdmission {
+pub enum DeliveryAdmission<T> {
     Enqueued,
-    CoalescedWholeValue,
+    CoalescedWholeValue { superseded: T },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -131,6 +131,12 @@ pub enum DeliveryRefusal {
     InvalidCapacity,
     Pressure,
     AccountingExhausted,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RejectedDelivery<T> {
+    pub reason: DeliveryRefusal,
+    pub value: T,
 }
 
 /// A finite semantic queue. `T` remains the concrete owning Info type: frames
@@ -165,9 +171,12 @@ impl<T> BoundedDeliveryQueue<T> {
         })
     }
 
-    pub fn admit(&mut self, value: T) -> Result<DeliveryAdmission, DeliveryRefusal> {
+    pub fn admit(&mut self, value: T) -> Result<DeliveryAdmission<T>, RejectedDelivery<T>> {
         if self.accounting.admitted >= self.maximum_accounted {
-            return Err(DeliveryRefusal::AccountingExhausted);
+            return Err(RejectedDelivery {
+                reason: DeliveryRefusal::AccountingExhausted,
+                value,
+            });
         }
         if self.values.len() < self.capacity {
             self.values.push_back(value);
@@ -176,28 +185,45 @@ impl<T> BoundedDeliveryQueue<T> {
         }
         match self.contract.pressure_policy {
             DeliveryPressurePolicy::PreserveOrder => {
-                self.accounting.refused_pressure = self
+                let Some(refused_pressure) = self
                     .accounting
                     .refused_pressure
                     .checked_add(1)
                     .filter(|count| *count <= self.maximum_accounted)
-                    .ok_or(DeliveryRefusal::AccountingExhausted)?;
-                Err(DeliveryRefusal::Pressure)
+                else {
+                    return Err(RejectedDelivery {
+                        reason: DeliveryRefusal::AccountingExhausted,
+                        value,
+                    });
+                };
+                self.accounting.refused_pressure = refused_pressure;
+                Err(RejectedDelivery {
+                    reason: DeliveryRefusal::Pressure,
+                    value,
+                })
             }
             DeliveryPressurePolicy::CoalesceLatest => {
-                let newest = self
-                    .values
-                    .back_mut()
-                    .ok_or(DeliveryRefusal::InvalidCapacity)?;
-                *newest = value;
-                self.accounting.admitted += 1;
-                self.accounting.coalesced = self
+                let Some(coalesced) = self
                     .accounting
                     .coalesced
                     .checked_add(1)
                     .filter(|count| *count <= self.maximum_accounted)
-                    .ok_or(DeliveryRefusal::AccountingExhausted)?;
-                Ok(DeliveryAdmission::CoalescedWholeValue)
+                else {
+                    return Err(RejectedDelivery {
+                        reason: DeliveryRefusal::AccountingExhausted,
+                        value,
+                    });
+                };
+                let Some(newest) = self.values.back_mut() else {
+                    return Err(RejectedDelivery {
+                        reason: DeliveryRefusal::InvalidCapacity,
+                        value,
+                    });
+                };
+                let superseded = core::mem::replace(newest, value);
+                self.accounting.admitted += 1;
+                self.accounting.coalesced = coalesced;
+                Ok(DeliveryAdmission::CoalescedWholeValue { superseded })
             }
         }
     }
@@ -229,6 +255,8 @@ pub struct PresentationCoalescing {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::{rc::Rc, vec::Vec};
+    use core::cell::RefCell;
 
     const ORDERED: DeliveryContract = DeliveryContract::new(
         EvolutionSemantics::Occurrence,
@@ -246,11 +274,29 @@ mod tests {
         DeliveryPressurePolicy::CoalesceLatest,
     );
 
+    #[derive(Debug)]
+    struct OwnedValue {
+        identity: u8,
+        released: Rc<RefCell<Vec<u8>>>,
+    }
+
+    impl Drop for OwnedValue {
+        fn drop(&mut self) {
+            self.released.borrow_mut().push(self.identity);
+        }
+    }
+
     #[test]
     fn ordered_occurrences_refuse_pressure_without_overwriting() {
         let mut queue = BoundedDeliveryQueue::new(ORDERED, 1, 3).unwrap();
         assert_eq!(queue.admit(1), Ok(DeliveryAdmission::Enqueued));
-        assert_eq!(queue.admit(2), Err(DeliveryRefusal::Pressure));
+        assert_eq!(
+            queue.admit(2),
+            Err(RejectedDelivery {
+                reason: DeliveryRefusal::Pressure,
+                value: 2,
+            })
+        );
         assert_eq!(queue.pop_front(), Some(1));
         assert_eq!(queue.accounting().refused_pressure, 1);
     }
@@ -259,9 +305,53 @@ mod tests {
     fn declared_state_coalescing_retains_the_newest_value_and_accounting() {
         let mut queue = BoundedDeliveryQueue::new(STATE, 1, 3).unwrap();
         queue.admit(1).unwrap();
-        assert_eq!(queue.admit(2), Ok(DeliveryAdmission::CoalescedWholeValue));
+        assert_eq!(
+            queue.admit(2),
+            Ok(DeliveryAdmission::CoalescedWholeValue { superseded: 1 })
+        );
         assert_eq!(queue.pop_front(), Some(2));
         assert_eq!(queue.accounting().coalesced, 1);
+    }
+
+    #[test]
+    fn accounting_exhaustion_returns_ownership_without_mutating_pending_state() {
+        let mut queue = BoundedDeliveryQueue::new(STATE, 1, 2).unwrap();
+        queue.admit(1).unwrap();
+        queue.admit(2).unwrap();
+        let accounting = queue.accounting();
+
+        assert_eq!(
+            queue.admit(3),
+            Err(RejectedDelivery {
+                reason: DeliveryRefusal::AccountingExhausted,
+                value: 3,
+            })
+        );
+        assert_eq!(queue.accounting(), accounting);
+        assert_eq!(queue.pop_front(), Some(2));
+    }
+
+    #[test]
+    fn supersession_and_cancellation_leave_exact_release_with_the_owner() {
+        let released = Rc::new(RefCell::new(Vec::new()));
+        let owned = |identity| OwnedValue {
+            identity,
+            released: Rc::clone(&released),
+        };
+        let mut queue = BoundedDeliveryQueue::new(STATE, 1, 3).unwrap();
+        queue.admit(owned(1)).unwrap();
+
+        let DeliveryAdmission::CoalescedWholeValue { superseded } = queue.admit(owned(2)).unwrap()
+        else {
+            panic!("a full coalescing queue must return its superseded owner");
+        };
+        assert!(released.borrow().is_empty());
+        drop(superseded);
+        assert_eq!(&*released.borrow(), &[1]);
+
+        drop(queue.pop_front().expect("newest value remains pending"));
+        assert_eq!(&*released.borrow(), &[1, 2]);
+        assert!(queue.is_empty());
     }
 
     #[test]
