@@ -109,6 +109,11 @@ pub(crate) enum HostCommand {
         #[arg(long, default_value_t = 0)]
         minimum_generation: u64,
     },
+    /// Carry an exact Body-bound artifact without rebuilding it.
+    Carry {
+        #[command(subcommand)]
+        command: CarrierCommand,
+    },
     Check {
         source: PathBuf,
     },
@@ -131,6 +136,36 @@ pub(crate) enum HostCommand {
         /// Stop a WebSocket carrier if the code is unused for this many seconds.
         #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=3600))]
         timeout_seconds: u64,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum CarrierCommand {
+    /// Copy the exact artifact without starting or writing a Host.
+    Download {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        destination: PathBuf,
+    },
+    /// Launch the exact artifact through the reviewed local VM profile.
+    LaunchVm {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_launch: bool,
+    },
+    /// Destructively write and verify one explicitly confirmed removable device.
+    WriteRemovable {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        destination: PathBuf,
+        #[arg(long)]
+        confirm_destination: String,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_write: bool,
     },
 }
 
@@ -219,6 +254,47 @@ mod tests {
 
     #[test]
     fn public_command_tree_parses() {
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "carry",
+                "download",
+                "carrier.json",
+                "artifact.json",
+                "spore.iso",
+                "download.iso",
+            ])
+            .expect("artifact-only carrier parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Carry {
+                    command: CarrierCommand::Download { destination, .. }
+                }
+            } if destination == std::path::Path::new("download.iso")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "carry",
+                "launch-vm",
+                "carrier.json",
+                "artifact.json",
+                "spore.iso",
+                "--authorize-launch",
+            ])
+            .expect("consequential VM carrier parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Carry {
+                    command: CarrierCommand::LaunchVm {
+                        authorize_launch: true,
+                        ..
+                    }
+                }
+            }
+        ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "home"])
                 .expect("Home entrance parses")

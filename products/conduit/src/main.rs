@@ -4,6 +4,7 @@ mod construction;
 mod copy_task;
 #[cfg(test)]
 mod copy_task_tests;
+mod deployment_carrier;
 mod diagnostics;
 mod durable_host;
 mod durable_host_control;
@@ -271,6 +272,7 @@ fn main() {
                 &cache,
                 minimum_generation,
             ),
+            cli::HostCommand::Carry { command } => deployment_carrier::run(command),
             cli::HostCommand::Rendezvous {
                 state_dir,
                 carrier,

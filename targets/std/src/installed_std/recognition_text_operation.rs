@@ -14,8 +14,10 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 };
 
 pub(super) struct RecognitionTextOperation {
-    pending: bool,
+    pending: Option<RequestId>,
+    next_request: u32,
     emitted: bool,
+    flow: bool,
 }
 
 impl RecognitionTextOperation {
@@ -28,24 +30,30 @@ impl RecognitionTextOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if !self.pending && !self.emitted => {
+            } if self.pending.is_none() && (self.flow || !self.emitted) => {
                 let Ok(input) = BoundedValueRef::new(
                     value,
-                    conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
+                    if self.flow {
+                        conduit_tongues::MAXIMUM_COMMITTED_USER_MESSAGE_BYTES as u32
+                    } else {
+                        conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32
+                    },
                 ) else {
                     return fail(FailureCode::InvalidInput, 1);
                 };
-                self.pending = true;
+                let request = RequestId(self.next_request);
+                self.next_request = self.next_request.saturating_add(1);
+                self.pending = Some(request);
                 OperationAction::RequestHostOperation {
-                    request: RequestId(0),
+                    request,
                     operation: HostOperationId(0),
                     input,
                 }
             }
             OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending && request == RequestId(0) =>
+                if self.pending == Some(request) =>
             {
-                self.pending = false;
+                self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
                     (HostOperationDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
@@ -60,12 +68,15 @@ impl RecognitionTextOperation {
                     _ => fail(FailureCode::HostOperationFailed, 3),
                 }
             }
+            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() && self.flow => {
+                OperationAction::Complete
+            }
             _ => fail(FailureCode::InvalidLifecycle, 4),
         }
     }
 
     pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
+        if self.emitted && !self.flow {
             OperationAction::Complete
         } else {
             OperationAction::Await
@@ -73,12 +84,16 @@ impl RecognitionTextOperation {
     }
 
     pub(super) fn cancel(&mut self) {
-        self.pending = false;
+        self.pending = None;
     }
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_offers::recognition_to_text_std_offer();
+    let offer = if placement.kind_id.as_str() == conduit_tongues::COMMITTED_TURN_TO_TEXT_KIND {
+        conduit_std_offers::committed_turn_to_text_std_offer()
+    } else {
+        conduit_std_offers::recognition_to_text_std_offer()
+    };
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id.as_str()
@@ -103,7 +118,13 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u32,
         host_requests: 1,
         sign_items: 16,
-        maximum_value_bytes: conduit_tongues::RECOGNITION_RESULT_QUEUE_BYTES,
+        maximum_value_bytes: if placement.kind_id.as_str()
+            == conduit_tongues::COMMITTED_TURN_TO_TEXT_KIND
+        {
+            conduit_tongues::MAXIMUM_COMMITTED_USER_MESSAGE_BYTES as u32
+        } else {
+            conduit_tongues::RECOGNITION_RESULT_QUEUE_BYTES
+        },
     })
 }
 
@@ -114,8 +135,10 @@ fn prepare(
     validate(placement)?;
     Ok(InstalledOperation::RecognitionText(
         RecognitionTextOperation {
-            pending: false,
+            pending: None,
+            next_request: 0,
             emitted: false,
+            flow: placement.kind_id.as_str() == conduit_tongues::COMMITTED_TURN_TO_TEXT_KIND,
         },
     ))
 }

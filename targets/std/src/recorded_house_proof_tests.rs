@@ -176,8 +176,10 @@ fn addressed_recorded_clip_reaches_the_model_in_one_plan_play() {
     .unwrap();
     assert_eq!(
         receipt.semantic_topology_origin,
-        "rust-assembled-proof-fixture"
+        "checked-reviewed-form-with-proof-adapters"
     );
+    assert_eq!(receipt.executed_form_name, "recorded-house-proof");
+    assert_eq!(receipt.reviewed_source_paths.len(), 3);
     assert_eq!(receipt.executed_source_document_id.len(), 64);
     assert_eq!(receipt.executed_checked_form_id.len(), 64);
     assert_eq!(receipt.local_model_invocations, 1);
@@ -242,7 +244,11 @@ fn addressed_recorded_clip_is_spoken_to_a_bounded_wav_in_the_same_play() {
     .unwrap();
     assert_eq!(
         receipt.house.semantic_topology_origin,
-        "rust-assembled-proof-fixture"
+        "checked-reviewed-form-with-proof-adapters"
+    );
+    assert_eq!(
+        receipt.house.executed_form_name,
+        "recorded-house-spoken-proof"
     );
     assert_eq!(receipt.house.executed_source_document_id.len(), 64);
     assert_eq!(receipt.house.executed_checked_form_id.len(), 64);

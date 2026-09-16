@@ -600,6 +600,9 @@ impl StdHost {
         advertisement
             .capabilities
             .push(conduit_std_offers::recognition_to_text_std_offer());
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::committed_turn_to_text_std_offer());
         advertisement.capabilities.extend(additional_capabilities);
         advertisement.resources.sort();
         advertisement.capabilities.sort_by(|left, right| {
@@ -725,12 +728,22 @@ impl StdHost {
             .resources
             .push(hosted_speech::process_resource_offer());
         advertisement.capabilities.retain(|offer| {
-            offer.implementation.implementation_id.as_str()
-                != conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+            !matches!(
+                offer.implementation.implementation_id.as_str(),
+                conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+                    | conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION
+            )
         });
         advertisement
             .capabilities
             .push(conduit_std_offers::piper_speech_offer());
+        if adapter.limits().maximum_text_bytes
+            >= conduit_tongues::MAXIMUM_SPEAKABLE_SEGMENT_BYTES as u32
+        {
+            advertisement
+                .capabilities
+                .push(conduit_std_offers::piper_streaming_speech_offer());
+        }
         advertisement
             .capabilities
             .push(conduit_std_offers::audio_convert_pcm_profile_offer());
@@ -995,12 +1008,22 @@ impl StdHost {
             .resources
             .push(hosted_speech::process_resource_offer());
         advertisement.capabilities.retain(|offer| {
-            offer.implementation.implementation_id.as_str()
-                != conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+            !matches!(
+                offer.implementation.implementation_id.as_str(),
+                conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+                    | conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION
+            )
         });
         advertisement
             .capabilities
             .push(conduit_std_offers::piper_speech_offer());
+        if adapter.limits().maximum_text_bytes
+            >= conduit_tongues::MAXIMUM_SPEAKABLE_SEGMENT_BYTES as u32
+        {
+            advertisement
+                .capabilities
+                .push(conduit_std_offers::piper_streaming_speech_offer());
+        }
         advertisement
             .capabilities
             .push(conduit_std_offers::audio_convert_pcm_profile_offer());

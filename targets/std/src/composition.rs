@@ -224,6 +224,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::text_morse_offer(),
             conduit_std_offers::address_detect_offer(),
             conduit_std_offers::recognition_to_text_std_offer(),
+            conduit_std_offers::committed_turn_to_text_std_offer(),
             installed_std::text_offer(),
         ]);
         capabilities.extend(conduit_std_offers::morse_composition_offers());

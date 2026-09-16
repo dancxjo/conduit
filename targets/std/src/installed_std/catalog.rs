@@ -87,7 +87,11 @@ use super::robotics_operations::{
 use super::sequence_normalization_operation::FACTORY as SEQUENCE_NORMALIZATION_FACTORY;
 #[cfg(test)]
 use super::speech_synthesis_operation::DETERMINISTIC_FACTORY as DETERMINISTIC_SPEECH_FACTORY;
-use super::speech_synthesis_operation::FACTORY as SPEECH_SYNTHESIS_FACTORY;
+#[cfg(test)]
+use super::speech_synthesis_operation::DETERMINISTIC_STREAMING_FACTORY;
+use super::speech_synthesis_operation::{
+    FACTORY as SPEECH_SYNTHESIS_FACTORY, STREAMING_FACTORY as STREAMING_SPEECH_FACTORY,
+};
 use super::state_select_operation::STATE_SELECT_SCALAR_FACTORY;
 use super::structured_selector_operation::FACTORY as STRUCTURED_SELECTOR_FACTORY;
 use super::structured_values_operation::{
@@ -259,8 +263,11 @@ const FACTORIES: &[&InstalledFactory] = &[
     &ROBOTICS_DRIVE_DIFFERENTIAL_FACTORY,
     &MUSIC_SYNTH_FACTORY,
     &SPEECH_SYNTHESIS_FACTORY,
+    &STREAMING_SPEECH_FACTORY,
     #[cfg(test)]
     &DETERMINISTIC_SPEECH_FACTORY,
+    #[cfg(test)]
+    &DETERMINISTIC_STREAMING_FACTORY,
     &AUDIO_RENDER_DEMAND_FACTORY,
     &AUDIO_PLAY_FACTORY,
     &WAV_ARTIFACT_FACTORY,

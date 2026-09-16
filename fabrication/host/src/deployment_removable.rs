@@ -13,6 +13,7 @@ use std::{
 };
 
 const COPY_BUFFER_BYTES: usize = 64 * 1024;
+pub const LINUX_REMOVABLE_WRITER_IMPLEMENTATION: &str = "conduit-helper/linux-removable-writer@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RemovableWriteRefusal {
@@ -117,6 +118,7 @@ fn write_with_control(
     mut interrupted: impl FnMut() -> bool,
 ) -> Result<DeploymentRealizationReceipt, RemovableWriteRefusal> {
     if descriptor.kind != DeploymentCarrierKind::RemovableWholeDeviceWrite
+        || descriptor.implementation_id != LINUX_REMOVABLE_WRITER_IMPLEMENTATION
         || !descriptor.verifies_written_bytes
     {
         return Err(RemovableWriteRefusal::UnsupportedCarrier);
