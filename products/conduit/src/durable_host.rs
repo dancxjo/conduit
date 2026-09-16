@@ -336,6 +336,69 @@ fn status(state_dir: &Path, json: bool) -> Result<(), String> {
     Ok(())
 }
 
+pub(crate) fn body_status(state_dir: &Path, json: bool) -> Result<(), String> {
+    let installation = read_installation(&state_dir.join("installation.json"))?;
+    let binding = installation
+        .body_state
+        .as_ref()
+        .ok_or("this installed Host has no current Body")?;
+    let biography_bytes = bounded_read(Path::new(&binding.biography_path), 2 * 1024 * 1024)?;
+    let biography: conduit_body::BodyBiographyEvidence =
+        serde_json::from_slice(&biography_bytes)
+            .map_err(|error| format!("retained Body biography: {error}"))?;
+    biography
+        .validate()
+        .map_err(|error| format!("retained Body biography refused: {error:?}"))?;
+    if biography.body_id.as_str() != binding.body_id {
+        return Err("retained Body biography belongs to another Body".into());
+    }
+    let runtime = observe_current_runtime(state_dir, &installation)?;
+    let present_parts = biography
+        .membership
+        .parts
+        .iter()
+        .filter(|part| part.current.is_some())
+        .count();
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "schema": "conduit.body/installed-status@1",
+                "body_id": binding.body_id,
+                "biography_sha256": binding.biography_sha256,
+                "biography_path": binding.biography_path,
+                "host_id": installation.host_id,
+                "boot_id": runtime.as_ref().map(|status| status.boot_id.as_str()),
+                "offer_generation": runtime.as_ref().map(|status| status.offer_generation),
+                "presence": if runtime.is_some() { "current" } else { "installed-offline" },
+                "member_count": biography.membership.parts.len(),
+                "present_member_count": present_parts,
+                "plan_created": false,
+                "play_created": false,
+            })
+        );
+    } else {
+        println!("Body {}", binding.body_id);
+        println!("biography {}", binding.biography_sha256);
+        match runtime {
+            Some(status) => println!(
+                "current Host {} boot {} offers generation {}",
+                status.host_id, status.boot_id, status.offer_generation
+            ),
+            None => println!(
+                "Host {} is installed but not observed running",
+                installation.host_id
+            ),
+        }
+        println!(
+            "members {} ({} currently present)",
+            biography.membership.parts.len(),
+            present_parts
+        );
+    }
+    Ok(())
+}
+
 fn observe_current_runtime(
     state_dir: &Path,
     installation: &Installation,
@@ -779,6 +842,47 @@ mod tests {
             .unwrap()
             .body_state
             .is_none());
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn body_status_reads_exact_retained_truth_without_mutating_it() {
+        let (manifest, state) = fixture();
+        let mut installation = install(&manifest, &state).unwrap();
+        let body_dir = state.join("body");
+        fs::create_dir_all(&body_dir).unwrap();
+        let body = conduit_body::Body::born(
+            "source/status-test".into(),
+            "checked/status-test".into(),
+            1,
+            conduit_core::SignId::from("sign/status-test/born"),
+        )
+        .unwrap();
+        let biography = conduit_body::BodyBiographyEvidence::born(
+            body.clone(),
+            conduit_body::BodyMembership::new(body.body_id.clone()).unwrap(),
+            "Status test".into(),
+        )
+        .unwrap();
+        let biography_path = body_dir.join("biography.json");
+        write_json_atomic(&biography_path, &biography).unwrap();
+        let biography_before = fs::read(&biography_path).unwrap();
+        installation.body_state = Some(BodyBinding {
+            body_id: body.body_id.as_str().into(),
+            biography_sha256: digest(&biography_before),
+            biography_path: biography_path.display().to_string(),
+        });
+        write_json_atomic(&state.join("installation.json"), &installation).unwrap();
+        let installation_before = fs::read(state.join("installation.json")).unwrap();
+
+        body_status(&state, true).unwrap();
+
+        assert_eq!(fs::read(&biography_path).unwrap(), biography_before);
+        assert_eq!(
+            fs::read(state.join("installation.json")).unwrap(),
+            installation_before
+        );
+        assert!(!state.join("runtime.json").exists());
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 

@@ -281,6 +281,9 @@ fn main() {
             command => construction::host(command),
         },
         cli::Command::Body {
+            command: cli::BodyCommand::Status { state_dir, json },
+        } => durable_host::body_status(&state_dir, json),
+        cli::Command::Body {
             command:
                 cli::BodyCommand::Invite {
                     state_dir,

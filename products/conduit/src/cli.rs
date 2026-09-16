@@ -228,6 +228,15 @@ pub(crate) enum HostServiceCommand {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
+    /// Inspect the Body retained by this installed Host.
+    Status {
+        /// Installed durable Host state that owns or has joined the Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Emit bounded machine-readable Body, Host, Boot, and biography identity truth.
+        #[arg(long)]
+        json: bool,
+    },
     /// Issue one bounded invitation from the Body owned by this installed Host.
     Invite {
         /// Installed durable Host state that owns the Body.
@@ -308,6 +317,21 @@ mod tests {
 
     #[test]
     fn public_command_tree_parses() {
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "body",
+                "status",
+                "--state-dir",
+                "installed",
+                "--json",
+            ])
+            .expect("current Body status parses")
+            .command,
+            Command::Body {
+                command: BodyCommand::Status { state_dir, json: true }
+            } if state_dir == std::path::Path::new("installed")
+        ));
         assert!(matches!(
             Cli::try_parse_from([
                 "conduit",
