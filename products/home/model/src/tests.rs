@@ -27,6 +27,15 @@ fn text_and_voice_share_the_exact_command_path() {
 }
 
 #[test]
+fn creche_is_an_explicit_host_request() {
+    let mut home = HomeModel::new();
+    assert_eq!(
+        home.submit_text("open creche", &FORMS),
+        HomeAction::OpenCreche
+    );
+}
+
+#[test]
 fn command_storage_is_bounded_without_splitting_unicode() {
     let mut home = HomeModel::new();
     home.accept(HomeEvent::Text("é"), &FORMS);
