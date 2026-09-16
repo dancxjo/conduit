@@ -113,6 +113,31 @@ test("remote driver performs local effects and relays opaque frames through bila
   assert.deepEqual(receipt, { disposition: "completed", active_play_id: "play/browser" });
 });
 
+test("aborting a pending browser effect emits exact cancellation frames", async () => {
+  const controller = new AbortController();
+  const sent = [];
+  const line = { schema: "conduit.creche/joined-host-line@1",
+    async sendSessionFrame(frame) { sent.push([...frame]); },
+    async receiveSessionFrame() { return Uint8Array.of(20); } };
+  let exchanged = false, cancelled = 0;
+  const remote = {
+    identity: { active_play_id: "play/browser" }, endpoints: [0], egressEndpoints: [],
+    initialFrames: [Uint8Array.of(1), Uint8Array.of(2)],
+    exchange() { assert.equal(exchanged, false); exchanged = true;
+      return { endpoint: 0, message: "ready", active: true, responses: [] }; },
+    drive() { return { status: 1, output: { effect_kind: "audio-capture" } }; },
+    cancel(code) { assert.equal(code, 1); cancelled++; return [Uint8Array.of(8), Uint8Array.of(9)]; },
+  };
+  const running = runBrowserRemoteFragment({ remote, line,
+    perform: (_effect, signal) => new Promise((_, reject) => signal.addEventListener("abort", () => reject(new Error("capture cancelled")), { once: true })),
+    signal: controller.signal });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  controller.abort();
+  await assert.rejects(running, /capture cancelled/);
+  assert.equal(cancelled, 1);
+  assert.deepEqual(sent, [[1], [2], [8], [9]]);
+});
+
 test("browser remote adapter refuses stale identity and cancels unfinished ownership", () => {
   const f = fixture();
   f.options.preparation.identity.boot_id = "stale";
