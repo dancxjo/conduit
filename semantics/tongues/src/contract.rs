@@ -15,7 +15,8 @@ pub const AUDIO_PLAY_KIND: &str = "audio/play";
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
 pub const TEXT_VALUE_KIND: &str = "value/text@1";
 pub const MAXIMUM_TEXT_BYTES: u32 = 256;
-pub const MAXIMUM_PCM_BYTES: u32 = 32_768;
+/// At most about three seconds of signed 16-bit mono speech at 22.05 kHz.
+pub const MAXIMUM_PCM_BYTES: u32 = 131_072;
 pub const MAXIMUM_AUDIO_FRAMES: u32 = 16_384;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

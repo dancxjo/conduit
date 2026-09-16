@@ -18,7 +18,8 @@ pub const PIPER_FRAMES_PER_BLOCK: u16 = 25;
 pub const PIPER_MAXIMUM_FRAMES: u32 = conduit_tongues::MAXIMUM_PCM_BYTES / 2;
 pub const PIPER_PCM_BLOCK_BYTES: u32 =
     conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32 + PIPER_FRAMES_PER_BLOCK as u32 * 2;
-pub const PIPER_MAXIMUM_BLOCKS: u16 = 656;
+pub const PIPER_MAXIMUM_BLOCKS: u16 =
+    PIPER_MAXIMUM_FRAMES.div_ceil(PIPER_FRAMES_PER_BLOCK as u32) as u16;
 
 pub fn piper_speech_offer() -> CapabilityOffer {
     speech_offer(
