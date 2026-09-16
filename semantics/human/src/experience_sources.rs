@@ -11,6 +11,8 @@ use crate::{
 
 pub const MAXIMUM_UTTERANCE_BYTES: usize = 2_048;
 pub const MAXIMUM_BODY_SELF_STATE_BYTES: usize = 4_096;
+pub const MAXIMUM_RECOLLECTION_BYTES: usize = 4_096;
+pub const MAXIMUM_RECOLLECTION_SOURCE_REFS: usize = 32;
 pub const MAXIMUM_EXPERIENCE_SOURCE_IDENTITY_BYTES: usize = 128;
 
 const VISUAL_OBJECT_KIND: &str = "experience/visual-object@1";
@@ -36,6 +38,17 @@ pub struct BodySelfObservation {
     pub certainty: ExperienceCertainty,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SelectedRecollection {
+    pub record_id: String,
+    pub content_kind: KindId,
+    pub canonical_content: Vec<u8>,
+    pub occurred_at: TemporalInstant,
+    pub recorded_at: TemporalInstant,
+    pub original_sources: Vec<ExperienceSourceRef>,
+    pub certainty: ExperienceCertainty,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExperienceSourceRefusal {
     InvalidVisualObservation(VisualObservationRefusal),
@@ -44,6 +57,7 @@ pub enum ExperienceSourceRefusal {
     ValueBound,
     InvalidIdentity,
     InvalidTime,
+    SourceBound,
 }
 
 pub fn visual_object_experience(
@@ -192,6 +206,46 @@ pub fn body_self_experience(
         sources: vec![ExperienceSourceRef::Sign(
             observation.observation_sign_id.clone(),
         )],
+    })
+}
+
+/// Relates selected retained evidence without promoting it to current truth.
+pub fn recollected_experience(
+    item_id: impl Into<String>,
+    recollection: &SelectedRecollection,
+) -> Result<ExperienceItem, ExperienceSourceRefusal> {
+    validate_identity(&recollection.record_id)?;
+    validate_identity(recollection.content_kind.as_str())?;
+    validate_time(&recollection.occurred_at)?;
+    validate_time(&recollection.recorded_at)?;
+    if recollection.canonical_content.is_empty() {
+        return Err(ExperienceSourceRefusal::EmptyValue);
+    }
+    if recollection.canonical_content.len() > MAXIMUM_RECOLLECTION_BYTES {
+        return Err(ExperienceSourceRefusal::ValueBound);
+    }
+    if recollection.original_sources.is_empty()
+        || recollection.original_sources.len() > MAXIMUM_RECOLLECTION_SOURCE_REFS
+    {
+        return Err(ExperienceSourceRefusal::SourceBound);
+    }
+    let mut sources = Vec::with_capacity(recollection.original_sources.len() + 1);
+    sources.push(ExperienceSourceRef::MemoryRecord {
+        record_id: recollection.record_id.clone(),
+    });
+    sources.extend(recollection.original_sources.iter().cloned());
+    Ok(ExperienceItem {
+        id: item_id.into(),
+        domain: ExperienceDomain::Recollection,
+        content_kind: recollection.content_kind.clone(),
+        encoded_content: recollection.canonical_content.clone(),
+        origin: ExperienceOrigin::Remembered,
+        temporal_role: ExperienceTemporalRole::Historical,
+        availability: ExperienceAvailability::Present,
+        certainty: recollection.certainty,
+        observed_at: Some(recollection.occurred_at.clone()),
+        recorded_at: Some(recollection.recorded_at.clone()),
+        sources,
     })
 }
 
