@@ -59,9 +59,6 @@ pub(super) struct HomeVoiceArgs {
     /// Assert that a person is present for this exact capture and playback.
     #[arg(long)]
     attended: bool,
-    /// Assert that the exact played response is intelligible to the attendee.
-    #[arg(long)]
-    intelligible: bool,
     /// Assert that playback is set to a safe, comfortable physical volume.
     #[arg(long)]
     safe_volume: bool,
@@ -170,6 +167,12 @@ pub(super) fn run(
         .first()
         .ok_or("Home Voice retained no synthesis receipt")?;
 
+    let intelligible = if request.evidence_root.is_some() {
+        confirm_intelligible_after_playback()?
+    } else {
+        false
+    };
+
     let report = serde_json::json!({
         "schema": "conduit.home/voice-face@1",
         "journey_step_ids": conduit_home_model::JOURNEY_STEP_IDS,
@@ -197,7 +200,7 @@ pub(super) fn run(
         "physical_acceptance": {
             "microphone": true,
             "playback": true,
-            "intelligible": request.intelligible,
+            "intelligible": intelligible,
             "safe_volume": request.safe_volume,
             "attended": request.attended,
         },
@@ -274,14 +277,32 @@ fn validate(request: &HomeVoiceArgs) -> Result<(), Box<dyn std::error::Error>> {
     {
         return Err("Voice provider bounds are invalid".into());
     }
-    if request.evidence_root.is_some()
-        && (!request.attended || !request.intelligible || !request.safe_volume)
-    {
-        return Err(
-            "retained Home Voice evidence requires --attended --intelligible --safe-volume".into(),
-        );
+    if request.evidence_root.is_some() && (!request.attended || !request.safe_volume) {
+        return Err("retained Home Voice evidence requires --attended and --safe-volume".into());
     }
     Ok(())
+}
+
+fn confirm_intelligible_after_playback() -> Result<bool, Box<dyn std::error::Error>> {
+    eprintln!(
+        "Playback finished. Type `intelligible` only if the exact response was intelligible, then press Enter:"
+    );
+    let mut stdin = std::io::stdin().lock();
+    confirm_intelligible_from(&mut stdin)
+}
+
+fn confirm_intelligible_from(
+    input: &mut impl std::io::BufRead,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    let mut confirmation = String::new();
+    input.read_line(&mut confirmation)?;
+    if confirmation.trim() != "intelligible" {
+        return Err(
+            "physical Voice evidence refused: attendee did not confirm intelligibility after playback"
+                .into(),
+        );
+    }
+    Ok(true)
 }
 
 #[derive(Serialize)]
@@ -427,5 +448,16 @@ mod tests {
         let artifact = std::fs::read_to_string(root.join("voice-run.json")).unwrap();
         assert!(!artifact.contains("transcript"));
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn intelligibility_is_confirmed_only_after_playback() {
+        assert!(confirm_intelligible_from(&mut "intelligible\n".as_bytes()).unwrap());
+        assert_eq!(
+            confirm_intelligible_from(&mut "not clear\n".as_bytes())
+                .unwrap_err()
+                .to_string(),
+            "physical Voice evidence refused: attendee did not confirm intelligibility after playback"
+        );
     }
 }
