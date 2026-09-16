@@ -178,11 +178,25 @@ fn serve_request(
     artifact_bytes: u64,
 ) -> Result<bool, NetworkBootRefusal> {
     let mut request = [0_u8; MAXIMUM_REQUEST_BYTES];
-    let count = stream
-        .read(&mut request)
-        .map_err(|_| NetworkBootRefusal::ServeFailed)?;
+    let mut count = 0;
+    while count < request.len()
+        && !request[..count]
+            .windows(4)
+            .any(|bytes| bytes == b"\r\n\r\n")
+    {
+        let received = stream
+            .read(&mut request[count..])
+            .map_err(|_| NetworkBootRefusal::ServeFailed)?;
+        if received == 0 {
+            break;
+        }
+        count += received;
+    }
     let expected = format!("GET {route} HTTP/");
-    if count == request.len() || !request[..count].starts_with(expected.as_bytes()) {
+    let complete = request[..count]
+        .windows(4)
+        .any(|bytes| bytes == b"\r\n\r\n");
+    if !complete || !request[..count].starts_with(expected.as_bytes()) {
         stream
             .write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
             .map_err(|_| NetworkBootRefusal::ServeFailed)?;
@@ -402,7 +416,9 @@ mod tests {
                 }
             })
             .expect("HTTP Boot listener becomes reachable");
-        write!(stream, "GET {route} HTTP/1.1\r\nHost: conduit\r\n\r\n").unwrap();
+        write!(stream, "GET {route} HTTP/1.1\r\nHost:").unwrap();
+        std::thread::sleep(Duration::from_millis(20));
+        write!(stream, " conduit\r\n\r\n").unwrap();
         let mut response = Vec::new();
         stream.read_to_end(&mut response).unwrap();
         assert!(response.starts_with(b"HTTP/1.1 200 OK\r\n"));
