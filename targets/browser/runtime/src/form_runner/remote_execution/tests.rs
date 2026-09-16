@@ -7,12 +7,29 @@ use std::collections::BTreeMap;
 const SOURCE: &str = include_str!("../../../../../../forms/button-across-room/main.conduit");
 
 pub(super) fn fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
+    fixture_for(SOURCE, "button_across_room", "input/button")
+}
+
+pub(super) fn finite_fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
+    fixture_for(
+        "form remote_once {\n complete\n message: text/literal(\"hello\")\n show: presentation/text\n message > show\n}\n",
+        "remote_once",
+        "text/literal",
+    )
+}
+
+fn fixture_for(
+    source_document: &str,
+    form_name: &str,
+    source_kind: &str,
+) -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
-    let checked =
-        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(SOURCE), &startup)
-            .unwrap();
-    let expanded =
-        conduit_form::expand_canonical_form(&checked, "button_across_room", &catalog).unwrap();
+    let checked = conduit_form::check_syntax_document(
+        &conduit_form::parse_syntax_document(source_document),
+        &startup,
+    )
+    .unwrap();
+    let expanded = conduit_form::expand_canonical_form(&checked, form_name, &catalog).unwrap();
     let source = crate::installed_browser::advertisement("remote/a".into(), "boot/a".into());
     let sink = crate::installed_browser::advertisement("remote/b".into(), "boot/b".into());
     let placements = PlacementChoices {
@@ -20,7 +37,7 @@ pub(super) fn fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionB
             .gears
             .iter()
             .map(|gear| {
-                let host = if gear.kind_id.as_str() == "input/button" {
+                let host = if gear.kind_id.as_str() == source_kind {
                     &source
                 } else {
                     &sink
