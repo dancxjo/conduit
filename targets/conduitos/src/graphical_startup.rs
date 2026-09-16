@@ -1,7 +1,7 @@
 //! Graphical x86 startup and initialized input ownership.
 use crate::{emit_machine_refusal, emit_refusal};
 use alloc::format;
-use conduitos::{allocation::BOOT_ARENA, arch, boot, identity, sign_format};
+use conduitos::{arch, boot, identity, sign_format};
 use conduitos::{display::PixelTarget, presentation_nucleus};
 
 pub fn run(record: boot::BootRecord) -> ! {
@@ -37,26 +37,10 @@ pub fn run(record: boot::BootRecord) -> ! {
         arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-device-current\n");
     }
     arch::early_write(b"CONDUIT_BOOT_STAGE usb-configured\n");
-    let Some(arena_virtual_start) = record
-        .hhdm_offset
-        .checked_add(record.runtime_arena.physical_start)
-        .and_then(|value| usize::try_from(value).ok())
-    else {
-        emit_refusal("runtime-arena-address-invalid");
-    };
-    if unsafe {
-        BOOT_ARENA.initialize(
-            arena_virtual_start,
-            usize::try_from(record.runtime_arena.length).unwrap_or(0),
-        )
-    }
-    .is_err()
-    {
-        emit_refusal("runtime-arena-initialization-failed");
-    }
     arch::initialize_machine(&record, boot::executable_physical_address);
     let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
     let identities = identity::derive(entropy, record.timestamp, record.image_physical_start);
+    crate::inspect_spore_provision(&record, identities);
     let mut presentation_display = match boot::framebuffer_display() {
         Ok(display) => display,
         Err(error) => emit_machine_refusal(error.as_str()),

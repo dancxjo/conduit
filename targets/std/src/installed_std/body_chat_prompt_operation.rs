@@ -32,21 +32,14 @@ impl BodyChatPromptOperation {
                     self.queued_human = Some(value);
                 }
                 let maximum = if port == 2 {
-                    conduit_tongues::MAXIMUM_BODY_CHAT_CONTEXT_BYTES
+                    conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES
                 } else {
-                    conduit_tongues::MAXIMUM_BODY_CHAT_MESSAGE_BYTES
+                    conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES
                 } as u32;
                 let Ok(input) = BoundedValueRef::new(value, maximum) else {
                     return fail(FailureCode::InvalidInput, 1);
                 };
-                let request = RequestId(self.next_request);
-                self.next_request = self.next_request.saturating_add(1);
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(port),
-                    input,
-                }
+                self.request(port, input)
             }
             OperationInput::HostOperationCompleted { request, outcome }
                 if self.pending == Some(request) =>
@@ -93,10 +86,24 @@ impl BodyChatPromptOperation {
         self.queued_human = None;
         self.emit_human = false;
     }
+
+    fn request(&mut self, port: u16, input: BoundedValueRef) -> OperationAction {
+        let request = RequestId(self.next_request);
+        let Some(next_request) = self.next_request.checked_add(1) else {
+            return fail(FailureCode::IdentityCapacityExhausted, 6);
+        };
+        self.next_request = next_request;
+        self.pending = Some(request);
+        OperationAction::RequestHostOperation {
+            request,
+            operation: HostOperationId(port),
+            input,
+        }
+    }
 }
 
 pub(super) struct BodyChatPromptHost {
-    state: Option<conduit_tongues::BodyChatPromptState>,
+    state: Option<conduit_chat::BodyChatPromptState>,
     output: Vec<u8>,
 }
 
@@ -104,7 +111,7 @@ impl BodyChatPromptHost {
     fn new() -> Self {
         Self {
             state: None,
-            output: Vec::with_capacity(conduit_tongues::MAXIMUM_BODY_CHAT_PROMPT_BYTES),
+            output: Vec::with_capacity(conduit_chat::MAXIMUM_BODY_CHAT_PROMPT_BYTES),
         }
     }
     pub(super) fn execute(
@@ -118,9 +125,9 @@ impl BodyChatPromptHost {
                     state.replace_context(input)
                 } else {
                     self.state = Some(
-                        conduit_tongues::BodyChatPromptState::new(
+                        conduit_chat::BodyChatPromptState::new(
                             input,
-                            conduit_tongues::MAXIMUM_BODY_CHAT_HISTORY_ITEMS,
+                            conduit_chat::MAXIMUM_BODY_CHAT_HISTORY_ITEMS,
                         )
                         .map_err(|error| format!("Body Chat context: {error:?}"))?,
                     );
@@ -192,11 +199,11 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     Ok(OperationBudget {
         value_items: 2,
-        value_bytes: (conduit_tongues::MAXIMUM_BODY_CHAT_PROMPT_BYTES
-            + conduit_tongues::MAXIMUM_BODY_CHAT_MESSAGE_BYTES) as u32,
+        value_bytes: (conduit_chat::MAXIMUM_BODY_CHAT_PROMPT_BYTES
+            + conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES) as u32,
         host_requests: 3,
         sign_items: 32,
-        maximum_value_bytes: conduit_tongues::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
+        maximum_value_bytes: conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
     })
 }
 fn prepare(
@@ -220,7 +227,9 @@ fn fail(code: FailureCode, detail: u16) -> OperationAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_body::{Body, BodyConversationContext, BodyConversationHost};
+    use conduit_body::{
+        Body, BodyConversationContext, BodyConversationContextBasis, BodyConversationHost,
+    };
     use conduit_core::{CheckedFormId, HostId, SignId, SourceDocumentId};
 
     fn context() -> Vec<u8> {
@@ -232,12 +241,18 @@ mod tests {
         )
         .unwrap();
         let (_, wake) = body.wake(1, SignId::from("sign/wake")).unwrap();
-        conduit_tongues::encode_body_conversation_context(&BodyConversationContext {
-            schema: "conduit.body/conversation-context-value@1".into(),
+        conduit_chat::encode_body_conversation_context(&BodyConversationContext {
+            schema: "conduit.body/conversation-context-value@2".into(),
             display_name: "Roseau".into(),
             body_id: wake.body_id.clone(),
-            wake_id: wake.wake_id,
+            wake_id: wake.wake_id.clone(),
             wake_sequence: 1,
+            basis: BodyConversationContextBasis {
+                body_id: wake.body_id.clone(),
+                wake_id: wake.wake_id.clone(),
+                wake_sequence: 1,
+                revision: 0,
+            },
             hosts: vec![BodyConversationHost {
                 host_id: HostId::from("Latimer"),
                 present: true,
@@ -266,7 +281,9 @@ mod tests {
             .unwrap()
             .unwrap()
             .to_vec();
-        assert!(core::str::from_utf8(&first).unwrap().contains("Tour"));
+        assert!(core::str::from_utf8(&first)
+            .unwrap()
+            .contains("\"active_forms\":1"));
         host.execute(
             conduit_std_offers::BODY_CHAT_RESPONSE_OPERATION,
             b"I am running the Tour.",
@@ -281,6 +298,7 @@ mod tests {
             .unwrap();
         let second = core::str::from_utf8(second).unwrap();
         assert!(second.contains("I am running the Tour."));
-        assert!(second.contains("Latimer"));
+        assert!(second.contains("\"present_hosts\":1"));
+        assert!(!second.contains("Latimer"));
     }
 }

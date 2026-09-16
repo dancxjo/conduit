@@ -2,7 +2,6 @@
 
 mod analysis;
 mod analysis_math;
-mod body_chat;
 mod contract;
 #[cfg(feature = "speech")]
 mod execution;
@@ -24,9 +23,9 @@ mod signs;
 #[cfg(feature = "speech")]
 mod specimen;
 mod speech_recognition;
+mod streaming_recognition;
 
 pub use analysis::*;
-pub use body_chat::*;
 pub use contract::*;
 #[cfg(feature = "speech")]
 pub use execution::*;
@@ -45,3 +44,4 @@ pub use signs::*;
 #[cfg(feature = "speech")]
 pub use specimen::*;
 pub use speech_recognition::*;
+pub use streaming_recognition::*;

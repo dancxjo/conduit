@@ -51,6 +51,11 @@ pub mod external_signal;
 pub mod external_websocket;
 mod host_execution;
 pub mod hosted_audio;
+mod hosted_body_conversation_context;
+pub use hosted_body_conversation_context::{
+    BodyConversationContextReplacement, BodyConversationContextSource,
+    BodyConversationContextUpdateRefusal,
+};
 pub mod hosted_calendar;
 pub mod hosted_data;
 pub mod hosted_geometry;
@@ -430,7 +435,7 @@ pub struct StdHost {
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
-    body_conversation_context: Option<Vec<u8>>,
+    body_conversation_context: Option<BodyConversationContextSource>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
@@ -458,8 +463,6 @@ impl StdHost {
         &mut self,
         context: &conduit_body::BodyConversationContext,
     ) -> Result<(), String> {
-        let encoded = conduit_tongues::encode_body_conversation_context(context)
-            .map_err(|error| format!("Body conversation context: {error:?}"))?;
         let newly_offered = self.body_conversation_context.is_none();
         if newly_offered {
             self.advertisement
@@ -469,7 +472,13 @@ impl StdHost {
                 .capabilities
                 .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
         }
-        self.body_conversation_context = Some(encoded);
+        if let Some(source) = &self.body_conversation_context {
+            source
+                .replace(context)
+                .map_err(|error| format!("replace Body conversation context: {error:?}"))?;
+        } else {
+            self.body_conversation_context = Some(BodyConversationContextSource::new(context)?);
+        }
         if newly_offered {
             self.advertisement.offer_generation = OfferGeneration(
                 self.advertisement
@@ -480,6 +489,10 @@ impl StdHost {
             );
         }
         Ok(())
+    }
+
+    pub fn body_conversation_context_source(&self) -> Option<BodyConversationContextSource> {
+        self.body_conversation_context.clone()
     }
 
     pub fn issue_kernel_play(
