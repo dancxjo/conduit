@@ -145,7 +145,7 @@ pub(crate) fn run(command: CarrierCommand) -> Result<(), String> {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 struct CarrierAvailability {
     schema: &'static str,
     target_id: String,
@@ -155,10 +155,16 @@ struct CarrierAvailability {
 }
 
 fn report_availability(paths: &[std::path::PathBuf]) -> Result<(), String> {
-    let mut carriers = paths
+    let carriers = paths
         .iter()
         .map(|path| read_json::<DeploymentCarrierDescriptor>(path))
         .collect::<Result<Vec<_>, _>>()?;
+    print_receipt(&collect_availability(carriers)?)
+}
+
+fn collect_availability(
+    mut carriers: Vec<DeploymentCarrierDescriptor>,
+) -> Result<CarrierAvailability, String> {
     let target = carriers
         .first()
         .ok_or("at least one reviewed carrier descriptor is required")?
@@ -178,7 +184,7 @@ fn report_availability(paths: &[std::path::PathBuf]) -> Result<(), String> {
         .iter()
         .any(|carrier| carrier.kind == DeploymentCarrierKind::ArtifactDownload);
     let local_realization_available = carriers.iter().any(|carrier| carrier.kind.consequential());
-    print_receipt(&CarrierAvailability {
+    Ok(CarrierAvailability {
         schema: "conduit.carrier/availability@1",
         target_id: target,
         artifact_download_available,
@@ -210,4 +216,69 @@ fn print_receipt(receipt: &impl serde::Serialize) -> Result<(), String> {
             .map_err(|error| format!("encode carrier receipt: {error}"))?
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn descriptor(
+        target: &str,
+        carrier_id: &str,
+        kind: DeploymentCarrierKind,
+    ) -> DeploymentCarrierDescriptor {
+        DeploymentCarrierDescriptor {
+            schema: "conduit.carrier/descriptor@1".into(),
+            carrier_id: carrier_id.into(),
+            target_id: target.into(),
+            kind,
+            implementation_id: format!("implementation/{carrier_id}"),
+            maximum_artifact_bytes: 1024,
+            requires_explicit_authority: kind.consequential(),
+            verifies_written_bytes: false,
+        }
+    }
+
+    #[test]
+    fn availability_distinguishes_download_only_from_local_realization() {
+        let download = descriptor(
+            "target/one",
+            "carrier/download",
+            DeploymentCarrierKind::ArtifactDownload,
+        );
+        let download_only = collect_availability(vec![download.clone()]).unwrap();
+        assert!(download_only.artifact_download_available);
+        assert!(!download_only.local_realization_available);
+
+        let realized = collect_availability(vec![
+            descriptor(
+                "target/one",
+                "carrier/native",
+                DeploymentCarrierKind::NativeInstallStart,
+            ),
+            download,
+        ])
+        .unwrap();
+        assert!(realized.artifact_download_available);
+        assert!(realized.local_realization_available);
+        assert_eq!(realized.carriers[0].carrier_id, "carrier/download");
+    }
+
+    #[test]
+    fn availability_refuses_mixed_target_inventories() {
+        let error = collect_availability(vec![
+            descriptor(
+                "target/one",
+                "carrier/download",
+                DeploymentCarrierKind::ArtifactDownload,
+            ),
+            descriptor(
+                "target/two",
+                "carrier/native",
+                DeploymentCarrierKind::NativeInstallStart,
+            ),
+        ])
+        .unwrap_err();
+        assert_eq!(error, "carrier descriptors belong to different targets");
+    }
 }
