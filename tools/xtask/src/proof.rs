@@ -546,7 +546,8 @@ mod tests {
         assert!(config.contains("retries: 0"));
         assert!(config.contains("name: \"chromium\""));
         assert!(config.contains("name: \"firefox\""));
-        assert!(config.contains("testMatch: [\"browser-webrtc-body.spec.mjs\"]"));
+        assert!(config
+            .contains("testMatch: [\"browser-webrtc-body.spec.mjs\", \"home-host.spec.mjs\"]"));
     }
 
     #[test]
