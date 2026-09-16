@@ -41,6 +41,7 @@ fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
                 "fabrication_package_revision": 1,
                 "toolchain_identity": "rust/reviewed",
                 "builder_adapter": "conduit-host-hosted/build-native@1",
+                "strategy": "deterministic-specialized-build",
                 "deployment_adapter": "conduit-host-hosted/launch@1",
                 "post_build_actions": [],
                 "output": "native-bundle",

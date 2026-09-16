@@ -124,6 +124,7 @@ fn target(label: &str, architecture: &str, machine: &str, os: &str) -> TargetDes
         host_operations: Vec::new(),
         toolchain_identity: "rustc:stable".into(),
         builder_adapter: "conduit-host-hosted/build-native@1".into(),
+        strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
         deployment_adapter: Some("conduit-host-hosted/launch@1".into()),
         outputs: vec![SporeOutputKind::NativeBundle],
         default_output: SporeOutputKind::NativeBundle,

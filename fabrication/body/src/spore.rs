@@ -257,6 +257,7 @@ pub fn seal_reviewed_prebuilt_body_spore_with_content_digest(
     if image.manifest.fabrication_package_id != fabrication.fabrication_package_id
         || image.manifest.fabrication_package_revision != fabrication.fabrication_package_revision
         || image.manifest.builder_adapter != fabrication.builder_adapter
+        || image.manifest.fabrication_strategy != fabrication.strategy
         || image.manifest.deployment_adapter != fabrication.deployment_adapter
         || image.manifest.output != fabrication.output
         || image.manifest.toolchain_identity != fabrication.toolchain_identity

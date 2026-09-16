@@ -46,6 +46,7 @@ fn pico_anchor() -> FabricationAnchor {
             host_operations: Vec::new(),
             toolchain_identity: "rustc:stable+thumbv6m-none-eabi".into(),
             builder_adapter: "conduit-host-rp2040/build@1".into(),
+            strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
             deployment_adapter: Some("conduit-host-rp2040/flash-uf2@1".into()),
             outputs: vec![SporeOutputKind::Uf2],
             default_output: SporeOutputKind::Uf2,

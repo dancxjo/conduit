@@ -562,6 +562,7 @@ mod tests {
                     "fabrication_package_revision": 1,
                     "toolchain_identity": "toolchain:fixture",
                     "builder_adapter": "conduit-host-conduitos/build-x86_64@1",
+                    "strategy": "deterministic-specialized-build",
                     "deployment_adapter": DEPLOYMENT_ADAPTER,
                     "post_build_actions": [],
                     "output": "disk-image",

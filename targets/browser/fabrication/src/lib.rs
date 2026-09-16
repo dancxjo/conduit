@@ -73,6 +73,7 @@ impl HostFabricationPackage for BrowserFabricationPackage {
                 host_operations: Vec::new(),
                 toolchain_identity: "conduit.browser/reviewed-distribution@1".into(),
                 builder_adapter: "conduit-host-browser/bind-prebuilt@1".into(),
+                strategy: conduit_host_fabrication::FabricationStrategy::BindReviewedSuperset,
                 deployment_adapter: Some("conduit-host-browser/load@1".into()),
                 outputs: vec![SporeOutputKind::BrowserBundle],
                 default_output: SporeOutputKind::BrowserBundle,
