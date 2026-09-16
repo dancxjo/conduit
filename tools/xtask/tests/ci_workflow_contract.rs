@@ -377,8 +377,9 @@ fn hosted_release_jobs_run_the_packaged_tour_and_home_journeys() {
     assert!(releases.contains("if: needs.plan.outputs.host_releases_required == 'true'"));
     assert!(releases.contains("conduit-tour-linux-x86_64 --journey"));
     assert!(releases.contains("conduit-tour-windows-x86_64.exe --journey"));
+    assert!(releases.contains("gcc-aarch64-linux-gnu libc6-dev-arm64-cross xvfb"));
     assert!(releases.contains(
-        "conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-face-linux-native"
+        "xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-face-linux-native"
     ));
     assert!(releases.contains(
         "conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-face-windows-native"
