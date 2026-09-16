@@ -12,8 +12,9 @@ use std::cell::RefCell;
 mod refusal;
 use refusal::Refusal;
 
-const CAPACITY: usize = 256 * 1024;
-const HOST_OFFERS_BYTES: usize = 128 * 1024;
+const HOST_OFFERS_BYTES: usize =
+    conduit_body::MAX_BODY_PARTS * conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
+const CAPACITY: usize = HOST_OFFERS_BYTES + 256 * 1024;
 thread_local! {
     static INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; CAPACITY].into_boxed_slice());
     static OUTPUT: RefCell<Vec<u8>> = RefCell::new(Vec::with_capacity(CAPACITY));
@@ -151,6 +152,10 @@ pub extern "C" fn conduit_workspace_output_ptr() -> usize {
 #[no_mangle]
 pub extern "C" fn conduit_workspace_output_len() -> usize {
     OUTPUT.with(|value| value.borrow().len())
+}
+#[no_mangle]
+pub extern "C" fn conduit_workspace_output_capacity() -> usize {
+    CAPACITY
 }
 
 #[no_mangle]

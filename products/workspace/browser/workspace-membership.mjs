@@ -1,3 +1,5 @@
+import { connectRendezvousHost } from "../../creche/browser/creche-rendezvous.mjs";
+
 const SCHEMA = "conduit.workspace/body-invitation@1";
 const CHANNEL_PREFIX = "conduit.workspace/body-admission/";
 const encoder = new TextEncoder();
@@ -39,6 +41,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
   const inviteButton = root.querySelector("[data-invite-host]");
   const closeButton = root.querySelector("[data-close-membership]");
   const channels = new Set();
+  let runningHost = null;
   let open = Boolean(invitation);
 
   const close = () => {
@@ -79,7 +82,59 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
     }
     const action = document.createElement("button"); action.type = "button"; action.textContent = "Invite another Host";
     action.addEventListener("click", () => renderInvite().catch(onFailure));
-    content.append(intro, list, action);
+    const running = document.createElement("button"); running.type = "button"; running.textContent = "Connect a running Host";
+    running.addEventListener("click", renderRunningHost);
+    const actions = document.createElement("div"); actions.className = "membership-actions"; actions.append(action, running);
+    content.append(intro, list, actions);
+  }
+
+  function renderRunningHost() {
+    if (!session.current()) throw new Error("A Body must exist before connecting a running Host");
+    content.innerHTML = `<p class="membership-kicker">Already running</p><h3>Connect this Body to a Host</h3>
+      <p>On the computer that should help this Body, open Conduit’s Host rendezvous and enter its one-use code here. The Host’s exact identity and current offers are admitted only after its signed invitation proof returns.</p>
+      <label>Running Host rendezvous code<input type="text" autocomplete="off" spellcheck="false" data-running-host-code></label>
+      <div class="membership-actions"><button type="button" data-connect-running-host>Connect Host</button><button type="button" data-cancel-running-host>Back to members</button></div>
+      <p class="transport-note">Available now: a loopback WebSocket Host on this computer, or an explicitly selected serial Host. A failed connection leaves this Body and its current Forms unchanged.</p>`;
+    const input = content.querySelector("[data-running-host-code]");
+    const connect = content.querySelector("[data-connect-running-host]");
+    content.querySelector("[data-cancel-running-host]").addEventListener("click", () => { runningHost?.cancel(); runningHost = null; render(); });
+    connect.addEventListener("click", async () => {
+      connect.disabled = true;
+      input.disabled = true;
+      let secret = null;
+      let nonce = null;
+      try {
+        runningHost = await connectRendezvousHost(input.value);
+        secret = crypto.getRandomValues(new Uint8Array(32));
+        nonce = crypto.getRandomValues(new Uint8Array(32));
+        const claim = await session.createInvitation(secret, nonce);
+        const prepared = {
+          spore_id: `workspace/${claim.invitation_id}`,
+          image_id: runningHost.descriptor.image_content_digest,
+          invitation_id: claim.invitation_id,
+          body_id: claim.body_id,
+          invitation_nonce: claim.nonce,
+          invitation_secret: secret,
+          invitation_expires_at_millis: claim.expires_at_millis,
+        };
+        const join = await runningHost.invite(prepared);
+        runningHost = null;
+        await beforeAdmission();
+        const proof = { invitation_id: join.invitation_id, body_id: join.body_id,
+          host_id: join.host_id, boot_id: join.boot_id, nonce: join.nonce, signature: join.signature };
+        await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
+        onChanged(); render();
+      } catch (error) {
+        runningHost?.cancel(); runningHost = null;
+        connect.disabled = false;
+        input.disabled = false;
+        onFailure(error);
+      } finally {
+        secret?.fill(0);
+        nonce?.fill(0);
+      }
+    });
+    input.focus();
   }
 
   async function renderInvite() {
@@ -161,7 +216,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
   }
 
   render();
-  return Object.freeze({ isOpen: () => open, isJoining: () => Boolean(invitation && !session.current()), render, close: () => { for (const channel of channels) channel.close(); channels.clear(); } });
+  return Object.freeze({ isOpen: () => open, isJoining: () => Boolean(invitation && !session.current()), render, close: () => { runningHost?.cancel(); runningHost = null; for (const channel of channels) channel.close(); channels.clear(); } });
 }
 
 function escapeText(value) {
