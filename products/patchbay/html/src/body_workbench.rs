@@ -260,18 +260,24 @@ fn workbench_presentation(
         },
     ];
     let mut form_identities = Vec::with_capacity(workset.len());
-    let (action_name, action_label, action_intent) = match evidence.body.state {
-        conduit_body::BodyState::Lulled => ("wake", "Wake", "conduit.intent/wake@1"),
-        conduit_body::BodyState::Awake { .. } => ("lull", "Lull", "conduit.intent/lull@1"),
+    let lifecycle_action = match evidence.body.state {
+        conduit_body::BodyState::Lulled => Some(("wake", "Wake", "conduit.intent/wake@1")),
+        conduit_body::BodyState::Awake { .. } => Some(("lull", "Lull", "conduit.intent/lull@1")),
+        conduit_body::BodyState::Fulfilled { .. } => None,
     };
-    let mut actions = vec![PresentationAction {
-        identity: format!("action/{action_name}/{body_identity}"),
-        intent: action_intent.into(),
-        target: body_identity.clone(),
-        label: action_label.into(),
-        disclosure: PresentationDisclosureLevel::CurrentAction,
-        availability: PresentationActionAvailability::Available,
-    }];
+    let mut actions = lifecycle_action
+        .into_iter()
+        .map(
+            |(action_name, action_label, action_intent)| PresentationAction {
+                identity: format!("action/{action_name}/{body_identity}"),
+                intent: action_intent.into(),
+                target: body_identity.clone(),
+                label: action_label.into(),
+                disclosure: PresentationDisclosureLevel::CurrentAction,
+                availability: PresentationActionAvailability::Available,
+            },
+        )
+        .collect::<Vec<_>>();
     for form in workset.forms() {
         let form_identity = format!("form/{}", form.checked_form_id.as_str());
         let label = form.checked_form_id.as_str().to_owned();
@@ -313,6 +319,14 @@ fn workbench_presentation(
                         reason_code: "body-awake".into(),
                         explanation: "Lull the Body before changing its active Form workload."
                             .into(),
+                    }
+                }
+                conduit_body::BodyState::Fulfilled { .. } => {
+                    PresentationActionAvailability::Unavailable {
+                        reason_code: "body-fulfilled".into(),
+                        explanation:
+                            "A fulfilled Body retains its biography but cannot change its Form workload."
+                                .into(),
                     }
                 }
             },
@@ -402,6 +416,7 @@ fn workbench_presentation(
             wake_id: match &evidence.body.state {
                 conduit_body::BodyState::Awake { wake_id } => Some(wake_id.clone()),
                 conduit_body::BodyState::Lulled => None,
+                conduit_body::BodyState::Fulfilled { .. } => None,
             },
             source_document_id: None,
             checked_form_id: None,

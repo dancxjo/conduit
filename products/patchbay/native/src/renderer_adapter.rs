@@ -102,6 +102,7 @@ impl PatchbayApplication {
                         Some(wake_id.as_str().to_owned())
                     }
                     patchbay_model::CurrentBodyLifecycle::Lulled => None,
+                    patchbay_model::CurrentBodyLifecycle::Fulfilled { .. } => None,
                 },
             ),
             plan_id: self

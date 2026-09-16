@@ -1,9 +1,11 @@
-use conduit_core::{ActivePlayId, CheckedFormId, PlanId, SignId, SourceDocumentId};
+use conduit_core::{
+    ActivePlayId, AuthorityGrantId, CheckedFormId, PlanId, SignId, SourceDocumentId,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     hold::validate_planning_basis_signs, BodyHistoryCheckpoint, BodyLifecycleError, BodyState,
-    BodyWorkset, HoldPolicy, ResidentForm, WakeId, WakeLifecycle, WakePlan,
+    BodyWorkset, FulfillmentObligation, HoldPolicy, ResidentForm, WakeId, WakeLifecycle, WakePlan,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,6 +35,14 @@ pub enum BodyLifecycleEvent {
         wake_id: WakeId,
         sign_id: SignId,
     },
+    Fulfilled {
+        final_workload_revision: u64,
+        final_wake_id: Option<WakeId>,
+        authority_grant_id: AuthorityGrantId,
+        attribution: alloc::string::String,
+        settled_obligations: alloc::vec::Vec<FulfillmentObligation>,
+        sign_id: SignId,
+    },
 }
 
 impl BodyLifecycleEvent {
@@ -42,7 +52,8 @@ impl BodyLifecycleEvent {
             | Self::FormAdmitted { sign_id, .. }
             | Self::FormRemoved { sign_id, .. }
             | Self::Woke { sign_id, .. }
-            | Self::LullRetained { sign_id, .. } => sign_id,
+            | Self::LullRetained { sign_id, .. }
+            | Self::Fulfilled { sign_id, .. } => sign_id,
         }
     }
 }
@@ -172,6 +183,22 @@ pub(crate) fn validate_body_events(
             (initial_workset, initial_revision)
         };
     for event in events.iter().skip(1) {
+        if let BodyLifecycleEvent::Fulfilled {
+            final_wake_id,
+            authority_grant_id,
+            attribution,
+            settled_obligations,
+            ..
+        } = event
+        {
+            crate::lifecycle::validate_fulfillment(&crate::BodyFulfillment {
+                final_wake_id: final_wake_id.clone(),
+                authority_grant_id: authority_grant_id.clone(),
+                attribution: attribution.clone(),
+                settled_obligations: settled_obligations.clone(),
+            })
+            .map_err(|_| BodyLifecycleError::InvalidTransition)?;
+        }
         match event {
             BodyLifecycleEvent::FormAdmitted {
                 source_document_id,
@@ -221,6 +248,25 @@ pub(crate) fn validate_body_events(
                     wake_id: retained, ..
                 },
             ) if wake_id == retained => BodyState::Lulled,
+            (
+                BodyState::Lulled,
+                BodyLifecycleEvent::Fulfilled {
+                    final_workload_revision,
+                    authority_grant_id,
+                    attribution,
+                    settled_obligations,
+                    sign_id,
+                    ..
+                },
+            ) if *final_workload_revision == replayed_workload_revision
+                && !authority_grant_id.as_str().is_empty()
+                && !attribution.trim().is_empty()
+                && settled_obligations.len() <= crate::MAX_FULFILLMENT_OBLIGATIONS =>
+            {
+                BodyState::Fulfilled {
+                    sign_id: sign_id.clone(),
+                }
+            }
             _ => return Err(BodyLifecycleError::InvalidTransition),
         };
     }

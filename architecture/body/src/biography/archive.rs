@@ -249,7 +249,14 @@ impl BodyBiographyEvidence {
         &mut self,
     ) -> Result<Option<BodyBiographyArchiveSegment>, BodyBiographyError> {
         self.validate()?;
-        let body_events: Vec<_> = self.body.events.iter().skip(1).cloned().collect();
+        let body_events: Vec<_> = self
+            .body
+            .events
+            .iter()
+            .skip(1)
+            .filter(|event| !matches!(event, BodyLifecycleEvent::Fulfilled { .. }))
+            .cloned()
+            .collect();
         if body_events.is_empty() {
             return Ok(None);
         }
@@ -286,8 +293,18 @@ impl BodyBiographyEvidence {
             workset: candidate.body.workset.clone(),
             workload_revision: candidate.body.workload_revision,
         });
+        let terminal = candidate
+            .body
+            .events
+            .iter()
+            .find(|event| matches!(event, BodyLifecycleEvent::Fulfilled { .. }))
+            .cloned();
         candidate.body.events.truncate(1);
         candidate.body.sign_ids.truncate(1);
+        if let Some(terminal) = terminal {
+            candidate.body.sign_ids.push(terminal.sign_id().clone());
+            candidate.body.events.push(terminal);
+        }
         candidate
             .records
             .retain(|record| !sign_ids.contains(&record.sign_id));
