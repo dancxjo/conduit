@@ -41,6 +41,7 @@ impl ImageRegion {
 pub enum VisualEvidenceClass {
     DeterministicDerived,
     StatisticalCandidate,
+    ModelDerived,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
