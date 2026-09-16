@@ -1,0 +1,68 @@
+# Proof-only realizations around reviewed addressed-utterance and House meaning.
+# These fixture sources and sinks are deliberately absent from the canonical
+# live-conversation Form.
+form recorded-house-core (
+    > clip: PcmClip
+    response: Text >
+) {
+    recognize: speech/recognize-clip
+    recognized: speech/recognition-to-text
+    addresses: conduit-test/house-addresses-source
+    addressed: addressed-utterance
+    context: conduit-test/house-context-source
+    house: house-conversation
+
+    clip > recognize.clip
+    recognize.result > recognized.result
+    recognized.text > addressed.recognized
+    addresses.value > addressed.addresses
+    addressed.detection > house.detection
+    context.value > house.context
+    house.response > response
+}
+
+form recorded-house-proof {
+    audio: conduit-test/house-audio-clip-source
+    conversation: recorded-house-core
+    sink: conduit-test/house-text-sink
+
+    audio.value > conversation.clip
+    conversation.response > sink.value
+}
+
+form recorded-house-spoken-proof {
+    audio: conduit-test/house-audio-clip-source
+    conversation: recorded-house-core
+    synthesize: speech/synthesize(maximum-output-bytes = 131072)
+    convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
+    output: audio/play
+
+    audio.value > conversation.clip
+    conversation.response > synthesize.text
+    synthesize.audio > convert.audio
+    convert.converted > output.audio
+}
+
+form microphone-house-proof {
+    audio: media/capture-microphone-clip
+    conversation: recorded-house-core
+    sink: conduit-test/house-text-sink
+
+    "capture" > audio.request
+    audio.clip > conversation.clip
+    conversation.response > sink.value
+}
+
+form microphone-house-spoken-proof {
+    audio: media/capture-microphone-clip
+    conversation: recorded-house-core
+    synthesize: speech/synthesize(maximum-output-bytes = 131072)
+    convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
+    output: audio/play
+
+    "capture" > audio.request
+    audio.clip > conversation.clip
+    conversation.response > synthesize.text
+    synthesize.audio > convert.audio
+    convert.converted > output.audio
+}
