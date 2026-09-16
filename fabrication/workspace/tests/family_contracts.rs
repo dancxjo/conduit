@@ -1,6 +1,7 @@
 use conduit_host_fabrication::{
-    build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
-    BuildInputs, FabricationStrategy, PostBuildAction, SporeOutputKind,
+    build_default_host_image, check_host_configuration, fabrication_chooser_catalog,
+    parse_host_configuration_conduit, BuildInputs, FabricationSelectionNonEffect,
+    FabricationStrategy, PostBuildAction, SporeOutputKind, FABRICATION_CHOOSER_CATALOG_SCHEMA,
 };
 use std::path::Path;
 
@@ -91,6 +92,52 @@ fn every_target_declares_its_reviewed_ordinary_strategy() {
         };
         assert_eq!(descriptor.strategy, expected, "{}", descriptor.key());
     }
+}
+
+#[test]
+fn portable_chooser_catalog_is_exact_sorted_and_runtime_inert() {
+    let packages = conduit_workspace_fabrication::package_set();
+    let chooser = fabrication_chooser_catalog(&packages);
+    assert_eq!(chooser.schema, FABRICATION_CHOOSER_CATALOG_SCHEMA);
+    assert!(chooser.catalog_id.starts_with("sha256:"));
+    assert_eq!(
+        chooser.catalog_id,
+        fabrication_chooser_catalog(&packages).catalog_id
+    );
+    assert_eq!(chooser.targets.len(), packages.target_descriptors().len());
+    assert!(chooser
+        .targets
+        .windows(2)
+        .all(|pair| pair[0].target_id < pair[1].target_id));
+    assert_eq!(
+        chooser.does_not_create,
+        [
+            FabricationSelectionNonEffect::HostIdentity,
+            FabricationSelectionNonEffect::BootIdentity,
+            FabricationSelectionNonEffect::BaseReadiness,
+            FabricationSelectionNonEffect::CapabilityOffer,
+            FabricationSelectionNonEffect::BodyMembership,
+            FabricationSelectionNonEffect::Authority,
+            FabricationSelectionNonEffect::Plan,
+            FabricationSelectionNonEffect::Play,
+        ]
+    );
+
+    let browser = chooser
+        .targets
+        .iter()
+        .find(|target| target.target_id == "browser/wasm32/page")
+        .unwrap();
+    assert_eq!(browser.strategy, FabricationStrategy::BindReviewedSuperset);
+    assert!(browser
+        .bases
+        .iter()
+        .flat_map(|base| &base.implementations)
+        .all(|implementation| implementation.package_id == "browser-wasm@1"));
+    assert!(browser.bases.iter().all(|base| base
+        .implementations
+        .windows(2)
+        .all(|pair| pair[0].implementation_id < pair[1].implementation_id)));
 }
 
 #[test]
