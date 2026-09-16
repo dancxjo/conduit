@@ -126,15 +126,26 @@ pub(crate) fn workspace_library(
 pub(crate) fn plan_workspace_forms(
     evidence: &BodyBiographyEvidence,
     source: &str,
+    observed_hosts: &[conduit_core::HostAdvertisement],
     host: &HostId,
     boot: &BootId,
 ) -> Result<Vec<BodyFormPlan>, String> {
     let inventory = super::initial_forms::check_inventory(source)?;
-    let hosts = [super::initial_forms::reviewed_browser_host(
-        source,
-        host.clone(),
-        boot.clone(),
-    )?];
+    if !observed_hosts
+        .iter()
+        .any(|observed| &observed.host_id == host && &observed.boot_id == boot)
+    {
+        return Err("current browser Host offer was not freshly observed".into());
+    }
+    let local = super::initial_forms::reviewed_browser_host(source, host.clone(), boot.clone())?;
+    let mut hosts = vec![local];
+    hosts.extend(
+        observed_hosts
+            .iter()
+            .filter(|observed| &observed.host_id != host)
+            .cloned(),
+    );
+    hosts.sort_by(|left, right| left.host_id.cmp(&right.host_id));
     let bases = crate::installed_browser::local_bases();
     let mut plans = Vec::with_capacity(evidence.body.workset.len());
     for resident in evidence.body.workset.forms() {
