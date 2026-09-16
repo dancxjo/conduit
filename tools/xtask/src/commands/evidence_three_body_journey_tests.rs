@@ -139,3 +139,26 @@ fn documentary_artifacts_are_digest_bound_and_root_confined() {
     }
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn published_index_preserves_semantic_assertions_and_non_claims() {
+    let contract = contract();
+    let index = ThreeBodyJourneyIndex {
+        schema: INDEX_SCHEMA,
+        disposition: "complete",
+        journey_id: contract.journey_id,
+        git_commit: contract.git_commit,
+        semantic_steps: contract.steps,
+        tracks: complete(),
+    };
+    let value = serde_json::to_value(index).unwrap();
+    assert_eq!(
+        value["semantic_steps"][0]["required_assertion"],
+        "one-new-body-exists"
+    );
+    assert_eq!(
+        value["semantic_steps"][0]["non_claims"][0],
+        "not-physical-proof"
+    );
+    assert_eq!(value["tracks"].as_array().unwrap().len(), REQUIRED_TRACKS);
+}
