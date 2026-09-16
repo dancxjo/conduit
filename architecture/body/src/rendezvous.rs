@@ -7,6 +7,7 @@
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "authenticated-admission")]
 use crate::{SpawnInvitation, SpawnInvitationClaim};
 
 pub const RENDEZVOUS_DESCRIPTOR_PROTOCOL: u16 = 1;
@@ -62,6 +63,7 @@ pub struct SpawnRendezvousDescriptor {
 /// but never exposed through `Debug`. It grants admission proof authority only;
 /// the rendezvous descriptor independently bounds where that proof may be
 /// presented.
+#[cfg(feature = "authenticated-admission")]
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SpawnRendezvousProvision {
@@ -70,6 +72,7 @@ pub struct SpawnRendezvousProvision {
     invitation_secret: [u8; 32],
 }
 
+#[cfg(feature = "authenticated-admission")]
 impl core::fmt::Debug for SpawnRendezvousProvision {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         formatter
@@ -97,6 +100,7 @@ pub enum RendezvousDescriptorRefusal {
     WeakInvitationSecret,
 }
 
+#[cfg(feature = "authenticated-admission")]
 impl SpawnRendezvousProvision {
     pub fn from_invitation(
         invitation: SpawnInvitation,
@@ -256,7 +260,9 @@ fn loopback_reachability(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{AdmissionManager, BodyId, SpawnInvitationSecret};
+    #[cfg(feature = "authenticated-admission")]
+    use crate::{AdmissionManager, BodyId, SpawnInvitationClaim, SpawnInvitationSecret};
+    #[cfg(feature = "authenticated-admission")]
     use alloc::format;
     use alloc::vec;
 
@@ -418,6 +424,7 @@ mod tests {
         assert_eq!(fallback.attempt, 1);
     }
 
+    #[cfg(feature = "authenticated-admission")]
     #[test]
     fn one_provision_binds_invitation_authority_to_exact_body_reachability() {
         let body_id = serde_json::from_str::<BodyId>("\"body/one\"").unwrap();
@@ -457,6 +464,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "authenticated-admission")]
     #[test]
     fn provision_refuses_relabelled_body_invitation_and_weak_secret() {
         let claim: SpawnInvitationClaim = serde_json::from_value(serde_json::json!({
