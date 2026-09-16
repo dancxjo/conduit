@@ -10,6 +10,9 @@ use crate::cli::{BodyCommand, HostCommand};
 
 pub(crate) fn host(command: HostCommand) -> Result<(), String> {
     match command {
+        HostCommand::Service { .. } => {
+            Err("durable Host service command was routed through construction".into())
+        }
         HostCommand::Check { source } => {
             let checked = load_host(&source)?;
             println!(
