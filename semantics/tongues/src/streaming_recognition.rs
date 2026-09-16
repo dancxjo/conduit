@@ -19,6 +19,7 @@ pub const COMMITTED_TURN_TO_TEXT_REVISION: &str = "conduit.speech/committed-turn
 pub const RECOGNITION_EVENT_VALUE_KIND: &str = "speech/recognition-event@1";
 pub const CHAT_MESSAGE_VALUE_KIND: &str = "ChatMessage";
 pub const MAXIMUM_RECOGNITION_EVENT_BYTES: usize = 1_024;
+pub const MAXIMUM_COMMITTED_USER_MESSAGE_BYTES: usize = 1_024;
 pub const MAXIMUM_STREAMING_AUDIO_BYTES: usize = 262_144;
 pub const MAXIMUM_STREAMING_AUDIO_ITEMS: u16 = 32;
 pub const MAXIMUM_RECOGNITION_EVENT_ITEMS: u16 = 32;
@@ -55,11 +56,11 @@ pub struct RecognitionEvent {
     pub provider_identity: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CommittedUserMessage {
     pub turn_identity: String,
-    pub role: &'static str,
-    pub source: &'static str,
+    pub role: String,
+    pub source: String,
     pub text: String,
 }
 
@@ -224,8 +225,8 @@ impl RecognizedTurnCommitter {
                 self.committed = true;
                 message = Some(CommittedUserMessage {
                     turn_identity: format!("{}/turn/{}", event.stream_id, event.sequence),
-                    role: "user",
-                    source: "committed-external-speech",
+                    role: "user".into(),
+                    source: "committed-external-speech".into(),
                     text: event
                         .text
                         .clone()
@@ -344,6 +345,30 @@ pub fn project_committed_turn_text(
         return Err(StreamingRecognitionRefusal::InvalidEvent);
     }
     Ok(&message.text)
+}
+
+pub fn encode_committed_user_message(
+    message: &CommittedUserMessage,
+) -> Result<Vec<u8>, StreamingRecognitionRefusal> {
+    project_committed_turn_text(message)?;
+    let encoded =
+        serde_json::to_vec(message).map_err(|_| StreamingRecognitionRefusal::InvalidEvent)?;
+    if encoded.len() > MAXIMUM_COMMITTED_USER_MESSAGE_BYTES {
+        return Err(StreamingRecognitionRefusal::BoundExceeded);
+    }
+    Ok(encoded)
+}
+
+pub fn project_encoded_committed_turn_text(
+    encoded: &[u8],
+) -> Result<Vec<u8>, StreamingRecognitionRefusal> {
+    if encoded.len() > MAXIMUM_COMMITTED_USER_MESSAGE_BYTES {
+        return Err(StreamingRecognitionRefusal::BoundExceeded);
+    }
+    let message: CommittedUserMessage =
+        serde_json::from_slice(encoded).map_err(|_| StreamingRecognitionRefusal::InvalidEvent)?;
+    project_committed_turn_text(&message)?;
+    Ok(message.text.into_bytes())
 }
 
 fn validate_event(event: &RecognitionEvent) -> Result<(), StreamingRecognitionRefusal> {
@@ -515,16 +540,32 @@ mod tests {
     fn only_committed_external_user_messages_project_to_conversation_text() {
         let message = CommittedUserMessage {
             turn_identity: "recognition/session-1/turn/2".into(),
-            role: "user",
-            source: "committed-external-speech",
+            role: "user".into(),
+            source: "committed-external-speech".into(),
             text: "Hello, Roseau.".into(),
         };
         assert_eq!(project_committed_turn_text(&message), Ok("Hello, Roseau."));
         let mut wrong_role = message;
-        wrong_role.role = "assistant";
+        wrong_role.role = "assistant".into();
         assert_eq!(
             project_committed_turn_text(&wrong_role),
             Err(StreamingRecognitionRefusal::InvalidEvent)
+        );
+    }
+
+    #[test]
+    fn committed_message_wire_projection_preserves_escaped_text() {
+        let message = CommittedUserMessage {
+            turn_identity: "recognition/session-1/turn/3".into(),
+            role: "user".into(),
+            source: "committed-external-speech".into(),
+            text: "Say \"hello\".\nThen listen.".into(),
+        };
+        let encoded = encode_committed_user_message(&message).unwrap();
+        assert!(encoded.len() <= MAXIMUM_COMMITTED_USER_MESSAGE_BYTES);
+        assert_eq!(
+            project_encoded_committed_turn_text(&encoded).unwrap(),
+            message.text.as_bytes()
         );
     }
 }
