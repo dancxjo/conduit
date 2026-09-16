@@ -583,7 +583,7 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross xvfb
       - name: Compile and seal the reviewed generic existing-computer releases
         run: cargo +1.98.1 xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
       - name: Run the packaged Linux Tour journey
@@ -595,13 +595,16 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           chmod +x target/creche-host-releases/conduit-home-linux-x86_64
-          target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-face-linux-native
+          rm -rf target/creche-host-releases/home-face-linux-native
+          xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-face-linux-native
       - name: Run the packaged Windows Tour journey
         if: matrix.platform == 'windows'
         run: target/creche-host-releases/conduit-tour-windows-x86_64.exe --journey
       - name: Run the packaged Windows Home journey
         if: matrix.platform == 'windows'
-        run: target/creche-host-releases/conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-face-windows-native
+        run: |
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/creche-host-releases/home-face-windows-native
+          target/creche-host-releases/conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-face-windows-native
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-${{ matrix.artifact }}
