@@ -30,7 +30,7 @@ form live-conversation (
 # remains the refined explicit-PCM pipeline; acquisition and playback are
 # separate portable meanings selected by the Plan.
 form spoken-live-conversation {
-    microphone: audio/capture-push-to-talk(maximum-turn-millis = 15000)
+    microphone: audio/capture-push-to-talk
     conversation: live-conversation
     speaker: audio/play
 
