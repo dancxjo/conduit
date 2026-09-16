@@ -108,6 +108,9 @@ enum Ingress {
         protocol: u16,
         plan: Box<conduit_core::Plan>,
     },
+    ReleaseRemote {
+        protocol: u16,
+    },
 }
 
 #[derive(Serialize)]
@@ -138,6 +141,9 @@ enum Egress<'a> {
         protocol: u16,
         identity: &'a conduit_core::ActivePlayIdentity,
         hello_frames: &'a [Vec<u8>],
+    },
+    RemoteReleased {
+        protocol: u16,
     },
     Refused {
         protocol: u16,
@@ -338,6 +344,13 @@ fn run_session(
                 for response in exchange.responses {
                     line.send(&response)?;
                 }
+            }
+            JoinedIngress::Control(Ingress::ReleaseRemote { protocol })
+                if protocol == PROTOCOL && remote_prepared =>
+            {
+                crate::durable_host_control::release_remote(state_dir)?;
+                send(line, &Egress::RemoteReleased { protocol: PROTOCOL })?;
+                remote_prepared = false;
             }
             JoinedIngress::Control(Ingress::Close { protocol }) if protocol == PROTOCOL => {
                 if remote_prepared {
