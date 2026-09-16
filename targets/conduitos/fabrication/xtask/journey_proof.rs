@@ -98,9 +98,9 @@ struct JourneyProof {
 pub(super) struct JourneyIdentity {
     pub profile_id: String,
     pub build_id: String,
-    pub image_id: String,
     pub host_id: String,
     pub boot_id: String,
+    pub spore_join: Option<Value>,
 }
 
 pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -436,6 +436,7 @@ fn execute_image(
         let serial = fs::read_to_string(&serial_path).map_err(|error| {
             ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
         })?;
+        let spore_join = decode_spore_join(&serial)?;
         let records = journey_records(&serial)?;
         let tour_records = super::journey_records::tour(&serial)?;
         let pointer_records = super::journey_records::pointer(&serial)?;
@@ -652,9 +653,9 @@ fn execute_image(
         Ok(JourneyIdentity {
             profile_id: proof.profile_id.clone(),
             build_id: proof.build_id.clone(),
-            image_id: proof.image_id.clone(),
             host_id: proof.host_id.clone(),
             boot_id: proof.boot_id.clone(),
+            spore_join,
         })
     })();
     if result.is_err() {
@@ -684,6 +685,27 @@ fn execute_image(
         eprintln!("failure artifact error: {error}");
     }
     result
+}
+
+fn decode_spore_join(serial: &str) -> Result<Option<Value>, ConduitosError> {
+    const PREFIX: &str = "CONDUIT_SPORE_JOIN ";
+    let values = serial
+        .lines()
+        .filter_map(|line| line.strip_prefix(PREFIX))
+        .map(|encoded| {
+            serde_json::from_str(encoded).map_err(|error| {
+                ConduitosError::refusal("creche-spore-join-invalid", error.to_string())
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    match values.len() {
+        0 => Ok(None),
+        1 => Ok(values.into_iter().next()),
+        _ => Err(ConduitosError::refusal(
+            "creche-spore-join-ambiguous",
+            "guest emitted more than one boot-time spore join",
+        )),
+    }
 }
 
 fn text(record: &Value, field: &str) -> Result<String, ConduitosError> {

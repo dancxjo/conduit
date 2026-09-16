@@ -17,9 +17,9 @@ mod observation;
     target_arch = "riscv64",
     target_arch = "loongarch64"
 ))]
-pub use limine::{executable_physical_address, framebuffer_display, normalize_boot};
+pub use limine::{executable_physical_address, framebuffer_display, normalize_boot, spore_module};
 #[cfg(target_arch = "x86")]
-pub use multiboot1::firmware_from_multiboot1;
+pub use multiboot1::{firmware_from_multiboot1, spore_module_from_multiboot1};
 pub use observation::{
     BootArtifact, BootError, BootNormalizer, BootRecord, Firmware, MAX_ARTIFACTS,
     MAX_COMMAND_LINE_BYTES, MAX_FRAMEBUFFERS, MAX_MEMORY_REGIONS, MemoryKind, MemoryRegion,
