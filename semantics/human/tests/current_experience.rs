@@ -89,7 +89,10 @@ fn stale_model_missing_and_unavailable_are_not_collapsed() {
     model.origin = ExperienceOrigin::ModelDerived;
     model.temporal_role = ExperienceTemporalRole::Stale;
     model.certainty = ExperienceCertainty::Uncertain;
-    model.sources = vec![ExperienceSourceRef::ModelRun {
+    model.sources = vec![ExperienceSourceRef::ImplementationRun {
+        implementation_id: conduit_core::BaseImplementationId::from("implementation/model@1"),
+        provider_instance_id: conduit_core::BaseInstanceId::from("provider/model/boot-1"),
+        artifact_id: conduit_core::ArtifactId::from("artifact/model@sha256:abcd"),
         run_id: "run/vision/1".into(),
     }];
     let mut missing = item("hearing", ExperienceDomain::Auditory, "source/microphone");
