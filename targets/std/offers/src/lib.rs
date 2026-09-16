@@ -86,6 +86,8 @@ mod speech_recognition;
 pub use speech_recognition::*;
 mod speech_synthesis;
 pub use speech_synthesis::*;
+mod conversation_commit;
+pub use conversation_commit::*;
 mod microphone;
 pub use microphone::*;
 

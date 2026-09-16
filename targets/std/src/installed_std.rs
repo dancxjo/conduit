@@ -23,6 +23,7 @@ mod final_normalized_pattern_operation;
 mod flow_gate_operation;
 mod flow_state_operations;
 mod generate_text;
+mod generated_speech_commit_operation;
 mod house_prompt_operation;
 mod http;
 mod http_host;
@@ -71,6 +72,7 @@ mod pulse_observation_operation;
 mod pulse_observation_sink;
 mod quantity_mapping;
 mod recognition_text_operation;
+mod recognized_turn_commit_operation;
 mod record_delivery_operation;
 mod record_queue_operation;
 mod record_temporal_operation;
@@ -449,6 +451,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut speech_synthesis_hosts = speech_synthesis_operation::prepare_fake_hosts(fragment)?;
     let mut house_prompt_hosts = house_prompt_operation::prepare_hosts(fragment);
     let mut body_chat_prompt_hosts = body_chat_prompt_operation::prepare_hosts(fragment);
+    let mut recognized_turn_commit_hosts =
+        recognized_turn_commit_operation::prepare_hosts(fragment);
+    let mut generated_speech_commit_hosts =
+        generated_speech_commit_operation::prepare_hosts(fragment)?;
     let mut body_conversation_context_host =
         body_conversation_context_operation::BodyConversationContextHost::new(
             body_conversation_context,
@@ -686,6 +692,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 == conduit_std_offers::BODY_CONVERSATION_CONTEXT_OPERATION
             {
                 body_conversation_context_host.cancel();
+            } else if matches!(
+                cancelled_operation.contract_id.as_str(),
+                conduit_std_offers::GENERATED_SPEECH_PUSH_OPERATION
+                    | conduit_std_offers::GENERATED_SPEECH_DRAIN_OPERATION
+                    | conduit_std_offers::GENERATED_SPEECH_CLOSE_OPERATION
+            ) {
+                generated_speech_commit_hosts
+                    .get_mut(usize::from(cancellation.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "cancelled generated-speech commit has no admitted host".to_string()
+                    })?
+                    .cancel();
             } else if cancelled_operation.contract_id.as_str()
                 == conduit_ai::VECTOR_SEARCH_OPERATION
             {
@@ -1764,6 +1783,71 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 }
                 #[cfg(not(any(test, feature = "local-model-proof")))]
                 return Err("proof-only recorded-speech contract is unavailable".into());
+            } else if contract.as_str() == conduit_std_offers::RECOGNIZED_TURN_COMMIT_OPERATION {
+                let completion = recognized_turn_commit_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "recognized-turn commit request has no admitted host".to_string()
+                    })?
+                    .execute(input)?;
+                let output = completion
+                    .map(|encoded| scheduler.store_host_value(encoded))
+                    .transpose()
+                    .map_err(|error| format!("store committed recognition turn: {error:?}"))?
+                    .map(|value| {
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                    })
+                    .transpose()
+                    .map_err(|error| format!("bound committed recognition turn: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete recognized-turn commit: {error:?}"))?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::GENERATED_SPEECH_PUSH_OPERATION
+                    | conduit_std_offers::GENERATED_SPEECH_DRAIN_OPERATION
+                    | conduit_std_offers::GENERATED_SPEECH_CLOSE_OPERATION
+            ) {
+                let completion = generated_speech_commit_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "generated-speech commit request has no admitted host".to_string()
+                    })?
+                    .execute(contract.as_str(), input)?;
+                let output = completion
+                    .map(|encoded| scheduler.store_host_value(encoded))
+                    .transpose()
+                    .map_err(|error| format!("store committed speech segment: {error:?}"))?
+                    .map(|value| {
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                    })
+                    .transpose()
+                    .map_err(|error| format!("bound committed speech segment: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete generated-speech commit: {error:?}"))?;
+                continue;
             } else if contract.as_str() == conduit_std_offers::PIPER_SPEECH_OPERATION {
                 #[cfg(test)]
                 if speech_synthesis_hosts
