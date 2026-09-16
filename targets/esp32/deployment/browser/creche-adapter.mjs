@@ -5,6 +5,7 @@ import {
 } from "../../rp2040/browser-deployment/spawn.mjs";
 import { createEsp32BrowserDeploymentAdapter, ESP32_BROWSER_DEPLOYMENT } from "./deployment.mjs";
 import { bindEsp32BodySpore, parseEsp32Image } from "./image.mjs";
+import { acquireEsp32Release } from "./release.mjs";
 import { createNativeSporeDownload } from "../../../creche-spore-bundle.mjs";
 
 const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
@@ -111,7 +112,10 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
     requireMode(mode, "obtain", targetProfile);
     requireCurrent(signal, mode, "obtain", targetProfile);
     try {
-      const release = await downloadRelease(targetProfile, signal);
+      const resolved = host?.resolveReviewedRelease
+        ? await host.resolveReviewedRelease(targetProfile, signal)
+        : null;
+      const release = await acquireEsp32Release(targetProfile, signal, { resolved });
       requireCurrent(signal, mode, "obtain", targetProfile);
       const parsed = await parseEsp32Image({
         targetId: targetProfile.target.id,
@@ -295,8 +299,19 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
 
 function profile(values) {
   const target = Object.freeze({ id: values.id, label: values.label, model_id: values.modelId, profile_id: values.profileId });
+  const builderAdapter = values.releaseName === "c3"
+    ? "conduit-host-esp32/build-c3-image@1"
+    : values.releaseName === "s3"
+      ? "conduit-host-esp32/build-s3-image@1"
+      : "conduit-host-esp32/build-image@1";
+  const deploymentAdapter = `conduit-host-esp32/flash-${values.releaseName}@1`;
   return Object.freeze({
     ...values,
+    target_id: target.id,
+    package_id: "conduit-host-esp32@1",
+    output: "esp32-image",
+    builder_adapter: builderAdapter,
+    deployment_adapter: deploymentAdapter,
     artifactManifest: new URL(
       `../../../artifacts/esp32-${values.releaseName}-generic-release.json`,
       import.meta.url,
@@ -320,56 +335,6 @@ function profile(values) {
       expected_post_flash_join: "bounded serial spawn protocol 2",
     }),
   });
-}
-
-async function downloadRelease(targetProfile, signal) {
-  let response;
-  try {
-    response = await fetch(targetProfile.artifactManifest, { signal, cache: "no-store" });
-  } catch (error) {
-    refuse(targetProfile, "fabricate-new", "obtain", "ArtifactUnavailable", "generic ESP32 release manifest is unavailable", error, {
-      authority_requested: false,
-      artifact_work_started: false,
-    });
-  }
-  if (!response.ok) {
-    refuse(targetProfile, "fabricate-new", "obtain", "ArtifactUnavailable", `generic ESP32 release manifest returned HTTP ${response.status}`, undefined, {
-      authority_requested: false,
-      artifact_work_started: false,
-    });
-  }
-  const manifest = await response.json();
-  if (manifest?.schema !== "conduit.release/target-artifact@1"
-    || manifest.target_id !== targetProfile.target.id
-    || typeof manifest.source_identity !== "string"
-    || typeof manifest.image_id !== "string"
-    || !Array.isArray(manifest.segments) || manifest.segments.length < 1 || manifest.segments.length > 8) {
-    refuse(targetProfile, "fabricate-new", "obtain", "StaleArtifact", "generic ESP32 release manifest does not match the exact target profile");
-  }
-  const segments = [];
-  let total = 0;
-  for (const segment of manifest.segments) {
-    if (!Number.isSafeInteger(segment.offset) || segment.offset < 0 || typeof segment.path !== "string") {
-      refuse(targetProfile, "fabricate-new", "obtain", "StaleArtifact", "generic ESP32 release segment layout is malformed");
-    }
-    const artifactResponse = await fetch(new URL(segment.path, response.url), { signal, cache: "no-store" });
-    if (!artifactResponse.ok) refuse(targetProfile, "fabricate-new", "obtain", "ArtifactUnavailable", `generic ESP32 release artifact returned HTTP ${artifactResponse.status}`);
-    const bytes = new Uint8Array(await artifactResponse.arrayBuffer());
-    total += bytes.byteLength;
-    if (bytes.byteLength !== segment.bytes || total > BOUNDS.maximumArtifactBytes) {
-      refuse(targetProfile, "fabricate-new", "obtain", "ArtifactBound", "generic ESP32 release artifact violated its sealed byte bounds");
-    }
-    segments.push(Object.freeze({ offset: segment.offset, bytes }));
-  }
-  const raw = new Uint8Array(total);
-  let cursor = 0;
-  for (const segment of segments) { raw.set(segment.bytes, cursor); cursor += segment.bytes.byteLength; }
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", raw));
-  const rawDigest = `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
-  if (manifest.artifact_sha256 !== rawDigest || manifest.bytes !== total) {
-    refuse(targetProfile, "fabricate-new", "obtain", "StaleArtifact", "generic ESP32 release artifact identity does not match its reviewed manifest");
-  }
-  return Object.freeze({ manifest: Object.freeze(manifest), segments: Object.freeze(segments) });
 }
 
 async function browserSerial(host, targetProfile, observation = false) {
