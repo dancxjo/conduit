@@ -12,6 +12,8 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// Enter Conduit Home through the native presentation available on this Host.
+    Home,
     /// Birth and provision a Body through the browser Crèche.
     Creche,
     /// Enter the current Body through the shared Patchbay front door.
@@ -139,6 +141,12 @@ mod tests {
 
     #[test]
     fn public_command_tree_parses() {
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "home"])
+                .expect("Home entrance parses")
+                .command,
+            Command::Home
+        ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "creche"])
                 .expect("Crèche entrance parses")

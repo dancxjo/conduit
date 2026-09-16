@@ -124,6 +124,37 @@ fn enter_creche() -> Result<(), String> {
         .ok_or_else(|| format!("{executable} exited with {status}"))
 }
 
+fn home_process() -> std::process::Command {
+    std::process::Command::new("conduit-home")
+}
+
+fn enter_home() -> Result<(), String> {
+    let executable = "conduit-home";
+    let status = home_process()
+        .status()
+        .map_err(|error| {
+            format!(
+                "{executable} is unavailable ({error}); install the native Home application alongside the `conduit` product entrance"
+            )
+        })?;
+    status
+        .success()
+        .then_some(())
+        .ok_or_else(|| format!("{executable} exited with {status}"))
+}
+
+#[cfg(test)]
+mod home_entrance_tests {
+    use super::*;
+
+    #[test]
+    fn public_home_enters_the_packaged_native_application() {
+        let command = home_process();
+        assert_eq!(command.get_program(), "conduit-home");
+        assert_eq!(command.get_args().count(), 0);
+    }
+}
+
 use crate::report_artifact::{read_report, snapshot_from_execution, write_report};
 
 fn run_with_placements(
@@ -194,6 +225,7 @@ fn render_runtime_report(path: &Path) -> Result<String, String> {
 fn main() {
     let command = cli::Cli::parse().command;
     let result = match command {
+        cli::Command::Home => enter_home(),
         cli::Command::Creche => enter_creche(),
         cli::Command::Patchbay {
             on,

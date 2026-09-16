@@ -50,6 +50,7 @@ members = [
 	"products/conduit",
 	"products/creche/model",
 	"products/home/model",
+	"products/home/native",
 	"products/workspace/model",
 	"products/tour/model",
 	"products/tour/native",
