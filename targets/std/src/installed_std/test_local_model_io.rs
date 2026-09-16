@@ -573,7 +573,7 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
         conduit_tongues::encode_wired_house_context(&[conduit_ai::WiredHouseContextItem {
             item_identity: "context/upstairs-temperature".into(),
             value_kind: "temperature/summary@1".into(),
-            canonical_value: b"21 C, observed 18 seconds ago".to_vec(),
+            canonical_value: b"21 degrees Celsius, observed 18 seconds ago".to_vec(),
             provenance: conduit_ai::HouseContextProvenanceClass::ObservedSign,
             source_identity: "sign/temperature/42".into(),
         }])

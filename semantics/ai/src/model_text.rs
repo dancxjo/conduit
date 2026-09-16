@@ -148,12 +148,12 @@ mod tests {
     #[test]
     fn only_canonical_produced_bounded_utf8_becomes_text() {
         let value = encoded(
-            b"The upstairs temperature is 21 C.",
+            b"The upstairs temperature is 21 degrees Celsius.",
             ModelResultDisposition::Produced,
         );
         assert_eq!(
             project_generated_text(&value),
-            Ok(b"The upstairs temperature is 21 C.".to_vec())
+            Ok(b"The upstairs temperature is 21 degrees Celsius.".to_vec())
         );
         assert_eq!(
             project_generated_text(&encoded(b"partial", ModelResultDisposition::Truncated)),
