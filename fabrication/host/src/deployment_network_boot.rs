@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use std::{
     fs::File,
     io::{Read, Write},
-    net::{SocketAddr, TcpListener, TcpStream},
+    net::{Shutdown, SocketAddr, TcpListener, TcpStream},
     path::Path,
     thread,
     time::{Duration, Instant},
@@ -178,13 +178,25 @@ fn serve_request(
     artifact_bytes: u64,
 ) -> Result<bool, NetworkBootRefusal> {
     let mut request = [0_u8; MAXIMUM_REQUEST_BYTES];
-    let count = stream
-        .read(&mut request)
-        .map_err(|_| NetworkBootRefusal::ServeFailed)?;
+    let mut count = 0;
+    while count < request.len() && !request[..count].ends_with(b"\r\n\r\n") {
+        let read = stream
+            .read(&mut request[count..])
+            .map_err(|_| NetworkBootRefusal::ServeFailed)?;
+        if read == 0 {
+            break;
+        }
+        count += read;
+    }
     let expected = format!("GET {route} HTTP/");
-    if count == request.len() || !request[..count].starts_with(expected.as_bytes()) {
+    if !request[..count].ends_with(b"\r\n\r\n")
+        || !request[..count].starts_with(expected.as_bytes())
+    {
         stream
             .write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+            .map_err(|_| NetworkBootRefusal::ServeFailed)?;
+        stream
+            .shutdown(Shutdown::Write)
             .map_err(|_| NetworkBootRefusal::ServeFailed)?;
         return Ok(false);
     }
@@ -208,6 +220,9 @@ fn serve_request(
     }
     stream
         .flush()
+        .map_err(|_| NetworkBootRefusal::ServeFailed)?;
+    stream
+        .shutdown(Shutdown::Write)
         .map_err(|_| NetworkBootRefusal::ServeFailed)?;
     Ok(true)
 }
