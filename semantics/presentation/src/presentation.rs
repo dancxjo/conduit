@@ -309,8 +309,15 @@ impl Presentation {
         self.validate_semantics()?;
         self.validate_inputs()?;
         self.validate_temporal()?;
-        let total_bytes = self
-            .basis
+        if self.content_bytes() > MAX_PRESENTATION_TOTAL_BYTES {
+            return Err(PresentationError::TooManyBytes);
+        }
+        Ok(())
+    }
+
+    /// Exact semantic payload size used for finite Presenter admission.
+    pub fn content_bytes(&self) -> usize {
+        self.basis
             .body_id
             .as_ref()
             .map_or(0, |id| id.as_str().len())
@@ -383,11 +390,7 @@ impl Presentation {
             )
             .saturating_add(self.semantics_len())
             .saturating_add(self.inputs_len())
-            .saturating_add(self.temporal_len());
-        if total_bytes > MAX_PRESENTATION_TOTAL_BYTES {
-            return Err(PresentationError::TooManyBytes);
-        }
-        Ok(())
+            .saturating_add(self.temporal_len())
     }
 
     pub(crate) fn has_subject(&self, identity: &str) -> bool {

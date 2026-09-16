@@ -3,6 +3,7 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{Body, BodyState, Wake, WakePlanState};
 use conduit_core::{ActivePlayId, CheckedFormId, PlanId};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     ApplicationEventKind, ApplicationView, ApplicationViewRefusal, Presentation, PresentationBasis,
@@ -20,7 +21,7 @@ use projection::append_contribution;
 pub const MAX_BODY_SURFACE_CONTRIBUTIONS: usize = 5;
 pub const MAX_BODY_SURFACE_TRANSIENTS: usize = 2;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodySurfaceContext {
     Overview,
     Library,
@@ -29,7 +30,7 @@ pub enum BodySurfaceContext {
     Inspection(CheckedFormId),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodySurfaceContributionRole {
     Foreground,
     Tutorial,
@@ -57,7 +58,7 @@ pub struct BodySurfaceContribution {
     pub view: ApplicationView,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodySurfaceFocus {
     Body,
     Contribution {
