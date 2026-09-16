@@ -166,3 +166,35 @@ fn model_impression_remains_model_derived_with_all_selected_sources() {
             run_id: "run/vision/1".into(),
         }));
 }
+
+#[test]
+fn selected_recollection_keeps_original_sign_historical() {
+    let original = ExperienceSourceRef::Sign(SignId::from("sign/battery/yesterday"));
+    let record = SelectedRecollection {
+        record_id: "memory/record/41".into(),
+        content_kind: kind_id("experience/battery-level@1"),
+        canonical_content: 41_u16.to_le_bytes().to_vec(),
+        occurred_at: instant(),
+        recorded_at: TemporalInstant {
+            ticks: 70,
+            ..instant()
+        },
+        original_sources: vec![original.clone()],
+        certainty: ExperienceCertainty::Certain,
+    };
+    let item = recollected_experience("experience/remembered-battery", &record).unwrap();
+
+    assert_eq!(item.origin, ExperienceOrigin::Remembered);
+    assert_eq!(item.temporal_role, ExperienceTemporalRole::Historical);
+    assert_eq!(item.observed_at, Some(instant()));
+    assert_eq!(item.recorded_at, Some(record.recorded_at));
+    assert!(item.sources.contains(&original));
+    assert!(item.sources.contains(&ExperienceSourceRef::MemoryRecord {
+        record_id: "memory/record/41".into(),
+    }));
+
+    let content_kind = item.content_kind.clone();
+    let mut experience = CurrentExperience::new(limits()).unwrap();
+    experience.try_admit(item).unwrap();
+    assert_eq!(experience.current_observations(&content_kind).count(), 0);
+}
