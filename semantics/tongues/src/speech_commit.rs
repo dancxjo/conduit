@@ -5,8 +5,8 @@
 //! initials, abbreviations, decimals, ellipses, and unfinished quotations.
 
 use conduit_core::{
-    CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection, PortTemporal, kind_id,
-    port_id,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
