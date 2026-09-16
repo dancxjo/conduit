@@ -2,10 +2,14 @@ use super::*;
 use crate::{BodyState, Wake, WakeLifecycleEvent};
 
 impl BodyBiographyEvidence {
-    /// Remove one oldest completed Wake from the retained exact window. The
-    /// operation is loss-explicit and preserves the birth event, current Body
-    /// state, workload history, and a monotonic sequence boundary.
-    pub fn compact_oldest_terminal_wake(&mut self) -> Result<bool, BodyBiographyError> {
+    /// Seal and remove one oldest completed Wake from the active window.
+    /// The caller must durably retain the returned segment before committing
+    /// the updated active evidence.
+    pub fn seal_oldest_terminal_wake(
+        &mut self,
+    ) -> Result<Option<BodyBiographyArchiveSegment>, BodyBiographyError> {
+        // Remove one oldest completed Wake from the retained exact window. The
+        // operation preserves birth, current truth, and a monotonic boundary.
         self.validate()?;
         let Some((index, wake)) = self
             .wakes
@@ -19,10 +23,10 @@ impl BodyBiographyEvidence {
             })
             .map(|(index, wake)| (index, wake.clone()))
         else {
-            return Ok(false);
+            return Ok(None);
         };
         if matches!(&self.body.state, BodyState::Awake { wake_id } if wake_id == &wake.wake_id) {
-            return Ok(false);
+            return Ok(None);
         }
         let removed: Vec<_> = self
             .records
@@ -37,6 +41,7 @@ impl BodyBiographyEvidence {
         if removed.is_empty() {
             return Err(BodyBiographyError::InvalidEvidence);
         }
+        let segment = BodyBiographyArchiveSegment::seal(self, removed.clone(), vec![wake.clone()])?;
         let first_wake_id = self
             .compaction
             .as_ref()
@@ -69,9 +74,17 @@ impl BodyBiographyEvidence {
             through_sequence: through.sequence,
             through_sign_id: through.sign_id.clone(),
             first_wake_id,
+            sealed_segments: segment.ordinal,
+            archive_head_digest: Some(segment.digest),
         });
         self.validate()?;
-        Ok(true)
+        Ok(Some(segment))
+    }
+
+    #[deprecated(note = "persist the segment returned by seal_oldest_terminal_wake")]
+    pub fn compact_oldest_terminal_wake(&mut self) -> Result<bool, BodyBiographyError> {
+        self.seal_oldest_terminal_wake()
+            .map(|segment| segment.is_some())
     }
 
     /// Retain an exact extension of one Wake and its Body lifecycle atomically.

@@ -203,6 +203,43 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     await writeValue(key, "json", encoded, valueBytes);
   }
 
+  // Commit related evidence records as one crash-safe storage transition.
+  // Immutable entries are idempotent only when their exact bytes already exist.
+  async function writeJsonBatch(entries) {
+    requireCurrent();
+    if (!Array.isArray(entries) || entries.length < 1 || entries.length > MAXIMUM_RECORDS) refuse("AdmissionBound", "application storage batch is outside its admitted bound");
+    const prepared = entries.map(({ key, value, immutable = false }) => {
+      exactText(key, "application storage key", MAXIMUM_KEY_BYTES);
+      let encoded;
+      try { encoded = JSON.stringify(value); }
+      catch (error) { refuse("ValueEncoding", "application storage value is not JSON encodable", error); }
+      if (typeof encoded !== "string") refuse("ValueEncoding", "application storage value is not JSON encodable");
+      const valueBytes = encoder.encode(encoded).length;
+      if (valueBytes > MAXIMUM_VALUE_BYTES) refuse("ValueBound", "application storage value exceeds its admitted bound");
+      return { key, encoded, valueBytes, immutable: immutable === true };
+    });
+    if (new Set(prepared.map(entry => entry.key)).size !== prepared.length) refuse("DuplicateKey", "application storage batch repeats a key");
+    const transaction = database.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    const hostRecords = await requestResult(store.getAll(null, MAXIMUM_HOST_RECORDS + 1));
+    if (hostRecords.length > MAXIMUM_HOST_RECORDS) { transaction.abort(); refuse("CorruptRecord", "browser Host storage record bound was violated"); }
+    const records = hostRecords.filter(record => record.applicationIdentity === applicationIdentity);
+    const next = new Map(records.map(record => [record.identity, record]));
+    for (const entry of prepared) {
+      const identity = prefix + entry.key;
+      const current = next.get(identity);
+      if (current?.immutable === true && (current.encoding !== "json" || current.value !== entry.encoded)) { transaction.abort(); refuse("PublishedImmutable", "published application bytes cannot be replaced"); }
+      next.set(identity, { identity, applicationIdentity, applicationVersion, packageDigest, key: entry.key, encoding: "json", value: entry.encoded, valueBytes: entry.valueBytes, immutable: entry.immutable || current?.immutable === true });
+    }
+    const nextBytes = [...next.values()].reduce((total, record) => total + record.valueBytes, 0);
+    const nextHostCount = hostRecords.length - records.length + next.size;
+    const nextHostBytes = hostRecords.filter(record => record.applicationIdentity !== applicationIdentity).reduce((total, record) => total + record.valueBytes, 0) + nextBytes;
+    if (next.size > MAXIMUM_RECORDS || nextBytes > MAXIMUM_APPLICATION_BYTES) { transaction.abort(); refuse("ApplicationCapacityExhausted", "application storage capacity is exhausted"); }
+    if (nextHostCount > MAXIMUM_HOST_RECORDS || nextHostBytes > MAXIMUM_HOST_BYTES) { transaction.abort(); refuse("HostCapacityExhausted", "browser Host storage capacity is exhausted"); }
+    for (const entry of prepared) store.put(next.get(prefix + entry.key));
+    await transactionComplete(transaction);
+  }
+
   async function readBytes(key) {
     const record = await readRecord(key);
     if (!record) return null;
@@ -288,6 +325,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     durability,
     readJson,
     writeJson,
+    writeJsonBatch,
     readBytes,
     writeBytes,
     publishBytes,

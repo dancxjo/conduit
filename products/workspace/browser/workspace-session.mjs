@@ -46,7 +46,16 @@ export function openWorkspaceSession({ host, storage }) {
   const save = () => {
     const snapshot = workspace ? request('Durable') : call('conduit_creche_durable_snapshot');
     if (!snapshot) return write;
-    write = write.then(() => storage.writeJson('body-session', snapshot)).catch(error => {
+    write = write.then(async () => {
+      const archives = snapshot.pending_archives ?? [];
+      if (archives.length === 0) return storage.writeJson('body-session', snapshot);
+      const digestKey = digest => digest.map(byte => byte.toString(16).padStart(2, '0')).join('');
+      await storage.writeJsonBatch([
+        ...archives.map(segment => ({ key: `body-history/${segment.ordinal}-${digestKey(segment.digest)}`, value: segment, immutable: true })),
+        { key: 'body-session', value: snapshot },
+      ]);
+      request('AcknowledgeArchives', { head_digest: archives.at(-1).digest });
+    }).catch(error => {
       persistenceFailure ??= error;
       throw error;
     });

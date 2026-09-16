@@ -36,6 +36,9 @@ enum Request {
         boot_id: BootId,
     },
     Durable,
+    AcknowledgeArchives {
+        head_digest: [u8; 32],
+    },
     InspectInvitation {
         claim: SpawnInvitationClaim,
         now_millis: u64,
@@ -122,6 +125,7 @@ struct DurableSnapshot<'a> {
     evidence: &'a BodyBiographyEvidence,
     admission: &'a AdmissionManager,
     foreground: Option<&'a ResidentForm>,
+    pending_archives: &'a [conduit_body::BodyBiographyArchiveSegment],
 }
 
 #[no_mangle]
@@ -238,8 +242,11 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             Request::Durable => return ADMISSIONS.with(|admissions| {
                 let admissions = admissions.borrow();
                 let admissions = admissions.as_ref().ok_or("Workspace admission state is missing")?;
-                encode(&DurableSnapshot { schema: "conduit.workspace/body@1", evidence: current.evidence(), admission: admissions, foreground: current.foreground() })
+                encode(&DurableSnapshot { schema: "conduit.workspace/body@1", evidence: current.evidence(), admission: admissions, foreground: current.foreground(), pending_archives: current.pending_archives() })
             }),
+            Request::AcknowledgeArchives { head_digest } => {
+                candidate.acknowledge_archives(head_digest).map_err(debug)?;
+            }
             Request::CreateInvitation { host_id, boot_id, secret, nonce, now_millis, expires_at_millis } => {
                 let secret = <[u8; 32]>::try_from(secret.as_slice())
                     .map_err(|_| Refusal::new("Admission.WeakSecret", "Invitation secret must have exactly 32 bytes"))?;
@@ -409,6 +416,7 @@ fn durable_value(
         evidence: body.evidence(),
         admission: admissions,
         foreground: body.foreground(),
+        pending_archives: body.pending_archives(),
     })
     .map_err(|error| Refusal::new("EncodingFailure", error.to_string()))
 }

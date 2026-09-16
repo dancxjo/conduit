@@ -120,8 +120,8 @@ mod zero_body_projection;
 mod degradation_explanation_tests;
 
 pub use body_biography::{
-    project_body_biography, BodyBiographyEntry, BodyBiographyProjection,
-    BodyBiographyProjectionError, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
+    project_body_biography, BodyBiographyArchiveProjection, BodyBiographyEntry,
+    BodyBiographyProjection, BodyBiographyProjectionError, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
 };
 pub use body_biography_entrance::{
     PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError,
@@ -297,8 +297,9 @@ pub use presenter_topology_projection::*;
 pub use prewake::*;
 pub use readable_body_history::{
     BodyHistoryAccess, BodyHistoryEntry, BodyHistoryExactEvidence, BodyHistoryInspectTarget,
-    BodyHistoryManifestation, BodyHistoryMoment, ReadableBodyHistory, ReadableBodyHistoryError,
-    ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES, MAX_BODY_HISTORY_TITLE_BYTES,
+    BodyHistoryManifestation, BodyHistoryMoment, ReadableArchivedBodyHistory, ReadableBodyHistory,
+    ReadableBodyHistoryError, ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES,
+    MAX_BODY_HISTORY_TITLE_BYTES,
 };
 pub use recursive_form_projection::{
     project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,

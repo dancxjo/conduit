@@ -20,6 +20,7 @@ impl BodyBiographyEvidence {
             summary.wakes == 0
                 || summary.records == 0
                 || summary.through_sequence <= self.body.birth_sequence
+                || (summary.sealed_segments == 0) != summary.archive_head_digest.is_none()
                 || self
                     .wakes
                     .iter()

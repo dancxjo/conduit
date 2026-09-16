@@ -95,6 +95,15 @@ fn start(body: &mut WorkspaceBody) -> BodyPlayIdentity {
     play
 }
 
+fn persist_archives(body: &mut WorkspaceBody) {
+    let Some(head) = body.pending_archives().last() else {
+        return;
+    };
+    head.validate_as_head_of(body.evidence()).unwrap();
+    let digest = head.digest;
+    body.acknowledge_archives(digest).unwrap();
+}
+
 #[test]
 fn birth_to_play_to_lull_retains_identity_and_a_later_wake_gets_a_fresh_play() {
     let mut body = born();
@@ -177,6 +186,7 @@ fn repeated_refused_starts_compact_history_without_exhausting_the_body() {
     for _ in 0..64 {
         body.propose(plans(&body), &host(), &boot()).unwrap();
         body.lull(&host(), &boot(), None).unwrap();
+        persist_archives(&mut body);
         body.evidence().validate().unwrap();
     }
     assert_eq!(body.evidence().body_id, identity);
@@ -196,6 +206,7 @@ fn repeated_started_plays_compact_without_growing_the_retained_window() {
     for _ in 0..32 {
         let play = start(&mut body);
         body.lull(&host(), &boot(), Some(&play)).unwrap();
+        persist_archives(&mut body);
         body.evidence().validate().unwrap();
         assert!(body.evidence().body.sign_ids.len() <= conduit_body::MAX_BODY_SIGNS);
         assert!(body.evidence().wakes.len() <= conduit_body::MAX_BODY_BIOGRAPHY_WAKES);
@@ -217,6 +228,89 @@ fn repeated_started_plays_compact_without_growing_the_retained_window() {
         .unwrap();
     assert!(!startup.eligible(conduit_body::StartupScope::Body));
     assert!(startup.eligible(conduit_body::StartupScope::Wake));
+}
+
+#[test]
+fn sealed_history_is_body_bound_chained_and_corruption_explicit() {
+    let mut body = born();
+    while body.pending_archives().is_empty() {
+        body.propose(plans(&body), &host(), &boot()).unwrap();
+        body.lull(&host(), &boot(), None).unwrap();
+    }
+    let first = body.pending_archives()[0].clone();
+    first.validate_as_head_of(body.evidence()).unwrap();
+    let first_digest = first.digest;
+    body.acknowledge_archives(first_digest).unwrap();
+
+    while body.pending_archives().is_empty() {
+        body.propose(plans(&body), &host(), &boot()).unwrap();
+        body.lull(&host(), &boot(), None).unwrap();
+    }
+    let second = body.pending_archives()[0].clone();
+    assert_eq!(second.previous_digest, Some(first_digest));
+    second.validate_as_head_of(body.evidence()).unwrap();
+
+    let mut corrupt = second.clone();
+    corrupt.records[0].sequence += 1;
+    assert_eq!(
+        corrupt.validate(),
+        Err(conduit_body::BodyBiographyError::InvalidEvidence)
+    );
+    let mut foreign = second;
+    foreign.body_id = Body::born(
+        "source/foreign".into(),
+        "checked/foreign".into(),
+        99,
+        "sign/foreign".into(),
+    )
+    .unwrap()
+    .body_id;
+    assert_eq!(
+        foreign.validate_as_head_of(body.evidence()),
+        Err(conduit_body::BodyBiographyError::InvalidEvidence)
+    );
+}
+
+#[test]
+fn ten_thousand_wakes_keep_one_body_and_a_bounded_active_window() {
+    let mut body = born();
+    let identity = body.evidence().body_id.clone();
+    let mut sealed_segments = 0u64;
+    for cycle in 0..10_000 {
+        body.propose(plans(&body), &host(), &boot()).unwrap();
+        body.lull(&host(), &boot(), None).unwrap();
+        if let Some(head) = body.pending_archives().last() {
+            head.validate_as_head_of(body.evidence()).unwrap();
+            sealed_segments += body.pending_archives().len() as u64;
+            let digest = head.digest;
+            body.acknowledge_archives(digest).unwrap();
+        }
+        if cycle == 2_000 || cycle == 6_000 {
+            body.admit_form(
+                body.evidence().body.workload_revision,
+                form("soak-companion"),
+                &host(),
+                &boot(),
+            )
+            .unwrap();
+        }
+        if cycle == 4_000 || cycle == 8_000 {
+            body.remove_form(
+                body.evidence().body.workload_revision,
+                &form("soak-companion"),
+                &host(),
+                &boot(),
+            )
+            .unwrap();
+        }
+        assert!(body.evidence().body.sign_ids.len() <= conduit_body::MAX_BODY_SIGNS);
+        assert!(body.evidence().wakes.len() <= conduit_body::MAX_BODY_BIOGRAPHY_WAKES);
+        assert!(body.evidence().records.len() <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS);
+    }
+    assert_eq!(body.evidence().body_id, identity);
+    assert!(sealed_segments > 1_000);
+    assert_eq!(body.evidence().body.workload_revision, 4);
+    body.evidence().validate().unwrap();
 }
 
 #[test]
