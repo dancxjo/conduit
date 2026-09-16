@@ -92,6 +92,8 @@ export function openBrowserRemoteFragment({ api, plan, host, preparation, observ
         !started.active_play_id || started.active_play_id === identity.active_play_id ||
         !Array.isArray(started.endpoints) || started.endpoints.length !== helloFrames.length ||
         started.endpoints.length !== api.conduit_browser_remote_endpoint_count() ||
+        !Array.isArray(started.egress_endpoints) ||
+        started.egress_endpoints.some(endpoint => !started.endpoints.includes(endpoint)) ||
         !Array.isArray(started.initial_frames) || started.initial_frames.length !== helloFrames.length * 2) {
       throw new Error("browser remote-fragment start returned stale or malformed truth");
     }
@@ -109,6 +111,7 @@ export function openBrowserRemoteFragment({ api, plan, host, preparation, observ
       }),
       peerIdentity: Object.freeze({ ...identity }),
       endpoints: Object.freeze([...started.endpoints]),
+      egressEndpoints: Object.freeze([...started.egress_endpoints]),
       initialFrames: Object.freeze(initialFrames),
       exchange(frame) {
         current();
@@ -118,11 +121,14 @@ export function openBrowserRemoteFragment({ api, plan, host, preparation, observ
         if (status !== 0) throw refusal(api, "browser remote session exchange", status);
         const exchanged = readOutput(api);
         if (exchanged?.schema !== "conduit.browser/remote-session-exchange@1" ||
-            !Array.isArray(exchanged.responses)) {
+            !Number.isSafeInteger(exchanged.endpoint) || !started.endpoints.includes(exchanged.endpoint) ||
+            typeof exchanged.message !== "string" || !Array.isArray(exchanged.responses)) {
           throw new Error("browser remote session exchange returned malformed truth");
         }
         return Object.freeze({
           active: exchanged.active === true,
+          endpoint: exchanged.endpoint,
+          message: exchanged.message,
           responses: Object.freeze(exchanged.responses.map((response, index) =>
             boundedBytes(response, `browser response frame ${index}`).slice())),
         });
@@ -185,5 +191,68 @@ export function openBrowserRemoteFragment({ api, plan, host, preparation, observ
     try { api.conduit_browser_remote_cancel(); } catch {}
     owners.delete(api);
     throw error;
+  }
+}
+
+async function sendAll(line, frames) {
+  for (const frame of frames) await line.sendSessionFrame(frame);
+}
+
+/** Drive one admitted browser fragment over one retained exact joined Line. */
+export async function runBrowserRemoteFragment({ remote, line, perform, signal }) {
+  if (!remote || line?.schema !== "conduit.creche/joined-host-line@1" ||
+      typeof perform !== "function" || !(signal instanceof AbortSignal)) {
+    throw new Error("invalid browser remote-fragment driver inputs");
+  }
+  const requireCurrent = () => {
+    if (signal.aborted) throw new Error("browser remote fragment cancelled");
+  };
+  const relayOne = async () => {
+    requireCurrent();
+    const exchange = remote.exchange(await line.receiveSessionFrame());
+    await sendAll(line, exchange.responses);
+    return exchange;
+  };
+  await sendAll(line, remote.initialFrames);
+  const active = new Set();
+  while (active.size < remote.endpoints.length) {
+    const exchange = await relayOne();
+    if (exchange.active) active.add(exchange.endpoint);
+  }
+
+  const offered = new Set();
+  for (;;) {
+    requireCurrent();
+    const progress = remote.drive();
+    if (progress.status === 1) {
+      const result = await perform(progress.output, signal);
+      requireCurrent();
+      remote.completeEffect(result);
+      continue;
+    }
+    if (progress.status === 4) {
+      await sendAll(line, remote.finish());
+      const terminal = new Set();
+      while (terminal.size < remote.endpoints.length) {
+        const exchange = await relayOne();
+        if (exchange.message === "terminal" && !exchange.active) terminal.add(exchange.endpoint);
+      }
+      return Object.freeze({ disposition: "completed", active_play_id: remote.identity.active_play_id });
+    }
+    let sent = false;
+    for (const endpoint of remote.egressEndpoints) {
+      if (offered.has(endpoint)) continue;
+      const frame = remote.offer(endpoint);
+      if (!frame) continue;
+      offered.add(endpoint);
+      sent = true;
+      await line.sendSessionFrame(frame);
+    }
+    const exchange = await relayOne();
+    if (["pressure", "delivered"].includes(exchange.message)) offered.delete(exchange.endpoint);
+    // Accepted deliberately keeps the exact transfer pending until Delivered.
+    if (!sent && progress.status !== 2 && progress.status !== 3) {
+      throw new Error("browser remote fragment made no admissible progress");
+    }
   }
 }

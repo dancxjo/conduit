@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { openBrowserRemoteFragment } from "../../targets/browser/host/assets/browser-remote-fragment.mjs";
+import { openBrowserRemoteFragment, runBrowserRemoteFragment } from "../../targets/browser/host/assets/browser-remote-fragment.mjs";
 
 function fixture() {
   const memory = { buffer: new ArrayBuffer(1024 * 1024) };
@@ -22,12 +22,12 @@ function fixture() {
     conduit_browser_remote_start(length) {
       startRequest = JSON.parse(new TextDecoder().decode(input(length)));
       output({ schema: "conduit.browser/remote-fragment-started@1", plan_id: "plan/voice",
-        active_play_id: "play/browser", endpoints: [0], initial_frames: [[1], [2]] });
+        active_play_id: "play/browser", endpoints: [0], egress_endpoints: [0], initial_frames: [[1], [2]] });
       return 0;
     },
     conduit_browser_remote_exchange(length) {
       assert.deepEqual([...input(length)], [3]);
-      output({ schema: "conduit.browser/remote-session-exchange@1", active: true, responses: [[4], [5]] });
+      output({ schema: "conduit.browser/remote-session-exchange@1", endpoint: 0, message: "ready", active: true, responses: [[4], [5]] });
       return 0;
     },
     conduit_browser_remote_drive() {
@@ -70,6 +70,36 @@ test("browser remote adapter preserves exact identity and relays only opaque ses
   assert.deepEqual(remote.finish().map(frame => [...frame]), [[8], [9]]);
   remote.close();
   assert.equal(f.cancelled(), 0);
+});
+
+test("remote driver performs local effects and relays opaque frames through bilateral completion", async () => {
+  const sent = [], incoming = [Uint8Array.of(20), Uint8Array.of(21), Uint8Array.of(22), Uint8Array.of(23)];
+  const line = { schema: "conduit.creche/joined-host-line@1",
+    async sendSessionFrame(frame) { sent.push([...frame]); },
+    async receiveSessionFrame() { return incoming.shift(); } };
+  const exchanges = [
+    { endpoint: 0, message: "ready", active: true, responses: [] },
+    { endpoint: 0, message: "accepted", active: true, responses: [] },
+    { endpoint: 0, message: "delivered", active: true, responses: [] },
+    { endpoint: 0, message: "terminal", active: false, responses: [] },
+  ];
+  let drives = 0, completed = null, offered = false;
+  const remote = {
+    identity: { active_play_id: "play/browser" }, endpoints: [0], egressEndpoints: [0], initialFrames: [Uint8Array.of(1), Uint8Array.of(2)],
+    exchange(frame) { assert.ok(frame); return exchanges.shift(); },
+    drive() { drives++; return drives === 1
+      ? { status: 1, output: { effect_kind: "audio-capture" } }
+      : drives < 4 ? { status: 2, output: {} } : { status: 4, output: null }; },
+    completeEffect(value) { completed = [...value]; },
+    offer() { if (offered) return null; offered = true; return Uint8Array.of(3); },
+    finish() { return [Uint8Array.of(4), Uint8Array.of(5)]; },
+  };
+  const receipt = await runBrowserRemoteFragment({ remote, line,
+    perform: async effect => { assert.equal(effect.effect_kind, "audio-capture"); return Uint8Array.of(9); },
+    signal: new AbortController().signal });
+  assert.deepEqual(completed, [9]);
+  assert.deepEqual(sent, [[1], [2], [3], [4], [5]]);
+  assert.deepEqual(receipt, { disposition: "completed", active_play_id: "play/browser" });
 });
 
 test("browser remote adapter refuses stale identity and cancels unfinished ownership", () => {
