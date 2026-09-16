@@ -387,17 +387,46 @@ fn read_installation(path: &Path) -> Result<Installation, String> {
 fn write_service_definition(state_dir: &Path, installation: &Installation) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
-        let unit = format!(
-            "[Unit]\nDescription=Conduit durable Host\n\n[Service]\nExecStart={} host service run --state-dir {}\nRestart=on-failure\n\n[Install]\nWantedBy=default.target\n",
-            installation.product_executable,
-            state_dir.display()
-        );
+        let unit = linux_service_definition(state_dir, installation)?;
         fs::write(state_dir.join("conduit-host.service"), unit)
             .map_err(|error| format!("write systemd user-service definition: {error}"))?;
         Ok(())
     }
     #[cfg(not(target_os = "linux"))]
     Err("this release has no reviewed durable service carrier for the current platform".into())
+}
+
+#[cfg(target_os = "linux")]
+fn linux_service_definition(
+    state_dir: &Path,
+    installation: &Installation,
+) -> Result<String, String> {
+    let state_dir = fs::canonicalize(state_dir)
+        .map_err(|error| format!("resolve durable Host state directory: {error}"))?;
+    let executable = fs::canonicalize(&installation.product_executable)
+        .map_err(|error| format!("resolve installed Conduit executable: {error}"))?;
+    let executable = systemd_exec_argument(&executable)?;
+    let state_dir = systemd_exec_argument(&state_dir)?;
+    Ok(format!(
+        "[Unit]\nDescription=Conduit durable Host\n\n[Service]\nExecStart={executable} host service run --state-dir {state_dir}\nRestart=on-failure\nRestartSec=1s\nUMask=0077\n\n[Install]\nWantedBy=default.target\n"
+    ))
+}
+
+#[cfg(target_os = "linux")]
+fn systemd_exec_argument(path: &Path) -> Result<String, String> {
+    let value = path
+        .to_str()
+        .ok_or_else(|| "durable Host service path is not UTF-8".to_string())?;
+    if value.contains(['\n', '\r', '\0']) {
+        return Err("durable Host service path contains a forbidden control character".into());
+    }
+    // systemd expands percent specifiers even inside quotes. Doubling percent
+    // and quoting shell-significant separators keeps the exact installed path.
+    let escaped = value
+        .replace('%', "%%")
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"");
+    Ok(format!("\"{escaped}\""))
 }
 
 #[cfg(target_os = "linux")]
@@ -571,6 +600,27 @@ mod tests {
         assert_eq!(first.release_bundle_sha256, second.release_bundle_sha256);
         assert!(state.join("conduit-host.service").is_file());
         assert!(Path::new(&second.product_executable).is_file());
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn systemd_definition_uses_absolute_escaped_paths_and_private_state() {
+        let (manifest, original_state) = fixture();
+        let state = original_state.with_file_name("state with 100% identity");
+        let installation = install(&manifest, &state).unwrap();
+        let unit = fs::read_to_string(state.join("conduit-host.service")).unwrap();
+        let absolute_state = fs::canonicalize(&state).unwrap();
+        let absolute_executable = fs::canonicalize(&installation.product_executable).unwrap();
+
+        assert!(unit.contains(&format!(
+            "ExecStart={} host service run --state-dir {}",
+            systemd_exec_argument(&absolute_executable).unwrap(),
+            systemd_exec_argument(&absolute_state).unwrap()
+        )));
+        assert!(unit.contains("Restart=on-failure\nRestartSec=1s\nUMask=0077"));
+        assert!(unit.contains("100%% identity"));
+        assert!(!unit.contains("--state-dir state with"));
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
