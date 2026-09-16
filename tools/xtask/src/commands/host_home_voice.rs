@@ -9,6 +9,11 @@ use conduit_std_host::hosted_microphone::{AlsaMicrophoneDiscovery, MicrophoneLim
 use conduit_std_host::hosted_speech::{PiperDiscovery, PiperLimits};
 use conduit_std_host::hosted_speech_recognition::{WhisperDiscovery, WhisperLimits};
 use conduit_std_host::{StdHostComposition, StdHostConfig};
+use serde::Serialize;
+use sha2::{Digest, Sha256};
+use std::fs::OpenOptions;
+use std::io::Write;
+use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -48,6 +53,18 @@ pub(super) struct HomeVoiceArgs {
     authorize_capture: bool,
     #[arg(long)]
     authorize_output: bool,
+    /// Retain a strict physical Voice face receipt in this new directory.
+    #[arg(long)]
+    evidence_root: Option<PathBuf>,
+    /// Assert that a person is present for this exact capture and playback.
+    #[arg(long)]
+    attended: bool,
+    /// Assert that the exact played response is intelligible to the attendee.
+    #[arg(long)]
+    intelligible: bool,
+    /// Assert that playback is set to a safe, comfortable physical volume.
+    #[arg(long)]
+    safe_volume: bool,
 }
 
 pub(super) fn run(
@@ -97,11 +114,12 @@ pub(super) fn run(
         threads: request.whisper_threads,
         timeout: Duration::from_secs(request.timeout_seconds),
     })?;
+    let input_boot_id = fresh_voice_boot_id("input");
     let (recognition, transcript) =
         conduit_std_host::microphone_whisper_proof::run_with_transcript(
             StdHostConfig {
                 host_id: HostId::from("host/home-voice-input"),
-                boot_id: BootId::from("boot/home-voice-input"),
+                boot_id: BootId::from(input_boot_id.as_str()),
                 offer_generation: OfferGeneration(1),
             },
             StdHostComposition::reference(),
@@ -124,7 +142,8 @@ pub(super) fn run(
         )
         .into());
     };
-    let boot_id = BootId::from("boot/home-voice-output");
+    let output_boot_id = fresh_voice_boot_id("output");
+    let boot_id = BootId::from(output_boot_id.as_str());
     let playback =
         HostedPlaybackSelection::from_observation(playback.clone(), boot_id, OfferGeneration(1));
     let piper = PiperDiscovery::inspect(
@@ -153,7 +172,11 @@ pub(super) fn run(
 
     let report = serde_json::json!({
         "schema": "conduit.home/voice-face@1",
+        "journey_step_ids": conduit_home_model::JOURNEY_STEP_IDS,
+        "physical_scope": "one attended push-to-talk command and its semantic aural playback; deterministic model proof owns the complete shared journey",
         "input": {
+            "host_id": "host/home-voice-input",
+            "boot_id": input_boot_id,
             "plan_id": recognition.plan_id,
             "play_id": recognition.play_id,
             "recognized_text_sha256": recognition.recognized_text_sha256,
@@ -161,6 +184,8 @@ pub(super) fn run(
         },
         "home_action": action_name,
         "output": {
+            "host_id": "std-piper-playback-proof-host",
+            "boot_id": output_boot_id,
             "plan_id": synthesis.plan_id.as_str(),
             "play_id": synthesis.active_play_id.as_str(),
             "spoken_text_sha256": synthesis.text_sha256,
@@ -169,7 +194,23 @@ pub(super) fn run(
             "blocks": synthesis.blocks,
             "alsa_target": speech.alsa_target,
         },
+        "physical_acceptance": {
+            "microphone": true,
+            "playback": true,
+            "intelligible": request.intelligible,
+            "safe_volume": request.safe_volume,
+            "attended": request.attended,
+        },
     });
+    if let Some(root) = &request.evidence_root {
+        retain_physical_evidence(
+            root,
+            &report,
+            synthesis.plan_id.as_str(),
+            synthesis.active_play_id.as_str(),
+            &output_boot_id,
+        )?;
+    }
     if opts.json {
         println!("{}", serde_json::to_string(&report)?);
     } else if !opts.quiet {
@@ -233,7 +274,99 @@ fn validate(request: &HomeVoiceArgs) -> Result<(), Box<dyn std::error::Error>> {
     {
         return Err("Voice provider bounds are invalid".into());
     }
+    if request.evidence_root.is_some()
+        && (!request.attended || !request.intelligible || !request.safe_volume)
+    {
+        return Err(
+            "retained Home Voice evidence requires --attended --intelligible --safe-volume".into(),
+        );
+    }
     Ok(())
+}
+
+#[derive(Serialize)]
+struct PhysicalAcceptance {
+    microphone: bool,
+    playback: bool,
+    intelligible: bool,
+    safe_volume: bool,
+    attended: bool,
+}
+
+#[derive(Serialize)]
+struct HomeFaceReceipt {
+    schema: &'static str,
+    face_id: &'static str,
+    proof_class: &'static str,
+    step_ids: [&'static str; 8],
+    host_id: &'static str,
+    boot_id: String,
+    plan_id: String,
+    active_play_id: String,
+    renderer_id: &'static str,
+    manifestation_id: String,
+    artifact_path: &'static str,
+    artifact_sha256: String,
+    voice_physical: PhysicalAcceptance,
+}
+
+fn retain_physical_evidence(
+    root: &Path,
+    report: &serde_json::Value,
+    plan_id: &str,
+    play_id: &str,
+    boot_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    std::fs::create_dir(root)?;
+    let artifact = serde_json::to_vec_pretty(report)?;
+    create_new(&root.join("voice-run.json"), &artifact)?;
+    let artifact_sha256 = format!("sha256:{:x}", Sha256::digest(&artifact));
+    let receipt = HomeFaceReceipt {
+        schema: "conduit.evidence/home-face@1",
+        face_id: "voice-physical",
+        proof_class: "attended-physical-voice",
+        step_ids: conduit_home_model::JOURNEY_STEP_IDS,
+        host_id: "std-piper-playback-proof-host",
+        boot_id: boot_id.to_owned(),
+        plan_id: plan_id.to_owned(),
+        active_play_id: play_id.to_owned(),
+        renderer_id: "presentation/renderer-aural-piper-alsa@1",
+        manifestation_id: format!(
+            "manifestation/home/voice/{}",
+            &artifact_sha256["sha256:".len()..]
+        ),
+        artifact_path: "voice-run.json",
+        artifact_sha256,
+        voice_physical: PhysicalAcceptance {
+            microphone: true,
+            playback: true,
+            intelligible: true,
+            safe_volume: true,
+            attended: true,
+        },
+    };
+    create_new(
+        &root.join("home-face-voice-physical.json"),
+        &serde_json::to_vec_pretty(&receipt)?,
+    )?;
+    Ok(())
+}
+
+fn create_new(path: &Path, bytes: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)?
+        .write_all(bytes)?;
+    Ok(())
+}
+
+fn fresh_voice_boot_id(role: &str) -> String {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    format!("boot/home-voice-{role}/{nanos:x}-{}", std::process::id())
 }
 
 #[cfg(test)]
@@ -263,5 +396,36 @@ mod tests {
             spoken_for_home("  ").unwrap_err().to_string(),
             "Home Voice recognized no committed command"
         );
+    }
+
+    #[test]
+    fn physical_receipt_binds_the_shared_semantics_without_plaintext() {
+        let root = std::env::temp_dir().join(format!(
+            "conduit-home-voice-evidence-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let report = serde_json::json!({
+            "schema":"conduit.home/voice-face@1",
+            "journey_step_ids":conduit_home_model::JOURNEY_STEP_IDS,
+            "recognized_text_sha256":"sha256:recognized",
+            "spoken_text_sha256":"sha256:spoken"
+        });
+        retain_physical_evidence(&root, &report, "plan/voice", "play/voice", "boot/voice").unwrap();
+        let receipt: serde_json::Value = serde_json::from_slice(
+            &std::fs::read(root.join("home-face-voice-physical.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            receipt["step_ids"],
+            serde_json::json!(conduit_home_model::JOURNEY_STEP_IDS)
+        );
+        assert_eq!(receipt["voice_physical"]["safe_volume"], true);
+        let artifact = std::fs::read_to_string(root.join("voice-run.json")).unwrap();
+        assert!(!artifact.contains("transcript"));
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
