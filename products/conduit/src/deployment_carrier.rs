@@ -3,9 +3,11 @@
 use crate::cli::CarrierCommand;
 use conduit_host_fabrication::{
     download_body_bound_artifact, flash_body_bound_rp2040_uf2, launch_body_bound_virtual_machine,
-    write_body_bound_artifact_to_removable, QemuX86_64Launcher, CONDUITOS_X86_64_QEMU_PROFILE,
+    serve_body_bound_network_boot, write_body_bound_artifact_to_removable, HttpBootServer,
+    NetworkBootServeBounds, QemuX86_64Launcher, CONDUITOS_X86_64_QEMU_PROFILE,
 };
 use serde::de::DeserializeOwned;
+use std::time::Duration;
 use std::{fs, path::Path};
 
 const MAXIMUM_IDENTITY_DOCUMENT_BYTES: u64 = 64 * 1024;
@@ -64,6 +66,35 @@ pub(crate) fn run(command: CarrierCommand) -> Result<(), String> {
                 &mut launcher,
             )
             .map_err(|error| format!("virtual-machine launch refused: {error:?}"))?;
+            print_receipt(&receipt)
+        }
+        CarrierCommand::ServeHttpBoot {
+            descriptor,
+            artifact,
+            source,
+            bind,
+            maximum_requests,
+            timeout_seconds,
+            authorize_serve,
+        } => {
+            let descriptor = read_json(&descriptor)?;
+            let artifact = read_json(&artifact)?;
+            let address = bind
+                .parse()
+                .map_err(|error| format!("HTTP Boot bind address is invalid: {error}"))?;
+            let mut server = HttpBootServer::new(address);
+            let receipt = serve_body_bound_network_boot(
+                &descriptor,
+                &artifact,
+                &source,
+                authorize_serve,
+                NetworkBootServeBounds {
+                    maximum_requests,
+                    timeout: Duration::from_secs(timeout_seconds),
+                },
+                &mut server,
+            )
+            .map_err(|error| format!("HTTP Boot carrier refused: {error:?}"))?;
             print_receipt(&receipt)
         }
         CarrierCommand::WriteRemovable {

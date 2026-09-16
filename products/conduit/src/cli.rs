@@ -175,6 +175,22 @@ pub(crate) enum CarrierCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_launch: bool,
     },
+    /// Serve an exact Body-bound boot image over finite HTTP Boot.
+    ServeHttpBoot {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        /// Explicit network address to bind, such as 0.0.0.0:8080.
+        #[arg(long)]
+        bind: String,
+        #[arg(long, default_value_t = 1, value_parser = clap::value_parser!(u16).range(1..=64))]
+        maximum_requests: u16,
+        #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=3600))]
+        timeout_seconds: u64,
+        /// Explicitly authorize exposing this exact boot artifact on the selected network address.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_serve: bool,
+    },
     /// Destructively write and verify one explicitly confirmed removable device.
     WriteRemovable {
         descriptor: PathBuf,
@@ -376,6 +392,37 @@ mod tests {
                     }
                 }
             }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "carry",
+                "serve-http-boot",
+                "carrier.json",
+                "artifact.json",
+                "spore.iso",
+                "--bind",
+                "0.0.0.0:8080",
+                "--maximum-requests",
+                "2",
+                "--timeout-seconds",
+                "30",
+                "--authorize-serve",
+            ])
+            .expect("consequential HTTP Boot carrier parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Carry {
+                    command: CarrierCommand::ServeHttpBoot {
+                        bind,
+                        maximum_requests: 2,
+                        timeout_seconds: 30,
+                        authorize_serve: true,
+                        ..
+                    }
+                }
+            } if bind == "0.0.0.0:8080"
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "home"])
