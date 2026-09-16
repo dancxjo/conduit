@@ -71,13 +71,11 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
         HostServiceCommand::Install {
             manifest,
             state_dir,
-        } => install(&manifest, &state_dir).and_then(|installation| {
-            activate_service(&state_dir)?;
+        } => install_and_activate(&manifest, &state_dir).map(|installation| {
             println!(
                 "installed durable Host {} from {}",
                 installation.host_id, installation.release_bundle_sha256
             );
-            Ok(())
         }),
         HostServiceCommand::Run { state_dir } => run(&state_dir),
         HostServiceCommand::Status { state_dir, json } => status(&state_dir, json),
@@ -86,6 +84,23 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             state_dir,
         } => own_body(&evidence, &state_dir),
     }
+}
+
+pub(crate) struct InstalledHostIdentity {
+    pub(crate) host_id: String,
+    pub(crate) release_bundle_sha256: String,
+}
+
+pub(crate) fn install_and_activate(
+    manifest: &Path,
+    state_dir: &Path,
+) -> Result<InstalledHostIdentity, String> {
+    let installation = install(manifest, state_dir)?;
+    activate_service(state_dir)?;
+    Ok(InstalledHostIdentity {
+        host_id: installation.host_id,
+        release_bundle_sha256: installation.release_bundle_sha256,
+    })
 }
 
 fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {

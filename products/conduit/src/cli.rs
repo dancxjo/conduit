@@ -153,6 +153,18 @@ pub(crate) enum CarrierCommand {
         source: PathBuf,
         destination: PathBuf,
     },
+    /// Install and start an exact Body-bound native Host package locally.
+    InstallNative {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        /// Durable local Host state retained across service restarts.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicitly authorize installation and service start on this machine.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_install: bool,
+    },
     /// Flash an exact Body-bound RP2040 UF2 to one confirmed BOOTSEL volume.
     FlashUf2 {
         descriptor: PathBuf,

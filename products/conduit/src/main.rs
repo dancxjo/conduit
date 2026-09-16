@@ -10,6 +10,7 @@ mod durable_host;
 mod durable_host_control;
 mod form_source;
 mod host_rendezvous;
+mod native_package_install;
 mod product_execution;
 #[cfg(test)]
 mod product_execution_tests;

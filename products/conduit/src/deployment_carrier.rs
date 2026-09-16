@@ -2,7 +2,8 @@
 
 use crate::cli::CarrierCommand;
 use conduit_host_fabrication::{
-    download_body_bound_artifact, flash_body_bound_rp2040_uf2, launch_body_bound_virtual_machine,
+    download_body_bound_artifact, flash_body_bound_rp2040_uf2,
+    install_start_body_bound_native_package, launch_body_bound_virtual_machine,
     serve_body_bound_network_boot, write_body_bound_artifact_to_removable, HttpBootServer,
     NetworkBootServeBounds, QemuX86_64Launcher, CONDUITOS_X86_64_QEMU_PROFILE,
 };
@@ -25,6 +26,26 @@ pub(crate) fn run(command: CarrierCommand) -> Result<(), String> {
             let receipt =
                 download_body_bound_artifact(&descriptor, &artifact, &source, &destination)
                     .map_err(|error| format!("artifact download refused: {error:?}"))?;
+            print_receipt(&receipt)
+        }
+        CarrierCommand::InstallNative {
+            descriptor,
+            artifact,
+            source,
+            state_dir,
+            authorize_install,
+        } => {
+            let descriptor = read_json(&descriptor)?;
+            let artifact = read_json(&artifact)?;
+            let mut installer = crate::native_package_install::LocalNativeInstaller::new(state_dir);
+            let receipt = install_start_body_bound_native_package(
+                &descriptor,
+                &artifact,
+                &source,
+                authorize_install,
+                &mut installer,
+            )
+            .map_err(|error| format!("native install/start refused: {error:?}"))?;
             print_receipt(&receipt)
         }
         CarrierCommand::FlashUf2 {
