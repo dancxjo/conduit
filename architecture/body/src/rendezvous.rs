@@ -7,6 +7,8 @@
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
+use crate::{SpawnInvitation, SpawnInvitationClaim};
+
 pub const RENDEZVOUS_DESCRIPTOR_PROTOCOL: u16 = 1;
 pub const MAX_RENDEZVOUS_CANDIDATES: usize = 4;
 pub const MAX_RENDEZVOUS_TEXT_BYTES: usize = 256;
@@ -54,6 +56,31 @@ pub struct SpawnRendezvousDescriptor {
     pub candidates: Vec<RendezvousCandidate>,
 }
 
+/// Exact self-joining authority and reachability embedded in one fresh spore.
+///
+/// The invitation secret is intentionally serialized for target provisioning,
+/// but never exposed through `Debug`. It grants admission proof authority only;
+/// the rendezvous descriptor independently bounds where that proof may be
+/// presented.
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SpawnRendezvousProvision {
+    pub claim: SpawnInvitationClaim,
+    pub rendezvous: SpawnRendezvousDescriptor,
+    invitation_secret: [u8; 32],
+}
+
+impl core::fmt::Debug for SpawnRendezvousProvision {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("SpawnRendezvousProvision")
+            .field("claim", &self.claim)
+            .field("rendezvous", &self.rendezvous)
+            .field("invitation_secret", &"[REDACTED]")
+            .finish()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RendezvousDescriptorRefusal {
     WrongProtocol,
@@ -65,6 +92,50 @@ pub enum RendezvousDescriptorRefusal {
     Expired,
     AttemptPolicy,
     InsecureRemoteWebSocket,
+    WrongBody,
+    WrongInvitation,
+    WeakInvitationSecret,
+}
+
+impl SpawnRendezvousProvision {
+    pub fn from_invitation(
+        invitation: SpawnInvitation,
+        rendezvous: SpawnRendezvousDescriptor,
+        now_millis: u64,
+    ) -> Result<Self, RendezvousDescriptorRefusal> {
+        let claim = invitation.claim();
+        let invitation_secret = invitation.secret.copy_for_target_provisioning();
+        let provision = Self {
+            claim,
+            rendezvous,
+            invitation_secret,
+        };
+        provision.validate(now_millis)?;
+        Ok(provision)
+    }
+
+    pub fn validate(&self, now_millis: u64) -> Result<(), RendezvousDescriptorRefusal> {
+        self.rendezvous.validate(now_millis)?;
+        self.claim
+            .inspect(now_millis)
+            .map_err(|_| RendezvousDescriptorRefusal::Expired)?;
+        if self.rendezvous.body_id != self.claim.body_id.as_str() {
+            return Err(RendezvousDescriptorRefusal::WrongBody);
+        }
+        if self.rendezvous.invitation_id != self.claim.invitation_id.as_str() {
+            return Err(RendezvousDescriptorRefusal::WrongInvitation);
+        }
+        if self.invitation_secret == [0; 32] {
+            return Err(RendezvousDescriptorRefusal::WeakInvitationSecret);
+        }
+        Ok(())
+    }
+
+    /// Copy the admission capability into an exact target-provisioning buffer.
+    /// The caller must zero the returned buffer immediately after transfer.
+    pub fn copy_invitation_secret_for_target_provisioning(&self) -> [u8; 32] {
+        self.invitation_secret
+    }
 }
 
 /// One explicit Line attempt selected from a reviewed descriptor.
@@ -185,6 +256,8 @@ fn loopback_reachability(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{AdmissionManager, BodyId, SpawnInvitationSecret};
+    use alloc::format;
     use alloc::vec;
 
     fn candidate(id: &str, family: RendezvousLineFamily, endpoint: &str) -> RendezvousCandidate {
@@ -343,5 +416,85 @@ mod tests {
         };
         assert_eq!(fallback.candidate.candidate_id, "candidate/relay");
         assert_eq!(fallback.attempt, 1);
+    }
+
+    #[test]
+    fn one_provision_binds_invitation_authority_to_exact_body_reachability() {
+        let body_id = serde_json::from_str::<BodyId>("\"body/one\"").unwrap();
+        let mut manager = AdmissionManager::new(body_id).unwrap();
+        let invitation = manager
+            .issue_spawn_invitation(
+                SpawnInvitationSecret::from_csprng_bytes([11; 32]).unwrap(),
+                [12; 32],
+                1_000,
+                9_000,
+            )
+            .unwrap();
+        let descriptor = SpawnRendezvousDescriptor {
+            protocol: RENDEZVOUS_DESCRIPTOR_PROTOCOL,
+            body_id: invitation.body_id.as_str().into(),
+            invitation_id: invitation.invitation_id.as_str().into(),
+            candidates: vec![candidate(
+                "candidate/tls",
+                RendezvousLineFamily::AuthenticatedTlsStream,
+                "tls://body.example:443/conduit",
+            )],
+        };
+        let provision =
+            SpawnRendezvousProvision::from_invitation(invitation, descriptor, 2_000).unwrap();
+        assert_eq!(provision.validate(2_000), Ok(()));
+        assert_eq!(
+            provision.copy_invitation_secret_for_target_provisioning(),
+            [11; 32]
+        );
+        assert!(!format!("{provision:?}").contains(&"11".repeat(32)));
+        assert_eq!(
+            serde_json::from_slice::<SpawnRendezvousProvision>(
+                &serde_json::to_vec(&provision).unwrap()
+            )
+            .unwrap(),
+            provision
+        );
+    }
+
+    #[test]
+    fn provision_refuses_relabelled_body_invitation_and_weak_secret() {
+        let claim: SpawnInvitationClaim = serde_json::from_value(serde_json::json!({
+            "invitation_id": "invitation/one",
+            "body_id": "body/one",
+            "nonce": vec![7; 32],
+            "expires_at_millis": 9_000
+        }))
+        .unwrap();
+        let mut provision = SpawnRendezvousProvision {
+            claim,
+            rendezvous: SpawnRendezvousDescriptor {
+                protocol: RENDEZVOUS_DESCRIPTOR_PROTOCOL,
+                body_id: "body/two".into(),
+                invitation_id: "invitation/one".into(),
+                candidates: vec![candidate(
+                    "candidate/tls",
+                    RendezvousLineFamily::AuthenticatedTlsStream,
+                    "tls://body.example:443/conduit",
+                )],
+            },
+            invitation_secret: [7; 32],
+        };
+        assert_eq!(
+            provision.validate(2_000),
+            Err(RendezvousDescriptorRefusal::WrongBody)
+        );
+        provision.rendezvous.body_id = "body/one".into();
+        provision.rendezvous.invitation_id = "invitation/two".into();
+        assert_eq!(
+            provision.validate(2_000),
+            Err(RendezvousDescriptorRefusal::WrongInvitation)
+        );
+        provision.rendezvous.invitation_id = "invitation/one".into();
+        provision.invitation_secret = [0; 32];
+        assert_eq!(
+            provision.validate(2_000),
+            Err(RendezvousDescriptorRefusal::WeakInvitationSecret)
+        );
     }
 }
