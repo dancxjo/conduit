@@ -1,6 +1,7 @@
 //! Installed durable Host ownership and its platform-service handoff.
 
 use crate::cli::HostServiceCommand;
+use conduit_body::{AdmissionManager, SpawnInvitationSecret};
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_std_host::{StdHost, StdHostConfig};
 use serde::{Deserialize, Serialize};
@@ -15,6 +16,7 @@ use std::{
 const INSTALL_SCHEMA: &str = "conduit.install/durable-host@1";
 const RUNTIME_SCHEMA: &str = "conduit.install/durable-host-runtime@1";
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
+const INVITATION_SCHEMA: &str = "conduit.body/spawn-invitation@1";
 const MAXIMUM_RELEASE_FILES: usize = 32;
 const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 
@@ -59,6 +61,13 @@ struct RuntimeStatus {
     process_id: u32,
     release_bundle_sha256: String,
     body_id: Option<String>,
+}
+
+#[derive(Serialize)]
+struct PortableInvitation {
+    schema: &'static str,
+    claim: conduit_body::SpawnInvitationClaim,
+    secret: [u8; 32],
 }
 
 pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
@@ -114,6 +123,69 @@ fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
     });
     write_json_atomic(&install_path, &installation)?;
     println!("durable Host now owns Body {}", evidence.body_id.as_str());
+    Ok(())
+}
+
+pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Result<(), String> {
+    if !(1..=600).contains(&ttl_seconds) {
+        return Err("invitation lifetime must be between 1 and 600 seconds".into());
+    }
+    let installation = read_installation(&state_dir.join("installation.json"))?;
+    let body = installation
+        .body_state
+        .as_ref()
+        .ok_or("this installed Host does not own a Body")?;
+    let biography_bytes = bounded_read(Path::new(&body.biography_path), 2 * 1024 * 1024)?;
+    if digest(&biography_bytes) != body.biography_sha256 {
+        return Err("retained Body biography no longer matches its exact identity".into());
+    }
+    let biography: conduit_body::BodyBiographyEvidence =
+        serde_json::from_slice(&biography_bytes)
+            .map_err(|error| format!("retained Body biography: {error}"))?;
+    biography
+        .validate()
+        .map_err(|error| format!("retained Body biography refused: {error:?}"))?;
+    if biography.body_id.as_str() != body.body_id {
+        return Err("retained Body biography belongs to another Body".into());
+    }
+    let body_id = biography.body_id;
+    let admission_path = state_dir.join("body").join("admission.json");
+    let mut manager = if admission_path.exists() {
+        let bytes = bounded_read(&admission_path, 256 * 1024)?;
+        let manager: AdmissionManager = serde_json::from_slice(&bytes)
+            .map_err(|error| format!("Body admission state: {error}"))?;
+        if manager.body_id != body_id {
+            return Err("Body admission state belongs to another Body".into());
+        }
+        manager
+    } else {
+        AdmissionManager::new(body_id)
+            .map_err(|error| format!("initialize Body admission: {error:?}"))?
+    };
+    let now_millis = current_time_millis()?;
+    let expires_at_millis = now_millis
+        .checked_add(ttl_seconds.saturating_mul(1_000))
+        .ok_or("invitation expiry overflow")?;
+    let mut secret_bytes = [0_u8; 32];
+    let mut nonce = [0_u8; 32];
+    getrandom::fill(&mut secret_bytes)
+        .map_err(|error| format!("create invitation secret: {error}"))?;
+    getrandom::fill(&mut nonce).map_err(|error| format!("create invitation nonce: {error}"))?;
+    let secret = SpawnInvitationSecret::from_csprng_bytes(secret_bytes)
+        .map_err(|error| format!("create invitation secret: {error:?}"))?;
+    let invitation = manager
+        .issue_spawn_invitation(secret, nonce, now_millis, expires_at_millis)
+        .map_err(|error| format!("issue Body invitation: {error:?}"))?;
+    write_json_atomic(&admission_path, &manager)?;
+    let portable = PortableInvitation {
+        schema: INVITATION_SCHEMA,
+        claim: invitation.claim(),
+        secret: invitation.secret.copy_for_target_provisioning(),
+    };
+    let encoded = serde_json::to_string(&portable)
+        .map_err(|error| format!("encode Body invitation: {error}"))?;
+    println!("{encoded}");
+    secret_bytes.fill(0);
     Ok(())
 }
 
@@ -438,6 +510,14 @@ fn fresh_identity(prefix: &str, basis: &str) -> String {
     format!("{prefix}/{:x}", hasher.finalize())
 }
 
+fn current_time_millis() -> Result<u64, String> {
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| format!("system clock precedes Unix epoch: {error}"))?
+        .as_millis();
+    u64::try_from(millis).map_err(|_| "system clock exceeds invitation representation".into())
+}
+
 fn digest(bytes: &[u8]) -> String {
     format!("sha256:{:x}", Sha256::digest(bytes))
 }
@@ -574,6 +654,58 @@ mod tests {
             .unwrap()
             .body_state
             .is_none());
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn installed_body_issues_distinct_bounded_machine_readable_invitations() {
+        let (manifest, state) = fixture();
+        let mut installation = install(&manifest, &state).unwrap();
+        let body_dir = state.join("body");
+        fs::create_dir_all(&body_dir).unwrap();
+        let body = conduit_body::Body::born(
+            "source/invitation-test".into(),
+            "checked/invitation-test".into(),
+            1,
+            conduit_core::SignId::from("sign/invitation-test/born"),
+        )
+        .unwrap();
+        let biography = conduit_body::BodyBiographyEvidence::born(
+            body.clone(),
+            conduit_body::BodyMembership::new(body.body_id.clone()).unwrap(),
+            "Invitation test".into(),
+        )
+        .unwrap();
+        let biography_bytes = serde_json::to_vec_pretty(&biography).unwrap();
+        let biography_path = body_dir.join("biography.json");
+        fs::write(&biography_path, &biography_bytes).unwrap();
+        installation.body_state = Some(BodyBinding {
+            body_id: body.body_id.as_str().into(),
+            biography_sha256: digest(&biography_bytes),
+            biography_path: biography_path.display().to_string(),
+        });
+        write_json_atomic(&state.join("installation.json"), &installation).unwrap();
+
+        issue_body_invitation(&state, 30).unwrap();
+        let first: AdmissionManager = serde_json::from_slice(
+            &bounded_read(&body_dir.join("admission.json"), 256 * 1024).unwrap(),
+        )
+        .unwrap();
+        issue_body_invitation(&state, 30).unwrap();
+        let second: AdmissionManager = serde_json::from_slice(
+            &bounded_read(&body_dir.join("admission.json"), 256 * 1024).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(first.body_id, body.body_id);
+        assert_eq!(second.body_id, first.body_id);
+        assert_ne!(
+            serde_json::to_vec(&first).unwrap(),
+            serde_json::to_vec(&second).unwrap()
+        );
+        assert!(!serde_json::to_vec(&second)
+            .unwrap()
+            .windows(32)
+            .any(|window| window == [0_u8; 32]));
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 }
