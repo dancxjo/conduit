@@ -104,6 +104,15 @@ export async function connectRendezvousHost(code, {
             requireRemotePrepared(prepared, descriptor.advertisement);
             return Object.freeze(prepared);
           },
+          async sendSessionFrame(frame) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            const bytes = requireSessionFrame(frame);
+            await line.sendBytes(bytes);
+          },
+          async receiveSessionFrame() {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            return requireSessionFrame(await line.receiveBytes(signal));
+          },
           async close() {
             if (intentional) return;
             intentional = true;
@@ -126,6 +135,15 @@ export async function connectRendezvousHost(code, {
   }
 }
 
+function requireSessionFrame(value) {
+  const bytes = bytesOf(value);
+  if (bytes.byteLength < 5 || bytes.byteLength > MAXIMUM_FRAME_BYTES
+    || bytes[0] !== 0x43 || bytes[1] !== 0x4e || bytes[2] !== 0x44 || bytes[3] !== 0x53) {
+    refuse("SessionFrame", "joined Host Line frame is malformed or outside its finite bound");
+  }
+  return bytes;
+}
+
 function requireRemotePrepared(prepared, advertisement) {
   const identity = prepared?.identity;
   const frames = prepared?.hello_frames;
@@ -135,7 +153,8 @@ function requireRemotePrepared(prepared, advertisement) {
     || typeof identity?.active_play_id !== "string" || identity.active_play_id.length === 0
     || !Number.isSafeInteger(identity?.play_sequence) || identity.play_sequence < 0
     || !Array.isArray(frames) || frames.length === 0 || frames.length > 32
-    || frames.some(frame => !Array.isArray(frame) || frame.length === 0 || frame.length > MAXIMUM_FRAME_BYTES
+    || frames.some(frame => !Array.isArray(frame) || frame.length < 5 || frame.length > MAXIMUM_FRAME_BYTES
+      || frame[0] !== 0x43 || frame[1] !== 0x4e || frame[2] !== 0x44 || frame[3] !== 0x53
       || frame.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255))) {
     refuse("RemotePreparation", "joined Host returned malformed or stale remote Play truth");
   }

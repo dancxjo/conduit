@@ -60,7 +60,12 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
   assert.equal(remote.identity.host_id, "host/test");
   assert.equal(remote.identity.boot_id, "boot/test");
   assert.equal(remote.identity.plan_id, "plan/retained");
-  assert.deepEqual(remote.hello_frames, [[1, 2, 3, 4]]);
+  assert.deepEqual(remote.hello_frames, [[0x43, 0x4e, 0x44, 0x53, 4]]);
+  await join.line.sendSessionFrame(new Uint8Array([0x43, 0x4e, 0x44, 0x53, 4]));
+  assert.deepEqual(
+    [...await join.line.receiveSessionFrame()],
+    [0x43, 0x4e, 0x44, 0x53, 4, 2],
+  );
   await join.line.close();
   assert.equal(FakeWebSocket.last.sent.at(-1).kind, "close");
   assert.equal(FakeWebSocket.last.readyState, 3);
@@ -97,6 +102,12 @@ class FakeWebSocket extends EventTarget {
   }
 
   send(bytes) {
+    if (new Uint8Array(bytes)[0] === 0x43) {
+      this.sent.push(new Uint8Array(bytes));
+      const data = new Uint8Array([0x43, 0x4e, 0x44, 0x53, 4, 2]).buffer;
+      queueMicrotask(() => this.dispatchEvent(new MessageEvent("message", { data })));
+      return;
+    }
     const request = JSON.parse(new TextDecoder().decode(bytes));
     this.sent.push(request);
     if (request.kind === "close") return;
@@ -111,7 +122,7 @@ class FakeWebSocket extends EventTarget {
         host_id: advertisement.host_id, boot_id: advertisement.boot_id,
         plan_id: request.plan.plan_id, active_play_id: "play/retained", play_sequence: 1,
       },
-      hello_frames: [[1, 2, 3, 4]],
+      hello_frames: [[0x43, 0x4e, 0x44, 0x53, 4]],
     } : {
       kind: "join", protocol: 1, spore_id: request.spore_id, image_id: request.image_id,
       advertisement, invitation_id: request.claim.invitation_id, body_id: request.claim.body_id,
