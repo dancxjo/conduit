@@ -44,7 +44,7 @@ export async function startApplication(application) {
       const chime = typeof window.AudioContext === 'function' ? inventory.forms.find(form => form.name === 'startup_chime') : null;
       selection = { selected: [scratch, chime].filter(Boolean), refusals: [] };
     }
-    if (!invitation) await session.restore();
+    const restored = invitation ? null : await session.restore();
     if (handoff && !session.current()) {
       selection = openFormSelection(inventory, persistedFormSelection(inventory, selection.selected), handoff);
       await application.storage.writeJson('form-selection', persistedFormSelection(inventory, selection.selected));
@@ -73,7 +73,6 @@ export async function startApplication(application) {
         }
         selected = session.foreground()?.checked_form_id;
         render();
-        if (session.current().initial_forms.length) await play.wake();
       }).catch(fail);
     };
     const inspect = kind => {
@@ -192,7 +191,7 @@ export async function startApplication(application) {
         input.inert = input.disabled;
         input.tabIndex = input.disabled ? -1 : 0;
         input.setAttribute('aria-disabled', String(input.disabled));
-        wakeButton.hidden = ['Playing', 'Idle', 'Preparing'].includes(state.state);
+        wakeButton.hidden = session.current().initial_forms.length === 0 || ['Playing', 'Idle', 'Preparing'].includes(state.state);
         showSelected();
         if (state.state === 'Playing' && input.dataset.acceptsInput === 'true') input.focus();
       } });
@@ -242,7 +241,7 @@ export async function startApplication(application) {
     if (handoff && session.current()?.here_part_id) {
       await consumeWorkspaceHandoff({ host, applicationId: application.manifest.applicationId });
       await useForm(handoff, session.current().workload_revision);
-    } else if (!invitation && session.current()?.here_part_id && session.current().initial_forms.length) await play.wake();
+    } else if (restored?.resume_wake && session.current()?.here_part_id && session.current().initial_forms.length) await play.wake();
     if (handoffFailure) fail(handoffFailure);
     globalThis.addEventListener('pagehide', () => { play?.close(); membership?.dispose(); });
   } catch (error) { fail(error); }

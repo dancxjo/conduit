@@ -18,6 +18,7 @@ test.afterEach(() => entrance?.child.kill());
 test("Crèche respects the live Body owner and returns a retained Body to its Forms", async ({ page, context }) => {
   await page.goto(new URL("workspace/", entrance.url).href);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const first = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
@@ -44,6 +45,7 @@ test('the actual Gallery Use link returns to the same Body with the selected For
   await page.goto(new URL('workspace/', entrance.url).href);
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
+  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());

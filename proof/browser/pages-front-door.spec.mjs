@@ -28,11 +28,12 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
-test("Birth on the front page arrives directly in listening Forms", async ({ page }) => {
+test("Birth on the front page hands the Lulled Body to an explicit Wake", async ({ page }) => {
   await page.goto(entrance.url);
   await page.getByRole("link", { name: "Birth a Body", exact: true }).click();
   await expect(page.getByRole("heading", { name: "A Body of your own", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.keyboard.press("h");
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
