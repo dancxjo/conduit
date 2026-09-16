@@ -21,7 +21,6 @@ form live-conversation (
     context.context > conversation.context
     conversation.request > model.request
     model.result > generated-text.chunk
-    generated-text.text > conversation.response
     generated-text.text > speech-commit.generated
     speech-commit.segments > synthesize.text
     synthesize.audio > spoken
