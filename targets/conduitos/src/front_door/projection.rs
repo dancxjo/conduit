@@ -192,6 +192,30 @@ impl FrontDoor {
                 PresentationPropertyValue::Text(refusal.reason().into()),
             ));
         }
+        let home_identity = "conduitos/shell/home";
+        if let Some(view) = self.home_view() {
+            subjects.push(PresentationSubject {
+                identity: home_identity.into(),
+                role: PresentationRole::Region,
+                label: "ConduitOS Home".into(),
+                accessibility_name: format!("ConduitOS Home; {} view", view.as_str()),
+            });
+            relationships.push(PresentationRelationship {
+                source: home_identity.into(),
+                target: host.clone(),
+                kind: PresentationRelationshipKind::Observes,
+            });
+            properties.push(property(
+                home_identity,
+                "view",
+                PresentationPropertyValue::Text(view.as_str().into()),
+            ));
+            properties.push(property(
+                home_identity,
+                "selected-launcher-index",
+                PresentationPropertyValue::Count(self.home_selection().unwrap_or(0) as u64),
+            ));
+        }
         let basis = self.journey.as_ref().map_or_else(
             || PresentationBasis {
                 body_id: None,
@@ -238,33 +262,45 @@ impl FrontDoor {
             || "BODY NONE; entering Patchbay creates no Body, Wake, Plan, or Play".into(),
             |journey| lifecycle_summary(journey).into(),
         );
+        let mut texts = vec![
+            PresentationText {
+                subject: host.clone(),
+                text: host_text,
+            },
+            PresentationText {
+                subject: form.clone(),
+                text: "IMAGE-embedded checked Form; OPEN permits inspection only".into(),
+            },
+        ];
+        let mut disclosures = vec![
+            PresentationDisclosure {
+                subject: form.clone(),
+                level: PresentationDisclosureLevel::Primary,
+            },
+            PresentationDisclosure {
+                subject: host.clone(),
+                level: PresentationDisclosureLevel::Context,
+            },
+        ];
+        if self.home_view().is_some() {
+            texts.push(PresentationText {
+                subject: home_identity.into(),
+                text: "Persistent launcher and finite Conduit command bar".into(),
+            });
+            disclosures.push(PresentationDisclosure {
+                subject: home_identity.into(),
+                level: PresentationDisclosureLevel::Primary,
+            });
+        }
         Presentation::new_with_semantics(
             self.revision,
             basis,
             subjects,
             relationships,
             properties,
-            vec![
-                PresentationText {
-                    subject: host.clone(),
-                    text: host_text,
-                },
-                PresentationText {
-                    subject: form.clone(),
-                    text: "IMAGE-embedded checked Form; OPEN permits inspection only".into(),
-                },
-            ],
+            texts,
             self.semantic_actions(&form),
-            vec![
-                PresentationDisclosure {
-                    subject: form,
-                    level: PresentationDisclosureLevel::Primary,
-                },
-                PresentationDisclosure {
-                    subject: host,
-                    level: PresentationDisclosureLevel::Context,
-                },
-            ],
+            disclosures,
         )
         .map_err(|_| Error::Presentation)
     }
