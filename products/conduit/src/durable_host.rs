@@ -518,8 +518,47 @@ fn write_service_definition(state_dir: &Path, installation: &Installation) -> Re
             .map_err(|error| format!("write systemd user-service definition: {error}"))?;
         Ok(())
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "macos")]
+    {
+        let plist = macos_service_definition(state_dir, installation)?;
+        fs::write(state_dir.join("org.conduit.host.plist"), plist)
+            .map_err(|error| format!("write launchd user-service definition: {error}"))?;
+        Ok(())
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
     Err("this release has no reviewed durable service carrier for the current platform".into())
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn macos_service_definition(
+    state_dir: &Path,
+    installation: &Installation,
+) -> Result<String, String> {
+    let state_dir = fs::canonicalize(state_dir)
+        .map_err(|error| format!("resolve durable Host state directory: {error}"))?;
+    let executable = fs::canonicalize(&installation.product_executable)
+        .map_err(|error| format!("resolve installed Conduit executable: {error}"))?;
+    let executable = xml_text(&executable)?;
+    let state_dir = xml_text(&state_dir)?;
+    Ok(format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n  <key>Label</key><string>org.conduit.host</string>\n  <key>ProgramArguments</key>\n  <array>\n    <string>{executable}</string>\n    <string>host</string><string>service</string><string>run</string>\n    <string>--state-dir</string><string>{state_dir}</string>\n  </array>\n  <key>RunAtLoad</key><true/>\n  <key>KeepAlive</key><true/>\n  <key>ProcessType</key><string>Background</string>\n  <key>Umask</key><integer>63</integer>\n</dict>\n</plist>\n"
+    ))
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn xml_text(path: &Path) -> Result<String, String> {
+    let value = path
+        .to_str()
+        .ok_or_else(|| "durable Host service path is not UTF-8".to_string())?;
+    if value.contains(['\n', '\r', '\0']) {
+        return Err("durable Host service path contains a forbidden control character".into());
+    }
+    Ok(value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;"))
 }
 
 #[cfg(target_os = "linux")]
@@ -582,7 +621,58 @@ fn activate_service(state_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
+fn activate_service(state_dir: &Path) -> Result<(), String> {
+    let home = std::env::var_os("HOME").ok_or("HOME is required to install the launchd service")?;
+    let agents = std::path::PathBuf::from(home).join("Library/LaunchAgents");
+    fs::create_dir_all(&agents)
+        .map_err(|error| format!("create user LaunchAgents directory: {error}"))?;
+    let installed_plist = agents.join("org.conduit.host.plist");
+    fs::copy(state_dir.join("org.conduit.host.plist"), &installed_plist)
+        .map_err(|error| format!("install launchd user-service definition: {error}"))?;
+    let uid = std::process::Command::new("id")
+        .arg("-u")
+        .output()
+        .map_err(|error| format!("resolve launchd user domain: {error}"))?;
+    if !uid.status.success() {
+        return Err("resolve launchd user domain: id -u failed".into());
+    }
+    let uid = String::from_utf8(uid.stdout)
+        .map_err(|_| "launchd user id is not UTF-8")?
+        .trim()
+        .to_owned();
+    if uid.is_empty() || !uid.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err("launchd user id is invalid".into());
+    }
+    let domain = format!("gui/{uid}");
+    let _ = std::process::Command::new("launchctl")
+        .args(["bootout", &format!("{domain}/org.conduit.host")])
+        .status();
+    let bootstrap = std::process::Command::new("launchctl")
+        .args(["bootstrap", &domain])
+        .arg(&installed_plist)
+        .status()
+        .map_err(|error| format!("bootstrap durable Host launchd service: {error}"))?;
+    if !bootstrap.success() {
+        return Err(format!(
+            "installation is recoverable at {}, but launchd bootstrap failed with {bootstrap}",
+            state_dir.display()
+        ));
+    }
+    let kickstart = std::process::Command::new("launchctl")
+        .args(["kickstart", "-k", &format!("{domain}/org.conduit.host")])
+        .status()
+        .map_err(|error| format!("start durable Host launchd service: {error}"))?;
+    if !kickstart.success() {
+        return Err(format!(
+            "installation is recoverable at {}, but launchd start failed with {kickstart}",
+            state_dir.display()
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
 fn activate_service(_state_dir: &Path) -> Result<(), String> {
     Err("this release has no reviewed durable service activation for the current platform".into())
 }
@@ -783,6 +873,23 @@ mod tests {
         assert!(unit.contains("Restart=on-failure\nRestartSec=1s\nUMask=0077"));
         assert!(unit.contains("100%% identity"));
         assert!(!unit.contains("--state-dir state with"));
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn launchd_definition_uses_exact_xml_escaped_paths_and_private_state() {
+        let (manifest, original_state) = fixture();
+        let state = original_state.with_file_name("state & <private>");
+        let installation = install(&manifest, &state).unwrap();
+        let plist = macos_service_definition(&state, &installation).unwrap();
+
+        assert!(plist.contains("<key>Label</key><string>org.conduit.host</string>"));
+        assert!(plist.contains("<key>RunAtLoad</key><true/>"));
+        assert!(plist.contains("<key>KeepAlive</key><true/>"));
+        assert!(plist.contains("<key>Umask</key><integer>63</integer>"));
+        assert!(plist.contains("state &amp; &lt;private&gt;"));
+        assert!(!plist.contains("state & <private>"));
+        assert!(plist.contains("<string>host</string><string>service</string><string>run</string>"));
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 

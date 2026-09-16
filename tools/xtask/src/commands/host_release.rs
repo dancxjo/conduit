@@ -341,6 +341,10 @@ fn build_macos(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::
         "target/release/conduit",
         &output.join("conduit-macos-aarch64"),
     )?;
+    copy(
+        "products/conduit/install/install-macos-aarch64.sh",
+        &output.join("install-macos-aarch64.sh"),
+    )?;
     seal(
         output,
         "hosted-macos-aarch64.json",
@@ -350,10 +354,13 @@ fn build_macos(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::
         "conduit-host-hosted/build-native@1",
         "conduit-host-hosted/launch@1",
         source_identity,
-        &[(
-            "conduit-macos-aarch64",
-            "application/vnd.conduit.host+executable",
-        )],
+        &[
+            (
+                "conduit-macos-aarch64",
+                "application/vnd.conduit.host+executable",
+            ),
+            ("install-macos-aarch64.sh", "application/x-sh"),
+        ],
     )
 }
 
