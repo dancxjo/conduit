@@ -1,7 +1,8 @@
 import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/browser-body-host.mjs";
 
-export function openWorkspacePlay({ host, session, source, planningLines, inputTarget, outputRoot, foregroundForm, onState }) {
-  let adapter = null, started = null, terminal = null, transition = false;
+export function openWorkspacePlay({ host, session, source, planningLines, inputTarget, outputRoot, foregroundForm, onState,
+  prepareExternal = async () => null, acquireBody = acquireBrowserBodyHost }) {
+  let adapter = null, external = null, started = null, terminal = null, transition = false;
   const publish = (state, detail = '', error = null) => onState({ state, detail, play: started?.play, terminal,
     refusal: error ? { code: typeof error.code === 'string' ? error.code : error.name, message: error.message } : null });
   const requireTerminal = receipt => {
@@ -14,6 +15,8 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
     terminal = receipt;
   };
   const stop = async () => {
+    await external?.close();
+    external = null;
     const closed = adapter.close();
     if (!terminal) requireTerminal(closed?.receipt);
     adapter = null;
@@ -28,14 +31,23 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
       try {
         const proposal = await session.propose(source, planningLines(), authorizeAudio);
         publish('Preparing', 'Acquiring the required capabilities');
-        adapter = acquireBrowserBodyHost({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal, inputTarget, outputRoot, foregroundForm });
+        external = await prepareExternal(proposal);
+        adapter = acquireBody({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal,
+          inputTarget, outputRoot, foregroundForm,
+          externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
         await session.started(started);
         publish('Playing', 'Forms are awake');
         const running = adapter;
         const runningPlay = started.play;
-        adapter.run().then(receipt => {
+        const localRun = adapter.run();
+        const externalRun = external?.run();
+        Promise.all([localRun, externalRun]).then(([receipt, externalReceipt]) => {
           if (adapter !== running || terminal) return;
+          if (external && (externalReceipt?.disposition !== 'completed' ||
+              externalReceipt.active_play_id !== external.identity.active_play_id)) {
+            throw new Error('The external Form did not supply its exact terminal outcome');
+          }
           if (receipt?.schema === 'conduit.browser/pending-effects@1' && receipt.disposition === 'quiescent_awaiting_input' && receipt.active_play_id === started.play.active_play_id && receipt.pending_effects === 0) {
             publish('Idle', 'Its Forms are awake. Their current work has finished.');
             return;
@@ -61,6 +73,8 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
       } catch (error) {
         let cleanupError = null;
         try {
+          await external?.close();
+          external = null;
           const closed = adapter?.close();
           if (started) {
             requireTerminal(closed?.receipt);
@@ -107,6 +121,6 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
       } finally { transition = false; }
     },
     evidence() { return adapter?.evidence() ?? terminal?.kernel_signs ?? null; },
-    close() { return adapter?.close(); },
+    close() { void external?.close(); external = null; return adapter?.close(); },
   });
 }
