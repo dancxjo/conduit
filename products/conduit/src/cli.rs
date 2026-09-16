@@ -98,6 +98,23 @@ pub(crate) enum HostCommand {
         #[arg(long, default_value = "target/host-build")]
         output: PathBuf,
     },
+    /// Offer this already-running local Host to the browser Crèche.
+    Rendezvous {
+        /// Line carrier used to reach this running Host.
+        #[arg(long, value_enum, default_value_t = RendezvousCarrier::Websocket)]
+        carrier: RendezvousCarrier,
+        /// Stop a WebSocket carrier if the code is unused for this many seconds.
+        #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=3600))]
+        timeout_seconds: u64,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub(crate) enum RendezvousCarrier {
+    /// Local browser WebSocket Line.
+    Websocket,
+    /// Newline-framed serial stream on standard input and output.
+    Serial,
 }
 
 #[derive(Debug, Subcommand)]
@@ -169,6 +186,17 @@ mod tests {
                     command: HostServiceCommand::Status { state_dir }
                 }
             } if state_dir == std::path::Path::new("installed-host")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "host", "rendezvous", "--timeout-seconds", "30"])
+                .expect("Host rendezvous entrance parses")
+                .command,
+            Command::Host {
+                command: HostCommand::Rendezvous {
+                    carrier: RendezvousCarrier::Websocket,
+                    timeout_seconds: 30
+                }
+            }
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "patchbay", "--on", "browser"])

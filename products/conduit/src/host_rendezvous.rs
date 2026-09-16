@@ -1,0 +1,465 @@
+//! One-use, code-addressed attachment of an already-running std Host.
+//!
+//! The rendezvous code only locates and authenticates a finite carrier
+//! session. Body membership remains an explicit invitation proof completed by
+//! the Body-side admission manager.
+
+use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret};
+use conduit_core::HostAdvertisement;
+use conduit_std_host::websocket::{NativeWebSocketLine, NativeWebSocketListener};
+use conduit_std_host::StdHost;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::fs;
+use std::io::{BufRead, Read, Write};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+use crate::cli::RendezvousCarrier;
+
+const PROTOCOL: u16 = 1;
+const MAXIMUM_FRAME_BYTES: usize = 96 * 1024;
+const MAXIMUM_ID_BYTES: usize = 192;
+const CODE_PREFIX: &str = "C1-WS";
+const SERIAL_CODE_PREFIX: &str = "C1-SERIAL";
+
+trait RendezvousLine {
+    fn receive(&mut self) -> Result<Vec<u8>, String>;
+    fn send(&mut self, bytes: &[u8]) -> Result<(), String>;
+    fn close(&mut self) -> Result<(), String>;
+}
+
+impl RendezvousLine for NativeWebSocketLine {
+    fn receive(&mut self) -> Result<Vec<u8>, String> {
+        let mut bytes = vec![0_u8; MAXIMUM_FRAME_BYTES];
+        let length = self
+            .receive_binary(&mut bytes)
+            .map_err(debug("receive rendezvous frame"))?;
+        bytes.truncate(length);
+        Ok(bytes)
+    }
+
+    fn send(&mut self, bytes: &[u8]) -> Result<(), String> {
+        self.send_binary(bytes)
+            .map_err(debug("send rendezvous frame"))
+    }
+
+    fn close(&mut self) -> Result<(), String> {
+        NativeWebSocketLine::close(self).map_err(debug("close rendezvous Line"))
+    }
+}
+
+struct SerialStreamLine<R, W> {
+    reader: R,
+    writer: W,
+}
+
+impl<R: BufRead, W: Write> RendezvousLine for SerialStreamLine<R, W> {
+    fn receive(&mut self) -> Result<Vec<u8>, String> {
+        let mut bytes = Vec::with_capacity(1024);
+        self.reader
+            .by_ref()
+            .take((MAXIMUM_FRAME_BYTES + 2) as u64)
+            .read_until(b'\n', &mut bytes)
+            .map_err(|error| format!("receive serial rendezvous frame: {error}"))?;
+        if bytes.last() == Some(&b'\n') {
+            bytes.pop();
+        }
+        if bytes.last() == Some(&b'\r') {
+            bytes.pop();
+        }
+        if bytes.is_empty() || bytes.len() > MAXIMUM_FRAME_BYTES {
+            return Err("serial rendezvous frame violates its finite bound".into());
+        }
+        Ok(bytes)
+    }
+
+    fn send(&mut self, bytes: &[u8]) -> Result<(), String> {
+        self.writer
+            .write_all(bytes)
+            .and_then(|_| self.writer.write_all(b"\n"))
+            .and_then(|_| self.writer.flush())
+            .map_err(|error| format!("send serial rendezvous frame: {error}"))
+    }
+
+    fn close(&mut self) -> Result<(), String> {
+        self.writer
+            .flush()
+            .map_err(|error| format!("close serial rendezvous Line: {error}"))
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
+enum Ingress {
+    Hello {
+        protocol: u16,
+        session_secret: Vec<u8>,
+    },
+    Invite {
+        protocol: u16,
+        session_secret: Vec<u8>,
+        spore_id: String,
+        image_id: String,
+        claim: SpawnInvitationClaim,
+        secret: Vec<u8>,
+    },
+}
+
+#[derive(Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+enum Egress<'a> {
+    Host {
+        protocol: u16,
+        friendly_label: &'a str,
+        target_id: &'a str,
+        image_content_digest: &'a str,
+        advertisement: &'a HostAdvertisement,
+        lines: [&'a str; 1],
+    },
+    Join {
+        protocol: u16,
+        spore_id: &'a str,
+        image_id: &'a str,
+        advertisement: &'a HostAdvertisement,
+        invitation_id: &'a str,
+        body_id: &'a str,
+        host_id: &'a str,
+        boot_id: &'a str,
+        nonce: [u8; 32],
+        signature: Vec<u8>,
+        observed_at_millis: u64,
+    },
+    Refused {
+        protocol: u16,
+        code: &'a str,
+    },
+}
+
+pub(crate) fn serve(carrier: RendezvousCarrier, timeout_seconds: u64) -> Result<(), String> {
+    match carrier {
+        RendezvousCarrier::Websocket => serve_websocket(timeout_seconds),
+        RendezvousCarrier::Serial => serve_serial(),
+    }
+}
+
+fn serve_websocket(timeout_seconds: u64) -> Result<(), String> {
+    let listener = NativeWebSocketListener::bind_loopback(MAXIMUM_FRAME_BYTES as u32)
+        .map_err(debug("bind rendezvous Line"))?;
+    let address = listener
+        .local_addr()
+        .map_err(debug("read rendezvous address"))?;
+    let mut session_secret = [0_u8; 32];
+    getrandom::fill(&mut session_secret)
+        .map_err(|error| format!("create rendezvous secret: {error}"))?;
+    if session_secret == [0; 32] {
+        return Err("system randomness returned a weak rendezvous secret".into());
+    }
+    let code = encode_code(address.port(), &session_secret);
+    println!("Rendezvous code: {code}");
+    println!("Enter this one-use code in Crèche → Add Host → Already running.");
+    println!("Waiting up to {timeout_seconds} seconds on the local WebSocket Line…");
+
+    let result = (|| {
+        let mut line = listener
+            .accept_with_timeout(Duration::from_secs(timeout_seconds))
+            .map_err(debug("accept rendezvous Line"))?;
+        run_session(
+            &mut line,
+            &session_secret,
+            "conduit-line/loopback-websocket@1",
+        )
+    })();
+    session_secret.fill(0);
+    if result.is_ok() {
+        println!("Host invitation proof sent; Crèche still decides admission.");
+    }
+    result
+}
+
+fn serve_serial() -> Result<(), String> {
+    let mut session_secret = [0_u8; 32];
+    getrandom::fill(&mut session_secret)
+        .map_err(|error| format!("create rendezvous secret: {error}"))?;
+    if session_secret == [0; 32] {
+        return Err("system randomness returned a weak rendezvous secret".into());
+    }
+    eprintln!(
+        "Rendezvous code: {SERIAL_CODE_PREFIX}-{}",
+        hex(&session_secret)
+    );
+    eprintln!("Enter this one-use code in Crèche, then choose the attached serial port.");
+    let stdin = std::io::stdin();
+    let stdout = std::io::stdout();
+    let result = run_session(
+        &mut SerialStreamLine {
+            reader: stdin.lock(),
+            writer: stdout.lock(),
+        },
+        &session_secret,
+        "conduit-line/serial-text@1",
+    );
+    session_secret.fill(0);
+    if result.is_ok() {
+        eprintln!("Host invitation proof sent; Crèche still decides admission.");
+    }
+    result
+}
+
+fn run_session(
+    line: &mut impl RendezvousLine,
+    session_secret: &[u8; 32],
+    line_id: &'static str,
+) -> Result<(), String> {
+    let host = StdHost::new();
+    let target_id = running_target_id()?;
+    let image_content_digest = running_image_digest()?;
+    match receive(line)? {
+        Ingress::Hello {
+            protocol,
+            session_secret: mut offered,
+        } => {
+            let accepted = protocol == PROTOCOL && authenticate(&mut offered, session_secret);
+            offered.fill(0);
+            if !accepted {
+                send(
+                    line,
+                    &Egress::Refused {
+                        protocol: PROTOCOL,
+                        code: "rendezvous-secret",
+                    },
+                )?;
+                return Err("rendezvous hello did not prove the code secret".into());
+            }
+        }
+        _ => return Err("rendezvous did not begin with hello".into()),
+    }
+    send(
+        line,
+        &Egress::Host {
+            protocol: PROTOCOL,
+            friendly_label: "This running computer",
+            target_id,
+            image_content_digest: &image_content_digest,
+            advertisement: host.advertisement(),
+            lines: [line_id],
+        },
+    )?;
+
+    let (spore_id, image_id, claim, mut secret) = match receive(line)? {
+        Ingress::Invite {
+            protocol,
+            session_secret: mut offered,
+            spore_id,
+            image_id,
+            claim,
+            secret,
+        } => {
+            let accepted = protocol == PROTOCOL && authenticate(&mut offered, session_secret);
+            offered.fill(0);
+            if !accepted {
+                send(
+                    line,
+                    &Egress::Refused {
+                        protocol: PROTOCOL,
+                        code: "rendezvous-secret",
+                    },
+                )?;
+                return Err("rendezvous invitation did not prove the code secret".into());
+            }
+            (spore_id, image_id, claim, secret)
+        }
+        _ => return Err("rendezvous expected one Body invitation".into()),
+    };
+    let result = create_join(host.advertisement(), &spore_id, &image_id, &claim, &secret);
+    secret.fill(0);
+    let join = result?;
+    send(line, &join)?;
+    let _ = line.close();
+    Ok(())
+}
+
+fn running_target_id() -> Result<&'static str, String> {
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("linux", "x86_64") => Ok("std/x86_64/computer"),
+        ("windows", "x86_64") => Ok("std/x86_64/windows-computer"),
+        ("macos", "aarch64") => Ok("std/aarch64/macos-computer"),
+        (os, architecture) => Err(format!(
+            "no reviewed Crèche running-Host profile is installed for {os}/{architecture}"
+        )),
+    }
+}
+
+fn running_image_digest() -> Result<String, String> {
+    let executable = std::env::current_exe()
+        .map_err(|error| format!("locate running Host executable: {error}"))?;
+    let bytes = fs::read(&executable).map_err(|error| {
+        format!(
+            "read running Host executable {}: {error}",
+            executable.display()
+        )
+    })?;
+    Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
+}
+
+fn create_join<'a>(
+    advertisement: &'a HostAdvertisement,
+    spore_id: &'a str,
+    image_id: &'a str,
+    claim: &'a SpawnInvitationClaim,
+    secret: &[u8],
+) -> Result<Egress<'a>, String> {
+    bounded_id(spore_id, "spore")?;
+    bounded_id(image_id, "IMAGE")?;
+    let now = now_millis()?;
+    claim
+        .inspect(now)
+        .map_err(|error| format!("inspect Body invitation: {error:?}"))?;
+    let secret: [u8; 32] = secret
+        .try_into()
+        .map_err(|_| "Body invitation secret has the wrong bound")?;
+    let secret = SpawnInvitationSecret::from_csprng_bytes(secret)
+        .map_err(|error| format!("inspect Body invitation secret: {error:?}"))?;
+    let transcript = claim.signing_transcript(
+        &advertisement.host_id,
+        &advertisement.boot_id,
+        advertisement.offer_generation,
+    );
+    Ok(Egress::Join {
+        protocol: PROTOCOL,
+        spore_id,
+        image_id,
+        advertisement,
+        invitation_id: claim.invitation_id.as_str(),
+        body_id: claim.body_id.as_str(),
+        host_id: advertisement.host_id.as_str(),
+        boot_id: advertisement.boot_id.as_str(),
+        nonce: claim.nonce,
+        signature: secret.sign(&transcript).to_vec(),
+        observed_at_millis: now,
+    })
+}
+
+fn receive(line: &mut impl RendezvousLine) -> Result<Ingress, String> {
+    let mut bytes = line.receive()?;
+    let decoded =
+        serde_json::from_slice(&bytes).map_err(|error| format!("decode rendezvous frame: {error}"));
+    bytes.fill(0);
+    decoded
+}
+
+fn send(line: &mut impl RendezvousLine, frame: &Egress<'_>) -> Result<(), String> {
+    let bytes =
+        serde_json::to_vec(frame).map_err(|error| format!("encode rendezvous frame: {error}"))?;
+    if bytes.len() > MAXIMUM_FRAME_BYTES {
+        return Err("rendezvous response exceeds its finite bound".into());
+    }
+    line.send(&bytes)
+}
+
+fn encode_code(port: u16, secret: &[u8; 32]) -> String {
+    format!("{CODE_PREFIX}-{port:04X}-{}", hex(secret))
+}
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02X}")).collect()
+}
+
+fn bounded_id(value: &str, name: &str) -> Result<(), String> {
+    if value.is_empty() || value.len() > MAXIMUM_ID_BYTES || value.chars().any(char::is_whitespace)
+    {
+        return Err(format!(
+            "{name} identity is missing or outside its finite bound"
+        ));
+    }
+    Ok(())
+}
+
+fn constant_time_equal(offered: &[u8], expected: &[u8; 32]) -> bool {
+    let mut difference = offered.len() ^ expected.len();
+    for (index, expected_byte) in expected.iter().copied().enumerate() {
+        difference |= usize::from(offered.get(index).copied().unwrap_or(0) ^ expected_byte);
+    }
+    difference == 0
+}
+
+fn authenticate(offered: &mut [u8], expected: &[u8; 32]) -> bool {
+    constant_time_equal(offered, expected)
+}
+
+fn now_millis() -> Result<u64, String> {
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| format!("system clock precedes Unix epoch: {error}"))?
+        .as_millis();
+    u64::try_from(millis).map_err(|_| "system clock exceeds rendezvous representation".into())
+}
+
+fn debug<T: core::fmt::Debug>(context: &'static str) -> impl FnOnce(T) -> String {
+    move |error| format!("{context}: {error:?}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn code_is_bounded_and_carries_no_host_or_body_identity() {
+        let code = encode_code(4173, &[0xab; 32]);
+        assert_eq!(code, format!("C1-WS-104D-{}", "AB".repeat(32)));
+        assert!(code.len() < 96);
+    }
+
+    #[test]
+    fn secret_comparison_checks_length_and_content() {
+        assert!(constant_time_equal(&[7; 32], &[7; 32]));
+        assert!(!constant_time_equal(&[7; 31], &[7; 32]));
+        assert!(!constant_time_equal(&[7; 32], &[8; 32]));
+    }
+
+    #[test]
+    fn serial_stream_line_retains_one_bounded_frame_per_newline() {
+        let mut output = Vec::new();
+        let mut line = SerialStreamLine {
+            reader: std::io::Cursor::new(b"{\"kind\":\"hello\"}\r\n"),
+            writer: &mut output,
+        };
+        assert_eq!(line.receive().unwrap(), b"{\"kind\":\"hello\"}");
+        line.send(b"{\"kind\":\"host\"}").unwrap();
+        assert_eq!(output, b"{\"kind\":\"host\"}\n");
+    }
+
+    #[test]
+    fn serial_stream_completes_the_same_one_use_invitation_protocol() {
+        let rendezvous_secret = [31_u8; 32];
+        let invitation_secret = [37_u8; 32];
+        let hello = serde_json::json!({
+            "kind":"hello", "protocol":1, "session_secret":rendezvous_secret,
+        });
+        let invite = serde_json::json!({
+            "kind":"invite", "protocol":1, "session_secret":rendezvous_secret,
+            "spore_id":"spore/serial", "image_id":"image/serial",
+            "claim": {"invitation_id":"invitation/serial", "body_id":"body/serial",
+                "nonce":vec![17;32], "expires_at_millis":4_000_000_000_000_u64},
+            "secret":invitation_secret,
+        });
+        let input = format!("{}\n{}\n", hello, invite);
+        let mut output = Vec::new();
+        let mut line = SerialStreamLine {
+            reader: std::io::Cursor::new(input.into_bytes()),
+            writer: &mut output,
+        };
+        run_session(&mut line, &rendezvous_secret, "conduit-line/serial-text@1").unwrap();
+        let frames = output
+            .split(|byte| *byte == b'\n')
+            .filter(|frame| !frame.is_empty())
+            .map(|frame| serde_json::from_slice::<serde_json::Value>(frame).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(frames.len(), 2);
+        assert_eq!(frames[0]["kind"], "host");
+        assert_eq!(frames[0]["lines"][0], "conduit-line/serial-text@1");
+        assert_eq!(frames[1]["kind"], "join");
+        assert_eq!(frames[1]["spore_id"], "spore/serial");
+        assert_eq!(frames[1]["signature"].as_array().unwrap().len(), 64);
+        assert!(!output.windows(32).any(|window| window == invitation_secret));
+    }
+}

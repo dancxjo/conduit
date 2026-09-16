@@ -11,6 +11,8 @@ const PRODUCTS = Object.freeze({
   "conduitos/riscv64/virt": Object.freeze({ architecture: "riscv64", machine: "virt", output: "conduitos-riscv64-virt.iso", manifest: "conduitos-riscv64-virt-release.json", builder: "conduit-host-conduitos/build-riscv64@1", deployment: "conduit-host-conduitos/boot-riscv64@1" }),
   "conduitos/loongarch64/virt": Object.freeze({ architecture: "loongarch64", machine: "virt", output: "conduitos-loongarch64-virt.iso", manifest: "conduitos-loongarch64-virt-release.json", builder: "conduit-host-conduitos/build-loongarch64@1", deployment: "conduit-host-conduitos/boot-loongarch64@1" }),
 });
+const SPORE_MAGIC = Buffer.from("CONDUIT_SPORE_MEDIA@1\0", "utf8");
+const SPORE_REGION_BYTES = 4096;
 
 export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
   await mkdir(output, { recursive: true });
@@ -26,6 +28,7 @@ export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
     const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
     if (digest !== `sha256:${build.image.sha256}` || build.image_id !== `image:${digest}`) throw new Error(`stale ${targetId} IMAGE content identity`);
     await copyFile(sourceImage, join(output, product.output));
+    const sporeRegion = locateSporeRegion(bytes, targetId);
     const release = {
       schema: "conduit.conduitos/creche-release@1",
       target_id: targetId,
@@ -46,6 +49,7 @@ export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
       toolchain_identity: build.toolchain_identity,
       boot_assets: build.boot_assets,
       artifact: { role: build.image.role, format: "hybrid-iso", path: product.output, bytes: bytes.byteLength, sha256: digest },
+      spore_region: sporeRegion,
       expected_offers: build.resolved_build.host_operations,
       bounds: build.resolved_build.bounds,
       boot_claimed: false,
@@ -55,6 +59,28 @@ export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
     releases.push(release);
   }
   return Object.freeze(releases);
+}
+
+function locateSporeRegion(bytes, targetId) {
+  const candidates = [];
+  for (let offset = bytes.indexOf(SPORE_MAGIC); offset >= 0; offset = bytes.indexOf(SPORE_MAGIC, offset + 1)) {
+    if (offset + SPORE_REGION_BYTES <= bytes.byteLength
+      && bytes.readUInt32LE(offset + 24) === 0
+      && bytes.readUInt32LE(offset + 28) === 0
+      && !bytes.subarray(offset + 32, offset + SPORE_REGION_BYTES).some((byte) => byte !== 0xff)) {
+      candidates.push(offset);
+    }
+  }
+  if (candidates.length !== 1) {
+    throw new Error(`${targetId} IMAGE must contain one exact ConduitOS spore region`);
+  }
+  const [offset] = candidates;
+  return Object.freeze({
+    schema: "conduit.conduitos/spore-region@1",
+    offset,
+    bytes: SPORE_REGION_BYTES,
+    encoding: "conduit.spore/native-media-provision@1",
+  });
 }
 
 function requireResolvedImage(image, build, targetId) {
