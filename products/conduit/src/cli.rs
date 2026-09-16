@@ -84,6 +84,11 @@ pub(crate) enum PatchbayHost {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum HostCommand {
+    /// Install, run, or inspect the durable local Host owner.
+    Service {
+        #[command(subcommand)]
+        command: HostServiceCommand,
+    },
     Check {
         source: PathBuf,
     },
@@ -97,6 +102,9 @@ pub(crate) enum HostCommand {
     },
     /// Offer this already-running local Host to the browser Crèche.
     Rendezvous {
+        /// Installed durable Host state owned by the running service.
+        #[arg(long)]
+        state_dir: PathBuf,
         /// Line carrier used to reach this running Host.
         #[arg(long, value_enum, default_value_t = RendezvousCarrier::Websocket)]
         carrier: RendezvousCarrier,
@@ -112,6 +120,26 @@ pub(crate) enum RendezvousCarrier {
     Websocket,
     /// Newline-framed serial stream on standard input and output.
     Serial,
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum HostServiceCommand {
+    /// Verify and install one reviewed release bundle without replacing durable identity.
+    Install {
+        manifest: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
+    /// Run the durable Host in the foreground for a platform service manager.
+    Run {
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
+    /// Print the retained Host identity and current runtime status.
+    Status {
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -154,15 +182,36 @@ mod tests {
             Command::Creche
         ));
         assert!(matches!(
-            Cli::try_parse_from(["conduit", "host", "rendezvous", "--timeout-seconds", "30"])
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "service",
+                "status",
+                "--state-dir",
+                "installed-host",
+            ])
+            .expect("durable Host service entrance parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Service {
+                    command: HostServiceCommand::Status { state_dir }
+                }
+            } if state_dir == std::path::Path::new("installed-host")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit", "host", "rendezvous", "--state-dir", "installed-host",
+                "--timeout-seconds", "30"
+            ])
                 .expect("Host rendezvous entrance parses")
                 .command,
             Command::Host {
                 command: HostCommand::Rendezvous {
+                    state_dir,
                     carrier: RendezvousCarrier::Websocket,
                     timeout_seconds: 30
                 }
-            }
+            } if state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "patchbay", "--on", "browser"])
