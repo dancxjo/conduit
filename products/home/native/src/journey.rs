@@ -4,7 +4,9 @@ use conduit_home_model::{
     PLAY_OBSERVED_STEP_ID, PROMPT_OPENED_STEP_ID,
 };
 
-use crate::{NativeHomeController, NativeHomeRequest};
+use crate::{
+    NativeHomeController, NativeHomeRequest, execute_installed_form, open_patchbay_presentation,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NativeHomeJourneyReceipt {
@@ -12,6 +14,9 @@ pub struct NativeHomeJourneyReceipt {
     pub host_face: &'static str,
     pub step_ids: Vec<&'static str>,
     pub final_revision: u32,
+    pub form_plan_id: String,
+    pub form_play_id: String,
+    pub patchbay_presentation_id: String,
 }
 
 pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
@@ -36,7 +41,9 @@ pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
         run == Some(NativeHomeRequest::RunForm(0)),
         "Prompt did not preserve the exact Form request",
     )?;
-    steps.extend([FORM_RUN_STEP_ID, PLAY_OBSERVED_STEP_ID]);
+    steps.push(FORM_RUN_STEP_ID);
+    let execution = execute_installed_form(0)?;
+    steps.push(PLAY_OBSERVED_STEP_ID);
     home.report_request(run.as_ref().expect("checked request"), Ok(()));
 
     home.submit_text("home");
@@ -46,6 +53,7 @@ pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
         patchbay == Some(NativeHomeRequest::OpenPatchbay),
         "Patchbay did not preserve the exact Host request",
     )?;
+    let patchbay_opening = open_patchbay_presentation()?;
     steps.push(PATCHBAY_OPENED_STEP_ID);
     home.report_request(patchbay.as_ref().expect("checked request"), Ok(()));
 
@@ -68,6 +76,9 @@ pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
         },
         step_ids: steps,
         final_revision: home.revision(),
+        form_plan_id: execution.plan_id,
+        form_play_id: execution.active_play_id,
+        patchbay_presentation_id: patchbay_opening.presentation_id,
     })
 }
 
@@ -92,5 +103,8 @@ mod tests {
         assert_eq!(receipt.step_ids, JOURNEY_STEP_IDS);
         assert!(receipt.final_revision > 1);
         assert!(!receipt.host_face.is_empty());
+        assert!(!receipt.form_plan_id.is_empty());
+        assert!(!receipt.form_play_id.is_empty());
+        assert!(!receipt.patchbay_presentation_id.is_empty());
     }
 }

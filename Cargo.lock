@@ -727,9 +727,13 @@ dependencies = [
 name = "conduit-home-native"
 version = "0.1.0"
 dependencies = [
+ "conduit",
+ "conduit-core",
  "conduit-home-model",
  "conduit-presentation",
  "embedded-graphics",
+ "patchbay-hosted",
+ "patchbay-model",
  "softbuffer",
  "winit",
 ]

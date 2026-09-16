@@ -5,8 +5,12 @@ edition = "2024"
 publish = false
 
 [dependencies]
+conduit = { path = "../../conduit" }
+conduit-core = { path = "../../../architecture/core" }
 conduit-home-model = { path = "../model" }
 conduit-presentation = { path = "../../../semantics/presentation" }
+patchbay-hosted = { path = "../../patchbay/hosted" }
+patchbay-model = { path = "../../patchbay/model" }
 embedded-graphics = "=0.8.1"
 softbuffer = { version = "0.4", default-features = false }
 winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
