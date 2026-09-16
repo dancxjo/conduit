@@ -223,8 +223,8 @@ export async function runBrowserRemoteFragment({ remote, line, perform, signal }
   const requireCurrent = () => {
     if (signal.aborted) throw new Error("browser remote fragment cancelled");
   };
-  const relayOne = async () => {
-    requireCurrent();
+  const relayOne = async (requireLive = true) => {
+    if (requireLive) requireCurrent();
     const exchange = remote.exchange(await line.receiveSessionFrame());
     await sendAll(line, exchange.responses);
     return exchange;
@@ -275,6 +275,11 @@ export async function runBrowserRemoteFragment({ remote, line, perform, signal }
   } catch (error) {
     if (signal.aborted) {
       await sendAll(line, remote.cancel(1));
+      const terminal = new Set();
+      while (terminal.size < remote.endpoints.length) {
+        const exchange = await relayOne(false);
+        if (exchange.message === "terminal" && !exchange.active) terminal.add(exchange.endpoint);
+      }
     }
     throw error;
   }

@@ -116,15 +116,20 @@ test("remote driver performs local effects and relays opaque frames through bila
 test("aborting a pending browser effect emits exact cancellation frames", async () => {
   const controller = new AbortController();
   const sent = [];
+  const incoming = [Uint8Array.of(20), Uint8Array.of(21), Uint8Array.of(22)];
   const line = { schema: "conduit.creche/joined-host-line@1",
     async sendSessionFrame(frame) { sent.push([...frame]); },
-    async receiveSessionFrame() { return Uint8Array.of(20); } };
-  let exchanged = false, cancelled = 0;
+    async receiveSessionFrame() { return incoming.shift(); } };
+  const exchanges = [
+    { endpoint: 0, message: "ready", active: true, responses: [] },
+    { endpoint: 0, message: "cancelled", active: false, responses: [] },
+    { endpoint: 0, message: "terminal", active: false, responses: [] },
+  ];
+  let cancelled = 0;
   const remote = {
     identity: { active_play_id: "play/browser" }, endpoints: [0], egressEndpoints: [],
     initialFrames: [Uint8Array.of(1), Uint8Array.of(2)],
-    exchange() { assert.equal(exchanged, false); exchanged = true;
-      return { endpoint: 0, message: "ready", active: true, responses: [] }; },
+    exchange() { return exchanges.shift(); },
     drive() { return { status: 1, output: { effect_kind: "audio-capture" } }; },
     cancel(code) { assert.equal(code, 1); cancelled++; return [Uint8Array.of(8), Uint8Array.of(9)]; },
   };
