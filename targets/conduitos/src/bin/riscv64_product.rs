@@ -7,7 +7,7 @@ compile_error!("conduitos-riscv64-product is only the RISC-V64 product Host");
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduitos::{
     allocation::BOOT_ARENA,
-    arch, boot,
+    arch,
     boot::{BootRecord, Firmware, RuntimeArena},
     dual_region_composition, dual_region_plan,
     fabrication::{EMBEDDED_FABRICATION, IMPL_LINEAR_PRESENTER},
@@ -17,7 +17,6 @@ use conduitos::{
     observatory,
     offer::CpuFeatures,
     offer_fabrication::ImageBoundHostOffer,
-    spore_join,
 };
 use core::panic::PanicInfo;
 
@@ -112,20 +111,6 @@ pub extern "C" fn conduitos_riscv64_product_start() -> ! {
     let mut prepared =
         dual_region_plan::prepare(&identities, &offer, EMBEDDED_FABRICATION.build_id)
             .unwrap_or_else(|error| refuse(error.as_str()));
-    let region = boot::spore_module().unwrap_or_else(|| refuse("spore-boot-module-missing"));
-    if let Some(join) = spore_join::encode_region(
-        region,
-        EMBEDDED_FABRICATION.target,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.build_id,
-        &prepared.advertisement,
-    )
-    .unwrap_or_else(|error| refuse(error))
-    {
-        arch::present(b"CONDUIT_SPORE_JOIN ");
-        arch::present(&join);
-        arch::present(b"\n");
-    }
     let image_start = core::ptr::addr_of!(__conduitos_image_start) as usize;
     let image_end = core::ptr::addr_of!(__conduitos_image_end) as usize;
     let boot_record = BootRecord {
