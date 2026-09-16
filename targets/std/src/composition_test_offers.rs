@@ -26,6 +26,7 @@ pub(super) fn extend(capabilities: &mut Vec<CapabilityOffer>) {
         installed_std::test_json_source_offer(),
         installed_std::test_json_sink_offer(),
         conduit_std_offers::deterministic_speech_offer(),
+        conduit_std_offers::deterministic_streaming_speech_offer(),
         installed_std::test_speech_sink_offer(),
     ]);
 }
