@@ -23,7 +23,7 @@ struct JourneyContract {
     steps: Vec<ContractStep>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct ContractStep {
     step_id: String,
@@ -34,7 +34,7 @@ struct ContractStep {
     non_claims: Vec<String>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "kebab-case")]
 enum ProvenanceField {
     Body,
@@ -108,7 +108,7 @@ struct ThreeBodyJourneyIndex {
     disposition: &'static str,
     journey_id: String,
     git_commit: String,
-    ordered_step_ids: Vec<String>,
+    semantic_steps: Vec<ContractStep>,
     tracks: Vec<BodyTrack>,
 }
 
@@ -135,11 +135,7 @@ pub(super) fn run(
         disposition: "complete",
         journey_id: contract.journey_id,
         git_commit: contract.git_commit,
-        ordered_step_ids: contract
-            .steps
-            .into_iter()
-            .map(|step| step.step_id)
-            .collect(),
+        semantic_steps: contract.steps,
         tracks,
     };
     let bytes = serde_json::to_vec_pretty(&index)?;
