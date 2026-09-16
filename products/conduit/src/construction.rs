@@ -77,8 +77,8 @@ pub(crate) fn host(command: HostCommand) -> Result<(), String> {
 
 pub(crate) fn body(command: BodyCommand) -> Result<(), String> {
     match command {
-        BodyCommand::Invite { .. } => {
-            Err("Body invitations require the installed durable Host entrance".into())
+        BodyCommand::Invite { .. } | BodyCommand::Accept { .. } => {
+            Err("Body invitation operations require installed durable Host state".into())
         }
         BodyCommand::Check { source } => {
             let checked = crate::body_product::load(&source)?;

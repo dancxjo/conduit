@@ -1,7 +1,6 @@
 //! Installed durable Host ownership and its platform-service handoff.
 
 use crate::cli::HostServiceCommand;
-use conduit_body::{AdmissionManager, SpawnInvitationSecret};
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_std_host::{StdHost, StdHostConfig};
 use serde::{Deserialize, Serialize};
@@ -16,9 +15,12 @@ use std::{
 const INSTALL_SCHEMA: &str = "conduit.install/durable-host@1";
 const RUNTIME_SCHEMA: &str = "conduit.install/durable-host-runtime@1";
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
-const INVITATION_SCHEMA: &str = "conduit.body/spawn-invitation@1";
 const MAXIMUM_RELEASE_FILES: usize = 32;
 const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
+
+#[path = "durable_host_invitation.rs"]
+mod invitation;
+pub(crate) use invitation::{accept_body_invitation, issue_body_invitation};
 
 #[derive(Debug, Deserialize)]
 struct ReleaseManifest {
@@ -61,13 +63,6 @@ struct RuntimeStatus {
     process_id: u32,
     release_bundle_sha256: String,
     body_id: Option<String>,
-}
-
-#[derive(Serialize)]
-struct PortableInvitation {
-    schema: &'static str,
-    claim: conduit_body::SpawnInvitationClaim,
-    secret: [u8; 32],
 }
 
 pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
@@ -123,69 +118,6 @@ fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
     });
     write_json_atomic(&install_path, &installation)?;
     println!("durable Host now owns Body {}", evidence.body_id.as_str());
-    Ok(())
-}
-
-pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Result<(), String> {
-    if !(1..=600).contains(&ttl_seconds) {
-        return Err("invitation lifetime must be between 1 and 600 seconds".into());
-    }
-    let installation = read_installation(&state_dir.join("installation.json"))?;
-    let body = installation
-        .body_state
-        .as_ref()
-        .ok_or("this installed Host does not own a Body")?;
-    let biography_bytes = bounded_read(Path::new(&body.biography_path), 2 * 1024 * 1024)?;
-    if digest(&biography_bytes) != body.biography_sha256 {
-        return Err("retained Body biography no longer matches its exact identity".into());
-    }
-    let biography: conduit_body::BodyBiographyEvidence =
-        serde_json::from_slice(&biography_bytes)
-            .map_err(|error| format!("retained Body biography: {error}"))?;
-    biography
-        .validate()
-        .map_err(|error| format!("retained Body biography refused: {error:?}"))?;
-    if biography.body_id.as_str() != body.body_id {
-        return Err("retained Body biography belongs to another Body".into());
-    }
-    let body_id = biography.body_id;
-    let admission_path = state_dir.join("body").join("admission.json");
-    let mut manager = if admission_path.exists() {
-        let bytes = bounded_read(&admission_path, 256 * 1024)?;
-        let manager: AdmissionManager = serde_json::from_slice(&bytes)
-            .map_err(|error| format!("Body admission state: {error}"))?;
-        if manager.body_id != body_id {
-            return Err("Body admission state belongs to another Body".into());
-        }
-        manager
-    } else {
-        AdmissionManager::new(body_id)
-            .map_err(|error| format!("initialize Body admission: {error:?}"))?
-    };
-    let now_millis = current_time_millis()?;
-    let expires_at_millis = now_millis
-        .checked_add(ttl_seconds.saturating_mul(1_000))
-        .ok_or("invitation expiry overflow")?;
-    let mut secret_bytes = [0_u8; 32];
-    let mut nonce = [0_u8; 32];
-    getrandom::fill(&mut secret_bytes)
-        .map_err(|error| format!("create invitation secret: {error}"))?;
-    getrandom::fill(&mut nonce).map_err(|error| format!("create invitation nonce: {error}"))?;
-    let secret = SpawnInvitationSecret::from_csprng_bytes(secret_bytes)
-        .map_err(|error| format!("create invitation secret: {error:?}"))?;
-    let invitation = manager
-        .issue_spawn_invitation(secret, nonce, now_millis, expires_at_millis)
-        .map_err(|error| format!("issue Body invitation: {error:?}"))?;
-    write_json_atomic(&admission_path, &manager)?;
-    let portable = PortableInvitation {
-        schema: INVITATION_SCHEMA,
-        claim: invitation.claim(),
-        secret: invitation.secret.copy_for_target_provisioning(),
-    };
-    let encoded = serde_json::to_string(&portable)
-        .map_err(|error| format!("encode Body invitation: {error}"))?;
-    println!("{encoded}");
-    secret_bytes.fill(0);
     Ok(())
 }
 
@@ -557,7 +489,9 @@ fn make_executable(_path: &Path) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
+    use super::invitation::{PortableInvitation, INVITATION_SCHEMA};
     use super::*;
+    use conduit_body::{AdmissionManager, SpawnInvitationSecret};
     use std::path::PathBuf;
 
     fn fixture() -> (PathBuf, PathBuf) {
@@ -706,6 +640,76 @@ mod tests {
             .unwrap()
             .windows(32)
             .any(|window| window == [0_u8; 32]));
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn installed_host_accepts_exact_invitation_without_claiming_membership_or_play() {
+        let (manifest, state) = fixture();
+        let installation = install(&manifest, &state).unwrap();
+        let runtime = start_runtime(&state).unwrap();
+        let body_id = conduit_body::Body::born(
+            "source/invited".into(),
+            "checked/invited".into(),
+            1,
+            conduit_core::SignId::from("sign/invited/born"),
+        )
+        .unwrap()
+        .body_id;
+        let mut manager = AdmissionManager::new(body_id.clone()).unwrap();
+        let secret_bytes = [7_u8; 32];
+        let invitation = manager
+            .issue_spawn_invitation(
+                SpawnInvitationSecret::from_csprng_bytes(secret_bytes).unwrap(),
+                [8_u8; 32],
+                10,
+                u64::MAX,
+            )
+            .unwrap_err();
+        assert_eq!(invitation, conduit_body::AdmissionRefusal::InvalidExpiry);
+
+        let now = current_time_millis().unwrap();
+        let invitation = manager
+            .issue_spawn_invitation(
+                SpawnInvitationSecret::from_csprng_bytes(secret_bytes).unwrap(),
+                [8_u8; 32],
+                now,
+                now + 30_000,
+            )
+            .unwrap();
+        let path = state.parent().unwrap().join("invitation.json");
+        fs::write(
+            &path,
+            serde_json::to_vec(&PortableInvitation {
+                schema: INVITATION_SCHEMA.into(),
+                claim: invitation.claim(),
+                secret: secret_bytes,
+            })
+            .unwrap(),
+        )
+        .unwrap();
+
+        accept_body_invitation(&path, &state, true).unwrap();
+
+        let pending: serde_json::Value = serde_json::from_slice(
+            &bounded_read(&state.join("body/pending-join.json"), 256 * 1024).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(pending["invitation"]["claim"]["body_id"], body_id.as_str());
+        assert_eq!(
+            pending["request"]["host_advertisement"]["host_id"],
+            installation.host_id
+        );
+        assert_eq!(
+            pending["request"]["host_advertisement"]["boot_id"],
+            runtime.boot_id
+        );
+        assert_eq!(pending["request"]["membership_admitted"], false);
+        assert_eq!(pending["request"]["plan_created"], false);
+        assert_eq!(pending["request"]["play_created"], false);
+        assert!(pending["request"]["host_advertisement"]["capabilities"]
+            .as_array()
+            .is_some_and(|offers| !offers.is_empty()));
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 }
