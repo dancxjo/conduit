@@ -1,9 +1,13 @@
+mod executor;
 mod journey;
 mod layout;
+mod patchbay;
 mod presentation;
 
+pub use executor::*;
 pub use journey::*;
 pub use layout::*;
+pub use patchbay::*;
 pub use presentation::*;
 
 pub const INSTALLED_FORMS: [&str; 4] = ["Hello", "Text Lab", "Clock", "Count"];
@@ -99,7 +103,7 @@ impl NativeHomeController {
                     format!("Selected Form {}.", INSTALLED_FORMS[*index])
                 }
                 NativeHomeRequest::RunForm(index) => {
-                    format!("Requested Form {} on this Host.", INSTALLED_FORMS[*index])
+                    format!("Completed Form {} on this Host.", INSTALLED_FORMS[*index])
                 }
             },
             Err(error) => format!("Host refused the request: {error}"),

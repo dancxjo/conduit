@@ -4,7 +4,8 @@ use std::{num::NonZeroU32, process::Command, rc::Rc};
 
 use conduit_home_model::{HomeEvent, HomeView};
 use conduit_home_native::{
-    NativeHomeController, NativeHomeLayout, NativeHomeRequest, run_native_home_journey,
+    NativeHomeController, NativeHomeLayout, NativeHomeRequest, execute_installed_form,
+    run_native_home_journey,
 };
 use render::{Canvas, render};
 use softbuffer::{Context, Surface};
@@ -20,9 +21,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("--journey")) {
         let receipt = run_native_home_journey()?;
         println!(
-            "HOME JOURNEY COMPLETE face={} revision={} steps={}",
+            "HOME JOURNEY COMPLETE face={} revision={} form_plan={} form_play={} patchbay_presentation={} steps={}",
             receipt.host_face,
             receipt.final_revision,
+            receipt.form_plan_id,
+            receipt.form_play_id,
+            receipt.patchbay_presentation_id,
             receipt.step_ids.join(",")
         );
         return Ok(());
@@ -76,11 +80,13 @@ impl NativeHome {
             NativeHomeRequest::OpenPatchbay => spawn("patchbay-native", &["--front-door"]),
             NativeHomeRequest::OpenCreche => spawn("conduit", &["creche"]),
             NativeHomeRequest::OpenForm(_) => Ok(()),
-            NativeHomeRequest::RunForm(_) => {
-                Err("installed Form source is not bound to this native package")
-            }
+            NativeHomeRequest::RunForm(index) => execute_installed_form(*index).map(|_| ()),
         };
-        self.controller.report_request(&request, outcome);
+        let reported = match &outcome {
+            Ok(()) => Ok(()),
+            Err(error) => Err(error.as_str()),
+        };
+        self.controller.report_request(&request, reported);
     }
 
     fn draw(&mut self) -> Result<(), String> {
@@ -219,10 +225,10 @@ impl ApplicationHandler for NativeHome {
     }
 }
 
-fn spawn(program: &str, arguments: &[&str]) -> Result<(), &'static str> {
+fn spawn(program: &str, arguments: &[&str]) -> Result<(), String> {
     Command::new(program)
         .args(arguments)
         .spawn()
         .map(|_| ())
-        .map_err(|_| "required native application is not installed beside Conduit")
+        .map_err(|_| "required native application is not installed beside Conduit".into())
 }
