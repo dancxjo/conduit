@@ -14,6 +14,7 @@ use super::final_normalized_pattern_operation::FinalNormalizedPatternOperation;
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
+use super::generated_speech_commit_operation::GeneratedSpeechCommitOperation;
 use super::house_prompt_operation::HousePromptOperation;
 use super::http::{HttpClientOperation, HttpServerOperation};
 use super::image_text_operation::ImageTextOperation;
@@ -39,6 +40,7 @@ use super::pcm_profile_conversion_operation::PcmProfileConversionOperation;
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
+use super::recognized_turn_commit_operation::RecognizedTurnCommitOperation;
 use super::record_delivery_operation::RecordDeliveryStatusOperation;
 use super::record_queue_operation::RecordQueueOperation;
 use super::record_temporal_operation::{RecordExactlyOneOperation, RecordSingletonStreamOperation};
@@ -89,6 +91,7 @@ pub(super) enum InstalledOperation {
     MicrophoneClip(MicrophoneClipOperation),
     AddressDetect(super::address_detect_operation::AddressDetectOperation),
     RecognitionText(super::recognition_text_operation::RecognitionTextOperation),
+    RecognizedTurnCommit(RecognizedTurnCommitOperation),
     TypedState(Box<crate::state_value::TypedStateOperation>),
     KeyboardInput(KeyboardInputOperation),
     ButtonInput(super::keyboard_input_operation::button::ButtonOperation),
@@ -160,6 +163,7 @@ pub(super) enum InstalledOperation {
     BodyConversationContext(BodyConversationContextOperation),
     LocalModel(LocalModelOperation),
     ModelText(ModelTextOperation),
+    GeneratedSpeechCommit(GeneratedSpeechCommitOperation),
     Navigation(NavigationOperation),
     VectorSearch(VectorSearchOperation),
     HttpClient(HttpClientOperation),

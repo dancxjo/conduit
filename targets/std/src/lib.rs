@@ -81,6 +81,8 @@ pub mod hosted_reminder;
 pub mod hosted_resource;
 pub mod hosted_speech;
 pub mod hosted_speech_recognition;
+mod voice_host;
+pub use voice_host::VoiceHostProviders;
 mod hosted_spoken_output_host;
 pub mod hosted_synth;
 pub mod hosted_vector_index;
@@ -465,9 +467,15 @@ impl StdHost {
     ) -> Result<(), String> {
         let newly_offered = self.body_conversation_context.is_none();
         if newly_offered {
-            self.advertisement
+            let offer = conduit_std_offers::body_conversation_context_std_offer();
+            if !self
+                .advertisement
                 .capabilities
-                .push(conduit_std_offers::body_conversation_context_std_offer());
+                .iter()
+                .any(|installed| installed.capability_id == offer.capability_id)
+            {
+                self.advertisement.capabilities.push(offer);
+            }
             self.advertisement
                 .capabilities
                 .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
