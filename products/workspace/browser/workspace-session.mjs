@@ -85,7 +85,7 @@ export function openWorkspaceSession({ host, storage }) {
       return call('conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(at));
     },
     selectForm(form) { request('SelectForm', { form }); return save(); },
-    libraryView(source, query, revision) { return request('LibraryView', { ...here, source, query, revision }, true); },
+    libraryView(source, query, revision, joinedLines = []) { return request('LibraryView', { ...here, source, query, revision, joined_lines: joinedLines }, true); },
     async changeWorkset(edit, form, source, expected_revision) {
       if (persistenceFailure) throw persistenceFailure;
       await write;
@@ -95,9 +95,9 @@ export function openWorkspaceSession({ host, storage }) {
     foreground: () => workspace ? request('Current').foreground : null,
     arrive() { if (!workspace) request('Arrive', { advertisement: localAdvertisement }); return save(); },
     evidence: () => workspace ? request('Current') : null,
-    async propose(source) {
+    async propose(source, joinedLines = [], browserAudioAuthority = false) {
       if (persistenceFailure) throw persistenceFailure;
-      const proposal = request('Propose', { ...here, source }); workspace = request('Current'); await save(); return proposal;
+      const proposal = request('Propose', { ...here, source, joined_lines: joinedLines, browser_audio_authority: browserAudioAuthority }); workspace = request('Current'); await save(); return proposal;
     },
     async started(start) { request('Started', { ...here, play: start.play, wake_at_start: start.wake_at_start }); await save(); },
     async lull(play) { request('Lull', { ...here, terminated_play: play ?? null }); await save(); },

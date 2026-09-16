@@ -180,7 +180,7 @@ export async function startApplication(application) {
         surface.hidden = true; inspection.hidden = true; library.show();
       });
       activities.append(browse);
-      if (!play) play = openWorkspacePlay({ host, session, source, foregroundForm: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-form-output]'), onState(state) {
+      if (!play) play = openWorkspacePlay({ host, session, source, planningLines: () => membership?.planningLines() ?? [], foregroundForm: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-form-output]'), onState(state) {
         playback = state;
         root.querySelector('[data-play-state]').textContent = state.state;
         root.querySelector('[data-body-state]').textContent = session.current().state.toLowerCase();
@@ -208,7 +208,7 @@ export async function startApplication(application) {
         selected = session.foreground()?.checked_form_id;
         library.hide(); inspection.hidden = true;
         render();
-        if (!installed || session.current().state === 'LULLED') await play.wake();
+        if (!installed || session.current().state === 'LULLED') await play.wake(true);
         if (!input.disabled && !input.hidden) input.focus();
       } finally { editing = false; }
     };
@@ -223,6 +223,7 @@ export async function startApplication(application) {
       } finally { editing = false; }
     };
     library = openWorkspaceLibrary({ panel: root.querySelector('#workspace-library'), session, source: catalogSource, inventory: catalog,
+      planningLines: () => membership?.planningLines() ?? [],
       presentationFor: application.presentationFor, onUse: useForm, onRemove: removeForm, onFailure: fail,
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
@@ -234,7 +235,7 @@ export async function startApplication(application) {
       onChanged: render,
       onFailure: fail,
     });
-    wakeButton.addEventListener('click', () => play?.wake().catch(fail));
+    wakeButton.addEventListener('click', () => play?.wake(true).catch(fail));
     lullButton.addEventListener('click', () => play?.lull().catch(fail));
     if (session.current()?.here_part_id) await session.arrive();
     render();

@@ -19,6 +19,7 @@ pub(crate) use workspace::{
     handoff_workspace, plan_workspace_forms, require_workspace_form, workspace_evidence,
     workspace_library,
 };
+pub(crate) use workspace::{JoinedLineObservation, PlanningAuthority};
 mod spore;
 mod spore_target;
 

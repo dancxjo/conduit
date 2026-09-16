@@ -82,6 +82,7 @@ enum Request {
         source: String,
         query: String,
         revision: u32,
+        joined_lines: Vec<crate::creche::JoinedLineObservation>,
     },
     ChangeWorkset {
         host_id: HostId,
@@ -95,6 +96,8 @@ enum Request {
         host_id: HostId,
         boot_id: BootId,
         source: String,
+        joined_lines: Vec<crate::creche::JoinedLineObservation>,
+        browser_audio_authority: bool,
     },
     Started {
         host_id: HostId,
@@ -360,12 +363,14 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 source,
                 query,
                 revision,
+                joined_lines,
             } => {
                 return crate::creche::workspace_library(
                     &source,
                     &current_host_offers(),
                     &host_id,
                     &boot_id,
+                    &joined_lines,
                 )?
                     .presentation(current, revision, &query)
                     .map_err(|error| Refusal::new("LibraryPresentation", format!("{error:?}")))?
@@ -411,6 +416,8 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 host_id,
                 boot_id,
                 source,
+                joined_lines,
+                browser_audio_authority,
             } => {
                 let forms = crate::creche::plan_workspace_forms(
                     current.evidence(),
@@ -418,6 +425,10 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     &HOST_OFFERS.with(|offers| offers.borrow().hosts().to_vec()),
                     &host_id,
                     &boot_id,
+                    &joined_lines,
+                    crate::creche::PlanningAuthority {
+                        browser_audio: browser_audio_authority,
+                    },
                 )?;
                 let realization = candidate
                     .propose(forms, &host_id, &boot_id)

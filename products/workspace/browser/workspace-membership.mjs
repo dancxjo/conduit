@@ -233,6 +233,10 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
     isJoining: () => Boolean(invitation && !session.current()),
     render,
     close,
+    planningLines: () => Array.from(joinedLines.entries(), ([key, line]) => {
+      const [host_id, boot_id] = key.split("\u0000");
+      return { host_id, boot_id, carrier: line.line_id };
+    }),
     dispose: () => {
       runningHost?.cancel(); runningHost = null;
       for (const line of joinedLines.values()) void line.close();

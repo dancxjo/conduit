@@ -1,6 +1,6 @@
 import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/browser-body-host.mjs";
 
-export function openWorkspacePlay({ host, session, source, inputTarget, outputRoot, foregroundForm, onState }) {
+export function openWorkspacePlay({ host, session, source, planningLines, inputTarget, outputRoot, foregroundForm, onState }) {
   let adapter = null, started = null, terminal = null, transition = false;
   const publish = (state, detail = '', error = null) => onState({ state, detail, play: started?.play, terminal,
     refusal: error ? { code: typeof error.code === 'string' ? error.code : error.name, message: error.message } : null });
@@ -21,12 +21,12 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
   };
   publish('Lulled', 'This Body is retained. Wake it to start its Forms.');
   return Object.freeze({
-    async wake() {
+    async wake(authorizeAudio = false) {
       if (adapter || transition) return;
       transition = true; terminal = null; started = null;
       publish('Preparing', 'Checking the installed Forms');
       try {
-        const proposal = await session.propose(source);
+        const proposal = await session.propose(source, planningLines(), authorizeAudio);
         publish('Preparing', 'Acquiring the required capabilities');
         adapter = acquireBrowserBodyHost({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal, inputTarget, outputRoot, foregroundForm });
         started = adapter.start(1);

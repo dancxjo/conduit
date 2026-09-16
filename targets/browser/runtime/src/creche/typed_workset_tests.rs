@@ -89,6 +89,8 @@ fn text_quantity_and_pattern_presentations_plan_together_under_one_body() {
             &[observed],
             &"browser/typed-workset".into(),
             &"boot/typed-workset".into(),
+            &[],
+            super::workspace::PlanningAuthority::default(),
         )
         .unwrap();
         assert_eq!(plans.len(), 3);

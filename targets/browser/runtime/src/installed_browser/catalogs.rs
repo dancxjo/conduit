@@ -193,7 +193,7 @@ mod conversation_tests {
             ),
             (
                 include_str!("../../../../../forms/live-conversation/main.conduit"),
-                "live-conversation",
+                "spoken-live-conversation",
             ),
         ] {
             let syntax = conduit_form::parse_syntax_document(source);

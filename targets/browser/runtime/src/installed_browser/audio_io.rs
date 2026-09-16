@@ -67,7 +67,9 @@ pub(crate) fn capture_offer() -> CapabilityOffer {
         implementation: identity(CAPTURE_IMPLEMENTATION),
         host_operations: vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(CAPTURE_OPERATION),
-            target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
+            target_kind: Some(kind_id(
+                conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND,
+            )),
             maximum_in_flight: 1,
             maximum_input_bytes: 1,
             maximum_output_bytes: conduit_audio::MAXIMUM_PCM_FRAME_BYTES
@@ -335,6 +337,10 @@ mod tests {
         assert_eq!(
             capture.authority_requirements[0].contract_id.as_str(),
             CAPTURE_AUTHORITY
+        );
+        assert_eq!(
+            capture.host_operations[0].target_kind,
+            Some(capture.authority_requirements[0].subject_kind.clone())
         );
         assert_eq!(
             capture.outputs[0].temporal,
