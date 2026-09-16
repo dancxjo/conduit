@@ -12,8 +12,8 @@ pub(in crate::creche) fn plan(
     hosts: &[HostAdvertisement],
     placements: &conduit_planner::PlacementChoices,
     bases: &[BaseImplementationId],
-    joined_lines: &[crate::creche::workspace::JoinedLineObservation],
-    authority: crate::creche::workspace::PlanningAuthority,
+    joined_lines: &[crate::creche::JoinedLineObservation],
+    authority: crate::creche::PlanningAuthority,
 ) -> Result<conduit_core::Plan, String> {
     let mut limits = BTreeMap::new();
     for cord in &form.connections {
@@ -89,7 +89,7 @@ pub(in crate::creche) fn plan(
 fn authority_grants(
     hosts: &[HostAdvertisement],
     placements: &conduit_planner::PlacementChoices,
-    authority: crate::creche::workspace::PlanningAuthority,
+    authority: crate::creche::PlanningAuthority,
 ) -> Result<Vec<AuthorityGrant>, String> {
     let mut grants = Vec::new();
     for (gear, placement) in &placements.by_gear {
@@ -138,7 +138,7 @@ fn line_offers(
         ),
         ConnectionQueueLimits,
     >,
-    joined_lines: &[crate::creche::workspace::JoinedLineObservation],
+    joined_lines: &[crate::creche::JoinedLineObservation],
 ) -> Result<(Vec<LineOffer>, LineCandidates), String> {
     let mut offers = Vec::new();
     let mut candidates = BTreeMap::new();
@@ -316,12 +316,12 @@ mod tests {
         };
         let hosts = [browser.clone(), remote.clone()];
         let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
-        let joined = [crate::creche::workspace::JoinedLineObservation {
+        let joined = [crate::creche::JoinedLineObservation {
             host_id: remote.host_id.clone(),
             boot_id: remote.boot_id.clone(),
             carrier: "conduit-line/loopback-websocket@1".into(),
         }];
-        let authority = crate::creche::workspace::PlanningAuthority {
+        let authority = crate::creche::PlanningAuthority {
             browser_audio: true,
         };
         let planned = plan(
@@ -354,7 +354,7 @@ mod tests {
             &placements,
             &crate::installed_browser::local_bases(),
             &joined,
-            crate::creche::workspace::PlanningAuthority::default(),
+            crate::creche::PlanningAuthority::default(),
         )
         .is_err());
         assert!(plan(

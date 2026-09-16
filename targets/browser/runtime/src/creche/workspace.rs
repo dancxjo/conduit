@@ -1,19 +1,7 @@
 //! Crèche-to-workspace handoff and shared exact inventory planning.
+use super::{JoinedLineObservation, PlanningAuthority};
 use conduit_body::{BodyBiographyEvidence, BodyFormPlan};
 use conduit_core::{BootId, HostAdvertisement, HostId};
-
-#[derive(Clone, Debug, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct JoinedLineObservation {
-    pub host_id: HostId,
-    pub boot_id: BootId,
-    pub carrier: String,
-}
-
-#[derive(Clone, Copy, Default)]
-pub(crate) struct PlanningAuthority {
-    pub browser_audio: bool,
-}
 
 #[derive(serde::Deserialize)]
 struct WorkspaceCatalog {

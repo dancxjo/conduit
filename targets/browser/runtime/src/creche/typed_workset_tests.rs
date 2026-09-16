@@ -90,7 +90,7 @@ fn text_quantity_and_pattern_presentations_plan_together_under_one_body() {
             &"browser/typed-workset".into(),
             &"boot/typed-workset".into(),
             &[],
-            super::workspace::PlanningAuthority::default(),
+            super::PlanningAuthority::default(),
         )
         .unwrap();
         assert_eq!(plans.len(), 3);
