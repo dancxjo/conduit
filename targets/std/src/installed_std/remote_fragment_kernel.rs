@@ -13,8 +13,8 @@ use conduit_core::{
 };
 use conduit_kernel::scheduler::{HostOperationRequest, RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, CordId, HostOperationOutcome, HostedSignLog, HostedValueStore,
-    RemoteEndpointId,
+    BoundedValueRef, CordId, HostOperationDisposition, HostOperationOutcome, HostedSignLog,
+    HostedValueStore, RemoteEndpointId,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
@@ -42,6 +42,11 @@ pub struct InstalledRemoteFragment {
     lowered: LoweredPlanFragment,
     sessions: RemoteCordSessions,
     text_output_buffer: Vec<u8>,
+    recognized_turn_commit_hosts:
+        Vec<Option<super::recognized_turn_commit_operation::RecognizedTurnCommitHost>>,
+    generated_speech_commit_hosts:
+        Vec<Option<super::generated_speech_commit_operation::GeneratedSpeechCommitHost>>,
+    body_chat_prompt_hosts: Vec<Option<super::body_chat_prompt_operation::BodyChatPromptHost>>,
 }
 
 impl InstalledRemoteFragment {
@@ -116,11 +121,19 @@ impl InstalledRemoteFragment {
         )
         .map_err(|error| format!("remote fragment Sign store: {error:?}"))?;
         let scheduler = tables.install(drivers, values, signs)?;
+        let recognized_turn_commit_hosts =
+            super::recognized_turn_commit_operation::prepare_hosts(fragment);
+        let generated_speech_commit_hosts =
+            super::generated_speech_commit_operation::prepare_hosts(fragment)?;
+        let body_chat_prompt_hosts = super::body_chat_prompt_operation::prepare_hosts(fragment);
         Ok(Self {
             scheduler,
             lowered,
             sessions,
             text_output_buffer: Vec::with_capacity(super::contract::MAX_TEXT_BYTES as usize),
+            recognized_turn_commit_hosts,
+            generated_speech_commit_hosts,
+            body_chat_prompt_hosts,
         })
     }
 
@@ -171,7 +184,7 @@ impl InstalledRemoteFragment {
             .complete_host_operation(request.node, request.request, outcome)
             .map_err(|error| format!("complete remote std host operation: {error:?}"))
     }
-    pub fn complete_pure_text_host_operation(
+    pub fn complete_portable_host_operation(
         &mut self,
         request: HostOperationRequest,
     ) -> Result<bool, String> {
@@ -183,30 +196,102 @@ impl InstalledRemoteFragment {
                 operation.node == request.node && operation.operation == request.operation
             })
             .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
-        if operation.contract_id.as_str() != conduit_std_offers::TEXT_UPPER_HOST_OPERATION_CONTRACT
-            || operation.target_kind.as_ref()
-                != Some(&kind_id(
-                    conduit_std_offers::TEXT_UPPER_HOST_OPERATION_TARGET,
-                ))
-        {
-            return Ok(false);
-        }
+        let contract = operation.contract_id.as_str();
+        let maximum_output_bytes = operation.binding.maximum_output_bytes;
         let input = self
             .scheduler
             .host_value(request.input.value)
             .map_err(|error| format!("read remote std text input: {error:?}"))?;
-        super::text_operations::uppercase_utf8(input, &mut self.text_output_buffer)?;
-        let value = self
-            .scheduler
-            .store_host_value(&self.text_output_buffer)
-            .map_err(|error| format!("store remote uppercase text output: {error:?}"))?;
+        let (disposition, output) = if contract
+            == conduit_std_offers::TEXT_UPPER_HOST_OPERATION_CONTRACT
+            && operation.target_kind.as_ref()
+                == Some(&kind_id(
+                    conduit_std_offers::TEXT_UPPER_HOST_OPERATION_TARGET,
+                )) {
+            super::text_operations::uppercase_utf8(input, &mut self.text_output_buffer)?;
+            (
+                HostOperationDisposition::Completed,
+                Some(self.text_output_buffer.as_slice()),
+            )
+        } else if contract == conduit_std_offers::RECOGNIZED_TURN_COMMIT_OPERATION {
+            let output = self
+                .recognized_turn_commit_hosts
+                .get_mut(usize::from(request.node.0))
+                .and_then(Option::as_mut)
+                .ok_or_else(|| "remote recognized-turn request has no admitted host".to_string())?
+                .execute(input)?;
+            (HostOperationDisposition::Completed, output)
+        } else if matches!(
+            contract,
+            conduit_std_offers::GENERATED_SPEECH_PUSH_OPERATION
+                | conduit_std_offers::GENERATED_SPEECH_DRAIN_OPERATION
+                | conduit_std_offers::GENERATED_SPEECH_CLOSE_OPERATION
+        ) {
+            let output = self
+                .generated_speech_commit_hosts
+                .get_mut(usize::from(request.node.0))
+                .and_then(Option::as_mut)
+                .ok_or_else(|| "remote generated-speech request has no admitted host".to_string())?
+                .execute(contract, input)?;
+            (HostOperationDisposition::Completed, output)
+        } else if matches!(
+            contract,
+            conduit_std_offers::BODY_CHAT_MESSAGE_OPERATION
+                | conduit_std_offers::BODY_CHAT_RESPONSE_OPERATION
+                | conduit_std_offers::BODY_CHAT_CONTEXT_OPERATION
+        ) {
+            let output = self
+                .body_chat_prompt_hosts
+                .get_mut(usize::from(request.node.0))
+                .and_then(Option::as_mut)
+                .ok_or_else(|| "remote Body Chat request has no admitted host".to_string())?
+                .execute(contract, input)?;
+            (HostOperationDisposition::Completed, output)
+        } else if contract == conduit_std_offers::COMMITTED_TURN_TO_TEXT_OPERATION {
+            match conduit_tongues::project_encoded_committed_turn_text(input) {
+                Ok(text) => {
+                    self.text_output_buffer.clear();
+                    self.text_output_buffer.extend_from_slice(&text);
+                    (
+                        HostOperationDisposition::Completed,
+                        Some(self.text_output_buffer.as_slice()),
+                    )
+                }
+                Err(_) => (HostOperationDisposition::Denied, None),
+            }
+        } else if contract == conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION {
+            match conduit_ai::project_generated_text(input) {
+                Ok(text) => {
+                    self.text_output_buffer.clear();
+                    self.text_output_buffer.extend_from_slice(&text);
+                    (
+                        HostOperationDisposition::Completed,
+                        Some(self.text_output_buffer.as_slice()),
+                    )
+                }
+                Err(_) => (HostOperationDisposition::Denied, None),
+            }
+        } else {
+            return Ok(false);
+        };
+        let output = output
+            .map(|bytes| self.scheduler.store_host_value(bytes))
+            .transpose()
+            .map_err(|error| format!("store remote portable host output: {error:?}"))?
+            .map(|value| BoundedValueRef::new(value, maximum_output_bytes))
+            .transpose()
+            .map_err(|error| format!("bound remote portable host output: {error:?}"))?;
         self.scheduler
             .complete_host_operation(
                 request.node,
                 request.request,
-                super::text_operations::completed_with_output(value),
+                HostOperationOutcome {
+                    disposition,
+                    output,
+                    failure: None,
+                },
             )
-            .map_err(|error| format!("complete remote text/upper host operation: {error:?}"))?;
+            .map_err(|error| format!("complete remote portable host operation: {error:?}"))?;
         Ok(true)
     }
     pub fn store_host_value(&mut self, bytes: &[u8]) -> Result<BoundedValueRef, String> {

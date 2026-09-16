@@ -228,7 +228,7 @@ fn drive_remote_fragment(
         if let Some(request) = admitted.runtime_mut().next_host_request() {
             if admitted
                 .runtime_mut()
-                .complete_pure_text_host_operation(request)?
+                .complete_portable_host_operation(request)?
             {
                 continue;
             }

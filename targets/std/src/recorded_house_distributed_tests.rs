@@ -247,6 +247,12 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
                 return Some(transfer);
             }
             if let Some(request) = runtimes[1].next_host_request() {
+                if runtimes[1]
+                    .complete_portable_host_operation(request)
+                    .unwrap()
+                {
+                    return None;
+                }
                 let work = runtimes[1].describe_host_request(request).unwrap();
                 let output = match work.contract_id.as_str() {
                     conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION => {
@@ -343,9 +349,6 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
                         })
                         .unwrap(),
                     ),
-                    conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION => {
-                        Some(conduit_ai::project_generated_text(&work.input).unwrap())
-                    }
                     other => panic!("unexpected distributed cognition host operation: {other}"),
                 };
                 complete_remote_work(&mut runtimes[1], work, output);
