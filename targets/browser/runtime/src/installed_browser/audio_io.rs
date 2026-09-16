@@ -27,6 +27,8 @@ pub(crate) const CAPTURE_AUTHORITY: &str = "conduit.authority/request-browser-mi
 pub(crate) const PLAY_AUTHORITY: &str = "conduit.authority/use-browser-audio-output@1";
 pub(crate) const MAXIMUM_SAFE_GAIN_MILLIONTHS: u32 = 50_000;
 pub(crate) const MAXIMUM_CAPTURE_REQUESTS: u32 = 8_192;
+const _: () = assert!(MAXIMUM_SAFE_GAIN_MILLIONTHS <= 50_000);
+const _: () = assert!(MAXIMUM_CAPTURE_REQUESTS > 0);
 
 pub(crate) static CAPTURE: BrowserInstallation = BrowserInstallation {
     implementation_id: CAPTURE_IMPLEMENTATION,
@@ -338,7 +340,6 @@ mod tests {
             capture.outputs[0].temporal,
             conduit_core::PortTemporal::Flow { closes: true }
         );
-        assert!(MAXIMUM_CAPTURE_REQUESTS > 0);
 
         let playback = playback_offer();
         assert_eq!(
@@ -357,6 +358,5 @@ mod tests {
             playback.authority_requirements[0].contract_id.as_str(),
             PLAY_AUTHORITY
         );
-        assert!(MAXIMUM_SAFE_GAIN_MILLIONTHS <= 50_000);
     }
 }
