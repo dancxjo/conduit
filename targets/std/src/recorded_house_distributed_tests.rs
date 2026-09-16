@@ -232,6 +232,11 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
     runtimes[0].deliver_egress(&capture_transfer).unwrap();
 
     let response = b"The upstairs temperature is 21 degrees Celsius.".to_vec();
+    let model_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let mut model = FakeModel {
+        offer: local_offer(),
+        calls: model_calls.clone(),
+    };
     let mut recognized = None::<String>;
     let mut addresses = None::<conduit_text::AddressSet>;
     let mut detection = None::<conduit_text::AddressDetection>;
@@ -254,6 +259,18 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
                     return None;
                 }
                 let work = runtimes[1].describe_host_request(request).unwrap();
+                if work.contract_id.as_str() == conduit_ai::LOCAL_MODEL_OPERATION {
+                    assert!(runtimes[1]
+                        .complete_voice_provider_host_operation(
+                            request,
+                            None,
+                            Some(&mut model),
+                            None,
+                            false,
+                        )
+                        .unwrap());
+                    return None;
+                }
                 let output = match work.contract_id.as_str() {
                     conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION => {
                         assert_eq!(work.input, capture_clip);
@@ -328,27 +345,6 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
                             _ => None,
                         }
                     }
-                    conduit_ai::LOCAL_MODEL_OPERATION => Some(
-                        serde_json::to_vec(&conduit_ai::ModelDerivedResult {
-                            provenance: conduit_ai::ModelResultProvenance::ModelDerived,
-                            payload_kind: conduit_ai::GENERATED_RESULT_VALUE_KIND.into(),
-                            payload: response.clone(),
-                            implementation_identity: "fixture/model".into(),
-                            request_identity: "request/distributed-house".into(),
-                            run_identity: "run/distributed-house".into(),
-                            confidence: None,
-                            disposition: conduit_ai::ModelResultDisposition::Produced,
-                            determinism: LlmDeterminismProfile::ProviderNondeterministic,
-                            accounting: conduit_ai::ModelWorkAccounting {
-                                input_bytes: work.input.len() as u64,
-                                context_items: 1,
-                                output_bytes: response.len() as u64,
-                                work_units: 1,
-                                history_items: 0,
-                            },
-                        })
-                        .unwrap(),
-                    ),
                     other => panic!("unexpected distributed cognition host operation: {other}"),
                 };
                 complete_remote_work(&mut runtimes[1], work, output);
@@ -357,6 +353,7 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
             None
         })
         .expect("cognition fragment emits the exact projected model response");
+    assert_eq!(model_calls.load(std::sync::atomic::Ordering::Relaxed), 1);
     assert_eq!(response_transfer.bytes, response);
     runtimes[1].accept_egress(&response_transfer).unwrap();
     assert!(matches!(

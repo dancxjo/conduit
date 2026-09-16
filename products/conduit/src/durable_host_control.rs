@@ -131,7 +131,7 @@ impl DurableHostRuntime {
                             endpoint,
                             SessionMessage::Accepted { sequence },
                         )?);
-                        drive_remote_fragment(admitted, &mut responses)?;
+                        drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
                         responses.push(remote_response(
                             admitted,
                             endpoint,
@@ -169,11 +169,11 @@ impl DurableHostRuntime {
                     return Err("remote-egress-sequence".into());
                 }
                 admitted.runtime_mut().deliver_egress(&transfer)?;
-                drive_remote_fragment(admitted, &mut responses)?;
+                drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
             }
             SessionMessage::InputClosed { .. } => {
                 admitted.runtime_mut().close_ingress(endpoint)?;
-                drive_remote_fragment(admitted, &mut responses)?;
+                drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
             }
             SessionMessage::Cancelled { .. } | SessionMessage::Failed { .. } => {
                 admitted.runtime_mut().cancel()?;
@@ -181,7 +181,7 @@ impl DurableHostRuntime {
             SessionMessage::Ready
             | SessionMessage::Pressure { .. }
             | SessionMessage::Terminal { .. } => {
-                drive_remote_fragment(admitted, &mut responses)?;
+                drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
             }
         }
         Ok(DurableRemoteExchange {
@@ -220,16 +220,23 @@ fn remote_response(
 }
 
 fn drive_remote_fragment(
+    host: &mut StdHost,
     admitted: &mut AdmittedRemoteFragment,
     responses: &mut Vec<Vec<u8>>,
 ) -> Result<(), String> {
     const MAXIMUM_DRIVE_STEPS: usize = 64;
     for _ in 0..MAXIMUM_DRIVE_STEPS {
+        if host.poll_remote_body_conversation_context(admitted)? {
+            continue;
+        }
         if let Some(request) = admitted.runtime_mut().next_host_request() {
             if admitted
                 .runtime_mut()
                 .complete_portable_host_operation(request)?
             {
+                continue;
+            }
+            if host.complete_remote_voice_host_operation(admitted, request, false)? {
                 continue;
             }
             let work = admitted.runtime().describe_host_request(request)?;
