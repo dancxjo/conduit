@@ -371,6 +371,10 @@ fn hosted_release_jobs_run_the_packaged_tour_and_home_journeys() {
         .nth(1)
         .and_then(|tail| tail.split("\n  raspberry-pi-release:\n").next())
         .expect("locate host releases job");
+    assert!(
+        workflow.contains("host_releases_required: ${{ inputs.full_suite || steps.native-host-release.outputs.required == 'true'")
+    );
+    assert!(releases.contains("if: needs.plan.outputs.host_releases_required == 'true'"));
     assert!(releases.contains("conduit-tour-linux-x86_64 --journey"));
     assert!(releases.contains("conduit-tour-windows-x86_64.exe --journey"));
     assert!(releases.contains("conduit-home-linux-x86_64 --journey"));
