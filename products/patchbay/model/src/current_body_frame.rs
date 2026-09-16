@@ -44,6 +44,7 @@ pub struct CurrentBodyForm {
 pub enum CurrentBodyLifecycle {
     Lulled,
     Awake { wake_id: WakeId },
+    Fulfilled { sign_id: SignId },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -86,6 +87,7 @@ pub struct CurrentBodyTransition {
 pub enum CurrentBodyLifecycleAction {
     Wake,
     Lull,
+    None,
 }
 
 impl CurrentBodyFrame {
@@ -96,10 +98,14 @@ impl CurrentBodyFrame {
             BodyState::Awake { wake_id } => CurrentBodyLifecycle::Awake {
                 wake_id: wake_id.clone(),
             },
+            BodyState::Fulfilled { sign_id } => CurrentBodyLifecycle::Fulfilled {
+                sign_id: sign_id.clone(),
+            },
         };
         let salient_action = match lifecycle {
             CurrentBodyLifecycle::Lulled => CurrentBodyLifecycleAction::Wake,
             CurrentBodyLifecycle::Awake { .. } => CurrentBodyLifecycleAction::Lull,
+            CurrentBodyLifecycle::Fulfilled { .. } => CurrentBodyLifecycleAction::None,
         };
         let current_hosts = evidence
             .membership
@@ -137,6 +143,7 @@ impl CurrentBodyFrame {
         let lifecycle_label = match lifecycle {
             CurrentBodyLifecycle::Lulled => "Lulled",
             CurrentBodyLifecycle::Awake { .. } => "Awake",
+            CurrentBodyLifecycle::Fulfilled { .. } => "Fulfilled",
         };
         let status_line = format!(
             "{lifecycle_label} · workload revision {} · {} {} · {} current {} · physical Host classification not evidenced",

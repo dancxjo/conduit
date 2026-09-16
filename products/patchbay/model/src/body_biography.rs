@@ -130,6 +130,20 @@ pub fn project_body_biography(
                     workload_revision
                 ),
             ),
+            BodyBiographyRecordKind::Fulfilled {
+                final_workload_revision,
+                attribution,
+                settled_obligations,
+                ..
+            } => (
+                "Fulfilled",
+                format!(
+                    "This Body completed its useful life at workload revision {} by {} after {} settlement obligation(s). Its biography and evidence remain available.",
+                    final_workload_revision,
+                    attribution,
+                    settled_obligations.len(),
+                ),
+            ),
             BodyBiographyRecordKind::Graduated {
                 choice: BodyGraduationChoice::HostedPatchbay,
                 patchbay_plan_id,

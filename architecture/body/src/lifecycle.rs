@@ -1,7 +1,7 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    bind_active_play, verify_plan, ActivePlayId, ActivePlayIdentity, CheckedFormId, Plan, PlanId,
-    SignId, SourceDocumentId,
+    bind_active_play, verify_plan, ActivePlayId, ActivePlayIdentity, AuthorityGrantId,
+    CheckedFormId, Plan, PlanId, SignId, SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,11 +17,27 @@ mod workload;
 pub const MAX_BODY_SIGNS: usize = 16;
 pub const MAX_WAKE_SIGNS: usize = 32;
 pub const MAX_WAKE_PLANS: usize = 8;
+pub const MAX_FULFILLMENT_OBLIGATIONS: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyState {
     Lulled,
     Awake { wake_id: WakeId },
+    Fulfilled { sign_id: SignId },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FulfillmentObligation {
+    pub obligation_id: alloc::string::String,
+    pub settlement_sign_id: SignId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BodyFulfillment {
+    pub final_wake_id: Option<WakeId>,
+    pub authority_grant_id: AuthorityGrantId,
+    pub attribution: alloc::string::String,
+    pub settled_obligations: Vec<FulfillmentObligation>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -118,6 +134,8 @@ pub enum BodyLifecycleError {
     FormAbsent,
     FormCapacityExhausted,
     FormIdentityBytesExhausted,
+    Fulfilled,
+    UnsettledObligations,
 }
 
 impl core::fmt::Display for BodyLifecycleError {
@@ -185,6 +203,9 @@ impl Body {
         sign_id: SignId,
     ) -> Result<(Self, Wake), BodyLifecycleError> {
         self.validate()?;
+        if matches!(self.state, BodyState::Fulfilled { .. }) {
+            return Err(BodyLifecycleError::Fulfilled);
+        }
         if self.state != BodyState::Lulled {
             return Err(BodyLifecycleError::InvalidTransition);
         }
@@ -245,6 +266,49 @@ impl Body {
         Ok(next)
     }
 
+    /// Conclude this Body's useful continuity after external runtime cleanup
+    /// and persistence obligations have produced exact settlement evidence.
+    /// Fulfillment is deliberately admitted only from retained rest.
+    pub fn fulfill(
+        &self,
+        fulfillment: BodyFulfillment,
+        sign_id: SignId,
+    ) -> Result<Self, BodyLifecycleError> {
+        self.validate()?;
+        if matches!(self.state, BodyState::Fulfilled { .. }) {
+            return Err(BodyLifecycleError::Fulfilled);
+        }
+        if self.state != BodyState::Lulled {
+            return Err(BodyLifecycleError::InvalidTransition);
+        }
+        validate_new_sign(&self.sign_ids, &sign_id, MAX_BODY_SIGNS)?;
+        validate_fulfillment(&fulfillment)?;
+        let mut next = self.clone();
+        next.state = BodyState::Fulfilled {
+            sign_id: sign_id.clone(),
+        };
+        next.sign_ids.push(sign_id.clone());
+        next.events.push(BodyLifecycleEvent::Fulfilled {
+            final_workload_revision: self.workload_revision,
+            final_wake_id: fulfillment.final_wake_id,
+            authority_grant_id: fulfillment.authority_grant_id,
+            attribution: fulfillment.attribution,
+            settled_obligations: fulfillment.settled_obligations,
+            sign_id,
+        });
+        next.validate()?;
+        Ok(next)
+    }
+
+    pub fn ensure_mutable(&self) -> Result<(), BodyLifecycleError> {
+        self.validate()?;
+        if matches!(self.state, BodyState::Fulfilled { .. }) {
+            Err(BodyLifecycleError::Fulfilled)
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn validate(&self) -> Result<(), BodyLifecycleError> {
         validate_ids(&[self.body_id.as_str()])?;
         validate_sign(&self.sign_ids, MAX_BODY_SIGNS)?;
@@ -276,6 +340,37 @@ impl Body {
             && self.workload_revision == wake.workload_revision
             && matches!(&self.state, BodyState::Awake { wake_id } if wake_id == &wake.wake_id)
     }
+}
+
+pub(crate) fn validate_fulfillment(
+    fulfillment: &BodyFulfillment,
+) -> Result<(), BodyLifecycleError> {
+    if fulfillment.attribution.trim().is_empty()
+        || fulfillment.authority_grant_id.as_str().is_empty()
+        || fulfillment.settled_obligations.len() > MAX_FULFILLMENT_OBLIGATIONS
+    {
+        return Err(BodyLifecycleError::UnsettledObligations);
+    }
+    validate_ids(&[
+        fulfillment.authority_grant_id.as_str(),
+        fulfillment.attribution.as_str(),
+    ])?;
+    if let Some(wake_id) = &fulfillment.final_wake_id {
+        validate_ids(&[wake_id.as_str()])?;
+    }
+    for (index, obligation) in fulfillment.settled_obligations.iter().enumerate() {
+        validate_ids(&[
+            obligation.obligation_id.as_str(),
+            obligation.settlement_sign_id.as_str(),
+        ])?;
+        if fulfillment.settled_obligations[..index]
+            .iter()
+            .any(|prior| prior.obligation_id == obligation.obligation_id)
+        {
+            return Err(BodyLifecycleError::UnsettledObligations);
+        }
+    }
+    Ok(())
 }
 
 impl Wake {

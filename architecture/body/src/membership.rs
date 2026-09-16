@@ -81,6 +81,8 @@ pub struct BodyMembership {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checkpoint: Option<BodyMembershipCheckpoint>,
     pub events: Vec<MembershipEvent>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fulfilled_sign_id: Option<SignId>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -100,6 +102,7 @@ pub enum MembershipRefusal {
     StaleOfferGeneration,
     ObservationMismatch,
     MalformedState,
+    BodyFulfilled,
 }
 
 impl From<BodyLifecycleError> for MembershipRefusal {
@@ -121,6 +124,7 @@ impl BodyMembership {
             parts: Vec::new(),
             checkpoint: None,
             events: Vec::new(),
+            fulfilled_sign_id: None,
         })
     }
 
@@ -265,6 +269,9 @@ impl BodyMembership {
 
     pub fn validate(&self) -> Result<(), MembershipRefusal> {
         validate_ids(&[self.body_id.as_str()])?;
+        if let Some(sign_id) = &self.fulfilled_sign_id {
+            validate_ids(&[sign_id.as_str()])?;
+        }
         if self.parts.len() > MAX_BODY_PARTS || self.events.len() > MAX_MEMBERSHIP_EVENTS {
             return Err(MembershipRefusal::MalformedState);
         }
@@ -332,6 +339,29 @@ impl BodyMembership {
         Ok(archived)
     }
 
+    /// Fence all future membership mutation to the exact terminal Body Sign.
+    /// This changes no Part truth; settlement/revocation must happen first.
+    pub fn seal_fulfilled(&mut self, body: &crate::Body) -> Result<(), MembershipRefusal> {
+        self.validate()?;
+        body.validate()
+            .map_err(|_| MembershipRefusal::MalformedState)?;
+        if body.body_id != self.body_id {
+            return Err(MembershipRefusal::WrongBody);
+        }
+        let crate::BodyState::Fulfilled { sign_id } = &body.state else {
+            return Err(MembershipRefusal::MalformedState);
+        };
+        if self
+            .fulfilled_sign_id
+            .as_ref()
+            .is_some_and(|prior| prior != sign_id)
+        {
+            return Err(MembershipRefusal::MalformedState);
+        }
+        self.fulfilled_sign_id = Some(sign_id.clone());
+        Ok(())
+    }
+
     fn validate_request(
         &self,
         body_id: &BodyId,
@@ -340,6 +370,9 @@ impl BodyMembership {
         sign_id: &SignId,
     ) -> Result<(), MembershipRefusal> {
         self.validate()?;
+        if self.fulfilled_sign_id.is_some() {
+            return Err(MembershipRefusal::BodyFulfilled);
+        }
         validate_ids(&[body_id.as_str(), part_id.as_str(), sign_id.as_str()])?;
         if body_id != &self.body_id {
             return Err(MembershipRefusal::WrongBody);

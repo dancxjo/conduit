@@ -353,6 +353,25 @@ impl BodyBiographyEvidence {
                         .retain_after_lull(wake, record.sign_id.clone())
                         .map_err(invalid)?;
                 }
+                BodyBiographyRecordKind::Fulfilled {
+                    final_wake_id,
+                    authority_grant_id,
+                    attribution,
+                    settled_obligations,
+                    ..
+                } => {
+                    body = body
+                        .fulfill(
+                            crate::BodyFulfillment {
+                                final_wake_id: final_wake_id.clone(),
+                                authority_grant_id: authority_grant_id.clone(),
+                                attribution: attribution.clone(),
+                                settled_obligations: settled_obligations.clone(),
+                            },
+                            record.sign_id.clone(),
+                        )
+                        .map_err(invalid)?;
+                }
                 _ => {}
             }
         }

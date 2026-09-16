@@ -17,6 +17,7 @@ pub enum BodyAdministrativeIntent {
     RevokeAuthority,
     Inspect,
     RecoverContinuity,
+    Fulfill,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BodyAdministrativeRequest {

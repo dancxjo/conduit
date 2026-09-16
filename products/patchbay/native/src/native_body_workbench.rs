@@ -107,18 +107,20 @@ impl NativeBodyWorkbench {
     pub fn lifecycle_flow(&self) -> crate::lifecycle_flow::LifecycleFlow {
         use crate::lifecycle_flow::{LifecycleFlow, LifecycleFlowAction};
         use patchbay_model::PatchbayAction;
-        let (action, label, accelerator) = match self.current.salient_action {
+        let action = match self.current.salient_action {
             patchbay_model::CurrentBodyLifecycleAction::Wake => {
-                (PatchbayAction::Wake, "WAKE", "F5")
+                Some((PatchbayAction::Wake, "WAKE", "F5"))
             }
             patchbay_model::CurrentBodyLifecycleAction::Lull => {
-                (PatchbayAction::Lull, "LULL", "F9")
+                Some((PatchbayAction::Lull, "LULL", "F9"))
             }
+            patchbay_model::CurrentBodyLifecycleAction::None => None,
         };
         LifecycleFlow {
             state_code: match self.current.lifecycle {
                 patchbay_model::CurrentBodyLifecycle::Lulled => "ATTACHED_LULLED",
                 patchbay_model::CurrentBodyLifecycle::Awake { .. } => "ATTACHED_AWAKE",
+                patchbay_model::CurrentBodyLifecycle::Fulfilled { .. } => "ATTACHED_FULFILLED",
             },
             state_text: self.current.status_line.clone(),
             detail: self.current.placement_line.into(),
@@ -129,11 +131,14 @@ impl NativeBodyWorkbench {
                 self.current.workload_revision,
                 self.current.active_forms.len(),
             ),
-            actions: vec![LifecycleFlowAction {
-                action,
-                label,
-                accelerator,
-            }],
+            actions: action
+                .into_iter()
+                .map(|(action, label, accelerator)| LifecycleFlowAction {
+                    action,
+                    label,
+                    accelerator,
+                })
+                .collect(),
         }
     }
 
