@@ -96,6 +96,58 @@ test("catalog cannot relabel one artifact as another target", async () => {
   );
 });
 
+test("target-owned image validators can resolve one exact catalog artifact", async () => {
+  const image = encoder.encode("reviewed-conduitos-image");
+  const imageDigest = await sha256(image);
+  const manifest = { artifact: { path: "host.iso", bytes: image.byteLength, sha256: imageDigest } };
+  const manifestBytes = encoder.encode(JSON.stringify(manifest));
+  const descriptor = {
+    target_id: "conduitos/x86_64/pc",
+    package_id: "conduitos-image@1",
+    output: "disk-image",
+    builder_adapter: "conduit-host-conduitos/build-x86_64@1",
+    deployment_adapter: "conduit-host-conduitos/boot-x86_64@1",
+  };
+  const catalog = {
+    schema: "conduit.release/catalog@1",
+    generation: 9,
+    catalog_id: "",
+    entries: [{
+      ...descriptor,
+      manifest: {
+        path: "conduitos/manifest.json",
+        bytes: manifestBytes.byteLength,
+        sha256: await sha256(manifestBytes),
+      },
+    }],
+  };
+  catalog.catalog_id = await catalogId(catalog);
+  const resources = new Map([
+    ["https://mirror.example/catalog.json", encoder.encode(JSON.stringify(catalog))],
+    ["https://mirror.example/conduitos/manifest.json", manifestBytes],
+    ["https://mirror.example/conduitos/host.iso", image],
+  ]);
+  const requests = [];
+  const fetcher = async (input) => {
+    const url = String(input); requests.push(url);
+    const bytes = resources.get(url);
+    return bytes ? new Response(bytes, { status: 200 }) : new Response("missing", { status: 404 });
+  };
+  const release = await openReleaseCatalog({
+    source: "https://mirror.example/catalog.json",
+    fetcher,
+    cache: createMemoryReleaseCache(),
+  });
+  const resolved = await release.resolve(descriptor);
+  assert.deepEqual(JSON.parse(new TextDecoder().decode(resolved.manifest)), manifest);
+  assert.deepEqual(await resolved.acquire(manifest.artifact, 80 * 1024 * 1024), image);
+  assert.deepEqual(requests, [
+    "https://mirror.example/catalog.json",
+    "https://mirror.example/conduitos/manifest.json",
+    "https://mirror.example/conduitos/host.iso",
+  ]);
+});
+
 async function sha256(bytes) {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   return `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
