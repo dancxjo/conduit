@@ -90,6 +90,7 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     await page.goto(url);
     const snapshot = () => page.request.get(`${url}/api/snapshot`).then(response => response.json());
     expect((await snapshot()).body_workbench.body_id).toBe(bodyId);
+    await expect(page.locator("#body-summary")).toHaveText(/^Body: /);
     await page.locator("#body-summary").click();
     await page.getByRole("button", { name: "Join this Body", exact: true }).click();
     await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
@@ -225,6 +226,7 @@ test("Rosehip House runs reusable bounded measurement processing and history in 
       patchbay.once("exit", code => { clearTimeout(timeout); reject(new Error(`Rosehip Patchbay exited ${code}: ${output}`)); });
     });
     await page.goto(url);
+    await expect(page.locator("#body-summary")).toHaveText(/^Body: /);
     await page.locator("#body-summary").click();
     await page.getByRole("button", { name: "Join this Body", exact: true }).click();
     await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
