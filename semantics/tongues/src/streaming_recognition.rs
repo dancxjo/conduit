@@ -1,14 +1,14 @@
 //! Portable streaming recognition and the stable user-turn commit boundary.
 
 use conduit_core::{
-    CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection, PortTemporal, kind_id,
-    port_id,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{string::String, vec, vec::Vec};
 
-use crate::{MAXIMUM_RECOGNIZED_TEXT_BYTES, SpeechRecognitionContract};
+use crate::{SpeechRecognitionContract, MAXIMUM_RECOGNIZED_TEXT_BYTES};
 
 pub const STREAMING_SPEECH_RECOGNIZE_KIND: &str = "speech/recognize-stream";
 pub const STREAMING_SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize-stream@1";
@@ -457,13 +457,11 @@ mod tests {
     fn portable_stream_ports_are_bounded_closing_flows() {
         let recognize = streaming_speech_recognition_contract();
         let commit = committed_recognition_turn_contract();
-        assert!(
-            recognize
-                .inputs
-                .iter()
-                .chain(recognize.outputs.iter())
-                .all(|port| { port.temporal == PortTemporal::Flow { closes: true } })
-        );
+        assert!(recognize
+            .inputs
+            .iter()
+            .chain(recognize.outputs.iter())
+            .all(|port| { port.temporal == PortTemporal::Flow { closes: true } }));
         assert_eq!(
             recognize.limits.max_queue_items,
             MAXIMUM_STREAMING_AUDIO_ITEMS
