@@ -142,66 +142,6 @@ impl SpawnRendezvousProvision {
     }
 }
 
-/// One explicit Line attempt selected from a reviewed descriptor.
-///
-/// Calling code remains responsible for performing and recording the attempt;
-/// this schedule grants no transport or membership authority.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct RendezvousAttempt<'a> {
-    pub candidate: &'a RendezvousCandidate,
-    pub attempt: u8,
-    pub timeout_millis: u32,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RendezvousAttemptDecision<'a> {
-    Try(RendezvousAttempt<'a>),
-    Exhausted,
-}
-
-/// Deterministic finite candidate order for one self-joining start.
-///
-/// Each call exposes exactly one attempt. There are no implicit retries: the
-/// caller must ask for the next decision after retaining the prior outcome.
-pub struct RendezvousAttemptSchedule<'a> {
-    descriptor: &'a SpawnRendezvousDescriptor,
-    candidate_index: usize,
-    attempts_on_candidate: u8,
-}
-
-impl<'a> RendezvousAttemptSchedule<'a> {
-    pub fn new(
-        descriptor: &'a SpawnRendezvousDescriptor,
-        now_millis: u64,
-    ) -> Result<Self, RendezvousDescriptorRefusal> {
-        descriptor.validate(now_millis)?;
-        Ok(Self {
-            descriptor,
-            candidate_index: 0,
-            attempts_on_candidate: 0,
-        })
-    }
-
-    pub fn next(&mut self, now_millis: u64) -> RendezvousAttemptDecision<'a> {
-        while let Some(candidate) = self.descriptor.candidates.get(self.candidate_index) {
-            if candidate.expires_at_millis <= now_millis
-                || self.attempts_on_candidate >= candidate.maximum_attempts
-            {
-                self.candidate_index += 1;
-                self.attempts_on_candidate = 0;
-                continue;
-            }
-            self.attempts_on_candidate += 1;
-            return RendezvousAttemptDecision::Try(RendezvousAttempt {
-                candidate,
-                attempt: self.attempts_on_candidate,
-                timeout_millis: candidate.attempt_timeout_millis,
-            });
-        }
-        RendezvousAttemptDecision::Exhausted
-    }
-}
-
 impl SpawnRendezvousDescriptor {
     pub fn validate(&self, now_millis: u64) -> Result<(), RendezvousDescriptorRefusal> {
         if self.protocol != RENDEZVOUS_DESCRIPTOR_PROTOCOL {
@@ -262,6 +202,7 @@ mod tests {
     use super::*;
     #[cfg(feature = "authenticated-admission")]
     use crate::{AdmissionManager, BodyId, SpawnInvitationClaim, SpawnInvitationSecret};
+    use crate::{RendezvousAttemptDecision, RendezvousAttemptSchedule};
     #[cfg(feature = "authenticated-admission")]
     use alloc::format;
     use alloc::vec;
