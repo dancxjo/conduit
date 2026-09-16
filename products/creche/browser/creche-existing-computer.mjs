@@ -1,4 +1,4 @@
-import { acquireHostRelease } from "./creche-release-bundle.mjs";
+import { acquireConfiguredHostRelease } from "./creche-release-catalog.mjs";
 import { createNativeSporeDownload } from "./creche-spore-bundle.mjs";
 import { createBodyBoundZip, readBodyBoundZip } from "./creche-native-zip.mjs";
 import { PHYSICAL_HOST_EVIDENCE_MAXIMA } from "./creche-target-catalog.mjs";
@@ -98,7 +98,7 @@ export function createExistingComputerAdapter({ host, profile }) {
       }
     }
     try {
-      const release = await acquireHostRelease(profile, signal);
+      const release = await acquireConfiguredHostRelease(host, profile, signal);
       requireCurrent(signal, mode, "obtain", profile);
       return Object.freeze({
         resultKind: "installation",
