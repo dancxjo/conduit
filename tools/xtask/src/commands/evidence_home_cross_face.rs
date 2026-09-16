@@ -8,6 +8,8 @@ use std::path::{Component, Path, PathBuf};
 
 const SCHEMA: &str = "conduit.evidence/home-face@1";
 const INDEX_SCHEMA: &str = "conduit.evidence/home-cross-face-index@1";
+const VOICE_ARTIFACT_SCHEMA: &str = "conduit.home/voice-face@1";
+const MAXIMUM_FACE_ARTIFACT_BYTES: usize = 2 * 1024 * 1024;
 const REQUIRED_FACES: [&str; 6] = [
     "conduitos",
     "linux-native",
@@ -44,6 +46,13 @@ struct VoicePhysicalAcceptance {
     intelligible: bool,
     safe_volume: bool,
     attended: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct VoiceJourneyArtifact {
+    schema: String,
+    observed_journey_step_ids: Vec<String>,
+    physical_acceptance: VoicePhysicalAcceptance,
 }
 
 #[derive(Debug, Serialize)]
@@ -118,9 +127,40 @@ fn verify_artifact(receipt: &HomeFaceReceipt, source: &Path) -> Result<(), Strin
             artifact.display()
         )
     })?;
-    let digest = format!("sha256:{:x}", Sha256::digest(bytes));
+    if bytes.is_empty() || bytes.len() > MAXIMUM_FACE_ARTIFACT_BYTES {
+        return Err(format!(
+            "{} artifact violates its byte bound",
+            receipt.face_id
+        ));
+    }
+    let digest = format!("sha256:{:x}", Sha256::digest(&bytes));
     if digest != receipt.artifact_sha256 {
         return Err(format!("{} artifact digest changed", receipt.face_id));
+    }
+    if receipt.face_id == "voice-physical" {
+        verify_complete_voice_journey(&bytes)?;
+    }
+    Ok(())
+}
+
+fn verify_complete_voice_journey(bytes: &[u8]) -> Result<(), String> {
+    let artifact: VoiceJourneyArtifact = serde_json::from_slice(bytes)
+        .map_err(|error| format!("decode physical Voice journey artifact: {error}"))?;
+    let expected = JOURNEY_STEP_IDS
+        .iter()
+        .map(|step| (*step).to_owned())
+        .collect::<Vec<_>>();
+    if artifact.schema != VOICE_ARTIFACT_SCHEMA
+        || artifact.observed_journey_step_ids != expected
+        || !artifact.physical_acceptance.microphone
+        || !artifact.physical_acceptance.playback
+        || !artifact.physical_acceptance.intelligible
+        || !artifact.physical_acceptance.safe_volume
+        || !artifact.physical_acceptance.attended
+    {
+        return Err(
+            "physical Voice artifact does not prove the complete attended Home journey".into(),
+        );
     }
     Ok(())
 }
@@ -297,5 +337,38 @@ mod tests {
         value.artifact_path = "../face.json".into();
         assert!(verify_artifact(&value, &source).is_err());
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn one_turn_voice_artifact_cannot_claim_the_complete_journey() {
+        let artifact = serde_json::json!({
+            "schema": VOICE_ARTIFACT_SCHEMA,
+            "journey_step_ids": JOURNEY_STEP_IDS,
+            "physical_scope": "one attended push-to-talk command",
+            "physical_acceptance": {
+                "microphone": true,
+                "playback": true,
+                "intelligible": true,
+                "safe_volume": true,
+                "attended": true
+            }
+        });
+        assert!(verify_complete_voice_journey(&serde_json::to_vec(&artifact).unwrap()).is_err());
+    }
+
+    #[test]
+    fn exact_observed_voice_journey_is_admitted() {
+        let artifact = serde_json::json!({
+            "schema": VOICE_ARTIFACT_SCHEMA,
+            "observed_journey_step_ids": JOURNEY_STEP_IDS,
+            "physical_acceptance": {
+                "microphone": true,
+                "playback": true,
+                "intelligible": true,
+                "safe_volume": true,
+                "attended": true
+            }
+        });
+        verify_complete_voice_journey(&serde_json::to_vec(&artifact).unwrap()).unwrap();
     }
 }
