@@ -6,6 +6,7 @@ use conduit_std_host::{StdHost, StdHostConfig};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
+    collections::BTreeSet,
     fs,
     io::Read,
     path::{Component, Path},
@@ -30,7 +31,7 @@ struct ReleaseManifest {
     files: Vec<ReleaseFile>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct ReleaseFile {
     path: String,
     bytes: u64,
@@ -147,16 +148,8 @@ fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, Strin
         .iter()
         .find(|file| file.path.starts_with("conduit-") && !file.path.contains("tour"))
         .ok_or_else(|| "release has no installed Conduit product executable".to_string())?;
-    let bin_dir = state_dir.join("bin");
-    fs::create_dir_all(&bin_dir).map_err(|error| format!("create installation bin: {error}"))?;
-    for file in &manifest.files {
-        let name = Path::new(&file.path)
-            .file_name()
-            .ok_or_else(|| "release path has no file name".to_string())?;
-        fs::copy(bundle_dir.join(&file.path), bin_dir.join(name))
-            .map_err(|error| format!("install {}: {error}", file.path))?;
-    }
-    let product_executable = bin_dir.join(
+    let release_dir = install_immutable_release(bundle_dir, state_dir, &manifest)?;
+    let product_executable = release_dir.join(
         Path::new(&executable.path)
             .file_name()
             .ok_or_else(|| "product executable name is invalid".to_string())?,
@@ -177,6 +170,69 @@ fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, Strin
     write_json_atomic(&install_path, &installation)?;
     write_service_definition(state_dir, &installation)?;
     Ok(installation)
+}
+
+fn install_immutable_release(
+    bundle_dir: &Path,
+    state_dir: &Path,
+    manifest: &ReleaseManifest,
+) -> Result<std::path::PathBuf, String> {
+    let releases = state_dir.join("releases");
+    fs::create_dir_all(&releases)
+        .map_err(|error| format!("create immutable release store: {error}"))?;
+    let identity = manifest
+        .bundle_sha256
+        .strip_prefix("sha256:")
+        .expect("validated release digest");
+    let release_dir = releases.join(identity);
+    if release_dir.exists() {
+        verify_installed_release(&release_dir, &manifest.files)?;
+        return Ok(release_dir);
+    }
+
+    let staging = releases.join(format!(".{identity}.{}.staging", std::process::id()));
+    fs::create_dir(&staging).map_err(|error| {
+        format!(
+            "create isolated release staging directory {}: {error}",
+            staging.display()
+        )
+    })?;
+    for file in &manifest.files {
+        let name = release_file_name(file)?;
+        fs::copy(bundle_dir.join(&file.path), staging.join(name))
+            .map_err(|error| format!("stage exact release file {}: {error}", file.path))?;
+    }
+    verify_installed_release(&staging, &manifest.files)?;
+    match fs::rename(&staging, &release_dir) {
+        Ok(()) => Ok(release_dir),
+        Err(_error) if release_dir.exists() => {
+            fs::remove_dir_all(&staging)
+                .map_err(|cleanup| format!("retire redundant release staging: {cleanup}"))?;
+            verify_installed_release(&release_dir, &manifest.files)?;
+            Ok(release_dir)
+        }
+        Err(error) => Err(format!("commit immutable release directory: {error}")),
+    }
+}
+
+fn verify_installed_release(release_dir: &Path, files: &[ReleaseFile]) -> Result<(), String> {
+    for file in files {
+        let installed = release_dir.join(release_file_name(file)?);
+        let bytes = bounded_read(&installed, MAXIMUM_RELEASE_FILE_BYTES)?;
+        if bytes.len() as u64 != file.bytes || digest(&bytes) != file.sha256 {
+            return Err(format!(
+                "installed immutable release file {} differs from its manifest",
+                installed.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn release_file_name(file: &ReleaseFile) -> Result<&std::ffi::OsStr, String> {
+    Path::new(&file.path)
+        .file_name()
+        .ok_or_else(|| "release path has no file name".to_string())
 }
 
 fn run(state_dir: &Path) -> Result<(), String> {
@@ -322,6 +378,13 @@ fn validate_manifest(manifest: &ReleaseManifest) -> Result<(), String> {
     }
     if bundle_digest(&manifest.files) != manifest.bundle_sha256 {
         return Err("release manifest bundle identity does not match its exact file set".into());
+    }
+    let mut installed_names = BTreeSet::new();
+    for file in &manifest.files {
+        let name = release_file_name(file)?;
+        if !installed_names.insert(name.to_os_string()) {
+            return Err("release files collide in the installed product layout".into());
+        }
     }
     Ok(())
 }
@@ -571,6 +634,42 @@ mod tests {
         assert_eq!(first.release_bundle_sha256, second.release_bundle_sha256);
         assert!(state.join("conduit-host.service").is_file());
         assert!(Path::new(&second.product_executable).is_file());
+        assert!(Path::new(&second.product_executable).starts_with(state.join("releases")));
+        assert!(!state.join("bin").exists());
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn colliding_release_layout_refuses_before_mutating_installation() {
+        let (manifest_path, state) = fixture();
+        let bundle = manifest_path.parent().unwrap();
+        fs::create_dir_all(bundle.join("helpers")).unwrap();
+        fs::write(bundle.join("helpers/conduit-linux-x86_64"), b"second").unwrap();
+        let files = vec![
+            ReleaseFile {
+                path: "conduit-linux-x86_64".into(),
+                bytes: b"reviewed-product-executable".len() as u64,
+                sha256: digest(b"reviewed-product-executable"),
+            },
+            ReleaseFile {
+                path: "helpers/conduit-linux-x86_64".into(),
+                bytes: 6,
+                sha256: digest(b"second"),
+            },
+        ];
+        let manifest = serde_json::json!({
+            "schema": RELEASE_SCHEMA,
+            "source_identity": "commit:collision",
+            "bundle_sha256": bundle_digest(&files),
+            "files": files,
+        });
+        fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+
+        assert!(install(&manifest_path, &state)
+            .unwrap_err()
+            .contains("collide in the installed product layout"));
+        assert!(!state.join("installation.json").exists());
+        assert!(!state.join("releases").exists());
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
