@@ -34,7 +34,6 @@ struct Start {
     plan: conduit_core::Plan,
     host: conduit_core::HostAdvertisement,
     session_hellos: Vec<Vec<u8>>,
-    active_play_id: conduit_core::ActivePlayId,
     observations: Vec<conduit_core::ResourceObservation>,
 }
 
@@ -136,11 +135,32 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
                     .map_err(|error| format!("reconstruct remote grant: {error:?}"))
             })
             .collect::<Result<Vec<_>, _>>()?;
+        let active_play_id = bindings
+            .iter()
+            .map(|binding| {
+                if binding.source.host_id == start.host.host_id
+                    && binding.source.boot_id == start.host.boot_id
+                {
+                    Ok(binding.source_active_play_id.clone())
+                } else if binding.sink.host_id == start.host.host_id
+                    && binding.sink.boot_id == start.host.boot_id
+                {
+                    Ok(binding.sink_active_play_id.clone())
+                } else {
+                    Err("remote grant does not name the current browser Host and Boot".to_string())
+                }
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let active_play_id = active_play_id
+            .first()
+            .filter(|first| active_play_id.iter().all(|current| current == *first))
+            .cloned()
+            .ok_or_else(|| "remote grants differ on browser Active Play identity".to_string())?;
         let execution = RemoteExecution::prepare(
             &start.plan,
             &start.host,
             &bindings,
-            &start.active_play_id,
+            &active_play_id,
             &start.observations,
         )?;
         let endpoints = bindings
@@ -192,7 +212,7 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
         write_json(&serde_json::json!({
             "schema": "conduit.browser/remote-fragment-started@1",
             "plan_id": start.plan.plan_id,
-            "active_play_id": start.active_play_id,
+            "active_play_id": active_play_id,
             "endpoints": endpoints.iter().map(|endpoint| endpoint.0).collect::<Vec<_>>(),
             "initial_frames": initial_frames,
         }))?;
@@ -201,7 +221,7 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
                 execution,
                 pending: None,
                 complete: false,
-                active_play_id: start.active_play_id,
+                active_play_id,
                 endpoints,
                 sessions,
             });
@@ -620,7 +640,6 @@ mod tests {
             "plan": plan,
             "host": source,
             "session_hellos": [hello],
-            "active_play_id": binding.source_active_play_id,
             "observations": observations,
         }))
         .unwrap();
@@ -710,7 +729,6 @@ mod tests {
             "plan": plan,
             "host": source,
             "session_hellos": [hello],
-            "active_play_id": binding.source_active_play_id,
             "observations": observations,
         }))
         .unwrap();
