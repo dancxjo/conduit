@@ -97,6 +97,13 @@ export async function connectRendezvousHost(code, {
           schema: "conduit.creche/joined-host-line@1",
           line_id: decoded.line_id,
           onClosed(callback) { void line.closed.then(() => callback(Object.freeze({ intentional }))); },
+          async prepareRemote(plan) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            await send(line, { kind: "prepare-remote", protocol: PROTOCOL, plan });
+            const prepared = await receive(line, signal);
+            requireRemotePrepared(prepared, descriptor.advertisement);
+            return Object.freeze(prepared);
+          },
           async close() {
             if (intentional) return;
             intentional = true;
@@ -116,6 +123,21 @@ export async function connectRendezvousHost(code, {
     await line.close("conduit-refused");
     if (error instanceof CrecheRendezvousRefusal) throw error;
     refuse("LineFailed", "running Host rendezvous Line failed", error);
+  }
+}
+
+function requireRemotePrepared(prepared, advertisement) {
+  const identity = prepared?.identity;
+  const frames = prepared?.hello_frames;
+  if (prepared?.kind !== "remote-prepared" || prepared.protocol !== PROTOCOL
+    || identity?.host_id !== advertisement.host_id || identity?.boot_id !== advertisement.boot_id
+    || typeof identity?.plan_id !== "string" || identity.plan_id.length === 0
+    || typeof identity?.active_play_id !== "string" || identity.active_play_id.length === 0
+    || !Number.isSafeInteger(identity?.play_sequence) || identity.play_sequence < 0
+    || !Array.isArray(frames) || frames.length === 0 || frames.length > 32
+    || frames.some(frame => !Array.isArray(frame) || frame.length === 0 || frame.length > MAXIMUM_FRAME_BYTES
+      || frame.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255))) {
+    refuse("RemotePreparation", "joined Host returned malformed or stale remote Play truth");
   }
 }
 
