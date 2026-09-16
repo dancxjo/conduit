@@ -143,6 +143,13 @@ pub(crate) enum HostServiceCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Make this durable Host retain one exact validated Body biography.
+    OwnBody {
+        /// Exported `conduit.body/biography-evidence@2` document.
+        evidence: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -183,6 +190,19 @@ mod tests {
                 .expect("Crèche entrance parses")
                 .command,
             Command::Creche
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit", "host", "service", "own-body", "body.json", "--state-dir", "installed-host",
+            ])
+            .expect("durable Body ownership entrance parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Service {
+                    command: HostServiceCommand::OwnBody { evidence, state_dir }
+                }
+            } if evidence == std::path::Path::new("body.json")
+                && state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
             Cli::try_parse_from([

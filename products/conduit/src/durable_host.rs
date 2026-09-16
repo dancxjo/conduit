@@ -40,7 +40,14 @@ struct Installation {
     release_source_identity: String,
     release_bundle_sha256: String,
     product_executable: String,
-    body_state: Option<String>,
+    body_state: Option<BodyBinding>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct BodyBinding {
+    body_id: String,
+    biography_sha256: String,
+    biography_path: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,6 +58,7 @@ struct RuntimeStatus {
     offer_generation: u64,
     process_id: u32,
     release_bundle_sha256: String,
+    body_id: Option<String>,
 }
 
 pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
@@ -68,7 +76,45 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
         }),
         HostServiceCommand::Run { state_dir } => run(&state_dir),
         HostServiceCommand::Status { state_dir, json } => status(&state_dir, json),
+        HostServiceCommand::OwnBody {
+            evidence,
+            state_dir,
+        } => own_body(&evidence, &state_dir),
     }
+}
+
+fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
+    let evidence_bytes = bounded_read(evidence_path, 2 * 1024 * 1024)?;
+    let evidence: conduit_body::BodyBiographyEvidence = serde_json::from_slice(&evidence_bytes)
+        .map_err(|error| format!("Body biography evidence: {error}"))?;
+    evidence
+        .validate()
+        .map_err(|error| format!("Body biography evidence refused: {error:?}"))?;
+    let install_path = state_dir.join("installation.json");
+    let mut installation = read_installation(&install_path)?;
+    if let Some(current) = &installation.body_state {
+        if current.body_id != evidence.body_id.as_str() {
+            return Err(format!(
+                "durable Host already owns Body {}; refusing replacement by {}",
+                current.body_id,
+                evidence.body_id.as_str()
+            ));
+        }
+    }
+    let body_dir = state_dir.join("body");
+    fs::create_dir_all(&body_dir)
+        .map_err(|error| format!("create Body state directory: {error}"))?;
+    restrict_directory(&body_dir)?;
+    let retained_path = body_dir.join("biography.json");
+    write_bytes_atomic(&retained_path, &evidence_bytes)?;
+    installation.body_state = Some(BodyBinding {
+        body_id: evidence.body_id.as_str().into(),
+        biography_sha256: digest(&evidence_bytes),
+        biography_path: retained_path.display().to_string(),
+    });
+    write_json_atomic(&install_path, &installation)?;
+    println!("durable Host now owns Body {}", evidence.body_id.as_str());
+    Ok(())
 }
 
 fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, String> {
@@ -159,6 +205,10 @@ fn prepare_runtime(
         boot_id: host.advertisement().boot_id.as_str().into(),
         offer_generation: host.advertisement().offer_generation.0,
         process_id: std::process::id(),
+        body_id: installation
+            .body_state
+            .as_ref()
+            .map(|binding| binding.body_id.clone()),
         release_bundle_sha256: installation.release_bundle_sha256,
     };
     write_json_atomic(&state_dir.join("runtime.json"), &status)?;
@@ -214,6 +264,7 @@ fn status(state_dir: &Path, json: bool) -> Result<(), String> {
                     "host_id": installation.host_id,
                     "presence": "installed-offline",
                     "release_bundle_sha256": installation.release_bundle_sha256,
+                    "body_id": installation.body_state.as_ref().map(|binding| binding.body_id.as_str()),
                 })
             );
         } else {
@@ -285,6 +336,17 @@ fn read_installation(path: &Path) -> Result<Installation, String> {
     {
         return Err("installation state is invalid".into());
     }
+    if let Some(binding) = &value.body_state {
+        if binding.body_id.is_empty()
+            || !valid_digest(&binding.biography_sha256)
+            || digest(&bounded_read(
+                Path::new(&binding.biography_path),
+                2 * 1024 * 1024,
+            )?) != binding.biography_sha256
+        {
+            return Err("retained Body biography identity is invalid or stale".into());
+        }
+    }
     Ok(value)
 }
 
@@ -339,6 +401,13 @@ fn activate_service(_state_dir: &Path) -> Result<(), String> {
 fn write_json_atomic(path: &Path, value: &impl Serialize) -> Result<(), String> {
     let temporary = path.with_extension("tmp");
     let bytes = serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?;
+    fs::write(&temporary, bytes)
+        .map_err(|error| format!("write {}: {error}", temporary.display()))?;
+    fs::rename(&temporary, path).map_err(|error| format!("commit {}: {error}", path.display()))
+}
+
+fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let temporary = path.with_extension("tmp");
     fs::write(&temporary, bytes)
         .map_err(|error| format!("write {}: {error}", temporary.display()))?;
     fs::rename(&temporary, path).map_err(|error| format!("commit {}: {error}", path.display()))
@@ -485,6 +554,26 @@ mod tests {
         assert_eq!(first.host_id, installation.host_id);
         assert_eq!(second.host_id, installation.host_id);
         assert_ne!(first.boot_id, second.boot_id);
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn invalid_body_evidence_refuses_without_changing_durable_ownership() {
+        let (manifest, state) = fixture();
+        install(&manifest, &state).unwrap();
+        let evidence = state.parent().unwrap().join("invalid-body.json");
+        fs::write(
+            &evidence,
+            br#"{"schema":"conduit.body/biography-evidence@2"}"#,
+        )
+        .unwrap();
+        assert!(own_body(&evidence, &state)
+            .unwrap_err()
+            .contains("Body biography evidence"));
+        assert!(read_installation(&state.join("installation.json"))
+            .unwrap()
+            .body_state
+            .is_none());
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 }
