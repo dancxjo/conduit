@@ -36,6 +36,8 @@ mod host_piper;
 mod host_recorded_house;
 #[path = "host_release.rs"]
 mod host_release;
+#[path = "host_release_catalog.rs"]
+mod host_release_catalog;
 #[path = "host_spoken_microphone_house.rs"]
 mod host_spoken_microphone_house;
 #[path = "host_target.rs"]
@@ -86,6 +88,15 @@ enum HostCommand {
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,
+    },
+    /// Seal reviewed release manifests into the installed target catalog.
+    ReleaseCatalog {
+        /// Directory containing reviewed release manifests and their artifacts.
+        #[arg(long)]
+        root: PathBuf,
+        /// Monotonically increasing release-channel generation.
+        #[arg(long, value_parser = clap::value_parser!(u64).range(1..))]
+        generation: u64,
     },
     /// Verify one final target IMAGE and its exact BUILD closure.
     Verify {
@@ -504,6 +515,9 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                     quiet: opts.quiet,
                 },
             )
+        }
+        HostCommand::ReleaseCatalog { root, generation } => {
+            host_release_catalog::run(&root, generation, opts.dry_run, opts.json, opts.quiet)
         }
         HostCommand::Capstone {
             output,

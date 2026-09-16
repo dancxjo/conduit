@@ -11,6 +11,10 @@ use super::{provision_espflash, require_success, sha256_file, write_receipt};
 struct BrowserReleaseManifest {
     schema: &'static str,
     target_id: String,
+    fabrication_package_id: &'static str,
+    output: &'static str,
+    builder_adapter: &'static str,
+    deployment_adapter: &'static str,
     image_id: String,
     source_identity: String,
     artifact_layout: BrowserArtifactLayout,
@@ -74,6 +78,12 @@ pub(super) fn write(
     let manifest = BrowserReleaseManifest {
         schema: "conduit.release/target-artifact@1",
         target_id: format!("esp32/{}/{}", facts.architecture, facts.machine),
+        fabrication_package_id: "conduit-host-esp32@1",
+        output: "esp32-image",
+        builder_adapter: facts.builder_adapter,
+        deployment_adapter: facts
+            .deployment_adapter
+            .ok_or("reviewed ESP32 target has no deployment adapter")?,
         image_id: format!(
             "conduit-release/esp32-{}-signal/{source_sha}",
             facts.selector

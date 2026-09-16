@@ -861,6 +861,7 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@1.98.1
       - name: Download the reviewed browser product runtimes
         uses: ./.github/actions/download-artifact-retry
         with:
@@ -901,6 +902,11 @@ jobs:
         with:
           name: conduit-conduitos-releases
           path: target/creche-release-artifacts
+      - name: Seal the bounded installed release catalog
+        run: >-
+          cargo +1.98.1 xtask host release-catalog
+          --root target/creche-release-artifacts
+          --generation "${{ github.run_number }}"
       - name: Stage the exact browser products
         run: |
           mkdir -p target/debug
