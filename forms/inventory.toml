@@ -46,12 +46,14 @@ title = "Live Conversation"
 entry = "live-conversation"
 deterministic = { package = "conduit-std-host", test = "live_conversation_execution", case = "checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts" }
 browser_safe_not_applicable = "live audio acquisition, streaming model generation, synthesis, and presentation require explicitly admitted realizations"
+graceful_fallback = "body-chat"
 [[forms]]
 slug = "house-spoken-response"
 title = "House Spoken Response"
 entry = "house-spoken-response"
 deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_spoken_response_composes_text_fallback_and_speech_output" }
 browser_safe_not_applicable = "portable speech output requires an admitted synthesis and audio-output realization"
+graceful_fallback = "house-conversation"
 [[forms]]
 slug = "bench-telemetry"
 title = "Bench Telemetry"

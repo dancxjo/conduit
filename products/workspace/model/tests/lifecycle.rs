@@ -511,6 +511,7 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
             title: "Morse".into(),
             search_text: "keyboard light".into(),
             availability: LibraryAvailability::Available,
+            graceful_fallback: None,
         },
         LibraryEntry {
             form: form("notes"),
@@ -519,6 +520,10 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
             availability: LibraryAvailability::NeedsCapability(
                 "Needs a text model realization.".into(),
             ),
+            graceful_fallback: Some(conduit_workspace_model::library::LibraryFallback {
+                title: "Keyboard Notes".into(),
+                availability: LibraryAvailability::Available,
+            }),
         },
     ])
     .unwrap();
