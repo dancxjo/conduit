@@ -190,6 +190,7 @@ fn shared_presentation_keeps_semantics_realization_provenance_and_effect_stages_
             model_offer: Some(&offer),
             activity: LlmGearActivity::Completed,
             result: Some(&result),
+            generated_flow: None,
             candidate_form: Some(&candidate),
             proposals: &proposals,
             decisions: &decisions,
@@ -270,6 +271,7 @@ fn stale_contract_invalid_offer_and_unbounded_stage_history_refuse() {
         model_offer: None,
         activity: LlmGearActivity::Waiting,
         result: None,
+        generated_flow: None,
         candidate_form: None,
         proposals: &[],
         decisions: &[],
@@ -310,6 +312,47 @@ fn stale_contract_invalid_offer_and_unbounded_stage_history_refuse() {
         project_llm_patchbay(1, basis(), &truth),
         Err(LlmPresentationError::TooManyStages)
     );
+}
+
+#[test]
+fn generated_flow_is_visible_without_retaining_private_response_text() {
+    let contract = llm_contract(conduit_ai::LLM_STREAM_GENERATE_KIND).unwrap();
+    let evidence = conduit_ai::GeneratedTextFlowEvidence {
+        chunks: 3,
+        generated_bytes: 42,
+        terminal: conduit_ai::GeneratedTextFlowTerminal::Cancelled,
+        retained_private_text: false,
+    };
+    let presentation = project_llm_patchbay(
+        1,
+        basis(),
+        &LlmPatchbayTruth {
+            gear_identity: "gear/streaming-model".into(),
+            contract: &contract,
+            placement: None,
+            model_offer: None,
+            activity: LlmGearActivity::Cancelled,
+            result: None,
+            generated_flow: Some(&evidence),
+            candidate_form: None,
+            proposals: &[],
+            decisions: &[],
+            effects: &[],
+        },
+    )
+    .unwrap();
+    assert!(has_text_property(
+        &presentation,
+        "gear/streaming-model",
+        "generated-flow-terminal",
+        "Cancelled"
+    ));
+    assert!(has_text_property(
+        &presentation,
+        "gear/streaming-model",
+        "generated-private-text-retained",
+        "false"
+    ));
 }
 
 fn has_text_property(presentation: &Presentation, subject: &str, name: &str, value: &str) -> bool {

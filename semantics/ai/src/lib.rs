@@ -25,6 +25,8 @@ mod grounded_answer_contract;
 pub use grounded_answer_contract::*;
 mod llm_contract;
 pub use llm_contract::*;
+mod streaming_generation;
+pub use streaming_generation::*;
 mod local_model;
 pub use local_model::*;
 mod cross_host_lifecycle;

@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     llm_contract, LlmDeterminismProfile, LlmWorkBounds, LLM_CLASSIFY_KIND, LLM_EMBED_KIND,
-    LLM_EXTRACT_KIND, LLM_GENERATE_KIND, LLM_INTERPRET_KIND,
+    LLM_EXTRACT_KIND, LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_STREAM_GENERATE_KIND,
 };
 
 pub const LOCAL_MODEL_OPERATION: &str = "conduit.host/local-model-inference@1";
@@ -31,11 +31,12 @@ pub const LOCAL_MODEL_EXECUTION_PROFILE: &str = "conduit.llm/local-model-hosted@
 pub const LOCAL_MODEL_ARTIFACT: &str = "conduit-std-host/local-model-adapter@1";
 pub const LOCAL_MODEL_CAPABILITY_PREFIX: &str = "local-model";
 pub const MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES: usize = 256;
-pub const MAXIMUM_LOCAL_MODEL_KINDS: usize = 5;
+pub const MAXIMUM_LOCAL_MODEL_KINDS: usize = 6;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LocalModelKindProfile {
     Generate,
+    StreamGenerate,
     ClassifyFiniteLabels,
     ExtractValidatedInfo,
     EmbedFiniteVector,
@@ -46,6 +47,7 @@ impl LocalModelKindProfile {
     pub const fn kind(self) -> &'static str {
         match self {
             Self::Generate => LLM_GENERATE_KIND,
+            Self::StreamGenerate => LLM_STREAM_GENERATE_KIND,
             Self::ClassifyFiniteLabels => LLM_CLASSIFY_KIND,
             Self::ExtractValidatedInfo => LLM_EXTRACT_KIND,
             Self::EmbedFiniteVector => LLM_EMBED_KIND,

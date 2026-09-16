@@ -1,6 +1,8 @@
 //! Host dispatch shared by the fenced legacy fixture and L0 local-model realization.
 
-use crate::hosted_local_model::{HostedLocalModelAdapter, LocalModelAdapterTerminal};
+use crate::hosted_local_model::{
+    HostedLocalModelAdapter, LocalModelAdapterTerminal, LocalModelStreamStep,
+};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
@@ -8,6 +10,7 @@ use conduit_kernel::{
 
 pub(super) enum ModelHostCompletion {
     Output,
+    StreamComplete,
     Refused,
     Failed,
     Cancelled,
@@ -23,6 +26,7 @@ impl ModelHostCompletion {
     pub(super) fn outcome(self, output: Option<BoundedValueRef>) -> HostOperationOutcome {
         let (disposition, failure) = match self {
             Self::Output => (HostOperationDisposition::Completed, None),
+            Self::StreamComplete => (HostOperationDisposition::Completed, None),
             Self::Refused => (HostOperationDisposition::Denied, None),
             Self::Failed => (
                 HostOperationDisposition::Failed,
@@ -85,6 +89,27 @@ pub(super) fn execute(
         })
     {
         return Ok(ModelHostCompletion::Refused);
+    }
+    if placement.kind_id.as_str() == conduit_ai::LLM_STREAM_GENERATE_KIND {
+        return Ok(match adapter.execute_stream_step(placement, input) {
+            LocalModelStreamStep::Chunk(chunk) => match serde_json::to_vec(&chunk) {
+                Ok(encoded) => {
+                    output.extend_from_slice(&encoded);
+                    ModelHostCompletion::Output
+                }
+                Err(_) => ModelHostCompletion::InvalidStructuredResult,
+            },
+            LocalModelStreamStep::Terminal(evidence) => match evidence.terminal {
+                conduit_ai::GeneratedTextFlowTerminal::Completed => {
+                    ModelHostCompletion::StreamComplete
+                }
+                conduit_ai::GeneratedTextFlowTerminal::Cancelled => ModelHostCompletion::Cancelled,
+                conduit_ai::GeneratedTextFlowTerminal::ProviderLost => {
+                    ModelHostCompletion::ProviderLost
+                }
+                _ => ModelHostCompletion::Failed,
+            },
+        });
     }
     Ok(match adapter.execute(placement, input, output) {
         LocalModelAdapterTerminal::Produced | LocalModelAdapterTerminal::Truncated => {
