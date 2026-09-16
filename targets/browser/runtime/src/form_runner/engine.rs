@@ -166,25 +166,22 @@ pub(super) fn drive_with_placement<'a>(
     completion_policy: conduit_core::PlanCompletionPolicy,
     placement_for: impl Fn(NodeId) -> Option<&'a conduit_core::PlannedGear>,
 ) -> Result<DriveStatus, String> {
-    drive_with_boundary(scheduler, completion_policy, placement_for, false, None)
+    drive_with_boundary(scheduler, completion_policy, placement_for, false, &[])
 }
 
 /// The same installed effects, with an external Cord allowed to await traffic.
 /// Waiting is not completion; the remote owner must inspect its exact endpoint.
-#[cfg(test)]
 pub(super) fn drive_remote(
     scheduler: &mut TourScheduler,
     fragment: &PlanFragment,
-    endpoint: conduit_kernel::RemoteEndpointId,
-    cord: CordId,
-    egress: bool,
+    egress: &[(conduit_kernel::RemoteEndpointId, CordId)],
 ) -> Result<DriveStatus, String> {
     drive_with_boundary(
         scheduler,
         fragment.completion_policy,
         |node| fragment.placements.get(usize::from(node.0)),
         true,
-        egress.then_some((endpoint, cord)),
+        egress,
     )
 }
 
@@ -193,10 +190,10 @@ fn drive_with_boundary<'a>(
     completion_policy: conduit_core::PlanCompletionPolicy,
     placement_for: impl Fn(NodeId) -> Option<&'a conduit_core::PlannedGear>,
     allow_remote_wait: bool,
-    remote_egress: Option<(conduit_kernel::RemoteEndpointId, CordId)>,
+    remote_egress: &[(conduit_kernel::RemoteEndpointId, CordId)],
 ) -> Result<DriveStatus, String> {
     loop {
-        if let Some((endpoint, cord)) = remote_egress {
+        for &(endpoint, cord) in remote_egress {
             if scheduler
                 .remote_egress_offer(endpoint, cord)
                 .map_err(debug_error)?

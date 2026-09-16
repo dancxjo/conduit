@@ -1,11 +1,12 @@
 use super::*;
 use conduit_core::*;
+use conduit_kernel::RemoteEndpointId;
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
 use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("../../../../../../forms/button-across-room/main.conduit");
 
-fn fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
+pub(super) fn fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
     let checked =
         conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(SOURCE), &startup)
@@ -119,7 +120,7 @@ fn fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
     (plan, source, sink, binding)
 }
 
-fn observations(host: &HostAdvertisement) -> Vec<ResourceObservation> {
+pub(super) fn observations(host: &HostAdvertisement) -> Vec<ResourceObservation> {
     host.resources
         .iter()
         .enumerate()
@@ -143,7 +144,7 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
     let mut source = RemoteExecution::prepare(
         &plan,
         &a,
-        &binding,
+        std::slice::from_ref(&binding),
         &binding.source_active_play_id,
         &observations(&a),
     )
@@ -151,14 +152,14 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
     let mut sink = RemoteExecution::prepare(
         &plan,
         &b,
-        &binding,
+        std::slice::from_ref(&binding),
         &binding.sink_active_play_id,
         &observations(&b),
     )
     .unwrap();
     assert!(matches!(sink.drive().unwrap(), DriveStatus::Quiescent));
-    assert!(sink.offer().is_err());
-    assert!(source.admit(0, &[1]).is_err());
+    assert!(sink.offer(RemoteEndpointId(0)).is_err());
+    assert!(source.admit(RemoteEndpointId(0), 0, &[1]).is_err());
     for (sequence, pressed) in [(0_u64, true), (1, false)] {
         let DriveStatus::Effect(input) = source.drive().unwrap() else {
             panic!("expected button request")
@@ -173,21 +174,22 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
             source.drive().unwrap(),
             DriveStatus::Waiting { .. }
         ));
-        let offer = source.offer().unwrap().unwrap();
+        let offer = source.offer(RemoteEndpointId(0)).unwrap().unwrap();
         assert_eq!(offer.sequence, sequence);
         assert_eq!(offer.payload, bytes);
-        assert!(source.accepted(sequence + 1).is_err());
+        assert!(source.accepted(RemoteEndpointId(0), sequence + 1).is_err());
         assert!(matches!(
             source.drive().unwrap(),
             DriveStatus::Waiting { .. }
         ));
-        assert_eq!(source.offer().unwrap().unwrap(), offer);
-        assert!(source.delivered(sequence).is_err());
+        assert_eq!(source.offer(RemoteEndpointId(0)).unwrap().unwrap(), offer);
+        assert!(source.delivered(RemoteEndpointId(0), sequence).is_err());
         assert!(matches!(
-            sink.admit(sequence, &offer.payload).unwrap(),
+            sink.admit(RemoteEndpointId(0), sequence, &offer.payload)
+                .unwrap(),
             RemoteIngressOutcome::Accepted { .. }
         ));
-        source.accepted(sequence).unwrap();
+        source.accepted(RemoteEndpointId(0), sequence).unwrap();
         let DriveStatus::Effect(presentation) = sink.drive().unwrap() else {
             panic!("expected indicator request")
         };
@@ -207,7 +209,7 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
             }
         );
         sink.complete_effect(&presentation, None).unwrap();
-        source.delivered(sequence).unwrap();
+        source.delivered(RemoteEndpointId(0), sequence).unwrap();
         assert!(matches!(sink.drive().unwrap(), DriveStatus::Quiescent));
     }
     assert!(matches!(
@@ -217,7 +219,7 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
             ..
         })
     ));
-    assert!(!source.terminal().unwrap());
+    assert!(!source.terminal(RemoteEndpointId(0)).unwrap());
     sink.cancel().unwrap();
     source.cancel().unwrap();
 }
@@ -225,13 +227,18 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
 #[test]
 fn preparation_refuses_stale_identity_and_missing_resource_admission() {
     let (plan, a, b, binding) = fixture();
-    assert!(
-        RemoteExecution::prepare(&plan, &b, &binding, &binding.sink_active_play_id, &[]).is_err()
-    );
+    assert!(RemoteExecution::prepare(
+        &plan,
+        &b,
+        std::slice::from_ref(&binding),
+        &binding.sink_active_play_id,
+        &[]
+    )
+    .is_err());
     assert!(RemoteExecution::prepare(
         &plan,
         &a,
-        &binding,
+        std::slice::from_ref(&binding),
         &binding.sink_active_play_id,
         &observations(&a)
     )
@@ -241,7 +248,7 @@ fn preparation_refuses_stale_identity_and_missing_resource_admission() {
     assert!(RemoteExecution::prepare(
         &plan,
         &stale,
-        &binding,
+        std::slice::from_ref(&binding),
         &binding.source_active_play_id,
         &observations(&stale)
     )
@@ -251,7 +258,7 @@ fn preparation_refuses_stale_identity_and_missing_resource_admission() {
     assert!(RemoteExecution::prepare(
         &plan,
         &a,
-        &stale_binding,
+        &[stale_binding],
         &binding.source_active_play_id,
         &observations(&a)
     )
@@ -261,7 +268,7 @@ fn preparation_refuses_stale_identity_and_missing_resource_admission() {
     assert!(RemoteExecution::prepare(
         &altered,
         &a,
-        &binding,
+        std::slice::from_ref(&binding),
         &binding.source_active_play_id,
         &observations(&a)
     )

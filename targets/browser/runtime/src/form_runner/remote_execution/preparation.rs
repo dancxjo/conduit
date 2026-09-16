@@ -5,58 +5,70 @@ use conduit_core::{ResourceAdmissionItem, ResourceAdmissionRequest};
 pub(super) fn validate<'a>(
     plan: &'a Plan,
     host: &HostAdvertisement,
-    binding: &SessionBinding,
+    bindings: &[SessionBinding],
     play: &ActivePlayId,
 ) -> Result<&'a PlanFragment, String> {
-    if !conduit_core::verify_plan(plan)
-        || binding.plan_id != plan.plan_id
-        || binding.attachment.base.as_str() != "conduit.base/webrtc-data-channel@1"
-    {
-        return Err("remote execution requires an exact verified WebRTC Plan".into());
+    if !conduit_core::verify_plan(plan) || bindings.is_empty() || bindings.len() > 16 {
+        return Err("remote execution requires exact finite verified Line grants".into());
     }
-    binding.validate().map_err(debug)?;
-    let source = plan
-        .fragments
-        .iter()
-        .find(|f| f.fragment_id == binding.source_fragment_id)
-        .ok_or("missing source fragment")?;
-    let sink = plan
-        .fragments
-        .iter()
-        .find(|f| f.fragment_id == binding.sink_fragment_id)
-        .ok_or("missing sink fragment")?;
-    let connection = source
-        .connections
-        .iter()
-        .find(|c| c.connection_id == binding.connection_id)
-        .ok_or("missing source connection")?;
-    if !sink
-        .connections
-        .iter()
-        .any(|candidate| candidate == connection)
-    {
-        return Err("source and sink do not share the exact planned connection".into());
+    let mut fragment = None;
+    for binding in bindings {
+        if binding.plan_id != plan.plan_id
+            || !matches!(
+                binding.attachment.base.as_str(),
+                "conduit.base/webrtc-data-channel@1" | "conduit.base/websocket-rfc6455@1"
+            )
+        {
+            return Err("remote execution grant has an unsupported Line Base".into());
+        }
+        binding.validate().map_err(debug)?;
+        let source = plan
+            .fragments
+            .iter()
+            .find(|candidate| candidate.fragment_id == binding.source_fragment_id)
+            .ok_or("missing source fragment")?;
+        let sink = plan
+            .fragments
+            .iter()
+            .find(|candidate| candidate.fragment_id == binding.sink_fragment_id)
+            .ok_or("missing sink fragment")?;
+        let connection = source
+            .connections
+            .iter()
+            .find(|candidate| candidate.connection_id == binding.connection_id)
+            .ok_or("missing source connection")?;
+        if !sink
+            .connections
+            .iter()
+            .any(|candidate| candidate == connection)
+        {
+            return Err("source and sink do not share the exact planned connection".into());
+        }
+        let exact = SessionBinding::from_planned_connection(
+            plan.plan_id.clone(),
+            source.fragment_id.clone(),
+            sink.fragment_id.clone(),
+            connection,
+        )
+        .map_err(debug)?;
+        if &exact != binding {
+            return Err("grant differs from the sealed planned connection".into());
+        }
+        let (owned, expected_play) =
+            if host.host_id == binding.source.host_id && host.boot_id == binding.source.boot_id {
+                (source, &binding.source_active_play_id)
+            } else if host.host_id == binding.sink.host_id && host.boot_id == binding.sink.boot_id {
+                (sink, &binding.sink_active_play_id)
+            } else {
+                return Err("current Host/Boot does not own this grant".into());
+            };
+        if expected_play != play || fragment.is_some_and(|prior| prior != owned) {
+            return Err("Line grants do not name one exact remote Play".into());
+        }
+        fragment = Some(owned);
     }
-    let exact = SessionBinding::from_planned_connection(
-        plan.plan_id.clone(),
-        source.fragment_id.clone(),
-        sink.fragment_id.clone(),
-        connection,
-    )
-    .map_err(debug)?;
-    if &exact != binding {
-        return Err("grant differs from the sealed planned connection".into());
-    }
-    let (fragment, expected_play) =
-        if host.host_id == binding.source.host_id && host.boot_id == binding.source.boot_id {
-            (source, &binding.source_active_play_id)
-        } else if host.host_id == binding.sink.host_id && host.boot_id == binding.sink.boot_id {
-            (sink, &binding.sink_active_play_id)
-        } else {
-            return Err("current Host/Boot does not own this grant".into());
-        };
-    if expected_play != play
-        || fragment.host_id != host.host_id
+    let fragment = fragment.ok_or("remote execution has no exact fragment")?;
+    if fragment.host_id != host.host_id
         || fragment.boot_id != host.boot_id
         || fragment.offer_generation != host.offer_generation
     {

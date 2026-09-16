@@ -1,7 +1,6 @@
-//! One exact admitted WebRTC fragment using the installed production kernel.
+//! One exact admitted remote fragment using the installed production kernel.
 //! This owns no transport, planner, membership authority, or Body coordinator.
-//! Currently test-scoped conformance scaffolding: no production ABI or live
-//! transport is attached, and passing these tests is not remote-browser proof.
+mod abi;
 mod preparation;
 #[cfg(test)]
 mod tests;
@@ -18,7 +17,7 @@ use conduit_wire::SessionBinding;
 pub(super) struct RemoteExecution {
     scheduler: TourScheduler,
     fragment: PlanFragment,
-    remote: LoweredRemoteEndpoint,
+    remotes: Vec<LoweredRemoteEndpoint>,
     _resources: ResourceAdmissionOwner,
 }
 
@@ -34,41 +33,43 @@ impl RemoteExecution {
     pub(super) fn prepare(
         plan: &Plan,
         host: &HostAdvertisement,
-        binding: &SessionBinding,
+        bindings: &[SessionBinding],
         active_play_id: &ActivePlayId,
         observations: &[ResourceObservation],
     ) -> Result<Self, String> {
-        let fragment = preparation::validate(plan, host, binding, active_play_id)?;
+        let fragment = preparation::validate(plan, host, bindings, active_play_id)?;
         let resources = preparation::admit(fragment, host, observations)?;
         let (scheduler, lowered) = engine::prepare_remote_fragment(fragment)?;
-        let remote = lowered
-            .remote_endpoints
-            .first()
-            .ok_or("missing remote endpoint")?
-            .clone();
-        if remote.connection_id != binding.connection_id
-            || remote.source_fragment_id != binding.source_fragment_id
-            || remote.sink_fragment_id != binding.sink_fragment_id
-            || remote.value_kind != binding.value_kind
-        {
-            return Err("lowered remote endpoint differs from the exact grant".into());
+        if lowered.remote_endpoints.len() != bindings.len() || bindings.is_empty() {
+            return Err("remote endpoint count differs from the exact grants".into());
+        }
+        for remote in &lowered.remote_endpoints {
+            let matches = bindings.iter().filter(|binding| {
+                remote.connection_id == binding.connection_id
+                    && remote.source_fragment_id == binding.source_fragment_id
+                    && remote.sink_fragment_id == binding.sink_fragment_id
+                    && remote.value_kind == binding.value_kind
+            });
+            if matches.count() != 1 {
+                return Err("lowered remote endpoint differs from the exact grants".into());
+            }
         }
         Ok(Self {
             scheduler,
             fragment: fragment.clone(),
-            remote,
+            remotes: lowered.remote_endpoints,
             _resources: resources,
         })
     }
 
     pub(super) fn drive(&mut self) -> Result<DriveStatus, String> {
-        engine::drive_remote(
-            &mut self.scheduler,
-            &self.fragment,
-            self.remote.endpoint,
-            self.remote.cord,
-            self.remote.direction == RemoteCordDirection::Egress,
-        )
+        let egress = self
+            .remotes
+            .iter()
+            .filter(|remote| remote.direction == RemoteCordDirection::Egress)
+            .map(|remote| (remote.endpoint, remote.cord))
+            .collect::<Vec<_>>();
+        engine::drive_remote(&mut self.scheduler, &self.fragment, &egress)
     }
 
     pub(super) fn complete_effect(
@@ -84,17 +85,29 @@ impl RemoteExecution {
         }
     }
 
-    fn direction(&self, expected: RemoteCordDirection) -> Result<(), String> {
-        if self.remote.direction != expected {
+    fn remote(
+        &self,
+        endpoint: conduit_kernel::RemoteEndpointId,
+        expected: RemoteCordDirection,
+    ) -> Result<&LoweredRemoteEndpoint, String> {
+        let remote = self
+            .remotes
+            .iter()
+            .find(|remote| remote.endpoint == endpoint)
+            .ok_or_else(|| "unknown remote endpoint".to_string())?;
+        if remote.direction != expected {
             return Err("wrong remote endpoint direction".into());
         }
-        Ok(())
+        Ok(remote)
     }
 
-    pub(super) fn offer(&mut self) -> Result<Option<RemoteOffer>, String> {
-        self.direction(RemoteCordDirection::Egress)?;
+    pub(super) fn offer(
+        &mut self,
+        endpoint: conduit_kernel::RemoteEndpointId,
+    ) -> Result<Option<RemoteOffer>, String> {
+        let cord = self.remote(endpoint, RemoteCordDirection::Egress)?.cord;
         self.scheduler
-            .remote_egress_offer(self.remote.endpoint, self.remote.cord)
+            .remote_egress_offer(endpoint, cord)
             .map_err(debug)?
             .map(|offer| {
                 Ok(RemoteOffer {
@@ -111,38 +124,62 @@ impl RemoteExecution {
 
     pub(super) fn admit(
         &mut self,
+        endpoint: conduit_kernel::RemoteEndpointId,
         sequence: u64,
         bytes: &[u8],
     ) -> Result<RemoteIngressOutcome, String> {
-        self.direction(RemoteCordDirection::Ingress)?;
+        let cord = self.remote(endpoint, RemoteCordDirection::Ingress)?.cord;
         self.scheduler
-            .admit_remote_input(self.remote.endpoint, self.remote.cord, sequence, bytes)
+            .admit_remote_input(endpoint, cord, sequence, bytes)
             .map_err(debug)
     }
 
-    pub(super) fn accepted(&mut self, sequence: u64) -> Result<(), String> {
-        self.direction(RemoteCordDirection::Egress)?;
+    pub(super) fn accepted(
+        &mut self,
+        endpoint: conduit_kernel::RemoteEndpointId,
+        sequence: u64,
+    ) -> Result<(), String> {
+        let cord = self.remote(endpoint, RemoteCordDirection::Egress)?.cord;
         self.scheduler
-            .remote_egress_accept(self.remote.endpoint, self.remote.cord, sequence)
+            .remote_egress_accept(endpoint, cord, sequence)
             .map_err(debug)
     }
 
-    pub(super) fn delivered(&mut self, sequence: u64) -> Result<(), String> {
-        self.direction(RemoteCordDirection::Egress)?;
+    pub(super) fn delivered(
+        &mut self,
+        endpoint: conduit_kernel::RemoteEndpointId,
+        sequence: u64,
+    ) -> Result<(), String> {
+        let cord = self.remote(endpoint, RemoteCordDirection::Egress)?.cord;
         self.scheduler
-            .remote_egress_delivered(self.remote.endpoint, self.remote.cord, sequence)
+            .remote_egress_delivered(endpoint, cord, sequence)
             .map_err(debug)
     }
 
-    pub(super) fn terminal(&mut self) -> Result<bool, String> {
-        self.direction(RemoteCordDirection::Egress)?;
+    pub(super) fn terminal(
+        &mut self,
+        endpoint: conduit_kernel::RemoteEndpointId,
+    ) -> Result<bool, String> {
+        let cord = self.remote(endpoint, RemoteCordDirection::Egress)?.cord;
         self.scheduler
-            .remote_egress_terminal(self.remote.endpoint, self.remote.cord)
+            .remote_egress_terminal(endpoint, cord)
             .map_err(debug)
     }
 
     pub(super) fn cancel(&mut self) -> Result<(), String> {
         self.scheduler.cancel().map_err(debug)
+    }
+
+    fn endpoint_for(&self, binding: &SessionBinding) -> Option<conduit_kernel::RemoteEndpointId> {
+        self.remotes
+            .iter()
+            .find(|remote| {
+                remote.connection_id == binding.connection_id
+                    && remote.source_fragment_id == binding.source_fragment_id
+                    && remote.sink_fragment_id == binding.sink_fragment_id
+                    && remote.value_kind == binding.value_kind
+            })
+            .map(|remote| remote.endpoint)
     }
 }
 
