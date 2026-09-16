@@ -140,10 +140,11 @@ export function openWorkspaceSession({ host, storage }) {
       const snapshot = await storage.readJson('body-session');
       if (snapshot === null) return null;
       if (snapshot.schema === 'conduit.workspace/body@1') {
+        const resumeWake = snapshot.evidence?.body?.state !== 'Lulled';
         request('Restore', { evidence: snapshot.evidence, admission: snapshot.admission ?? null, advertisement: localAdvertisement, ...here });
         if (snapshot.foreground) request('SelectForm', { form: snapshot.foreground });
         await save();
-        return workspace;
+        return { body: workspace, resume_wake: resumeWake };
       }
       const bytes = encoder.encode(JSON.stringify(snapshot));
       put(bytes);
@@ -159,9 +160,9 @@ export function openWorkspaceSession({ host, storage }) {
         nextSequence();
         if (restored.host_id !== host.hostId || restored.boot_id !== host.bootId) throw new Error('Body membership did not reconcile to this Host and Boot');
         await save();
-        return restored;
+        return { body: restored, resume_wake: false };
       }
-      return receipt;
+      return { body: receipt, resume_wake: false };
     },
   });
 }

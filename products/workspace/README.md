@@ -1,7 +1,9 @@
 # Arrive in a Body
 
 The shared Crèche names a Body and selects its initial Forms. Birth saves that
-Body, admits this browser Host, plans the complete workset, and wakes its Forms.
+Body and admits this browser Host, then hands the same surface to the newborn
+Lulled Body. An explicit **Wake Body** action plans the complete workset and
+wakes its Forms.
 The foreground surface receives input; choosing another Form keeps the same
 Body Plan and Play. Lull explicitly stops execution and retains the Body.
 
@@ -44,8 +46,9 @@ Run its pinned Chromium acceptance journey after installing the prerequisites in
 cargo xtask demo workspace --check
 ```
 
-The journey births Memory Lantern and Desk Telegraph, interacts repeatedly with
-both, switches without replacing Play, and reopens the same Body with its last
+The journey births Memory Lantern and Desk Telegraph, confirms the newborn Body
+is Lulled, Wakes it explicitly, interacts repeatedly with both, switches without
+replacing Play, and reopens the same Body with its last
 foreground Form. Separate cases exercise storage exhaustion, a competing window,
 a narrow viewport, an intentionally empty Body, real sound-only startup, first-wake
 silence after reload, and continued input when audio is unavailable. Library cases

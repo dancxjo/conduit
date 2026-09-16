@@ -5,7 +5,7 @@ let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("Birth arrives in listening Forms; foreground changes and reload preserve the Body", async ({ page }, testInfo) => {
+test("Birth hands off to a Lulled Body; Wake starts listening Forms and reload preserves the Body", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto(entrance.url);
   const birth = page.locator(".body-birth-runner");
@@ -16,6 +16,10 @@ test("Birth arrives in listening Forms; foreground changes and reload preserve t
   await page.screenshot({ path: testInfo.outputPath("workspace-birth.png"), fullPage: true });
   await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
   await expect(page.locator("[data-body-name]")).toHaveText("Roseau");
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  await expect(page.locator("#surface-guidance")).toContainText("Wake it to start its Forms");
+  await expect(page.locator("#form-input")).toHaveAttribute("aria-disabled", "true");
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await expect(page.locator("[data-wake-body]")).toBeHidden();
   const identity = () => page.evaluate(() => globalThis.__conduitWorkspace.current());
@@ -59,6 +63,11 @@ test("Birth arrives in listening Forms; foreground changes and reload preserve t
   await page.getByRole("button", { name: "Lull Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   expect((await identity()).body_id).toBe(first.body_id);
+  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
+  await page.reload();
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeVisible();
+  expect((await identity()).active_play_id).toBeUndefined();
 });
 
 test("a failed started-state save cancels the real Play before dispatching effects", async ({ page }) => {
@@ -79,6 +88,7 @@ test("a failed started-state save cancels the real Play before dispatching effec
   });
   await page.goto(entrance.url);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Stopped");
   await expect(page.locator("#surface-guidance")).toContainText("Your Body could not be saved");
   await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeDisabled();
@@ -96,6 +106,7 @@ test("a failed started-state save cancels the real Play before dispatching effec
 test("a second window cannot recover a Body while its first Host is alive", async ({ page, context }) => {
   await page.goto(entrance.url);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const other = await context.newPage();
   await other.goto(entrance.url);
@@ -113,6 +124,7 @@ test("Birth and the listening surface fit a narrow window", async ({ page }, tes
   await expect(page.getByRole("heading", { name: "A Body of your own" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.keyboard.press("h");
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
@@ -165,6 +177,7 @@ test("a sound-only Body renders the original cue through real browser audio and 
   await expect(page.getByRole('checkbox', { name: 'Startup Chime', exact: true })).toBeChecked();
   await page.screenshot({ path: testInfo.outputPath('chime-birth.png'), fullPage: true });
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
+  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Idle');
   const audio = await page.evaluate(() => globalThis.__cueAudio);
   expect(audio.starts).toEqual([{ frames: 57600, sampleRate: 48000, channels: 1, state: 'running' }]);
@@ -189,6 +202,7 @@ test("first-wake audio stays silent after reload of the same Body with a fresh B
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
   await page.getByRole('checkbox', { name: 'First Wake Chime', exact: true }).check();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
+  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Idle');
   expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(1);
   const first = await page.evaluate(() => globalThis.__conduitWorkspace.current());
@@ -207,6 +221,7 @@ test("removing the default cue survives reload and a later first-wake installati
   await observeRealAudio(page);
   await page.goto(entrance.url);
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
+  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await expect.poll(() => page.evaluate(() => globalThis.__cueAudio.ended)).toBe(1);
   const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
@@ -248,6 +263,7 @@ test("unavailable audio is omitted by default and an explicitly installed cue ca
   await expect(page.getByRole('checkbox', { name: 'Startup Chime', exact: true })).not.toBeChecked();
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).check();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
+  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await page.keyboard.press('a');
   await expect(page.locator('[data-form-output] output:visible')).toHaveText('a');
@@ -265,6 +281,7 @@ test("a suspended real audio context reports denial while the Body keeps listeni
   });
   await page.goto(entrance.url);
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
+  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await page.keyboard.press('b');
   await expect(page.locator('[data-form-output] output:visible')).toHaveText('b');

@@ -19,6 +19,7 @@ async function birth(page) {
   await chime.uncheck();
   await page.getByLabel("Friendly Body name", { exact: true }).fill("Roseau");
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
 }
 
@@ -28,6 +29,7 @@ test("five ordinary Forms start together beyond the old aggregate placement ceil
     await page.getByRole("checkbox", { name: title, exact: true }).check();
   }
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const state = await current(page);
   expect(state.initial_forms).toHaveLength(5);
@@ -179,6 +181,8 @@ test("a failed workset save stops before replacement effects and reload recovers
   expect(failed.state.terminal.active_play_id).toBe(initial.active_play_id);
   await expect(page.locator("[data-form-output] output")).toHaveCount(0);
   await page.reload();
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const restored = await current(page);
   expect(restored.body_id).toBe(initial.body_id);
@@ -232,6 +236,7 @@ test('a new Gallery arrival selects the Form in the actual Crèche; a stale hand
   await expect(page.getByRole('checkbox', { name: 'Desk Telegraph', exact: true })).toBeChecked();
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
+  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await expect(page.locator('#surface-title')).toHaveText('Desk Telegraph');
   const initial = await current(page);
@@ -250,6 +255,7 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
     await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
     await page.getByRole('checkbox', { name: title, exact: true }).check();
     await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
+    await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
     await expect(page.locator('[data-play-state]')).toHaveText('Playing');
     const identity = await current(page);
     const surface = page.locator('#form-input');

@@ -18,6 +18,7 @@ test("resident application styles are package-bound, scoped, and responsive", as
     await page.getByRole("checkbox", { name: title, exact: true }).check();
   }
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await expect(page.locator('style[data-application-resource="resident-tour-style"]')).toHaveCount(1);
 
@@ -91,6 +92,7 @@ test("resident Tour runs every exercise and keeps state across foreground switch
   }
   await page.getByLabel("Friendly Body name", { exact: true }).fill("Wayfinder");
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const born = await current(page);
   expect(born.initial_forms).toHaveLength(3);
@@ -178,6 +180,7 @@ test("resident Patchbay inspects and begins an exact edit in one browser Body Pl
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Patchbay", exact: true }).check();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const born = await current(page);
   await page.locator("[data-checked-form-id]").filter({ hasText: "Patchbay" }).click();

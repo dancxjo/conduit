@@ -19,6 +19,7 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
     adapter = null;
     await session.lull(started.play);
   };
+  publish('Lulled', 'This Body is retained. Wake it to start its Forms.');
   return Object.freeze({
     async wake() {
       if (adapter || transition) return;
