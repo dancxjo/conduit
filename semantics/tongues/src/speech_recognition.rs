@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{string::String, vec, vec::Vec};
 
+use crate::{committed_recognition_turn_contract, streaming_speech_recognition_contract};
+
 pub const SPEECH_RECOGNIZE_KIND: &str = "speech/recognize";
 pub const SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize@1";
 pub const SPEECH_RECOGNIZE_CLIP_KIND: &str = "speech/recognize-clip";
@@ -166,6 +168,8 @@ pub fn install_speech_recognition_catalog(
         speech_recognition_contract(),
         speech_clip_recognition_contract(),
         speech_recognition_to_text_contract(),
+        streaming_speech_recognition_contract(),
+        committed_recognition_turn_contract(),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().into(),
