@@ -8,7 +8,9 @@ use conduit_presentation::{
     SemanticApplicationView, SemanticPresentationNode, StatusKind,
 };
 
+mod evidence;
 mod speech;
+pub use evidence::*;
 pub use speech::*;
 
 pub const MAX_COMMAND_BYTES: usize = 96;
