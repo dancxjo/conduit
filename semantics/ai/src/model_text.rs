@@ -16,7 +16,9 @@ use crate::{
 };
 
 pub const MODEL_RESULT_TO_TEXT_KIND: &str = "llm/result-to-text";
+pub const MODEL_RESULT_FLOW_TO_TEXT_KIND: &str = "llm/result-flow-to-text";
 pub const MODEL_RESULT_TO_TEXT_REVISION: &str = "conduit.llm/result-to-text@1";
+pub const MODEL_RESULT_FLOW_TO_TEXT_REVISION: &str = "conduit.llm/result-flow-to-text@1";
 pub const MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES: u32 = 65_536;
 pub const MAXIMUM_MODEL_TEXT_BYTES: u32 = 256;
 
@@ -42,15 +44,37 @@ pub enum ModelTextRefusal {
 }
 
 pub fn model_result_to_text_contract() -> ModelTextContract {
+    model_text_contract(
+        MODEL_RESULT_TO_TEXT_KIND,
+        MODEL_RESULT_TO_TEXT_REVISION,
+        PortTemporal::Value,
+    )
+}
+
+pub fn model_result_flow_to_text_contract() -> ModelTextContract {
+    model_text_contract(
+        MODEL_RESULT_FLOW_TO_TEXT_KIND,
+        MODEL_RESULT_FLOW_TO_TEXT_REVISION,
+        PortTemporal::Flow { closes: true },
+    )
+}
+
+fn model_text_contract(kind: &str, revision: &str, temporal: PortTemporal) -> ModelTextContract {
     ModelTextContract {
-        kind_id: kind_id(MODEL_RESULT_TO_TEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(MODEL_RESULT_TO_TEXT_REVISION),
-        inputs: vec![port(
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindContractRevision::from(revision),
+        inputs: vec![port_with_temporal(
             "result",
             GENERATED_RESULT_VALUE_KIND,
             PortDirection::Input,
+            temporal,
         )],
-        outputs: vec![port("text", TEXT_VALUE_KIND, PortDirection::Output)],
+        outputs: vec![port_with_temporal(
+            "text",
+            TEXT_VALUE_KIND,
+            PortDirection::Output,
+            temporal,
+        )],
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -93,28 +117,38 @@ pub fn install_model_text_catalog(
 ) -> Result<(), String> {
     use conduit_form::{KindDefinition, KindSignature};
 
-    let contract = model_result_to_text_contract();
-    startup.insert(KindSignature {
-        kind: MODEL_RESULT_TO_TEXT_KIND.into(),
-        startup_parameters: vec![],
-    })?;
-    profile
-        .insert(KindDefinition {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![],
-        })
-        .map_err(|error| error.to_string())
+    for contract in [
+        model_result_to_text_contract(),
+        model_result_flow_to_text_contract(),
+    ] {
+        startup.insert(KindSignature {
+            kind: contract.kind_id.as_str().into(),
+            startup_parameters: vec![],
+        })?;
+        profile
+            .insert(KindDefinition {
+                kind_id: contract.kind_id,
+                kind_contract_revision: contract.kind_contract_revision,
+                inputs: contract.inputs,
+                outputs: contract.outputs,
+                configuration: vec![],
+            })
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
-fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
+fn port_with_temporal(
+    name: &str,
+    value_kind: &str,
+    direction: PortDirection,
+    temporal: PortTemporal,
+) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
         value_kind: kind_id(value_kind),
         direction,
-        temporal: PortTemporal::Value,
+        temporal,
     }
 }
 

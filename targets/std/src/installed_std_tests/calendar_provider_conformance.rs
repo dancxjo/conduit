@@ -189,6 +189,7 @@ fn run(
             local_model: None,
             vector_search: None,
             calendar: host.calendar.as_deref_mut(),
+            body_conversation_context: None,
         },
         &fragment,
         0,

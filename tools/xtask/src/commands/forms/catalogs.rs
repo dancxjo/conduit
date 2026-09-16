@@ -105,12 +105,14 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_reminder_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile)?;
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profile)?;
     conduit_tongues::install_research_catalogs(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_form_catalog(&mut startup, &mut profile)?;
+    conduit_tongues::install_body_chat_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;

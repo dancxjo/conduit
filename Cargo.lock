@@ -631,6 +631,7 @@ dependencies = [
  "conduit-net",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-text",
 ]
 
 [[package]]
@@ -1149,6 +1150,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-ai",
  "conduit-audio",
+ "conduit-body",
+ "conduit-chat",
  "conduit-core",
  "conduit-data",
  "conduit-form",

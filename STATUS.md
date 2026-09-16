@@ -71,6 +71,12 @@ Their presence is not an additional physical or release acceptance claim:
   and conversation components exist. The attended, live named-house speech
   experience remains open in [#2297](https://github.com/dancxjo/conduit/issues/2297).
   Recorded PCM and a model response do not prove a microphone-to-speaker household.
+- **Body Chat:** the checked `body-chat` Form composes portable text interaction,
+  bounded Conduit-owned history, a canonical current-Body projection, and a
+  replaceable stateless model flow. WebSocket remains an explicit Webchat
+  adapter rather than chat semantics. This source-level slice does not yet
+  establish the five-Host, voice, or ConduitOS experiences described in the
+  [Body Chat guide](forms/body-chat/README.md).
 - **Reusable applications:** Forms-as-Gears is implemented, while several
   complete reusable application compositions still have open acceptance work.
   [The roadmap](docs/roadmap.md#reusable-forms) names those remaining slices.

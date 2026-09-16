@@ -319,6 +319,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-chat"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-net",
+ "conduit-presentation",
+ "conduit-text",
+]
+
+[[package]]
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
@@ -596,6 +607,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-ai",
  "conduit-audio",
+ "conduit-body",
+ "conduit-chat",
  "conduit-core",
  "conduit-data",
  "conduit-form",

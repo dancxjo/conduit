@@ -4,8 +4,9 @@ use conduit_ai::{
     llm_contract, llm_semantic_catalog, ConfidencePermille, LlmDeterminismProfile,
     LlmImplementationControl, LlmTerminalOutcome, ModelDerivedResult, ModelFailure, ModelRefusal,
     ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance, ModelWorkAccounting,
-    LLM_CLASSIFY_KIND, LLM_COMPOSE_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND, LLM_GENERATE_KIND,
-    LLM_INTERPRET_KIND, LLM_JUDGE_KIND, LLM_PROPOSE_KIND, LLM_STREAM_GENERATE_KIND,
+    LLM_CLASSIFY_KIND, LLM_COMPOSE_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND, LLM_GENERATE_FLOW_KIND,
+    LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_JUDGE_KIND, LLM_PROPOSE_KIND,
+    LLM_STREAM_GENERATE_KIND,
 };
 use conduit_core::PortDirection;
 use conduit_core::PortTemporal;
@@ -60,6 +61,7 @@ fn machine_readable_semantic_contracts_have_exact_distinct_faces() {
     let contracts = llm_semantic_catalog();
     let expected = [
         LLM_GENERATE_KIND,
+        LLM_GENERATE_FLOW_KIND,
         LLM_CLASSIFY_KIND,
         LLM_EXTRACT_KIND,
         LLM_EMBED_KIND,

@@ -125,6 +125,7 @@ fn found_storage_result_feeds_reusable_comparison_through_checked_selectors() {
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

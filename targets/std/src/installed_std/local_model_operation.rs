@@ -13,12 +13,14 @@ pub(super) static LOCAL_MODEL_FACTORY: InstalledFactory = InstalledFactory {
 
 pub(super) struct LocalModelOperation {
     maximum_input_bytes: u32,
-    pending: bool,
+    pending: Option<RequestId>,
+    next_request: u32,
+    closed: bool,
+    flow: bool,
     emitted: bool,
     stream: bool,
     stream_complete: bool,
     input: Option<conduit_kernel::ValueRef>,
-    request_sequence: u32,
 }
 
 impl LocalModelOperation {
@@ -31,22 +33,33 @@ impl LocalModelOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if !self.pending && !self.emitted => {
+            } if self.pending.is_none()
+                && !self.closed
+                && if self.stream {
+                    self.input.is_none()
+                } else {
+                    self.flow || !self.emitted
+                } =>
+            {
                 let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
                     return fail(FailureCode::InvalidInput, 1);
                 };
-                self.pending = true;
-                self.input = Some(value);
+                let request = RequestId(self.next_request);
+                self.next_request = self.next_request.saturating_add(1);
+                self.pending = Some(request);
+                if self.stream {
+                    self.input = Some(value);
+                }
                 OperationAction::RequestHostOperation {
-                    request: RequestId(self.request_sequence),
+                    request,
                     operation: HostOperationId(0),
                     input,
                 }
             }
             OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending && request == RequestId(self.request_sequence) =>
+                if self.pending == Some(request) =>
             {
-                self.pending = false;
+                self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
                     (HostOperationDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
@@ -69,6 +82,10 @@ impl LocalModelOperation {
                     _ => fail(FailureCode::InvalidLifecycle, 5),
                 }
             }
+            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
+                self.closed = true;
+                OperationAction::Complete
+            }
             _ => fail(FailureCode::InvalidLifecycle, 6),
         }
     }
@@ -84,14 +101,15 @@ impl LocalModelOperation {
                 return fail(FailureCode::InvalidInput, 8);
             };
             self.emitted = false;
-            self.pending = true;
-            self.request_sequence = self.request_sequence.saturating_add(1);
+            let request = RequestId(self.next_request);
+            self.next_request = self.next_request.saturating_add(1);
+            self.pending = Some(request);
             OperationAction::RequestHostOperation {
-                request: RequestId(self.request_sequence),
+                request,
                 operation: HostOperationId(0),
                 input,
             }
-        } else if self.emitted {
+        } else if self.emitted && !self.flow {
             OperationAction::Complete
         } else {
             OperationAction::Await
@@ -99,7 +117,7 @@ impl LocalModelOperation {
     }
 
     pub(super) fn cancel(&mut self) {
-        self.pending = false;
+        self.pending = None;
     }
 }
 
@@ -109,6 +127,7 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
     if !matches!(
         placement.kind_id.as_str(),
         conduit_ai::LLM_GENERATE_KIND
+            | conduit_ai::LLM_GENERATE_FLOW_KIND
             | conduit_ai::LLM_CLASSIFY_KIND
             | conduit_ai::LLM_EXTRACT_KIND
             | conduit_ai::LLM_EMBED_KIND
@@ -189,12 +208,14 @@ fn prepare(
     Ok(InstalledOperation::LocalModel(LocalModelOperation {
         maximum_input_bytes: u32::try_from(configuration_count(placement, "maximum-input-bytes")?)
             .map_err(|_| "local-model input bound does not fit the kernel".to_string())?,
-        pending: false,
+        pending: None,
+        next_request: 0,
+        closed: false,
+        flow: placement.kind_id.as_str() == conduit_ai::LLM_GENERATE_FLOW_KIND,
         emitted: false,
         stream: placement.kind_id.as_str() == conduit_ai::LLM_STREAM_GENERATE_KIND,
         stream_complete: false,
         input: None,
-        request_sequence: 0,
     }))
 }
 
@@ -219,12 +240,14 @@ mod tests {
     fn streaming_operation_pulls_one_chunk_only_after_prior_delivery() {
         let mut operation = LocalModelOperation {
             maximum_input_bytes: 64,
-            pending: false,
+            pending: None,
+            next_request: 0,
+            closed: false,
+            flow: false,
             emitted: false,
             stream: true,
             stream_complete: false,
             input: None,
-            request_sequence: 0,
         };
         let request = operation.resume(OperationInput::Value {
             port: PortId(0),

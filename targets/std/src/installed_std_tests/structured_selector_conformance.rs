@@ -194,6 +194,7 @@ fn execute_case(
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

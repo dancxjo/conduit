@@ -89,6 +89,7 @@ fn reusable_pulse_form_plans_and_executes_outside_choir() {
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

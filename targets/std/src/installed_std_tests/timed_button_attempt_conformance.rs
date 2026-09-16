@@ -144,6 +144,7 @@ fn portable_button_flow_becomes_one_timed_attempt_in_the_production_kernel() {
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

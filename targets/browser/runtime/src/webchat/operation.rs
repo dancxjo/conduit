@@ -14,6 +14,7 @@ pub(crate) enum BrowserChatOperation {
     Renderer(Request),
     Interaction(Interaction),
     Submit(Request),
+    Adapter(Request),
     Socket(Socket),
 }
 pub(crate) struct State {
@@ -72,6 +73,9 @@ impl BrowserChatOperation {
             conduit_presentation::MAX_PRESENTATION_INTERACTION_BYTES as u32,
         ))
     }
+    pub(crate) fn adapter() -> Self {
+        Self::Adapter(Request::new(conduit_chat::MAXIMUM_CHAT_MESSAGE_BYTES))
+    }
     pub(crate) fn socket(
         open: ValueRef,
         receive: ValueRef,
@@ -125,7 +129,9 @@ impl Operation for BrowserChatOperation {
                 OperationInput::Closed { port: PortId(0) } => OperationAction::Complete,
                 _ => Self::fail(41),
             },
-            Self::Renderer(value) | Self::Submit(value) => value.resume(input),
+            Self::Renderer(value) | Self::Submit(value) | Self::Adapter(value) => {
+                value.resume(input)
+            }
             Self::Interaction(value) => value.resume(input),
             Self::Socket(value) => value.resume(input),
         }
@@ -139,7 +145,9 @@ impl Operation for BrowserChatOperation {
     fn cancel(&mut self) {
         match self {
             Self::State(value) => value.pending = None,
-            Self::Renderer(value) | Self::Submit(value) => value.pending = None,
+            Self::Renderer(value) | Self::Submit(value) | Self::Adapter(value) => {
+                value.pending = None
+            }
             Self::Interaction(value) => value.pending = None,
             Self::Socket(value) => value.pending = None,
             Self::Tee => {}

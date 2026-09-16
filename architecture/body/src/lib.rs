@@ -23,6 +23,7 @@ mod admission;
 mod biography;
 mod candidate;
 mod continuity;
+mod conversation;
 mod durable_body;
 mod events;
 #[cfg(feature = "authenticated-admission")]
@@ -51,6 +52,7 @@ pub use admission::*;
 pub use biography::*;
 pub use candidate::*;
 pub use continuity::*;
+pub use conversation::*;
 pub use durable_body::*;
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 #[cfg(feature = "authenticated-admission")]
