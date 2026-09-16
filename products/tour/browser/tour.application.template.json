@@ -8,7 +8,7 @@
     { "role": "tour-compact-patchbay", "kind": "module", "path": "tour-compact-patchbay.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "tour-chapter-model", "kind": "module", "path": "tour-chapter-model.mjs", "maximum_bytes": 8192, "dependencies": [{"role":"tour-state","specifier":"./tour-state.mjs"}] },
     { "role": "tour-application-actions", "kind": "module", "path": "tour-application-actions.mjs", "maximum_bytes": 4096, "dependencies": [] },
-    { "role": "browser-form-effects", "kind": "module", "path": "browser-form-effects.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "browser-form-effects", "kind": "module", "path": "browser-form-effects.mjs", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "product-masthead", "kind": "module", "path": "product-masthead.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "browser-host-membership", "kind": "module", "path": "browser-host-membership.mjs", "maximum_bytes": 8192, "dependencies": [{"role":"browser-host-identity","specifier":"./browser-host-identity.mjs"}] },
     { "role": "browser-host-identity", "kind": "module", "path": "browser-host-identity.mjs", "maximum_bytes": 8192, "dependencies": [] },

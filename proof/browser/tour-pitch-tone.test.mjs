@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createPitchTonePerformer } from "../../products/tour/browser/tour-runner-effects.mjs";
+import { createPitchTonePerformer } from "../../targets/browser/host/assets/browser-form-effects.mjs";
 
 class Parameter {
   calls = [];

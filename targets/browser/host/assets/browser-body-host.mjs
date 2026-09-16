@@ -1,7 +1,7 @@
 import { acquireBrowserAudioCue, AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL } from "./browser-audio-cue.mjs";
 import { createBodyInputRouting } from "./browser-body-input.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
-import { drainBrowserEffects } from "./browser-form-effects.mjs";
+import { createPitchTonePerformer, drainBrowserEffects } from "./browser-form-effects.mjs";
 import { manifestApplicationView } from "./application-presentation.mjs";
 
 const PRESENTATION = "conduit.resource/presentation-slot@1";
@@ -123,6 +123,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   let input = null, timer = null, closed = false, started = null, completion = null, startAccepted = false, terminal = null;
   let startOutcome = "not-attempted";
   const window = outputRoot.ownerDocument.defaultView;
+  const tone = createPitchTonePerformer(window);
   owners.add(api);
   try {
     if (demand.has(AUDIO_CUE_RESOURCE)) {
@@ -197,6 +198,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (!audio) throw new Error("audio cue slot not acquired");
       return audio.perform(effect, signal);
     }
+    if (effect.effect_kind === "pitch-tone") return tone(effect, signal);
     if (effect.effect_kind === "timer") return delay(effect.duration_millis, signal);
     if (effect.effect_kind === "clock-observation") {
       if (!timer) throw new Error("browser clock not acquired");
