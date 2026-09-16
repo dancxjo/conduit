@@ -32,13 +32,17 @@ function readOutput(api) {
  * One owner per WASM instance prevents duplicate page-side resource ownership.
  */
 const owners = new WeakSet();
-export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundForm }) {
+export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundForm,
+  externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
+  const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
   if ([hostId, bootId].some(identity => typeof identity !== "string" || identity.length < 1 || identity.length > 256) ||
       proposal?.schema !== "conduit.patchbay/body-execution-proposal@1" ||
       proposal.wake?.lifecycle !== "AwaitingPlan" || proposal.wake.plans.length !== 0 ||
       !Array.isArray(proposal.plan?.forms) || proposal.plan.forms.length < 1 || proposal.plan.forms.length > 16 ||
+      !Array.isArray(externallyManagedPlanIds) || external.size !== externallyManagedPlanIds.length ||
+      externallyManagedPlanIds.some(identity => typeof identity !== "string" || !identity) ||
       !outputRoot?.isConnected || !inputTarget?.isConnected) {
     throw new Error("invalid browser Body acquisition inputs");
   }
@@ -48,8 +52,17 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   if (machinery.schema !== "conduit.browser/selected-human-machinery@1" || !Array.isArray(machinery.implementations) || machinery.implementations.length > 64 ||
       !Number.isSafeInteger(maximumPlacements) || maximumPlacements < 1) throw new Error("invalid browser machinery");
   const placements = [];
+  const matchedExternal = new Set();
   for (const form of proposal.plan.forms) {
-    if (form.plan.fragments.length !== 1) throw new Error("browser Body requires local partitions");
+    if (external.has(form.plan.plan_id)) {
+      const local = form.plan.fragments.filter(fragment => fragment.host_id === hostId && fragment.boot_id === bootId);
+      if (form.plan.fragments.length < 2 || local.length !== 1) {
+        throw new Error("external Body Form does not name one exact browser fragment");
+      }
+      matchedExternal.add(form.plan.plan_id);
+      continue;
+    }
+    if (form.plan.fragments.length !== 1) throw new Error("distributed Body Form requires an external manager");
     const fragment = form.plan.fragments[0];
     if (fragment.host_id !== hostId || fragment.boot_id !== bootId || fragment.offer_generation !== 1) {
       throw new Error("Body proposal does not name this browser Host and Boot");
@@ -57,6 +70,8 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     placements.push(...fragment.placements);
     if (placements.length > maximumPlacements) throw new Error("browser Body placement bound exceeded");
   }
+  if (matchedExternal.size !== external.size) throw new Error("external Body Form is absent from the proposal");
+  if (!placements.length) throw new Error("browser Body requires at least one locally managed Form");
   const demand = new Map();
   for (const placement of placements) {
     if (!Array.isArray(placement.resources) || placement.resources.length > 64) throw new Error("browser resource binding bound exceeded");
@@ -290,6 +305,9 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       const request = new TextEncoder().encode(JSON.stringify({
         wake: proposal.wake,
         plan: proposal.plan,
+        local_host_id: hostId,
+        local_boot_id: bootId,
+        externally_managed_plan_ids: [...external],
         body_evidence: proposal.body_evidence ?? null,
         source: proposal.source ?? "",
         foreground_checked_form_id: foregroundForm?.() ?? proposal.plan.forms[0].form?.checked_form_id ?? proposal.plan.forms[0].plan.checked_form_id,

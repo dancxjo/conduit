@@ -14,6 +14,13 @@ pub(super) struct BodyStartRequest {
     pub wake: Wake,
     pub plan: BodyPlan,
     pub play_sequence: u64,
+    pub local_host_id: conduit_core::HostId,
+    pub local_boot_id: conduit_core::BootId,
+    /// Form Plans prepared and driven by another exact page-Host owner. They
+    /// remain part of the immutable Body Plan and lifecycle identity, but are
+    /// deliberately absent from this local scheduler.
+    #[serde(default)]
+    pub externally_managed_plan_ids: Vec<conduit_core::PlanId>,
     /// Supplied by the trusted page Host adapter, not inferred from offers.
     pub observations: Vec<ResourceObservation>,
     /// Exact retained history before this start. Required for lifecycle sources;
@@ -38,20 +45,52 @@ pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodySta
         .plan
         .validate_for(&request.wake)
         .map_err(|error| format!("Body Plan: {error:?}"))?;
-    let fragments = request
-        .plan
-        .forms
+    let external = request
+        .externally_managed_plan_ids
         .iter()
-        .map(|part| {
-            if part.plan.fragments.len() != 1 {
-                return Err("browser Body requires one local fragment per Form".to_string());
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
+    if external.len() != request.externally_managed_plan_ids.len() {
+        return Err("externally managed Body Form Plan identity is duplicated".into());
+    }
+    let mut matched_external = std::collections::BTreeSet::new();
+    let mut fragments = Vec::with_capacity(request.plan.forms.len());
+    for part in &request.plan.forms {
+        if external.contains(&part.plan.plan_id) {
+            let local = part
+                .plan
+                .fragments
+                .iter()
+                .filter(|fragment| {
+                    fragment.host_id == request.local_host_id
+                        && fragment.boot_id == request.local_boot_id
+                })
+                .count();
+            if part.plan.fragments.len() < 2 || local != 1 {
+                return Err("external Body Form does not name one exact local fragment".into());
             }
-            Ok(part.plan.fragments[0].clone())
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-    let first = fragments.first().ok_or("empty Body workload")?;
-    let mut host =
-        crate::installed_browser::advertisement(first.host_id.clone(), first.boot_id.clone());
+            matched_external.insert(part.plan.plan_id.clone());
+            continue;
+        }
+        if part.plan.fragments.len() != 1 {
+            return Err("unowned distributed Body Form requires an external manager".into());
+        }
+        let fragment = &part.plan.fragments[0];
+        if fragment.host_id != request.local_host_id || fragment.boot_id != request.local_boot_id {
+            return Err("local Body Form differs from this browser Host and Boot".into());
+        }
+        fragments.push(fragment.clone());
+    }
+    if matched_external != external {
+        return Err("external Body Form Plan is absent from the immutable Body Plan".into());
+    }
+    if fragments.is_empty() {
+        return Err("Body Play requires at least one locally managed Form".into());
+    }
+    let mut host = crate::installed_browser::advertisement(
+        request.local_host_id.clone(),
+        request.local_boot_id.clone(),
+    );
     if request.observations.len() > host.resources.len() {
         return Err("Body resource observations exceed the installed resource bound".into());
     }
