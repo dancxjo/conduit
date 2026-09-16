@@ -135,6 +135,11 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile).unwrap();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_audio_capture_push_to_talk_catalog(
+        &mut startup,
+        &mut profile,
+    )
+    .unwrap();
     let checked =
         conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
             .unwrap();
