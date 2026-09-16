@@ -203,6 +203,7 @@ loongarch64-product = []
 
 [dependencies]
 conduit-creche-model = { path = "../../products/creche/model" }
+conduit-home-model = { path = "../../products/home/model" }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-core = { path = "../../architecture/core" }

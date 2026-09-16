@@ -1,6 +1,8 @@
 //! Finite ConduitOS Home and command-bar presentation state.
 
-use alloc::{format, string::String};
+use alloc::format;
+pub use conduit_home_model::{HomeAction as HomeInput, HomeView};
+use conduit_home_model::{HomeEvent, HomeModel};
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition, KeymapDisposition};
 use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
@@ -9,56 +11,15 @@ use conduit_presentation::{
 
 use super::{Error, FrontDoor};
 
-const HOME_ITEM_COUNT: usize = 6;
-const MAX_COMMAND_BYTES: usize = 96;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum HomeView {
-    Launcher,
-    Forms,
-    Body,
-    Prompt,
-}
-
-impl HomeView {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Launcher => "launcher",
-            Self::Forms => "forms",
-            Self::Body => "body",
-            Self::Prompt => "prompt",
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum HomeInput {
-    Unchanged,
-    Changed,
-    OpenTour,
-    OpenPatchbay,
-    OpenForm(usize),
-    RunForm(usize),
-    Wake,
-}
-
 pub(super) struct Home {
-    selected: usize,
-    form_selected: usize,
-    view: HomeView,
-    command: String,
-    output: String,
+    model: HomeModel,
     keymap: ConduitIntlKeymap,
 }
 
 impl Home {
     fn new() -> Self {
         Self {
-            selected: 0,
-            form_selected: 0,
-            view: HomeView::Launcher,
-            command: String::new(),
-            output: "Type help, or choose a place to begin.".into(),
+            model: HomeModel::new(),
             keymap: ConduitIntlKeymap::new(),
         }
     }
@@ -68,156 +29,30 @@ impl Home {
             self.keymap.apply(event);
             return HomeInput::Unchanged;
         }
-        if self.view != HomeView::Prompt {
-            if self.view == HomeView::Forms {
-                return match event.usage() {
-                    79 | 81 | 43 => {
-                        self.form_selected =
-                            (self.form_selected + 1) % crate::native_workset::NATIVE_FORM_CAPACITY;
-                        HomeInput::Changed
-                    }
-                    80 | 82 => {
-                        self.form_selected =
-                            (self.form_selected + crate::native_workset::NATIVE_FORM_CAPACITY - 1)
-                                % crate::native_workset::NATIVE_FORM_CAPACITY;
-                        HomeInput::Changed
-                    }
-                    40 => HomeInput::OpenForm(self.form_selected),
-                    41 => {
-                        self.view = HomeView::Launcher;
-                        HomeInput::Changed
-                    }
-                    _ => HomeInput::Unchanged,
-                };
-            }
-            return match event.usage() {
-                79 | 81 | 43 => {
-                    self.selected = (self.selected + 1) % HOME_ITEM_COUNT;
-                    HomeInput::Changed
-                }
-                80 | 82 => {
-                    self.selected = (self.selected + HOME_ITEM_COUNT - 1) % HOME_ITEM_COUNT;
-                    HomeInput::Changed
-                }
-                40 => self.open_selected(),
-                41 => {
-                    self.view = HomeView::Launcher;
-                    HomeInput::Changed
-                }
-                _ => match self.keymap.apply(event) {
-                    KeymapDisposition::Text(fragment)
-                        if fragment.as_bytes().iter().any(u8::is_ascii_graphic) =>
-                    {
-                        self.view = HomeView::Prompt;
-                        self.command.clear();
-                        self.append(fragment.as_bytes());
-                        HomeInput::Changed
-                    }
-                    _ => HomeInput::Unchanged,
-                },
-            };
-        }
-        match event.usage() {
-            41 => {
-                self.view = HomeView::Launcher;
-                self.command.clear();
-                HomeInput::Changed
-            }
-            42 => {
-                self.command.pop();
-                HomeInput::Changed
-            }
-            40 => self.submit(),
+        let forms = installed_form_titles();
+        let abstract_event = match event.usage() {
+            79 | 81 | 43 => HomeEvent::Next,
+            80 | 82 => HomeEvent::Previous,
+            40 => HomeEvent::Activate,
+            41 => HomeEvent::Escape,
+            42 => HomeEvent::Backspace,
             _ => match self.keymap.apply(event) {
                 KeymapDisposition::Text(fragment) => {
-                    self.append(fragment.as_bytes());
-                    HomeInput::Changed
+                    return core::str::from_utf8(fragment.as_bytes())
+                        .map_or(HomeInput::Unchanged, |text| {
+                            self.model.accept(HomeEvent::Text(text), &forms)
+                        });
                 }
-                KeymapDisposition::Refused(_) => {
-                    self.output = "That character is unavailable.".into();
-                    HomeInput::Changed
-                }
-                _ => HomeInput::Unchanged,
+                KeymapDisposition::Refused(_) => HomeEvent::CharacterUnavailable,
+                _ => return HomeInput::Unchanged,
             },
-        }
+        };
+        self.model.accept(abstract_event, &forms)
     }
+}
 
-    fn append(&mut self, bytes: &[u8]) {
-        if let Ok(fragment) = core::str::from_utf8(bytes) {
-            for character in fragment.chars() {
-                if character != '\n'
-                    && self.command.len() + character.len_utf8() <= MAX_COMMAND_BYTES
-                {
-                    self.command.push(character);
-                }
-            }
-        }
-    }
-
-    fn open_selected(&mut self) -> HomeInput {
-        match self.selected {
-            0 => HomeInput::OpenTour,
-            1 => HomeInput::OpenPatchbay,
-            2 => {
-                self.view = HomeView::Forms;
-                HomeInput::Changed
-            }
-            3 => {
-                self.view = HomeView::Body;
-                HomeInput::Changed
-            }
-            4 => {
-                self.output =
-                    "Crèche completed this Body's birth; its biography remains here.".into();
-                HomeInput::Changed
-            }
-            _ => {
-                self.view = HomeView::Prompt;
-                HomeInput::Changed
-            }
-        }
-    }
-
-    fn submit(&mut self) -> HomeInput {
-        let command = self.command.trim().to_ascii_lowercase();
-        self.command.clear();
-        let (verb, argument) = command.split_once(' ').unwrap_or((&command, ""));
-        match (verb, argument.trim()) {
-            ("help", "") => self.output =
-                "home  open <place>  forms  run <form>  inspect <thing>  body  hosts  lines  wake"
-                    .into(),
-            ("home", "") => {
-                self.view = HomeView::Launcher;
-                self.output = "Home".into();
-            }
-            ("forms", "") => self.view = HomeView::Forms,
-            ("body", "") | ("hosts", "") | ("lines", "") => self.view = HomeView::Body,
-            ("open", "tour") => return HomeInput::OpenTour,
-            ("open", "patchbay") => return HomeInput::OpenPatchbay,
-            ("open", "forms") => self.view = HomeView::Forms,
-            ("open", "body") => self.view = HomeView::Body,
-            ("open", "prompt") => {}
-            ("open", "creche") => {
-                self.output = "Crèche is not reopened over an already-born Body.".into()
-            }
-            ("run", "") => self.output = "run needs an installed Form name.".into(),
-            ("run", requested) => {
-                if let Some(index) = crate::native_workset::inventory()
-                    .iter()
-                    .position(|form| form.title().eq_ignore_ascii_case(requested))
-                {
-                    return HomeInput::RunForm(index);
-                }
-                self.output = format!("No installed Form named {requested}.");
-            }
-            ("inspect", "") => self.output = "inspect needs a visible subject.".into(),
-            ("inspect", subject) => self.output = format!("Inspect {subject} from Forms or Body."),
-            ("wake", "") => return HomeInput::Wake,
-            ("", "") => {}
-            _ => self.output = format!("Unknown command: {command}"),
-        }
-        HomeInput::Changed
-    }
+fn installed_form_titles() -> [&'static str; crate::native_workset::NATIVE_FORM_CAPACITY] {
+    crate::native_workset::inventory().map(crate::native_workset::NativeForm::title)
 }
 
 impl FrontDoor {
@@ -264,10 +99,9 @@ impl FrontDoor {
             GraphicsTextRole::Status,
             GraphicsPaintRole::Muted,
         )?;
-        match home.view {
+        match home.model.view() {
             HomeView::Launcher => {
-                let items = ["TOUR", "PATCHBAY", "FORMS", "BODY", "CRECHE", "PROMPT"];
-                for (index, label) in items.iter().enumerate() {
+                for (index, item) in conduit_home_model::HomeDestination::ALL.iter().enumerate() {
                     let column = index % 3;
                     let row = index / 3;
                     let bounds = LayoutRect {
@@ -281,7 +115,7 @@ impl FrontDoor {
                             GraphicsCommand::rect(
                                 bounds,
                                 screen,
-                                if index == home.selected {
+                                if index == home.model.selected_index() {
                                     GraphicsPaintRole::Accent
                                 } else {
                                     GraphicsPaintRole::Foreground
@@ -296,9 +130,9 @@ impl FrontDoor {
                         screen,
                         bounds.x + 22,
                         bounds.y + 48,
-                        label,
+                        item.label(),
                         GraphicsTextRole::Heading,
-                        if index == home.selected {
+                        if index == home.model.selected_index() {
                             GraphicsPaintRole::Accent
                         } else {
                             GraphicsPaintRole::Foreground
@@ -330,7 +164,7 @@ impl FrontDoor {
                     screen,
                     56,
                     214,
-                    &format!("conduct> {}_", home.command),
+                    &format!("conduct> {}_", home.model.command()),
                     GraphicsTextRole::Code,
                     GraphicsPaintRole::Foreground,
                 )?;
@@ -339,7 +173,7 @@ impl FrontDoor {
                     screen,
                     56,
                     282,
-                    &home.output,
+                    home.model.output(),
                     GraphicsTextRole::Body,
                     GraphicsPaintRole::Status,
                 )?;
@@ -362,7 +196,7 @@ impl FrontDoor {
                         188 + index as i16 * 48,
                         &format!(
                             "{}  {}",
-                            if index == home.form_selected {
+                            if index == home.model.selected_form_index() {
                                 ">"
                             } else {
                                 " "
@@ -491,11 +325,28 @@ impl FrontDoor {
     }
 
     pub fn home_view(&self) -> Option<HomeView> {
-        self.home.as_ref().map(|home| home.view)
+        self.home.as_ref().map(|home| home.model.view())
     }
 
     pub fn home_selection(&self) -> Option<usize> {
-        self.home.as_ref().map(|home| home.selected)
+        self.home.as_ref().map(|home| home.model.selected_index())
+    }
+
+    pub fn home_application_view(
+        &self,
+    ) -> Result<Option<conduit_presentation::ApplicationView>, Error> {
+        self.home
+            .as_ref()
+            .map(|home| {
+                home.model
+                    .presentation(
+                        u32::try_from(self.revision).map_err(|_| Error::Presentation)?,
+                        &installed_form_titles(),
+                    )
+                    .lower()
+                    .map_err(|_| Error::Presentation)
+            })
+            .transpose()
     }
 
     pub fn accept_home(&mut self, event: KeyEvent, revision: u64) -> Result<HomeInput, Error> {
@@ -557,30 +408,20 @@ mod tests {
             assert_eq!(home.accept(key(43)), HomeInput::Changed);
         }
         assert_eq!(home.accept(key(40)), HomeInput::Changed);
-        assert_eq!(home.view, HomeView::Prompt);
+        assert_eq!(home.model.view(), HomeView::Prompt);
     }
 
     #[test]
     fn command_vocabulary_refuses_unknown_text() {
-        let mut home = Home::new();
-        home.view = HomeView::Prompt;
-        home.command = "open nowhere".into();
-        assert_eq!(home.submit(), HomeInput::Changed);
-        assert_eq!(home.output, "Unknown command: open nowhere");
-        home.command = "open tour".into();
-        assert_eq!(home.submit(), HomeInput::OpenTour);
-    }
-
-    #[test]
-    fn run_resolves_only_an_exact_installed_form() {
-        let mut home = Home::new();
-        home.view = HomeView::Prompt;
-        let first = crate::native_workset::inventory()[0].title();
-        home.command = format!("run {first}");
-        assert_eq!(home.submit(), HomeInput::RunForm(0));
-
-        home.command = "run definitely absent".into();
-        assert_eq!(home.submit(), HomeInput::Changed);
-        assert_eq!(home.output, "No installed Form named definitely absent.");
+        let mut model = HomeModel::new();
+        assert_eq!(
+            model.submit_text("open nowhere", &installed_form_titles()),
+            HomeInput::Changed
+        );
+        assert_eq!(model.output(), "Unknown command: open nowhere");
+        assert_eq!(
+            model.submit_text("open tour", &installed_form_titles()),
+            HomeInput::OpenTour
+        );
     }
 }

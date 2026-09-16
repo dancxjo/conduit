@@ -163,12 +163,18 @@ impl Artifacts {
 
 fn journey_step_ids(checkpoint: &str) -> &'static [&'static str] {
     match checkpoint {
-        "body-awake" => &["home.arrived"],
-        "home-forms" => &["forms.opened", "form.selected"],
-        "home-prompt" => &["prompt.opened"],
-        "input-continued" => &["form.run", "play.observed"],
-        "home-patchbay-open" => &["patchbay.opened"],
-        "home-returned" => &["home.returned"],
+        "body-awake" => &[conduit_home_model::HOME_ARRIVED_STEP_ID],
+        "home-forms" => &[
+            conduit_home_model::FORMS_OPENED_STEP_ID,
+            conduit_home_model::FORM_SELECTED_STEP_ID,
+        ],
+        "home-prompt" => &[conduit_home_model::PROMPT_OPENED_STEP_ID],
+        "input-continued" => &[
+            conduit_home_model::FORM_RUN_STEP_ID,
+            conduit_home_model::PLAY_OBSERVED_STEP_ID,
+        ],
+        "home-patchbay-open" => &[conduit_home_model::PATCHBAY_OPENED_STEP_ID],
+        "home-returned" => &[conduit_home_model::HOME_RETURNED_STEP_ID],
         _ => &[],
     }
 }
