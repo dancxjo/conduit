@@ -78,11 +78,12 @@ pub fn encode_body_conversation_context_into(
         return Err(BodyChatRefusal::ContextBoundExceeded);
     }
     encoded.clear();
-    serde_json::to_writer(&mut *encoded, context).map_err(|_| BodyChatRefusal::Encoding)?;
-    if encoded.len() > MAXIMUM_BODY_CHAT_CONTEXT_BYTES {
+    let replacement = serde_json::to_vec(context).map_err(|_| BodyChatRefusal::Encoding)?;
+    if replacement.len() > MAXIMUM_BODY_CHAT_CONTEXT_BYTES {
         encoded.clear();
         return Err(BodyChatRefusal::ContextBoundExceeded);
     }
+    encoded.extend_from_slice(&replacement);
     Ok(())
 }
 
