@@ -734,6 +734,10 @@ dependencies = [
  "embedded-graphics",
  "patchbay-hosted",
  "patchbay-model",
+ "png",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
  "softbuffer",
  "winit",
 ]
