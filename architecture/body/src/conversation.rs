@@ -10,13 +10,21 @@ use crate::{
     Body, BodyId, BodyState, HostPresenceState, HostPresenceTable, Wake, WakeId, WakePlanState,
 };
 
-pub const BODY_CONVERSATION_CONTEXT_VALUE_KIND: &str = "body/conversation-context@1";
+pub const BODY_CONVERSATION_CONTEXT_VALUE_KIND: &str = "body/conversation-context@2";
 pub const MAXIMUM_CONVERSATION_HOSTS: usize = crate::MAX_BODY_PARTS;
 pub const MAXIMUM_CONVERSATION_FORMS: usize = crate::MAX_BODY_FORMS;
 pub const MAXIMUM_CONVERSATION_LINES: usize = 32;
 pub const MAXIMUM_CONVERSATION_SIGNS: usize = 16;
 pub const MAXIMUM_BODY_DISPLAY_NAME_BYTES: usize = 128;
 pub const MAXIMUM_BODY_CONVERSATION_CONTEXT_BYTES: usize = 32_768;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct BodyConversationContextBasis {
+    pub body_id: BodyId,
+    pub wake_id: WakeId,
+    pub wake_sequence: u64,
+    pub revision: u64,
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BodyConversationHost {
@@ -40,6 +48,7 @@ pub struct BodyConversationContext {
     pub body_id: BodyId,
     pub wake_id: WakeId,
     pub wake_sequence: u64,
+    pub basis: BodyConversationContextBasis,
     pub hosts: Vec<BodyConversationHost>,
     pub active_forms: Vec<String>,
     pub current_plan_id: Option<PlanId>,
@@ -69,6 +78,26 @@ impl BodyConversationContext {
         presence: &HostPresenceTable,
         plan: Option<&Plan>,
         line_availability: &[LineAvailabilitySign],
+    ) -> Result<Self, BodyConversationContextRefusal> {
+        Self::from_current_truth_at_revision(
+            display_name,
+            body,
+            wake,
+            presence,
+            plan,
+            line_availability,
+            0,
+        )
+    }
+
+    pub fn from_current_truth_at_revision(
+        display_name: &str,
+        body: &Body,
+        wake: &Wake,
+        presence: &HostPresenceTable,
+        plan: Option<&Plan>,
+        line_availability: &[LineAvailabilitySign],
+        revision: u64,
     ) -> Result<Self, BodyConversationContextRefusal> {
         if display_name.is_empty() || display_name.len() > MAXIMUM_BODY_DISPLAY_NAME_BYTES {
             return Err(BodyConversationContextRefusal::InvalidDisplayName);
@@ -144,11 +173,17 @@ impl BodyConversationContext {
             .collect();
         signs.reverse();
         Ok(Self {
-            schema: "conduit.body/conversation-context-value@1".into(),
+            schema: "conduit.body/conversation-context-value@2".into(),
             display_name: display_name.into(),
             body_id: body.body_id.clone(),
             wake_id: wake.wake_id.clone(),
             wake_sequence: wake.wake_sequence,
+            basis: BodyConversationContextBasis {
+                body_id: body.body_id.clone(),
+                wake_id: wake.wake_id.clone(),
+                wake_sequence: wake.wake_sequence,
+                revision,
+            },
             hosts: presence
                 .leases
                 .iter()

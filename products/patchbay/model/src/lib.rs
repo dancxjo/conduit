@@ -19,6 +19,7 @@ mod body_workload_session;
 mod build_birth;
 mod candidate_form;
 mod control;
+mod conversation_request_evidence;
 mod cross_host_renderer;
 mod current_body_frame;
 mod debugger_control;
@@ -151,6 +152,7 @@ pub use control::{
     admit_run, ControlError, ControlReceiptProjection, PatchbayRequestId, PlanDocument,
     PlayDocument, PlayExecutionProjection,
 };
+pub use conversation_request_evidence::ConversationRequestEvidence;
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
     CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
