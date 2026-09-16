@@ -13,9 +13,14 @@ function product({ id, label, architecture, machine, profileId, releaseName, fir
     target: Object.freeze({ id, label, model_id: `conduitos/${architecture}-${machine}@1`, profile_id: profileId }),
     architecture,
     machine,
+    target_id: id,
+    package_id: "conduitos-image@1",
+    output: "disk-image",
     manifestPath: new URL(`../../../artifacts/conduitos-${releaseName}-release.json`, import.meta.url).href,
     builderAdapter: `conduit-host-conduitos/build-${architecture}@1`,
     deploymentAdapter: `conduit-host-conduitos/boot-${architecture}@1`,
+    builder_adapter: `conduit-host-conduitos/build-${architecture}@1`,
+    deployment_adapter: `conduit-host-conduitos/boot-${architecture}@1`,
     bootMechanism: "uefi-limine-hybrid-iso",
     firmware,
     bootEntry,
@@ -104,7 +109,10 @@ export function createConduitOsAdapter({ host, profile, loader } = {}) {
   }
   async function obtain({ mode, signal }) {
     requireFabrication(profile, mode, "obtain"); requireCurrent(profile, signal, mode, "obtain");
-    const release = await acquireConduitOsRelease(profile, signal);
+    const resolved = host?.resolveReviewedRelease
+      ? await host.resolveReviewedRelease(profile, signal)
+      : null;
+    const release = await acquireConduitOsRelease(profile, signal, { resolved });
     return Object.freeze({ resultKind: "artifact", private: release, evidence: Object.freeze({ schema: "conduit.conduitos/creche-obtainment@1", target_id: profile.target.id, result_kind: "artifact", artifact_role: "product-host", profile_id: release.manifest.profile_id, build_id: release.manifest.build_id, image_id: release.manifest.image_id, image_sha256: release.digest, image_bytes: release.bytes.byteLength, carrier: "conduit-carrier/downloadable-disk-image@1", does_not_prove: Object.freeze(["load", "boot", "join", "membership"]) }) });
   }
   async function bind({ mode, body, obtainment, nowMillis, signal }) {

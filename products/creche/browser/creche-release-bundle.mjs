@@ -6,19 +6,22 @@ const MAXIMUM_BUNDLE_BYTES = 48 * 1024 * 1024;
 export async function acquireHostRelease(profile, signal, {
   manifestUrl = profile?.manifest_path,
   expectedManifest = null,
+  manifestBytes = null,
   fetcher = fetch,
   cache = null,
 } = {}) {
   requireProfile(profile);
-  const manifestResource = await acquireBytes({
-    url: manifestUrl,
-    expected: expectedManifest,
-    maximumBytes: 256 * 1024,
-    signal,
-    fetcher,
-    cache,
-    label: "manifest",
-  });
+  const manifestResource = manifestBytes
+    ? Object.freeze({ bytes: new Uint8Array(manifestBytes), url: String(manifestUrl), cache_hit: true })
+    : await acquireExactReleaseBytes({
+      url: manifestUrl,
+      expected: expectedManifest,
+      maximumBytes: 256 * 1024,
+      signal,
+      fetcher,
+      cache,
+      label: "manifest",
+    });
   let manifest;
   try { manifest = JSON.parse(new TextDecoder().decode(manifestResource.bytes)); }
   catch (error) { refuse("StaleArtifact", "reviewed generic Host release manifest is malformed", error); }
@@ -26,7 +29,7 @@ export async function acquireHostRelease(profile, signal, {
   const payloads = [];
   let totalBytes = 0;
   for (const file of manifest.files) {
-    const resource = await acquireBytes({
+    const resource = await acquireExactReleaseBytes({
       url: new URL(file.path, manifestResource.url), expected: file,
       maximumBytes: MAXIMUM_FILE_BYTES, signal, fetcher, cache, label: file.path,
     });
@@ -43,7 +46,7 @@ export async function acquireHostRelease(profile, signal, {
   return Object.freeze({ manifest: Object.freeze(manifest), payloads: Object.freeze(payloads), totalBytes });
 }
 
-async function acquireBytes({ url, expected, maximumBytes, signal, fetcher, cache, label }) {
+export async function acquireExactReleaseBytes({ url, expected, maximumBytes, signal, fetcher, cache, label }) {
   if (expected && cache) {
     const cached = await cache.get(expected.sha256);
     if (cached) {

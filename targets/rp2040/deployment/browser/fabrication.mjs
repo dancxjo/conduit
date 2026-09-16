@@ -46,10 +46,17 @@ function checkedSelection(selection) {
   return selection;
 }
 
-async function fetchReviewedTemplate(selection, fetchApi, cryptoApi) {
-  const response = await fetchApi(selection.manifestPath, { cache: "no-store" });
-  if (!response.ok) refuse("ManifestUnavailable", `reviewed artifact manifest is unavailable (${response.status})`);
-  const manifest = await response.json();
+async function fetchReviewedTemplate(selection, fetchApi, cryptoApi, resolved) {
+  let manifest;
+  let response;
+  if (resolved) {
+    try { manifest = JSON.parse(new TextDecoder().decode(resolved.manifest)); }
+    catch { refuse("Manifest", "reviewed artifact manifest is malformed"); }
+  } else {
+    response = await fetchApi(selection.manifestPath, { cache: "no-store" });
+    if (!response.ok) refuse("ManifestUnavailable", `reviewed artifact manifest is unavailable (${response.status})`);
+    manifest = await response.json();
+  }
   if (manifest.schema !== "conduit.creche/packaged-firmware-artifact@1"
     || manifest.target_id !== selection.targetId
     || manifest.build_identity !== selection.buildId
@@ -61,9 +68,18 @@ async function fetchReviewedTemplate(selection, fetchApi, cryptoApi) {
     || typeof manifest.path !== "string") {
     refuse("Manifest", "reviewed artifact manifest is malformed or outside the admitted bound");
   }
-  const artifactResponse = await fetchApi(new URL(manifest.path, response.url), { cache: "no-store" });
-  if (!artifactResponse.ok) refuse("ArtifactUnavailable", `reviewed artifact is unavailable (${artifactResponse.status})`);
-  const bytes = new Uint8Array(await artifactResponse.arrayBuffer());
+  let bytes;
+  if (resolved) {
+    bytes = await resolved.acquire({
+      path: manifest.path,
+      bytes: manifest.bytes,
+      sha256: manifest.content_digest,
+    }, MAXIMUM_ARTIFACT_BYTES);
+  } else {
+    const artifactResponse = await fetchApi(new URL(manifest.path, response.url), { cache: "no-store" });
+    if (!artifactResponse.ok) refuse("ArtifactUnavailable", `reviewed artifact is unavailable (${artifactResponse.status})`);
+    bytes = new Uint8Array(await artifactResponse.arrayBuffer());
+  }
   if (bytes.byteLength !== manifest.bytes || bytes.byteLength > MAXIMUM_ARTIFACT_BYTES) {
     refuse("ArtifactBound", "reviewed artifact bytes do not match the admitted manifest bound");
   }
@@ -210,7 +226,7 @@ export function readRp2040BodySpore(value) {
   }
 }
 
-export function createRp2040BrowserFabricationAdapter({ fetchApi = globalThis.fetch, cryptoApi = globalThis.crypto } = {}) {
+export function createRp2040BrowserFabricationAdapter({ fetchApi = globalThis.fetch, cryptoApi = globalThis.crypto, resolved = null } = {}) {
   if (typeof fetchApi !== "function") refuse("FetchUnavailable", "reviewed artifact acquisition is unavailable");
   return Object.freeze({
     async fabricate(request) {
@@ -220,7 +236,7 @@ export function createRp2040BrowserFabricationAdapter({ fetchApi = globalThis.fe
         refuse("UnsupportedStrategy", "no local RP2040 fabrication strategy matches the checked selection");
       }
       const configuration = canonicalConfiguration(request.configuration ?? {});
-      const reviewed = await fetchReviewedTemplate(selection, fetchApi, cryptoApi);
+      const reviewed = await fetchReviewedTemplate(selection, fetchApi, cryptoApi, resolved);
       const bytes = strategy === "packaged-exact"
         ? reviewed.bytes
         : specializeTemplate(reviewed.bytes, configuration.bytes);
