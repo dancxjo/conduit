@@ -53,6 +53,17 @@ test("push-to-talk emits exact bounded PCM then closes on release", async () => 
   await audio.close();
 });
 
+test("push-to-talk closes and releases the microphone at its independent block bound", async () => {
+  const value = fixture();
+  const audio = acquireBrowserPcmAudio({ ...value, pushToTalkTarget: value.target,
+    TrackProcessor: value.Processor, AudioContext: undefined, maximumCaptureBlocks: 1 });
+  value.target.dispatchEvent(new Event("pointerdown", { cancelable: true }));
+  assert.ok(await audio.perform({ effect_kind: "audio-capture" }, new AbortController().signal));
+  assert.equal(await audio.perform({ effect_kind: "audio-capture" }, new AbortController().signal), undefined);
+  assert.equal(value.track.stopped, true);
+  await audio.close();
+});
+
 test("playback applies the fixed safe gain and waits for completion", async () => {
   const value = fixture();
   let observedGain = null;

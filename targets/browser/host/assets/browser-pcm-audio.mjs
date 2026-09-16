@@ -86,8 +86,11 @@ export function acquireBrowserPcmAudio({
   mediaDevices = window.navigator.mediaDevices,
   TrackProcessor = window.MediaStreamTrackProcessor,
   AudioContext = window.AudioContext,
+  maximumCaptureBlocks = MAXIMUM_CAPTURE_BLOCKS,
 }) {
   if (!window || !pushToTalkTarget?.isConnected) throw new Error("push-to-talk control is unavailable");
+  if (!Number.isInteger(maximumCaptureBlocks) || maximumCaptureBlocks < 1 ||
+      maximumCaptureBlocks > MAXIMUM_CAPTURE_BLOCKS) throw new Error("capture block bound is invalid");
   let closed = false, pressed = false, waiter = null, capture = null, context = null, playbackTail = 0;
   const setPressed = value => {
     pressed = value;
@@ -144,7 +147,7 @@ export function acquireBrowserPcmAudio({
   async function captureFrame(signal) {
     if (closed) throw new Error("browser PCM audio is closed");
     if (!capture) await startCapture(signal);
-    if (capture.stopped || capture.blocks >= MAXIMUM_CAPTURE_BLOCKS || signal.aborted) {
+    if (capture.stopped || capture.blocks >= maximumCaptureBlocks || signal.aborted) {
       await stopCapture(); return undefined;
     }
     const current = capture;
