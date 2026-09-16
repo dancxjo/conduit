@@ -70,3 +70,46 @@ fn every_home_view_lowers_to_the_shared_application_contract() {
     let prompt = home.presentation(3, &FORMS).lower().unwrap();
     assert!(prompt.nodes.iter().any(|node| node.key == "command-result"));
 }
+
+#[test]
+fn inspect_resolves_real_inventory_or_refuses_without_success_action() {
+    let mut home = HomeModel::new();
+    assert_eq!(
+        home.submit_text("inspect memory lantern", &FORMS),
+        HomeAction::OpenForm(1)
+    );
+    assert_eq!(
+        home.submit_text("inspect missing thing", &FORMS),
+        HomeAction::Changed
+    );
+    assert_eq!(
+        home.output(),
+        "Cannot inspect unresolved subject missing thing."
+    );
+}
+
+#[test]
+fn category_and_lifecycle_commands_refuse_honestly_on_an_unprivileged_face() {
+    let mut home = HomeModel::new();
+    home.submit_text("hosts", &FORMS);
+    let hosts = String::from(home.output());
+    home.submit_text("lines", &FORMS);
+    let lines = String::from(home.output());
+    assert_ne!(hosts, lines);
+    assert!(hosts.contains("unavailable"));
+    assert!(lines.contains("unavailable"));
+
+    assert_eq!(home.submit_text("wake", &FORMS), HomeAction::Changed);
+    assert_eq!(
+        home.output(),
+        "Wake is unavailable on this Home face; no lifecycle authority is attached."
+    );
+}
+
+#[test]
+fn help_documents_effects_and_unavailable_commands() {
+    let mut home = HomeModel::new();
+    home.submit_text("help", &FORMS);
+    assert!(home.output().contains("inspect <installed form>|body"));
+    assert!(home.output().contains("hosts/lines/wake (unavailable"));
+}
