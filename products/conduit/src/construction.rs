@@ -86,7 +86,8 @@ pub(crate) fn body(command: BodyCommand) -> Result<(), String> {
         BodyCommand::Status { .. }
         | BodyCommand::Invite { .. }
         | BodyCommand::Accept { .. }
-        | BodyCommand::Admit { .. } => {
+        | BodyCommand::Admit { .. }
+        | BodyCommand::CompleteJoin { .. } => {
             Err("Body invitation operations require installed durable Host state".into())
         }
         BodyCommand::Check { source } => {

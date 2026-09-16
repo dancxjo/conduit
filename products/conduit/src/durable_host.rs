@@ -21,7 +21,10 @@ const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 
 #[path = "durable_host_invitation.rs"]
 mod invitation;
+#[path = "durable_host_membership.rs"]
+mod membership;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
+pub(crate) use membership::complete_body_join;
 
 #[derive(Debug, Deserialize)]
 struct ReleaseManifest {
@@ -46,6 +49,8 @@ struct Installation {
     release_bundle_sha256: String,
     product_executable: String,
     body_state: Option<BodyBinding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    joined_body_state: Option<membership::JoinedBodyBinding>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -112,6 +117,9 @@ fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
         .map_err(|error| format!("Body biography evidence refused: {error:?}"))?;
     let install_path = state_dir.join("installation.json");
     let mut installation = read_installation(&install_path)?;
+    if installation.joined_body_state.is_some() {
+        return Err("durable Host already joined a Body; refusing owner-state replacement".into());
+    }
     if let Some(current) = &installation.body_state {
         if current.body_id != evidence.body_id.as_str() {
             return Err(format!(
@@ -180,7 +188,8 @@ fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, Strin
         release_source_identity: manifest.source_identity,
         release_bundle_sha256: manifest.bundle_sha256,
         product_executable: product_executable.display().to_string(),
-        body_state: existing.and_then(|value| value.body_state),
+        body_state: existing.as_ref().and_then(|value| value.body_state.clone()),
+        joined_body_state: existing.and_then(|value| value.joined_body_state),
     };
     write_json_atomic(&install_path, &installation)?;
     write_service_definition(state_dir, &installation)?;
@@ -288,10 +297,7 @@ fn prepare_runtime(
         boot_id: host.advertisement().boot_id.as_str().into(),
         offer_generation: host.advertisement().offer_generation.0,
         process_id: std::process::id(),
-        body_id: installation
-            .body_state
-            .as_ref()
-            .map(|binding| binding.body_id.clone()),
+        body_id: current_body_id(&installation).map(str::to_owned),
         release_bundle_sha256: installation.release_bundle_sha256,
     };
     write_json_atomic(&state_dir.join("runtime.json"), &status)?;
@@ -339,7 +345,7 @@ fn status(state_dir: &Path, json: bool) -> Result<(), String> {
                 "host_id": installation.host_id,
                 "presence": "installed-offline",
                 "release_bundle_sha256": installation.release_bundle_sha256,
-                "body_id": installation.body_state.as_ref().map(|binding| binding.body_id.as_str()),
+                "body_id": current_body_id(&installation),
             })
         );
     } else {
@@ -353,6 +359,9 @@ fn status(state_dir: &Path, json: bool) -> Result<(), String> {
 
 pub(crate) fn body_status(state_dir: &Path, json: bool) -> Result<(), String> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
+    if let Some(binding) = &installation.joined_body_state {
+        return membership::status(state_dir, &installation, binding, json);
+    }
     let binding = installation
         .body_state
         .as_ref()
@@ -412,6 +421,19 @@ pub(crate) fn body_status(state_dir: &Path, json: bool) -> Result<(), String> {
         );
     }
     Ok(())
+}
+
+fn current_body_id(installation: &Installation) -> Option<&str> {
+    installation
+        .body_state
+        .as_ref()
+        .map(|binding| binding.body_id.as_str())
+        .or_else(|| {
+            installation
+                .joined_body_state
+                .as_ref()
+                .map(|binding| binding.body_id.as_str())
+        })
 }
 
 fn observe_current_runtime(
@@ -521,6 +543,15 @@ fn read_installation(path: &Path) -> Result<Installation, String> {
         {
             return Err("retained Body biography identity is invalid or stale".into());
         }
+    }
+    if value.body_state.is_some() && value.joined_body_state.is_some() {
+        return Err("installed Host cannot own and join different Body state".into());
+    }
+    if let Some(binding) = &value.joined_body_state {
+        if !valid_digest(&binding.credential_sha256) {
+            return Err("retained Body membership credential is invalid or stale".into());
+        }
+        membership::validate(binding, &value)?;
     }
     Ok(value)
 }
@@ -1225,6 +1256,38 @@ mod tests {
             digest(&bounded_read(&biography_path, 2 * 1024 * 1024).unwrap())
         );
         assert!(!owner_body_dir.join("admission-transaction.json").exists());
+        let retained_admission: AdmissionManager = serde_json::from_slice(
+            &bounded_read(&owner_body_dir.join("admission.json"), 256 * 1024).unwrap(),
+        )
+        .unwrap();
+        let receipt_path = joining_state.parent().unwrap().join("receipt.json");
+        write_json_atomic(
+            &receipt_path,
+            &invitation::PortableAdmissionReceipt {
+                schema: "conduit.body/spawn-admission-receipt@1".into(),
+                credential: retained_admission
+                    .receipts
+                    .last()
+                    .unwrap()
+                    .credential
+                    .clone(),
+                host_advertisement: pending.request.host_advertisement.clone(),
+                membership_admitted: true,
+                current_offers_available: true,
+                plan_created: false,
+                play_created: false,
+            },
+        )
+        .unwrap();
+        complete_body_join(&receipt_path, &joining_state, true).unwrap();
+        let joined_installation =
+            read_installation(&joining_state.join("installation.json")).unwrap();
+        let joined = joined_installation
+            .joined_body_state
+            .expect("joining Host retains admitted membership");
+        assert_eq!(joined.body_id, body.body_id.as_str());
+        assert_eq!(joined.part_id, member.part_id.as_str());
+        assert!(!joining_state.join("body/pending-join.json").exists());
         let replay = admit_body_request(&request_path, &owner_state, true).unwrap_err();
         assert!(replay.contains("Replay"), "{replay}");
 
