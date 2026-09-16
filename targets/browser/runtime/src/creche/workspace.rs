@@ -44,9 +44,17 @@ pub(crate) fn workspace_library(
         checked_form_id: String,
         required_kinds: Vec<String>,
         availability: CatalogAvailability,
+        graceful_fallback: Option<CatalogFallback>,
     }
     #[derive(serde::Deserialize)]
     struct CatalogAvailability {
+        disposition: String,
+        reason: String,
+    }
+    #[derive(serde::Deserialize)]
+    struct CatalogFallback {
+        slug: String,
+        title: String,
         disposition: String,
         reason: String,
     }
@@ -82,6 +90,32 @@ pub(crate) fn workspace_library(
                     title: entry.title,
                     search_text: format!("{} {}", entry.entry, entry.required_kinds.join(" ")),
                     availability,
+                    graceful_fallback: entry
+                        .graceful_fallback
+                        .map(|fallback| -> Result<_, String> {
+                            if fallback.slug.is_empty() || fallback.title.is_empty() {
+                                return Err("reviewed Workspace graceful fallback is malformed".into());
+                            }
+                            let availability = match fallback.disposition.as_str() {
+                                "available" if !fallback.reason.is_empty() => {
+                                    LibraryAvailability::Available
+                                }
+                                "needs-capability" if !fallback.reason.is_empty() => {
+                                    LibraryAvailability::NeedsCapability(fallback.reason)
+                                }
+                                _ => {
+                                    return Err(
+                                        "reviewed Workspace graceful fallback availability is malformed"
+                                            .into(),
+                                    )
+                                }
+                            };
+                            Ok(conduit_workspace_model::library::LibraryFallback {
+                                title: fallback.title,
+                                availability,
+                            })
+                        })
+                        .transpose()?,
                 })
             })
             .collect::<Result<Vec<_>, String>>()?,

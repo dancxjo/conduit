@@ -18,6 +18,13 @@ pub struct LibraryEntry {
     pub title: String,
     pub search_text: String,
     pub availability: LibraryAvailability,
+    pub graceful_fallback: Option<LibraryFallback>,
+}
+
+#[derive(Clone, Debug)]
+pub struct LibraryFallback {
+    pub title: String,
+    pub availability: LibraryAvailability,
 }
 
 #[derive(Clone, Debug)]
@@ -51,6 +58,15 @@ impl FormLibrary {
                         LibraryAvailability::NeedsCapability(reason)
                             if reason.is_empty() || reason.len() > 512
                     )
+                    || entry.graceful_fallback.as_ref().is_some_and(|fallback| {
+                        fallback.title.is_empty()
+                            || fallback.title.len() > 256
+                            || matches!(
+                                &fallback.availability,
+                                LibraryAvailability::NeedsCapability(reason)
+                                    if reason.is_empty() || reason.len() > 512
+                            )
+                    })
                     || entries[..index]
                         .iter()
                         .any(|prior| prior.form == entry.form)
@@ -111,39 +127,57 @@ impl FormLibrary {
                     vec![],
                 ));
             }
+            let mut details = vec![node(
+                &format!("installed-{index}"),
+                PresentationMechanism::Status {
+                    kind: StatusKind::Ordinary,
+                    title: if installed {
+                        "In your Body"
+                    } else if !available {
+                        "Needs capability"
+                    } else {
+                        "Not in your Body"
+                    }
+                    .into(),
+                    detail: match &entry.availability {
+                        LibraryAvailability::Available => String::new(),
+                        LibraryAvailability::NeedsCapability(reason) => reason.clone(),
+                    },
+                },
+                vec![],
+            )];
+            if let Some(fallback) = &entry.graceful_fallback {
+                details.push(node(
+                    &format!("fallback-{index}"),
+                    PresentationMechanism::Status {
+                        kind: StatusKind::Ordinary,
+                        title: format!("Text fallback: {}", fallback.title),
+                        detail: match &fallback.availability {
+                            LibraryAvailability::Available => {
+                                "This fallback has a reviewed realization on the current Host."
+                                    .into()
+                            }
+                            LibraryAvailability::NeedsCapability(reason) => {
+                                format!("The fallback still needs capability: {reason}")
+                            }
+                        },
+                    },
+                    vec![],
+                ));
+            }
+            details.push(node(
+                &format!("actions-{index}"),
+                PresentationMechanism::ActionGroup {
+                    label: format!("{} actions", entry.title),
+                },
+                actions,
+            ));
             cards.push(node(
                 &format!("library-form-{index}"),
                 PresentationMechanism::Panel {
                     title: entry.title.clone(),
                 },
-                vec![
-                    node(
-                        &format!("installed-{index}"),
-                        PresentationMechanism::Status {
-                            kind: StatusKind::Ordinary,
-                            title: if installed {
-                                "In your Body"
-                            } else if !available {
-                                "Needs capability"
-                            } else {
-                                "Not in your Body"
-                            }
-                            .into(),
-                            detail: match &entry.availability {
-                                LibraryAvailability::Available => String::new(),
-                                LibraryAvailability::NeedsCapability(reason) => reason.clone(),
-                            },
-                        },
-                        vec![],
-                    ),
-                    node(
-                        &format!("actions-{index}"),
-                        PresentationMechanism::ActionGroup {
-                            label: format!("{} actions", entry.title),
-                        },
-                        actions,
-                    ),
-                ],
+                details,
             ));
         }
         let shown = cards.len();

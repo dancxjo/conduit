@@ -9,7 +9,9 @@ test.afterEach(async ({ page }, info) => {
 });
 
 const current = page => page.evaluate(() => globalThis.__conduitWorkspace.current());
-const card = (page, title) => page.locator('[data-application-key^="library-form-"]').filter({ hasText: title });
+const card = (page, title) => page.locator('[data-application-key^="library-form-"]').filter({
+  hasText: new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}`),
+});
 const openLibrary = page => page.getByRole("button", { name: "+ Forms", exact: true }).click();
 async function birth(page) {
   await page.goto(entrance.url);
@@ -102,6 +104,9 @@ test("the reviewed shelf reveals conversation Forms without pretending this brow
   await expect(card(page, "Body Chat")).toContainText("current Body supervisor and an admitted model realization");
   await expect(card(page, "Live Conversation")).toContainText("Needs capability");
   await expect(card(page, "Live Conversation")).toContainText("live audio acquisition, streaming model generation, synthesis, and presentation");
+  await expect(card(page, "Live Conversation")).toContainText("Text fallback: Body Chat");
+  await expect(card(page, "Live Conversation")).toContainText("The fallback still needs capability");
+  await expect(card(page, "House Spoken Response")).toContainText("Text fallback: House Conversation");
   await expect(card(page, "Body Chat").getByRole("button", { name: /Use — unavailable/u })).toBeDisabled();
   await expect(card(page, "Live Conversation").getByRole("button", { name: /Use — unavailable/u })).toBeDisabled();
   await expect(page.getByText("4 Forms", { exact: true })).toBeVisible();

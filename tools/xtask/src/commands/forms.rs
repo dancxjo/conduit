@@ -114,6 +114,8 @@ pub(super) struct InventoryForm {
     pub(super) deterministic_not_applicable: Option<String>,
     pub(super) browser_safe: Option<BrowserOracle>,
     pub(super) browser_safe_not_applicable: Option<String>,
+    #[serde(default)]
+    pub(super) graceful_fallback: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -254,6 +256,15 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
         checked_form_id: String,
         required_kinds: Vec<String>,
         availability: CatalogAvailability<'a>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        graceful_fallback: Option<CatalogFallback<'a>>,
+    }
+    #[derive(Serialize)]
+    struct CatalogFallback<'a> {
+        slug: &'a str,
+        title: &'a str,
+        disposition: &'static str,
+        reason: &'a str,
     }
     #[derive(Serialize)]
     struct WorkspaceCatalog<'a> {
@@ -294,6 +305,46 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
                 .as_deref()
                 .unwrap_or("This browser Host does not yet have a reviewed Workspace realization.")
         };
+        let graceful_fallback = form
+            .graceful_fallback
+            .as_deref()
+            .map(|slug| {
+                let fallback = inventory
+                    .forms
+                    .iter()
+                    .find(|candidate| candidate.slug == slug)
+                    .ok_or_else(|| {
+                        format!(
+                            "reviewed Form '{}' names missing graceful fallback '{slug}'",
+                            form.slug
+                        )
+                    })?;
+                if fallback.graceful_fallback.as_deref() == Some(form.slug.as_str()) {
+                    return Err(format!(
+                        "reviewed Forms '{}' and '{slug}' form a graceful fallback cycle",
+                        form.slug
+                    ));
+                }
+                let fallback_available = fallback.initial_body_order.is_some();
+                let fallback_reason = if fallback_available {
+                    "This browser Host has a reviewed Workspace realization."
+                } else {
+                    fallback.browser_safe_not_applicable.as_deref().unwrap_or(
+                        "This browser Host does not yet have a reviewed Workspace realization.",
+                    )
+                };
+                Ok(CatalogFallback {
+                    slug: &fallback.slug,
+                    title: &fallback.title,
+                    disposition: if fallback_available {
+                        "available"
+                    } else {
+                        "needs-capability"
+                    },
+                    reason: fallback_reason,
+                })
+            })
+            .transpose()?;
         forms.push(CatalogForm {
             slug: &form.slug,
             title: &form.title,
@@ -310,6 +361,7 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
                 },
                 reason,
             },
+            graceful_fallback,
         });
     }
     let catalog = WorkspaceCatalog {
