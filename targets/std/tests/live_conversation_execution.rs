@@ -7,8 +7,9 @@ use conduit_ai::{
 use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
 use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
 use conduit_tongues::{
-    project_committed_turn_text, RecognitionEvent, RecognitionEventStatus, RecognizedTurnCommitter,
-    SpeechOrigin, StreamingSpeechCommitter, TurnCommitOutcome,
+    barge_in_decision, project_committed_turn_text, BargeInDecision, RecognitionEvent,
+    RecognitionEventStatus, RecognizedTurnCommitter, SpeechOrigin, StreamingSpeechCommitter,
+    TurnCommitOutcome,
 };
 
 fn context() -> BodyConversationContext {
@@ -41,6 +42,74 @@ fn context() -> BodyConversationContext {
         lines: vec![],
         recent_sign_ids: vec![],
     }
+}
+
+#[test]
+fn committed_external_barge_in_cancels_generation_and_pending_speech_exactly() {
+    let mut generation = BoundedGeneratedTextFlow::new(256).unwrap();
+    let first = GeneratedTextChunk {
+        sequence: 0,
+        text: "Already audible. unfinished".into(),
+    };
+    generation.admit(&first).unwrap();
+    let mut speech = StreamingSpeechCommitter::new("answer/barge-in").unwrap();
+    let committed_segments = speech.push(&first.text).unwrap();
+    assert_eq!(committed_segments.len(), 1);
+    let committed_pcm = fake_tts(&committed_segments[0].text);
+    assert!(!committed_pcm.is_empty());
+    assert_eq!(speech.pending_text(), "unfinished");
+
+    let mut recognition = RecognizedTurnCommitter::new("recognition/barge-in");
+    let provisional = RecognitionEvent {
+        stream_id: "recognition/barge-in".into(),
+        sequence: 0,
+        status: RecognitionEventStatus::Provisional,
+        origin: SpeechOrigin::External,
+        text: Some("Wait".into()),
+        audio_extent_bytes: 256,
+        elapsed_milliseconds: 10,
+        provider_identity: "deterministic-asr@1".into(),
+    };
+    let (outcome, _, _) = recognition.accept(&provisional).unwrap();
+    assert_eq!(
+        barge_in_decision(outcome),
+        BargeInDecision::KeepActiveAnswer
+    );
+    assert_eq!(speech.pending_text(), "unfinished");
+
+    let committed = RecognitionEvent {
+        sequence: 1,
+        status: RecognitionEventStatus::Committed,
+        text: Some("Wait.".into()),
+        audio_extent_bytes: 512,
+        elapsed_milliseconds: 20,
+        ..provisional
+    };
+    let (outcome, message, recognition_evidence) = recognition.accept(&committed).unwrap();
+    assert_eq!(
+        barge_in_decision(outcome),
+        BargeInDecision::CancelActiveAnswerForCommittedExternalTurn
+    );
+    assert!(message.is_some());
+    assert!(recognition_evidence.turn_identity.is_some());
+
+    let generation_evidence = generation.finish(GeneratedTextFlowTerminal::Cancelled);
+    speech.cancel();
+    let speech_evidence = speech.evidence(Some(1), None, committed_pcm.len() as u64);
+    assert_eq!(
+        generation_evidence.terminal,
+        GeneratedTextFlowTerminal::Cancelled
+    );
+    assert_eq!(generation_evidence.chunks, 1);
+    assert!(speech.pending_text().is_empty());
+    assert!(speech_evidence.cancelled);
+    assert_eq!(speech_evidence.segment_count, 1);
+    assert_eq!(
+        speech_evidence.committed_text_bytes,
+        committed_segments[0].text.len() as u32
+    );
+    assert_eq!(speech_evidence.pcm_extent_bytes, committed_pcm.len() as u64);
+    assert!(speech.push("must not resume").is_err());
 }
 
 fn fake_tts(segment: &str) -> Vec<u8> {
