@@ -304,7 +304,7 @@ impl PreparedApplication {
         }
         let application = crate::installed_browser::application::application_id(placement)?;
         match application {
-            "tour" => Ok(Some(Self::Tour(Box::new(TourApplicationPort::canonical())))),
+            "tutorial" | "tour" => Ok(Some(Self::Tour(Box::new(TourApplicationPort::canonical())))),
             "patchbay" => {
                 #[cfg(not(feature = "creche-surface"))]
                 return Err("resident Patchbay preparation requires the Crèche surface".into());
