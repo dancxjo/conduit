@@ -1,6 +1,7 @@
 const MAXIMUM_IMAGE_BYTES = 80 * 1024 * 1024;
 
-export async function acquireOrangePiImage(profile, signal) {
+export async function acquireOrangePiImage(profile, signal, { resolved = null } = {}) {
+  if (resolved) return acquireResolvedOrangePiImage(profile, signal, resolved);
   let response;
   try { response = await fetch(profile.manifestPath, { signal, cache: "no-store" }); }
   catch (error) { refuse("ArtifactUnavailable", "reviewed Orange Pi image manifest is unavailable", error); }
@@ -10,6 +11,19 @@ export async function acquireOrangePiImage(profile, signal) {
   const artifactResponse = await fetch(new URL(manifest.artifact.path, response.url), { signal, cache: "no-store" });
   if (!artifactResponse.ok) refuse("ArtifactUnavailable", `reviewed Orange Pi SD image returned HTTP ${artifactResponse.status}`);
   const bytes = new Uint8Array(await artifactResponse.arrayBuffer());
+  return validateOrangePiImageBytes(manifest, bytes);
+}
+
+async function acquireResolvedOrangePiImage(profile, signal, resolved) {
+  let manifest;
+  try { manifest = JSON.parse(new TextDecoder().decode(resolved.manifest)); }
+  catch (error) { refuse("StaleImage", "reviewed Orange Pi image manifest is malformed", error); }
+  validateOrangePiImageManifest(manifest, profile);
+  const bytes = await resolved.acquire(manifest.artifact, MAXIMUM_IMAGE_BYTES, signal);
+  return validateOrangePiImageBytes(manifest, bytes);
+}
+
+async function validateOrangePiImageBytes(manifest, bytes) {
   if (bytes.byteLength !== manifest.artifact.bytes || bytes.byteLength < 512 || bytes.byteLength > MAXIMUM_IMAGE_BYTES) refuse("StaleImage", "reviewed Orange Pi image violated its exact finite byte bound");
   if (bytes[510] !== 0x55 || bytes[511] !== 0xaa || bytes[446] !== 0x80 || bytes[450] !== 0x0c) refuse("IncompleteBootImage", "reviewed Orange Pi image omitted its exact bootable MBR/FAT32 partition");
   const digest = await sha256(bytes);

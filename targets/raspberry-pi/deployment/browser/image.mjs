@@ -8,7 +8,8 @@ const REQUIRED_BOOT_FILES = Object.freeze([
 ]);
 const MAXIMUM_IMAGE_BYTES = 80 * 1024 * 1024;
 
-export async function acquireRaspberryPiImage(profile, signal) {
+export async function acquireRaspberryPiImage(profile, signal, { resolved = null } = {}) {
+  if (resolved) return acquireResolvedRaspberryPiImage(profile, signal, resolved);
   let response;
   try {
     response = await fetch(profile.manifestPath, { signal, cache: "no-store" });
@@ -21,6 +22,19 @@ export async function acquireRaspberryPiImage(profile, signal) {
   const artifactResponse = await fetch(new URL(manifest.artifact.path, response.url), { signal, cache: "no-store" });
   if (!artifactResponse.ok) refuse("ArtifactUnavailable", `reviewed Raspberry Pi SD image returned HTTP ${artifactResponse.status}`);
   const bytes = new Uint8Array(await artifactResponse.arrayBuffer());
+  return validateRaspberryPiImageBytes(manifest, bytes);
+}
+
+async function acquireResolvedRaspberryPiImage(profile, signal, resolved) {
+  let manifest;
+  try { manifest = JSON.parse(new TextDecoder().decode(resolved.manifest)); }
+  catch (error) { refuse("StaleImage", "reviewed Raspberry Pi image manifest is malformed", error); }
+  validateRaspberryPiImageManifest(manifest, profile);
+  const bytes = await resolved.acquire(manifest.artifact, MAXIMUM_IMAGE_BYTES, signal);
+  return validateRaspberryPiImageBytes(manifest, bytes);
+}
+
+async function validateRaspberryPiImageBytes(manifest, bytes) {
   if (bytes.byteLength !== manifest.artifact.bytes || bytes.byteLength < 512 || bytes.byteLength > MAXIMUM_IMAGE_BYTES) {
     refuse("StaleImage", "reviewed Raspberry Pi image violated its exact finite byte bound");
   }
