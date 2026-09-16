@@ -17,8 +17,6 @@ const REQUEST_PATCHBAY: i32 = 2;
 const REQUEST_CRECHE: i32 = 3;
 const REQUEST_OPEN_FORM: i32 = 4;
 const REQUEST_RUN_FORM: i32 = 5;
-const REQUEST_INSPECT: i32 = 6;
-const REQUEST_WAKE: i32 = 7;
 
 struct BrowserHome {
     model: HomeModel,
@@ -44,8 +42,6 @@ impl BrowserHome {
             HomeAction::OpenCreche => REQUEST_CRECHE,
             HomeAction::OpenForm(_) => REQUEST_OPEN_FORM,
             HomeAction::RunForm(_) => REQUEST_RUN_FORM,
-            HomeAction::Inspect(_) => REQUEST_INSPECT,
-            HomeAction::Wake => REQUEST_WAKE,
         }
     }
 
