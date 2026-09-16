@@ -303,6 +303,7 @@ impl HomeModel {
     }
 
     pub fn submit_text(&mut self, command: &str, installed_forms: &[&str]) -> HomeAction {
+        self.view = HomeView::Prompt;
         self.command.clear();
         self.append(command);
         self.submit(installed_forms)

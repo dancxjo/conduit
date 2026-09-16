@@ -15,6 +15,9 @@ fn launcher_navigation_is_finite() {
 #[test]
 fn text_and_voice_share_the_exact_command_path() {
     let mut home = HomeModel::new();
+    assert_eq!(home.submit_text("help", &FORMS), HomeAction::Changed);
+    assert_eq!(home.view(), HomeView::Prompt);
+    assert!(home.output().contains("open <place>"));
     assert_eq!(
         home.submit_text("run memory lantern", &FORMS),
         HomeAction::RunForm(1)

@@ -22,6 +22,8 @@ mod host_esp32_inspection;
 mod host_esp32_inspection_tests;
 #[path = "host_hears_speaks.rs"]
 mod host_hears_speaks;
+#[path = "host_home_voice.rs"]
+mod host_home_voice;
 #[path = "host_local_model.rs"]
 mod host_local_model;
 #[path = "host_microphone.rs"]
@@ -244,6 +246,8 @@ enum HostCommand {
     ProveMicrophoneHouse(host_microphone_house::MicrophoneHouseArgs),
     /// Carry an authorized microphone-addressed House response to selected playback.
     ProveSpokenMicrophoneHouse(host_spoken_microphone_house::SpokenMicrophoneHouseArgs),
+    /// Run one explicitly authorized push-to-talk Home command through Whisper and Piper playback.
+    HomeVoice(host_home_voice::HomeVoiceArgs),
 }
 
 #[derive(Args, Debug)]
@@ -359,6 +363,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             opts,
         ),
         HostCommand::JourneyHearsSpeaks(request) => host_hears_speaks::run(request, opts),
+        HostCommand::HomeVoice(request) => host_home_voice::run(request, opts),
         HostCommand::JourneyHearsSpeaksLocal { profile, output } => {
             host_hears_speaks::run_local(&profile, output, opts)
         }
