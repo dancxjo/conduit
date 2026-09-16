@@ -77,6 +77,8 @@ enum Request {
         form: ResidentForm,
     },
     LibraryView {
+        host_id: HostId,
+        boot_id: BootId,
         source: String,
         query: String,
         revision: u32,
@@ -353,11 +355,18 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 return Ok(response);
             }
             Request::LibraryView {
+                host_id,
+                boot_id,
                 source,
                 query,
                 revision,
             } => {
-                return crate::creche::workspace_library(&source)?
+                return crate::creche::workspace_library(
+                    &source,
+                    &current_host_offers(),
+                    &host_id,
+                    &boot_id,
+                )?
                     .presentation(current, revision, &query)
                     .map_err(|error| Refusal::new("LibraryPresentation", format!("{error:?}")))?
                     .lower()

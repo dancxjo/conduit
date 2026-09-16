@@ -85,7 +85,7 @@ export function openWorkspaceSession({ host, storage }) {
       return call('conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(at));
     },
     selectForm(form) { request('SelectForm', { form }); return save(); },
-    libraryView(source, query, revision) { return request('LibraryView', { source, query, revision }, true); },
+    libraryView(source, query, revision) { return request('LibraryView', { ...here, source, query, revision }, true); },
     async changeWorkset(edit, form, source, expected_revision) {
       if (persistenceFailure) throw persistenceFailure;
       await write;
