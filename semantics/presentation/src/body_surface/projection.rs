@@ -45,6 +45,7 @@ pub(super) fn append_contribution(
             "checked-form-id",
             contribution.checked_form_id.as_str(),
         ),
+        identity_property(&root, "plan-id", contribution.plan_id.as_str()),
         identity_property(
             &root,
             "active-play-id",
@@ -133,6 +134,7 @@ pub(super) fn append_contribution(
                 surface_action_id: action_identity.clone(),
                 role: contribution.role,
                 checked_form_id: contribution.checked_form_id.clone(),
+                plan_id: contribution.plan_id.clone(),
                 active_play_id: contribution.active_play_id.clone(),
                 application_view_revision: contribution.view.revision,
                 application_action_id: source.id.clone(),
