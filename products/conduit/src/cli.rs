@@ -7,8 +7,8 @@ use std::path::PathBuf;
 #[command(
     name = "conduit",
     about = "Run Forms and grow a living Conduit Body",
-    long_about = "Run Forms and grow a living Conduit Body.\n\nUse `conduit body invite` to issue bounded joining authority, `conduit body accept` on an installed machine to prepare its admission request, and `conduit host obtain` to resolve a reviewed target release. Body binding remains separate from `conduit host carry`, which downloads, launches, writes, or flashes an exact artifact through an explicit carrier. Inspect durable identity and current runtime truth with `conduit host service status`.",
-    after_help = "BODY GROWTH\n  1. conduit body invite --state-dir <OWNER_STATE> > invitation.json\n  2. conduit body accept invitation.json --state-dir <JOINING_STATE> --authorize-join\n  3. conduit host obtain <TARGET> --catalog <CATALOG> --catalog-id <ID> --mirror <MIRROR> --cache <CACHE>\n  4. conduit host carry <CARRIER> --help\n\nInvitation documents and command receipts are bounded JSON suitable for standard input/output. Artifact preparation never implies carrier execution, boot, admission, Plan, or Play."
+    long_about = "Run Forms and grow a living Conduit Body.\n\nUse `conduit body invite` to issue bounded joining authority, `conduit body accept` on an installed machine to prepare its signed admission request, and `conduit body admit` on the owning machine to commit membership and current presence. Use `conduit host obtain` to resolve a reviewed target release. Body binding remains separate from `conduit host carry`, which downloads, launches, writes, or flashes an exact artifact through an explicit carrier. Inspect durable identity and current runtime truth with `conduit host service status`.",
+    after_help = "BODY GROWTH\n  1. conduit body invite --state-dir <OWNER_STATE> > invitation.json\n  2. conduit body accept invitation.json --state-dir <JOINING_STATE> --authorize-join > request.json\n  3. conduit body admit request.json --state-dir <OWNER_STATE> --authorize-admission > receipt.json\n  4. conduit host obtain <TARGET> --catalog <CATALOG> --catalog-id <ID> --mirror <MIRROR> --cache <CACHE>\n  5. conduit host carry <CARRIER> --help\n\nInvitation, request, and receipt documents are bounded JSON suitable for standard input/output. Admission reports membership and current offers without creating a Plan or Play. Artifact preparation never implies carrier execution, boot, admission, Plan, or Play."
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -248,6 +248,17 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_join: bool,
     },
+    /// Admit one signed request into the Body owned by this installed Host.
+    Admit {
+        /// Admission-request JSON path, or `-` to read the exact document from standard input.
+        request: PathBuf,
+        /// Installed durable Host state that owns the Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicitly authorize adding the requested Host as a Body Part.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_admission: bool,
+    },
     Check {
         source: PathBuf,
     },
@@ -282,6 +293,7 @@ mod tests {
         for entrance in [
             "conduit body invite",
             "conduit body accept",
+            "conduit body admit",
             "conduit host obtain",
             "conduit host carry",
             "conduit host service status",
@@ -289,6 +301,7 @@ mod tests {
             assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
         }
         assert!(help.contains("bounded JSON"));
+        assert!(help.contains("without creating a Plan or Play"));
         assert!(help.contains("never implies carrier execution"));
         assert!(!help.contains("xtask"));
     }
@@ -411,6 +424,27 @@ mod tests {
                 }
             } if invitation == std::path::Path::new("-")
                 && state_dir == std::path::Path::new("installed-host")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "body",
+                "admit",
+                "-",
+                "--state-dir",
+                "body-owner",
+                "--authorize-admission",
+            ])
+            .expect("scriptable Body admission parses")
+            .command,
+            Command::Body {
+                command: BodyCommand::Admit {
+                    request,
+                    state_dir,
+                    authorize_admission: true,
+                }
+            } if request == std::path::Path::new("-")
+                && state_dir == std::path::Path::new("body-owner")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "creche"])

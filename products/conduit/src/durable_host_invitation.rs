@@ -2,10 +2,13 @@
 
 use super::{
     bounded_read, current_time_millis, digest, read_installation, restrict_directory,
-    write_json_atomic, RuntimeStatus, RUNTIME_SCHEMA,
+    write_json_atomic, Installation, RuntimeStatus, RUNTIME_SCHEMA,
 };
-use conduit_body::{AdmissionManager, SpawnAdmissionProof, SpawnInvitationSecret};
-use conduit_core::{BootId, HostId, OfferGeneration};
+use conduit_body::{
+    AdmissionManager, AdmissionSigns, BodyBiographyEvidence, MembershipCredential,
+    SpawnAdmissionProof, SpawnInvitationSecret,
+};
+use conduit_core::{bind_sign, BootId, HostAdvertisement, HostId, OfferGeneration};
 use conduit_std_host::{StdHost, StdHostConfig};
 use serde::{Deserialize, Serialize};
 use std::{fs, io::Read, path::Path};
@@ -20,24 +23,45 @@ pub(super) struct PortableInvitation {
     pub(super) secret: [u8; 32],
 }
 
-#[derive(Serialize)]
-struct PortableSpawnAdmissionRequest {
-    schema: &'static str,
-    invitation_id: conduit_body::SpawnInvitationId,
-    body_id: conduit_body::BodyId,
-    host_advertisement: conduit_core::HostAdvertisement,
-    nonce: [u8; 32],
-    signature: Vec<u8>,
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct PortableSpawnAdmissionRequest {
+    pub(super) schema: String,
+    pub(super) invitation_id: conduit_body::SpawnInvitationId,
+    pub(super) body_id: conduit_body::BodyId,
+    pub(super) host_advertisement: conduit_core::HostAdvertisement,
+    pub(super) nonce: [u8; 32],
+    pub(super) signature: Vec<u8>,
+    pub(super) membership_admitted: bool,
+    pub(super) plan_created: bool,
+    pub(super) play_created: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct PortableAdmissionReceipt {
+    schema: String,
+    credential: MembershipCredential,
+    host_advertisement: HostAdvertisement,
     membership_admitted: bool,
+    current_offers_available: bool,
     plan_created: bool,
     play_created: bool,
 }
 
-#[derive(Serialize)]
-struct PendingBodyJoin {
-    schema: &'static str,
-    invitation: PortableInvitation,
-    request: PortableSpawnAdmissionRequest,
+#[derive(Serialize, Deserialize)]
+struct AdmissionTransaction {
+    schema: String,
+    admission: AdmissionManager,
+    biography: BodyBiographyEvidence,
+    installation: Installation,
+    receipt: PortableAdmissionReceipt,
+}
+
+#[derive(Serialize, Deserialize)]
+pub(super) struct PendingBodyJoin {
+    pub(super) schema: String,
+    pub(super) invitation: PortableInvitation,
+    pub(super) request: PortableSpawnAdmissionRequest,
 }
 
 pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Result<(), String> {
@@ -49,6 +73,7 @@ pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Resul
         .body_state
         .as_ref()
         .ok_or("this installed Host does not own a Body")?;
+    recover_admission_transaction(state_dir, Path::new(&body.biography_path))?;
     let biography_bytes = bounded_read(Path::new(&body.biography_path), 2 * 1024 * 1024)?;
     if digest(&biography_bytes) != body.biography_sha256 {
         return Err("retained Body biography no longer matches its exact identity".into());
@@ -100,6 +125,190 @@ pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Resul
         .map_err(|error| format!("encode Body invitation: {error}"))?;
     println!("{encoded}");
     secret_bytes.fill(0);
+    Ok(())
+}
+
+pub(crate) fn admit_body_request(
+    request_path: &Path,
+    state_dir: &Path,
+    authorize_admission: bool,
+) -> Result<(), String> {
+    if !authorize_admission {
+        return Err("admitting a Host into this Body requires --authorize-admission".into());
+    }
+    let mut installation = read_installation(&state_dir.join("installation.json"))?;
+    let body = installation
+        .body_state
+        .as_ref()
+        .ok_or("this installed Host does not own a Body")?;
+    let biography_path = std::path::PathBuf::from(&body.biography_path);
+    recover_admission_transaction(state_dir, &biography_path)?;
+    let request_bytes = if request_path == Path::new("-") {
+        bounded_stdin(256 * 1024)?
+    } else {
+        bounded_read(request_path, 256 * 1024)?
+    };
+    let request: PortableSpawnAdmissionRequest = serde_json::from_slice(&request_bytes)
+        .map_err(|error| format!("Body admission request: {error}"))?;
+    if request.schema != "conduit.body/spawn-admission-request@1"
+        || request.membership_admitted
+        || request.plan_created
+        || request.play_created
+    {
+        return Err("Body admission request has an unsupported schema or claims effects".into());
+    }
+    let biography_bytes = bounded_read(&biography_path, 2 * 1024 * 1024)?;
+    if digest(&biography_bytes) != body.biography_sha256 {
+        return Err("retained Body biography no longer matches its exact identity".into());
+    }
+    let mut biography: BodyBiographyEvidence = serde_json::from_slice(&biography_bytes)
+        .map_err(|error| format!("retained Body biography: {error}"))?;
+    biography
+        .validate()
+        .map_err(|error| format!("retained Body biography refused: {error:?}"))?;
+    if biography.body_id != request.body_id || biography.body_id.as_str() != body.body_id {
+        return Err("admission request belongs to another Body".into());
+    }
+    let admission_path = state_dir.join("body/admission.json");
+    let mut admission: AdmissionManager =
+        serde_json::from_slice(&bounded_read(&admission_path, 256 * 1024)?)
+            .map_err(|error| format!("Body admission state: {error}"))?;
+    let signature: [u8; conduit_body::ADMISSION_SIGNATURE_BYTES] = request
+        .signature
+        .as_slice()
+        .try_into()
+        .map_err(|_| "Body admission request signature has the wrong bound")?;
+    let proof = SpawnAdmissionProof {
+        invitation_id: request.invitation_id,
+        body_id: request.body_id,
+        host_id: request.host_advertisement.host_id.clone(),
+        boot_id: request.host_advertisement.boot_id.clone(),
+        nonce: request.nonce,
+        signature,
+    };
+    let first_sequence = biography
+        .last_sequence()
+        .checked_add(1)
+        .ok_or("Body biography sequence exhausted")?;
+    let second_sequence = first_sequence
+        .checked_add(1)
+        .ok_or("Body biography sequence exhausted")?;
+    let authority_host = HostId::from(installation.host_id.as_str());
+    let runtime: RuntimeStatus =
+        serde_json::from_slice(&bounded_read(&state_dir.join("runtime.json"), 64 * 1024)?)
+            .map_err(|error| format!("durable Host runtime status: {error}"))?;
+    if runtime.schema != RUNTIME_SCHEMA || runtime.host_id != installation.host_id {
+        return Err("durable Host runtime status is stale or belongs to another Host".into());
+    }
+    let authority_boot = BootId::from(runtime.boot_id.as_str());
+    let prior_events = biography.membership.events.len();
+    let credential = match admission.complete_spawn(
+        &mut biography.membership,
+        &request.host_advertisement,
+        &proof,
+        current_time_millis()?,
+        AdmissionSigns {
+            part_admitted: bind_sign(&authority_host, &authority_boot, None, first_sequence)
+                .sign_id,
+            host_attached: bind_sign(&authority_host, &authority_boot, None, second_sequence)
+                .sign_id,
+            candidate_admitted: bind_sign(&authority_host, &authority_boot, None, second_sequence)
+                .sign_id,
+        },
+    ) {
+        Ok(credential) => credential,
+        Err(error) => {
+            write_json_atomic(&admission_path, &admission)?;
+            return Err(format!("Body admission refused: {error:?}"));
+        }
+    };
+    let events = biography.membership.events[prior_events..]
+        .iter()
+        .zip([first_sequence, second_sequence])
+        .map(|(event, sequence)| (event.change_id.clone(), sequence))
+        .collect::<Vec<_>>();
+    if events.len() != 2 {
+        return Err("Body admission did not produce exact membership and presence events".into());
+    }
+    biography
+        .append_membership_events(biography.membership.clone(), &events)
+        .map_err(|error| format!("retain Body admission evidence: {error:?}"))?;
+    let receipt = PortableAdmissionReceipt {
+        schema: "conduit.body/spawn-admission-receipt@1".into(),
+        credential,
+        current_offers_available: !request.host_advertisement.capabilities.is_empty(),
+        host_advertisement: request.host_advertisement,
+        membership_admitted: true,
+        plan_created: false,
+        play_created: false,
+    };
+    let biography_bytes = serde_json::to_vec_pretty(&biography)
+        .map_err(|error| format!("encode admitted Body biography: {error}"))?;
+    installation
+        .body_state
+        .as_mut()
+        .expect("owned Body checked above")
+        .biography_sha256 = digest(&biography_bytes);
+    let transaction_path = state_dir.join("body/admission-transaction.json");
+    write_json_atomic(
+        &transaction_path,
+        &AdmissionTransaction {
+            schema: "conduit.body/admission-transaction@1".into(),
+            admission,
+            biography,
+            installation,
+            receipt: receipt.clone(),
+        },
+    )?;
+    recover_admission_transaction(state_dir, &biography_path)?;
+    println!(
+        "{}",
+        serde_json::to_string(&receipt)
+            .map_err(|error| format!("encode Body admission receipt: {error}"))?
+    );
+    Ok(())
+}
+
+fn recover_admission_transaction(state_dir: &Path, biography_path: &Path) -> Result<(), String> {
+    let transaction_path = state_dir.join("body/admission-transaction.json");
+    if !transaction_path.exists() {
+        return Ok(());
+    }
+    let transaction: AdmissionTransaction =
+        serde_json::from_slice(&bounded_read(&transaction_path, 2 * 1024 * 1024)?)
+            .map_err(|error| format!("Body admission transaction: {error}"))?;
+    let biography_bytes = serde_json::to_vec_pretty(&transaction.biography)
+        .map_err(|error| format!("encode Body admission transaction biography: {error}"))?;
+    if transaction.schema != "conduit.body/admission-transaction@1"
+        || transaction.admission.body_id != transaction.biography.body_id
+        || transaction.receipt.credential.body_id != transaction.biography.body_id
+        || transaction
+            .installation
+            .body_state
+            .as_ref()
+            .is_none_or(|body| {
+                body.body_id != transaction.biography.body_id.as_str()
+                    || body.biography_path != biography_path.display().to_string()
+                    || body.biography_sha256 != digest(&biography_bytes)
+            })
+    {
+        return Err("Body admission transaction lost its exact Body identity".into());
+    }
+    transaction
+        .biography
+        .validate()
+        .map_err(|error| format!("Body admission transaction biography refused: {error:?}"))?;
+    write_json_atomic(biography_path, &transaction.biography)?;
+    write_json_atomic(
+        &state_dir.join("body/admission.json"),
+        &transaction.admission,
+    )?;
+    write_json_atomic(
+        &state_dir.join("installation.json"),
+        &transaction.installation,
+    )?;
+    fs::remove_file(&transaction_path)
+        .map_err(|error| format!("finish Body admission transaction: {error}"))?;
     Ok(())
 }
 
@@ -158,7 +367,7 @@ pub(crate) fn accept_body_invitation(
         signature: secret.sign(&transcript),
     };
     let request = PortableSpawnAdmissionRequest {
-        schema: "conduit.body/spawn-admission-request@1",
+        schema: "conduit.body/spawn-admission-request@1".into(),
         invitation_id: proof.invitation_id,
         body_id: proof.body_id,
         host_advertisement: advertisement,
@@ -177,7 +386,7 @@ pub(crate) fn accept_body_invitation(
     write_json_atomic(
         &body_dir.join("pending-join.json"),
         &PendingBodyJoin {
-            schema: "conduit.body/pending-join@1",
+            schema: "conduit.body/pending-join@1".into(),
             invitation,
             request,
         },

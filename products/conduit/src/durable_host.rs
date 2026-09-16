@@ -21,7 +21,7 @@ const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 
 #[path = "durable_host_invitation.rs"]
 mod invitation;
-pub(crate) use invitation::{accept_body_invitation, issue_body_invitation};
+pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
 
 #[derive(Debug, Deserialize)]
 struct ReleaseManifest {
@@ -38,7 +38,7 @@ struct ReleaseFile {
     sha256: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct Installation {
     schema: String,
     host_id: String,
@@ -48,7 +48,7 @@ struct Installation {
     body_state: Option<BodyBinding>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct BodyBinding {
     body_id: String,
     biography_sha256: String,
@@ -902,5 +902,100 @@ mod tests {
             .as_array()
             .is_some_and(|offers| !offers.is_empty()));
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn installed_body_admits_signed_request_and_retains_current_offers_without_plan() {
+        let (owner_manifest, owner_state) = fixture();
+        let mut owner_installation = install(&owner_manifest, &owner_state).unwrap();
+        start_runtime(&owner_state).unwrap();
+        let owner_body_dir = owner_state.join("body");
+        fs::create_dir_all(&owner_body_dir).unwrap();
+        let body = conduit_body::Body::born(
+            "source/admission-owner".into(),
+            "checked/admission-owner".into(),
+            1,
+            conduit_core::SignId::from("sign/admission-owner/born"),
+        )
+        .unwrap();
+        let biography = conduit_body::BodyBiographyEvidence::born(
+            body.clone(),
+            conduit_body::BodyMembership::new(body.body_id.clone()).unwrap(),
+            "Admission owner".into(),
+        )
+        .unwrap();
+        let biography_path = owner_body_dir.join("biography.json");
+        write_json_atomic(&biography_path, &biography).unwrap();
+        let biography_bytes = bounded_read(&biography_path, 2 * 1024 * 1024).unwrap();
+        owner_installation.body_state = Some(BodyBinding {
+            body_id: body.body_id.as_str().into(),
+            biography_sha256: digest(&biography_bytes),
+            biography_path: biography_path.display().to_string(),
+        });
+        write_json_atomic(&owner_state.join("installation.json"), &owner_installation).unwrap();
+        let mut manager = AdmissionManager::new(body.body_id.clone()).unwrap();
+        let secret_bytes = [17_u8; 32];
+        let now = current_time_millis().unwrap();
+        let invitation = manager
+            .issue_spawn_invitation(
+                SpawnInvitationSecret::from_csprng_bytes(secret_bytes).unwrap(),
+                [18_u8; 32],
+                now,
+                now + 30_000,
+            )
+            .unwrap();
+        write_json_atomic(&owner_body_dir.join("admission.json"), &manager).unwrap();
+
+        let (joining_manifest, joining_state) = fixture();
+        let joining_installation = install(&joining_manifest, &joining_state).unwrap();
+        let joining_runtime = start_runtime(&joining_state).unwrap();
+        let invitation_path = joining_state.parent().unwrap().join("invitation.json");
+        write_json_atomic(
+            &invitation_path,
+            &PortableInvitation {
+                schema: INVITATION_SCHEMA.into(),
+                claim: invitation.claim(),
+                secret: secret_bytes,
+            },
+        )
+        .unwrap();
+        accept_body_invitation(&invitation_path, &joining_state, true).unwrap();
+        let pending: invitation::PendingBodyJoin = serde_json::from_slice(
+            &bounded_read(&joining_state.join("body/pending-join.json"), 256 * 1024).unwrap(),
+        )
+        .unwrap();
+        let request_path = owner_body_dir.join("request.json");
+        write_json_atomic(&request_path, &pending.request).unwrap();
+
+        admit_body_request(&request_path, &owner_state, true).unwrap();
+
+        let admitted: conduit_body::BodyBiographyEvidence =
+            serde_json::from_slice(&bounded_read(&biography_path, 2 * 1024 * 1024).unwrap())
+                .unwrap();
+        admitted.validate().unwrap();
+        let member = admitted
+            .membership
+            .parts
+            .iter()
+            .find(|member| {
+                member.current.as_ref().is_some_and(|current| {
+                    current.host_id.as_str() == joining_installation.host_id
+                        && current.boot_id.as_str() == joining_runtime.boot_id
+                })
+            })
+            .expect("joining Host is retained as one present Part");
+        assert_eq!(member.state, conduit_body::MembershipState::Admitted);
+        let retained_installation =
+            read_installation(&owner_state.join("installation.json")).unwrap();
+        assert_eq!(
+            retained_installation.body_state.unwrap().biography_sha256,
+            digest(&bounded_read(&biography_path, 2 * 1024 * 1024).unwrap())
+        );
+        assert!(!owner_body_dir.join("admission-transaction.json").exists());
+        let replay = admit_body_request(&request_path, &owner_state, true).unwrap_err();
+        assert!(replay.contains("Replay"), "{replay}");
+
+        fs::remove_dir_all(owner_state.parent().unwrap()).unwrap();
+        fs::remove_dir_all(joining_state.parent().unwrap()).unwrap();
     }
 }

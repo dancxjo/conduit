@@ -83,7 +83,7 @@ pub(crate) fn host(command: HostCommand) -> Result<(), String> {
 
 pub(crate) fn body(command: BodyCommand) -> Result<(), String> {
     match command {
-        BodyCommand::Invite { .. } | BodyCommand::Accept { .. } => {
+        BodyCommand::Invite { .. } | BodyCommand::Accept { .. } | BodyCommand::Admit { .. } => {
             Err("Body invitation operations require installed durable Host state".into())
         }
         BodyCommand::Check { source } => {
