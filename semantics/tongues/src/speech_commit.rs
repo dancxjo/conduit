@@ -167,13 +167,9 @@ impl StreamingSpeechCommitter {
     fn release(&mut self, closing: bool) -> Result<Vec<SpeakableSegment>, SpeechCommitRefusal> {
         let mut released = Vec::with_capacity(MAXIMUM_COMMITTED_SEGMENTS);
         loop {
-            let boundary =
-                stable_boundary(&self.pending).or_else(|| bounded_fallback(&self.pending));
+            let boundary = next_speech_commit_boundary(&self.pending, closing);
             let (end, reason) = match boundary {
                 Some(value) => value,
-                None if closing && !self.pending.trim().is_empty() => {
-                    (self.pending.len(), SpeechCommitReason::FinalFlush)
-                }
                 None => break,
             };
             if self.committed_segments == MAXIMUM_COMMITTED_SEGMENTS {
@@ -204,6 +200,20 @@ impl StreamingSpeechCommitter {
     }
 }
 
+/// Returns the next irreversible prefix without retaining or allocating text.
+/// Installed realizations use this same policy with their own admitted storage.
+pub fn next_speech_commit_boundary(
+    text: &str,
+    closing: bool,
+) -> Option<(usize, SpeechCommitReason)> {
+    stable_boundary(text)
+        .or_else(|| bounded_fallback(text))
+        .or_else(|| {
+            (closing && !text.trim().is_empty())
+                .then_some((text.len(), SpeechCommitReason::FinalFlush))
+        })
+}
+
 pub fn speech_commit_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(SPEECH_COMMIT_KIND),
@@ -227,9 +237,8 @@ pub fn speech_commit_contract() -> SpeechRecognitionContract {
 }
 
 fn stable_boundary(text: &str) -> Option<(usize, SpeechCommitReason)> {
-    let chars = text.char_indices().collect::<Vec<_>>();
     let mut quote_open = false;
-    for (position, &(byte, character)) in chars.iter().enumerate() {
+    for (byte, character) in text.char_indices() {
         if matches!(character, '"' | '“' | '”') {
             quote_open = !quote_open;
             continue;
@@ -244,15 +253,16 @@ fn stable_boundary(text: &str) -> Option<(usize, SpeechCommitReason)> {
         {
             continue;
         }
-        let next = chars.get(position + 1).map(|(_, value)| *value);
+        let after = byte + character.len_utf8();
+        let next = text[after..].chars().next();
         let closes_quote = next.is_some_and(|value| matches!(value, '"' | '”' | '\''));
         if quote_open && !closes_quote {
             continue;
         }
-        let mut end = byte + character.len_utf8();
-        for &(next_byte, next_character) in chars.iter().skip(position + 1) {
+        let mut end = after;
+        for (offset, next_character) in text[after..].char_indices() {
             if next_character.is_whitespace() || matches!(next_character, '"' | '”' | '\'') {
-                end = next_byte + next_character.len_utf8();
+                end = after + offset + next_character.len_utf8();
             } else {
                 break;
             }
@@ -266,7 +276,12 @@ fn bounded_fallback(text: &str) -> Option<(usize, SpeechCommitReason)> {
     if text.len() < MAXIMUM_SPEAKABLE_SEGMENT_BYTES {
         return None;
     }
-    let prefix = &text[..MAXIMUM_SPEAKABLE_SEGMENT_BYTES];
+    let prefix_end = text
+        .char_indices()
+        .map(|(index, character)| index + character.len_utf8())
+        .take_while(|end| *end <= MAXIMUM_SPEAKABLE_SEGMENT_BYTES)
+        .last()?;
+    let prefix = &text[..prefix_end];
     for (index, character) in prefix.char_indices().rev() {
         if matches!(character, ',' | ';' | ':') {
             return Some((
@@ -308,10 +323,11 @@ fn provisional_period(text: &str, index: usize) -> bool {
         && token
             .chars()
             .all(|character| character.is_ascii_uppercase())
-        || matches!(
-            token.to_ascii_lowercase().as_str(),
-            "dr" | "mr" | "mrs" | "ms" | "prof" | "sr" | "jr" | "st" | "vs" | "e.g" | "i.e"
-        )
+        || [
+            "dr", "mr", "mrs", "ms", "prof", "sr", "jr", "st", "vs", "e.g", "i.e",
+        ]
+        .iter()
+        .any(|candidate| token.eq_ignore_ascii_case(candidate))
 }
 
 fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
@@ -388,5 +404,14 @@ mod tests {
         );
         assert!(evidence.cancelled);
         assert!(!format!("{evidence:?}").contains("Spoken already"));
+    }
+
+    #[test]
+    fn extent_fallback_stays_on_utf8_boundary_without_exceeding_segment_bound() {
+        let text = format!("{} é", "é".repeat(255));
+        let (end, reason) = next_speech_commit_boundary(&text, false).unwrap();
+        assert_eq!(reason, SpeechCommitReason::ExtentBound);
+        assert!(end <= MAXIMUM_SPEAKABLE_SEGMENT_BYTES);
+        assert!(text.is_char_boundary(end));
     }
 }
