@@ -13,6 +13,9 @@ pub(crate) fn host(command: HostCommand) -> Result<(), String> {
         HostCommand::Service { .. } => {
             Err("durable Host service command was routed through construction".into())
         }
+        HostCommand::Obtain { .. } => {
+            Err("release obtain command was routed through construction".into())
+        }
         HostCommand::Check { source } => {
             let checked = load_host(&source)?;
             println!(
@@ -77,8 +80,8 @@ pub(crate) fn host(command: HostCommand) -> Result<(), String> {
 
 pub(crate) fn body(command: BodyCommand) -> Result<(), String> {
     match command {
-        BodyCommand::Invite { .. } => {
-            Err("Body invitations require the installed durable Host entrance".into())
+        BodyCommand::Invite { .. } | BodyCommand::Accept { .. } => {
+            Err("Body invitation operations require installed durable Host state".into())
         }
         BodyCommand::Check { source } => {
             let checked = crate::body_product::load(&source)?;

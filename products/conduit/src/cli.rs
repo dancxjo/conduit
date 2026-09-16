@@ -89,6 +89,26 @@ pub(crate) enum HostCommand {
         #[command(subcommand)]
         command: HostServiceCommand,
     },
+    /// Obtain the reviewed release manifest for one target from an installed mirror.
+    Obtain {
+        /// Reviewed target identity to obtain.
+        target: String,
+        /// Bounded release catalog document.
+        #[arg(long)]
+        catalog: PathBuf,
+        /// Exact expected catalog identity from the installed release channel.
+        #[arg(long)]
+        catalog_id: String,
+        /// Local or air-gapped mirror root.
+        #[arg(long)]
+        mirror: PathBuf,
+        /// Immutable content-addressed cache directory.
+        #[arg(long)]
+        cache: PathBuf,
+        /// Refuse catalogs at or below this generation.
+        #[arg(long, default_value_t = 0)]
+        minimum_generation: u64,
+    },
     Check {
         source: PathBuf,
     },
@@ -163,6 +183,17 @@ pub(crate) enum BodyCommand {
         #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=600))]
         ttl_seconds: u64,
     },
+    /// Accept one bounded invitation on this installed Host and emit an admission request.
+    Accept {
+        /// Invitation JSON path, or `-` to read the exact document from standard input.
+        invitation: PathBuf,
+        /// Installed durable Host state that will join the invited Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicitly authorize this Host to request membership in the invited Body.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_join: bool,
+    },
     Check {
         source: PathBuf,
     },
@@ -193,6 +224,48 @@ mod tests {
                 .expect("Home entrance parses")
                 .command,
             Command::Home
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "obtain",
+                "conduitos/x86_64/pc",
+                "--catalog",
+                "release/catalog.json",
+                "--catalog-id",
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--mirror",
+                "release",
+                "--cache",
+                "installed-cache",
+            ])
+            .expect("installed target obtain entrance parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Obtain { target, .. }
+            } if target == "conduitos/x86_64/pc"
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "body",
+                "accept",
+                "-",
+                "--state-dir",
+                "installed-host",
+                "--authorize-join",
+            ])
+            .expect("scriptable Body invitation acceptance parses")
+            .command,
+            Command::Body {
+                command: BodyCommand::Accept {
+                    invitation,
+                    state_dir,
+                    authorize_join: true,
+                }
+            } if invitation == std::path::Path::new("-")
+                && state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "creche"])
