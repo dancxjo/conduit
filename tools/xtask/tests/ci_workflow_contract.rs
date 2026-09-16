@@ -362,7 +362,7 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
 }
 
 #[test]
-fn hosted_release_jobs_run_the_packaged_tour_journey_on_linux_and_windows() {
+fn hosted_release_jobs_run_the_packaged_tour_and_home_journeys() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
@@ -371,8 +371,14 @@ fn hosted_release_jobs_run_the_packaged_tour_journey_on_linux_and_windows() {
         .nth(1)
         .and_then(|tail| tail.split("\n  raspberry-pi-release:\n").next())
         .expect("locate host releases job");
+    assert!(
+        workflow.contains("host_releases_required: ${{ inputs.full_suite || steps.native-host-release.outputs.required == 'true'")
+    );
+    assert!(releases.contains("if: needs.plan.outputs.host_releases_required == 'true'"));
     assert!(releases.contains("conduit-tour-linux-x86_64 --journey"));
     assert!(releases.contains("conduit-tour-windows-x86_64.exe --journey"));
+    assert!(releases.contains("conduit-home-linux-x86_64 --journey"));
+    assert!(releases.contains("conduit-home-windows-x86_64.exe --journey"));
 }
 
 #[test]

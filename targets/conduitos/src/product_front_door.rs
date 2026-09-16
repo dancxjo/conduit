@@ -394,6 +394,14 @@ pub fn run(
                         emit_journey_sign(&journey.projection(), fabrication, &receipt);
                         arch::early_write(b"CONDUIT_HOME_CHECKPOINT patchbay-opened\n");
                     }
+                    crate::front_door::HomeInput::OpenCreche => {
+                        arch::early_write(
+                            b"CONDUIT_HOME_CHECKPOINT creche-unavailable-after-birth\n",
+                        );
+                        presenter
+                            .present(&front_door, display)
+                            .map_err(|error| error.as_str())?;
+                    }
                     crate::front_door::HomeInput::OpenForm(index) => {
                         let inventory = crate::native_workset::inventory();
                         let requested =

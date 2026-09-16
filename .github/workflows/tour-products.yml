@@ -57,6 +57,7 @@ jobs:
       tour_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.tour_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
       pages_carrier_required: ${{ inputs.full_suite || !inputs.development_admission && ((inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true'))) }}
       browser_admission_required: ${{ inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') }}
+      host_releases_required: ${{ inputs.full_suite || steps.native-host-release.outputs.required == 'true' || !inputs.development_admission && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true') }}
       stack_role: ${{ steps.stack.outputs.role || 'independent' }}
       stack_tip_pr: ${{ steps.stack.outputs.tip_pr || github.event.pull_request.number }}
       stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CANDIDATE_SHA }}
@@ -135,6 +136,21 @@ jobs:
             --json-out target/product-plan/impact.json \
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"
+      - name: Select native Home Host release proof
+        id: native-host-release
+        if: steps.stack.outputs.role != 'intermediate'
+        run: |
+          required=false
+          if ! git diff --quiet "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA" -- \
+            products/home/model \
+            products/home/native \
+            tools/xtask/src/commands/host_release.rs \
+            .github/workflows/tour-products.yml
+          then
+            required=true
+          fi
+          echo "required=$required" >> "$GITHUB_OUTPUT"
+          printf 'Native Home Host release proof: `%s`\n' "$required" >> "$GITHUB_STEP_SUMMARY"
       - name: Project the trusted reconciliation delta onto product jobs
         id: exact
         if: steps.stack.outputs.role != 'intermediate' && inputs.execute_proofs != ''
@@ -509,7 +525,7 @@ jobs:
 
   host-releases:
     needs: plan
-    if: needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.host_releases_required == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -549,9 +565,17 @@ jobs:
         run: |
           chmod +x target/creche-host-releases/conduit-tour-linux-x86_64
           target/creche-host-releases/conduit-tour-linux-x86_64 --journey
+      - name: Run the packaged Linux Home journey
+        if: matrix.platform == 'linux'
+        run: |
+          chmod +x target/creche-host-releases/conduit-home-linux-x86_64
+          target/creche-host-releases/conduit-home-linux-x86_64 --journey
       - name: Run the packaged Windows Tour journey
         if: matrix.platform == 'windows'
         run: target/creche-host-releases/conduit-tour-windows-x86_64.exe --journey
+      - name: Run the packaged Windows Home journey
+        if: matrix.platform == 'windows'
+        run: target/creche-host-releases/conduit-home-windows-x86_64.exe --journey
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-${{ matrix.artifact }}
