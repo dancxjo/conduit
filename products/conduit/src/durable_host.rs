@@ -85,6 +85,7 @@ fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, Strin
 
     fs::create_dir_all(state_dir).map_err(|error| format!("create state directory: {error}"))?;
     restrict_directory(state_dir)?;
+    crate::durable_host_control::ensure_secret(state_dir)?;
     let install_path = state_dir.join("installation.json");
     let existing = if install_path.exists() {
         Some(read_installation(&install_path)?)
@@ -129,17 +130,22 @@ fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, Strin
 }
 
 fn run(state_dir: &Path) -> Result<(), String> {
-    let status = start_runtime(state_dir)?;
+    let (status, truth) = prepare_runtime(state_dir)?;
     println!(
         "durable Host {} boot {} is running",
         status.host_id, status.boot_id
     );
-    loop {
-        std::thread::park_timeout(std::time::Duration::from_secs(3_600));
-    }
+    crate::durable_host_control::serve(state_dir, truth)
 }
 
+#[cfg(test)]
 fn start_runtime(state_dir: &Path) -> Result<RuntimeStatus, String> {
+    prepare_runtime(state_dir).map(|(status, _)| status)
+}
+
+fn prepare_runtime(
+    state_dir: &Path,
+) -> Result<(RuntimeStatus, crate::durable_host_control::DurableHostTruth), String> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
     let boot_id = fresh_identity("boot/installed", &installation.host_id);
     let host = StdHost::new_with_config(StdHostConfig {
@@ -156,7 +162,25 @@ fn start_runtime(state_dir: &Path) -> Result<RuntimeStatus, String> {
         release_bundle_sha256: installation.release_bundle_sha256,
     };
     write_json_atomic(&state_dir.join("runtime.json"), &status)?;
-    Ok(status)
+    let executable = Path::new(&installation.product_executable);
+    let image_content_digest = digest(&bounded_read(executable, MAXIMUM_RELEASE_FILE_BYTES)?);
+    let truth = crate::durable_host_control::DurableHostTruth {
+        target_id: running_target_id()?.into(),
+        image_content_digest,
+        advertisement: host.advertisement().clone(),
+    };
+    Ok((status, truth))
+}
+
+fn running_target_id() -> Result<&'static str, String> {
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("linux", "x86_64") => Ok("std/x86_64/computer"),
+        ("windows", "x86_64") => Ok("std/x86_64/windows-computer"),
+        ("macos", "aarch64") => Ok("std/aarch64/macos-computer"),
+        (os, architecture) => Err(format!(
+            "no reviewed durable Host profile is installed for {os}/{architecture}"
+        )),
+    }
 }
 
 fn status(state_dir: &Path) -> Result<(), String> {

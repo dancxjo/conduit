@@ -15,7 +15,7 @@ use super::{
     ConduitosArch, ConduitosError,
 };
 
-const EXPECTED_IMAGE_FILE_COUNT: usize = 6;
+const EXPECTED_IMAGE_FILE_COUNT: usize = 7;
 const CONDUITOS_GPT_DISK_GUID: &str = "434f4e44-5549-544f-5300-000000000001";
 
 pub fn execute_architecture_proof(
@@ -208,6 +208,12 @@ fn stage_image(paths: &Paths, arch: ConduitosArch) -> Result<(), ConduitosError>
         .and_then(|_| fs::create_dir_all(&efi_boot))
         .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
     copy(&paths.kernel, &boot.join("conduitos"))?;
+    let mut spore = vec![0xff; 4096];
+    let magic = b"CONDUIT_SPORE_MEDIA@1\0";
+    spore[..magic.len()].copy_from_slice(magic);
+    spore[24..32].fill(0);
+    fs::write(boot.join("conduit-spore.bin"), spore)
+        .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
     let config = match arch {
         ConduitosArch::Aarch64 => "targets/conduitos/firmware/boot/limine-aarch64-a1.conf",
         ConduitosArch::Ia32 => "targets/conduitos/firmware/boot/limine-ia32-a1.conf",

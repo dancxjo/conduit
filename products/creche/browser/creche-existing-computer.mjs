@@ -2,6 +2,7 @@ import { acquireHostRelease } from "./creche-release-bundle.mjs";
 import { createNativeSporeDownload } from "./creche-spore-bundle.mjs";
 import { createBodyBoundZip, readBodyBoundZip } from "./creche-native-zip.mjs";
 import { PHYSICAL_HOST_EVIDENCE_MAXIMA } from "./creche-target-catalog.mjs";
+import { connectRendezvousHost, decodeRendezvousCode } from "./creche-rendezvous.mjs";
 
 const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const encoder = new TextEncoder();
@@ -11,6 +12,10 @@ const MODES = Object.freeze([
   Object.freeze({ id: "install-existing", resultKind: "installation", supported: true }),
   Object.freeze({ id: "attach-running", resultKind: "attachment", supported: false }),
 ]);
+const RENDEZVOUS_MODES = Object.freeze(MODES.map((mode) => Object.freeze({
+  ...mode,
+  supported: mode.id === "install-existing" || mode.id === "attach-running",
+})));
 const BOUNDS = Object.freeze({
   maximumOperations: 12,
   ...PHYSICAL_HOST_EVIDENCE_MAXIMA,
@@ -19,8 +24,34 @@ const BOUNDS = Object.freeze({
 export function createExistingComputerAdapter({ host, profile }) {
   requireProfile(profile);
   let loadedHost = null;
+  let rendezvousCode = "";
+  let rendezvous = null;
+  let rendezvousJoin = null;
+  let selectedMode = "install-existing";
 
-  function createOptions({ mode }) {
+  const modes = profile.rendezvous ? RENDEZVOUS_MODES : MODES;
+
+  function createOptions({ mode, onChange }) {
+    selectedMode = mode;
+    if (mode === "attach-running" && profile.rendezvous) {
+      const field = document.createElement("label");
+      field.className = "target-option-note";
+      field.textContent = "Rendezvous code";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.autocomplete = "off";
+      input.spellcheck = false;
+      input.maxLength = 96;
+      input.placeholder = "C1-WS-… or C1-SERIAL-…";
+      input.value = rendezvousCode;
+      input.setAttribute("aria-label", "Running Host rendezvous code");
+      input.addEventListener("change", () => {
+        rendezvousCode = input.value.trim();
+        onChange();
+      });
+      field.append(document.createElement("br"), input);
+      return field;
+    }
     const note = document.createElement("p");
     note.className = "target-option-note";
     if (mode === "install-existing") {
@@ -38,6 +69,34 @@ export function createExistingComputerAdapter({ host, profile }) {
   async function obtain({ mode, signal }) {
     requireMode(mode, "obtain", profile);
     requireCurrent(signal, mode, "obtain", profile);
+    if (mode === "attach-running") {
+      try {
+        rendezvous = await connectRendezvousHost(rendezvousCode, { signal });
+        if (rendezvous.descriptor.target_id !== profile.target_id) {
+          rendezvous.cancel();
+          rendezvous = null;
+          refuse(profile, mode, "obtain", "WrongTarget", "rendezvous code names a different running Host target");
+        }
+        return Object.freeze({
+          resultKind: "attachment",
+          private: Object.freeze({ rendezvous }),
+          evidence: Object.freeze({
+            schema: "conduit.creche/running-host-obtainment@1",
+            mode,
+            result_kind: "attachment",
+            target_id: profile.target_id,
+            host_id: rendezvous.descriptor.advertisement.host_id,
+            boot_id: rendezvous.descriptor.advertisement.boot_id,
+            image_content_digest: rendezvous.descriptor.image_content_digest,
+            line_id: rendezvous.line_id,
+            membership_claimed: false,
+          }),
+        });
+      } catch (error) {
+        if (error?.evidence) throw error;
+        refuse(profile, mode, "obtain", error?.code ?? "RendezvousFailed", "running Host rendezvous terminated without a current advertisement", error);
+      }
+    }
     try {
       const release = await acquireHostRelease(profile, signal);
       requireCurrent(signal, mode, "obtain", profile);
@@ -69,6 +128,9 @@ export function createExistingComputerAdapter({ host, profile }) {
   async function bind({ mode, body, obtainment, nowMillis, signal, prepareSpore = null }) {
     requireMode(mode, "bind", profile);
     requireCurrent(signal, mode, "bind", profile);
+    if (mode === "attach-running") {
+      return bindRendezvous({ body, obtainment, nowMillis, signal, prepareSpore });
+    }
     const release = obtainment?.private?.release;
     if (!release || release.manifest?.bundle_sha256 !== obtainment.evidence?.bundle_sha256) {
       refuse(profile, mode, "bind", "MissingArtifact", "exact generic Host release truth is missing before Body binding");
@@ -136,9 +198,83 @@ export function createExistingComputerAdapter({ host, profile }) {
     }
   }
 
+  function bindRendezvous({ obtainment, nowMillis, signal, prepareSpore }) {
+    const session = obtainment?.private?.rendezvous;
+    const digest = session?.descriptor?.image_content_digest;
+    if (!session || session !== rendezvous || typeof digest !== "string") {
+      refuse(profile, "attach-running", "bind", "StaleRendezvous", "current running Host truth is missing before invitation binding");
+    }
+    const entropy = crypto.getRandomValues(new Uint8Array(32));
+    const digestBytes = encoder.encode(digest);
+    try {
+      let prepared;
+      if (prepareSpore) {
+        prepared = prepareSpore({ imageDigest: digest, nowMillis, entropy });
+      } else {
+        const targetBytes = encoder.encode(profile.target_id);
+        const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
+        input.set(entropy);
+        input.set(targetBytes, entropy.length);
+        input.set(digestBytes, entropy.length + targetBytes.length);
+        const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
+        if (code < 0) throw outputError(host.runtime, "running Host invitation preparation", code);
+        prepared = readOutput(host.runtime);
+      }
+      if (prepared.target_id !== profile.target_id || prepared.image_content_digest !== digest
+        || prepared.output !== profile.output || prepared.fabrication_package_id !== profile.package_id) {
+        prepared.invitation_secret?.fill(0);
+        refuse(profile, "attach-running", "bind", "BindingIdentity", "running Host invitation lost its exact target or executable identity");
+      }
+      requireCurrent(signal, "attach-running", "bind", profile);
+      return Object.freeze({
+        prepared,
+        download: null,
+        evidence: Object.freeze({
+          ...prepared,
+          invitation_secret: "retained only for the authenticated rendezvous Line; redacted",
+          running_host: Object.freeze({
+            host_id: session.descriptor.advertisement.host_id,
+            boot_id: session.descriptor.advertisement.boot_id,
+            line_id: session.line_id,
+            image_content_digest: digest,
+          }),
+        }),
+      });
+    } catch (error) {
+      if (error?.evidence) throw error;
+      refuse(profile, "attach-running", "bind", error?.code ?? "BindingFailed", "running Host invitation binding terminated without success", error);
+    } finally {
+      entropy.fill(0);
+    }
+  }
+
   async function realize({ mode, obtainment, binding, signal }) {
     requireMode(mode, "realize", profile);
     requireCurrent(signal, mode, "realize", profile);
+    if (mode === "attach-running") {
+      const session = obtainment?.private?.rendezvous;
+      if (!session || session !== rendezvous) {
+        refuse(profile, mode, "realize", "StaleRendezvous", "running Host rendezvous session is no longer current");
+      }
+      try {
+        rendezvousJoin = await session.invite(binding.prepared);
+        requireCurrent(signal, mode, "realize", profile);
+        return Object.freeze({
+          terminal: "InvitationDelivered",
+          evidence: Object.freeze({
+            schema: "conduit.creche/running-host-attachment@1",
+            terminal: "InvitationDelivered",
+            target_id: profile.target_id,
+            line_id: session.line_id,
+            host_id: rendezvousJoin.host_id,
+            boot_id: rendezvousJoin.boot_id,
+            membership_claimed: false,
+          }),
+        });
+      } catch (error) {
+        refuse(profile, mode, "realize", error?.code ?? "InvitationDeliveryFailed", "running Host did not return an invitation-bound join proof", error);
+      }
+    }
     if (!profile.browser_carrier) {
       const terminal = profile.credentials_required ? "UnavailableCredentials" : "ExplicitInstallerRequired";
       const message = profile.credentials_required
@@ -228,6 +364,24 @@ export function createExistingComputerAdapter({ host, profile }) {
   async function observe({ mode, binding, signal }) {
     requireMode(mode, "observe", profile);
     requireCurrent(signal, mode, "observe", profile);
+    if (mode === "attach-running") {
+      if (!rendezvousJoin || rendezvousJoin.spore_id !== binding?.prepared?.spore_id) {
+        refuse(profile, mode, "observe", "NoRunningCarrier", "no current invitation-bound running Host observation is available");
+      }
+      const join = Object.freeze({
+        spore_id: rendezvousJoin.spore_id,
+        image_id: rendezvousJoin.image_id,
+        advertisement: rendezvousJoin.advertisement,
+        invitation_id: rendezvousJoin.invitation_id,
+        body_id: rendezvousJoin.body_id,
+        host_id: rendezvousJoin.host_id,
+        boot_id: rendezvousJoin.boot_id,
+        nonce: rendezvousJoin.nonce,
+        signature: rendezvousJoin.signature,
+        observed_at_millis: rendezvousJoin.observed_at_millis,
+      });
+      return Object.freeze({ join, evidence: Object.freeze({ schema: "conduit.host/rendezvous-spawn-observation@1", ...join }) });
+    }
     if (!profile.browser_carrier || !loadedHost) {
       refuse(profile, mode, "observe", "NoRunningCarrier", "no authenticated running Host carrier is available for observation");
     }
@@ -291,13 +445,27 @@ export function createExistingComputerAdapter({ host, profile }) {
 
   async function cancel({ mode, operation }) {
     loadedHost = null;
+    rendezvous?.cancel();
+    rendezvous = null;
+    rendezvousJoin = null;
     return Object.freeze({ schema: "conduit.creche/existing-computer-cancellation@1", target_id: profile.target_id, mode, operation, terminal: "Cancelled" });
   }
 
-  return Object.freeze({ schema: ADAPTER_SCHEMA, target: profile.target, modes: MODES, bounds: BOUNDS, createOptions, obtain, bind, realize, observe, cancel });
+  function configuration() {
+    if (selectedMode !== "attach-running") return { required: false, checked: true };
+    if (!profile.rendezvous || !rendezvousCode) return { required: true, checked: false };
+    try {
+      decodeRendezvousCode(rendezvousCode);
+      return { required: true, checked: true };
+    } catch {
+      return { required: true, checked: false };
+    }
+  }
+
+  return Object.freeze({ schema: ADAPTER_SCHEMA, target: profile.target, modes, bounds: BOUNDS, createOptions, configuration, obtain, bind, realize, observe, cancel });
 }
 
-export { MODES as EXISTING_COMPUTER_MODES, BOUNDS as EXISTING_COMPUTER_BOUNDS };
+export { MODES as EXISTING_COMPUTER_MODES, RENDEZVOUS_MODES as EXISTING_COMPUTER_RENDEZVOUS_MODES, BOUNDS as EXISTING_COMPUTER_BOUNDS };
 
 function initializeMembership(api, hostId, bootId) {
   const host = encoder.encode(hostId);
@@ -329,7 +497,7 @@ function readMembershipOutput(api, json) {
 }
 
 function requireMode(mode, operation, profile) {
-  if (mode === "install-existing") return;
+  if (mode === "install-existing" || (mode === "attach-running" && profile.rendezvous)) return;
   const code = mode === "attach-running" ? "AttachRunningUnsupported" : "FabricateNewUnsupported";
   refuse(profile, mode, operation, code, `${profile.target.label} does not offer ${mode}`, undefined, { authority_requested: false, external_work_started: false });
 }

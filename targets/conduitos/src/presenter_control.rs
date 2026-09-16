@@ -358,3 +358,12 @@ fn renderer_host(
         planner_capabilities: Vec::new(),
     }
 }
+
+/// Exact native-presenter advertisement used by boot-time Body rendezvous.
+pub fn native_host_advertisement(
+    host_id: &HostId,
+    boot_id: &conduit_core::BootId,
+    generation: u64,
+) -> HostAdvertisement {
+    renderer_host(Adapter::Native, host_id, boot_id, generation)
+}

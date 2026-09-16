@@ -158,6 +158,16 @@ pub mod product_usb_line;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;
 pub mod sign_format;
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "ia32-product",
+    feature = "aarch64-product",
+    feature = "riscv64-product",
+    feature = "loongarch64-product"
+))]
+pub mod spore_join;
+pub mod spore_provision;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod synth_nucleus;
 pub mod text_composition;

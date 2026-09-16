@@ -265,7 +265,7 @@ fn execute_with_features(
         command.env(
             "RUSTFLAGS",
             format!(
-                "-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
+                "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
                 linker.display(),
                 script.display()
             ),
@@ -275,15 +275,18 @@ fn execute_with_features(
         let script = paths
             .root
             .join("targets/conduitos/firmware/linker/riscv64_product.ld");
-        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
+        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
     } else if arch == ConduitosArch::Loongarch64 {
         let linker = loongarch64_a0::rust_lld(&paths.root)?;
         let script = paths
             .root
             .join("targets/conduitos/firmware/linker/loongarch64_product.ld");
-        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
+        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
     } else {
-        command.env("RUSTFLAGS", "-C relocation-model=static -C panic=abort");
+        command.env(
+            "RUSTFLAGS",
+            "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\"",
+        );
     }
     if let Some(fabrication) = fabrication {
         command.env("CONDUITOS_FABRICATION_RECORD", fabrication.generated);

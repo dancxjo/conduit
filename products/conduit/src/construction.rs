@@ -69,6 +69,9 @@ pub(crate) fn host(command: HostCommand) -> Result<(), String> {
             );
             Ok(())
         }
+        HostCommand::Rendezvous { .. } => {
+            Err("Host rendezvous must be entered through the live product entrance".into())
+        }
     }
 }
 

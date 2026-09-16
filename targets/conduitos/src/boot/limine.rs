@@ -25,6 +25,8 @@ use crate::display::{DisplayError, DisplayFormat, RawDisplay};
 
 const PINNED_BOOTLOADER_NAME: &str = "Limine";
 const PINNED_BOOTLOADER_VERSION: &str = "12.5.2";
+const SPORE_MODULE_COMMAND: &[u8] = b"conduit.spore/native-media-provision@1";
+const SPORE_MODULE_BYTES: u64 = 4096;
 
 #[used]
 #[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
@@ -114,6 +116,29 @@ pub fn framebuffer_display() -> Result<RawDisplay, DisplayError> {
     // SAFETY: Limine owns the selected framebuffer response and promises its
     // address and current-mode extent as writable framebuffer memory.
     unsafe { RawDisplay::new(address, byte_len, format) }
+}
+
+/// Return the one fixed, bootloader-owned ConduitOS spore region.
+///
+/// The bytes are observation only until `spore_provision` validates their
+/// schema, target binding, invitation identity, and finite secret fields.
+pub fn spore_module() -> Option<&'static [u8]> {
+    let response = MODULES.get_response()?;
+    let mut selected = None;
+    for file in response.modules() {
+        if file.string().to_bytes() != SPORE_MODULE_COMMAND {
+            continue;
+        }
+        if selected.is_some() || file.size() != SPORE_MODULE_BYTES {
+            return None;
+        }
+        let length = usize::try_from(file.size()).ok()?;
+        // SAFETY: Limine owns this module response and retains its mapped bytes
+        // for the lifetime of the booted executable.
+        let bytes = unsafe { core::slice::from_raw_parts(file.addr(), length) };
+        selected = Some(bytes);
+    }
+    selected
 }
 
 unsafe extern "C" {
