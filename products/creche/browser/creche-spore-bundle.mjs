@@ -1,3 +1,5 @@
+import { boundedRendezvousCandidates } from "./creche-rendezvous-candidates.mjs";
+
 const MAGIC = new TextEncoder().encode("CNDSPOR1");
 const encoder = new TextEncoder();
 const MAXIMUM_MANIFEST_BYTES = 64 * 1024;
@@ -69,6 +71,10 @@ export function packageSporeBundle({ prepared, artifact, filename }) {
       nonce: prepared.invitation_nonce,
       expires_at_millis: prepared.invitation_expires_at_millis,
       secret: prepared.invitation_secret,
+      rendezvous_candidates: boundedRendezvousCandidates(prepared.rendezvous_candidates, {
+        bodyId: prepared.body_id,
+        invitationExpiresAtMillis: prepared.invitation_expires_at_millis,
+      }),
     }),
     artifact: Object.freeze({
       content_digest: prepared.image_content_digest,

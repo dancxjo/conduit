@@ -295,6 +295,14 @@ fn main() {
                     authorize_join,
                 },
         } => durable_host::accept_body_invitation(&invitation, &state_dir, authorize_join),
+        cli::Command::Body {
+            command:
+                cli::BodyCommand::Admit {
+                    request,
+                    state_dir,
+                    authorize_admission,
+                },
+        } => durable_host::admit_body_request(&request, &state_dir, authorize_admission),
         cli::Command::Body { command } => construction::body(command),
         cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),

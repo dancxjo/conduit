@@ -1,3 +1,5 @@
+import { boundedRendezvousCandidates } from "./creche-rendezvous-candidates.mjs";
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const LOCAL_FILE = 0x04034b50;
@@ -23,6 +25,10 @@ export async function createBodyBoundZip({ prepared, release, filename }) {
       nonce: prepared.invitation_nonce,
       expires_at_millis: prepared.invitation_expires_at_millis,
       secret: prepared.invitation_secret,
+      rendezvous_candidates: boundedRendezvousCandidates(prepared.rendezvous_candidates, {
+        bodyId: prepared.body_id,
+        invitationExpiresAtMillis: prepared.invitation_expires_at_millis,
+      }),
     },
   }));
   const entries = release.payloads.map(({ path, bytes, media_type: mediaType }) => ({
@@ -182,6 +188,10 @@ function requireProvisionIdentities(provision) {
     || !Number.isSafeInteger(provision.invitation_provision?.expires_at_millis)) {
     throw new TypeError("native ZIP Body provision lost its exact identities");
   }
+  boundedRendezvousCandidates(provision.invitation_provision.rendezvous_candidates, {
+    bodyId: provision.spore.body_id,
+    invitationExpiresAtMillis: provision.invitation_provision.expires_at_millis,
+  });
 }
 
 function requireFilename(value) {

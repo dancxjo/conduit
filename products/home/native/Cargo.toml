@@ -12,6 +12,10 @@ conduit-presentation = { path = "../../../semantics/presentation" }
 patchbay-hosted = { path = "../../patchbay/hosted" }
 patchbay-model = { path = "../../patchbay/model" }
 embedded-graphics = "=0.8.1"
+png = "0.17"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
 softbuffer = { version = "0.4", default-features = false }
 winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
 

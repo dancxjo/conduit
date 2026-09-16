@@ -1,3 +1,5 @@
+import { boundedRendezvousCandidates } from "./creche-rendezvous-candidates.mjs";
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const MAGIC = encoder.encode("CONDUIT_SPORE_MEDIA@1\0");
@@ -23,6 +25,10 @@ export async function bindBodyProvisionedMedia({ prepared, imageBytes, filename,
       nonce: prepared.invitation_nonce,
       expires_at_millis: prepared.invitation_expires_at_millis,
       secret: prepared.invitation_secret,
+      rendezvous_candidates: boundedRendezvousCandidates(prepared.rendezvous_candidates, {
+        bodyId: prepared.body_id,
+        invitationExpiresAtMillis: prepared.invitation_expires_at_millis,
+      }),
     },
   }));
   if (provision.byteLength > TRAILER_BYTES - HEADER_BYTES) {
@@ -155,6 +161,10 @@ function requireProvision(provision, imageBytes) {
     || !Number.isSafeInteger(provision.invitation_provision?.expires_at_millis)) {
     throw new TypeError("native media provision lost its exact identities or bounds");
   }
+  boundedRendezvousCandidates(provision.invitation_provision.rendezvous_candidates, {
+    bodyId: provision.spore.body_id,
+    invitationExpiresAtMillis: provision.invitation_provision.expires_at_millis,
+  });
 }
 
 function requireFilename(value) {
