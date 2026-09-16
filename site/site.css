@@ -62,6 +62,13 @@ h1 {
 .primary-action:hover { background: var(--conduit-focus); }
 .secondary-action:hover { border-color: var(--conduit-emphasis); color: var(--conduit-emphasis); }
 .hero-actions a:active { transform: translateY(0); }
+.hero-proof-note {
+  max-width: 42rem;
+  margin: 1.15rem 0 0;
+  color: var(--conduit-text-secondary);
+  font-size: .94rem;
+  line-height: 1.6;
+}
 
 .body-contrast,
 .downloads,

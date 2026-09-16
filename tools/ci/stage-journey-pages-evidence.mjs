@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { cp, lstat, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 
 const GALLERY_SCHEMA = "conduit.visual-evidence-gallery/v1";
@@ -50,7 +50,7 @@ const destination = path.join(siteRoot, "journeys");
 await rm(destination, { recursive: true, force: true });
 await mkdir(path.dirname(destination), { recursive: true });
 await cp(galleryRoot, destination, { recursive: true, errorOnExist: true });
-await installRootLink(siteRoot);
+await requireAuthoredEntrance(siteRoot);
 console.log(`STAGED sibling journey gallery for ${commit}`);
 
 async function requireExactEntries(directory, expected, label) {
@@ -89,16 +89,10 @@ async function enforceBounds(root) {
   }
 }
 
-async function installRootLink(root) {
+async function requireAuthoredEntrance(root) {
   const indexPath = path.join(root, "index.html");
-  const marker = "<!-- conduit-journey-gallery-link@1 -->";
-  let html = await readFile(indexPath, "utf8");
-  if (html.includes(marker)) throw new Error("Pages root already contains a sibling journey link");
-  const close = html.lastIndexOf("</body>");
-  if (close < 0 || html.indexOf("</body>") !== close) {
-    throw new Error("Pages root does not contain one exact body closure");
+  const html = await readFile(indexPath, "utf8");
+  if (!/href=["'][^"']*journeys\/["']/.test(html)) {
+    throw new Error("Pages root does not contain its authored Journeys entrance");
   }
-  const link = `${marker}<p><a href="journeys/">Conduit journey evidence gallery</a></p>`;
-  html = `${html.slice(0, close)}${link}${html.slice(close)}`;
-  await writeFile(indexPath, html);
 }

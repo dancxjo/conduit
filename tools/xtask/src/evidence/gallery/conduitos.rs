@@ -44,6 +44,10 @@ pub(super) fn write_conduitos_current(
     fs::create_dir_all(&root)
         .map_err(|error| format!("cannot create current ConduitOS gallery: {error}"))?;
     let output = required_output(evidence, "conduitos.x86_64.console")?;
+    copy_file(
+        &evidence_root.join("manifest.json"),
+        &root.join("manifest.json"),
+    )?;
     copy_file(&evidence_root.join(&output.path), &root.join("console.txt"))?;
     write_conduitos_page(
         &root.join("index.html"),
@@ -110,7 +114,7 @@ fn write_conduitos_page(
     .collect::<Vec<_>>()
     .join("\n");
     let body = format!(
-        "<nav><a href=\"{home}\">Gallery home</a></nav>\n<h1>x86_64 ConduitOS console evidence</h1>\n<p><strong>FREESTANDING EMULATOR EVIDENCE — NOT PHYSICAL HARDWARE EVIDENCE.</strong></p>\n<p>The transcript was retained only after the structured boot, kernel, Observatory, semantic presentation, and terminal debug-exit conditions passed.</p>\n<p><a href=\"console.txt\">Download exact transcript bytes</a></p>\n<h2>Exact provenance</h2>\n<dl>{rows}</dl>\n<h2>Validated console transcript</h2>\n<pre>{}</pre>",
+        "<nav><a href=\"{home}\">All journeys</a></nav><p class=\"eyebrow\">A computer is born</p><h1>ConduitOS wakes a Body</h1><p class=\"lede\">One freestanding x86_64 machine boots, establishes its exact Host and kernel identities, and reaches semantic work.</p><p class=\"boundary\"><strong>QEMU evidence, not physical hardware evidence.</strong> Every moment below comes from one bounded validated console transcript; the story adds no simulated screen or event.</p><section class=\"story-path\" aria-label=\"Evidence story\"><article class=\"checkpoint\"><p class=\"step\">1 · The machine woke</p><h2>Boot crossed into the Conduit kernel</h2><dl><dt>What you see</dt><dd>The retained console bytes for the exact machine, firmware, and kernel artifact.</dd><dt>What happened</dt><dd>The reviewed QEMU profile booted the freestanding x86_64 image.</dd><dt>What Conduit established</dt><dd>Structured boot and kernel assertions passed before the transcript was admitted.</dd><dt>Concepts in view</dt><dd>Host · Boot · kernel artifact</dd><dt>Evidence</dt><dd><a href=\"console.txt\">Exact console transcript</a></dd></dl></article><article class=\"checkpoint\"><p class=\"step\">2 · The Body reached work</p><h2>One Plan and Play became observable</h2><dl><dt>What you see</dt><dd>The Observatory and semantic-presentation records later in the same transcript.</dd><dt>What happened</dt><dd>ConduitOS exposed admitted Host offers and carried semantic work to its validated terminal condition.</dd><dt>What Conduit established</dt><dd>The exact Plan and active Play identities recorded below belong to this accepted run.</dd><dt>Concepts in view</dt><dd>Body · Host · Plan · Play · Presentation</dd><dt>Evidence</dt><dd><a href=\"manifest.json\">Digest-bound manifest</a> · <a href=\"console.txt\">complete transcript</a></dd></dl></article></section><div class=\"proof-grid\"><section><h2>What this proves</h2><p>The exact freestanding QEMU profile completed its structured boot, kernel, Observatory, semantic-presentation, and terminal debug-exit conditions.</p></section><section><h2>What it does not prove</h2><p>It does not establish boot or output on physical x86_64 hardware.</p></section></div><h2>Reproduce</h2><p>Use the supported x86_64 ConduitOS journey command documented for this exact machine profile:</p><pre class=\"reproduce\"><code>cargo xtask conduitos journey-proof</code></pre><details><summary>Exact provenance and all checkpoints</summary><dl>{rows}</dl><h2>Validated console transcript</h2><pre>{}</pre></details>",
         escape_html(&transcript)
     );
     write_html(path, "x86_64 ConduitOS emulator console evidence", &body)

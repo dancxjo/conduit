@@ -764,9 +764,10 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read_to_string(site_root.join("current/patchbay/overview/index.html")).unwrap();
     assert!(index.contains(&commit));
     assert!(index.contains("latest 32 published main commits"));
-    assert!(index.contains("Things Conduit can embody"));
+    assert!(index.contains("True stories from ordinary Conduit execution"));
+    assert!(index.contains("Nothing here is a simulated demo"));
     assert!(index.contains("journey-card"));
-    assert!(index.contains("Follow highlights"));
+    assert!(index.contains("Follow the evidence"));
     assert!(index.contains("<audio controls"));
     assert!(index.contains("Current x86_64 ConduitOS emulator console evidence"));
     assert!(scenario.contains("1440x1000"));
@@ -783,6 +784,9 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(two_faces_page.contains("One Form, Two Faces"));
     assert!(two_faces_page.contains("One meaning, two manifestations"));
     assert!(two_faces_page.contains("Pixel equality, physical display output"));
+    assert!(two_faces_page.contains("What Conduit established"));
+    assert!(two_faces_page.contains("What it does not prove"));
+    assert!(two_faces_page.contains("cargo xtask evidence one-form-two-faces"));
     assert!(two_faces_page.contains("presentation/two-faces"));
     assert_eq!(
         fs::read(site_root.join("current/one-form-two-faces/native.png")).unwrap(),
@@ -797,14 +801,20 @@ fn gallery_publishes_current_history_and_provenance() {
         .is_file());
     let console_page =
         fs::read_to_string(site_root.join("current/conduitos/x86_64/index.html")).unwrap();
-    assert!(console_page.contains("NOT PHYSICAL HARDWARE EVIDENCE"));
+    assert!(console_page.contains("QEMU evidence, not physical hardware evidence"));
     assert!(console_page.contains("freestanding-emulator"));
     assert!(console_page.contains(&commit));
+    assert!(console_page.contains("cargo xtask conduitos journey-proof"));
+    assert!(site_root
+        .join("current/conduitos/x86_64/manifest.json")
+        .is_file());
     let audio_page = fs::read_to_string(site_root.join("current/hears-speaks/index.html")).unwrap();
     assert!(audio_page.contains("<audio controls"));
     assert!(audio_page.contains("A question became an answer"));
-    assert!(audio_page.contains("Evidence and exact downloads"));
+    assert!(audio_page.contains("All evidence and exact downloads"));
     assert!(audio_page.contains("not a live microphone"));
+    assert!(audio_page.contains("What Conduit established"));
+    assert!(audio_page.contains("journey-hears-speaks-local"));
     assert_eq!(
         fs::read(site_root.join("current/hears-speaks/output.wav")).unwrap(),
         fs::read(site_root.join(format!("commits/{commit}/hears-speaks/output.wav"))).unwrap()
@@ -817,8 +827,10 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(life_page.contains("Generation 32"));
     assert!(life_page.contains("id=\"life-scrub\""));
     assert!(life_page.contains("prefers-reduced-motion: reduce"));
-    assert!(life_page.contains("Accepted retained checkpoints only"));
+    assert!(life_page.contains("Four accepted artifacts, no invented frames"));
     assert!(life_page.contains("not a native graphical renderer"));
+    assert!(life_page.contains("What Conduit established"));
+    assert!(life_page.contains("cargo xtask evidence little-life"));
     assert_eq!(
         fs::read(site_root.join("current/little-life/t032.png")).unwrap(),
         fs::read(site_root.join(format!("commits/{commit}/little-life/t032.png"))).unwrap()
@@ -902,6 +914,9 @@ fn gallery_accepts_a_verified_sibling_without_paused_patchbay_evidence() {
     let index = fs::read_to_string(site_root.join("index.html")).unwrap();
     assert!(index.contains(&commit));
     assert!(index.contains("Little Life"));
+    assert!(!index.contains("One meaning, two faces"));
+    assert!(!index.contains("It hears and speaks"));
+    assert!(!index.contains("A computer is born"));
     assert!(!index.contains("Current Patchbay evidence"));
     assert!(!site_root.join("current/patchbay").exists());
     assert!(site_root.join("current/little-life/t032.png").is_file());
