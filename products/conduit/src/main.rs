@@ -285,6 +285,14 @@ fn main() {
                     ttl_seconds,
                 },
         } => durable_host::issue_body_invitation(&state_dir, ttl_seconds),
+        cli::Command::Body {
+            command:
+                cli::BodyCommand::Accept {
+                    invitation,
+                    state_dir,
+                    authorize_join,
+                },
+        } => durable_host::accept_body_invitation(&invitation, &state_dir, authorize_join),
         cli::Command::Body { command } => construction::body(command),
         cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),
