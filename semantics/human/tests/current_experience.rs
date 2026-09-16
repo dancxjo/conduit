@@ -4,6 +4,13 @@ use conduit_human::*;
 fn limits() -> ExperienceLimits {
     ExperienceLimits {
         maximum_items: 4,
+        maximum_current_items: 4,
+        maximum_recent_items: 4,
+        maximum_stale_items: 4,
+        maximum_historical_items: 4,
+        maximum_items_per_domain: 4,
+        maximum_model_derived_items: 4,
+        maximum_selected_memory_items: 4,
         maximum_source_refs: 2,
         maximum_relationships: 3,
         maximum_item_bytes: 16,
@@ -178,6 +185,13 @@ fn source_removal_marks_unavailable_instead_of_inventing_empty_truth() {
 fn pressure_refuses_without_consuming_the_item_or_mutating_state() {
     let mut bounded = limits();
     bounded.maximum_items = 1;
+    bounded.maximum_current_items = 1;
+    bounded.maximum_recent_items = 1;
+    bounded.maximum_stale_items = 1;
+    bounded.maximum_historical_items = 1;
+    bounded.maximum_items_per_domain = 1;
+    bounded.maximum_model_derived_items = 1;
+    bounded.maximum_selected_memory_items = 1;
     let mut experience = CurrentExperience::new(bounded).unwrap();
     experience
         .try_admit(item("first", ExperienceDomain::Visual, "sign/1"))
@@ -204,4 +218,63 @@ fn current_experience_contains_no_host_placement_or_effect_authority() {
     ] {
         assert!(!source.contains(forbidden));
     }
+}
+
+#[test]
+fn temporal_domain_model_and_memory_limits_refuse_independently() {
+    let mut bounded = limits();
+    bounded.maximum_current_items = 1;
+    let mut experience = CurrentExperience::new(bounded).unwrap();
+    experience
+        .try_admit(item("visual", ExperienceDomain::Visual, "sign/1"))
+        .unwrap();
+    assert_eq!(
+        experience
+            .try_admit(item("audio", ExperienceDomain::Auditory, "sign/2"))
+            .unwrap_err()
+            .refusal,
+        ExperienceRefusal::TemporalRoleCapacity
+    );
+
+    bounded = limits();
+    bounded.maximum_items_per_domain = 1;
+    experience = CurrentExperience::new(bounded).unwrap();
+    experience
+        .try_admit(item("first", ExperienceDomain::Visual, "sign/1"))
+        .unwrap();
+    let mut second = item("second", ExperienceDomain::Visual, "sign/2");
+    second.temporal_role = ExperienceTemporalRole::Recent;
+    assert_eq!(
+        experience.try_admit(second).unwrap_err().refusal,
+        ExperienceRefusal::DomainCapacity
+    );
+
+    bounded = limits();
+    bounded.maximum_model_derived_items = 1;
+    experience = CurrentExperience::new(bounded).unwrap();
+    let mut first_model = item("model-1", ExperienceDomain::Visual, "sign/1");
+    first_model.origin = ExperienceOrigin::ModelDerived;
+    let mut second_model = item("model-2", ExperienceDomain::Auditory, "sign/2");
+    second_model.origin = ExperienceOrigin::ModelDerived;
+    second_model.temporal_role = ExperienceTemporalRole::Recent;
+    experience.try_admit(first_model).unwrap();
+    assert_eq!(
+        experience.try_admit(second_model).unwrap_err().refusal,
+        ExperienceRefusal::ModelDerivedCapacity
+    );
+
+    bounded = limits();
+    bounded.maximum_selected_memory_items = 1;
+    experience = CurrentExperience::new(bounded).unwrap();
+    let mut first_memory = item("memory-1", ExperienceDomain::Recollection, "sign/1");
+    first_memory.origin = ExperienceOrigin::Remembered;
+    first_memory.temporal_role = ExperienceTemporalRole::Historical;
+    let mut second_memory = item("memory-2", ExperienceDomain::Recollection, "sign/2");
+    second_memory.origin = ExperienceOrigin::Remembered;
+    second_memory.temporal_role = ExperienceTemporalRole::Historical;
+    experience.try_admit(first_memory).unwrap();
+    assert_eq!(
+        experience.try_admit(second_memory).unwrap_err().refusal,
+        ExperienceRefusal::SelectedMemoryCapacity
+    );
 }

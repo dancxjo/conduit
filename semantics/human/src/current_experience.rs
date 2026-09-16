@@ -9,6 +9,13 @@ use conduit_core::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExperienceLimits {
     pub maximum_items: usize,
+    pub maximum_current_items: usize,
+    pub maximum_recent_items: usize,
+    pub maximum_stale_items: usize,
+    pub maximum_historical_items: usize,
+    pub maximum_items_per_domain: usize,
+    pub maximum_model_derived_items: usize,
+    pub maximum_selected_memory_items: usize,
     pub maximum_source_refs: usize,
     pub maximum_relationships: usize,
     pub maximum_item_bytes: usize,
@@ -120,6 +127,10 @@ pub enum ExperienceRefusal {
     EmptyIdentity,
     DuplicateIdentity,
     ItemCapacity,
+    TemporalRoleCapacity,
+    DomainCapacity,
+    ModelDerivedCapacity,
+    SelectedMemoryCapacity,
     ItemBytes,
     EncodedBytes,
     SourceCapacity,
@@ -144,6 +155,20 @@ pub struct ExperienceAdmissionError {
 impl CurrentExperience {
     pub fn new(limits: ExperienceLimits) -> Result<Self, ExperienceRefusal> {
         if limits.maximum_items == 0
+            || limits.maximum_current_items == 0
+            || limits.maximum_recent_items == 0
+            || limits.maximum_stale_items == 0
+            || limits.maximum_historical_items == 0
+            || limits.maximum_items_per_domain == 0
+            || limits.maximum_model_derived_items == 0
+            || limits.maximum_selected_memory_items == 0
+            || limits.maximum_current_items > limits.maximum_items
+            || limits.maximum_recent_items > limits.maximum_items
+            || limits.maximum_stale_items > limits.maximum_items
+            || limits.maximum_historical_items > limits.maximum_items
+            || limits.maximum_items_per_domain > limits.maximum_items
+            || limits.maximum_model_derived_items > limits.maximum_items
+            || limits.maximum_selected_memory_items > limits.maximum_items
             || limits.maximum_source_refs == 0
             || limits.maximum_relationships == 0
             || limits.maximum_item_bytes == 0
@@ -269,6 +294,50 @@ impl CurrentExperience {
         }
         if self.items.len() == self.limits.maximum_items {
             return Err(ExperienceRefusal::ItemCapacity);
+        }
+        let temporal_capacity = match item.temporal_role {
+            ExperienceTemporalRole::Current => self.limits.maximum_current_items,
+            ExperienceTemporalRole::Recent => self.limits.maximum_recent_items,
+            ExperienceTemporalRole::Stale => self.limits.maximum_stale_items,
+            ExperienceTemporalRole::Historical => self.limits.maximum_historical_items,
+        };
+        if self
+            .items
+            .iter()
+            .filter(|candidate| candidate.temporal_role == item.temporal_role)
+            .count()
+            == temporal_capacity
+        {
+            return Err(ExperienceRefusal::TemporalRoleCapacity);
+        }
+        if self
+            .items
+            .iter()
+            .filter(|candidate| candidate.domain == item.domain)
+            .count()
+            == self.limits.maximum_items_per_domain
+        {
+            return Err(ExperienceRefusal::DomainCapacity);
+        }
+        if item.origin == ExperienceOrigin::ModelDerived
+            && self
+                .items
+                .iter()
+                .filter(|candidate| candidate.origin == ExperienceOrigin::ModelDerived)
+                .count()
+                == self.limits.maximum_model_derived_items
+        {
+            return Err(ExperienceRefusal::ModelDerivedCapacity);
+        }
+        if item.origin == ExperienceOrigin::Remembered
+            && self
+                .items
+                .iter()
+                .filter(|candidate| candidate.origin == ExperienceOrigin::Remembered)
+                .count()
+                == self.limits.maximum_selected_memory_items
+        {
+            return Err(ExperienceRefusal::SelectedMemoryCapacity);
         }
         if item.encoded_content.len() > self.limits.maximum_item_bytes {
             return Err(ExperienceRefusal::ItemBytes);
