@@ -41,6 +41,7 @@ struct RemoteAbi {
     execution: RemoteExecution,
     pending: Option<PendingHostEffect>,
     complete: bool,
+    cancelled: bool,
     active_play_id: conduit_core::ActivePlayId,
     endpoints: Vec<RemoteEndpointId>,
     sessions: Vec<RemoteSession>,
@@ -225,6 +226,7 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
                 execution,
                 pending: None,
                 complete: false,
+                cancelled: false,
                 active_play_id,
                 endpoints,
                 sessions,
@@ -337,7 +339,10 @@ pub extern "C" fn conduit_browser_remote_exchange(length: u32) -> i32 {
             }
             SessionMessage::Terminal { .. } => {}
             SessionMessage::Cancelled { .. } | SessionMessage::Failed { .. } => {
-                state.execution.cancel()?;
+                if !state.cancelled {
+                    state.execution.cancel()?;
+                    state.cancelled = true;
+                }
             }
             SessionMessage::Hello(_) => {
                 return Err("browser remote session message is out of order".into());
@@ -623,9 +628,50 @@ pub extern "C" fn conduit_browser_remote_finish() -> i32 {
 #[no_mangle]
 pub extern "C" fn conduit_browser_remote_cancel() -> i32 {
     with_state(|state| {
-        state.execution.cancel()?;
+        if !state.cancelled {
+            state.execution.cancel()?;
+            state.cancelled = true;
+        }
         state.pending = None;
         Ok(OK)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_remote_cancel_frames(code: u32) -> i32 {
+    with_state(|state| {
+        let code = u16::try_from(code)
+            .ok()
+            .filter(|code| *code != 0)
+            .ok_or_else(|| "browser remote cancellation code is invalid".to_string())?;
+        if !state.cancelled {
+            state.execution.cancel()?;
+            state.cancelled = true;
+        }
+        state.pending = None;
+        let mut frames = Vec::with_capacity(state.sessions.len() * 2);
+        for session in &mut state.sessions {
+            let cancelled = session.binding.frame(SessionMessage::Cancelled { code });
+            session
+                .machine
+                .admit_outbound(cancelled)
+                .map_err(|error| format!("admit browser remote cancellation: {error:?}"))?;
+            frames.push(encode_frame(&session.binding, cancelled)?);
+            let terminal = session.binding.frame(SessionMessage::Terminal {
+                disposition: conduit_wire::SessionTerminalDisposition::Cancelled,
+                final_sequence: session.machine.next_sequence(),
+            });
+            session
+                .machine
+                .admit_outbound(terminal)
+                .map_err(|error| format!("admit browser remote cancelled terminal: {error:?}"))?;
+            frames.push(encode_frame(&session.binding, terminal)?);
+        }
+        write_json(&serde_json::json!({
+            "schema": "conduit.browser/remote-session-cancelled@1",
+            "frames": frames,
+        }))?;
+        Ok(TERMINAL)
     })
 }
 
@@ -738,7 +784,34 @@ mod tests {
             assert_eq!(conduit_browser_remote_exchange(bytes.len() as u32), OK);
         }
         assert_eq!(peer.next_sequence(), 1);
-        assert_eq!(conduit_browser_remote_cancel(), OK);
+        assert_eq!(conduit_browser_remote_cancel_frames(7), TERMINAL);
+        let cancelled = OUTPUT
+            .with(|output| serde_json::from_slice::<serde_json::Value>(&output.borrow()).unwrap());
+        assert_eq!(
+            cancelled["schema"],
+            "conduit.browser/remote-session-cancelled@1"
+        );
+        let frames = serde_json::from_value::<Vec<Vec<u8>>>(cancelled["frames"].clone()).unwrap();
+        assert_eq!(frames.len(), 2);
+        for bytes in frames {
+            peer.admit_inbound(
+                decode_session_frame(&bytes, CAPACITY as u32, CAPACITY as u32).unwrap(),
+            )
+            .unwrap();
+        }
+        for message in [
+            SessionMessage::Cancelled { code: 7 },
+            SessionMessage::Terminal {
+                disposition: conduit_wire::SessionTerminalDisposition::Cancelled,
+                final_sequence: 1,
+            },
+        ] {
+            let frame = binding.frame(message);
+            peer.admit_outbound(frame).unwrap();
+            let bytes = encode_frame(&binding, frame).unwrap();
+            INPUT.with(|input| input.borrow_mut()[..bytes.len()].copy_from_slice(&bytes));
+            assert_eq!(conduit_browser_remote_exchange(bytes.len() as u32), OK);
+        }
     }
 
     #[test]

@@ -9,7 +9,8 @@ const required = [
   "conduit_browser_remote_start", "conduit_browser_remote_exchange",
   "conduit_browser_remote_drive", "conduit_browser_remote_complete_effect",
   "conduit_browser_remote_offer_frame", "conduit_browser_remote_finish",
-  "conduit_browser_remote_cancel", "conduit_browser_remote_endpoint_count",
+  "conduit_browser_remote_cancel", "conduit_browser_remote_cancel_frames",
+  "conduit_browser_remote_endpoint_count",
 ];
 
 function boundedBytes(value, label) {
@@ -175,6 +176,21 @@ export function openBrowserRemoteFragment({ api, plan, host, preparation, observ
         return Object.freeze(result.frames.map((frame, index) =>
           boundedBytes(frame, `browser terminal frame ${index}`).slice()));
       },
+      cancel(code = 1) {
+        current();
+        if (!Number.isSafeInteger(code) || code < 1 || code > 0xffff) {
+          throw new Error("invalid browser remote cancellation code");
+        }
+        const status = api.conduit_browser_remote_cancel_frames(code);
+        if (status !== 8) throw refusal(api, "browser remote-fragment cancellation", status);
+        const result = readOutput(api);
+        if (result?.schema !== "conduit.browser/remote-session-cancelled@1" || !Array.isArray(result.frames)) {
+          throw new Error("browser remote cancellation returned malformed truth");
+        }
+        finished = true;
+        return Object.freeze(result.frames.map((frame, index) =>
+          boundedBytes(frame, `browser cancellation frame ${index}`).slice()));
+      },
       close() {
         if (closed) return;
         closed = true;
@@ -213,46 +229,53 @@ export async function runBrowserRemoteFragment({ remote, line, perform, signal }
     await sendAll(line, exchange.responses);
     return exchange;
   };
-  await sendAll(line, remote.initialFrames);
-  const active = new Set();
-  while (active.size < remote.endpoints.length) {
-    const exchange = await relayOne();
-    if (exchange.active) active.add(exchange.endpoint);
-  }
+  try {
+    await sendAll(line, remote.initialFrames);
+    const active = new Set();
+    while (active.size < remote.endpoints.length) {
+      const exchange = await relayOne();
+      if (exchange.active) active.add(exchange.endpoint);
+    }
 
-  const offered = new Set();
-  for (;;) {
-    requireCurrent();
-    const progress = remote.drive();
-    if (progress.status === 1) {
-      const result = await perform(progress.output, signal);
+    const offered = new Set();
+    for (;;) {
       requireCurrent();
-      remote.completeEffect(result);
-      continue;
-    }
-    if (progress.status === 4) {
-      await sendAll(line, remote.finish());
-      const terminal = new Set();
-      while (terminal.size < remote.endpoints.length) {
-        const exchange = await relayOne();
-        if (exchange.message === "terminal" && !exchange.active) terminal.add(exchange.endpoint);
+      const progress = remote.drive();
+      if (progress.status === 1) {
+        const result = await perform(progress.output, signal);
+        requireCurrent();
+        remote.completeEffect(result);
+        continue;
       }
-      return Object.freeze({ disposition: "completed", active_play_id: remote.identity.active_play_id });
+      if (progress.status === 4) {
+        await sendAll(line, remote.finish());
+        const terminal = new Set();
+        while (terminal.size < remote.endpoints.length) {
+          const exchange = await relayOne();
+          if (exchange.message === "terminal" && !exchange.active) terminal.add(exchange.endpoint);
+        }
+        return Object.freeze({ disposition: "completed", active_play_id: remote.identity.active_play_id });
+      }
+      let sent = false;
+      for (const endpoint of remote.egressEndpoints) {
+        if (offered.has(endpoint)) continue;
+        const frame = remote.offer(endpoint);
+        if (!frame) continue;
+        offered.add(endpoint);
+        sent = true;
+        await line.sendSessionFrame(frame);
+      }
+      const exchange = await relayOne();
+      if (["pressure", "delivered"].includes(exchange.message)) offered.delete(exchange.endpoint);
+      // Accepted deliberately keeps the exact transfer pending until Delivered.
+      if (!sent && progress.status !== 2 && progress.status !== 3) {
+        throw new Error("browser remote fragment made no admissible progress");
+      }
     }
-    let sent = false;
-    for (const endpoint of remote.egressEndpoints) {
-      if (offered.has(endpoint)) continue;
-      const frame = remote.offer(endpoint);
-      if (!frame) continue;
-      offered.add(endpoint);
-      sent = true;
-      await line.sendSessionFrame(frame);
+  } catch (error) {
+    if (signal.aborted) {
+      await sendAll(line, remote.cancel(1));
     }
-    const exchange = await relayOne();
-    if (["pressure", "delivered"].includes(exchange.message)) offered.delete(exchange.endpoint);
-    // Accepted deliberately keeps the exact transfer pending until Delivered.
-    if (!sent && progress.status !== 2 && progress.status !== 3) {
-      throw new Error("browser remote fragment made no admissible progress");
-    }
+    throw error;
   }
 }

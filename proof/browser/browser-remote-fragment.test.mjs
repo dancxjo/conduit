@@ -43,6 +43,9 @@ function fixture() {
     conduit_browser_remote_finish() {
       output({ schema: "conduit.browser/remote-session-finished@1", frames: [[8], [9]] }); return 8;
     },
+    conduit_browser_remote_cancel_frames() {
+      output({ schema: "conduit.browser/remote-session-cancelled@1", frames: [[11], [12]] }); return 8;
+    },
     conduit_browser_remote_cancel() { cancelled++; return 0; },
   };
   const options = { api, plan: { plan_id: "plan/voice", fragments: [
@@ -68,6 +71,14 @@ test("browser remote adapter preserves exact identity and relays only opaque ses
   remote.completeEffect(Uint8Array.of(6));
   assert.deepEqual([...remote.offer(0)], [7]);
   assert.deepEqual(remote.finish().map(frame => [...frame]), [[8], [9]]);
+  remote.close();
+  assert.equal(f.cancelled(), 0);
+});
+
+test("browser remote cancellation is an explicit bounded Wire outcome", () => {
+  const f = fixture();
+  const remote = openBrowserRemoteFragment(f.options);
+  assert.deepEqual(remote.cancel(7).map(frame => [...frame]), [[11], [12]]);
   remote.close();
   assert.equal(f.cancelled(), 0);
 });
