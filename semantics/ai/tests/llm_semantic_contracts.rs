@@ -5,7 +5,7 @@ use conduit_ai::{
     LlmImplementationControl, LlmTerminalOutcome, ModelDerivedResult, ModelFailure, ModelRefusal,
     ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance, ModelWorkAccounting,
     LLM_CLASSIFY_KIND, LLM_COMPOSE_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND, LLM_GENERATE_FLOW_KIND,
-    LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_JUDGE_KIND, LLM_PROPOSE_KIND,
+    LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_JUDGE_KIND, LLM_PRESENT_KIND, LLM_PROPOSE_KIND,
     LLM_STREAM_GENERATE_KIND,
 };
 use conduit_core::PortDirection;
@@ -69,6 +69,7 @@ fn machine_readable_semantic_contracts_have_exact_distinct_faces() {
         LLM_PROPOSE_KIND,
         LLM_COMPOSE_KIND,
         LLM_JUDGE_KIND,
+        LLM_PRESENT_KIND,
         LLM_STREAM_GENERATE_KIND,
     ];
     assert_eq!(contracts.len(), expected.len());
@@ -100,6 +101,23 @@ fn machine_readable_semantic_contracts_have_exact_distinct_faces() {
             "forbidden vocabulary: {forbidden}"
         );
     }
+}
+
+#[test]
+fn generative_presentation_is_structured_and_distinct_from_input_interpretation() {
+    let present = llm_contract(LLM_PRESENT_KIND).unwrap();
+    let interpret = llm_contract(LLM_INTERPRET_KIND).unwrap();
+    assert_eq!(
+        present.inputs[0].value_kind.as_str(),
+        "conduit.presentation/generative-presenter-input@1"
+    );
+    assert_eq!(
+        present.outputs[0].value_kind.as_str(),
+        "conduit.presentation/generated-manifestation@1"
+    );
+    assert_ne!(present.kind_id, interpret.kind_id);
+    assert_ne!(present.inputs, interpret.inputs);
+    assert_ne!(present.outputs, interpret.outputs);
 }
 
 #[test]

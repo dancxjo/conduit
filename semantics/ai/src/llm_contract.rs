@@ -15,13 +15,14 @@ pub const LLM_INTERPRET_KIND: &str = "llm/interpret";
 pub const LLM_PROPOSE_KIND: &str = "llm/propose";
 pub const LLM_COMPOSE_KIND: &str = "llm/compose";
 pub const LLM_JUDGE_KIND: &str = "llm/judge";
+pub const LLM_PRESENT_KIND: &str = "llm/present";
 
 pub const MAXIMUM_LLM_INPUT_BYTES: u64 = 262_144;
 pub const MAXIMUM_LLM_CONTEXT_ITEMS: u64 = 128;
 pub const MAXIMUM_LLM_OUTPUT_BYTES: u64 = 65_536;
 pub const MAXIMUM_LLM_WORK_UNITS: u64 = 1_000_000;
 pub const MAXIMUM_LLM_HISTORY_ITEMS: u64 = 64;
-pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 10;
+pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 11;
 
 pub const GENERATION_REQUEST_VALUE_KIND: &str = "llm/generation-request@1";
 pub const GENERATED_RESULT_VALUE_KIND: &str = "llm/generated-result@1";
@@ -40,6 +41,10 @@ const COMPOSITION_REQUEST: &str = "llm/composition-request@1";
 const COMPOSITION_RESULT: &str = "llm/composition-result@1";
 const JUDGMENT_REQUEST: &str = "llm/judgment-request@1";
 const JUDGMENT_RESULT: &str = "llm/judgment-result@1";
+pub const GENERATIVE_PRESENTER_INPUT_VALUE_KIND: &str =
+    "conduit.presentation/generative-presenter-input@1";
+pub const GENERATED_MANIFESTATION_VALUE_KIND: &str =
+    "conduit.presentation/generated-manifestation@1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LlmDeterminismProfile {
@@ -161,6 +166,11 @@ pub fn llm_semantic_catalog() -> [LlmSemanticContract; MAXIMUM_LLM_CATALOG_KINDS
         contract(LLM_PROPOSE_KIND, PROPOSAL_REQUEST, PROPOSAL_RESULT),
         contract(LLM_COMPOSE_KIND, COMPOSITION_REQUEST, COMPOSITION_RESULT),
         contract(LLM_JUDGE_KIND, JUDGMENT_REQUEST, JUDGMENT_RESULT),
+        contract(
+            LLM_PRESENT_KIND,
+            GENERATIVE_PRESENTER_INPUT_VALUE_KIND,
+            GENERATED_MANIFESTATION_VALUE_KIND,
+        ),
         stream_contract(),
     ]
 }
