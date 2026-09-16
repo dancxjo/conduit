@@ -31,6 +31,7 @@ depends on semantic, application, target, or proof packages.
 | `route.rs` | universal architecture | Exact planned/admitted Line, Base, endpoint, authority, and route truth. |
 | `shared_pool.rs` | universal architecture | Generic finite shared-pool identity, admission, and placement records. |
 | `state_delay.rs` | universal architecture | Explicit typed computational-state identity, continuation, and retained-resource admission. |
+| `stream_sampling.rs` | universal architecture | Deterministic bounded source-item selection with exact selected/unselected ownership and accounting, distinct from pressure loss or coalescing. |
 | `deadline.rs` | generic mechanism | Exact bounded monotonic-deadline operation/resource contract; no clock implementation or scheduling policy. |
 | `delivery.rs` | universal architecture | Versioned delivery/evolution, atomic admission, explicit pressure/coalescing accounting, and finite typed queues without replacing concrete Info. |
 | `device.rs` | universal architecture | Optional bounded Host-observed Device grouping and provenance, validated against exact current Host capability truth without granting authority. |
