@@ -244,7 +244,7 @@ export async function startApplication(application) {
       await useForm(handoff, session.current().workload_revision);
     } else if (!invitation && session.current()?.here_part_id && session.current().initial_forms.length) await play.wake();
     if (handoffFailure) fail(handoffFailure);
-    globalThis.addEventListener('pagehide', () => { play?.close(); membership?.close(); });
+    globalThis.addEventListener('pagehide', () => { play?.close(); membership?.dispose(); });
   } catch (error) { fail(error); }
 }
 

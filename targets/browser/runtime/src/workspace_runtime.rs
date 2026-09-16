@@ -66,6 +66,12 @@ enum Request {
         proof: ReceivedSpawnProof,
         now_millis: u64,
     },
+    HostLost {
+        host_id: HostId,
+        boot_id: BootId,
+        lost_host_id: HostId,
+        lost_boot_id: BootId,
+    },
     Current,
     SelectForm {
         form: ResidentForm,
@@ -326,6 +332,23 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 let response = encode(&serde_json::json!({ "schema": "conduit.workspace/admission-receipt@1", "credential": credential, "body": snapshot_value(&candidate, next_offers.hosts())?, "durable": durable_value(&candidate, &next_admissions)? }))?;
                 *slot = Some(candidate);
                 ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
+                HOST_OFFERS.with(|offers| *offers.borrow_mut() = next_offers);
+                return Ok(response);
+            }
+            Request::HostLost {
+                host_id,
+                boot_id,
+                lost_host_id,
+                lost_boot_id,
+            } => {
+                candidate
+                    .observe_host_lost(&lost_host_id, &lost_boot_id, &host_id, &boot_id)
+                    .map_err(debug)?;
+                let mut next_offers = HOST_OFFERS.with(|offers| offers.borrow().clone());
+                next_offers.reconcile(candidate.evidence());
+                validate_offer_bytes(&next_offers)?;
+                let response = snapshot_with_offers(&candidate, next_offers.hosts())?;
+                *slot = Some(candidate);
                 HOST_OFFERS.with(|offers| *offers.borrow_mut() = next_offers);
                 return Ok(response);
             }

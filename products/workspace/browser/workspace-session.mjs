@@ -122,6 +122,13 @@ export function openWorkspaceSession({ host, storage }) {
       await write;
       return receipt;
     },
+    async hostLost(hostId, bootId) {
+      if (persistenceFailure) throw persistenceFailure;
+      request('HostLost', { ...here, lost_host_id: hostId, lost_boot_id: bootId });
+      workspace = request('Current');
+      await save();
+      return workspace;
+    },
     async openAdmitted(durable) {
       if (workspace) throw new Error('Close the current Body before joining another Body');
       request('OpenAdmitted', { evidence: durable.evidence, admission: durable.admission, advertisement: localAdvertisement, ...here });

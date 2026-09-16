@@ -101,6 +101,9 @@ enum Ingress {
         claim: SpawnInvitationClaim,
         secret: Vec<u8>,
     },
+    Close {
+        protocol: u16,
+    },
 }
 
 #[derive(Serialize)]
@@ -297,6 +300,10 @@ fn run_session(
             observed_at_millis: join.observed_at_millis,
         },
     )?;
+    match receive(line)? {
+        Ingress::Close { protocol } if protocol == PROTOCOL => {}
+        _ => return Err("joined Host Line expected one explicit close".into()),
+    }
     let _ = line.close();
     Ok(())
 }

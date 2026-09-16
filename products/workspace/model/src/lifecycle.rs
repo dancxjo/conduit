@@ -2,8 +2,8 @@ use alloc::vec::Vec;
 use conduit_body::{
     AdmissionManager, AdmissionRefusal, AdmissionSigns, BodyBiographyArchiveSegment,
     BodyBiographyError, BodyBiographyEvidence, BodyFormPlan, BodyLifecycleError, BodyPlan,
-    BodyPlanError, BodyPlayIdentity, BodyState, MembershipCredential, MembershipState,
-    ResidentForm, SpawnAdmissionProof, Wake,
+    BodyPlanError, BodyPlayIdentity, BodyState, MembershipCredential, MembershipRefusal,
+    MembershipState, ResidentForm, SpawnAdmissionProof, Wake,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, SignId, bind_sign};
 use serde::{Deserialize, Serialize};
@@ -30,6 +30,7 @@ pub enum WorkspaceBodyError {
     Admission(AdmissionRefusal),
     Lifecycle(BodyLifecycleError),
     Plan(BodyPlanError),
+    Membership(MembershipRefusal),
     NotLulled,
     NoProposal,
     AlreadyPlaying,
@@ -163,6 +164,57 @@ impl WorkspaceBody {
         self.evidence = evidence;
         *admissions = next_admissions;
         Ok(credential)
+    }
+
+    /// Record an observed carrier loss without revoking the admitted Part.
+    /// The exact Host/Boot ceases to be current, so its offers can no longer
+    /// participate in planning; a future authenticated observation may attach
+    /// the Part again under fresh truth.
+    pub fn observe_host_lost(
+        &mut self,
+        lost_host: &HostId,
+        lost_boot: &BootId,
+        authority_host: &HostId,
+        authority_boot: &BootId,
+    ) -> Result<(), WorkspaceBodyError> {
+        self.require_host(authority_host, authority_boot)?;
+        let part_id = self
+            .evidence
+            .membership
+            .parts
+            .iter()
+            .find(|part| {
+                part.state == MembershipState::Admitted
+                    && part.current.as_ref().is_some_and(|current| {
+                        &current.host_id == lost_host && &current.boot_id == lost_boot
+                    })
+            })
+            .map(|part| part.part_id.clone())
+            .ok_or(WorkspaceBodyError::StaleHost)?;
+        self.make_membership_room(1)?;
+        let sequence = self.next_sequence()?;
+        let mut membership = self.evidence.membership.clone();
+        let prior_events = membership.events.len();
+        let change = membership
+            .observe_offline(
+                &self.evidence.body_id,
+                membership.revision,
+                &part_id,
+                lost_boot,
+                sign(authority_host, authority_boot, sequence),
+            )
+            .map_err(WorkspaceBodyError::Membership)?;
+        if membership.events.len() != prior_events + 1 {
+            return Err(WorkspaceBodyError::Biography(
+                BodyBiographyError::InvalidEvidence,
+            ));
+        }
+        let mut evidence = self.evidence.clone();
+        evidence
+            .append_membership_events(membership, &[(change, sequence)])
+            .map_err(WorkspaceBodyError::Biography)?;
+        self.evidence = evidence;
+        Ok(())
     }
 
     /// Foreground is presentation focus within the current workset. Selecting a
