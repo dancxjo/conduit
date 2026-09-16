@@ -6,6 +6,8 @@ use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 
 #[path = "evidence_home_cross_face.rs"]
 mod home_cross_face;
+#[path = "evidence_three_body_journey.rs"]
+mod three_body_journey;
 #[path = "evidence_two_faces.rs"]
 mod two_faces;
 
@@ -19,6 +21,8 @@ pub struct EvidenceArgs {
 enum EvidenceCommand {
     /// Publish the bounded Home index after every face supplies exact evidence.
     HomeCrossFace(HomeCrossFaceArgs),
+    /// Verify three independently born Bodies against one semantic Journey contract.
+    ThreeBodyJourney(ThreeBodyJourneyArgs),
     /// Retain native and pinned-browser pixels for one exact Presentation.
     OneFormTwoFaces(TwoFacesArgs),
     /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
@@ -42,6 +46,21 @@ struct HomeCrossFaceArgs {
         long,
         default_value = "target/conduit-evidence/home-cross-face/index.json"
     )]
+    output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+struct ThreeBodyJourneyArgs {
+    /// Shared conduit.evidence/semantic-journey-contract@1 document.
+    #[arg(long)]
+    contract: PathBuf,
+
+    /// One conduit.evidence/body-journey-track@1 manifest; exactly three are required.
+    #[arg(long = "track", required = true)]
+    tracks: Vec<PathBuf>,
+
+    /// New file that will receive the verified cross-Body index.
+    #[arg(long, default_value = "target/journeys/three-bodies/index.json")]
     output: PathBuf,
 }
 
@@ -137,6 +156,9 @@ enum EvidenceResultArg {
 pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         EvidenceCommand::HomeCrossFace(args) => home_cross_face::run(args.receipts, args.output),
+        EvidenceCommand::ThreeBodyJourney(args) => {
+            three_body_journey::run(args.contract, args.tracks, args.output)
+        }
         EvidenceCommand::OneFormTwoFaces(args) => two_faces::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
         EvidenceCommand::Verify(args) => {
