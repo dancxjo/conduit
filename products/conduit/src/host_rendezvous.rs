@@ -335,7 +335,7 @@ fn run_session(
             }
             JoinedIngress::Frame(frame) if remote_prepared => {
                 let exchange = crate::durable_host_control::exchange_remote(state_dir, frame)?;
-                if let Some(response) = exchange.response {
+                for response in exchange.responses {
                     line.send(&response)?;
                 }
             }
