@@ -66,6 +66,18 @@ fn limits() -> ExperienceLimits {
     }
 }
 
+fn experience() -> CurrentExperience {
+    CurrentExperience::new(
+        limits(),
+        instant(),
+        ExperienceTemporalPolicy {
+            maximum_current_age_ticks: 5,
+            maximum_recent_age_ticks: 20,
+        },
+    )
+    .unwrap()
+}
+
 #[test]
 fn one_experience_consumes_visual_utterance_and_body_self_sources() {
     let profile = kind_id("media/image-rgb8@1");
@@ -96,7 +108,7 @@ fn one_experience_consumes_visual_utterance_and_body_self_sources() {
         observed_at: instant(),
         certainty: ExperienceCertainty::Certain,
     };
-    let mut experience = CurrentExperience::new(limits()).unwrap();
+    let mut experience = experience();
     experience
         .try_admit(
             visual_object_experience(
@@ -201,7 +213,7 @@ fn selected_recollection_keeps_original_sign_historical() {
     }));
 
     let content_kind = item.content_kind.clone();
-    let mut experience = CurrentExperience::new(limits()).unwrap();
+    let mut experience = experience();
     experience.try_admit(item).unwrap();
     assert_eq!(experience.current_observations(&content_kind).count(), 0);
 }

@@ -1,4 +1,4 @@
-use conduit_core::{kind_id, SignId};
+use conduit_core::{kind_id, SignId, TemporalInstant, TemporalScale};
 use conduit_human::*;
 
 fn limits() -> ExperienceLimits {
@@ -20,6 +20,28 @@ fn limits() -> ExperienceLimits {
     }
 }
 
+fn at(ticks: u64) -> TemporalInstant {
+    TemporalInstant {
+        ticks,
+        scale: TemporalScale::Milliseconds,
+        clock_basis: "clock/experience".into(),
+        resolution_ticks: 1,
+        uncertainty_ticks: 0,
+    }
+}
+
+fn new_experience(limits: ExperienceLimits) -> CurrentExperience {
+    CurrentExperience::new(
+        limits,
+        at(100),
+        ExperienceTemporalPolicy {
+            maximum_current_age_ticks: 5,
+            maximum_recent_age_ticks: 20,
+        },
+    )
+    .unwrap()
+}
+
 fn item(id: &str, domain: ExperienceDomain, source: &str) -> ExperienceItem {
     ExperienceItem {
         id: id.into(),
@@ -30,7 +52,7 @@ fn item(id: &str, domain: ExperienceDomain, source: &str) -> ExperienceItem {
         temporal_role: ExperienceTemporalRole::Current,
         availability: ExperienceAvailability::Present,
         certainty: ExperienceCertainty::Certain,
-        observed_at: None,
+        observed_at: Some(at(100)),
         recorded_at: None,
         sources: vec![ExperienceSourceRef::Sign(SignId::from(source))],
     }
@@ -38,7 +60,7 @@ fn item(id: &str, domain: ExperienceDomain, source: &str) -> ExperienceItem {
 
 #[test]
 fn heterogeneous_items_retain_epistemic_facets_and_sources() {
-    let mut experience = CurrentExperience::new(limits()).unwrap();
+    let mut experience = new_experience(limits());
     let visual = item("door-open", ExperienceDomain::Visual, "sign/camera/7");
     let mut utterance = item(
         "lets-go",
@@ -49,6 +71,7 @@ fn heterogeneous_items_retain_epistemic_facets_and_sources() {
     utterance.certainty = ExperienceCertainty::Uncertain;
     let mut self_state = item("can-move", ExperienceDomain::BodyState, "sign/body/3");
     self_state.temporal_role = ExperienceTemporalRole::Recent;
+    self_state.observed_at = Some(at(90));
 
     experience.try_admit(visual).unwrap();
     experience.try_admit(utterance).unwrap();
@@ -75,7 +98,7 @@ fn heterogeneous_items_retain_epistemic_facets_and_sources() {
 
 #[test]
 fn memory_and_imagination_remain_distinct_from_current_observation() {
-    let mut experience = CurrentExperience::new(limits()).unwrap();
+    let mut experience = new_experience(limits());
     let mut memory = item("yesterday", ExperienceDomain::Recollection, "sign/memory/1");
     memory.origin = ExperienceOrigin::Remembered;
     assert_eq!(
@@ -91,10 +114,11 @@ fn memory_and_imagination_remain_distinct_from_current_observation() {
 
 #[test]
 fn stale_model_missing_and_unavailable_are_not_collapsed() {
-    let mut experience = CurrentExperience::new(limits()).unwrap();
+    let mut experience = new_experience(limits());
     let mut model = item("mug", ExperienceDomain::Visual, "sign/model/1");
     model.origin = ExperienceOrigin::ModelDerived;
     model.temporal_role = ExperienceTemporalRole::Stale;
+    model.observed_at = Some(at(0));
     model.certainty = ExperienceCertainty::Uncertain;
     model.sources = vec![ExperienceSourceRef::ImplementationRun {
         implementation_id: conduit_core::BaseImplementationId::from("implementation/model@1"),
@@ -136,7 +160,7 @@ fn stale_model_missing_and_unavailable_are_not_collapsed() {
 
 #[test]
 fn contradiction_preserves_both_alternatives_and_exact_provenance() {
-    let mut experience = CurrentExperience::new(limits()).unwrap();
+    let mut experience = new_experience(limits());
     experience
         .try_admit(item("door-open", ExperienceDomain::Visual, "sign/camera/7"))
         .unwrap();
@@ -166,7 +190,7 @@ fn contradiction_preserves_both_alternatives_and_exact_provenance() {
 #[test]
 fn source_removal_marks_unavailable_instead_of_inventing_empty_truth() {
     let source = ExperienceSourceRef::Sign(SignId::from("sign/camera/7"));
-    let mut experience = CurrentExperience::new(limits()).unwrap();
+    let mut experience = new_experience(limits());
     experience
         .try_admit(item("door-open", ExperienceDomain::Visual, "sign/camera/7"))
         .unwrap();
@@ -192,7 +216,7 @@ fn pressure_refuses_without_consuming_the_item_or_mutating_state() {
     bounded.maximum_items_per_domain = 1;
     bounded.maximum_model_derived_items = 1;
     bounded.maximum_selected_memory_items = 1;
-    let mut experience = CurrentExperience::new(bounded).unwrap();
+    let mut experience = new_experience(bounded);
     experience
         .try_admit(item("first", ExperienceDomain::Visual, "sign/1"))
         .unwrap();
@@ -224,7 +248,7 @@ fn current_experience_contains_no_host_placement_or_effect_authority() {
 fn temporal_domain_model_and_memory_limits_refuse_independently() {
     let mut bounded = limits();
     bounded.maximum_current_items = 1;
-    let mut experience = CurrentExperience::new(bounded).unwrap();
+    let mut experience = new_experience(bounded);
     experience
         .try_admit(item("visual", ExperienceDomain::Visual, "sign/1"))
         .unwrap();
@@ -238,12 +262,13 @@ fn temporal_domain_model_and_memory_limits_refuse_independently() {
 
     bounded = limits();
     bounded.maximum_items_per_domain = 1;
-    experience = CurrentExperience::new(bounded).unwrap();
+    experience = new_experience(bounded);
     experience
         .try_admit(item("first", ExperienceDomain::Visual, "sign/1"))
         .unwrap();
     let mut second = item("second", ExperienceDomain::Visual, "sign/2");
     second.temporal_role = ExperienceTemporalRole::Recent;
+    second.observed_at = Some(at(90));
     assert_eq!(
         experience.try_admit(second).unwrap_err().refusal,
         ExperienceRefusal::DomainCapacity
@@ -251,12 +276,13 @@ fn temporal_domain_model_and_memory_limits_refuse_independently() {
 
     bounded = limits();
     bounded.maximum_model_derived_items = 1;
-    experience = CurrentExperience::new(bounded).unwrap();
+    experience = new_experience(bounded);
     let mut first_model = item("model-1", ExperienceDomain::Visual, "sign/1");
     first_model.origin = ExperienceOrigin::ModelDerived;
     let mut second_model = item("model-2", ExperienceDomain::Auditory, "sign/2");
     second_model.origin = ExperienceOrigin::ModelDerived;
     second_model.temporal_role = ExperienceTemporalRole::Recent;
+    second_model.observed_at = Some(at(90));
     experience.try_admit(first_model).unwrap();
     assert_eq!(
         experience.try_admit(second_model).unwrap_err().refusal,
@@ -265,7 +291,7 @@ fn temporal_domain_model_and_memory_limits_refuse_independently() {
 
     bounded = limits();
     bounded.maximum_selected_memory_items = 1;
-    experience = CurrentExperience::new(bounded).unwrap();
+    experience = new_experience(bounded);
     let mut first_memory = item("memory-1", ExperienceDomain::Recollection, "sign/1");
     first_memory.origin = ExperienceOrigin::Remembered;
     first_memory.temporal_role = ExperienceTemporalRole::Historical;
@@ -276,5 +302,16 @@ fn temporal_domain_model_and_memory_limits_refuse_independently() {
     assert_eq!(
         experience.try_admit(second_memory).unwrap_err().refusal,
         ExperienceRefusal::SelectedMemoryCapacity
+    );
+}
+
+#[test]
+fn admission_rejects_a_caller_claimed_temporal_role() {
+    let mut experience = new_experience(limits());
+    let mut mislabeled = item("old-camera", ExperienceDomain::Visual, "sign/camera/old");
+    mislabeled.observed_at = Some(at(70));
+    assert_eq!(
+        experience.try_admit(mislabeled).unwrap_err().refusal,
+        ExperienceRefusal::TemporalRoleMismatch
     );
 }
