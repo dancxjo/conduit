@@ -16,6 +16,9 @@ pub(crate) fn host(command: HostCommand) -> Result<(), String> {
         HostCommand::Obtain { .. } => {
             Err("release obtain command was routed through construction".into())
         }
+        HostCommand::Carry { .. } => {
+            Err("deployment carrier command was routed through construction".into())
+        }
         HostCommand::Check { source } => {
             let checked = load_host(&source)?;
             println!(

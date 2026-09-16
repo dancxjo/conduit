@@ -13,6 +13,7 @@ use std::{
 };
 
 const COPY_BUFFER_BYTES: usize = 64 * 1024;
+pub const ARTIFACT_DOWNLOAD_IMPLEMENTATION: &str = "conduit/download@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ArtifactDownloadRefusal {
@@ -39,7 +40,9 @@ pub fn download_body_bound_artifact(
     source: &Path,
     destination: &Path,
 ) -> Result<DeploymentRealizationReceipt, ArtifactDownloadRefusal> {
-    if descriptor.kind != DeploymentCarrierKind::ArtifactDownload {
+    if descriptor.kind != DeploymentCarrierKind::ArtifactDownload
+        || descriptor.implementation_id != ARTIFACT_DOWNLOAD_IMPLEMENTATION
+    {
         return Err(ArtifactDownloadRefusal::UnsupportedCarrier);
     }
     descriptor.validate_request(&DeploymentCarrierRequest {
