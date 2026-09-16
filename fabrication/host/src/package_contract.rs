@@ -40,6 +40,21 @@ pub struct PackageCatalogContribution {
 
 pub const FABRICATION_PACKAGE_CONTRACT: &str = "conduit.host/fabrication-package@1";
 
+/// The reviewed ordinary route from a checked PROFILE to target machinery.
+///
+/// This is package/catalog truth, not a claim that a builder is available or
+/// that the resulting artifact has booted, joined a Body, or advertised an
+/// offer. A target declares one strategy instead of making callers infer it
+/// from adapter names or artifact shapes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum FabricationStrategy {
+    BindReviewedSuperset,
+    ComposeSealedProviders,
+    DeterministicSpecializedBuild,
+    ReviewedHybrid,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PostBuildAction {
@@ -62,6 +77,7 @@ pub struct FabricationBuildSelection {
     pub fabrication_package_revision: u32,
     pub toolchain_identity: String,
     pub builder_adapter: String,
+    pub strategy: FabricationStrategy,
     pub deployment_adapter: Option<String>,
     pub post_build_actions: Vec<PostBuildAction>,
     pub output: SporeOutputKind,
@@ -94,6 +110,7 @@ pub struct TargetDescriptor {
     pub host_operations: Vec<String>,
     pub toolchain_identity: String,
     pub builder_adapter: String,
+    pub strategy: FabricationStrategy,
     pub deployment_adapter: Option<String>,
     pub outputs: Vec<SporeOutputKind>,
     pub default_output: SporeOutputKind,
@@ -493,6 +510,7 @@ impl FabricationPackageSet {
             fabrication_package_revision: anchor.package_revision,
             toolchain_identity: target_descriptor.toolchain_identity.clone(),
             builder_adapter: target_descriptor.builder_adapter.clone(),
+            strategy: target_descriptor.strategy,
             deployment_adapter: target_descriptor.deployment_adapter.clone(),
             post_build_actions: target_descriptor.post_build_actions.clone(),
             output: output.clone(),

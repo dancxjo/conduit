@@ -84,7 +84,7 @@ function locateSporeRegion(bytes, targetId) {
 }
 
 function requireResolvedImage(image, build, targetId) {
-  if (image?.manifest?.schema !== "conduit.host/build-manifest@2"
+  if (image?.manifest?.schema !== "conduit.host/build-manifest@3"
     || JSON.stringify(image.manifest) !== JSON.stringify(build.resolved_build)
     || image.manifest.image_id !== build.resolved_description_binding
     || image.manifest.profile_id !== build.profile_id

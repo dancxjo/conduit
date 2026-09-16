@@ -30,6 +30,7 @@ fn orange_pi_5_target() -> TargetDescriptor {
         toolchain_identity: "rustc:stable+aarch64-unknown-none+llvm-tools+u-boot-v2026.04-rk3588s"
             .into(),
         builder_adapter: "conduit-host-orange-pi/build-conduitos-sd-image@1".into(),
+        strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
         deployment_adapter: Some("conduit-host-orange-pi/flash-removable-media@1".into()),
         outputs: vec![SporeOutputKind::SdImage],
         default_output: SporeOutputKind::SdImage,

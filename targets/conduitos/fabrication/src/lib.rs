@@ -170,6 +170,7 @@ fn target(label: &str, architecture: &str, machine: &str) -> TargetDescriptor {
             .collect(),
         toolchain_identity: format!("rustc:stable+{rust_target}+llvm-tools"),
         builder_adapter: format!("conduit-host-conduitos/build-{architecture}@1"),
+        strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
         deployment_adapter: Some(format!("conduit-host-conduitos/boot-{architecture}@1")),
         outputs: vec![SporeOutputKind::DiskImage, SporeOutputKind::EfiArtifact],
         default_output: SporeOutputKind::DiskImage,
