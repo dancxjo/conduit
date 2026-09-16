@@ -12,7 +12,9 @@ mod calendar_time;
 mod composition;
 mod construction;
 mod contract;
+mod generative_manifestation;
 mod generative_presenter;
+mod generative_presenter_policy;
 mod geometry;
 #[cfg(feature = "form-catalog")]
 mod geometry_catalog;
@@ -48,7 +50,9 @@ pub use body_surface::*;
 pub use calendar_time::*;
 pub use composition::*;
 pub use contract::*;
+pub use generative_manifestation::*;
 pub use generative_presenter::*;
+pub use generative_presenter_policy::*;
 pub use geometry::*;
 #[cfg(feature = "form-catalog")]
 pub use geometry_catalog::*;

@@ -44,7 +44,7 @@ const JUDGMENT_RESULT: &str = "llm/judgment-result@1";
 pub const GENERATIVE_PRESENTER_INPUT_VALUE_KIND: &str =
     "conduit.presentation/generative-presenter-input@1";
 pub const GENERATED_MANIFESTATION_VALUE_KIND: &str =
-    "conduit.presentation/generated-manifestation@1";
+    "conduit.presentation/generated-manifestation@2";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LlmDeterminismProfile {
@@ -166,11 +166,7 @@ pub fn llm_semantic_catalog() -> [LlmSemanticContract; MAXIMUM_LLM_CATALOG_KINDS
         contract(LLM_PROPOSE_KIND, PROPOSAL_REQUEST, PROPOSAL_RESULT),
         contract(LLM_COMPOSE_KIND, COMPOSITION_REQUEST, COMPOSITION_RESULT),
         contract(LLM_JUDGE_KIND, JUDGMENT_REQUEST, JUDGMENT_RESULT),
-        contract(
-            LLM_PRESENT_KIND,
-            GENERATIVE_PRESENTER_INPUT_VALUE_KIND,
-            GENERATED_MANIFESTATION_VALUE_KIND,
-        ),
+        present_contract(),
         stream_contract(),
     ]
 }
@@ -184,6 +180,16 @@ fn stream_contract() -> LlmSemanticContract {
     contract.kind_contract_revision = KindContractRevision::from("conduit.llm/generate-stream@1");
     contract.outputs[0].temporal = PortTemporal::Flow { closes: true };
     contract.limits.max_queue_items = 8;
+    contract
+}
+
+fn present_contract() -> LlmSemanticContract {
+    let mut contract = contract(
+        LLM_PRESENT_KIND,
+        GENERATIVE_PRESENTER_INPUT_VALUE_KIND,
+        GENERATED_MANIFESTATION_VALUE_KIND,
+    );
+    contract.kind_contract_revision = KindContractRevision::from("conduit.llm/present@2");
     contract
 }
 
