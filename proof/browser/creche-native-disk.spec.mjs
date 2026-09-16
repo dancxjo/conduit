@@ -30,6 +30,34 @@ test("two Bodies produce distinct native disk images with recoverable provisioni
   expect(Array.from(recovered.image)).toEqual(Array.from(image));
 });
 
+test("ConduitOS provisioning replaces one reviewed in-image spore region", async () => {
+  const image = new Uint8Array(8192).fill(0x5a);
+  const offset = 2048;
+  image.fill(0xff, offset, offset + NATIVE_MEDIA_PROVISION_BYTES);
+  image.set(new TextEncoder().encode("CONDUIT_SPORE_MEDIA@1\0"), offset);
+  new DataView(image.buffer, offset, NATIVE_MEDIA_PROVISION_BYTES).setUint32(24, 0, true);
+  new DataView(image.buffer, offset, NATIVE_MEDIA_PROVISION_BYTES).setUint32(28, 0, true);
+  const native = await bindBodyProvisionedMedia({
+    prepared: prepared("one"),
+    imageBytes: image,
+    filename: "one.iso",
+    format: "iso",
+    mediaType: "application/x-iso9660-image",
+    provisionRegion: {
+      schema: "conduit.conduitos/spore-region@1",
+      offset,
+      bytes: NATIVE_MEDIA_PROVISION_BYTES,
+      encoding: "conduit.spore/native-media-provision@1",
+    },
+  });
+  expect(native.bytes.byteLength).toBe(image.byteLength);
+  expect(native.provision_embedded).toBe(true);
+  const recovered = readBodyProvisionedMedia(native.bytes);
+  expect(recovered.provision_embedded).toBe(true);
+  expect(recovered.provision.spore.body_id).toBe("body:one");
+  expect(Array.from(recovered.image)).toEqual(Array.from(image));
+});
+
 test("missing and malformed native media provisioning remain refusals", async () => {
   expect(() => readBodyProvisionedMedia(new Uint8Array(8192))).toThrow(/omitted its Body provision/);
   const native = await bindBodyProvisionedMedia({

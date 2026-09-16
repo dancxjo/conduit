@@ -19,6 +19,7 @@ use conduitos::{
     observatory,
     offer::CpuFeatures,
     offer_fabrication::ImageBoundHostOffer,
+    spore_join,
 };
 
 unsafe extern "C" {
@@ -78,6 +79,11 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         conduitos::boot::firmware_from_multiboot1(multiboot_magic, multiboot_information)
     }
     .unwrap_or_else(|error| refuse(error.as_str()));
+    let spore_region = unsafe {
+        conduitos::boot::spore_module_from_multiboot1(multiboot_magic, multiboot_information)
+    }
+    .unwrap_or_else(|error| refuse(error.as_str()))
+    .unwrap_or_else(|| refuse("spore-boot-module-missing"));
     unsafe {
         BOOT_ARENA
             .initialize(
@@ -165,6 +171,19 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     let mut prepared =
         dual_region_plan::prepare(&identities, &offer, EMBEDDED_FABRICATION.build_id)
             .unwrap_or_else(|error| refuse(error.as_str()));
+    if let Some(join) = spore_join::encode_region(
+        spore_region,
+        EMBEDDED_FABRICATION.target,
+        EMBEDDED_FABRICATION.profile_id,
+        EMBEDDED_FABRICATION.build_id,
+        &prepared.advertisement,
+    )
+    .unwrap_or_else(|error| refuse(error))
+    {
+        arch::present(b"CONDUIT_SPORE_JOIN ");
+        arch::present(&join);
+        arch::present(b"\n");
+    }
     let image_start = core::ptr::addr_of!(__conduitos_image_start) as usize;
     let image_end = core::ptr::addr_of!(__conduitos_image_end) as usize;
     let boot_record = BootRecord {
