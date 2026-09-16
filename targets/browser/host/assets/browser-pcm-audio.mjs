@@ -9,6 +9,7 @@ const HEADER_BYTES = 29;
 const MAXIMUM_FRAME_BYTES = 65_536;
 const MAXIMUM_FRAMES = 2_048;
 const MAXIMUM_TURN_MILLIS = 15_000;
+const MAXIMUM_CAPTURE_BLOCKS = 8_191;
 const MAXIMUM_SAFE_GAIN_MILLIONTHS = 50_000;
 
 const refuse = (disposition, detail, message) => {
@@ -135,6 +136,7 @@ export function acquireBrowserPcmAudio({
     const reader = new TrackProcessor({ track }).readable.getReader();
     capture = {
       stream, reader, stopped: !pressed, clockId: randomClock(window), startFrame: 0n,
+      blocks: 0,
       deadline: window.setTimeout(() => { if (capture) capture.stopped = true; }, MAXIMUM_TURN_MILLIS),
     };
   }
@@ -142,7 +144,9 @@ export function acquireBrowserPcmAudio({
   async function captureFrame(signal) {
     if (closed) throw new Error("browser PCM audio is closed");
     if (!capture) await startCapture(signal);
-    if (capture.stopped || signal.aborted) { await stopCapture(); return undefined; }
+    if (capture.stopped || capture.blocks >= MAXIMUM_CAPTURE_BLOCKS || signal.aborted) {
+      await stopCapture(); return undefined;
+    }
     const current = capture;
     const { value, done } = await current.reader.read();
     if (done || !value) { await stopCapture(); refuse("failed", 14, "Microphone track ended"); }
@@ -157,6 +161,7 @@ export function acquireBrowserPcmAudio({
       const encoded = encodeS16Frame({ bytes, sampleRate: value.sampleRate, channels, frames,
         clockId: current.clockId, startFrame: current.startFrame });
       current.startFrame += BigInt(frames);
+      current.blocks += 1;
       return encoded;
     } finally {
       value.close();

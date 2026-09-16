@@ -26,6 +26,7 @@ pub(crate) const PLAY_POOL: &str = "browser/audio-output";
 pub(crate) const CAPTURE_AUTHORITY: &str = "conduit.authority/request-browser-microphone@1";
 pub(crate) const PLAY_AUTHORITY: &str = "conduit.authority/use-browser-audio-output@1";
 pub(crate) const MAXIMUM_SAFE_GAIN_MILLIONTHS: u32 = 50_000;
+pub(crate) const MAXIMUM_CAPTURE_REQUESTS: u32 = 8_192;
 
 pub(crate) static CAPTURE: BrowserInstallation = BrowserInstallation {
     implementation_id: CAPTURE_IMPLEMENTATION,
@@ -195,6 +196,10 @@ impl Operation for CaptureOperation {
         let Some(next) = self.next.checked_add(1) else {
             return identity_exhausted();
         };
+        if next >= MAXIMUM_CAPTURE_REQUESTS {
+            self.completed = true;
+            return OperationAction::Complete;
+        }
         self.next = next;
         self.request()
     }
@@ -333,6 +338,7 @@ mod tests {
             capture.outputs[0].temporal,
             conduit_core::PortTemporal::Flow { closes: true }
         );
+        assert!(MAXIMUM_CAPTURE_REQUESTS > 0);
 
         let playback = playback_offer();
         assert_eq!(
