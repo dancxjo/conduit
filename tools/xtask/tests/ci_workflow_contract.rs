@@ -773,8 +773,14 @@ fn browser_home_is_staged_proven_in_two_engines_and_carried_to_pages() {
         .expect("read product workflow");
 
     assert!(workflow.contains("--no-default-features --features home-surface,form-runner"));
-    assert!(workflow.contains("products/home/tools/stage-home-product.sh"));
-    assert!(workflow.contains("proof/browser/home-host.spec.mjs"));
+    assert_eq!(
+        workflow
+            .matches("products/home/tools/stage-home-product.sh")
+            .count(),
+        2
+    );
+    assert!(workflow.matches("target/home-product").count() >= 6);
+    assert!(workflow.matches("proof/browser/home-host.spec.mjs").count() >= 2);
     assert!(workflow.contains("name: Prove portable Home in pinned Firefox"));
     assert!(workflow.contains("--project firefox"));
     assert!(workflow.contains("target/pages-site/home/home.application.json"));
