@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 
 pub const SPEECH_SYNTHESIZE_KIND: &str = "speech/synthesize";
 pub const SPEECH_SYNTHESIZE_REVISION: &str = "conduit.speech/synthesize@1";
+pub const SPEECH_SYNTHESIZE_STREAM_KIND: &str = "speech/synthesize-stream";
+pub const SPEECH_SYNTHESIZE_STREAM_REVISION: &str = "conduit.speech/synthesize-stream@1";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
 pub const TEXT_VALUE_KIND: &str = "value/text@1";
@@ -37,6 +39,24 @@ pub fn synthesize_contract() -> SpeechContract {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_PCM_BYTES,
+        },
+    }
+}
+
+pub fn streaming_synthesize_contract() -> SpeechContract {
+    SpeechContract {
+        kind_id: kind_id(SPEECH_SYNTHESIZE_STREAM_KIND),
+        kind_contract_revision: KindContractRevision::from(SPEECH_SYNTHESIZE_STREAM_REVISION),
+        inputs: vec![flow_port(
+            "text",
+            crate::SPEAKABLE_TEXT_VALUE_KIND,
+            PortDirection::Input,
+        )],
+        outputs: vec![flow_port("audio", AUDIO_PCM_INFO_ID, PortDirection::Output)],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: crate::MAXIMUM_COMMITTED_SEGMENTS as u16,
             max_queue_bytes: MAXIMUM_PCM_BYTES,
         },
     }
@@ -90,7 +110,8 @@ pub fn install_speech_synthesis_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
-    install_contract(startup, profile, synthesize_contract(), true)
+    install_contract(startup, profile, synthesize_contract(), true)?;
+    install_contract(startup, profile, streaming_synthesize_contract(), true)
 }
 
 fn install_contract(
@@ -144,6 +165,15 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
     }
 }
 
+fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id(value_kind),
+        direction,
+        temporal: PortTemporal::Flow { closes: true },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -155,5 +185,23 @@ mod tests {
         for forbidden in ["ALSA", "CPAL", "WebAudio", "WAV", "device", "model", "Base"] {
             assert!(!encoded.contains(forbidden), "found {forbidden}");
         }
+    }
+
+    #[test]
+    fn streaming_synthesis_consumes_segments_and_emits_ordered_audio_flow() {
+        let contract = streaming_synthesize_contract();
+        assert_eq!(
+            contract.inputs[0].value_kind.as_str(),
+            crate::SPEAKABLE_TEXT_VALUE_KIND
+        );
+        assert_eq!(
+            contract.inputs[0].temporal,
+            PortTemporal::Flow { closes: true }
+        );
+        assert_eq!(contract.outputs[0].value_kind.as_str(), AUDIO_PCM_INFO_ID);
+        assert_eq!(
+            contract.outputs[0].temporal,
+            PortTemporal::Flow { closes: true }
+        );
     }
 }
