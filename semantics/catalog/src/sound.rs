@@ -48,7 +48,8 @@ pub const AUDIO_CONVERT_OUTPUT_RATE_KEY: &str = "output-sample-rate-hz";
 pub const AUDIO_CONVERT_OUTPUT_LAYOUT_KEY: &str = "output-channel-layout";
 pub const AUDIO_PLAY_ALSA_PERIOD_FRAMES: u16 = 256;
 pub const AUDIO_PLAY_ALSA_BUFFER_FRAMES: u16 = 1_024;
-pub const AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS: u16 = 768;
+/// Finite sink capacity for small streaming PCM blocks, including hosted speech.
+pub const AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS: u16 = 3_072;
 pub const AUDIO_PLAY_ALSA_FRAME_BYTES: u32 = 4;
 pub const AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32
     + AUDIO_PLAY_ALSA_PERIOD_FRAMES as u32 * AUDIO_PLAY_ALSA_FRAME_BYTES;
