@@ -250,7 +250,7 @@ export async function startApplication(application) {
 
 function readWorkspaceCatalog(source) {
   const catalog = JSON.parse(source);
-  if (catalog?.schema !== 'conduit.workspace/reviewed-form-catalog@1'
+  if (catalog?.schema !== 'conduit.workspace/reviewed-form-catalog@2'
       || !Number.isSafeInteger(catalog.maximum_forms) || catalog.maximum_forms < 1
       || !Array.isArray(catalog.forms) || catalog.forms.length > catalog.maximum_forms) {
     throw new Error('reviewed Workspace Form catalog is malformed or over capacity');
@@ -260,8 +260,9 @@ function readWorkspaceCatalog(source) {
     if (typeof form?.title !== 'string' || typeof form.entry !== 'string'
         || typeof form.source !== 'string' || typeof form.source_document_id !== 'string'
         || typeof form.checked_form_id !== 'string' || !Array.isArray(form.required_kinds)
-        || !['available', 'needs-capability'].includes(form.availability?.disposition)
-        || typeof form.availability?.reason !== 'string'
+        || !Number.isSafeInteger(form.presentation_profile)
+        || form.presentation_profile < 0 || form.presentation_profile > 3
+        || typeof form.unavailable_hint !== 'string' || form.unavailable_hint.length < 1
         || identities.has(form.checked_form_id)) {
       throw new Error('reviewed Workspace Form catalog contains an invalid or duplicate entry');
     }

@@ -263,7 +263,7 @@ pub(super) fn check_source(source: &str) -> Result<conduit_form::CheckedSyntaxDo
     )
 }
 
-fn check_source_for_presentation(
+pub(super) fn check_source_for_presentation(
     source: &str,
     presentation: crate::installed_browser::PresentationProfile,
 ) -> Result<conduit_form::CheckedSyntaxDocument, String> {

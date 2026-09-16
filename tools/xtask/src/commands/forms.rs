@@ -242,11 +242,6 @@ pub fn run(args: FormsArgs, opts: &GlobalOpts) -> Result<(), String> {
 
 fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
     #[derive(Serialize)]
-    struct CatalogAvailability<'a> {
-        disposition: &'static str,
-        reason: &'a str,
-    }
-    #[derive(Serialize)]
     struct CatalogForm<'a> {
         slug: &'a str,
         title: &'a str,
@@ -254,8 +249,9 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
         source: String,
         source_document_id: String,
         checked_form_id: String,
+        presentation_profile: u8,
         required_kinds: Vec<String>,
-        availability: CatalogAvailability<'a>,
+        unavailable_hint: &'a str,
         #[serde(skip_serializing_if = "Option::is_none")]
         graceful_fallback: Option<CatalogFallback<'a>>,
     }
@@ -263,8 +259,6 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
     struct CatalogFallback<'a> {
         slug: &'a str,
         title: &'a str,
-        disposition: &'static str,
-        reason: &'a str,
     }
     #[derive(Serialize)]
     struct WorkspaceCatalog<'a> {
@@ -297,14 +291,6 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
         let mut required_kinds: Vec<_> = entry.gears.iter().map(|gear| gear.kind.clone()).collect();
         required_kinds.sort();
         required_kinds.dedup();
-        let available = form.initial_body_order.is_some();
-        let reason = if available {
-            "This browser Host has a reviewed Workspace realization."
-        } else {
-            form.browser_safe_not_applicable
-                .as_deref()
-                .unwrap_or("This browser Host does not yet have a reviewed Workspace realization.")
-        };
         let graceful_fallback = form
             .graceful_fallback
             .as_deref()
@@ -325,23 +311,9 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
                         form.slug
                     ));
                 }
-                let fallback_available = fallback.initial_body_order.is_some();
-                let fallback_reason = if fallback_available {
-                    "This browser Host has a reviewed Workspace realization."
-                } else {
-                    fallback.browser_safe_not_applicable.as_deref().unwrap_or(
-                        "This browser Host does not yet have a reviewed Workspace realization.",
-                    )
-                };
                 Ok(CatalogFallback {
                     slug: &fallback.slug,
                     title: &fallback.title,
-                    disposition: if fallback_available {
-                        "available"
-                    } else {
-                        "needs-capability"
-                    },
-                    reason: fallback_reason,
                 })
             })
             .transpose()?;
@@ -352,20 +324,17 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
             source,
             source_document_id: checked.source_document_id.as_str().into(),
             checked_form_id: entry.checked_form_id.as_str().into(),
+            presentation_profile: form.initial_body_presentation_profile,
             required_kinds,
-            availability: CatalogAvailability {
-                disposition: if available {
-                    "available"
-                } else {
-                    "needs-capability"
-                },
-                reason,
-            },
+            unavailable_hint: form
+                .browser_safe_not_applicable
+                .as_deref()
+                .unwrap_or("The current admitted Hosts and Bases cannot realize this Form."),
             graceful_fallback,
         });
     }
     let catalog = WorkspaceCatalog {
-        schema: "conduit.workspace/reviewed-form-catalog@1",
+        schema: "conduit.workspace/reviewed-form-catalog@2",
         maximum_forms: inventory.maximum_forms,
         forms,
     };
