@@ -186,8 +186,6 @@ fn action_name(action: &HomeAction) -> &'static str {
         HomeAction::OpenCreche => "open-creche",
         HomeAction::OpenForm(_) => "open-form",
         HomeAction::RunForm(_) => "run-form",
-        HomeAction::Inspect(_) => "inspect",
-        HomeAction::Wake => "wake",
     }
 }
 
@@ -240,7 +238,8 @@ mod tests {
         let (action, spoken) = spoken_for_home("help").unwrap();
         assert_eq!(action, "presentation-changed");
         assert!(spoken.contains("Conduit Prompt"));
-        assert!(spoken.contains("open <place>"));
+        assert!(spoken.contains("open tour|patchbay|forms|body|prompt|creche"));
+        assert!(spoken.contains("unavailable on this face"));
         assert!(!spoken.contains("pixel"));
     }
 
