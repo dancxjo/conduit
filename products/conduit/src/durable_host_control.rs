@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     io::{Read, Write},
-    path::Path,
+    path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -29,6 +29,7 @@ pub(crate) struct DurableHostRuntime {
     image_content_digest: String,
     host: StdHost,
     remote_fragment: Option<AdmittedRemoteFragment>,
+    cancellation_signal: Option<PathBuf>,
 }
 
 impl DurableHostRuntime {
@@ -38,7 +39,12 @@ impl DurableHostRuntime {
             image_content_digest,
             host,
             remote_fragment: None,
+            cancellation_signal: None,
         }
+    }
+
+    fn install_cancellation_signal(&mut self, state_dir: &Path) {
+        self.cancellation_signal = Some(state_dir.join("remote-cancellation.signal"));
     }
 
     fn truth(&self) -> DurableHostTruth {
@@ -64,6 +70,7 @@ impl DurableHostRuntime {
         if self.remote_fragment.is_some() {
             return Err("remote-play-active".into());
         }
+        self.clear_cancellation_signal()?;
         if !conduit_core::verify_plan(plan) {
             return Err("invalid-plan".into());
         }
@@ -106,6 +113,13 @@ impl DurableHostRuntime {
             .map(|session| session.endpoint)
             .ok_or_else(|| "remote-session-absent".to_string())?;
         let message = frame.message;
+        let cancellation_signal = self.cancellation_signal.as_deref();
+        let active_play_id = admitted.identity().active_play_id.as_str().to_owned();
+        let cancelled = || {
+            cancellation_signal.is_some_and(|path| {
+                fs::read(path).is_ok_and(|bytes| bytes == active_play_id.as_bytes())
+            })
+        };
         admitted
             .sessions_mut()
             .get_mut(endpoint)
@@ -131,7 +145,7 @@ impl DurableHostRuntime {
                             endpoint,
                             SessionMessage::Accepted { sequence },
                         )?);
-                        drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
+                        drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
                         responses.push(remote_response(
                             admitted,
                             endpoint,
@@ -169,11 +183,11 @@ impl DurableHostRuntime {
                     return Err("remote-egress-sequence".into());
                 }
                 admitted.runtime_mut().deliver_egress(&transfer)?;
-                drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
+                drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
             }
             SessionMessage::InputClosed { .. } => {
                 admitted.runtime_mut().close_ingress(endpoint)?;
-                drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
+                drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
             }
             SessionMessage::Cancelled { code } => {
                 admitted.runtime_mut().cancel()?;
@@ -220,7 +234,7 @@ impl DurableHostRuntime {
                 )?);
             }
             SessionMessage::Ready | SessionMessage::Pressure { .. } => {
-                drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
+                drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
             }
             SessionMessage::Terminal { .. } => {
                 let terminal = admitted
@@ -228,7 +242,7 @@ impl DurableHostRuntime {
                     .get(endpoint)
                     .is_some_and(|session| session.machine().is_terminal());
                 if !terminal {
-                    drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
+                    drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
                 }
             }
         }
@@ -242,10 +256,22 @@ impl DurableHostRuntime {
     }
 
     fn release_remote(&mut self) -> Result<(), String> {
+        self.clear_cancellation_signal()?;
         let Some(fragment) = self.remote_fragment.take() else {
             return Ok(());
         };
         self.host.release_remote_fragment(fragment)
+    }
+
+    fn clear_cancellation_signal(&self) -> Result<(), String> {
+        let Some(path) = self.cancellation_signal.as_deref() else {
+            return Ok(());
+        };
+        match fs::remove_file(path) {
+            Ok(()) => Ok(()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(error) => Err(format!("clear remote cancellation signal: {error}")),
+        }
     }
 }
 
@@ -267,11 +293,15 @@ fn remote_response(
     encode_remote_frame(&binding, frame)
 }
 
-fn drive_remote_fragment(
+fn drive_remote_fragment<F>(
     host: &mut StdHost,
     admitted: &mut AdmittedRemoteFragment,
     responses: &mut Vec<Vec<u8>>,
-) -> Result<(), String> {
+    cancelled: F,
+) -> Result<(), String>
+where
+    F: Fn() -> bool + Copy,
+{
     const MAXIMUM_DRIVE_STEPS: usize = 64;
     for _ in 0..MAXIMUM_DRIVE_STEPS {
         if host.poll_remote_body_conversation_context(admitted)? {
@@ -284,7 +314,7 @@ fn drive_remote_fragment(
             {
                 continue;
             }
-            if host.complete_remote_voice_host_operation(admitted, request, || false)? {
+            if host.complete_remote_voice_host_operation(admitted, request, cancelled)? {
                 continue;
             }
             let work = admitted.runtime().describe_host_request(request)?;
@@ -534,10 +564,34 @@ pub(crate) fn ensure_secret(state_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+pub(crate) fn signal_remote_cancellation(
+    state_dir: &Path,
+    active_play_id: &str,
+) -> Result<(), String> {
+    let temporary = state_dir.join("remote-cancellation.signal.pending");
+    let destination = state_dir.join("remote-cancellation.signal");
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options
+        .open(&temporary)
+        .and_then(|mut file| {
+            file.write_all(active_play_id.as_bytes())?;
+            file.sync_all()
+        })
+        .and_then(|()| fs::rename(&temporary, &destination))
+        .map_err(|error| format!("signal exact remote Play cancellation: {error}"))
+}
+
 #[cfg(unix)]
 pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result<(), String> {
     use std::os::unix::{fs::PermissionsExt, net::UnixListener};
 
+    runtime.install_cancellation_signal(state_dir);
     let socket = state_dir.join("control.sock");
     if socket.exists() {
         fs::remove_file(&socket)
@@ -1186,6 +1240,30 @@ mod tests {
     }
 
     #[test]
+    fn cancellation_signal_names_one_exact_active_play_and_is_cleared_by_its_owner() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let state_dir = std::env::temp_dir().join(format!(
+            "conduit-remote-cancellation-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir(&state_dir).unwrap();
+        signal_remote_cancellation(&state_dir, "play/orifinia/voice-7").unwrap();
+        assert_eq!(
+            fs::read(state_dir.join("remote-cancellation.signal")).unwrap(),
+            b"play/orifinia/voice-7"
+        );
+
+        let mut runtime = runtime();
+        runtime.install_cancellation_signal(&state_dir);
+        runtime.clear_cancellation_signal().unwrap();
+        assert!(!state_dir.join("remote-cancellation.signal").exists());
+        fs::remove_dir(state_dir).unwrap();
+    }
+
+    #[test]
     fn durable_runtime_activates_and_drives_exact_remote_play_until_explicit_release() {
         let host = crate::std_websocket_line::host(crate::std_websocket_line::SOURCE_HOST);
         let truth = host.advertisement().clone();
@@ -1219,7 +1297,7 @@ mod tests {
             .message,
             SessionMessage::Ready
         ));
-        let active = runtime.exchange_remote_frame(&ready_frame).unwrap();
+        let active = runtime.exchange_remote_frame(ready_frame).unwrap();
         assert!(active.active);
         assert_eq!(active.responses.len(), 1);
         let accepted_frame = {
