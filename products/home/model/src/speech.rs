@@ -1,5 +1,7 @@
 use alloc::{format, string::String, vec::Vec};
-use conduit_presentation::{ApplicationComponent, ApplicationNodeState, ApplicationView};
+use conduit_presentation::{
+    ApplicationComponent, ApplicationEventKind, ApplicationNodeState, ApplicationView,
+};
 
 pub const MAX_AURAL_UTTERANCES: usize = 32;
 pub const MAX_AURAL_UTTERANCE_BYTES: usize = 256;
@@ -19,6 +21,15 @@ pub struct AuralUtterance {
     pub subject_key: String,
     pub role: AuralRole,
     pub text: String,
+    pub action: Option<AuralAction>,
+}
+
+/// An actionable aural affordance bound to the exact semantic source revision.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AuralAction {
+    pub identity: String,
+    pub event: ApplicationEventKind,
+    pub source_revision: u32,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -87,6 +98,14 @@ pub fn linearize(
             subject_key: node.key.clone(),
             role,
             text,
+            action: node.action.map(|action_index| {
+                let action = &current.actions[usize::from(action_index)];
+                AuralAction {
+                    identity: action.id.clone(),
+                    event: action.event,
+                    source_revision: current.revision,
+                }
+            }),
         });
     }
     Ok(AuralPresentation {
@@ -155,6 +174,19 @@ mod tests {
         assert!(text.contains(&"TOUR"));
         assert!(text.contains(&"PROMPT"));
         assert!(text.iter().all(|value| !value.contains("pixel")));
+        let tour = spoken
+            .utterances
+            .iter()
+            .find(|utterance| utterance.subject_key == "application-0")
+            .unwrap();
+        assert_eq!(
+            tour.action,
+            Some(AuralAction {
+                identity: crate::OPEN_TOUR_ACTION_ID.into(),
+                event: ApplicationEventKind::Activate,
+                source_revision: 1,
+            })
+        );
     }
 
     #[test]
@@ -182,6 +214,31 @@ mod tests {
         assert_eq!(
             linearize(&view, Some(&view)),
             Err(AuralRefusal::StalePreviousView)
+        );
+    }
+
+    #[test]
+    fn aural_actions_are_exact_revision_bound_semantic_affordances() {
+        let home = HomeModel::new();
+        let view = home.presentation(41, &FORMS).lower().unwrap();
+        let spoken = linearize(&view, None).unwrap();
+        let actions = spoken
+            .utterances
+            .iter()
+            .filter_map(|utterance| utterance.action.as_ref())
+            .collect::<Vec<_>>();
+
+        assert_eq!(actions.len(), crate::HOME_ITEM_COUNT);
+        assert!(actions.iter().all(|action| action.source_revision == 41));
+        assert_eq!(
+            actions
+                .iter()
+                .map(|action| action.identity.as_str())
+                .collect::<Vec<_>>(),
+            crate::HomeDestination::ALL
+                .iter()
+                .map(|destination| destination.action_id())
+                .collect::<Vec<_>>()
         );
     }
 }
