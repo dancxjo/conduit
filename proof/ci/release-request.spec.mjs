@@ -155,6 +155,7 @@ test("release admission wakes from state changes instead of polling", () => {
   const releaseLane = readFileSync(".github/workflows/release-lane.yml", "utf8");
   const releaseLaneAdapter = readFileSync("tools/ci/release-lane-github.mjs", "utf8");
   const finalizer = readFileSync(".github/workflows/finalize-release.yml", "utf8");
+  const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
   assert.match(workflow, /group: promote-dev-to-main\n  cancel-in-progress: false/);
   assert.match(workflow, /workflow_run:\n    workflows: \[dev-integration\]/);
   assert.match(workflow, /pull_request_target:\n    types: \[closed\]\n    branches: \[main, dev\]/);
@@ -182,4 +183,5 @@ test("release admission wakes from state changes instead of polling", () => {
   assert.match(finalizer, /Revisit queued development after a no-op synchronization/);
   assert.match(finalizer, /if: steps\.merge\.outputs\.changed == 'false'/);
   assert.match(finalizer, /gh workflow run promote-dev\.yml --ref main/);
+  assert.match(monitor, /if test "\$expected_tree" = "\$base_tree"; then[\s\S]*gh pr close "\$pr_url"[\s\S]*gh workflow run promote-dev\.yml --ref main/);
 });

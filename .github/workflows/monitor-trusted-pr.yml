@@ -194,6 +194,7 @@ jobs:
           base_tree=$(git rev-parse "$base_sha^{tree}")
           if test "$expected_tree" = "$base_tree"; then
             gh pr close "$pr_url" --comment "Development already contains the accepted release tree; no synchronization commit is required."
+            gh workflow run promote-dev.yml --ref main
             printf 'Synchronization %s is already represented by dev %s; no merge commit was created.\n' \
               "$HEAD_SHA" "$base_sha" >> "$GITHUB_STEP_SUMMARY"
             exit 0

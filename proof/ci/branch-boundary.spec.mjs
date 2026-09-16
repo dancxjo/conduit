@@ -170,6 +170,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(finalizer, /gh workflow run sync-release-to-dev\.yml --ref main/);
   assert.match(finalizer, /gh workflow run dev-integration\.yml --ref dev/);
   const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
+  assert.match(monitor, /if test "\$expected_tree" = "\$base_tree"; then[\s\S]*gh pr close "\$pr_url"[\s\S]*gh workflow run promote-dev\.yml --ref main/);
   const admission = readFileSync("tools/ci/release-request.mjs", "utf8");
   assert.match(admission, /monitor-trusted-pr.yml\/dispatches/);
   assert.doesNotMatch(sync, /gh workflow run monitor-trusted-pr\.yml --ref main/);
