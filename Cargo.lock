@@ -706,6 +706,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-home-model"
+version = "0.1.0"
+dependencies = [
+ "conduit-presentation",
+]
+
+[[package]]
 name = "conduit-host-avr-fabrication"
 version = "0.1.0"
 dependencies = [
@@ -1254,6 +1261,7 @@ dependencies = [
  "conduit-core",
  "conduit-creche-model",
  "conduit-form",
+ "conduit-home-model",
  "conduit-human",
  "conduit-kernel",
  "conduit-observatory",
@@ -4957,6 +4965,7 @@ dependencies = [
  "conduit-data",
  "conduit-embedded-build",
  "conduit-form",
+ "conduit-home-model",
  "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",
  "conduit-host-conduitos-fabrication",
