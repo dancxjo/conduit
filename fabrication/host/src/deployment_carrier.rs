@@ -105,10 +105,7 @@ pub enum DeploymentCarrierRefusal {
 }
 
 impl DeploymentCarrierDescriptor {
-    pub fn validate_request(
-        &self,
-        request: &DeploymentCarrierRequest<'_>,
-    ) -> Result<(), DeploymentCarrierRefusal> {
+    pub fn validate(&self) -> Result<(), DeploymentCarrierRefusal> {
         if self.schema != DEPLOYMENT_CARRIER_SCHEMA
             || !bounded(&self.carrier_id)
             || !bounded(&self.target_id)
@@ -118,6 +115,14 @@ impl DeploymentCarrierDescriptor {
         {
             return Err(DeploymentCarrierRefusal::InvalidDescriptor);
         }
+        Ok(())
+    }
+
+    pub fn validate_request(
+        &self,
+        request: &DeploymentCarrierRequest<'_>,
+    ) -> Result<(), DeploymentCarrierRefusal> {
+        self.validate()?;
         if request.carrier_id != self.carrier_id {
             return Err(DeploymentCarrierRefusal::WrongCarrier);
         }
