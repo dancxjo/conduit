@@ -41,6 +41,7 @@ struct Start {
 struct RemoteAbi {
     execution: RemoteExecution,
     pending: Option<PendingHostEffect>,
+    complete: bool,
     active_play_id: conduit_core::ActivePlayId,
     endpoints: Vec<RemoteEndpointId>,
     sessions: Vec<RemoteSession>,
@@ -199,6 +200,7 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
             *state.borrow_mut() = Some(RemoteAbi {
                 execution,
                 pending: None,
+                complete: false,
                 active_play_id: start.active_play_id,
                 endpoints,
                 sessions,
@@ -397,7 +399,10 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                 Ok(WAITING)
             }
             DriveStatus::Quiescent => Ok(QUIESCENT),
-            DriveStatus::SemanticCompleted => Ok(COMPLETE),
+            DriveStatus::SemanticCompleted => {
+                state.complete = true;
+                Ok(COMPLETE)
+            }
         }
     })
 }
@@ -528,6 +533,52 @@ pub extern "C" fn conduit_browser_remote_terminal(endpoint: u16) -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_remote_finish() -> i32 {
+    with_state(|state| {
+        if !state.complete || state.pending.is_some() {
+            return Err("browser remote fragment has not completed".into());
+        }
+        for session in &state.sessions {
+            if session.direction == conduit_plan_lowering::lowering::RemoteCordDirection::Egress {
+                if !state.execution.terminal(session.endpoint)? {
+                    return Err("browser remote egress is not terminal".into());
+                }
+            } else if !session.machine.checkpoint().input_closed {
+                return Err("browser remote ingress has not observed input close".into());
+            }
+        }
+        let mut frames = Vec::with_capacity(state.sessions.len() * 2);
+        for session in &mut state.sessions {
+            let final_sequence = session.machine.next_sequence();
+            if session.direction == conduit_plan_lowering::lowering::RemoteCordDirection::Egress {
+                let closed = session
+                    .binding
+                    .frame(SessionMessage::InputClosed { final_sequence });
+                session
+                    .machine
+                    .admit_outbound(closed)
+                    .map_err(|error| format!("admit browser remote input close: {error:?}"))?;
+                frames.push(encode_frame(&session.binding, closed)?);
+            }
+            let terminal = session.binding.frame(SessionMessage::Terminal {
+                disposition: conduit_wire::SessionTerminalDisposition::Completed,
+                final_sequence,
+            });
+            session
+                .machine
+                .admit_outbound(terminal)
+                .map_err(|error| format!("admit browser remote terminal: {error:?}"))?;
+            frames.push(encode_frame(&session.binding, terminal)?);
+        }
+        write_json(&serde_json::json!({
+            "schema": "conduit.browser/remote-session-finished@1",
+            "frames": frames,
+        }))?;
+        Ok(TERMINAL)
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_remote_cancel() -> i32 {
     with_state(|state| {
         state.execution.cancel()?;
@@ -647,5 +698,93 @@ mod tests {
         }
         assert_eq!(peer.next_sequence(), 1);
         assert_eq!(conduit_browser_remote_cancel(), OK);
+    }
+
+    #[test]
+    fn completed_remote_fragment_closes_input_and_exchanges_terminal_truth() {
+        let (plan, source, _, binding) =
+            crate::form_runner::remote_execution::tests::finite_fixture();
+        let hello = encode_frame(&binding, binding.hello_frame()).unwrap();
+        let observations = crate::form_runner::remote_execution::tests::observations(&source);
+        let start = serde_json::to_vec(&serde_json::json!({
+            "plan": plan,
+            "host": source,
+            "session_hellos": [hello],
+            "active_play_id": binding.source_active_play_id,
+            "observations": observations,
+        }))
+        .unwrap();
+        INPUT.with(|input| input.borrow_mut()[..start.len()].copy_from_slice(&start));
+        assert_eq!(conduit_browser_remote_start(start.len() as u32), OK);
+        let started = OUTPUT
+            .with(|output| serde_json::from_slice::<serde_json::Value>(&output.borrow()).unwrap());
+        let initial_frames =
+            serde_json::from_value::<Vec<Vec<u8>>>(started["initial_frames"].clone()).unwrap();
+        let mut peer = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
+        peer.admit_outbound(binding.hello_frame()).unwrap();
+        for bytes in initial_frames {
+            peer.admit_inbound(
+                decode_session_frame(&bytes, CAPACITY as u32, CAPACITY as u32).unwrap(),
+            )
+            .unwrap();
+        }
+        let ready = binding.frame(SessionMessage::Ready);
+        peer.admit_outbound(ready).unwrap();
+        let ready = encode_frame(&binding, ready).unwrap();
+        INPUT.with(|input| input.borrow_mut()[..ready.len()].copy_from_slice(&ready));
+        assert_eq!(conduit_browser_remote_exchange(ready.len() as u32), OK);
+
+        assert_eq!(conduit_browser_remote_drive(), WAITING);
+        assert_eq!(conduit_browser_remote_offer_frame(0), OFFER);
+        let offered = OUTPUT
+            .with(|output| serde_json::from_slice::<serde_json::Value>(&output.borrow()).unwrap());
+        let offered = serde_json::from_value::<Vec<u8>>(offered["frame"].clone()).unwrap();
+        let offered = decode_session_frame(&offered, CAPACITY as u32, CAPACITY as u32).unwrap();
+        assert!(matches!(
+            offered.message,
+            SessionMessage::Offered {
+                sequence: 0,
+                payload: b"hello"
+            }
+        ));
+        peer.admit_inbound(offered).unwrap();
+        for message in [
+            SessionMessage::Accepted { sequence: 0 },
+            SessionMessage::Delivered { sequence: 0 },
+        ] {
+            let frame = binding.frame(message);
+            peer.admit_outbound(frame).unwrap();
+            let bytes = encode_frame(&binding, frame).unwrap();
+            INPUT.with(|input| input.borrow_mut()[..bytes.len()].copy_from_slice(&bytes));
+            assert_eq!(conduit_browser_remote_exchange(bytes.len() as u32), OK);
+        }
+        assert_eq!(conduit_browser_remote_drive(), COMPLETE);
+        assert_eq!(conduit_browser_remote_finish(), TERMINAL);
+        let finished = OUTPUT
+            .with(|output| serde_json::from_slice::<serde_json::Value>(&output.borrow()).unwrap());
+        assert_eq!(
+            finished["schema"],
+            "conduit.browser/remote-session-finished@1"
+        );
+        let frames = serde_json::from_value::<Vec<Vec<u8>>>(finished["frames"].clone()).unwrap();
+        assert_eq!(frames.len(), 2);
+        for bytes in frames {
+            peer.admit_inbound(
+                decode_session_frame(&bytes, CAPACITY as u32, CAPACITY as u32).unwrap(),
+            )
+            .unwrap();
+        }
+        assert_eq!(peer.checkpoint().next_sequence, 1);
+        let terminal = binding.frame(SessionMessage::Terminal {
+            disposition: conduit_wire::SessionTerminalDisposition::Completed,
+            final_sequence: 1,
+        });
+        peer.admit_outbound(terminal).unwrap();
+        let terminal = encode_frame(&binding, terminal).unwrap();
+        INPUT.with(|input| input.borrow_mut()[..terminal.len()].copy_from_slice(&terminal));
+        assert_eq!(conduit_browser_remote_exchange(terminal.len() as u32), OK);
+        let exchanged = OUTPUT
+            .with(|output| serde_json::from_slice::<serde_json::Value>(&output.borrow()).unwrap());
+        assert_eq!(exchanged["active"], false);
     }
 }
