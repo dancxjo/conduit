@@ -22,6 +22,8 @@ mod application;
 pub use application::*;
 mod body_startup;
 pub use body_startup::*;
+mod pitch_tone;
+pub use pitch_tone::*;
 mod input_semantics;
 pub use input_semantics::*;
 mod text_state;

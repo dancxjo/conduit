@@ -1,6 +1,9 @@
+import { createPitchTonePerformer } from "../../../targets/browser/host/assets/browser-form-effects.mjs";
+
 // Adapts effects admitted by the production kernel to this browser laboratory.
 export function createTourEffectPerformer({ api, runner, humanInput, openHumanInput, isCurrent,
   delay, renderIdentities, renderRunIdentities, renderMorse, setIndicator }) {
+  const tone = createPitchTonePerformer(globalThis);
   return async (progress, signal) => {
     if (typeof progress?.active_play_id === "string") {
       renderRunIdentities(runner, progress);
@@ -50,6 +53,9 @@ export function createTourEffectPerformer({ api, runner, humanInput, openHumanIn
         api.conduit_browser_form_output_len(),
       ).slice();
       return encoded;
+    } else if (progress.effect_kind === "pitch-tone") {
+      await tone(progress, signal);
+      runner.playStatus.ordinary(`Played admitted ${progress.hertz} Hz tone; continuing the same Play…`);
     } else if (progress.effect_kind === "manifestation") {
       runner.querySelector(".morse").textContent =
         progress.text ?? renderMorse(progress.segments);

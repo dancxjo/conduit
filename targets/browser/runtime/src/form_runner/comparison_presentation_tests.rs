@@ -240,6 +240,7 @@ fn canonical_secret_knock_demo_runs_two_attempts_in_one_play() {
         session.pending.iter().map(|effect| match &effect.effect {
             engine::BrowserHostEffect::ClockObservation => "clock",
             engine::BrowserHostEffect::AudioCue => "audio",
+            engine::BrowserHostEffect::PitchTone { .. } => "pitch-tone",
             engine::BrowserHostEffect::ButtonTransition => "button",
             engine::BrowserHostEffect::Manifestation(_) => "manifestation",
             engine::BrowserHostEffect::Timer { .. } => "timer",

@@ -14,7 +14,9 @@ const HELLO_LIGHT: &str = r#"form hello-light {
 
 fn manifestation(effect: TourHostEffect) -> TourEffect {
     match effect {
-        TourHostEffect::ClockObservation(_) | TourHostEffect::AudioCue(_) => {
+        TourHostEffect::ClockObservation(_)
+        | TourHostEffect::AudioCue(_)
+        | TourHostEffect::PitchTone(_) => {
             panic!("unexpected clock or audio effect")
         }
         TourHostEffect::Manifestation(effect) => *effect,
@@ -597,7 +599,9 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
                 "timer:{}:{}",
                 timer.duration_millis, timer.request_sequence
             )),
-            TourHostEffect::ClockObservation(_) | TourHostEffect::AudioCue(_) => {
+            TourHostEffect::ClockObservation(_)
+            | TourHostEffect::AudioCue(_)
+            | TourHostEffect::PitchTone(_) => {
                 panic!("unexpected clock or audio effect")
             }
             TourHostEffect::Snapshot(_) => panic!("timer fixture requested Resource storage"),

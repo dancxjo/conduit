@@ -61,6 +61,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_body_startup_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_pitch_tone_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;

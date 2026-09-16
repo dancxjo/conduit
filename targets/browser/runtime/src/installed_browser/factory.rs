@@ -95,6 +95,9 @@ impl BrowserMachinery {
         if installation.implementation_id == super::startup_chime::IMPLEMENTATION {
             return self.audio;
         }
+        if installation.implementation_id == super::pitch_tone::IMPLEMENTATION {
+            return self.audio;
+        }
         let offer = (installation.offer)();
         if offer
             .resource_requirements

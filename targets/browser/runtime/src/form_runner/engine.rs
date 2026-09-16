@@ -102,6 +102,7 @@ pub(super) struct PendingHostEffect {
 
 pub(super) enum BrowserHostEffect {
     AudioCue,
+    PitchTone { hertz: u32 },
     ClockObservation,
     Timer { duration_millis: u64 },
     Snapshot { publish: bool },
@@ -274,6 +275,23 @@ fn drive_with_boundary<'a>(
                     )
                     .map_err(debug_error)?;
                 continue;
+            }
+            if operation.contract_id.as_str()
+                == crate::installed_browser::pitch_tone::HOST_OPERATION
+            {
+                let quantity = conduit_core::Quantity::decode(&input)
+                    .map_err(|error| format!("pitch tone quantity: {error:?}"))?
+                    .convert(conduit_core::QuantityUnit::Hertz)
+                    .map_err(|error| format!("pitch tone frequency: {error:?}"))?;
+                let hertz = u32::try_from(quantity.value())
+                    .map_err(|_| "pitch tone frequency must be positive".to_string())?;
+                if !(20..=20_000).contains(&hertz) {
+                    return Err("pitch tone frequency must be between 20 Hz and 20000 Hz".into());
+                }
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::PitchTone { hertz },
+                }));
             }
             if operation.contract_id.as_str() == crate::installed_browser::KEY_EVENT_OPERATION {
                 return Ok(DriveStatus::Effect(PendingHostEffect {
