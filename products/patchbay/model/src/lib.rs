@@ -59,6 +59,7 @@ mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
 mod lifecycle_explanation;
+mod live_conversation_flow;
 mod llm_documentary;
 mod llm_embodiment_presentation;
 mod llm_presentation;
@@ -242,6 +243,7 @@ pub use learned_watch::{
     MAX_OBJECTIVE_COMPONENTS, MAX_PROBABILISTIC_ALTERNATIVES, MAX_SIGNAL_POINTS, MAX_TENSOR_AXES,
     MAX_TENSOR_SLICE_VALUES,
 };
+pub use live_conversation_flow::*;
 #[cfg(test)]
 pub use llm_documentary::llm_documentary_presentation;
 pub use llm_documentary::llm_documentary_presentation_with_adapter;
