@@ -10,19 +10,20 @@ function startServer() {
   return {process,lines,url};
 }
 const openRelatedSubjects=page=>page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
+const openForm=async page=>{await page.getByRole("button",{name:"Form",exact:true}).focus();await page.keyboard.press("Enter");await page.locator("#toggle-inspector").focus();await page.keyboard.press("Enter");};
 
 test("exact Gear realization FOLLOW crosses Program and Body then returns",async({page})=>{
   const server=startServer();
   try {
     const url=await server.url;await page.goto(url);
     const before=await(await fetch(`${url}/api/snapshot`)).json();
-    await page.locator("#toggle-palette").click();
+    await openForm(page);
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     const gear=page.locator('#subjects [data-application-component="choice-option-label"]')
       .filter({hasText:"hello/upper"}).locator('input[type="radio"][data-role="Gear"]');
     const gearIdentity=await gear.getAttribute("data-subject");
     await gear.click();
-    await page.getByRole("button",{name:"Plan",exact:true}).click();
+    await page.getByRole("button",{name:"Realization",exact:true}).click();
     await page.locator(`#structured-navigator input[type="radio"][data-subject="${gearIdentity.replaceAll('"','\\"')}"]`).click();
     const follow=page.locator("#structured-navigator").getByRole("radio",{name:/Follow Realizes to Host:/}).first();
     await expect(follow).toBeVisible();
@@ -59,6 +60,7 @@ test("a delayed navigation response cannot replace a newer cursor",async({page})
   try {
     const url=await server.url;
     await page.goto(url);
+    await openForm(page);
     await openRelatedSubjects(page);
     await page.route("**/api/navigation",async route=>{
       const operation=route.request().postDataJSON().operation;
@@ -69,7 +71,6 @@ test("a delayed navigation response cannot replace a newer cursor",async({page})
       }
       await route.fulfill({response});
     });
-    await page.locator("#toggle-palette").click();
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     await page.locator('#subjects [data-application-component="choice-option-label"]')
       .filter({hasText:"hello/upper"}).locator('input[type="radio"][data-role="Gear"]').click();
@@ -110,12 +111,13 @@ test("a refused navigation response releases its pending controls",async({page})
   page.on("pageerror",error=>errors.push(error.message));
   try {
     await page.goto(await server.url);
+    await openForm(page);
     await openRelatedSubjects(page);
     await page.route("**/api/navigation",async route=>{
       observed();await held;
       await route.fulfill({status:409,body:"diagnostic navigation refusal"});
     });
-    await page.getByRole("button",{name:"Plan",exact:true}).click();
+    await page.getByRole("button",{name:"Realization",exact:true}).click();
     await captured;
     await expect(page.locator("#structured-navigator")).toHaveJSProperty("inert",true);
     release();

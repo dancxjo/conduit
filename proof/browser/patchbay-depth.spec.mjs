@@ -14,8 +14,9 @@ test("Inspect and advanced evidence preserve portable identity and Back",async({
   const server=startServer();
   try {
     const url=await server.url;await page.goto(url);
+    await page.getByRole("button",{name:"Form",exact:true}).focus();await page.keyboard.press("Enter");
     const original=await(await fetch(`${url}/api/snapshot`)).json();
-    await page.locator("#toggle-palette").click();
+    await page.locator("#toggle-inspector").focus();await page.keyboard.press("Enter");
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     const gear=page.locator('#subjects input[type="radio"][data-role="Gear"]').first();
     const identity=await gear.getAttribute("data-subject");
@@ -29,7 +30,7 @@ test("Inspect and advanced evidence preserve portable identity and Back",async({
 
     await page.locator("#deep-inspection > summary").click();
     const exact=await(await fetch(`${url}/api/snapshot`)).json();
-    expect(exact.navigation.cursor.depth).toBe("Detail");
+    expect(exact.navigation.cursor.depth).toBe("Exact");
     expect(exact.presentation.identity).toBe(original.presentation.identity);
     expect(exact.presentation.basis).toEqual(original.presentation.basis);
     await expect(page.locator("#deep-inspection")).toBeVisible();

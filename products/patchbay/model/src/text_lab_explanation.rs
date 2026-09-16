@@ -13,8 +13,8 @@ use conduit_observatory::{
 use conduit_presentation::{
     NavigationOperation, NavigationState, Presentation, PresentationAction,
     PresentationActionAvailability, PresentationAspect, PresentationCursor, PresentationDepth,
-    PresentationDisclosureLevel, PresentationPropertyValue, PresentationRelationshipKind,
-    PresentationRole, MAX_NAVIGATION_HISTORY,
+    PresentationDisclosureLevel, PresentationPlace, PresentationPropertyValue,
+    PresentationRelationshipKind, PresentationRole, MAX_NAVIGATION_HISTORY,
 };
 use conduit_semantic_catalog::TextLabLineLossReceipt;
 use conduit_semantic_catalog::{
@@ -180,6 +180,12 @@ fn text_lab_explanation(
         MAX_NAVIGATION_HISTORY,
     )
     .map_err(|error| format!("{error:?}"))?;
+    navigate(
+        &mut state,
+        &presentation,
+        &navigation,
+        NavigationOperation::Enter(PresentationPlace::Program),
+    )?;
     navigate(
         &mut state,
         &presentation,

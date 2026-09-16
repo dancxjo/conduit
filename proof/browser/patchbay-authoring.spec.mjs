@@ -76,7 +76,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     await page.goto(server.url);
     await page.getByRole("button", { name: "Open Form Empty Form" }).click();
     await expect(page.getByRole("heading", { name: "Gears · reusable Kinds" })).toBeVisible();
-    await expect(page.locator("#gear-results-status")).toContainText("71 of 71 Gears");
+    await expect(page.locator("#gear-results-status")).toContainText("74 of 74 Gears");
 
     const search = page.getByRole("searchbox", { name: "Find Forms, Gears, and Parts" });
     await search.fill("text literal");
