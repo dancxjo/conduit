@@ -93,7 +93,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-check")
         .collect();
-    assert_eq!(reusable.len(), 29);
+    assert_eq!(reusable.len(), 30);
     assert!(reusable.iter().all(|result| {
         result.status == "passed"
             && result.source_document_id.is_some()
