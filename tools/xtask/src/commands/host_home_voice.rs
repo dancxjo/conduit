@@ -156,13 +156,17 @@ pub(super) fn run(
         "input": {
             "plan_id": recognition.plan_id,
             "play_id": recognition.play_id,
-            "recognized_text": transcript,
+            "recognized_text_sha256": recognition.recognized_text_sha256,
+            "recognized_text_bytes": recognition.recognized_text_bytes,
         },
         "home_action": action_name,
-        "spoken_text": spoken,
         "output": {
             "plan_id": synthesis.plan_id.as_str(),
             "play_id": synthesis.active_play_id.as_str(),
+            "spoken_text_sha256": synthesis.text_sha256,
+            "pcm_sha256": synthesis.pcm_sha256,
+            "frames": synthesis.frames,
+            "blocks": synthesis.blocks,
             "alsa_target": speech.alsa_target,
         },
     });
