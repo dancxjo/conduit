@@ -453,21 +453,6 @@ pub fn run(
                                 .as_bytes(),
                         );
                     }
-                    crate::front_door::HomeInput::Inspect(subject) => {
-                        arch::early_write(
-                            format!("CONDUIT_HOME_CHECKPOINT inspect-requested {subject}\n")
-                                .as_bytes(),
-                        );
-                        presenter
-                            .present(&front_door, display)
-                            .map_err(|error| error.as_str())?;
-                    }
-                    crate::front_door::HomeInput::Wake => {
-                        arch::early_write(b"CONDUIT_HOME_CHECKPOINT wake-current\n");
-                        presenter
-                            .present(&front_door, display)
-                            .map_err(|error| error.as_str())?;
-                    }
                 }
                 return Ok(ProductInputControl::Continue);
             }

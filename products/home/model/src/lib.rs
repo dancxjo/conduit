@@ -123,8 +123,6 @@ pub enum HomeAction {
     OpenCreche,
     OpenForm(usize),
     RunForm(usize),
-    Inspect(String),
-    Wake,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -386,14 +384,20 @@ impl HomeModel {
         let (verb, argument) = command.split_once(' ').unwrap_or((&command, ""));
         match (verb, argument.trim()) {
             ("help", "") => {
-                self.output = "home  open <place>  forms  run <form>  inspect <thing>  body  hosts  lines  wake".into();
+                self.output = "home · open tour|patchbay|forms|body|prompt|creche · forms · run <installed form> · inspect <installed form>|body · body · hosts/lines/wake (unavailable on this face)".into();
             }
             ("home", "") => {
                 self.view = HomeView::Launcher;
                 self.output = "Home".into();
             }
             ("forms", "") => self.view = HomeView::Forms,
-            ("body", "") | ("hosts", "") | ("lines", "") => self.view = HomeView::Body,
+            ("body", "") => self.view = HomeView::Body,
+            ("hosts", "") => {
+                self.output = "Host inspection is unavailable on this Home face; open Patchbay for current Host truth.".into();
+            }
+            ("lines", "") => {
+                self.output = "Line inspection is unavailable on this Home face; open Patchbay for current Line truth.".into();
+            }
             ("open", "tour") => return HomeAction::OpenTour,
             ("open", "patchbay") => return HomeAction::OpenPatchbay,
             ("open", "forms") => self.view = HomeView::Forms,
@@ -408,11 +412,21 @@ impl HomeModel {
                 self.output = format!("No installed Form named {requested}.");
             }
             ("inspect", "") => self.output = "inspect needs a visible subject.".into(),
-            ("inspect", subject) => {
-                self.output = format!("Inspect {subject} from Forms or Body.");
-                return HomeAction::Inspect(subject.into());
+            ("inspect", "body") => {
+                self.view = HomeView::Body;
+                self.output = "Body summary".into();
             }
-            ("wake", "") => return HomeAction::Wake,
+            ("inspect", subject) => {
+                if let Some(index) = resolve_form(subject, installed_forms) {
+                    return HomeAction::OpenForm(index);
+                }
+                self.output = format!("Cannot inspect unresolved subject {subject}.");
+            }
+            ("wake", "") => {
+                self.output =
+                    "Wake is unavailable on this Home face; no lifecycle authority is attached."
+                        .into();
+            }
             ("", "") => {}
             _ => self.output = format!("Unknown command: {command}"),
         }
