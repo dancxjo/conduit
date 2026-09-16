@@ -18,6 +18,7 @@ conduit-rp2040-network-realization = { path = "../../targets/rp2040/network-real
 conduit-host-conduitos-fabrication = { path = "../../targets/conduitos/fabrication" }
 conduit-host-browser-fabrication = { path = "../../targets/browser/fabrication" }
 conduit-home-model = { path = "../../products/home/model" }
+conduit-home-native = { path = "../../products/home/native" }
 clap = { version = "4", features = ["derive"] }
 cliclack = "0.5.6"
 console = "0.16"

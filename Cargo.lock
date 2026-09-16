@@ -5025,6 +5025,7 @@ dependencies = [
  "conduit-embedded-build",
  "conduit-form",
  "conduit-home-model",
+ "conduit-home-native",
  "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",
  "conduit-host-conduitos-fabrication",

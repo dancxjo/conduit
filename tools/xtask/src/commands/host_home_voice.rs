@@ -19,6 +19,9 @@ use std::time::Duration;
 
 const FORMS: [&str; 4] = ["Hello", "Text Lab", "Clock", "Count"];
 
+#[path = "host_home_voice_journey.rs"]
+mod journey;
+
 #[derive(Args, Debug)]
 pub(super) struct HomeVoiceArgs {
     #[arg(long)]
@@ -53,6 +56,9 @@ pub(super) struct HomeVoiceArgs {
     authorize_capture: bool,
     #[arg(long)]
     authorize_output: bool,
+    /// Perform the exact multi-turn shared Home journey instead of one command.
+    #[arg(long)]
+    complete_journey: bool,
     /// Retain a strict physical Voice face receipt in this new directory.
     #[arg(long)]
     evidence_root: Option<PathBuf>,
@@ -69,6 +75,9 @@ pub(super) fn run(
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     validate(&request)?;
+    if request.complete_journey {
+        return journey::run(&request, opts);
+    }
     if opts.dry_run {
         if opts.json {
             println!("{{\"schema\":\"conduit.home/voice-face@1\",\"dry_run\":true}}");
