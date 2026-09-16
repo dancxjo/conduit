@@ -4,6 +4,7 @@ const decoder = new TextDecoder('utf-8', { fatal: true });
 
 export function openWorkspaceSession({ host, storage }) {
   const api = host.runtime;
+  const localAdvertisement = host.membership.advertisement();
   let sequence = 0;
   let write = Promise.resolve();
   let persistenceFailure = null;
@@ -92,7 +93,7 @@ export function openWorkspaceSession({ host, storage }) {
       await save();
     },
     foreground: () => workspace ? request('Current').foreground : null,
-    arrive() { if (!workspace) request('Arrive'); return save(); },
+    arrive() { if (!workspace) request('Arrive', { advertisement: localAdvertisement }); return save(); },
     evidence: () => workspace ? request('Current') : null,
     async propose(source) {
       if (persistenceFailure) throw persistenceFailure;
@@ -123,7 +124,7 @@ export function openWorkspaceSession({ host, storage }) {
     },
     async openAdmitted(durable) {
       if (workspace) throw new Error('Close the current Body before joining another Body');
-      request('OpenAdmitted', { evidence: durable.evidence, admission: durable.admission, ...here });
+      request('OpenAdmitted', { evidence: durable.evidence, admission: durable.admission, advertisement: localAdvertisement, ...here });
       if (durable.foreground) request('SelectForm', { form: durable.foreground });
       await save();
       return workspace;
@@ -132,7 +133,7 @@ export function openWorkspaceSession({ host, storage }) {
       const snapshot = await storage.readJson('body-session');
       if (snapshot === null) return null;
       if (snapshot.schema === 'conduit.workspace/body@1') {
-        request('Restore', { evidence: snapshot.evidence, admission: snapshot.admission ?? null, ...here });
+        request('Restore', { evidence: snapshot.evidence, admission: snapshot.admission ?? null, advertisement: localAdvertisement, ...here });
         if (snapshot.foreground) request('SelectForm', { form: snapshot.foreground });
         await save();
         return workspace;

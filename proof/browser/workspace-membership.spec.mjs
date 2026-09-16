@@ -39,6 +39,15 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   expect(receiver).toEqual(authority);
   expect(new Set(authority.parts.map(part => part.current.host_id)).size).toBe(2);
   expect(authority.parts.every(part => part.state === "Admitted" && part.current)).toBe(true);
+  const authorityOffers = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().current_host_offers);
+  const receiverOffers = await joining.evaluate(() => globalThis.__conduitWorkspace.evidence().current_host_offers);
+  expect(authorityOffers).toHaveLength(2);
+  expect(receiverOffers).toHaveLength(1);
+  for (const offer of authorityOffers) {
+    const member = authority.parts.find(part => part.current.host_id === offer.host_id);
+    expect(offer.boot_id).toBe(member.current.boot_id);
+    expect(offer.offer_generation).toBe(member.current.offer_generation);
+  }
 
   await joining.close();
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
@@ -48,6 +57,9 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   const restored = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
   expect(restored.parts.filter(part => part.current)).toHaveLength(1);
   expect(restored.parts.filter(part => !part.current && part.state === "Admitted")).toHaveLength(1);
+  const restoredOffers = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().current_host_offers);
+  expect(restoredOffers).toHaveLength(1);
+  expect(restoredOffers[0].host_id).toBe(restored.parts.find(part => part.current).current.host_id);
 });
 
 test("malformed invitation framing is refused without creating a Body", async ({ page }) => {

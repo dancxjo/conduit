@@ -3,9 +3,12 @@ use conduit_body::{
     BodyPlayIdentity, BodyState, MembershipProofId, PartId, ResidentForm, WakeLifecycle,
 };
 use conduit_core::{
-    BootId, ExpandedFormId, FormIdentity, HostId, OfferGeneration, bind_sign, seal_plan,
+    BootId, ExpandedFormId, FormIdentity, HostAdvertisement, HostId, HostProfileId,
+    OfferGeneration, PROTOCOL_VERSION, bind_sign, seal_plan,
 };
-use conduit_workspace_model::{WorkspaceBody, WorkspaceBodyError};
+use conduit_workspace_model::{
+    CurrentHostOfferError, CurrentHostOffers, WorkspaceBody, WorkspaceBodyError,
+};
 
 fn host() -> HostId {
     "host/here".into()
@@ -62,6 +65,18 @@ fn born() -> WorkspaceBody {
         .unwrap();
     WorkspaceBody::open(evidence).unwrap()
 }
+fn advertisement(host_id: HostId, boot_id: BootId, generation: u64) -> HostAdvertisement {
+    HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id,
+        boot_id,
+        offer_generation: OfferGeneration(generation),
+        profile: HostProfileId::from("test/current-offers@1"),
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    }
+}
 fn plans(body: &WorkspaceBody) -> Vec<BodyFormPlan> {
     body.evidence()
         .body
@@ -102,6 +117,32 @@ fn persist_archives(body: &mut WorkspaceBody) {
     head.validate_as_head_of(body.evidence()).unwrap();
     let digest = head.digest;
     body.acknowledge_archives(digest).unwrap();
+}
+
+#[test]
+fn current_host_offers_require_exact_membership_and_are_reconciled_after_boot_loss() {
+    let body = born();
+    let mut offers = CurrentHostOffers::new();
+    offers
+        .observe(body.evidence(), advertisement(host(), boot(), 1))
+        .unwrap();
+    assert_eq!(offers.hosts().len(), 1);
+    assert_eq!(
+        offers.observe(
+            body.evidence(),
+            advertisement(host(), "boot/stale".into(), 1)
+        ),
+        Err(CurrentHostOfferError::NotCurrentMember)
+    );
+    assert_eq!(
+        offers.observe(body.evidence(), advertisement(host(), boot(), 2)),
+        Err(CurrentHostOfferError::NotCurrentMember)
+    );
+    let resumed =
+        WorkspaceBody::resume_here(body.evidence().clone(), &host(), &"boot/restarted".into())
+            .unwrap();
+    offers.reconcile(resumed.evidence());
+    assert!(offers.hosts().is_empty());
 }
 
 #[test]
