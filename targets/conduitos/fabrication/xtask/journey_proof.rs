@@ -234,27 +234,15 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "ret", "creche-birth")?;
             journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
             artifacts.capture(&mut qmp, &mut reader, "body-awake", true)?;
-            for _ in 0..5 {
-                journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-prompt")?;
+            for _ in 0..2 {
+                journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-forms")?;
             }
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
-                "CONDUIT_HOME_STATE launcher 5",
-                "product-journey-home-prompt-selection-timeout",
+                "CONDUIT_HOME_STATE launcher 2",
+                "product-journey-home-forms-selection-timeout",
             )?;
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-prompt")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_HOME_STATE prompt 5",
-                "product-journey-home-prompt-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "home-prompt", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-leave-prompt")?;
-            for _ in 0..3 {
-                journey_input::key_pair(&mut qmp, &mut reader, "up", "home-select-forms")?;
-            }
             journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-forms")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
@@ -264,7 +252,49 @@ fn execute_image(
             )?;
             artifacts.capture(&mut qmp, &mut reader, "home-forms", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-leave-forms")?;
-            journey_input::key_pair(&mut qmp, &mut reader, "up", "home-select-patchbay")?;
+            for _ in 0..3 {
+                journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-prompt")?;
+            }
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-prompt")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_STATE prompt 5",
+                "product-journey-home-prompt-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-prompt", true)?;
+            for (index, key) in [
+                "r", "u", "n", "spc", "k", "e", "y", "b", "o", "a", "r", "d", "spc", "c", "a", "n",
+                "v", "a", "s",
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                journey_input::key_pair(&mut qmp, &mut reader, key, "home-type-run-form")?;
+                hid_qmp::wait_for_stage_count(
+                    &serial_path,
+                    &mut child,
+                    "CONDUIT_HOME_STATE prompt 5",
+                    index + 2,
+                    "product-journey-home-command-input-timeout",
+                )?;
+            }
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-run-form")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_CHECKPOINT form-run conduitos-keyboard-upper",
+                "product-journey-home-run-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-play-observed", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-return-after-play")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_CHECKPOINT returned",
+                "product-journey-home-post-play-return-timeout",
+            )?;
+            journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-patchbay")?;
             journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-patchbay")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
@@ -274,10 +304,11 @@ fn execute_image(
             )?;
             artifacts.capture(&mut qmp, &mut reader, "home-patchbay-open", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "patchbay-return-home")?;
-            hid_qmp::wait_for_stage(
+            hid_qmp::wait_for_stage_count(
                 &serial_path,
                 &mut child,
                 "CONDUIT_HOME_CHECKPOINT returned",
+                2,
                 "product-journey-home-return-timeout",
             )?;
             artifacts.capture(&mut qmp, &mut reader, "home-returned", true)?;
@@ -747,6 +778,9 @@ fn execute_image(
             return Err(error);
         }
         eprintln!("failure artifact error: {error}");
+    }
+    if result.is_ok() {
+        super::home_face_evidence::retain(&paths.target)?;
     }
     result
 }

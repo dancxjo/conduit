@@ -4,10 +4,10 @@ use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
 // The complete seven-page Tour adds per-exercise and per-page evidence to the
-// ordinary resident-Form journey. Forty-six retains the exact forty-five
+// ordinary resident-Form journey. Forty-seven retains the exact forty-six
 // normal checkpoints, including Home/Prompt/Forms/return, plus one
 // failure frame without coalescing distinct proof checkpoints.
-const MAX_CHECKPOINTS: usize = 46;
+const MAX_CHECKPOINTS: usize = 47;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
@@ -48,7 +48,7 @@ impl Artifacts {
         if self.entries.len() >= MAX_CHECKPOINTS {
             return Err(ConduitosError::refusal(
                 "qemu-display-checkpoint-bound",
-                "at most forty-six captures admitted",
+                "at most forty-seven captures admitted",
             ));
         }
         let mut serial = Vec::new();
@@ -169,7 +169,7 @@ fn journey_step_ids(checkpoint: &str) -> &'static [&'static str] {
             conduit_home_model::FORM_SELECTED_STEP_ID,
         ],
         "home-prompt" => &[conduit_home_model::PROMPT_OPENED_STEP_ID],
-        "input-continued" => &[
+        "home-play-observed" => &[
             conduit_home_model::FORM_RUN_STEP_ID,
             conduit_home_model::PLAY_OBSERVED_STEP_ID,
         ],
