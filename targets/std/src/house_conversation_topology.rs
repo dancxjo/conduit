@@ -11,6 +11,8 @@ pub(crate) type HouseConnectionEndpoints = (GearId, PortId, GearId, PortId);
 
 pub(crate) struct HouseConversationTopology {
     pub entry: &'static str,
+    /// Exact reviewed source document checked to produce `expanded`.
+    pub source: &'static str,
     pub expanded: ExpandedCanonicalForm,
     pub connection_limits:
         BTreeMap<HouseConnectionEndpoints, conduit_planner::ConnectionQueueLimits>,
@@ -42,7 +44,7 @@ pub(crate) fn build(
         &mut startup,
         &mut profiles,
     );
-    let source = concat!(
+    const SOURCE: &str = concat!(
         include_str!("../../../forms/addressed-utterance/main.conduit"),
         "\n",
         include_str!("../../../forms/house-conversation/main.conduit"),
@@ -50,7 +52,7 @@ pub(crate) fn build(
         include_str!("../proof/recorded-house/main.conduit"),
     );
     let checked =
-        check_syntax_document(&parse_syntax_document(source), &startup).map_err(|error| {
+        check_syntax_document(&parse_syntax_document(SOURCE), &startup).map_err(|error| {
             format!(
                 "recorded House Form check: {} {} at {}:{}",
                 error.code, error.message, error.span.line, error.span.column
@@ -105,6 +107,7 @@ pub(crate) fn build(
     }
     Ok(HouseConversationTopology {
         entry,
+        source: SOURCE,
         expanded,
         connection_limits,
     })
