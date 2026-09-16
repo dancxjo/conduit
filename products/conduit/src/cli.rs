@@ -89,6 +89,26 @@ pub(crate) enum HostCommand {
         #[command(subcommand)]
         command: HostServiceCommand,
     },
+    /// Obtain the reviewed release manifest for one target from an installed mirror.
+    Obtain {
+        /// Reviewed target identity to obtain.
+        target: String,
+        /// Bounded release catalog document.
+        #[arg(long)]
+        catalog: PathBuf,
+        /// Exact expected catalog identity from the installed release channel.
+        #[arg(long)]
+        catalog_id: String,
+        /// Local or air-gapped mirror root.
+        #[arg(long)]
+        mirror: PathBuf,
+        /// Immutable content-addressed cache directory.
+        #[arg(long)]
+        cache: PathBuf,
+        /// Refuse catalogs at or below this generation.
+        #[arg(long, default_value_t = 0)]
+        minimum_generation: u64,
+    },
     Check {
         source: PathBuf,
     },
@@ -193,6 +213,27 @@ mod tests {
                 .expect("Home entrance parses")
                 .command,
             Command::Home
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "obtain",
+                "conduitos/x86_64/pc",
+                "--catalog",
+                "release/catalog.json",
+                "--catalog-id",
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--mirror",
+                "release",
+                "--cache",
+                "installed-cache",
+            ])
+            .expect("installed target obtain entrance parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Obtain { target, .. }
+            } if target == "conduitos/x86_64/pc"
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "creche"])

@@ -13,6 +13,7 @@ mod product_execution;
 #[cfg(test)]
 mod product_execution_tests;
 mod protected_task;
+mod release_obtain;
 mod report_artifact;
 mod std_websocket_line;
 #[cfg(test)]
@@ -255,6 +256,21 @@ fn main() {
         ),
         cli::Command::Host { command } => match command {
             cli::HostCommand::Service { command } => durable_host::dispatch(command),
+            cli::HostCommand::Obtain {
+                target,
+                catalog,
+                catalog_id,
+                mirror,
+                cache,
+                minimum_generation,
+            } => release_obtain::run(
+                &target,
+                &catalog,
+                &catalog_id,
+                &mirror,
+                &cache,
+                minimum_generation,
+            ),
             cli::HostCommand::Rendezvous {
                 state_dir,
                 carrier,
