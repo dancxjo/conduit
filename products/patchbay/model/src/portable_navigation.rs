@@ -330,6 +330,18 @@ fn subject_in_place(
                     | PresentationRole::Capability
             );
     }
+    if place == PresentationPlace::Program
+        && aspect == PresentationAspect::Signs
+        && matches!(
+            role,
+            PresentationRole::Form
+                | PresentationRole::Gear
+                | PresentationRole::Port
+                | PresentationRole::Cord
+        )
+    {
+        return true;
+    }
     if place == PresentationPlace::Program && role == PresentationRole::Form {
         return aspect == PresentationAspect::Structure
             && (has_body
