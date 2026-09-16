@@ -11,14 +11,17 @@ use conduit_core::{
 };
 
 use crate::{
-    llm_contract, ModelDerivedResult, ModelResultDisposition, GENERATED_RESULT_VALUE_KIND,
-    LLM_GENERATE_KIND, TEXT_VALUE_KIND,
+    llm_contract, GeneratedTextChunk, ModelDerivedResult, ModelResultDisposition,
+    GENERATED_RESULT_VALUE_KIND, GENERATED_TEXT_CHUNK_VALUE_KIND, LLM_GENERATE_KIND,
+    MAXIMUM_GENERATED_TEXT_CHUNK_BYTES, MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS, TEXT_VALUE_KIND,
 };
 
 pub const MODEL_RESULT_TO_TEXT_KIND: &str = "llm/result-to-text";
 pub const MODEL_RESULT_FLOW_TO_TEXT_KIND: &str = "llm/result-flow-to-text";
 pub const MODEL_RESULT_TO_TEXT_REVISION: &str = "conduit.llm/result-to-text@1";
 pub const MODEL_RESULT_FLOW_TO_TEXT_REVISION: &str = "conduit.llm/result-flow-to-text@1";
+pub const GENERATED_CHUNK_TO_TEXT_KIND: &str = "llm/generated-chunk-to-text";
+pub const GENERATED_CHUNK_TO_TEXT_REVISION: &str = "conduit.llm/generated-chunk-to-text@1";
 pub const MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES: u32 = 65_536;
 pub const MAXIMUM_MODEL_TEXT_BYTES: u32 = 256;
 
@@ -57,6 +60,40 @@ pub fn model_result_flow_to_text_contract() -> ModelTextContract {
         MODEL_RESULT_FLOW_TO_TEXT_REVISION,
         PortTemporal::Flow { closes: true },
     )
+}
+
+pub fn generated_chunk_to_text_contract() -> ModelTextContract {
+    ModelTextContract {
+        kind_id: kind_id(GENERATED_CHUNK_TO_TEXT_KIND),
+        kind_contract_revision: KindContractRevision::from(GENERATED_CHUNK_TO_TEXT_REVISION),
+        inputs: vec![port_with_temporal(
+            "chunk",
+            GENERATED_TEXT_CHUNK_VALUE_KIND,
+            PortDirection::Input,
+            PortTemporal::Flow { closes: true },
+        )],
+        outputs: vec![port_with_temporal(
+            "text",
+            TEXT_VALUE_KIND,
+            PortDirection::Output,
+            PortTemporal::Flow { closes: true },
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS,
+            max_queue_bytes: MAXIMUM_GENERATED_TEXT_CHUNK_BYTES as u32,
+        },
+    }
+}
+
+pub fn project_generated_chunk_text(chunk: &GeneratedTextChunk) -> Result<&str, ModelTextRefusal> {
+    if chunk.text.is_empty() {
+        return Err(ModelTextRefusal::EmptyText);
+    }
+    if chunk.text.len() > MAXIMUM_GENERATED_TEXT_CHUNK_BYTES {
+        return Err(ModelTextRefusal::TextBoundExceeded);
+    }
+    Ok(&chunk.text)
 }
 
 fn model_text_contract(kind: &str, revision: &str, temporal: PortTemporal) -> ModelTextContract {
@@ -120,6 +157,7 @@ pub fn install_model_text_catalog(
     for contract in [
         model_result_to_text_contract(),
         model_result_flow_to_text_contract(),
+        generated_chunk_to_text_contract(),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().into(),
@@ -200,6 +238,22 @@ mod tests {
         assert_eq!(
             project_generated_text(&encoded(&vec![b'x'; 257], ModelResultDisposition::Produced),),
             Err(ModelTextRefusal::TextBoundExceeded)
+        );
+    }
+
+    #[test]
+    fn generated_chunks_project_as_incremental_text_without_batching() {
+        let chunk = GeneratedTextChunk {
+            sequence: 3,
+            text: "incremental".into(),
+        };
+        assert_eq!(project_generated_chunk_text(&chunk), Ok("incremental"));
+        assert_eq!(
+            project_generated_chunk_text(&GeneratedTextChunk {
+                sequence: 4,
+                text: String::new(),
+            }),
+            Err(ModelTextRefusal::EmptyText)
         );
     }
 }

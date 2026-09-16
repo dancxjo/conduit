@@ -14,6 +14,8 @@ pub const STREAMING_SPEECH_RECOGNIZE_KIND: &str = "speech/recognize-stream";
 pub const STREAMING_SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize-stream@1";
 pub const COMMIT_RECOGNIZED_TURN_KIND: &str = "speech/commit-recognized-turn";
 pub const COMMIT_RECOGNIZED_TURN_REVISION: &str = "conduit.speech/commit-recognized-turn@1";
+pub const COMMITTED_TURN_TO_TEXT_KIND: &str = "speech/committed-turn-to-text";
+pub const COMMITTED_TURN_TO_TEXT_REVISION: &str = "conduit.speech/committed-turn-to-text@1";
 pub const RECOGNITION_EVENT_VALUE_KIND: &str = "speech/recognition-event@1";
 pub const CHAT_MESSAGE_VALUE_KIND: &str = "ChatMessage";
 pub const MAXIMUM_RECOGNITION_EVENT_BYTES: usize = 1_024;
@@ -307,6 +309,43 @@ pub fn committed_recognition_turn_contract() -> SpeechRecognitionContract {
     }
 }
 
+pub fn committed_turn_to_text_contract() -> SpeechRecognitionContract {
+    SpeechRecognitionContract {
+        kind_id: kind_id(COMMITTED_TURN_TO_TEXT_KIND),
+        kind_contract_revision: KindContractRevision::from(COMMITTED_TURN_TO_TEXT_REVISION),
+        inputs: vec![flow_port(
+            "message",
+            CHAT_MESSAGE_VALUE_KIND,
+            PortDirection::Input,
+        )],
+        outputs: vec![flow_port(
+            "text",
+            conduit_text::TEXT_VALUE_KIND,
+            PortDirection::Output,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: MAXIMUM_RECOGNITION_EVENT_ITEMS,
+            max_queue_bytes: MAXIMUM_RECOGNITION_EVENT_BYTES as u32,
+        },
+    }
+}
+
+pub fn project_committed_turn_text(
+    message: &CommittedUserMessage,
+) -> Result<&str, StreamingRecognitionRefusal> {
+    if message.role != "user"
+        || message.source != "committed-external-speech"
+        || message.turn_identity.is_empty()
+        || message.turn_identity.len() > 256
+        || message.text.is_empty()
+        || message.text.len() > MAXIMUM_RECOGNIZED_TEXT_BYTES
+    {
+        return Err(StreamingRecognitionRefusal::InvalidEvent);
+    }
+    Ok(&message.text)
+}
+
 fn validate_event(event: &RecognitionEvent) -> Result<(), StreamingRecognitionRefusal> {
     if event.stream_id.is_empty()
         || event.provider_identity.is_empty()
@@ -469,6 +508,23 @@ mod tests {
         assert_eq!(
             commit.outputs[0].value_kind.as_str(),
             CHAT_MESSAGE_VALUE_KIND
+        );
+    }
+
+    #[test]
+    fn only_committed_external_user_messages_project_to_conversation_text() {
+        let message = CommittedUserMessage {
+            turn_identity: "recognition/session-1/turn/2".into(),
+            role: "user",
+            source: "committed-external-speech",
+            text: "Hello, Roseau.".into(),
+        };
+        assert_eq!(project_committed_turn_text(&message), Ok("Hello, Roseau."));
+        let mut wrong_role = message;
+        wrong_role.role = "assistant";
+        assert_eq!(
+            project_committed_turn_text(&wrong_role),
+            Err(StreamingRecognitionRefusal::InvalidEvent)
         );
     }
 }
