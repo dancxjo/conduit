@@ -17,4 +17,5 @@ cp products/creche/names/catalog.mjs "$destination/creche-name-catalog.mjs"
 cp products/shared/browser/conduit.css "$destination/conduit.css"
 cp "$runtime" "$destination/runtime.wasm"
 cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+cargo xtask forms bundle-workspace-catalog --output "$destination/forms/workspace-catalog.json"
 node targets/browser/tools/build-browser-application-package.mjs products/workspace/browser/workspace.application.template.json "$destination" workspace.application.json

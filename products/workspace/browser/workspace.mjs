@@ -32,6 +32,8 @@ export async function startApplication(application) {
     const session = openWorkspaceSession({ host, storage: application.storage });
     const source = application.text('reviewed-form-inventory');
     const inventory = readReviewedFormInventory(host.runtime, source);
+    const catalogSource = application.text('reviewed-form-catalog');
+    const catalog = readWorkspaceCatalog(catalogSource);
     let handoff = null, handoffFailure = null;
     try { handoff = readWorkspaceHandoff(globalThis.location, inventory); }
     catch (error) { handoffFailure = error; }
@@ -64,9 +66,9 @@ export async function startApplication(application) {
         if (handoff && resident.some(form => form.checked_form_id === handoff.checked_form_id)) {
           await session.selectForm({ source_document_id: handoff.source_document_id, checked_form_id: handoff.checked_form_id });
         }
-        const foreground = inventory.forms.find(form => form.checked_form_id === session.foreground()?.checked_form_id);
+        const foreground = catalog.forms.find(form => form.checked_form_id === session.foreground()?.checked_form_id);
         if (foreground?.required_kinds.includes('sound/startup-chime')) {
-          const visible = resident.find(form => inventory.forms.some(candidate => candidate.checked_form_id === form.checked_form_id && candidate.required_kinds.some(kind => kind.startsWith('presentation/'))));
+          const visible = resident.find(form => catalog.forms.some(candidate => candidate.checked_form_id === form.checked_form_id && candidate.required_kinds.some(kind => kind.startsWith('presentation/'))));
           if (visible) await session.selectForm(visible);
         }
         selected = session.foreground()?.checked_form_id;
@@ -78,7 +80,7 @@ export async function startApplication(application) {
       library?.hide();
       membership && (membership.isOpen() ? membership.close() : null);
       const body = session.current();
-      const form = inventory.forms.find(form => form.checked_form_id === selected);
+      const form = catalog.forms.find(form => form.checked_form_id === selected);
       const evidence = session.evidence();
       const heading = inspection.querySelector('h2');
       heading.textContent = kind === 'form' ? (form?.title ?? 'This Form') : kind === 'flow' ? 'Inside this Form' : `${body.friendly_name} · ${playback.state}`;
@@ -102,7 +104,7 @@ export async function startApplication(application) {
       const button = strip.querySelector('[aria-expanded="true"]'); button?.setAttribute('aria-expanded', 'false'); button?.focus();
     });
     const showSelected = () => {
-      const form = inventory.forms.find(item => item.checked_form_id === selected);
+      const form = catalog.forms.find(item => item.checked_form_id === selected);
       const partition = session.evidence()?.realization?.plan.forms.find(item => item.form.checked_form_id === selected);
       root.querySelector('#surface-title').textContent = form?.title ?? 'No Forms installed';
       root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, form, partition);
@@ -160,7 +162,7 @@ export async function startApplication(application) {
       if (!body.initial_forms.some(form => form.checked_form_id === selected)) selected = body.initial_forms[0]?.checked_form_id;
       activities.replaceChildren(...body.initial_forms.map(form => {
         const button = document.createElement('button'); button.type = 'button';
-        button.textContent = inventory.forms.find(item => item.checked_form_id === form.checked_form_id)?.title ?? form.name;
+        button.textContent = catalog.forms.find(item => item.checked_form_id === form.checked_form_id)?.title ?? form.name;
         button.dataset.checkedFormId = form.checked_form_id;
         button.addEventListener('click', () => {
           if (editing) return;
@@ -221,7 +223,7 @@ export async function startApplication(application) {
         if (session.current().initial_forms.length) await play.wake();
       } finally { editing = false; }
     };
-    library = openWorkspaceLibrary({ panel: root.querySelector('#workspace-library'), session, source, inventory,
+    library = openWorkspaceLibrary({ panel: root.querySelector('#workspace-library'), session, source: catalogSource, inventory: catalog,
       presentationFor: application.presentationFor, onUse: useForm, onRemove: removeForm, onFailure: fail,
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
@@ -244,4 +246,27 @@ export async function startApplication(application) {
     if (handoffFailure) fail(handoffFailure);
     globalThis.addEventListener('pagehide', () => { play?.close(); membership?.close(); });
   } catch (error) { fail(error); }
+}
+
+function readWorkspaceCatalog(source) {
+  const catalog = JSON.parse(source);
+  if (catalog?.schema !== 'conduit.workspace/reviewed-form-catalog@1'
+      || !Number.isSafeInteger(catalog.maximum_forms) || catalog.maximum_forms < 1
+      || !Array.isArray(catalog.forms) || catalog.forms.length > catalog.maximum_forms) {
+    throw new Error('reviewed Workspace Form catalog is malformed or over capacity');
+  }
+  const identities = new Set();
+  for (const form of catalog.forms) {
+    if (typeof form?.title !== 'string' || typeof form.entry !== 'string'
+        || typeof form.source !== 'string' || typeof form.source_document_id !== 'string'
+        || typeof form.checked_form_id !== 'string' || !Array.isArray(form.required_kinds)
+        || !['available', 'needs-capability'].includes(form.availability?.disposition)
+        || typeof form.availability?.reason !== 'string'
+        || identities.has(form.checked_form_id)) {
+      throw new Error('reviewed Workspace Form catalog contains an invalid or duplicate entry');
+    }
+    form.name = form.entry;
+    identities.add(form.checked_form_id);
+  }
+  return catalog;
 }

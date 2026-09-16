@@ -32,6 +32,7 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
         await session.started(started);
         publish('Playing', 'Forms are awake');
         const running = adapter;
+        const runningPlay = started.play;
         adapter.run().then(receipt => {
           if (adapter !== running || terminal) return;
           if (receipt?.schema === 'conduit.browser/pending-effects@1' && receipt.disposition === 'quiescent_awaiting_input' && receipt.active_play_id === started.play.active_play_id && receipt.pending_effects === 0) {
@@ -40,7 +41,22 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
           }
           requireTerminal(receipt);
           publish(receipt.disposition === 'completed' ? 'Completed' : receipt.disposition === 'cancelled' ? 'Cancelled' : 'Failed');
-        }).catch(error => { if (adapter === running && !terminal) publish('Failed', error.message, error); });
+        }).catch(async error => {
+          if (adapter !== running || terminal) return;
+          if (error?.code !== 'FocusLost') {
+            publish('Failed', error.message, error);
+            return;
+          }
+          try {
+            const closed = running.close();
+            requireTerminal(closed?.receipt);
+            adapter = null;
+            await session.lull(runningPlay);
+            publish('Lulled', 'Its input paused when this browser window lost focus. Choose Wake Body to continue.');
+          } catch (cleanupError) {
+            publish('Failed', `${error.message} · ${cleanupError.message}`, cleanupError);
+          }
+        });
       } catch (error) {
         let cleanupError = null;
         try {

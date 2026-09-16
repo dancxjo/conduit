@@ -5,8 +5,13 @@ Body, admits this browser Host, plans the complete workset, and wakes its Forms.
 The foreground surface receives input; choosing another Form keeps the same
 Body Plan and Play. Lull explicitly stops execution and retains the Body.
 
-Use **+ Forms** to search the reviewed library, use an installed Form, or add and
-remove Forms. Gallery's **Use in your Body** opens this same retained workspace;
+Use **+ Forms** to search the full bounded reviewed catalog, use an installed
+Form, or add and remove Forms. The empty search shows the current browser-ready
+subset; searching also reveals reviewed Forms that need capabilities this Host
+does not yet offer. Those entries explain the missing realization and remain
+unavailable instead of being hidden or admitted dishonestly. Body residence
+remains independently bounded to 16 Forms. Gallery's **Use in your Body** opens
+this same retained workspace;
 a new arrival first names its Body in the shared Crèche. Exact source and checked
 identities accompany that handoff, and the consumed link cannot reinstall a Form
 after its removal.
@@ -45,7 +50,8 @@ foreground Form. Separate cases exercise storage exhaustion, a competing window,
 a narrow viewport, an intentionally empty Body, real sound-only startup, first-wake
 silence after reload, and continued input when audio is unavailable. Library cases
 exercise installation/removal, duplicate Use, failed workload saves, stale Gallery
-links, pointer input, two Secret Knock attempts, and continuing background pulses. The product carrier also checks that the provisioning
+links, catalog discovery and unavailable capabilities, recoverable browser-focus
+loss, pointer input, two Secret Knock attempts, and continuing background pulses. The product carrier also checks that the provisioning
 Crèche respects the same live owner and returns an arrived Body to its Forms.
 
 ## Lifecycle and ownership
@@ -92,7 +98,11 @@ facts. The flow strip describes the exact selected Plan and exposes evidence,
 while its small inspection panel remains distinct from the resident Patchbay.
 
 Body continuity currently retains the workset and foreground identity, not each
-Form's internal state or text. History keeps the existing finite Body bounds
+Form's internal state or text. Losing browser-window focus remains a typed Host
+input loss and terminates the pending Play rather than silently dropping an
+event. Workspace now retires that Play into the retained Lulled Body and offers
+**Wake Body** immediately, so a tab switch does not leave the Body stranded in a
+Failed state. History keeps the existing finite Body bounds
 (eight Wakes and 64 biography records); exhausting those bounds refuses a new
 transition and preserves the previous evidence. Long-lived history compaction is
 not provided by this slice.
