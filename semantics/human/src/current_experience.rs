@@ -173,6 +173,19 @@ impl CurrentExperience {
         self.encoded_bytes
     }
 
+    /// Iterates all live observations, never recollection, inference, or imagination.
+    pub fn current_observations<'a>(
+        &'a self,
+        content_kind: &'a KindId,
+    ) -> impl Iterator<Item = &'a ExperienceItem> + 'a {
+        self.items.iter().filter(move |item| {
+            &item.content_kind == content_kind
+                && item.origin == ExperienceOrigin::Observation
+                && item.temporal_role == ExperienceTemporalRole::Current
+                && item.availability == ExperienceAvailability::Present
+        })
+    }
+
     pub fn try_admit(&mut self, item: ExperienceItem) -> Result<(), ExperienceAdmissionError> {
         let refusal = self.validate_admission(&item).err();
         if let Some(refusal) = refusal {
