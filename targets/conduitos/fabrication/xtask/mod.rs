@@ -24,6 +24,7 @@ mod graphical_profile_proof;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
+mod home_face_evidence;
 mod hotplug_proof;
 mod hotplug_qmp;
 mod ia32_a0;
