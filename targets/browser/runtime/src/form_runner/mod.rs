@@ -11,7 +11,6 @@ mod host_abi;
 mod host_outcomes;
 mod multihost;
 mod protocol;
-#[cfg(test)]
 mod remote_execution;
 mod session_cancellation;
 mod session_effects;
