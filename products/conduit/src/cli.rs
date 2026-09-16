@@ -89,17 +89,17 @@ pub(crate) enum HostCommand {
         #[command(subcommand)]
         command: HostServiceCommand,
     },
-    /// Obtain the reviewed release manifest for one target from an installed mirror.
+    /// Obtain one target's reviewed release manifest from HTTPS or an offline mirror.
     Obtain {
         /// Reviewed target identity to obtain.
         target: String,
-        /// Bounded release catalog document.
+        /// Bounded catalog path or HTTPS URL.
         #[arg(long)]
         catalog: PathBuf,
         /// Exact expected catalog identity from the installed release channel.
         #[arg(long)]
         catalog_id: String,
-        /// Local or air-gapped mirror root.
+        /// Local/air-gapped mirror root or HTTPS base URL.
         #[arg(long)]
         mirror: PathBuf,
         /// Immutable content-addressed cache directory.

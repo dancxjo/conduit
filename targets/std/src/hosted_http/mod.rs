@@ -3,6 +3,7 @@
 //! This module owns hosted HTTP/1.1 mechanism only. Planning, authority, and
 //! kernel correlation remain outside it.
 
+pub mod release;
 pub(crate) mod wire;
 
 use conduit_web::{

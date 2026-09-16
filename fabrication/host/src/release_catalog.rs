@@ -13,7 +13,6 @@ pub const MAXIMUM_RELEASE_CATALOG_BYTES: u64 = 128 * 1024;
 pub const MAXIMUM_RELEASE_CATALOG_ENTRIES: usize = 64;
 pub const MAXIMUM_RELEASE_MANIFEST_BYTES: u64 = 256 * 1024;
 const MAXIMUM_RELEASE_TEXT_BYTES: usize = 256;
-const COPY_BUFFER_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -93,8 +92,18 @@ impl ReleaseCatalog {
             ReleaseCatalogRefusal::CatalogUnavailable,
             ReleaseCatalogRefusal::CatalogBound,
         )?;
+        Self::open_bytes(&bytes, minimum_generation)
+    }
+
+    pub fn open_bytes(
+        bytes: &[u8],
+        minimum_generation: u64,
+    ) -> Result<Self, ReleaseCatalogRefusal> {
+        if bytes.is_empty() || bytes.len() as u64 > MAXIMUM_RELEASE_CATALOG_BYTES {
+            return Err(ReleaseCatalogRefusal::CatalogBound);
+        }
         let catalog: Self =
-            serde_json::from_slice(&bytes).map_err(|_| ReleaseCatalogRefusal::CatalogMalformed)?;
+            serde_json::from_slice(bytes).map_err(|_| ReleaseCatalogRefusal::CatalogMalformed)?;
         catalog.validate(minimum_generation)?;
         Ok(catalog)
     }
@@ -162,6 +171,23 @@ pub fn acquire_local_release_artifact(
     maximum_bytes: u64,
     cache_directory: &Path,
 ) -> Result<ResolvedReleaseArtifact, ReleaseCatalogRefusal> {
+    acquire_release_artifact_with(descriptor, maximum_bytes, cache_directory, || {
+        let source = mirror_root.join(&descriptor.path);
+        bounded_read(
+            &source,
+            descriptor.bytes,
+            ReleaseCatalogRefusal::ArtifactUnavailable,
+            ReleaseCatalogRefusal::ArtifactBound,
+        )
+    })
+}
+
+pub fn acquire_release_artifact_with(
+    descriptor: &ReleaseArtifactDescriptor,
+    maximum_bytes: u64,
+    cache_directory: &Path,
+    acquire: impl FnOnce() -> Result<Vec<u8>, ReleaseCatalogRefusal>,
+) -> Result<ResolvedReleaseArtifact, ReleaseCatalogRefusal> {
     if !valid_artifact(descriptor, maximum_bytes) {
         return Err(ReleaseCatalogRefusal::ArtifactBound);
     }
@@ -176,13 +202,13 @@ pub fn acquire_local_release_artifact(
             from_cache: true,
         });
     }
-    let source = mirror_root.join(&descriptor.path);
-    verify_file(&source, descriptor)?;
+    let bytes = acquire()?;
+    verify_bytes(&bytes, descriptor)?;
     let temporary = cache_path.with_extension("conduit-partial");
     if temporary.exists() {
         fs::remove_file(&temporary).map_err(|_| ReleaseCatalogRefusal::CacheUnavailable)?;
     }
-    copy_bounded(&source, &temporary, descriptor.bytes)?;
+    write_bounded(&bytes, &temporary, descriptor.bytes)?;
     verify_file(&temporary, descriptor)?;
     fs::rename(&temporary, &cache_path).map_err(|_| ReleaseCatalogRefusal::CacheUnavailable)?;
     Ok(ResolvedReleaseArtifact {
@@ -191,6 +217,19 @@ pub fn acquire_local_release_artifact(
         bytes: descriptor.bytes,
         from_cache: false,
     })
+}
+
+fn verify_bytes(
+    bytes: &[u8],
+    descriptor: &ReleaseArtifactDescriptor,
+) -> Result<(), ReleaseCatalogRefusal> {
+    if bytes.len() as u64 != descriptor.bytes {
+        return Err(ReleaseCatalogRefusal::ArtifactBound);
+    }
+    if sha256(bytes) != descriptor.sha256 {
+        return Err(ReleaseCatalogRefusal::ArtifactContentMismatch);
+    }
+    Ok(())
 }
 
 fn valid_artifact(descriptor: &ReleaseArtifactDescriptor, maximum_bytes: u64) -> bool {
@@ -257,36 +296,22 @@ fn bounded_read(
     Ok(bytes)
 }
 
-fn copy_bounded(
-    source: &Path,
+fn write_bounded(
+    bytes: &[u8],
     destination: &Path,
     maximum: u64,
 ) -> Result<(), ReleaseCatalogRefusal> {
-    let mut input = File::open(source).map_err(|_| ReleaseCatalogRefusal::ArtifactUnavailable)?;
+    if bytes.len() as u64 > maximum {
+        return Err(ReleaseCatalogRefusal::ArtifactBound);
+    }
     let mut output = OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(destination)
         .map_err(|_| ReleaseCatalogRefusal::CacheUnavailable)?;
-    let mut copied = 0_u64;
-    let mut buffer = [0_u8; COPY_BUFFER_BYTES];
-    loop {
-        let count = input
-            .read(&mut buffer)
-            .map_err(|_| ReleaseCatalogRefusal::ArtifactUnavailable)?;
-        if count == 0 {
-            break;
-        }
-        copied = copied
-            .checked_add(count as u64)
-            .ok_or(ReleaseCatalogRefusal::ArtifactBound)?;
-        if copied > maximum {
-            return Err(ReleaseCatalogRefusal::ArtifactBound);
-        }
-        output
-            .write_all(&buffer[..count])
-            .map_err(|_| ReleaseCatalogRefusal::CacheUnavailable)?;
-    }
+    output
+        .write_all(bytes)
+        .map_err(|_| ReleaseCatalogRefusal::CacheUnavailable)?;
     output
         .sync_all()
         .map_err(|_| ReleaseCatalogRefusal::CacheUnavailable)

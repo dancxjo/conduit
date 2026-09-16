@@ -1,8 +1,10 @@
 //! Installed target-oriented release acquisition from an exact catalog.
 
 use conduit_host_fabrication::{
-    acquire_local_release_artifact, ReleaseCatalog, MAXIMUM_RELEASE_MANIFEST_BYTES,
+    acquire_local_release_artifact, acquire_release_artifact_with, ReleaseCatalog,
+    ReleaseCatalogRefusal, MAXIMUM_RELEASE_CATALOG_BYTES, MAXIMUM_RELEASE_MANIFEST_BYTES,
 };
+use conduit_std_host::hosted_http::release::{HostedReleaseClient, HostedReleaseFetchRefusal};
 use serde::Serialize;
 use std::path::Path;
 
@@ -57,8 +59,28 @@ fn obtain(
     cache_directory: &Path,
     minimum_generation: u64,
 ) -> Result<ObtainReceipt, String> {
-    let catalog = ReleaseCatalog::open_local(catalog_path, minimum_generation)
-        .map_err(|error| format!("release catalog refused: {error:?}"))?;
+    let catalog_source = catalog_path.to_string_lossy();
+    let mirror_source = mirror_root.to_string_lossy();
+    if (catalog_source.contains("://") && !catalog_source.starts_with("https://"))
+        || (mirror_source.contains("://") && !mirror_source.starts_with("https://"))
+    {
+        return Err("network release sources must use HTTPS".into());
+    }
+    let catalog_remote = catalog_source.starts_with("https://");
+    let mirror_remote = mirror_source.starts_with("https://");
+    if catalog_remote != mirror_remote {
+        return Err("catalog and artifact mirror must both be HTTPS or both be local".into());
+    }
+    let client = HostedReleaseClient::default();
+    let catalog = if catalog_remote {
+        let bytes = client
+            .get(&catalog_source, MAXIMUM_RELEASE_CATALOG_BYTES)
+            .map_err(|error| format!("release catalog download refused: {error:?}"))?;
+        ReleaseCatalog::open_bytes(&bytes, minimum_generation)
+    } else {
+        ReleaseCatalog::open_local(catalog_path, minimum_generation)
+    }
+    .map_err(|error| format!("release catalog refused: {error:?}"))?;
     if catalog.catalog_id != expected_catalog_id {
         return Err("release catalog identity differs from the installed release channel".into());
     }
@@ -67,12 +89,35 @@ fn obtain(
         .iter()
         .find(|entry| entry.target_id == target)
         .ok_or_else(|| format!("reviewed target {target} is absent from this release catalog"))?;
-    let resolved = acquire_local_release_artifact(
-        mirror_root,
-        &entry.manifest,
-        MAXIMUM_RELEASE_MANIFEST_BYTES,
-        cache_directory,
-    )
+    let resolved = if mirror_remote {
+        let url = format!(
+            "{}/{}",
+            mirror_source.trim_end_matches('/'),
+            entry.manifest.path
+        );
+        acquire_release_artifact_with(
+            &entry.manifest,
+            MAXIMUM_RELEASE_MANIFEST_BYTES,
+            cache_directory,
+            || {
+                client
+                    .get(&url, entry.manifest.bytes)
+                    .map_err(|error| match error {
+                        HostedReleaseFetchRefusal::BodyBound => {
+                            ReleaseCatalogRefusal::ArtifactBound
+                        }
+                        _ => ReleaseCatalogRefusal::ArtifactUnavailable,
+                    })
+            },
+        )
+    } else {
+        acquire_local_release_artifact(
+            mirror_root,
+            &entry.manifest,
+            MAXIMUM_RELEASE_MANIFEST_BYTES,
+            cache_directory,
+        )
+    }
     .map_err(|error| format!("release artifact refused: {error:?}"))?;
     Ok(ObtainReceipt {
         schema: "conduit.release/obtain-receipt@1",
@@ -151,6 +196,17 @@ mod tests {
         };
         let catalog_path = root.join("catalog.json");
         fs::write(&catalog_path, serde_json::to_vec(&catalog).unwrap()).unwrap();
+
+        assert!(obtain(
+            "conduitos/x86_64/pc",
+            Path::new("http://releases.example/catalog.json"),
+            &identity,
+            Path::new("http://releases.example/artifacts"),
+            &cache,
+            8,
+        )
+        .unwrap_err()
+        .contains("must use HTTPS"));
 
         assert!(obtain(
             "conduitos/x86_64/pc",
