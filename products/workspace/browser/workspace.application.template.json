@@ -65,6 +65,13 @@
       "dependencies": []
     },
     {
+      "role": "reviewed-form-catalog",
+      "kind": "content",
+      "path": "forms/workspace-catalog.json",
+      "maximum_bytes": 131072,
+      "dependencies": []
+    },
+    {
       "role": "browser-host-bootstrap",
       "kind": "module",
       "path": "browser-host-bootstrap.mjs",

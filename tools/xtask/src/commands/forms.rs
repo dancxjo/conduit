@@ -34,6 +34,7 @@ use inventory::load_inventory;
 const INVENTORY_PATH: &str = "forms/inventory.toml";
 const INVENTORY_SCHEMA: &str = "conduit.reviewed-form-inventory/v1";
 const REPORT_SCHEMA: &str = "conduit.form-conformance-report/v5";
+const WORKSPACE_CATALOG_BYTES: usize = 128 * 1024;
 
 #[derive(Args, Debug)]
 pub struct FormsArgs {
@@ -63,6 +64,12 @@ enum FormsCommand {
     /// Package the reviewed initial Body workload for Crèche.
     BundleInitialBody {
         /// Exact destination for the checked concatenated source document.
+        #[arg(long)]
+        output: PathBuf,
+    },
+    /// Package the full reviewed Form shelf for Workspace discovery.
+    BundleWorkspaceCatalog {
+        /// Exact destination for the bounded reviewed catalog.
         #[arg(long)]
         output: PathBuf,
     },
@@ -224,8 +231,100 @@ pub fn run(args: FormsArgs, opts: &GlobalOpts) -> Result<(), String> {
             }
         }
         FormsCommand::BundleInitialBody { output } => bundle_initial_body(&root, &output)?,
+        FormsCommand::BundleWorkspaceCatalog { output } => {
+            bundle_workspace_catalog(&root, &output)?
+        }
     }
     Ok(())
+}
+
+fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
+    #[derive(Serialize)]
+    struct CatalogAvailability<'a> {
+        disposition: &'static str,
+        reason: &'a str,
+    }
+    #[derive(Serialize)]
+    struct CatalogForm<'a> {
+        slug: &'a str,
+        title: &'a str,
+        entry: &'a str,
+        source: String,
+        source_document_id: String,
+        checked_form_id: String,
+        required_kinds: Vec<String>,
+        availability: CatalogAvailability<'a>,
+    }
+    #[derive(Serialize)]
+    struct WorkspaceCatalog<'a> {
+        schema: &'static str,
+        maximum_forms: usize,
+        forms: Vec<CatalogForm<'a>>,
+    }
+
+    let inventory = load_inventory(root)?;
+    let catalogs = catalogs()?;
+    let mut forms = Vec::with_capacity(inventory.forms.len());
+    for form in &inventory.forms {
+        let path = format!("forms/{}/main.conduit", form.slug);
+        let source =
+            fs::read_to_string(root.join(&path)).map_err(|error| format!("{path}: {error}"))?;
+        let syntax = conduit_form::parse_syntax_document(&source);
+        if let Some(diagnostic) = syntax.diagnostics.first() {
+            return Err(format!(
+                "{path}: {}: {}",
+                diagnostic.code, diagnostic.message
+            ));
+        }
+        let checked = conduit_form::check_syntax_document(&syntax, &catalogs.0)
+            .map_err(|error| format!("{path}: {}: {}", error.code, error.message))?;
+        let entry = checked
+            .forms
+            .iter()
+            .find(|candidate| candidate.name == form.entry)
+            .ok_or_else(|| format!("{path}: declared entry '{}' is absent", form.entry))?;
+        let mut required_kinds: Vec<_> = entry.gears.iter().map(|gear| gear.kind.clone()).collect();
+        required_kinds.sort();
+        required_kinds.dedup();
+        let available = form.initial_body_order.is_some();
+        let reason = if available {
+            "This browser Host has a reviewed Workspace realization."
+        } else {
+            form.browser_safe_not_applicable
+                .as_deref()
+                .unwrap_or("This browser Host does not yet have a reviewed Workspace realization.")
+        };
+        forms.push(CatalogForm {
+            slug: &form.slug,
+            title: &form.title,
+            entry: &form.entry,
+            source,
+            source_document_id: checked.source_document_id.as_str().into(),
+            checked_form_id: entry.checked_form_id.as_str().into(),
+            required_kinds,
+            availability: CatalogAvailability {
+                disposition: if available {
+                    "available"
+                } else {
+                    "needs-capability"
+                },
+                reason,
+            },
+        });
+    }
+    let catalog = WorkspaceCatalog {
+        schema: "conduit.workspace/reviewed-form-catalog@1",
+        maximum_forms: inventory.maximum_forms,
+        forms,
+    };
+    let bytes = serde_json::to_vec_pretty(&catalog).map_err(|error| error.to_string())?;
+    if bytes.len() > WORKSPACE_CATALOG_BYTES {
+        return Err(format!(
+            "reviewed Workspace Form catalog is {} bytes, above its {WORKSPACE_CATALOG_BYTES}-byte bound",
+            bytes.len()
+        ));
+    }
+    fs::write(output, bytes).map_err(|error| error.to_string())
 }
 
 fn check_output_mode(opts: &GlobalOpts) -> Option<bool> {

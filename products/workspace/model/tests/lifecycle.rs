@@ -501,18 +501,24 @@ fn stale_or_absent_removal_preserves_current_workload_and_evidence() {
 
 #[test]
 fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtered() {
-    use conduit_workspace_model::library::{FormLibrary, LibraryEntry, LibraryRefusal};
+    use conduit_workspace_model::library::{
+        FormLibrary, LibraryAvailability, LibraryEntry, LibraryRefusal,
+    };
     let body = born();
     let library = FormLibrary::new(vec![
         LibraryEntry {
             form: form("morse"),
             title: "Morse".into(),
             search_text: "keyboard light".into(),
+            availability: LibraryAvailability::Available,
         },
         LibraryEntry {
             form: form("notes"),
             title: "Notes".into(),
             search_text: "keyboard text".into(),
+            availability: LibraryAvailability::NeedsCapability(
+                "Needs a text model realization.".into(),
+            ),
         },
     ])
     .unwrap();
@@ -523,7 +529,8 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
         .unwrap();
     assert_eq!(view.revision, 7);
     assert!(
-        view.actions
+        !view
+            .actions
             .iter()
             .any(|action| action.id == "library.use.1")
     );
