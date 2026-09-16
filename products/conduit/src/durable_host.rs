@@ -185,7 +185,15 @@ fn run(state_dir: &Path) -> Result<(), String> {
         "durable Host {} boot {} is running",
         status.host_id, status.boot_id
     );
-    crate::durable_host_control::serve(state_dir, truth)
+    let outcome = crate::durable_host_control::serve(state_dir, truth);
+    let runtime = state_dir.join("runtime.json");
+    match fs::remove_file(&runtime) {
+        Ok(()) => outcome,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => outcome,
+        Err(error) => Err(format!(
+            "durable Host stopped but its runtime marker could not be retired: {error}"
+        )),
+    }
 }
 
 #[cfg(test)]
@@ -239,14 +247,7 @@ fn running_target_id() -> Result<&'static str, String> {
 
 fn status(state_dir: &Path, json: bool) -> Result<(), String> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
-    let runtime = state_dir.join("runtime.json");
-    if runtime.exists() {
-        let bytes = bounded_read(&runtime, 64 * 1024)?;
-        let status: RuntimeStatus = serde_json::from_slice(&bytes)
-            .map_err(|error| format!("durable Host runtime status: {error}"))?;
-        if status.schema != RUNTIME_SCHEMA || status.host_id != installation.host_id {
-            return Err("durable Host runtime status is stale or belongs to another Host".into());
-        }
+    if let Some(status) = observe_current_runtime(state_dir, &installation)? {
         if json {
             println!(
                 "{}",
@@ -259,26 +260,55 @@ fn status(state_dir: &Path, json: bool) -> Result<(), String> {
                 status.host_id, status.boot_id, status.process_id, status.release_bundle_sha256
             );
         }
+    } else if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "schema": "conduit.install/durable-host-status@1",
+                "host_id": installation.host_id,
+                "presence": "installed-offline",
+                "release_bundle_sha256": installation.release_bundle_sha256,
+                "body_id": installation.body_state.as_ref().map(|binding| binding.body_id.as_str()),
+            })
+        );
     } else {
-        if json {
-            println!(
-                "{}",
-                serde_json::json!({
-                    "schema": "conduit.install/durable-host-status@1",
-                    "host_id": installation.host_id,
-                    "presence": "installed-offline",
-                    "release_bundle_sha256": installation.release_bundle_sha256,
-                    "body_id": installation.body_state.as_ref().map(|binding| binding.body_id.as_str()),
-                })
-            );
-        } else {
-            println!(
-                "Host {} is installed but not observed running; release {}",
-                installation.host_id, installation.release_bundle_sha256
-            );
-        }
+        println!(
+            "Host {} is installed but not observed running; release {}",
+            installation.host_id, installation.release_bundle_sha256
+        );
     }
     Ok(())
+}
+
+fn observe_current_runtime(
+    state_dir: &Path,
+    installation: &Installation,
+) -> Result<Option<RuntimeStatus>, String> {
+    let runtime = state_dir.join("runtime.json");
+    if !runtime.exists() {
+        return Ok(None);
+    }
+    let status = {
+        let bytes = bounded_read(&runtime, 64 * 1024)?;
+        let status: RuntimeStatus = serde_json::from_slice(&bytes)
+            .map_err(|error| format!("durable Host runtime status: {error}"))?;
+        if status.schema != RUNTIME_SCHEMA || status.host_id != installation.host_id {
+            return Err("durable Host runtime status is stale or belongs to another Host".into());
+        }
+        status
+    };
+    let truth = match crate::durable_host_control::current(state_dir) {
+        Ok(truth) => truth,
+        Err(_) => return Ok(None),
+    };
+    let advertisement = &truth.advertisement;
+    if advertisement.host_id.as_str() != status.host_id
+        || advertisement.boot_id.as_str() != status.boot_id
+        || advertisement.offer_generation.0 != status.offer_generation
+    {
+        return Err("durable Host control truth disagrees with its runtime marker".into());
+    }
+    Ok(Some(status))
 }
 
 fn validate_manifest(manifest: &ReleaseManifest) -> Result<(), String> {
@@ -568,6 +598,18 @@ mod tests {
         assert_eq!(first.host_id, installation.host_id);
         assert_eq!(second.host_id, installation.host_id);
         assert_ne!(first.boot_id, second.boot_id);
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn retained_runtime_marker_without_authenticated_owner_is_offline() {
+        let (manifest, state) = fixture();
+        let installation = install(&manifest, &state).unwrap();
+        start_runtime(&state).unwrap();
+        assert!(state.join("runtime.json").is_file());
+        assert!(observe_current_runtime(&state, &installation)
+            .unwrap()
+            .is_none());
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
