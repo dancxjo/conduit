@@ -6,7 +6,8 @@ use conduit_core::{
 use conduit_presentation::{
     ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationNodeState,
     ApplicationView, ApplicationViewNode, BodySurface, BodySurfaceContext, BodySurfaceContribution,
-    BodySurfaceContributionRole, BodySurfaceFocus, BodySurfaceRefusal, PresentationPropertyValue,
+    BodySurfaceContributionRole, BodySurfaceFocus, BodySurfaceOperatorActionKind,
+    BodySurfaceRefusal, PresentationPropertyValue, PresentationRole,
 };
 
 fn born_body() -> Body {
@@ -19,7 +20,7 @@ fn born_body() -> Body {
     .unwrap()
 }
 
-fn playing() -> (Body, Wake, conduit_core::ActivePlayId) {
+fn playing() -> (Body, Wake, conduit_core::PlanId, conduit_core::ActivePlayId) {
     let (body, wake) = born_body().wake(2, SignId::from("sign/woke")).unwrap();
     let plan = seal_plan(
         FormIdentity {
@@ -42,7 +43,7 @@ fn playing() -> (Body, Wake, conduit_core::ActivePlayId) {
     let wake = wake
         .play_started(&play, SignId::from("sign/playing"))
         .unwrap();
-    (body, wake, play_id)
+    (body, wake, plan.plan_id, play_id)
 }
 
 fn tutorial_view(revision: u32) -> ApplicationView {
@@ -98,16 +99,21 @@ fn lulled_body_has_an_exact_surface_without_a_running_form() {
         property.name == "lifecycle-state"
             && property.value == PresentationPropertyValue::Text("lulled".into())
     }));
-    assert_eq!(surface.presentation.actions.len(), 1);
-    assert_eq!(surface.presentation.actions[0].label, "Wake");
+    assert!(surface.operator_actions.iter().any(|action| {
+        action.kind == BodySurfaceOperatorActionKind::Wake
+            && surface
+                .resolve_operator_action(7, &action.surface_action_id)
+                .is_ok()
+    }));
 }
 
 #[test]
 fn resident_view_joins_body_truth_only_for_its_current_play() {
-    let (body, wake, play_id) = playing();
+    let (body, wake, plan_id, play_id) = playing();
     let contribution = BodySurfaceContribution {
         role: BodySurfaceContributionRole::Tutorial,
         checked_form_id: CheckedFormId::from("checked/tutorial"),
+        plan_id: plan_id.clone(),
         active_play_id: play_id.clone(),
         view: tutorial_view(11),
     };
@@ -128,6 +134,20 @@ fn resident_view_joins_body_truth_only_for_its_current_play() {
         property.name == "active-play-id"
             && property.value == PresentationPropertyValue::Identity(play_id.as_str().into())
     }));
+    assert!(surface.presentation.properties.iter().any(|property| {
+        property.name == "plan-id"
+            && property.value == PresentationPropertyValue::Identity(plan_id.as_str().into())
+    }));
+    assert!(surface
+        .presentation
+        .subjects
+        .iter()
+        .any(|subject| subject.role == PresentationRole::Plan));
+    assert!(surface
+        .presentation
+        .subjects
+        .iter()
+        .any(|subject| subject.role == PresentationRole::Play));
     let action = surface
         .presentation
         .actions
@@ -142,11 +162,38 @@ fn resident_view_joins_body_truth_only_for_its_current_play() {
         .resolve_application_action(20, &action.identity)
         .unwrap();
     assert_eq!(routed.active_play_id, play_id);
+    assert_eq!(routed.plan_id, plan_id);
     assert_eq!(routed.application_view_revision, 11);
     assert_eq!(routed.application_action_id, "tutorial.continue");
     assert_eq!(
         surface.resolve_application_action(19, &action.identity),
         Err(BodySurfaceRefusal::StaleAction)
+    );
+    let library = surface
+        .operator_actions
+        .iter()
+        .find(|action| action.kind == BodySurfaceOperatorActionKind::OpenLibrary)
+        .unwrap();
+    assert!(surface
+        .resolve_operator_action(20, &library.surface_action_id)
+        .is_ok());
+    assert_eq!(
+        surface.resolve_operator_action(19, &library.surface_action_id),
+        Err(BodySurfaceRefusal::StaleAction)
+    );
+    let inspection = surface
+        .operator_actions
+        .iter()
+        .find(|action| {
+            action.kind
+                == BodySurfaceOperatorActionKind::OpenInspection(CheckedFormId::from(
+                    "checked/tutorial",
+                ))
+        })
+        .unwrap();
+    assert_eq!(
+        surface.resolve_operator_action(20, &inspection.surface_action_id),
+        Err(BodySurfaceRefusal::UnavailableAction)
     );
 
     let lulled = born_body();
@@ -165,10 +212,11 @@ fn resident_view_joins_body_truth_only_for_its_current_play() {
 
 #[test]
 fn presentation_only_navigation_does_not_change_body_or_running_work() {
-    let (body, wake, play_id) = playing();
+    let (body, wake, plan_id, play_id) = playing();
     let contribution = BodySurfaceContribution {
         role: BodySurfaceContributionRole::Foreground,
         checked_form_id: CheckedFormId::from("checked/tutorial"),
+        plan_id,
         active_play_id: play_id,
         view: tutorial_view(4),
     };
@@ -212,10 +260,11 @@ fn presentation_only_navigation_does_not_change_body_or_running_work() {
 
 #[test]
 fn composition_is_finite_and_deterministic() {
-    let (body, wake, play_id) = playing();
+    let (body, wake, plan_id, play_id) = playing();
     let contribution = BodySurfaceContribution {
         role: BodySurfaceContributionRole::Tutorial,
         checked_form_id: CheckedFormId::from("checked/tutorial"),
+        plan_id,
         active_play_id: play_id,
         view: tutorial_view(8),
     };
@@ -272,8 +321,11 @@ fn fulfilled_body_keeps_terminal_surface_without_wake_or_actions() {
     )
     .unwrap();
 
-    assert!(surface.presentation.actions.is_empty());
     assert!(surface.application_actions.is_empty());
+    assert!(!surface.operator_actions.iter().any(|action| matches!(
+        action.kind,
+        BodySurfaceOperatorActionKind::Wake | BodySurfaceOperatorActionKind::Lull
+    )));
     assert!(surface.presentation.properties.iter().any(|property| {
         property.name == "lifecycle-state"
             && property.value == PresentationPropertyValue::Text("fulfilled".into())

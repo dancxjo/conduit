@@ -2,17 +2,19 @@
 
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{Body, BodyState, Wake, WakePlanState};
-use conduit_core::{ActivePlayId, CheckedFormId};
+use conduit_core::{ActivePlayId, CheckedFormId, PlanId};
 
 use crate::{
-    ApplicationEventKind, ApplicationView, ApplicationViewRefusal, Presentation,
-    PresentationAction, PresentationActionAvailability, PresentationActionRefusal,
-    PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel, PresentationError,
-    PresentationProperty, PresentationPropertyValue, PresentationRelationship,
-    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
+    ApplicationEventKind, ApplicationView, ApplicationViewRefusal, Presentation, PresentationBasis,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationError, PresentationProperty,
+    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
+    PresentationRole, PresentationSubject, PresentationText,
 };
 
+mod action_resolution;
+mod core_projection;
 mod projection;
+use core_projection::{append_execution_truth, append_operator_actions};
 use projection::append_contribution;
 
 pub const MAX_BODY_SURFACE_CONTRIBUTIONS: usize = 5;
@@ -50,6 +52,7 @@ impl BodySurfaceContributionRole {
 pub struct BodySurfaceContribution {
     pub role: BodySurfaceContributionRole,
     pub checked_form_id: CheckedFormId,
+    pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     pub view: ApplicationView,
 }
@@ -69,6 +72,7 @@ pub struct BodySurface {
     pub focus: BodySurfaceFocus,
     pub presentation: Presentation,
     pub application_actions: Vec<BodySurfaceApplicationAction>,
+    pub operator_actions: Vec<BodySurfaceOperatorAction>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -76,10 +80,27 @@ pub struct BodySurfaceApplicationAction {
     pub surface_action_id: String,
     pub role: BodySurfaceContributionRole,
     pub checked_form_id: CheckedFormId,
+    pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     pub application_view_revision: u32,
     pub application_action_id: String,
     pub event: ApplicationEventKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BodySurfaceOperatorAction {
+    pub surface_action_id: String,
+    pub kind: BodySurfaceOperatorActionKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BodySurfaceOperatorActionKind {
+    Wake,
+    Lull,
+    OpenOverview,
+    OpenLibrary,
+    OpenResidentForm(CheckedFormId),
+    OpenInspection(CheckedFormId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -173,9 +194,10 @@ impl BodySurface {
                 body.workload_revision
             ),
         }];
-        let mut actions = lifecycle_action(body, &body_subject).into_iter().collect();
+        let mut actions = Vec::new();
         let mut inputs = Vec::new();
         let mut application_actions = Vec::new();
+        let mut operator_actions = Vec::new();
         let mut disclosures = vec![
             PresentationDisclosure {
                 subject: body_subject.clone(),
@@ -186,6 +208,15 @@ impl BodySurface {
                 level: PresentationDisclosureLevel::Context,
             },
         ];
+
+        append_execution_truth(
+            wake,
+            &body_subject,
+            &mut subjects,
+            &mut relationships,
+            &mut properties,
+            &mut disclosures,
+        );
 
         for form in body.workset.forms() {
             let form_subject = format!("form/{}", form.checked_form_id.as_str());
@@ -222,6 +253,14 @@ impl BodySurface {
                 level: PresentationDisclosureLevel::Context,
             });
         }
+
+        append_operator_actions(
+            body,
+            &contributions,
+            &body_subject,
+            &mut actions,
+            &mut operator_actions,
+        );
 
         for (index, contribution) in contributions.iter().enumerate() {
             append_contribution(
@@ -271,30 +310,8 @@ impl BodySurface {
             focus,
             presentation,
             application_actions,
+            operator_actions,
         })
-    }
-
-    /// Resolves an exact current semantic action back to its admitted resident
-    /// application without invoking renderer callbacks or Body authority.
-    pub fn resolve_application_action(
-        &self,
-        presentation_revision: u64,
-        action_id: &str,
-    ) -> Result<&BodySurfaceApplicationAction, BodySurfaceRefusal> {
-        self.presentation
-            .resolve_action(presentation_revision, action_id)
-            .map_err(|refusal| match refusal {
-                PresentationActionRefusal::StaleRevision => BodySurfaceRefusal::StaleAction,
-                PresentationActionRefusal::UnknownAction => BodySurfaceRefusal::UnknownAction,
-                PresentationActionRefusal::Unavailable { .. }
-                | PresentationActionRefusal::Refused { .. } => {
-                    BodySurfaceRefusal::UnavailableAction
-                }
-            })?;
-        self.application_actions
-            .iter()
-            .find(|action| action.surface_action_id == action_id)
-            .ok_or(BodySurfaceRefusal::UnknownAction)
     }
 }
 
@@ -373,7 +390,8 @@ fn validate_contributions(
         }
         let current = wake.is_some_and(|wake| {
             wake.plans.iter().any(|plan| {
-                plan.state == WakePlanState::Playing
+                plan.plan_id == contribution.plan_id
+                    && plan.state == WakePlanState::Playing
                     && plan.active_play_id.as_ref() == Some(&contribution.active_play_id)
             })
         });
@@ -403,22 +421,6 @@ fn validate_contributions(
         }
     }
     Ok(())
-}
-
-fn lifecycle_action(body: &Body, target: &str) -> Option<PresentationAction> {
-    let (identity, intent, label) = match body.state {
-        BodyState::Lulled => ("wake", "conduit.intent/wake@1", "Wake"),
-        BodyState::Awake { .. } => ("lull", "conduit.intent/lull@1", "Lull"),
-        BodyState::Fulfilled { .. } => return None,
-    };
-    Some(PresentationAction {
-        identity: format!("body/action/{identity}/{}", body.workload_revision),
-        intent: intent.into(),
-        target: target.into(),
-        label: label.into(),
-        disclosure: PresentationDisclosureLevel::CurrentAction,
-        availability: PresentationActionAvailability::Available,
-    })
 }
 
 fn identity_property(subject: &str, name: &str, value: &str) -> PresentationProperty {
