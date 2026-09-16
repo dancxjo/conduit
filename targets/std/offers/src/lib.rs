@@ -78,6 +78,8 @@ mod signal;
 pub use signal::*;
 mod house_conversation;
 pub use house_conversation::*;
+mod body_chat;
+pub use body_chat::*;
 mod model_text;
 pub use model_text::*;
 mod speech_recognition;

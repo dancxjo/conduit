@@ -26,6 +26,15 @@ pub const CHAT_SUBMIT_REVISION: &str = "conduit.chat/submit@1";
 pub const CHAT_STATE_MESSAGE_HOST_OPERATION: &str = "conduit.chat/state-message@1";
 pub const CHAT_STATE_CONNECTION_HOST_OPERATION: &str = "conduit.chat/state-connection@1";
 pub const CHAT_SUBMIT_HOST_OPERATION: &str = "conduit.chat/submit@1";
+pub const CHAT_FROM_WEBSOCKET_KIND: &str = "chat/from-websocket";
+pub const CHAT_TO_WEBSOCKET_KIND: &str = "chat/to-websocket";
+pub const CHAT_CONNECTION_FROM_WEBSOCKET_KIND: &str = "chat/connection-from-websocket";
+pub const CHAT_CURRENT_CONNECTION_KIND: &str = "chat/current-connection";
+pub const CHAT_FROM_WEBSOCKET_HOST_OPERATION: &str = "conduit.chat/from-websocket@1";
+pub const CHAT_TO_WEBSOCKET_HOST_OPERATION: &str = "conduit.chat/to-websocket@1";
+pub const CHAT_CONNECTION_FROM_WEBSOCKET_HOST_OPERATION: &str =
+    "conduit.chat/connection-from-websocket@1";
+pub const CHAT_CURRENT_CONNECTION_HOST_OPERATION: &str = "conduit.chat/current-connection@1";
 pub const BROWSER_RENDER_HOST_OPERATION: &str = "conduit.browser/present@1";
 pub const BROWSER_INTERACTION_HOST_OPERATION: &str = "conduit.browser/interaction@1";
 pub const BROWSER_DOCUMENT_RESOURCE: &str = "conduit.resource/browser-document@1";
@@ -105,7 +114,76 @@ pub fn browser_chat_family() -> BrowserChatFamily {
                 ),
             }),
             chat_submit_offer(),
+            chat_transport_adapter_offer(
+                CHAT_FROM_WEBSOCKET_KIND,
+                CHAT_FROM_WEBSOCKET_HOST_OPERATION,
+                conduit_net::WEBSOCKET_MESSAGE_VALUE_KIND,
+                conduit_text::TEXT_VALUE_KIND,
+                PortTemporal::Flow { closes: true },
+                PortTemporal::Flow { closes: true },
+            ),
+            chat_transport_adapter_offer(
+                CHAT_CONNECTION_FROM_WEBSOCKET_KIND,
+                CHAT_CONNECTION_FROM_WEBSOCKET_HOST_OPERATION,
+                conduit_net::BOOLEAN_VALUE_KIND,
+                conduit_core::BOOL_INFO_ID,
+                PortTemporal::Current,
+                PortTemporal::Current,
+            ),
+            chat_transport_adapter_offer(
+                CHAT_CURRENT_CONNECTION_KIND,
+                CHAT_CURRENT_CONNECTION_HOST_OPERATION,
+                conduit_core::BOOL_INFO_ID,
+                conduit_core::BOOL_INFO_ID,
+                PortTemporal::Value,
+                PortTemporal::Current,
+            ),
+            chat_transport_adapter_offer(
+                CHAT_TO_WEBSOCKET_KIND,
+                CHAT_TO_WEBSOCKET_HOST_OPERATION,
+                conduit_text::TEXT_VALUE_KIND,
+                conduit_net::WEBSOCKET_MESSAGE_VALUE_KIND,
+                PortTemporal::Flow { closes: true },
+                PortTemporal::Flow { closes: true },
+            ),
         ],
+    }
+}
+
+fn chat_transport_adapter_offer(
+    kind: &str,
+    operation: &str,
+    input: &str,
+    output: &str,
+    input_temporal: PortTemporal,
+    output_temporal: PortTemporal,
+) -> CapabilityOffer {
+    CapabilityOffer {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: CapabilityId::from(kind),
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindContractRevision::from("conduit.chat/transport-text-adapter@1"),
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("conduit.chat/transport-text-adapter@1"),
+            implementation_id: ImplementationId::from("chat/transport-text-adapter@1"),
+            artifact_id: ArtifactId::from("conduit-browser-runtime/chat-transport-text-adapter@1"),
+        },
+        inputs: vec![port("value", input, PortDirection::Input, input_temporal)],
+        outputs: vec![port(
+            "value",
+            output,
+            PortDirection::Output,
+            output_temporal,
+        )],
+        host_operations: vec![host_operation(
+            operation,
+            MAXIMUM_CHAT_MESSAGE_BYTES,
+            MAXIMUM_CHAT_MESSAGE_BYTES,
+        )],
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: limits(64, MAXIMUM_CHAT_MESSAGE_BYTES * 64),
     }
 }
 
@@ -187,7 +265,7 @@ pub fn chat_submit_offer() -> CapabilityOffer {
         )],
         outputs: vec![port(
             "message",
-            conduit_net::WEBSOCKET_MESSAGE_VALUE_KIND,
+            conduit_text::TEXT_VALUE_KIND,
             PortDirection::Output,
             PortTemporal::Flow { closes: true },
         )],
@@ -206,13 +284,13 @@ fn chat_state_inputs() -> Vec<PortDescriptor> {
     vec![
         port(
             "message",
-            conduit_net::WEBSOCKET_MESSAGE_VALUE_KIND,
+            conduit_text::TEXT_VALUE_KIND,
             PortDirection::Input,
             PortTemporal::Flow { closes: true },
         ),
         port(
             "live",
-            conduit_net::BOOLEAN_VALUE_KIND,
+            conduit_core::BOOL_INFO_ID,
             PortDirection::Input,
             PortTemporal::Current,
         ),
@@ -325,6 +403,62 @@ pub fn install_browser_chat_catalogs(
             ],
         })
         .map_err(|error| error.to_string())?;
+    for (kind, operation, input, output, input_temporal, output_temporal) in [
+        (
+            CHAT_FROM_WEBSOCKET_KIND,
+            CHAT_FROM_WEBSOCKET_HOST_OPERATION,
+            conduit_net::WEBSOCKET_MESSAGE_VALUE_KIND,
+            conduit_text::TEXT_VALUE_KIND,
+            PortTemporal::Flow { closes: true },
+            PortTemporal::Flow { closes: true },
+        ),
+        (
+            CHAT_TO_WEBSOCKET_KIND,
+            CHAT_TO_WEBSOCKET_HOST_OPERATION,
+            conduit_text::TEXT_VALUE_KIND,
+            conduit_net::WEBSOCKET_MESSAGE_VALUE_KIND,
+            PortTemporal::Flow { closes: true },
+            PortTemporal::Flow { closes: true },
+        ),
+        (
+            CHAT_CONNECTION_FROM_WEBSOCKET_KIND,
+            CHAT_CONNECTION_FROM_WEBSOCKET_HOST_OPERATION,
+            conduit_net::BOOLEAN_VALUE_KIND,
+            conduit_core::BOOL_INFO_ID,
+            PortTemporal::Current,
+            PortTemporal::Current,
+        ),
+        (
+            CHAT_CURRENT_CONNECTION_KIND,
+            CHAT_CURRENT_CONNECTION_HOST_OPERATION,
+            conduit_core::BOOL_INFO_ID,
+            conduit_core::BOOL_INFO_ID,
+            PortTemporal::Value,
+            PortTemporal::Current,
+        ),
+    ] {
+        startup.insert(KindSignature {
+            kind: kind.into(),
+            startup_parameters: Vec::new(),
+        })?;
+        let offer = chat_transport_adapter_offer(
+            kind,
+            operation,
+            input,
+            output,
+            input_temporal,
+            output_temporal,
+        );
+        profile
+            .insert(KindDefinition {
+                kind_id: kind_id(kind),
+                kind_contract_revision: offer.kind_contract_revision,
+                inputs: offer.inputs,
+                outputs: offer.outputs,
+                configuration: Vec::new(),
+            })
+            .map_err(|error| error.to_string())?;
+    }
     Ok(())
 }
 

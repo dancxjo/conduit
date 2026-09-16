@@ -76,6 +76,8 @@ impl InstalledOperation {
             Self::WhisperSpeech(operation) => operation.cancel(),
             Self::RecognitionText(operation) => operation.cancel(),
             Self::HousePrompt(operation) => operation.cancel(),
+            Self::BodyChatPrompt(operation) => operation.cancel(),
+            Self::BodyConversationContext(operation) => operation.cancel(),
             Self::LocalModel(operation) => operation.cancel(),
             Self::ModelText(operation) => operation.cancel(),
             Self::Navigation(operation) => operation.cancel(),

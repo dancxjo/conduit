@@ -125,6 +125,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

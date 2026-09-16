@@ -152,8 +152,13 @@ impl OllamaDiscovery {
     pub fn initialize(
         self,
         admitted_memory_mib: u32,
-        profiles: Vec<LocalModelKindProfile>,
+        mut profiles: Vec<LocalModelKindProfile>,
     ) -> Result<OllamaLocalModelAdapter, String> {
+        if profiles.contains(&LocalModelKindProfile::Generate)
+            && !profiles.contains(&LocalModelKindProfile::GenerateFlow)
+        {
+            profiles.push(LocalModelKindProfile::GenerateFlow);
+        }
         let needs_completion = profiles
             .iter()
             .any(|profile| !matches!(profile, LocalModelKindProfile::EmbedFiniteVector));
@@ -286,16 +291,18 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             .unwrap_or(1)
             .clamp(1, token_ceiling);
         let (payload, truncated, work_units) = match placement.kind_id.as_str() {
-            conduit_ai::LLM_GENERATE_KIND => match self.generate(input, maximum_tokens, false) {
-                Ok(generated) => (
-                    generated.response.into_bytes(),
-                    generated.done_reason == "length",
-                    generated
-                        .prompt_eval_count
-                        .saturating_add(generated.eval_count),
-                ),
-                Err(_) => return LocalModelAdapterTerminal::ProviderLost,
-            },
+            conduit_ai::LLM_GENERATE_KIND | conduit_ai::LLM_GENERATE_FLOW_KIND => {
+                match self.generate(input, maximum_tokens, false) {
+                    Ok(generated) => (
+                        generated.response.into_bytes(),
+                        generated.done_reason == "length",
+                        generated
+                            .prompt_eval_count
+                            .saturating_add(generated.eval_count),
+                    ),
+                    Err(_) => return LocalModelAdapterTerminal::ProviderLost,
+                }
+            }
             conduit_ai::LLM_CLASSIFY_KIND => {
                 let prompt = format!(
                     "Classify the following text. Return only JSON {{\"label\":\"conduit\"}} or {{\"label\":\"other\"}}. Text: {input}"

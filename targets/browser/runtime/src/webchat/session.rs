@@ -35,15 +35,15 @@ pub(super) struct InteractionFrame {
 }
 
 const SOURCE: &str = include_str!("../../../../../forms/webchat/main.conduit");
-const NODES: usize = 6;
-const CORDS: usize = 8;
+const NODES: usize = 9;
+const CORDS: usize = 11;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-const QUEUE_SLOTS: usize = 32;
+const QUEUE_SLOTS: usize = 44;
 const ROUTE_SLOTS: usize = NODES * PORTS;
 const ROUTE_TARGETS: usize = CORDS;
-const ACTIVE_HOST_OPERATIONS: usize = 9;
+const ACTIVE_HOST_OPERATIONS: usize = 12;
 const HOST_BINDINGS: usize = NODES * 4;
-const PENDING_REQUESTS: usize = 6;
+const PENDING_REQUESTS: usize = 8;
 const VALUE_ITEMS: u16 = 64;
 const VALUE_BYTES: u32 = 512 * 1024;
 const SIGN_ITEMS: u16 = 1_024;
@@ -220,6 +220,10 @@ impl BrowserChatSession {
                     BrowserChatOperation::interaction(values.store(&[]).map_err(|_| -211)?)
                 }
                 conduit_chat::CHAT_SUBMIT_KIND => BrowserChatOperation::submit(),
+                conduit_chat::CHAT_FROM_WEBSOCKET_KIND
+                | conduit_chat::CHAT_TO_WEBSOCKET_KIND
+                | conduit_chat::CHAT_CONNECTION_FROM_WEBSOCKET_KIND
+                | conduit_chat::CHAT_CURRENT_CONNECTION_KIND => BrowserChatOperation::adapter(),
                 conduit_net::EXTERNAL_WEBSOCKET_CLIENT_KIND => {
                     let url = placement
                         .configuration

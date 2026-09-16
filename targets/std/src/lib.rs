@@ -86,6 +86,8 @@ mod image_binding_tests;
 mod installed_std;
 pub use installed_std::{InstalledRemoteFragment, RemoteHostWork, RemoteValueTransfer};
 #[cfg(test)]
+mod body_chat_tests;
+#[cfg(test)]
 mod installed_std_tests;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub mod isolated_base;
@@ -428,6 +430,7 @@ pub struct StdHost {
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
+    body_conversation_context: Option<Vec<u8>>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
@@ -451,6 +454,34 @@ impl Default for StdHost {
 }
 
 impl StdHost {
+    pub fn install_body_conversation_context(
+        &mut self,
+        context: &conduit_body::BodyConversationContext,
+    ) -> Result<(), String> {
+        let encoded = conduit_tongues::encode_body_conversation_context(context)
+            .map_err(|error| format!("Body conversation context: {error:?}"))?;
+        let newly_offered = self.body_conversation_context.is_none();
+        if newly_offered {
+            self.advertisement
+                .capabilities
+                .push(conduit_std_offers::body_conversation_context_std_offer());
+            self.advertisement
+                .capabilities
+                .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+        }
+        self.body_conversation_context = Some(encoded);
+        if newly_offered {
+            self.advertisement.offer_generation = OfferGeneration(
+                self.advertisement
+                    .offer_generation
+                    .0
+                    .checked_add(1)
+                    .ok_or_else(|| "Body context offer generation exhausted".to_string())?,
+            );
+        }
+        Ok(())
+    }
+
     pub fn issue_kernel_play(
         &mut self,
         fragment: &PlanFragment,
@@ -503,6 +534,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -542,7 +574,13 @@ impl StdHost {
             .push(conduit_std_offers::house_prompt_std_offer());
         advertisement
             .capabilities
+            .push(conduit_std_offers::body_chat_prompt_std_offer());
+        advertisement
+            .capabilities
             .push(conduit_std_offers::model_result_to_text_std_offer());
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::model_result_flow_to_text_std_offer());
         advertisement
             .capabilities
             .push(conduit_std_offers::address_detect_offer());
@@ -570,6 +608,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -609,6 +648,7 @@ impl StdHost {
             microphone: None,
             vector_search: Some(adapter),
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -648,6 +688,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: Some(adapter),
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -707,6 +748,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -760,6 +802,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -814,6 +857,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -967,6 +1011,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -991,6 +1036,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1039,6 +1085,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1082,6 +1129,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1114,6 +1162,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1159,6 +1208,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,

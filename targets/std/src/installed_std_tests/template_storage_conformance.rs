@@ -101,6 +101,7 @@ fn reusable_named_template_storage_requires_a_slot_and_executes_without_play_all
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

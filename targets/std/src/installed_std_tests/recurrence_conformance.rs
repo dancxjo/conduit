@@ -73,6 +73,7 @@ fn checked_civil_recurrence_executes_through_the_production_kernel() {
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,
