@@ -84,19 +84,19 @@ fn enter_patchbay(
         cli::PatchbayHost::Native => "patchbay-native",
         cli::PatchbayHost::Browser => "patchbay-html",
     };
-    let status = command.status().map_err(|error| {
-        format!(
-            "{executable} is unavailable ({error}); install the selected Patchbay renderer or use `cargo xtask demo patchbay --on {}` from a Conduit checkout",
-            match host {
-                cli::PatchbayHost::Native => "native",
-                cli::PatchbayHost::Browser => "browser",
-            }
-        )
-    })?;
+    let status = command
+        .status()
+        .map_err(|error| patchbay_unavailable_message(executable, &error))?;
     status
         .success()
         .then_some(())
         .ok_or_else(|| format!("{executable} exited with {status}"))
+}
+
+fn patchbay_unavailable_message(executable: &str, error: &io::Error) -> String {
+    format!(
+        "{executable} is unavailable ({error}); install the selected Patchbay renderer alongside the `conduit` product entrance"
+    )
 }
 
 fn enter_creche() -> Result<(), String> {
@@ -436,5 +436,16 @@ mod patchbay_entrance_tests {
             &[],
         )
         .is_err());
+    }
+
+    #[test]
+    fn unavailable_renderer_guidance_stays_inside_the_installed_product() {
+        let message = patchbay_unavailable_message(
+            "patchbay-html",
+            &io::Error::new(io::ErrorKind::NotFound, "missing"),
+        );
+        assert!(message.contains("alongside the `conduit` product entrance"));
+        assert!(!message.contains("cargo xtask"));
+        assert!(!message.contains("checkout"));
     }
 }
