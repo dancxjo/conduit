@@ -5,9 +5,9 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@1";
-const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@1";
-const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@1";
+const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@2";
+const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@2";
+const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@2";
 const MAXIMUM_DOCUMENT_BYTES: usize = 1024 * 1024;
 const MAXIMUM_STEPS: usize = 32;
 const MAXIMUM_HOSTS_PER_BODY: usize = 8;
@@ -41,6 +41,7 @@ struct ContractStep {
     what_conduit_established: String,
     concepts: Vec<String>,
     required_assertion: String,
+    required_assertion_rung: EvidenceRung,
     allowed_dispositions: Vec<String>,
     required_evidence_classes: Vec<String>,
     required_provenance: Vec<ProvenanceField>,
@@ -58,6 +59,48 @@ enum ProvenanceField {
     Manifestation,
     Line,
     Sign,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "kebab-case")]
+enum EvidenceRung {
+    SourceResource,
+    StreamDisposition,
+    DeterministicObservation,
+    ModelDerivedInterpretation,
+    CurrentExperience,
+    PurposeState,
+    FulfillmentReadiness,
+    BodyBiography,
+    RuntimeReceipt,
+    SemanticPresentation,
+    GeneratedManifestation,
+    AudioManifestation,
+    LifecycleAction,
+    FulfilledTransition,
+    HumanAssessment,
+}
+
+impl EvidenceRung {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::SourceResource => "source-resource",
+            Self::StreamDisposition => "stream-disposition",
+            Self::DeterministicObservation => "deterministic-observation",
+            Self::ModelDerivedInterpretation => "model-derived-interpretation",
+            Self::CurrentExperience => "current-experience",
+            Self::PurposeState => "purpose-state",
+            Self::FulfillmentReadiness => "fulfillment-readiness",
+            Self::BodyBiography => "body-biography",
+            Self::RuntimeReceipt => "runtime-receipt",
+            Self::SemanticPresentation => "semantic-presentation",
+            Self::GeneratedManifestation => "generated-manifestation",
+            Self::AudioManifestation => "audio-manifestation",
+            Self::LifecycleAction => "lifecycle-action",
+            Self::FulfilledTransition => "fulfilled-transition",
+            Self::HumanAssessment => "human-assessment",
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -111,6 +154,7 @@ struct StepProvenance {
 struct StepEvidence {
     artifact_id: String,
     evidence_class: String,
+    assertion_rung: EvidenceRung,
     documentary_description: String,
     path: PathBuf,
     sha256: String,
@@ -359,6 +403,16 @@ fn validate_step(
         return Err(format!(
             "{} lacks evidence for {}",
             track.track_id, required.step_id
+        ));
+    }
+    if !observed
+        .evidence
+        .iter()
+        .any(|evidence| evidence.assertion_rung == required.required_assertion_rung)
+    {
+        return Err(format!(
+            "{} lacks authoritative {:?} evidence at {}",
+            track.track_id, required.required_assertion_rung, required.step_id
         ));
     }
     for field in &required.required_provenance {

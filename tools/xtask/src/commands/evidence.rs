@@ -51,11 +51,11 @@ struct HomeCrossFaceArgs {
 
 #[derive(Args, Debug)]
 struct ThreeBodyJourneyArgs {
-    /// Shared conduit.evidence/semantic-journey-contract@1 document.
+    /// Shared conduit.evidence/semantic-journey-contract@2 document.
     #[arg(long)]
     contract: PathBuf,
 
-    /// One conduit.evidence/body-journey-track@1 manifest; exactly three are required.
+    /// One conduit.evidence/body-journey-track@2 manifest; exactly three are required.
     #[arg(long = "track", required = true)]
     tracks: Vec<PathBuf>,
 
