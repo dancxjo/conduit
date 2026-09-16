@@ -257,7 +257,7 @@ fn render_cords(output: &mut String, plan: &GeneratedEmbeddedPlan) {
         };
         writeln!(
             output,
-            "    conduit_kernel::scheduler::CordSpec {{ cord: conduit_kernel::CordId({}), source: {}, sink: {}, slot_start: {}, item_capacity: {}, byte_capacity: {} }},",
+            "    conduit_kernel::scheduler::CordSpec {{ cord: conduit_kernel::CordId({}), source: {}, sink: {}, slot_start: {}, item_capacity: {}, byte_capacity: {}, pressure_policy: Default::default() }},",
             cord.cord,
             source,
             sink,

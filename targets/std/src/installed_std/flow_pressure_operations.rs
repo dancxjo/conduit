@@ -75,7 +75,9 @@ fn prepare_coalesce(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate_coalesce(placement)?;
-    Ok(InstalledOperation::FlowCoalesceLatest(FlowPressureOperation))
+    Ok(InstalledOperation::FlowCoalesceLatest(
+        FlowPressureOperation,
+    ))
 }
 
 fn validate_backpressure(placement: &PlannedGear) -> Result<(), String> {
@@ -171,8 +173,10 @@ mod tests {
             operation.resume(OperationInput::Closed { port: PortId(0) }),
             OperationAction::Complete
         );
-        let offer =
-            conduit_std_offers::flow_coalesce_latest_std_offer(&kind_id(SCALAR_INFO_ID), SCALAR_ENCODED_LEN as u32);
+        let offer = conduit_std_offers::flow_coalesce_latest_std_offer(
+            &kind_id(SCALAR_INFO_ID),
+            SCALAR_ENCODED_LEN as u32,
+        );
         assert_eq!(offer.outputs[0].temporal, PortTemporal::Current);
     }
 }

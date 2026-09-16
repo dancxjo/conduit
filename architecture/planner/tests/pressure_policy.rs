@@ -1,7 +1,7 @@
 use conduit_core::{
     kind_id, port_id, BaseImplementationId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal,
+    ExecutionProfileId, ImplementationId, ImplementationOffer, KindContractRevision,
+    PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
@@ -38,7 +38,9 @@ fn tick_current_sink_offer() -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_std_offers::tick_capability_offer().limits.max_queue_bytes,
+            max_queue_bytes: conduit_std_offers::tick_capability_offer()
+                .limits
+                .max_queue_bytes,
         },
     }
 }
@@ -142,7 +144,9 @@ fn coalesce_latest_seals_distinct_downstream_pressure_policy_in_the_plan() {
     let latest = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| placement.kind_id == kind_id(conduit_semantic_catalog::FLOW_COALESCE_LATEST_KIND))
+        .find(|placement| {
+            placement.kind_id == kind_id(conduit_semantic_catalog::FLOW_COALESCE_LATEST_KIND)
+        })
         .unwrap();
     let upstream = plan.fragments[0]
         .connections
@@ -155,7 +159,10 @@ fn coalesce_latest_seals_distinct_downstream_pressure_policy_in_the_plan() {
         .find(|connection| connection.source_placement_id == latest.placement_id)
         .unwrap();
 
-    assert_eq!(upstream.pressure_policy, conduit_core::DeliveryPressurePolicy::PreserveOrder);
+    assert_eq!(
+        upstream.pressure_policy,
+        conduit_core::DeliveryPressurePolicy::PreserveOrder
+    );
     assert_eq!(
         downstream.pressure_policy,
         conduit_core::DeliveryPressurePolicy::CoalesceLatest

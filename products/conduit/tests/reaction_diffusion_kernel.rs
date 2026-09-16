@@ -280,7 +280,7 @@ fn scheduler() -> Scheduler {
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: MAX_INPUT_BYTES,
-            pressure_policy: Default::default(),
+                pressure_policy: Default::default(),
             },
         )],
         routes,

@@ -1,7 +1,7 @@
 use super::test_scalar_flow;
 use conduit_core::{
-    kind_id, BaseImplementationId, OfferGeneration, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
-    TerminalDisposition,
+    kind_id, BaseImplementationId, OfferGeneration, TerminalDisposition, SCALAR_ENCODED_LEN,
+    SCALAR_INFO_ID,
 };
 use conduit_form::parse_with_startup;
 use std::collections::BTreeMap;
@@ -79,7 +79,9 @@ fn scalar_source_can_use_coalesce_latest_as_a_continuous_std_form() {
     let coalesced = plan.fragments[0]
         .connections
         .iter()
-        .find(|connection| connection.pressure_policy == conduit_core::DeliveryPressurePolicy::CoalesceLatest)
+        .find(|connection| {
+            connection.pressure_policy == conduit_core::DeliveryPressurePolicy::CoalesceLatest
+        })
         .unwrap();
     assert_eq!(coalesced.byte_capacity, SCALAR_ENCODED_LEN as u32);
 
@@ -108,7 +110,10 @@ fn scalar_source_can_use_coalesce_latest_as_a_continuous_std_form() {
 
     assert_eq!(timer.0, [Duration::ZERO; 3]);
     assert!(matches!(
-        report.observations.last().map(|observation| &observation.kind),
+        report
+            .observations
+            .last()
+            .map(|observation| &observation.kind),
         Some(conduit_core::ObservationKind::PlanTerminal {
             disposition: TerminalDisposition::Completed
         })

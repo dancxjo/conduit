@@ -2224,8 +2224,7 @@ where
         let spec = self.cord_specs[cord];
         let state = &mut self.cords[cord];
         if state.len >= spec.item_capacity {
-            if spec.pressure_policy != DeliveryPressurePolicy::CoalesceLatest || state.len == 0
-            {
+            if spec.pressure_policy != DeliveryPressurePolicy::CoalesceLatest || state.len == 0 {
                 return Err(SchedulerError::QueueCapacityExceeded);
             }
             let offset = (state.head + state.len - 1) % spec.item_capacity;

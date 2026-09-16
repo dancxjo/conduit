@@ -1,9 +1,9 @@
 //! Exact checked flow-pressure seams distinct from `state/latest`.
 
-use alloc::vec;
-use alloc::vec::Vec;
 #[cfg(feature = "form-catalog")]
 use alloc::string::ToString;
+use alloc::vec;
+use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, DeliveryPressurePolicy, KindContractRevision, KindId,
     PortDescriptor, PortDirection, PortTemporal,
@@ -136,14 +136,21 @@ mod tests {
             reviewed_flow_pressure_policy(&kind_id(FLOW_COALESCE_LATEST_KIND)),
             Some(DeliveryPressurePolicy::CoalesceLatest)
         );
-        assert_eq!(reviewed_flow_pressure_policy(&kind_id("flow/unknown")), None);
+        assert_eq!(
+            reviewed_flow_pressure_policy(&kind_id("flow/unknown")),
+            None
+        );
     }
 
     #[test]
     fn coalescing_contract_stays_distinct_from_state_latest() {
         let value_kind = kind_id(conduit_core::SCALAR_INFO_ID);
-        let latest = flow_coalesce_latest_contract(&value_kind, conduit_core::SCALAR_ENCODED_LEN as u32);
-        assert_eq!(latest.inputs[0].temporal, PortTemporal::Flow { closes: false });
+        let latest =
+            flow_coalesce_latest_contract(&value_kind, conduit_core::SCALAR_ENCODED_LEN as u32);
+        assert_eq!(
+            latest.inputs[0].temporal,
+            PortTemporal::Flow { closes: false }
+        );
         assert_eq!(latest.outputs[0].temporal, PortTemporal::Current);
         assert_ne!(latest.kind_id.as_str(), crate::LATEST_KIND);
     }

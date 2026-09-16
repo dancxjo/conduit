@@ -58,7 +58,7 @@ fn with_state(state: StateDelay<1>) -> Play {
                     slot_start: 0,
                     item_capacity: 1,
                     byte_capacity: 1,
-                pressure_policy: Default::default(),
+                    pressure_policy: Default::default(),
                 },
             ),
             CordSpec::remote_egress(
@@ -69,7 +69,7 @@ fn with_state(state: StateDelay<1>) -> Play {
                     slot_start: 1,
                     item_capacity: 1,
                     byte_capacity: 1,
-                pressure_policy: Default::default(),
+                    pressure_policy: Default::default(),
                 },
             ),
         ],

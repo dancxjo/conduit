@@ -201,7 +201,7 @@ fn run_with_value<S: ValueStorage>(
             slot_start: 0,
             item_capacity: 1,
             byte_capacity: 8,
-        pressure_policy: Default::default(),
+            pressure_policy: Default::default(),
         },
     )];
     let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);

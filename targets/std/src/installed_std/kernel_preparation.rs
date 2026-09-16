@@ -36,7 +36,7 @@ impl KernelTables {
                 slot_start: u16::MAX,
                 item_capacity: 0,
                 byte_capacity: 0,
-            pressure_policy: Default::default(),
+                pressure_policy: Default::default(),
             }; MAX_CORDS],
             routes: FixedRoutes::new(PORTS as u16),
             host_bindings: FixedHostOperationBindings::new(HOST_OPERATIONS_PER_NODE),

@@ -317,7 +317,7 @@ fn scheduler(source: &SourceRef) -> Scheduler {
                     slot_start: 0,
                     item_capacity: 1,
                     byte_capacity: conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES as u32,
-                pressure_policy: Default::default(),
+                    pressure_policy: Default::default(),
                 },
             ),
             CordSpec::local(
@@ -328,7 +328,7 @@ fn scheduler(source: &SourceRef) -> Scheduler {
                     slot_start: 1,
                     item_capacity: 1,
                     byte_capacity: MAX_VALUE_BYTES,
-                pressure_policy: Default::default(),
+                    pressure_policy: Default::default(),
                 },
             ),
         ],

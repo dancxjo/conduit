@@ -191,7 +191,7 @@ fn production_kernel_arms_cancels_replaces_and_completes_one_deadline() {
             slot_start: 0,
             item_capacity: 1,
             byte_capacity: 8,
-        pressure_policy: Default::default(),
+            pressure_policy: Default::default(),
         },
     )];
     let mut scheduler =

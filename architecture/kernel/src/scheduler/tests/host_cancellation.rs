@@ -164,7 +164,7 @@ fn scheduler<S: ValueStorage, E: SignSink>(mut values: S, signs: E) -> Cancellat
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: 8,
-            pressure_policy: Default::default(),
+                pressure_policy: Default::default(),
             },
         )],
         routes,

@@ -217,7 +217,7 @@ fn blocked_output_preserves_both_releases_until_atomic_commit() {
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: 1,
-            pressure_policy: Default::default(),
+                pressure_policy: Default::default(),
             },
         ),
         CordSpec::local(
@@ -228,7 +228,7 @@ fn blocked_output_preserves_both_releases_until_atomic_commit() {
                 slot_start: 1,
                 item_capacity: 1,
                 byte_capacity: 1,
-            pressure_policy: Default::default(),
+                pressure_policy: Default::default(),
             },
         ),
     ];
@@ -370,7 +370,7 @@ fn inactive_cord() -> CordSpec {
         slot_start: u16::MAX,
         item_capacity: 0,
         byte_capacity: 0,
-    pressure_policy: Default::default(),
+        pressure_policy: Default::default(),
     }
 }
 

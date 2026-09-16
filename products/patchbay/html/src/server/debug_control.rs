@@ -104,7 +104,7 @@ impl DocumentaryDebuggerRuntime {
                     slot_start: 0,
                     item_capacity: 1,
                     byte_capacity: 1,
-                pressure_policy: Default::default(),
+                    pressure_policy: Default::default(),
                 },
             )],
             routes,
