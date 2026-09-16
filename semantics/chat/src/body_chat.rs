@@ -20,10 +20,10 @@ use sha2::{Digest, Sha256};
 
 pub const BODY_CHAT_PROMPT_KIND: &str = "body/chat-prompt";
 pub const BODY_CONVERSATION_CONTEXT_KIND: &str = "body/conversation-context";
-pub const BODY_CONVERSATION_CONTEXT_REVISION: &str = "conduit.body/conversation-context@1";
-pub const BODY_CHAT_PROMPT_REVISION: &str = "conduit.body/chat-prompt@1";
+pub const BODY_CONVERSATION_CONTEXT_REVISION: &str = "conduit.body/conversation-context@2";
+pub const BODY_CHAT_PROMPT_REVISION: &str = "conduit.body/chat-prompt@2";
 pub const BODY_CHAT_FORM_KIND: &str = "body-chat";
-pub const BODY_CHAT_FORM_REVISION: &str = "conduit.body/chat-form@1";
+pub const BODY_CHAT_FORM_REVISION: &str = "conduit.body/chat-form@2";
 pub const MAXIMUM_BODY_CHAT_HISTORY_ITEMS: usize = 16;
 pub const MAXIMUM_BODY_CHAT_MESSAGE_BYTES: usize = 4_096;
 pub const MAXIMUM_BODY_CHAT_CONTEXT_BYTES: usize = 32_768;
@@ -44,6 +44,8 @@ pub struct BodyChatHistoryItem {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BodyChatGenerationRequest {
     pub request_identity: String,
+    pub context_basis: conduit_body::BodyConversationContextBasis,
+    pub context_sha256: [u8; 32],
     pub encoded_request: Vec<u8>,
 }
 
@@ -62,12 +64,26 @@ pub enum BodyChatRefusal {
 pub fn encode_body_conversation_context(
     context: &conduit_body::BodyConversationContext,
 ) -> Result<Vec<u8>, BodyChatRefusal> {
+    let mut encoded = Vec::with_capacity(MAXIMUM_BODY_CHAT_CONTEXT_BYTES);
+    encode_body_conversation_context_into(context, &mut encoded)?;
+    Ok(encoded)
+}
+
+pub fn encode_body_conversation_context_into(
+    context: &conduit_body::BodyConversationContext,
+    encoded: &mut Vec<u8>,
+) -> Result<(), BodyChatRefusal> {
     validate_context(context)?;
-    let encoded = serde_json::to_vec(context).map_err(|_| BodyChatRefusal::Encoding)?;
-    if encoded.len() > MAXIMUM_BODY_CHAT_CONTEXT_BYTES {
+    if encoded.capacity() < MAXIMUM_BODY_CHAT_CONTEXT_BYTES {
         return Err(BodyChatRefusal::ContextBoundExceeded);
     }
-    Ok(encoded)
+    encoded.clear();
+    serde_json::to_writer(&mut *encoded, context).map_err(|_| BodyChatRefusal::Encoding)?;
+    if encoded.len() > MAXIMUM_BODY_CHAT_CONTEXT_BYTES {
+        encoded.clear();
+        return Err(BodyChatRefusal::ContextBoundExceeded);
+    }
+    Ok(())
 }
 
 pub fn decode_body_conversation_context(
@@ -87,8 +103,14 @@ pub fn decode_body_conversation_context(
 fn validate_context(
     context: &conduit_body::BodyConversationContext,
 ) -> Result<(), BodyChatRefusal> {
-    if context.schema != "conduit.body/conversation-context-value@1" {
+    if context.schema != "conduit.body/conversation-context-value@2" {
         return Err(BodyChatRefusal::WrongContextSchema);
+    }
+    if context.basis.body_id != context.body_id
+        || context.basis.wake_id != context.wake_id
+        || context.basis.wake_sequence != context.wake_sequence
+    {
+        return Err(BodyChatRefusal::MalformedContext);
     }
     if context.display_name.is_empty()
         || context.display_name.len() > conduit_body::MAXIMUM_BODY_DISPLAY_NAME_BYTES
@@ -116,6 +138,7 @@ struct Prompt<'a> {
 #[derive(Clone, Debug)]
 pub struct BodyChatPromptState {
     context: conduit_body::BodyConversationContext,
+    context_sha256: [u8; 32],
     history: VecDeque<BodyChatHistoryItem>,
     maximum_history_items: usize,
 }
@@ -132,8 +155,10 @@ impl BodyChatPromptState {
             return Err(BodyChatRefusal::HistoryBoundExceeded);
         }
         let context = decode_body_conversation_context(encoded_context)?;
+        let context_sha256 = Sha256::digest(encoded_context).into();
         Ok(Self {
             context,
+            context_sha256,
             history: VecDeque::with_capacity(maximum_history_items),
             maximum_history_items,
         })
@@ -142,6 +167,7 @@ impl BodyChatPromptState {
     pub fn replace_context(&mut self, encoded_context: &[u8]) -> Result<(), BodyChatRefusal> {
         let replacement = Self::new(encoded_context, self.maximum_history_items)?;
         self.context = replacement.context;
+        self.context_sha256 = replacement.context_sha256;
         Ok(())
     }
 
@@ -150,12 +176,15 @@ impl BodyChatPromptState {
         message: &[u8],
     ) -> Result<BodyChatGenerationRequest, BodyChatRefusal> {
         let message = decode_message(message)?;
+        let context_sha256 = self.context_sha256;
         let mut recent_history = self.history.clone();
         let (request_identity, encoded_request) = loop {
             let mut digest = Sha256::new();
             digest.update(b"conduit-body-chat-request-v1\0");
             digest.update(self.context.body_id.as_str().as_bytes());
             digest.update(self.context.wake_id.as_str().as_bytes());
+            digest.update(self.context.basis.revision.to_le_bytes());
+            digest.update(context_sha256);
             digest.update(message.as_bytes());
             for item in &recent_history {
                 digest.update([match item.role {
@@ -166,7 +195,7 @@ impl BodyChatPromptState {
             }
             let request_identity = format!("body-chat-request/{:x}", digest.finalize());
             let prompt = Prompt {
-                schema: "conduit.body/chat-prompt-value@1",
+                schema: "conduit.body/chat-prompt-value@2",
                 request_identity: &request_identity,
                 instruction: "Answer as this Body, briefly and only from the supplied current Body truth and explicitly labeled conversation history. Never claim an action occurred merely because it was requested.",
                 current_message: message,
@@ -187,6 +216,8 @@ impl BodyChatPromptState {
         });
         Ok(BodyChatGenerationRequest {
             request_identity,
+            context_basis: self.context.basis.clone(),
+            context_sha256,
             encoded_request,
         })
     }

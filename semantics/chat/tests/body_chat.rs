@@ -1,4 +1,6 @@
-use conduit_body::{Body, BodyConversationContext, BodyConversationHost};
+use conduit_body::{
+    Body, BodyConversationContext, BodyConversationContextBasis, BodyConversationHost,
+};
 use conduit_chat::{
     install_body_chat_catalog, BodyChatPromptState, BodyChatRole, BODY_CHAT_PROMPT_KIND,
     MAXIMUM_BODY_CHAT_HISTORY_ITEMS, MAXIMUM_BODY_CHAT_PROMPT_BYTES,
@@ -19,11 +21,17 @@ fn context() -> BodyConversationContext {
     .unwrap();
     let (body, wake) = body.wake(4, SignId::from("sign/wake")).unwrap();
     BodyConversationContext {
-        schema: "conduit.body/conversation-context-value@1".into(),
+        schema: "conduit.body/conversation-context-value@2".into(),
         display_name: "Roseau".into(),
-        body_id: body.body_id,
-        wake_id: wake.wake_id,
+        body_id: body.body_id.clone(),
+        wake_id: wake.wake_id.clone(),
         wake_sequence: 4,
+        basis: BodyConversationContextBasis {
+            body_id: body.body_id.clone(),
+            wake_id: wake.wake_id.clone(),
+            wake_sequence: 4,
+            revision: 0,
+        },
         hosts: vec![BodyConversationHost {
             host_id: HostId::from("Latimer"),
             present: true,
@@ -57,6 +65,29 @@ fn prompt_uses_bounded_owned_history_and_current_body_truth() {
         state.history().back().unwrap().role,
         BodyChatRole::Human
     ));
+}
+
+#[test]
+fn each_request_binds_the_context_basis_it_consumed_without_erasing_history() {
+    let initial = context();
+    let encoded = conduit_chat::encode_body_conversation_context(&initial).unwrap();
+    let mut state = BodyChatPromptState::new(&encoded, 4).unwrap();
+    state.record_response(b"Earlier response").unwrap();
+    let first = state.request(b"first").unwrap();
+    let mut replacement = initial;
+    replacement.basis.revision = 1;
+    replacement.hosts[0].present = false;
+    let replacement = conduit_chat::encode_body_conversation_context(&replacement).unwrap();
+    state.replace_context(&replacement).unwrap();
+    let second = state.request(b"second").unwrap();
+    assert_eq!(first.context_basis.revision, 0);
+    assert_eq!(second.context_basis.revision, 1);
+    assert_ne!(first.context_sha256, second.context_sha256);
+    assert_ne!(first.request_identity, second.request_identity);
+    assert!(state
+        .history()
+        .iter()
+        .any(|item| item.text == "Earlier response"));
 }
 
 #[test]

@@ -2904,6 +2904,7 @@ dependencies = [
  "conduit-ai",
  "conduit-body",
  "conduit-browser-runtime",
+ "conduit-chat",
  "conduit-core",
  "conduit-creche-model",
  "conduit-data",

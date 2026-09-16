@@ -3,17 +3,17 @@ use conduit_core::{
     HostOperationRequirement, ImplementationId, ImplementationOffer,
 };
 
-pub const BODY_CHAT_PROMPT_STD_IMPLEMENTATION: &str = "std/body-chat-prompt@1";
+pub const BODY_CHAT_PROMPT_STD_IMPLEMENTATION: &str = "std/body-chat-prompt@2";
 pub const BODY_CHAT_PROMPT_STD_PROFILE: &str = "std/body-chat-prompt-kernel@1";
-pub const BODY_CHAT_PROMPT_STD_ARTIFACT: &str = "conduit-std-host/body-chat-prompt@1";
+pub const BODY_CHAT_PROMPT_STD_ARTIFACT: &str = "conduit-std-host/body-chat-prompt@2";
 pub const BODY_CHAT_MESSAGE_OPERATION: &str = "conduit.host/body-chat-message@1";
 pub const BODY_CHAT_RESPONSE_OPERATION: &str = "conduit.host/body-chat-response@1";
 pub const BODY_CHAT_CONTEXT_OPERATION: &str = "conduit.host/body-chat-context@1";
-pub const BODY_CONVERSATION_CONTEXT_STD_IMPLEMENTATION: &str = "std/body-conversation-context@1";
+pub const BODY_CONVERSATION_CONTEXT_STD_IMPLEMENTATION: &str = "std/body-conversation-context@2";
 pub const BODY_CONVERSATION_CONTEXT_STD_PROFILE: &str = "std/body-conversation-context-kernel@1";
 pub const BODY_CONVERSATION_CONTEXT_STD_ARTIFACT: &str =
-    "conduit-std-host/body-conversation-context@1";
-pub const BODY_CONVERSATION_CONTEXT_OPERATION: &str = "conduit.host/body-conversation-context@1";
+    "conduit-std-host/body-conversation-context@2";
+pub const BODY_CONVERSATION_CONTEXT_OPERATION: &str = "conduit.host/body-conversation-context@2";
 
 pub fn body_chat_prompt_std_offer() -> CapabilityOffer {
     let definition = conduit_chat::body_chat_prompt_definition();
