@@ -311,8 +311,10 @@ fn run_session(
     )?;
     let mut remote_prepared = false;
     loop {
-        match receive(line)? {
-            Ingress::PrepareRemote { protocol, plan } if protocol == PROTOCOL => {
+        match receive_joined(line)? {
+            JoinedIngress::Control(Ingress::PrepareRemote { protocol, plan })
+                if protocol == PROTOCOL =>
+            {
                 if remote_prepared {
                     return Err("joined Host Line already owns one remote Play".into());
                 }
@@ -331,7 +333,13 @@ fn run_session(
                 )?;
                 remote_prepared = true;
             }
-            Ingress::Close { protocol } if protocol == PROTOCOL => {
+            JoinedIngress::Frame(frame) if remote_prepared => {
+                let exchange = crate::durable_host_control::exchange_remote(state_dir, frame)?;
+                if let Some(response) = exchange.response {
+                    line.send(&response)?;
+                }
+            }
+            JoinedIngress::Control(Ingress::Close { protocol }) if protocol == PROTOCOL => {
                 if remote_prepared {
                     crate::durable_host_control::release_remote(state_dir)?;
                 }
@@ -344,6 +352,23 @@ fn run_session(
     }
     let _ = line.close();
     Ok(())
+}
+
+enum JoinedIngress {
+    Control(Ingress),
+    Frame(Vec<u8>),
+}
+
+fn receive_joined(line: &mut impl RendezvousLine) -> Result<JoinedIngress, String> {
+    let mut bytes = line.receive()?;
+    if bytes.starts_with(b"CNDS") {
+        return Ok(JoinedIngress::Frame(bytes));
+    }
+    let decoded = serde_json::from_slice(&bytes)
+        .map(JoinedIngress::Control)
+        .map_err(|error| format!("decode joined Host Line frame: {error}"));
+    bytes.fill(0);
+    decoded
 }
 
 fn receive(line: &mut impl RendezvousLine) -> Result<Ingress, String> {
@@ -400,6 +425,27 @@ fn debug<T: core::fmt::Debug>(context: &'static str) -> impl FnOnce(T) -> String
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::VecDeque;
+
+    struct MemoryLine {
+        incoming: VecDeque<Vec<u8>>,
+    }
+
+    impl RendezvousLine for MemoryLine {
+        fn receive(&mut self) -> Result<Vec<u8>, String> {
+            self.incoming
+                .pop_front()
+                .ok_or_else(|| "empty memory Line".to_string())
+        }
+
+        fn send(&mut self, _bytes: &[u8]) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn close(&mut self) -> Result<(), String> {
+            Ok(())
+        }
+    }
 
     #[test]
     fn code_is_bounded_and_carries_no_host_or_body_identity() {
@@ -425,5 +471,23 @@ mod tests {
         assert_eq!(line.receive().unwrap(), b"{\"kind\":\"hello\"}");
         line.send(b"{\"kind\":\"host\"}").unwrap();
         assert_eq!(output, b"{\"kind\":\"host\"}\n");
+    }
+
+    #[test]
+    fn joined_line_distinguishes_canonical_session_frames_from_control() {
+        let mut line = MemoryLine {
+            incoming: VecDeque::from([
+                b"CNDS\x04\x02".to_vec(),
+                serde_json::to_vec(&serde_json::json!({"kind":"close","protocol":1})).unwrap(),
+            ]),
+        };
+        assert!(matches!(
+            receive_joined(&mut line).unwrap(),
+            JoinedIngress::Frame(bytes) if bytes == b"CNDS\x04\x02"
+        ));
+        assert!(matches!(
+            receive_joined(&mut line).unwrap(),
+            JoinedIngress::Control(Ingress::Close { protocol: PROTOCOL })
+        ));
     }
 }

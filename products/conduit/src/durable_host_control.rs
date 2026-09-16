@@ -3,7 +3,7 @@
 use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret};
 use conduit_core::{ActivePlayIdentity, HostAdvertisement, Plan};
 use conduit_std_host::{AdmittedRemoteFragment, StdHost};
-use conduit_wire::encode_session_frame_into;
+use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionMessage};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -70,8 +70,8 @@ impl DurableHostRuntime {
             .iter()
             .find(|fragment| fragment.host_id == advertisement.host_id)
             .ok_or_else(|| "host-fragment-absent".to_string())?;
-        let admitted = self.host.prepare_remote_fragment(fragment)?;
-        let hello_frames = match encode_remote_hello_frames(&admitted) {
+        let mut admitted = self.host.prepare_remote_fragment(fragment)?;
+        let hello_frames = match encode_remote_hello_frames(&mut admitted) {
             Ok(frames) => frames,
             Err(error) => {
                 self.host.release_remote_fragment(admitted)?;
@@ -86,6 +86,49 @@ impl DurableHostRuntime {
         Ok(preparation)
     }
 
+    fn exchange_remote_frame(&mut self, bytes: &[u8]) -> Result<DurableRemoteExchange, String> {
+        let admitted = self
+            .remote_fragment
+            .as_mut()
+            .ok_or_else(|| "remote-play-absent".to_string())?;
+        let frame = decode_session_frame(
+            bytes,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+        )
+        .map_err(|error| format!("decode remote session frame: {error:?}"))?;
+        let endpoint = admitted
+            .sessions()
+            .iter()
+            .find(|session| session.binding().identity() == frame.identity)
+            .map(|session| session.endpoint)
+            .ok_or_else(|| "remote-session-absent".to_string())?;
+        let message = frame.message;
+        let session = admitted
+            .sessions_mut()
+            .get_mut(endpoint)
+            .ok_or_else(|| "remote-session-absent".to_string())?;
+        session
+            .machine_mut()
+            .admit_inbound(frame)
+            .map_err(|error| format!("admit remote session frame: {error:?}"))?;
+        let response = if matches!(message, SessionMessage::Hello(_)) {
+            let binding = session.binding().clone();
+            let ready = binding.frame(SessionMessage::Ready);
+            session
+                .machine_mut()
+                .admit_outbound(ready)
+                .map_err(|error| format!("admit remote session readiness: {error:?}"))?;
+            Some(encode_remote_frame(&binding, ready)?)
+        } else {
+            None
+        };
+        Ok(DurableRemoteExchange {
+            response,
+            active: session.machine().is_active(),
+        })
+    }
+
     fn release_remote(&mut self) -> Result<(), String> {
         let Some(fragment) = self.remote_fragment.take() else {
             return Ok(());
@@ -94,33 +137,62 @@ impl DurableHostRuntime {
     }
 }
 
-fn encode_remote_hello_frames(admitted: &AdmittedRemoteFragment) -> Result<Vec<Vec<u8>>, String> {
+fn encode_remote_hello_frames(
+    admitted: &mut AdmittedRemoteFragment,
+) -> Result<Vec<Vec<u8>>, String> {
     let mut hello_frames = Vec::with_capacity(admitted.sessions().len());
-    for session in admitted.sessions().iter() {
-        let binding = session.binding();
-        let frame_bound = usize::try_from(binding.attachment.limits.maximum_frame_bytes)
-            .map_err(|_| "remote session frame bound overflow".to_string())?;
-        if frame_bound > MAXIMUM_CONTROL_FRAME_BYTES {
-            return Err("remote-session-frame-bound".into());
-        }
-        let mut bytes = vec![0; frame_bound];
-        let length = encode_session_frame_into(
-            binding.hello_frame(),
-            &mut bytes,
-            binding.limits.maximum_payload_bytes,
-            binding.attachment.limits.maximum_frame_bytes,
-        )
-        .map_err(|error| format!("encode remote session grant: {error:?}"))?;
-        bytes.truncate(length);
-        hello_frames.push(bytes);
+    let endpoints = admitted
+        .sessions()
+        .iter()
+        .map(|session| session.endpoint)
+        .collect::<Vec<_>>();
+    for endpoint in endpoints {
+        let session = admitted
+            .sessions_mut()
+            .get_mut(endpoint)
+            .ok_or_else(|| "remote session disappeared during preparation".to_string())?;
+        let binding = session.binding().clone();
+        let hello = binding.hello_frame();
+        session
+            .machine_mut()
+            .admit_outbound(hello)
+            .map_err(|error| format!("admit remote session grant: {error:?}"))?;
+        hello_frames.push(encode_remote_frame(&binding, hello)?);
     }
     Ok(hello_frames)
+}
+
+fn encode_remote_frame(
+    binding: &conduit_wire::SessionBinding,
+    frame: conduit_wire::SessionFrame<'_>,
+) -> Result<Vec<u8>, String> {
+    let frame_bound = usize::try_from(binding.attachment.limits.maximum_frame_bytes)
+        .map_err(|_| "remote session frame bound overflow".to_string())?;
+    if frame_bound > MAXIMUM_CONTROL_FRAME_BYTES {
+        return Err("remote-session-frame-bound".into());
+    }
+    let mut bytes = vec![0; frame_bound];
+    let length = encode_session_frame_into(
+        frame,
+        &mut bytes,
+        binding.limits.maximum_payload_bytes,
+        binding.attachment.limits.maximum_frame_bytes,
+    )
+    .map_err(|error| format!("encode remote session frame: {error:?}"))?;
+    bytes.truncate(length);
+    Ok(bytes)
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct DurableRemotePreparation {
     pub(crate) identity: ActivePlayIdentity,
     pub(crate) hello_frames: Vec<Vec<u8>>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct DurableRemoteExchange {
+    pub(crate) response: Option<Vec<u8>>,
+    pub(crate) active: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -155,6 +227,11 @@ enum Request {
         expected_offer_generation: u64,
         plan: Box<Plan>,
     },
+    ExchangeRemote {
+        protocol: u16,
+        token: Vec<u8>,
+        frame: Vec<u8>,
+    },
     ReleaseRemote {
         protocol: u16,
         token: Vec<u8>,
@@ -183,6 +260,11 @@ enum Response {
         protocol: u16,
         identity: ActivePlayIdentity,
         hello_frames: Vec<Vec<u8>>,
+    },
+    RemoteExchanged {
+        protocol: u16,
+        response: Option<Vec<u8>>,
+        active: bool,
     },
     RemoteReleased {
         protocol: u16,
@@ -411,6 +493,51 @@ pub(crate) fn release_remote(state_dir: &Path) -> Result<(), String> {
     }
 }
 
+#[cfg(unix)]
+pub(crate) fn exchange_remote(
+    state_dir: &Path,
+    frame: Vec<u8>,
+) -> Result<DurableRemoteExchange, String> {
+    use std::os::unix::net::UnixStream;
+    let mut token = read_secret(&state_dir.join("control.token"))?;
+    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
+        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+    let mut request = Request::ExchangeRemote {
+        protocol: PROTOCOL,
+        token: token.to_vec(),
+        frame,
+    };
+    write_sensitive_frame(&mut stream, &request)?;
+    stream
+        .shutdown(std::net::Shutdown::Write)
+        .map_err(|error| format!("finish durable Host remote exchange: {error}"))?;
+    token.fill(0);
+    if let Request::ExchangeRemote { token, frame, .. } = &mut request {
+        token.fill(0);
+        frame.fill(0);
+    }
+    match read_frame::<_, Response>(&mut stream)? {
+        Response::RemoteExchanged {
+            protocol: PROTOCOL,
+            response,
+            active,
+        } => Ok(DurableRemoteExchange { response, active }),
+        Response::Refused { code, .. } => {
+            Err(format!("durable Host refused remote exchange: {code}"))
+        }
+        _ => Err("durable Host returned the wrong remote exchange response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn exchange_remote(
+    _state_dir: &Path,
+    mut frame: Vec<u8>,
+) -> Result<DurableRemoteExchange, String> {
+    frame.fill(0);
+    Err("no reviewed local durable Host control carrier exists on this platform".into())
+}
+
 #[cfg(not(unix))]
 pub(crate) fn release_remote(_state_dir: &Path) -> Result<(), String> {
     Err("no reviewed local durable Host control carrier exists on this platform".into())
@@ -432,6 +559,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::Status { token, .. }
         | Request::Join { token, .. }
         | Request::PrepareRemote { token, .. }
+        | Request::ExchangeRemote { token, .. }
         | Request::ReleaseRemote { token, .. } => token,
     };
     let authenticated = constant_time_equal(offered, token);
@@ -479,6 +607,21 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 hello_frames: preparation.hello_frames,
             })
             .unwrap_or_else(|code| refused(&code)),
+        Request::ExchangeRemote {
+            protocol,
+            mut frame,
+            ..
+        } if protocol == PROTOCOL => {
+            let result = runtime.exchange_remote_frame(&frame);
+            frame.fill(0);
+            result
+                .map(|exchange| Response::RemoteExchanged {
+                    protocol: PROTOCOL,
+                    response: exchange.response,
+                    active: exchange.active,
+                })
+                .unwrap_or_else(|code| refused(&code))
+        }
         Request::ReleaseRemote { protocol, .. } if protocol == PROTOCOL => runtime
             .release_remote()
             .map(|()| Response::RemoteReleased { protocol: PROTOCOL })
@@ -827,6 +970,24 @@ mod tests {
         assert_eq!(prepared.identity.boot_id, truth.boot_id);
         assert_eq!(prepared.identity.plan_id, plan.plan_id);
         assert!(!prepared.hello_frames.is_empty());
+        let ready = runtime
+            .exchange_remote_frame(&prepared.hello_frames[0])
+            .unwrap();
+        assert!(!ready.active);
+        let ready_frame = ready.response.unwrap();
+        assert!(matches!(
+            decode_session_frame(
+                &ready_frame,
+                MAXIMUM_CONTROL_FRAME_BYTES as u32,
+                MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            )
+            .unwrap()
+            .message,
+            SessionMessage::Ready
+        ));
+        let active = runtime.exchange_remote_frame(&ready_frame).unwrap();
+        assert!(active.active);
+        assert!(active.response.is_none());
         assert_eq!(
             runtime
                 .prepare_remote(truth.boot_id.as_str(), truth.offer_generation.0, &plan)

@@ -147,6 +147,30 @@ fn granted_start_reconstructs_exact_binding_and_refuses_non_hello() {
 }
 
 #[test]
+fn granted_start_accepts_the_exact_joined_websocket_line_base() {
+    let mut binding = dynamic_binding();
+    binding.attachment.base = BaseImplementationId::from("conduit.base/websocket-rfc6455@1");
+    binding.attachment.contract.scope = conduit_core::LineScope::LocalNetwork;
+    binding.attachment.contract.security = conduit_core::LineSecurity::PlaintextNetwork;
+    binding.validate().unwrap();
+    let mut bytes = [0; FRAME_CAPACITY];
+    let length = encode_session_frame_into(
+        binding.hello_frame(),
+        &mut bytes,
+        PAYLOAD_CAPACITY,
+        FRAME_CAPACITY as u32,
+    )
+    .unwrap();
+    INPUT.with(|input| input.borrow_mut()[..length].copy_from_slice(&bytes[..length]));
+
+    assert_eq!(
+        conduit_browser_webrtc_session_start_granted(1, length as u32),
+        STATUS_HANDSHAKE
+    );
+    ENDPOINT.with(|slot| assert_eq!(slot.borrow().as_ref().unwrap().binding, binding));
+}
+
+#[test]
 fn out_of_stage_failure_does_not_mutate_or_create_false_active_state() {
     let binding = exact_binding(0).unwrap();
     let mut endpoint =
