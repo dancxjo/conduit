@@ -54,12 +54,15 @@ impl StdHost {
             .poll_body_conversation_context(self.body_conversation_context.as_ref())
     }
 
-    pub fn complete_remote_voice_host_operation(
+    pub fn complete_remote_voice_host_operation<F>(
         &mut self,
         fragment: &mut AdmittedRemoteFragment,
         request: HostOperationRequest,
-        cancelled: bool,
-    ) -> Result<bool, String> {
+        cancelled: F,
+    ) -> Result<bool, String>
+    where
+        F: Fn() -> bool + Copy,
+    {
         fragment.runtime.complete_voice_provider_host_operation(
             request,
             self.speech_recognition.as_mut(),

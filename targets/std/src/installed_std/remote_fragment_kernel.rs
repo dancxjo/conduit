@@ -359,16 +359,19 @@ impl InstalledRemoteFragment {
         self.complete_host_operation(request, outcome)?;
         Ok(true)
     }
-    pub(crate) fn complete_voice_provider_host_operation(
+    pub(crate) fn complete_voice_provider_host_operation<F>(
         &mut self,
         request: HostOperationRequest,
         speech_recognition: Option<&mut crate::hosted_speech_recognition::WhisperSpeechAdapter>,
-        local_model: Option<
+        mut local_model: Option<
             &mut (dyn crate::hosted_local_model::HostedLocalModelAdapter + 'static),
         >,
         speech_synthesis: Option<&mut crate::hosted_speech::PiperSpeechAdapter>,
-        cancelled: bool,
-    ) -> Result<bool, String> {
+        cancelled: F,
+    ) -> Result<bool, String>
+    where
+        F: Fn() -> bool + Copy,
+    {
         let operation = self
             .lowered
             .host_operations
@@ -389,11 +392,9 @@ impl InstalledRemoteFragment {
                 | conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION
         ) {
             let recognition = if contract == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION {
-                super::whisper_speech_operation::execute_clip(speech_recognition, input, || {
-                    cancelled
-                })
+                super::whisper_speech_operation::execute_clip(speech_recognition, input, cancelled)
             } else {
-                super::whisper_speech_operation::execute(speech_recognition, input, || cancelled)
+                super::whisper_speech_operation::execute(speech_recognition, input, cancelled)
             };
             match recognition {
                 Ok(encoded) => {
@@ -419,13 +420,32 @@ impl InstalledRemoteFragment {
                 .placements
                 .get(usize::from(request.node.0))
                 .ok_or_else(|| "remote model request has no exact placement".to_string())?;
-            let completion = super::model_host::execute(
-                contract,
-                placement,
-                input,
-                local_model,
-                &mut self.model_output_buffer,
-            )?;
+            let completion = if cancelled() {
+                if let Some(adapter) = local_model.as_mut() {
+                    (*adapter).cancel_stream();
+                }
+                super::model_host::ModelHostCompletion::Cancelled
+            } else {
+                let completion = super::model_host::execute(
+                    contract,
+                    placement,
+                    input,
+                    local_model.as_mut().map(|adapter| {
+                        &mut **adapter
+                            as &mut (dyn crate::hosted_local_model::HostedLocalModelAdapter
+                                      + 'static)
+                    }),
+                    &mut self.model_output_buffer,
+                )?;
+                if cancelled() {
+                    if let Some(adapter) = local_model.as_mut() {
+                        (*adapter).cancel_stream();
+                    }
+                    super::model_host::ModelHostCompletion::Cancelled
+                } else {
+                    completion
+                }
+            };
             let output = if completion.has_output() {
                 let value = self
                     .scheduler
@@ -447,7 +467,7 @@ impl InstalledRemoteFragment {
                     placement.implementation_id.as_str()
                         == conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
                 });
-            match super::speech_synthesis_operation::execute_piper(
+            match super::speech_synthesis_operation::execute_piper_cancellable(
                 speech_synthesis,
                 input,
                 streaming,

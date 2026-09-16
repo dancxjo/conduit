@@ -284,7 +284,7 @@ fn drive_remote_fragment(
             {
                 continue;
             }
-            if host.complete_remote_voice_host_operation(admitted, request, false)? {
+            if host.complete_remote_voice_host_operation(admitted, request, || false)? {
                 continue;
             }
             let work = admitted.runtime().describe_host_request(request)?;
