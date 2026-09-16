@@ -4,7 +4,12 @@ use std::path::PathBuf;
 
 /// Product command-line entrance for installed Conduit workflows.
 #[derive(Debug, Parser)]
-#[command(name = "conduit", about = "Run and inspect Conduit Forms")]
+#[command(
+    name = "conduit",
+    about = "Run Forms and grow a living Conduit Body",
+    long_about = "Run Forms and grow a living Conduit Body.\n\nUse `conduit body invite` to issue bounded joining authority, `conduit body accept` on an installed machine to prepare its admission request, and `conduit host obtain` to resolve a reviewed target release. Body binding remains separate from `conduit host carry`, which downloads, launches, writes, or flashes an exact artifact through an explicit carrier. Inspect durable identity and current runtime truth with `conduit host service status`.",
+    after_help = "BODY GROWTH\n  1. conduit body invite --state-dir <OWNER_STATE> > invitation.json\n  2. conduit body accept invitation.json --state-dir <JOINING_STATE> --authorize-join\n  3. conduit host obtain <TARGET> --catalog <CATALOG> --catalog-id <ID> --mirror <MIRROR> --cache <CACHE>\n  4. conduit host carry <CARRIER> --help\n\nInvitation documents and command receipts are bounded JSON suitable for standard input/output. Artifact preparation never implies carrier execution, boot, admission, Plan, or Play."
+)]
 pub(crate) struct Cli {
     #[command(subcommand)]
     pub(crate) command: Command,
@@ -251,6 +256,28 @@ pub(crate) enum InspectCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn installed_help_exposes_the_body_growth_workflow_without_repository_commands() {
+        let mut command = Cli::command();
+        let mut rendered = Vec::new();
+        command.write_long_help(&mut rendered).unwrap();
+        let help = String::from_utf8(rendered).unwrap();
+
+        for entrance in [
+            "conduit body invite",
+            "conduit body accept",
+            "conduit host obtain",
+            "conduit host carry",
+            "conduit host service status",
+        ] {
+            assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
+        }
+        assert!(help.contains("bounded JSON"));
+        assert!(help.contains("never implies carrier execution"));
+        assert!(!help.contains("xtask"));
+    }
 
     #[test]
     fn public_command_tree_parses() {
