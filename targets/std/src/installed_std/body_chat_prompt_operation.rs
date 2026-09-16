@@ -32,9 +32,9 @@ impl BodyChatPromptOperation {
                     self.queued_human = Some(value);
                 }
                 let maximum = if port == 2 {
-                    conduit_tongues::MAXIMUM_BODY_CHAT_CONTEXT_BYTES
+                    conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES
                 } else {
-                    conduit_tongues::MAXIMUM_BODY_CHAT_MESSAGE_BYTES
+                    conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES
                 } as u32;
                 let Ok(input) = BoundedValueRef::new(value, maximum) else {
                     return fail(FailureCode::InvalidInput, 1);
@@ -96,7 +96,7 @@ impl BodyChatPromptOperation {
 }
 
 pub(super) struct BodyChatPromptHost {
-    state: Option<conduit_tongues::BodyChatPromptState>,
+    state: Option<conduit_chat::BodyChatPromptState>,
     output: Vec<u8>,
 }
 
@@ -104,7 +104,7 @@ impl BodyChatPromptHost {
     fn new() -> Self {
         Self {
             state: None,
-            output: Vec::with_capacity(conduit_tongues::MAXIMUM_BODY_CHAT_PROMPT_BYTES),
+            output: Vec::with_capacity(conduit_chat::MAXIMUM_BODY_CHAT_PROMPT_BYTES),
         }
     }
     pub(super) fn execute(
@@ -118,9 +118,9 @@ impl BodyChatPromptHost {
                     state.replace_context(input)
                 } else {
                     self.state = Some(
-                        conduit_tongues::BodyChatPromptState::new(
+                        conduit_chat::BodyChatPromptState::new(
                             input,
-                            conduit_tongues::MAXIMUM_BODY_CHAT_HISTORY_ITEMS,
+                            conduit_chat::MAXIMUM_BODY_CHAT_HISTORY_ITEMS,
                         )
                         .map_err(|error| format!("Body Chat context: {error:?}"))?,
                     );
@@ -192,11 +192,11 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     Ok(OperationBudget {
         value_items: 2,
-        value_bytes: (conduit_tongues::MAXIMUM_BODY_CHAT_PROMPT_BYTES
-            + conduit_tongues::MAXIMUM_BODY_CHAT_MESSAGE_BYTES) as u32,
+        value_bytes: (conduit_chat::MAXIMUM_BODY_CHAT_PROMPT_BYTES
+            + conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES) as u32,
         host_requests: 3,
         sign_items: 32,
-        maximum_value_bytes: conduit_tongues::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
+        maximum_value_bytes: conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
     })
 }
 fn prepare(
@@ -232,7 +232,7 @@ mod tests {
         )
         .unwrap();
         let (_, wake) = body.wake(1, SignId::from("sign/wake")).unwrap();
-        conduit_tongues::encode_body_conversation_context(&BodyConversationContext {
+        conduit_chat::encode_body_conversation_context(&BodyConversationContext {
             schema: "conduit.body/conversation-context-value@1".into(),
             display_name: "Roseau".into(),
             body_id: wake.body_id.clone(),

@@ -16,7 +16,7 @@ pub const BODY_CONVERSATION_CONTEXT_STD_ARTIFACT: &str =
 pub const BODY_CONVERSATION_CONTEXT_OPERATION: &str = "conduit.host/body-conversation-context@1";
 
 pub fn body_chat_prompt_std_offer() -> CapabilityOffer {
-    let definition = conduit_tongues::body_chat_prompt_definition();
+    let definition = conduit_chat::body_chat_prompt_definition();
     let operation = |id, input, output| HostOperationRequirement {
         contract_id: HostOperationContractId::from(id),
         target_kind: Some(definition.kind_id.clone()),
@@ -40,28 +40,28 @@ pub fn body_chat_prompt_std_offer() -> CapabilityOffer {
         host_operations: vec![
             operation(
                 BODY_CHAT_MESSAGE_OPERATION,
-                conduit_tongues::MAXIMUM_BODY_CHAT_MESSAGE_BYTES as u32,
-                conduit_tongues::MAXIMUM_BODY_CHAT_PROMPT_BYTES as u32,
+                conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES as u32,
+                conduit_chat::MAXIMUM_BODY_CHAT_PROMPT_BYTES as u32,
             ),
             operation(
                 BODY_CHAT_RESPONSE_OPERATION,
-                conduit_tongues::MAXIMUM_BODY_CHAT_MESSAGE_BYTES as u32,
-                conduit_tongues::MAXIMUM_BODY_CHAT_MESSAGE_BYTES as u32,
+                conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES as u32,
+                conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES as u32,
             ),
             operation(
                 BODY_CHAT_CONTEXT_OPERATION,
-                conduit_tongues::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
+                conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
                 0,
             ),
         ],
         resource_requirements: vec![],
         authority_requirements: vec![],
-        limits: conduit_tongues::body_chat_prompt_limits(),
+        limits: conduit_chat::body_chat_prompt_limits(),
     }
 }
 
 pub fn body_conversation_context_std_offer() -> CapabilityOffer {
-    let definition = conduit_tongues::body_conversation_context_definition();
+    let definition = conduit_chat::body_conversation_context_definition();
     CapabilityOffer {
         startup_parameters: vec![],
         shorthand: None,
@@ -80,14 +80,14 @@ pub fn body_conversation_context_std_offer() -> CapabilityOffer {
             target_kind: Some(definition.kind_id),
             maximum_in_flight: 1,
             maximum_input_bytes: 0,
-            maximum_output_bytes: conduit_tongues::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
+            maximum_output_bytes: conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
         }],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: conduit_core::CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_tongues::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
+            max_queue_bytes: conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
         },
     }
 }

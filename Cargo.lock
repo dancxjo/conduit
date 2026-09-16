@@ -626,12 +626,18 @@ dependencies = [
 name = "conduit-chat"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
+ "conduit-body",
  "conduit-core",
  "conduit-form",
  "conduit-net",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-semantic-catalog",
  "conduit-text",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -1091,6 +1097,7 @@ dependencies = [
  "conduit-ai",
  "conduit-alife",
  "conduit-audio",
+ "conduit-chat",
  "conduit-core",
  "conduit-form",
  "conduit-human",
@@ -1150,8 +1157,6 @@ version = "0.1.0"
 dependencies = [
  "conduit-ai",
  "conduit-audio",
- "conduit-body",
- "conduit-chat",
  "conduit-core",
  "conduit-data",
  "conduit-form",

@@ -458,7 +458,7 @@ impl StdHost {
         &mut self,
         context: &conduit_body::BodyConversationContext,
     ) -> Result<(), String> {
-        let encoded = conduit_tongues::encode_body_conversation_context(context)
+        let encoded = conduit_chat::encode_body_conversation_context(context)
             .map_err(|error| format!("Body conversation context: {error:?}"))?;
         let newly_offered = self.body_conversation_context.is_none();
         if newly_offered {

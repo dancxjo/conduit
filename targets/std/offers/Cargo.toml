@@ -18,5 +18,6 @@ conduit-signal = { path = "../../../semantics/signal", features = ["host-profile
 conduit-time = { path = "../../../semantics/time" }
 conduit-text = { path = "../../../semantics/text" }
 conduit-tongues = { path = "../../../semantics/tongues" }
+conduit-chat = { path = "../../../semantics/chat", features = ["form-catalog"] }
 conduit-presentation = { path = "../../../semantics/presentation" }
 conduit-web = { path = "../../../semantics/web" }

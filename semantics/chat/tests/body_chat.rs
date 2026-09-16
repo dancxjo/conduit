@@ -1,12 +1,12 @@
 use conduit_body::{Body, BodyConversationContext, BodyConversationHost};
+use conduit_chat::{
+    install_body_chat_catalog, BodyChatPromptState, BodyChatRole, BODY_CHAT_PROMPT_KIND,
+    MAXIMUM_BODY_CHAT_HISTORY_ITEMS, MAXIMUM_BODY_CHAT_PROMPT_BYTES,
+};
 use conduit_core::{CheckedFormId, HostId, SignId, SourceDocumentId};
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
-};
-use conduit_tongues::{
-    install_body_chat_catalog, BodyChatPromptState, BodyChatRole, BODY_CHAT_PROMPT_KIND,
-    MAXIMUM_BODY_CHAT_HISTORY_ITEMS, MAXIMUM_BODY_CHAT_PROMPT_BYTES,
 };
 
 fn context() -> BodyConversationContext {
@@ -99,7 +99,7 @@ fn canonical_body_chat_is_an_ordinary_checked_form() {
         .expanded
         .gears
         .iter()
-        .any(|gear| gear.kind_id.as_str() == conduit_tongues::BODY_CONVERSATION_CONTEXT_KIND));
+        .any(|gear| gear.kind_id.as_str() == conduit_chat::BODY_CONVERSATION_CONTEXT_KIND));
     for forbidden in [
         "ollama",
         "http",
