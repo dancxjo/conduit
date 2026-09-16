@@ -1,4 +1,5 @@
 import { acquireBrowserAudioCue, AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL } from "./browser-audio-cue.mjs";
+import { acquireBrowserPcmAudio, PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL, PCM_PLAY_RESOURCE, PCM_PLAY_POOL } from "./browser-pcm-audio.mjs";
 import { createBodyInputRouting } from "./browser-body-input.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 import { createPitchTonePerformer, drainBrowserEffects } from "./browser-form-effects.mjs";
@@ -11,6 +12,7 @@ const TEMPLATE = "conduit.resource/named-pattern-storage-slot@1";
 const CLOCK = "conduit.resource/monotonic-millisecond-timer-slot@1";
 const pools = new Map([
   [AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL],
+  [PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL], [PCM_PLAY_RESOURCE, PCM_PLAY_POOL],
   [PRESENTATION, "browser/presentation"], [INPUT, "browser/window-input"],
   [TEMPLATE, "browser/named-pattern-storage"], [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
 ]);
@@ -120,6 +122,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const presentationTimers = new Map();
   const elements = [];
   let audio = null;
+  let pcmAudio = null, pushToTalk = null;
   let input = null, timer = null, closed = false, started = null, completion = null, startAccepted = false, terminal = null;
   let startOutcome = "not-attempted";
   const window = outputRoot.ownerDocument.defaultView;
@@ -130,6 +133,16 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (!machinery.implementations.some(entry => entry.id === "browser/audio-cue@1")) throw new Error("audio cue machinery is not installed");
       audio = acquireBrowserAudioCue({ api, window, placements: placements.filter(item => item.resources.some(resource => resource.class_id === AUDIO_CUE_RESOURCE)) });
       if (audio.capacity !== demand.get(AUDIO_CUE_RESOURCE)) throw new Error("audio acquisition differs from demand");
+    }
+    if (demand.has(PCM_CAPTURE_RESOURCE) || demand.has(PCM_PLAY_RESOURCE)) {
+      pushToTalk = outputRoot.ownerDocument.createElement("button");
+      pushToTalk.type = "button";
+      pushToTalk.textContent = "Hold to talk";
+      pushToTalk.hidden = !demand.has(PCM_CAPTURE_RESOURCE);
+      pushToTalk.dataset.conduitPushToTalk = "";
+      outputRoot.append(pushToTalk);
+      elements.push(pushToTalk);
+      pcmAudio = acquireBrowserPcmAudio({ window, pushToTalkTarget: pushToTalk });
     }
     for (const placement of placements) {
       if (placement.resources.some(resource => resource.class_id === TEMPLATE)) templateSlots.add(placement.placement_id);
@@ -156,7 +169,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
     if (slots.size !== (demand.get(PRESENTATION) ?? 0)) throw new Error("presentation acquisition does not match demand");
   } catch (error) {
-    audio?.close();routing?.close();input?.close();elements.forEach(element => element.remove());owners.delete(api);throw error;
+    audio?.close();pcmAudio?.close();routing?.close();input?.close();elements.forEach(element => element.remove());owners.delete(api);throw error;
   }
 
   const assertCurrent = () => {
@@ -170,7 +183,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       host_id: hostId, boot_id: bootId, offer_generation: 1,
       pool_id: pools.get(class_id), class_id, health: "Ready",
       // Counts come from acquired adapter state, not advertised capacities.
-      unreserved_units: class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : Number(timer !== null),
+      unreserved_units: class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : Number(timer !== null),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
   };
@@ -197,6 +210,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     if (effect.effect_kind === "audio-cue") {
       if (!audio) throw new Error("audio cue slot not acquired");
       return audio.perform(effect, signal);
+    }
+    if (effect.effect_kind === "audio-capture" || effect.effect_kind === "pcm-playback") {
+      if (!pcmAudio) throw new Error("browser PCM audio slot not acquired");
+      return pcmAudio.perform(effect, signal);
     }
     if (effect.effect_kind === "pitch-tone") return tone(effect, signal);
     if (effect.effect_kind === "timer") return delay(effect.duration_millis, signal);
@@ -317,6 +334,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (closed) return;
       closed = true;
       audio?.close();
+      pcmAudio?.close();
       routing?.close();
       input?.close();
       timer?.cancel?.();

@@ -16,6 +16,7 @@ fn manifestation(effect: TourHostEffect) -> TourEffect {
     match effect {
         TourHostEffect::ClockObservation(_)
         | TourHostEffect::AudioCue(_)
+        | TourHostEffect::AudioIo(_)
         | TourHostEffect::PitchTone(_) => {
             panic!("unexpected clock or audio effect")
         }
@@ -601,6 +602,7 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
             )),
             TourHostEffect::ClockObservation(_)
             | TourHostEffect::AudioCue(_)
+            | TourHostEffect::AudioIo(_)
             | TourHostEffect::PitchTone(_) => {
                 panic!("unexpected clock or audio effect")
             }

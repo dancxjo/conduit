@@ -102,6 +102,8 @@ pub(super) struct PendingHostEffect {
 
 pub(super) enum BrowserHostEffect {
     AudioCue,
+    AudioCapture,
+    PcmPlayback { frame: Vec<u8> },
     PitchTone { hertz: u32 },
     ClockObservation,
     Timer { duration_millis: u64 },
@@ -236,6 +238,23 @@ fn drive_with_boundary<'a>(
                 .host_value(request.input.value)
                 .map_err(debug_error)?
                 .to_vec();
+            if operation.contract_id.as_str()
+                == crate::installed_browser::audio_io::CAPTURE_OPERATION
+            {
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::AudioCapture,
+                }));
+            }
+            if operation.contract_id.as_str() == crate::installed_browser::audio_io::PLAY_OPERATION
+            {
+                conduit_audio::PcmFrameHeader::decode_frame(&input)
+                    .map_err(|error| format!("browser PCM playback frame: {error:?}"))?;
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::PcmPlayback { frame: input },
+                }));
+            }
             if operation.contract_id.as_str() == crate::installed_browser::button_attempt::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION {
                 return Ok(DriveStatus::Effect(PendingHostEffect { request, effect: BrowserHostEffect::ClockObservation }));
             }

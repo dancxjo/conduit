@@ -23,6 +23,7 @@ pub const SOUND_TONE_PLAY_KIND: &str = "sound/tone-play";
 pub const MUSIC_PLAY_KIND: &str = "music/play";
 pub const MUSIC_SYNTH_KIND: &str = "music/synth";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
+pub const AUDIO_CAPTURE_PUSH_TO_TALK_KIND: &str = "audio/capture-push-to-talk";
 pub const AUDIO_CONVERT_PCM_PROFILE_KIND: &str = "audio/convert-pcm-profile";
 pub const SOUND_TONE_PLAY_REVISION: &str = "conduit.std/sound-tone-play@1";
 pub const MUSIC_PLAY_REVISION: &str = "conduit.std/music-play@1";
@@ -43,6 +44,9 @@ pub const SYNTH_LFO_DEPTH_KEY: &str = "lfo-depth-q16";
 pub const SYNTH_MASTER_GAIN_KEY: &str = "master-gain-q16";
 pub const SYNTH_STEAL_POLICY_KEY: &str = "voice-steal-policy";
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
+pub const AUDIO_CAPTURE_PUSH_TO_TALK_REVISION: &str = "conduit.std/audio-capture-push-to-talk@1";
+pub const AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS_KEY: &str = "maximum-turn-millis";
+pub const AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS: u64 = 15_000;
 pub const AUDIO_CONVERT_PCM_PROFILE_REVISION: &str = "conduit.std/audio-convert-pcm-profile@1";
 pub const AUDIO_CONVERT_OUTPUT_RATE_KEY: &str = "output-sample-rate-hz";
 pub const AUDIO_CONVERT_OUTPUT_LAYOUT_KEY: &str = "output-channel-layout";
@@ -223,6 +227,38 @@ pub fn audio_play_contract() -> StandardKindContract {
     )
 }
 
+/// One explicitly initiated, finite microphone turn. The semantic contract
+/// describes bounded PCM and push-to-talk lifetime; permission, device,
+/// provider, and UI mechanism remain exact Host realization facts.
+pub fn audio_capture_push_to_talk_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(AUDIO_CAPTURE_PUSH_TO_TALK_KIND),
+        plain_name: "Capture a push-to-talk turn".to_string(),
+        summary: "Produce one bounded timestamped PCM flow while an explicit push-to-talk gesture remains active."
+            .to_string(),
+        inputs: vec![],
+        outputs: vec![PortDescriptor {
+            port_id: port_id("audio"),
+            value_kind: kind_id(AUDIO_PCM_INFO_ID),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Flow { closes: true },
+        }],
+        configuration: vec![u64_configuration(
+            AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS_KEY,
+            AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS,
+            250,
+            AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS,
+        )],
+        limits: audio_limits(),
+        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "microphone: audio/capture-push-to-talk(maximum-turn-millis = 15000)"
+            .to_string(),
+    }
+}
+
 pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(AUDIO_CONVERT_PCM_PROFILE_KIND),
@@ -248,7 +284,7 @@ pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
     }
 }
 
-pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 7] {
+pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 8] {
     [
         (sound_tone_play_contract(), SOUND_TONE_PLAY_REVISION),
         (music_input_contract(), MUSIC_INPUT_REVISION),
@@ -256,6 +292,10 @@ pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str)
         (music_synth_contract(), MUSIC_SYNTH_REVISION),
         (audio_render_demand_contract(), AUDIO_RENDER_DEMAND_REVISION),
         (audio_play_contract(), AUDIO_PLAY_REVISION),
+        (
+            audio_capture_push_to_talk_contract(),
+            AUDIO_CAPTURE_PUSH_TO_TALK_REVISION,
+        ),
         (
             audio_convert_pcm_profile_contract(),
             AUDIO_CONVERT_PCM_PROFILE_REVISION,

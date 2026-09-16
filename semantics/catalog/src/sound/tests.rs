@@ -1,6 +1,28 @@
 use super::*;
 
 #[test]
+fn push_to_talk_is_one_host_neutral_bounded_pcm_flow() {
+    let contract = audio_capture_push_to_talk_contract();
+    assert_eq!(contract.kind_id.as_str(), AUDIO_CAPTURE_PUSH_TO_TALK_KIND);
+    assert!(contract.inputs.is_empty());
+    assert_eq!(contract.outputs.len(), 1);
+    assert_eq!(contract.outputs[0].port_id.as_str(), "audio");
+    assert_eq!(contract.outputs[0].value_kind.as_str(), AUDIO_PCM_INFO_ID);
+    assert_eq!(
+        contract.outputs[0].temporal,
+        PortTemporal::Flow { closes: true }
+    );
+    assert_eq!(contract.configuration.len(), 1);
+    assert_eq!(
+        contract.configuration[0].key,
+        AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS_KEY
+    );
+    for forbidden in ["browser", "web", "device", "permission", "microphone api"] {
+        assert!(!contract.summary.to_ascii_lowercase().contains(forbidden));
+    }
+}
+
+#[test]
 fn semantic_faces_are_distinct_and_backend_free() {
     let encoded = alloc::format!("{:?}", sound_contracts_with_revisions());
     for forbidden in [

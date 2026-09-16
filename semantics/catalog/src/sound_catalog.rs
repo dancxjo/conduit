@@ -14,67 +14,88 @@ pub fn install_sound_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     for (contract, revision) in sound_contracts_with_revisions() {
-        let configuration = contract
-            .configuration
-            .iter()
-            .map(|field| ConfigurationField {
-                key: field.key.clone(),
-                default_value: field.default_value.clone(),
-                validation: match &field.rule {
-                    StandardConfigurationRule::Any => ConfigurationRule::Any,
-                    StandardConfigurationRule::U64Range { minimum, maximum } => {
-                        ConfigurationRule::U64Range {
-                            minimum: *minimum,
-                            maximum: *maximum,
-                        }
-                    }
-                    StandardConfigurationRule::I64Range { minimum, maximum } => {
-                        ConfigurationRule::I64Range {
-                            minimum: *minimum,
-                            maximum: *maximum,
-                        }
-                    }
-                    StandardConfigurationRule::DurationMillis { minimum, maximum } => {
-                        ConfigurationRule::DurationMillis {
-                            minimum: *minimum,
-                            maximum: *maximum,
-                        }
-                    }
-                    StandardConfigurationRule::TextBytes { maximum } => {
-                        ConfigurationRule::TextBytes { maximum: *maximum }
-                    }
-                    StandardConfigurationRule::TextOneOf { values } => {
-                        ConfigurationRule::TextOneOf {
-                            values: values.clone(),
-                        }
-                    }
-                },
-            })
-            .collect::<Vec<_>>();
-        startup.insert(KindSignature {
-            kind: contract.kind_id.as_str().to_string(),
-            startup_parameters: contract
-                .configuration
-                .iter()
-                .map(|field| StartupParameterSignature {
-                    name: field.key.clone(),
-                    value_type: configuration_type(field).to_string(),
-                    default: Some(configuration_source(&field.default_value)),
-                })
-                .collect(),
-        })?;
-        profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
-            .map_err(|error| error.to_string())?;
+        install_contract(startup, profile, contract, revision)?;
     }
     crate::install_structured_music_form_catalogs(startup, profile)?;
     Ok(())
+}
+
+/// Install only the portable push-to-talk Face when another semantic owner
+/// has already installed the shared `audio/play` contract.
+pub fn install_audio_capture_push_to_talk_catalog(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), String> {
+    install_contract(
+        startup,
+        profile,
+        super::audio_capture_push_to_talk_contract(),
+        super::AUDIO_CAPTURE_PUSH_TO_TALK_REVISION,
+    )
+}
+
+fn install_contract(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+    contract: super::StandardKindContract,
+    revision: &'static str,
+) -> Result<(), String> {
+    let configuration = contract
+        .configuration
+        .iter()
+        .map(|field| ConfigurationField {
+            key: field.key.clone(),
+            default_value: field.default_value.clone(),
+            validation: match &field.rule {
+                StandardConfigurationRule::Any => ConfigurationRule::Any,
+                StandardConfigurationRule::U64Range { minimum, maximum } => {
+                    ConfigurationRule::U64Range {
+                        minimum: *minimum,
+                        maximum: *maximum,
+                    }
+                }
+                StandardConfigurationRule::I64Range { minimum, maximum } => {
+                    ConfigurationRule::I64Range {
+                        minimum: *minimum,
+                        maximum: *maximum,
+                    }
+                }
+                StandardConfigurationRule::DurationMillis { minimum, maximum } => {
+                    ConfigurationRule::DurationMillis {
+                        minimum: *minimum,
+                        maximum: *maximum,
+                    }
+                }
+                StandardConfigurationRule::TextBytes { maximum } => {
+                    ConfigurationRule::TextBytes { maximum: *maximum }
+                }
+                StandardConfigurationRule::TextOneOf { values } => ConfigurationRule::TextOneOf {
+                    values: values.clone(),
+                },
+            },
+        })
+        .collect::<Vec<_>>();
+    startup.insert(KindSignature {
+        kind: contract.kind_id.as_str().to_string(),
+        startup_parameters: contract
+            .configuration
+            .iter()
+            .map(|field| StartupParameterSignature {
+                name: field.key.clone(),
+                value_type: configuration_type(field).to_string(),
+                default: Some(configuration_source(&field.default_value)),
+            })
+            .collect(),
+    })?;
+    profile
+        .insert(KindDefinition {
+            kind_id: contract.kind_id,
+            kind_contract_revision: KindContractRevision::from(revision),
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            configuration,
+        })
+        .map_err(|error| error.to_string())
 }
 
 fn configuration_source(value: &ConfigurationValue) -> String {

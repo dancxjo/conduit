@@ -184,6 +184,17 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                     BrowserHostEffect::AudioCue => {
                         object.insert("effect_kind".into(), "audio-cue".into());
                     }
+                    BrowserHostEffect::AudioCapture => {
+                        object.insert("effect_kind".into(), "audio-capture".into());
+                    }
+                    BrowserHostEffect::PcmPlayback { frame } => {
+                        object.insert("effect_kind".into(), "pcm-playback".into());
+                        object.insert(
+                            "maximum_gain_millionths".into(),
+                            crate::installed_browser::audio_io::MAXIMUM_SAFE_GAIN_MILLIONTHS.into(),
+                        );
+                        object.insert("frame_hex".into(), hex_bytes(frame).into());
+                    }
                     BrowserHostEffect::PitchTone { hertz } => {
                         object.insert("effect_kind".into(), "pitch-tone".into());
                         object.insert("hertz".into(), (*hertz).into());
@@ -236,6 +247,16 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
             DriveStatus::SemanticCompleted => Ok(COMPLETE),
         }
     })
+}
+
+fn hex_bytes(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for &byte in bytes {
+        encoded.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        encoded.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
+    }
+    encoded
 }
 
 #[no_mangle]
