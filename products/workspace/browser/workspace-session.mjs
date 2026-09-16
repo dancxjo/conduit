@@ -16,7 +16,7 @@ export function openWorkspaceSession({ host, storage }) {
     new Uint8Array(api.memory.buffer, pointer, bytes.length).set(bytes);
     const status = api.conduit_workspace_request(bytes.length);
     const length = api.conduit_workspace_output_len();
-    if (length < 1 || length > 256 * 1024) throw new Error('Workspace output exceeds its bound');
+    if (length < 1 || length > api.conduit_workspace_output_capacity()) throw new Error('Workspace output exceeds its bound');
     const output = new Uint8Array(api.memory.buffer, api.conduit_workspace_output_ptr(), length).slice();
     if (status >= 0 && binary) return output;
     const result = JSON.parse(decoder.decode(output));

@@ -33,6 +33,18 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         &root,
         opts,
     )?;
+    if args.check {
+        run_step(
+            &Step::new(
+                "demo.workspace.rendezvous-host",
+                "Build the installed Host entrance used by running-Host proof",
+                "cargo",
+                &["build", "-p", "conduit"],
+            ),
+            &root,
+            opts,
+        )?;
+    }
     let product = root.join("target/workspace-product");
     if product.exists() && !opts.dry_run {
         std::fs::remove_dir_all(product)?;
