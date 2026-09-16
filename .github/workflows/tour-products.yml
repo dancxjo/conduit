@@ -549,9 +549,17 @@ jobs:
         run: |
           chmod +x target/creche-host-releases/conduit-tour-linux-x86_64
           target/creche-host-releases/conduit-tour-linux-x86_64 --journey
+      - name: Run the packaged Linux Home journey
+        if: matrix.platform == 'linux'
+        run: |
+          chmod +x target/creche-host-releases/conduit-home-linux-x86_64
+          target/creche-host-releases/conduit-home-linux-x86_64 --journey
       - name: Run the packaged Windows Tour journey
         if: matrix.platform == 'windows'
         run: target/creche-host-releases/conduit-tour-windows-x86_64.exe --journey
+      - name: Run the packaged Windows Home journey
+        if: matrix.platform == 'windows'
+        run: target/creche-host-releases/conduit-home-windows-x86_64.exe --journey
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-${{ matrix.artifact }}

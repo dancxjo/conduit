@@ -166,6 +166,8 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
             "conduit",
             "-p",
             "conduit-tour-native",
+            "-p",
+            "conduit-home-native",
         ]),
         "compile hosted Linux release",
     )?;
@@ -177,6 +179,10 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
     copy(
         "target/release/conduit-tour",
         &output.join("conduit-tour-linux-x86_64"),
+    )?;
+    copy(
+        "target/release/conduit-home",
+        &output.join("conduit-home-linux-x86_64"),
     )?;
     require_success(
         Command::new("cargo")
@@ -215,6 +221,10 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
             ),
             (
                 "conduit-tour-linux-x86_64",
+                "application/vnd.conduit.application+executable",
+            ),
+            (
+                "conduit-home-linux-x86_64",
                 "application/vnd.conduit.application+executable",
             ),
         ],
@@ -272,6 +282,8 @@ fn build_windows(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
             "conduit",
             "-p",
             "conduit-tour-native",
+            "-p",
+            "conduit-home-native",
         ]),
         "compile hosted Windows x86_64 release",
     )?;
@@ -283,6 +295,10 @@ fn build_windows(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
     copy(
         "target/release/conduit-tour.exe",
         &output.join("conduit-tour-windows-x86_64.exe"),
+    )?;
+    copy(
+        "target/release/conduit-home.exe",
+        &output.join("conduit-home-windows-x86_64.exe"),
     )?;
     seal(
         output,
@@ -300,6 +316,10 @@ fn build_windows(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
             ),
             (
                 "conduit-tour-windows-x86_64.exe",
+                "application/vnd.microsoft.portable-executable",
+            ),
+            (
+                "conduit-home-windows-x86_64.exe",
                 "application/vnd.microsoft.portable-executable",
             ),
         ],
