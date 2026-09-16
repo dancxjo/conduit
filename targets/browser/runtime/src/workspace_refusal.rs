@@ -32,6 +32,7 @@ impl From<WorkspaceBodyError> for Refusal {
             UninstalledForm => "UninstalledForm".into(),
             SequenceExhausted => "SequenceExhausted".into(),
             UnreconciledWake => "UnreconciledWake".into(),
+            ArchivePersistenceRequired => "HistoryArchivePersistenceRequired".into(),
         };
         Self {
             code,

@@ -100,6 +100,47 @@ test("selected durable storage reopens one maximum bounded binary value exactly"
   });
 });
 
+test("Body history and its newer active snapshot commit atomically", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const module = await import(new URL("../../targets/browser/host/assets/browser-application-storage.mjs", location.href).href);
+    const storage = await module.openBrowserApplicationStorage(
+      "proof/body-history-transaction", 1, `sha256:${"c".repeat(64)}`,
+      { implementationRegistry: ["browser/indexeddb@1"] },
+    );
+    const segment = { schema: "conduit.body/biography-archive-segment@1", ordinal: 1, digest: [1, 2, 3] };
+    await storage.writeJsonBatch([
+      { key: "body-history/1-010203", value: segment, immutable: true },
+      { key: "body-session", value: { schema: "conduit.workspace/body@1", archive_head: [1, 2, 3] } },
+    ]);
+    // A replay after interruption is idempotent when the sealed bytes match.
+    await storage.writeJsonBatch([
+      { key: "body-history/1-010203", value: segment, immutable: true },
+      { key: "body-session", value: { schema: "conduit.workspace/body@1", archive_head: [1, 2, 3] } },
+    ]);
+    let replacement;
+    try {
+      await storage.writeJsonBatch([
+        { key: "body-history/1-010203", value: { ...segment, ordinal: 2 }, immutable: true },
+        { key: "body-session", value: { schema: "conduit.workspace/body@1", archive_head: [9] } },
+      ]);
+    } catch (error) { replacement = error.code; }
+    const retained = {
+      segment: await storage.readJson("body-history/1-010203"),
+      session: await storage.readJson("body-session"),
+    };
+    await storage.clearApplication();
+    storage.close();
+    return { retained, replacement };
+  });
+  expect(result).toEqual({
+    retained: {
+      segment: { schema: "conduit.body/biography-archive-segment@1", ordinal: 1, digest: [1, 2, 3] },
+      session: { schema: "conduit.workspace/body@1", archive_head: [1, 2, 3] },
+    },
+    replacement: "PublishedImmutable",
+  });
+});
+
 test("binary durable storage keeps corruption and application quota exhaustion distinct", async ({ page }) => {
   const result = await page.evaluate(async () => {
     const module = await import(new URL("../../targets/browser/host/assets/browser-application-storage.mjs", location.href).href);
