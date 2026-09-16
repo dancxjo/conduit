@@ -153,6 +153,20 @@ pub(crate) enum CarrierCommand {
         source: PathBuf,
         destination: PathBuf,
     },
+    /// Flash an exact Body-bound RP2040 UF2 to one confirmed BOOTSEL volume.
+    FlashUf2 {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        /// Mounted RP2040 BOOTSEL volume containing INFO_UF2.TXT.
+        volume: PathBuf,
+        /// Repeat the exact mounted volume path to prevent ambiguous device selection.
+        #[arg(long)]
+        confirm_volume: String,
+        /// Explicitly authorize writing firmware to the confirmed microcontroller.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_flash: bool,
+    },
     /// Launch the exact artifact through the reviewed local VM profile.
     LaunchVm {
         descriptor: PathBuf,
@@ -299,6 +313,34 @@ mod tests {
                     command: CarrierCommand::Download { destination, .. }
                 }
             } if destination == std::path::Path::new("download.iso")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "carry",
+                "flash-uf2",
+                "carrier.json",
+                "artifact.json",
+                "spore.uf2",
+                "/media/RPI-RP2",
+                "--confirm-volume",
+                "/media/RPI-RP2",
+                "--authorize-flash",
+            ])
+            .expect("consequential RP2040 UF2 carrier parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Carry {
+                    command: CarrierCommand::FlashUf2 {
+                        volume,
+                        confirm_volume,
+                        authorize_flash: true,
+                        ..
+                    }
+                }
+            } if volume == std::path::Path::new("/media/RPI-RP2")
+                && confirm_volume == "/media/RPI-RP2"
         ));
         assert!(matches!(
             Cli::try_parse_from([

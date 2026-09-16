@@ -2,7 +2,7 @@
 
 use crate::cli::CarrierCommand;
 use conduit_host_fabrication::{
-    download_body_bound_artifact, launch_body_bound_virtual_machine,
+    download_body_bound_artifact, flash_body_bound_rp2040_uf2, launch_body_bound_virtual_machine,
     write_body_bound_artifact_to_removable, QemuX86_64Launcher, CONDUITOS_X86_64_QEMU_PROFILE,
 };
 use serde::de::DeserializeOwned;
@@ -23,6 +23,27 @@ pub(crate) fn run(command: CarrierCommand) -> Result<(), String> {
             let receipt =
                 download_body_bound_artifact(&descriptor, &artifact, &source, &destination)
                     .map_err(|error| format!("artifact download refused: {error:?}"))?;
+            print_receipt(&receipt)
+        }
+        CarrierCommand::FlashUf2 {
+            descriptor,
+            artifact,
+            source,
+            volume,
+            confirm_volume,
+            authorize_flash,
+        } => {
+            let descriptor = read_json(&descriptor)?;
+            let artifact = read_json(&artifact)?;
+            let receipt = flash_body_bound_rp2040_uf2(
+                &descriptor,
+                &artifact,
+                &source,
+                &volume,
+                &confirm_volume,
+                authorize_flash,
+            )
+            .map_err(|error| format!("RP2040 UF2 flash refused: {error:?}"))?;
             print_receipt(&receipt)
         }
         CarrierCommand::LaunchVm {
