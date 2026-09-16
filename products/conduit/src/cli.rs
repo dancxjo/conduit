@@ -84,6 +84,11 @@ pub(crate) enum PatchbayHost {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum HostCommand {
+    /// Install, run, or inspect the durable local Host owner.
+    Service {
+        #[command(subcommand)]
+        command: HostServiceCommand,
+    },
     Check {
         source: PathBuf,
     },
@@ -112,6 +117,26 @@ pub(crate) enum RendezvousCarrier {
     Websocket,
     /// Newline-framed serial stream on standard input and output.
     Serial,
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum HostServiceCommand {
+    /// Verify and install one reviewed release bundle without replacing durable identity.
+    Install {
+        manifest: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
+    /// Run the durable Host in the foreground for a platform service manager.
+    Run {
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
+    /// Print the retained Host identity and current runtime status.
+    Status {
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -152,6 +177,23 @@ mod tests {
                 .expect("Crèche entrance parses")
                 .command,
             Command::Creche
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "service",
+                "status",
+                "--state-dir",
+                "installed-host",
+            ])
+            .expect("durable Host service entrance parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Service {
+                    command: HostServiceCommand::Status { state_dir }
+                }
+            } if state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "host", "rendezvous", "--timeout-seconds", "30"])

@@ -22,6 +22,7 @@ mod research_report;
 mod signs;
 #[cfg(feature = "speech")]
 mod specimen;
+mod speech_commit;
 mod speech_recognition;
 mod streaming_recognition;
 
@@ -43,5 +44,6 @@ pub use research_report::*;
 pub use signs::*;
 #[cfg(feature = "speech")]
 pub use specimen::*;
+pub use speech_commit::*;
 pub use speech_recognition::*;
 pub use streaming_recognition::*;

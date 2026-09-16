@@ -5,6 +5,7 @@ mod copy_task;
 #[cfg(test)]
 mod copy_task_tests;
 mod diagnostics;
+mod durable_host;
 mod form_source;
 mod host_rendezvous;
 mod product_execution;
@@ -258,7 +259,10 @@ fn main() {
                     timeout_seconds,
                 },
         } => host_rendezvous::serve(carrier, timeout_seconds),
-        cli::Command::Host { command } => construction::host(command),
+        cli::Command::Host { command } => match command {
+            cli::HostCommand::Service { command } => durable_host::dispatch(command),
+            command => construction::host(command),
+        },
         cli::Command::Body { command } => construction::body(command),
         cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),
