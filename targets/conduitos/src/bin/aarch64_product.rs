@@ -16,6 +16,7 @@ use conduitos::{
     linear_presenter::LinearPresenter,
     offer::CpuFeatures,
     offer_fabrication::ImageBoundHostOffer,
+    spore_join,
 };
 
 #[unsafe(no_mangle)]
@@ -114,6 +115,20 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     let mut prepared =
         dual_region_plan::prepare(&identities, &offer, EMBEDDED_FABRICATION.build_id)
             .unwrap_or_else(|error| refuse(error.as_str()));
+    let region = boot::spore_module().unwrap_or_else(|| refuse("spore-boot-module-missing"));
+    if let Some(join) = spore_join::encode_region(
+        region,
+        EMBEDDED_FABRICATION.target,
+        EMBEDDED_FABRICATION.profile_id,
+        EMBEDDED_FABRICATION.build_id,
+        &prepared.advertisement,
+    )
+    .unwrap_or_else(|error| refuse(error))
+    {
+        arch::present(b"CONDUIT_SPORE_JOIN ");
+        arch::present(&join);
+        arch::present(b"\n");
+    }
     let mut clock = arch::Clock::new();
     let mut timer = arch::Timer::new();
     let mut serial = arch::Serial::new();

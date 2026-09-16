@@ -156,7 +156,8 @@ function bindInvitation(runner, host, state) {
     presentPhysicalSelection(state);
     setOptionsDisabled(runner, true);
     setButtons(state, "realize");
-    renderDownload(runner, state, result.download);
+    if (result.download) renderDownload(runner, state, result.download);
+    else clearDownload(runner, state);
     status(runner, state, "Invitation bound. Realization, Boot, join, membership, offers, Plan, and Play remain absent.");
   });
 }

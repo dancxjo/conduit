@@ -54,6 +54,7 @@ export default defineConfig({
     "creche-conduitos.spec.mjs",
     "creche-native-zip.spec.mjs",
     "creche-native-disk.spec.mjs",
+    "creche-rendezvous.spec.mjs",
     "creche-browser-configuration.spec.mjs",
     "creche-workload.spec.mjs",
     "workspace-arrival.spec.mjs",
