@@ -92,6 +92,8 @@ pub mod hosted_wav_artifact;
 mod image_binding_tests;
 mod installed_std;
 pub use installed_std::{InstalledRemoteFragment, RemoteHostWork, RemoteValueTransfer};
+mod remote_host_fragment;
+pub use remote_host_fragment::AdmittedRemoteFragment;
 #[cfg(test)]
 mod body_chat_tests;
 #[cfg(test)]
