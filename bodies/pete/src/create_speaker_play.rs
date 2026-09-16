@@ -270,6 +270,7 @@ pub fn prepare_speaker_execution(
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: MAXIMUM_ADMITTED_SERIAL_BYTES as u32,
+            pressure_policy: Default::default(),
             },
         )],
         routes,

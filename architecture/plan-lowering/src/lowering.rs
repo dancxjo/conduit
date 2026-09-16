@@ -730,6 +730,7 @@ pub fn lower_plan_fragment_for_profile(
                         slot_start,
                         item_capacity: connection.item_capacity,
                         byte_capacity: connection.byte_capacity,
+                        pressure_policy: connection.pressure_policy,
                     },
                 )
             }
@@ -749,6 +750,7 @@ pub fn lower_plan_fragment_for_profile(
                         slot_start,
                         item_capacity: connection.item_capacity,
                         byte_capacity: connection.byte_capacity,
+                        pressure_policy: connection.pressure_policy,
                     },
                 )
             }
@@ -768,6 +770,7 @@ pub fn lower_plan_fragment_for_profile(
                         slot_start,
                         item_capacity: connection.item_capacity,
                         byte_capacity: connection.byte_capacity,
+                        pressure_policy: connection.pressure_policy,
                     },
                 )
             }

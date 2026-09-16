@@ -112,6 +112,7 @@ fn planned_connection(expected: &SessionBinding, base: BaseImplementationId) -> 
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: expected.value_kind.clone(),
         temporal: conduit_core::PortTemporal::Value,
+        pressure_policy: Default::default(),
         selected_line: Some(line.clone()),
         admitted_lines: vec![line],
         item_capacity: 1,

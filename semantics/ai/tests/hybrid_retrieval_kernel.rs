@@ -344,6 +344,7 @@ fn scheduler(stages: &[RetrievalStage<ExtractedSourceValue>], expected: &[u8]) -
                 slot_start: index as u16,
                 item_capacity: 1,
                 byte_capacity: MAX_VALUE_BYTES,
+            pressure_policy: Default::default(),
             },
         )
     });

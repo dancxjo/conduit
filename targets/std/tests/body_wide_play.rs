@@ -214,6 +214,7 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
                 slot_start: index,
                 item_capacity: 1,
                 byte_capacity: 1,
+            pressure_policy: Default::default(),
             },
         )
     };

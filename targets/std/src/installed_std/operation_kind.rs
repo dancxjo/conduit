@@ -12,6 +12,7 @@ use super::calendar_provider_operation::CalendarProviderOperation;
 use super::count_operations::{CountPresentationOperation, StateCountOperation};
 use super::final_normalized_pattern_operation::FinalNormalizedPatternOperation;
 use super::flow_gate_operation::FlowGateScalarOperation;
+use super::flow_pressure_operations::FlowPressureOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
 use super::generated_speech_commit_operation::GeneratedSpeechCommitOperation;
@@ -120,6 +121,8 @@ pub(super) enum InstalledOperation {
     StateCount(StateCountOperation),
     StateToggle(StateToggleOperation),
     CountPresentation(CountPresentationOperation),
+    FlowBackpressure(FlowPressureOperation),
+    FlowCoalesceLatest(FlowPressureOperation),
     StateLatestScalar(StateLatestScalarOperation),
     FlowTeeScalar(FlowTeeScalarOperation),
     StateSelectScalar(StateSelectScalarOperation),

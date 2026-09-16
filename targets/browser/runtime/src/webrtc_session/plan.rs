@@ -57,6 +57,7 @@ pub(super) fn exact_binding(variant: u32) -> Result<SessionBinding, WireError> {
         sink_port_id: PortId::from("in"),
         value_kind: KindId::from("conduit-test/bounded-bytes@1"),
         temporal: PortTemporal::Value,
+        pressure_policy: Default::default(),
         selected_line: Some(line.clone()),
         admitted_lines: vec![line],
         item_capacity: 1,

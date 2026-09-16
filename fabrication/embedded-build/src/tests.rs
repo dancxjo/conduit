@@ -414,6 +414,7 @@ fn sealed_current_fragment() -> PlanFragment {
             sink_port_id: PortId::from("in"),
             value_kind,
             temporal: conduit_core::PortTemporal::Value,
+            pressure_policy: Default::default(),
             selected_line: None,
             admitted_lines: vec![],
             item_capacity: 1,

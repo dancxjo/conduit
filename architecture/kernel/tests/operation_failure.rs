@@ -67,6 +67,7 @@ fn identical_detail_codes_do_not_erase_distinct_operation_failures() {
                     slot_start: 0,
                     item_capacity: 1,
                     byte_capacity: 1,
+                pressure_policy: Default::default(),
                 },
             )],
             routes,

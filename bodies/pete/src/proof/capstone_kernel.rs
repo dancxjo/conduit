@@ -306,6 +306,7 @@ pub(super) fn prepare_scheduler(
                     .expect("route is in fixed table") as u16,
                 item_capacity: 1,
                 byte_capacity: if cord == 0 { 1 } else { SCALAR_BYTES },
+            pressure_policy: Default::default(),
             },
         )
     });

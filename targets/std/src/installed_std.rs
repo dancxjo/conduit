@@ -21,6 +21,9 @@ mod facade;
 mod factory;
 mod final_normalized_pattern_operation;
 mod flow_gate_operation;
+mod flow_pressure_operations;
+#[cfg(test)]
+mod flow_pressure_form_tests;
 mod flow_state_operations;
 mod generate_text;
 mod generated_speech_commit_operation;

@@ -33,6 +33,9 @@ impl InstalledOperation {
             Self::StateCount(_) => {}
             Self::StateToggle(_) => {}
             Self::CountPresentation(operation) => operation.cancel(),
+            Self::FlowBackpressure(operation) | Self::FlowCoalesceLatest(operation) => {
+                operation.cancel()
+            }
             Self::StateLatestScalar(operation) => operation.cancel(),
             Self::FlowTeeScalar(operation) => operation.cancel(),
             Self::StateSelectScalar(operation) => operation.cancel(),

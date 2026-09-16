@@ -140,6 +140,7 @@ fn scheduler(fail: bool, sink_consumes: bool) -> KeyboardScheduler {
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: 3,
+            pressure_policy: Default::default(),
             },
         )],
         routes,

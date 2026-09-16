@@ -149,6 +149,7 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
                         slot_start: index,
                         item_capacity: 1,
                         byte_capacity: 8,
+                    pressure_policy: Default::default(),
                     },
                 )
             }),
