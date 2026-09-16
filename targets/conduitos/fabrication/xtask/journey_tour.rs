@@ -17,15 +17,15 @@ pub(super) fn exercise_remaining(
     let mut results = 1;
     let mut transients = 1;
     let mut dismissed = 1;
-    for (key, checkpoint, expect_visual_change) in [
+    for (key, checkpoint, expect_visible_change) in [
         ("f3", "tour-one-exercise-two", true),
         ("f3", "tour-one-exercise-three", true),
         ("f5", "tour-two-exercise-one", true),
         ("f5", "tour-three-exercise-one", true),
         ("f5", "tour-four-exercise-one", true),
-        // These sibling exercises deliberately render the same Form and result.
-        // Their distinct realization identities are checked in
-        // `validate_complete_tour`; equal pixels are therefore valid here.
+        // Both Chapter 4 stages deliberately present the same lesson and result.
+        // Their stage and realization records are verified from the guest records;
+        // a pixel delta here would depend only on incidental cursor animation.
         ("f3", "tour-four-exercise-two", false),
     ] {
         opened += 1;
@@ -40,10 +40,10 @@ pub(super) fn exercise_remaining(
             child,
             artifacts,
             checkpoint,
-            expect_visual_change,
             results,
             transients,
             dismissed,
+            expect_visible_change,
         )?;
     }
     for (checkpoint, count) in [
@@ -66,10 +66,10 @@ pub(super) fn exercise_remaining(
         child,
         artifacts,
         "tour-one-exercise-one-returned",
+        8,
+        8,
+        8,
         true,
-        8,
-        8,
-        8,
     )
 }
 
@@ -93,14 +93,14 @@ fn run_stage(
     child: &mut Child,
     artifacts: &mut super::qemu_artifacts::Artifacts,
     checkpoint: &str,
-    expect_visual_change: bool,
     result_count: usize,
     transient_count: usize,
     dismissed_count: usize,
+    expect_visible_change: bool,
 ) -> Result<(), ConduitosError> {
     super::journey_input::key_pair(qmp, reader, "f10", "tour-run-stage")?;
     super::journey_input::wait_tour_status_count(serial, child, "result-visible", result_count)?;
-    artifacts.capture(qmp, reader, checkpoint, expect_visual_change)?;
+    artifacts.capture(qmp, reader, checkpoint, expect_visible_change)?;
     super::journey_input::wait_transient_status_count(serial, child, "shown", transient_count)?;
     super::journey_input::key_pair(qmp, reader, "esc", "dismiss-stage-confirmation")?;
     super::journey_input::wait_transient_status_count(serial, child, "dismissed", dismissed_count)

@@ -1,8 +1,9 @@
 use alloc::vec::Vec;
 use conduit_body::{
-    AdmissionManager, AdmissionRefusal, AdmissionSigns, BodyBiographyError, BodyBiographyEvidence,
-    BodyFormPlan, BodyLifecycleError, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyState,
-    MembershipCredential, MembershipState, ResidentForm, SpawnAdmissionProof, Wake,
+    AdmissionManager, AdmissionRefusal, AdmissionSigns, BodyBiographyArchiveSegment,
+    BodyBiographyError, BodyBiographyEvidence, BodyFormPlan, BodyLifecycleError, BodyPlan,
+    BodyPlanError, BodyPlayIdentity, BodyState, MembershipCredential, MembershipState,
+    ResidentForm, SpawnAdmissionProof, Wake,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, SignId, bind_sign};
 use serde::{Deserialize, Serialize};
@@ -20,6 +21,7 @@ pub struct WorkspaceBody {
     evidence: BodyBiographyEvidence,
     realization: Option<WorkspaceRealization>,
     foreground: Option<ResidentForm>,
+    pending_archives: Vec<BodyBiographyArchiveSegment>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -37,6 +39,7 @@ pub enum WorkspaceBodyError {
     UninstalledForm,
     SequenceExhausted,
     UnreconciledWake,
+    ArchivePersistenceRequired,
 }
 
 impl WorkspaceBody {
@@ -52,6 +55,7 @@ impl WorkspaceBody {
             foreground,
             evidence,
             realization: None,
+            pending_archives: Vec::new(),
         })
     }
 
@@ -76,6 +80,23 @@ impl WorkspaceBody {
 
     pub fn foreground(&self) -> Option<&ResidentForm> {
         self.foreground.as_ref()
+    }
+
+    pub fn pending_archives(&self) -> &[BodyBiographyArchiveSegment] {
+        &self.pending_archives
+    }
+
+    /// A Host calls this only after the archive segments and the newer active
+    /// evidence committed in one durable transaction.
+    pub fn acknowledge_archives(
+        &mut self,
+        head_digest: [u8; 32],
+    ) -> Result<(), WorkspaceBodyError> {
+        if self.pending_archives.last().map(|segment| segment.digest) != Some(head_digest) {
+            return Err(WorkspaceBodyError::ArchivePersistenceRequired);
+        }
+        self.pending_archives.clear();
+        Ok(())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -292,6 +313,7 @@ impl WorkspaceBody {
         if self.evidence.body.workload_revision != expected_revision {
             return Err(WorkspaceBodyError::StaleWorkload);
         }
+        self.make_lifecycle_room(1, 0)?;
         let sequence = self.next_sequence()?;
         let sign_id = sign(host, boot, sequence);
         let body = self
@@ -323,6 +345,7 @@ impl WorkspaceBody {
         if self.evidence.body.workload_revision != expected_revision {
             return Err(WorkspaceBodyError::StaleWorkload);
         }
+        self.make_lifecycle_room(1, 0)?;
         let sequence = self.next_sequence()?;
         let sign_id = sign(host, boot, sequence);
         let body = self
@@ -374,15 +397,19 @@ impl WorkspaceBody {
             || self.evidence.records.len().saturating_add(5)
                 > conduit_body::MAX_BODY_BIOGRAPHY_RECORDS
         {
-            if !self
+            if self.pending_archives.len() >= conduit_body::MAX_BODY_BIOGRAPHY_WAKES {
+                return Err(WorkspaceBodyError::ArchivePersistenceRequired);
+            }
+            let Some(segment) = self
                 .evidence
-                .compact_oldest_terminal_wake()
+                .seal_oldest_terminal_wake()
                 .map_err(WorkspaceBodyError::Biography)?
-            {
+            else {
                 return Err(WorkspaceBodyError::Biography(
                     BodyBiographyError::CapacityExhausted,
                 ));
-            }
+            };
+            self.pending_archives.push(segment);
         }
         Ok(())
     }

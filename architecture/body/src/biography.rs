@@ -9,8 +9,11 @@ use crate::{
     MembershipEventKind, PartId, MAX_LIFECYCLE_ID_BYTES,
 };
 
+mod archive;
 mod validation;
 mod wake_history;
+
+pub use archive::*;
 
 pub const MAX_BODY_BIOGRAPHY_RECORDS: usize = 64;
 pub const MAX_BODY_BIOGRAPHY_WAKES: usize = 8;
@@ -25,6 +28,10 @@ pub struct BodyBiographyCompaction {
     pub through_sequence: u64,
     pub through_sign_id: SignId,
     pub first_wake_id: crate::WakeId,
+    #[serde(default)]
+    pub sealed_segments: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archive_head_digest: Option<[u8; 32]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
