@@ -175,13 +175,61 @@ impl DurableHostRuntime {
                 admitted.runtime_mut().close_ingress(endpoint)?;
                 drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
             }
-            SessionMessage::Cancelled { .. } | SessionMessage::Failed { .. } => {
+            SessionMessage::Cancelled { code } => {
                 admitted.runtime_mut().cancel()?;
+                responses.push(remote_response(
+                    admitted,
+                    endpoint,
+                    SessionMessage::Cancelled { code },
+                )?);
+                let final_sequence = admitted
+                    .sessions()
+                    .get(endpoint)
+                    .ok_or_else(|| "remote-session-absent".to_string())?
+                    .machine()
+                    .next_sequence();
+                responses.push(remote_response(
+                    admitted,
+                    endpoint,
+                    SessionMessage::Terminal {
+                        disposition: conduit_wire::SessionTerminalDisposition::Cancelled,
+                        final_sequence,
+                    },
+                )?);
             }
-            SessionMessage::Ready
-            | SessionMessage::Pressure { .. }
-            | SessionMessage::Terminal { .. } => {
+            SessionMessage::Failed { code } => {
+                admitted.runtime_mut().cancel()?;
+                responses.push(remote_response(
+                    admitted,
+                    endpoint,
+                    SessionMessage::Failed { code },
+                )?);
+                let final_sequence = admitted
+                    .sessions()
+                    .get(endpoint)
+                    .ok_or_else(|| "remote-session-absent".to_string())?
+                    .machine()
+                    .next_sequence();
+                responses.push(remote_response(
+                    admitted,
+                    endpoint,
+                    SessionMessage::Terminal {
+                        disposition: conduit_wire::SessionTerminalDisposition::Failed,
+                        final_sequence,
+                    },
+                )?);
+            }
+            SessionMessage::Ready | SessionMessage::Pressure { .. } => {
                 drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
+            }
+            SessionMessage::Terminal { .. } => {
+                let terminal = admitted
+                    .sessions()
+                    .get(endpoint)
+                    .is_some_and(|session| session.machine().is_terminal());
+                if !terminal {
+                    drive_remote_fragment(&mut self.host, admitted, &mut responses)?;
+                }
             }
         }
         Ok(DurableRemoteExchange {
@@ -266,11 +314,61 @@ fn drive_remote_fragment(
         }
         match admitted.runtime_mut().step()? {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Idle | SchedulerStatus::Drained => return Ok(()),
+            SchedulerStatus::Idle => return Ok(()),
+            SchedulerStatus::Drained => {
+                complete_remote_sessions(admitted, responses)?;
+                return Ok(());
+            }
             SchedulerStatus::Cancelled => return Err("remote-fragment-cancelled".into()),
         }
     }
     Err("remote-fragment-drive-bound".into())
+}
+
+fn complete_remote_sessions(
+    admitted: &mut AdmittedRemoteFragment,
+    responses: &mut Vec<Vec<u8>>,
+) -> Result<(), String> {
+    let endpoints = admitted
+        .sessions()
+        .iter()
+        .map(|session| (session.endpoint, session.direction))
+        .collect::<Vec<_>>();
+    let mut completions = Vec::with_capacity(endpoints.len());
+    for (endpoint, direction) in endpoints {
+        let checkpoint = admitted
+            .sessions()
+            .get(endpoint)
+            .ok_or_else(|| "remote-session-absent".to_string())?
+            .machine()
+            .checkpoint();
+        if direction == RemoteCordDirection::Egress {
+            if !admitted.runtime_mut().egress_terminal(endpoint)? {
+                return Err("remote-egress-not-terminal".into());
+            }
+        } else if !checkpoint.input_closed {
+            return Err("remote-ingress-not-closed".into());
+        }
+        completions.push((endpoint, direction, checkpoint.next_sequence));
+    }
+    for (endpoint, direction, final_sequence) in completions {
+        if direction == RemoteCordDirection::Egress {
+            responses.push(remote_response(
+                admitted,
+                endpoint,
+                SessionMessage::InputClosed { final_sequence },
+            )?);
+        }
+        responses.push(remote_response(
+            admitted,
+            endpoint,
+            SessionMessage::Terminal {
+                disposition: conduit_wire::SessionTerminalDisposition::Completed,
+                final_sequence,
+            },
+        )?);
+    }
+    Ok(())
 }
 
 fn encode_remote_hello_frames(
@@ -1177,8 +1275,49 @@ mod tests {
             encoded
         };
         let delivered = runtime.exchange_remote_frame(&delivered_frame).unwrap();
-        assert!(delivered.active);
-        assert!(delivered.responses.is_empty());
+        assert!(!delivered.active);
+        assert_eq!(delivered.responses.len(), 2);
+        let closed = decode_session_frame(
+            &delivered.responses[0],
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+        )
+        .unwrap();
+        assert!(matches!(
+            closed.message,
+            SessionMessage::InputClosed { final_sequence: 1 }
+        ));
+        let terminal = decode_session_frame(
+            &delivered.responses[1],
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+        )
+        .unwrap();
+        assert!(matches!(
+            terminal.message,
+            SessionMessage::Terminal {
+                disposition: conduit_wire::SessionTerminalDisposition::Completed,
+                final_sequence: 1
+            }
+        ));
+        let mut peer_terminal = vec![0; MAXIMUM_CONTROL_FRAME_BYTES];
+        let length = encode_session_frame_into(
+            conduit_wire::SessionFrame {
+                identity: terminal.identity,
+                message: SessionMessage::Terminal {
+                    disposition: conduit_wire::SessionTerminalDisposition::Completed,
+                    final_sequence: 1,
+                },
+            },
+            &mut peer_terminal,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+        )
+        .unwrap();
+        peer_terminal.truncate(length);
+        let terminal = runtime.exchange_remote_frame(&peer_terminal).unwrap();
+        assert!(!terminal.active);
+        assert!(terminal.responses.is_empty());
         assert_eq!(
             runtime
                 .prepare_remote(truth.boot_id.as_str(), truth.offer_generation.0, &plan)
@@ -1187,9 +1326,79 @@ mod tests {
         );
 
         runtime.release_remote().unwrap();
-        runtime
+        let prepared = runtime
             .prepare_remote(truth.boot_id.as_str(), truth.offer_generation.0, &plan)
             .unwrap();
+        let hello = decode_session_frame(
+            &prepared.hello_frames[0],
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+        )
+        .unwrap();
+        let ready = runtime
+            .exchange_remote_frame(&prepared.hello_frames[0])
+            .unwrap()
+            .responses
+            .remove(0);
+        runtime.exchange_remote_frame(&ready).unwrap();
+        let mut cancelled = vec![0; MAXIMUM_CONTROL_FRAME_BYTES];
+        let length = encode_session_frame_into(
+            conduit_wire::SessionFrame {
+                identity: hello.identity,
+                message: SessionMessage::Cancelled { code: 9 },
+            },
+            &mut cancelled,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+        )
+        .unwrap();
+        cancelled.truncate(length);
+        let cancellation = runtime.exchange_remote_frame(&cancelled).unwrap();
+        assert!(!cancellation.active);
+        assert_eq!(cancellation.responses.len(), 2);
+        assert!(matches!(
+            decode_session_frame(
+                &cancellation.responses[0],
+                MAXIMUM_CONTROL_FRAME_BYTES as u32,
+                MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            )
+            .unwrap()
+            .message,
+            SessionMessage::Cancelled { code: 9 }
+        ));
+        let terminal = decode_session_frame(
+            &cancellation.responses[1],
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+        )
+        .unwrap();
+        assert!(matches!(
+            terminal.message,
+            SessionMessage::Terminal {
+                disposition: conduit_wire::SessionTerminalDisposition::Cancelled,
+                final_sequence: 0
+            }
+        ));
+        let mut peer_terminal = vec![0; MAXIMUM_CONTROL_FRAME_BYTES];
+        let length = encode_session_frame_into(
+            conduit_wire::SessionFrame {
+                identity: terminal.identity,
+                message: SessionMessage::Terminal {
+                    disposition: conduit_wire::SessionTerminalDisposition::Cancelled,
+                    final_sequence: 0,
+                },
+            },
+            &mut peer_terminal,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+        )
+        .unwrap();
+        peer_terminal.truncate(length);
+        assert!(runtime
+            .exchange_remote_frame(&peer_terminal)
+            .unwrap()
+            .responses
+            .is_empty());
         runtime.release_remote().unwrap();
     }
 }

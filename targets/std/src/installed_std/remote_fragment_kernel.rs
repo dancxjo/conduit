@@ -544,6 +544,12 @@ impl InstalledRemoteFragment {
             .close_remote_input(endpoint, cord)
             .map_err(|error| format!("close remote std input: {error:?}"))
     }
+    pub fn egress_terminal(&mut self, endpoint: RemoteEndpointId) -> Result<bool, String> {
+        let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Egress)?;
+        self.scheduler
+            .remote_egress_terminal(endpoint, cord)
+            .map_err(|error| format!("complete remote std output: {error:?}"))
+    }
     pub fn cancel(&mut self) -> Result<(), String> {
         self.pending_body_context = None;
         for host in self.generated_speech_commit_hosts.iter_mut().flatten() {
