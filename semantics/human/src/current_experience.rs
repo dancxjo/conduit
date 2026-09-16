@@ -6,6 +6,8 @@ use conduit_core::{
     TemporalInstant,
 };
 
+use crate::{ExperienceTemporalPolicy, ExperienceTemporalRefusal};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExperienceLimits {
     pub maximum_items: usize,
@@ -116,6 +118,8 @@ pub struct ExperienceRelation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CurrentExperience {
     limits: ExperienceLimits,
+    reference_at: TemporalInstant,
+    temporal_policy: ExperienceTemporalPolicy,
     items: Vec<ExperienceItem>,
     relationships: Vec<ExperienceRelation>,
     encoded_bytes: usize,
@@ -143,6 +147,9 @@ pub enum ExperienceRefusal {
     IdentityBytes,
     InvalidSource,
     InvalidTime,
+    InvalidTemporalContext,
+    TemporalClassification(ExperienceTemporalRefusal),
+    TemporalRoleMismatch,
     ArithmeticOverflow,
 }
 
@@ -153,7 +160,11 @@ pub struct ExperienceAdmissionError {
 }
 
 impl CurrentExperience {
-    pub fn new(limits: ExperienceLimits) -> Result<Self, ExperienceRefusal> {
+    pub fn new(
+        limits: ExperienceLimits,
+        reference_at: TemporalInstant,
+        temporal_policy: ExperienceTemporalPolicy,
+    ) -> Result<Self, ExperienceRefusal> {
         if limits.maximum_items == 0
             || limits.maximum_current_items == 0
             || limits.maximum_recent_items == 0
@@ -178,10 +189,18 @@ impl CurrentExperience {
         {
             return Err(ExperienceRefusal::InvalidLimits);
         }
+        reference_at
+            .validate()
+            .map_err(|_| ExperienceRefusal::InvalidTemporalContext)?;
+        temporal_policy
+            .validate()
+            .map_err(ExperienceRefusal::TemporalClassification)?;
         Ok(Self {
             items: Vec::with_capacity(limits.maximum_items),
             relationships: Vec::with_capacity(limits.maximum_relationships),
             limits,
+            reference_at,
+            temporal_policy,
             encoded_bytes: 0,
         })
     }
@@ -374,6 +393,26 @@ impl CurrentExperience {
                 && !item.encoded_content.is_empty()
         {
             return Err(ExperienceRefusal::InvalidEpistemicCombination);
+        }
+        if item.availability == ExperienceAvailability::Present
+            && matches!(
+                item.origin,
+                ExperienceOrigin::Observation
+                    | ExperienceOrigin::HumanReported
+                    | ExperienceOrigin::ModelDerived
+            )
+        {
+            let observed_at = item
+                .observed_at
+                .as_ref()
+                .ok_or(ExperienceRefusal::InvalidTime)?;
+            let classified = self
+                .temporal_policy
+                .classify(observed_at, &self.reference_at)
+                .map_err(ExperienceRefusal::TemporalClassification)?;
+            if classified != item.temporal_role {
+                return Err(ExperienceRefusal::TemporalRoleMismatch);
+            }
         }
         let total = self
             .encoded_bytes
