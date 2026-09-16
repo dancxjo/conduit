@@ -50,6 +50,13 @@ fn provenance(class: VisualEvidenceClass, sign: &str) -> VisualObservationProven
 fn limits() -> ExperienceLimits {
     ExperienceLimits {
         maximum_items: 4,
+        maximum_current_items: 4,
+        maximum_recent_items: 4,
+        maximum_stale_items: 4,
+        maximum_historical_items: 4,
+        maximum_items_per_domain: 4,
+        maximum_model_derived_items: 4,
+        maximum_selected_memory_items: 4,
         maximum_source_refs: 8,
         maximum_relationships: 4,
         maximum_item_bytes: 4_096,
