@@ -13,6 +13,7 @@ mod construction_source;
 mod deployment_carrier;
 mod model;
 mod package_contract;
+mod release_catalog;
 mod runtime;
 mod validation;
 
@@ -29,6 +30,7 @@ pub use construction_source::*;
 pub use deployment_carrier::*;
 pub use model::*;
 pub use package_contract::*;
+pub use release_catalog::*;
 pub use runtime::*;
 pub use validation::{validate_profile, ProfileDiagnostic, ValidatedHostProfile};
 
