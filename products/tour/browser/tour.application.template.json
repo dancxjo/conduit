@@ -18,7 +18,7 @@
     { "role": "tour-state", "kind": "module", "path": "tour-state.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "tour-navigation", "kind": "module", "path": "tour-navigation.mjs", "maximum_bytes": 8192, "dependencies": [{"role":"tour-application-actions","specifier":"./tour-application-actions.mjs"}] },
     { "role": "tour-inventory-presentation", "kind": "module", "path": "tour-inventory-presentation.mjs", "maximum_bytes": 16384, "dependencies": [] },
-    { "role": "tour-runner-effects", "kind": "module", "path": "tour-runner-effects.mjs", "maximum_bytes": 16384, "dependencies": [] },
+    { "role": "tour-runner-effects", "kind": "module", "path": "tour-runner-effects.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"browser-form-effects","specifier":"../../../targets/browser/host/assets/browser-form-effects.mjs"}] },
     { "role": "tour-runner-presentation", "kind": "module", "path": "tour-runner-presentation.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "application-syntax-presentation", "kind": "module", "path": "application-syntax-presentation.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "patchbay-flow", "kind": "module", "path": "assets/flow.js", "maximum_bytes": 16384, "dependencies": [{"role":"patchbay-flow-scene","specifier":"./flow-scene.js"},{"role":"patchbay-faceplate","specifier":"./flow-faceplate.js"}] },
