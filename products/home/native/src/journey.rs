@@ -14,9 +14,13 @@ pub struct NativeHomeJourneyReceipt {
     pub host_face: &'static str,
     pub step_ids: Vec<&'static str>,
     pub final_revision: u32,
+    pub host_id: String,
+    pub boot_id: String,
     pub form_plan_id: String,
     pub form_play_id: String,
     pub patchbay_presentation_id: String,
+    pub form_presentation: crate::NativeHomePresentation,
+    pub form_notice: String,
 }
 
 pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
@@ -45,6 +49,8 @@ pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
     let execution = execute_installed_form(0)?;
     steps.push(PLAY_OBSERVED_STEP_ID);
     home.report_request(run.as_ref().expect("checked request"), Ok(()));
+    let form_presentation = home.presentation()?;
+    let form_notice = home.notice().to_owned();
 
     home.submit_text("home");
     home.accept(HomeEvent::Next);
@@ -76,9 +82,13 @@ pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
         },
         step_ids: steps,
         final_revision: home.revision(),
+        host_id: execution.host_id,
+        boot_id: execution.boot_id,
         form_plan_id: execution.plan_id,
         form_play_id: execution.active_play_id,
         patchbay_presentation_id: patchbay_opening.presentation_id,
+        form_presentation,
+        form_notice,
     })
 }
 
@@ -103,8 +113,12 @@ mod tests {
         assert_eq!(receipt.step_ids, JOURNEY_STEP_IDS);
         assert!(receipt.final_revision > 1);
         assert!(!receipt.host_face.is_empty());
+        assert!(!receipt.host_id.is_empty());
+        assert!(!receipt.boot_id.is_empty());
         assert!(!receipt.form_plan_id.is_empty());
         assert!(!receipt.form_play_id.is_empty());
         assert!(!receipt.patchbay_presentation_id.is_empty());
+        assert_eq!(receipt.form_presentation.view, HomeView::Prompt);
+        assert!(receipt.form_notice.contains("Completed Form Hello"));
     }
 }

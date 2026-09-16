@@ -5,6 +5,8 @@ const HELLO_SOURCE: &str = include_str!("../../../../forms/hello/main.conduit");
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NativeFormExecution {
     pub form_index: usize,
+    pub host_id: String,
+    pub boot_id: String,
     pub plan_id: String,
     pub active_play_id: String,
     pub output: Vec<u8>,
@@ -44,6 +46,8 @@ pub fn execute_installed_form(form_index: usize) -> Result<NativeFormExecution, 
 
     Ok(NativeFormExecution {
         form_index,
+        host_id: terminal.host_id.as_str().to_owned(),
+        boot_id: terminal.boot_id.as_str().to_owned(),
         plan_id: execution.plan.plan_id.as_str().to_owned(),
         active_play_id: active_play_id.as_str().to_owned(),
         output,
@@ -58,6 +62,8 @@ mod tests {
     fn hello_uses_the_real_hosted_form_pipeline() {
         let receipt = execute_installed_form(0).unwrap();
         assert_eq!(receipt.form_index, 0);
+        assert!(!receipt.host_id.is_empty());
+        assert!(!receipt.boot_id.is_empty());
         assert!(!receipt.plan_id.is_empty());
         assert!(!receipt.active_play_id.is_empty());
         let output = String::from_utf8(receipt.output).unwrap();

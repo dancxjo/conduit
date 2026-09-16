@@ -1,3 +1,4 @@
+mod evidence;
 mod render;
 
 use std::{num::NonZeroU32, process::Command, rc::Rc};
@@ -18,7 +19,10 @@ use winit::{
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("--journey")) {
+    let arguments = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if arguments.first().map(std::ffi::OsString::as_os_str)
+        == Some(std::ffi::OsStr::new("--journey"))
+    {
         let receipt = run_native_home_journey()?;
         println!(
             "HOME JOURNEY COMPLETE face={} revision={} form_plan={} form_play={} patchbay_presentation={} steps={}",
@@ -29,6 +33,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             receipt.patchbay_presentation_id,
             receipt.step_ids.join(",")
         );
+        return Ok(());
+    }
+    if arguments.first().map(std::ffi::OsString::as_os_str)
+        == Some(std::ffi::OsStr::new("--journey-evidence"))
+    {
+        if arguments.len() != 2 {
+            return Err("--journey-evidence requires exactly one new output directory".into());
+        }
+        let receipt = run_native_home_journey()?;
+        let path = evidence::retain(&receipt, std::path::Path::new(&arguments[1]))?;
+        println!("HOME FACE EVIDENCE COMPLETE: {}", path.display());
         return Ok(());
     }
     let event_loop = EventLoop::new()?;
