@@ -8,7 +8,9 @@ use super::{
     MAX_NODES, MAX_QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS,
 };
 use crate::remote_cord_sessions::RemoteCordSessions;
-use conduit_core::{bind_active_play, HostAdvertisement, HostOperationContractId, PlanFragment};
+use conduit_core::{
+    bind_active_play, kind_id, HostAdvertisement, HostOperationContractId, PlanFragment,
+};
 use conduit_kernel::scheduler::{HostOperationRequest, RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, CordId, HostOperationOutcome, HostedSignLog, HostedValueStore,
@@ -39,6 +41,7 @@ pub struct InstalledRemoteFragment {
     scheduler: InstalledScheduler,
     lowered: LoweredPlanFragment,
     sessions: RemoteCordSessions,
+    text_output_buffer: Vec<u8>,
 }
 
 impl InstalledRemoteFragment {
@@ -117,6 +120,7 @@ impl InstalledRemoteFragment {
             scheduler,
             lowered,
             sessions,
+            text_output_buffer: Vec::with_capacity(super::contract::MAX_TEXT_BYTES as usize),
         })
     }
 
@@ -166,6 +170,44 @@ impl InstalledRemoteFragment {
         self.scheduler
             .complete_host_operation(request.node, request.request, outcome)
             .map_err(|error| format!("complete remote std host operation: {error:?}"))
+    }
+    pub fn complete_pure_text_host_operation(
+        &mut self,
+        request: HostOperationRequest,
+    ) -> Result<bool, String> {
+        let operation = self
+            .lowered
+            .host_operations
+            .iter()
+            .find(|operation| {
+                operation.node == request.node && operation.operation == request.operation
+            })
+            .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
+        if operation.contract_id.as_str() != conduit_std_offers::TEXT_UPPER_HOST_OPERATION_CONTRACT
+            || operation.target_kind.as_ref()
+                != Some(&kind_id(
+                    conduit_std_offers::TEXT_UPPER_HOST_OPERATION_TARGET,
+                ))
+        {
+            return Ok(false);
+        }
+        let input = self
+            .scheduler
+            .host_value(request.input.value)
+            .map_err(|error| format!("read remote std text input: {error:?}"))?;
+        super::text_operations::uppercase_utf8(input, &mut self.text_output_buffer)?;
+        let value = self
+            .scheduler
+            .store_host_value(&self.text_output_buffer)
+            .map_err(|error| format!("store remote uppercase text output: {error:?}"))?;
+        self.scheduler
+            .complete_host_operation(
+                request.node,
+                request.request,
+                super::text_operations::completed_with_output(value),
+            )
+            .map_err(|error| format!("complete remote text/upper host operation: {error:?}"))?;
+        Ok(true)
     }
     pub fn store_host_value(&mut self, bytes: &[u8]) -> Result<BoundedValueRef, String> {
         let value = self
