@@ -595,13 +595,16 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           chmod +x target/creche-host-releases/conduit-home-linux-x86_64
+          rm -rf target/creche-host-releases/home-face-linux-native
           xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-face-linux-native
       - name: Run the packaged Windows Tour journey
         if: matrix.platform == 'windows'
         run: target/creche-host-releases/conduit-tour-windows-x86_64.exe --journey
       - name: Run the packaged Windows Home journey
         if: matrix.platform == 'windows'
-        run: target/creche-host-releases/conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-face-windows-native
+        run: |
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/creche-host-releases/home-face-windows-native
+          target/creche-host-releases/conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-face-windows-native
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-${{ matrix.artifact }}
