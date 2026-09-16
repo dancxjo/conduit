@@ -27,6 +27,11 @@ export const ORANGE_PI_5_PROFILE = Object.freeze({
   machine: "rk3588s",
   board: "orange-pi-5",
   bootMechanism: "rk3588s-bootrom-u-boot-booti-conduitos-image",
+  target_id: "conduitos/aarch64/orange-pi-5-rk3588s",
+  package_id: "conduit-host-orange-pi@1",
+  output: "sd-image",
+  builder_adapter: "conduit-host-orange-pi/build-conduitos-sd-image@1",
+  deployment_adapter: "conduit-host-orange-pi/flash-removable-media@1",
 });
 
 const declaration = Object.freeze({
@@ -78,7 +83,10 @@ export function createOrangePiAdapter({ host, imageWriter } = {}) {
 
   async function obtain({ mode, signal }) {
     requireMode(mode, "obtain"); requireCurrent(signal, mode, "obtain");
-    const release = await acquireOrangePiImage(ORANGE_PI_5_PROFILE, signal);
+    const resolved = host?.resolveReviewedRelease
+      ? await host.resolveReviewedRelease(ORANGE_PI_5_PROFILE, signal)
+      : null;
+    const release = await acquireOrangePiImage(ORANGE_PI_5_PROFILE, signal, { resolved });
     return Object.freeze({
       resultKind: "artifact", private: release,
       evidence: Object.freeze({

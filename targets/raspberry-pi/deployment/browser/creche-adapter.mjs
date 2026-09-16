@@ -87,6 +87,11 @@ export const RASPBERRY_PI_B_PLUS_PROFILE = Object.freeze({
   machine: "BCM2835/ARM1176JZF-S",
   board: "raspberry-pi-model-b-plus-v1.2",
   bootMechanism: "raspberry-pi-videocore-firmware-direct-kernel",
+  target_id: "conduitos/armv6/raspberry-pi-model-b-plus-v1.2",
+  package_id: "conduit-host-raspberry-pi@1",
+  output: "sd-image",
+  builder_adapter: "conduit-host-raspberry-pi/build-sd-image@1",
+  deployment_adapter: "conduit-host-raspberry-pi/flash-removable-media@1",
 });
 
 function zeroBareMetalProfile({ id, label, model, manifest }) {
@@ -105,6 +110,11 @@ function zeroBareMetalProfile({ id, label, model, manifest }) {
     machine: "BCM2835/ARM1176JZF-S",
     board: id,
     bootMechanism: "raspberry-pi-videocore-firmware-direct-kernel",
+    target_id: `conduitos/armv6/${id}`,
+    package_id: "conduit-host-raspberry-pi@1",
+    output: "sd-image",
+    builder_adapter: "conduit-host-raspberry-pi/build-sd-image@1",
+    deployment_adapter: "conduit-host-raspberry-pi/flash-removable-media@1",
   });
 }
 
@@ -189,7 +199,10 @@ export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_
 
   async function obtain({ mode, signal }) {
     requireMode(profile, mode, "obtain"); requireCurrent(profile, signal, mode, "obtain");
-    const release = await acquireRaspberryPiImage(profile, signal);
+    const resolved = host?.resolveReviewedRelease
+      ? await host.resolveReviewedRelease(profile, signal)
+      : null;
+    const release = await acquireRaspberryPiImage(profile, signal, { resolved });
     return Object.freeze({
       resultKind: "artifact",
       private: release,

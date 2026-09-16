@@ -39,6 +39,11 @@ export async function startApplication(context) {
   if (!command || !input || !status) throw new Error("Browser Home controls are incomplete");
 
   const steps = ["home.arrived"];
+  const identity = Object.freeze({
+    host_id: "browser/home",
+    boot_id: `browser-boot/home/${crypto.randomUUID()}`,
+  });
+  let formExecution = null;
   document.documentElement.dataset.homeSteps = steps.join(",");
   const record = (...identities) => {
     for (const identity of identities) if (!steps.includes(identity)) steps.push(identity);
@@ -53,8 +58,8 @@ export async function startApplication(context) {
   )));
   const runHello = () => {
     const source = encoder.encode(context.text("hello-form"));
-    const host = encoder.encode("browser/home");
-    const boot = encoder.encode("browser-boot/home");
+    const host = encoder.encode(identity.host_id);
+    const boot = encoder.encode(identity.boot_id);
     const pointer = api.conduit_browser_form_input_ptr();
     new Uint8Array(api.memory.buffer, pointer, source.length).set(source);
     if (api.conduit_browser_form_admit_source_interaction(source.length, 1n) < 0) throw new Error("Hello source admission refused");
@@ -66,6 +71,8 @@ export async function startApplication(context) {
     if (api.conduit_browser_form_complete() < 0) throw new Error("Hello completion refused");
     const receipt = readFormOutput();
     if (receipt.disposition !== "completed") throw new Error("Hello Play did not complete");
+    if (receipt.active_play_id !== effect.active_play_id) throw new Error("Hello Play identity changed before completion");
+    formExecution = Object.freeze({ effect: Object.freeze(effect), receipt: Object.freeze(receipt) });
     status.textContent = effect.text;
     status.dataset.playDisposition = receipt.disposition;
   };
@@ -109,5 +116,10 @@ export async function startApplication(context) {
   });
   render();
   status.textContent = "Browser Home is ready.";
-  globalThis.__conduitHome = Object.freeze({ api, steps: () => [...steps] });
+  globalThis.__conduitHome = Object.freeze({
+    api,
+    identity,
+    steps: () => [...steps],
+    evidence: () => formExecution,
+  });
 }

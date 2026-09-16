@@ -76,6 +76,7 @@ export default defineConfig({
     "human-interaction-presenter.spec.mjs",
     "human-interaction-convergence.spec.mjs",
     "home-host.spec.mjs",
+    "home-cross-face.spec.mjs",
     "webrtc-datachannel-line.spec.mjs",
   ],
   fullyParallel: false,
@@ -98,7 +99,7 @@ export default defineConfig({
     { name: "chromium", use: { browserName: "chromium" } },
     {
       name: "firefox",
-      testMatch: ["browser-webrtc-body.spec.mjs", "home-host.spec.mjs"],
+      testMatch: ["browser-webrtc-body.spec.mjs", "home-host.spec.mjs", "home-cross-face.spec.mjs"],
       use: { browserName: "firefox" },
     },
   ],
