@@ -113,3 +113,29 @@ fn steps_cannot_cite_another_tracks_host_or_an_unretained_line() {
     tracks[2].steps[0].provenance.line_id = Some("line-invented".into());
     assert!(validate(&contract(), &tracks).is_err());
 }
+
+#[test]
+fn documentary_artifacts_are_digest_bound_and_root_confined() {
+    let root =
+        std::env::temp_dir().join(format!("conduit-three-body-journey-{}", std::process::id()));
+    std::fs::create_dir_all(&root).unwrap();
+    let source = root.join("track.json");
+    let artifact = root.join("artifact-0.json");
+    std::fs::write(&artifact, b"semantic receipt").unwrap();
+    let mut track = track(0, 1);
+    track.steps[0].evidence[0].sha256 = format!("sha256:{:x}", Sha256::digest(b"semantic receipt"));
+    verify_artifacts(&track, &source).unwrap();
+    std::fs::write(&artifact, b"changed receipt").unwrap();
+    assert!(verify_artifacts(&track, &source).is_err());
+
+    #[cfg(unix)]
+    {
+        let outside = root.with_extension("outside");
+        std::fs::write(&outside, b"semantic receipt").unwrap();
+        std::fs::remove_file(&artifact).unwrap();
+        std::os::unix::fs::symlink(&outside, &artifact).unwrap();
+        assert!(verify_artifacts(&track, &source).is_err());
+        std::fs::remove_file(outside).unwrap();
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}

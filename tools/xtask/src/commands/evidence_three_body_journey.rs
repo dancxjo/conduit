@@ -391,17 +391,42 @@ fn claim_identity(
 }
 
 fn verify_artifacts(track: &BodyTrack, source: &Path) -> Result<(), String> {
-    let root = source.parent().ok_or("Body track manifest has no parent")?;
+    let root = source
+        .parent()
+        .ok_or("Body track manifest has no parent")?
+        .canonicalize()
+        .map_err(|error| format!("resolve Body track root: {error}"))?;
     let mut artifact_ids = BTreeSet::new();
+    let mut artifact_paths = BTreeSet::new();
     for evidence in track.steps.iter().flat_map(|step| &step.evidence) {
         validate_relative_path(&evidence.path)?;
-        if !artifact_ids.insert(evidence.artifact_id.as_str()) || !valid_sha256(&evidence.sha256) {
+        if !artifact_ids.insert(evidence.artifact_id.as_str())
+            || !artifact_paths.insert(&evidence.path)
+            || !valid_identity(&evidence.artifact_id)
+            || !valid_identity(&evidence.evidence_class)
+            || !valid_sha256(&evidence.sha256)
+        {
             return Err(format!(
                 "{} has duplicate or invalid artifact evidence",
                 track.track_id
             ));
         }
-        let bytes = std::fs::read(root.join(&evidence.path))
+        let candidate = root.join(&evidence.path);
+        let metadata = std::fs::symlink_metadata(&candidate)
+            .map_err(|error| format!("inspect {}: {error}", evidence.path.display()))?;
+        if !metadata.file_type().is_file() {
+            return Err(format!("{} artifact is not a regular file", track.track_id));
+        }
+        let resolved = candidate
+            .canonicalize()
+            .map_err(|error| format!("resolve {}: {error}", evidence.path.display()))?;
+        if !resolved.starts_with(&root) {
+            return Err(format!(
+                "{} artifact escaped its track root",
+                track.track_id
+            ));
+        }
+        let bytes = std::fs::read(&resolved)
             .map_err(|error| format!("read {}: {error}", evidence.path.display()))?;
         if bytes.is_empty() || bytes.len() > MAXIMUM_DOCUMENT_BYTES {
             return Err(format!(
