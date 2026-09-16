@@ -50,10 +50,12 @@ async function prepareBody(page) {
   await writeFile(original, Buffer.from(initial.body_workbench.encoded_evidence));
   fixture.process.kill();
   const editor = await open(page, ["--body-evidence", original, "--external-reader", ...forms]);
+  await page.locator("#body-summary").click();
   const active = page.locator('#body-workbench-forms [data-application-component="artifact"]');
   const available = page.locator('#body-workbench-available [data-application-component="artifact"]');
   await active.filter({ hasText: "Memory Lantern" }).getByRole("button", { name: "Remove from Body", exact: true }).click();
   await expect(active).toHaveCount(1);
+  await page.locator("#toggle-palette").click();
   for (const [label, count] of [["Button to Indicator", 2], ["Clock", 3]]) {
     await available.filter({ hasText: label }).getByRole("button", { name: "Add to Body", exact: true }).click();
     await expect(active).toHaveCount(count);
@@ -64,6 +66,7 @@ async function prepareBody(page) {
   editor.process.kill();
   const probe = await startPresenceProbe(["--body-evidence", current]);processes.push(probe.process);
   await open(page, ["--body-evidence", current, "--external-reader", "--body-invitation", probe.url, ...forms]);
+  await page.locator("#body-summary").click();
   await page.getByRole("button", { name: "Join this Body", exact: true }).click();
   await expect(page.locator("#body-membership-status")).toContainText("admitted");
   await expect.poll(async () => (await snapshot(page)).body_host_offer_evidence?.stage).toBe("AdmittedMembership");
@@ -129,8 +132,10 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   const active = page.locator('#body-workbench-forms [data-application-component="artifact"]');
   await active.filter({ hasText: "Button to Indicator" }).getByRole("button", { name: "Remove from Body", exact: true }).click();
   await expect(active).toHaveCount(2);
+  await page.locator("#toggle-palette").click();
   await page.locator('#body-workbench-available [data-application-component="artifact"]').filter({ hasText: "Button to Indicator" }).getByRole("button", { name: "Add to Body", exact: true }).click();
   await expect(active).toHaveCount(3);
+  await page.locator("#body-summary").click();
   await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
   await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
   await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
@@ -201,6 +206,7 @@ test("reopening Awake biography does not claim restored execution accounting", a
   await writeFile(saved, encoded);
   processes.at(-1).kill();
   await open(page, ["--body-evidence", saved, "--external-reader", ...forms]);
+  await page.locator("#body-summary").click();
   const reopened = await snapshot(page);
   expect(reopened.body_workbench.body_id).toBe(prior.body_workbench.body_id);
   expect(Buffer.from(reopened.body_workbench.encoded_evidence)).toEqual(encoded);

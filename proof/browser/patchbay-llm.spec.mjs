@@ -40,12 +40,14 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
     expect(snapshot.presentation.actions).toEqual([]);
 
     await page.goto(url);
-    await page.getByRole("button",{name:"Subjects",exact:true}).click();
+    await page.getByRole("button",{name:"Form",exact:true}).click();
+    await page.locator("#toggle-inspector").click();
+    await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     const gearButton=page.locator('#structured-navigator input[type="radio"][data-subject="gear/interpreter"]');
     await gearButton.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("Completed");
     const pointerSelection=await page.locator("#inspector .selected-summary").innerText();
-    await page.getByRole("button",{name:"Plan",exact:true}).click();
+    await page.getByRole("button",{name:"Realization",exact:true}).click();
     await gearButton.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("gpt-oss:20b");
 
@@ -56,7 +58,7 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
     await expect(page.locator("#inspector .selected-summary")).toContainText("OPEN AND EDITABLE");
     await expect(page.locator("#inspector .selected-summary")).toContainText("false");
 
-    await page.getByRole("button",{name:"Program",exact:true}).click();
+    await page.getByRole("button",{name:"Form",exact:true}).click();
     const modelInfo=page.locator('#structured-navigator input[type="radio"][data-role="Info"]');
     await modelInfo.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("MODEL-DERIVED INFO");
@@ -64,7 +66,7 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
     const proposal=page.locator('#structured-navigator input[type="radio"][data-subject="proposal/request-light"]');
     await proposal.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("AWAITING AUTHORITY");
-    await page.getByRole("button",{name:"Signs",exact:true}).click();
+    await page.getByRole("button",{name:"Debug",exact:true}).click();
     const systemSign=page.locator('#structured-navigator input[type="radio"][data-role="Sign"]');
     await systemSign.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("SYSTEM SIGN EVIDENCE");
@@ -77,8 +79,15 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
     await decisions.nth(1).click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("REFUSED");
 
-    await gearButton.focus();
-    await page.keyboard.press("Enter");
+    await page.getByRole("button",{name:"Form",exact:true}).click();
+    await page.getByRole("button",{name:"Structure",exact:true}).click();
+    await expect.poll(async()=>{const cursor=((await(await fetch(`${url}/api/snapshot`)).json()).navigation.cursor);return `${cursor.place}/${cursor.aspect}`;}).toBe("Program/Structure");
+    if(await page.locator("body").getAttribute("data-inspector-open")!=="true"){await page.locator("#toggle-inspector").click();await expect.poll(async()=>((await(await fetch(`${url}/api/snapshot`)).json()).navigation.cursor.depth)).toBe("Detail");}
+    await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
+    const keyboardGear=page.locator('#structured-navigator input[type="radio"][data-subject="gear/interpreter"]');
+    await expect(keyboardGear).toBeVisible();
+    await keyboardGear.focus();
+    await page.keyboard.press("Space");
     await expect.poll(()=>page.locator("#inspector .selected-summary").innerText()).toBe(pointerSelection);
   } finally {
     server.process.kill("SIGTERM");

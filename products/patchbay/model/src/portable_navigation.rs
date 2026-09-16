@@ -107,14 +107,19 @@ impl PatchbayNavigationProjection {
             vec![
                 place(
                     presentation,
+                    PresentationPlace::Body,
+                    body_root.clone(),
+                    "Body",
+                ),
+                place(
+                    presentation,
                     PresentationPlace::Program,
                     program_root.clone(),
-                    "Program",
+                    "Form",
                 ),
-                place(presentation, PresentationPlace::Body, body_root, "Body"),
             ],
-            PresentationPlace::Program,
-            program_root,
+            PresentationPlace::Body,
+            body_root,
         )
     }
 
@@ -325,6 +330,18 @@ fn subject_in_place(
                     | PresentationRole::Capability
             );
     }
+    if place == PresentationPlace::Program
+        && aspect == PresentationAspect::Signs
+        && matches!(
+            role,
+            PresentationRole::Form
+                | PresentationRole::Gear
+                | PresentationRole::Port
+                | PresentationRole::Cord
+        )
+    {
+        return true;
+    }
     if place == PresentationPlace::Program && role == PresentationRole::Form {
         return aspect == PresentationAspect::Structure
             && (has_body
@@ -334,6 +351,9 @@ fn subject_in_place(
                         && property.value
                             == conduit_presentation::PresentationPropertyValue::Flag(true)
                 }));
+    }
+    if place == PresentationPlace::Body && role == PresentationRole::Form {
+        return aspect == PresentationAspect::Structure;
     }
     domain == Some(place) && aspect != PresentationAspect::Signs
 }

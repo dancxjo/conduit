@@ -82,6 +82,38 @@ impl PatchbayHtmlServer {
                 "debugger subject navigation state unavailable".into(),
             ));
         };
+        let destination = navigation
+            .navigation
+            .places
+            .iter()
+            .find_map(|place| {
+                place
+                    .aspects
+                    .iter()
+                    .find(|aspect| aspect.focusable_subjects.iter().any(|item| item == subject))
+                    .map(|aspect| (place.place, aspect.aspect))
+            })
+            .ok_or_else(|| ServerError::Interaction("debugger subject is not navigable".into()))?;
+        if state.cursor().place != destination.0 {
+            state
+                .navigate(
+                    &self.snapshot.presentation,
+                    &navigation.navigation,
+                    self.snapshot.presentation.revision,
+                    NavigationOperation::Enter(destination.0),
+                )
+                .map_err(|error| ServerError::Interaction(format!("debugger place: {error:?}")))?;
+        }
+        if state.cursor().aspect != destination.1 {
+            state
+                .navigate(
+                    &self.snapshot.presentation,
+                    &navigation.navigation,
+                    self.snapshot.presentation.revision,
+                    NavigationOperation::Show(destination.1),
+                )
+                .map_err(|error| ServerError::Interaction(format!("debugger aspect: {error:?}")))?;
+        }
         let cursor = state
             .navigate(
                 &self.snapshot.presentation,

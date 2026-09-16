@@ -126,7 +126,7 @@ fn debugger_timeline_pause_and_event_selection_mutate_only_playback_state() {
         }))
         .unwrap(),
     );
-    assert!(response.starts_with("HTTP/1.1 200 OK"));
+    assert!(response.starts_with("HTTP/1.1 200 OK"), "{response}");
     let selected = patchbay_html::RendererSnapshot::decode(
         response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
         presentation.revision,

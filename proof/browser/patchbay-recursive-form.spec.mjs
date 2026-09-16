@@ -22,6 +22,7 @@ test("recursive Form Gears open through stable Faces without changing execution 
   try {
     const url = await server.url;
     await page.goto(url);
+    await page.getByRole("button", { name: "Form", exact: true }).click();
     const before = await (await fetch(`${url}/api/snapshot`)).json();
     expect(before.presentation.basis.plan_id).not.toBeNull();
     expect(before.presentation.properties.filter((property) =>
@@ -30,7 +31,7 @@ test("recursive Form Gears open through stable Faces without changing execution 
 
     const outer = page.locator('.faceplate-back-control[aria-label*="patchbay-capstone/canvas"]').first();
     await expect(outer).toHaveAttribute("aria-expanded", "false");
-    await page.getByRole("button", { name: "Plan", exact: true }).click();
+    await page.getByRole("button", { name: "Realization", exact: true }).click();
     await expect(page.locator("article", { has: outer }).locator(".faceplate-clue"))
       .toHaveText("recursive");
     const collapsedNodes = await page.locator(".flow-faceplate").count();

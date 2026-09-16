@@ -350,6 +350,11 @@ fn native_follow_crosses_exact_documentary_correlation_and_returns() {
             .unwrap(),
     );
     application
+        .navigate_front_door(conduit_presentation::NavigationOperation::Enter(
+            conduit_presentation::PresentationPlace::Program,
+        ))
+        .unwrap();
+    application
         .navigate_front_door(conduit_presentation::NavigationOperation::Show(
             conduit_presentation::PresentationAspect::Plan,
         ))

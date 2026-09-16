@@ -23,10 +23,15 @@ test("browser projection agrees exactly with the portable navigation observation
   try {
     const url=await server.url;await page.goto(url);
     const initial=await expectCurrentObservation(page,url);
+    expect(initial.navigation.cursor.place).toBe("Body");
     const stale=structuredClone(initial);stale.navigation.cursor.revision+=1;
     await expect(page.evaluate(async value=>(await import("/assets/portable-navigation.js")).observeCurrent(value),stale)).rejects.toThrow("stale portable navigation identity");
 
-    await page.locator("#toggle-palette").click();
+    await page.getByRole("button",{name:"Form",exact:true}).focus();
+    await page.keyboard.press("Enter");
+    await page.locator("#toggle-inspector").focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(async()=>((await(await fetch(`${url}/api/snapshot`)).json()).navigation.cursor.depth)).toBe("Detail");
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     await page.locator('#structured-navigator input[type="radio"][data-role="Gear"]').first().click();
     const focused=await expectCurrentObservation(page,url);
