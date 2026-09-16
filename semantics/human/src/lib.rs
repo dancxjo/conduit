@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+mod current_experience;
 mod human_interaction;
 mod human_media;
 mod image_observation;
@@ -13,6 +14,7 @@ mod key_event;
 mod visual_impression;
 mod visual_observation;
 
+pub use current_experience::*;
 pub use human_interaction::*;
 pub use human_media::*;
 pub use image_observation::*;
