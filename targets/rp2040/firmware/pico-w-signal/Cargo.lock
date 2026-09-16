@@ -330,6 +330,7 @@ dependencies = [
  "conduit-presentation",
  "conduit-text",
  "serde",
+ "serde-json-core",
  "serde_json",
  "sha2",
 ]

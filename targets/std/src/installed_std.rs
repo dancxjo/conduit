@@ -449,6 +449,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut speech_synthesis_hosts = speech_synthesis_operation::prepare_fake_hosts(fragment)?;
     let mut house_prompt_hosts = house_prompt_operation::prepare_hosts(fragment);
     let mut body_chat_prompt_hosts = body_chat_prompt_operation::prepare_hosts(fragment);
+    let mut body_conversation_context_host =
+        body_conversation_context_operation::BodyConversationContextHost::new(
+            body_conversation_context,
+        );
     let mut navigation_hosts = navigation_operations::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
     let mut record_delivery_hosts = record_delivery_operation::prepare_hosts(fragment)?;
@@ -678,6 +682,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 || cancelled_operation.contract_id == button_contract_id
             {
                 keyboard_host.cancel();
+            } else if cancelled_operation.contract_id.as_str()
+                == conduit_std_offers::BODY_CONVERSATION_CONTEXT_OPERATION
+            {
+                body_conversation_context_host.cancel();
             } else if cancelled_operation.contract_id.as_str()
                 == conduit_ai::VECTOR_SEARCH_OPERATION
             {
@@ -1963,28 +1971,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 contract.as_str(),
                 conduit_std_offers::BODY_CONVERSATION_CONTEXT_OPERATION
             ) {
-                let encoded = body_conversation_context.ok_or_else(|| {
-                    "Body conversation context was planned without current Body truth".to_string()
-                })?;
-                let value = scheduler
-                    .store_host_value(encoded)
-                    .map_err(|error| format!("store Body conversation context: {error:?}"))?;
-                let output = Some(
-                    BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
-                        .map_err(|error| format!("bound Body conversation context: {error:?}"))?,
-                );
                 record_request(&mut requests, request);
-                scheduler
-                    .complete_host_operation(
-                        request.node,
-                        request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
-                            output,
-                            failure: None,
-                        },
-                    )
-                    .map_err(|error| format!("complete Body conversation context: {error:?}"))?;
+                body_conversation_context_host.accept(request, input)?;
                 continue;
             } else if matches!(
                 contract.as_str(),
@@ -2518,6 +2506,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 lifecycle::await_live_control(control);
             }
             SchedulerStatus::Idle => {
+                if body_conversation_context_host.poll(&mut scheduler)? {
+                    continue;
+                }
                 if keyboard_host.poll(&mut scheduler)? {
                     continue;
                 }
@@ -2595,7 +2586,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if deadlines.complete_next(&mut scheduler, timer)? {
                     continue;
                 }
-                if pending_midi_input || keyboard_host.is_pending() {
+                if pending_midi_input
+                    || keyboard_host.is_pending()
+                    || body_conversation_context_host.is_pending()
+                {
                     std::thread::park_timeout(Duration::from_millis(1));
                     continue;
                 }

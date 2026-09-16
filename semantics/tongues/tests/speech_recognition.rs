@@ -1,5 +1,8 @@
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
-use conduit_form::{ProfileCatalog, StartupCatalog};
+use conduit_form::{
+    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
+};
 use conduit_tongues::{
     decode_speech_recognition_result, encode_speech_recognition_result,
     install_speech_recognition_catalog, project_recognized_text, speech_clip_recognition_contract,
@@ -7,7 +10,7 @@ use conduit_tongues::{
     RecordedSpeechRecognizer, SpeechRecognitionAttempt, SpeechRecognitionDisposition,
     SpeechRecognitionRefusal, SpeechRecognitionValueError, MAXIMUM_RECOGNITION_AUDIO_BYTES,
     MAXIMUM_RECOGNITION_FIXTURES, MAXIMUM_RECOGNIZED_TEXT_BYTES, SPEECH_RECOGNITION_RESULT_KIND,
-    SPEECH_RECOGNITION_TO_TEXT_KIND, SPEECH_RECOGNIZE_KIND,
+    SPEECH_RECOGNITION_TO_TEXT_KIND, SPEECH_RECOGNIZE_KIND, STREAMING_SPEECH_RECOGNIZE_KIND,
 };
 
 fn pcm(samples: &[i16]) -> Vec<u8> {
@@ -169,4 +172,45 @@ fn clip_recognition_is_separate_from_the_accepted_single_frame_contract() {
         clip.limits.max_queue_bytes,
         conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
     );
+}
+
+#[test]
+fn ordinary_form_consumes_pcm_and_emits_only_committed_chat_messages_as_flows() {
+    let source = r#"
+form live-recognized-turn (
+    audio: PcmFrames...| > message: ChatMessage...|
+) {
+    recognize: speech/recognize-stream
+    commit: speech/commit-recognized-turn
+
+    audio > recognize.audio
+    recognize.events > commit.events
+    commit.message > message
+}
+"#;
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    startup
+        .insert_value_kind_alias(
+            "PcmFrames",
+            conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
+        )
+        .unwrap();
+    startup
+        .insert_value_kind_alias(
+            "ChatMessage",
+            conduit_core::kind_id(conduit_tongues::CHAT_MESSAGE_VALUE_KIND),
+        )
+        .unwrap();
+    install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded =
+        expand_canonical_form_for_authoring(&checked, "live-recognized-turn", &profile).unwrap();
+    assert_eq!(expanded.input_bindings.len(), 1);
+    assert_eq!(expanded.output_bindings.len(), 1);
+    assert!(expanded
+        .expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == STREAMING_SPEECH_RECOGNIZE_KIND));
 }
