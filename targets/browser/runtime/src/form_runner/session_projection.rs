@@ -17,6 +17,14 @@ impl TourSession {
             engine::BrowserHostEffect::AudioCue => Ok(TourHostEffect::AudioCue(Box::new(
                 super::audio::describe(self, placement, pending.request.request.0),
             ))),
+            engine::BrowserHostEffect::PitchTone { hertz } => Ok(TourHostEffect::PitchTone(
+                Box::new(super::audio::describe_pitch(
+                    self,
+                    placement,
+                    pending.request.request.0,
+                    *hertz,
+                )),
+            )),
             engine::BrowserHostEffect::Snapshot { .. } => {
                 let request = engine::resource_effect::describe(&self.scheduler, pending)?;
                 Ok(TourHostEffect::Snapshot(Box::new(

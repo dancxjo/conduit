@@ -41,6 +41,22 @@ pub(super) struct AudioEffect {
     pub channels: u8,
     pub source_interaction: Option<crate::source_interaction::SourceInteractionEvidence>,
 }
+
+#[derive(Debug, Serialize)]
+pub(super) struct PitchToneEffect {
+    pub schema: &'static str,
+    pub effect_kind: &'static str,
+    pub active_play_id: String,
+    pub placement_id: String,
+    pub host_id: String,
+    pub boot_id: String,
+    pub request_sequence: u32,
+    pub hertz: u32,
+    pub duration_millis: u16,
+    pub gain_millionths: u32,
+    pub oscillator: &'static str,
+    pub source_interaction: Option<crate::source_interaction::SourceInteractionEvidence>,
+}
 pub(super) fn describe(
     session: &super::TourSession,
     placement: &conduit_core::PlannedGear,
@@ -58,6 +74,28 @@ pub(super) fn describe(
         frames: STARTUP_CHIME_FRAMES,
         sample_rate: 48_000,
         channels: 1,
+        source_interaction: session.source_interaction.clone(),
+    }
+}
+
+pub(super) fn describe_pitch(
+    session: &super::TourSession,
+    placement: &conduit_core::PlannedGear,
+    request: u32,
+    hertz: u32,
+) -> PitchToneEffect {
+    PitchToneEffect {
+        schema: "conduit.browser/pitch-tone-effect@1",
+        effect_kind: "pitch-tone",
+        active_play_id: session.active_play_id.as_str().into(),
+        placement_id: placement.placement_id.as_str().into(),
+        host_id: session.host_id.as_str().into(),
+        boot_id: session.boot_id.as_str().into(),
+        request_sequence: request,
+        hertz,
+        duration_millis: 180,
+        gain_millionths: 25_000,
+        oscillator: "sine",
         source_interaction: session.source_interaction.clone(),
     }
 }

@@ -67,6 +67,36 @@ fn canonical_pocket_theremin_maps_separated_positions_in_one_play() {
             .unwrap();
         for _ in 0..16 {
             if session.pending.iter().any(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::PitchTone { .. })
+            }) {
+                break;
+            }
+            let _ = session.poll_effect().unwrap();
+        }
+        let tone_index = session
+            .pending
+            .iter()
+            .position(|pending| {
+                matches!(pending.effect, engine::BrowserHostEffect::PitchTone { .. })
+            })
+            .expect("pointer mapping must request its admitted pitch tone");
+        let TourHostEffect::PitchTone(tone) = session.project_pending_effect(tone_index).unwrap()
+        else {
+            unreachable!()
+        };
+        assert_eq!(tone.hertz, [20, 10_010, 20_000][sequence]);
+        assert_eq!(tone.gain_millionths, 25_000);
+        assert_eq!(tone.duration_millis, 180);
+        let request = session.pending[tone_index].request;
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
+            .placement_id
+            .as_str()
+            .to_owned();
+        let _ = session
+            .complete_effect(&play, &placement, request.request.0, None)
+            .unwrap();
+        for _ in 0..16 {
+            if session.pending.iter().any(|pending| {
                 matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
             }) {
                 break;

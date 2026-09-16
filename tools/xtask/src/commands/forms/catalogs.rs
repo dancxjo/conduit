@@ -5,6 +5,7 @@ pub(super) fn catalogs(
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profile = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_body_startup_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_pitch_tone_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;

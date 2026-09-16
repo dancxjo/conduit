@@ -1,6 +1,9 @@
+import { BrowserHostEffectRefusal } from "../../../targets/browser/host/assets/browser-form-effects.mjs";
+
 // Adapts effects admitted by the production kernel to this browser laboratory.
 export function createTourEffectPerformer({ api, runner, humanInput, openHumanInput, isCurrent,
   delay, renderIdentities, renderRunIdentities, renderMorse, setIndicator }) {
+  const tone = createPitchTonePerformer(globalThis);
   return async (progress, signal) => {
     if (typeof progress?.active_play_id === "string") {
       renderRunIdentities(runner, progress);
@@ -50,6 +53,9 @@ export function createTourEffectPerformer({ api, runner, humanInput, openHumanIn
         api.conduit_browser_form_output_len(),
       ).slice();
       return encoded;
+    } else if (progress.effect_kind === "pitch-tone") {
+      await tone(progress, signal);
+      runner.playStatus.ordinary(`Played admitted ${progress.hertz} Hz tone; continuing the same Play…`);
     } else if (progress.effect_kind === "manifestation") {
       runner.querySelector(".morse").textContent =
         progress.text ?? renderMorse(progress.segments);
@@ -77,6 +83,72 @@ export function createTourEffectPerformer({ api, runner, humanInput, openHumanIn
     } else {
       throw new Error(`unsupported browser Host effect ${progress.effect_kind}`);
     }
+  };
+}
+
+export function createPitchTonePerformer(window) {
+  let context = null;
+  const refusal = (denied, detail, message) =>
+    new BrowserHostEffectRefusal(denied ? "denied" : "failed", detail, message);
+  return async (effect, signal) => {
+    if (effect.oscillator !== "sine" || !Number.isInteger(effect.hertz) || effect.hertz < 20 ||
+        effect.hertz > 20_000 || !Number.isInteger(effect.duration_millis) ||
+        effect.duration_millis < 20 || effect.duration_millis > 250 ||
+        !Number.isInteger(effect.gain_millionths) || effect.gain_millionths < 1 ||
+        effect.gain_millionths > 25_000) throw new Error("pitch tone exceeds its admitted safety envelope");
+    if (signal.aborted) throw refusal(false, 4, "Pitch tone cancelled");
+    if (!context) {
+      if (typeof window.AudioContext !== "function") {
+        throw refusal(false, 1, "Audio output is unavailable");
+      }
+      try { context = new window.AudioContext(); }
+      catch (error) { throw refusal(false, 1, `Audio output is unavailable: ${error.message}`); }
+    }
+    if (context.state !== "running") {
+      throw refusal(true, 2, "The browser has not permitted audio for this interaction");
+    }
+    await new Promise((resolve, reject) => {
+      let oscillator = null, gain = null, deadline = null, settled = false;
+      const finish = error => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(deadline);
+        signal.removeEventListener("abort", abort);
+        context.removeEventListener("statechange", changed);
+        if (oscillator) {
+          oscillator.onended = null;
+          try { oscillator.stop(); } catch {}
+          oscillator.disconnect();
+        }
+        gain?.disconnect();
+        error ? reject(error) : resolve();
+      };
+      const abort = () => finish(refusal(false, 4, "Pitch tone cancelled"));
+      const changed = () => {
+        if (context.state !== "running") finish(refusal(false, 4, "Audio output was interrupted"));
+      };
+      signal.addEventListener("abort", abort, { once: true });
+      context.addEventListener("statechange", changed);
+      try {
+        const now = context.currentTime;
+        const end = now + effect.duration_millis / 1000;
+        const peak = effect.gain_millionths / 1_000_000;
+        oscillator = context.createOscillator();
+        gain = context.createGain();
+        oscillator.type = effect.oscillator;
+        oscillator.frequency.setValueAtTime(effect.hertz, now);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(peak, now + 0.012);
+        gain.gain.setValueAtTime(peak, Math.max(now + 0.012, end - 0.025));
+        gain.gain.linearRampToValueAtTime(0, end);
+        oscillator.connect(gain);gain.connect(context.destination);
+        oscillator.onended = () => finish();
+        deadline = window.setTimeout(() => finish(refusal(false, 5, "Pitch tone completion deadline expired")), effect.duration_millis + 250);
+        oscillator.start(now);oscillator.stop(end);
+      } catch (error) {
+        finish(refusal(false, 3, `Audio rendering failed: ${error.message}`));
+      }
+    });
   };
 }
 
