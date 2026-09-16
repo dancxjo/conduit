@@ -89,9 +89,15 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
 .runner-divider::before { content: ""; position: absolute; background: var(--conduit-structure-secondary); pointer-events: none; }
 .runner-divider-horizontal { grid-area: patchbay-divider; }
 .runner-divider-horizontal::before { left: 0; right: 0; top: 50%; height: 1px; }
+.runner-divider-horizontal::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: .72rem; height: 1.5rem;
+  transform: translate(-50%, -50%); border-radius: .3rem; background: var(--line);
+  box-shadow: inset 0 0 0 2px var(--conduit-background); pointer-events: none;
+}
+.runner-divider-horizontal:is(:hover, :focus-within)::after { background: var(--amber); }
 .runner-divider-horizontal .pane-divider-control { inset: 0; width: 100%; height: 100%; cursor: row-resize; }
-.runner-divider-horizontal .pane-divider-control::-webkit-slider-thumb { width: 1.5rem; }
-.runner-divider-horizontal .pane-divider-control::-moz-range-thumb { width: 1.5rem; }
+.runner-divider-horizontal .pane-divider-control::-webkit-slider-thumb { width: 1.5rem; background: transparent; box-shadow: none; }
+.runner-divider-horizontal .pane-divider-control::-moz-range-thumb { width: 1.5rem; background: transparent; box-shadow: none; }
 .runner-divider-vertical { grid-area: source-divider; }
 .runner-divider-vertical::before { top: 0; bottom: 0; left: 50%; width: 1px; }
 .runner-divider-vertical .pane-divider-control { inset: 0; width: 100%; height: 100%; }
