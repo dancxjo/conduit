@@ -102,6 +102,9 @@ pub(crate) enum HostCommand {
     },
     /// Offer this already-running local Host to the browser Crèche.
     Rendezvous {
+        /// Installed durable Host state owned by the running service.
+        #[arg(long)]
+        state_dir: PathBuf,
         /// Line carrier used to reach this running Host.
         #[arg(long, value_enum, default_value_t = RendezvousCarrier::Websocket)]
         carrier: RendezvousCarrier,
@@ -136,6 +139,9 @@ pub(crate) enum HostServiceCommand {
     Status {
         #[arg(long)]
         state_dir: PathBuf,
+        /// Emit bounded machine-readable Host, Boot, and release identity truth.
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -191,20 +197,46 @@ mod tests {
             .command,
             Command::Host {
                 command: HostCommand::Service {
-                    command: HostServiceCommand::Status { state_dir }
+                    command: HostServiceCommand::Status { state_dir, json: false }
                 }
             } if state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
-            Cli::try_parse_from(["conduit", "host", "rendezvous", "--timeout-seconds", "30"])
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "service",
+                "status",
+                "--state-dir",
+                "installed-host",
+                "--json",
+            ])
+            .expect("scriptable durable Host status parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Service {
+                    command: HostServiceCommand::Status { json: true, .. }
+                }
+            }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "rendezvous",
+                "--state-dir",
+                "installed-host",
+                "--timeout-seconds", "30"
+            ])
                 .expect("Host rendezvous entrance parses")
                 .command,
             Command::Host {
                 command: HostCommand::Rendezvous {
+                    state_dir,
                     carrier: RendezvousCarrier::Websocket,
                     timeout_seconds: 30
                 }
-            }
+            } if state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "patchbay", "--on", "browser"])

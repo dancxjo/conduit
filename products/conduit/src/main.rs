@@ -6,6 +6,7 @@ mod copy_task;
 mod copy_task_tests;
 mod diagnostics;
 mod durable_host;
+mod durable_host_control;
 mod form_source;
 mod host_rendezvous;
 mod product_execution;
@@ -252,15 +253,13 @@ fn main() {
             body.as_deref(),
             await_terminal,
         ),
-        cli::Command::Host {
-            command:
-                cli::HostCommand::Rendezvous {
-                    carrier,
-                    timeout_seconds,
-                },
-        } => host_rendezvous::serve(carrier, timeout_seconds),
         cli::Command::Host { command } => match command {
             cli::HostCommand::Service { command } => durable_host::dispatch(command),
+            cli::HostCommand::Rendezvous {
+                state_dir,
+                carrier,
+                timeout_seconds,
+            } => host_rendezvous::serve(&state_dir, carrier, timeout_seconds),
             command => construction::host(command),
         },
         cli::Command::Body { command } => construction::body(command),
