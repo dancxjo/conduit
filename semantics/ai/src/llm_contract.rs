@@ -6,6 +6,7 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 pub const LLM_GENERATE_KIND: &str = "llm/generate";
+pub const LLM_GENERATE_FLOW_KIND: &str = "llm/generate-flow";
 pub const LLM_CLASSIFY_KIND: &str = "llm/classify";
 pub const LLM_EXTRACT_KIND: &str = "llm/extract";
 pub const LLM_EMBED_KIND: &str = "llm/embed";
@@ -19,7 +20,7 @@ pub const MAXIMUM_LLM_CONTEXT_ITEMS: u64 = 128;
 pub const MAXIMUM_LLM_OUTPUT_BYTES: u64 = 65_536;
 pub const MAXIMUM_LLM_WORK_UNITS: u64 = 1_000_000;
 pub const MAXIMUM_LLM_HISTORY_ITEMS: u64 = 64;
-pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 8;
+pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 9;
 
 pub const GENERATION_REQUEST_VALUE_KIND: &str = "llm/generation-request@1";
 pub const GENERATED_RESULT_VALUE_KIND: &str = "llm/generated-result@1";
@@ -138,6 +139,11 @@ pub fn llm_semantic_catalog() -> [LlmSemanticContract; MAXIMUM_LLM_CATALOG_KINDS
             GENERATION_REQUEST_VALUE_KIND,
             GENERATED_RESULT_VALUE_KIND,
         ),
+        flow_contract(
+            LLM_GENERATE_FLOW_KIND,
+            GENERATION_REQUEST_VALUE_KIND,
+            GENERATED_RESULT_VALUE_KIND,
+        ),
         contract(
             LLM_CLASSIFY_KIND,
             CLASSIFICATION_REQUEST,
@@ -163,12 +169,40 @@ pub fn llm_contract(kind: &str) -> Option<LlmSemanticContract> {
 }
 
 fn contract(kind: &str, request_kind: &str, result_kind: &str) -> LlmSemanticContract {
+    contract_with_temporal(kind, request_kind, result_kind, PortTemporal::Value)
+}
+
+fn flow_contract(kind: &str, request_kind: &str, result_kind: &str) -> LlmSemanticContract {
+    contract_with_temporal(
+        kind,
+        request_kind,
+        result_kind,
+        PortTemporal::Flow { closes: true },
+    )
+}
+
+fn contract_with_temporal(
+    kind: &str,
+    request_kind: &str,
+    result_kind: &str,
+    temporal: PortTemporal,
+) -> LlmSemanticContract {
     let bounds = LlmWorkBounds::reviewed_default();
     LlmSemanticContract {
         kind_id: kind_id(kind),
         kind_contract_revision: KindContractRevision::from(format!("conduit.{kind}@1")),
-        inputs: vec![port("request", request_kind, PortDirection::Input)],
-        outputs: vec![port("result", result_kind, PortDirection::Output)],
+        inputs: vec![port_with_temporal(
+            "request",
+            request_kind,
+            PortDirection::Input,
+            temporal,
+        )],
+        outputs: vec![port_with_temporal(
+            "result",
+            result_kind,
+            PortDirection::Output,
+            temporal,
+        )],
         result_payload_kind: kind_id(result_kind),
         bounds,
         terminal_outcomes: [
@@ -196,12 +230,17 @@ fn contract(kind: &str, request_kind: &str, result_kind: &str) -> LlmSemanticCon
     }
 }
 
-fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
+fn port_with_temporal(
+    name: &str,
+    value_kind: &str,
+    direction: PortDirection,
+    temporal: PortTemporal,
+) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
         value_kind: kind_id(value_kind),
         direction,
-        temporal: PortTemporal::Value,
+        temporal,
     }
 }
 

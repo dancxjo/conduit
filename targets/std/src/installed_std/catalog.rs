@@ -5,6 +5,8 @@ use super::alife_operations::{
     LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_PRESENTATION_FACTORY,
 };
 use super::audio_play_operation::AUDIO_PLAY_FACTORY;
+use super::body_chat_prompt_operation::FACTORY as BODY_CHAT_PROMPT_FACTORY;
+use super::body_conversation_context_operation::FACTORY as BODY_CONVERSATION_CONTEXT_FACTORY;
 use super::bool_presentation::BOOL_PRESENTATION_FACTORY;
 use super::calendar_proposal_operation::FACTORY as CALENDAR_PROPOSAL_FACTORY;
 use super::calendar_provider_operation::{
@@ -270,6 +272,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &GENERATE_TEXT_LARGE_FACTORY,
     &GENERATE_TEXT_REMOTE_FACTORY,
     &HOUSE_PROMPT_FACTORY,
+    &BODY_CHAT_PROMPT_FACTORY,
+    &BODY_CONVERSATION_CONTEXT_FACTORY,
     &HTTP_CLIENT_FACTORY,
     &HTTP_SERVER_FACTORY,
     &IMAGE_TEXT_FACTORY,

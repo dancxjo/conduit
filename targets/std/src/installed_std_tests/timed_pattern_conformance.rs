@@ -104,6 +104,7 @@ fn reusable_ordered_event_intervals_plan_and_execute_through_one_kernel_play() {
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

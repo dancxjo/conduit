@@ -14,14 +14,17 @@ fn canonical_browser_chat_expands_to_portable_presentation_interaction_graph() {
     let syntax = parse_syntax_document(SOURCE);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "webchat-browser-demo", &profile).unwrap();
-    assert_eq!(expanded.gears.len(), 6);
-    assert_eq!(expanded.connections.len(), 8);
+    assert_eq!(expanded.gears.len(), 9);
+    assert_eq!(expanded.connections.len(), 11);
     for kind in [
         conduit_chat::CHAT_STATE_KIND,
         conduit_presentation::PRESENTATION_TEE_KIND,
         conduit_presentation::RENDERER_KIND,
         conduit_presentation::INTERACTION_KIND,
         conduit_chat::CHAT_SUBMIT_KIND,
+        conduit_chat::CHAT_FROM_WEBSOCKET_KIND,
+        conduit_chat::CHAT_TO_WEBSOCKET_KIND,
+        conduit_chat::CHAT_CONNECTION_FROM_WEBSOCKET_KIND,
         conduit_net::EXTERNAL_WEBSOCKET_CLIENT_KIND,
     ] {
         assert!(expanded

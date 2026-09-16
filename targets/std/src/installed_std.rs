@@ -2,6 +2,8 @@ mod address_detect_operation;
 mod alife_host;
 mod alife_operations;
 mod audio_play_operation;
+mod body_chat_prompt_operation;
+mod body_conversation_context_operation;
 pub(crate) mod body_kernel;
 mod bool_presentation;
 mod calendar_proposal_codec;
@@ -240,6 +242,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut local_model,
         mut vector_search,
         mut calendar,
+        body_conversation_context,
     } = host;
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
@@ -445,6 +448,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     #[cfg(test)]
     let mut speech_synthesis_hosts = speech_synthesis_operation::prepare_fake_hosts(fragment)?;
     let mut house_prompt_hosts = house_prompt_operation::prepare_hosts(fragment);
+    let mut body_chat_prompt_hosts = body_chat_prompt_operation::prepare_hosts(fragment);
     let mut navigation_hosts = navigation_operations::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
     let mut record_delivery_hosts = record_delivery_operation::prepare_hosts(fragment)?;
@@ -1954,6 +1958,66 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete address detection: {error:?}"))?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::BODY_CONVERSATION_CONTEXT_OPERATION
+            ) {
+                let encoded = body_conversation_context.ok_or_else(|| {
+                    "Body conversation context was planned without current Body truth".to_string()
+                })?;
+                let value = scheduler
+                    .store_host_value(encoded)
+                    .map_err(|error| format!("store Body conversation context: {error:?}"))?;
+                let output = Some(
+                    BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                        .map_err(|error| format!("bound Body conversation context: {error:?}"))?,
+                );
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete Body conversation context: {error:?}"))?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::BODY_CHAT_MESSAGE_OPERATION
+                    | conduit_std_offers::BODY_CHAT_RESPONSE_OPERATION
+                    | conduit_std_offers::BODY_CHAT_CONTEXT_OPERATION
+            ) {
+                let completion = body_chat_prompt_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "Body Chat prompt request has no admitted host".to_string())?
+                    .execute(contract.as_str(), input)?;
+                let output = completion
+                    .map(|encoded| scheduler.store_host_value(encoded))
+                    .transpose()
+                    .map_err(|error| format!("store Body Chat prompt output: {error:?}"))?
+                    .map(|value| {
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                    })
+                    .transpose()
+                    .map_err(|error| format!("bound Body Chat prompt output: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete Body Chat prompt operation: {error:?}"))?;
                 continue;
             } else if matches!(
                 contract.as_str(),

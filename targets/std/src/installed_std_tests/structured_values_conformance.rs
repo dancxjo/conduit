@@ -120,6 +120,7 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

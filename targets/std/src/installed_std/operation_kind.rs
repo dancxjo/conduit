@@ -4,6 +4,8 @@ use super::alife_operations::{
     LeniaStepOperation, OrbiumSeedOperation, ScalarFieldPresentationOperation,
 };
 use super::audio_play_operation::AudioPlayOperation;
+use super::body_chat_prompt_operation::BodyChatPromptOperation;
+use super::body_conversation_context_operation::BodyConversationContextOperation;
 use super::bool_presentation::BoolPresentationOperation;
 use super::calendar_proposal_operation::CalendarProposalOperation;
 use super::calendar_provider_operation::CalendarProviderOperation;
@@ -154,6 +156,8 @@ pub(super) enum InstalledOperation {
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
     HousePrompt(HousePromptOperation),
+    BodyChatPrompt(BodyChatPromptOperation),
+    BodyConversationContext(BodyConversationContextOperation),
     LocalModel(LocalModelOperation),
     ModelText(ModelTextOperation),
     Navigation(NavigationOperation),
