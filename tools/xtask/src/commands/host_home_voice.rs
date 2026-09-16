@@ -3,8 +3,8 @@
 use crate::cli::GlobalOpts;
 use clap::Args;
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_home_model::{HomeAction, HomeModel, linearize};
-use conduit_std_host::hosted_audio::{HostedPlaybackSelection, discover_alsa_playback};
+use conduit_home_model::{linearize, HomeAction, HomeModel};
+use conduit_std_host::hosted_audio::{discover_alsa_playback, HostedPlaybackSelection};
 use conduit_std_host::hosted_microphone::{AlsaMicrophoneDiscovery, MicrophoneLimits};
 use conduit_std_host::hosted_speech::{PiperDiscovery, PiperLimits};
 use conduit_std_host::hosted_speech_recognition::{WhisperDiscovery, WhisperLimits};
