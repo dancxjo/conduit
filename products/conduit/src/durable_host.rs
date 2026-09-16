@@ -628,8 +628,11 @@ fn activate_service(state_dir: &Path) -> Result<(), String> {
     fs::create_dir_all(&agents)
         .map_err(|error| format!("create user LaunchAgents directory: {error}"))?;
     let installed_plist = agents.join("org.conduit.host.plist");
-    fs::copy(state_dir.join("org.conduit.host.plist"), &installed_plist)
+    let staged_plist = agents.join(format!(".org.conduit.host.{}.plist", std::process::id()));
+    fs::copy(state_dir.join("org.conduit.host.plist"), &staged_plist)
         .map_err(|error| format!("install launchd user-service definition: {error}"))?;
+    fs::rename(&staged_plist, &installed_plist)
+        .map_err(|error| format!("commit launchd user-service definition: {error}"))?;
     let uid = std::process::Command::new("id")
         .arg("-u")
         .output()
@@ -645,11 +648,14 @@ fn activate_service(state_dir: &Path) -> Result<(), String> {
         return Err("launchd user id is invalid".into());
     }
     let domain = format!("gui/{uid}");
+    let service = format!("{domain}/org.conduit.host");
     let _ = std::process::Command::new("launchctl")
-        .args(["bootout", &format!("{domain}/org.conduit.host")])
+        .arg("bootout")
+        .arg(&service)
         .status();
     let bootstrap = std::process::Command::new("launchctl")
-        .args(["bootstrap", &domain])
+        .arg("bootstrap")
+        .arg(&domain)
         .arg(&installed_plist)
         .status()
         .map_err(|error| format!("bootstrap durable Host launchd service: {error}"))?;
@@ -660,7 +666,8 @@ fn activate_service(state_dir: &Path) -> Result<(), String> {
         ));
     }
     let kickstart = std::process::Command::new("launchctl")
-        .args(["kickstart", "-k", &format!("{domain}/org.conduit.host")])
+        .args(["kickstart", "-k"])
+        .arg(&service)
         .status()
         .map_err(|error| format!("start durable Host launchd service: {error}"))?;
     if !kickstart.success() {
