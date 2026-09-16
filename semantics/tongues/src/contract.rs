@@ -61,8 +61,29 @@ pub fn install_speech_catalogs(
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
     install_speech_synthesis_catalog(startup, profile)?;
+    install_speech_commit_catalog(startup, profile)?;
     install_contract(startup, profile, audio_play_contract(), false)?;
     Ok(())
+}
+
+pub fn install_speech_commit_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    let contract = crate::speech_commit_contract();
+    startup.insert(KindSignature {
+        kind: contract.kind_id.as_str().into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(KindDefinition {
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            configuration: vec![],
+        })
+        .map_err(|error| error.to_string())
 }
 
 pub fn install_speech_synthesis_catalog(
