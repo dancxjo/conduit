@@ -39,6 +39,8 @@ mod distributed;
 mod distributed_toggle;
 #[cfg(feature = "form-runner")]
 mod form_runner;
+#[cfg(feature = "home-surface")]
+mod home_application;
 pub mod human_media;
 #[cfg_attr(not(feature = "form-runner"), allow(unused_imports, dead_code))]
 mod installed_browser;
