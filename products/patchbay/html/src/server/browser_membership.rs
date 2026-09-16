@@ -39,10 +39,7 @@ fn read_browser_runtime() -> Result<Vec<u8>, ServerError> {
             PathBuf::from("target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm")
         });
     let metadata = std::fs::metadata(&wasm_path).map_err(|error| {
-        ServerError::Interaction(format!(
-            "browser Host runtime {} is unavailable ({error}); run through `cargo xtask demo patchbay --on browser`",
-            wasm_path.display()
-        ))
+        ServerError::Interaction(browser_runtime_unavailable_message(&wasm_path, &error))
     })?;
     if !metadata.is_file() || metadata.len() > MAX_BROWSER_WASM_BYTES as u64 {
         return Err(ServerError::Interaction(
@@ -52,6 +49,13 @@ fn read_browser_runtime() -> Result<Vec<u8>, ServerError> {
     std::fs::read(&wasm_path).map_err(|error| {
         ServerError::Interaction(format!("cannot read browser Host runtime: {error}"))
     })
+}
+
+fn browser_runtime_unavailable_message(path: &std::path::Path, error: &std::io::Error) -> String {
+    format!(
+        "browser Host runtime {} is unavailable ({error}); install the matching browser Host runtime alongside the Patchbay renderer",
+        path.display()
+    )
 }
 
 fn validate_local_invitation(url: &str) -> Result<(), ServerError> {
@@ -88,5 +92,16 @@ mod tests {
             validate_local_invitation(&format!("ws://127.0.0.1:4173/{}", "x".repeat(2048)))
                 .is_err()
         );
+    }
+
+    #[test]
+    fn missing_browser_runtime_does_not_recommend_repository_tools() {
+        let message = browser_runtime_unavailable_message(
+            std::path::Path::new("conduit_browser_runtime.wasm"),
+            &std::io::Error::new(std::io::ErrorKind::NotFound, "missing"),
+        );
+        assert!(message.contains("install the matching browser Host runtime"));
+        assert!(!message.contains("cargo xtask"));
+        assert!(!message.contains("checkout"));
     }
 }
