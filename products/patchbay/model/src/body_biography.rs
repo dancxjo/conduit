@@ -179,7 +179,7 @@ pub fn project_body_biography(
             through_sequence: summary.through_sequence,
             head_digest: summary.archive_head_digest,
             explanation: format!(
-                "{} older Wake(s) and {} exact record(s) are sealed in {} integrity-linked history segment(s) through evidence sequence {}.",
+                "{} older Wake(s) and {} exact record(s) are sealed in {} integrity-linked history segment(s) through evidence sequence {}; load the exact head digest to inspect older evidence on demand.",
                 summary.wakes, summary.records, summary.sealed_segments, summary.through_sequence
             ),
         }),

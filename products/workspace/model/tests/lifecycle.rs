@@ -249,6 +249,13 @@ fn sealed_history_is_body_bound_chained_and_corruption_explicit() {
     let second = body.pending_archives()[0].clone();
     assert_eq!(second.previous_digest, Some(first_digest));
     second.validate_as_head_of(body.evidence()).unwrap();
+    let page = conduit_body::BodyBiographyArchiveSegment::load_page(
+        body.evidence(),
+        vec![second.clone(), first.clone()],
+    )
+    .unwrap();
+    assert_eq!(page.segments.len(), 2);
+    assert_eq!(page.next_digest, None);
 
     let mut corrupt = second.clone();
     corrupt.records[0].sequence += 1;
@@ -311,6 +318,70 @@ fn ten_thousand_wakes_keep_one_body_and_a_bounded_active_window() {
     assert!(sealed_segments > 1_000);
     assert_eq!(body.evidence().body.workload_revision, 4);
     body.evidence().validate().unwrap();
+}
+
+#[test]
+fn repeated_form_changes_roll_over_without_rebirth_or_active_growth() {
+    let mut body = born();
+    let identity = body.evidence().body_id.clone();
+    let companion = form("rolling-companion");
+    let mut archived_form_events = 0usize;
+    for cycle in 0..200 {
+        let revision = body.evidence().body.workload_revision;
+        if cycle % 2 == 0 {
+            body.admit_form(revision, companion.clone(), &host(), &boot())
+                .unwrap();
+        } else {
+            body.remove_form(revision, &companion, &host(), &boot())
+                .unwrap();
+        }
+        for segment in body.pending_archives() {
+            segment.validate().unwrap();
+            archived_form_events += segment.body_events.len();
+            assert!(segment.membership_events.is_empty());
+        }
+        persist_archives(&mut body);
+        assert!(body.evidence().body.sign_ids.len() <= conduit_body::MAX_BODY_SIGNS);
+        assert!(body.evidence().records.len() <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS);
+    }
+    assert_eq!(body.evidence().body_id, identity);
+    assert_eq!(body.evidence().body.workload_revision, 200);
+    assert!(archived_form_events >= 100);
+    body.evidence().validate().unwrap();
+}
+
+#[test]
+fn repeated_host_continuity_rolls_membership_history_into_exact_segments() {
+    let initial = born();
+    let identity = initial.evidence().body_id.clone();
+    let mut evidence = initial.evidence().clone();
+    let mut current_boot = boot();
+    let mut archived_membership_events = 0usize;
+    for cycle in 0..100 {
+        let next_boot = BootId::from(format!("boot/continuity-{cycle}"));
+        let mut resumed = WorkspaceBody::resume_here(evidence, &host(), &next_boot).unwrap();
+        for segment in resumed.pending_archives() {
+            segment.validate().unwrap();
+            archived_membership_events += segment.membership_events.len();
+            assert!(segment.body_events.is_empty());
+        }
+        persist_archives(&mut resumed);
+        assert!(resumed.evidence().membership.events.len() <= conduit_body::MAX_MEMBERSHIP_EVENTS);
+        assert!(resumed.evidence().records.len() <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS);
+        evidence = resumed.evidence().clone();
+        current_boot = next_boot;
+    }
+    assert_eq!(evidence.body_id, identity);
+    assert_eq!(
+        evidence.membership.parts[0]
+            .current
+            .as_ref()
+            .unwrap()
+            .boot_id,
+        current_boot
+    );
+    assert!(archived_membership_events >= 64);
+    evidence.validate().unwrap();
 }
 
 #[test]

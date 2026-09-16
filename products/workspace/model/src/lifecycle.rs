@@ -21,7 +21,7 @@ pub struct WorkspaceBody {
     evidence: BodyBiographyEvidence,
     realization: Option<WorkspaceRealization>,
     foreground: Option<ResidentForm>,
-    pending_archives: Vec<BodyBiographyArchiveSegment>,
+    pub(crate) pending_archives: Vec<BodyBiographyArchiveSegment>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -130,6 +130,7 @@ impl WorkspaceBody {
         authority_boot: &BootId,
     ) -> Result<MembershipCredential, WorkspaceBodyError> {
         self.require_host(authority_host, authority_boot)?;
+        self.make_membership_room(2)?;
         let first_sequence = self.next_sequence()?;
         let second_sequence = first_sequence
             .checked_add(1)
@@ -400,17 +401,53 @@ impl WorkspaceBody {
             if self.pending_archives.len() >= conduit_body::MAX_BODY_BIOGRAPHY_WAKES {
                 return Err(WorkspaceBodyError::ArchivePersistenceRequired);
             }
-            let Some(segment) = self
+            let segment = self
                 .evidence
                 .seal_oldest_terminal_wake()
-                .map_err(WorkspaceBodyError::Biography)?
-            else {
+                .map_err(WorkspaceBodyError::Biography)?;
+            let segment = match segment {
+                Some(segment) => Some(segment),
+                None => self
+                    .evidence
+                    .seal_body_workload_history()
+                    .map_err(WorkspaceBodyError::Biography)?,
+            };
+            let segment = match segment {
+                Some(segment) => Some(segment),
+                None => self
+                    .evidence
+                    .seal_membership_history()
+                    .map_err(WorkspaceBodyError::Biography)?,
+            };
+            let Some(segment) = segment else {
                 return Err(WorkspaceBodyError::Biography(
                     BodyBiographyError::CapacityExhausted,
                 ));
             };
             self.pending_archives.push(segment);
         }
+        Ok(())
+    }
+
+    fn make_membership_room(&mut self, events: usize) -> Result<(), WorkspaceBodyError> {
+        if self.evidence.membership.events.len().saturating_add(events)
+            <= conduit_body::MAX_MEMBERSHIP_EVENTS
+            && self.evidence.records.len().saturating_add(events)
+                <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS
+        {
+            return Ok(());
+        }
+        if self.pending_archives.len() >= conduit_body::MAX_BODY_BIOGRAPHY_WAKES {
+            return Err(WorkspaceBodyError::ArchivePersistenceRequired);
+        }
+        let segment = self
+            .evidence
+            .seal_membership_history()
+            .map_err(WorkspaceBodyError::Biography)?
+            .ok_or(WorkspaceBodyError::Biography(
+                BodyBiographyError::CapacityExhausted,
+            ))?;
+        self.pending_archives.push(segment);
         Ok(())
     }
 }

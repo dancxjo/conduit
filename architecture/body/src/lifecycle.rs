@@ -30,6 +30,14 @@ pub enum BodyIdentityDerivation {
     InitialWorksetV2,
 }
 
+/// Current workload truth at the boundary before the retained lifecycle-event
+/// suffix. The exact prefix is stored in biography archive segments.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BodyHistoryCheckpoint {
+    pub workset: BodyWorkset,
+    pub workload_revision: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Body {
     pub body_id: BodyId,
@@ -39,6 +47,8 @@ pub struct Body {
     pub workload_revision: u64,
     pub birth_sequence: u64,
     pub state: BodyState,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub history_checkpoint: Option<BodyHistoryCheckpoint>,
     pub sign_ids: Vec<SignId>,
     pub events: Vec<BodyLifecycleEvent>,
 }
@@ -159,6 +169,7 @@ impl Body {
             workload_revision: 0,
             birth_sequence,
             state: BodyState::Lulled,
+            history_checkpoint: None,
             sign_ids: vec![sign_id.clone()],
             events: vec![BodyLifecycleEvent::Born {
                 initial_workset,
@@ -243,6 +254,7 @@ impl Body {
             &self.state,
             &self.workset,
             self.workload_revision,
+            self.history_checkpoint.as_ref(),
         )?;
         let initial = match self.events.first() {
             Some(BodyLifecycleEvent::Born {

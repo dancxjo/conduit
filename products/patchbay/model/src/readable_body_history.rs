@@ -35,6 +35,7 @@ pub struct ReadableArchivedBodyHistory {
     pub wake_count: u64,
     pub record_count: u64,
     pub through_sequence: u64,
+    pub head_digest: Option<[u8; 32]>,
     pub narrative: String,
 }
 
@@ -155,6 +156,7 @@ impl ReadableBodyHistory {
                     wake_count: archive.wakes,
                     record_count: archive.records,
                     through_sequence: archive.through_sequence,
+                    head_digest: archive.head_digest,
                     narrative: archive.explanation.clone(),
                 }),
         })

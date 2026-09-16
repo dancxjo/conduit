@@ -27,7 +27,8 @@ pub struct BodyBiographyCompaction {
     pub records: u64,
     pub through_sequence: u64,
     pub through_sign_id: SignId,
-    pub first_wake_id: crate::WakeId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_wake_id: Option<crate::WakeId>,
     #[serde(default)]
     pub sealed_segments: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
