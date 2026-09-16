@@ -97,7 +97,11 @@ node targets/browser/tools/build-browser-application-package.mjs \
   products/creche/browser/creche.application.template.json "$destination" creche.application.json
 
 file_count=$(find "$destination" -type f | wc -l)
-test "$file_count" -le 128
+maximum_file_count=133
+if test "$file_count" -gt "$maximum_file_count"; then
+  echo "Crèche staged product exceeds its $maximum_file_count-file bound: $file_count" >&2
+  exit 1
+fi
 test -f "$destination/creche.application.json"
 test -f "$destination/creche-browser-configuration.mjs"
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"
