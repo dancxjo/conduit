@@ -21,13 +21,110 @@ use sha2::{Digest, Sha256};
 pub const BODY_CHAT_PROMPT_KIND: &str = "body/chat-prompt";
 pub const BODY_CONVERSATION_CONTEXT_KIND: &str = "body/conversation-context";
 pub const BODY_CONVERSATION_CONTEXT_REVISION: &str = "conduit.body/conversation-context@2";
-pub const BODY_CHAT_PROMPT_REVISION: &str = "conduit.body/chat-prompt@2";
+pub const BODY_CHAT_PROMPT_REVISION: &str = "conduit.body/chat-prompt@3";
 pub const BODY_CHAT_FORM_KIND: &str = "body-chat";
-pub const BODY_CHAT_FORM_REVISION: &str = "conduit.body/chat-form@2";
+pub const BODY_CHAT_FORM_REVISION: &str = "conduit.body/chat-form@3";
 pub const MAXIMUM_BODY_CHAT_HISTORY_ITEMS: usize = 16;
 pub const MAXIMUM_BODY_CHAT_MESSAGE_BYTES: usize = 4_096;
 pub const MAXIMUM_BODY_CHAT_CONTEXT_BYTES: usize = 32_768;
 pub const MAXIMUM_BODY_CHAT_PROMPT_BYTES: usize = 4_096;
+pub const BODY_CONVERSATIONAL_SUMMARY_SCHEMA: &str = "conduit.body/conversational-summary@1";
+pub const MAXIMUM_BODY_CONVERSATIONAL_SUMMARY_BYTES: usize = 1_024;
+pub const MAXIMUM_BODY_CONVERSATIONAL_SUMMARY_ITEMS: usize =
+    conduit_body::MAXIMUM_CONVERSATION_HOSTS
+        + conduit_body::MAXIMUM_CONVERSATION_FORMS
+        + conduit_body::MAXIMUM_CONVERSATION_LINES;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct BodyConversationalSummary {
+    pub schema: String,
+    pub display_name: String,
+    pub lifecycle: String,
+    pub present_hosts: u16,
+    pub offline_hosts: u16,
+    pub active_forms: u16,
+    pub execution: String,
+    pub ready_lines: u16,
+    pub unavailable_lines: u16,
+    pub unknown_lines: u16,
+}
+
+impl BodyConversationalSummary {
+    pub fn project(
+        context: &conduit_body::BodyConversationContext,
+    ) -> Result<Self, BodyChatRefusal> {
+        validate_context(context)?;
+        let count =
+            |value: usize| u16::try_from(value).map_err(|_| BodyChatRefusal::ContextBoundExceeded);
+        let summary = Self {
+            schema: BODY_CONVERSATIONAL_SUMMARY_SCHEMA.into(),
+            display_name: context.display_name.clone(),
+            lifecycle: "awake".into(),
+            present_hosts: count(context.hosts.iter().filter(|host| host.present).count())?,
+            offline_hosts: count(context.hosts.iter().filter(|host| !host.present).count())?,
+            active_forms: count(context.active_forms.len())?,
+            execution: if context.active_play_id.is_some() {
+                "playing"
+            } else if context.current_plan_id.is_some() {
+                "planned"
+            } else {
+                "idle"
+            }
+            .into(),
+            ready_lines: count(
+                context
+                    .lines
+                    .iter()
+                    .filter(|line| line.availability == Some(conduit_core::LineAvailability::Ready))
+                    .count(),
+            )?,
+            unavailable_lines: count(
+                context
+                    .lines
+                    .iter()
+                    .filter(|line| {
+                        line.availability == Some(conduit_core::LineAvailability::Unavailable)
+                    })
+                    .count(),
+            )?,
+            unknown_lines: count(
+                context
+                    .lines
+                    .iter()
+                    .filter(|line| line.availability.is_none())
+                    .count(),
+            )?,
+        };
+        let encoded = serde_json::to_vec(&summary).map_err(|_| BodyChatRefusal::Encoding)?;
+        if encoded.len() > MAXIMUM_BODY_CONVERSATIONAL_SUMMARY_BYTES {
+            return Err(BodyChatRefusal::ContextBoundExceeded);
+        }
+        Ok(summary)
+    }
+
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, BodyChatRefusal> {
+        if self.schema != BODY_CONVERSATIONAL_SUMMARY_SCHEMA
+            || self.display_name.is_empty()
+            || self.display_name.len() > conduit_body::MAXIMUM_BODY_DISPLAY_NAME_BYTES
+            || self.lifecycle != "awake"
+            || !matches!(self.execution.as_str(), "idle" | "planned" | "playing")
+            || usize::from(self.present_hosts) + usize::from(self.offline_hosts)
+                > conduit_body::MAXIMUM_CONVERSATION_HOSTS
+            || usize::from(self.active_forms) > conduit_body::MAXIMUM_CONVERSATION_FORMS
+            || usize::from(self.ready_lines)
+                + usize::from(self.unavailable_lines)
+                + usize::from(self.unknown_lines)
+                > conduit_body::MAXIMUM_CONVERSATION_LINES
+        {
+            return Err(BodyChatRefusal::MalformedContext);
+        }
+        let encoded = serde_json::to_vec(self).map_err(|_| BodyChatRefusal::Encoding)?;
+        if encoded.len() > MAXIMUM_BODY_CONVERSATIONAL_SUMMARY_BYTES {
+            return Err(BodyChatRefusal::ContextBoundExceeded);
+        }
+        Ok(encoded)
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum BodyChatRole {
@@ -45,7 +142,7 @@ pub struct BodyChatHistoryItem {
 pub struct BodyChatGenerationRequest {
     pub request_identity: String,
     pub context_basis: conduit_body::BodyConversationContextBasis,
-    pub context_sha256: [u8; 32],
+    pub model_context_sha256: [u8; 32],
     pub encoded_request: Vec<u8>,
 }
 
@@ -77,13 +174,24 @@ pub fn encode_body_conversation_context_into(
     if encoded.capacity() < MAXIMUM_BODY_CHAT_CONTEXT_BYTES {
         return Err(BodyChatRefusal::ContextBoundExceeded);
     }
-    encoded.clear();
-    serde_json::to_writer(&mut *encoded, context).map_err(|_| BodyChatRefusal::Encoding)?;
-    if encoded.len() > MAXIMUM_BODY_CHAT_CONTEXT_BYTES {
-        encoded.clear();
+    let replacement = serde_json::to_vec(context).map_err(|_| BodyChatRefusal::Encoding)?;
+    if replacement.len() > MAXIMUM_BODY_CHAT_CONTEXT_BYTES {
         return Err(BodyChatRefusal::ContextBoundExceeded);
     }
+    encoded.clear();
+    encoded.extend_from_slice(&replacement);
     Ok(())
+}
+
+pub fn encode_body_conversation_context_slice(
+    context: &conduit_body::BodyConversationContext,
+    encoded: &mut [u8],
+) -> Result<usize, BodyChatRefusal> {
+    validate_context(context)?;
+    if encoded.len() < MAXIMUM_BODY_CHAT_CONTEXT_BYTES {
+        return Err(BodyChatRefusal::ContextBoundExceeded);
+    }
+    serde_json_core::to_slice(context, encoded).map_err(|_| BodyChatRefusal::ContextBoundExceeded)
 }
 
 pub fn decode_body_conversation_context(
@@ -132,13 +240,14 @@ struct Prompt<'a> {
     instruction: &'static str,
     current_message: &'a str,
     history: &'a VecDeque<BodyChatHistoryItem>,
-    context: &'a conduit_body::BodyConversationContext,
+    body: &'a BodyConversationalSummary,
 }
 
 #[derive(Clone, Debug)]
 pub struct BodyChatPromptState {
     context: conduit_body::BodyConversationContext,
-    context_sha256: [u8; 32],
+    model_context: BodyConversationalSummary,
+    model_context_sha256: [u8; 32],
     history: VecDeque<BodyChatHistoryItem>,
     maximum_history_items: usize,
 }
@@ -155,10 +264,12 @@ impl BodyChatPromptState {
             return Err(BodyChatRefusal::HistoryBoundExceeded);
         }
         let context = decode_body_conversation_context(encoded_context)?;
-        let context_sha256 = Sha256::digest(encoded_context).into();
+        let model_context = BodyConversationalSummary::project(&context)?;
+        let model_context_sha256 = Sha256::digest(model_context.canonical_bytes()?).into();
         Ok(Self {
             context,
-            context_sha256,
+            model_context,
+            model_context_sha256,
             history: VecDeque::with_capacity(maximum_history_items),
             maximum_history_items,
         })
@@ -167,7 +278,8 @@ impl BodyChatPromptState {
     pub fn replace_context(&mut self, encoded_context: &[u8]) -> Result<(), BodyChatRefusal> {
         let replacement = Self::new(encoded_context, self.maximum_history_items)?;
         self.context = replacement.context;
-        self.context_sha256 = replacement.context_sha256;
+        self.model_context = replacement.model_context;
+        self.model_context_sha256 = replacement.model_context_sha256;
         Ok(())
     }
 
@@ -176,15 +288,12 @@ impl BodyChatPromptState {
         message: &[u8],
     ) -> Result<BodyChatGenerationRequest, BodyChatRefusal> {
         let message = decode_message(message)?;
-        let context_sha256 = self.context_sha256;
+        let model_context_sha256 = self.model_context_sha256;
         let mut recent_history = self.history.clone();
         let (request_identity, encoded_request) = loop {
             let mut digest = Sha256::new();
             digest.update(b"conduit-body-chat-request-v1\0");
-            digest.update(self.context.body_id.as_str().as_bytes());
-            digest.update(self.context.wake_id.as_str().as_bytes());
-            digest.update(self.context.basis.revision.to_le_bytes());
-            digest.update(context_sha256);
+            digest.update(model_context_sha256);
             digest.update(message.as_bytes());
             for item in &recent_history {
                 digest.update([match item.role {
@@ -200,7 +309,7 @@ impl BodyChatPromptState {
                 instruction: "Answer as this Body, briefly and only from the supplied current Body truth and explicitly labeled conversation history. Never claim an action occurred merely because it was requested.",
                 current_message: message,
                 history: &recent_history,
-                context: &self.context,
+                body: &self.model_context,
             };
             let encoded = serde_json::to_vec(&prompt).map_err(|_| BodyChatRefusal::Encoding)?;
             if encoded.len() <= MAXIMUM_BODY_CHAT_PROMPT_BYTES {
@@ -217,7 +326,7 @@ impl BodyChatPromptState {
         Ok(BodyChatGenerationRequest {
             request_identity,
             context_basis: self.context.basis.clone(),
-            context_sha256,
+            model_context_sha256,
             encoded_request,
         })
     }

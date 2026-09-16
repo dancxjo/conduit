@@ -11,8 +11,9 @@ pub struct BodyConversationContextSource {
 
 struct SourceState {
     basis: SourceBasis,
-    encoded: Vec<u8>,
-    staging: Vec<u8>,
+    encoded: Box<[u8]>,
+    encoded_len: usize,
+    staging: Box<[u8]>,
     fingerprint: [u8; 32],
     lost: bool,
 }
@@ -60,15 +61,17 @@ pub(crate) enum BodyConversationContextPoll<T> {
 
 impl BodyConversationContextSource {
     pub(crate) fn new(context: &BodyConversationContext) -> Result<Self, String> {
-        let mut encoded = Vec::with_capacity(conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES);
-        conduit_chat::encode_body_conversation_context_into(context, &mut encoded)
-            .map_err(|error| format!("Body conversation context: {error:?}"))?;
-        let fingerprint = Sha256::digest(&encoded).into();
+        let mut encoded = vec![0; conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES].into_boxed_slice();
+        let encoded_len =
+            conduit_chat::encode_body_conversation_context_slice(context, &mut encoded)
+                .map_err(|error| format!("Body conversation context: {error:?}"))?;
+        let fingerprint = Sha256::digest(&encoded[..encoded_len]).into();
         Ok(Self {
             shared: Arc::new(Mutex::new(SourceState {
                 basis: SourceBasis::from_context(context),
                 encoded,
-                staging: Vec::with_capacity(conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES),
+                encoded_len,
+                staging: vec![0; conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES].into_boxed_slice(),
                 fingerprint,
                 lost: false,
             })),
@@ -97,10 +100,11 @@ impl BodyConversationContextSource {
         {
             return Err(BodyConversationContextUpdateRefusal::StaleBasis);
         }
-        conduit_chat::encode_body_conversation_context_into(context, &mut state.staging)
-            .map_err(|_| BodyConversationContextUpdateRefusal::InvalidContext)?;
+        let staging_len =
+            conduit_chat::encode_body_conversation_context_slice(context, &mut state.staging)
+                .map_err(|_| BodyConversationContextUpdateRefusal::InvalidContext)?;
         if candidate == current {
-            return if state.staging == state.encoded {
+            return if state.staging[..staging_len] == state.encoded[..state.encoded_len] {
                 Ok(BodyConversationContextReplacement::Coalesced)
             } else {
                 Err(BodyConversationContextUpdateRefusal::ConflictingBasis)
@@ -116,7 +120,8 @@ impl BodyConversationContextSource {
             encoded, staging, ..
         } = &mut *state;
         core::mem::swap(encoded, staging);
-        state.fingerprint = Sha256::digest(&state.encoded).into();
+        state.encoded_len = staging_len;
+        state.fingerprint = Sha256::digest(&state.encoded[..state.encoded_len]).into();
         Ok(BodyConversationContextReplacement::Published)
     }
 
@@ -144,7 +149,7 @@ impl BodyConversationContextSource {
         }
         BodyConversationContextPoll::Current {
             fingerprint: state.fingerprint,
-            value: publish(&state.encoded),
+            value: publish(&state.encoded[..state.encoded_len]),
         }
     }
 
@@ -154,7 +159,7 @@ impl BodyConversationContextSource {
             .shared
             .lock()
             .expect("Body context source lock poisoned");
-        state.encoded.capacity() + state.staging.capacity()
+        state.encoded.len() + state.staging.len()
     }
 }
 
@@ -275,8 +280,9 @@ mod tests {
         assert_eq!(next_request.context_basis.revision, 5);
         let prompt: serde_json::Value =
             serde_json::from_slice(&next_request.encoded_request).unwrap();
-        assert_eq!(prompt["context"]["hosts"][0]["present"], false);
-        assert_eq!(prompt["context"]["current_plan_id"], "plan/replacement");
+        assert_eq!(prompt["body"]["offline_hosts"], 1);
+        assert_eq!(prompt["body"]["execution"], "playing");
+        assert!(prompt.get("context").is_none());
         assert!(chat
             .history()
             .iter()

@@ -9,16 +9,17 @@ pub struct ConversationRequestEvidence {
     pub wake_id: String,
     pub wake_sequence: u64,
     pub context_revision: u64,
-    pub context_sha256: String,
+    pub model_context_sha256: String,
     pub private_prompt_retained: bool,
 }
 
 impl From<&conduit_chat::BodyChatGenerationRequest> for ConversationRequestEvidence {
     fn from(request: &conduit_chat::BodyChatGenerationRequest) -> Self {
-        let mut context_sha256 = String::with_capacity(64);
-        for byte in request.context_sha256 {
+        let mut model_context_sha256 = String::with_capacity(64);
+        for byte in request.model_context_sha256 {
             use core::fmt::Write;
-            write!(&mut context_sha256, "{byte:02x}").expect("write digest to bounded String");
+            write!(&mut model_context_sha256, "{byte:02x}")
+                .expect("write digest to bounded String");
         }
         Self {
             request_identity: request.request_identity.clone(),
@@ -26,7 +27,7 @@ impl From<&conduit_chat::BodyChatGenerationRequest> for ConversationRequestEvide
             wake_id: request.context_basis.wake_id.as_str().into(),
             wake_sequence: request.context_basis.wake_sequence,
             context_revision: request.context_basis.revision,
-            context_sha256,
+            model_context_sha256,
             private_prompt_retained: false,
         }
     }

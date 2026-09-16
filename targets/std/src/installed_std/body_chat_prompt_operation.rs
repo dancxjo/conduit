@@ -281,7 +281,9 @@ mod tests {
             .unwrap()
             .unwrap()
             .to_vec();
-        assert!(core::str::from_utf8(&first).unwrap().contains("Tour"));
+        assert!(core::str::from_utf8(&first)
+            .unwrap()
+            .contains("\"active_forms\":1"));
         host.execute(
             conduit_std_offers::BODY_CHAT_RESPONSE_OPERATION,
             b"I am running the Tour.",
@@ -296,6 +298,7 @@ mod tests {
             .unwrap();
         let second = core::str::from_utf8(second).unwrap();
         assert!(second.contains("I am running the Tour."));
-        assert!(second.contains("Latimer"));
+        assert!(second.contains("\"present_hosts\":1"));
+        assert!(!second.contains("Latimer"));
     }
 }
