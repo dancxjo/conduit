@@ -13,7 +13,8 @@ fn generic_remote_fragment_routes_through_latest_and_atomic_tee() {
         &installed_std::test_catalog(),
     )
     .unwrap();
-    let source = host("remote-flow-source").advertisement().clone();
+    let mut source_host = host("remote-flow-source");
+    let source = source_host.advertisement().clone();
     let middle = host("remote-flow-middle").advertisement().clone();
     let sink = host("remote-flow-sink").advertisement().clone();
     let hosts = [source.clone(), middle.clone(), sink.clone()];
@@ -137,8 +138,24 @@ fn generic_remote_fragment_routes_through_latest_and_atomic_tee() {
             .find(|fragment| fragment.host_id == host.host_id)
             .unwrap()
     };
-    let mut source_runtime =
-        crate::InstalledRemoteFragment::prepare(&source, fragment(&source), 1).unwrap();
+    let mut source_runtime = source_host
+        .prepare_remote_fragment(fragment(&source))
+        .unwrap();
+    assert_eq!(
+        source_runtime.identity().active_play_id,
+        source_runtime
+            .sessions()
+            .iter()
+            .next()
+            .unwrap()
+            .binding()
+            .source_active_play_id
+    );
+    assert!(source_host
+        .prepare_remote_fragment(fragment(&source))
+        .err()
+        .unwrap()
+        .contains("combined active-instance limit exceeded"));
     let mut middle_runtime =
         crate::InstalledRemoteFragment::prepare(&middle, fragment(&middle), 1).unwrap();
     let mut sink_runtime =
@@ -274,4 +291,9 @@ fn generic_remote_fragment_routes_through_latest_and_atomic_tee() {
         middle_runtime.deliver_egress(offer).unwrap();
         sink_runtime.close_ingress(sink_endpoint).unwrap();
     }
+    source_host.release_remote_fragment(source_runtime).unwrap();
+    let replacement = source_host
+        .prepare_remote_fragment(fragment(&source))
+        .expect("released remote capability and resource capacity is reusable");
+    source_host.release_remote_fragment(replacement).unwrap();
 }

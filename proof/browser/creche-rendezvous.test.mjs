@@ -56,6 +56,11 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
   const join = await session.invite(prepared);
   assert.equal(join.line.schema, "conduit.creche/joined-host-line@1");
   assert.equal(FakeWebSocket.last.readyState, 1);
+  const remote = await join.line.prepareRemote({ plan_id: "plan/retained" });
+  assert.equal(remote.identity.host_id, "host/test");
+  assert.equal(remote.identity.boot_id, "boot/test");
+  assert.equal(remote.identity.plan_id, "plan/retained");
+  assert.deepEqual(remote.hello_frames, [[1, 2, 3, 4]]);
   await join.line.close();
   assert.equal(FakeWebSocket.last.sent.at(-1).kind, "close");
   assert.equal(FakeWebSocket.last.readyState, 3);
@@ -100,6 +105,13 @@ class FakeWebSocket extends EventTarget {
       kind: "host", protocol: 1, friendly_label: "This running computer",
       target_id: "std/x86_64/computer", image_content_digest: `sha256:${"1".repeat(64)}`,
       advertisement, lines: ["conduit-line/loopback-websocket@1"],
+    } : request.kind === "prepare-remote" ? {
+      kind: "remote-prepared", protocol: 1,
+      identity: {
+        host_id: advertisement.host_id, boot_id: advertisement.boot_id,
+        plan_id: request.plan.plan_id, active_play_id: "play/retained", play_sequence: 1,
+      },
+      hello_frames: [[1, 2, 3, 4]],
     } : {
       kind: "join", protocol: 1, spore_id: request.spore_id, image_id: request.image_id,
       advertisement, invitation_id: request.claim.invitation_id, body_id: request.claim.body_id,

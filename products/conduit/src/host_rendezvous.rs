@@ -104,6 +104,10 @@ enum Ingress {
     Close {
         protocol: u16,
     },
+    PrepareRemote {
+        protocol: u16,
+        plan: Box<conduit_core::Plan>,
+    },
 }
 
 #[derive(Serialize)]
@@ -129,6 +133,11 @@ enum Egress<'a> {
         nonce: [u8; 32],
         signature: Vec<u8>,
         observed_at_millis: u64,
+    },
+    RemotePrepared {
+        protocol: u16,
+        identity: &'a conduit_core::ActivePlayIdentity,
+        hello_frames: &'a [Vec<u8>],
     },
     Refused {
         protocol: u16,
@@ -300,9 +309,38 @@ fn run_session(
             observed_at_millis: join.observed_at_millis,
         },
     )?;
-    match receive(line)? {
-        Ingress::Close { protocol } if protocol == PROTOCOL => {}
-        _ => return Err("joined Host Line expected one explicit close".into()),
+    let mut remote_prepared = false;
+    loop {
+        match receive(line)? {
+            Ingress::PrepareRemote { protocol, plan } if protocol == PROTOCOL => {
+                if remote_prepared {
+                    return Err("joined Host Line already owns one remote Play".into());
+                }
+                let preparation = crate::durable_host_control::prepare_remote(
+                    state_dir,
+                    &truth.advertisement,
+                    *plan,
+                )?;
+                send(
+                    line,
+                    &Egress::RemotePrepared {
+                        protocol: PROTOCOL,
+                        identity: &preparation.identity,
+                        hello_frames: &preparation.hello_frames,
+                    },
+                )?;
+                remote_prepared = true;
+            }
+            Ingress::Close { protocol } if protocol == PROTOCOL => {
+                if remote_prepared {
+                    crate::durable_host_control::release_remote(state_dir)?;
+                }
+                break;
+            }
+            _ => {
+                return Err("joined Host Line expected remote preparation or explicit close".into())
+            }
+        }
     }
     let _ = line.close();
     Ok(())

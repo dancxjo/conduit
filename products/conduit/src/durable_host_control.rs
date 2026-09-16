@@ -1,8 +1,9 @@
 //! Authenticated local control plane into the durable installed Host owner.
 
 use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret};
-use conduit_core::HostAdvertisement;
-use conduit_std_host::StdHost;
+use conduit_core::{ActivePlayIdentity, HostAdvertisement, Plan};
+use conduit_std_host::{AdmittedRemoteFragment, StdHost};
+use conduit_wire::encode_session_frame_into;
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -25,6 +26,7 @@ pub(crate) struct DurableHostRuntime {
     target_id: String,
     image_content_digest: String,
     host: StdHost,
+    remote_fragment: Option<AdmittedRemoteFragment>,
 }
 
 impl DurableHostRuntime {
@@ -33,6 +35,7 @@ impl DurableHostRuntime {
             target_id,
             image_content_digest,
             host,
+            remote_fragment: None,
         }
     }
 
@@ -43,6 +46,81 @@ impl DurableHostRuntime {
             advertisement: self.host.advertisement().clone(),
         }
     }
+
+    fn prepare_remote(
+        &mut self,
+        expected_boot_id: &str,
+        expected_offer_generation: u64,
+        plan: &Plan,
+    ) -> Result<DurableRemotePreparation, String> {
+        let advertisement = self.host.advertisement();
+        if advertisement.boot_id.as_str() != expected_boot_id
+            || advertisement.offer_generation.0 != expected_offer_generation
+        {
+            return Err("stale-host-truth".into());
+        }
+        if self.remote_fragment.is_some() {
+            return Err("remote-play-active".into());
+        }
+        if !conduit_core::verify_plan(plan) {
+            return Err("invalid-plan".into());
+        }
+        let fragment = plan
+            .fragments
+            .iter()
+            .find(|fragment| fragment.host_id == advertisement.host_id)
+            .ok_or_else(|| "host-fragment-absent".to_string())?;
+        let admitted = self.host.prepare_remote_fragment(fragment)?;
+        let hello_frames = match encode_remote_hello_frames(&admitted) {
+            Ok(frames) => frames,
+            Err(error) => {
+                self.host.release_remote_fragment(admitted)?;
+                return Err(error);
+            }
+        };
+        let preparation = DurableRemotePreparation {
+            identity: admitted.identity().clone(),
+            hello_frames,
+        };
+        self.remote_fragment = Some(admitted);
+        Ok(preparation)
+    }
+
+    fn release_remote(&mut self) -> Result<(), String> {
+        let Some(fragment) = self.remote_fragment.take() else {
+            return Ok(());
+        };
+        self.host.release_remote_fragment(fragment)
+    }
+}
+
+fn encode_remote_hello_frames(admitted: &AdmittedRemoteFragment) -> Result<Vec<Vec<u8>>, String> {
+    let mut hello_frames = Vec::with_capacity(admitted.sessions().len());
+    for session in admitted.sessions().iter() {
+        let binding = session.binding();
+        let frame_bound = usize::try_from(binding.attachment.limits.maximum_frame_bytes)
+            .map_err(|_| "remote session frame bound overflow".to_string())?;
+        if frame_bound > MAXIMUM_CONTROL_FRAME_BYTES {
+            return Err("remote-session-frame-bound".into());
+        }
+        let mut bytes = vec![0; frame_bound];
+        let length = encode_session_frame_into(
+            binding.hello_frame(),
+            &mut bytes,
+            binding.limits.maximum_payload_bytes,
+            binding.attachment.limits.maximum_frame_bytes,
+        )
+        .map_err(|error| format!("encode remote session grant: {error:?}"))?;
+        bytes.truncate(length);
+        hello_frames.push(bytes);
+    }
+    Ok(hello_frames)
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct DurableRemotePreparation {
+    pub(crate) identity: ActivePlayIdentity,
+    pub(crate) hello_frames: Vec<Vec<u8>>,
 }
 
 #[derive(Debug, Clone)]
@@ -70,6 +148,17 @@ enum Request {
         claim: SpawnInvitationClaim,
         secret: Vec<u8>,
     },
+    PrepareRemote {
+        protocol: u16,
+        token: Vec<u8>,
+        expected_boot_id: String,
+        expected_offer_generation: u64,
+        plan: Box<Plan>,
+    },
+    ReleaseRemote {
+        protocol: u16,
+        token: Vec<u8>,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -89,6 +178,14 @@ enum Response {
         nonce: [u8; 32],
         signature: Vec<u8>,
         observed_at_millis: u64,
+    },
+    RemotePrepared {
+        protocol: u16,
+        identity: ActivePlayIdentity,
+        hello_frames: Vec<Vec<u8>>,
+    },
+    RemoteReleased {
+        protocol: u16,
     },
     Refused {
         protocol: u16,
@@ -122,7 +219,7 @@ pub(crate) fn ensure_secret(state_dir: &Path) -> Result<(), String> {
 }
 
 #[cfg(unix)]
-pub(crate) fn serve(state_dir: &Path, runtime: DurableHostRuntime) -> Result<(), String> {
+pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result<(), String> {
     use std::os::unix::{fs::PermissionsExt, net::UnixListener};
 
     let socket = state_dir.join("control.sock");
@@ -137,7 +234,7 @@ pub(crate) fn serve(state_dir: &Path, runtime: DurableHostRuntime) -> Result<(),
     let mut token = read_secret(&state_dir.join("control.token"))?;
     for incoming in listener.incoming() {
         let mut stream = incoming.map_err(|error| format!("accept local Host control: {error}"))?;
-        let response = handle(read_frame(&mut stream)?, &token, &runtime);
+        let response = handle(read_frame(&mut stream)?, &token, &mut runtime);
         write_frame(&mut stream, &response)?;
     }
     token.fill(0);
@@ -237,6 +334,88 @@ pub(crate) fn join(
     }
 }
 
+#[cfg(unix)]
+pub(crate) fn prepare_remote(
+    state_dir: &Path,
+    expected: &HostAdvertisement,
+    plan: Plan,
+) -> Result<DurableRemotePreparation, String> {
+    use std::os::unix::net::UnixStream;
+    let mut token = read_secret(&state_dir.join("control.token"))?;
+    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
+        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+    let mut request = Request::PrepareRemote {
+        protocol: PROTOCOL,
+        token: token.to_vec(),
+        expected_boot_id: expected.boot_id.as_str().into(),
+        expected_offer_generation: expected.offer_generation.0,
+        plan: Box::new(plan),
+    };
+    write_sensitive_frame(&mut stream, &request)?;
+    stream
+        .shutdown(std::net::Shutdown::Write)
+        .map_err(|error| format!("finish durable Host remote preparation: {error}"))?;
+    token.fill(0);
+    if let Request::PrepareRemote { token, .. } = &mut request {
+        token.fill(0);
+    }
+    match read_frame::<_, Response>(&mut stream)? {
+        Response::RemotePrepared {
+            protocol: PROTOCOL,
+            identity,
+            hello_frames,
+        } => Ok(DurableRemotePreparation {
+            identity,
+            hello_frames,
+        }),
+        Response::Refused { code, .. } => {
+            Err(format!("durable Host refused remote preparation: {code}"))
+        }
+        _ => Err("durable Host returned the wrong remote preparation response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn prepare_remote(
+    _state_dir: &Path,
+    _expected: &HostAdvertisement,
+    _plan: Plan,
+) -> Result<DurableRemotePreparation, String> {
+    Err("no reviewed local durable Host control carrier exists on this platform".into())
+}
+
+#[cfg(unix)]
+pub(crate) fn release_remote(state_dir: &Path) -> Result<(), String> {
+    use std::os::unix::net::UnixStream;
+    let mut token = read_secret(&state_dir.join("control.token"))?;
+    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
+        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+    let mut request = Request::ReleaseRemote {
+        protocol: PROTOCOL,
+        token: token.to_vec(),
+    };
+    write_sensitive_frame(&mut stream, &request)?;
+    stream
+        .shutdown(std::net::Shutdown::Write)
+        .map_err(|error| format!("finish durable Host remote release: {error}"))?;
+    token.fill(0);
+    if let Request::ReleaseRemote { token, .. } = &mut request {
+        token.fill(0);
+    }
+    match read_frame::<_, Response>(&mut stream)? {
+        Response::RemoteReleased { protocol: PROTOCOL } => Ok(()),
+        Response::Refused { code, .. } => {
+            Err(format!("durable Host refused remote release: {code}"))
+        }
+        _ => Err("durable Host returned the wrong remote release response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn release_remote(_state_dir: &Path) -> Result<(), String> {
+    Err("no reviewed local durable Host control carrier exists on this platform".into())
+}
+
 #[cfg(not(unix))]
 pub(crate) fn join(
     _state_dir: &Path,
@@ -248,9 +427,12 @@ pub(crate) fn join(
     Err("no reviewed local durable Host control carrier exists on this platform".into())
 }
 
-fn handle(mut request: Request, token: &[u8; 32], runtime: &DurableHostRuntime) -> Response {
+fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRuntime) -> Response {
     let offered = match &mut request {
-        Request::Status { token, .. } | Request::Join { token, .. } => token,
+        Request::Status { token, .. }
+        | Request::Join { token, .. }
+        | Request::PrepareRemote { token, .. }
+        | Request::ReleaseRemote { token, .. } => token,
     };
     let authenticated = constant_time_equal(offered, token);
     offered.fill(0);
@@ -283,6 +465,24 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &DurableHostRuntime) 
             secret.fill(0);
             result.unwrap_or_else(|code| refused(&code))
         }
+        Request::PrepareRemote {
+            protocol,
+            expected_boot_id,
+            expected_offer_generation,
+            plan,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .prepare_remote(&expected_boot_id, expected_offer_generation, &plan)
+            .map(|preparation| Response::RemotePrepared {
+                protocol: PROTOCOL,
+                identity: preparation.identity,
+                hello_frames: preparation.hello_frames,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::ReleaseRemote { protocol, .. } if protocol == PROTOCOL => runtime
+            .release_remote()
+            .map(|()| Response::RemoteReleased { protocol: PROTOCOL })
+            .unwrap_or_else(|code| refused(&code)),
         _ => refused("protocol"),
     }
 }
@@ -397,8 +597,13 @@ mod tests {
     use conduit_body::{
         Body, BodyConversationContext, HostPresenceClock, HostPresenceClockScale, HostPresenceTable,
     };
-    use conduit_core::{BootId, HostId, OfferGeneration};
+    use conduit_core::{
+        process_owned_line_offer_with_limits, BaseImplementationId, BootId, GearId, HostId,
+        LineScope, LineSecurity, LinkLimits, OfferGeneration,
+    };
+    use conduit_planner::{PlacementChoice, PlacementChoices};
     use conduit_std_host::{StdHost, StdHostConfig};
+    use std::{collections::BTreeMap, path::PathBuf};
 
     fn runtime() -> DurableHostRuntime {
         let host = StdHost::new_with_config(StdHostConfig {
@@ -457,9 +662,80 @@ mod tests {
         .unwrap()
     }
 
+    fn remote_plan() -> Plan {
+        let form = crate::form_source::load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../forms/hello/main.conduit"),
+        )
+        .unwrap()
+        .expand_entry()
+        .unwrap();
+        let source = crate::std_websocket_line::host(crate::std_websocket_line::SOURCE_HOST);
+        let sink = crate::std_websocket_line::host(crate::std_websocket_line::SINK_HOST);
+        let mut offer = process_owned_line_offer_with_limits(
+            "body-line/remote-control-test",
+            "body-line/remote-control-test/binding",
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            "body-line/remote-control-test/instance",
+            source.advertisement(),
+            sink.advertisement(),
+            LinkLimits {
+                maximum_in_flight_items: 4,
+                maximum_payload_bytes: 4_096,
+                maximum_buffered_bytes: 16_384,
+                maximum_frame_bytes: 8_192,
+            },
+        );
+        offer.contract.scope = LineScope::LocalNetwork;
+        offer.contract.security = LineSecurity::PlaintextNetwork;
+        let advertisements = [source.advertisement().clone(), sink.advertisement().clone()];
+        let placements = PlacementChoices {
+            by_gear: form
+                .gears
+                .iter()
+                .map(|gear| {
+                    let host = if gear.kind_id.as_str()
+                        == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+                    {
+                        &advertisements[1]
+                    } else {
+                        &advertisements[0]
+                    };
+                    let capability = host
+                        .capabilities
+                        .iter()
+                        .find(|offer| offer.kind_id == gear.kind_id)
+                        .unwrap();
+                    (
+                        GearId::from(gear.gear_id.as_str()),
+                        PlacementChoice {
+                            host_id: host.host_id.clone(),
+                            capability_id: capability.capability_id.clone(),
+                        },
+                    )
+                })
+                .collect::<BTreeMap<_, _>>(),
+        };
+        crate::product_execution::ProductExecutionContext::new(
+            advertisements.into(),
+            vec![
+                crate::product_execution::ProductRuntime::std(source),
+                crate::product_execution::ProductRuntime::std(sink),
+            ],
+            vec![
+                BaseImplementationId::from("conduit.base/local@1"),
+                BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            ],
+            vec![offer],
+            Vec::new(),
+        )
+        .unwrap()
+        .plan_with_placements(&form, &placements)
+        .unwrap()
+    }
+
     #[test]
     fn durable_owner_signs_only_its_exact_current_boot_and_generation() {
-        let runtime = runtime();
+        let mut runtime = runtime();
         let truth = runtime.truth();
         let token = [23_u8; 32];
         let response = handle(
@@ -472,7 +748,7 @@ mod tests {
                 secret: vec![29; 32],
             },
             &token,
-            &runtime,
+            &mut runtime,
         );
         let Response::Join {
             advertisement,
@@ -495,21 +771,21 @@ mod tests {
                 secret: vec![29; 32],
             },
             &token,
-            &runtime,
+            &mut runtime,
         );
         assert!(matches!(stale, Response::Refused { ref code, .. } if code == "stale-host-truth"));
     }
 
     #[test]
     fn unauthorized_helper_cannot_obtain_or_substitute_advertisement() {
-        let runtime = runtime();
+        let mut runtime = runtime();
         let response = handle(
             Request::Status {
                 protocol: PROTOCOL,
                 token: vec![0; 32],
             },
             &[23; 32],
-            &runtime,
+            &mut runtime,
         );
         assert!(matches!(response, Response::Refused { ref code, .. } if code == "unauthorized"));
     }
@@ -531,5 +807,37 @@ mod tests {
             offer.implementation.implementation_id.as_str()
                 == conduit_std_offers::BODY_CONVERSATION_CONTEXT_STD_IMPLEMENTATION
         }));
+    }
+
+    #[test]
+    fn durable_runtime_retains_exact_remote_play_until_explicit_release() {
+        let host = crate::std_websocket_line::host(crate::std_websocket_line::SOURCE_HOST);
+        let truth = host.advertisement().clone();
+        let mut runtime = DurableHostRuntime::new(
+            "std/x86_64/computer".into(),
+            format!("sha256:{}", "b".repeat(64)),
+            host,
+        );
+        let plan = remote_plan();
+
+        let prepared = runtime
+            .prepare_remote(truth.boot_id.as_str(), truth.offer_generation.0, &plan)
+            .unwrap();
+        assert_eq!(prepared.identity.host_id, truth.host_id);
+        assert_eq!(prepared.identity.boot_id, truth.boot_id);
+        assert_eq!(prepared.identity.plan_id, plan.plan_id);
+        assert!(!prepared.hello_frames.is_empty());
+        assert_eq!(
+            runtime
+                .prepare_remote(truth.boot_id.as_str(), truth.offer_generation.0, &plan)
+                .unwrap_err(),
+            "remote-play-active"
+        );
+
+        runtime.release_remote().unwrap();
+        runtime
+            .prepare_remote(truth.boot_id.as_str(), truth.offer_generation.0, &plan)
+            .unwrap();
+        runtime.release_remote().unwrap();
     }
 }
