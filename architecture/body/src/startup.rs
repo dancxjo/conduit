@@ -83,7 +83,7 @@ impl BodyBiographyEvidence {
         let first_wake = self
             .compaction
             .as_ref()
-            .map(|summary| &summary.first_wake_id)
+            .and_then(|summary| summary.first_wake_id.as_ref())
             .or_else(|| {
                 self.body.events.iter().find_map(|event| match event {
                     BodyLifecycleEvent::Woke { wake_id, .. } => Some(wake_id),

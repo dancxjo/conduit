@@ -5,6 +5,15 @@
 //! A Body is durable intent and obligations, never a physical host. A Wake is
 //! one active maintenance interval; Lull ends that interval while preserving
 //! the Body. Plans and Plays may be replaced within one Wake.
+//!
+//! Capacity taxonomy:
+//! - Form, Part, Line, active Wake/Plan, and simultaneous resource limits are
+//!   working-set bounds and may refuse additional concurrent work.
+//! - Body Signs, membership events, retained Wakes, and biography records are
+//!   active-history bounds; exact prefixes cross a checkpoint into bounded,
+//!   digest-linked archive segments instead of ending the Body's lifetime.
+//! - monotonic revisions/sequences and bounded identity encodings are protocol
+//!   bounds; exhaustion or malformed identity remains a permanent refusal.
 
 extern crate alloc;
 

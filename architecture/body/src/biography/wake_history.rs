@@ -41,12 +41,29 @@ impl BodyBiographyEvidence {
         if removed.is_empty() {
             return Err(BodyBiographyError::InvalidEvidence);
         }
-        let segment = BodyBiographyArchiveSegment::seal(self, removed.clone(), vec![wake.clone()])?;
+        let removed_body_events: Vec<_> = self
+            .body
+            .events
+            .iter()
+            .filter(|event| match event {
+                BodyLifecycleEvent::Woke { wake_id, .. }
+                | BodyLifecycleEvent::LullRetained { wake_id, .. } => wake_id == &wake.wake_id,
+                _ => false,
+            })
+            .cloned()
+            .collect();
+        let segment = BodyBiographyArchiveSegment::seal(
+            self,
+            removed.clone(),
+            vec![wake.clone()],
+            removed_body_events,
+            Vec::new(),
+        )?;
         let first_wake_id = self
             .compaction
             .as_ref()
-            .map(|value| value.first_wake_id.clone())
-            .unwrap_or_else(|| wake.wake_id.clone());
+            .and_then(|value| value.first_wake_id.clone())
+            .or_else(|| Some(wake.wake_id.clone()));
         let prior_wakes = self.compaction.as_ref().map_or(0, |value| value.wakes);
         let prior_records = self.compaction.as_ref().map_or(0, |value| value.records);
         let through = removed.last().expect("non-empty removed records");
@@ -218,6 +235,12 @@ impl BodyBiographyEvidence {
             sign_id.clone(),
         )
         .map_err(invalid)?;
+        if let Some(checkpoint) = &self.body.history_checkpoint {
+            body.workset = checkpoint.workset.clone();
+            body.workload_revision = checkpoint.workload_revision;
+            body.history_checkpoint = Some(checkpoint.clone());
+            body.validate().map_err(invalid)?;
+        }
         let mut consumed = vec![0usize; self.wakes.len()];
         let mut begun = 0usize;
         for record in self.records.iter().skip(1) {

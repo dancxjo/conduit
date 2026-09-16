@@ -2,8 +2,8 @@ use conduit_core::{ActivePlayId, CheckedFormId, PlanId, SignId, SourceDocumentId
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    hold::validate_planning_basis_signs, BodyLifecycleError, BodyState, BodyWorkset, HoldPolicy,
-    ResidentForm, WakeId, WakeLifecycle, WakePlan,
+    hold::validate_planning_basis_signs, BodyHistoryCheckpoint, BodyLifecycleError, BodyState,
+    BodyWorkset, HoldPolicy, ResidentForm, WakeId, WakeLifecycle, WakePlan,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -132,6 +132,7 @@ pub(crate) fn validate_body_events(
     state: &BodyState,
     workset: &BodyWorkset,
     workload_revision: u64,
+    checkpoint: Option<&BodyHistoryCheckpoint>,
 ) -> Result<(), BodyLifecycleError> {
     if events.len() != sign.len()
         || events
@@ -149,7 +150,7 @@ pub(crate) fn validate_body_events(
         return Err(BodyLifecycleError::InvalidTransition);
     }
     let mut replayed = BodyState::Lulled;
-    let (mut replayed_workset, mut replayed_workload_revision) = match events.first() {
+    let (initial_workset, initial_revision) = match events.first() {
         Some(BodyLifecycleEvent::Born {
             initial_workset,
             workload_revision,
@@ -160,6 +161,16 @@ pub(crate) fn validate_body_events(
         }
         _ => return Err(BodyLifecycleError::InvalidTransition),
     };
+    let (mut replayed_workset, mut replayed_workload_revision) =
+        if let Some(checkpoint) = checkpoint {
+            checkpoint.workset.validate()?;
+            if checkpoint.workload_revision < initial_revision {
+                return Err(BodyLifecycleError::InvalidTransition);
+            }
+            (checkpoint.workset.clone(), checkpoint.workload_revision)
+        } else {
+            (initial_workset, initial_revision)
+        };
     for event in events.iter().skip(1) {
         match event {
             BodyLifecycleEvent::FormAdmitted {

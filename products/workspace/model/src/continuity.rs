@@ -26,7 +26,11 @@ impl WorkspaceBody {
         if parts.next().is_some() {
             return Err(WorkspaceBodyError::StaleHost);
         }
-        let prior = part.current.as_ref().ok_or(WorkspaceBodyError::StaleHost)?;
+        let prior = part
+            .current
+            .as_ref()
+            .ok_or(WorkspaceBodyError::StaleHost)?
+            .clone();
         if &prior.host_id != host || &prior.boot_id == boot {
             return Err(WorkspaceBodyError::StaleHost);
         }
@@ -37,11 +41,36 @@ impl WorkspaceBody {
             .sequence
             .checked_add(1)
             .ok_or(WorkspaceBodyError::SequenceExhausted)?;
-        let mut sequence = evidence
-            .records
-            .last()
-            .ok_or(WorkspaceBodyError::SequenceExhausted)?
-            .sequence;
+        let membership_changes = evidence
+            .membership
+            .parts
+            .iter()
+            .filter(|part| {
+                part.current
+                    .as_ref()
+                    .is_some_and(|current| &current.host_id != host)
+            })
+            .count()
+            .saturating_add(2);
+        let mut pending_archives = Vec::new();
+        if evidence
+            .membership
+            .events
+            .len()
+            .saturating_add(membership_changes)
+            > conduit_body::MAX_MEMBERSHIP_EVENTS
+            || evidence.records.len().saturating_add(membership_changes)
+                > conduit_body::MAX_BODY_BIOGRAPHY_RECORDS
+        {
+            let segment = evidence
+                .seal_membership_history()
+                .map_err(WorkspaceBodyError::Biography)?
+                .ok_or(WorkspaceBodyError::Biography(
+                    conduit_body::BodyBiographyError::CapacityExhausted,
+                ))?;
+            pending_archives.push(segment);
+        }
+        let mut sequence = evidence.last_sequence();
         let mut next = || {
             sequence = sequence
                 .checked_add(1)
@@ -122,6 +151,8 @@ impl WorkspaceBody {
                 .append_wake(body, failed, at)
                 .map_err(WorkspaceBodyError::Biography)?;
         }
-        Self::open(evidence)
+        let mut body = Self::open(evidence)?;
+        body.pending_archives = pending_archives;
+        Ok(body)
     }
 }

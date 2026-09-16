@@ -17,23 +17,25 @@ impl BodyBiographyEvidence {
             return Err(BodyBiographyError::InvalidMetadata);
         }
         if self.compaction.as_ref().is_some_and(|summary| {
-            summary.wakes == 0
-                || summary.records == 0
+            summary.records == 0
                 || summary.through_sequence <= self.body.birth_sequence
+                || (summary.wakes == 0 && summary.first_wake_id.is_some())
+                || (summary.wakes > 0 && summary.first_wake_id.is_none())
                 || (summary.sealed_segments == 0) != summary.archive_head_digest.is_none()
                 || self
                     .wakes
                     .iter()
-                    .any(|wake| wake.wake_id == summary.first_wake_id)
+                    .any(|wake| Some(&wake.wake_id) == summary.first_wake_id.as_ref())
         }) {
             return Err(BodyBiographyError::InvalidEvidence);
         }
         if let Some(summary) = &self.compaction {
-            crate::identity::validate_ids(&[
-                summary.through_sign_id.as_str(),
-                summary.first_wake_id.as_str(),
-            ])
-            .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+            crate::identity::validate_ids(&[summary.through_sign_id.as_str()])
+                .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+            if let Some(first_wake_id) = &summary.first_wake_id {
+                crate::identity::validate_ids(&[first_wake_id.as_str()])
+                    .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+            }
         }
         if let Some(graduation) = &self.graduation {
             validate_graduation(graduation)?;
