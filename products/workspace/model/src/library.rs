@@ -1,6 +1,6 @@
 //! Portable presentation of reviewed Forms beside the authoritative Body workset.
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_body::ResidentForm;
+use conduit_body::{MAX_BODY_FORMS, ResidentForm};
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, FieldKind, FormField, PresentationMechanism,
     SemanticAction, SemanticApplicationView, SemanticPresentationNode, StatusKind,
@@ -105,13 +105,21 @@ impl FormLibrary {
                 continue;
             }
             let installed = body.evidence().body.workset.contains(&entry.form);
+            let body_at_capacity = body.evidence().body.workset.len() >= MAX_BODY_FORMS;
+            let use_available = available && (installed || !body_at_capacity);
+            let unavailable_detail = if !available {
+                "This Form needs capabilities this Host does not offer."
+            } else {
+                "This Body is at its resident Form capacity. Remove a Form before adding another."
+            };
             let mut actions = vec![node(
                 &format!("use-{index}"),
                 PresentationMechanism::Action(action(
                     &format!("library.use.{index}"),
                     "Use",
                     ApplicationEventKind::Activate,
-                    available,
+                    use_available,
+                    unavailable_detail,
                 )),
                 vec![],
             )];
@@ -123,6 +131,7 @@ impl FormLibrary {
                         "Remove",
                         ApplicationEventKind::Activate,
                         true,
+                        "",
                     )),
                     vec![],
                 ));
@@ -135,6 +144,8 @@ impl FormLibrary {
                         "In your Body"
                     } else if !available {
                         "Needs capability"
+                    } else if body_at_capacity {
+                        "Body at capacity"
                     } else {
                         "Not in your Body"
                     }
@@ -200,6 +211,7 @@ impl FormLibrary {
                                 "Find a Form",
                                 ApplicationEventKind::Input,
                                 true,
+                                "",
                             ),
                             kind: FieldKind::Text,
                         }),
@@ -240,7 +252,13 @@ fn node(
         children,
     }
 }
-fn action(id: &str, label: &str, event: ApplicationEventKind, available: bool) -> SemanticAction {
+fn action(
+    id: &str,
+    label: &str,
+    event: ApplicationEventKind,
+    available: bool,
+    unavailable_detail: &str,
+) -> SemanticAction {
     SemanticAction {
         identity: id.into(),
         label: label.into(),
@@ -249,7 +267,7 @@ fn action(id: &str, label: &str, event: ApplicationEventKind, available: bool) -
             ActionAvailability::Available
         } else {
             ActionAvailability::Unavailable {
-                detail: "This Form needs capabilities this Host does not offer.".into(),
+                detail: unavailable_detail.into(),
             }
         },
     }

@@ -597,3 +597,68 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
         Err(LibraryRefusal::SearchBound)
     ));
 }
+
+#[test]
+fn library_keeps_reviewed_forms_visible_when_the_body_is_at_capacity() {
+    use conduit_body::MAX_BODY_FORMS;
+    use conduit_workspace_model::library::{FormLibrary, LibraryAvailability, LibraryEntry};
+
+    let mut body = born();
+    for index in 1..MAX_BODY_FORMS {
+        body.admit_form(
+            body.evidence().body.workload_revision,
+            form(&format!("resident-{index}")),
+            &host(),
+            &boot(),
+        )
+        .unwrap();
+        persist_archives(&mut body);
+    }
+    let library = FormLibrary::new(vec![
+        LibraryEntry {
+            form: form("morse"),
+            title: "Morse".into(),
+            search_text: "resident".into(),
+            availability: LibraryAvailability::Available,
+            graceful_fallback: None,
+        },
+        LibraryEntry {
+            form: form("another"),
+            title: "Another reviewed Form".into(),
+            search_text: "candidate".into(),
+            availability: LibraryAvailability::Available,
+            graceful_fallback: None,
+        },
+    ])
+    .unwrap();
+
+    let semantic = library.presentation(&body, 10, "candidate").unwrap();
+    let encoded = format!("{semantic:?}");
+    assert!(encoded.contains("Body at capacity"));
+    assert!(encoded.contains("Remove a Form before adding another"));
+    let lowered = semantic.lower().unwrap();
+    assert!(
+        !lowered
+            .actions
+            .iter()
+            .any(|action| action.id == "library.use.1")
+    );
+
+    let resident = library
+        .presentation(&body, 11, "resident")
+        .unwrap()
+        .lower()
+        .unwrap();
+    assert!(
+        resident
+            .actions
+            .iter()
+            .any(|action| action.id == "library.use.0")
+    );
+    assert!(
+        resident
+            .actions
+            .iter()
+            .any(|action| action.id == "library.remove.0")
+    );
+}
