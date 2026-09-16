@@ -2,6 +2,7 @@
 
 use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret};
 use conduit_core::HostAdvertisement;
+use conduit_std_host::StdHost;
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -18,6 +19,30 @@ pub(crate) struct DurableHostTruth {
     pub(crate) target_id: String,
     pub(crate) image_content_digest: String,
     pub(crate) advertisement: HostAdvertisement,
+}
+
+pub(crate) struct DurableHostRuntime {
+    target_id: String,
+    image_content_digest: String,
+    host: StdHost,
+}
+
+impl DurableHostRuntime {
+    pub(crate) fn new(target_id: String, image_content_digest: String, host: StdHost) -> Self {
+        Self {
+            target_id,
+            image_content_digest,
+            host,
+        }
+    }
+
+    fn truth(&self) -> DurableHostTruth {
+        DurableHostTruth {
+            target_id: self.target_id.clone(),
+            image_content_digest: self.image_content_digest.clone(),
+            advertisement: self.host.advertisement().clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -97,7 +122,7 @@ pub(crate) fn ensure_secret(state_dir: &Path) -> Result<(), String> {
 }
 
 #[cfg(unix)]
-pub(crate) fn serve(state_dir: &Path, truth: DurableHostTruth) -> Result<(), String> {
+pub(crate) fn serve(state_dir: &Path, runtime: DurableHostRuntime) -> Result<(), String> {
     use std::os::unix::{fs::PermissionsExt, net::UnixListener};
 
     let socket = state_dir.join("control.sock");
@@ -112,7 +137,7 @@ pub(crate) fn serve(state_dir: &Path, truth: DurableHostTruth) -> Result<(), Str
     let mut token = read_secret(&state_dir.join("control.token"))?;
     for incoming in listener.incoming() {
         let mut stream = incoming.map_err(|error| format!("accept local Host control: {error}"))?;
-        let response = handle(read_frame(&mut stream)?, &token, &truth);
+        let response = handle(read_frame(&mut stream)?, &token, &runtime);
         write_frame(&mut stream, &response)?;
     }
     token.fill(0);
@@ -120,7 +145,7 @@ pub(crate) fn serve(state_dir: &Path, truth: DurableHostTruth) -> Result<(), Str
 }
 
 #[cfg(not(unix))]
-pub(crate) fn serve(_state_dir: &Path, _truth: DurableHostTruth) -> Result<(), String> {
+pub(crate) fn serve(_state_dir: &Path, _runtime: DurableHostRuntime) -> Result<(), String> {
     Err("no reviewed local durable Host control carrier exists on this platform".into())
 }
 
@@ -223,7 +248,7 @@ pub(crate) fn join(
     Err("no reviewed local durable Host control carrier exists on this platform".into())
 }
 
-fn handle(mut request: Request, token: &[u8; 32], truth: &DurableHostTruth) -> Response {
+fn handle(mut request: Request, token: &[u8; 32], runtime: &DurableHostRuntime) -> Response {
     let offered = match &mut request {
         Request::Status { token, .. } | Request::Join { token, .. } => token,
     };
@@ -232,6 +257,7 @@ fn handle(mut request: Request, token: &[u8; 32], truth: &DurableHostTruth) -> R
     if !authenticated {
         return refused("unauthorized");
     }
+    let truth = runtime.truth();
     match request {
         Request::Status { protocol, .. } if protocol == PROTOCOL => Response::Status {
             protocol: PROTOCOL,
@@ -248,7 +274,7 @@ fn handle(mut request: Request, token: &[u8; 32], truth: &DurableHostTruth) -> R
             ..
         } if protocol == PROTOCOL => {
             let result = create_join(
-                truth,
+                &truth,
                 &expected_boot_id,
                 expected_offer_generation,
                 &claim,
@@ -368,20 +394,23 @@ fn now_millis() -> Result<u64, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_body::{
+        Body, BodyConversationContext, HostPresenceClock, HostPresenceClockScale, HostPresenceTable,
+    };
     use conduit_core::{BootId, HostId, OfferGeneration};
     use conduit_std_host::{StdHost, StdHostConfig};
 
-    fn truth() -> DurableHostTruth {
+    fn runtime() -> DurableHostRuntime {
         let host = StdHost::new_with_config(StdHostConfig {
             host_id: HostId::from("host/durable-fixture"),
             boot_id: BootId::from("boot/durable-fixture"),
             offer_generation: OfferGeneration(7),
         });
-        DurableHostTruth {
-            target_id: "std/x86_64/computer".into(),
-            image_content_digest: format!("sha256:{}", "a".repeat(64)),
-            advertisement: host.advertisement().clone(),
-        }
+        DurableHostRuntime::new(
+            "std/x86_64/computer".into(),
+            format!("sha256:{}", "a".repeat(64)),
+            host,
+        )
     }
 
     fn claim() -> SpawnInvitationClaim {
@@ -394,9 +423,44 @@ mod tests {
         .unwrap()
     }
 
+    fn context() -> BodyConversationContext {
+        let body = Body::born(
+            conduit_core::SourceDocumentId::from("source/orifinia"),
+            conduit_core::CheckedFormId::from("checked/orifinia"),
+            1,
+            conduit_core::SignId::from("sign/orifinia/born"),
+        )
+        .unwrap();
+        let (body, wake) = body
+            .wake(1, conduit_core::SignId::from("sign/orifinia/wake"))
+            .unwrap();
+        let presence = HostPresenceTable::new(
+            body.body_id.clone(),
+            HostPresenceClock::new(
+                "clock/orifinia".into(),
+                HostPresenceClockScale::Milliseconds,
+                1,
+                0,
+            )
+            .unwrap(),
+            30_000,
+        )
+        .unwrap();
+        BodyConversationContext::from_current_truth(
+            "Orifinia Dawnheart",
+            &body,
+            &wake,
+            &presence,
+            None,
+            &[],
+        )
+        .unwrap()
+    }
+
     #[test]
     fn durable_owner_signs_only_its_exact_current_boot_and_generation() {
-        let truth = truth();
+        let runtime = runtime();
+        let truth = runtime.truth();
         let token = [23_u8; 32];
         let response = handle(
             Request::Join {
@@ -408,7 +472,7 @@ mod tests {
                 secret: vec![29; 32],
             },
             &token,
-            &truth,
+            &runtime,
         );
         let Response::Join {
             advertisement,
@@ -431,22 +495,41 @@ mod tests {
                 secret: vec![29; 32],
             },
             &token,
-            &truth,
+            &runtime,
         );
         assert!(matches!(stale, Response::Refused { ref code, .. } if code == "stale-host-truth"));
     }
 
     #[test]
     fn unauthorized_helper_cannot_obtain_or_substitute_advertisement() {
-        let truth = truth();
+        let runtime = runtime();
         let response = handle(
             Request::Status {
                 protocol: PROTOCOL,
                 token: vec![0; 32],
             },
             &[23; 32],
-            &truth,
+            &runtime,
         );
         assert!(matches!(response, Response::Refused { ref code, .. } if code == "unauthorized"));
+    }
+
+    #[test]
+    fn durable_runtime_retains_live_host_truth_instead_of_a_frozen_advertisement() {
+        let mut runtime = runtime();
+        let before = runtime.truth().advertisement;
+        runtime
+            .host
+            .install_body_conversation_context(&context())
+            .unwrap();
+        let after = runtime.truth().advertisement;
+
+        assert_eq!(after.host_id, before.host_id);
+        assert_eq!(after.boot_id, before.boot_id);
+        assert_eq!(after.offer_generation.0, before.offer_generation.0 + 1);
+        assert!(after.capabilities.iter().any(|offer| {
+            offer.implementation.implementation_id.as_str()
+                == conduit_std_offers::BODY_CONVERSATION_CONTEXT_STD_IMPLEMENTATION
+        }));
     }
 }

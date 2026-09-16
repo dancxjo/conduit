@@ -283,7 +283,13 @@ fn start_runtime(state_dir: &Path) -> Result<RuntimeStatus, String> {
 
 fn prepare_runtime(
     state_dir: &Path,
-) -> Result<(RuntimeStatus, crate::durable_host_control::DurableHostTruth), String> {
+) -> Result<
+    (
+        RuntimeStatus,
+        crate::durable_host_control::DurableHostRuntime,
+    ),
+    String,
+> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
     let boot_id = fresh_identity("boot/installed", &installation.host_id);
     let host = StdHost::new_with_config(StdHostConfig {
@@ -303,12 +309,12 @@ fn prepare_runtime(
     write_json_atomic(&state_dir.join("runtime.json"), &status)?;
     let executable = Path::new(&installation.product_executable);
     let image_content_digest = digest(&bounded_read(executable, MAXIMUM_RELEASE_FILE_BYTES)?);
-    let truth = crate::durable_host_control::DurableHostTruth {
-        target_id: running_target_id()?.into(),
+    let runtime = crate::durable_host_control::DurableHostRuntime::new(
+        running_target_id()?.into(),
         image_content_digest,
-        advertisement: host.advertisement().clone(),
-    };
-    Ok((status, truth))
+        host,
+    );
+    Ok((status, runtime))
 }
 
 fn running_target_id() -> Result<&'static str, String> {

@@ -12,11 +12,10 @@ pub struct VoiceHostProviders {
 }
 
 impl StdHost {
-    pub fn new_with_voice_conversation(
+    pub fn new_with_voice_providers(
         config: StdHostConfig,
         composition: StdHostComposition,
         providers: VoiceHostProviders,
-        context: &conduit_body::BodyConversationContext,
     ) -> Result<Self, String> {
         validate_recognition(&providers.recognition)?;
         validate_synthesis(&providers.synthesis)?;
@@ -55,9 +54,19 @@ impl StdHost {
         });
         host.speech_recognition = Some(providers.recognition);
         host.speech_synthesis = Some(providers.synthesis);
-        host.install_body_conversation_context(context)?;
         host.kernel_resources =
             crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement)?;
+        Ok(host)
+    }
+
+    pub fn new_with_voice_conversation(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        providers: VoiceHostProviders,
+        context: &conduit_body::BodyConversationContext,
+    ) -> Result<Self, String> {
+        let mut host = Self::new_with_voice_providers(config, composition, providers)?;
+        host.install_body_conversation_context(context)?;
         Ok(host)
     }
 }
