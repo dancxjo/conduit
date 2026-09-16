@@ -67,6 +67,66 @@ pub enum RendezvousDescriptorRefusal {
     InsecureRemoteWebSocket,
 }
 
+/// One explicit Line attempt selected from a reviewed descriptor.
+///
+/// Calling code remains responsible for performing and recording the attempt;
+/// this schedule grants no transport or membership authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RendezvousAttempt<'a> {
+    pub candidate: &'a RendezvousCandidate,
+    pub attempt: u8,
+    pub timeout_millis: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RendezvousAttemptDecision<'a> {
+    Try(RendezvousAttempt<'a>),
+    Exhausted,
+}
+
+/// Deterministic finite candidate order for one self-joining start.
+///
+/// Each call exposes exactly one attempt. There are no implicit retries: the
+/// caller must ask for the next decision after retaining the prior outcome.
+pub struct RendezvousAttemptSchedule<'a> {
+    descriptor: &'a SpawnRendezvousDescriptor,
+    candidate_index: usize,
+    attempts_on_candidate: u8,
+}
+
+impl<'a> RendezvousAttemptSchedule<'a> {
+    pub fn new(
+        descriptor: &'a SpawnRendezvousDescriptor,
+        now_millis: u64,
+    ) -> Result<Self, RendezvousDescriptorRefusal> {
+        descriptor.validate(now_millis)?;
+        Ok(Self {
+            descriptor,
+            candidate_index: 0,
+            attempts_on_candidate: 0,
+        })
+    }
+
+    pub fn next(&mut self, now_millis: u64) -> RendezvousAttemptDecision<'a> {
+        while let Some(candidate) = self.descriptor.candidates.get(self.candidate_index) {
+            if candidate.expires_at_millis <= now_millis
+                || self.attempts_on_candidate >= candidate.maximum_attempts
+            {
+                self.candidate_index += 1;
+                self.attempts_on_candidate = 0;
+                continue;
+            }
+            self.attempts_on_candidate += 1;
+            return RendezvousAttemptDecision::Try(RendezvousAttempt {
+                candidate,
+                attempt: self.attempts_on_candidate,
+                timeout_millis: candidate.attempt_timeout_millis,
+            });
+        }
+        RendezvousAttemptDecision::Exhausted
+    }
+}
+
 impl SpawnRendezvousDescriptor {
     pub fn validate(&self, now_millis: u64) -> Result<(), RendezvousDescriptorRefusal> {
         if self.protocol != RENDEZVOUS_DESCRIPTOR_PROTOCOL {
@@ -209,5 +269,79 @@ mod tests {
             descriptor.validate(10_000),
             Err(RendezvousDescriptorRefusal::MissingAuthentication)
         );
+    }
+
+    #[test]
+    fn failed_first_candidate_falls_through_in_exact_finite_order() {
+        let descriptor = SpawnRendezvousDescriptor {
+            protocol: RENDEZVOUS_DESCRIPTOR_PROTOCOL,
+            body_id: "body/one".into(),
+            invitation_id: "invitation/one".into(),
+            candidates: vec![
+                candidate(
+                    "candidate/primary",
+                    RendezvousLineFamily::AuthenticatedTlsStream,
+                    "tls://primary.example:443/conduit",
+                ),
+                candidate(
+                    "candidate/relay",
+                    RendezvousLineFamily::AuthenticatedConduitLine,
+                    "relay:reviewed/one",
+                ),
+            ],
+        };
+        let mut schedule = RendezvousAttemptSchedule::new(&descriptor, 1_000).unwrap();
+
+        for expected_attempt in 1..=2 {
+            let RendezvousAttemptDecision::Try(attempt) = schedule.next(1_000) else {
+                panic!("primary attempt missing");
+            };
+            assert_eq!(attempt.candidate.candidate_id, "candidate/primary");
+            assert_eq!(attempt.attempt, expected_attempt);
+            assert_eq!(attempt.timeout_millis, 2_000);
+        }
+        for expected_attempt in 1..=2 {
+            let RendezvousAttemptDecision::Try(attempt) = schedule.next(1_000) else {
+                panic!("relay fallback attempt missing");
+            };
+            assert_eq!(attempt.candidate.candidate_id, "candidate/relay");
+            assert_eq!(attempt.attempt, expected_attempt);
+        }
+        assert_eq!(schedule.next(1_000), RendezvousAttemptDecision::Exhausted);
+        assert_eq!(schedule.next(1_000), RendezvousAttemptDecision::Exhausted);
+    }
+
+    #[test]
+    fn candidate_expiring_between_attempts_is_skipped_without_extending_authority() {
+        let mut primary = candidate(
+            "candidate/primary",
+            RendezvousLineFamily::AuthenticatedTlsStream,
+            "tls://primary.example:443/conduit",
+        );
+        primary.expires_at_millis = 1_500;
+        let descriptor = SpawnRendezvousDescriptor {
+            protocol: RENDEZVOUS_DESCRIPTOR_PROTOCOL,
+            body_id: "body/one".into(),
+            invitation_id: "invitation/one".into(),
+            candidates: vec![
+                primary,
+                candidate(
+                    "candidate/relay",
+                    RendezvousLineFamily::AuthenticatedConduitLine,
+                    "relay:reviewed/one",
+                ),
+            ],
+        };
+        let mut schedule = RendezvousAttemptSchedule::new(&descriptor, 1_000).unwrap();
+        let RendezvousAttemptDecision::Try(first) = schedule.next(1_000) else {
+            panic!("initial attempt missing");
+        };
+        assert_eq!(first.candidate.candidate_id, "candidate/primary");
+
+        let RendezvousAttemptDecision::Try(fallback) = schedule.next(1_500) else {
+            panic!("unexpired fallback missing");
+        };
+        assert_eq!(fallback.candidate.candidate_id, "candidate/relay");
+        assert_eq!(fallback.attempt, 1);
     }
 }
