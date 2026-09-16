@@ -154,6 +154,15 @@ pub(crate) enum HostServiceCommand {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
+    /// Issue one bounded invitation from the Body owned by this installed Host.
+    Invite {
+        /// Installed durable Host state that owns the Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Invitation lifetime; never exceeds the architectural maximum.
+        #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=600))]
+        ttl_seconds: u64,
+    },
     Check {
         source: PathBuf,
     },
@@ -386,6 +395,25 @@ mod tests {
             Command::Host {
                 command: HostCommand::Build { .. }
             }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "body",
+                "invite",
+                "--state-dir",
+                "installed-host",
+                "--ttl-seconds",
+                "30",
+            ])
+            .expect("scriptable Body invitation parses")
+            .command,
+            Command::Body {
+                command: BodyCommand::Invite {
+                    state_dir,
+                    ttl_seconds: 30,
+                }
+            } if state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "body", "show", "current.body.conduit"])

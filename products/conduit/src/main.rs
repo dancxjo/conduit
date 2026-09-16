@@ -262,6 +262,13 @@ fn main() {
             } => host_rendezvous::serve(&state_dir, carrier, timeout_seconds),
             command => construction::host(command),
         },
+        cli::Command::Body {
+            command:
+                cli::BodyCommand::Invite {
+                    state_dir,
+                    ttl_seconds,
+                },
+        } => durable_host::issue_body_invitation(&state_dir, ttl_seconds),
         cli::Command::Body { command } => construction::body(command),
         cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),
