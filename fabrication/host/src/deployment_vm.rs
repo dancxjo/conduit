@@ -15,6 +15,7 @@ use std::{
 
 const VERIFY_BUFFER_BYTES: usize = 64 * 1024;
 pub const CONDUITOS_X86_64_QEMU_PROFILE: &str = "qemu-x86_64-q35-single-cpu-512m-cdrom";
+pub const CONDUITOS_X86_64_QEMU_IMPLEMENTATION: &str = "conduit-helper/qemu-x86_64@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum VirtualMachineLaunchRefusal {
@@ -94,7 +95,9 @@ pub fn launch_body_bound_virtual_machine(
     explicit_authority: bool,
     launcher: &mut dyn VirtualMachineLauncher,
 ) -> Result<VirtualMachineLaunchReceipt, VirtualMachineLaunchRefusal> {
-    if descriptor.kind != DeploymentCarrierKind::VirtualMachineLaunch {
+    if descriptor.kind != DeploymentCarrierKind::VirtualMachineLaunch
+        || descriptor.implementation_id != CONDUITOS_X86_64_QEMU_IMPLEMENTATION
+    {
         return Err(VirtualMachineLaunchRefusal::UnsupportedCarrier);
     }
     if launch_profile.is_empty() || launch_profile.len() > MAXIMUM_CARRIER_TEXT_BYTES {
@@ -255,6 +258,20 @@ mod tests {
         let image = root.join("body-bound.iso");
         fs::write(&image, b"tampered exact ISO").unwrap();
         let mut launcher = CapturingLauncher { calls: 0, pid: 42 };
+
+        let mut relabeled = descriptor.clone();
+        relabeled.implementation_id = "unreviewed/qemu-wrapper@1".into();
+        assert_eq!(
+            launch_body_bound_virtual_machine(
+                &relabeled,
+                &artifact,
+                &image,
+                CONDUITOS_X86_64_QEMU_PROFILE,
+                true,
+                &mut launcher,
+            ),
+            Err(VirtualMachineLaunchRefusal::UnsupportedCarrier)
+        );
 
         assert_eq!(
             launch_body_bound_virtual_machine(
