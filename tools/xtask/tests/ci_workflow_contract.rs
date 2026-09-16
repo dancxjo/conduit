@@ -765,3 +765,23 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
     assert!(x86.contains("name: Preserve the exact x86 batch as the proof gate"));
     assert!(x86.contains("if: always()\n        uses: ./.github/actions/upload-artifact-retry"));
 }
+
+#[test]
+fn browser_home_is_staged_proven_in_two_engines_and_carried_to_pages() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+
+    assert!(workflow.contains("--no-default-features --features home-surface,form-runner"));
+    assert_eq!(
+        workflow
+            .matches("products/home/tools/stage-home-product.sh")
+            .count(),
+        2
+    );
+    assert!(workflow.matches("target/home-product").count() >= 6);
+    assert!(workflow.matches("proof/browser/home-host.spec.mjs").count() >= 2);
+    assert!(workflow.contains("name: Prove portable Home in pinned Firefox"));
+    assert!(workflow.contains("--project firefox"));
+    assert!(workflow.contains("target/pages-site/home/home.application.json"));
+}

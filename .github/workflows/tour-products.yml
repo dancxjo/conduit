@@ -209,6 +209,8 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface,form-runner
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/workspace-runtime.wasm
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features home-surface,form-runner
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/home-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
           cargo build --locked -p patchbay-html --bin patchbay-static-assets
@@ -396,6 +398,7 @@ jobs:
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product unused browser-proof
           products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
+          products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
       - name: Retain the browser-only candidate surfaces
         uses: ./.github/actions/upload-artifact-retry
         with:
@@ -412,6 +415,7 @@ jobs:
             target/creche-product
             target/workspace-product
             target/patchbay-product
+            target/home-product
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 1
@@ -433,7 +437,7 @@ jobs:
       matrix:
         include:
           - shard: browser-host
-            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
+            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs
           - shard: creche-workspace
             specs: proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
@@ -886,12 +890,13 @@ jobs:
           chmod 755 target/browser-product-runtimes/patchbay-static-assets
           cp target/browser-product-runtimes/tour-runtime.wasm target/conduit_tour_runtime.wasm
           cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
-          rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product
+          rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product target/home-product
           site/tools/stage-pages-root.sh target/pages-root
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
           products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
+          products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
       - name: Retain the exact staged products once for parallel consumers
         uses: ./.github/actions/upload-artifact-retry
         with:
@@ -908,6 +913,7 @@ jobs:
             target/creche-product
             target/workspace-product
             target/patchbay-product
+            target/home-product
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 1
@@ -928,7 +934,7 @@ jobs:
           - shard: tour
             specs: proof/browser/executable-tour.spec.mjs
           - shard: browser-host
-            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
+            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs
           - shard: creche-machines
             specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
@@ -964,6 +970,15 @@ jobs:
           --config proof/browser/playwright.config.mjs
           $BROWSER_PROOF_SPECS
           --project chromium
+          --workers 1
+          --retries 0
+      - name: Prove portable Home in pinned Firefox
+        if: matrix.shard == 'browser-host'
+        run: >-
+          node proof/browser/node_modules/@playwright/test/cli.js test
+          --config proof/browser/playwright.config.mjs
+          proof/browser/home-host.spec.mjs
+          --project firefox
           --workers 1
           --retries 0
       - name: Retain the exact Crèche-exported ConduitOS spore
@@ -1144,12 +1159,13 @@ jobs:
       - name: Seal the already-proven Pages carrier
         run: |
           rm -rf target/pages-site target/pages-carrier
-          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/workspace target/pages-site/patchbay
+          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/workspace target/pages-site/patchbay target/pages-site/home
           cp -a target/pages-root/. target/pages-site/
           cp -a target/tour-product/. target/pages-site/tour/
           cp -a target/creche-product/. target/pages-site/creche/
           cp -a target/workspace-product/. target/pages-site/workspace/
           cp -a target/patchbay-product/. target/pages-site/patchbay/
+          cp -a target/home-product/. target/pages-site/home/
           node products/tour/tools/stage-legacy-routes.mjs target/pages-site
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/tour/tour.application.json
@@ -1160,6 +1176,7 @@ jobs:
           test -f target/pages-site/creche/runtime.wasm
           test -f target/pages-site/patchbay/patchbay.application.json
           test -f target/pages-site/patchbay/api/snapshot
+          test -f target/pages-site/home/home.application.json
           source_commit=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD)
           source_tree=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse 'HEAD^{tree}')
           node tools/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"

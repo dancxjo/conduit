@@ -7,16 +7,18 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["form-runner", "tour-surface", "creche-surface"]
+default = ["form-runner", "tour-surface", "creche-surface", "home-surface"]
 form-runner = []
 tour-surface = ["form-runner"]
 creche-surface = []
+home-surface = []
 
 [dependencies]
 conduit-synth = { path = "../../../mechanisms/implementations/synth" }
 conduit-workspace-model = { path = "../../../products/workspace/model" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-creche-model = { path = "../../../products/creche/model" }
+conduit-home-model = { path = "../../../products/home/model" }
 conduit-data = { path = "../../../semantics/data" }
 conduit-human = { path = "../../../semantics/human" }
 conduit-body = { path = "../../../architecture/body" }

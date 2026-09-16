@@ -590,6 +590,7 @@ dependencies = [
  "conduit-creche-model",
  "conduit-data",
  "conduit-form",
+ "conduit-home-model",
  "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",
  "conduit-host-conduitos-fabrication",

@@ -1,4 +1,4 @@
-import { acquireHostRelease } from "./creche-release-bundle.mjs";
+import { acquireExactReleaseBytes, acquireHostRelease } from "./creche-release-bundle.mjs";
 
 const SCHEMA = "conduit.release/catalog@1";
 const MAXIMUM_ENTRIES = 64;
@@ -45,14 +45,44 @@ export async function openReleaseCatalog({ source, minimumGeneration = 0, signal
     generation: catalog.generation,
     catalog_id: catalog.catalog_id,
     targets: Object.freeze(catalog.entries.map((entry) => entry.target_id)),
-    async acquire(profile, acquireSignal = signal) {
+    async resolve(profile, acquireSignal = signal) {
       const entry = catalog.entries.find((candidate) => candidate.target_id === profile?.target_id);
       if (!entry) refuse("UnknownTarget", "selected target is absent from the reviewed release catalog");
       requireEntryMatchesProfile(entry, profile);
       const manifestUrl = new URL(entry.manifest.path, catalogUrl);
+      const manifest = await acquireExactReleaseBytes({
+        url: manifestUrl,
+        expected: entry.manifest,
+        maximumBytes: MAXIMUM_MANIFEST_BYTES,
+        signal: acquireSignal,
+        fetcher,
+        cache,
+        label: "manifest",
+      });
+      return Object.freeze({
+        manifest: manifest.bytes,
+        manifestUrl: manifest.url,
+        async acquire(artifact, maximumBytes, resourceSignal = acquireSignal) {
+          if (!validArtifact(artifact, maximumBytes)) {
+            refuse("CatalogMalformed", "selected release artifact descriptor is invalid or unbounded");
+          }
+          return (await acquireExactReleaseBytes({
+            url: new URL(artifact.path, manifest.url),
+            expected: artifact,
+            maximumBytes,
+            signal: resourceSignal,
+            fetcher,
+            cache,
+            label: artifact.path,
+          })).bytes;
+        },
+      });
+    },
+    async acquire(profile, acquireSignal = signal) {
+      const resolved = await this.resolve(profile, acquireSignal);
       return acquireHostRelease(profile, acquireSignal, {
-        manifestUrl,
-        expectedManifest: entry.manifest,
+        manifestUrl: resolved.manifestUrl,
+        manifestBytes: resolved.manifest,
         fetcher,
         cache,
       });

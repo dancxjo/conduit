@@ -1,6 +1,7 @@
 const MAXIMUM_IMAGE_BYTES = 80 * 1024 * 1024;
 
-export async function acquireConduitOsRelease(profile, signal) {
+export async function acquireConduitOsRelease(profile, signal, { resolved = null } = {}) {
+  if (resolved) return acquireResolvedConduitOsRelease(profile, signal, resolved);
   let response;
   try {
     response = await fetch(profile.manifestPath, { signal, cache: "no-store" });
@@ -21,6 +22,19 @@ export async function acquireConduitOsRelease(profile, signal) {
   if (bytes.byteLength !== manifest.artifact.bytes || bytes.byteLength < 1 || bytes.byteLength > MAXIMUM_IMAGE_BYTES) {
     refuse("StaleArtifact", "reviewed ConduitOS disk IMAGE violated its exact finite byte bound");
   }
+  const digest = await sha256(bytes);
+  if (digest !== manifest.artifact.sha256 || manifest.image_id !== `image:${digest}`) {
+    refuse("StaleArtifact", "reviewed ConduitOS disk IMAGE content identity is stale");
+  }
+  return Object.freeze({ manifest: Object.freeze(manifest), bytes, digest });
+}
+
+async function acquireResolvedConduitOsRelease(profile, signal, resolved) {
+  let manifest;
+  try { manifest = JSON.parse(new TextDecoder().decode(resolved.manifest)); }
+  catch (error) { refuse("StaleArtifact", "reviewed ConduitOS release manifest is malformed", error); }
+  validateConduitOsReleaseManifest(manifest, profile);
+  const bytes = await resolved.acquire(manifest.artifact, MAXIMUM_IMAGE_BYTES, signal);
   const digest = await sha256(bytes);
   if (digest !== manifest.artifact.sha256 || manifest.image_id !== `image:${digest}`) {
     refuse("StaleArtifact", "reviewed ConduitOS disk IMAGE content identity is stale");

@@ -14,6 +14,7 @@ async function assemblePagesCarrier() {
   await cp("target/creche-product", `${pagesRoot}/creche`, { recursive: true });
   await cp("target/workspace-product", `${pagesRoot}/workspace`, { recursive: true });
   await cp("target/patchbay-product", `${pagesRoot}/patchbay`, { recursive: true });
+  await cp("target/home-product", `${pagesRoot}/home`, { recursive: true });
   await stageLegacyTourRoutes(pagesRoot);
 }
 
@@ -37,11 +38,49 @@ test("Birth on the front page arrives directly in listening Forms", async ({ pag
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
 });
 
-test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", async ({ page }) => {
+test("Browser Home enacts the shared journey through the real Patchbay", async ({ page }) => {
+  const root = entrance.url.replace(/\/$/, "");
+  const steps = ["home.arrived"];
+  await page.goto(`${root}/home/`);
+  await expect(page.locator("#host-state")).toHaveText("Browser Home is ready.");
+  await page.getByRole("button", { name: "FORMS" }).click();
+  steps.push("forms.opened");
+  await page.getByRole("button", { name: "Hello" }).click();
+  steps.push("form.selected");
+  const command = page.getByLabel("conduit>");
+  await command.fill("open prompt");
+  await command.press("Enter");
+  steps.push("prompt.opened");
+  await command.fill("run hello");
+  await command.press("Enter");
+  await expect(page.locator("#host-state")).toHaveAttribute("data-play-disposition", "completed");
+  steps.push("form.run", "play.observed");
+  await command.fill("home");
+  await command.press("Enter");
+  await page.getByRole("button", { name: "PATCHBAY" }).click();
+  await expect(page).toHaveURL(`${root}/patchbay/`);
+  await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+  steps.push("patchbay.opened");
+  await page.goBack();
+  await expect(page.getByRole("button", { name: "TOUR" })).toBeVisible();
+  steps.push("home.returned");
+  expect(steps).toEqual([
+    "home.arrived", "forms.opened", "form.selected", "prompt.opened",
+    "form.run", "play.observed", "patchbay.opened", "home.returned",
+  ]);
+});
+
+test("Conduit home and its product faces are stable sibling endpoints", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   const tour = `${home}/tour/`;
   const creche = `${home}/creche/`;
   const patchbay = `${home}/patchbay/`;
+  const homeFace = `${home}/home/`;
+
+  await page.goto(homeFace);
+  await expect(page).toHaveURL(homeFace);
+  await expect(page.locator("#host-state")).toHaveText("Browser Home is ready.");
+  await expect(page.getByRole("button", { name: "FORMS" })).toBeVisible();
 
   await page.goto(`${home}/`);
   await expect(page).toHaveURL(`${home}/`);

@@ -7,7 +7,7 @@ import { createGraduationRunner, exportBodyEvidence, renderBiography } from "./c
 import { createCrecheRouting } from "./creche-routing.mjs";
 import { openFormSelection, persistedFormSelection, readReviewedFormInventory } from "./creche-form-selection.mjs";
 import { createProductMasthead } from "../../../semantics/presentation/assets/product-masthead.mjs";
-import { createMemoryReleaseCache } from "./creche-release-catalog.mjs";
+import { createMemoryReleaseCache, openReleaseCatalog } from "./creche-release-catalog.mjs";
 
 const steps = [
   { name: "Birth", slug: "birth" },
@@ -56,11 +56,20 @@ export async function startApplication(application) {
   renderHostStatus("Starting browser Host…", "status");
   const initialized = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });
   const releaseCatalogSource = configuredReleaseCatalogSource();
+  const releaseArtifactCache = releaseCatalogSource ? createMemoryReleaseCache() : null;
   host = Object.freeze({
     ...initialized,
     admitProfileGatedBrowserBoot: application.admitProfileGatedBrowserBoot,
     releaseCatalogSource,
-    releaseArtifactCache: releaseCatalogSource ? createMemoryReleaseCache() : null,
+    releaseArtifactCache,
+    resolveReviewedRelease: releaseCatalogSource ? async (profile, signal) => {
+      const catalog = await openReleaseCatalog({
+        source: releaseCatalogSource,
+        signal,
+        cache: releaseArtifactCache,
+      });
+      return catalog.resolve(profile, signal);
+    } : null,
   });
   requireCrecheAbi(host.runtime);
   reviewedFormInventory = readReviewedFormInventory(host.runtime, initialFormSource);

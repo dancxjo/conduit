@@ -11,8 +11,10 @@ mod configuration;
 mod configuration_descriptors;
 mod construction_source;
 mod deployment_carrier;
+mod deployment_download;
 mod model;
 mod package_contract;
+mod release_catalog;
 mod runtime;
 mod validation;
 
@@ -27,8 +29,10 @@ pub use configuration::*;
 pub use configuration_descriptors::*;
 pub use construction_source::*;
 pub use deployment_carrier::*;
+pub use deployment_download::*;
 pub use model::*;
 pub use package_contract::*;
+pub use release_catalog::*;
 pub use runtime::*;
 pub use validation::{validate_profile, ProfileDiagnostic, ValidatedHostProfile};
 
