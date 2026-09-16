@@ -5,78 +5,19 @@
 //! an action in the exact source view; generated text never creates an action.
 
 use crate::{
-    BodySurface, BodySurfaceContext, BodySurfaceFocus, Presentation, PresentationActionRefusal,
-    PresentationError,
+    generative_manifestation::{validate_generated_manifestation, GeneratedManifestation},
+    generative_presenter_policy::{
+        GenerativePresenterBounds, GenerativePresenterPolicy, MAX_GENERATIVE_PRESENTER_POLICY_BYTES,
+    },
+    BodySurface, BodySurfaceContext, BodySurfaceFocus, Presentation, PresentationError,
 };
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
 pub const GENERATIVE_PRESENTER_INPUT_KIND: &str =
     "conduit.presentation/generative-presenter-input@1";
-pub const GENERATED_MANIFESTATION_KIND: &str = "conduit.presentation/generated-manifestation@1";
+pub const GENERATED_MANIFESTATION_KIND: &str = "conduit.presentation/generated-manifestation@2";
 pub const MAX_GENERATIVE_PRESENTER_IDENTITY_BYTES: usize = 128;
-pub const MAX_GENERATIVE_PRESENTER_POLICY_BYTES: usize = 4_096;
-/// The portable `llm/present` capability's reviewed semantic input ceiling.
-pub const MAX_GENERATIVE_PRESENTER_INPUT_BYTES: usize = 262_144;
-pub const MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES: usize = 16_384;
-pub const MAX_GENERATED_AFFORDANCES: usize = 32;
-pub const MAX_GENERATIVE_PRESENTER_TIMEOUT_MILLIS: u32 = 300_000;
-pub const MAX_GENERATIVE_PRESENTER_CONCURRENCY: u16 = 16;
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct GenerativePresenterBounds {
-    pub maximum_input_bytes: u32,
-    pub maximum_output_bytes: u32,
-    pub maximum_history_items: u16,
-    pub maximum_concurrency: u16,
-    pub timeout_millis: u32,
-}
-
-impl GenerativePresenterBounds {
-    pub const fn reviewed_default() -> Self {
-        Self {
-            maximum_input_bytes: MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
-            maximum_output_bytes: 4_096,
-            maximum_history_items: 0,
-            maximum_concurrency: 1,
-            timeout_millis: 30_000,
-        }
-    }
-
-    fn valid(&self) -> bool {
-        self.maximum_input_bytes > 0
-            && self.maximum_input_bytes as usize <= MAX_GENERATIVE_PRESENTER_INPUT_BYTES
-            && self.maximum_output_bytes > 0
-            && self.maximum_output_bytes as usize <= MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES
-            && self.maximum_history_items <= 1
-            && self.maximum_concurrency > 0
-            && self.maximum_concurrency <= MAX_GENERATIVE_PRESENTER_CONCURRENCY
-            && self.timeout_millis > 0
-            && self.timeout_millis <= MAX_GENERATIVE_PRESENTER_TIMEOUT_MILLIS
-    }
-}
-
-/// Implementation-owned instructions, deliberately separate from semantic data.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct GenerativePresenterPolicy {
-    pub template_contract_revision: String,
-    /// A replaceable presenter speaks as the supplied Body without acquiring
-    /// that Body's identity, continuity, authority, or stake.
-    pub narrator_role: GenerativeNarratorRole,
-    pub instructions: String,
-}
-
-/// The narrator's implementation role and the voice it performs are distinct.
-///
-/// Additional voice modes require an explicit reviewed contract revision; the
-/// first generative Presenter only admits the Body's first-person voice.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum GenerativeNarratorRole {
-    TransientFirstPersonBodyNarrator,
-}
-
 /// One structured semantic snapshot supplied as data to a Presenter.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -99,40 +40,6 @@ pub struct GenerativePresenterRequest {
     pub bounds: GenerativePresenterBounds,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum GeneratedManifestationDisposition {
-    Produced,
-    Truncated,
-    Refused,
-    Failed,
-    Cancelled,
-    ProviderLost,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct GeneratedActionAffordance {
-    pub action_identity: String,
-    pub source_presentation_revision: u64,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct GeneratedManifestation {
-    pub manifestation_identity: String,
-    pub request_identity: String,
-    pub source_presentation_identity: String,
-    pub source_presentation_revision: u64,
-    pub presenter_implementation_identity: String,
-    pub provider_identity: String,
-    pub model_identity: String,
-    pub template_contract_revision: String,
-    pub generation_run_identity: String,
-    pub disposition: GeneratedManifestationDisposition,
-    pub text: Vec<u8>,
-    pub affordances: Vec<GeneratedActionAffordance>,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GenerativePresenterRefusal {
     InvalidSourcePresentation(PresentationError),
@@ -143,6 +50,8 @@ pub enum GenerativePresenterRefusal {
     InvalidBounds,
     InputBoundExceeded,
     OutputBoundExceeded,
+    EmptyGeneratedContent,
+    TooManyContentSegments,
     TooManyAffordances,
     RequestMismatch,
     SourcePresentationMismatch,
@@ -150,7 +59,7 @@ pub enum GenerativePresenterRefusal {
     UnknownAction,
     UnavailableAction,
     StaleAction,
-    TextForTerminalDisposition,
+    OutputForTerminalDisposition,
 }
 
 impl GenerativePresenterRequest {
@@ -204,70 +113,11 @@ impl GenerativePresenterRequest {
         &self,
         manifestation: &GeneratedManifestation,
     ) -> Result<(), GenerativePresenterRefusal> {
-        for identity in [
-            &manifestation.manifestation_identity,
-            &manifestation.presenter_implementation_identity,
-            &manifestation.provider_identity,
-            &manifestation.model_identity,
-            &manifestation.generation_run_identity,
-        ] {
-            validate_identity(identity)?;
-        }
-        if manifestation.request_identity != self.request_identity {
-            return Err(GenerativePresenterRefusal::RequestMismatch);
-        }
-        if manifestation.source_presentation_identity
-            != self.semantic_data.source_presentation_identity
-            || manifestation.source_presentation_revision
-                != self.semantic_data.source_presentation_revision
-        {
-            return Err(GenerativePresenterRefusal::SourcePresentationMismatch);
-        }
-        if manifestation.template_contract_revision != self.policy.template_contract_revision {
-            return Err(GenerativePresenterRefusal::TemplateMismatch);
-        }
-        if manifestation.text.len() > self.bounds.maximum_output_bytes as usize {
-            return Err(GenerativePresenterRefusal::OutputBoundExceeded);
-        }
-        if manifestation.affordances.len() > MAX_GENERATED_AFFORDANCES {
-            return Err(GenerativePresenterRefusal::TooManyAffordances);
-        }
-        if !matches!(
-            manifestation.disposition,
-            GeneratedManifestationDisposition::Produced
-                | GeneratedManifestationDisposition::Truncated
-        ) && !manifestation.text.is_empty()
-        {
-            return Err(GenerativePresenterRefusal::TextForTerminalDisposition);
-        }
-        for affordance in &manifestation.affordances {
-            if affordance.source_presentation_revision
-                != self.semantic_data.source_presentation_revision
-            {
-                return Err(GenerativePresenterRefusal::StaleAction);
-            }
-            match self.semantic_data.presentation.resolve_action(
-                affordance.source_presentation_revision,
-                &affordance.action_identity,
-            ) {
-                Ok(_) => {}
-                Err(PresentationActionRefusal::StaleRevision) => {
-                    return Err(GenerativePresenterRefusal::StaleAction);
-                }
-                Err(PresentationActionRefusal::UnknownAction) => {
-                    return Err(GenerativePresenterRefusal::UnknownAction);
-                }
-                Err(
-                    PresentationActionRefusal::Unavailable { .. }
-                    | PresentationActionRefusal::Refused { .. },
-                ) => return Err(GenerativePresenterRefusal::UnavailableAction),
-            }
-        }
-        Ok(())
+        validate_generated_manifestation(self, manifestation)
     }
 }
 
-fn validate_identity(value: &str) -> Result<(), GenerativePresenterRefusal> {
+pub(crate) fn validate_identity(value: &str) -> Result<(), GenerativePresenterRefusal> {
     if value.is_empty() {
         return Err(GenerativePresenterRefusal::EmptyIdentity);
     }
@@ -281,9 +131,11 @@ fn validate_identity(value: &str) -> Result<(), GenerativePresenterRefusal> {
 mod tests {
     use super::*;
     use crate::{
-        PresentationAction, PresentationActionAvailability, PresentationBasis,
-        PresentationDisclosure, PresentationDisclosureLevel, PresentationRole, PresentationSubject,
-        PresentationText,
+        GeneratedActionAffordance, GeneratedContentRole, GeneratedContentSegment,
+        GeneratedManifestationDisposition, GenerativeNarratorRole, PresentationAction,
+        PresentationActionAvailability, PresentationBasis, PresentationDisclosure,
+        PresentationDisclosureLevel, PresentationRole, PresentationSubject, PresentationText,
+        MAX_GENERATED_CONTENT_SEGMENTS, MAX_GENERATIVE_PRESENTER_INPUT_BYTES,
     };
     use alloc::vec;
 
@@ -378,7 +230,10 @@ mod tests {
             template_contract_revision: request.policy.template_contract_revision.clone(),
             generation_run_identity: "run/present/7".into(),
             disposition: GeneratedManifestationDisposition::Produced,
-            text: b"I am awake. You can inspect this Body.".to_vec(),
+            content: vec![GeneratedContentSegment {
+                role: GeneratedContentRole::Speech,
+                bytes: b"I am awake. You can inspect this Body.".to_vec(),
+            }],
             affordances: vec![GeneratedActionAffordance {
                 action_identity: "patchbay.open".into(),
                 source_presentation_revision: 7,
@@ -436,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn generated_text_cannot_invent_or_revive_an_action() {
+    fn generated_content_cannot_invent_or_revive_an_action() {
         let request = request();
         let mut generated = manifestation(&request);
         generated.affordances[0].action_identity = "disk.format".into();
@@ -473,7 +328,7 @@ mod tests {
             Err(GenerativePresenterRefusal::TemplateMismatch)
         );
         generated = manifestation(&request);
-        generated.text = vec![b'x'; request.bounds.maximum_output_bytes as usize + 1];
+        generated.content[0].bytes = vec![b'x'; request.bounds.maximum_output_bytes as usize + 1];
         assert_eq!(
             request.validate_manifestation(&generated),
             Err(GenerativePresenterRefusal::OutputBoundExceeded)
@@ -505,6 +360,9 @@ mod tests {
 
         let generated = manifestation(&request);
         let encoded = serde_json::to_vec(&generated).unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(value["content"][0]["role"], "Speech");
+        assert!(value.get("reasoning").is_none());
         assert_eq!(
             serde_json::from_slice::<GeneratedManifestation>(&encoded).unwrap(),
             generated
@@ -542,6 +400,50 @@ mod tests {
             request.semantic_data.presentation.actions,
             surface.presentation.actions
         );
-        assert_ne!(linear.lines.join("\n").as_bytes(), generated.text);
+        assert_ne!(
+            linear.lines.join("\n").as_bytes(),
+            generated.content[0].bytes
+        );
+    }
+
+    #[test]
+    fn speech_and_presented_thought_are_explicit_bounded_manifestation_roles() {
+        let request = request();
+        let mut generated = manifestation(&request);
+        generated.content.push(GeneratedContentSegment {
+            role: GeneratedContentRole::PresentedThought,
+            bytes: b"I wonder what I will notice next.".to_vec(),
+        });
+        request.validate_manifestation(&generated).unwrap();
+        assert_eq!(generated.content[0].role, GeneratedContentRole::Speech);
+        assert_eq!(
+            generated.content[1].role,
+            GeneratedContentRole::PresentedThought
+        );
+
+        generated.content = (0..=MAX_GENERATED_CONTENT_SEGMENTS)
+            .map(|_| GeneratedContentSegment {
+                role: GeneratedContentRole::Speech,
+                bytes: b"I am here.".to_vec(),
+            })
+            .collect();
+        assert_eq!(
+            request.validate_manifestation(&generated),
+            Err(GenerativePresenterRefusal::TooManyContentSegments)
+        );
+    }
+
+    #[test]
+    fn terminal_dispositions_cannot_smuggle_content_or_actions() {
+        let request = request();
+        let mut generated = manifestation(&request);
+        generated.disposition = GeneratedManifestationDisposition::Refused;
+        assert_eq!(
+            request.validate_manifestation(&generated),
+            Err(GenerativePresenterRefusal::OutputForTerminalDisposition)
+        );
+        generated.content.clear();
+        generated.affordances.clear();
+        request.validate_manifestation(&generated).unwrap();
     }
 }
