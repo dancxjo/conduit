@@ -14,6 +14,7 @@ async function assemblePagesCarrier() {
   await cp("target/creche-product", `${pagesRoot}/creche`, { recursive: true });
   await cp("target/workspace-product", `${pagesRoot}/workspace`, { recursive: true });
   await cp("target/patchbay-product", `${pagesRoot}/patchbay`, { recursive: true });
+  await cp("target/home-product", `${pagesRoot}/home`, { recursive: true });
   await stageLegacyTourRoutes(pagesRoot);
 }
 
@@ -37,11 +38,17 @@ test("Birth on the front page arrives directly in listening Forms", async ({ pag
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
 });
 
-test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", async ({ page }) => {
+test("Conduit home and its product faces are stable sibling endpoints", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   const tour = `${home}/tour/`;
   const creche = `${home}/creche/`;
   const patchbay = `${home}/patchbay/`;
+  const homeFace = `${home}/home/`;
+
+  await page.goto(homeFace);
+  await expect(page).toHaveURL(homeFace);
+  await expect(page.locator("#host-state")).toHaveText("Browser Home is ready.");
+  await expect(page.getByRole("button", { name: "FORMS" })).toBeVisible();
 
   await page.goto(`${home}/`);
   await expect(page).toHaveURL(`${home}/`);

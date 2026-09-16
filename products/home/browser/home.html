@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-conduit-load-state="loading">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="conduit-application-package" content="./home.application.json">
+  <title>Conduit Home</title>
+  <style data-conduit-bootstrap>
+    html { background:#061017; color:#d9f5ff; font-family:Inter,system-ui,sans-serif; }
+    body { margin:0; } #conduit-suspense { position:fixed; inset:0; z-index:10; display:grid; place-items:center; background:#061017; transition:opacity .2s; }
+    html[data-conduit-load-state="ready"] #conduit-suspense { opacity:0; pointer-events:none; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#home-main">Skip to main content</a>
+  <div id="conduit-suspense" role="status" aria-live="polite" aria-busy="true"><strong>Preparing Conduit Home…</strong></div>
+  <header class="masthead">
+    <div><span class="mark" aria-hidden="true">△</span><span>CONDUIT</span></div>
+    <span>HOME · BROWSER FACE</span>
+  </header>
+  <main id="home-main" tabindex="-1">
+    <section class="brand" aria-labelledby="home-title">
+      <p class="eyebrow">ONE ENVIRONMENT. MANY PATHWAYS.</p>
+      <h1 id="home-title">CONDUIT</h1>
+      <p>SYSTEMS FOR A BRIGHTER TOMORROW.</p>
+    </section>
+    <section class="home-surface" aria-label="Conduit Home applications">
+      <div data-application-slot="home"></div>
+    </section>
+    <form id="home-command" class="command-bar">
+      <label for="command">conduit&gt;</label>
+      <input id="command" name="command" maxlength="96" autocomplete="off" spellcheck="false" placeholder="run hello" aria-describedby="host-state">
+      <button type="submit">Run</button>
+    </form>
+    <output id="host-state" role="status">Browser Host is preparing Home.</output>
+  </main>
+  <footer><span>BODY Browser</span><span>WAKE 4</span><span>PLAN idle</span><span>PLAY —</span><span>LINES 2</span><span>HOST Browser</span></footer>
+  <noscript>Conduit Home requires JavaScript and WebAssembly.</noscript>
+  <script type="module" src="./browser-application-loader.mjs"></script>
+</body>
+</html>
