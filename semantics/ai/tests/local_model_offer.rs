@@ -42,6 +42,7 @@ fn offer() -> LocalModelOffer {
         supported_profiles: vec![
             LocalModelKindProfile::Generate,
             LocalModelKindProfile::GenerateFlow,
+            LocalModelKindProfile::StreamGenerate,
             LocalModelKindProfile::ClassifyFiniteLabels,
             LocalModelKindProfile::ExtractValidatedInfo,
             LocalModelKindProfile::EmbedFiniteVector,
@@ -54,15 +55,16 @@ fn offer() -> LocalModelOffer {
 }
 
 #[test]
-fn initialized_offer_exposes_six_exact_finite_l0_capabilities() {
+fn initialized_offer_exposes_seven_exact_finite_l0_capabilities() {
     let offers = offer().capability_offers().unwrap();
-    assert_eq!(offers.len(), 6);
+    assert_eq!(offers.len(), 7);
     assert_eq!(offers[0].kind_id.as_str(), "llm/generate");
     assert_eq!(offers[1].kind_id.as_str(), "llm/generate-flow");
-    assert_eq!(offers[2].kind_id.as_str(), "llm/classify");
-    assert_eq!(offers[3].kind_id.as_str(), "llm/extract");
-    assert_eq!(offers[4].kind_id.as_str(), "llm/embed");
-    assert_eq!(offers[5].kind_id.as_str(), "llm/interpret");
+    assert_eq!(offers[2].kind_id.as_str(), "llm/generate-stream");
+    assert_eq!(offers[3].kind_id.as_str(), "llm/classify");
+    assert_eq!(offers[4].kind_id.as_str(), "llm/extract");
+    assert_eq!(offers[5].kind_id.as_str(), "llm/embed");
+    assert_eq!(offers[6].kind_id.as_str(), "llm/interpret");
     for capability in offers {
         assert_eq!(capability.host_operations.len(), 1);
         assert_eq!(

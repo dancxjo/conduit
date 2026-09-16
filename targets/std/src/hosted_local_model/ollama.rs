@@ -1,4 +1,7 @@
-use super::{HostedLocalModelAdapter, LocalModelAdapterTerminal};
+use super::{
+    HostedLocalModelAdapter, LocalModelAdapterTerminal, LocalModelStreamStep,
+    StreamingChunkDisposition,
+};
 use conduit_ai::{
     ExtractedField, FiniteClassification, FiniteEmbedding, InterpretationDisposition,
     InterpretationProvenance, InterpretationRequest, LlmDeterminismProfile, LlmWorkBounds,
@@ -36,6 +39,7 @@ pub struct OllamaLocalModelAdapter {
     offer: LocalModelOffer,
     model_name: String,
     next_request_sequence: u64,
+    active_stream: Option<super::ollama_stream::Session>,
 }
 
 #[derive(Deserialize)]
@@ -215,6 +219,7 @@ impl OllamaDiscovery {
             offer,
             model_name: self.model_name,
             next_request_sequence: 1,
+            active_stream: None,
         };
         if needs_completion {
             let warmup = adapter.generate("Reply with one word.", 1, false)?;
@@ -509,6 +514,93 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             }
             _ => LocalModelAdapterTerminal::Failed,
         }
+    }
+
+    fn execute_stream(
+        &mut self,
+        placement: &PlannedGear,
+        input: &[u8],
+        sink: &mut dyn FnMut(&conduit_ai::GeneratedTextChunk) -> StreamingChunkDisposition,
+    ) -> conduit_ai::GeneratedTextFlowEvidence {
+        if placement.kind_id.as_str() != conduit_ai::LLM_STREAM_GENERATE_KIND {
+            return super::ollama_stream::empty(
+                conduit_ai::GeneratedTextFlowTerminal::ProviderLost,
+            );
+        }
+        let Ok(input) = std::str::from_utf8(input) else {
+            return super::ollama_stream::empty(
+                conduit_ai::GeneratedTextFlowTerminal::ProviderLost,
+            );
+        };
+        let maximum_output_bytes = configuration_count(placement, "maximum-output-bytes")
+            .unwrap_or(self.offer.limits.work.maximum_output_bytes)
+            .min(self.offer.limits.work.maximum_output_bytes);
+        let maximum_tokens = maximum_output_bytes
+            .checked_div(8)
+            .unwrap_or(1)
+            .clamp(1, 512);
+        super::ollama_stream::generate(
+            OLLAMA_ENDPOINT,
+            REQUEST_TIMEOUT_SECONDS,
+            &self.model_name,
+            input,
+            maximum_tokens,
+            maximum_output_bytes,
+            sink,
+        )
+    }
+
+    fn execute_stream_step(
+        &mut self,
+        placement: &PlannedGear,
+        input: &[u8],
+    ) -> LocalModelStreamStep {
+        if placement.kind_id.as_str() != conduit_ai::LLM_STREAM_GENERATE_KIND {
+            return LocalModelStreamStep::Terminal(super::ollama_stream::empty(
+                conduit_ai::GeneratedTextFlowTerminal::ProviderLost,
+            ));
+        }
+        if self.active_stream.is_none() {
+            let Ok(input) = std::str::from_utf8(input) else {
+                return LocalModelStreamStep::Terminal(super::ollama_stream::empty(
+                    conduit_ai::GeneratedTextFlowTerminal::ProviderLost,
+                ));
+            };
+            let maximum_output_bytes = configuration_count(placement, "maximum-output-bytes")
+                .unwrap_or(self.offer.limits.work.maximum_output_bytes)
+                .min(self.offer.limits.work.maximum_output_bytes);
+            let maximum_tokens = maximum_output_bytes
+                .checked_div(8)
+                .unwrap_or(1)
+                .clamp(1, 512);
+            match super::ollama_stream::Session::spawn(
+                OLLAMA_ENDPOINT,
+                REQUEST_TIMEOUT_SECONDS,
+                &self.model_name,
+                input,
+                maximum_tokens,
+                maximum_output_bytes,
+            ) {
+                Ok(session) => self.active_stream = Some(session),
+                Err(evidence) => return LocalModelStreamStep::Terminal(evidence),
+            }
+        }
+        let step = self
+            .active_stream
+            .as_mut()
+            .expect("stream was initialized")
+            .next();
+        match step {
+            super::ollama_stream::Step::Chunk(chunk) => LocalModelStreamStep::Chunk(chunk),
+            super::ollama_stream::Step::Terminal(evidence) => {
+                self.active_stream = None;
+                LocalModelStreamStep::Terminal(evidence)
+            }
+        }
+    }
+
+    fn cancel_stream(&mut self) {
+        self.active_stream = None;
     }
 }
 

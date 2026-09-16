@@ -6,6 +6,7 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 pub const LLM_GENERATE_KIND: &str = "llm/generate";
+pub const LLM_STREAM_GENERATE_KIND: &str = "llm/generate-stream";
 pub const LLM_GENERATE_FLOW_KIND: &str = "llm/generate-flow";
 pub const LLM_CLASSIFY_KIND: &str = "llm/classify";
 pub const LLM_EXTRACT_KIND: &str = "llm/extract";
@@ -20,10 +21,11 @@ pub const MAXIMUM_LLM_CONTEXT_ITEMS: u64 = 128;
 pub const MAXIMUM_LLM_OUTPUT_BYTES: u64 = 65_536;
 pub const MAXIMUM_LLM_WORK_UNITS: u64 = 1_000_000;
 pub const MAXIMUM_LLM_HISTORY_ITEMS: u64 = 64;
-pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 9;
+pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 10;
 
 pub const GENERATION_REQUEST_VALUE_KIND: &str = "llm/generation-request@1";
 pub const GENERATED_RESULT_VALUE_KIND: &str = "llm/generated-result@1";
+pub const GENERATED_TEXT_CHUNK_VALUE_KIND: &str = "llm/generated-text-chunk@1";
 const CLASSIFICATION_REQUEST: &str = "llm/classification-request@1";
 const CLASSIFICATION_RESULT: &str = "llm/classification-result@1";
 const EXTRACTION_REQUEST: &str = "llm/extraction-request@1";
@@ -159,7 +161,20 @@ pub fn llm_semantic_catalog() -> [LlmSemanticContract; MAXIMUM_LLM_CATALOG_KINDS
         contract(LLM_PROPOSE_KIND, PROPOSAL_REQUEST, PROPOSAL_RESULT),
         contract(LLM_COMPOSE_KIND, COMPOSITION_REQUEST, COMPOSITION_RESULT),
         contract(LLM_JUDGE_KIND, JUDGMENT_REQUEST, JUDGMENT_RESULT),
+        stream_contract(),
     ]
+}
+
+fn stream_contract() -> LlmSemanticContract {
+    let mut contract = contract(
+        LLM_STREAM_GENERATE_KIND,
+        GENERATION_REQUEST_VALUE_KIND,
+        GENERATED_TEXT_CHUNK_VALUE_KIND,
+    );
+    contract.kind_contract_revision = KindContractRevision::from("conduit.llm/generate-stream@1");
+    contract.outputs[0].temporal = PortTemporal::Flow { closes: true };
+    contract.limits.max_queue_items = 8;
+    contract
 }
 
 pub fn llm_contract(kind: &str) -> Option<LlmSemanticContract> {
