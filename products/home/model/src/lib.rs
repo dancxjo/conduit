@@ -9,8 +9,10 @@ use conduit_presentation::{
 };
 
 mod evidence;
+mod journey;
 mod speech;
 pub use evidence::*;
+pub use journey::*;
 pub use speech::*;
 
 pub const MAX_COMMAND_BYTES: usize = 96;
