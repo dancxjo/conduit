@@ -44,7 +44,7 @@ browser_safe_not_applicable = "portable House conversation has no installed brow
 slug = "live-conversation"
 title = "Live Conversation"
 entry = "live-conversation"
-deterministic = { package = "conduit-std-host", test = "live_conversation", case = "canonical_live_conversation_is_one_reviewed_temporal_form" }
+deterministic = { package = "conduit-std-host", test = "live_conversation_execution", case = "checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts" }
 browser_safe_not_applicable = "live audio acquisition, streaming model generation, synthesis, and presentation require explicitly admitted realizations"
 [[forms]]
 slug = "house-spoken-response"
