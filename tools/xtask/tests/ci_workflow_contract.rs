@@ -772,7 +772,7 @@ fn browser_home_is_staged_proven_in_two_engines_and_carried_to_pages() {
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
 
-    assert!(workflow.contains("--no-default-features --features home-surface"));
+    assert!(workflow.contains("--no-default-features --features home-surface,form-runner"));
     assert!(workflow.contains("products/home/tools/stage-home-product.sh"));
     assert!(workflow.contains("proof/browser/home-host.spec.mjs"));
     assert!(workflow.contains("name: Prove portable Home in pinned Firefox"));

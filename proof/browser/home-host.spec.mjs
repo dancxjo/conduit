@@ -2,9 +2,9 @@ import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { startStaticProduct } from "./tour-test-server.mjs";
 
-const JOURNEY = [
+const LOCAL_STEPS = [
   "home.arrived", "forms.opened", "form.selected", "prompt.opened",
-  "form.run", "play.observed", "patchbay.opened", "home.returned",
+  "form.run", "play.observed",
 ];
 
 let entrance;
@@ -29,17 +29,14 @@ test("portable Home journey runs through the shared model", async ({ page }, tes
   await expect(page.getByText("Conduit Prompt")).toBeVisible();
   await command.fill("run hello");
   await command.press("Enter");
-  await expect(page.locator("#host-state")).toHaveAttribute("data-request", "5");
+  await expect(page.locator("#host-state")).toHaveText("HELLO, WORLD.");
+  await expect(page.locator("#host-state")).toHaveAttribute("data-play-disposition", "completed");
 
-  await command.fill("home");
-  await command.press("Enter");
-  await page.getByRole("button", { name: "PATCHBAY" }).click();
-  await expect(page.locator("#host-state")).toHaveAttribute("data-request", "2");
   await command.fill("home");
   await command.press("Enter");
   await expect(page.getByRole("button", { name: "TOUR" })).toBeVisible();
 
-  await expect(page.locator("html")).toHaveAttribute("data-home-steps", JOURNEY.join(","));
+  await expect(page.locator("html")).toHaveAttribute("data-home-steps", LOCAL_STEPS.join(","));
   expect(["chromium", "firefox"]).toContain(testInfo.project.name);
 });
 
