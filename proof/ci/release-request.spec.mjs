@@ -149,11 +149,21 @@ test("integration covers a skipped intermediate change even when the newest push
   assert.match(workflow, /test "\$INPUT_SHA" = "\$EVENT_SHA"/);
 });
 
-test("release admission has one serialized trusted entry and a lost-wakeup recovery", () => {
+test("release admission wakes from state changes instead of polling", () => {
   const workflow = readFileSync(".github/workflows/promote-dev.yml", "utf8");
   const adapter = readFileSync("tools/ci/release-request-github.mjs", "utf8");
+  const releaseLane = readFileSync(".github/workflows/release-lane.yml", "utf8");
+  const releaseLaneAdapter = readFileSync("tools/ci/release-lane-github.mjs", "utf8");
+  const finalizer = readFileSync(".github/workflows/finalize-release.yml", "utf8");
+  const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
   assert.match(workflow, /group: promote-dev-to-main\n  cancel-in-progress: false/);
-  assert.match(workflow, /cron: "\*\/10 \* \* \* \*"/);
+  assert.match(workflow, /workflow_run:\n    workflows: \[dev-integration\]/);
+  assert.match(workflow, /pull_request_target:\n    types: \[closed\]\n    branches: \[main, dev\]/);
+  assert.doesNotMatch(workflow, /^  schedule:/m);
+  assert.doesNotMatch(workflow, /^    - cron:/m);
+  assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/);
+  assert.match(workflow, /startsWith\(github\.event\.pull_request\.head\.ref, 'release\/'\)/);
+  assert.match(workflow, /startsWith\(github\.event\.pull_request\.head\.ref, 'sync-release\/'\)/);
   assert.match(workflow, /ref: main/);
   assert.match(workflow, /if test ! -f tools\/ci\/release-request-github\.mjs/);
   assert.match(workflow, /Deferred until the trusted main controller contains release-request-github\.mjs/);
@@ -164,4 +174,14 @@ test("release admission has one serialized trusted entry and a lost-wakeup recov
   for (const field of ["id", "head_sha", "head_branch", "head_repository", "event", "status", "conclusion", "created_at"]) {
     assert.match(adapter, new RegExp(`\\b${field}\\b`));
   }
+  assert.match(releaseLane, /workflows: \[promotion\]/);
+  assert.match(releaseLane, /types: \[requested, in_progress, completed\]/);
+  assert.match(releaseLane, /^    - cron: "17 \* \* \* \*"$/m);
+  assert.doesNotMatch(releaseLane, /^    - cron: "\*\/5 \* \* \* \*"$/m);
+  assert.match(releaseLaneAdapter, /actions\/workflows\/promote-dev\.yml\/dispatches/);
+  assert.match(releaseLaneAdapter, /releaseAdmissionNeedsWake/);
+  assert.match(finalizer, /Revisit queued development after a no-op synchronization/);
+  assert.match(finalizer, /if: steps\.merge\.outputs\.changed == 'false'/);
+  assert.match(finalizer, /gh workflow run promote-dev\.yml --ref main/);
+  assert.match(monitor, /if test "\$expected_tree" = "\$base_tree"; then[\s\S]*gh pr close "\$pr_url"[\s\S]*gh workflow run promote-dev\.yml --ref main/);
 });

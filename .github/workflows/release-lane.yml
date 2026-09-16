@@ -5,8 +5,10 @@ on:
   workflow_run:
     workflows: [promotion]
     types: [requested, in_progress, completed]
+  # Workflow-run transitions and monitor-trusted-pr dispatches are the normal
+  # wake-ups. Keep one dead-man pass each hour in case the monitor itself dies.
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "17 * * * *"
 
 permissions:
   actions: write

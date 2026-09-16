@@ -123,6 +123,10 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(request, /workflow_dispatch/);
   assert.match(request, /workflow_run:/);
   assert.match(request, /workflows: \[dev-integration\]/);
+  assert.match(request, /pull_request_target:/);
+  assert.match(request, /types: \[closed\]/);
+  assert.match(request, /branches: \[main, dev\]/);
+  assert.doesNotMatch(request, /^  schedule:/m);
   assert.match(request, /Admit one batch from fresh successful integration evidence/);
   assert.match(request, /integrated_sha:/);
   assert.match(request, /node tools\/ci\/release-request-github.mjs/);
@@ -158,12 +162,15 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(finalizer, /git merge-tree --write-tree "\$base_sha" "\$HEAD_SHA"/);
   assert.match(finalizer, /if test "\$state" = OPEN && test "\$expected_tree" = "\$base_tree"/);
   assert.match(finalizer, /Development already contains the accepted release tree/);
+  assert.match(finalizer, /if: steps\.merge\.outputs\.changed == 'false'/);
+  assert.match(finalizer, /gh workflow run promote-dev\.yml --ref main/);
   assert.match(finalizer, /if: steps\.merge\.outputs\.changed == 'true'/);
   assert.match(finalizer, /test "\$\(git rev-parse "\$merge_sha\^\{tree\}"\)" = "\$expected_tree"/);
   assert.match(finalizer, /gh workflow run tour-and-creche-pages --ref main/);
   assert.match(finalizer, /gh workflow run sync-release-to-dev\.yml --ref main/);
   assert.match(finalizer, /gh workflow run dev-integration\.yml --ref dev/);
   const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
+  assert.match(monitor, /if test "\$expected_tree" = "\$base_tree"; then[\s\S]*gh pr close "\$pr_url"[\s\S]*gh workflow run promote-dev\.yml --ref main/);
   const admission = readFileSync("tools/ci/release-request.mjs", "utf8");
   assert.match(admission, /monitor-trusted-pr.yml\/dispatches/);
   assert.doesNotMatch(sync, /gh workflow run monitor-trusted-pr\.yml --ref main/);
@@ -209,7 +216,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   const releaseLane = readFileSync(".github/workflows/release-lane.yml", "utf8");
   assert.match(releaseLane, /workflows: \[promotion\]/);
   assert.match(releaseLane, /types: \[requested, in_progress, completed\]/);
-  assert.match(releaseLane, /cron: "\*\/5 \* \* \* \*"/);
+  assert.match(releaseLane, /^    - cron: "17 \* \* \* \*"$/m);
+  assert.doesNotMatch(releaseLane, /^    - cron: "\*\/5 \* \* \* \*"$/m);
   assert.match(releaseLane, /actions: write/);
   assert.match(releaseLane, /issues: write/);
   assert.match(releaseLane, /group: release-lane-controller/);
@@ -217,6 +225,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(releaseLane, /node tools\/ci\/release-lane-github\.mjs --apply/);
   const releaseLaneGithub = readFileSync("tools/ci/release-lane-github.mjs", "utf8");
   assert.match(releaseLaneGithub, /\/actions\/runs\/\$\{run\.id\}\/jobs\?per_page=100&filter=latest/);
+  assert.match(releaseLaneGithub, /actions\/workflows\/promote-dev\.yml\/dispatches/);
   assert.doesNotMatch(releaseLaneGithub, /run\.status === "waiting"/);
   const approval = readFileSync(".github/workflows/approve-release-automation.yml", "utf8");
   assert.match(approval, /workflows: \[promotion, candidate\]/);
