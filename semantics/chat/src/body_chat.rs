@@ -1,13 +1,22 @@
 //! Provider-neutral, bounded Body Chat prompt and conversation state.
 
-use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+#[cfg(feature = "form-catalog")]
+use alloc::vec;
+use alloc::{
+    collections::VecDeque,
+    format,
+    string::{String, ToString},
+    vec::Vec,
 };
+use conduit_core::CapabilityLimits;
+#[cfg(feature = "form-catalog")]
+use conduit_core::{
+    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+};
+#[cfg(feature = "form-catalog")]
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::VecDeque, string::String, vec, vec::Vec};
 
 pub const BODY_CHAT_PROMPT_KIND: &str = "body/chat-prompt";
 pub const BODY_CONVERSATION_CONTEXT_KIND: &str = "body/conversation-context";
@@ -212,6 +221,7 @@ fn decode_message(bytes: &[u8]) -> Result<&str, BodyChatRefusal> {
     core::str::from_utf8(bytes).map_err(|_| BodyChatRefusal::MalformedContext)
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn body_chat_prompt_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(BODY_CHAT_PROMPT_KIND),
@@ -242,6 +252,7 @@ pub fn body_chat_prompt_definition() -> KindDefinition {
     }
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn body_conversation_context_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(BODY_CONVERSATION_CONTEXT_KIND),
@@ -257,6 +268,7 @@ pub fn body_conversation_context_definition() -> KindDefinition {
     }
 }
 
+#[cfg(feature = "form-catalog")]
 fn port(name: &str, kind: &str, temporal: PortTemporal) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
@@ -265,6 +277,7 @@ fn port(name: &str, kind: &str, temporal: PortTemporal) -> PortDescriptor {
         temporal,
     }
 }
+#[cfg(feature = "form-catalog")]
 fn output(name: &str, kind: &str) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
@@ -274,6 +287,7 @@ fn output(name: &str, kind: &str) -> PortDescriptor {
     }
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn install_body_chat_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,

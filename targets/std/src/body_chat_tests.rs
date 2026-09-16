@@ -37,14 +37,14 @@ fn generic_host_cannot_offer_body_truth_until_supervisor_installs_canonical_cont
         .advertisement()
         .capabilities
         .iter()
-        .any(|offer| offer.kind_id.as_str() == conduit_tongues::BODY_CONVERSATION_CONTEXT_KIND));
+        .any(|offer| offer.kind_id.as_str() == conduit_chat::BODY_CONVERSATION_CONTEXT_KIND));
     host.install_body_conversation_context(&context()).unwrap();
     assert_eq!(host.advertisement().offer_generation, OfferGeneration(8));
     assert!(host
         .advertisement()
         .capabilities
         .iter()
-        .any(|offer| offer.kind_id.as_str() == conduit_tongues::BODY_CONVERSATION_CONTEXT_KIND));
+        .any(|offer| offer.kind_id.as_str() == conduit_chat::BODY_CONVERSATION_CONTEXT_KIND));
     host.install_body_conversation_context(&context()).unwrap();
     assert_eq!(host.advertisement().offer_generation, OfferGeneration(8));
 }
