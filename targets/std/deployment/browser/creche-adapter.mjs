@@ -1,4 +1,4 @@
-import { createExistingComputerAdapter, EXISTING_COMPUTER_BOUNDS, EXISTING_COMPUTER_MODES } from "../../../creche-existing-computer.mjs";
+import { createExistingComputerAdapter, EXISTING_COMPUTER_BOUNDS, EXISTING_COMPUTER_RENDEZVOUS_MODES } from "../../../creche-existing-computer.mjs";
 
 const FAMILY = Object.freeze({ id: "conduit-target-family/hosted-computer@1", label: "Hosted computers" });
 
@@ -43,7 +43,7 @@ export const STD_EXISTING_COMPUTER_CONTRIBUTIONS = Object.freeze(PROFILES.map((t
   schema: "conduit.creche/physical-host-target-entry@1",
   family: FAMILY,
   target: targetProfile.target,
-  intentions: EXISTING_COMPUTER_MODES,
+  intentions: EXISTING_COMPUTER_RENDEZVOUS_MODES,
   fabrication_strategies: Object.freeze([
     Object.freeze({ id: "reviewed-generic-release-download", label: "Reviewed generic native release" }),
   ]),
@@ -52,8 +52,13 @@ export const STD_EXISTING_COMPUTER_CONTRIBUTIONS = Object.freeze(PROFILES.map((t
     installation: Object.freeze([
       Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound native ZIP" }),
     ]),
-    attachment: Object.freeze([]),
-    observation: Object.freeze([]),
+    attachment: Object.freeze([
+      Object.freeze({ id: "conduit-carrier/rendezvous-code@1", label: "One-use rendezvous code" }),
+    ]),
+    observation: Object.freeze([
+      Object.freeze({ id: "conduit-line/loopback-websocket@1", label: "Local WebSocket Line" }),
+      Object.freeze({ id: "conduit-line/serial-text@1", label: "Browser-attended serial Line" }),
+    ]),
   }),
   bounds: EXISTING_COMPUTER_BOUNDS,
   expected_join_contract: "conduit.host/native-spawn-observation@1",
@@ -79,6 +84,7 @@ function profile({ id, label, profileId, manifest, os, architecture, machine }) 
     os,
     architecture,
     browser_carrier: false,
+    rendezvous: true,
     declaration: Object.freeze({
       schema: "conduit.host/creche-existing-computer-profile@1",
       os,
@@ -89,8 +95,8 @@ function profile({ id, label, profileId, manifest, os, architecture, machine }) 
       package_id: "hosted-native@1",
       output: "native-bundle",
       acquisition: "reviewed generic release download",
-      implemented_carriers: ["conduit-carrier/browser-release-download@1"],
-      unavailable_carriers: ["explicit-helper", "ssh", "package-manager", "container", "already-running"],
+      implemented_carriers: ["conduit-carrier/browser-release-download@1", "conduit-carrier/rendezvous-code@1", "conduit-line/loopback-websocket@1", "conduit-line/serial-text@1"],
+      unavailable_carriers: ["explicit-helper", "ssh", "package-manager", "container", "webrtc", "usb", "bluetooth"],
     }),
   });
 }

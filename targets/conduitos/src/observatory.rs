@@ -65,7 +65,7 @@ pub fn prepare_export(
     image_id: &str,
     framebuffer: Option<&FramebufferBasis>,
 ) -> Result<PreparedObservatoryExport, ExportError> {
-    if record.artifact_count != 0 {
+    if !crate::boot::has_only_optional_spore_artifact(record) {
         return Err(ExportError::UnsupportedBootArtifacts);
     }
     if usize::from(record.framebuffer_count) != framebuffer.iter().count() {

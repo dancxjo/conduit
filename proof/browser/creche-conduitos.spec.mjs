@@ -103,7 +103,7 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
   };
   expect(nativeIso).toMatchObject({
     isoMagic: "CD001",
-    bytes: release.manifest.artifact.bytes + 4096,
+    bytes: release.manifest.artifact.bytes,
     provision: {
       image_bytes: release.manifest.artifact.bytes,
       spore: { spore_id: evidence.binding.spore_id, body_id: evidence.binding.body_id },
@@ -176,7 +176,7 @@ test("architecture, machine, firmware, bootloader, role, stale IMAGE, and absent
     const capture = (work) => { try { work(); return "accepted"; } catch (error) { return error.code; } };
     const mutate = (change) => { const candidate = structuredClone(manifest); change(candidate); return image.validateConduitOsReleaseManifest(candidate, adapter.CONDUITOS_X86_64_PROFILE); };
     const artifactDigest = `sha256:${"9".repeat(64)}`;
-    const artifactBytes = manifest.artifact.bytes + 4096;
+    const artifactBytes = manifest.artifact.bytes;
     const binding = {
       prepared: { image_content_digest: manifest.artifact.sha256 },
       nativeSpore: { content_digest: artifactDigest, bytes: { byteLength: artifactBytes } },

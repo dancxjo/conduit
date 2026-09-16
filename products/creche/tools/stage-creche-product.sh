@@ -31,6 +31,7 @@ cp products/creche/browser/creche-native-zip.mjs "$destination/creche-native-zip
 cp products/creche/browser/creche-native-disk.mjs "$destination/creche-native-disk.mjs"
 cp products/creche/browser/creche-release-bundle.mjs "$destination/creche-release-bundle.mjs"
 cp products/creche/browser/creche-existing-computer.mjs "$destination/creche-existing-computer.mjs"
+cp products/creche/browser/creche-rendezvous.mjs "$destination/creche-rendezvous.mjs"
 cp products/creche/browser/creche-graduation.mjs "$destination/creche-graduation.mjs"
 cp products/creche/browser/creche-routing.mjs "$destination/creche-routing.mjs"
 cp targets/browser/host/assets/application-syntax-presentation.mjs "$destination/application-syntax-presentation.mjs"

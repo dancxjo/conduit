@@ -31,7 +31,7 @@ pub fn completed_snapshot(
     image_id: &str,
     framebuffer: Option<&FramebufferBasis>,
 ) -> Result<String, ExportError> {
-    if record.artifact_count != 0 {
+    if !crate::boot::has_only_optional_spore_artifact(record) {
         return Err(ExportError::UnsupportedBootArtifacts);
     }
     if usize::from(record.framebuffer_count) != framebuffer.iter().count() {
