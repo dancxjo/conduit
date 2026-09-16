@@ -63,7 +63,7 @@ pub(super) fn execute(
     contract: &str,
     placement: &PlannedGear,
     input: &[u8],
-    local_model: Option<&mut dyn HostedLocalModelAdapter>,
+    local_model: Option<&mut (dyn HostedLocalModelAdapter + 'static)>,
     output: &mut Vec<u8>,
 ) -> Result<ModelHostCompletion, String> {
     output.clear();
