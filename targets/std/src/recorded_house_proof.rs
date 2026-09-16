@@ -310,6 +310,8 @@ fn run_with_source(
 
     let topology = crate::house_conversation_topology::build(microphone_source, spoken_output)?;
     let expanded = topology.expanded;
+    let executed_source_document_id = expanded.source_document_id.as_str().to_string();
+    let executed_checked_form_id = expanded.checked_form_id.as_str().to_string();
     let connection_limits = topology.connection_limits;
     let advertisements = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &advertisements)?;
@@ -443,6 +445,9 @@ fn run_with_source(
     let microphone = report.microphone.into_iter().next();
     Ok(HouseRunReceipt {
         house: RecordedHouseProofReceipt {
+            executed_source_document_id,
+            executed_checked_form_id,
+            semantic_topology_origin: "rust-assembled-proof-fixture".into(),
             plan_id,
             play_id: recognition.active_play_id.as_str().to_string(),
             whisper_implementation_id: recognition.implementation_id.as_str().to_string(),
