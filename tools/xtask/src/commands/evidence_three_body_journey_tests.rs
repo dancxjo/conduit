@@ -7,6 +7,10 @@ fn contract() -> JourneyContract {
         git_commit: "a".repeat(40),
         steps: vec![ContractStep {
             step_id: "body.born".into(),
+            title: "A Body is born".into(),
+            what_happened: "The accepted birth operation created a new Body.".into(),
+            what_conduit_established: "One distinct Body identity now exists.".into(),
+            concepts: vec!["Body".into(), "biography".into()],
             required_assertion: "one-new-body-exists".into(),
             allowed_dispositions: vec!["established".into()],
             required_evidence_classes: vec!["semantic-receipt".into()],
@@ -58,6 +62,7 @@ fn track(index: usize, hosts: usize) -> BodyTrack {
             evidence: vec![StepEvidence {
                 artifact_id: format!("artifact-{index}"),
                 evidence_class: "semantic-receipt".into(),
+                documentary_description: "The exact accepted birth receipt.".into(),
                 path: PathBuf::from(format!("artifact-{index}.json")),
                 sha256: format!("sha256:{:064x}", index + 1),
             }],
@@ -151,6 +156,7 @@ fn published_index_preserves_semantic_assertions_and_non_claims() {
         semantic_steps: contract.steps,
         tracks: complete(),
     };
+    let page = page::render(&index);
     let value = serde_json::to_value(index).unwrap();
     assert_eq!(
         value["semantic_steps"][0]["required_assertion"],
@@ -161,4 +167,34 @@ fn published_index_preserves_semantic_assertions_and_non_claims() {
         "not-physical-proof"
     );
     assert_eq!(value["tracks"].as_array().unwrap().len(), REQUIRED_TRACKS);
+    assert!(page.contains("Follow one Body"));
+    assert!(page.contains("Compare one semantic step"));
+    assert!(page.contains("not-physical-proof"));
+}
+
+#[test]
+fn publication_writes_both_views_and_refuses_overwrite() {
+    let contract = contract();
+    let index = ThreeBodyJourneyIndex {
+        schema: INDEX_SCHEMA,
+        disposition: "complete",
+        journey_id: contract.journey_id,
+        git_commit: contract.git_commit,
+        semantic_steps: contract.steps,
+        tracks: complete(),
+    };
+    let root = std::env::temp_dir().join(format!(
+        "conduit-three-body-publication-{}",
+        std::process::id()
+    ));
+    let output = root.join("index.json");
+    std::fs::create_dir_all(&root).unwrap();
+    publish(&index, &output).unwrap();
+    assert!(output.is_file());
+    assert!(output.with_extension("html").is_file());
+    assert_eq!(
+        publish(&index, &output).unwrap_err(),
+        "three-Body Journey publication refuses overwrite"
+    );
+    std::fs::remove_dir_all(root).unwrap();
 }

@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@1";
 const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@1";
@@ -13,6 +13,15 @@ const MAXIMUM_STEPS: usize = 32;
 const MAXIMUM_HOSTS_PER_BODY: usize = 8;
 const MAXIMUM_EVIDENCE_PER_STEP: usize = 8;
 const REQUIRED_TRACKS: usize = 3;
+
+#[path = "evidence_three_body_journey_page.rs"]
+mod page;
+#[path = "evidence_three_body_journey_support.rs"]
+mod support;
+use support::{
+    read_bounded_json, valid_commit, valid_identity, valid_narrative, valid_sha256,
+    validate_relative_path,
+};
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -27,6 +36,10 @@ struct JourneyContract {
 #[serde(deny_unknown_fields)]
 struct ContractStep {
     step_id: String,
+    title: String,
+    what_happened: String,
+    what_conduit_established: String,
+    concepts: Vec<String>,
     required_assertion: String,
     allowed_dispositions: Vec<String>,
     required_evidence_classes: Vec<String>,
@@ -98,6 +111,7 @@ struct StepProvenance {
 struct StepEvidence {
     artifact_id: String,
     evidence_class: String,
+    documentary_description: String,
     path: PathBuf,
     sha256: String,
 }
@@ -126,10 +140,6 @@ pub(super) fn run(
     for (track, source) in tracks.iter().zip(&track_paths) {
         verify_artifacts(track, source)?;
     }
-    let parent = output
-        .parent()
-        .ok_or("three-Body Journey output has no parent")?;
-    std::fs::create_dir_all(parent)?;
     let index = ThreeBodyJourneyIndex {
         schema: INDEX_SCHEMA,
         disposition: "complete",
@@ -138,14 +148,36 @@ pub(super) fn run(
         semantic_steps: contract.steps,
         tracks,
     };
-    let bytes = serde_json::to_vec_pretty(&index)?;
+    publish(&index, &output)?;
+    println!("THREE-BODY JOURNEY INDEX COMPLETE: {}", output.display());
+    Ok(())
+}
+
+fn publish(index: &ThreeBodyJourneyIndex, output: &Path) -> Result<(), String> {
+    let parent = output
+        .parent()
+        .ok_or("three-Body Journey output has no parent")?;
+    std::fs::create_dir_all(parent)
+        .map_err(|error| format!("create three-Body Journey output: {error}"))?;
+    let bytes = serde_json::to_vec_pretty(&index)
+        .map_err(|error| format!("encode three-Body Journey index: {error}"))?;
+    let page_path = output.with_extension("html");
+    if output.exists() || page_path.exists() {
+        return Err("three-Body Journey publication refuses overwrite".into());
+    }
+    let page = page::render(index);
     std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(&output)
+        .open(output)
         .and_then(|mut file| std::io::Write::write_all(&mut file, &bytes))
         .map_err(|error| format!("create three-Body Journey index: {error}"))?;
-    println!("THREE-BODY JOURNEY INDEX COMPLETE: {}", output.display());
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&page_path)
+        .and_then(|mut file| std::io::Write::write_all(&mut file, page.as_bytes()))
+        .map_err(|error| format!("create three-Body Journey page: {error}"))?;
     Ok(())
 }
 
@@ -162,6 +194,11 @@ fn validate(contract: &JourneyContract, tracks: &[BodyTrack]) -> Result<(), Stri
     for step in &contract.steps {
         if !step_ids.insert(step.step_id.as_str())
             || !valid_identity(&step.step_id)
+            || !valid_narrative(&step.title)
+            || !valid_narrative(&step.what_happened)
+            || !valid_narrative(&step.what_conduit_established)
+            || step.concepts.is_empty()
+            || step.concepts.iter().any(|value| !valid_identity(value))
             || !valid_identity(&step.required_assertion)
             || step.allowed_dispositions.is_empty()
             || step.required_evidence_classes.is_empty()
@@ -400,6 +437,7 @@ fn verify_artifacts(track: &BodyTrack, source: &Path) -> Result<(), String> {
             || !artifact_paths.insert(&evidence.path)
             || !valid_identity(&evidence.artifact_id)
             || !valid_identity(&evidence.evidence_class)
+            || !valid_narrative(&evidence.documentary_description)
             || !valid_sha256(&evidence.sha256)
         {
             return Err(format!(
@@ -433,49 +471,6 @@ fn verify_artifacts(track: &BodyTrack, source: &Path) -> Result<(), String> {
         if format!("sha256:{:x}", Sha256::digest(&bytes)) != evidence.sha256 {
             return Err(format!("{} artifact digest changed", evidence.artifact_id));
         }
-    }
-    Ok(())
-}
-
-fn read_bounded_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, String> {
-    let bytes = std::fs::read(path).map_err(|error| format!("read {}: {error}", path.display()))?;
-    if bytes.is_empty() || bytes.len() > MAXIMUM_DOCUMENT_BYTES {
-        return Err(format!(
-            "{} violates the document byte bound",
-            path.display()
-        ));
-    }
-    serde_json::from_slice(&bytes).map_err(|error| format!("decode {}: {error}", path.display()))
-}
-
-fn valid_identity(value: &str) -> bool {
-    !value.trim().is_empty() && value.len() <= 256
-}
-
-fn valid_commit(value: &str) -> bool {
-    value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
-}
-
-fn valid_sha256(value: &str) -> bool {
-    value.len() == 71
-        && value.starts_with("sha256:")
-        && value[7..].bytes().all(|byte| byte.is_ascii_hexdigit())
-}
-
-fn validate_relative_path(path: &Path) -> Result<(), String> {
-    if path.as_os_str().is_empty()
-        || path.is_absolute()
-        || path.components().any(|component| {
-            matches!(
-                component,
-                Component::CurDir
-                    | Component::ParentDir
-                    | Component::RootDir
-                    | Component::Prefix(_)
-            )
-        })
-    {
-        return Err("Journey artifact path must be root-confined and relative".into());
     }
     Ok(())
 }
