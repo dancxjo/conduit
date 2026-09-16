@@ -190,6 +190,9 @@ fn action_name(action: &HomeAction) -> &'static str {
 }
 
 fn spoken_for_home(command: &str) -> Result<(&'static str, String), Box<dyn std::error::Error>> {
+    if command.trim().is_empty() {
+        return Err("Home Voice recognized no committed command".into());
+    }
     let mut home = HomeModel::new();
     let action = home.submit_text(command, &FORMS);
     let action_name = action_name(&action);
@@ -248,5 +251,13 @@ mod tests {
         let (action, spoken) = spoken_for_home("open patchbay").unwrap();
         assert_eq!(action, "open-patchbay");
         assert_eq!(spoken, "open-patchbay is unavailable on this Voice Host.");
+    }
+
+    #[test]
+    fn silence_does_not_become_a_home_command_or_spoken_success() {
+        assert_eq!(
+            spoken_for_home("  ").unwrap_err().to_string(),
+            "Home Voice recognized no committed command"
+        );
     }
 }
