@@ -120,6 +120,7 @@ pub enum HomeAction {
     Changed,
     OpenTour,
     OpenPatchbay,
+    OpenCreche,
     OpenForm(usize),
     RunForm(usize),
     Inspect(String),
@@ -370,11 +371,7 @@ impl HomeModel {
                 self.view = HomeView::Body;
                 HomeAction::Changed
             }
-            HomeDestination::Creche => {
-                self.output =
-                    "Crèche completed this Body's birth; its biography remains here.".into();
-                HomeAction::Changed
-            }
+            HomeDestination::Creche => HomeAction::OpenCreche,
             HomeDestination::Prompt => {
                 self.view = HomeView::Prompt;
                 HomeAction::Changed
@@ -401,9 +398,7 @@ impl HomeModel {
             ("open", "forms") => self.view = HomeView::Forms,
             ("open", "body") => self.view = HomeView::Body,
             ("open", "prompt") => self.view = HomeView::Prompt,
-            ("open", "creche") => {
-                self.output = "Crèche is not reopened over an already-born Body.".into();
-            }
+            ("open", "creche") => return HomeAction::OpenCreche,
             ("run", "") => self.output = "run needs an installed Form name.".into(),
             ("run", requested) => {
                 if let Some(index) = resolve_form(requested, installed_forms) {
