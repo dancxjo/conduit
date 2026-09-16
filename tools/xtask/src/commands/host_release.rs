@@ -181,6 +181,10 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
         &output.join("conduit-tour-linux-x86_64"),
     )?;
     copy(
+        "products/conduit/install/install-linux-x86_64.sh",
+        &output.join("install-linux-x86_64.sh"),
+    )?;
+    copy(
         "target/release/conduit-home",
         &output.join("conduit-home-linux-x86_64"),
     )?;
@@ -227,6 +231,7 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
                 "conduit-home-linux-x86_64",
                 "application/vnd.conduit.application+executable",
             ),
+            ("install-linux-x86_64.sh", "application/x-sh"),
         ],
     )?;
     seal(
