@@ -12,6 +12,7 @@ fn contract() -> JourneyContract {
             what_conduit_established: "One distinct Body identity now exists.".into(),
             concepts: vec!["Body".into(), "biography".into()],
             required_assertion: "one-new-body-exists".into(),
+            required_assertion_rung: EvidenceRung::BodyBiography,
             allowed_dispositions: vec!["established".into()],
             required_evidence_classes: vec!["semantic-receipt".into()],
             required_provenance: vec![ProvenanceField::Body, ProvenanceField::Manifestation],
@@ -62,6 +63,7 @@ fn track(index: usize, hosts: usize) -> BodyTrack {
             evidence: vec![StepEvidence {
                 artifact_id: format!("artifact-{index}"),
                 evidence_class: "semantic-receipt".into(),
+                assertion_rung: EvidenceRung::BodyBiography,
                 documentary_description: "The exact accepted birth receipt.".into(),
                 path: PathBuf::from(format!("artifact-{index}.json")),
                 sha256: format!("sha256:{:064x}", index + 1),
@@ -163,6 +165,10 @@ fn published_index_preserves_semantic_assertions_and_non_claims() {
         "one-new-body-exists"
     );
     assert_eq!(
+        value["semantic_steps"][0]["required_assertion_rung"],
+        "body-biography"
+    );
+    assert_eq!(
         value["semantic_steps"][0]["non_claims"][0],
         "not-physical-proof"
     );
@@ -170,6 +176,18 @@ fn published_index_preserves_semantic_assertions_and_non_claims() {
     assert!(page.contains("Follow one Body"));
     assert!(page.contains("Compare one semantic step"));
     assert!(page.contains("not-physical-proof"));
+}
+
+#[test]
+fn downstream_manifestation_cannot_prove_upstream_semantic_truth() {
+    let mut tracks = complete();
+    for track in &mut tracks {
+        track.steps[0].evidence[0].assertion_rung = EvidenceRung::GeneratedManifestation;
+    }
+    assert_eq!(
+        validate(&contract(), &tracks).unwrap_err(),
+        "track-0 lacks authoritative BodyBiography evidence at body.born"
+    );
 }
 
 #[test]

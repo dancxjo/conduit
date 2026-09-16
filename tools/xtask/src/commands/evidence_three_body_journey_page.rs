@@ -59,10 +59,12 @@ fn render_step_comparison(
     let _ = write!(
         html,
         "<article class=\"step\"><h3>{}</h3><p>{}</p><p><strong>Conduit established:</strong> {}</p>\
+         <p><strong>Authoritative assertion rung:</strong> <code>{}</code></p>\
          <p class=\"nonclaim\"><strong>Does not establish:</strong> {}</p><table><thead><tr><th>Body</th><th>Exact realization evidence</th></tr></thead><tbody>",
         escape(&contract.title),
         escape(&contract.what_happened),
         escape(&contract.what_conduit_established),
+        contract.required_assertion_rung.label(),
         joined(&contract.non_claims)
     );
     for track in tracks {
@@ -83,10 +85,11 @@ fn render_observation(html: &mut String, contract: &ContractStep, observed: &Tra
     let _ = write!(
         html,
         "<section><h4>{}</h4><dl><dt>What happened</dt><dd>{}</dd><dt>What Conduit established</dt><dd>{}</dd>\
-         <dt>Concepts in view</dt><dd>{}</dd><dt>Disposition</dt><dd><code>{}</code></dd></dl>",
+         <dt>Authoritative assertion rung</dt><dd><code>{}</code></dd><dt>Concepts in view</dt><dd>{}</dd><dt>Disposition</dt><dd><code>{}</code></dd></dl>",
         escape(&contract.title),
         escape(&contract.what_happened),
         escape(&contract.what_conduit_established),
+        contract.required_assertion_rung.label(),
         joined(&contract.concepts),
         escape(&observed.disposition)
     );
@@ -107,10 +110,11 @@ fn render_evidence(html: &mut String, observed: &TrackStep) {
     for evidence in &observed.evidence {
         let _ = write!(
             html,
-            "<li>{} — <code>{}</code> · <code>{}</code> · <code>{}</code> · <code>{}</code></li>",
+            "<li>{} — <code>{}</code> · class <code>{}</code> · assertion rung <code>{}</code> · <code>{}</code> · <code>{}</code></li>",
             escape(&evidence.documentary_description),
             escape(&evidence.artifact_id),
             escape(&evidence.evidence_class),
+            evidence.assertion_rung.label(),
             escape(&evidence.path.to_string_lossy()),
             escape(&evidence.sha256)
         );
