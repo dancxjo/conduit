@@ -583,6 +583,8 @@ dependencies = [
 name = "conduit-browser-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
+ "conduit-audio",
  "conduit-body",
  "conduit-body-fabrication",
  "conduit-chat",
@@ -615,6 +617,7 @@ dependencies = [
  "conduit-synth",
  "conduit-text",
  "conduit-time",
+ "conduit-tongues",
  "conduit-tour-model",
  "conduit-web",
  "conduit-wire",
