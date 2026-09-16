@@ -723,6 +723,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-home-native"
+version = "0.1.0"
+dependencies = [
+ "conduit-home-model",
+ "conduit-presentation",
+ "embedded-graphics",
+ "softbuffer",
+ "winit",
+]
+
+[[package]]
 name = "conduit-host-avr-fabrication"
 version = "0.1.0"
 dependencies = [
