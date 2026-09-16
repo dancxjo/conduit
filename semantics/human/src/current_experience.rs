@@ -1,7 +1,10 @@
 //! Portable, bounded semantic relation of a Body's current experience.
 
 use alloc::{boxed::Box, string::String, vec::Vec};
-use conduit_core::{BoundedResourceRef, KindId, SignId, TemporalInstant};
+use conduit_core::{
+    ArtifactId, BaseImplementationId, BaseInstanceId, BoundedResourceRef, KindId, SignId,
+    TemporalInstant,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExperienceLimits {
@@ -58,10 +61,21 @@ pub enum ExperienceCertainty {
 pub enum ExperienceSourceRef {
     Sign(SignId),
     Resource(BoundedResourceRef),
-    HumanStatement { statement_id: String },
-    MemoryRecord { record_id: String },
-    ModelRun { run_id: String },
-    Source { source_id: String },
+    HumanStatement {
+        statement_id: String,
+    },
+    MemoryRecord {
+        record_id: String,
+    },
+    ImplementationRun {
+        implementation_id: BaseImplementationId,
+        provider_instance_id: BaseInstanceId,
+        artifact_id: ArtifactId,
+        run_id: String,
+    },
+    Source {
+        source_id: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,6 +123,7 @@ pub enum ExperienceRefusal {
     ItemBytes,
     EncodedBytes,
     SourceCapacity,
+    DuplicateSource,
     RelationshipCapacity,
     UnknownRelationshipEndpoint,
     DuplicateRelationship,
@@ -256,6 +271,14 @@ impl CurrentExperience {
             return Err(ExperienceRefusal::InvalidSource);
         }
         if item
+            .sources
+            .iter()
+            .enumerate()
+            .any(|(index, source)| item.sources[..index].contains(source))
+        {
+            return Err(ExperienceRefusal::DuplicateSource);
+        }
+        if item
             .observed_at
             .iter()
             .chain(item.recorded_at.iter())
@@ -286,9 +309,23 @@ fn valid_source(source: &ExperienceSourceRef, maximum_identity_bytes: usize) -> 
         ExperienceSourceRef::Sign(id) => Some(id.as_str()),
         ExperienceSourceRef::HumanStatement { statement_id } => Some(statement_id.as_str()),
         ExperienceSourceRef::MemoryRecord { record_id } => Some(record_id.as_str()),
-        ExperienceSourceRef::ModelRun { run_id } => Some(run_id.as_str()),
         ExperienceSourceRef::Source { source_id } => Some(source_id.as_str()),
         ExperienceSourceRef::Resource(resource) => return resource.validate().is_ok(),
+        ExperienceSourceRef::ImplementationRun {
+            implementation_id,
+            provider_instance_id,
+            artifact_id,
+            run_id,
+        } => {
+            return [
+                implementation_id.as_str(),
+                provider_instance_id.as_str(),
+                artifact_id.as_str(),
+                run_id,
+            ]
+            .iter()
+            .all(|value| !value.is_empty() && value.len() <= maximum_identity_bytes)
+        }
     };
     identity.is_some_and(|value| !value.is_empty() && value.len() <= maximum_identity_bytes)
 }
