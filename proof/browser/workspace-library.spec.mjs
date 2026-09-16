@@ -9,7 +9,9 @@ test.afterEach(async ({ page }, info) => {
 });
 
 const current = page => page.evaluate(() => globalThis.__conduitWorkspace.current());
-const card = (page, title) => page.locator('[data-application-key^="library-form-"]').filter({ hasText: title });
+const card = (page, title) => page.locator('[data-application-key^="library-form-"]').filter({
+  hasText: new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}`),
+});
 const openLibrary = page => page.getByRole("button", { name: "+ Forms", exact: true }).click();
 async function birth(page) {
   await page.goto(entrance.url);
@@ -92,6 +94,37 @@ test("Use installs into the same Body; repeated Use preserves Play and removal s
   expect(restored.body_id).toBe(initial.body_id);
   expect(restored.workload_revision).toBe(2);
   expect(restored.initial_forms).toEqual(initial.initial_forms);
+});
+
+test("the reviewed shelf reveals conversation Forms without pretending this browser can run them", async ({ page }) => {
+  await birth(page);
+  await openLibrary(page);
+  await page.getByRole("textbox", { name: "Find a Form", exact: true }).fill("conversation");
+  await expect(card(page, "Body Chat")).toContainText("Needs capability");
+  await expect(card(page, "Body Chat")).toContainText("current Body supervisor and an admitted model realization");
+  await expect(card(page, "Live Conversation")).toContainText("Needs capability");
+  await expect(card(page, "Live Conversation")).toContainText("live audio acquisition, streaming model generation, synthesis, and presentation");
+  await expect(card(page, "Live Conversation")).toContainText("Text fallback: Body Chat");
+  await expect(card(page, "Live Conversation")).toContainText("The fallback still needs capability");
+  await expect(card(page, "House Spoken Response")).toContainText("Text fallback: House Conversation");
+  await expect(card(page, "Body Chat").getByRole("button", { name: /Use — unavailable/u })).toBeDisabled();
+  await expect(card(page, "Live Conversation").getByRole("button", { name: /Use — unavailable/u })).toBeDisabled();
+  await expect(page.getByText("4 Forms", { exact: true })).toBeVisible();
+});
+
+test("window focus loss retires the pending Play and lets the same Body wake again", async ({ page }) => {
+  await birth(page);
+  const before = await current(page);
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  await expect(page.locator("#surface-guidance")).toContainText("lost focus");
+  expect((await current(page)).body_id).toBe(before.body_id);
+  expect((await current(page)).active_play_id).toBeUndefined();
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  expect((await current(page)).body_id).toBe(before.body_id);
+  expect((await current(page)).active_play_id).not.toBe(before.active_play_id);
 });
 
 test("removing the final Form retains an empty Body that can acquire Forms again", async ({ page }, testInfo) => {

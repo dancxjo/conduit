@@ -27,21 +27,98 @@ pub(crate) fn require_workspace_form(
 pub(crate) fn workspace_library(
     source: &str,
 ) -> Result<conduit_workspace_model::library::FormLibrary, String> {
-    use conduit_workspace_model::library::{FormLibrary, LibraryEntry};
-    let inventory = super::initial_forms::reviewed_inventory(source)?;
+    use conduit_workspace_model::library::{
+        FormLibrary, LibraryAvailability, LibraryEntry, MAX_LIBRARY_FORMS,
+    };
+    #[derive(serde::Deserialize)]
+    struct Catalog {
+        schema: String,
+        maximum_forms: usize,
+        forms: Vec<CatalogForm>,
+    }
+    #[derive(serde::Deserialize)]
+    struct CatalogForm {
+        title: String,
+        entry: String,
+        source_document_id: String,
+        checked_form_id: String,
+        required_kinds: Vec<String>,
+        availability: CatalogAvailability,
+        graceful_fallback: Option<CatalogFallback>,
+    }
+    #[derive(serde::Deserialize)]
+    struct CatalogAvailability {
+        disposition: String,
+        reason: String,
+    }
+    #[derive(serde::Deserialize)]
+    struct CatalogFallback {
+        slug: String,
+        title: String,
+        disposition: String,
+        reason: String,
+    }
+    let catalog: Catalog = serde_json::from_str(source)
+        .map_err(|_| "reviewed Workspace Form catalog is malformed".to_string())?;
+    if catalog.schema != "conduit.workspace/reviewed-form-catalog@1"
+        || catalog.maximum_forms == 0
+        || catalog.maximum_forms > MAX_LIBRARY_FORMS
+        || catalog.forms.is_empty()
+        || catalog.forms.len() > catalog.maximum_forms
+    {
+        return Err("reviewed Workspace Form catalog violates its bound".into());
+    }
     FormLibrary::new(
-        inventory
+        catalog
             .forms
             .into_iter()
-            .map(|entry| LibraryEntry {
-                form: conduit_body::ResidentForm::new(
-                    entry.source_document_id.into(),
-                    entry.checked_form_id.into(),
-                ),
-                title: entry.title,
-                search_text: format!("{} {}", entry.name, entry.required_kinds.join(" ")),
+            .map(|entry| {
+                let availability = match entry.availability.disposition.as_str() {
+                    "available" if !entry.availability.reason.is_empty() => {
+                        LibraryAvailability::Available
+                    }
+                    "needs-capability" if !entry.availability.reason.is_empty() => {
+                        LibraryAvailability::NeedsCapability(entry.availability.reason)
+                    }
+                    _ => return Err("reviewed Workspace Form availability is malformed".into()),
+                };
+                Ok(LibraryEntry {
+                    form: conduit_body::ResidentForm::new(
+                        entry.source_document_id.into(),
+                        entry.checked_form_id.into(),
+                    ),
+                    title: entry.title,
+                    search_text: format!("{} {}", entry.entry, entry.required_kinds.join(" ")),
+                    availability,
+                    graceful_fallback: entry
+                        .graceful_fallback
+                        .map(|fallback| -> Result<_, String> {
+                            if fallback.slug.is_empty() || fallback.title.is_empty() {
+                                return Err("reviewed Workspace graceful fallback is malformed".into());
+                            }
+                            let availability = match fallback.disposition.as_str() {
+                                "available" if !fallback.reason.is_empty() => {
+                                    LibraryAvailability::Available
+                                }
+                                "needs-capability" if !fallback.reason.is_empty() => {
+                                    LibraryAvailability::NeedsCapability(fallback.reason)
+                                }
+                                _ => {
+                                    return Err(
+                                        "reviewed Workspace graceful fallback availability is malformed"
+                                            .into(),
+                                    )
+                                }
+                            };
+                            Ok(conduit_workspace_model::library::LibraryFallback {
+                                title: fallback.title,
+                                availability,
+                            })
+                        })
+                        .transpose()?,
+                })
             })
-            .collect(),
+            .collect::<Result<Vec<_>, String>>()?,
     )
     .map_err(|error| format!("Form library refused: {error:?}"))
 }
@@ -49,15 +126,26 @@ pub(crate) fn workspace_library(
 pub(crate) fn plan_workspace_forms(
     evidence: &BodyBiographyEvidence,
     source: &str,
+    observed_hosts: &[conduit_core::HostAdvertisement],
     host: &HostId,
     boot: &BootId,
 ) -> Result<Vec<BodyFormPlan>, String> {
     let inventory = super::initial_forms::check_inventory(source)?;
-    let hosts = [super::initial_forms::reviewed_browser_host(
-        source,
-        host.clone(),
-        boot.clone(),
-    )?];
+    if !observed_hosts
+        .iter()
+        .any(|observed| &observed.host_id == host && &observed.boot_id == boot)
+    {
+        return Err("current browser Host offer was not freshly observed".into());
+    }
+    let local = super::initial_forms::reviewed_browser_host(source, host.clone(), boot.clone())?;
+    let mut hosts = vec![local];
+    hosts.extend(
+        observed_hosts
+            .iter()
+            .filter(|observed| &observed.host_id != host)
+            .cloned(),
+    );
+    hosts.sort_by(|left, right| left.host_id.cmp(&right.host_id));
     let bases = crate::installed_browser::local_bases();
     let mut plans = Vec::with_capacity(evidence.body.workset.len());
     for resident in evidence.body.workset.forms() {

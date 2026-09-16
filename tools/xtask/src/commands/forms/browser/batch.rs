@@ -342,6 +342,7 @@ mod tests {
             deterministic_not_applicable: None,
             browser_safe: None,
             browser_safe_not_applicable: None,
+            graceful_fallback: None,
         }
     }
 
