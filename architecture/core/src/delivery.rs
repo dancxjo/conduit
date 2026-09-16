@@ -113,8 +113,25 @@ impl DeliveryContract {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeliveryAccounting {
     pub admitted: u64,
+    pub delivered: u64,
     pub coalesced: u64,
+    pub cancelled: u64,
     pub refused_pressure: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum DeliveryQueueState {
+    Open,
+    Closed,
+    Cancelled,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum DeliveryTerminalRefusal {
+    AlreadyClosed,
+    AlreadyCancelled,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -130,6 +147,8 @@ pub enum DeliveryRefusal {
     InvalidContract,
     InvalidCapacity,
     Pressure,
+    Closed,
+    Cancelled,
     AccountingExhausted,
 }
 
@@ -148,6 +167,7 @@ pub struct BoundedDeliveryQueue<T> {
     maximum_accounted: u64,
     values: VecDeque<T>,
     accounting: DeliveryAccounting,
+    state: DeliveryQueueState,
 }
 
 impl<T> BoundedDeliveryQueue<T> {
@@ -168,10 +188,19 @@ impl<T> BoundedDeliveryQueue<T> {
             maximum_accounted,
             values: VecDeque::with_capacity(capacity),
             accounting: DeliveryAccounting::default(),
+            state: DeliveryQueueState::Open,
         })
     }
 
     pub fn admit(&mut self, value: T) -> Result<DeliveryAdmission<T>, RejectedDelivery<T>> {
+        let terminal_refusal = match self.state {
+            DeliveryQueueState::Open => None,
+            DeliveryQueueState::Closed => Some(DeliveryRefusal::Closed),
+            DeliveryQueueState::Cancelled => Some(DeliveryRefusal::Cancelled),
+        };
+        if let Some(reason) = terminal_refusal {
+            return Err(RejectedDelivery { reason, value });
+        }
         if self.accounting.admitted >= self.maximum_accounted {
             return Err(RejectedDelivery {
                 reason: DeliveryRefusal::AccountingExhausted,
@@ -229,11 +258,49 @@ impl<T> BoundedDeliveryQueue<T> {
     }
 
     pub fn pop_front(&mut self) -> Option<T> {
-        self.values.pop_front()
+        let value = self.values.pop_front()?;
+        self.accounting.delivered = self
+            .accounting
+            .delivered
+            .checked_add(1)
+            .expect("delivered values cannot exceed admitted values");
+        Some(value)
+    }
+
+    /// Stops new admission while preserving already owed values for delivery.
+    pub fn close(&mut self) -> Result<(), DeliveryTerminalRefusal> {
+        match self.state {
+            DeliveryQueueState::Open => {
+                self.state = DeliveryQueueState::Closed;
+                Ok(())
+            }
+            DeliveryQueueState::Closed => Err(DeliveryTerminalRefusal::AlreadyClosed),
+            DeliveryQueueState::Cancelled => Err(DeliveryTerminalRefusal::AlreadyCancelled),
+        }
+    }
+
+    /// Cancels delivery and returns every pending owner in original queue order.
+    pub fn cancel(&mut self) -> Result<VecDeque<T>, DeliveryTerminalRefusal> {
+        match self.state {
+            DeliveryQueueState::Open | DeliveryQueueState::Closed => {
+                self.state = DeliveryQueueState::Cancelled;
+                self.accounting.cancelled = self
+                    .accounting
+                    .cancelled
+                    .checked_add(self.values.len() as u64)
+                    .expect("cancelled values cannot exceed admitted values");
+                Ok(core::mem::take(&mut self.values))
+            }
+            DeliveryQueueState::Cancelled => Err(DeliveryTerminalRefusal::AlreadyCancelled),
+        }
     }
 
     pub fn accounting(&self) -> DeliveryAccounting {
         self.accounting
+    }
+
+    pub fn state(&self) -> DeliveryQueueState {
+        self.state
     }
 
     pub fn len(&self) -> usize {
@@ -349,7 +416,15 @@ mod tests {
         drop(superseded);
         assert_eq!(&*released.borrow(), &[1]);
 
-        drop(queue.pop_front().expect("newest value remains pending"));
+        let mut cancelled = queue.cancel().unwrap();
+        assert_eq!(queue.state(), DeliveryQueueState::Cancelled);
+        assert_eq!(queue.accounting().cancelled, 1);
+        assert_eq!(&*released.borrow(), &[1]);
+        drop(
+            cancelled
+                .pop_front()
+                .expect("cancellation returns newest owner"),
+        );
         assert_eq!(&*released.borrow(), &[1, 2]);
         assert!(queue.is_empty());
     }
