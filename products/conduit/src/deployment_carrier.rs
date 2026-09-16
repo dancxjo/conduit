@@ -4,10 +4,12 @@ use crate::cli::CarrierCommand;
 use conduit_host_fabrication::{
     download_body_bound_artifact, flash_body_bound_rp2040_uf2,
     install_start_body_bound_native_package, launch_body_bound_virtual_machine,
-    serve_body_bound_network_boot, write_body_bound_artifact_to_removable, HttpBootServer,
-    NetworkBootServeBounds, QemuX86_64Launcher, CONDUITOS_X86_64_QEMU_PROFILE,
+    serve_body_bound_network_boot, write_body_bound_artifact_to_removable,
+    DeploymentCarrierDescriptor, DeploymentCarrierKind, HttpBootServer, NetworkBootServeBounds,
+    QemuX86_64Launcher, CONDUITOS_X86_64_QEMU_PROFILE,
 };
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::time::Duration;
 use std::{fs, path::Path};
 
@@ -15,6 +17,7 @@ const MAXIMUM_IDENTITY_DOCUMENT_BYTES: u64 = 64 * 1024;
 
 pub(crate) fn run(command: CarrierCommand) -> Result<(), String> {
     match command {
+        CarrierCommand::Availability { descriptors } => report_availability(&descriptors),
         CarrierCommand::Download {
             descriptor,
             artifact,
@@ -140,6 +143,48 @@ pub(crate) fn run(command: CarrierCommand) -> Result<(), String> {
             print_receipt(&receipt)
         }
     }
+}
+
+#[derive(Serialize)]
+struct CarrierAvailability {
+    schema: &'static str,
+    target_id: String,
+    artifact_download_available: bool,
+    local_realization_available: bool,
+    carriers: Vec<DeploymentCarrierDescriptor>,
+}
+
+fn report_availability(paths: &[std::path::PathBuf]) -> Result<(), String> {
+    let mut carriers = paths
+        .iter()
+        .map(|path| read_json::<DeploymentCarrierDescriptor>(path))
+        .collect::<Result<Vec<_>, _>>()?;
+    let target = carriers
+        .first()
+        .ok_or("at least one reviewed carrier descriptor is required")?
+        .target_id
+        .clone();
+    for descriptor in &carriers {
+        descriptor
+            .validate()
+            .map_err(|error| format!("carrier descriptor refused: {error:?}"))?;
+        if descriptor.target_id != target {
+            return Err("carrier descriptors belong to different targets".into());
+        }
+    }
+    carriers.sort_by(|left, right| left.carrier_id.cmp(&right.carrier_id));
+    carriers.dedup_by(|left, right| left.carrier_id == right.carrier_id);
+    let artifact_download_available = carriers
+        .iter()
+        .any(|carrier| carrier.kind == DeploymentCarrierKind::ArtifactDownload);
+    let local_realization_available = carriers.iter().any(|carrier| carrier.kind.consequential());
+    print_receipt(&CarrierAvailability {
+        schema: "conduit.carrier/availability@1",
+        target_id: target,
+        artifact_download_available,
+        local_realization_available,
+        carriers,
+    })
 }
 
 fn read_json<T: DeserializeOwned>(path: &Path) -> Result<T, String> {

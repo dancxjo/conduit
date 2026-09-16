@@ -146,6 +146,12 @@ pub(crate) enum HostCommand {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum CarrierCommand {
+    /// Report the exact reviewed carriers available for one selected target.
+    Availability {
+        /// One or more reviewed carrier descriptor documents for the selected target.
+        #[arg(required = true, num_args = 1..)]
+        descriptors: Vec<PathBuf>,
+    },
     /// Copy the exact artifact without starting or writing a Host.
     Download {
         descriptor: PathBuf,
@@ -345,6 +351,18 @@ mod tests {
 
     #[test]
     fn public_command_tree_parses() {
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit", "host", "carry", "availability", "download.json", "vm.json",
+            ])
+            .expect("carrier availability parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Carry {
+                    command: CarrierCommand::Availability { descriptors }
+                }
+            } if descriptors.len() == 2
+        ));
         assert!(matches!(
             Cli::try_parse_from([
                 "conduit",
