@@ -17,8 +17,6 @@ pub enum NativeHomeRequest {
     OpenCreche,
     OpenForm(usize),
     RunForm(usize),
-    Inspect(String),
-    Wake,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -103,8 +101,6 @@ impl NativeHomeController {
                 NativeHomeRequest::RunForm(index) => {
                     format!("Requested Form {} on this Host.", INSTALLED_FORMS[*index])
                 }
-                NativeHomeRequest::Inspect(subject) => format!("Inspecting {subject}."),
-                NativeHomeRequest::Wake => "Wake requested for this Body.".into(),
             },
             Err(error) => format!("Host refused the request: {error}"),
         };
@@ -123,8 +119,6 @@ impl NativeHomeController {
             HomeAction::OpenCreche => NativeHomeRequest::OpenCreche,
             HomeAction::OpenForm(index) => NativeHomeRequest::OpenForm(index),
             HomeAction::RunForm(index) => NativeHomeRequest::RunForm(index),
-            HomeAction::Inspect(subject) => NativeHomeRequest::Inspect(subject),
-            HomeAction::Wake => NativeHomeRequest::Wake,
         };
         self.bump_revision();
         Some(request)

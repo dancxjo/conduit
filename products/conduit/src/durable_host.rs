@@ -67,7 +67,7 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             Ok(())
         }),
         HostServiceCommand::Run { state_dir } => run(&state_dir),
-        HostServiceCommand::Status { state_dir } => status(&state_dir),
+        HostServiceCommand::Status { state_dir, json } => status(&state_dir, json),
     }
 }
 
@@ -183,7 +183,7 @@ fn running_target_id() -> Result<&'static str, String> {
     }
 }
 
-fn status(state_dir: &Path) -> Result<(), String> {
+fn status(state_dir: &Path, json: bool) -> Result<(), String> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
     let runtime = state_dir.join("runtime.json");
     if runtime.exists() {
@@ -193,15 +193,35 @@ fn status(state_dir: &Path) -> Result<(), String> {
         if status.schema != RUNTIME_SCHEMA || status.host_id != installation.host_id {
             return Err("durable Host runtime status is stale or belongs to another Host".into());
         }
-        println!(
-            "Host {} boot {} pid {}",
-            status.host_id, status.boot_id, status.process_id
-        );
+        if json {
+            println!(
+                "{}",
+                serde_json::to_string(&status)
+                    .map_err(|error| format!("encode durable Host status: {error}"))?
+            );
+        } else {
+            println!(
+                "Host {} boot {} pid {} release {}",
+                status.host_id, status.boot_id, status.process_id, status.release_bundle_sha256
+            );
+        }
     } else {
-        println!(
-            "Host {} is installed but not observed running",
-            installation.host_id
-        );
+        if json {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "schema": "conduit.install/durable-host-status@1",
+                    "host_id": installation.host_id,
+                    "presence": "installed-offline",
+                    "release_bundle_sha256": installation.release_bundle_sha256,
+                })
+            );
+        } else {
+            println!(
+                "Host {} is installed but not observed running; release {}",
+                installation.host_id, installation.release_bundle_sha256
+            );
+        }
     }
     Ok(())
 }

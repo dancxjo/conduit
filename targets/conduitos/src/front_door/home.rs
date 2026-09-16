@@ -164,7 +164,7 @@ impl FrontDoor {
                     screen,
                     56,
                     214,
-                    &format!("conduct> {}_", home.model.command()),
+                    &format!("conduit> {}_", home.model.command()),
                     GraphicsTextRole::Code,
                     GraphicsPaintRole::Foreground,
                 )?;

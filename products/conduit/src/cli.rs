@@ -139,6 +139,9 @@ pub(crate) enum HostServiceCommand {
     Status {
         #[arg(long)]
         state_dir: PathBuf,
+        /// Emit bounded machine-readable Host, Boot, and release identity truth.
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -194,13 +197,35 @@ mod tests {
             .command,
             Command::Host {
                 command: HostCommand::Service {
-                    command: HostServiceCommand::Status { state_dir }
+                    command: HostServiceCommand::Status { state_dir, json: false }
                 }
             } if state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
             Cli::try_parse_from([
-                "conduit", "host", "rendezvous", "--state-dir", "installed-host",
+                "conduit",
+                "host",
+                "service",
+                "status",
+                "--state-dir",
+                "installed-host",
+                "--json",
+            ])
+            .expect("scriptable durable Host status parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Service {
+                    command: HostServiceCommand::Status { json: true, .. }
+                }
+            }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "rendezvous",
+                "--state-dir",
+                "installed-host",
                 "--timeout-seconds", "30"
             ])
                 .expect("Host rendezvous entrance parses")

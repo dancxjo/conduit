@@ -79,7 +79,6 @@ impl NativeHome {
             NativeHomeRequest::RunForm(_) => {
                 Err("installed Form source is not bound to this native package")
             }
-            NativeHomeRequest::Inspect(_) | NativeHomeRequest::Wake => Ok(()),
         };
         self.controller.report_request(&request, outcome);
     }
