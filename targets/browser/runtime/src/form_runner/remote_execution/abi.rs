@@ -3,7 +3,10 @@
 use super::*;
 use crate::form_runner::engine::{BrowserHostEffect, DriveStatus};
 use conduit_kernel::RemoteEndpointId;
-use conduit_wire::{decode_session_frame, SessionBinding};
+use conduit_wire::{
+    decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
+    SessionMessage, SessionRole,
+};
 use serde::Deserialize;
 use std::cell::RefCell;
 
@@ -40,6 +43,14 @@ struct RemoteAbi {
     pending: Option<PendingHostEffect>,
     active_play_id: conduit_core::ActivePlayId,
     endpoints: Vec<RemoteEndpointId>,
+    sessions: Vec<RemoteSession>,
+}
+
+struct RemoteSession {
+    endpoint: RemoteEndpointId,
+    direction: conduit_plan_lowering::lowering::RemoteCordDirection,
+    binding: SessionBinding,
+    machine: SessionMachine,
 }
 
 fn refuse(message: impl Into<String>) -> i32 {
@@ -139,11 +150,50 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
                     .ok_or_else(|| "remote grant has no lowered endpoint".to_string())
             })
             .collect::<Result<Vec<_>, _>>()?;
+        let mut sessions = Vec::with_capacity(bindings.len());
+        let mut initial_frames = Vec::with_capacity(bindings.len() * 2);
+        for ((binding, hello), endpoint) in bindings
+            .into_iter()
+            .zip(start.session_hellos.iter())
+            .zip(endpoints.iter().copied())
+        {
+            let direction = execution.direction(endpoint)?;
+            let role = if direction == conduit_plan_lowering::lowering::RemoteCordDirection::Egress
+            {
+                SessionRole::Source
+            } else {
+                SessionRole::Sink
+            };
+            let mut machine = SessionMachine::new(binding.clone(), role)
+                .map_err(|error| format!("prepare browser remote session: {error:?}"))?;
+            let outbound_hello = binding.hello_frame();
+            machine
+                .admit_outbound(outbound_hello)
+                .map_err(|error| format!("admit browser remote hello: {error:?}"))?;
+            let inbound_hello = decode_session_frame(hello, CAPACITY as u32, CAPACITY as u32)
+                .map_err(|error| format!("decode browser remote hello: {error:?}"))?;
+            machine
+                .admit_inbound(inbound_hello)
+                .map_err(|error| format!("admit native remote hello: {error:?}"))?;
+            let ready = binding.frame(SessionMessage::Ready);
+            machine
+                .admit_outbound(ready)
+                .map_err(|error| format!("admit browser remote readiness: {error:?}"))?;
+            initial_frames.push(encode_frame(&binding, outbound_hello)?);
+            initial_frames.push(encode_frame(&binding, ready)?);
+            sessions.push(RemoteSession {
+                endpoint,
+                direction,
+                binding,
+                machine,
+            });
+        }
         write_json(&serde_json::json!({
             "schema": "conduit.browser/remote-fragment-started@1",
             "plan_id": start.plan.plan_id,
             "active_play_id": start.active_play_id,
             "endpoints": endpoints.iter().map(|endpoint| endpoint.0).collect::<Vec<_>>(),
+            "initial_frames": initial_frames,
         }))?;
         STATE.with(|state| {
             *state.borrow_mut() = Some(RemoteAbi {
@@ -151,11 +201,114 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
                 pending: None,
                 active_play_id: start.active_play_id,
                 endpoints,
+                sessions,
             });
         });
         Ok(())
     })();
     result.map_or_else(refuse, |()| OK)
+}
+
+fn encode_frame(
+    binding: &SessionBinding,
+    frame: conduit_wire::SessionFrame<'_>,
+) -> Result<Vec<u8>, String> {
+    let mut bytes = vec![0; binding.attachment.limits.maximum_frame_bytes as usize];
+    let length = encode_session_frame_into(
+        frame,
+        &mut bytes,
+        binding.limits.maximum_payload_bytes,
+        binding.attachment.limits.maximum_frame_bytes,
+    )
+    .map_err(|error| format!("encode browser remote frame: {error:?}"))?;
+    bytes.truncate(length);
+    Ok(bytes)
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_remote_exchange(length: u32) -> i32 {
+    with_state(|state| {
+        let mut bytes = input(length)?;
+        let frame = decode_session_frame(&bytes, CAPACITY as u32, CAPACITY as u32)
+            .map_err(|error| format!("decode browser remote frame: {error:?}"))?;
+        let session = state
+            .sessions
+            .iter_mut()
+            .find(|session| session.binding.identity() == frame.identity)
+            .ok_or_else(|| "browser remote frame names no admitted session".to_string())?;
+        let message = frame.message;
+        session
+            .machine
+            .admit_inbound(frame)
+            .map_err(|error| format!("admit browser remote frame: {error:?}"))?;
+        let mut responses = Vec::new();
+        match message {
+            SessionMessage::Ready => {}
+            SessionMessage::Offered { sequence, payload } => {
+                match state.execution.admit(session.endpoint, sequence, payload)? {
+                    RemoteIngressOutcome::Accepted { sequence: accepted }
+                        if accepted == sequence =>
+                    {
+                        for message in [
+                            SessionMessage::Accepted { sequence },
+                            SessionMessage::Delivered { sequence },
+                        ] {
+                            let response = session.binding.frame(message);
+                            session.machine.admit_outbound(response).map_err(|error| {
+                                format!("admit browser remote response: {error:?}")
+                            })?;
+                            responses.push(encode_frame(&session.binding, response)?);
+                        }
+                    }
+                    RemoteIngressOutcome::Full {
+                        sequence: pressured,
+                    } if pressured == sequence => {
+                        let response = session.binding.frame(SessionMessage::Pressure { sequence });
+                        session
+                            .machine
+                            .admit_outbound(response)
+                            .map_err(|error| format!("admit browser remote pressure: {error:?}"))?;
+                        responses.push(encode_frame(&session.binding, response)?);
+                    }
+                    _ => return Err("browser remote ingress sequence differs".into()),
+                }
+            }
+            SessionMessage::Accepted { sequence } => {
+                state.execution.accepted(session.endpoint, sequence)?;
+            }
+            SessionMessage::Delivered { sequence } => {
+                state.execution.delivered(session.endpoint, sequence)?;
+            }
+            SessionMessage::Pressure { .. } => {
+                if session.direction != conduit_plan_lowering::lowering::RemoteCordDirection::Egress
+                {
+                    return Err("browser remote pressure names an ingress endpoint".into());
+                }
+            }
+            SessionMessage::InputClosed { .. } => {
+                if session.direction
+                    != conduit_plan_lowering::lowering::RemoteCordDirection::Ingress
+                {
+                    return Err("browser remote input close names an egress endpoint".into());
+                }
+                state.execution.close_ingress(session.endpoint)?;
+            }
+            SessionMessage::Terminal { .. } => {}
+            SessionMessage::Cancelled { .. } | SessionMessage::Failed { .. } => {
+                state.execution.cancel()?;
+            }
+            SessionMessage::Hello(_) => {
+                return Err("browser remote session message is out of order".into());
+            }
+        }
+        bytes.fill(0);
+        write_json(&serde_json::json!({
+            "schema": "conduit.browser/remote-session-exchange@1",
+            "responses": responses,
+            "active": session.machine.is_active(),
+        }))?;
+        Ok(OK)
+    })
 }
 
 #[no_mangle]
@@ -293,6 +446,42 @@ pub extern "C" fn conduit_browser_remote_offer(endpoint: u16) -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_remote_offer_frame(endpoint: u16) -> i32 {
+    with_state(|state| {
+        let endpoint = RemoteEndpointId(endpoint);
+        let session = state
+            .sessions
+            .iter_mut()
+            .find(|session| session.endpoint == endpoint)
+            .ok_or_else(|| "unknown remote endpoint".to_string())?;
+        if session.direction != conduit_plan_lowering::lowering::RemoteCordDirection::Egress {
+            return Err("browser remote offer names an ingress endpoint".into());
+        }
+        if !session.machine.is_active() {
+            return Err("browser remote session is not active".into());
+        }
+        match state.execution.offer(endpoint)? {
+            Some(offer) => {
+                let frame = session.binding.frame(SessionMessage::Offered {
+                    sequence: offer.sequence,
+                    payload: &offer.payload,
+                });
+                session
+                    .machine
+                    .admit_outbound(frame)
+                    .map_err(|error| format!("admit browser remote offer: {error:?}"))?;
+                write_json(&serde_json::json!({
+                    "schema": "conduit.browser/remote-session-frame@1",
+                    "frame": encode_frame(&session.binding, frame)?,
+                }))?;
+                Ok(OFFER)
+            }
+            None => Ok(WAITING),
+        }
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_remote_admit(endpoint: u16, sequence: u64, length: u32) -> i32 {
     with_state(|state| {
         let mut bytes = input(length)?;
@@ -388,11 +577,75 @@ mod tests {
 
         assert_eq!(conduit_browser_remote_start(start.len() as u32), OK);
         assert_eq!(conduit_browser_remote_endpoint_count(), 1);
+        let started = OUTPUT
+            .with(|output| serde_json::from_slice::<serde_json::Value>(&output.borrow()).unwrap());
+        assert_eq!(
+            started["schema"],
+            "conduit.browser/remote-fragment-started@1"
+        );
+        let initial_frames =
+            serde_json::from_value::<Vec<Vec<u8>>>(started["initial_frames"].clone()).unwrap();
+        assert_eq!(initial_frames.len(), 2);
+
+        let mut peer = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
+        peer.admit_outbound(binding.hello_frame()).unwrap();
+        for bytes in &initial_frames {
+            let frame = decode_session_frame(bytes, CAPACITY as u32, CAPACITY as u32).unwrap();
+            peer.admit_inbound(frame).unwrap();
+        }
+        let ready = binding.frame(SessionMessage::Ready);
+        peer.admit_outbound(ready).unwrap();
+        assert!(peer.is_active());
+        let ready = encode_frame(&binding, ready).unwrap();
+        INPUT.with(|input| input.borrow_mut()[..ready.len()].copy_from_slice(&ready));
+        assert_eq!(conduit_browser_remote_exchange(ready.len() as u32), OK);
+        let exchanged = OUTPUT
+            .with(|output| serde_json::from_slice::<serde_json::Value>(&output.borrow()).unwrap());
+        assert_eq!(
+            exchanged["schema"],
+            "conduit.browser/remote-session-exchange@1"
+        );
+        assert_eq!(exchanged["active"], true);
+        assert_eq!(exchanged["responses"], serde_json::json!([]));
+
         assert_eq!(conduit_browser_remote_drive(), EFFECT);
         let output = OUTPUT
             .with(|output| serde_json::from_slice::<serde_json::Value>(&output.borrow()).unwrap());
         assert_eq!(output["schema"], "conduit.browser/remote-host-effect@1");
         assert_eq!(output["effect_kind"], "button-transition");
+
+        let button = conduit_semantic_catalog::button_transition_value("button/primary", true, 0)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        INPUT.with(|input| input.borrow_mut()[..button.len()].copy_from_slice(&button));
+        assert_eq!(
+            conduit_browser_remote_complete_effect(button.len() as u32, 1),
+            OK
+        );
+        assert_eq!(conduit_browser_remote_drive(), WAITING);
+        assert_eq!(conduit_browser_remote_offer_frame(0), OFFER);
+        let offered = OUTPUT
+            .with(|output| serde_json::from_slice::<serde_json::Value>(&output.borrow()).unwrap());
+        assert_eq!(offered["schema"], "conduit.browser/remote-session-frame@1");
+        let offered = serde_json::from_value::<Vec<u8>>(offered["frame"].clone()).unwrap();
+        let frame = decode_session_frame(&offered, CAPACITY as u32, CAPACITY as u32).unwrap();
+        assert!(matches!(
+            frame.message,
+            SessionMessage::Offered { sequence: 0, payload } if payload == button
+        ));
+        peer.admit_inbound(frame).unwrap();
+        for message in [
+            SessionMessage::Accepted { sequence: 0 },
+            SessionMessage::Delivered { sequence: 0 },
+        ] {
+            let frame = binding.frame(message);
+            peer.admit_outbound(frame).unwrap();
+            let bytes = encode_frame(&binding, frame).unwrap();
+            INPUT.with(|input| input.borrow_mut()[..bytes.len()].copy_from_slice(&bytes));
+            assert_eq!(conduit_browser_remote_exchange(bytes.len() as u32), OK);
+        }
+        assert_eq!(peer.next_sequence(), 1);
         assert_eq!(conduit_browser_remote_cancel(), OK);
     }
 }

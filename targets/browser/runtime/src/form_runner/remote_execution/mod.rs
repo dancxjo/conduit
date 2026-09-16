@@ -101,6 +101,17 @@ impl RemoteExecution {
         Ok(remote)
     }
 
+    pub(super) fn direction(
+        &self,
+        endpoint: conduit_kernel::RemoteEndpointId,
+    ) -> Result<RemoteCordDirection, String> {
+        self.remotes
+            .iter()
+            .find(|remote| remote.endpoint == endpoint)
+            .map(|remote| remote.direction)
+            .ok_or_else(|| "unknown remote endpoint".to_string())
+    }
+
     pub(super) fn offer(
         &mut self,
         endpoint: conduit_kernel::RemoteEndpointId,
@@ -153,6 +164,16 @@ impl RemoteExecution {
         let cord = self.remote(endpoint, RemoteCordDirection::Egress)?.cord;
         self.scheduler
             .remote_egress_delivered(endpoint, cord, sequence)
+            .map_err(debug)
+    }
+
+    pub(super) fn close_ingress(
+        &mut self,
+        endpoint: conduit_kernel::RemoteEndpointId,
+    ) -> Result<(), String> {
+        let cord = self.remote(endpoint, RemoteCordDirection::Ingress)?.cord;
+        self.scheduler
+            .close_remote_input(endpoint, cord)
             .map_err(debug)
     }
 
