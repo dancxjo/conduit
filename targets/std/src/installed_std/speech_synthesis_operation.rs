@@ -290,6 +290,15 @@ pub(super) fn execute_piper<'a>(
     streaming: bool,
     cancelled: bool,
 ) -> Result<Option<&'a [u8]>, crate::hosted_speech::PiperFailure> {
+    execute_piper_cancellable(adapter, input, streaming, || cancelled)
+}
+
+pub(super) fn execute_piper_cancellable<'a>(
+    adapter: Option<&'a mut crate::hosted_speech::PiperSpeechAdapter>,
+    input: &[u8],
+    streaming: bool,
+    cancelled: impl Fn() -> bool,
+) -> Result<Option<&'a [u8]>, crate::hosted_speech::PiperFailure> {
     let adapter = adapter.ok_or(crate::hosted_speech::PiperFailure::MissingProvider)?;
     if adapter.is_active() {
         if input != [0] {
@@ -314,7 +323,7 @@ pub(super) fn execute_piper<'a>(
         };
         adapter.begin(text)?;
     }
-    match adapter.next(|| cancelled)? {
+    match adapter.next(cancelled)? {
         crate::hosted_speech::PiperSynthesisStep::Block(block) => Ok(Some(block)),
         crate::hosted_speech::PiperSynthesisStep::Complete(_) => Ok(None),
     }

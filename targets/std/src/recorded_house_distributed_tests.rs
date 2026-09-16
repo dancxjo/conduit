@@ -266,7 +266,7 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
                             None,
                             Some(&mut model),
                             None,
-                            false,
+                            || false,
                         )
                         .unwrap());
                     return None;
