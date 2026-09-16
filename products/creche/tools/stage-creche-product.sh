@@ -54,6 +54,8 @@ cp "$runtime" "$destination/runtime.wasm"
 cp targets/browser/host/assets/artifacts/pico-w-signal-pico-local.json "$destination/artifacts/"
 cp targets/browser/host/assets/artifacts/pico-w-signal-pico-local.uf2 "$destination/artifacts/"
 if test "$mode" = release; then
+  test -f "$release_artifacts/release-catalog.json"
+  cp "$release_artifacts/release-catalog.json" "$destination/artifacts/"
   for target in c3 s3 wroom; do
     test -f "$release_artifacts/esp32-$target-generic-release.bin"
     test -f "$release_artifacts/esp32-$target-generic-release.json"
