@@ -41,6 +41,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
   const inviteButton = root.querySelector("[data-invite-host]");
   const closeButton = root.querySelector("[data-close-membership]");
   const channels = new Set();
+  const joinedLines = new Map();
   let runningHost = null;
   let open = Boolean(invitation);
 
@@ -104,7 +105,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
       let secret = null;
       let nonce = null;
       try {
-        runningHost = await connectRendezvousHost(input.value);
+        runningHost = await connectRendezvousHost(input.value, { retainLine: true });
         secret = crypto.getRandomValues(new Uint8Array(32));
         nonce = crypto.getRandomValues(new Uint8Array(32));
         const claim = await session.createInvitation(secret, nonce);
@@ -123,6 +124,17 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
         const proof = { invitation_id: join.invitation_id, body_id: join.body_id,
           host_id: join.host_id, boot_id: join.boot_id, nonce: join.nonce, signature: join.signature };
         await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
+        const lineKey = `${join.host_id}\u0000${join.boot_id}`;
+        joinedLines.set(lineKey, join.line);
+        join.line.onClosed(async ({ intentional }) => {
+          joinedLines.delete(lineKey);
+          if (intentional) return;
+          try {
+            await session.hostLost(join.host_id, join.boot_id);
+            onChanged(); render();
+            onFailure(new Error("The joined Host Line was lost. Voice stopped; Body Chat remains available when its model capability is present."));
+          } catch (error) { onFailure(error); }
+        });
         onChanged(); render();
       } catch (error) {
         runningHost?.cancel(); runningHost = null;
@@ -216,7 +228,19 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
   }
 
   render();
-  return Object.freeze({ isOpen: () => open, isJoining: () => Boolean(invitation && !session.current()), render, close: () => { runningHost?.cancel(); runningHost = null; for (const channel of channels) channel.close(); channels.clear(); } });
+  return Object.freeze({
+    isOpen: () => open,
+    isJoining: () => Boolean(invitation && !session.current()),
+    render,
+    close,
+    dispose: () => {
+      runningHost?.cancel(); runningHost = null;
+      for (const line of joinedLines.values()) void line.close();
+      joinedLines.clear();
+      for (const channel of channels) channel.close();
+      channels.clear();
+    },
+  });
 }
 
 function escapeText(value) {

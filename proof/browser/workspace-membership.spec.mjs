@@ -116,7 +116,47 @@ test("an already-running Host joins without displacing the browser Host or its B
     expect(after.evidence.membership.revision).toBe(before.revision + 2);
     expect(after.evidence.membership.parts.every(part => part.state === "Admitted" && part.current)).toBe(true);
     expect(after.current_host_offers).toHaveLength(2);
+    await page.reload();
     await expectProcessSuccess(running);
+    await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
+    await expect(page.locator(".member-card")).toHaveCount(2);
+    const restored = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
+    expect(restored.evidence.membership.parts.filter(part => part.current)).toHaveLength(1);
+    expect(restored.current_host_offers).toHaveLength(1);
+  } finally {
+    if (running.exitCode === null) running.kill();
+    await installed.close();
+  }
+});
+
+test("loss of a joined Host Line removes only its current offers and keeps the Body", async ({ page }) => {
+  const installed = await startInstalledHost();
+  const running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
+    cwd: installed.root,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  try {
+    const code = await rendezvousCode(running);
+    await page.goto(entrance.url);
+    await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
+    await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+    await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+    const bodyId = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.body_id);
+
+    await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
+    await page.getByRole("button", { name: "Connect a running Host", exact: true }).click();
+    await page.getByLabel("Running Host rendezvous code", { exact: true }).fill(code);
+    await page.getByRole("button", { name: "Connect Host", exact: true }).click();
+    await expect(page.locator(".member-card")).toHaveCount(2);
+    expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().current_host_offers.length)).toBe(2);
+
+    running.kill();
+    await expect(page.locator("[data-workspace-notice]")).toContainText("Voice stopped; Body Chat remains available");
+    const after = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
+    expect(after.evidence.body_id).toBe(bodyId);
+    expect(after.evidence.membership.parts.filter(part => part.current)).toHaveLength(1);
+    expect(after.evidence.membership.parts.filter(part => !part.current && part.state === "Admitted")).toHaveLength(1);
+    expect(after.current_host_offers).toHaveLength(1);
   } finally {
     if (running.exitCode === null) running.kill();
     await installed.close();

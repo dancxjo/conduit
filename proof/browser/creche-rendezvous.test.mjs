@@ -43,6 +43,24 @@ test("one code carries a current advertisement and exactly one invitation proof"
   await assert.rejects(() => session.invite(prepared), { code: "Replay" });
 });
 
+test("Workspace may retain the authenticated joined Line until explicit close", async () => {
+  const session = await connectRendezvousHost(`C1-WS-104D-${"AB".repeat(32)}`, {
+    WebSocketClass: FakeWebSocket,
+    retainLine: true,
+  });
+  const prepared = {
+    spore_id: "spore/retained", image_id: "image/retained", invitation_id: "invitation/retained",
+    body_id: "body/retained", invitation_nonce: new Array(32).fill(23),
+    invitation_secret: new Array(32).fill(31), invitation_expires_at_millis: Date.now() + 60_000,
+  };
+  const join = await session.invite(prepared);
+  assert.equal(join.line.schema, "conduit.creche/joined-host-line@1");
+  assert.equal(FakeWebSocket.last.readyState, 1);
+  await join.line.close();
+  assert.equal(FakeWebSocket.last.sent.at(-1).kind, "close");
+  assert.equal(FakeWebSocket.last.readyState, 3);
+});
+
 test("the same invitation exchange runs over a Web Serial stream", async () => {
   const port = new FakeSerialPort();
   const session = await connectRendezvousHost(`C1-SERIAL-${"AB".repeat(32)}`, {
@@ -65,6 +83,8 @@ class FakeWebSocket extends EventTarget {
     super();
     this.url = url;
     this.readyState = 0;
+    this.sent = [];
+    FakeWebSocket.last = this;
     queueMicrotask(() => {
       this.readyState = 1;
       this.dispatchEvent(new Event("open"));
@@ -73,6 +93,8 @@ class FakeWebSocket extends EventTarget {
 
   send(bytes) {
     const request = JSON.parse(new TextDecoder().decode(bytes));
+    this.sent.push(request);
+    if (request.kind === "close") return;
     const advertisement = { host_id: "host/test", boot_id: "boot/test", offer_generation: 1 };
     const response = request.kind === "hello" ? {
       kind: "host", protocol: 1, friendly_label: "This running computer",
@@ -90,6 +112,7 @@ class FakeWebSocket extends EventTarget {
 
   close() {
     this.readyState = 3;
+    this.dispatchEvent(new Event("close"));
   }
 }
 
@@ -103,6 +126,7 @@ class FakeSerialPort {
   async close() { this.closed = true; }
   respond(bytes) {
     const request = JSON.parse(new TextDecoder().decode(bytes).trim());
+    if (request.kind === "close") return;
     const advertisement = { host_id: "host/serial", boot_id: "boot/serial", offer_generation: 1 };
     const response = request.kind === "hello" ? {
       kind: "host", protocol: 1, friendly_label: "This running computer",

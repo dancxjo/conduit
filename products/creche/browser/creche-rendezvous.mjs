@@ -36,6 +36,7 @@ export function decodeRendezvousCode(value) {
 
 export async function connectRendezvousHost(code, {
   signal,
+  retainLine = false,
   WebSocketClass = globalThis.WebSocket,
   serial = globalThis.navigator?.serial,
 } = {}) {
@@ -86,8 +87,24 @@ export async function connectRendezvousHost(code, {
         }
         const join = await receive(line, signal);
         requireJoin(join, prepared, descriptor.advertisement);
-        await line.close("conduit-terminal");
-        return Object.freeze(join);
+        if (!retainLine) {
+          await send(line, { kind: "close", protocol: PROTOCOL });
+          await line.close("conduit-terminal");
+          return Object.freeze(join);
+        }
+        let intentional = false;
+        const joinedLine = Object.freeze({
+          schema: "conduit.creche/joined-host-line@1",
+          line_id: decoded.line_id,
+          onClosed(callback) { void line.closed.then(() => callback(Object.freeze({ intentional }))); },
+          async close() {
+            if (intentional) return;
+            intentional = true;
+            try { await send(line, { kind: "close", protocol: PROTOCOL }); } catch {}
+            await line.close("conduit-terminal");
+          },
+        });
+        return Object.freeze({ ...join, line: joinedLine });
       },
       cancel() {
         decoded.session_secret.fill(0);
@@ -120,6 +137,7 @@ async function openWebSocketLine(decoded, WebSocketClass, signal) {
     if (accepted) accepted(event.data);
     else queued.push(event.data);
   });
+  const closed = new Promise((resolve) => socket.addEventListener("close", resolve, { once: true }));
   return Object.freeze({
     sendBytes: (bytes) => socket.send(bytes),
     receiveBytes: async (currentSignal) => {
@@ -127,6 +145,7 @@ async function openWebSocketLine(decoded, WebSocketClass, signal) {
       return bytesOf(await waitForPromise(new Promise((resolve) => waiting.push(resolve)), currentSignal));
     },
     close: async (reason) => { if (socket.readyState < 2) socket.close(1000, reason); },
+    closed,
   });
 }
 
@@ -142,6 +161,8 @@ async function openSerialLine(serial, signal) {
   }
   let pending = new Uint8Array(0);
   let closed = false;
+  let resolveClosed;
+  const closedPromise = new Promise(resolve => { resolveClosed = resolve; });
   return Object.freeze({
     async sendBytes(bytes) {
       const writer = port.writable.getWriter();
@@ -174,7 +195,9 @@ async function openSerialLine(serial, signal) {
       reader.releaseLock();
       await port.close();
       pending.fill(0);
+      resolveClosed();
     },
+    closed: closedPromise,
   });
 }
 
