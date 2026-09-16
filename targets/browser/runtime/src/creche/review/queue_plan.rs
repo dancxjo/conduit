@@ -1,5 +1,8 @@
 //! Review uses ordinary finite Cord budgets supported by both selected offers.
-use conduit_core::{BaseImplementationId, HostAdvertisement};
+use conduit_core::{
+    authority_grant, process_owned_line_offer_with_limits, AuthorityGrant, BaseImplementationId,
+    HostAdvertisement, LineId, LineOffer, LineScope, LineSecurity, LinkLimits,
+};
 use conduit_form::ExpandedCanonicalForm;
 use conduit_planner::{ConnectionQueueLimits, PlanningOptions};
 use std::collections::BTreeMap;
@@ -9,6 +12,8 @@ pub(in crate::creche) fn plan(
     hosts: &[HostAdvertisement],
     placements: &conduit_planner::PlacementChoices,
     bases: &[BaseImplementationId],
+    joined_lines: &[crate::creche::workspace::JoinedLineObservation],
+    authority: crate::creche::workspace::PlanningAuthority,
 ) -> Result<conduit_core::Plan, String> {
     let mut limits = BTreeMap::new();
     for cord in &form.connections {
@@ -49,21 +54,317 @@ pub(in crate::creche) fn plan(
             },
         );
     }
+    let authority_grants = authority_grants(hosts, placements, authority)?;
+    let (line_offers, line_candidates) =
+        line_offers(form, hosts, placements, &limits, joined_lines)?;
+    let mut available_bases = bases.to_vec();
+    if !line_offers.is_empty()
+        && !available_bases
+            .iter()
+            .any(|base| base.as_str() == "conduit.base/websocket-rfc6455@1")
+    {
+        available_bases.push(BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        ));
+    }
     conduit_planner::plan_expanded_canonical_with_connection_limits(
         form,
         hosts,
         placements,
-        bases,
+        &available_bases,
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
-            line_candidates: &BTreeMap::new(),
+            line_candidates: &line_candidates,
             connection_item_capacity: 1,
             connection_byte_capacity: 1,
-            authority_grants: &[],
+            authority_grants: &authority_grants,
             protected_resource_grants: &[],
-            line_offers: &[],
+            line_offers: &line_offers,
         },
         &limits,
     )
     .map_err(|error| error.to_string())
+}
+
+fn authority_grants(
+    hosts: &[HostAdvertisement],
+    placements: &conduit_planner::PlacementChoices,
+    authority: crate::creche::workspace::PlanningAuthority,
+) -> Result<Vec<AuthorityGrant>, String> {
+    let mut grants = Vec::new();
+    for (gear, placement) in &placements.by_gear {
+        let host = hosts
+            .iter()
+            .find(|host| host.host_id == placement.host_id)
+            .ok_or("Workspace placement names no current Host")?;
+        let capability = host
+            .capabilities
+            .iter()
+            .find(|capability| capability.capability_id == placement.capability_id)
+            .ok_or("Workspace placement names no current capability")?;
+        for (index, requirement) in capability.authority_requirements.iter().enumerate() {
+            let browser_audio = matches!(
+                requirement.contract_id.as_str(),
+                "conduit.authority/request-browser-microphone@1"
+                    | "conduit.authority/use-browser-audio-output@1"
+            );
+            if !browser_audio || !authority.browser_audio {
+                continue;
+            }
+            grants.push(authority_grant(
+                &format!("grant/workspace/{}/{index}", gear.as_str()),
+                requirement,
+                host.host_id.clone(),
+                host.boot_id.clone(),
+                capability.capability_id.clone(),
+            ));
+        }
+    }
+    Ok(grants)
+}
+
+type LineCandidates = BTreeMap<(conduit_core::GearId, conduit_core::GearId), Vec<LineId>>;
+
+fn line_offers(
+    form: &ExpandedCanonicalForm,
+    hosts: &[HostAdvertisement],
+    placements: &conduit_planner::PlacementChoices,
+    limits: &BTreeMap<
+        (
+            conduit_core::GearId,
+            conduit_core::PortId,
+            conduit_core::GearId,
+            conduit_core::PortId,
+        ),
+        ConnectionQueueLimits,
+    >,
+    joined_lines: &[crate::creche::workspace::JoinedLineObservation],
+) -> Result<(Vec<LineOffer>, LineCandidates), String> {
+    let mut offers = Vec::new();
+    let mut candidates = BTreeMap::new();
+    for (index, connection) in form.connections.iter().enumerate() {
+        let source_placement = placements
+            .by_gear
+            .get(&connection.source_gear_id)
+            .ok_or("Workspace Cord has no source placement")?;
+        let sink_placement = placements
+            .by_gear
+            .get(&connection.sink_gear_id)
+            .ok_or("Workspace Cord has no sink placement")?;
+        if source_placement.host_id == sink_placement.host_id {
+            continue;
+        }
+        let source = hosts
+            .iter()
+            .find(|host| host.host_id == source_placement.host_id)
+            .ok_or("Workspace Cord source Host is absent")?;
+        let sink = hosts
+            .iter()
+            .find(|host| host.host_id == sink_placement.host_id)
+            .ok_or("Workspace Cord sink Host is absent")?;
+        let joined = joined_lines.iter().find(|line| {
+            line.carrier == "conduit-line/loopback-websocket@1"
+                && ((line.host_id == source.host_id && line.boot_id == source.boot_id)
+                    || (line.host_id == sink.host_id && line.boot_id == sink.boot_id))
+        });
+        if joined.is_none() {
+            continue;
+        }
+        let cord_limits = limits
+            .get(&(
+                connection.source_gear_id.clone(),
+                connection.source_port_id.clone(),
+                connection.sink_gear_id.clone(),
+                connection.sink_port_id.clone(),
+            ))
+            .ok_or("Workspace Cord limits are absent")?;
+        let maximum_frame_bytes = cord_limits
+            .byte_capacity
+            .checked_add(8_192)
+            .ok_or("Workspace Line frame capacity overflow")?;
+        let line_id = format!("line/workspace/{index}");
+        let mut offer = process_owned_line_offer_with_limits(
+            &line_id,
+            &format!("binding/workspace/{index}"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            "base/workspace/joined-websocket",
+            source,
+            sink,
+            LinkLimits {
+                maximum_in_flight_items: cord_limits.item_capacity,
+                maximum_payload_bytes: cord_limits.byte_capacity,
+                maximum_buffered_bytes: cord_limits.byte_capacity,
+                maximum_frame_bytes,
+            },
+        );
+        offer.contract.scope = LineScope::LocalNetwork;
+        offer.contract.security = LineSecurity::PlaintextNetwork;
+        candidates.insert(
+            (
+                connection.source_gear_id.clone(),
+                connection.sink_gear_id.clone(),
+            ),
+            vec![offer.line_id.clone()],
+        );
+        offers.push(offer);
+    }
+    Ok((offers, candidates))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_core::{
+        ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
+        ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+        OfferGeneration, PROTOCOL_VERSION,
+    };
+    use conduit_form::KindDefinition;
+
+    fn remote_offer(definition: &KindDefinition) -> CapabilityOffer {
+        let slug = definition.kind_id.as_str().replace('/', "-");
+        CapabilityOffer {
+            startup_parameters: definition
+                .configuration
+                .iter()
+                .map(|field| conduit_core::FaceStartupParameter {
+                    name: field.key.clone(),
+                    value_type: match field.default_value {
+                        ConfigurationValue::Bool(_) => "Boolean",
+                        ConfigurationValue::I64(_) => "Scalar",
+                        ConfigurationValue::U64(_) => "Count",
+                        ConfigurationValue::Text(_) => "Text",
+                        ConfigurationValue::Structured(ref value) => value.profile().as_str(),
+                    }
+                    .into(),
+                    has_default: true,
+                })
+                .collect(),
+            shorthand: None,
+            capability_id: CapabilityId::from(format!("voice-host/{slug}")),
+            kind_id: definition.kind_id.clone(),
+            kind_contract_revision: definition.kind_contract_revision.clone(),
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from("voice-host/profile@1"),
+                implementation_id: ImplementationId::from(format!("voice-host/{slug}@1")),
+                artifact_id: ArtifactId::from(format!("voice-host/{slug}-artifact@1")),
+            },
+            inputs: definition.inputs.clone(),
+            outputs: definition.outputs.clone(),
+            host_operations: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+            limits: CapabilityLimits {
+                max_active_instances: 2,
+                max_queue_items: 32,
+                max_queue_bytes: 262_144,
+            },
+        }
+    }
+
+    #[test]
+    fn spoken_conversation_requires_explicit_audio_authority_and_a_joined_line() {
+        let source = include_str!("../../../../../../forms/live-conversation/main.conduit");
+        let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(
+            crate::installed_browser::PresentationProfile::Annotation,
+        )
+        .unwrap();
+        let checked = conduit_form::check_syntax_document(
+            &conduit_form::parse_syntax_document(source),
+            &startup,
+        )
+        .unwrap();
+        let selector_offers =
+            crate::installed_browser::catalogs::install_checked_structured_selectors(
+                &checked,
+                &mut profile,
+            )
+            .unwrap();
+        let backs = crate::installed_browser::backs(&startup, &profile).unwrap();
+        let expanded = conduit_form::expand_canonical_form_with_backs(
+            &checked,
+            "spoken-live-conversation",
+            &profile,
+            &backs,
+        )
+        .unwrap();
+        let mut browser = crate::installed_browser::advertisement(
+            HostId::from("browser/orifinia"),
+            BootId::from("browser-boot/orifinia"),
+        );
+        browser.capabilities.extend(selector_offers);
+        let remote = HostAdvertisement {
+            protocol_version: PROTOCOL_VERSION,
+            host_id: HostId::from("host/orifinia-voice"),
+            boot_id: BootId::from("boot/orifinia-voice"),
+            offer_generation: OfferGeneration(1),
+            profile: HostProfileId::from("voice-host/profile@1"),
+            resources: vec![],
+            capabilities: expanded
+                .gears
+                .iter()
+                .filter(|gear| {
+                    !matches!(
+                        gear.kind_id.as_str(),
+                        conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND
+                            | conduit_semantic_catalog::AUDIO_PLAY_KIND
+                    )
+                })
+                .map(|gear| remote_offer(profile.get(&gear.kind_id).unwrap()))
+                .collect(),
+            planner_capabilities: vec![],
+        };
+        let hosts = [browser.clone(), remote.clone()];
+        let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
+        let joined = [crate::creche::workspace::JoinedLineObservation {
+            host_id: remote.host_id.clone(),
+            boot_id: remote.boot_id.clone(),
+            carrier: "conduit-line/loopback-websocket@1".into(),
+        }];
+        let authority = crate::creche::workspace::PlanningAuthority {
+            browser_audio: true,
+        };
+        let planned = plan(
+            &expanded,
+            &hosts,
+            &placements,
+            &crate::installed_browser::local_bases(),
+            &joined,
+            authority,
+        )
+        .unwrap();
+
+        assert_eq!(planned.fragments.len(), 2);
+        assert!(planned.fragments.iter().any(|fragment| fragment
+            .connections
+            .iter()
+            .any(|connection| connection.selected_line.is_some())));
+        assert_eq!(
+            planned
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .map(|placement| placement.authority.len())
+                .sum::<usize>(),
+            2
+        );
+        assert!(plan(
+            &expanded,
+            &hosts,
+            &placements,
+            &crate::installed_browser::local_bases(),
+            &joined,
+            crate::creche::workspace::PlanningAuthority::default(),
+        )
+        .is_err());
+        assert!(plan(
+            &expanded,
+            &hosts,
+            &placements,
+            &crate::installed_browser::local_bases(),
+            &[],
+            authority,
+        )
+        .is_err());
+    }
 }
