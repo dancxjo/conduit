@@ -180,6 +180,19 @@ fn addressed_recorded_clip_reaches_the_model_in_one_plan_play() {
     );
     assert_eq!(receipt.executed_form_name, "recorded-house-proof");
     assert_eq!(receipt.reviewed_source_paths.len(), 3);
+    assert_eq!(
+        receipt.executed_source,
+        concat!(
+            include_str!("../../../forms/addressed-utterance/main.conduit"),
+            "\n",
+            include_str!("../../../forms/house-conversation/main.conduit"),
+            "\n",
+            include_str!("../proof/recorded-house/main.conduit"),
+        )
+    );
+    for provider_fact in ["Whisper", "Piper", "Ollama", "127.0.0.1"] {
+        assert!(!receipt.executed_source.contains(provider_fact));
+    }
     assert_eq!(receipt.executed_source_document_id.len(), 64);
     assert_eq!(receipt.executed_checked_form_id.len(), 64);
     assert_eq!(receipt.local_model_invocations, 1);

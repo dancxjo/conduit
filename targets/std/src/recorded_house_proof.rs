@@ -310,6 +310,7 @@ fn run_with_source(
 
     let topology = crate::house_conversation_topology::build(microphone_source, spoken_output)?;
     let executed_form_name = topology.entry.to_string();
+    let executed_source = topology.source.to_string();
     let expanded = topology.expanded;
     let executed_source_document_id = expanded.source_document_id.as_str().to_string();
     let executed_checked_form_id = expanded.checked_form_id.as_str().to_string();
@@ -450,6 +451,7 @@ fn run_with_source(
             executed_checked_form_id,
             semantic_topology_origin: "checked-reviewed-form-with-proof-adapters".into(),
             executed_form_name,
+            executed_source,
             reviewed_source_paths: vec![
                 "forms/addressed-utterance/main.conduit".into(),
                 "forms/house-conversation/main.conduit".into(),

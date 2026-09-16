@@ -8,6 +8,8 @@ pub struct RecordedHouseProofReceipt {
     pub semantic_topology_origin: String,
     /// Reviewed entry Form selected from the checked proof source.
     pub executed_form_name: String,
+    /// Exact reviewed source document checked, planned, and executed by this run.
+    pub executed_source: String,
     /// Checked-in sources whose exact concatenation produced the source identity.
     pub reviewed_source_paths: Vec<String>,
     pub plan_id: String,
