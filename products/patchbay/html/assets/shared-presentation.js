@@ -8,6 +8,11 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
     if (!Number.isSafeInteger(maximumChunks) || maximumChunks < 1 || requiredChunks > maximumChunks) {
       throw new Error(`shared ${slotPrefix} capacity exceeded`);
     }
+    const existing = Array.from(container.children);
+    if (existing.length === requiredChunks
+      && existing.every((slot, index) => slot.dataset.applicationSlot === `${slotPrefix}-${index}`)) {
+      return existing;
+    }
     const slots = Array.from({ length: requiredChunks }, (_, index) => {
       const slot = document.createElement("div");
       slot.dataset.applicationSlot = `${slotPrefix}-${index}`;
