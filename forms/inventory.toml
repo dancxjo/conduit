@@ -215,7 +215,7 @@ browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case
 slug = "little-seismograph"
 title = "Little Seismograph"
 entry = "little-seismograph-display"
-initial_body_order = 14
+initial_body_order = 13
 reusable_entries = [
   { entry = "measurement-window", title = "Measurement Window", composition = { parent = "little-seismograph-processing", occurrences = ["samples"] }, deterministic = { package = "conduit-data", test = "measurement_window", case = "reusable_window_has_an_exact_checked_form_contract" } },
   { entry = "measurement-summary", title = "Measurement Summary", composition = { parent = "little-seismograph-processing", occurrences = ["summarize"] }, deterministic = { package = "conduit-data", test = "measurement_summary", case = "canonical_summary_is_a_reusable_exact_typed_form" } },
@@ -507,14 +507,14 @@ browser_safe_not_applicable = "open reusable face is exercised inside the Desk T
 slug = "tour"
 title = "Tutorial"
 entry = "tour"
-initial_body_order = 12
+workspace_catalog = false
 deterministic = { package = "conduit-tour-model", test = "application_form", case = "tour_is_a_checked_host_neutral_form_over_the_application_seam" }
-browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "resident Tutorial keeps state across foreground switches in one browser Body Play" }
+browser_safe_not_applicable = "retired chapter/exercise compatibility artifact; the Body surface now owns contextual tutorial guidance"
 
 [[forms]]
 slug = "patchbay"
 title = "Patchbay"
 entry = "patchbay"
-initial_body_order = 13
+initial_body_order = 12
 deterministic = { package = "patchbay-application", test = "lib", case = "opens_the_exact_form_and_plan_and_retains_inspection" }
 browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "resident Patchbay inspects and begins an exact edit in one browser Body Play" }

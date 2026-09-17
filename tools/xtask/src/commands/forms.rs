@@ -110,12 +110,18 @@ pub(super) struct InventoryForm {
     initial_body_order: Option<u8>,
     #[serde(default)]
     initial_body_presentation_profile: u8,
+    #[serde(default = "default_true")]
+    workspace_catalog: bool,
     pub(super) deterministic: Option<DeterministicOracle>,
     pub(super) deterministic_not_applicable: Option<String>,
     pub(super) browser_safe: Option<BrowserOracle>,
     pub(super) browser_safe_not_applicable: Option<String>,
     #[serde(default)]
     pub(super) graceful_fallback: Option<String>,
+}
+
+const fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Deserialize)]
@@ -270,7 +276,7 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
     let inventory = load_inventory(root)?;
     let catalogs = catalogs()?;
     let mut forms = Vec::with_capacity(inventory.forms.len());
-    for form in &inventory.forms {
+    for form in inventory.forms.iter().filter(|form| form.workspace_catalog) {
         let path = format!("forms/{}/main.conduit", form.slug);
         let source =
             fs::read_to_string(root.join(&path)).map_err(|error| format!("{path}: {error}"))?;
