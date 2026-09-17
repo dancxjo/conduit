@@ -42,6 +42,10 @@ mod flow_pressure;
 pub use flow_pressure::*;
 mod diverse_structured_info;
 pub use diverse_structured_info::*;
+#[cfg(feature = "form-catalog")]
+mod experience_catalog;
+#[cfg(feature = "form-catalog")]
+pub use experience_catalog::*;
 mod delivery_classification;
 pub use delivery_classification::*;
 mod vision;

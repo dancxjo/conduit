@@ -48,6 +48,7 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_calendar_provider_catalogs(&mut startup, &mut profile)?;
     conduit_presentation::install_geometry_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_experience_catalogs(&mut startup, &mut profile)?;
     conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_tabular_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_finance_catalogs(&mut startup, &mut profile)?;
