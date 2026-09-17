@@ -161,6 +161,7 @@ pub(crate) fn validate_body_events(
         return Err(BodyLifecycleError::InvalidTransition);
     }
     let mut replayed = BodyState::Lulled;
+    let mut last_retained_wake_id: Option<WakeId> = None;
     let (initial_workset, initial_revision) = match events.first() {
         Some(BodyLifecycleEvent::Born {
             initial_workset,
@@ -247,18 +248,24 @@ pub(crate) fn validate_body_events(
                 BodyLifecycleEvent::LullRetained {
                     wake_id: retained, ..
                 },
-            ) if wake_id == retained => BodyState::Lulled,
+            ) if wake_id == retained => {
+                last_retained_wake_id = Some(retained.clone());
+                BodyState::Lulled
+            }
             (
                 BodyState::Lulled,
                 BodyLifecycleEvent::Fulfilled {
                     final_workload_revision,
+                    final_wake_id,
                     authority_grant_id,
                     attribution,
                     settled_obligations,
                     sign_id,
-                    ..
                 },
             ) if *final_workload_revision == replayed_workload_revision
+                && final_wake_id
+                    .as_ref()
+                    .is_none_or(|wake_id| last_retained_wake_id.as_ref() == Some(wake_id))
                 && !authority_grant_id.as_str().is_empty()
                 && !attribution.trim().is_empty()
                 && settled_obligations.len() <= crate::MAX_FULFILLMENT_OBLIGATIONS =>

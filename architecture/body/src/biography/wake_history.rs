@@ -11,15 +11,23 @@ impl BodyBiographyEvidence {
         // Remove one oldest completed Wake from the retained exact window. The
         // operation preserves birth, current truth, and a monotonic boundary.
         self.validate()?;
+        let claimed_final_wake_id = self.body.events.iter().find_map(|event| match event {
+            BodyLifecycleEvent::Fulfilled {
+                final_wake_id: Some(wake_id),
+                ..
+            } => Some(wake_id),
+            _ => None,
+        });
         let Some((index, wake)) = self
             .wakes
             .iter()
             .enumerate()
             .find(|(_, wake)| {
-                matches!(
-                    wake.lifecycle,
-                    crate::WakeLifecycle::Lulled | crate::WakeLifecycle::Failed
-                )
+                claimed_final_wake_id != Some(&wake.wake_id)
+                    && matches!(
+                        wake.lifecycle,
+                        crate::WakeLifecycle::Lulled | crate::WakeLifecycle::Failed
+                    )
             })
             .map(|(index, wake)| (index, wake.clone()))
         else {
