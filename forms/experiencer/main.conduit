@@ -1,0 +1,23 @@
+# Portable convergence only: sources remain typed and provenance-bearing;
+# this Form owns no acquisition, storage, action, or lifecycle machinery.
+form experiencer (
+    > visual: VisualExperience...|
+    > human: ExperienceHumanInput...|
+    > body: ExperienceBodyInput...|
+    > memory: ExperienceMemoryInput...|
+    > inference: ExperienceInferenceInput...|
+    > hypothesis: ExperienceHypothesisInput...|
+    > source-status: ExperienceSourceStatus...|
+    current: $CurrentExperience >
+) {
+    relate: experience/relate-current
+
+    visual > relate.visual
+    human > relate.human
+    body > relate.body
+    memory > relate.memory
+    inference > relate.inference
+    hypothesis > relate.hypothesis
+    source-status > relate.source_status
+    relate.current > current
+}
