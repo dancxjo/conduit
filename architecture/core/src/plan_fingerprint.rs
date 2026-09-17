@@ -162,6 +162,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         }
         canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
         push_u32(&mut canonical, connection.byte_capacity);
+        canonical.push(connection.pressure_policy as u8);
     }
     push_u32(&mut canonical, fragment.shared_pools.len() as u32);
     for pool in &fragment.shared_pools {

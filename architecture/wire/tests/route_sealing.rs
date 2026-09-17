@@ -27,6 +27,7 @@ fn connection_with_routes(selected: AdmittedLine, lines: Vec<AdmittedLine>) -> P
         sink_port_id: PortId::from("in"),
         value_kind: KindId::from("value"),
         temporal: PortTemporal::Flow { closes: true },
+        pressure_policy: Default::default(),
         selected_line: Some(selected),
         admitted_lines: lines,
         item_capacity: 1,
