@@ -287,9 +287,21 @@ fn text_wraps_and_fallback_is_bounded_and_deterministic() {
     assert!(fallback_receipt.pixels_written > 0);
 
     let (accented, _) = render("Aẹ\u{0301}BC");
-    let (accented_lines, _) = render("Aẹ\u{0301}\nBC");
-    assert_eq!(accented, accented_lines, "accent does not steal a cell");
     let (plain, _) = render("AẹBC");
+    let positions = |value: &str| {
+        let mut cursor = super::text_layout::TextCursor::new(bounds.width);
+        value
+            .chars()
+            .filter_map(|character| cursor.advance(character))
+            .collect::<alloc::vec::Vec<_>>()
+    };
+    let accented_positions = positions("Aẹ\u{0301}BC");
+    let plain_positions = positions("AẹBC");
+    assert_eq!(
+        &accented_positions[3..],
+        &plain_positions[2..],
+        "accent does not advance following text"
+    );
     assert_ne!(accented, plain, "the accent is actually rasterized");
 }
 

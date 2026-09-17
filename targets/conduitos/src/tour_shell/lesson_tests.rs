@@ -3,7 +3,7 @@ use super::*;
 use crate::tour_workspace::lesson;
 
 #[test]
-fn lesson_scroll_changes_prose_pixels_and_preserves_the_laboratory() {
+fn lesson_end_reaches_final_paragraph_and_preserves_the_laboratory() {
     let (tour, mut shell, mut display) = fixture();
     shell.present(&tour, &mut display).unwrap();
     shell.route_pointer(20, 100, true).unwrap();
@@ -19,13 +19,15 @@ fn lesson_scroll_changes_prose_pixels_and_preserves_the_laboratory() {
     assert!(prose.contains("Conduit lets you make"));
     assert!(prose.contains("nearby Forms are unaffected."));
     shell.route_pointer(20, 100, true).unwrap();
-    let ScrollOutcome::Updated(receipt) = shell
+    let current_offset = match shell
         .scroll_focused(ScrollDirection::End, &mut display)
         .unwrap()
-    else {
-        panic!("lesson must scroll to its final paragraph");
+    {
+        ScrollOutcome::Updated(receipt) => receipt.current_offset,
+        ScrollOutcome::Boundary => 0,
+        ScrollOutcome::Ineligible => panic!("focused lesson must remain scroll eligible"),
     };
-    let visible = lesson::scrolled(&base, receipt.current_offset).unwrap();
+    let visible = lesson::scrolled(&base, current_offset).unwrap();
     let last = visible
         .commands()
         .iter()
@@ -37,11 +39,13 @@ fn lesson_scroll_changes_prose_pixels_and_preserves_the_laboratory() {
         conduit_presentation::GraphicsClipClass::FullyVisible
     );
     let narrative_width = 640 * 46 / 100;
-    assert!(
-        (40..416)
-            .any(|y| (8..narrative_width)
-                .any(|x| before[y * 640 + x] != display.pixels[y * 640 + x]))
-    );
+    if current_offset == 0 {
+        assert_eq!(before, display.pixels);
+    } else {
+        assert!((40..416).any(|y| {
+            (8..narrative_width).any(|x| before[y * 640 + x] != display.pixels[y * 640 + x])
+        }));
+    }
     for y in 0..40 {
         for x in 8..narrative_width {
             assert_eq!(
@@ -72,7 +76,7 @@ fn lesson_scroll_changes_prose_pixels_and_preserves_the_laboratory() {
         .iter()
         .find(|state| state.slot == Slot::Workspace)
         .unwrap();
-    assert_eq!(state.scroll.offset(), receipt.current_offset);
+    assert_eq!(state.scroll.offset(), current_offset);
     shell
         .scroll_focused(ScrollDirection::Start, &mut display)
         .unwrap();

@@ -128,14 +128,23 @@ fn transient_chooser_uses_the_shared_icon_button_language() {
         .iter()
         .filter(|command| command.style == GraphicsShapeStyle::RoundedStroke)
         .count();
-    assert_eq!(rounded, conduit_tour_model::CANONICAL_PATCHBAY_GEARS.len());
+    assert_eq!(
+        rounded,
+        conduit_tour_model::CANONICAL_PATCHBAY_GEARS.len() + 1
+    );
     assert_eq!(
         scene
             .commands()
             .iter()
             .filter(|command| command.kind == conduit_presentation::GraphicsCommandKind::Icon)
             .count(),
-        conduit_tour_model::CANONICAL_PATCHBAY_GEARS.len()
+        conduit_tour_model::CANONICAL_PATCHBAY_GEARS.len() + 1
+    );
+    assert!(
+        scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Close")
     );
 }
 

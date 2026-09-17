@@ -342,6 +342,20 @@ fn chooser_scene(
         return Err(TourShellError::Identity);
     }
     let mut scene = panel_scene(bounds, "CHOOSE GEAR", first_text(presentation))?;
+    if let Some(action) = presentation.subjects.iter().find(|subject| {
+        subject.identity == conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID
+            && subject.role == conduit_presentation::PresentationRole::Action
+    }) {
+        let button = super::controls::inspector_close_bounds(bounds.width);
+        crate::native_components::action_button(
+            &mut scene,
+            button,
+            button,
+            &action.label,
+            Some(PresentationIconKey::Close),
+        )
+        .map_err(|_| TourShellError::Scene)?;
+    }
     let viewport = LayoutRect {
         x: 0,
         y: 70,
