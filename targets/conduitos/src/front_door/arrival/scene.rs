@@ -106,12 +106,12 @@ impl Arrival {
                 ("body-name", PresentationMechanism::FormField(field)) => {
                     line(72, &field.help, false, GraphicsTextRole::Body)?;
                     line(108, &field.label, false, GraphicsTextRole::Label)?;
-                    line(
-                        132,
-                        &field.value,
-                        self.focus == 0,
-                        GraphicsTextRole::Heading,
-                    )?;
+                    let value = if field.value.is_empty() {
+                        "Name required"
+                    } else {
+                        &field.value
+                    };
+                    line(132, value, self.focus == 0, GraphicsTextRole::Heading)?;
                 }
                 ("name-system", PresentationMechanism::FormField(field)) => {
                     let FieldKind::NamedSelect { options } = &field.kind else {
