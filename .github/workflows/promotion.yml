@@ -123,11 +123,11 @@ jobs:
         with:
           name: conduit-pages-carrier
           path: target/pages-carrier-base
-      - name: Receive the accepted ConduitOS visual journey
+      - name: Receive the already-proven ConduitOS visual journey
         uses: ./.github/actions/download-artifact-retry
         with:
-          name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
-          path: target/conduitos-acceptance
+          name: conduitos-x86-batch-${{ github.event.pull_request.head.sha }}
+          path: target/conduitos-x86-batch
       - name: Receive the sealed sibling journey gallery
         uses: ./.github/actions/download-artifact-retry
         with:
@@ -144,7 +144,8 @@ jobs:
           node tools/ci/stage-journey-pages-evidence.mjs \
             target/journey-gallery-carrier/site target/pages-site "$source_commit"
           node tools/ci/stage-conduitos-pages-evidence.mjs \
-            target/conduitos-acceptance/journey-frames target/pages-site "$source_commit"
+            target/conduitos-x86-batch/runs/product-journey/conduitos/x86_64/journey-frames \
+            target/pages-site "$source_commit"
           node tools/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier-with-conduitos "$source_commit" "$source_tree"
           node tools/ci/verify-pages-carrier.mjs target/pages-carrier-with-conduitos "$source_tree"
       - name: Retain the promotion-only Pages carrier with ConduitOS frames
