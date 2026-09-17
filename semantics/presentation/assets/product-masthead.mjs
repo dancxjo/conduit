@@ -1,12 +1,11 @@
 export const PRODUCT_DESTINATIONS = Object.freeze([
   Object.freeze({ identity: "home", key: "home", label: "conduit" }),
-  Object.freeze({ identity: "tour", key: "tour", label: "Tour" }),
   Object.freeze({ identity: "creche", key: "creche", label: "Crèche" }),
   Object.freeze({ identity: "patchbay", key: "patchbay", label: "Patchbay" }),
   Object.freeze({ identity: "source", key: "source", label: "Source" }),
 ]);
 
-const PRODUCTS = new Set(["home", "tour", "creche", "patchbay"]);
+const PRODUCTS = new Set(["home", "creche", "patchbay"]);
 const STATUS_COMPONENTS = new Set(["status", "success-status", "warning-status", "failure-status"]);
 
 export function productMastheadNodes({ parent = null, firstIndex = 0, current = null, status, statusComponent = "status" }) {

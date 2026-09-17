@@ -1222,6 +1222,8 @@ jobs:
           node products/tour/tools/stage-legacy-routes.mjs target/pages-site
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/tour/tour.application.json
+          grep -Fq 'Redirecting to your Body' target/pages-site/tour/index.html
+          grep -Fq '../../workspace/' target/pages-site/tour/meet-one-gear/index.html
           test -f target/pages-site/book/index.html
           test -f target/pages-site/creche/index.html
           test -f target/pages-site/creche/creche.application.json

@@ -259,8 +259,8 @@ test("fourth application is admitted without product HTML, CSS, DOM, or browser 
     }
 
     const productNavigation = page.getByRole("navigation", { name: "Conduit products" });
-    await expect(productNavigation.getByRole("link")).toHaveCount(5);
-    await expect(productNavigation.getByRole("link", { name: "Tour" })).toHaveAttribute("href", "/conduit/tour/");
+    await expect(productNavigation.getByRole("link")).toHaveCount(4);
+    await expect(productNavigation.getByRole("link", { name: "Tour" })).toHaveCount(0);
 
     const navigation = page.getByRole("navigation", { name: "Field Notes destinations" });
     await navigation.getByRole("button", { name: "Overview" }).focus();
@@ -322,8 +322,8 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
     ["Patchbay", "patchbay", () => startStaticProduct(patchbayProduct, "/conduit/patchbay/"), ["navigation", "definition-table", "disclosure"]],
     ["Field Notes", null, () => startStaticProduct(stagedFixture), ["navigation", "artifact", "disclosure", "progress"]],
   ];
-  const expectedLabels = ["conduit", "Tour", "Crèche", "Patchbay", "Source"];
-  const expectedDestinations = ["home", "tour", "creche", "patchbay", "source"];
+  const expectedLabels = ["conduit", "Crèche", "Patchbay", "Source"];
+  const expectedDestinations = ["home", "creche", "patchbay", "source"];
   for (const [name, current, start, components] of products) {
     const entrance = await start();
     try {
@@ -338,11 +338,12 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
       const masthead = page.locator('[data-application-key="product-masthead"]');
       const navigation = masthead.getByRole("navigation", { name: "Conduit products" });
       const links = navigation.locator('[data-application-component="navigation-link"]');
-      await expect(links, `${name} shared masthead links`).toHaveCount(5);
+      await expect(links, `${name} shared masthead links`).toHaveCount(4);
       expect(await links.allTextContents(), `${name} shared masthead labels`).toEqual(expectedLabels);
       expect(await links.evaluateAll((elements) => elements.map((element) => element.dataset.applicationKey)), `${name} admitted destinations`).toEqual(expectedDestinations);
-      await expect(navigation.locator('[aria-current="page"]')).toHaveCount(current === null ? 0 : 1);
-      if (current !== null) await expect(navigation.locator(`[data-application-key="${current}"]`)).toHaveAttribute("aria-current", "page");
+      const currentIsPublic = current !== null && expectedDestinations.includes(current);
+      await expect(navigation.locator('[aria-current="page"]')).toHaveCount(currentIsPublic ? 1 : 0);
+      if (currentIsPublic) await expect(navigation.locator(`[data-application-key="${current}"]`)).toHaveAttribute("aria-current", "page");
       expect(await links.evaluateAll((elements) => elements.every((element) => element.tagName === "A" && element.onclick === null)), `${name} native links`).toBe(true);
       await page.setViewportSize({ width: 375, height: 800 });
       for (const key of expectedDestinations) await expect(navigation.locator(`[data-application-key="${key}"]`)).toBeVisible();
