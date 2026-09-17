@@ -1,6 +1,6 @@
 import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-bootstrap.mjs";
-import { createBodyBirthRunner, createFirstHostRunner } from "../../creche/browser/creche-lifecycle.mjs";
-import { readReviewedFormInventory, openFormSelection, persistedFormSelection } from "../../creche/browser/creche-form-selection.mjs";
+import { createBodyBirthRunner, createFirstHostRunner } from "./body-bootstrap.mjs";
+import { readReviewedFormInventory, openFormSelection, persistedFormSelection } from "./reviewed-form-selection.mjs";
 import { openWorkspaceSession } from "./workspace-session.mjs";
 import { openWorkspacePlay } from "./workspace-play.mjs";
 import { configureWorkspaceInput } from "./workspace-surface.mjs";
