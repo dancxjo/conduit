@@ -6,7 +6,8 @@ current capabilities, practical workflows, and detailed design references.
 ## Start here
 
 - [Project introduction](../README.md): the idea, working products, and a first command.
-- [Interactive Tour](https://dancxjo.github.io/conduit/tour/): learn by running real Forms in a browser.
+- [Body Workspace](https://dancxjo.github.io/conduit/workspace/): birth or return to a Body and use its resident tutorial and inspection Forms.
+- [Interactive Tour compatibility entrance](https://dancxjo.github.io/conduit/tour/): learn by running real Forms in a browser.
 - [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/): 17 narrated emulator screenshots with runtime evidence.
 - [Current status](../STATUS.md): what exists and the limits of its proof.
 - [Roadmap](roadmap.md): current open work and paused campaigns.
@@ -18,7 +19,7 @@ current capabilities, practical workflows, and detailed design references.
 |---|---|
 | [Try Conduit](try-conduit.md) | Local hosted, browser, Patchbay, and ConduitOS entrances |
 | [Try Forms](try-forms.md) and [Form collection](../forms/README.md) | Examples, authoring, and checking reusable programs |
-| [Products](../products/README.md) | Tour, Patchbay, Crèche, and the product CLI |
+| [Product surfaces](../products/README.md) | Body Workspace, compatibility/development surfaces, and the CLI |
 | [Targets](../targets/README.md) | Platform setup, fabrication, and target-specific proof |
 | [Body building](body-building.md) | Body-bound target artifacts and deployment boundaries |
 | [Host fabrication](host-fabrication.md) | PROFILE, BUILD, IMAGE, and fabrication packages |
