@@ -19,6 +19,7 @@ pub const SPEECH_COMMIT_REVISION: &str = "conduit.speech/commit-generated-text@1
 pub const SPEAKABLE_TEXT_VALUE_KIND: &str = "speech/speakable-text@1";
 pub const MAXIMUM_PENDING_SPEECH_BYTES: usize = 1_024;
 pub const MAXIMUM_SPEAKABLE_SEGMENT_BYTES: usize = 512;
+pub const MAXIMUM_ENCODED_SPEAKABLE_SEGMENT_BYTES: usize = 1_024;
 pub const MAXIMUM_COMMITTED_SEGMENTS: usize = 8;
 pub const SPEECH_COMMIT_QUEUE_BYTES: u32 = 4_096;
 
@@ -37,6 +38,33 @@ pub struct SpeakableSegment {
     pub sequence: u32,
     pub text: String,
     pub reason: SpeechCommitReason,
+}
+
+pub fn encode_speakable_segment(
+    segment: &SpeakableSegment,
+) -> Result<Vec<u8>, SpeechCommitRefusal> {
+    if segment.stream_identity.is_empty()
+        || segment.text.is_empty()
+        || segment.text.len() > MAXIMUM_SPEAKABLE_SEGMENT_BYTES
+    {
+        return Err(SpeechCommitRefusal::SegmentBoundExceeded);
+    }
+    let encoded =
+        serde_json::to_vec(segment).map_err(|_| SpeechCommitRefusal::SegmentBoundExceeded)?;
+    if encoded.len() > MAXIMUM_ENCODED_SPEAKABLE_SEGMENT_BYTES {
+        return Err(SpeechCommitRefusal::SegmentBoundExceeded);
+    }
+    Ok(encoded)
+}
+
+pub fn decode_speakable_segment(encoded: &[u8]) -> Result<SpeakableSegment, SpeechCommitRefusal> {
+    if encoded.len() > MAXIMUM_ENCODED_SPEAKABLE_SEGMENT_BYTES {
+        return Err(SpeechCommitRefusal::SegmentBoundExceeded);
+    }
+    let segment: SpeakableSegment =
+        serde_json::from_slice(encoded).map_err(|_| SpeechCommitRefusal::SegmentBoundExceeded)?;
+    encode_speakable_segment(&segment)?;
+    Ok(segment)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
