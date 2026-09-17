@@ -38,3 +38,30 @@ test("ordinary Body wake and lull own one exact externally managed voice Form", 
   assert.deepEqual(events.slice(-3), ["voice-close", "body-close", "lull:body-play"]);
   assert.equal(states.at(-1), "Lulled");
 });
+
+test("finishing retires a Play first and publishes one irreversible terminal state", async () => {
+  const events = [], states = [];
+  let state = "AWAKE";
+  const session = {
+    propose: async () => ({ plan: { forms: [] } }),
+    started: async () => events.push("started"),
+    lull: async () => { events.push("lull"); state = "LULLED"; },
+    fulfill: async () => { assert.equal(state, "LULLED"); events.push("fulfill"); state = "FULFILLED"; },
+    current: () => ({ state, workload_revision: 0 }),
+    evidence: () => ({ realization: {} }), persistenceFailure: () => null,
+  };
+  const adapter = {
+    start: () => ({ play: { active_play_id: "body-play" } }),
+    run: async () => new Promise(() => {}),
+    close: () => ({ receipt: terminal("cancelled") }), evidence: () => null,
+  };
+  const play = openWorkspacePlay({ host: { runtime: {}, hostId: "host/browser", bootId: "boot/browser" },
+    session, source: "catalog", planningLines: () => [], inputTarget: {}, outputRoot: {}, foregroundForm: () => null,
+    acquireBody: () => adapter, onState: value => states.push(value.state) });
+
+  await play.wake();
+  await play.fulfill();
+  assert.deepEqual(events, ["started", "lull", "fulfill"]);
+  assert.equal(state, "FULFILLED");
+  assert.equal(states.at(-1), "Fulfilled");
+});

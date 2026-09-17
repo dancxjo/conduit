@@ -22,6 +22,7 @@ export async function startApplication(application) {
   const details = inspection.querySelector('[data-inspection-content]');
   const wakeButton = root.querySelector('[data-wake-body]');
   const lullButton = root.querySelector('[data-lull-body]');
+  const fulfillButton = root.querySelector('[data-fulfill-body]');
   const fail = error => {
     notice.textContent = error instanceof Error ? error.message : String(error);
     notice.dataset.disposition = 'refused';
@@ -118,7 +119,7 @@ export async function startApplication(application) {
     function render() {
       const body = session.current();
       membership?.render();
-      const arriving = !body || !body.here_part_id;
+      const arriving = !body || (!body.here_part_id && body.state !== 'FULFILLED');
       const joining = membership?.isJoining();
       nursery.hidden = !arriving || joining;
       surface.hidden = arriving || !inspection.hidden || library?.isOpen() || membership?.isOpen();
@@ -153,6 +154,12 @@ export async function startApplication(application) {
       root.querySelector('[data-play-state]').textContent = playback.state;
       root.querySelector('#surface-guidance').textContent = playback.detail;
       lullButton.hidden = !body.initial_forms.length;
+      fulfillButton.hidden = body.state === 'FULFILLED';
+      fulfillButton.disabled = body.state !== 'LULLED' || Boolean(session.persistenceFailure());
+      if (body.state === 'FULFILLED') {
+        wakeButton.hidden = true;
+        lullButton.hidden = true;
+      }
       if (!body.initial_forms.length) {
         root.querySelector('#surface-guidance').textContent = 'This Body can remain lulled.';
         wakeButton.hidden = true;
@@ -180,7 +187,7 @@ export async function startApplication(application) {
         if (editing) return;
         surface.hidden = true; inspection.hidden = true; library.show();
       });
-      activities.append(browse);
+      if (body.state !== 'FULFILLED') activities.append(browse);
       if (!play) play = openWorkspacePlay({ host, session, source, planningLines: () => membership?.planningLines() ?? [], foregroundForm: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-form-output]'),
         async prepareExternal(proposal) {
           const distributed = proposal.plan.forms.filter(form => form.plan.fragments.length > 1);
@@ -202,11 +209,15 @@ export async function startApplication(application) {
         root.querySelector('#surface-guidance').textContent = state.detail;
         wakeButton.disabled = Boolean(session.persistenceFailure()) || !['Lulled', 'Refused'].includes(state.state);
         lullButton.disabled = !['Playing', 'Idle', 'Completed', 'Failed'].includes(state.state);
+        fulfillButton.disabled = !['Lulled', 'Playing', 'Idle', 'Completed', 'Failed'].includes(state.state)
+          || Boolean(session.persistenceFailure());
+        fulfillButton.hidden = state.state === 'Fulfilled';
         input.disabled = state.state !== 'Playing';
         input.inert = input.disabled;
         input.tabIndex = input.disabled ? -1 : 0;
         input.setAttribute('aria-disabled', String(input.disabled));
-        wakeButton.hidden = session.current().initial_forms.length === 0 || ['Playing', 'Idle', 'Preparing'].includes(state.state);
+        wakeButton.hidden = session.current().initial_forms.length === 0 || ['Playing', 'Idle', 'Preparing', 'Fulfilled'].includes(state.state);
+        if (state.state === 'Fulfilled') lullButton.hidden = true;
         showSelected();
         if (state.state === 'Playing' && input.dataset.acceptsInput === 'true') input.focus();
       } });
@@ -252,7 +263,11 @@ export async function startApplication(application) {
     });
     wakeButton.addEventListener('click', () => play?.wake(true).catch(fail));
     lullButton.addEventListener('click', () => play?.lull().catch(fail));
-    if (session.current()?.here_part_id) await session.arrive();
+    fulfillButton.addEventListener('click', () => {
+      if (!globalThis.confirm('Finish this Body permanently? Its biography remains available, but it cannot wake or change again.')) return;
+      play?.fulfill().then(render).catch(fail);
+    });
+    if (session.current()?.here_part_id && session.current().state !== 'FULFILLED') await session.arrive();
     render();
     if (handoff && session.current()?.here_part_id) {
       await consumeWorkspaceHandoff({ host, applicationId: application.manifest.applicationId });

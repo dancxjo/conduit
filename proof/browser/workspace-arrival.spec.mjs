@@ -151,6 +151,34 @@ test("an intentionally empty Body remains lulled without inventing a Play", asyn
   expect(returned.active_play_id).toBeUndefined();
 });
 
+test("explicit Finish retires work, records provenance, and restores as read-only Fulfilled history", async ({ page }) => {
+  await page.goto(entrance.url);
+  await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Finish Body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Fulfilled");
+  await expect(page.locator("#surface-guidance")).toContainText("biography remains available");
+  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Finish Body", exact: true })).toBeHidden();
+  const terminal = await page.evaluate(() => {
+    const snapshot = globalThis.__conduitWorkspace.evidence();
+    return { current: globalThis.__conduitWorkspace.current(), record: snapshot.evidence.records.at(-1) };
+  });
+  expect(terminal.current.state).toBe("FULFILLED");
+  expect(terminal.record.kind.Fulfilled.attribution).toContain("operator/browser/");
+  expect(terminal.record.kind.Fulfilled.settled_obligations[0].obligation_id).toBe("obligation/workspace-runtime-empty");
+
+  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
+  await page.reload();
+  await expect(page.locator("[data-play-state]")).toHaveText("Fulfilled");
+  await expect(page.getByRole("button", { name: "+ Forms", exact: true })).toHaveCount(0);
+  await page.locator('[data-inspect="lifecycle"]').click();
+  await expect(page.getByText("Exact lifecycle evidence", { exact: true })).toBeVisible();
+  expect((await page.evaluate(() => globalThis.__conduitWorkspace.current())).state).toBe("FULFILLED");
+});
+
 async function observeRealAudio(page) {
   await page.addInitScript(() => {
     globalThis.__cueAudio = { starts: [], ended: 0 };

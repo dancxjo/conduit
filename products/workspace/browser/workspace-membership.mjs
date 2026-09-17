@@ -61,7 +61,8 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
   function render() {
     panel.hidden = !open;
     openButton.hidden = !session.current();
-    inviteButton.hidden = !session.current();
+    const fulfilled = session.current()?.state === "FULFILLED";
+    inviteButton.hidden = !session.current() || fulfilled;
     openButton.setAttribute("aria-expanded", String(open));
     if (!open) return;
     if (invitation && !session.current()) { renderJoin(invitation); return; }
@@ -88,8 +89,11 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
     add.addEventListener("click", renderAddHost);
     const running = document.createElement("button"); running.type = "button"; running.textContent = "Connect a running Host";
     running.addEventListener("click", renderRunningHost);
-    const actions = document.createElement("div"); actions.className = "membership-actions"; actions.append(add, action, running);
-    content.append(intro, list, actions);
+    content.append(intro, list);
+    if (!fulfilled) {
+      const actions = document.createElement("div"); actions.className = "membership-actions"; actions.append(add, action, running);
+      content.append(actions);
+    }
   }
 
   function renderAddHost() {

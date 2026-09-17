@@ -22,7 +22,11 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
     adapter = null;
     await session.lull(started.play);
   };
-  publish('Lulled', 'This Body is retained. Wake it to start its Forms.');
+  if (session.current()?.state === 'FULFILLED') {
+    publish('Fulfilled', 'This Body is complete. Its biography remains available for inspection.');
+  } else {
+    publish('Lulled', 'This Body is retained. Wake it to start its Forms.');
+  }
   return Object.freeze({
     async wake(authorizeAudio = false) {
       if (adapter || transition) return;
@@ -102,6 +106,19 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
         publish(terminal ? 'Stopped' : 'Failed', terminal
           ? `Its Forms have stopped, but your Body could not be saved. Reopen to recover the last saved state. ${error.message}`
           : error.message, error);
+      } finally { transition = false; }
+    },
+    async fulfill() {
+      if (transition) return;
+      transition = true;
+      try {
+        if (adapter) await stop();
+        if (session.current().state !== 'LULLED') throw new Error('The current Play has not been retired');
+        await session.fulfill();
+        publish('Fulfilled', 'This Body is complete. Its biography remains available for inspection.');
+      } catch (error) {
+        publish(session.persistenceFailure() ? 'Stopped' : 'Refused', error.message, error);
+        throw error;
       } finally { transition = false; }
     },
     async changeWorkset(edit, form, expectedRevision) {

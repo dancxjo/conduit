@@ -1,11 +1,12 @@
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use conduit_body::{
     AdmissionManager, AdmissionRefusal, AdmissionSigns, BodyBiographyArchiveSegment,
-    BodyBiographyError, BodyBiographyEvidence, BodyFormPlan, BodyLifecycleError, BodyPlan,
-    BodyPlanError, BodyPlayIdentity, BodyState, MembershipCredential, MembershipRefusal,
-    MembershipState, ResidentForm, SpawnAdmissionProof, Wake,
+    BodyBiographyError, BodyBiographyEvidence, BodyFormPlan, BodyFulfillment, BodyLifecycleError,
+    BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyState,
+    FulfillmentObligation, MembershipCredential, MembershipRefusal, MembershipState, ResidentForm,
+    SpawnAdmissionProof, Wake,
 };
-use conduit_core::{BootId, HostAdvertisement, HostId, SignId, bind_sign};
+use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId, SignId, bind_sign};
 use serde::{Deserialize, Serialize};
 
 /// An exact current proposal and its optional admitted Play, never a scheduler.
@@ -44,11 +45,15 @@ pub enum WorkspaceBodyError {
 }
 
 impl WorkspaceBody {
-    /// A Crèche handoff or a retained Lulled Body is ready for fresh admission.
+    /// A Crèche handoff or retained Body may be opened for inspection. Only a
+    /// Lulled Body can subsequently mutate; Fulfilled remains terminal.
     /// An Awake snapshot alone never proves its previous Play has ended.
     pub fn open(evidence: BodyBiographyEvidence) -> Result<Self, WorkspaceBodyError> {
         evidence.validate().map_err(WorkspaceBodyError::Biography)?;
-        if evidence.body.state != BodyState::Lulled {
+        if !matches!(
+            evidence.body.state,
+            BodyState::Lulled | BodyState::Fulfilled { .. }
+        ) {
             return Err(WorkspaceBodyError::UnreconciledWake);
         }
         let foreground = evidence.body.workset.forms().first().cloned();
@@ -236,6 +241,7 @@ impl WorkspaceBody {
         host: &HostId,
         boot: &BootId,
     ) -> Result<&WorkspaceRealization, WorkspaceBodyError> {
+        self.require_mutable()?;
         if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
             return Err(WorkspaceBodyError::NotLulled);
         }
@@ -350,6 +356,55 @@ impl WorkspaceBody {
         Ok(())
     }
 
+    /// Record the explicit operator conclusion only after the browser runtime
+    /// has proved that no Play or implementation remains active.
+    pub fn fulfill(
+        &mut self,
+        host: &HostId,
+        boot: &BootId,
+        authority_grant_id: AuthorityGrantId,
+        attribution: alloc::string::String,
+    ) -> Result<(), WorkspaceBodyError> {
+        self.require_mutable()?;
+        self.require_host(host, boot)?;
+        if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
+            return Err(WorkspaceBodyError::NotLulled);
+        }
+        self.make_lifecycle_room(1, 0)?;
+        let sequence = self.next_sequence()?;
+        let sign_id = sign(host, boot, sequence);
+        let final_wake_id = self
+            .evidence
+            .body
+            .events
+            .iter()
+            .rev()
+            .find_map(|event| match event {
+                BodyLifecycleEvent::LullRetained { wake_id, .. } => Some(wake_id.clone()),
+                _ => None,
+            });
+        let fulfillment = BodyFulfillment {
+            final_wake_id,
+            authority_grant_id,
+            attribution,
+            settled_obligations: vec![FulfillmentObligation {
+                obligation_id: "obligation/workspace-runtime-empty".into(),
+                settlement_sign_id: sign_id.clone(),
+            }],
+        };
+        let body = self
+            .evidence
+            .body
+            .fulfill(fulfillment, sign_id.clone())
+            .map_err(WorkspaceBodyError::Lifecycle)?;
+        let mut evidence = self.evidence.clone();
+        evidence
+            .append_body_lifecycle_events(body, &[(sign_id, sequence)])
+            .map_err(WorkspaceBodyError::Biography)?;
+        self.evidence = evidence;
+        Ok(())
+    }
+
     /// Add checked meaning while Lulled. Current Play replacement is a separate
     /// Host-orchestrated lifecycle; this cannot mutate an admitted Plan.
     pub fn admit_form(
@@ -359,6 +414,7 @@ impl WorkspaceBody {
         host: &HostId,
         boot: &BootId,
     ) -> Result<(), WorkspaceBodyError> {
+        self.require_mutable()?;
         self.require_host(host, boot)?;
         if self.evidence.body.state != BodyState::Lulled {
             return Err(WorkspaceBodyError::NotLulled);
@@ -391,6 +447,7 @@ impl WorkspaceBody {
         host: &HostId,
         boot: &BootId,
     ) -> Result<(), WorkspaceBodyError> {
+        self.require_mutable()?;
         self.require_host(host, boot)?;
         if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
             return Err(WorkspaceBodyError::NotLulled);
@@ -429,6 +486,13 @@ impl WorkspaceBody {
         } else {
             Err(WorkspaceBodyError::StaleHost)
         }
+    }
+
+    fn require_mutable(&self) -> Result<(), WorkspaceBodyError> {
+        self.evidence
+            .body
+            .ensure_mutable()
+            .map_err(WorkspaceBodyError::Lifecycle)
     }
 
     fn next_sequence(&self) -> Result<u64, WorkspaceBodyError> {
