@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 110
+maximum_forms = 111
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -439,6 +439,12 @@ slug = "typed-record-frame"
 title = "Typed Record Frame"
 entry = "typed-record-frame"
 deterministic = { package = "conduit-net", features = ["form-catalog"], test = "typed_record", case = "framing_and_deframing_are_independent_reusable_checked_forms" }
+[[forms]]
+slug = "fulfillment-readiness"
+title = "Fulfillment Readiness"
+entry = "fulfillment-readiness"
+deterministic = { package = "conduit-semantic-catalog", test = "purpose_forms", case = "readiness_is_a_portable_deterministic_semantic_derivation" }
+browser_safe_not_applicable = "readiness is a deterministic Body semantic derivation without a browser lifecycle authority"
 [[forms]]
 slug = "experiencer"
 title = "Portable Experiencer"
