@@ -19,12 +19,19 @@ test("the ordinary Body surface reviews exact browser Host machinery before a se
   await page.getByRole("button", { name: "Add a Host", exact: true }).click();
   await expect(page.getByRole("heading", { name: "What should this browser contribute?", exact: true })).toBeVisible();
   await expect(page.getByText("it creates no Host, membership, readiness, offer, Plan, or Play", { exact: false })).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: /browser\/dom@1/ })).toBeChecked();
+  await expect(page.getByText("Target: Browser page (browser/wasm32/page) · bind reviewed superset", { exact: true })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Display this Body", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Keyboard and pointer input", exact: true })).toBeChecked();
+  await page.getByRole("checkbox", { name: "Microphone input", exact: true }).check();
   await expect(page.getByRole("button", { name: "Create separate Body invitation", exact: true })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Minimal", exact: true }).click();
-  await page.getByRole("button", { name: "Review Host", exact: true }).click();
+  await page.getByRole("button", { name: "Resolve reviewed Bases", exact: true }).click();
   await expect(page.locator('[data-application-key="configuration-review-values"]')).toContainText("PROFILE");
+  await expect(page.locator('[data-application-key="configuration-review-values"]')).toContainText("browser/media-devices-microphone@1");
+  await page.getByRole("button", { name: "Back / Edit", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: /browser\/dom@1/ })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: /browser\/media-devices-microphone@1/ })).toBeChecked();
+  await page.getByRole("button", { name: "Review Host", exact: true }).click();
   await expect(page.getByRole("button", { name: "Create separate Body invitation", exact: true })).toBeVisible();
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
   await page.getByRole("button", { name: "Create separate Body invitation", exact: true }).click();

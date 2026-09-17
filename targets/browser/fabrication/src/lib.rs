@@ -10,6 +10,61 @@ mod inventory;
 mod line;
 mod media;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BrowserCapabilityIntentDescriptor {
+    pub kind: &'static str,
+    pub label: &'static str,
+    pub implementation_id: &'static str,
+    pub required_bases: &'static [&'static str],
+}
+
+pub const BROWSER_CAPABILITY_INTENTS: &[BrowserCapabilityIntentDescriptor] = &[
+    capability_intent(
+        "host-contribution/graphical-presentation",
+        "Display this Body",
+        "browser/contribution-graphical-presentation@1",
+        &["browser/dom", "presentation/graphical"],
+    ),
+    capability_intent(
+        "host-contribution/keyboard-pointer-input",
+        "Keyboard and pointer input",
+        "browser/contribution-keyboard-pointer-input@1",
+        &["human/keyboard", "human/pointer"],
+    ),
+    capability_intent(
+        "host-contribution/microphone-input",
+        "Microphone input",
+        "browser/contribution-microphone-input@1",
+        &["media/microphone"],
+    ),
+    capability_intent(
+        "host-contribution/speaker-output",
+        "Speaker output",
+        "browser/contribution-speaker-output@1",
+        &["audio/output"],
+    ),
+    capability_intent(
+        "host-contribution/webrtc-connectivity",
+        "WebRTC network Lines",
+        "browser/contribution-webrtc-connectivity@1",
+        &["line/webrtc-datachannel"],
+    ),
+];
+
+const fn capability_intent(
+    kind: &'static str,
+    label: &'static str,
+    implementation_id: &'static str,
+    required_bases: &'static [&'static str],
+) -> BrowserCapabilityIntentDescriptor {
+    BrowserCapabilityIntentDescriptor {
+        kind,
+        label,
+        implementation_id,
+        required_bases,
+    }
+}
+
 pub use device::{BrowserDeviceRealizationDescriptor, BROWSER_DEVICE_REALIZATIONS};
 pub use inventory::{
     default_configuration_bases, validate_browser_inventory, BrowserImplementationDescriptor,
@@ -24,7 +79,7 @@ pub use media::{BrowserMediaRealizationDescriptor, BROWSER_MEDIA_REALIZATIONS};
 pub struct BrowserFabricationPackage;
 
 fn package_catalog() -> PackageCatalogContribution {
-    let implementations = BROWSER_IMPLEMENTATIONS
+    let mut implementations = BROWSER_IMPLEMENTATIONS
         .iter()
         .map(|descriptor| {
             (
@@ -37,7 +92,22 @@ fn package_catalog() -> PackageCatalogContribution {
                 },
             )
         })
-        .collect();
+        .collect::<BTreeMap<_, _>>();
+    implementations.extend(BROWSER_CAPABILITY_INTENTS.iter().map(|descriptor| {
+        (
+            descriptor.implementation_id.into(),
+            conduit_host_fabrication::ImplementationMetadata {
+                kind: descriptor.kind.into(),
+                contract_revision: "1".into(),
+                targets: vec!["browser/wasm32/page".into()],
+                prerequisites: descriptor
+                    .required_bases
+                    .iter()
+                    .map(|base| PrerequisiteNode::Base((*base).into()))
+                    .collect(),
+            },
+        )
+    }));
     PackageCatalogContribution {
         implementations,
         presenters: BTreeMap::from([(
@@ -113,7 +183,10 @@ impl HostFabricationPackage for BrowserFabricationPackage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_host_fabrication::{FabricationCatalog, FabricationPackageSet};
+    use conduit_host_fabrication::{
+        resolve_host_capability_intent, CapabilityIntent, FabricationCatalog,
+        FabricationPackageSet, HostCapabilityIntent,
+    };
     use std::collections::BTreeSet;
 
     #[test]
@@ -138,6 +211,50 @@ mod tests {
             assert!(catalog
                 .implementations
                 .contains_key(descriptor.implementation_id));
+        }
+    }
+
+    #[test]
+    fn purpose_first_intents_resolve_to_exact_reviewed_browser_bases() {
+        let packages = FabricationPackageSet::compose(&[&BrowserFabricationPackage]).unwrap();
+        let catalog = FabricationCatalog::canonical().with_packages(&packages);
+        let review = resolve_host_capability_intent(
+            &HostCapabilityIntent {
+                target: "browser/wasm32/page".into(),
+                capabilities: BROWSER_CAPABILITY_INTENTS
+                    .iter()
+                    .map(|descriptor| CapabilityIntent {
+                        kind: descriptor.kind.into(),
+                        pinned_implementation: None,
+                    })
+                    .collect(),
+            },
+            &catalog,
+            &packages,
+        )
+        .unwrap();
+
+        assert_eq!(review.capabilities.len(), BROWSER_CAPABILITY_INTENTS.len());
+        for (resolved, descriptor) in review.capabilities.iter().zip(BROWSER_CAPABILITY_INTENTS) {
+            assert_eq!(resolved.kind, descriptor.kind);
+            assert!(!resolved.pinned);
+            assert_eq!(resolved.candidates.len(), 1);
+            assert_eq!(
+                resolved.candidates[0].implementation_id,
+                descriptor.implementation_id
+            );
+            let exact_bases = &resolved.candidates[0].prerequisites.bases;
+            assert_eq!(exact_bases.len(), descriptor.required_bases.len());
+            for base in descriptor.required_bases {
+                let exact = exact_bases
+                    .iter()
+                    .find(|candidate| candidate.base_kind == *base)
+                    .expect("semantic intent retains its required Base");
+                assert_eq!(exact.compatible_implementations.len(), 1);
+                assert!(exact.compatible_implementations[0]
+                    .implementation_id
+                    .starts_with("browser/"));
+            }
         }
     }
 

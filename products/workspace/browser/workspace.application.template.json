@@ -182,7 +182,7 @@
       "role": "workspace-host-configuration",
       "kind": "module",
       "path": "workspace-host-configuration.mjs",
-      "maximum_bytes": 1024,
+      "maximum_bytes": 8192,
       "dependencies": [
         {
           "role": "browser-host-configuration",

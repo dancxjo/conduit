@@ -3,12 +3,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_host_browser_fabrication::{
-    BrowserFabricationPackage, BROWSER_IMPLEMENTATIONS, REVIEWED_DISTRIBUTION_ID,
-    REVIEWED_RUNTIME_ARTIFACT,
+    BrowserFabricationPackage, BROWSER_CAPABILITY_INTENTS, BROWSER_IMPLEMENTATIONS,
+    REVIEWED_DISTRIBUTION_ID, REVIEWED_RUNTIME_ARTIFACT,
 };
 use conduit_host_fabrication::{
-    canonical_host_configuration_conduit, check_host_configuration, ConfigurationBase,
-    ConfigurationTarget, FabricationCatalog, FabricationContribution, FabricationPackageSet,
+    canonical_host_configuration_conduit, check_host_configuration, resolve_host_capability_intent,
+    CapabilityIntent, ConfigurationBase, ConfigurationTarget, FabricationCatalog,
+    FabricationContribution, FabricationPackageSet, HostCapabilityIntent, HostCapabilityReview,
     HostConfiguration, HostFabricationPackage,
 };
 use serde::{Deserialize, Serialize};
@@ -60,11 +61,111 @@ struct CatalogSemantics {
     does_not_create: [&'static str; 7],
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Serialize)]
+struct BrowserCapabilityIntentCatalog {
+    schema: &'static str,
+    generation: u32,
+    target_id: &'static str,
+    defaults: Vec<&'static str>,
+    entries: Vec<BrowserCapabilityIntentEntry>,
+}
+
+#[derive(Serialize)]
+struct BrowserCapabilityIntentEntry {
+    kind: &'static str,
+    label: &'static str,
+    implementation_id: &'static str,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct BrowserCapabilityIntentSelection {
+    catalog_generation: u32,
+    capabilities: Vec<CapabilityIntent>,
+}
+
+#[derive(Serialize)]
+struct BrowserCapabilityIntentConfigurationReview {
+    schema: &'static str,
+    capability_review: HostCapabilityReview,
+    configuration_selection: BrowserConfigurationSelection,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct BrowserConfigurationSelection {
     pub(super) catalog_generation: u32,
     pub(super) implementations: Vec<String>,
+}
+
+fn capability_intent_catalog() -> BrowserCapabilityIntentCatalog {
+    BrowserCapabilityIntentCatalog {
+        schema: "conduit.host/browser-capability-intent-catalog@1",
+        generation: CATALOG_GENERATION,
+        target_id: super::spore_target::BROWSER_PAGE_TARGET_ID,
+        defaults: BROWSER_CAPABILITY_INTENTS[..2]
+            .iter()
+            .map(|descriptor| descriptor.kind)
+            .collect(),
+        entries: BROWSER_CAPABILITY_INTENTS
+            .iter()
+            .map(|descriptor| BrowserCapabilityIntentEntry {
+                kind: descriptor.kind,
+                label: descriptor.label,
+                implementation_id: descriptor.implementation_id,
+            })
+            .collect(),
+    }
+}
+
+fn review_capability_intent(
+    selection: BrowserCapabilityIntentSelection,
+) -> Result<BrowserCapabilityIntentConfigurationReview, String> {
+    if selection.catalog_generation != CATALOG_GENERATION {
+        return Err(format!(
+            "StaleCatalogGeneration: saved browser intent uses generation {}, current generation is {}",
+            selection.catalog_generation, CATALOG_GENERATION
+        ));
+    }
+    let package = BrowserFabricationPackage;
+    let packages = FabricationPackageSet::compose(&[&package])
+        .map_err(|error| format!("compose browser fabrication package: {error:?}"))?;
+    let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let capability_review = resolve_host_capability_intent(
+        &HostCapabilityIntent {
+            target: super::spore_target::BROWSER_PAGE_TARGET_ID.into(),
+            capabilities: selection.capabilities,
+        },
+        &catalog,
+        &packages,
+    )
+    .map_err(|error| format!("CapabilityIntentRefused: {error:?}"))?;
+    let mut implementations = BTreeSet::new();
+    for capability in &capability_review.capabilities {
+        let candidate = capability.candidates.first().ok_or_else(|| {
+            format!(
+                "CapabilityIntentRefused: {} has no candidate",
+                capability.kind
+            )
+        })?;
+        for base in &candidate.prerequisites.bases {
+            let implementation = base.compatible_implementations.first().ok_or_else(|| {
+                format!(
+                    "CapabilityIntentRefused: {} has no exact implementation",
+                    base.base_kind
+                )
+            })?;
+            implementations.insert(implementation.implementation_id.clone());
+        }
+    }
+    Ok(BrowserCapabilityIntentConfigurationReview {
+        schema: "conduit.host/browser-capability-configuration-review@1",
+        capability_review,
+        configuration_selection: BrowserConfigurationSelection {
+            catalog_generation: CATALOG_GENERATION,
+            implementations: implementations.into_iter().collect(),
+        },
+    })
 }
 
 #[derive(Serialize)]
@@ -249,6 +350,32 @@ pub extern "C" fn conduit_creche_browser_configuration_catalog() -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_host_capability_intent_catalog() -> i32 {
+    super::abi::clear_output();
+    super::abi::write_output(&capability_intent_catalog())
+        .map(|()| 0)
+        .unwrap_or(super::abi::ERROR_OUTPUT)
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_host_review_capability_intent(length: usize) -> i32 {
+    super::abi::clear_output();
+    let bytes = match super::abi::take_input(length) {
+        Ok(bytes) => bytes,
+        Err(code) => return code,
+    };
+    match serde_json::from_slice::<BrowserCapabilityIntentSelection>(&bytes)
+        .map_err(|error| format!("InvalidCapabilityIntent: {error}"))
+        .and_then(review_capability_intent)
+    {
+        Ok(review) => super::abi::write_output(&review)
+            .map(|()| 0)
+            .unwrap_or(super::abi::ERROR_OUTPUT),
+        Err(message) => super::abi::refuse(message, super::abi::ERROR_SPORE),
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_creche_review_browser_configuration(length: usize) -> i32 {
     super::abi::clear_output();
     let bytes = match super::abi::take_input(length) {
@@ -352,5 +479,37 @@ mod tests {
             Ok(_) => panic!("unknown selection passed"),
         };
         assert!(unknown.contains("StaleImplementation"));
+    }
+
+    #[test]
+    fn semantic_intent_resolves_before_exact_configuration_review() {
+        let intent = review_capability_intent(BrowserCapabilityIntentSelection {
+            catalog_generation: CATALOG_GENERATION,
+            capabilities: vec![
+                CapabilityIntent {
+                    kind: "host-contribution/graphical-presentation".into(),
+                    pinned_implementation: None,
+                },
+                CapabilityIntent {
+                    kind: "host-contribution/keyboard-pointer-input".into(),
+                    pinned_implementation: None,
+                },
+            ],
+        })
+        .unwrap();
+        assert_eq!(intent.capability_review.capabilities.len(), 2);
+        assert_eq!(
+            intent.configuration_selection.implementations,
+            vec![
+                "browser/dom-presentation@1",
+                "browser/dom@1",
+                "browser/keyboard-events@1",
+                "browser/pointer-events@1",
+            ]
+        );
+        let exact = review(intent.configuration_selection).unwrap().0;
+        assert_eq!(exact.selected_bases.len(), 4);
+        assert!(exact.configuration_id.starts_with("sha256:"));
+        assert!(exact.profile_id.starts_with("sha256:"));
     }
 }
