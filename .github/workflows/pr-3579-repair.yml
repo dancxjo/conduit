@@ -1,0 +1,81 @@
+name: Repair PR 3579 artifacts
+
+on:
+  push:
+    branches:
+      - copilot/add-explicit-pressure-policies
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: copilot/add-explicit-pressure-policies
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Refresh Pico W standalone lock metadata
+        run: |
+          cargo metadata \
+            --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml \
+            --format-version 1 >/dev/null
+          cargo metadata \
+            --locked \
+            --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml \
+            --format-version 1 >/dev/null
+
+      - name: Refresh assigned-plan deterministic goldens
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("fabrication/embedded-build/tests/assigned_plan.rs")
+          text = path.read_text()
+
+          replacements = {
+              """            130, 230, 138, 243, 240, 56, 187, 174, 116, 241, 89, 213, 63, 114, 226, 8, 46, 156,
+                      129, 206, 220, 145, 161, 163, 65, 28, 21, 14, 82, 147, 50, 167,""":
+              """            103, 253, 66, 159, 114, 149, 6, 249, 71, 182, 73, 71, 116, 64, 70, 198, 2, 176, 209,
+                      158, 49, 131, 188, 56, 9, 154, 2, 232, 180, 225, 240, 32,""",
+              """            174, 74, 113, 215, 147, 238, 76, 106, 238, 247, 15, 226, 121, 178, 143, 188, 141, 100,
+                      214, 119, 145, 228, 55, 42, 169, 139, 104, 123, 1, 150, 164, 242,""":
+              """            87, 154, 63, 143, 67, 110, 17, 39, 230, 90, 203, 29, 144, 25, 91, 111, 183, 229, 14,
+                      190, 161, 141, 110, 236, 7, 252, 241, 165, 131, 198, 108, 91,""",
+          }
+
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one golden occurrence, found {count}")
+              text = text.replace(old, new)
+
+          path.write_text(text)
+          PY
+
+      - name: Verify assigned-plan fixture
+        run: cargo test -p conduit-embedded-build --test assigned_plan
+
+      - name: Commit only the intended repair
+        run: |
+          git rm -- .github/workflows/pr-3579-repair.yml
+          git add -- \
+            targets/rp2040/firmware/pico-w-signal/Cargo.lock \
+            fabrication/embedded-build/tests/assigned_plan.rs
+
+          changed="$(git diff --cached --name-only)"
+          printf '%s\n' "$changed"
+          test "$changed" = "$(printf '%s\n' \
+            .github/workflows/pr-3579-repair.yml \
+            fabrication/embedded-build/tests/assigned_plan.rs \
+            targets/rp2040/firmware/pico-w-signal/Cargo.lock)"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Repair pressure policy candidate artifacts"
+          git push origin HEAD:copilot/add-explicit-pressure-policies
