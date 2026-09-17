@@ -21,6 +21,8 @@ export async function prepareWorkspaceVoicePlay({
   const peer = fragments.filter(fragment => fragment.host_id === joined?.host_id &&
     fragment.boot_id === joined?.boot_id);
   if (fragments.length !== 2 || local.length !== 1 || peer.length !== 1 ||
+      local[0].offer_generation !== localAdvertisement?.offer_generation ||
+      peer[0].offer_generation !== joined?.advertisement?.offer_generation ||
       joined?.advertisement?.host_id !== joined.host_id ||
       joined?.advertisement?.boot_id !== joined.boot_id ||
       joined?.line?.schema !== "conduit.creche/joined-host-line@1") {
