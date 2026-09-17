@@ -161,9 +161,9 @@ fn discovery_overflow_fails_closed() {
 
 #[test]
 fn short_capture_fails_closed() {
-    let short = format(
+    let short = format!(
         "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\nprintf '\\000\\000'\n",
-        listing().replace('\n', "\\n")
+        listing().replace('\n', "\\n"),
     );
     let (short_root, short_executable) = fixture(&short, "short-capture");
     let discovery = AlsaMicrophoneDiscovery::inspect(&short_executable).unwrap();
