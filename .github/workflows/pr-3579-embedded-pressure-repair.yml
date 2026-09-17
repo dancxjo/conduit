@@ -21,6 +21,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rustfmt
+          targets: thumbv6m-none-eabi
 
       - name: Preserve pressure policy through embedded code generation
         run: |
