@@ -40,3 +40,10 @@ test("Workspace voice composition refuses stale peer identity before acquiring r
   await assert.rejects(() => prepareWorkspaceVoicePlay(f), /one exact browser and Voice Host/);
   assert.deepEqual(f.events, []);
 });
+
+test("Workspace voice composition refuses stale peer offer generation before acquiring resources", async () => {
+  const f = fixture();
+  f.joined.advertisement.offer_generation = 5;
+  await assert.rejects(() => prepareWorkspaceVoicePlay(f), /one exact browser and Voice Host/);
+  assert.deepEqual(f.events, []);
+});
