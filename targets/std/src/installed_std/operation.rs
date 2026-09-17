@@ -38,6 +38,9 @@ impl Operation for InstalledOperation {
             Self::StateCount(operation) => operation.start(),
             Self::StateToggle(operation) => operation.start(),
             Self::CountPresentation(operation) => operation.start(),
+            Self::FlowBackpressure(operation) | Self::FlowCoalesceLatest(operation) => {
+                operation.start()
+            }
             Self::StateLatestScalar(operation) => operation.start(),
             Self::FlowTeeScalar(operation) => operation.start(),
             Self::StateSelectScalar(operation) => operation.start(),
@@ -183,6 +186,8 @@ impl Operation for InstalledOperation {
             (Self::StateCount(operation), input) => operation.resume(input),
             (Self::StateToggle(operation), input) => operation.resume(input),
             (Self::CountPresentation(operation), input) => operation.resume(input),
+            (Self::FlowBackpressure(operation), input)
+            | (Self::FlowCoalesceLatest(operation), input) => operation.resume(input),
             (Self::StateLatestScalar(operation), input) => operation.resume(input),
             (Self::FlowTeeScalar(operation), input) => operation.resume(input),
             (Self::StateSelectScalar(operation), input) => operation.resume(input),
@@ -385,6 +390,9 @@ impl Operation for InstalledOperation {
             Self::StateCount(operation) => operation.advance(),
             Self::StateToggle(operation) => operation.advance(),
             Self::CountPresentation(_) => OperationAction::Await,
+            Self::FlowBackpressure(operation) | Self::FlowCoalesceLatest(operation) => {
+                operation.advance()
+            }
             Self::StateLatestScalar(operation) => operation.advance(),
             Self::FlowTeeScalar(operation) => operation.advance(),
             Self::StateSelectScalar(operation) => operation.advance(),

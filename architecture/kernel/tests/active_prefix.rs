@@ -136,6 +136,7 @@ fn cord(index: u16, source: u16, sink: u16) -> CordSpec {
             slot_start: index,
             item_capacity: 1,
             byte_capacity: 1,
+            pressure_policy: Default::default(),
         },
     )
 }
@@ -148,6 +149,7 @@ fn inactive_cord() -> CordSpec {
         slot_start: u16::MAX,
         item_capacity: 0,
         byte_capacity: 0,
+        pressure_policy: Default::default(),
     }
 }
 

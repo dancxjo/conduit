@@ -48,6 +48,8 @@ fn current_fragment_lowers_into_one_deterministic_fixed_image() {
     let second = generated.render_rust_module();
     assert_eq!(first, second);
     assert!(first.contains("conduit_kernel::CordEndpoint::local"));
+    assert!(first.contains("pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder"));
+    assert!(!first.contains("pressure_policy: Default::default()"));
     assert!(first.contains("pub const GENERATED_PLACEMENT_IDS"));
     assert!(!first.contains("ExecutionPlan"));
 }
@@ -414,6 +416,7 @@ fn sealed_current_fragment() -> PlanFragment {
             sink_port_id: PortId::from("in"),
             value_kind,
             temporal: conduit_core::PortTemporal::Value,
+            pressure_policy: Default::default(),
             selected_line: None,
             admitted_lines: vec![],
             item_capacity: 1,
