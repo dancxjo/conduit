@@ -23,6 +23,8 @@ enum EvidenceCommand {
     HomeCrossFace(HomeCrossFaceArgs),
     /// Verify three independently born Bodies against one semantic Journey contract.
     ThreeBodyJourney(ThreeBodyJourneyArgs),
+    /// Write the canonical exact-commit contract for the three-Body Journey.
+    ThreeBodyJourneyContract(ThreeBodyJourneyContractArgs),
     /// Retain native and pinned-browser pixels for one exact Presentation.
     OneFormTwoFaces(TwoFacesArgs),
     /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
@@ -65,6 +67,17 @@ struct ThreeBodyJourneyArgs {
 
     /// New file that will receive the verified cross-Body index.
     #[arg(long, default_value = "target/journeys/three-bodies/index.json")]
+    output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+struct ThreeBodyJourneyContractArgs {
+    /// Exact commit the future track evidence must match.
+    #[arg(long)]
+    commit: String,
+
+    /// New file that will receive the canonical contract.
+    #[arg(long, default_value = "target/journeys/three-bodies/contract.json")]
     output: PathBuf,
 }
 
@@ -162,6 +175,9 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
         EvidenceCommand::HomeCrossFace(args) => home_cross_face::run(args.receipts, args.output),
         EvidenceCommand::ThreeBodyJourney(args) => {
             three_body_journey::run(args.commit, args.contract, args.tracks, args.output)
+        }
+        EvidenceCommand::ThreeBodyJourneyContract(args) => {
+            three_body_journey::write_contract(args.commit, args.output).map_err(Into::into)
         }
         EvidenceCommand::OneFormTwoFaces(args) => two_faces::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
