@@ -117,6 +117,21 @@ test("Body placement admission follows the runtime envelope instead of a duplica
   assert.throws(() => acquireBrowserBodyHost(f), /placement bound exceeded/);
 });
 
+test("an exact externally managed distributed Form stays in the Body Plan but outside the local scheduler", () => {
+  const f = fixture();
+  f.proposal.plan.forms[0].plan.plan_id = "plan/local";
+  f.proposal.plan.forms.push({ plan: { plan_id: "plan/voice", fragments: [
+    { host_id: "host", boot_id: "boot", offer_generation: 1, placements: [] },
+    { host_id: "host/voice", boot_id: "boot/voice", offer_generation: 4, placements: [] },
+  ] } });
+  assert.throws(() => acquireBrowserBodyHost(f), /requires an external manager/);
+  const owner = acquireBrowserBodyHost({ ...f, externallyManagedPlanIds: ["plan/voice"] });
+  owner.start(1);
+  assert.deepEqual(f.request().externally_managed_plan_ids, ["plan/voice"]);
+  assert.equal(f.request().plan.forms.length, 2);
+  owner.close();
+});
+
 test("closing pending timer work settles the dispatcher and releases the owner", async () => {
   const f = fixture({ timer: true }), owner = acquireBrowserBodyHost(f);
   owner.start(1);

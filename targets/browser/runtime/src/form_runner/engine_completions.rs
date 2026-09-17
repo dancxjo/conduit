@@ -55,6 +55,15 @@ pub(in crate::form_runner) fn complete_host_effect_with_output(
                 .map_err(|error| format!("decode browser button transition: {error:?}"))?;
             conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES
         }
+        BrowserHostEffect::AudioCapture => {
+            let (header, payload) = conduit_audio::PcmFrameHeader::decode_frame(output)
+                .map_err(|error| format!("decode browser microphone PCM: {error:?}"))?;
+            header
+                .validate_payload(payload)
+                .map_err(|error| format!("validate browser microphone PCM: {error:?}"))?;
+            conduit_audio::MAXIMUM_PCM_FRAME_BYTES
+                + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32
+        }
         BrowserHostEffect::ApplicationEvent => {
             if output.is_empty()
                 || output.len() > crate::installed_browser::application::EVENT_BYTES as usize

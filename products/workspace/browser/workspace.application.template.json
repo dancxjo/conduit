@@ -240,6 +240,10 @@
           "specifier": "./browser-audio-cue.mjs"
         },
         {
+          "role": "browser-pcm-audio",
+          "specifier": "./browser-pcm-audio.mjs"
+        },
+        {
           "role": "application-presentation",
           "specifier": "./application-presentation.mjs"
         }
@@ -302,6 +306,18 @@
       "kind": "module",
       "path": "browser-audio-cue.mjs",
       "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "browser-form-effects",
+          "specifier": "./browser-form-effects.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-pcm-audio",
+      "kind": "module",
+      "path": "browser-pcm-audio.mjs",
+      "maximum_bytes": 16384,
       "dependencies": [
         {
           "role": "browser-form-effects",

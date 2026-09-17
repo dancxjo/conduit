@@ -1,4 +1,5 @@
 //! Crèche-to-workspace handoff and shared exact inventory planning.
+use super::{JoinedLineObservation, PlanningAuthority};
 use conduit_body::{BodyBiographyEvidence, BodyFormPlan};
 use conduit_core::{BootId, HostAdvertisement, HostId};
 
@@ -56,6 +57,7 @@ pub(crate) fn workspace_library(
     observed_hosts: &[HostAdvertisement],
     host: &HostId,
     boot: &BootId,
+    joined_lines: &[JoinedLineObservation],
 ) -> Result<conduit_workspace_model::library::FormLibrary, String> {
     use conduit_workspace_model::library::{FormLibrary, LibraryEntry, MAX_LIBRARY_FORMS};
     let catalog: WorkspaceCatalog = serde_json::from_str(source)
@@ -79,7 +81,8 @@ pub(crate) fn workspace_library(
         forms
             .iter()
             .map(|entry| {
-                let availability = catalog_availability(entry, observed_hosts, host, boot);
+                let availability =
+                    catalog_availability(entry, observed_hosts, host, boot, joined_lines);
                 Ok(LibraryEntry {
                     form: conduit_body::ResidentForm::new(
                         entry.source_document_id.clone().into(),
@@ -101,8 +104,13 @@ pub(crate) fn workspace_library(
                                 .iter()
                                 .find(|candidate| candidate.slug == fallback.slug)
                                 .ok_or("reviewed Workspace graceful fallback is missing")?;
-                            let availability =
-                                catalog_availability(fallback_entry, observed_hosts, host, boot);
+                            let availability = catalog_availability(
+                                fallback_entry,
+                                observed_hosts,
+                                host,
+                                boot,
+                                joined_lines,
+                            );
                             Ok(conduit_workspace_model::library::LibraryFallback {
                                 title: fallback.title.clone(),
                                 availability,
@@ -121,9 +129,10 @@ fn catalog_availability(
     observed_hosts: &[HostAdvertisement],
     host: &HostId,
     boot: &BootId,
+    joined_lines: &[JoinedLineObservation],
 ) -> conduit_workspace_model::library::LibraryAvailability {
     use conduit_workspace_model::library::LibraryAvailability;
-    match catalog_form_plan(entry, observed_hosts, host, boot) {
+    match catalog_form_plan(entry, observed_hosts, host, boot, joined_lines) {
         Ok(()) => LibraryAvailability::Available,
         Err(_) => LibraryAvailability::NeedsCapability(entry.unavailable_hint.clone()),
     }
@@ -134,6 +143,7 @@ fn catalog_form_plan(
     observed_hosts: &[HostAdvertisement],
     host: &HostId,
     boot: &BootId,
+    joined_lines: &[JoinedLineObservation],
 ) -> Result<(), String> {
     let presentation = match entry.presentation_profile {
         0 => crate::installed_browser::PresentationProfile::Annotation,
@@ -184,6 +194,10 @@ fn catalog_form_plan(
         &hosts,
         &placements,
         &crate::installed_browser::local_bases(),
+        joined_lines,
+        PlanningAuthority {
+            browser_audio: true,
+        },
     )?;
     Ok(())
 }
@@ -194,6 +208,8 @@ pub(crate) fn plan_workspace_forms(
     observed_hosts: &[conduit_core::HostAdvertisement],
     host: &HostId,
     boot: &BootId,
+    joined_lines: &[JoinedLineObservation],
+    authority: PlanningAuthority,
 ) -> Result<Vec<BodyFormPlan>, String> {
     let inventory = super::initial_forms::check_inventory(source)?;
     if !observed_hosts
@@ -240,7 +256,14 @@ pub(crate) fn plan_workspace_forms(
                 .map_err(|error| format!("Workspace expansion refused: {error:?}"))?;
         let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
             .map_err(|error| error.to_string())?;
-        let plan = super::review::queue_plan::plan(&expanded, &hosts, &placements, &bases)?;
+        let plan = super::review::queue_plan::plan(
+            &expanded,
+            &hosts,
+            &placements,
+            &bases,
+            joined_lines,
+            authority,
+        )?;
         plans.push(BodyFormPlan {
             form: resident.clone(),
             plan,

@@ -19,6 +19,18 @@ pub(crate) use workspace::{
     handoff_workspace, plan_workspace_forms, require_workspace_form, workspace_evidence,
     workspace_library,
 };
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct JoinedLineObservation {
+    pub host_id: conduit_core::HostId,
+    pub boot_id: conduit_core::BootId,
+    pub carrier: String,
+}
+
+#[derive(Clone, Copy, Default)]
+pub(crate) struct PlanningAuthority {
+    pub browser_audio: bool,
+}
 mod spore;
 mod spore_target;
 

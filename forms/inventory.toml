@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 107
+maximum_forms = 108
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -43,8 +43,9 @@ browser_safe_not_applicable = "portable House conversation has no installed brow
 [[forms]]
 slug = "live-conversation"
 title = "Live Conversation"
-entry = "live-conversation"
-deterministic = { package = "conduit-std-host", test = "live_conversation_execution", case = "checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts" }
+entry = "spoken-live-conversation"
+reusable_entries = [{ entry = "live-conversation", title = "Live Conversation Pipeline", composition = { parent = "spoken-live-conversation", occurrences = ["conversation"] }, deterministic = { package = "conduit-std-host", test = "live_conversation_execution", case = "checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts" } }]
+deterministic = { package = "conduit-std-host", test = "live_conversation", case = "spoken_live_conversation_wraps_the_unchanged_pipeline_with_portable_audio_edges" }
 browser_safe_not_applicable = "live audio acquisition, streaming model generation, synthesis, and presentation require explicitly admitted realizations"
 graceful_fallback = "body-chat"
 [[forms]]
@@ -347,7 +348,7 @@ deterministic = { package = "conduit-semantic-catalog", test = "robotics_diversi
 slug = "route-annotation-stroke"
 title = "Route Annotation Stroke"
 entry = "route-annotation-stroke"
-deterministic = { package = "conduit-presentation", test = "stroke_capture_form", case = "capture_and_route_consumer_are_checked_and_mechanism_free" }
+deterministic = { package = "conduit-presentation", test = "stroke_capture_form", case = "capture_and_route_consumer_are_checked_and_host_neutral" }
 browser_safe_not_applicable = "portable stroke semantics have no reviewed browser Host execution oracle"
 [[forms]]
 slug = "scheduled-reminder"

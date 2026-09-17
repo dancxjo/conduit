@@ -25,3 +25,15 @@ form live-conversation (
     speech-commit.segments > synthesize.text
     synthesize.audio > spoken
 }
+
+# An ordinary complete spoken turn. The reusable live-conversation Face above
+# remains the refined explicit-PCM pipeline; acquisition and playback are
+# separate portable meanings selected by the Plan.
+form spoken-live-conversation {
+    microphone: audio/capture-push-to-talk
+    conversation: live-conversation
+    speaker: audio/play
+
+    microphone.audio > conversation.audio
+    conversation.spoken > speaker.audio
+}

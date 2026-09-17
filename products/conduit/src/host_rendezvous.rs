@@ -6,7 +6,10 @@
 
 use conduit_body::SpawnInvitationClaim;
 use conduit_core::HostAdvertisement;
-use conduit_std_host::websocket::{NativeWebSocketLine, NativeWebSocketListener};
+use conduit_std_host::websocket::{
+    NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener,
+};
+use conduit_wire::{decode_session_frame, SessionMessage};
 use serde::{Deserialize, Serialize};
 use std::io::{BufRead, Read, Write};
 use std::path::Path;
@@ -24,6 +27,12 @@ trait RendezvousLine {
     fn receive(&mut self) -> Result<Vec<u8>, String>;
     fn send(&mut self, bytes: &[u8]) -> Result<(), String>;
     fn close(&mut self) -> Result<(), String>;
+    fn poll_receive(&mut self, _timeout: Duration) -> Result<Option<Vec<u8>>, String> {
+        Ok(Some(self.receive()?))
+    }
+    fn supports_interruptible_exchange(&self) -> bool {
+        false
+    }
 }
 
 impl RendezvousLine for NativeWebSocketLine {
@@ -43,6 +52,29 @@ impl RendezvousLine for NativeWebSocketLine {
 
     fn close(&mut self) -> Result<(), String> {
         NativeWebSocketLine::close(self).map_err(debug("close rendezvous Line"))
+    }
+
+    fn poll_receive(&mut self, timeout: Duration) -> Result<Option<Vec<u8>>, String> {
+        self.set_read_timeout(Some(timeout))
+            .map_err(debug("set rendezvous poll timeout"))?;
+        let mut bytes = vec![0_u8; MAXIMUM_FRAME_BYTES];
+        let result = self.receive_binary(&mut bytes);
+        self.set_read_timeout(Some(Duration::from_secs(5)))
+            .map_err(debug("restore rendezvous receive timeout"))?;
+        match result {
+            Ok(length) => {
+                bytes.truncate(length);
+                Ok(Some(bytes))
+            }
+            Err(NativeWebSocketError::Transport(
+                std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut,
+            )) => Ok(None),
+            Err(error) => Err(format!("poll rendezvous frame: {error:?}")),
+        }
+    }
+
+    fn supports_interruptible_exchange(&self) -> bool {
+        true
     }
 }
 
@@ -108,6 +140,9 @@ enum Ingress {
         protocol: u16,
         plan: Box<conduit_core::Plan>,
     },
+    ReleaseRemote {
+        protocol: u16,
+    },
 }
 
 #[derive(Serialize)]
@@ -138,6 +173,9 @@ enum Egress<'a> {
         protocol: u16,
         identity: &'a conduit_core::ActivePlayIdentity,
         hello_frames: &'a [Vec<u8>],
+    },
+    RemoteReleased {
+        protocol: u16,
     },
     Refused {
         protocol: u16,
@@ -309,13 +347,13 @@ fn run_session(
             observed_at_millis: join.observed_at_millis,
         },
     )?;
-    let mut remote_prepared = false;
+    let mut remote_prepared = None;
     loop {
         match receive_joined(line)? {
             JoinedIngress::Control(Ingress::PrepareRemote { protocol, plan })
                 if protocol == PROTOCOL =>
             {
-                if remote_prepared {
+                if remote_prepared.is_some() {
                     return Err("joined Host Line already owns one remote Play".into());
                 }
                 let preparation = crate::durable_host_control::prepare_remote(
@@ -331,16 +369,25 @@ fn run_session(
                         hello_frames: &preparation.hello_frames,
                     },
                 )?;
-                remote_prepared = true;
+                remote_prepared = Some(preparation.identity);
             }
-            JoinedIngress::Frame(frame) if remote_prepared => {
-                let exchange = crate::durable_host_control::exchange_remote(state_dir, frame)?;
-                if let Some(response) = exchange.response {
-                    line.send(&response)?;
-                }
+            JoinedIngress::Frame(frame) if remote_prepared.is_some() => {
+                exchange_joined_frame(
+                    line,
+                    state_dir,
+                    remote_prepared.as_ref().expect("guarded remote identity"),
+                    &frame,
+                )?;
+            }
+            JoinedIngress::Control(Ingress::ReleaseRemote { protocol })
+                if protocol == PROTOCOL && remote_prepared.is_some() =>
+            {
+                crate::durable_host_control::release_remote(state_dir)?;
+                send(line, &Egress::RemoteReleased { protocol: PROTOCOL })?;
+                remote_prepared = None;
             }
             JoinedIngress::Control(Ingress::Close { protocol }) if protocol == PROTOCOL => {
-                if remote_prepared {
+                if remote_prepared.is_some() {
                     crate::durable_host_control::release_remote(state_dir)?;
                 }
                 break;
@@ -352,6 +399,77 @@ fn run_session(
     }
     let _ = line.close();
     Ok(())
+}
+
+fn exchange_joined_frame(
+    line: &mut impl RendezvousLine,
+    state_dir: &Path,
+    active_play: &conduit_core::ActivePlayIdentity,
+    frame: &[u8],
+) -> Result<(), String> {
+    if !line.supports_interruptible_exchange() {
+        let exchange = crate::durable_host_control::exchange_remote(state_dir, frame.to_vec())?;
+        for response in exchange.responses {
+            line.send(&response)?;
+        }
+        return Ok(());
+    }
+    let first = decode_session_frame(
+        frame,
+        MAXIMUM_FRAME_BYTES as u32,
+        MAXIMUM_FRAME_BYTES as u32,
+    )
+    .map_err(|error| format!("decode joined Host session frame: {error:?}"))?;
+    let identity = first.identity;
+    std::thread::scope(|scope| {
+        let worker =
+            scope.spawn(|| crate::durable_host_control::exchange_remote(state_dir, frame.to_vec()));
+        let mut cancellation = None;
+        while !worker.is_finished() {
+            let Some(candidate) = line.poll_receive(Duration::from_millis(25))? else {
+                continue;
+            };
+            if cancellation.is_some() {
+                return Err("joined Host Line sent more than one frame during cancellation".into());
+            }
+            let decoded = decode_session_frame(
+                &candidate,
+                MAXIMUM_FRAME_BYTES as u32,
+                MAXIMUM_FRAME_BYTES as u32,
+            )
+            .map_err(|error| format!("decode joined Host cancellation: {error:?}"))?;
+            if decoded.identity != identity
+                || !matches!(decoded.message, SessionMessage::Cancelled { .. })
+            {
+                return Err("joined Host Line changed session while an exchange was active".into());
+            }
+            crate::durable_host_control::signal_remote_cancellation(
+                state_dir,
+                active_play.active_play_id.as_str(),
+            )?;
+            cancellation = Some(candidate);
+        }
+        let exchanged = worker
+            .join()
+            .map_err(|_| "durable Host exchange worker panicked".to_string())?;
+        match exchanged {
+            Ok(exchange) => {
+                for response in exchange.responses {
+                    line.send(&response)?;
+                }
+            }
+            Err(error) if cancellation.is_some() && error.contains("remote-fragment-cancelled") => {
+            }
+            Err(error) => return Err(error),
+        }
+        if let Some(frame) = cancellation {
+            let exchange = crate::durable_host_control::exchange_remote(state_dir, frame)?;
+            for response in exchange.responses {
+                line.send(&response)?;
+            }
+        }
+        Ok(())
+    })
 }
 
 enum JoinedIngress {

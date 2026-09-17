@@ -125,7 +125,12 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
           host_id: join.host_id, boot_id: join.boot_id, nonce: join.nonce, signature: join.signature };
         await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
         const lineKey = `${join.host_id}\u0000${join.boot_id}`;
-        joinedLines.set(lineKey, join.line);
+        joinedLines.set(lineKey, Object.freeze({
+          host_id: join.host_id,
+          boot_id: join.boot_id,
+          advertisement: structuredClone(join.advertisement),
+          line: join.line,
+        }));
         join.line.onClosed(async ({ intentional }) => {
           joinedLines.delete(lineKey);
           if (intentional) return;
@@ -233,9 +238,21 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
     isJoining: () => Boolean(invitation && !session.current()),
     render,
     close,
+    planningLines: () => Array.from(joinedLines.values(), joined => ({
+      host_id: joined.host_id,
+      boot_id: joined.boot_id,
+      carrier: joined.line.line_id,
+    })),
+    executionLine(hostId, bootId) {
+      const joined = joinedLines.get(`${hostId}\u0000${bootId}`);
+      if (!joined || joined.advertisement.host_id !== hostId || joined.advertisement.boot_id !== bootId) {
+        return null;
+      }
+      return joined;
+    },
     dispose: () => {
       runningHost?.cancel(); runningHost = null;
-      for (const line of joinedLines.values()) void line.close();
+      for (const joined of joinedLines.values()) void joined.line.close();
       joinedLines.clear();
       for (const channel of channels) channel.close();
       channels.clear();

@@ -104,6 +104,10 @@ pub(crate) fn catalogs_for_presentation(
     conduit_tongues::install_house_conversation_form_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_audio_capture_push_to_talk_catalog(
+        &mut startup,
+        &mut profile,
+    )?;
     startup.insert_value_kind_alias(
         "PcmFrames",
         conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
@@ -189,7 +193,7 @@ mod conversation_tests {
             ),
             (
                 include_str!("../../../../../forms/live-conversation/main.conduit"),
-                "live-conversation",
+                "spoken-live-conversation",
             ),
         ] {
             let syntax = conduit_form::parse_syntax_document(source);

@@ -94,7 +94,15 @@ pub(super) fn review(
                     form.name
                 )
             })?;
-        queue_plan::plan(&expanded, hosts, &placements, bases).map_err(|error| {
+        queue_plan::plan(
+            &expanded,
+            hosts,
+            &placements,
+            bases,
+            &[],
+            super::PlanningAuthority::default(),
+        )
+        .map_err(|error| {
             format!(
                 "initial workload is unrealizable for {:?}: {error}",
                 form.name

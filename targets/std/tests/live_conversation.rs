@@ -24,6 +24,11 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         .unwrap();
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
     conduit_tongues::install_speech_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_audio_capture_push_to_talk_catalog(
+        &mut startup,
+        &mut profile,
+    )
+    .unwrap();
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile).unwrap();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile).unwrap();
@@ -238,4 +243,48 @@ fn unchanged_live_conversation_source_plans_across_compatible_hosts() {
         .connections
         .iter()
         .any(|connection| connection.selected_line.is_some())));
+}
+
+#[test]
+fn spoken_live_conversation_wraps_the_unchanged_pipeline_with_portable_audio_edges() {
+    let source = include_str!("../../../forms/live-conversation/main.conduit");
+    let (startup, profile) = catalogs();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let authored =
+        expand_canonical_form_for_authoring(&checked, "spoken-live-conversation", &profile)
+            .unwrap();
+    let kinds = authored
+        .expanded
+        .gears
+        .iter()
+        .map(|gear| gear.kind_id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        kinds
+            .iter()
+            .filter(|kind| **kind == conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND)
+            .count(),
+        1
+    );
+    assert_eq!(
+        kinds
+            .iter()
+            .filter(|kind| **kind == conduit_tongues::STREAMING_SPEECH_RECOGNIZE_KIND)
+            .count(),
+        1
+    );
+    assert_eq!(
+        kinds
+            .iter()
+            .filter(|kind| **kind == conduit_tongues::SPEECH_SYNTHESIZE_STREAM_KIND)
+            .count(),
+        1
+    );
+    assert_eq!(
+        kinds
+            .iter()
+            .filter(|kind| **kind == conduit_semantic_catalog::AUDIO_PLAY_KIND)
+            .count(),
+        1
+    );
 }
