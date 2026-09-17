@@ -7,6 +7,8 @@ edition = "2021"
 default = []
 alloc = []
 
+[dependencies]
+conduit-core = { path = "../core" }
+
 [dev-dependencies]
 conduit-human = { path = "../../semantics/human" }
-conduit-core = { path = "../core" }

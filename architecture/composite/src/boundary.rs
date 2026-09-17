@@ -28,6 +28,7 @@ pub(crate) fn augment_boundary_cords(
             slot_start: lowered.cord_value_slots,
             item_capacity: boundary.item_capacity,
             byte_capacity: boundary.byte_capacity,
+            pressure_policy: Default::default(),
         };
         let spec = match boundary.direction {
             PortDirection::Input => CordSpec::remote_ingress(

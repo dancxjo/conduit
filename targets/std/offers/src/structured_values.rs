@@ -2,6 +2,8 @@
 
 mod state;
 pub use state::*;
+mod flow_pressure;
+pub use flow_pressure::*;
 
 use conduit_core::{
     kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityId,

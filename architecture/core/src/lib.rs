@@ -600,6 +600,8 @@ pub struct PlannedConnection {
     pub value_kind: KindId,
     #[serde(default)]
     pub temporal: PortTemporal,
+    #[serde(default)]
+    pub pressure_policy: DeliveryPressurePolicy,
     /// Initially selected exact Line. Local Cords have no Line.
     #[serde(default)]
     pub selected_line: Option<AdmittedLine>,

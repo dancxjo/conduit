@@ -255,6 +255,7 @@ pub(super) fn prepare_drive_scheduler(
                     slot_start: 0,
                     item_capacity: 1,
                     byte_capacity: SCALAR_BYTES,
+                    pressure_policy: Default::default(),
                 },
             ),
             CordSpec::local(
@@ -265,6 +266,7 @@ pub(super) fn prepare_drive_scheduler(
                     slot_start: 1,
                     item_capacity: 1,
                     byte_capacity: SCALAR_BYTES,
+                    pressure_policy: Default::default(),
                 },
             ),
         ],

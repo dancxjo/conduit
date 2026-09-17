@@ -24,10 +24,11 @@ pub enum AdmissionUnit {
     SignalBatch,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[repr(u8)]
 pub enum DeliveryPressurePolicy {
+    #[default]
     PreserveOrder,
     CoalesceLatest,
 }
