@@ -230,13 +230,6 @@
       "dependencies": []
     },
     {
-      "role": "resident-tour-style",
-      "kind": "style",
-      "path": "resident-tour.css",
-      "maximum_bytes": 8192,
-      "dependencies": []
-    },
-    {
       "role": "workspace-play",
       "kind": "module",
       "path": "workspace-play.mjs",

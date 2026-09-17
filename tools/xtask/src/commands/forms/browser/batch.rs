@@ -338,6 +338,7 @@ mod tests {
             reusable_entries: Vec::new(),
             initial_body_order: None,
             initial_body_presentation_profile: 0,
+            workspace_catalog: true,
             deterministic: None,
             deterministic_not_applicable: None,
             browser_safe: None,

@@ -25,7 +25,7 @@ async function birth(page) {
 
 test("five ordinary Forms start together beyond the old aggregate placement ceiling", async ({ page }) => {
   await page.goto(entrance.url);
-  for (const title of ["Tutorial", "Pocket Theremin", "Firefly Choir"]) {
+  for (const title of ["Button Across the Room", "Pocket Theremin", "Firefly Choir"]) {
     await page.getByRole("checkbox", { name: title, exact: true }).check();
   }
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
