@@ -61,6 +61,7 @@ fn track(index: usize, hosts: usize) -> BodyTrack {
                 provenance: StepProvenance {
                     body_id: Some(format!("body-{index}")),
                     host_id: Some(format!("host-{index}-0")),
+                    boot_id: Some(format!("boot-{index}-0")),
                     plan_id: (hosts > 1).then(|| format!("plan-{index}")),
                     play_id: None,
                     presentation_id: Some(format!("presentation-{index}-{step}")),
@@ -182,6 +183,25 @@ fn steps_cannot_cite_another_tracks_host_or_an_unretained_line() {
     tracks = complete();
     tracks[2].steps[0].provenance.line_id = Some("line-invented".into());
     assert!(validate_current(&contract(), &tracks).is_err());
+}
+
+#[test]
+fn steps_cannot_cite_a_boot_from_another_host_pair() {
+    let mut tracks = complete();
+    tracks[2].steps[0].provenance.boot_id = Some("boot-2-1".into());
+    assert_eq!(
+        validate_current(&contract(), &tracks).unwrap_err(),
+        "track-2 step cites a Boot outside its exact Host pair"
+    );
+
+    let mut contract = contract();
+    contract.steps[0]
+        .required_provenance
+        .push(ProvenanceField::Boot);
+    validate_current(&contract, &complete()).unwrap();
+    let mut tracks = complete();
+    tracks[0].steps[0].provenance.boot_id = None;
+    assert!(validate_current(&contract, &tracks).is_err());
 }
 
 #[test]

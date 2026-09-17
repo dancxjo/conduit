@@ -89,6 +89,7 @@ const REQUIRED_MILESTONES: [JourneyMilestone; 13] = [
 enum ProvenanceField {
     Body,
     Host,
+    Boot,
     Plan,
     Play,
     Presentation,
@@ -177,6 +178,7 @@ struct TrackStep {
 struct StepProvenance {
     body_id: Option<String>,
     host_id: Option<String>,
+    boot_id: Option<String>,
     plan_id: Option<String>,
     play_id: Option<String>,
     presentation_id: Option<String>,
@@ -482,6 +484,7 @@ fn validate_step(
         let value = match field {
             ProvenanceField::Body => observed.provenance.body_id.as_deref(),
             ProvenanceField::Host => observed.provenance.host_id.as_deref(),
+            ProvenanceField::Boot => observed.provenance.boot_id.as_deref(),
             ProvenanceField::Plan => observed.provenance.plan_id.as_deref(),
             ProvenanceField::Play => observed.provenance.play_id.as_deref(),
             ProvenanceField::Presentation => observed.provenance.presentation_id.as_deref(),
@@ -511,6 +514,20 @@ fn validate_step(
             .any(|candidate| candidate.host_id == host)
     }) {
         return Err(format!("{} step cites another Host", track.track_id));
+    }
+    if let Some(boot) = observed.provenance.boot_id.as_deref() {
+        let matching_host = observed.provenance.host_id.as_deref().is_some_and(|host| {
+            track
+                .hosts
+                .iter()
+                .any(|candidate| candidate.host_id == host && candidate.boot_id == boot)
+        });
+        if !matching_host {
+            return Err(format!(
+                "{} step cites a Boot outside its exact Host pair",
+                track.track_id
+            ));
+        }
     }
     if observed
         .provenance
