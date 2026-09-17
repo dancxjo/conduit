@@ -1,19 +1,22 @@
-# Conduit products
+# Conduit product surfaces
 
-Start with the [Tour](https://dancxjo.github.io/conduit/tour/) to learn by
-running Forms, or see the [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
-for the freestanding graphical experience.
+Open the [Body Workspace](https://dancxjo.github.io/conduit/workspace/) to birth
+or return to a Body. The same surface owns its Forms, lifecycle, Hosts,
+tutorial, and inspection. See the [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
+for the freestanding graphical realization.
 
-| Product | What it does | Source guide |
+| Surface | Role | Source guide |
 | --- | --- | --- |
 | CLI | Runs and inspects Forms, Bodies, and installed product experiences. | `conduit/` |
-| Tour | Teaches Forms, Hosts, and Bodies through executable lessons. | [Tour](tour/README.md) |
-| Crèche | Births a Body, selects initial Forms, and prepares its first Hosts. | [Crèche](creche/README.md) |
-| Patchbay | Authors and inspects Forms and projects current execution and Body state. | [Patchbay](patchbay/README.md) |
+| Body Workspace | The primary product surface: zero-Body bootstrap, resident Forms, lifecycle, Hosts, tutorial, and inspection. | [Workspace](workspace/README.md) |
+| Tour | A resident tutorial Form plus a retained standalone compatibility entrance. | [Tour](tour/README.md) |
+| Crèche | A retained compatibility and target-preparation entrance over the Workspace-owned bootstrap. | [Crèche](creche/README.md) |
+| Patchbay | A resident inspect/edit/debug Form plus specialized development and compatibility entrances. | [Patchbay](patchbay/README.md) |
 
-These products use the same checker, planner, kernel, and semantic Presentation
+These surfaces use the same checker, planner, kernel, and semantic Presentation
 contracts. Their models describe application state; renderers bind local input
-and display to that state. Reusable visual assets belong in `shared/`.
+and display to that state. Compatibility routes do not own another Body,
+scheduler, lifecycle, or bootstrap model. Reusable visual assets belong in `shared/`.
 
 The installed command-line entrance lives in `conduit/`; target Hosts
 live in [targets](../targets/README.md). See the [documentation index](../docs/README.md)

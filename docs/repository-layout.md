@@ -23,21 +23,37 @@ Root Cargo metadata, toolchain/configuration files, licensing and contributor gu
 
 ## Products, Bodies, and Forms
 
-The current products are `products/conduit`, `products/tour`, `products/creche`, and `products/patchbay`. Conduit owns the installed CLI entrance. Tour owns guided executable learning, its Form Gallery, and authored lessons under `content/`. Crèche owns reviewed Body creation and lifecycle interaction. Patchbay owns the workbench and its native/browser manifestations. There is no reserved empty `products/book`: historical Book routes and saved-state compatibility are explicit Tour migration boundaries.
+`products/conduit` owns the installed CLI entrance and `products/workspace` owns
+the primary Body-centered product surface, including zero-Body bootstrap and
+reviewed initial-workset selection. `products/tour` owns authored tutorial
+content and its retained standalone compatibility entrance;
+`products/creche` owns target preparation and its retained compatibility route,
+not another bootstrap state model; `products/patchbay` owns specialized
+inspection/editing implementations and compatibility entrances while Patchbay
+also runs as a resident Form. These package boundaries do not create separate
+Body, scheduler, lifecycle, or authority truths. There is no reserved empty
+`products/book`: historical Book routes and saved-state compatibility are
+explicit Tour migration boundaries.
 
 `bodies/pete` is a concrete robot Body, with its own composition and configurations. The unfinished embodied-house specimen in #2293 belongs under `bodies/<specimen>` when its concrete composition is added; its existing semantic work does not establish a persistent live House.
 
 `forms/hello/main.conduit` is a canonical authored program. Each reviewed source has one `forms/<name>/` owner. A Form may own bounded assets, metadata, or fixtures, but these cannot duplicate semantic requirements or inject target/resource facts into authored meaning. Proof-only samples live in `proof/fixtures/forms/` or a narrowly owned package fixture.
 
-`forms/inventory.toml` is the authoritative reviewed membership and proof inventory. Directory discovery validates membership; it never creates it. Tour Gallery, Crèche's reviewed initial selection, conformance, Body composition and other Forms consume those canonical sources through the existing inventory/checked-form paths. Consumer projections and finite selections are not new registries. Repository validation checks source paths against that same inventory.
+`forms/inventory.toml` is the authoritative reviewed membership and proof inventory. Directory discovery validates membership; it never creates it. Tour Gallery, the Body Workspace's reviewed initial selection, the Crèche compatibility route, conformance, Body composition and other Forms consume those canonical sources through the existing inventory/checked-form paths. Consumer projections and finite selections are not new registries. Repository validation checks source paths against that same inventory.
 
 Under #2291, one checked canonical Form may serve as a workload root or as one gear inside another Form through its face. Both uses refer to the same source and identity. There is no separate `subforms/`, `components/`, `modules/`, or second Form inventory. This placement rule does not claim a downstream composition proof before its owning issue establishes it.
 
-Crèche birth selects ordinary initial active Forms into Body workload revision 0. Later revisions add or remove ordinary Forms. There is no current Seed repository category, `SeedId`, `BirthForm`, or `InitialProgramId` layer. Historical sources and evidence may retain historical terms; they are not current ontology.
+Zero-Body bootstrap selects ordinary initial active Forms into Body workload revision 0. Later revisions add or remove ordinary Forms. There is no current Seed repository category, `SeedId`, `BirthForm`, or `InitialProgramId` layer. Historical sources and evidence may retain historical terms; they are not current ontology.
 
 ## Browser and target boundaries
 
-Tour source, state, actions, routing, style and application descriptor live in `products/tour/browser/`. Crèche owns the equivalent files in `products/creche/browser/`. Patchbay's browser package is `products/patchbay/html/`; its native icons are in `products/patchbay/native/assets/`. Package names do not need to change merely to make directory spelling uniform.
+Body bootstrap and current-surface browser state live in
+`products/workspace/browser/`. Tour content and standalone compatibility assets
+live in `products/tour/browser/`; target-preparation and Crèche compatibility
+assets live in `products/creche/browser/`. Patchbay's specialized browser
+package is `products/patchbay/html/`; its native icons are in
+`products/patchbay/native/assets/`. Package names do not need to change merely
+to make directory spelling uniform.
 
 The browser Host owns generic package admission/loading, DOM and storage effects, identity, membership and bounded presentation. Renderer-neutral UI meaning belongs in `semantics/presentation`. Product state is never moved back into Host assets to make staging convenient. Explicit package dependency declarations select finite bytes from their real owners. See [browser product source ownership](browser-product-source-ownership.md).
 
