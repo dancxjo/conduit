@@ -65,22 +65,6 @@ jobs:
 
           replace_once(
               "fabrication/embedded-build/src/tests.rs",
-              "    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry,",
-              "    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry,",
-          )
-          # Add the import separately to keep rustfmt in charge of wrapping.
-          replace_once(
-              "fabrication/embedded-build/src/tests.rs",
-              "    ConfigurationValue, ConnectionId, ExecutionProfileId, ExpandedFormId, ExpectedSign,",
-              "    ConfigurationValue, ConnectionId, DeliveryPressurePolicy, ExecutionProfileId, ExpandedFormId, ExpectedSign,",
-          )
-          replace_once(
-              "fabrication/embedded-build/src/tests.rs",
-              "    assert_eq!(generated.cords.len(), 1);\n    assert_eq!(generated.routes.len(), 1);",
-              "    assert_eq!(generated.cords.len(), 1);\n    assert_eq!(\n        generated.cords[0].pressure_policy,\n        DeliveryPressurePolicy::PreserveOrder\n    );\n    assert_eq!(generated.routes.len(), 1);",
-          )
-          replace_once(
-              "fabrication/embedded-build/src/tests.rs",
               "    assert!(first.contains(\"conduit_kernel::CordEndpoint::local\"));\n    assert!(first.contains(\"pub const GENERATED_PLACEMENT_IDS\"));",
               "    assert!(first.contains(\"conduit_kernel::CordEndpoint::local\"));\n    assert!(first.contains(\"pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder\"));\n    assert!(!first.contains(\"pressure_policy: Default::default()\"));\n    assert!(first.contains(\"pub const GENERATED_PLACEMENT_IDS\"));",
           )
