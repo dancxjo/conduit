@@ -129,8 +129,7 @@ fn final_wake_claim_must_name_the_last_retained_wake() {
         )
         .unwrap();
     let mut tampered = fulfilled;
-    if let BodyLifecycleEvent::Fulfilled { final_wake_id, .. } =
-        tampered.events.last_mut().unwrap()
+    if let BodyLifecycleEvent::Fulfilled { final_wake_id, .. } = tampered.events.last_mut().unwrap()
     {
         *final_wake_id = Some(first_wake.wake_id);
     }
