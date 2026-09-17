@@ -15,7 +15,7 @@ fn contract() -> JourneyContract {
                 what_happened: "The Body advanced through the shared tutorial.".into(),
                 what_conduit_established: "The exact semantic milestone was retained.".into(),
                 concepts: vec!["Body".into(), "biography".into()],
-                required_assertion: format!("milestone-{index}-established"),
+                required_assertion: milestone.required_assertion().into(),
                 required_assertion_rung: EvidenceRung::BodyBiography,
                 allowed_dispositions: vec!["established".into()],
                 required_evidence_classes: vec!["semantic-receipt".into()],
@@ -56,7 +56,7 @@ fn track(index: usize, hosts: usize) -> BodyTrack {
             .enumerate()
             .map(|(step, _)| TrackStep {
                 step_id: format!("journey.step-{step}"),
-                assertion: format!("milestone-{step}-established"),
+                assertion: REQUIRED_MILESTONES[step].required_assertion().into(),
                 disposition: "established".into(),
                 provenance: StepProvenance {
                     body_id: Some(format!("body-{index}")),
@@ -124,6 +124,16 @@ fn incomplete_or_reordered_lifecycle_refuses() {
     assert_eq!(
         validate_current(&reordered, &complete()).unwrap_err(),
         "semantic Journey milestone FaultObserved is duplicated or out of order"
+    );
+}
+
+#[test]
+fn lifecycle_label_cannot_hide_a_different_semantic_assertion() {
+    let mut contract = contract();
+    contract.steps[8].required_assertion = "body-healthy".into();
+    assert_eq!(
+        validate_current(&contract, &complete()).unwrap_err(),
+        "semantic Journey milestone FaultObserved has a noncanonical assertion"
     );
 }
 
@@ -248,7 +258,7 @@ fn published_index_preserves_semantic_assertions_and_non_claims() {
     let value = serde_json::to_value(index).unwrap();
     assert_eq!(
         value["semantic_steps"][0]["required_assertion"],
-        "milestone-0-established"
+        "body-absent"
     );
     assert_eq!(
         value["semantic_steps"][0]["required_assertion_rung"],
