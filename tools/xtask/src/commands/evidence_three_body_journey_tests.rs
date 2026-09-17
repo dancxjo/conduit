@@ -5,19 +5,24 @@ fn contract() -> JourneyContract {
         schema: CONTRACT_SCHEMA.into(),
         journey_id: "orifina/tutorial@1".into(),
         git_commit: "a".repeat(40),
-        steps: vec![ContractStep {
-            step_id: "body.born".into(),
-            title: "A Body is born".into(),
-            what_happened: "The accepted birth operation created a new Body.".into(),
-            what_conduit_established: "One distinct Body identity now exists.".into(),
-            concepts: vec!["Body".into(), "biography".into()],
-            required_assertion: "one-new-body-exists".into(),
-            required_assertion_rung: EvidenceRung::BodyBiography,
-            allowed_dispositions: vec!["established".into()],
-            required_evidence_classes: vec!["semantic-receipt".into()],
-            required_provenance: vec![ProvenanceField::Body, ProvenanceField::Manifestation],
-            non_claims: vec!["not-physical-proof".into()],
-        }],
+        steps: REQUIRED_MILESTONES
+            .iter()
+            .enumerate()
+            .map(|(index, milestone)| ContractStep {
+                step_id: format!("journey.step-{index}"),
+                milestone: Some(*milestone),
+                title: format!("Journey milestone {index}"),
+                what_happened: "The Body advanced through the shared tutorial.".into(),
+                what_conduit_established: "The exact semantic milestone was retained.".into(),
+                concepts: vec!["Body".into(), "biography".into()],
+                required_assertion: format!("milestone-{index}-established"),
+                required_assertion_rung: EvidenceRung::BodyBiography,
+                allowed_dispositions: vec!["established".into()],
+                required_evidence_classes: vec!["semantic-receipt".into()],
+                required_provenance: vec![ProvenanceField::Body, ProvenanceField::Manifestation],
+                non_claims: vec!["not-physical-proof".into()],
+            })
+            .collect(),
     }
 }
 
@@ -46,29 +51,33 @@ fn track(index: usize, hosts: usize) -> BodyTrack {
         } else {
             Vec::new()
         },
-        steps: vec![TrackStep {
-            step_id: "body.born".into(),
-            assertion: "one-new-body-exists".into(),
-            disposition: "established".into(),
-            provenance: StepProvenance {
-                body_id: Some(format!("body-{index}")),
-                host_id: Some(format!("host-{index}-0")),
-                plan_id: (hosts > 1).then(|| format!("plan-{index}")),
-                play_id: None,
-                presentation_id: Some(format!("presentation-{index}")),
-                manifestation_id: Some(format!("manifestation-{index}")),
-                line_id: (hosts > 1).then(|| format!("line-{index}")),
-                sign_id: Some(format!("sign-{index}")),
-            },
-            evidence: vec![StepEvidence {
-                artifact_id: format!("artifact-{index}"),
-                evidence_class: "semantic-receipt".into(),
-                assertion_rung: EvidenceRung::BodyBiography,
-                documentary_description: "The exact accepted birth receipt.".into(),
-                path: PathBuf::from(format!("artifact-{index}.json")),
-                sha256: format!("sha256:{:064x}", index + 1),
-            }],
-        }],
+        steps: REQUIRED_MILESTONES
+            .iter()
+            .enumerate()
+            .map(|(step, _)| TrackStep {
+                step_id: format!("journey.step-{step}"),
+                assertion: format!("milestone-{step}-established"),
+                disposition: "established".into(),
+                provenance: StepProvenance {
+                    body_id: Some(format!("body-{index}")),
+                    host_id: Some(format!("host-{index}-0")),
+                    plan_id: (hosts > 1).then(|| format!("plan-{index}")),
+                    play_id: None,
+                    presentation_id: Some(format!("presentation-{index}-{step}")),
+                    manifestation_id: Some(format!("manifestation-{index}-{step}")),
+                    line_id: (hosts > 1).then(|| format!("line-{index}")),
+                    sign_id: Some(format!("sign-{index}-{step}")),
+                },
+                evidence: vec![StepEvidence {
+                    artifact_id: format!("artifact-{index}-{step}"),
+                    evidence_class: "semantic-receipt".into(),
+                    assertion_rung: EvidenceRung::BodyBiography,
+                    documentary_description: "The exact accepted milestone receipt.".into(),
+                    path: PathBuf::from(format!("artifact-{index}-{step}.json")),
+                    sha256: format!("sha256:{:064x}", index * 100 + step + 1),
+                }],
+            })
+            .collect(),
     }
 }
 
@@ -79,6 +88,25 @@ fn complete() -> Vec<BodyTrack> {
 #[test]
 fn three_distinct_bodies_share_semantics_without_collapsing_identities() {
     validate(&contract(), &complete()).unwrap();
+}
+
+#[test]
+fn incomplete_or_reordered_lifecycle_refuses() {
+    let mut incomplete = contract();
+    incomplete
+        .steps
+        .retain(|step| step.milestone != Some(JourneyMilestone::HostAdded));
+    assert_eq!(
+        validate(&incomplete, &complete()).unwrap_err(),
+        "semantic Journey milestone FaultObserved is duplicated or out of order"
+    );
+
+    let mut reordered = contract();
+    reordered.steps.swap(7, 8);
+    assert_eq!(
+        validate(&reordered, &complete()).unwrap_err(),
+        "semantic Journey milestone FaultObserved is duplicated or out of order"
+    );
 }
 
 #[test]
@@ -145,11 +173,14 @@ fn documentary_artifacts_are_digest_bound_and_root_confined() {
         std::env::temp_dir().join(format!("conduit-three-body-journey-{}", std::process::id()));
     std::fs::create_dir_all(&root).unwrap();
     let source = root.join("track.json");
-    let artifact = root.join("artifact-0.json");
-    std::fs::write(&artifact, b"semantic receipt").unwrap();
     let mut track = track(0, 1);
-    track.steps[0].evidence[0].sha256 = format!("sha256:{:x}", Sha256::digest(b"semantic receipt"));
+    for step in &mut track.steps {
+        let artifact = root.join(&step.evidence[0].path);
+        std::fs::write(&artifact, b"semantic receipt").unwrap();
+        step.evidence[0].sha256 = format!("sha256:{:x}", Sha256::digest(b"semantic receipt"));
+    }
     verify_artifacts(&track, &source).unwrap();
+    let artifact = root.join("artifact-0-0.json");
     std::fs::write(&artifact, b"changed receipt").unwrap();
     assert!(verify_artifacts(&track, &source).is_err());
 
@@ -180,7 +211,7 @@ fn published_index_preserves_semantic_assertions_and_non_claims() {
     let value = serde_json::to_value(index).unwrap();
     assert_eq!(
         value["semantic_steps"][0]["required_assertion"],
-        "one-new-body-exists"
+        "milestone-0-established"
     );
     assert_eq!(
         value["semantic_steps"][0]["required_assertion_rung"],
@@ -204,7 +235,7 @@ fn downstream_manifestation_cannot_prove_upstream_semantic_truth() {
     }
     assert_eq!(
         validate(&contract(), &tracks).unwrap_err(),
-        "track-0 lacks authoritative BodyBiography evidence at body.born"
+        "track-0 lacks authoritative BodyBiography evidence at journey.step-0"
     );
 }
 

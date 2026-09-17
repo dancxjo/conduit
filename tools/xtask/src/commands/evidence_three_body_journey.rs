@@ -36,6 +36,8 @@ struct JourneyContract {
 #[serde(deny_unknown_fields)]
 struct ContractStep {
     step_id: String,
+    #[serde(default)]
+    milestone: Option<JourneyMilestone>,
     title: String,
     what_happened: String,
     what_conduit_established: String,
@@ -47,6 +49,40 @@ struct ContractStep {
     required_provenance: Vec<ProvenanceField>,
     non_claims: Vec<String>,
 }
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+enum JourneyMilestone {
+    BodyAbsent,
+    BootstrapStarted,
+    BodyBorn,
+    BodyWoken,
+    FormUsed,
+    BodyInspected,
+    WorkloadRevised,
+    HostAdded,
+    FaultObserved,
+    BodyRepaired,
+    BodyContinued,
+    BodyLulled,
+    BodyFulfilled,
+}
+
+const REQUIRED_MILESTONES: [JourneyMilestone; 13] = [
+    JourneyMilestone::BodyAbsent,
+    JourneyMilestone::BootstrapStarted,
+    JourneyMilestone::BodyBorn,
+    JourneyMilestone::BodyWoken,
+    JourneyMilestone::FormUsed,
+    JourneyMilestone::BodyInspected,
+    JourneyMilestone::WorkloadRevised,
+    JourneyMilestone::HostAdded,
+    JourneyMilestone::FaultObserved,
+    JourneyMilestone::BodyRepaired,
+    JourneyMilestone::BodyContinued,
+    JourneyMilestone::BodyLulled,
+    JourneyMilestone::BodyFulfilled,
+];
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -235,6 +271,7 @@ fn validate(contract: &JourneyContract, tracks: &[BodyTrack]) -> Result<(), Stri
         return Err("invalid bounded semantic Journey contract".into());
     }
     let mut step_ids = BTreeSet::new();
+    let mut next_milestone = 0;
     for step in &contract.steps {
         if !step_ids.insert(step.step_id.as_str())
             || !valid_identity(&step.step_id)
@@ -265,6 +302,18 @@ fn validate(contract: &JourneyContract, tracks: &[BodyTrack]) -> Result<(), Stri
         {
             return Err(format!("invalid semantic Journey step '{}'", step.step_id));
         }
+        if let Some(milestone) = step.milestone {
+            if REQUIRED_MILESTONES.get(next_milestone) != Some(&milestone) {
+                return Err(format!(
+                    "semantic Journey milestone {:?} is duplicated or out of order",
+                    milestone
+                ));
+            }
+            next_milestone += 1;
+        }
+    }
+    if next_milestone != REQUIRED_MILESTONES.len() {
+        return Err("semantic Journey omits required lifecycle milestones".into());
     }
     if tracks.len() != REQUIRED_TRACKS {
         return Err(format!(
