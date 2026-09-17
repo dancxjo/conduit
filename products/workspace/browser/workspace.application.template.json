@@ -166,13 +166,36 @@
       "role": "workspace-membership",
       "kind": "module",
       "path": "workspace-membership.mjs",
-      "maximum_bytes": 16384,
+      "maximum_bytes": 20480,
       "dependencies": [
         {
           "role": "creche-rendezvous",
           "specifier": "../../creche/browser/creche-rendezvous.mjs"
+        },
+        {
+          "role": "workspace-host-configuration",
+          "specifier": "./workspace-host-configuration.mjs"
         }
       ]
+    },
+    {
+      "role": "workspace-host-configuration",
+      "kind": "module",
+      "path": "workspace-host-configuration.mjs",
+      "maximum_bytes": 1024,
+      "dependencies": [
+        {
+          "role": "browser-host-configuration",
+          "specifier": "../../creche/browser/creche-browser-configuration.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-host-configuration",
+      "kind": "module",
+      "path": "browser-host-configuration.mjs",
+      "maximum_bytes": 16384,
+      "dependencies": []
     },
     {
       "role": "creche-rendezvous",

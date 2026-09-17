@@ -1,4 +1,5 @@
 import { connectRendezvousHost } from "../../creche/browser/creche-rendezvous.mjs";
+import { createBrowserConfigurationOutfitter } from "./workspace-host-configuration.mjs";
 
 const SCHEMA = "conduit.workspace/body-invitation@1";
 const CHANNEL_PREFIX = "conduit.workspace/body-admission/";
@@ -34,7 +35,7 @@ function invitationUrl(location, artifact) {
   return url.href;
 }
 
-export function openWorkspaceMembership({ root, session, host, invitation, beforeAdmission, onChanged, onFailure }) {
+export function openWorkspaceMembership({ root, session, host, invitation, presentationFor, beforeAdmission, onChanged, onFailure }) {
   const panel = root.querySelector("#workspace-membership");
   const content = panel.querySelector("[data-membership-content]");
   const openButton = root.querySelector("[data-open-membership]");
@@ -83,10 +84,37 @@ export function openWorkspaceMembership({ root, session, host, invitation, befor
     }
     const action = document.createElement("button"); action.type = "button"; action.textContent = "Invite another Host";
     action.addEventListener("click", () => renderInvite().catch(onFailure));
+    const add = document.createElement("button"); add.type = "button"; add.textContent = "Add a Host";
+    add.addEventListener("click", renderAddHost);
     const running = document.createElement("button"); running.type = "button"; running.textContent = "Connect a running Host";
     running.addEventListener("click", renderRunningHost);
-    const actions = document.createElement("div"); actions.className = "membership-actions"; actions.append(action, running);
+    const actions = document.createElement("div"); actions.className = "membership-actions"; actions.append(add, action, running);
     content.append(intro, list, actions);
+  }
+
+  function renderAddHost() {
+    if (!session.current()) throw new Error("A Body must exist before configuring another Host");
+    let outfitter;
+    const redraw = () => {
+      content.replaceChildren();
+      const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a Host";
+      const heading = document.createElement("h3"); heading.textContent = "What should this browser contribute?";
+      const explanation = document.createElement("p");
+      explanation.textContent = "Choose a reviewed purpose preset or inspect and pin the exact Base implementations. Review creates only a checked configuration and PROFILE; it creates no Host, membership, readiness, offer, Plan, or Play.";
+      content.append(kicker, heading, explanation, outfitter.render());
+      const actions = document.createElement("div"); actions.className = "membership-actions";
+      const back = document.createElement("button"); back.type = "button"; back.textContent = "Back to members";
+      back.addEventListener("click", render);
+      actions.append(back);
+      if (outfitter.checked()) {
+        const invite = document.createElement("button"); invite.type = "button"; invite.textContent = "Create separate Body invitation";
+        invite.addEventListener("click", () => renderInvite().catch(onFailure));
+        actions.prepend(invite);
+      }
+      content.append(actions);
+    };
+    outfitter = createBrowserConfigurationOutfitter({ host, presentationFor, onChange: redraw });
+    redraw();
   }
 
   function renderRunningHost() {
