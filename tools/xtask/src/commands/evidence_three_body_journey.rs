@@ -273,7 +273,10 @@ fn validate(contract: &JourneyContract, tracks: &[BodyTrack]) -> Result<(), Stri
     }
     let mut track_ids = BTreeSet::new();
     let mut body_ids = BTreeSet::new();
+    let mut embodiments = BTreeSet::new();
+    let mut presenter_ids = BTreeSet::new();
     let mut global_host_ids = BTreeSet::new();
+    let mut global_boot_ids = BTreeSet::new();
     let mut plans = BTreeMap::new();
     let mut plays = BTreeMap::new();
     let mut presentations = BTreeMap::new();
@@ -285,6 +288,8 @@ fn validate(contract: &JourneyContract, tracks: &[BodyTrack]) -> Result<(), Stri
             || track.git_commit != contract.git_commit
             || !track_ids.insert(track.track_id.as_str())
             || !body_ids.insert(track.body_id.as_str())
+            || !embodiments.insert(track.embodiment.as_str())
+            || !presenter_ids.insert(track.presenter_id.as_str())
             || !valid_identity(&track.track_id)
             || !valid_identity(&track.embodiment)
             || !valid_identity(&track.body_id)
@@ -299,6 +304,7 @@ fn validate(contract: &JourneyContract, tracks: &[BodyTrack]) -> Result<(), Stri
         for host in &track.hosts {
             if !host_ids.insert(host.host_id.as_str())
                 || !global_host_ids.insert(host.host_id.as_str())
+                || !global_boot_ids.insert(host.boot_id.as_str())
                 || !valid_identity(&host.host_id)
                 || !valid_identity(&host.boot_id)
             {
