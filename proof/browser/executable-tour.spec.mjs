@@ -1449,7 +1449,7 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   });
 });
 
-test("a native Linux target produces an exact spore but refuses to invent an installer", async ({ page }) => {
+test("a native Linux target produces an exact spore but refuses to execute an unadmitted installer", async ({ page }) => {
   const release = await installHostRelease(page, "hosted-linux-x86_64.json");
   await birthStandaloneBody(page, { sourceVariant: "native-existing-computer" });
   await openCrecheStep(page, "3. Physical Host");
@@ -1467,7 +1467,12 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
     machine: "computer",
     role_profile: null,
     package_id: "hosted-native@1",
-    implemented_carriers: ["conduit-carrier/browser-release-download@1"],
+    implemented_carriers: [
+      "conduit-carrier/browser-release-download@1",
+      "conduit-carrier/rendezvous-code@1",
+      "conduit-line/loopback-websocket@1",
+      "conduit-line/serial-text@1",
+    ],
   });
   expect(evidence.target_entry.target_profile.platform_variants).toEqual([
     expect.objectContaining({ os: "linux", architecture: "x86_64", status: "supported" }),
@@ -1509,6 +1514,8 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
   expect(hostedPackage.files).toEqual([
     "conduit-linux-x86_64",
     "conduit-tour-linux-x86_64",
+    "conduit-home-linux-x86_64",
+    "install-linux-x86_64.sh",
     "conduit-spore.json",
   ]);
   expect(hostedPackage.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
