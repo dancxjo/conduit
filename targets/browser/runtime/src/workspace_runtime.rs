@@ -1,9 +1,9 @@
 //! Workspace lifecycle orchestration. The existing browser Body slot executes.
 use conduit_body::{
-    AdmissionManager, BodyBiographyEvidence, BodyPlayIdentity, ResidentForm, SpawnAdmissionProof,
-    SpawnInvitationClaim, SpawnInvitationSecret, Wake,
+    AdmissionManager, BodyBiographyEvidence, BodyPlayIdentity, BodyState, ResidentForm,
+    SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationSecret, Wake,
 };
-use conduit_core::{BootId, HostAdvertisement, HostId};
+use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId};
 use conduit_workspace_model::CurrentHostOffers;
 use conduit_workspace_model::WorkspaceBody;
 use serde::{Deserialize, Serialize};
@@ -109,6 +109,12 @@ enum Request {
         host_id: HostId,
         boot_id: BootId,
         terminated_play: Option<BodyPlayIdentity>,
+    },
+    Fulfill {
+        host_id: HostId,
+        boot_id: BootId,
+        authority_grant_id: AuthorityGrantId,
+        attribution: String,
     },
 }
 
@@ -233,12 +239,18 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 if slot.is_some() {
                     return Err("Workspace already has a Body".into());
                 }
-                let body =
-                    WorkspaceBody::resume_here(*evidence, &host_id, &boot_id).map_err(debug)?;
+                let fulfilled = matches!(evidence.body.state, BodyState::Fulfilled { .. });
+                let body = if fulfilled {
+                    WorkspaceBody::open(*evidence).map_err(debug)?
+                } else {
+                    WorkspaceBody::resume_here(*evidence, &host_id, &boot_id).map_err(debug)?
+                };
                 let mut offers = CurrentHostOffers::new();
-                offers
-                    .observe(body.evidence(), advertisement)
-                    .map_err(host_offer_refusal)?;
+                if !fulfilled {
+                    offers
+                        .observe(body.evidence(), advertisement)
+                        .map_err(host_offer_refusal)?;
+                }
                 validate_offer_bytes(&offers)?;
                 let admissions = admission.unwrap_or(AdmissionManager::new(body.evidence().body_id.clone())
                     .map_err(|error| Refusal::new("Admission.Initialize", format!("{error:?}")))?);
@@ -465,6 +477,22 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 crate::form_runner::workspace::require_empty()?;
                 candidate
                     .lull(&host_id, &boot_id, terminated_play.as_ref())
+                    .map_err(debug)?;
+            }
+            Request::Fulfill {
+                host_id,
+                boot_id,
+                authority_grant_id,
+                attribution,
+            } => {
+                crate::form_runner::workspace::require_empty()?;
+                candidate
+                    .fulfill(
+                        &host_id,
+                        &boot_id,
+                        authority_grant_id,
+                        attribution,
+                    )
                     .map_err(debug)?;
             }
             Request::Arrive { .. }

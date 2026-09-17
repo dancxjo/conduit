@@ -70,8 +70,10 @@ export function openWorkspaceSession({ host, storage }) {
       if (!workspace) return call('conduit_creche_current');
       const { evidence, realization } = request('Current');
       const part = evidence.membership.parts.find(part => part.current?.host_id === host.hostId && part.current?.boot_id === host.bootId);
+      const state = typeof evidence.body.state === 'object' && evidence.body.state?.Fulfilled
+        ? 'FULFILLED' : evidence.body.state === 'Lulled' ? 'LULLED' : 'AWAKE';
       return { body_id: evidence.body_id, friendly_name: evidence.friendly_name,
-        state: evidence.body.state === 'Lulled' ? 'LULLED' : 'AWAKE',
+        state,
         initial_forms: evidence.body.workset.forms, workload_revision: evidence.body.workload_revision,
         here_part_id: part?.part_id, host_id: part?.current?.host_id, boot_id: part?.current?.boot_id,
         wake_id: realization?.wake.wake_id, plan_id: realization?.plan.plan_id,
@@ -101,6 +103,12 @@ export function openWorkspaceSession({ host, storage }) {
     },
     async started(start) { request('Started', { ...here, play: start.play, wake_at_start: start.wake_at_start }); await save(); },
     async lull(play) { request('Lull', { ...here, terminated_play: play ?? null }); await save(); },
+    async fulfill(attribution = `operator/${host.hostId}`) {
+      if (persistenceFailure) throw persistenceFailure;
+      await write;
+      request('Fulfill', { ...here, attribution, authority_grant_id: `grant/${host.hostId}/workspace-fulfill` });
+      await save();
+    },
     save,
     settled: () => write,
     persistenceFailure: () => persistenceFailure,
@@ -140,7 +148,8 @@ export function openWorkspaceSession({ host, storage }) {
       const snapshot = await storage.readJson('body-session');
       if (snapshot === null) return null;
       if (snapshot.schema === 'conduit.workspace/body@1') {
-        const resumeWake = snapshot.evidence?.body?.state !== 'Lulled';
+        const resumeWake = snapshot.evidence?.body?.state !== 'Lulled'
+          && !(typeof snapshot.evidence?.body?.state === 'object' && snapshot.evidence.body.state?.Fulfilled);
         request('Restore', { evidence: snapshot.evidence, admission: snapshot.admission ?? null, advertisement: localAdvertisement, ...here });
         if (snapshot.foreground) request('SelectForm', { form: snapshot.foreground });
         await save();

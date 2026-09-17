@@ -3,8 +3,8 @@ use conduit_body::{
     BodyPlayIdentity, BodyState, MembershipProofId, PartId, ResidentForm, WakeLifecycle,
 };
 use conduit_core::{
-    BootId, ExpandedFormId, FormIdentity, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, PROTOCOL_VERSION, bind_sign, seal_plan,
+    AuthorityGrantId, BootId, ExpandedFormId, FormIdentity, HostAdvertisement, HostId,
+    HostProfileId, OfferGeneration, PROTOCOL_VERSION, bind_sign, seal_plan,
 };
 use conduit_workspace_model::{
     CurrentHostOfferError, CurrentHostOffers, WorkspaceBody, WorkspaceBodyError,
@@ -12,6 +12,87 @@ use conduit_workspace_model::{
 
 fn host() -> HostId {
     "host/here".into()
+}
+
+#[test]
+fn explicit_fulfillment_is_terminal_attributable_and_inspectable_after_restore() {
+    let mut body = born();
+    body.fulfill(
+        &host(),
+        &boot(),
+        AuthorityGrantId::from("grant/operator-finish"),
+        "operator/alice".into(),
+    )
+    .unwrap();
+
+    assert!(matches!(
+        body.evidence().body.state,
+        BodyState::Fulfilled { .. }
+    ));
+    assert!(body.evidence().membership.fulfilled_sign_id.is_some());
+    let last = body.evidence().records.last().unwrap();
+    assert!(matches!(
+        &last.kind,
+        conduit_body::BodyBiographyRecordKind::Fulfilled {
+            authority_grant_id,
+            attribution,
+            settled_obligations,
+            ..
+        } if authority_grant_id.as_str() == "grant/operator-finish"
+            && attribution == "operator/alice"
+            && settled_obligations.len() == 1
+            && settled_obligations[0].obligation_id == "obligation/workspace-runtime-empty"
+    ));
+
+    assert_eq!(
+        body.admit_form(0, form("notes"), &host(), &boot()),
+        Err(WorkspaceBodyError::Lifecycle(
+            conduit_body::BodyLifecycleError::Fulfilled
+        ))
+    );
+    assert_eq!(
+        body.fulfill(
+            &host(),
+            &boot(),
+            AuthorityGrantId::from("grant/operator-finish"),
+            "operator/alice".into(),
+        ),
+        Err(WorkspaceBodyError::Lifecycle(
+            conduit_body::BodyLifecycleError::Fulfilled
+        ))
+    );
+    let restored: BodyBiographyEvidence =
+        serde_json::from_str(&serde_json::to_string(body.evidence()).unwrap()).unwrap();
+    let restored = WorkspaceBody::open(restored).unwrap();
+    assert!(matches!(
+        restored.evidence().body.state,
+        BodyState::Fulfilled { .. }
+    ));
+}
+
+#[test]
+fn fulfillment_refuses_until_the_current_play_is_retired() {
+    let mut body = born();
+    let play = start(&mut body);
+    let before = body.evidence().clone();
+    assert_eq!(
+        body.fulfill(
+            &host(),
+            &boot(),
+            AuthorityGrantId::from("grant/operator-finish"),
+            "operator/alice".into(),
+        ),
+        Err(WorkspaceBodyError::NotLulled)
+    );
+    assert_eq!(body.evidence(), &before);
+    body.lull(&host(), &boot(), Some(&play)).unwrap();
+    body.fulfill(
+        &host(),
+        &boot(),
+        AuthorityGrantId::from("grant/operator-finish"),
+        "operator/alice".into(),
+    )
+    .unwrap();
 }
 fn boot() -> BootId {
     "boot/one".into()
