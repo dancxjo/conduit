@@ -89,6 +89,24 @@ fn one_body_with_three_skins_refuses() {
 }
 
 #[test]
+fn three_tracks_must_not_reuse_one_embodiment_or_presenter() {
+    let mut tracks = complete();
+    tracks[1].embodiment = tracks[0].embodiment.clone();
+    assert!(validate(&contract(), &tracks).is_err());
+
+    tracks = complete();
+    tracks[1].presenter_id = tracks[0].presenter_id.clone();
+    assert!(validate(&contract(), &tracks).is_err());
+}
+
+#[test]
+fn independently_born_hosts_must_not_reuse_boot_identity() {
+    let mut tracks = complete();
+    tracks[1].hosts[0].boot_id = tracks[0].hosts[0].boot_id.clone();
+    assert!(validate(&contract(), &tracks).is_err());
+}
+
+#[test]
 fn three_single_host_tracks_do_not_prove_a_distributed_body() {
     let tracks = vec![track(0, 1), track(1, 1), track(2, 1)];
     assert_eq!(
