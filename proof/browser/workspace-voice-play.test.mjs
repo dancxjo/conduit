@@ -47,3 +47,10 @@ test("Workspace voice composition refuses stale peer offer generation before acq
   await assert.rejects(() => prepareWorkspaceVoicePlay(f), /one exact browser and Voice Host/);
   assert.deepEqual(f.events, []);
 });
+
+test("Workspace voice composition refuses stale local offer generation before acquiring resources", async () => {
+  const f = fixture();
+  f.localAdvertisement.offer_generation = 2;
+  await assert.rejects(() => prepareWorkspaceVoicePlay(f), /one exact browser and Voice Host/);
+  assert.deepEqual(f.events, []);
+});
