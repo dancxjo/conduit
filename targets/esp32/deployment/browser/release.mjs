@@ -56,8 +56,10 @@ function refuse(code, message, cause) {
   error.code = code;
   error.evidence = Object.freeze({
     schema: "conduit.esp32/release-acquisition-refusal@1",
+    operation: "obtain",
     terminal: code,
     authority_requested: false,
+    artifact_work_started: false,
     body_binding_started: false,
   });
   throw error;
