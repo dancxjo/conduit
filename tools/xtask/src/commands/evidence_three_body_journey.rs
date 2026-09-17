@@ -68,6 +68,26 @@ enum JourneyMilestone {
     BodyFulfilled,
 }
 
+impl JourneyMilestone {
+    const fn required_assertion(self) -> &'static str {
+        match self {
+            Self::BodyAbsent => "body-absent",
+            Self::BootstrapStarted => "bootstrap-started",
+            Self::BodyBorn => "body-born",
+            Self::BodyWoken => "body-awake",
+            Self::FormUsed => "standing-form-used",
+            Self::BodyInspected => "body-inspected",
+            Self::WorkloadRevised => "workload-revised",
+            Self::HostAdded => "host-added",
+            Self::FaultObserved => "fault-observed",
+            Self::BodyRepaired => "body-repaired",
+            Self::BodyContinued => "body-long-running",
+            Self::BodyLulled => "body-lulled",
+            Self::BodyFulfilled => "body-fulfilled",
+        }
+    }
+}
+
 const REQUIRED_MILESTONES: [JourneyMilestone; 13] = [
     JourneyMilestone::BodyAbsent,
     JourneyMilestone::BootstrapStarted,
@@ -316,6 +336,12 @@ fn validate(
             if REQUIRED_MILESTONES.get(next_milestone) != Some(&milestone) {
                 return Err(format!(
                     "semantic Journey milestone {:?} is duplicated or out of order",
+                    milestone
+                ));
+            }
+            if step.required_assertion != milestone.required_assertion() {
+                return Err(format!(
+                    "semantic Journey milestone {:?} has a noncanonical assertion",
                     milestone
                 ));
             }
