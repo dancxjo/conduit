@@ -1,12 +1,14 @@
 //! Bounded validation of the Body invitation embedded in native ConduitOS media.
 
 use alloc::{string::String, vec::Vec};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 pub const MAGIC: &[u8] = b"CONDUIT_SPORE_MEDIA@1\0";
 pub const REGION_BYTES: usize = 4096;
 const HEADER_BYTES: usize = 32;
 const MAX_ID_BYTES: usize = 192;
+const MAX_RENDEZVOUS_CANDIDATES: usize = 4;
+const MAX_RENDEZVOUS_TEXT_BYTES: usize = 512;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -51,6 +53,38 @@ pub struct InvitationProvision {
     pub nonce: Vec<u8>,
     pub expires_at_millis: u64,
     pub secret: Vec<u8>,
+    #[serde(default)]
+    pub rendezvous_candidates: Vec<RendezvousCandidate>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RendezvousCandidate {
+    pub schema: String,
+    pub line_family: String,
+    pub locator: String,
+    pub body_id: String,
+    pub rendezvous_identity: String,
+    pub expires_at_millis: u64,
+    pub maximum_attempts: u8,
+    pub connection_timeout_millis: u32,
+    pub authentication: RendezvousAuthentication,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RendezvousAuthentication {
+    pub mode: String,
+    pub server_identity: String,
+    #[serde(default, deserialize_with = "deserialize_optional_text")]
+    pub credential_reference: Option<String>,
+}
+
+fn deserialize_optional_text<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    String::deserialize(deserializer).map(Some)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -179,7 +213,44 @@ fn validate(provision: &NativeMediaProvision) -> Result<(), ProvisionError> {
     {
         return Err(ProvisionError::InvalidSecret);
     }
+    if provision.invitation_provision.rendezvous_candidates.len() > MAX_RENDEZVOUS_CANDIDATES
+        || provision
+            .invitation_provision
+            .rendezvous_candidates
+            .iter()
+            .any(|candidate| !valid_rendezvous_candidate(candidate, provision))
+    {
+        return Err(ProvisionError::InvalidIdentity);
+    }
     Ok(())
+}
+
+fn valid_rendezvous_candidate(
+    candidate: &RendezvousCandidate,
+    provision: &NativeMediaProvision,
+) -> bool {
+    candidate.schema == "conduit.body/rendezvous-candidate@1"
+        && candidate.body_id == provision.spore.body_id
+        && bounded_text(&candidate.line_family)
+        && bounded_text(&candidate.locator)
+        && bounded_text(&candidate.rendezvous_identity)
+        && candidate.expires_at_millis <= provision.invitation_provision.expires_at_millis
+        && (1..=8).contains(&candidate.maximum_attempts)
+        && (1..=60_000).contains(&candidate.connection_timeout_millis)
+        && matches!(
+            candidate.authentication.mode.as_str(),
+            "mutual-tls" | "conduit-authenticated-line"
+        )
+        && bounded_text(&candidate.authentication.server_identity)
+        && candidate
+            .authentication
+            .credential_reference
+            .as_deref()
+            .is_none_or(bounded_text)
+}
+
+fn bounded_text(value: &str) -> bool {
+    !value.is_empty() && value.len() <= MAX_RENDEZVOUS_TEXT_BYTES
 }
 
 #[cfg(test)]
@@ -207,7 +278,13 @@ mod tests {
                 "image_content_digest":format!("sha256:{}", "1".repeat(64)), "target":"conduitos/x86_64/pc",
                 "output":"disk-image", "fabrication":{}, "source_identity":"source/one"},
             "invitation_provision":{"invitation_id":"invitation/one", "nonce":vec![1;32],
-                "expires_at_millis":1_800_000_000_000_u64, "secret":vec![2;32]}
+                "expires_at_millis":1_800_000_000_000_u64, "secret":vec![2;32],
+                "rendezvous_candidates":[{
+                    "schema":"conduit.body/rendezvous-candidate@1", "line_family":"authenticated-conduit-line",
+                    "locator":"relay.example.test:443", "body_id":"body/one", "rendezvous_identity":"rendezvous/one",
+                    "expires_at_millis":1_800_000_000_000_u64, "maximum_attempts":3, "connection_timeout_millis":30_000,
+                    "authentication":{"mode":"conduit-authenticated-line", "server_identity":"server/one"}
+                }]}
         })
     }
 
