@@ -31,8 +31,13 @@ test.afterEach(() => entrance?.child.kill());
 test("Birth on the front page hands the Lulled Body to an explicit Wake", async ({ page }) => {
   await page.goto(entrance.url);
   await page.getByRole("link", { name: "Open your Body", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "A Body of your own", exact: true })).toBeVisible();
+  await expect(page).toHaveTitle("Birth your Body · Conduit");
+  await expect(page.locator("[data-body-state]")).toHaveText("Crèche");
+  await expect(page.locator("[data-workspace-creche]")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Birth Body", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await expect(page.locator("[data-body-state]")).toHaveText("lulled");
+  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.keyboard.press("h");
