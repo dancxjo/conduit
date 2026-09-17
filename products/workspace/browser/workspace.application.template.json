@@ -58,8 +58,19 @@
         {
           "role": "workspace-surface",
           "specifier": "./workspace-surface.mjs"
+        },
+        {
+          "role": "body-tutorial",
+          "specifier": "./body-tutorial.mjs"
         }
       ]
+    },
+    {
+      "role": "body-tutorial",
+      "kind": "module",
+      "path": "body-tutorial.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": []
     },
     {
       "role": "reviewed-form-inventory",

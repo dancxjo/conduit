@@ -9,6 +9,7 @@ import { readWorkspaceHandoff, consumeWorkspaceHandoff } from "./workspace-hando
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
 import { openWorkspaceMembership, readBodyInvitation } from "./workspace-membership.mjs";
 import { prepareWorkspaceVoicePlay } from "./workspace-voice-play.mjs";
+import { renderBodyTutorial } from "./body-tutorial.mjs";
 
 export async function startApplication(application) {
   const root = document.querySelector('.workspace-shell');
@@ -23,6 +24,7 @@ export async function startApplication(application) {
   const wakeButton = root.querySelector('[data-wake-body]');
   const lullButton = root.querySelector('[data-lull-body]');
   const fulfillButton = root.querySelector('[data-fulfill-body]');
+  const tutorial = root.querySelector('[data-body-tutorial]');
   const fail = error => {
     notice.textContent = error instanceof Error ? error.message : String(error);
     notice.dataset.disposition = 'refused';
@@ -118,6 +120,7 @@ export async function startApplication(application) {
     };
     function render() {
       const body = session.current();
+      renderBodyTutorial(tutorial, { current: body, evidence: session.evidence(), playback });
       membership?.render();
       const arriving = !body || (!body.here_part_id && body.state !== 'FULFILLED');
       const joining = membership?.isJoining();
@@ -204,6 +207,7 @@ export async function startApplication(application) {
             run: () => voice.run(), close: () => voice.close() });
         }, onState(state) {
         playback = state;
+        renderBodyTutorial(tutorial, { current: session.current(), evidence: session.evidence(), playback });
         root.querySelector('[data-play-state]').textContent = state.state;
         root.querySelector('[data-body-state]').textContent = session.current().state.toLowerCase();
         root.querySelector('#surface-guidance').textContent = state.detail;
