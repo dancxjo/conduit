@@ -207,6 +207,7 @@ struct ThreeBodyJourneyIndex {
 }
 
 pub(super) fn run(
+    expected_git_commit: String,
     contract_path: PathBuf,
     track_paths: Vec<PathBuf>,
     output: PathBuf,
@@ -216,7 +217,7 @@ pub(super) fn run(
         .iter()
         .map(|path| read_bounded_json(path))
         .collect::<Result<Vec<BodyTrack>, String>>()?;
-    validate(&contract, &tracks)?;
+    validate(&contract, &tracks, &expected_git_commit)?;
     for (track, source) in tracks.iter().zip(&track_paths) {
         verify_artifacts(track, source)?;
     }
@@ -261,7 +262,14 @@ fn publish(index: &ThreeBodyJourneyIndex, output: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn validate(contract: &JourneyContract, tracks: &[BodyTrack]) -> Result<(), String> {
+fn validate(
+    contract: &JourneyContract,
+    tracks: &[BodyTrack],
+    expected_git_commit: &str,
+) -> Result<(), String> {
+    if !valid_commit(expected_git_commit) || contract.git_commit != expected_git_commit {
+        return Err("semantic Journey does not match the expected exact commit".into());
+    }
     if contract.schema != CONTRACT_SCHEMA
         || !valid_identity(&contract.journey_id)
         || !valid_commit(&contract.git_commit)

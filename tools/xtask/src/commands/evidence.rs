@@ -51,6 +51,10 @@ struct HomeCrossFaceArgs {
 
 #[derive(Args, Debug)]
 struct ThreeBodyJourneyArgs {
+    /// Exact commit whose three Body tracks are being verified.
+    #[arg(long)]
+    commit: String,
+
     /// Shared conduit.evidence/semantic-journey-contract@2 document.
     #[arg(long)]
     contract: PathBuf,
@@ -157,7 +161,7 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         EvidenceCommand::HomeCrossFace(args) => home_cross_face::run(args.receipts, args.output),
         EvidenceCommand::ThreeBodyJourney(args) => {
-            three_body_journey::run(args.contract, args.tracks, args.output)
+            three_body_journey::run(args.commit, args.contract, args.tracks, args.output)
         }
         EvidenceCommand::OneFormTwoFaces(args) => two_faces::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
