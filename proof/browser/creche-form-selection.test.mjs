@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -21,6 +22,17 @@ const inventory = Object.freeze({
     { name: "desk_telegraph", title: "Desk Telegraph", source: "form desk_telegraph {}\n", source_document_id: "source/telegraph", checked_form_id: "checked/telegraph", required_kinds: ["presentation/text", "text/literal"] },
     { name: "memory_lantern", title: "Memory Lantern", source: "form memory_lantern {}\n", source_document_id: "source/lantern", checked_form_id: "checked/lantern", required_kinds: ["presentation/text"] },
   ],
+});
+
+test("Body Workspace owns bootstrap while Crèche remains a thin compatibility entrance", async () => {
+  const workspace = await readFile(new URL("../../products/workspace/browser/workspace.mjs", import.meta.url), "utf8");
+  const lifecycle = await readFile(new URL("../../products/creche/browser/creche-lifecycle.mjs", import.meta.url), "utf8");
+  const selection = await readFile(new URL("../../products/creche/browser/creche-form-selection.mjs", import.meta.url), "utf8");
+  assert.match(workspace, /\.\/body-bootstrap\.mjs/);
+  assert.match(workspace, /\.\/reviewed-form-selection\.mjs/);
+  assert.doesNotMatch(workspace, /products\/creche|\.\.\/\.\.\/creche/);
+  assert.match(lifecycle, /^\/\/ Compatibility entrance only\.[^\n]*\nexport \* from "\.\.\/\.\.\/workspace\/browser\/body-bootstrap\.mjs";\n$/);
+  assert.match(selection, /^\/\/ Compatibility entrance only\.[^\n]*\nexport \* from "\.\.\/\.\.\/workspace\/browser\/reviewed-form-selection\.mjs";\n$/);
 });
 
 test("native checkbox values set selection idempotently", () => {

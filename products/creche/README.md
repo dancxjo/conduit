@@ -1,11 +1,12 @@
-# Crèche
+# Crèche compatibility entrance
 
-Crèche helps you birth a Body, choose zero or more initial Forms, prepare its
+This retained route helps you birth a Body, choose zero or more initial Forms, prepare its
 first Host, and add machinery before graduating to ordinary operation.
 [Open Crèche](https://dancxjo.github.io/conduit/creche/), or reach it from the
 [Tour](../tour/README.md).
 
-- `model/` owns portable Crèche presentation state.
+- The Body Workspace owns zero-Body bootstrap and reviewed initial-workset state.
+- `model/` remains for compatibility and target-preparation presentation state.
 - `browser/` owns the browser application and its target-selection, spore,
   download, and graduation interactions.
 - `../../targets/browser/host/` supplies browser hosting; target-specific

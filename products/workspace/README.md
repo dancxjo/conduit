@@ -1,6 +1,6 @@
 # Arrive in a Body
 
-The shared Crèche names a Body and selects its initial Forms. Birth saves that
+The zero-Body bootstrap names a Body and selects its initial Forms. Birth saves that
 Body and admits this browser Host, then hands the same surface to the newborn
 Lulled Body. An explicit **Wake Body** action plans the complete workset and
 wakes its Forms.
@@ -69,7 +69,7 @@ effects. A failed save cancels the actual Play, preserves its terminal receipt,
 and refuses another wake until the page is reopened. Cleanup does not silently
 retry a failed write or claim that unsaved state is durable.
 
-Crèche and arrival use the same application-state compatibility identity and
+The compatibility Crèche entrance and arrival use the same application-state identity and
 cooperative browser lock. A new page may reconcile an old local Boot only after
 obtaining that ownership. Reopening preserves Body identity, installed workset,
 and foreground selection; it records the lost old incarnation and admits a
@@ -91,8 +91,10 @@ out to them.
 
 ## Present boundary
 
-This slice proves browser arrival. The Crèche model, view, and actions are already
-shared with native first boot; multi-Form native arrival remains separate work.
+This slice proves browser arrival. The Body product owns the bootstrap model,
+reviewed initial workset, view, and actions; the standalone Crèche route is a
+compatibility projection of those same modules. Native first boot shares the
+underlying lifecycle contracts; multi-Form native arrival remains separate work.
 Tour and Patchbay are installable resident Forms and project their portable
 semantic application views through the ordinary browser presentation slot. The
 Workspace package owns the scoped browser styling for those views; neither the

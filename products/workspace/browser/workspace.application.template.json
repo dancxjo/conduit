@@ -21,11 +21,11 @@
         },
         {
           "role": "creche-lifecycle",
-          "specifier": "../../creche/browser/creche-lifecycle.mjs"
+          "specifier": "./body-bootstrap.mjs"
         },
         {
           "role": "creche-form-selection",
-          "specifier": "../../creche/browser/creche-form-selection.mjs"
+          "specifier": "./reviewed-form-selection.mjs"
         },
         {
           "role": "workspace-session",
@@ -109,7 +109,7 @@
     {
       "role": "creche-lifecycle",
       "kind": "module",
-      "path": "creche-lifecycle.mjs",
+      "path": "body-bootstrap.mjs",
       "maximum_bytes": 24576,
       "dependencies": [
         {
@@ -118,14 +118,14 @@
         },
         {
           "role": "creche-form-selection",
-          "specifier": "./creche-form-selection.mjs"
+          "specifier": "./reviewed-form-selection.mjs"
         }
       ]
     },
     {
       "role": "creche-form-selection",
       "kind": "module",
-      "path": "creche-form-selection.mjs",
+      "path": "reviewed-form-selection.mjs",
       "maximum_bytes": 8192,
       "dependencies": []
     },
