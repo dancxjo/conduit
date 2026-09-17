@@ -11,7 +11,7 @@ use std::{
 use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret};
 use conduit_body_fabrication::{SporeBinding, SporeManifest, SPORE_MANIFEST_SCHEMA};
 use conduit_core::HostAdvertisement;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::cli::GlobalOpts;
@@ -28,6 +28,8 @@ const HEADER_BYTES: usize = 32;
 const TRAILER_BYTES: usize = 4096;
 const MINIMUM_IMAGE_BYTES: usize = 512;
 const MAXIMUM_ARTIFACT_BYTES: usize = 80 * 1024 * 1024;
+const MAXIMUM_RENDEZVOUS_CANDIDATES: usize = 4;
+const MAXIMUM_RENDEZVOUS_TEXT_BYTES: usize = 512;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -45,6 +47,38 @@ struct InvitationProvision {
     nonce: Vec<u8>,
     expires_at_millis: u64,
     secret: Vec<u8>,
+    #[serde(default)]
+    rendezvous_candidates: Vec<RendezvousCandidate>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RendezvousCandidate {
+    schema: String,
+    line_family: String,
+    locator: String,
+    body_id: String,
+    rendezvous_identity: String,
+    expires_at_millis: u64,
+    maximum_attempts: u8,
+    connection_timeout_millis: u32,
+    authentication: RendezvousAuthentication,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RendezvousAuthentication {
+    mode: String,
+    server_identity: String,
+    #[serde(default, deserialize_with = "deserialize_optional_text")]
+    credential_reference: Option<String>,
+}
+
+fn deserialize_optional_text<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    String::deserialize(deserializer).map(Some)
 }
 
 #[derive(Serialize)]
@@ -500,6 +534,18 @@ fn validate_provision(
             "spore and invitation provision lost exact identity or finite secret bounds",
         ));
     }
+    if provision.invitation_provision.rendezvous_candidates.len() > MAXIMUM_RENDEZVOUS_CANDIDATES
+        || provision
+            .invitation_provision
+            .rendezvous_candidates
+            .iter()
+            .any(|candidate| !valid_rendezvous_candidate(candidate, provision))
+    {
+        return Err(ConduitosError::refusal(
+            "creche-spore-rendezvous-invalid",
+            "spore rendezvous candidates exceeded their finite identity or authority bounds",
+        ));
+    }
     if spore.target != TARGET
         || serde_json::to_value(&spore.output).ok().as_ref()
             != Some(&serde_json::Value::String("disk-image".into()))
@@ -527,6 +573,34 @@ fn validate_provision(
         }
     }
     Ok(())
+}
+
+fn valid_rendezvous_candidate(
+    candidate: &RendezvousCandidate,
+    provision: &NativeMediaProvision,
+) -> bool {
+    candidate.schema == "conduit.body/rendezvous-candidate@1"
+        && candidate.body_id == provision.spore.body_id
+        && bounded_rendezvous_text(&candidate.line_family)
+        && bounded_rendezvous_text(&candidate.locator)
+        && bounded_rendezvous_text(&candidate.rendezvous_identity)
+        && candidate.expires_at_millis <= provision.invitation_provision.expires_at_millis
+        && (1..=8).contains(&candidate.maximum_attempts)
+        && (1..=60_000).contains(&candidate.connection_timeout_millis)
+        && matches!(
+            candidate.authentication.mode.as_str(),
+            "mutual-tls" | "conduit-authenticated-line"
+        )
+        && bounded_rendezvous_text(&candidate.authentication.server_identity)
+        && candidate
+            .authentication
+            .credential_reference
+            .as_deref()
+            .is_none_or(bounded_rendezvous_text)
+}
+
+fn bounded_rendezvous_text(value: &str) -> bool {
+    !value.is_empty() && value.len() <= MAXIMUM_RENDEZVOUS_TEXT_BYTES
 }
 
 fn digest(bytes: &[u8]) -> String {
@@ -577,7 +651,21 @@ mod tests {
                 "invitation_id": "invitation:fixture",
                 "nonce": vec![1; 32],
                 "expires_at_millis": 1_800_000_000_000_u64,
-                "secret": vec![2; 32]
+                "secret": vec![2; 32],
+                "rendezvous_candidates": [{
+                    "schema": "conduit.body/rendezvous-candidate@1",
+                    "line_family": "authenticated-conduit-line",
+                    "locator": "relay.example.test:443",
+                    "body_id": "body:fixture",
+                    "rendezvous_identity": "rendezvous:fixture",
+                    "expires_at_millis": 1_800_000_000_000_u64,
+                    "maximum_attempts": 3,
+                    "connection_timeout_millis": 30_000,
+                    "authentication": {
+                        "mode": "conduit-authenticated-line",
+                        "server_identity": "server:fixture"
+                    }
+                }]
             }
         });
         let encoded = serde_json::to_vec(&provision).unwrap();
