@@ -55,7 +55,7 @@ export async function startApplication(application) {
 try {
   hostPresentation = application.presentation;
   hostPresentationFor = application.presentationFor;
-  hostStatus = createProductMasthead(hostPresentation, "product-masthead", "tour");
+  hostStatus = createProductMasthead(hostPresentation, "product-masthead", null);
   presentTourWorkspaceSeparator(hostPresentation);
   hostStatus.ordinary("Starting browser Host…");
   readingState = await openTourReadingState(application.storage);
