@@ -1,0 +1,32 @@
+# Continuous Vision is ordinary composition. Acquisition remains outside this
+# Form; generic pressure admits only the newest pending image under load.
+form vision (
+    > images: ImageResource...|
+    experience: $VisualExperience >
+) {
+    ingress: flow/coalesce-latest
+    normalize: vision/normalize
+    motion: vision/local-motion
+    objects: vision/local-objects
+    text: vision/local-ocr
+    tracks: vision/local-track
+    describe: vision/model-describe
+    relate: vision/relate-experience
+
+    images > ingress.in
+    ingress.out > normalize.image
+    normalize.image > motion.image
+    normalize.image > objects.image
+    normalize.image > text.image
+    normalize.image > describe.image
+    objects.detections > tracks.detections
+    objects.detections > describe.detections
+    objects.detections > relate.detections
+    text.texts > describe.texts
+    text.texts > relate.texts
+    tracks.tracks > describe.tracks
+    tracks.tracks > relate.tracks
+    motion.motions > relate.motions
+    describe.impression > relate.impression
+    relate.experience > experience
+}

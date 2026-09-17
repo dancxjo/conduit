@@ -9,7 +9,8 @@ use conduit_presentation::{
 use crate::WorkspaceBody;
 
 pub const LIBRARY_SEARCH_BYTES: usize = 128;
-pub const MAX_LIBRARY_FORMS: usize = 108;
+/// Finite reviewed catalog headroom; Body residence remains independently 16.
+pub const MAX_LIBRARY_FORMS: usize = 128;
 pub const MAX_LIBRARY_RESULTS: usize = 24;
 
 #[derive(Clone, Debug)]

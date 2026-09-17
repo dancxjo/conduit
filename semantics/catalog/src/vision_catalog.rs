@@ -11,7 +11,11 @@ use conduit_core::{
 };
 use conduit_form::{KindDefinition, KindSignature};
 
-use crate::{image_resource_type, vision_detections_type, vision_registered_types};
+use crate::{
+    flow_coalesce_latest_contract, image_resource_type, install_flow_pressure_kind,
+    vision_detections_type, vision_experience_kind_contracts, vision_experience_registered_types,
+    vision_registered_types,
+};
 
 pub const VISION_FIXTURE_KIND: &str = "vision/deterministic-image";
 pub const VISION_DETECT_KIND: &str = "vision/deterministic-detector";
@@ -21,7 +25,7 @@ pub type VisionKindContract = (KindId, Vec<PortDescriptor>, Vec<PortDescriptor>)
 
 /// Exact portable vision Kinds and typed faces, without any Host realization facts.
 pub fn vision_kind_contracts() -> Vec<VisionKindContract> {
-    vec![
+    let mut contracts = vec![
         (
             kind_id(VISION_FIXTURE_KIND),
             vec![],
@@ -36,7 +40,9 @@ pub fn vision_kind_contracts() -> Vec<VisionKindContract> {
                 PortDirection::Output,
             )],
         ),
-    ]
+    ];
+    contracts.extend(vision_experience_kind_contracts());
+    contracts
 }
 
 pub fn install_vision_catalogs(
@@ -48,6 +54,22 @@ pub fn install_vision_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
+    for (name, value_type) in vision_experience_registered_types() {
+        startup
+            .insert_structured_type(name, value_type)
+            .map_err(|error| error.to_string())?;
+    }
+    install_flow_pressure_kind(
+        flow_coalesce_latest_contract(
+            image_resource_type()
+                .profile()
+                .expect("reviewed image profile")
+                .value_kind(),
+            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        ),
+        startup,
+        profile,
+    )?;
     for (kind, inputs, outputs) in vision_kind_contracts() {
         insert_kind(startup, profile, kind.as_str(), inputs, outputs)?;
     }

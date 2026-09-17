@@ -140,7 +140,7 @@ mod tests {
         let vision = vision_std_offers();
         let robotics = robotics_structured_deterministic_offers();
         assert_eq!(education.len(), 3);
-        assert_eq!(vision.len(), 2);
+        assert_eq!(vision.len(), 9);
         assert_eq!(robotics.len(), 2);
         assert!(robotics.iter().all(|offer| {
             offer.kind_id.as_str() != conduit_semantic_catalog::ROBOTICS_EXECUTE_MOTION_KIND

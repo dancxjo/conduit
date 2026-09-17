@@ -1,11 +1,14 @@
 use conduit_core::{
-    BaseImplementationId, BootId, BoundedResourceRef, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, Quantity, QuantityUnit, StructuredInfoTypeShape, StructuredInfoValue,
-    StructuredInfoValueShape, PROTOCOL_VERSION,
+    process_owned_line_offer_with_limits, BaseImplementationId, BootId, BoundedResourceRef,
+    HostAdvertisement, HostId, HostProfileId, LinkLimits, OfferGeneration, Quantity, QuantityUnit,
+    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
+};
+use conduit_planner::{
+    plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
 use conduit_presentation::{install_geometry_catalogs, point2_type, rect2_type};
 use conduit_semantic_catalog::{
@@ -15,8 +18,166 @@ use conduit_semantic_catalog::{
     VISION_DETECT_KIND, VISION_FIXTURE_KIND, VISION_IMAGE_ACCESS_CLASS,
     VISION_IMAGE_CONTENT_PROFILE,
 };
+use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("../../../forms/vision-metadata/main.conduit");
+const CONTINUOUS_SOURCE: &str = include_str!("../../../forms/vision/main.conduit");
+
+#[test]
+fn continuous_vision_is_checked_bounded_and_provider_neutral() {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    install_geometry_catalogs(&mut startup, &mut profile).unwrap();
+    install_vision_catalogs(&mut startup, &mut profile).unwrap();
+
+    let parsed = parse_syntax_document(CONTINUOUS_SOURCE);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    let checked = check_syntax_document(&parsed, &startup).unwrap();
+    let authored = expand_canonical_form_for_authoring(&checked, "vision", &profile).unwrap();
+    assert_eq!(authored.expanded.gears.len(), 8);
+
+    let kinds = authored
+        .expanded
+        .gears
+        .iter()
+        .map(|gear| gear.kind_id.as_str())
+        .collect::<Vec<_>>();
+    for expected in [
+        conduit_semantic_catalog::FLOW_COALESCE_LATEST_KIND,
+        conduit_semantic_catalog::VISION_MOTION_KIND,
+        conduit_semantic_catalog::VISION_OBJECTS_KIND,
+        conduit_semantic_catalog::VISION_OCR_KIND,
+        conduit_semantic_catalog::VISION_TRACK_KIND,
+        conduit_semantic_catalog::VISION_DESCRIBE_KIND,
+        conduit_semantic_catalog::VISION_EXPERIENCE_KIND,
+    ] {
+        assert!(kinds.contains(&expected), "missing {expected}");
+    }
+    assert!(!CONTINUOUS_SOURCE.contains("camera"));
+    assert!(!CONTINUOUS_SOURCE.contains("opencv"));
+
+    let flow = conduit_semantic_catalog::flow_coalesce_latest_contract(
+        image_resource_type().profile().unwrap().value_kind(),
+        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+    );
+    assert_eq!(flow.limits.max_queue_items, 1);
+    assert_eq!(
+        conduit_semantic_catalog::reviewed_flow_pressure_policy(&flow.kind_id),
+        Some(conduit_core::DeliveryPressurePolicy::CoalesceLatest)
+    );
+}
+
+#[test]
+fn continuous_vision_seals_the_same_authored_graph_across_two_hosts() {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    install_geometry_catalogs(&mut startup, &mut profile).unwrap();
+    install_vision_catalogs(&mut startup, &mut profile).unwrap();
+    let checked =
+        check_syntax_document(&parse_syntax_document(CONTINUOUS_SOURCE), &startup).unwrap();
+    let authored = expand_canonical_form_for_authoring(&checked, "vision", &profile).unwrap();
+
+    let flow_contract = conduit_semantic_catalog::flow_coalesce_latest_contract(
+        image_resource_type().profile().unwrap().value_kind(),
+        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+    );
+    let flow_offer = proof_domain_offer(
+        flow_contract.kind_id,
+        flow_contract.inputs,
+        flow_contract.outputs,
+        conduit_semantic_catalog::FLOW_COALESCE_LATEST_REVISION,
+        DOMAIN_PROOF_OPERATION,
+    );
+    let mut edge = host();
+    edge.host_id = HostId::from("host/vision-edge");
+    edge.boot_id = BootId::from("boot/vision-edge");
+    edge.capabilities.push(flow_offer);
+    let mut model = host();
+    model.host_id = HostId::from("host/vision-model");
+    model.boot_id = BootId::from("boot/vision-model");
+
+    let placements = PlacementChoices {
+        by_gear: authored
+            .expanded
+            .gears
+            .iter()
+            .map(|gear| {
+                let selected = if matches!(
+                    gear.kind_id.as_str(),
+                    conduit_semantic_catalog::VISION_DESCRIBE_KIND
+                        | conduit_semantic_catalog::VISION_EXPERIENCE_KIND
+                ) {
+                    &model
+                } else {
+                    &edge
+                };
+                let offer = selected
+                    .capabilities
+                    .iter()
+                    .find(|offer| offer.kind_id == gear.kind_id)
+                    .unwrap();
+                (
+                    gear.gear_id.clone(),
+                    PlacementChoice {
+                        host_id: selected.host_id.clone(),
+                        capability_id: offer.capability_id.clone(),
+                    },
+                )
+            })
+            .collect(),
+    };
+    let maximum = conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32;
+    let line = process_owned_line_offer_with_limits(
+        "line/vision-edge-model",
+        "binding/vision-edge-model",
+        BaseImplementationId::from("conduit.proof/vision-line@1"),
+        "fixture/vision-line",
+        &edge,
+        &model,
+        LinkLimits {
+            maximum_in_flight_items: 1,
+            maximum_payload_bytes: maximum,
+            maximum_buffered_bytes: maximum,
+            maximum_frame_bytes: maximum + 256,
+        },
+    );
+    let plan = plan_expanded_canonical_with_options(
+        &authored.expanded,
+        &[edge, model],
+        &placements,
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.proof/vision-line@1"),
+        ],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: maximum,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[line],
+        },
+    )
+    .unwrap();
+    assert_eq!(plan.fragments.len(), 2);
+    assert!(plan
+        .fragments
+        .iter()
+        .any(|fragment| fragment.host_id == HostId::from("host/vision-edge")));
+    assert!(plan
+        .fragments
+        .iter()
+        .any(|fragment| fragment.host_id == HostId::from("host/vision-model")));
+    assert!(plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.connections)
+        .any(|connection| connection
+            .admitted_lines
+            .iter()
+            .any(|line| { line.line_id.as_str() == "line/vision-edge-model" })));
+}
 
 #[test]
 fn image_resource_and_detection_metadata_flow_through_one_ordinary_form() {
@@ -214,4 +375,4 @@ fn leaf_bytes(value: &StructuredInfoValue) -> &[u8] {
 }
 mod common;
 
-use common::{vision_proof_offers, DOMAIN_PROOF_OPERATION};
+use common::{proof_domain_offer, vision_proof_offers, DOMAIN_PROOF_OPERATION};

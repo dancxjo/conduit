@@ -48,6 +48,10 @@ mod vision;
 pub use vision::*;
 mod vision_realization;
 pub use vision_realization::*;
+mod vision_experience_catalog;
+pub use vision_experience_catalog::*;
+mod vision_local_cv;
+pub use vision_local_cv::*;
 #[cfg(feature = "form-catalog")]
 mod vision_catalog;
 #[cfg(feature = "form-catalog")]
