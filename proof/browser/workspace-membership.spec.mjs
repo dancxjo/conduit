@@ -9,6 +9,29 @@ let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
 test.afterEach(() => entrance?.child.kill());
 
+test("the ordinary Body surface reviews exact browser Host machinery before a separate invitation", async ({ page }) => {
+  await page.goto(entrance.url);
+  await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+  await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
+
+  await page.getByRole("button", { name: "Add a Host", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "What should this browser contribute?", exact: true })).toBeVisible();
+  await expect(page.getByText("it creates no Host, membership, readiness, offer, Plan, or Play", { exact: false })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /browser\/dom@1/ })).toBeChecked();
+  await expect(page.getByRole("button", { name: "Create separate Body invitation", exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Minimal", exact: true }).click();
+  await page.getByRole("button", { name: "Review Host", exact: true }).click();
+  await expect(page.locator('[data-application-key="configuration-review-values"]')).toContainText("PROFILE");
+  await expect(page.getByRole("button", { name: "Create separate Body invitation", exact: true })).toBeVisible();
+  const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
+  await page.getByRole("button", { name: "Create separate Body invitation", exact: true }).click();
+  await expect(page.getByText("Invitation ready", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership)).toEqual(before);
+});
+
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context }) => {
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();

@@ -243,7 +243,7 @@ export async function startApplication(application) {
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
     globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
-    membership = openWorkspaceMembership({ root, session, host, invitation,
+    membership = openWorkspaceMembership({ root, session, host, invitation, presentationFor: application.presentationFor,
       async beforeAdmission() {
         if (['Playing', 'Idle', 'Completed', 'Failed'].includes(playback.state)) await play?.lull();
       },
