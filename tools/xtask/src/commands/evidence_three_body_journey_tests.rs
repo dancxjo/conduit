@@ -257,6 +257,16 @@ fn downstream_manifestation_cannot_prove_upstream_semantic_truth() {
 }
 
 #[test]
+fn presenter_policy_has_its_own_documentary_evidence_rung() {
+    assert_eq!(EvidenceRung::PresenterPolicy.label(), "presenter-policy");
+    assert_ne!(
+        EvidenceRung::PresenterPolicy,
+        EvidenceRung::GeneratedManifestation
+    );
+    assert_ne!(EvidenceRung::PresenterPolicy, EvidenceRung::PurposeState);
+}
+
+#[test]
 fn publication_writes_both_views_and_refuses_overwrite() {
     let contract = contract();
     let index = ThreeBodyJourneyIndex {
