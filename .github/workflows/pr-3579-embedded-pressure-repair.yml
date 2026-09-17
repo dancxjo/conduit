@@ -1,0 +1,119 @@
+name: Repair PR 3579 embedded pressure codegen
+
+on:
+  push:
+    branches:
+      - copilot/add-explicit-pressure-policies
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: copilot/add-explicit-pressure-policies
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rustfmt
+
+      - name: Preserve pressure policy through embedded code generation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one replacement, found {count}: {old!r}")
+              p.write_text(text.replace(old, new))
+
+          replace_once(
+              "fabrication/embedded-build/src/model.rs",
+              "use conduit_core::{BaseImplementationId, CancellationPolicy, LineContract, TerminalPolicy};",
+              "use conduit_core::{\n    BaseImplementationId, CancellationPolicy, DeliveryPressurePolicy, LineContract, TerminalPolicy,\n};",
+          )
+          replace_once(
+              "fabrication/embedded-build/src/model.rs",
+              "    pub byte_capacity: u32,\n}",
+              "    pub byte_capacity: u32,\n    pub pressure_policy: DeliveryPressurePolicy,\n}",
+          )
+
+          replace_once(
+              "fabrication/embedded-build/src/generate.rs",
+              "                byte_capacity: cord.spec.byte_capacity,\n            })",
+              "                byte_capacity: cord.spec.byte_capacity,\n                pressure_policy: cord.spec.pressure_policy,\n            })",
+          )
+
+          replace_once(
+              "fabrication/embedded-build/src/render.rs",
+              "use conduit_core::{CancellationPolicy, TerminalPolicy};",
+              "use conduit_core::{CancellationPolicy, DeliveryPressurePolicy, TerminalPolicy};",
+          )
+          replace_once(
+              "fabrication/embedded-build/src/render.rs",
+              "        writeln!(\n            output,\n            \"    conduit_kernel::scheduler::CordSpec {{ cord: conduit_kernel::CordId({}), source: {}, sink: {}, slot_start: {}, item_capacity: {}, byte_capacity: {}, pressure_policy: Default::default() }},\",\n            cord.cord,\n            source,\n            sink,\n            cord.slot_start,\n            cord.item_capacity,\n            cord.byte_capacity\n        )",
+              "        let pressure_policy = match cord.pressure_policy {\n            DeliveryPressurePolicy::PreserveOrder => {\n                \"conduit_core::DeliveryPressurePolicy::PreserveOrder\"\n            }\n            DeliveryPressurePolicy::CoalesceLatest => {\n                \"conduit_core::DeliveryPressurePolicy::CoalesceLatest\"\n            }\n        };\n        writeln!(\n            output,\n            \"    conduit_kernel::scheduler::CordSpec {{ cord: conduit_kernel::CordId({}), source: {}, sink: {}, slot_start: {}, item_capacity: {}, byte_capacity: {}, pressure_policy: {} }},\",\n            cord.cord,\n            source,\n            sink,\n            cord.slot_start,\n            cord.item_capacity,\n            cord.byte_capacity,\n            pressure_policy\n        )",
+          )
+
+          replace_once(
+              "fabrication/embedded-build/src/tests.rs",
+              "    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry,",
+              "    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry,",
+          )
+          # Add the import separately to keep rustfmt in charge of wrapping.
+          replace_once(
+              "fabrication/embedded-build/src/tests.rs",
+              "    ConfigurationValue, ConnectionId, ExecutionProfileId, ExpandedFormId, ExpectedSign,",
+              "    ConfigurationValue, ConnectionId, DeliveryPressurePolicy, ExecutionProfileId, ExpandedFormId, ExpectedSign,",
+          )
+          replace_once(
+              "fabrication/embedded-build/src/tests.rs",
+              "    assert_eq!(generated.cords.len(), 1);\n    assert_eq!(generated.routes.len(), 1);",
+              "    assert_eq!(generated.cords.len(), 1);\n    assert_eq!(\n        generated.cords[0].pressure_policy,\n        DeliveryPressurePolicy::PreserveOrder\n    );\n    assert_eq!(generated.routes.len(), 1);",
+          )
+          replace_once(
+              "fabrication/embedded-build/src/tests.rs",
+              "    assert!(first.contains(\"conduit_kernel::CordEndpoint::local\"));\n    assert!(first.contains(\"pub const GENERATED_PLACEMENT_IDS\"));",
+              "    assert!(first.contains(\"conduit_kernel::CordEndpoint::local\"));\n    assert!(first.contains(\"pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder\"));\n    assert!(!first.contains(\"pressure_policy: Default::default()\"));\n    assert!(first.contains(\"pub const GENERATED_PLACEMENT_IDS\"));",
+          )
+          PY
+
+          cargo fmt --all
+
+      - name: Verify embedded generator unit tests
+        run: cargo test -p conduit-embedded-build --locked
+
+      - name: Verify exact Pico workspace lane
+        run: cargo xtask check workspace-pico --locked
+
+      - name: Commit only the repair
+        run: |
+          git rm -- .github/workflows/pr-3579-embedded-pressure-repair.yml
+          git add -- \
+            fabrication/embedded-build/src/model.rs \
+            fabrication/embedded-build/src/generate.rs \
+            fabrication/embedded-build/src/render.rs \
+            fabrication/embedded-build/src/tests.rs
+
+          changed="$(git diff --cached --name-only)"
+          printf '%s\n' "$changed"
+          expected="$(printf '%s\n' \
+            .github/workflows/pr-3579-embedded-pressure-repair.yml \
+            fabrication/embedded-build/src/generate.rs \
+            fabrication/embedded-build/src/model.rs \
+            fabrication/embedded-build/src/render.rs \
+            fabrication/embedded-build/src/tests.rs)"
+          test "$changed" = "$expected"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Preserve pressure policy in embedded codegen"
+          git push origin HEAD:copilot/add-explicit-pressure-policies
