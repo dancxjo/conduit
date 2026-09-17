@@ -14,6 +14,8 @@ const MAXIMUM_HOSTS_PER_BODY: usize = 8;
 const MAXIMUM_EVIDENCE_PER_STEP: usize = 8;
 const REQUIRED_TRACKS: usize = 3;
 
+#[path = "evidence_three_body_journey_contract.rs"]
+mod contract;
 #[path = "evidence_three_body_journey_page.rs"]
 mod page;
 #[path = "evidence_three_body_journey_support.rs"]
@@ -23,7 +25,7 @@ use support::{
     validate_relative_path,
 };
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct JourneyContract {
     schema: String,
@@ -103,6 +105,10 @@ const REQUIRED_MILESTONES: [JourneyMilestone; 13] = [
     JourneyMilestone::BodyLulled,
     JourneyMilestone::BodyFulfilled,
 ];
+
+pub(super) fn write_contract(commit: String, output: PathBuf) -> Result<(), String> {
+    contract::write(commit, output)
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -291,68 +297,7 @@ fn validate(
     tracks: &[BodyTrack],
     expected_git_commit: &str,
 ) -> Result<(), String> {
-    if !valid_commit(expected_git_commit) || contract.git_commit != expected_git_commit {
-        return Err("semantic Journey does not match the expected exact commit".into());
-    }
-    if contract.schema != CONTRACT_SCHEMA
-        || !valid_identity(&contract.journey_id)
-        || !valid_commit(&contract.git_commit)
-        || contract.steps.is_empty()
-        || contract.steps.len() > MAXIMUM_STEPS
-    {
-        return Err("invalid bounded semantic Journey contract".into());
-    }
-    let mut step_ids = BTreeSet::new();
-    let mut next_milestone = 0;
-    for step in &contract.steps {
-        if !step_ids.insert(step.step_id.as_str())
-            || !valid_identity(&step.step_id)
-            || !valid_narrative(&step.title)
-            || !valid_narrative(&step.what_happened)
-            || !valid_narrative(&step.what_conduit_established)
-            || step.concepts.is_empty()
-            || step.concepts.iter().any(|value| !valid_identity(value))
-            || !valid_identity(&step.required_assertion)
-            || step.allowed_dispositions.is_empty()
-            || step.required_evidence_classes.is_empty()
-            || step.non_claims.is_empty()
-            || step
-                .allowed_dispositions
-                .iter()
-                .any(|value| !valid_identity(value))
-            || step
-                .required_evidence_classes
-                .iter()
-                .any(|value| !valid_identity(value))
-            || step.non_claims.iter().any(|value| !valid_identity(value))
-            || step
-                .required_provenance
-                .iter()
-                .collect::<BTreeSet<_>>()
-                .len()
-                != step.required_provenance.len()
-        {
-            return Err(format!("invalid semantic Journey step '{}'", step.step_id));
-        }
-        if let Some(milestone) = step.milestone {
-            if REQUIRED_MILESTONES.get(next_milestone) != Some(&milestone) {
-                return Err(format!(
-                    "semantic Journey milestone {:?} is duplicated or out of order",
-                    milestone
-                ));
-            }
-            if step.required_assertion != milestone.required_assertion() {
-                return Err(format!(
-                    "semantic Journey milestone {:?} has a noncanonical assertion",
-                    milestone
-                ));
-            }
-            next_milestone += 1;
-        }
-    }
-    if next_milestone != REQUIRED_MILESTONES.len() {
-        return Err("semantic Journey omits required lifecycle milestones".into());
-    }
+    validate_contract(contract, expected_git_commit)?;
     if tracks.len() != REQUIRED_TRACKS {
         return Err(format!(
             "exactly {REQUIRED_TRACKS} Body tracks are required"
@@ -461,6 +406,72 @@ fn validate(
         return Err(
             "at least one Body must retain multi-Host, Line, and distributed Plan truth".into(),
         );
+    }
+    Ok(())
+}
+
+fn validate_contract(contract: &JourneyContract, expected_git_commit: &str) -> Result<(), String> {
+    if !valid_commit(expected_git_commit) || contract.git_commit != expected_git_commit {
+        return Err("semantic Journey does not match the expected exact commit".into());
+    }
+    if contract.schema != CONTRACT_SCHEMA
+        || !valid_identity(&contract.journey_id)
+        || !valid_commit(&contract.git_commit)
+        || contract.steps.is_empty()
+        || contract.steps.len() > MAXIMUM_STEPS
+    {
+        return Err("invalid bounded semantic Journey contract".into());
+    }
+    let mut step_ids = BTreeSet::new();
+    let mut next_milestone = 0;
+    for step in &contract.steps {
+        if !step_ids.insert(step.step_id.as_str())
+            || !valid_identity(&step.step_id)
+            || !valid_narrative(&step.title)
+            || !valid_narrative(&step.what_happened)
+            || !valid_narrative(&step.what_conduit_established)
+            || step.concepts.is_empty()
+            || step.concepts.iter().any(|value| !valid_identity(value))
+            || !valid_identity(&step.required_assertion)
+            || step.allowed_dispositions.is_empty()
+            || step.required_evidence_classes.is_empty()
+            || step.non_claims.is_empty()
+            || step
+                .allowed_dispositions
+                .iter()
+                .any(|value| !valid_identity(value))
+            || step
+                .required_evidence_classes
+                .iter()
+                .any(|value| !valid_identity(value))
+            || step.non_claims.iter().any(|value| !valid_identity(value))
+            || step
+                .required_provenance
+                .iter()
+                .collect::<BTreeSet<_>>()
+                .len()
+                != step.required_provenance.len()
+        {
+            return Err(format!("invalid semantic Journey step '{}'", step.step_id));
+        }
+        if let Some(milestone) = step.milestone {
+            if REQUIRED_MILESTONES.get(next_milestone) != Some(&milestone) {
+                return Err(format!(
+                    "semantic Journey milestone {:?} is duplicated or out of order",
+                    milestone
+                ));
+            }
+            if step.required_assertion != milestone.required_assertion() {
+                return Err(format!(
+                    "semantic Journey milestone {:?} has a noncanonical assertion",
+                    milestone
+                ));
+            }
+            next_milestone += 1;
+        }
+    }
+    if next_milestone != REQUIRED_MILESTONES.len() {
+        return Err("semantic Journey omits required lifecycle milestones".into());
     }
     Ok(())
 }

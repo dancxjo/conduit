@@ -96,6 +96,32 @@ fn three_distinct_bodies_share_semantics_without_collapsing_identities() {
 }
 
 #[test]
+fn canonical_contract_names_exact_lifecycle_truth_and_refuses_overwrite() {
+    let commit = "c".repeat(40);
+    let canonical = contract::canonical(&commit);
+    validate_contract(&canonical, &commit).unwrap();
+    assert_eq!(canonical.steps.len(), REQUIRED_MILESTONES.len());
+    assert_eq!(canonical.steps[0].step_id, "body.absent");
+    assert_eq!(canonical.steps[7].step_id, "host.added");
+    assert_eq!(canonical.steps[12].step_id, "body.fulfilled");
+    assert!(canonical.steps[2]
+        .required_provenance
+        .contains(&ProvenanceField::Boot));
+
+    let root = std::env::temp_dir().join(format!(
+        "conduit-three-body-contract-{}",
+        std::process::id()
+    ));
+    let output = root.join("contract.json");
+    std::fs::create_dir_all(&root).unwrap();
+    contract::write(commit.clone(), output.clone()).unwrap();
+    let written: JourneyContract = read_bounded_json(&output).unwrap();
+    assert_eq!(written.git_commit, commit);
+    assert!(contract::write(written.git_commit, output).is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn stale_or_malformed_expected_commit_refuses() {
     let contract = contract();
     assert_eq!(
