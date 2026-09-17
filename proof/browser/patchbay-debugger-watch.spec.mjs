@@ -133,7 +133,10 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     await openRelatedSubjects(page);
     const subject = page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`);
     await subject.focus();
-    await subject.press("Space");
+    await expect(subject).toBeFocused();
+    await expect(subject).not.toBeChecked();
+    await page.keyboard.press("Space");
+    await expect(subject).toBeChecked();
     await expect.poll(async () => (await (await page.request.get(`${url}/api/snapshot`)).json()).navigation.cursor.focus).toBe(cord);
 
     const addWatch = page.getByRole("button", { name: "Watch", exact: true });
