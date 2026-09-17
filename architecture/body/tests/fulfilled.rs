@@ -101,6 +101,107 @@ fn fulfillment_is_attributable_terminal_truth_after_retained_lull() {
 }
 
 #[test]
+fn final_wake_claim_must_name_the_last_retained_wake() {
+    let body = born();
+    let (awake, first_wake) = body.wake(1, SignId::from("sign/woke-1")).unwrap();
+    let first_wake = first_wake.lull(SignId::from("sign/lulled-1")).unwrap();
+    let body = awake
+        .retain_after_lull(&first_wake, SignId::from("sign/retained-1"))
+        .unwrap();
+    let (awake, second_wake) = body.wake(2, SignId::from("sign/woke-2")).unwrap();
+    let second_wake = second_wake.lull(SignId::from("sign/lulled-2")).unwrap();
+    let body = awake
+        .retain_after_lull(&second_wake, SignId::from("sign/retained-2"))
+        .unwrap();
+
+    assert_eq!(
+        body.fulfill(
+            fulfillment(Some(first_wake.wake_id.clone())),
+            SignId::from("sign/wrong-final-wake"),
+        ),
+        Err(BodyLifecycleError::InvalidTransition)
+    );
+
+    let fulfilled = body
+        .fulfill(
+            fulfillment(Some(second_wake.wake_id.clone())),
+            SignId::from("sign/fulfilled"),
+        )
+        .unwrap();
+    let mut tampered = fulfilled;
+    if let BodyLifecycleEvent::Fulfilled { final_wake_id, .. } =
+        tampered.events.last_mut().unwrap()
+    {
+        *final_wake_id = Some(first_wake.wake_id);
+    }
+    assert_eq!(
+        tampered.validate(),
+        Err(BodyLifecycleError::InvalidTransition)
+    );
+}
+
+#[test]
+fn biography_compaction_keeps_the_claimed_final_wake_exact() {
+    let seed = born();
+    let mut biography = BodyBiographyEvidence::born(
+        seed.clone(),
+        BodyMembership::new(seed.body_id.clone()).unwrap(),
+        "Orifina Dawnheart".into(),
+    )
+    .unwrap();
+
+    let (awake, first_wake) = seed.wake(1, SignId::from("sign/woke-1")).unwrap();
+    biography
+        .append_wake(awake.clone(), first_wake.clone(), 2)
+        .unwrap();
+    let first_wake = first_wake.lull(SignId::from("sign/lulled-1")).unwrap();
+    biography
+        .append_wake(awake.clone(), first_wake.clone(), 3)
+        .unwrap();
+    let body = awake
+        .retain_after_lull(&first_wake, SignId::from("sign/retained-1"))
+        .unwrap();
+    biography
+        .append_wake(body.clone(), first_wake.clone(), 4)
+        .unwrap();
+
+    let (awake, second_wake) = body.wake(2, SignId::from("sign/woke-2")).unwrap();
+    biography
+        .append_wake(awake.clone(), second_wake.clone(), 5)
+        .unwrap();
+    let second_wake = second_wake.lull(SignId::from("sign/lulled-2")).unwrap();
+    biography
+        .append_wake(awake.clone(), second_wake.clone(), 6)
+        .unwrap();
+    let body = awake
+        .retain_after_lull(&second_wake, SignId::from("sign/retained-2"))
+        .unwrap();
+    biography
+        .append_wake(body.clone(), second_wake.clone(), 7)
+        .unwrap();
+
+    let fulfilled = body
+        .fulfill(
+            fulfillment(Some(second_wake.wake_id.clone())),
+            SignId::from("sign/fulfilled"),
+        )
+        .unwrap();
+    biography
+        .append_body_lifecycle_events(fulfilled, &[(SignId::from("sign/fulfilled"), 8)])
+        .unwrap();
+
+    let archived = biography
+        .seal_oldest_terminal_wake()
+        .unwrap()
+        .expect("the older Wake remains compactable");
+    assert_eq!(archived.wakes[0].wake_id, first_wake.wake_id);
+    assert_eq!(biography.wakes.len(), 1);
+    assert_eq!(biography.wakes[0].wake_id, second_wake.wake_id);
+    assert!(biography.seal_oldest_terminal_wake().unwrap().is_none());
+    biography.validate().unwrap();
+}
+
+#[test]
 fn incomplete_or_tampered_fulfillment_never_becomes_terminal_truth() {
     let body = born();
     let no_cleanup_required = BodyFulfillment {
