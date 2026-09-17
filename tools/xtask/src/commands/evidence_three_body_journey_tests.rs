@@ -85,9 +85,26 @@ fn complete() -> Vec<BodyTrack> {
     vec![track(0, 1), track(1, 1), track(2, 2)]
 }
 
+fn validate_current(contract: &JourneyContract, tracks: &[BodyTrack]) -> Result<(), String> {
+    validate(contract, tracks, &contract.git_commit)
+}
+
 #[test]
 fn three_distinct_bodies_share_semantics_without_collapsing_identities() {
-    validate(&contract(), &complete()).unwrap();
+    validate_current(&contract(), &complete()).unwrap();
+}
+
+#[test]
+fn stale_or_malformed_expected_commit_refuses() {
+    let contract = contract();
+    assert_eq!(
+        validate(&contract, &complete(), &"b".repeat(40)).unwrap_err(),
+        "semantic Journey does not match the expected exact commit"
+    );
+    assert_eq!(
+        validate(&contract, &complete(), "main").unwrap_err(),
+        "semantic Journey does not match the expected exact commit"
+    );
 }
 
 #[test]
@@ -97,14 +114,14 @@ fn incomplete_or_reordered_lifecycle_refuses() {
         .steps
         .retain(|step| step.milestone != Some(JourneyMilestone::HostAdded));
     assert_eq!(
-        validate(&incomplete, &complete()).unwrap_err(),
+        validate_current(&incomplete, &complete()).unwrap_err(),
         "semantic Journey milestone FaultObserved is duplicated or out of order"
     );
 
     let mut reordered = contract();
     reordered.steps.swap(7, 8);
     assert_eq!(
-        validate(&reordered, &complete()).unwrap_err(),
+        validate_current(&reordered, &complete()).unwrap_err(),
         "semantic Journey milestone FaultObserved is duplicated or out of order"
     );
 }
@@ -113,32 +130,32 @@ fn incomplete_or_reordered_lifecycle_refuses() {
 fn one_body_with_three_skins_refuses() {
     let mut tracks = complete();
     tracks[1].body_id = tracks[0].body_id.clone();
-    assert!(validate(&contract(), &tracks).is_err());
+    assert!(validate_current(&contract(), &tracks).is_err());
 }
 
 #[test]
 fn three_tracks_must_not_reuse_one_embodiment_or_presenter() {
     let mut tracks = complete();
     tracks[1].embodiment = tracks[0].embodiment.clone();
-    assert!(validate(&contract(), &tracks).is_err());
+    assert!(validate_current(&contract(), &tracks).is_err());
 
     tracks = complete();
     tracks[1].presenter_id = tracks[0].presenter_id.clone();
-    assert!(validate(&contract(), &tracks).is_err());
+    assert!(validate_current(&contract(), &tracks).is_err());
 }
 
 #[test]
 fn independently_born_hosts_must_not_reuse_boot_identity() {
     let mut tracks = complete();
     tracks[1].hosts[0].boot_id = tracks[0].hosts[0].boot_id.clone();
-    assert!(validate(&contract(), &tracks).is_err());
+    assert!(validate_current(&contract(), &tracks).is_err());
 }
 
 #[test]
 fn three_single_host_tracks_do_not_prove_a_distributed_body() {
     let tracks = vec![track(0, 1), track(1, 1), track(2, 1)];
     assert_eq!(
-        validate(&contract(), &tracks).unwrap_err(),
+        validate_current(&contract(), &tracks).unwrap_err(),
         "at least one Body must retain multi-Host, Line, and distributed Plan truth"
     );
 }
@@ -147,12 +164,12 @@ fn three_single_host_tracks_do_not_prove_a_distributed_body() {
 fn reordered_semantics_and_cross_body_manifestations_refuse() {
     let mut tracks = complete();
     tracks[1].steps[0].step_id = "body.awake".into();
-    assert!(validate(&contract(), &tracks).is_err());
+    assert!(validate_current(&contract(), &tracks).is_err());
     tracks = complete();
     tracks[1].steps[0].provenance.manifestation_id =
         tracks[0].steps[0].provenance.manifestation_id.clone();
     assert_eq!(
-        validate(&contract(), &tracks).unwrap_err(),
+        validate_current(&contract(), &tracks).unwrap_err(),
         "Body tracks collapsed exact runtime or presentation identity"
     );
 }
@@ -161,10 +178,10 @@ fn reordered_semantics_and_cross_body_manifestations_refuse() {
 fn steps_cannot_cite_another_tracks_host_or_an_unretained_line() {
     let mut tracks = complete();
     tracks[1].steps[0].provenance.host_id = Some("host-0-0".into());
-    assert!(validate(&contract(), &tracks).is_err());
+    assert!(validate_current(&contract(), &tracks).is_err());
     tracks = complete();
     tracks[2].steps[0].provenance.line_id = Some("line-invented".into());
-    assert!(validate(&contract(), &tracks).is_err());
+    assert!(validate_current(&contract(), &tracks).is_err());
 }
 
 #[test]
@@ -234,7 +251,7 @@ fn downstream_manifestation_cannot_prove_upstream_semantic_truth() {
         track.steps[0].evidence[0].assertion_rung = EvidenceRung::GeneratedManifestation;
     }
     assert_eq!(
-        validate(&contract(), &tracks).unwrap_err(),
+        validate_current(&contract(), &tracks).unwrap_err(),
         "track-0 lacks authoritative BodyBiography evidence at journey.step-0"
     );
 }
