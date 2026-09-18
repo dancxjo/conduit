@@ -46,6 +46,10 @@ pub struct InstalledRemoteFragment {
     model_output_buffer: Vec<u8>,
     recognized_turn_commit_hosts:
         Vec<Option<super::recognized_turn_commit_operation::RecognizedTurnCommitHost>>,
+    speech_window_hosts:
+        Vec<Option<super::speech_recognition_adapter_operation::SpeechWindowToClipHost>>,
+    speech_result_stream_hosts:
+        Vec<Option<super::speech_recognition_adapter_operation::SpeechResultToEventStreamHost>>,
     generated_speech_commit_hosts:
         Vec<Option<super::generated_speech_commit_operation::GeneratedSpeechCommitHost>>,
     body_chat_prompt_hosts: Vec<Option<super::body_chat_prompt_operation::BodyChatPromptHost>>,
@@ -127,6 +131,10 @@ impl InstalledRemoteFragment {
         let scheduler = tables.install(drivers, values, signs)?;
         let recognized_turn_commit_hosts =
             super::recognized_turn_commit_operation::prepare_hosts(fragment);
+        let speech_window_hosts =
+            super::speech_recognition_adapter_operation::prepare_window_hosts(fragment);
+        let speech_result_stream_hosts =
+            super::speech_recognition_adapter_operation::prepare_result_hosts(fragment);
         let generated_speech_commit_hosts =
             super::generated_speech_commit_operation::prepare_hosts(fragment)?;
         let body_chat_prompt_hosts = super::body_chat_prompt_operation::prepare_hosts(fragment);
@@ -140,6 +148,8 @@ impl InstalledRemoteFragment {
                 conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES as usize,
             ),
             recognized_turn_commit_hosts,
+            speech_window_hosts,
+            speech_result_stream_hosts,
             generated_speech_commit_hosts,
             body_chat_prompt_hosts,
             pending_body_context: None,
@@ -240,6 +250,31 @@ impl InstalledRemoteFragment {
                 .ok_or_else(|| "remote recognized-turn request has no admitted host".to_string())?
                 .execute(input)?;
             (HostOperationDisposition::Completed, output)
+        } else if matches!(
+            contract,
+            conduit_std_offers::SPEECH_WINDOW_PUSH_OPERATION
+                | conduit_std_offers::SPEECH_WINDOW_CLOSE_OPERATION
+        ) {
+            let host = self
+                .speech_window_hosts
+                .get_mut(usize::from(request.node.0))
+                .and_then(Option::as_mut)
+                .ok_or_else(|| "remote speech-window request has no admitted host".to_string())?;
+            if contract == conduit_std_offers::SPEECH_WINDOW_PUSH_OPERATION {
+                host.push(input)?;
+                (HostOperationDisposition::Completed, None)
+            } else {
+                let output = host.close()?;
+                (HostOperationDisposition::Completed, Some(output))
+            }
+        } else if contract == conduit_std_offers::SPEECH_RESULT_TO_EVENT_OPERATION {
+            let output = self
+                .speech_result_stream_hosts
+                .get_mut(usize::from(request.node.0))
+                .and_then(Option::as_mut)
+                .ok_or_else(|| "remote speech-result adapter has no admitted host".to_string())?
+                .execute(input)?;
+            (HostOperationDisposition::Completed, Some(output))
         } else if matches!(
             contract,
             conduit_std_offers::GENERATED_SPEECH_PUSH_OPERATION
