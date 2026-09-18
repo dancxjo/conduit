@@ -467,17 +467,14 @@ impl StdHost {
         &mut self,
         context: &conduit_body::BodyConversationContext,
     ) -> Result<(), String> {
-        let newly_offered = self.body_conversation_context.is_none();
+        let offer = conduit_std_offers::body_conversation_context_std_offer();
+        let newly_offered = !self
+            .advertisement
+            .capabilities
+            .iter()
+            .any(|installed| installed.capability_id == offer.capability_id);
         if newly_offered {
-            let offer = conduit_std_offers::body_conversation_context_std_offer();
-            if !self
-                .advertisement
-                .capabilities
-                .iter()
-                .any(|installed| installed.capability_id == offer.capability_id)
-            {
-                self.advertisement.capabilities.push(offer);
-            }
+            self.advertisement.capabilities.push(offer);
             self.advertisement
                 .capabilities
                 .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
