@@ -90,7 +90,13 @@ fn combined_bounds_duplicate_partition_and_changed_boot_refuse() {
             small
         )
         .unwrap_err(),
-        FragmentSetError::Capacity
+        FragmentSetError::Capacity(
+            conduit_plan_lowering::fragment_set::FragmentSetCapacityDeficit {
+                resource: "nodes",
+                required: 4,
+                available: 3,
+            }
+        )
     );
     assert_eq!(
         lower_local_fragment_set(
@@ -140,11 +146,12 @@ fn every_combined_storage_limit_is_enforced_at_its_exact_boundary() {
             6 => insufficient.sign_bytes -= 1,
             _ => unreachable!(),
         }
-        assert_eq!(
+        let error =
             lower_local_fragment_set(&fragments, FIXED_KERNEL_STORAGE_PROFILE, insufficient)
-                .unwrap_err(),
-            FragmentSetError::Capacity,
-            "storage dimension {dimension} must refuse one below the exact requirement"
+                .unwrap_err();
+        assert!(
+            matches!(error, FragmentSetError::Capacity(_)),
+            "storage dimension {dimension} must refuse one below the exact requirement: {error:?}"
         );
     }
 }

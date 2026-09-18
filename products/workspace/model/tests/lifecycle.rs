@@ -277,6 +277,39 @@ fn missing_workload_and_stale_boot_refuse_before_publishing_a_wake() {
 }
 
 #[test]
+fn quantitative_pre_play_refusal_survives_into_the_body_biography() {
+    let mut body = born();
+    let proposal = body
+        .propose(plans(&body), &host(), &boot())
+        .unwrap()
+        .clone();
+    let rejection = conduit_body::WakeRejectionEvidence {
+        reason_code: "lowering.capacity".into(),
+        category: "Capacity".into(),
+        stage: "Body lowering".into(),
+        resource: "nodes".into(),
+        required: 33,
+        available: 32,
+        host_id: host(),
+        boot_id: boot(),
+        plan_id: Some(proposal.plan.plan_id.clone()),
+        checked_form_ids: proposal
+            .plan
+            .forms
+            .iter()
+            .map(|form| form.form.checked_form_id.clone())
+            .collect(),
+    };
+    body.fail(&host(), &boot(), vec![rejection.clone()])
+        .unwrap();
+    assert!(body.realization().is_none());
+    let wake = body.evidence().wakes.last().unwrap();
+    assert_eq!(wake.lifecycle, conduit_body::WakeLifecycle::Failed);
+    assert!(wake.plans.is_empty());
+    assert_eq!(wake.rejections, vec![rejection]);
+}
+
+#[test]
 fn awake_snapshots_do_not_resurrect_a_play_and_stale_terminal_identity_cannot_lull_it() {
     let mut body = born();
     let play = start(&mut body);

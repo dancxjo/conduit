@@ -324,7 +324,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (startStatus < 0) {
         startOutcome = "refused-before-play";
         const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
-        const error = new Error(`browser Body admission refused (${startStatus}): ${refusal?.message ?? "no refusal detail"}`);
+        const rejection = refusal?.rejections?.[0];
+        const detail = rejection
+          ? `${rejection.stage} could not fit ${rejection.resource}: required ${rejection.required}, available ${rejection.available} on Host ${rejection.host_id} / Boot ${rejection.boot_id}`
+          : refusal?.message ?? "no refusal detail";
+        const error = new Error(`browser Body admission refused (${startStatus}): ${detail}`);
         error.status = startStatus;error.refusal = refusal;
         throw error;
       }
