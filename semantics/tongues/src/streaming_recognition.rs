@@ -531,6 +531,22 @@ mod tests {
     }
 
     #[test]
+    fn acoustic_window_item_bound_is_semantic_and_packetization_explicit() {
+        let mut window = AcousticWindow::new(MAXIMUM_STREAMING_AUDIO_BYTES).unwrap();
+        for _ in 0..MAXIMUM_ACOUSTIC_WINDOW_ITEMS {
+            window.push(&[1]).unwrap();
+        }
+        assert_eq!(window.retained_items(), MAXIMUM_ACOUSTIC_WINDOW_ITEMS);
+        assert_eq!(
+            window.push(&[1]),
+            Err(StreamingRecognitionRefusal::BoundExceeded)
+        );
+        window.release();
+        assert_eq!(window.retained_items(), 0);
+        assert_eq!(window.retained_bytes(), 0);
+    }
+
+    #[test]
     fn cancellation_and_provider_loss_release_bounded_audio() {
         let mut cancelled = AcousticWindow::new(16).unwrap();
         cancelled.push(&[1, 2, 3]).unwrap();
