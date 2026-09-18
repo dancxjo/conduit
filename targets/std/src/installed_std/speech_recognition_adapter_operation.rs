@@ -206,10 +206,8 @@ impl SpeechWindowToClipHost {
             expected_start_frame: None,
             source_frames: 0,
             target_frames: 0,
-            window: conduit_tongues::AcousticWindow::new(
-                MAXIMUM_PCM_CLIP_FRAMES as usize * 2,
-            )
-            .expect("canonical Whisper turn fits the portable AcousticWindow bound"),
+            window: conduit_tongues::AcousticWindow::new(MAXIMUM_PCM_CLIP_FRAMES as usize * 2)
+                .expect("canonical Whisper turn fits the portable AcousticWindow bound"),
         }
     }
 
@@ -298,8 +296,7 @@ impl SpeechWindowToClipHost {
             return Err("speech AcousticWindow retained a partial signed-16 sample".into());
         }
         let maximum_payload_bytes = usize::from(MAXIMUM_PCM_FRAMES_PER_BLOCK) * 2;
-        let mut encoded_frames =
-            Vec::with_capacity(raw.len().div_ceil(maximum_payload_bytes));
+        let mut encoded_frames = Vec::with_capacity(raw.len().div_ceil(maximum_payload_bytes));
         let mut start = 0_u64;
         for chunk in raw.chunks(maximum_payload_bytes) {
             let frame_count = u16::try_from(chunk.len() / 2)
@@ -455,10 +452,7 @@ fn validate_result(placement: &PlannedGear) -> Result<(), String> {
     )
 }
 
-fn validate(
-    placement: &PlannedGear,
-    offer: &conduit_core::CapabilityOffer,
-) -> Result<(), String> {
+fn validate(placement: &PlannedGear, offer: &conduit_core::CapabilityOffer) -> Result<(), String> {
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.inputs != offer.inputs
