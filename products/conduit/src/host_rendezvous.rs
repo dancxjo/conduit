@@ -558,6 +558,10 @@ fn exchange_joined_frame(
     })
 }
 
+// Keep the bounded control envelope inline: boxing it would add an avoidable
+// allocation to every retained-Line control message merely to equalize this
+// private dispatch enum's variant sizes.
+#[allow(clippy::large_enum_variant)]
 enum JoinedIngress {
     Control(Ingress),
     Frame(Vec<u8>),
