@@ -135,6 +135,14 @@ async function installHostRelease(page, manifestName) {
   return manifest;
 }
 
+async function expectExactArtifactObtainment(runner, resultKind) {
+  // Hosted release archives are intentionally consumed as exact bytes. On a
+  // cold runner the largest archive can take longer than Playwright's generic
+  // assertion timeout; wait for the product's terminal stage, not elapsed time.
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]'))
+    .toContainText(`${resultKind} · exact`, { timeout: 30_000 });
+}
+
 test.beforeEach(async () => {
   entrance = await startTour();
 });
@@ -1336,7 +1344,7 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
   await runner.getByRole("button", { name: "Review Host" }).click();
-  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
+  await expectExactArtifactObtainment(runner, "browser-bundle");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
     family: { id: "conduit-target-family/browser@1" },
@@ -1456,7 +1464,7 @@ test("a native Linux target produces an exact spore but refuses to execute an un
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
-  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
+  await expectExactArtifactObtainment(runner, "native-bundle");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   const hostedHandoff = runner.locator('[data-application-key="download-spore"]');
   await expect(hostedHandoff).toContainText("Download ZIP");
@@ -1560,7 +1568,7 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
     await openCrecheStep(page, "3. Physical Host");
     const runner = page.locator(".physical-host-runner");
     await runner.locator('[data-application-key="physical-target"]').selectOption(profile.id);
-    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
+    await expectExactArtifactObtainment(runner, "native-bundle");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
     expect(downloaded.filename).toMatch(new RegExp(`-${profile.profileId}\\.zip$`));
