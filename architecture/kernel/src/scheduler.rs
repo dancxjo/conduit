@@ -12,7 +12,7 @@ use crate::{
     OperationAction, PortId, ProtocolError, RemoteEndpointId, RequestId, RouteTarget, SignError,
     SignSink, StorageError, ValueRef, ValueStorage,
 };
-use conduit_core::DeliveryPressurePolicy;
+use conduit_assigned_plan::DeliveryPressurePolicy;
 
 mod active_capacity;
 mod debug_control;

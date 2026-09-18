@@ -28,6 +28,16 @@ pub const ASSIGNED_REMOTE_ENDPOINT: u8 = 10;
 pub const ASSIGNED_STARTUP: u8 = 11;
 pub const ASSIGNED_TERMINAL: u8 = 12;
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[repr(u8)]
+pub enum DeliveryPressurePolicy {
+    #[default]
+    PreserveOrder,
+    CoalesceLatest,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AssignedIdentity(pub [u8; 16]);
 
