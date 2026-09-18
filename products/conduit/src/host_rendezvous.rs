@@ -223,6 +223,7 @@ fn serve_websocket(state_dir: &Path, timeout_seconds: u64) -> Result<(), String>
         let mut line = listener
             .accept_with_timeout(Duration::from_secs(timeout_seconds))
             .map_err(debug("accept rendezvous Line"))?;
+        println!("Initial Host connection accepted; rendezvous deadline cleared. Retaining the Line until explicit close or loss.");
         run_session(
             &mut line,
             state_dir,
