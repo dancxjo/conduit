@@ -195,7 +195,6 @@ pub(super) struct SpeechWindowToClipHost {
     source_frames: u64,
     target_frames: u64,
     window: conduit_tongues::AcousticWindow,
-    output: Vec<u8>,
 }
 
 impl SpeechWindowToClipHost {
@@ -211,7 +210,6 @@ impl SpeechWindowToClipHost {
                 MAXIMUM_PCM_CLIP_FRAMES as usize * 2,
             )
             .expect("canonical Whisper turn fits the portable AcousticWindow bound"),
-            output: Vec::with_capacity(conduit_audio::MAXIMUM_PCM_CLIP_BYTES),
         }
     }
 
@@ -288,7 +286,7 @@ impl SpeechWindowToClipHost {
         Ok(())
     }
 
-    pub(super) fn close(&mut self) -> Result<&[u8], String> {
+    pub(super) fn close(&mut self) -> Result<Vec<u8>, String> {
         if self.window.retained_bytes() == 0 {
             return Err("speech recognition window closed without audio".into());
         }
@@ -324,38 +322,30 @@ impl SpeechWindowToClipHost {
             start += u64::from(frame_count);
         }
         let borrowed = encoded_frames.iter().map(Vec::as_slice).collect::<Vec<_>>();
-        self.output = conduit_audio::encode_pcm_clip(&borrowed)
+        let output = conduit_audio::encode_pcm_clip(&borrowed)
             .map_err(|error| format!("encode speech recognition clip: {error:?}"))?;
         self.window.release();
-        Ok(&self.output)
+        Ok(output)
     }
 
     pub(super) fn cancel(&mut self) {
         self.window.cancel();
-        self.output.clear();
     }
 }
 
-pub(super) struct SpeechResultToEventStreamHost {
-    output: Vec<u8>,
-}
+pub(super) struct SpeechResultToEventStreamHost;
 
 impl SpeechResultToEventStreamHost {
     fn new() -> Self {
-        Self {
-            output: Vec::with_capacity(conduit_tongues::MAXIMUM_RECOGNITION_EVENT_BYTES),
-        }
+        Self
     }
 
-    pub(super) fn execute(&mut self, input: &[u8]) -> Result<&[u8], String> {
-        self.output = conduit_tongues::recognition_result_to_terminal_event(input)
-            .map_err(|error| format!("adapt recognition result to event stream: {error:?}"))?;
-        Ok(&self.output)
+    pub(super) fn execute(&mut self, input: &[u8]) -> Result<Vec<u8>, String> {
+        conduit_tongues::recognition_result_to_terminal_event(input)
+            .map_err(|error| format!("adapt recognition result to event stream: {error:?}"))
     }
 
-    pub(super) fn cancel(&mut self) {
-        self.output.clear();
-    }
+    pub(super) fn cancel(&mut self) {}
 }
 
 pub(super) fn prepare_window_hosts(
