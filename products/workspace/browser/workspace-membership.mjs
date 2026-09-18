@@ -35,16 +35,39 @@ function invitationUrl(location, artifact) {
   return url.href;
 }
 
+function renderInvitationQr(root, projection) {
+  if (projection?.schema !== "conduit.presentation/invitation-qr@1"
+      || !Number.isSafeInteger(projection.width) || projection.width < 21 || projection.width > 177
+      || !Array.isArray(projection.rows) || projection.rows.length !== projection.width
+      || projection.rows.some(row => typeof row !== "string" || row.length !== projection.width || /[^01]/u.test(row))) {
+    throw new Error("Invitation QR projection is malformed");
+  }
+  const quiet = 4, size = projection.width + quiet * 2;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "QR representation of this exact Body invitation");
+  svg.style.imageRendering = "pixelated";
+  const background = document.createElementNS(svg.namespaceURI, "rect");
+  background.setAttribute("width", String(size)); background.setAttribute("height", String(size)); background.setAttribute("fill", "white");
+  const path = document.createElementNS(svg.namespaceURI, "path"), commands = [];
+  projection.rows.forEach((row, y) => [...row].forEach((cell, x) => { if (cell === "1") commands.push(`M${x + quiet} ${y + quiet}h1v1h-1z`); }));
+  path.setAttribute("d", commands.join("")); path.setAttribute("fill", "black");
+  svg.append(background, path); root.replaceChildren(svg); root.hidden = false;
+}
+
 export function openWorkspaceMembership({ root, session, host, invitation, presentationFor, beforeAdmission, onChanged, onFailure }) {
   const panel = root.querySelector("#workspace-membership");
   const content = panel.querySelector("[data-membership-content]");
   const openButton = root.querySelector("[data-open-membership]");
   const inviteButton = root.querySelector("[data-invite-host]");
   const closeButton = root.querySelector("[data-close-membership]");
+  const invitationPresentation = presentationFor(content);
   const channels = new Set();
   const joinedLines = new Map();
   let runningHost = null;
   let open = Boolean(invitation);
+  let invitationRevision = 0;
 
   const close = () => {
     if (invitation && !session.current()) return;
@@ -201,15 +224,26 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
     const url = invitationUrl(globalThis.location, artifact);
     const channel = listenForJoin(claim);
     channels.add(channel);
-    content.innerHTML = `<p class="membership-kicker">Invitation ready</p><h3>${escapeText(body.friendly_name)}</h3>
-      <p>This single-use invitation offers admission to this Body for ten minutes. It does not authorize Forms or arbitrary effects. Keep this Workspace open while the other Host joins.</p>
-      <label>Portable invitation link<textarea readonly data-invitation-link></textarea></label>
-      <div class="membership-actions"><button type="button" data-copy-invitation>Copy invitation</button><button type="button" data-cancel-invitation>Back to members</button></div>
+    content.innerHTML = `<div data-application-slot="workspace-invitation"></div><div data-invitation-qr hidden></div>
       <details><summary>Invitation details</summary><pre>${escapeText(JSON.stringify({ ...artifact, secret: "redacted bounded invitation capability" }, null, 2))}</pre></details>
       <p class="transport-note">Available now: another Host in this browser’s same-origin rendezvous. Remote internet rendezvous is not yet supported.</p>`;
-    content.querySelector("[data-invitation-link]").value = url;
-    content.querySelector("[data-copy-invitation]").addEventListener("click", async event => { await navigator.clipboard.writeText(url); event.currentTarget.textContent = "Copied"; });
-    content.querySelector("[data-cancel-invitation]").addEventListener("click", () => { channel.close(); channels.delete(channel); render(); });
+    const revision = ++invitationRevision;
+    const view = session.invitationView({ invitation_id: claim.invitation_id, body_id: claim.body_id,
+      body_name: body.friendly_name, expires_at_millis: claim.expires_at_millis, transfer_uri: url, revision,
+      clipboard_available: typeof navigator.clipboard?.writeText === "function", share_available: typeof navigator.share === "function" });
+    invitationPresentation.present("workspace-invitation", view, { async onEvent(event) {
+      invitationPresentation.nextEvent("workspace-invitation");
+      if (event.revision !== invitationRevision || event.kind !== 1 || event.value.length !== 0) {
+        onFailure(new Error("This invitation presentation is stale")); return;
+      }
+      try {
+        if (event.action === "invitation.show-qr") renderInvitationQr(content.querySelector("[data-invitation-qr]"), session.invitationQr(url));
+        else if (event.action === "invitation.copy-link") await navigator.clipboard.writeText(url);
+        else if (event.action === "invitation.share") await navigator.share({ title: `Join ${body.friendly_name}`, url });
+        else if (event.action === "invitation.dismiss") { channel.close(); channels.delete(channel); render(); }
+        else throw new Error("Unknown invitation presentation action");
+      } catch (error) { onFailure(error); }
+    } });
   }
 
   function listenForJoin(claim) {

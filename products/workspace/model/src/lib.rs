@@ -8,6 +8,7 @@ extern crate alloc;
 mod continuity;
 mod current_hosts;
 mod flow;
+pub mod invitation;
 pub mod library;
 mod lifecycle;
 pub mod tutorial;

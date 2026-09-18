@@ -31,6 +31,37 @@ fn host() -> HostId {
 }
 
 #[test]
+fn invitation_transfer_methods_share_one_revision_bound_semantic_identity() {
+    let semantic = conduit_workspace_model::invitation::InvitationPresentation {
+        invitation_id: "invitation/one",
+        body_id: "body/one",
+        body_name: "Orifina",
+        expires_at_millis: 42,
+        transfer_uri: "https://example.invalid/workspace/#body-invitation=opaque",
+        clipboard_available: true,
+        share_available: false,
+    }
+    .view(12)
+    .unwrap();
+    let view = semantic.lower().unwrap();
+    assert_eq!(view.revision, 12);
+    for identity in [
+        "invitation.show-qr",
+        "invitation.copy-link",
+        "invitation.dismiss",
+    ] {
+        assert!(view.actions.iter().any(|action| action.id == identity));
+    }
+    assert!(
+        !view
+            .actions
+            .iter()
+            .any(|action| action.id == "invitation.share")
+    );
+    assert!(format!("{semantic:?}").contains("body-invitation=opaque"));
+}
+
+#[test]
 fn explicit_fulfillment_is_terminal_attributable_and_inspectable_after_restore() {
     let mut body = born();
     body.fulfill(

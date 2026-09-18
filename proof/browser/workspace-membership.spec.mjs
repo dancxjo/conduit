@@ -35,11 +35,15 @@ test("the ordinary Body surface reviews exact browser Host machinery before a se
   await expect(page.getByRole("button", { name: "Create separate Body invitation", exact: true })).toBeVisible();
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
   await page.getByRole("button", { name: "Create separate Body invitation", exact: true }).click();
-  await expect(page.getByText("Invitation ready", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-application-key="invitation-status"]')).toContainText("Single-use Body invitation");
   expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership)).toEqual(before);
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, "share", {
+    configurable: true,
+    value: async value => { globalThis.__sharedInvitation = value; },
+  }));
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
@@ -53,11 +57,15 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
 
   await page.getByRole("button", { name: "Invite another Host", exact: true }).click();
-  await expect(page.getByText("Invitation ready", { exact: true })).toBeVisible();
-  const link = await page.locator("[data-invitation-link]").inputValue();
+  await expect(page.locator('[data-application-key="invitation-status"]')).toContainText("Single-use Body invitation");
+  const link = (await page.locator('[data-application-key^="invitation-link-"]').allTextContents()).join("");
   const afterOffer = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
   expect(afterOffer).toEqual(before);
   expect(new URL(link).hash).toContain("body-invitation=");
+  await page.getByRole("button", { name: "Show QR", exact: true }).click();
+  await expect(page.getByRole("img", { name: "QR representation of this exact Body invitation" })).toBeVisible();
+  await page.getByRole("button", { name: "Share…", exact: true }).click();
+  expect(await page.evaluate(() => globalThis.__sharedInvitation.url)).toBe(link);
 
   const joining = await context.newPage();
   await joining.goto(link);

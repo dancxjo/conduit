@@ -90,6 +90,19 @@ enum Request {
         revision: u32,
         playback: conduit_workspace_model::tutorial::TutorialPlayback,
     },
+    InvitationView {
+        invitation_id: String,
+        body_id: String,
+        body_name: String,
+        expires_at_millis: u64,
+        transfer_uri: String,
+        revision: u32,
+        clipboard_available: bool,
+        share_available: bool,
+    },
+    InvitationQr {
+        transfer_uri: String,
+    },
     ChangeWorkset {
         host_id: HostId,
         boot_id: BootId,
@@ -416,6 +429,17 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 return view.encode()
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")));
             }
+            Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
+                transfer_uri, revision, clipboard_available, share_available } => {
+                let semantic = conduit_workspace_model::invitation::InvitationPresentation {
+                    invitation_id: &invitation_id, body_id: &body_id, body_name: &body_name,
+                    expires_at_millis, transfer_uri: &transfer_uri, clipboard_available, share_available,
+                }.view(revision).map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")))?;
+                return semantic.lower()
+                    .map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")))?
+                    .encode().map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")));
+            }
+            Request::InvitationQr { transfer_uri } => return invitation_qr(&transfer_uri),
             Request::ChangeWorkset {
                 host_id,
                 boot_id,
@@ -521,6 +545,41 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         *slot = Some(candidate);
         Ok(bytes)
     })
+}
+
+fn invitation_qr(transfer_uri: &str) -> Result<Vec<u8>, Refusal> {
+    if transfer_uri.is_empty()
+        || transfer_uri.len() > conduit_workspace_model::invitation::MAX_INVITATION_TRANSFER_BYTES
+        || !transfer_uri.contains('#')
+    {
+        return Err(Refusal::new(
+            "InvitationQr",
+            "Invitation transfer URI is invalid",
+        ));
+    }
+    let code = qrcode::QrCode::new(transfer_uri.as_bytes()).map_err(|_| {
+        Refusal::new(
+            "InvitationQr",
+            "Invitation does not fit the reviewed QR bound",
+        )
+    })?;
+    let width = code.width();
+    let rows = (0..width)
+        .map(|y| {
+            (0..width)
+                .map(|x| {
+                    if code[(x, y)] == qrcode::Color::Dark {
+                        '1'
+                    } else {
+                        '0'
+                    }
+                })
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>();
+    encode(
+        &serde_json::json!({ "schema": "conduit.presentation/invitation-qr@1", "width": width, "rows": rows }),
+    )
 }
 fn snapshot_value(
     body: &WorkspaceBody,
