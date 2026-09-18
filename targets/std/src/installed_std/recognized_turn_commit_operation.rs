@@ -177,7 +177,7 @@ fn fail(detail: u16) -> OperationAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use speaking::{SegmentId, StreamEvent, TextRole};
+    use conduit_tongues::{SegmentId, StreamEvent, TextRole};
 
     fn encoded(event: StreamEvent) -> Vec<u8> {
         conduit_tongues::encode_recognition_event(&event).expect("encode Tongues event")

@@ -421,9 +421,9 @@ mod tests {
         assert_eq!(
             kinds,
             [
-                SPEECH_WINDOW_TO_CLIP_KIND,
                 crate::SPEECH_RECOGNIZE_CLIP_KIND,
                 SPEECH_RESULT_TO_EVENT_STREAM_KIND,
+                SPEECH_WINDOW_TO_CLIP_KIND,
             ]
         );
     }
