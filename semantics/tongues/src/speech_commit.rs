@@ -260,7 +260,13 @@ mod tests {
                     .map(|segment| segment.text),
             );
         }
-        actual.extend(conduit.close().unwrap().into_iter().map(|segment| segment.text));
+        actual.extend(
+            conduit
+                .close()
+                .unwrap()
+                .into_iter()
+                .map(|segment| segment.text),
+        );
         assert_eq!(actual, expected);
         assert_eq!(actual.concat(), input);
     }
