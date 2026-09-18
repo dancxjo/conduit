@@ -616,9 +616,17 @@ impl InstalledRemoteFragment {
     }
     pub fn cancel(&mut self) -> Result<(), String> {
         self.pending_body_context = None;
+        for host in self.speech_window_hosts.iter_mut().flatten() {
+            host.cancel();
+        }
+        for host in self.speech_result_stream_hosts.iter_mut().flatten() {
+            host.cancel();
+        }
         for host in self.generated_speech_commit_hosts.iter_mut().flatten() {
             host.cancel();
         }
+        self.model_output_buffer.clear();
+        self.text_output_buffer.clear();
         self.scheduler
             .cancel()
             .map_err(|error| format!("cancel remote std fragment: {error:?}"))
