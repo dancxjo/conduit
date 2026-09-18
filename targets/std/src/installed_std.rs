@@ -1997,17 +1997,28 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete committed-turn-to-text: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION {
-                let (disposition, output) = match conduit_ai::project_generated_text(input) {
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION
+                    | conduit_std_offers::GENERATED_CHUNK_TO_TEXT_OPERATION
+            ) {
+                let projected = if contract.as_str()
+                    == conduit_std_offers::GENERATED_CHUNK_TO_TEXT_OPERATION
+                {
+                    conduit_ai::project_encoded_generated_chunk_text(input)
+                } else {
+                    conduit_ai::project_generated_text(input)
+                };
+                let (disposition, output) = match projected {
                     Ok(text) => {
                         let value = scheduler
                             .store_host_value(&text)
                             .map_err(|error| format!("store bounded model text: {error:?}"))?;
-                        let output =
-                            BoundedValueRef::new(value, conduit_ai::MAXIMUM_MODEL_TEXT_BYTES)
-                                .map_err(|error| {
-                                    format!("bound projected model text: {error:?}")
-                                })?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map_err(|error| format!("bound projected model text: {error:?}"))?;
                         (HostOperationDisposition::Completed, Some(output))
                     }
                     Err(_) => (HostOperationDisposition::Denied, None),
