@@ -391,7 +391,7 @@ fn window_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     Ok(OperationBudget {
         value_items: 2,
         value_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32 + 1,
-        host_requests: MAXIMUM_PCM_CLIP_FRAMES as usize * 12 + 1,
+        host_requests: conduit_tongues::MAXIMUM_ACOUSTIC_WINDOW_ITEMS + 1,
         sign_items: 64,
         maximum_value_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
     })
