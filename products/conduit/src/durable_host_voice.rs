@@ -1,6 +1,8 @@
 //! Explicit durable configuration of already-local Voice Host providers.
 
-use conduit_std_host::hosted_local_model::{LocalModelKindProfile, OllamaDiscovery};
+use conduit_std_host::hosted_local_model::{
+    LocalModelKindProfile, OllamaDiscovery, MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES,
+};
 use conduit_std_host::hosted_speech::{PiperDiscovery, PiperLimits};
 use conduit_std_host::hosted_speech_recognition::{WhisperDiscovery, WhisperLimits};
 use conduit_std_host::VoiceHostProviders;
@@ -97,7 +99,7 @@ fn validate(config: &DurableVoiceProviderConfig) -> Result<(), String> {
         || !(1..=120).contains(&config.whisper_timeout_seconds)
         || !(1..=120).contains(&config.piper_timeout_seconds)
         || config.ollama_model.is_empty()
-        || config.ollama_model.len() > 256
+        || config.ollama_model.len() > MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES
         || config.admitted_memory_mib == 0
     {
         return Err("durable Voice provider configuration violates its finite bounds".into());
