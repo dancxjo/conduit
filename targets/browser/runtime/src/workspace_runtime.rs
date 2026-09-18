@@ -86,6 +86,10 @@ enum Request {
         revision: u32,
         joined_lines: Vec<crate::creche::JoinedLineObservation>,
     },
+    TutorialView {
+        revision: u32,
+        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+    },
     ChangeWorkset {
         host_id: HostId,
         boot_id: BootId,
@@ -403,6 +407,14 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                             ))
                         }
                     });
+            }
+            Request::TutorialView { revision, playback } => {
+                let semantic = conduit_workspace_model::tutorial::presentation(current, revision, playback)
+                    .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
+                let view = semantic.lower()
+                    .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
+                return view.encode()
+                    .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")));
             }
             Request::ChangeWorkset {
                 host_id,

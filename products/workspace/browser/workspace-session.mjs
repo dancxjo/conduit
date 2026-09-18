@@ -88,6 +88,7 @@ export function openWorkspaceSession({ host, storage }) {
     },
     selectForm(form) { request('SelectForm', { form }); return save(); },
     libraryView(source, query, revision, joinedLines = []) { return request('LibraryView', { ...here, source, query, revision, joined_lines: joinedLines }, true); },
+    tutorialView(revision, playback) { return request('TutorialView', { revision, playback }, true); },
     async changeWorkset(edit, form, source, expected_revision) {
       if (persistenceFailure) throw persistenceFailure;
       await write;
