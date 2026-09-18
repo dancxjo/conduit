@@ -86,9 +86,7 @@ pub fn generated_chunk_to_text_contract() -> ModelTextContract {
     }
 }
 
-pub fn project_encoded_generated_chunk_text(
-    encoded: &[u8],
-) -> Result<Vec<u8>, ModelTextRefusal> {
+pub fn project_encoded_generated_chunk_text(encoded: &[u8]) -> Result<Vec<u8>, ModelTextRefusal> {
     let chunk = crate::decode_generated_text_chunk(encoded)
         .map_err(|_| ModelTextRefusal::MalformedEnvelope)?;
     project_generated_chunk_text(&chunk).map(|text| text.as_bytes().to_vec())
