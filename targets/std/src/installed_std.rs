@@ -76,7 +76,6 @@ mod pulse_observation_sink;
 mod quantity_mapping;
 mod recognition_text_operation;
 mod recognized_turn_commit_operation;
-mod speech_recognition_adapter_operation;
 mod record_delivery_operation;
 mod record_queue_operation;
 mod record_temporal_operation;
@@ -94,6 +93,7 @@ mod robotics_effect;
 mod robotics_operations;
 mod sequence_normalization_operation;
 mod simple_presentation_host;
+mod speech_recognition_adapter_operation;
 mod speech_synthesis_operation;
 mod state_select_operation;
 mod structured_presentation_host;
@@ -1799,26 +1799,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let host = speech_window_hosts
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
-                    .ok_or_else(|| {
-                        "speech-window request has no admitted host".to_string()
-                    })?;
-                let completion = if contract.as_str()
-                    == conduit_std_offers::SPEECH_WINDOW_PUSH_OPERATION
-                {
-                    host.push(input)?;
-                    None
-                } else {
-                    Some(host.close()?)
-                };
+                    .ok_or_else(|| "speech-window request has no admitted host".to_string())?;
+                let completion =
+                    if contract.as_str() == conduit_std_offers::SPEECH_WINDOW_PUSH_OPERATION {
+                        host.push(input)?;
+                        None
+                    } else {
+                        Some(host.close()?)
+                    };
                 let output = completion
                     .map(|encoded| scheduler.store_host_value(&encoded))
                     .transpose()
                     .map_err(|error| format!("store speech-window output: {error:?}"))?
                     .map(|value| {
-                        BoundedValueRef::new(
-                            value,
-                            lowered_operation.binding.maximum_output_bytes,
-                        )
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
                     })
                     .transpose()
                     .map_err(|error| format!("bound speech-window output: {error:?}"))?;
@@ -1846,11 +1840,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let value = scheduler
                     .store_host_value(&encoded)
                     .map_err(|error| format!("store recognition event: {error:?}"))?;
-                let output = BoundedValueRef::new(
-                    value,
-                    lowered_operation.binding.maximum_output_bytes,
-                )
-                .map_err(|error| format!("bound recognition event: {error:?}"))?;
+                let output =
+                    BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                        .map_err(|error| format!("bound recognition event: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
                     .complete_host_operation(
@@ -2079,13 +2071,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION
                     | conduit_std_offers::GENERATED_CHUNK_TO_TEXT_OPERATION
             ) {
-                let projected = if contract.as_str()
-                    == conduit_std_offers::GENERATED_CHUNK_TO_TEXT_OPERATION
-                {
-                    conduit_ai::project_encoded_generated_chunk_text(input)
-                } else {
-                    conduit_ai::project_generated_text(input)
-                };
+                let projected =
+                    if contract.as_str() == conduit_std_offers::GENERATED_CHUNK_TO_TEXT_OPERATION {
+                        conduit_ai::project_encoded_generated_chunk_text(input)
+                    } else {
+                        conduit_ai::project_generated_text(input)
+                    };
                 let (disposition, output) = match projected {
                     Ok(text) => {
                         let value = scheduler
