@@ -76,9 +76,10 @@ fn run_command(
     if !opts.quiet {
         println!("setup: {description}");
     }
-    let status = Command::new(program).args(args).status().map_err(|error| {
-        format!("launch setup command {program} for {description}: {error}")
-    })?;
+    let status = Command::new(program)
+        .args(args)
+        .status()
+        .map_err(|error| format!("launch setup command {program} for {description}: {error}"))?;
     if !status.success() {
         return Err(format!("{description} failed with {status}").into());
     }
