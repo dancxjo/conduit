@@ -60,4 +60,6 @@ sha2 = "0.10"
 conduit-web = { path = "../../../semantics/web", features = ["form-catalog"] }
 
 [dev-dependencies]
-conduit-std-offers = { path = "../../std/offers" }
+# Browser planning conformance exercises the hosted speech offer catalog as
+# fixture data; production browser builds still carry no std speech provider.
+conduit-std-offers = { path = "../../std/offers", features = ["speech"] }
