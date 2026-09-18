@@ -6,8 +6,6 @@ edition = "2021"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }
-conduit-ai = { path = "../../semantics/ai" }
-conduit-audio = { path = "../../semantics/audio" }
 conduit-core = { path = "../../architecture/core" }
 conduit-body = { path = "../../architecture/body" }
 conduit-body-fabrication = { path = "../../fabrication/body" }
@@ -27,7 +25,6 @@ conduit-std-host = { path = "../../targets/std" }
 conduit-std-offers = { path = "../../targets/std/offers" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["form-catalog"] }
 conduit-time = { path = "../../semantics/time" }
-conduit-tongues = { path = "../../semantics/tongues" }
 conduit-text = { path = "../../semantics/text" }
 conduit-wire = { path = "../../architecture/wire" }
 conduit-web = { path = "../../semantics/web", default-features = false, features = ["form-catalog"] }
