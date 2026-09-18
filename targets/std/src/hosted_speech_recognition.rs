@@ -26,9 +26,10 @@ pub struct WhisperLimits {
 
 impl WhisperLimits {
     pub fn live_conversation(threads: u8, timeout: Duration) -> Self {
+        let required = conduit_tongues::live_conversation_speech_requirements();
         Self {
-            maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
-            maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
+            maximum_audio_bytes: required.recognition_audio_bytes,
+            maximum_text_bytes: required.recognized_text_bytes,
             threads,
             timeout,
         }
