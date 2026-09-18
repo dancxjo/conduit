@@ -45,13 +45,15 @@ impl ApplicationEvent {
             match node.component {
                 super::ApplicationComponent::TextInput
                 | super::ApplicationComponent::Select
-                | super::ApplicationComponent::TextArea => {
+                | super::ApplicationComponent::TextArea
                     if self.value.len() > node.value_capacity as usize
-                        || core::str::from_utf8(&self.value).is_err()
-                    {
-                        return Err(ApplicationViewRefusal::InvalidControlValue);
-                    }
+                        || core::str::from_utf8(&self.value).is_err() =>
+                {
+                    return Err(ApplicationViewRefusal::InvalidControlValue);
                 }
+                super::ApplicationComponent::TextInput
+                | super::ApplicationComponent::Select
+                | super::ApplicationComponent::TextArea => {}
                 _ if !self.value.is_empty() => {
                     return Err(ApplicationViewRefusal::InvalidControlValue);
                 }
