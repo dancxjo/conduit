@@ -20,9 +20,8 @@ pub const DETERMINISTIC_STREAMING_SPEECH_PROFILE: &str =
 pub const DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION: &str =
     "conduit-proof/deterministic-streaming-speech@1";
 pub const DETERMINISTIC_SPEECH_ARTIFACT: &str = "conduit-std-host/proof-deterministic-speech@1";
-const _: () = assert!(
-    conduit_tongues::MAXIMUM_PCM_BYTES == crate::AUDIO_CONVERT_PCM_INPUT_MAXIMUM_BYTES
-);
+const _: () =
+    assert!(conduit_tongues::MAXIMUM_PCM_BYTES == crate::AUDIO_CONVERT_PCM_INPUT_MAXIMUM_BYTES);
 pub const PIPER_FRAMES_PER_BLOCK: u16 = crate::AUDIO_CONVERT_PCM_INPUT_FRAMES_PER_BLOCK;
 pub const PIPER_MAXIMUM_FRAMES: u32 = conduit_tongues::MAXIMUM_PCM_BYTES / 2;
 pub const PIPER_PCM_BLOCK_BYTES: u32 = crate::AUDIO_CONVERT_PCM_MAXIMUM_INPUT_BYTES;
