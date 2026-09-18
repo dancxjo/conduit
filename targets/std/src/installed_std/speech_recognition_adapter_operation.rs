@@ -292,7 +292,7 @@ impl SpeechWindowToClipHost {
             .source_clock_id
             .ok_or_else(|| "speech recognition window has no source clock".to_string())?;
         let raw = self.window.window();
-        if raw.len() % 2 != 0 {
+        if !raw.len().is_multiple_of(2) {
             return Err("speech AcousticWindow retained a partial signed-16 sample".into());
         }
         let maximum_payload_bytes = usize::from(MAXIMUM_PCM_FRAMES_PER_BLOCK) * 2;
@@ -519,7 +519,8 @@ mod tests {
             .unwrap();
         host.push(&frame(48_000, PcmChannelLayout::StereoLeftRight, 480, 480))
             .unwrap();
-        let clip = conduit_audio::decode_pcm_clip(host.close().unwrap()).unwrap();
+        let encoded = host.close().unwrap();
+        let clip = conduit_audio::decode_pcm_clip(&encoded).unwrap();
         assert_eq!(clip.profile.sample_rate_hz, 16_000);
         assert_eq!(clip.profile.layout, PcmChannelLayout::Mono);
         assert_eq!(clip.frame_count, 320);
