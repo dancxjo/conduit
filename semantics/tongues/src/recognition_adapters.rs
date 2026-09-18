@@ -22,10 +22,11 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     decode_speech_recognition_result, encode_recognition_event, RecognitionEvent,
-    RecognitionEventStatus, SpeechOrigin, SpeechRecognitionDisposition,
-    MAXIMUM_RECOGNITION_EVENT_BYTES, MAXIMUM_RECOGNITION_RESULT_BYTES,
-    MAXIMUM_STREAMING_AUDIO_BYTES, STREAMING_SPEECH_RECOGNIZE_KIND,
+    SpeechRecognitionDisposition, MAXIMUM_RECOGNITION_EVENT_BYTES,
+    MAXIMUM_RECOGNITION_RESULT_BYTES, MAXIMUM_STREAMING_AUDIO_BYTES,
+    STREAMING_SPEECH_RECOGNIZE_KIND,
 };
+use speaking::{SegmentId, TextRole};
 
 pub const SPEECH_WINDOW_TO_CLIP_KIND: &str = "speech/window-to-clip";
 pub const SPEECH_WINDOW_TO_CLIP_REVISION: &str = "conduit.speech/window-to-clip@1";
@@ -50,6 +51,88 @@ const STREAMING_RECOGNITION_BACK: &str = r#"form speech/recognize-stream (
 pub enum RecognitionAdapterRefusal {
     InvalidResult,
     Encoding,
+}
+
+/// Maximum source blocks retained by the clip-only recognition adapter.
+///
+/// This is finite realization state for adapting a streaming Face to a
+/// single-shot provider, not part of Tongues' recognition event semantics.
+pub const MAXIMUM_ACOUSTIC_WINDOW_ITEMS: usize = 8_192;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AcousticWindowRefusal {
+    BoundExceeded,
+    Closed,
+}
+
+/// Bounded PCM retention for the explicit streaming-to-single-shot adapter.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AcousticWindow {
+    bytes: Vec<u8>,
+    maximum_bytes: usize,
+    items: usize,
+    closed: bool,
+}
+
+impl AcousticWindow {
+    pub fn new(maximum_bytes: usize) -> Result<Self, AcousticWindowRefusal> {
+        if maximum_bytes == 0 || maximum_bytes > MAXIMUM_STREAMING_AUDIO_BYTES {
+            return Err(AcousticWindowRefusal::BoundExceeded);
+        }
+        Ok(Self {
+            bytes: Vec::with_capacity(maximum_bytes),
+            maximum_bytes,
+            items: 0,
+            closed: false,
+        })
+    }
+
+    pub fn push(&mut self, pcm: &[u8]) -> Result<(), AcousticWindowRefusal> {
+        if self.closed {
+            return Err(AcousticWindowRefusal::Closed);
+        }
+        if self.items >= MAXIMUM_ACOUSTIC_WINDOW_ITEMS {
+            return Err(AcousticWindowRefusal::BoundExceeded);
+        }
+        let length = self
+            .bytes
+            .len()
+            .checked_add(pcm.len())
+            .filter(|length| *length <= self.maximum_bytes)
+            .ok_or(AcousticWindowRefusal::BoundExceeded)?;
+        self.bytes.extend_from_slice(pcm);
+        self.items += 1;
+        debug_assert_eq!(self.bytes.len(), length);
+        Ok(())
+    }
+
+    pub fn window(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    /// Releases one completed provider window while retaining its allocation.
+    pub fn release(&mut self) {
+        self.bytes.clear();
+        self.items = 0;
+    }
+
+    pub fn cancel(&mut self) {
+        self.bytes.clear();
+        self.items = 0;
+        self.closed = true;
+    }
+
+    pub fn provider_lost(&mut self) {
+        self.cancel();
+    }
+
+    pub fn retained_bytes(&self) -> usize {
+        self.bytes.len()
+    }
+
+    pub const fn retained_items(&self) -> usize {
+        self.items
+    }
 }
 
 pub fn speech_window_to_clip_definition() -> KindDefinition {
@@ -148,29 +231,37 @@ pub fn install_single_shot_streaming_recognition_back(
         .map_err(|error| format!("install streaming-recognition Back: {error:?}"))
 }
 
-/// Convert one exact single-shot result into one terminal event and a closing
-/// Flow. The stream identity is derived only from retained semantic provenance.
+/// Convert one exact single-shot result into one Tongues event and a closing
+/// Flow. Recognized text becomes one immutable recognition commit; no-speech
+/// closes normally without manufacturing a user turn.
 pub fn recognition_result_to_terminal_event(
     encoded_result: &[u8],
 ) -> Result<Vec<u8>, RecognitionAdapterRefusal> {
     let result = decode_speech_recognition_result(encoded_result)
         .map_err(|_| RecognitionAdapterRefusal::InvalidResult)?;
-    let mut identity = Sha256::new();
-    identity.update(b"conduit-single-shot-recognition-stream-v1\0");
-    identity.update(result.audio_sha256);
-    identity.update(result.provider_identity.as_bytes());
-    let event = RecognitionEvent {
-        stream_id: format!("recognition/single-shot/{:x}", identity.finalize()),
-        sequence: 0,
-        status: match result.disposition {
-            SpeechRecognitionDisposition::Recognized => RecognitionEventStatus::Committed,
-            SpeechRecognitionDisposition::NoSpeech => RecognitionEventStatus::NoSpeech,
-        },
-        origin: SpeechOrigin::External,
-        text: result.text,
-        audio_extent_bytes: result.audio_extent_bytes,
-        elapsed_milliseconds: 0,
-        provider_identity: result.provider_identity,
+    let event = match result.disposition {
+        SpeechRecognitionDisposition::Recognized => {
+            let text = result
+                .text
+                .ok_or(RecognitionAdapterRefusal::InvalidResult)?;
+            let mut identity = Sha256::new();
+            identity.update(b"conduit-single-shot-recognition-segment-v1\0");
+            identity.update(result.audio_sha256);
+            identity.update(result.provider_identity.as_bytes());
+            RecognitionEvent::CommittedSegment {
+                role: TextRole::Recognition,
+                segment_id: SegmentId(format!(
+                    "recognition/single-shot/{:x}",
+                    identity.finalize()
+                )),
+                text,
+                words: Vec::new(),
+                language: None,
+                speaker_id: None,
+                confidence: None,
+            }
+        }
+        SpeechRecognitionDisposition::NoSpeech => RecognitionEvent::Completed,
     };
     encode_recognition_event(&event).map_err(|_| RecognitionAdapterRefusal::Encoding)
 }
@@ -212,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn single_shot_result_becomes_one_committed_event_with_exact_provenance() {
+    fn single_shot_result_becomes_one_tongues_recognition_commit() {
         let encoded = encode_speech_recognition_result(&SpeechRecognitionResult {
             disposition: SpeechRecognitionDisposition::Recognized,
             text: Some("Hello Margret".into()),
@@ -225,10 +316,60 @@ mod tests {
             &recognition_result_to_terminal_event(&encoded).unwrap(),
         )
         .unwrap();
-        assert_eq!(event.status, RecognitionEventStatus::Committed);
-        assert_eq!(event.text.as_deref(), Some("Hello Margret"));
-        assert_eq!(event.provider_identity, "fixture/provider@1");
-        assert_eq!(event.audio_extent_bytes, 320);
+        match &event {
+            speaking::StreamEvent::CommittedSegment {
+                role,
+                segment_id,
+                text,
+                ..
+            } => {
+                assert_eq!(*role, TextRole::Recognition);
+                assert!(segment_id.0.starts_with("recognition/single-shot/"));
+                assert_eq!(text, "Hello Margret");
+            }
+            other => panic!("expected committed recognition segment, got {other:?}"),
+        }
+        let message = crate::committed_user_message(&event)
+            .unwrap()
+            .expect("recognition commit crosses the Body turn boundary");
+        assert_eq!(message.text, "Hello Margret");
+    }
+
+    #[test]
+    fn single_shot_no_speech_completes_without_a_user_turn() {
+        let encoded = encode_speech_recognition_result(&SpeechRecognitionResult {
+            disposition: SpeechRecognitionDisposition::NoSpeech,
+            text: None,
+            audio_sha256: [0; 32],
+            audio_extent_bytes: 320,
+            provider_identity: "fixture/provider@1".into(),
+        })
+        .unwrap();
+        let event = crate::decode_recognition_event(
+            &recognition_result_to_terminal_event(&encoded).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(event, speaking::StreamEvent::Completed);
+        assert!(crate::committed_user_message(&event).unwrap().is_none());
+    }
+
+    #[test]
+    fn acoustic_window_is_bounded_reusable_and_cancellable() {
+        let mut window = AcousticWindow::new(4).unwrap();
+        window.push(&[1, 2]).unwrap();
+        assert_eq!(window.retained_bytes(), 2);
+        assert_eq!(window.retained_items(), 1);
+        assert_eq!(
+            window.push(&[3, 4, 5]),
+            Err(AcousticWindowRefusal::BoundExceeded)
+        );
+        window.release();
+        assert_eq!(window.retained_bytes(), 0);
+        assert_eq!(window.retained_items(), 0);
+        window.push(&[3, 4]).unwrap();
+        window.cancel();
+        assert_eq!(window.retained_bytes(), 0);
+        assert_eq!(window.push(&[5]), Err(AcousticWindowRefusal::Closed));
     }
 
     #[test]
