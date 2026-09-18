@@ -4,7 +4,7 @@
 //! session. Body membership remains an explicit invitation proof completed by
 //! the Body-side admission manager.
 
-use conduit_body::{MembershipCredential, SpawnInvitationClaim};
+use conduit_body::{BodyConversationContext, MembershipCredential, SpawnInvitationClaim};
 use conduit_core::HostAdvertisement;
 use conduit_std_host::websocket::{
     NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener,
@@ -145,6 +145,10 @@ enum Ingress {
         protocol: u16,
         credential: MembershipCredential,
     },
+    BodyContext {
+        protocol: u16,
+        context: BodyConversationContext,
+    },
     Close {
         protocol: u16,
     },
@@ -185,6 +189,11 @@ enum Egress<'a> {
         protocol: u16,
         body_id: &'a str,
         part_id: &'a str,
+    },
+    BodyContextInstalled {
+        protocol: u16,
+        body_id: &'a str,
+        basis_revision: u64,
     },
     RemotePrepared {
         protocol: u16,
@@ -371,6 +380,7 @@ fn run_session(
     // installs a short read deadline, and it restores this idle state.
     line.enter_retained_idle()?;
     let mut membership_retained = false;
+    let mut body_context_installed = false;
     let mut remote_prepared = None;
     loop {
         match receive_joined(line)? {
@@ -394,8 +404,37 @@ fn run_session(
                 )?;
                 membership_retained = true;
             }
+            JoinedIngress::Control(Ingress::BodyContext {
+                protocol,
+                context,
+            }) if protocol == PROTOCOL && membership_retained => {
+                if context.body_id.as_str() != joined_body_id {
+                    return Err("joined Host Body context belongs to another Body".into());
+                }
+                let body_id = context.body_id.as_str().to_owned();
+                let basis_revision = context.basis.revision;
+                let advertisement = crate::durable_host_control::install_body_context(
+                    state_dir,
+                    &truth.advertisement,
+                    context,
+                )?;
+                if advertisement != truth.advertisement {
+                    return Err(
+                        "provider-ready Body context publication changed current Host offers".into(),
+                    );
+                }
+                send(
+                    line,
+                    &Egress::BodyContextInstalled {
+                        protocol: PROTOCOL,
+                        body_id: &body_id,
+                        basis_revision,
+                    },
+                )?;
+                body_context_installed = true;
+            }
             JoinedIngress::Control(Ingress::PrepareRemote { protocol, plan })
-                if protocol == PROTOCOL && membership_retained =>
+                if protocol == PROTOCOL && membership_retained && body_context_installed =>
             {
                 if remote_prepared.is_some() {
                     return Err("joined Host Line already owns one remote Play".into());
@@ -438,7 +477,7 @@ fn run_session(
             }
             _ => {
                 return Err(
-                    "joined Host Line expected admission retention, remote preparation, or explicit close"
+                    "joined Host Line expected admission retention, Body context, remote preparation, or explicit close"
                         .into(),
                 )
             }
