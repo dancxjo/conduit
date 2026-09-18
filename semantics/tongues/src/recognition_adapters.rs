@@ -4,7 +4,7 @@
 //! Provider mechanics such as Whisper process invocation and PCM resampling remain
 //! realization truth below these portable Faces.
 
-use alloc::{format, string::ToString, vec, vec::Vec};
+use std::{format, string::{String, ToString}, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
     PortTemporal,
@@ -114,7 +114,7 @@ pub fn speech_result_to_event_stream_limits() -> CapabilityLimits {
 pub fn install_speech_recognition_adapters(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
-) -> Result<(), alloc::string::String> {
+) -> Result<(), String> {
     for definition in [
         speech_window_to_clip_definition(),
         speech_result_to_event_stream_definition(),
@@ -136,7 +136,7 @@ pub fn install_single_shot_streaming_recognition_back(
     startup: &StartupCatalog,
     profile: &ProfileCatalog,
     backs: &mut CanonicalBackCatalog,
-) -> Result<(), alloc::string::String> {
+) -> Result<(), String> {
     let checked = check_syntax_document(
         &parse_syntax_document(STREAMING_RECOGNITION_BACK),
         startup,
