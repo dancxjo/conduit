@@ -37,7 +37,7 @@ export async function startApplication(application) {
  try {
   presentation = application.presentation;
   presentationFor = application.presentationFor;
-  productMasthead = createProductMasthead(presentation, "product-masthead", "creche");
+  productMasthead = createProductMasthead(presentation, "product-masthead", null);
   storage = application.storage;
   const continuity = await acquireBrowserBodyContinuity();
   const retained = await storage.readJson("body-session");
