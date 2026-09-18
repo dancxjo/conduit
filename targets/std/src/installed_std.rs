@@ -1808,7 +1808,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     host.push(input)?;
                     None
                 } else {
-                    Some(host.close()?.to_vec())
+                    Some(host.close()?)
                 };
                 let output = completion
                     .map(|encoded| scheduler.store_host_value(&encoded))
@@ -1844,7 +1844,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     })?
                     .execute(input)?;
                 let value = scheduler
-                    .store_host_value(encoded)
+                    .store_host_value(&encoded)
                     .map_err(|error| format!("store recognition event: {error:?}"))?;
                 let output = BoundedValueRef::new(
                     value,
