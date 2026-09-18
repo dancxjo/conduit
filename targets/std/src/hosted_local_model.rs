@@ -4,6 +4,7 @@ use conduit_core::PlannedGear;
 
 mod ollama;
 mod ollama_stream;
+pub use conduit_ai::LocalModelKindProfile;
 pub use ollama::{OllamaDiscovery, OllamaLocalModelAdapter};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
