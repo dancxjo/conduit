@@ -92,7 +92,7 @@ pub(super) fn execute(
     }
     if placement.kind_id.as_str() == conduit_ai::LLM_STREAM_GENERATE_KIND {
         return Ok(match adapter.execute_stream_step(placement, input) {
-            LocalModelStreamStep::Chunk(chunk) => match serde_json::to_vec(&chunk) {
+            LocalModelStreamStep::Chunk(chunk) => match conduit_ai::encode_generated_text_chunk(&chunk) {
                 Ok(encoded) => {
                     output.extend_from_slice(&encoded);
                     ModelHostCompletion::Output
