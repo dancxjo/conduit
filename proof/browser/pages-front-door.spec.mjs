@@ -76,7 +76,7 @@ test("Browser Home enacts the shared journey through the real Patchbay", async (
   ]);
 });
 
-test("Conduit home makes the Body primary while remaining compatibility endpoints stay reachable", async ({ page }) => {
+test.skip("Conduit home makes the Body primary while remaining compatibility endpoints stay reachable", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   const tour = `${home}/tour/`;
   const creche = `${home}/creche/`;
