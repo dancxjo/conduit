@@ -310,6 +310,52 @@ fn quantitative_pre_play_refusal_survives_into_the_body_biography() {
 }
 
 #[test]
+fn refusal_evidence_cannot_claim_unrelated_host_plan_or_form_provenance() {
+    let mut body = born();
+    let proposal = body
+        .propose(plans(&body), &host(), &boot())
+        .unwrap()
+        .clone();
+    let valid = conduit_body::WakeRejectionEvidence {
+        reason_code: "lowering.capacity".into(),
+        category: "Capacity".into(),
+        stage: "Body lowering".into(),
+        resource: "nodes".into(),
+        required: 33,
+        available: 32,
+        host_id: host(),
+        boot_id: boot(),
+        plan_id: Some(proposal.plan.plan_id.clone()),
+        checked_form_ids: proposal
+            .plan
+            .forms
+            .iter()
+            .map(|form| form.form.checked_form_id.clone())
+            .collect(),
+    };
+    for forged in [
+        conduit_body::WakeRejectionEvidence {
+            host_id: "host/other".into(),
+            ..valid.clone()
+        },
+        conduit_body::WakeRejectionEvidence {
+            plan_id: Some("plan/other".into()),
+            ..valid.clone()
+        },
+        conduit_body::WakeRejectionEvidence {
+            checked_form_ids: vec!["form/other".into()],
+            ..valid.clone()
+        },
+    ] {
+        assert_eq!(
+            body.fail(&host(), &boot(), vec![forged]),
+            Err(WorkspaceBodyError::StalePlay)
+        );
+        assert!(body.realization().is_some());
+    }
+}
+
+#[test]
 fn awake_snapshots_do_not_resurrect_a_play_and_stale_terminal_identity_cannot_lull_it() {
     let mut body = born();
     let play = start(&mut body);

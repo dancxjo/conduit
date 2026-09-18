@@ -372,6 +372,23 @@ impl WorkspaceBody {
         if current.play.is_some() {
             return Err(WorkspaceBodyError::StalePlay);
         }
+        if rejections.is_empty()
+            || rejections.iter().any(|rejection| {
+                rejection.host_id != *host
+                    || rejection.boot_id != *boot
+                    || rejection.plan_id.as_ref() != Some(&current.plan.plan_id)
+                    || rejection.checked_form_ids.is_empty()
+                    || rejection.checked_form_ids.iter().any(|checked| {
+                        !current
+                            .plan
+                            .forms
+                            .iter()
+                            .any(|form| &form.form.checked_form_id == checked)
+                    })
+            })
+        {
+            return Err(WorkspaceBodyError::StalePlay);
+        }
         let sequence = self.next_sequence()?;
         let retain_sequence = sequence
             .checked_add(1)
