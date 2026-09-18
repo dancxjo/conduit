@@ -13,8 +13,8 @@ use std::{string::String, vec, vec::Vec};
 
 use crate::{SpeechRecognitionContract, MAXIMUM_RECOGNIZED_TEXT_BYTES};
 
-pub use speaking::{SegmentId, StreamEvent, TextRole};
 pub use speaking::StreamEvent as RecognitionEvent;
+pub use speaking::{SegmentId, StreamEvent, TextRole};
 
 pub const STREAMING_SPEECH_RECOGNIZE_KIND: &str = "speech/recognize-stream";
 pub const STREAMING_SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize-stream@1";
