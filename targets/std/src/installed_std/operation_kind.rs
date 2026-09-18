@@ -42,6 +42,9 @@ use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
 use super::recognized_turn_commit_operation::RecognizedTurnCommitOperation;
+use super::speech_recognition_adapter_operation::{
+    SpeechResultToEventStreamOperation, SpeechWindowToClipOperation,
+};
 use super::record_delivery_operation::RecordDeliveryStatusOperation;
 use super::record_queue_operation::RecordQueueOperation;
 use super::record_temporal_operation::{RecordExactlyOneOperation, RecordSingletonStreamOperation};
@@ -93,6 +96,8 @@ pub(super) enum InstalledOperation {
     AddressDetect(super::address_detect_operation::AddressDetectOperation),
     RecognitionText(super::recognition_text_operation::RecognitionTextOperation),
     RecognizedTurnCommit(RecognizedTurnCommitOperation),
+    SpeechWindowToClip(SpeechWindowToClipOperation),
+    SpeechResultToEventStream(SpeechResultToEventStreamOperation),
     TypedState(Box<crate::state_value::TypedStateOperation>),
     KeyboardInput(KeyboardInputOperation),
     ButtonInput(super::keyboard_input_operation::button::ButtonOperation),
