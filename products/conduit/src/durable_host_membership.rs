@@ -83,7 +83,9 @@ pub(crate) fn retain_rendezvous_membership(
         || credential.boot_id != expected_advertisement.boot_id
         || credential.host_id.as_str() != installation.host_id
     {
-        return Err("rendezvous admission receipt lost its exact Body, Host, or Boot identity".into());
+        return Err(
+            "rendezvous admission receipt lost its exact Body, Host, or Boot identity".into(),
+        );
     }
     persist_joined_membership(state_dir, &mut installation, credential)
 }
