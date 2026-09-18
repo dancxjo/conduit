@@ -76,6 +76,7 @@ mod pulse_observation_sink;
 mod quantity_mapping;
 mod recognition_text_operation;
 mod recognized_turn_commit_operation;
+mod speech_recognition_adapter_operation;
 mod record_delivery_operation;
 mod record_queue_operation;
 mod record_temporal_operation;
