@@ -192,6 +192,7 @@ pub fn install_speech_recognition_catalog(
             })
             .map_err(|error| error.to_string())?;
     }
+    crate::install_speech_recognition_adapters(startup, profile)?;
     Ok(())
 }
 
