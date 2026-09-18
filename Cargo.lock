@@ -8758,7 +8758,7 @@ dependencies = [
 [[package]]
 name = "speaking"
 version = "0.1.0"
-source = "git+https://github.com/dancxjo/tongues.git?rev=5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52#5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52"
+source = "git+https://github.com/dancxjo/tongues.git?rev=8f0b588d46a52aeabff19a2cdca4fe5efbef47fc#8f0b588d46a52aeabff19a2cdca4fe5efbef47fc"
 dependencies = [
  "anyhow",
  "arpabet_cmudict",
@@ -9665,9 +9665,8 @@ checksum = "7d56353a2a665ad0f41a421187180aab746c8c325620617ad883a99a1cbe66d2"
 [[package]]
 name = "tongues-audio"
 version = "0.1.0"
-source = "git+https://github.com/dancxjo/tongues.git?rev=5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52#5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52"
+source = "git+https://github.com/dancxjo/tongues.git?rev=8f0b588d46a52aeabff19a2cdca4fe5efbef47fc#8f0b588d46a52aeabff19a2cdca4fe5efbef47fc"
 dependencies = [
- "cpal",
  "hound",
  "rustfft",
  "serde",
@@ -9675,13 +9674,12 @@ dependencies = [
  "sha2 0.11.0",
  "speaking",
  "thiserror 2.0.19",
- "webrtc-vad",
 ]
 
 [[package]]
 name = "tongues-core"
 version = "0.1.0"
-source = "git+https://github.com/dancxjo/tongues.git?rev=5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52#5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52"
+source = "git+https://github.com/dancxjo/tongues.git?rev=8f0b588d46a52aeabff19a2cdca4fe5efbef47fc#8f0b588d46a52aeabff19a2cdca4fe5efbef47fc"
 dependencies = [
  "indicatif",
  "serde",
@@ -9692,7 +9690,7 @@ dependencies = [
 [[package]]
 name = "tongues-data"
 version = "0.1.0"
-source = "git+https://github.com/dancxjo/tongues.git?rev=5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52#5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52"
+source = "git+https://github.com/dancxjo/tongues.git?rev=8f0b588d46a52aeabff19a2cdca4fe5efbef47fc#8f0b588d46a52aeabff19a2cdca4fe5efbef47fc"
 dependencies = [
  "anyhow",
  "hound",
@@ -9708,7 +9706,7 @@ dependencies = [
 [[package]]
 name = "tongues-g2p2g"
 version = "0.1.0"
-source = "git+https://github.com/dancxjo/tongues.git?rev=5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52#5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52"
+source = "git+https://github.com/dancxjo/tongues.git?rev=8f0b588d46a52aeabff19a2cdca4fe5efbef47fc#8f0b588d46a52aeabff19a2cdca4fe5efbef47fc"
 dependencies = [
  "anyhow",
  "burn",
@@ -9727,7 +9725,7 @@ dependencies = [
 [[package]]
 name = "tongues-neural"
 version = "0.1.0"
-source = "git+https://github.com/dancxjo/tongues.git?rev=5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52#5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52"
+source = "git+https://github.com/dancxjo/tongues.git?rev=8f0b588d46a52aeabff19a2cdca4fe5efbef47fc#8f0b588d46a52aeabff19a2cdca4fe5efbef47fc"
 dependencies = [
  "anyhow",
  "burn",
@@ -9738,7 +9736,7 @@ dependencies = [
 [[package]]
 name = "tongues-pipeline"
 version = "0.1.0"
-source = "git+https://github.com/dancxjo/tongues.git?rev=5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52#5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52"
+source = "git+https://github.com/dancxjo/tongues.git?rev=8f0b588d46a52aeabff19a2cdca4fe5efbef47fc#8f0b588d46a52aeabff19a2cdca4fe5efbef47fc"
 dependencies = [
  "serde",
  "serde_json",
@@ -9749,7 +9747,7 @@ dependencies = [
 [[package]]
 name = "tongues-tts"
 version = "0.1.0"
-source = "git+https://github.com/dancxjo/tongues.git?rev=5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52#5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52"
+source = "git+https://github.com/dancxjo/tongues.git?rev=8f0b588d46a52aeabff19a2cdca4fe5efbef47fc#8f0b588d46a52aeabff19a2cdca4fe5efbef47fc"
 dependencies = [
  "anyhow",
  "burn",
@@ -9778,7 +9776,7 @@ dependencies = [
 [[package]]
 name = "tongues-wiktionary"
 version = "0.1.0"
-source = "git+https://github.com/dancxjo/tongues.git?rev=5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52#5cef4c761dfc276745cbe9ea6b34bb94a4ca0c52"
+source = "git+https://github.com/dancxjo/tongues.git?rev=8f0b588d46a52aeabff19a2cdca4fe5efbef47fc#8f0b588d46a52aeabff19a2cdca4fe5efbef47fc"
 dependencies = [
  "anyhow",
  "bzip2 0.6.1",
