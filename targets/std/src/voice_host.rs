@@ -27,6 +27,8 @@ impl StdHost {
             vec![
                 conduit_std_offers::recognized_turn_commit_offer(),
                 conduit_std_offers::generated_speech_commit_offer(),
+                conduit_std_offers::speech_window_to_clip_std_offer(),
+                conduit_std_offers::speech_result_to_event_stream_std_offer(),
                 // A provider-ready Voice Host can realize the supervisor-owned
                 // Body context source even before one current value is
                 // published. The value itself is installed only after an exact
@@ -42,9 +44,14 @@ impl StdHost {
             ),
             crate::hosted_speech::process_resource_offer(),
         ]);
+        // Retain the old single-shot face, and expose the explicit clip leaf
+        // selected by the Tongues streaming-recognition Back.
         host.advertisement
             .capabilities
             .push(conduit_std_offers::whisper_speech_offer());
+        host.advertisement
+            .capabilities
+            .push(conduit_std_offers::whisper_clip_speech_offer());
         host.advertisement
             .capabilities
             .push(conduit_std_offers::piper_streaming_speech_offer());
