@@ -36,8 +36,12 @@ jobs:
           components: rustfmt
       - name: Check formatting
         run: cargo fmt --all -- --check
-      - name: Check the lightweight CI controller
-        run: cargo test --locked --package conduit-xtask-dispatch
+      - name: Diagnose canonical Cargo lock resolution
+        run: |
+          cargo metadata --format-version 1 >/dev/null
+          git diff -- Cargo.lock
+          echo "::error::intentional lock-resolution diagnostic"
+          exit 1
       - name: Check CI policy contracts
         run: >-
           node --test
