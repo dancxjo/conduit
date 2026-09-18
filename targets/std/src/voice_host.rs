@@ -59,11 +59,7 @@ impl StdHost {
             .capabilities
             .push(conduit_std_offers::audio_convert_pcm_profile_offer());
         host.advertisement.resources.sort();
-        host.advertisement.capabilities.sort_by(|left, right| {
-            left.capability_id
-                .as_str()
-                .cmp(right.capability_id.as_str())
-        });
+        crate::normalize_capability_offers(&mut host.advertisement.capabilities)?;
         host.speech_recognition = Some(providers.recognition);
         host.speech_synthesis = Some(providers.synthesis);
         host.kernel_resources =
