@@ -19,6 +19,13 @@ a { color:var(--muted); text-decoration:none; }
 .body-state { color:var(--muted); font:.75rem ui-monospace,monospace; }
 .membership-shortcuts { display:flex; justify-content:flex-end; gap:.35rem; margin-top:.5rem; }
 .membership-shortcuts button { padding:.35rem .55rem; font-size:.72rem; color:var(--muted); }
+.body-tutorial { margin:0 0 1rem; border:1px solid var(--line); border-radius:.5rem; background:var(--panel); }
+.body-tutorial summary { padding:.75rem 1rem; color:var(--muted); cursor:pointer; font-size:.78rem; }
+.body-tutorial > div { padding:0 1rem 1rem; }
+.body-tutorial h2 { margin:.25rem 0; font-size:1rem; font-weight:500; }
+.body-tutorial p { margin:.35rem 0; color:var(--muted); font-size:.82rem; line-height:1.5; }
+.body-tutorial .tutorial-kicker { color:var(--amber); font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; }
+.body-tutorial .tutorial-action { font-family:ui-monospace,monospace; font-size:.72rem; }
 .form-surface { min-height:32rem; padding:2.5rem; border:1px solid var(--line); border-radius:.5rem; }
 .surface-content { text-align:center; }
 .surface-content h2 { color:var(--ink); margin:0 0 .75rem; font-size:1.2rem; font-weight:500; }

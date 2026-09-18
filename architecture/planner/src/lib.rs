@@ -45,8 +45,8 @@ use completion::plan_completion_policy;
 use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan_with_completion, AdmittedLine, AuthorityBinding,
     AuthorityGrant, BaseImplementationId, CancellationPolicy, CapabilityId, ConnectionId,
-    ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostAdvertisement, HostId,
-    LineAvailability, LineId, LineOffer, PlacementId, Plan, PlanFragment, PlanId,
+    DeliveryPressurePolicy, ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostAdvertisement,
+    HostId, LineAvailability, LineId, LineOffer, PlacementId, Plan, PlanFragment, PlanId,
     PlannedConnection, PlannedGear, ResourcePoolId, StartupDependency, TerminalPolicy,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
@@ -651,6 +651,11 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
             temporal: connection.temporal,
+            pressure_policy: if source_plan.kind_id.as_str() == "flow/coalesce-latest" {
+                DeliveryPressurePolicy::CoalesceLatest
+            } else {
+                DeliveryPressurePolicy::PreserveOrder
+            },
             selected_line,
             admitted_lines,
             item_capacity: limits.item_capacity,

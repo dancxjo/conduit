@@ -14,8 +14,10 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 };
 
 pub(super) struct ModelTextOperation {
-    pending: bool,
+    pending: Option<RequestId>,
+    next_request: u32,
     emitted: bool,
+    flow: bool,
 }
 
 impl ModelTextOperation {
@@ -28,23 +30,25 @@ impl ModelTextOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if !self.pending && !self.emitted => {
+            } if self.pending.is_none() && (self.flow || !self.emitted) => {
                 let Ok(input) =
                     BoundedValueRef::new(value, conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES)
                 else {
                     return fail(FailureCode::InvalidInput, 1);
                 };
-                self.pending = true;
+                let request = RequestId(self.next_request);
+                self.next_request = self.next_request.saturating_add(1);
+                self.pending = Some(request);
                 OperationAction::RequestHostOperation {
-                    request: RequestId(0),
+                    request,
                     operation: HostOperationId(0),
                     input,
                 }
             }
             OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending && request == RequestId(0) =>
+                if self.pending == Some(request) =>
             {
-                self.pending = false;
+                self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
                     (HostOperationDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
@@ -63,12 +67,15 @@ impl ModelTextOperation {
                     _ => fail(FailureCode::InvalidLifecycle, 5),
                 }
             }
+            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() && self.flow => {
+                OperationAction::Complete
+            }
             _ => fail(FailureCode::InvalidLifecycle, 6),
         }
     }
 
     pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
+        if self.emitted && !self.flow {
             OperationAction::Complete
         } else {
             OperationAction::Await
@@ -76,12 +83,16 @@ impl ModelTextOperation {
     }
 
     pub(super) fn cancel(&mut self) {
-        self.pending = false;
+        self.pending = None;
     }
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_offers::model_result_to_text_std_offer();
+    let offer = if placement.kind_id.as_str() == conduit_ai::MODEL_RESULT_FLOW_TO_TEXT_KIND {
+        conduit_std_offers::model_result_flow_to_text_std_offer()
+    } else {
+        conduit_std_offers::model_result_to_text_std_offer()
+    };
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id.as_str()
@@ -116,8 +127,10 @@ fn prepare(
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;
     Ok(InstalledOperation::ModelText(ModelTextOperation {
-        pending: false,
+        pending: None,
+        next_request: 0,
         emitted: false,
+        flow: placement.kind_id.as_str() == conduit_ai::MODEL_RESULT_FLOW_TO_TEXT_KIND,
     }))
 }
 

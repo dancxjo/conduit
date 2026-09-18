@@ -55,6 +55,7 @@ pub enum PatchbayMode {
     FormOpened,
     BornLulled,
     Awake(WakeLifecycle),
+    Fulfilled,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -296,6 +297,7 @@ impl BuildBirthController {
                     .ok_or(BuildBirthError::BodyNotAwake)?
                     .lifecycle,
             ),
+            Some(BodyState::Fulfilled { .. }) => PatchbayMode::Fulfilled,
         };
         let mut lines = vec![format!(
             "FORM current={} saved={} checked={} last-born={}",

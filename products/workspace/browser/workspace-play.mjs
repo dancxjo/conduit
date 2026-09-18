@@ -1,7 +1,8 @@
 import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/browser-body-host.mjs";
 
-export function openWorkspacePlay({ host, session, source, inputTarget, outputRoot, foregroundForm, onState }) {
-  let adapter = null, started = null, terminal = null, transition = false;
+export function openWorkspacePlay({ host, session, source, planningLines, inputTarget, outputRoot, foregroundForm, onState,
+  prepareExternal = async () => null, acquireBody = acquireBrowserBodyHost }) {
+  let adapter = null, external = null, started = null, terminal = null, transition = false;
   const publish = (state, detail = '', error = null) => onState({ state, detail, play: started?.play, terminal,
     refusal: error ? { code: typeof error.code === 'string' ? error.code : error.name, message: error.message } : null });
   const requireTerminal = receipt => {
@@ -14,36 +15,70 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
     terminal = receipt;
   };
   const stop = async () => {
+    await external?.close();
+    external = null;
     const closed = adapter.close();
     if (!terminal) requireTerminal(closed?.receipt);
     adapter = null;
     await session.lull(started.play);
   };
+  if (session.current()?.state === 'FULFILLED') {
+    publish('Fulfilled', 'This Body is complete. Its biography remains available for inspection.');
+  } else {
+    publish('Lulled', 'This Body is retained. Wake it to start its Forms.');
+  }
   return Object.freeze({
-    async wake() {
+    async wake(authorizeAudio = false) {
       if (adapter || transition) return;
       transition = true; terminal = null; started = null;
       publish('Preparing', 'Checking the installed Forms');
       try {
-        const proposal = await session.propose(source);
+        const proposal = await session.propose(source, planningLines(), authorizeAudio);
         publish('Preparing', 'Acquiring the required capabilities');
-        adapter = acquireBrowserBodyHost({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal, inputTarget, outputRoot, foregroundForm });
+        external = await prepareExternal(proposal);
+        adapter = acquireBody({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal,
+          inputTarget, outputRoot, foregroundForm,
+          externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
         await session.started(started);
         publish('Playing', 'Forms are awake');
         const running = adapter;
-        adapter.run().then(receipt => {
+        const runningPlay = started.play;
+        const localRun = adapter.run();
+        const externalRun = external?.run();
+        Promise.all([localRun, externalRun]).then(([receipt, externalReceipt]) => {
           if (adapter !== running || terminal) return;
+          if (external && (externalReceipt?.disposition !== 'completed' ||
+              externalReceipt.active_play_id !== external.identity.active_play_id)) {
+            throw new Error('The external Form did not supply its exact terminal outcome');
+          }
           if (receipt?.schema === 'conduit.browser/pending-effects@1' && receipt.disposition === 'quiescent_awaiting_input' && receipt.active_play_id === started.play.active_play_id && receipt.pending_effects === 0) {
             publish('Idle', 'Its Forms are awake. Their current work has finished.');
             return;
           }
           requireTerminal(receipt);
           publish(receipt.disposition === 'completed' ? 'Completed' : receipt.disposition === 'cancelled' ? 'Cancelled' : 'Failed');
-        }).catch(error => { if (adapter === running && !terminal) publish('Failed', error.message, error); });
+        }).catch(async error => {
+          if (adapter !== running || terminal) return;
+          if (error?.code !== 'FocusLost') {
+            publish('Failed', error.message, error);
+            return;
+          }
+          try {
+            const closed = running.close();
+            requireTerminal(closed?.receipt);
+            adapter = null;
+            await session.lull(runningPlay);
+            publish('Lulled', 'Its input paused when this browser window lost focus. Choose Wake Body to continue.');
+          } catch (cleanupError) {
+            publish('Failed', `${error.message} · ${cleanupError.message}`, cleanupError);
+          }
+        });
       } catch (error) {
         let cleanupError = null;
         try {
+          await external?.close();
+          external = null;
           const closed = adapter?.close();
           if (started) {
             requireTerminal(closed?.receipt);
@@ -73,6 +108,19 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
           : error.message, error);
       } finally { transition = false; }
     },
+    async fulfill() {
+      if (transition) return;
+      transition = true;
+      try {
+        if (adapter) await stop();
+        if (session.current().state !== 'LULLED') throw new Error('The current Play has not been retired');
+        await session.fulfill();
+        publish('Fulfilled', 'This Body is complete. Its biography remains available for inspection.');
+      } catch (error) {
+        publish(session.persistenceFailure() ? 'Stopped' : 'Refused', error.message, error);
+        throw error;
+      } finally { transition = false; }
+    },
     async changeWorkset(edit, form, expectedRevision) {
       if (transition) throw new Error('A Body transition is already in progress');
       if (session.persistenceFailure()) throw session.persistenceFailure();
@@ -90,6 +138,6 @@ export function openWorkspacePlay({ host, session, source, inputTarget, outputRo
       } finally { transition = false; }
     },
     evidence() { return adapter?.evidence() ?? terminal?.kernel_signs ?? null; },
-    close() { return adapter?.close(); },
+    close() { void external?.close(); external = null; return adapter?.close(); },
   });
 }

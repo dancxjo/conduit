@@ -7,6 +7,7 @@ import { createGraduationRunner, exportBodyEvidence, renderBiography } from "./c
 import { createCrecheRouting } from "./creche-routing.mjs";
 import { openFormSelection, persistedFormSelection, readReviewedFormInventory } from "./creche-form-selection.mjs";
 import { createProductMasthead } from "../../../semantics/presentation/assets/product-masthead.mjs";
+import { createMemoryReleaseCache, openReleaseCatalog } from "./creche-release-catalog.mjs";
 
 const steps = [
   { name: "Birth", slug: "birth" },
@@ -54,7 +55,22 @@ export async function startApplication(application) {
   initialFormSource = application.text("reviewed-form-inventory");
   renderHostStatus("Starting browser Host…", "status");
   const initialized = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });
-  host = Object.freeze({ ...initialized, admitProfileGatedBrowserBoot: application.admitProfileGatedBrowserBoot });
+  const releaseCatalogSource = configuredReleaseCatalogSource();
+  const releaseArtifactCache = releaseCatalogSource ? createMemoryReleaseCache() : null;
+  host = Object.freeze({
+    ...initialized,
+    admitProfileGatedBrowserBoot: application.admitProfileGatedBrowserBoot,
+    releaseCatalogSource,
+    releaseArtifactCache,
+    resolveReviewedRelease: releaseCatalogSource ? async (profile, signal) => {
+      const catalog = await openReleaseCatalog({
+        source: releaseCatalogSource,
+        signal,
+        cache: releaseArtifactCache,
+      });
+      return catalog.resolve(profile, signal);
+    } : null,
+  });
   requireCrecheAbi(host.runtime);
   reviewedFormInventory = readReviewedFormInventory(host.runtime, initialFormSource);
   initialFormSelection = openFormSelection(reviewedFormInventory, await storage.readJson("form-selection"), galleryHandoff());
@@ -77,6 +93,17 @@ export async function startApplication(application) {
   renderHostStatus("Crèche unavailable", "failure-status");
   workspace.textContent = error instanceof Error ? error.message : String(error);
  }
+}
+
+function configuredReleaseCatalogSource() {
+  const value = new URLSearchParams(globalThis.location.search).get("release_catalog");
+  if (value === null) return null;
+  if (value.length < 1 || value.length > 2048) throw new Error("release_catalog is outside its finite bound");
+  const source = new URL(value, document.baseURI);
+  if (!(["https:", "http:"].includes(source.protocol))) {
+    throw new Error("release_catalog must use an HTTP(S) installed release source");
+  }
+  return source.href;
 }
 
 function renderNavigation() {

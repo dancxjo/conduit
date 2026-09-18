@@ -12,7 +12,6 @@ use conduit_presentation::PresentationPropertyValue;
 
 pub(super) fn listening() -> (ProductJourney, FrontDoor) {
     let (ids, offer, mut journey) = fixture();
-    invoke(&mut journey, JourneyAction::OpenBack, &ids, &offer).unwrap();
     journey
         .birth_from_creche(BirthSelection {
             revision: 3,
@@ -110,7 +109,9 @@ fn tab_and_captured_release_preserve_two_form_state_and_the_same_play() {
     assert!(!journey.owns_key_release(release));
     assert_eq!(journey.projection().input_count, 2);
     assert!(journey.projection().result.is_none());
-    select(key(43, KeyTransition::Pressed), &mut journey).unwrap();
+    for _ in 1..native_workset::NATIVE_FORM_CAPACITY {
+        select(key(43, KeyTransition::Pressed), &mut journey).unwrap();
+    }
     let after = journey.projection();
     assert_eq!(after.result.as_deref(), Some("A"));
     assert_eq!(after.body_id, before.body_id);

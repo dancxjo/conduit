@@ -21,6 +21,7 @@ impl From<WorkspaceBodyError> for Refusal {
         let code = match error {
             Biography(error) => format!("Biography.{error:?}"),
             Admission(error) => format!("Admission.{error:?}"),
+            Membership(error) => format!("Membership.{error:?}"),
             Lifecycle(error) => format!("Lifecycle.{error:?}"),
             Plan(error) => format!("Plan.{error:?}"),
             NotLulled => "NotLulled".into(),
@@ -32,6 +33,7 @@ impl From<WorkspaceBodyError> for Refusal {
             UninstalledForm => "UninstalledForm".into(),
             SequenceExhausted => "SequenceExhausted".into(),
             UnreconciledWake => "UnreconciledWake".into(),
+            ArchivePersistenceRequired => "HistoryArchivePersistenceRequired".into(),
         };
         Self {
             code,

@@ -95,6 +95,14 @@ impl BrowserMachinery {
         if installation.implementation_id == super::startup_chime::IMPLEMENTATION {
             return self.audio;
         }
+        if installation.implementation_id == super::audio_io::CAPTURE_IMPLEMENTATION
+            || installation.implementation_id == super::audio_io::PLAY_IMPLEMENTATION
+        {
+            return self.audio;
+        }
+        if installation.implementation_id == super::pitch_tone::IMPLEMENTATION {
+            return self.audio;
+        }
         let offer = (installation.offer)();
         if offer
             .resource_requirements
@@ -255,6 +263,16 @@ pub(crate) fn advertisement_for_machinery(
             super::startup_chime::RESOURCE,
             super::MAXIMUM_BROWSER_GEARS as u32,
         ));
+        resources.push(resource_offer(
+            super::audio_io::CAPTURE_POOL,
+            super::audio_io::CAPTURE_RESOURCE,
+            1,
+        ));
+        resources.push(resource_offer(
+            super::audio_io::PLAY_POOL,
+            super::audio_io::PLAY_RESOURCE,
+            1,
+        ));
     }
     if machinery.presentation {
         resources.push(resource_offer(
@@ -291,7 +309,7 @@ pub(crate) fn advertisement_for_machinery(
                 maximum_host_advertisements: 1,
                 maximum_gears: super::MAXIMUM_BROWSER_GEARS as u16,
                 maximum_connections: super::MAXIMUM_BROWSER_CORDS as u16,
-                maximum_authority_grants: 0,
+                maximum_authority_grants: 2,
                 maximum_protected_resource_grants: 0,
                 maximum_line_offers: 0,
             },

@@ -5,6 +5,7 @@ pub(super) fn catalogs(
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profile = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_body_startup_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_pitch_tone_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
@@ -47,6 +48,8 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_calendar_provider_catalogs(&mut startup, &mut profile)?;
     conduit_presentation::install_geometry_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_experience_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_purpose_catalogs(&mut startup, &mut profile)?;
     conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_tabular_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_finance_catalogs(&mut startup, &mut profile)?;
@@ -104,13 +107,16 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_reminder_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile)?;
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profile)?;
     conduit_tongues::install_research_catalogs(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_form_catalog(&mut startup, &mut profile)?;
+    conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
+    conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_memory_catalog(&mut startup, &mut profile)?;

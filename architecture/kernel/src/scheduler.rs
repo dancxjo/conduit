@@ -12,6 +12,7 @@ use crate::{
     OperationAction, PortId, ProtocolError, RemoteEndpointId, RequestId, RouteTarget, SignError,
     SignSink, StorageError, ValueRef, ValueStorage,
 };
+pub use conduit_assigned_plan::AssignedPressurePolicy;
 
 mod active_capacity;
 mod debug_control;
@@ -39,6 +40,7 @@ pub struct CordSpec {
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    pub pressure_policy: AssignedPressurePolicy,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -46,6 +48,7 @@ pub struct CordCapacity {
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    pub pressure_policy: AssignedPressurePolicy,
 }
 
 impl CordSpec {
@@ -62,6 +65,7 @@ impl CordSpec {
             slot_start: capacity.slot_start,
             item_capacity: capacity.item_capacity,
             byte_capacity: capacity.byte_capacity,
+            pressure_policy: capacity.pressure_policy,
         }
     }
 
@@ -78,6 +82,7 @@ impl CordSpec {
             slot_start: capacity.slot_start,
             item_capacity: capacity.item_capacity,
             byte_capacity: capacity.byte_capacity,
+            pressure_policy: capacity.pressure_policy,
         }
     }
 
@@ -94,6 +99,7 @@ impl CordSpec {
             slot_start: capacity.slot_start,
             item_capacity: capacity.item_capacity,
             byte_capacity: capacity.byte_capacity,
+            pressure_policy: capacity.pressure_policy,
         }
     }
 
@@ -1101,9 +1107,8 @@ where
         }
         let byte_len =
             u32::try_from(bytes.len()).map_err(|_| SchedulerError::QueueByteCapacityExceeded)?;
-        if state.len >= spec.item_capacity
-            || byte_len > spec.byte_capacity.saturating_sub(state.queued_bytes)
-        {
+        let available = self.admission_maximum(spec, state)?;
+        if byte_len > available {
             return Ok(RemoteIngressOutcome::Full { sequence });
         }
         let next_sequence = sequence
@@ -1112,9 +1117,13 @@ where
         self.ensure_sign_capacity(1)?;
         self.ensure_remote_sign_capacity(1)?;
         let value = self.values.store(bytes)?;
-        if let Err(error) = self.push(cord_index, value) {
-            self.values.release(value)?;
-            return Err(error);
+        match self.push(cord_index, value) {
+            Ok(Some(superseded)) => self.values.release(superseded)?,
+            Ok(None) => {}
+            Err(error) => {
+                self.values.release(value)?;
+                return Err(error);
+            }
         }
         self.cords[cord_index].next_remote_sequence = next_sequence;
         self.ready[usize::from(sink_node.0)] = true;
@@ -1427,12 +1436,12 @@ where
                     .cord_specs
                     .get(cord)
                     .ok_or(SchedulerError::InvalidPlan)?;
-                if state.producer_closed || state.len >= spec.item_capacity {
+                if state.producer_closed {
                     maximum = 0;
                     any = true;
                     break;
                 }
-                maximum = maximum.min(spec.byte_capacity.saturating_sub(state.queued_bytes));
+                maximum = maximum.min(self.admission_maximum(*spec, state)?);
                 any = true;
             }
             if any && maximum > 0 {
@@ -1800,7 +1809,9 @@ where
                 .route(NodeId(as_u16(node)?), PortId(as_u16(port)?))?;
             let targets = targets.collect_targets::<ROUTE_TARGETS>()?;
             for target in targets.iter() {
-                self.push(usize::from(target.cord.0), value)?;
+                if let Some(superseded) = self.push(usize::from(target.cord.0), value)? {
+                    self.values.release(superseded)?;
+                }
                 if let CordEndpoint::Local { node, .. } = target.sink {
                     self.ready[usize::from(node.0)] = true;
                 }
@@ -2209,11 +2220,30 @@ where
         Ok(value)
     }
 
-    fn push(&mut self, cord: usize, value: ValueRef) -> Result<(), SchedulerError> {
+    fn push(&mut self, cord: usize, value: ValueRef) -> Result<Option<ValueRef>, SchedulerError> {
         let spec = self.cord_specs[cord];
         let state = &mut self.cords[cord];
         if state.len >= spec.item_capacity {
-            return Err(SchedulerError::QueueCapacityExceeded);
+            if spec.pressure_policy != AssignedPressurePolicy::CoalesceLatest || state.len == 0 {
+                return Err(SchedulerError::QueueCapacityExceeded);
+            }
+            let offset = (state.head + state.len - 1) % spec.item_capacity;
+            let slot = usize::from(spec.slot_start + offset);
+            let superseded = self.queue_slots[slot]
+                .replace(value)
+                .ok_or(SchedulerError::InvalidPlan)?;
+            let remaining = spec
+                .byte_capacity
+                .saturating_sub(state.queued_bytes.saturating_sub(superseded.byte_len));
+            if value.byte_len > remaining {
+                self.queue_slots[slot] = Some(superseded);
+                return Err(SchedulerError::QueueByteCapacityExceeded);
+            }
+            state.queued_bytes = state
+                .queued_bytes
+                .saturating_sub(superseded.byte_len)
+                .saturating_add(value.byte_len);
+            return Ok(Some(superseded));
         }
         let offset = (state.head + state.len) % spec.item_capacity;
         let slot = usize::from(spec.slot_start + offset);
@@ -2223,7 +2253,22 @@ where
         self.queue_slots[slot] = Some(value);
         state.len += 1;
         state.queued_bytes += value.byte_len;
-        Ok(())
+        Ok(None)
+    }
+
+    fn admission_maximum(&self, spec: CordSpec, state: &CordState) -> Result<u32, SchedulerError> {
+        if state.len < spec.item_capacity {
+            return Ok(spec.byte_capacity.saturating_sub(state.queued_bytes));
+        }
+        if spec.pressure_policy != AssignedPressurePolicy::CoalesceLatest || state.len == 0 {
+            return Ok(0);
+        }
+        let offset = (state.head + state.len - 1) % spec.item_capacity;
+        let slot = usize::from(spec.slot_start + offset);
+        let newest = self.queue_slots[slot].ok_or(SchedulerError::InvalidPlan)?;
+        Ok(spec
+            .byte_capacity
+            .saturating_sub(state.queued_bytes.saturating_sub(newest.byte_len)))
     }
 }
 

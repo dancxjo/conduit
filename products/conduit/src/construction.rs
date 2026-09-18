@@ -10,6 +10,15 @@ use crate::cli::{BodyCommand, HostCommand};
 
 pub(crate) fn host(command: HostCommand) -> Result<(), String> {
     match command {
+        HostCommand::Service { .. } => {
+            Err("durable Host service command was routed through construction".into())
+        }
+        HostCommand::Obtain { .. } => {
+            Err("release obtain command was routed through construction".into())
+        }
+        HostCommand::Carry { .. } => {
+            Err("deployment carrier command was routed through construction".into())
+        }
         HostCommand::Check { source } => {
             let checked = load_host(&source)?;
             println!(
@@ -45,10 +54,7 @@ pub(crate) fn host(command: HostCommand) -> Result<(), String> {
                 image.manifest.output,
                 SporeOutputKind::DiskImage | SporeOutputKind::EfiArtifact | SporeOutputKind::Uf2
             ) {
-                return Err(format!(
-                    "target {} requires its guarded repository fabrication adapter; use cargo xtask host build",
-                    image.manifest.target
-                ));
+                return Err(installed_artifact_guidance(&image.manifest.target));
             }
             fs::create_dir_all(&output).map_err(|error| error.to_string())?;
             fs::write(output.join("image.json"), bytes).map_err(|error| error.to_string())?;
@@ -66,11 +72,27 @@ pub(crate) fn host(command: HostCommand) -> Result<(), String> {
             );
             Ok(())
         }
+        HostCommand::Rendezvous { .. } => {
+            Err("Host rendezvous must be entered through the live product entrance".into())
+        }
     }
+}
+
+fn installed_artifact_guidance(target: &str) -> String {
+    format!(
+        "target {target} requires a reviewed release artifact; use `conduit host obtain --help` to acquire it, then `conduit host carry --help` to inspect the available artifact-only and local realization carriers"
+    )
 }
 
 pub(crate) fn body(command: BodyCommand) -> Result<(), String> {
     match command {
+        BodyCommand::Status { .. }
+        | BodyCommand::Invite { .. }
+        | BodyCommand::Accept { .. }
+        | BodyCommand::Admit { .. }
+        | BodyCommand::CompleteJoin { .. } => {
+            Err("Body invitation operations require installed durable Host state".into())
+        }
         BodyCommand::Check { source } => {
             let checked = crate::body_product::load(&source)?;
             println!(
@@ -150,4 +172,18 @@ fn load_host(path: &Path) -> Result<CheckedHostConfiguration, String> {
         &conduit_workspace_fabrication::package_set(),
     )
     .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::installed_artifact_guidance;
+
+    #[test]
+    fn unsupported_local_build_routes_to_installed_release_commands() {
+        let message = installed_artifact_guidance("conduitos/x86_64/pc");
+        assert!(message.contains("conduit host obtain --help"));
+        assert!(message.contains("conduit host carry --help"));
+        assert!(!message.contains("cargo xtask"));
+        assert!(!message.contains("checkout"));
+    }
 }

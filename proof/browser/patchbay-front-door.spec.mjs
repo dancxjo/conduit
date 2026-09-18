@@ -150,14 +150,14 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     )).toBe(true);
     const workspaceBox = await page.locator(".workspace").boundingBox();
     expect(workspaceBox.y + workspaceBox.height).toBeLessThanOrEqual(768);
-    await page.getByRole("button", { name: "Forms", exact: true }).click();
-    await expect(page.getByRole("navigation", { name: "Available Forms" }).getByRole("button")).toHaveCount(3);
+    await expect(page.getByRole("button", { name: "Library", exact: true })).toHaveAttribute("aria-expanded", "true");
+    await expect(page.locator("#form-results").getByRole("button")).toHaveCount(3);
     await expect(page.getByRole("button", { name: "Open Form Text Lab" })).toBeVisible();
-    await page.getByRole("searchbox", { name: "Find a Form" }).fill("hElLo");
+    await page.getByRole("searchbox", { name: "Find Forms, Gears, and Parts" }).fill("hElLo");
     await expect(page.locator("#form-results-status")).toHaveText("1 of 3 Forms available");
     const form = initial.presentation.subjects.find(({ role, label }) => role === "Form" && label === "Hello");
     const formButton = page.getByRole("button", { name: "Open Form Hello" });
-    await page.getByRole("searchbox", { name: "Find a Form" }).press("ArrowDown");
+    await page.getByRole("searchbox", { name: "Find Forms, Gears, and Parts" }).press("ArrowDown");
     await expect(formButton).toBeFocused();
     await page.evaluate(() => window.patchbayReload());
     await expect(formButton).toBeFocused();
@@ -231,11 +231,10 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(birthRequest.failure(), server.errors.join("")).toBeNull();
     expect(birthResponse, server.errors.join("")).not.toBeNull();
     expect(birthResponse.ok()).toBe(true);
-    await expect(page.getByRole("heading", { name: "Program structure" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Body", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Body", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Body topology" })).toBeVisible();
-    await page.getByRole("button", { name: "Program", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Body", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Form", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Program structure" })).toBeVisible();
     const born = await (await fetch(`${url}/api/snapshot`)).json();
     expect(born.interaction.last_request_id).toMatch(/^navigation\//);
     expect(born.interaction.last_disposition).toBe("Succeeded");
@@ -267,8 +266,9 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
       ({ intent }) => intent === "conduit.intent/wake@1",
     );
     expect(wakeAction.availability).toBe("Available");
-    await page.getByRole("button", { name: "Navigate", exact: true }).click();
-    await page.locator(`#subjects input[type="radio"][data-subject="${wakeAction.target}"]`).click();
+    if(await page.locator("body").getAttribute("data-inspector-open")!=="true")await page.locator("#toggle-inspector").click();
+    await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
+    await page.locator(`#structured-navigator input[type="radio"][data-subject="${wakeAction.target}"]`).click();
     await Promise.all([
       page.waitForResponse(
         (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
@@ -294,10 +294,12 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(playing.parts.parts[0].playing).toBe(true);
 
     const navigationSteps = [];
-    const journeyStartCursor = playing.navigation.cursor;
-    expect(playing.navigation.cursor).toMatchObject({ place: "Program", aspect: "Structure" });
-    await page.getByRole("button", { name: "Navigate", exact: true }).click();
-    const upper = page.locator('#subjects [data-application-component="choice-option-label"]').filter({ hasText: "hello/upper" }).locator('input[type="radio"]');
+    expect(playing.navigation.cursor).toMatchObject({ place: "Body", aspect: "Structure" });
+    await page.getByRole("button", { name: "Form", exact: true }).click();
+    const journeyStartCursor = (await (await fetch(`${url}/api/snapshot`)).json()).navigation.cursor;
+    expect(journeyStartCursor).toMatchObject({ place: "Program", aspect: "Structure" });
+    await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
+    const upper = page.locator('#structured-navigator input[type="radio"][data-role="Gear"][data-subject*="hello/upper"]');
     const upperIdentity = await upper.getAttribute("data-subject");
     expect(upperIdentity).toBeTruthy();
     let navigated = await enactNavigation(page, navigationSteps,
@@ -307,15 +309,15 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
       place: "Program", aspect: "Structure", focus: upperIdentity, depth: "Detail",
     });
     navigated = await enactNavigation(page, navigationSteps, { kind: "show", aspect: "Plan" },
-      () => page.getByRole("button", { name: "Plan", exact: true }).click());
+      () => page.getByRole("button", { name: "Realization", exact: true }).click());
     expect(navigated.navigation.cursor).toMatchObject({ place: "Program", aspect: "Plan", focus: null });
 
-    await page.locator("#toggle-structured").click();
+    await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
     const upperInPlan = page.locator(`#structured-navigator input[type="radio"][data-subject="${upperIdentity.replaceAll('"', '\\"')}"]`);
     navigated = await enactNavigation(page, navigationSteps,
       { kind: "focus-and-disclose", subject: upperIdentity, depth: "Detail" },
       () => upperInPlan.click());
-    const followButton = page.locator("#structured-navigator [data-follow]").filter({ hasText: "Host:" }).first();
+    const followButton = page.locator("#structured-navigator").getByRole("radio",{name:/Follow Realizes to Host:/}).first();
     const followIdentity = await followButton.getAttribute("data-follow");
     const follow = navigated.navigation.navigation.follows.find(candidate => candidate.identity === followIdentity);
     expect(follow).toMatchObject({ source_subject: upperIdentity, target_place: "Body", target_aspect: "Plan" });
@@ -343,7 +345,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
       { kind: "focus-and-disclose", subject: follow.target_subject, depth: "Detail" },
       () => hostInCurrentTruth.click());
     navigated = await enactNavigation(page, navigationSteps, { kind: "disclose", depth: "Exact" },
-      () => page.locator("#toggle-truth").click());
+      () => page.locator("#deep-inspection > summary").click());
     expect(navigated.navigation.cursor).toMatchObject({
       place: "Body", aspect: currentTruthAspect.aspect, focus: follow.target_subject, depth: "Exact",
     });
@@ -372,9 +374,9 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     await refuseNavigation(page, navigationRefusals, { kind: "focus", subject: "subject/absent" },
       navigationRequest({ kind: "focus", subject: "subject/absent" }), "UnknownSubject");
     await refuseNavigation(page, navigationRefusals, { kind: "follow", relationship: followIdentity },
-      navigationRequest({ kind: "follow", relationship: followIdentity }), "UnknownRelationship");
-    await refuseNavigation(page, navigationRefusals, { kind: "back" },
-      navigationRequest({ kind: "back" }), "HistoryExhausted");
+      navigationRequest({ kind: "follow", relationship: followIdentity }), "UnknownSubject");
+    await refuseNavigation(page, navigationRefusals, { kind: "enter", place: "Entrance" },
+      navigationRequest({ kind: "enter", place: "Entrance" }), "UnknownPlace");
     const currentAction = current.presentation.actions.find(({ availability }) => availability === "Available");
     expect(currentAction).toBeTruthy();
     await refuseInvocation(page, navigationRefusals, {

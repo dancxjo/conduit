@@ -77,11 +77,20 @@ fn text_quantity_and_pattern_presentations_plan_together_under_one_body() {
     assert_eq!(receipt.initial_forms.len(), 3);
     #[cfg(feature = "form-runner")]
     {
+        let observed = super::initial_forms::reviewed_browser_host(
+            &source,
+            "browser/typed-workset".into(),
+            "boot/typed-workset".into(),
+        )
+        .unwrap();
         let plans = super::workspace::plan_workspace_forms(
             &session::biography().unwrap(),
             &source,
+            &[observed],
             &"browser/typed-workset".into(),
             &"boot/typed-workset".into(),
+            &[],
+            super::PlanningAuthority::default(),
         )
         .unwrap();
         assert_eq!(plans.len(), 3);

@@ -10,7 +10,7 @@ use conduit_core::{
     ResourceBinding as PlanResourceBinding, SharedPoolId, SignId, SignIdentity,
 };
 use conduit_kernel::{
-    scheduler::{CordCapacity, CordSpec, NodeSpec},
+    scheduler::{AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec},
     CordId, HostOperationBinding, HostOperationId, NodeId, PortId, RemoteEndpointId,
     ResourceBinding as KernelResourceBinding, ResourceId, RouteRange, RouteTarget,
     SignExpectationId, SignExpectationTarget,
@@ -34,6 +34,17 @@ pub use profile::{
 use remote::lower_remote_endpoints;
 use shared_pool::lower_shared_pools;
 pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
+
+fn lower_pressure_policy(policy: conduit_core::DeliveryPressurePolicy) -> AssignedPressurePolicy {
+    match policy {
+        conduit_core::DeliveryPressurePolicy::PreserveOrder => {
+            AssignedPressurePolicy::PreserveOrder
+        }
+        conduit_core::DeliveryPressurePolicy::CoalesceLatest => {
+            AssignedPressurePolicy::CoalesceLatest
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoweringError {
@@ -730,6 +741,7 @@ pub fn lower_plan_fragment_for_profile(
                         slot_start,
                         item_capacity: connection.item_capacity,
                         byte_capacity: connection.byte_capacity,
+                        pressure_policy: lower_pressure_policy(connection.pressure_policy),
                     },
                 )
             }
@@ -749,6 +761,7 @@ pub fn lower_plan_fragment_for_profile(
                         slot_start,
                         item_capacity: connection.item_capacity,
                         byte_capacity: connection.byte_capacity,
+                        pressure_policy: lower_pressure_policy(connection.pressure_policy),
                     },
                 )
             }
@@ -768,6 +781,7 @@ pub fn lower_plan_fragment_for_profile(
                         slot_start,
                         item_capacity: connection.item_capacity,
                         byte_capacity: connection.byte_capacity,
+                        pressure_policy: lower_pressure_policy(connection.pressure_policy),
                     },
                 )
             }

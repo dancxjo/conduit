@@ -96,6 +96,7 @@ pub fn prepare(
         sink_port_id: PortId::from("value"),
         value_kind: KindId::from("info/text@1"),
         temporal: PortTemporal::Value,
+        pressure_policy: Default::default(),
         selected_line: Some(line.clone()),
         admitted_lines: vec![line],
         item_capacity: 1,

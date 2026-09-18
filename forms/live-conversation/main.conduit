@@ -1,0 +1,39 @@
+# The canonical live voice conversation. Audio acquisition, presentation,
+# provider choice, devices, and placement remain realization truth.
+form live-conversation (
+    > audio: PcmFrames...|
+    spoken: PcmFrames...| >
+) {
+    recognize: speech/recognize-stream
+    commit-turn: speech/commit-recognized-turn
+    turn-text: speech/committed-turn-to-text
+    context: body/conversation-context
+    conversation: body/chat-prompt
+    model: llm/generate-stream(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0)
+    generated-text: llm/generated-chunk-to-text
+    speech-commit: speech/commit-generated-text
+    synthesize: speech/synthesize-stream(maximum-output-bytes = 32768)
+
+    audio > recognize.audio
+    recognize.events > commit-turn.events
+    commit-turn.message > turn-text.message
+    turn-text.text > conversation.message
+    context.context > conversation.context
+    conversation.request > model.request
+    model.result > generated-text.chunk
+    generated-text.text > speech-commit.generated
+    speech-commit.segments > synthesize.text
+    synthesize.audio > spoken
+}
+
+# An ordinary complete spoken turn. The reusable live-conversation Face above
+# remains the refined explicit-PCM pipeline; acquisition and playback are
+# separate portable meanings selected by the Plan.
+form spoken-live-conversation {
+    microphone: audio/capture-push-to-talk
+    conversation: live-conversation
+    speaker: audio/play
+
+    microphone.audio > conversation.audio
+    conversation.spoken > speaker.audio
+}

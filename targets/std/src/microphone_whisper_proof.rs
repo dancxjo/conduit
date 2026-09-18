@@ -31,6 +31,33 @@ pub fn run(
     microphone: AlsaMicrophoneAdapter,
     whisper: WhisperSpeechAdapter,
 ) -> Result<MicrophoneWhisperProofReceipt, Box<dyn std::error::Error>> {
+    run_inner(config, composition, microphone, whisper)
+}
+
+/// Run the explicit microphone Plan/Play while retaining its bounded transcript
+/// for an immediate authorized application consumer. Ordinary proof callers use
+/// [`run`] and therefore retain hashes and byte counts only.
+pub fn run_with_transcript(
+    config: StdHostConfig,
+    composition: StdHostComposition,
+    microphone: AlsaMicrophoneAdapter,
+    mut whisper: WhisperSpeechAdapter,
+) -> Result<(MicrophoneWhisperProofReceipt, String), Box<dyn std::error::Error>> {
+    let transcript = whisper.enable_evidence_text();
+    let receipt = run_inner(config, composition, microphone, whisper)?;
+    let text = String::from_utf8(transcript.bytes()?)?;
+    if text.len() != receipt.recognized_text_bytes as usize {
+        return Err("retained Whisper transcript differs from its receipt".into());
+    }
+    Ok((receipt, text))
+}
+
+fn run_inner(
+    config: StdHostConfig,
+    composition: StdHostComposition,
+    microphone: AlsaMicrophoneAdapter,
+    whisper: WhisperSpeechAdapter,
+) -> Result<MicrophoneWhisperProofReceipt, Box<dyn std::error::Error>> {
     let mut host = StdHost::new_with_microphone(config, composition, microphone)?;
     host.attach_whisper_clip_recognizer(whisper)?;
     let mut profiles = ProfileCatalog::new();

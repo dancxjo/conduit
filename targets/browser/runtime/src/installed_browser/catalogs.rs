@@ -61,6 +61,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_body_startup_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_pitch_tone_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
@@ -90,6 +91,27 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_presentation_composition_catalogs(
+        &mut startup,
+        &mut profile,
+    )?;
+    conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
+    conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
+    conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
+    conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
+    conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)?;
+    conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
+    conduit_tongues::install_house_conversation_form_catalog(&mut startup, &mut profile)?;
+    conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
+    conduit_tongues::install_speech_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_audio_capture_push_to_talk_catalog(
+        &mut startup,
+        &mut profile,
+    )?;
+    startup.insert_value_kind_alias(
+        "PcmFrames",
+        conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
+    )?;
     startup.insert(conduit_form::KindSignature {
         kind: conduit_semantic_catalog::BOOL_PRESENTATION_KIND.into(),
         startup_parameters: Vec::new(),
@@ -155,4 +177,41 @@ pub(crate) fn backs(
     conduit_data::install_measurement_plot_form_back(startup, profile, &mut backs)?;
     conduit_semantic_catalog::install_signal_garden_backs(startup, profile, &mut backs)?;
     Ok(backs)
+}
+
+#[cfg(test)]
+mod conversation_tests {
+    use super::*;
+
+    #[test]
+    fn browser_workspace_can_check_and_expand_conversation_meaning_without_offering_it() {
+        let (startup, profile) = catalogs().unwrap();
+        for (source, entry) in [
+            (
+                include_str!("../../../../../forms/body-chat/main.conduit"),
+                "body-chat",
+            ),
+            (
+                include_str!("../../../../../forms/live-conversation/main.conduit"),
+                "spoken-live-conversation",
+            ),
+        ] {
+            let syntax = conduit_form::parse_syntax_document(source);
+            assert!(syntax.diagnostics.is_empty());
+            let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+            let expanded =
+                conduit_form::expand_canonical_form_for_authoring(&checked, entry, &profile)
+                    .unwrap()
+                    .expanded;
+            assert!(!expanded.gears.is_empty());
+            assert!(conduit_planner::default_expanded_placements(
+                &expanded,
+                &[crate::installed_browser::advertisement(
+                    "browser/conversation-catalog".into(),
+                    "boot/conversation-catalog".into(),
+                )],
+            )
+            .is_err());
+        }
+    }
 }

@@ -33,6 +33,9 @@ impl InstalledOperation {
             Self::StateCount(_) => {}
             Self::StateToggle(_) => {}
             Self::CountPresentation(operation) => operation.cancel(),
+            Self::FlowBackpressure(operation) | Self::FlowCoalesceLatest(operation) => {
+                operation.cancel()
+            }
             Self::StateLatestScalar(operation) => operation.cancel(),
             Self::FlowTeeScalar(operation) => operation.cancel(),
             Self::StateSelectScalar(operation) => operation.cancel(),
@@ -75,9 +78,13 @@ impl InstalledOperation {
             Self::RecordedSpeech(operation) => operation.cancel(),
             Self::WhisperSpeech(operation) => operation.cancel(),
             Self::RecognitionText(operation) => operation.cancel(),
+            Self::RecognizedTurnCommit(operation) => operation.cancel(),
             Self::HousePrompt(operation) => operation.cancel(),
+            Self::BodyChatPrompt(operation) => operation.cancel(),
+            Self::BodyConversationContext(operation) => operation.cancel(),
             Self::LocalModel(operation) => operation.cancel(),
             Self::ModelText(operation) => operation.cancel(),
+            Self::GeneratedSpeechCommit(operation) => operation.cancel(),
             Self::Navigation(operation) => operation.cancel(),
             Self::VectorSearch(operation) => operation.cancel(),
             Self::HttpClient(operation) => operation.cancel(),

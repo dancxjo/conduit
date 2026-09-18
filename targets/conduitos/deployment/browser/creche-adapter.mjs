@@ -1,6 +1,6 @@
 import { createNativeSporeDownload } from "../../../creche-spore-bundle.mjs";
 import { bindBodyProvisionedMedia } from "../../../creche-native-disk.mjs";
-import { acquireConduitOsRelease, validateLoaderEvidence } from "./image.mjs";
+import { acquireConduitOsRelease, parseConduitOsSerialJoin, validateLoaderEvidence } from "./image.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -13,9 +13,14 @@ function product({ id, label, architecture, machine, profileId, releaseName, fir
     target: Object.freeze({ id, label, model_id: `conduitos/${architecture}-${machine}@1`, profile_id: profileId }),
     architecture,
     machine,
+    target_id: id,
+    package_id: "conduitos-image@1",
+    output: "disk-image",
     manifestPath: new URL(`../../../artifacts/conduitos-${releaseName}-release.json`, import.meta.url).href,
     builderAdapter: `conduit-host-conduitos/build-${architecture}@1`,
     deploymentAdapter: `conduit-host-conduitos/boot-${architecture}@1`,
+    builder_adapter: `conduit-host-conduitos/build-${architecture}@1`,
+    deployment_adapter: `conduit-host-conduitos/boot-${architecture}@1`,
     bootMechanism: "uefi-limine-hybrid-iso",
     firmware,
     bootEntry,
@@ -75,7 +80,9 @@ function productContribution(profile) {
     fabrication_strategies: Object.freeze([{ id: "reviewed-generic-release-download", label: "Reviewed generic ConduitOS product IMAGE" }]),
     carriers: Object.freeze({
       deployment: Object.freeze([{ id: "conduit-carrier/downloadable-disk-image@1", label: "Download Body-bound ISO" }]),
-      installation: Object.freeze([]), attachment: Object.freeze([]), observation: Object.freeze([]),
+      installation: Object.freeze([]), attachment: Object.freeze([]), observation: Object.freeze([
+        { id: "conduit-line/serial-text@1", label: "ConduitOS boot serial Line" },
+      ]),
     }),
     bounds: BOUNDS,
     expected_join_contract: "conduit.conduitos/boot-attestation-before-join@1",
@@ -85,7 +92,7 @@ function productContribution(profile) {
       firmware: profile.firmware, boot_entry: profile.bootEntry,
       expected_offers: Object.freeze(["conduit.host/present@1"]), expected_presenter: profile.presenter,
       bounds: profile.bounds, expected_join_behavior: "fresh Boot attestation must precede explicit authenticated admission",
-      browser_role: "download Body-bound spore only", supported_carriers: profile.supportedCarriers,
+      browser_role: "bind Body invitation and admit loader-returned serial join", supported_carriers: profile.supportedCarriers,
       unavailable_carriers: Object.freeze(["browser-raw-disk-writer", "browser-vm-launcher", "network-boot"]),
       physical_boot_claimed: false,
     }),
@@ -94,6 +101,7 @@ function productContribution(profile) {
 }
 
 export function createConduitOsAdapter({ host, profile, loader } = {}) {
+  let loaderReceipt = null;
   function createOptions() {
     const note = document.createElement("p"); note.className = "target-option-note";
     note.textContent = "Conduit downloads the exact reviewed product IMAGE and binds it into a spore. A separate explicitly authorized local disk or VM loader is required; this browser does not write disks or launch VMs.";
@@ -101,7 +109,10 @@ export function createConduitOsAdapter({ host, profile, loader } = {}) {
   }
   async function obtain({ mode, signal }) {
     requireFabrication(profile, mode, "obtain"); requireCurrent(profile, signal, mode, "obtain");
-    const release = await acquireConduitOsRelease(profile, signal);
+    const resolved = host?.resolveReviewedRelease
+      ? await host.resolveReviewedRelease(profile, signal)
+      : null;
+    const release = await acquireConduitOsRelease(profile, signal, { resolved });
     return Object.freeze({ resultKind: "artifact", private: release, evidence: Object.freeze({ schema: "conduit.conduitos/creche-obtainment@1", target_id: profile.target.id, result_kind: "artifact", artifact_role: "product-host", profile_id: release.manifest.profile_id, build_id: release.manifest.build_id, image_id: release.manifest.image_id, image_sha256: release.digest, image_bytes: release.bytes.byteLength, carrier: "conduit-carrier/downloadable-disk-image@1", does_not_prove: Object.freeze(["load", "boot", "join", "membership"]) }) });
   }
   async function bind({ mode, body, obtainment, nowMillis, signal }) {
@@ -123,7 +134,14 @@ export function createConduitOsAdapter({ host, profile, loader } = {}) {
         refuse(profile, mode, "bind", "BindingIdentity", "prepared invitation lost exact ConduitOS target, IMAGE, or loader-adapter truth");
       }
       const filename = `${friendlyFilename(body?.friendly_name ?? "body")}-${profile.target.profile_id}.iso`;
-      const nativeSpore = await bindBodyProvisionedMedia({ prepared, imageBytes: release.bytes, filename, format: "iso", mediaType: "application/x-iso9660-image" });
+      const nativeSpore = await bindBodyProvisionedMedia({
+        prepared,
+        imageBytes: release.bytes,
+        filename,
+        format: "iso",
+        mediaType: "application/x-iso9660-image",
+        provisionRegion: release.manifest.spore_region,
+      });
       prepared.invitation_secret.fill(0);
       const download = await createNativeSporeDownload({ prepared, bytes: nativeSpore.bytes, contentDigest: nativeSpore.content_digest, filename, format: nativeSpore.format, mediaType: nativeSpore.media_type });
       return Object.freeze({ prepared, nativeSpore, download, evidence: Object.freeze({
@@ -143,11 +161,27 @@ export function createConduitOsAdapter({ host, profile, loader } = {}) {
     let receipt;
     try { receipt = validateLoaderEvidence(loader ? await loader({ profile, binding, signal }) : null, profile, binding); }
     catch (error) { refuse(profile, mode, "realize", error?.code ?? "LoaderEvidenceInvalid", error instanceof Error ? error.message : String(error)); }
-    return Object.freeze({ terminal: "ImageLoaded", evidence: Object.freeze({ schema: "conduit.conduitos/creche-image-load@1", terminal: "ImageLoaded", receipt, boot_observed: false, join_created: false }) });
+    loaderReceipt = receipt;
+    return Object.freeze({ terminal: "ImageLoaded", evidence: Object.freeze({ schema: "conduit.conduitos/creche-image-load@1", terminal: "ImageLoaded", receipt: withoutSerialOutput(receipt), boot_observed: false, join_created: false }) });
   }
-  async function observe({ mode }) { requireFabrication(profile, mode, "observe"); refuse(profile, mode, "observe", "PhysicalProofAbsent", "Boot and join observation remain a separate physical or VM execution proof"); }
-  async function cancel({ mode, operation }) { return Object.freeze({ schema: "conduit.conduitos/creche-cancellation@1", target_id: profile.target.id, mode, operation, terminal: "Cancelled" }); }
+  async function observe({ mode, binding, signal }) {
+    requireFabrication(profile, mode, "observe"); requireCurrent(profile, signal, mode, "observe");
+    const serialJoin = parseConduitOsSerialJoin(loaderReceipt?.serial_output, binding);
+    const join = Object.freeze({
+      spore_id: serialJoin.spore_id, image_id: serialJoin.image_id, advertisement: serialJoin.advertisement,
+      invitation_id: serialJoin.invitation_id, body_id: serialJoin.body_id, host_id: serialJoin.host_id,
+      boot_id: serialJoin.boot_id, nonce: serialJoin.nonce, signature: serialJoin.signature,
+      observed_at_millis: Date.now(),
+    });
+    return Object.freeze({ join, evidence: Object.freeze({ ...serialJoin, observed_at_millis: join.observed_at_millis, serial_output_retained: false }) });
+  }
+  async function cancel({ mode, operation }) { loaderReceipt = null; return Object.freeze({ schema: "conduit.conduitos/creche-cancellation@1", target_id: profile.target.id, mode, operation, terminal: "Cancelled" }); }
   return Object.freeze({ schema: "conduit.creche/physical-host-target-adapter@1", target: profile.target, modes: PRODUCT_MODES, bounds: BOUNDS, createOptions, obtain, bind, realize, observe, cancel });
+}
+
+function withoutSerialOutput(receipt) {
+  const { serial_output, ...retained } = receipt;
+  return Object.freeze({ ...retained, serial_output_observed: typeof serial_output === "string" });
 }
 
 function modes(fabricate) { return Object.freeze([{ id: "fabricate-new", resultKind: "artifact", supported: fabricate }, { id: "install-existing", resultKind: "installation", supported: false }, { id: "attach-running", resultKind: "attachment", supported: false }].map(Object.freeze)); }

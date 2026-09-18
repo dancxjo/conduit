@@ -10,10 +10,12 @@ on:
   workflow_run:
     workflows: [dev-integration]
     types: [completed]
-  # Revisit fresh evidence after the release/sync owner closes, including
-  # bot actions without recursive events. This does not retry failed proof.
-  schedule:
-    - cron: "*/10 * * * *"
+  # Human closure of a trusted release/sync PR is also a wake-up. Automation
+  # that closes one with GITHUB_TOKEN dispatches this workflow explicitly,
+  # because GitHub suppresses recursive workflow events from that token.
+  pull_request_target:
+    types: [closed]
+    branches: [main, dev]
 
 permissions:
   actions: write
@@ -26,7 +28,13 @@ concurrency:
 
 jobs:
   request:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'pull_request_target' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       (startsWith(github.event.pull_request.head.ref, 'release/') ||
+        startsWith(github.event.pull_request.head.ref, 'sync-release/')))
     runs-on: ubuntu-slim
     timeout-minutes: 3
     steps:

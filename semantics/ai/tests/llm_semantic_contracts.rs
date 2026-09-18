@@ -4,10 +4,12 @@ use conduit_ai::{
     llm_contract, llm_semantic_catalog, ConfidencePermille, LlmDeterminismProfile,
     LlmImplementationControl, LlmTerminalOutcome, ModelDerivedResult, ModelFailure, ModelRefusal,
     ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance, ModelWorkAccounting,
-    LLM_CLASSIFY_KIND, LLM_COMPOSE_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND, LLM_GENERATE_KIND,
-    LLM_INTERPRET_KIND, LLM_JUDGE_KIND, LLM_PROPOSE_KIND,
+    LLM_CLASSIFY_KIND, LLM_COMPOSE_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND, LLM_GENERATE_FLOW_KIND,
+    LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_JUDGE_KIND, LLM_PRESENT_KIND, LLM_PROPOSE_KIND,
+    LLM_STREAM_GENERATE_KIND,
 };
 use conduit_core::PortDirection;
+use conduit_core::PortTemporal;
 
 fn produced(kind: &str) -> ModelDerivedResult {
     let contract = llm_contract(kind).unwrap();
@@ -33,10 +35,33 @@ fn produced(kind: &str) -> ModelDerivedResult {
 }
 
 #[test]
-fn eight_machine_readable_semantic_contracts_have_exact_distinct_faces() {
+fn streaming_generation_is_a_distinct_closing_delta_flow() {
+    let contract = conduit_ai::llm_contract(conduit_ai::LLM_STREAM_GENERATE_KIND).unwrap();
+    assert_eq!(contract.inputs[0].temporal, PortTemporal::Value);
+    assert_eq!(
+        contract.outputs[0].temporal,
+        PortTemporal::Flow { closes: true }
+    );
+    assert_eq!(
+        contract.outputs[0].value_kind.as_str(),
+        conduit_ai::GENERATED_TEXT_CHUNK_VALUE_KIND
+    );
+    assert_eq!(contract.limits.max_queue_items, 8);
+    assert_eq!(
+        conduit_ai::llm_contract(conduit_ai::LLM_GENERATE_KIND)
+            .unwrap()
+            .outputs[0]
+            .temporal,
+        PortTemporal::Value
+    );
+}
+
+#[test]
+fn machine_readable_semantic_contracts_have_exact_distinct_faces() {
     let contracts = llm_semantic_catalog();
     let expected = [
         LLM_GENERATE_KIND,
+        LLM_GENERATE_FLOW_KIND,
         LLM_CLASSIFY_KIND,
         LLM_EXTRACT_KIND,
         LLM_EMBED_KIND,
@@ -44,6 +69,8 @@ fn eight_machine_readable_semantic_contracts_have_exact_distinct_faces() {
         LLM_PROPOSE_KIND,
         LLM_COMPOSE_KIND,
         LLM_JUDGE_KIND,
+        LLM_PRESENT_KIND,
+        LLM_STREAM_GENERATE_KIND,
     ];
     assert_eq!(contracts.len(), expected.len());
     for (contract, expected_kind) in contracts.iter().zip(expected) {
@@ -74,6 +101,27 @@ fn eight_machine_readable_semantic_contracts_have_exact_distinct_faces() {
             "forbidden vocabulary: {forbidden}"
         );
     }
+}
+
+#[test]
+fn generative_presentation_is_structured_and_distinct_from_input_interpretation() {
+    let present = llm_contract(LLM_PRESENT_KIND).unwrap();
+    let interpret = llm_contract(LLM_INTERPRET_KIND).unwrap();
+    assert_eq!(
+        present.inputs[0].value_kind.as_str(),
+        "conduit.presentation/generative-presenter-input@1"
+    );
+    assert_eq!(
+        present.outputs[0].value_kind.as_str(),
+        "conduit.presentation/generated-manifestation@2"
+    );
+    assert_eq!(
+        present.kind_contract_revision.as_str(),
+        "conduit.llm/present@2"
+    );
+    assert_ne!(present.kind_id, interpret.kind_id);
+    assert_ne!(present.inputs, interpret.inputs);
+    assert_ne!(present.outputs, interpret.outputs);
 }
 
 #[test]

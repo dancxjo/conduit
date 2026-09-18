@@ -28,6 +28,17 @@ pub const ASSIGNED_REMOTE_ENDPOINT: u8 = 10;
 pub const ASSIGNED_STARTUP: u8 = 11;
 pub const ASSIGNED_TERMINAL: u8 = 12;
 
+/// Allocation-free execution encoding of the semantic delivery pressure policy.
+/// Semantic planning owns the richer contract; assigned Plans and the kernel
+/// carry only the exact finite behavior needed during Play.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[repr(u8)]
+pub enum AssignedPressurePolicy {
+    #[default]
+    PreserveOrder = 0,
+    CoalesceLatest = 1,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AssignedIdentity(pub [u8; 16]);
 

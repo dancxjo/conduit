@@ -26,6 +26,17 @@ pub struct ReadableBodyHistory {
     pub aspect: PresentationAspect,
     pub access: BodyHistoryAccess,
     pub entries: Vec<BodyHistoryEntry>,
+    pub archived: Option<ReadableArchivedBodyHistory>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ReadableArchivedBodyHistory {
+    pub sealed_segments: u64,
+    pub wake_count: u64,
+    pub record_count: u64,
+    pub through_sequence: u64,
+    pub head_digest: Option<[u8; 32]>,
+    pub narrative: String,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
@@ -136,6 +147,18 @@ impl ReadableBodyHistory {
                 alternate_manifestation: BodyHistoryManifestation::Linear,
             },
             entries,
+            archived: attachment
+                .projection()
+                .archived_history
+                .as_ref()
+                .map(|archive| ReadableArchivedBodyHistory {
+                    sealed_segments: archive.sealed_segments,
+                    wake_count: archive.wakes,
+                    record_count: archive.records,
+                    through_sequence: archive.through_sequence,
+                    head_digest: archive.head_digest,
+                    narrative: archive.explanation.clone(),
+                }),
         })
     }
 }

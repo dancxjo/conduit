@@ -7,6 +7,7 @@ edition = "2021"
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }
 conduit-core = { path = "../../architecture/core" }
+conduit-body = { path = "../../architecture/body" }
 conduit-body-fabrication = { path = "../../fabrication/body" }
 conduit-chat = { path = "../../semantics/chat", features = ["form-catalog"] }
 conduit-form = { path = "../../architecture/form" }
@@ -30,6 +31,8 @@ conduit-web = { path = "../../semantics/web", default-features = false, features
 conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+getrandom = "0.3"
+sha2 = "0.10"
 
 [dev-dependencies]
 
@@ -51,3 +54,7 @@ path = "tests/structured_diagnostics.rs"
 [[test]]
 name = "two_std_line"
 path = "tests/two_std_line.rs"
+
+[[test]]
+name = "installed_body_growth"
+path = "tests/installed_body_growth.rs"

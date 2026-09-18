@@ -146,13 +146,10 @@ fn birth_removes_entrance_and_keeps_program_and_body_subject_sets_distinct() {
             .iter()
             .map(|place| place.place)
             .collect::<Vec<_>>(),
-        vec![PresentationPlace::Program, PresentationPlace::Body]
+        vec![PresentationPlace::Body, PresentationPlace::Program]
     );
-    assert_eq!(
-        projected.navigation.cursor.place,
-        PresentationPlace::Program
-    );
-    let program = projected
+    assert_eq!(projected.navigation.cursor.place, PresentationPlace::Body);
+    let body = projected
         .navigation
         .projection
         .project(
@@ -161,29 +158,38 @@ fn birth_removes_entrance_and_keeps_program_and_body_subject_sets_distinct() {
             &projected.navigation.cursor,
         )
         .unwrap();
-    assert!(program.items.iter().any(|item| {
-        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && subject.role == PresentationRole::Gear))
+    assert!(body.items.iter().any(|item| {
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && subject.role == PresentationRole::Body))
     }));
-    assert!(!program.items.iter().any(|item| {
-        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && matches!(subject.role, PresentationRole::Body | PresentationRole::Part | PresentationRole::Host | PresentationRole::Line)))
+    assert!(body.items.iter().any(|item| {
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && subject.role == PresentationRole::Form))
+    }));
+    assert!(!body.items.iter().any(|item| {
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && matches!(subject.role, PresentationRole::Gear | PresentationRole::Port | PresentationRole::Cord)))
     }));
 
-    let mut body_cursor = projected.navigation.cursor.clone();
-    body_cursor.place = PresentationPlace::Body;
-    body_cursor.focus = None;
-    let body = projected
+    let mut form_cursor = projected.navigation.cursor.clone();
+    form_cursor.place = PresentationPlace::Program;
+    form_cursor.focus = projected
+        .navigation
+        .navigation
+        .places
+        .iter()
+        .find(|place| place.place == PresentationPlace::Program)
+        .map(|place| place.root_subject.clone());
+    let form = projected
         .navigation
         .projection
         .project(
             &projected.presentation,
             &projected.navigation.navigation,
-            &body_cursor,
+            &form_cursor,
         )
         .unwrap();
-    assert!(body.items.iter().any(|item| {
-        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && subject.role == PresentationRole::Body))
+    assert!(form.items.iter().any(|item| {
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && subject.role == PresentationRole::Gear))
     }));
-    assert!(!body.items.iter().any(|item| {
-        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && matches!(subject.role, PresentationRole::Gear | PresentationRole::Port | PresentationRole::Cord | PresentationRole::Form)))
+    assert!(!form.items.iter().any(|item| {
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && matches!(subject.role, PresentationRole::Body | PresentationRole::Part | PresentationRole::Host | PresentationRole::Line)))
     }));
 }

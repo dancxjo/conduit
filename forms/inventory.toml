@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 105
+maximum_forms = 111
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -29,17 +29,32 @@ title = "Arithmetic Lesson"
 entry = "arithmetic-lesson"
 deterministic = { package = "conduit-semantic-catalog", test = "education_forms", case = "arithmetic_fixture_emits_exact_assessment_feedback_and_current_progress" }
 [[forms]]
+slug = "body-chat"
+title = "Body Chat"
+entry = "body-chat"
+deterministic = { package = "conduit-chat", test = "body_chat", case = "canonical_body_chat_is_an_ordinary_checked_form" }
+browser_safe_not_applicable = "the portable Body conversation requires a current Body supervisor and an admitted model realization"
+[[forms]]
 slug = "house-conversation"
 title = "House Conversation"
 entry = "house-conversation"
 deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_conversation_is_an_ordinary_checked_form" }
 browser_safe_not_applicable = "portable House conversation has no installed browser model realization"
 [[forms]]
+slug = "live-conversation"
+title = "Live Conversation"
+entry = "spoken-live-conversation"
+reusable_entries = [{ entry = "live-conversation", title = "Live Conversation Pipeline", composition = { parent = "spoken-live-conversation", occurrences = ["conversation"] }, deterministic = { package = "conduit-std-host", test = "live_conversation_execution", case = "checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts" } }]
+deterministic = { package = "conduit-std-host", test = "live_conversation", case = "spoken_live_conversation_wraps_the_unchanged_pipeline_with_portable_audio_edges" }
+browser_safe_not_applicable = "live audio acquisition, streaming model generation, synthesis, and presentation require explicitly admitted realizations"
+graceful_fallback = "body-chat"
+[[forms]]
 slug = "house-spoken-response"
 title = "House Spoken Response"
 entry = "house-spoken-response"
 deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_spoken_response_composes_text_fallback_and_speech_output" }
 browser_safe_not_applicable = "portable speech output requires an admitted synthesis and audio-output realization"
+graceful_fallback = "house-conversation"
 [[forms]]
 slug = "bench-telemetry"
 title = "Bench Telemetry"
@@ -200,7 +215,7 @@ browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case
 slug = "little-seismograph"
 title = "Little Seismograph"
 entry = "little-seismograph-display"
-initial_body_order = 14
+initial_body_order = 13
 reusable_entries = [
   { entry = "measurement-window", title = "Measurement Window", composition = { parent = "little-seismograph-processing", occurrences = ["samples"] }, deterministic = { package = "conduit-data", test = "measurement_window", case = "reusable_window_has_an_exact_checked_form_contract" } },
   { entry = "measurement-summary", title = "Measurement Summary", composition = { parent = "little-seismograph-processing", occurrences = ["summarize"] }, deterministic = { package = "conduit-data", test = "measurement_summary", case = "canonical_summary_is_a_reusable_exact_typed_form" } },
@@ -333,7 +348,7 @@ deterministic = { package = "conduit-semantic-catalog", test = "robotics_diversi
 slug = "route-annotation-stroke"
 title = "Route Annotation Stroke"
 entry = "route-annotation-stroke"
-deterministic = { package = "conduit-presentation", test = "stroke_capture_form", case = "capture_and_route_consumer_are_checked_and_mechanism_free" }
+deterministic = { package = "conduit-presentation", test = "stroke_capture_form", case = "capture_and_route_consumer_are_checked_and_host_neutral" }
 browser_safe_not_applicable = "portable stroke semantics have no reviewed browser Host execution oracle"
 [[forms]]
 slug = "scheduled-reminder"
@@ -425,6 +440,22 @@ title = "Typed Record Frame"
 entry = "typed-record-frame"
 deterministic = { package = "conduit-net", features = ["form-catalog"], test = "typed_record", case = "framing_and_deframing_are_independent_reusable_checked_forms" }
 [[forms]]
+slug = "fulfillment-readiness"
+title = "Fulfillment Readiness"
+entry = "fulfillment-readiness"
+deterministic = { package = "conduit-semantic-catalog", test = "purpose_forms", case = "readiness_is_a_portable_deterministic_semantic_derivation" }
+browser_safe_not_applicable = "readiness is a deterministic Body semantic derivation without a browser lifecycle authority"
+[[forms]]
+slug = "experiencer"
+title = "Portable Experiencer"
+entry = "experiencer"
+deterministic = { package = "conduit-human", test = "current_experience", case = "source_removal_marks_unavailable_instead_of_inventing_empty_truth" }
+[[forms]]
+slug = "vision"
+title = "Continuous Vision"
+entry = "vision"
+deterministic = { package = "conduit-semantic-catalog", test = "vision_forms", case = "continuous_vision_is_checked_bounded_and_provider_neutral" }
+[[forms]]
 slug = "vision-metadata"
 title = "Vision Metadata"
 entry = "vision-metadata"
@@ -474,16 +505,16 @@ browser_safe_not_applicable = "open reusable face is exercised inside the Desk T
 
 [[forms]]
 slug = "tour"
-title = "Tour"
+title = "Tutorial"
 entry = "tour"
-initial_body_order = 12
+workspace_catalog = false
 deterministic = { package = "conduit-tour-model", test = "application_form", case = "tour_is_a_checked_host_neutral_form_over_the_application_seam" }
-browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "resident Tour keeps state across foreground switches in one browser Body Play" }
+browser_safe_not_applicable = "retired chapter/exercise compatibility artifact; the Body surface now owns contextual tutorial guidance"
 
 [[forms]]
 slug = "patchbay"
 title = "Patchbay"
 entry = "patchbay"
-initial_body_order = 13
+initial_body_order = 12
 deterministic = { package = "patchbay-application", test = "lib", case = "opens_the_exact_form_and_plan_and_retains_inspection" }
 browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "resident Patchbay inspects and begins an exact edit in one browser Body Play" }

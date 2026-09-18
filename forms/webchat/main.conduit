@@ -38,15 +38,21 @@ form chat/browser-client (
     human: presentation/interaction
     submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
     socket: net/websocket(url)
+    incoming: chat/from-websocket
+    outgoing: chat/to-websocket
+    connection: chat/connection-from-websocket
 
-    socket.recv > state.message
-    socket.live > state.live
+    socket.recv > incoming.value
+    incoming.value > state.message
+    socket.live > connection.value
+    connection.value > state.live
     state.presentation > spread.presentation
     spread.presentation > render.presentation
     spread.presentation > human.presentation
     render.manifestation > human.manifestation
     human.interaction > submit.interaction
-    submit.message > socket.send
+    submit.message > outgoing.value
+    outgoing.value > socket.send
 }
 
 form webchat-browser-demo {
@@ -62,15 +68,21 @@ form chat/browser-client-label-oracle (
     human: presentation/interaction
     submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
     socket: net/websocket(url)
+    incoming: chat/from-websocket
+    outgoing: chat/to-websocket
+    connection: chat/connection-from-websocket
 
-    socket.recv > state.message
-    socket.live > state.live
+    socket.recv > incoming.value
+    incoming.value > state.message
+    socket.live > connection.value
+    connection.value > state.live
     state.presentation > spread.presentation
     spread.presentation > render.presentation
     spread.presentation > human.presentation
     render.manifestation > human.manifestation
     human.interaction > submit.interaction
-    submit.message > socket.send
+    submit.message > outgoing.value
+    outgoing.value > socket.send
 }
 
 form webchat-browser-label-oracle {

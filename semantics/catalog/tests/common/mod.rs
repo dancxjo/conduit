@@ -83,7 +83,7 @@ fn proof_domain_offers(
         .collect()
 }
 
-fn proof_domain_offer(
+pub fn proof_domain_offer(
     kind: conduit_core::KindId,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,

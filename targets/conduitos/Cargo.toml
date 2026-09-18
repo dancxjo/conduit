@@ -203,8 +203,9 @@ loongarch64-product = []
 
 [dependencies]
 conduit-creche-model = { path = "../../products/creche/model" }
+conduit-home-model = { path = "../../products/home/model" }
 conduit-audio = { path = "../../semantics/audio" }
-conduit-body = { path = "../../architecture/body", default-features = false }
+conduit-body = { path = "../../architecture/body", default-features = false, features = ["authenticated-admission"] }
 conduit-core = { path = "../../architecture/core" }
 conduit-human = { path = "../../semantics/human" }
 conduit-robotics = { path = "../../semantics/robotics" }
@@ -225,6 +226,7 @@ conduit-text = { path = "../../semantics/text", default-features = false }
 conduit-web = { path = "../../semantics/web", default-features = false }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
 sha2 = { version = "=0.10.9", default-features = false }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "riscv64", target_arch = "loongarch64"))'.dependencies]

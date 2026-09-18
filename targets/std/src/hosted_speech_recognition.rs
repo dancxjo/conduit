@@ -239,6 +239,9 @@ impl WhisperSpeechAdapter {
         audio_sha256: [u8; 32],
         mut cancelled: impl FnMut() -> bool,
     ) -> Result<Vec<u8>, WhisperFailure> {
+        if cancelled() {
+            return Err(WhisperFailure::Cancelled);
+        }
         let wav = self.workspace.join("input.wav");
         let output_base = self.workspace.join("result");
         write_wav(&wav, payload)?;

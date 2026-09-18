@@ -1,9 +1,10 @@
 //! Workspace lifecycle orchestration. The existing browser Body slot executes.
 use conduit_body::{
-    AdmissionManager, BodyBiographyEvidence, BodyPlayIdentity, ResidentForm, SpawnAdmissionProof,
-    SpawnInvitationClaim, SpawnInvitationSecret, Wake,
+    AdmissionManager, BodyBiographyEvidence, BodyPlayIdentity, BodyState, ResidentForm,
+    SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationSecret, Wake,
 };
-use conduit_core::{BootId, HostAdvertisement, HostId};
+use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId};
+use conduit_workspace_model::CurrentHostOffers;
 use conduit_workspace_model::WorkspaceBody;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -11,31 +12,41 @@ use std::cell::RefCell;
 mod refusal;
 use refusal::Refusal;
 
-const CAPACITY: usize = 256 * 1024;
+const HOST_OFFERS_BYTES: usize =
+    conduit_body::MAX_BODY_PARTS * conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
+const CAPACITY: usize = HOST_OFFERS_BYTES + 256 * 1024;
 thread_local! {
     static INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; CAPACITY].into_boxed_slice());
     static OUTPUT: RefCell<Vec<u8>> = RefCell::new(Vec::with_capacity(CAPACITY));
     static BODY: RefCell<Option<WorkspaceBody>> = const { RefCell::new(None) };
     static ADMISSIONS: RefCell<Option<AdmissionManager>> = const { RefCell::new(None) };
+    static HOST_OFFERS: RefCell<CurrentHostOffers> = RefCell::new(CurrentHostOffers::new());
 }
 
 #[derive(Deserialize)]
 #[serde(tag = "action", deny_unknown_fields)]
 enum Request {
-    Arrive,
+    Arrive {
+        advertisement: HostAdvertisement,
+    },
     Restore {
         evidence: Box<BodyBiographyEvidence>,
         admission: Option<AdmissionManager>,
         host_id: HostId,
         boot_id: BootId,
+        advertisement: HostAdvertisement,
     },
     OpenAdmitted {
         evidence: Box<BodyBiographyEvidence>,
         admission: AdmissionManager,
         host_id: HostId,
         boot_id: BootId,
+        advertisement: HostAdvertisement,
     },
     Durable,
+    AcknowledgeArchives {
+        head_digest: [u8; 32],
+    },
     InspectInvitation {
         claim: SpawnInvitationClaim,
         now_millis: u64,
@@ -55,14 +66,23 @@ enum Request {
         proof: ReceivedSpawnProof,
         now_millis: u64,
     },
+    HostLost {
+        host_id: HostId,
+        boot_id: BootId,
+        lost_host_id: HostId,
+        lost_boot_id: BootId,
+    },
     Current,
     SelectForm {
         form: ResidentForm,
     },
     LibraryView {
+        host_id: HostId,
+        boot_id: BootId,
         source: String,
         query: String,
         revision: u32,
+        joined_lines: Vec<crate::creche::JoinedLineObservation>,
     },
     ChangeWorkset {
         host_id: HostId,
@@ -76,6 +96,8 @@ enum Request {
         host_id: HostId,
         boot_id: BootId,
         source: String,
+        joined_lines: Vec<crate::creche::JoinedLineObservation>,
+        browser_audio_authority: bool,
     },
     Started {
         host_id: HostId,
@@ -87,6 +109,12 @@ enum Request {
         host_id: HostId,
         boot_id: BootId,
         terminated_play: Option<BodyPlayIdentity>,
+    },
+    Fulfill {
+        host_id: HostId,
+        boot_id: BootId,
+        authority_grant_id: AuthorityGrantId,
+        attribution: String,
     },
 }
 
@@ -114,6 +142,7 @@ struct Snapshot<'a> {
     realization: Option<&'a conduit_workspace_model::WorkspaceRealization>,
     foreground: Option<&'a ResidentForm>,
     foreground_flow: String,
+    current_host_offers: Vec<HostAdvertisement>,
 }
 
 #[derive(Serialize)]
@@ -122,6 +151,7 @@ struct DurableSnapshot<'a> {
     evidence: &'a BodyBiographyEvidence,
     admission: &'a AdmissionManager,
     foreground: Option<&'a ResidentForm>,
+    pending_archives: &'a [conduit_body::BodyBiographyArchiveSegment],
 }
 
 #[no_mangle]
@@ -139,6 +169,10 @@ pub extern "C" fn conduit_workspace_output_ptr() -> usize {
 #[no_mangle]
 pub extern "C" fn conduit_workspace_output_len() -> usize {
     OUTPUT.with(|value| value.borrow().len())
+}
+#[no_mangle]
+pub extern "C" fn conduit_workspace_output_capacity() -> usize {
+    CAPACITY
 }
 
 #[no_mangle]
@@ -175,18 +209,24 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
     BODY.with(|slot| {
         let mut slot = slot.borrow_mut();
         match request {
-            Request::Arrive => {
+            Request::Arrive { advertisement } => {
                 if slot.is_some() {
                     return Err("Workspace already has a Body".into());
                 }
                 let evidence = crate::creche::workspace_evidence()?;
                 let body = WorkspaceBody::open(evidence).map_err(debug)?;
+                let mut offers = CurrentHostOffers::new();
+                offers
+                    .observe(body.evidence(), advertisement)
+                    .map_err(host_offer_refusal)?;
+                validate_offer_bytes(&offers)?;
                 let admissions = AdmissionManager::new(body.evidence().body_id.clone())
                     .map_err(|error| Refusal::new("Admission.Initialize", format!("{error:?}")))?;
-                let bytes = snapshot(&body)?;
+                let bytes = snapshot_with_offers(&body, offers.hosts())?;
                 crate::creche::handoff_workspace();
                 *slot = Some(body);
                 ADMISSIONS.with(|state| *state.borrow_mut() = Some(admissions));
+                HOST_OFFERS.with(|state| *state.borrow_mut() = offers);
                 return Ok(bytes);
             }
             Request::Restore {
@@ -194,12 +234,24 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 admission,
                 host_id,
                 boot_id,
+                advertisement,
             } => {
                 if slot.is_some() {
                     return Err("Workspace already has a Body".into());
                 }
-                let body =
-                    WorkspaceBody::resume_here(*evidence, &host_id, &boot_id).map_err(debug)?;
+                let fulfilled = matches!(evidence.body.state, BodyState::Fulfilled { .. });
+                let body = if fulfilled {
+                    WorkspaceBody::open(*evidence).map_err(debug)?
+                } else {
+                    WorkspaceBody::resume_here(*evidence, &host_id, &boot_id).map_err(debug)?
+                };
+                let mut offers = CurrentHostOffers::new();
+                if !fulfilled {
+                    offers
+                        .observe(body.evidence(), advertisement)
+                        .map_err(host_offer_refusal)?;
+                }
+                validate_offer_bytes(&offers)?;
                 let admissions = admission.unwrap_or(AdmissionManager::new(body.evidence().body_id.clone())
                     .map_err(|error| Refusal::new("Admission.Initialize", format!("{error:?}")))?);
                 if admissions.body_id != body.evidence().body_id {
@@ -208,20 +260,27 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                         "Retained admission state names another Body",
                     ));
                 }
-                let bytes = snapshot(&body)?;
+                let bytes = snapshot_with_offers(&body, offers.hosts())?;
                 *slot = Some(body);
                 ADMISSIONS.with(|state| *state.borrow_mut() = Some(admissions));
+                HOST_OFFERS.with(|state| *state.borrow_mut() = offers);
                 return Ok(bytes);
             }
-            Request::OpenAdmitted { evidence, admission, host_id, boot_id } => {
+            Request::OpenAdmitted { evidence, admission, host_id, boot_id, advertisement } => {
                 if slot.is_some() { return Err("Workspace already has a Body".into()); }
                 if admission.body_id != evidence.body_id {
                     return Err(Refusal::new("Admission.WrongBody", "Admission state names another Body"));
                 }
                 let body = WorkspaceBody::open_admitted(*evidence, &host_id, &boot_id).map_err(debug)?;
-                let bytes = snapshot(&body)?;
+                let mut offers = CurrentHostOffers::new();
+                offers
+                    .observe(body.evidence(), advertisement)
+                    .map_err(host_offer_refusal)?;
+                validate_offer_bytes(&offers)?;
+                let bytes = snapshot_with_offers(&body, offers.hosts())?;
                 *slot = Some(body);
                 ADMISSIONS.with(|state| *state.borrow_mut() = Some(admission));
+                HOST_OFFERS.with(|state| *state.borrow_mut() = offers);
                 return Ok(bytes);
             }
             Request::InspectInvitation { claim, now_millis } => {
@@ -238,8 +297,11 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             Request::Durable => return ADMISSIONS.with(|admissions| {
                 let admissions = admissions.borrow();
                 let admissions = admissions.as_ref().ok_or("Workspace admission state is missing")?;
-                encode(&DurableSnapshot { schema: "conduit.workspace/body@1", evidence: current.evidence(), admission: admissions, foreground: current.foreground() })
+                encode(&DurableSnapshot { schema: "conduit.workspace/body@1", evidence: current.evidence(), admission: admissions, foreground: current.foreground(), pending_archives: current.pending_archives() })
             }),
+            Request::AcknowledgeArchives { head_digest } => {
+                candidate.acknowledge_archives(head_digest).map_err(debug)?;
+            }
             Request::CreateInvitation { host_id, boot_id, secret, nonce, now_millis, expires_at_millis } => {
                 let secret = <[u8; 32]>::try_from(secret.as_slice())
                     .map_err(|_| Refusal::new("Admission.WeakSecret", "Invitation secret must have exactly 32 bytes"))?;
@@ -279,17 +341,49 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     &host_id,
                     &boot_id,
                 ).map_err(debug)?;
-                let response = encode(&serde_json::json!({ "schema": "conduit.workspace/admission-receipt@1", "credential": credential, "body": snapshot_value(&candidate)?, "durable": durable_value(&candidate, &next_admissions)? }))?;
+                let mut next_offers = HOST_OFFERS.with(|offers| offers.borrow().clone());
+                next_offers
+                    .observe(candidate.evidence(), advertisement.clone())
+                    .map_err(host_offer_refusal)?;
+                validate_offer_bytes(&next_offers)?;
+                let response = encode(&serde_json::json!({ "schema": "conduit.workspace/admission-receipt@1", "credential": credential, "body": snapshot_value(&candidate, next_offers.hosts())?, "durable": durable_value(&candidate, &next_admissions)? }))?;
                 *slot = Some(candidate);
                 ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
+                HOST_OFFERS.with(|offers| *offers.borrow_mut() = next_offers);
+                return Ok(response);
+            }
+            Request::HostLost {
+                host_id,
+                boot_id,
+                lost_host_id,
+                lost_boot_id,
+            } => {
+                candidate
+                    .observe_host_lost(&lost_host_id, &lost_boot_id, &host_id, &boot_id)
+                    .map_err(debug)?;
+                let mut next_offers = HOST_OFFERS.with(|offers| offers.borrow().clone());
+                next_offers.reconcile(candidate.evidence());
+                validate_offer_bytes(&next_offers)?;
+                let response = snapshot_with_offers(&candidate, next_offers.hosts())?;
+                *slot = Some(candidate);
+                HOST_OFFERS.with(|offers| *offers.borrow_mut() = next_offers);
                 return Ok(response);
             }
             Request::LibraryView {
+                host_id,
+                boot_id,
                 source,
                 query,
                 revision,
+                joined_lines,
             } => {
-                return crate::creche::workspace_library(&source)?
+                return crate::creche::workspace_library(
+                    &source,
+                    &current_host_offers(),
+                    &host_id,
+                    &boot_id,
+                    &joined_lines,
+                )?
                     .presentation(current, revision, &query)
                     .map_err(|error| Refusal::new("LibraryPresentation", format!("{error:?}")))?
                     .lower()
@@ -334,12 +428,19 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 host_id,
                 boot_id,
                 source,
+                joined_lines,
+                browser_audio_authority,
             } => {
                 let forms = crate::creche::plan_workspace_forms(
                     current.evidence(),
                     &source,
+                    &HOST_OFFERS.with(|offers| offers.borrow().hosts().to_vec()),
                     &host_id,
                     &boot_id,
+                    &joined_lines,
+                    crate::creche::PlanningAuthority {
+                        browser_audio: browser_audio_authority,
+                    },
                 )?;
                 let realization = candidate
                     .propose(forms, &host_id, &boot_id)
@@ -378,7 +479,23 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .lull(&host_id, &boot_id, terminated_play.as_ref())
                     .map_err(debug)?;
             }
-            Request::Arrive
+            Request::Fulfill {
+                host_id,
+                boot_id,
+                authority_grant_id,
+                attribution,
+            } => {
+                crate::form_runner::workspace::require_empty()?;
+                candidate
+                    .fulfill(
+                        &host_id,
+                        &boot_id,
+                        authority_grant_id,
+                        attribution,
+                    )
+                    .map_err(debug)?;
+            }
+            Request::Arrive { .. }
             | Request::Restore { .. }
             | Request::OpenAdmitted { .. }
             | Request::InspectInvitation { .. } => {
@@ -390,13 +507,17 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         Ok(bytes)
     })
 }
-fn snapshot_value(body: &WorkspaceBody) -> Result<serde_json::Value, Refusal> {
+fn snapshot_value(
+    body: &WorkspaceBody,
+    offers: &[HostAdvertisement],
+) -> Result<serde_json::Value, Refusal> {
     serde_json::to_value(Snapshot {
         schema: "conduit.workspace/body@1",
         evidence: body.evidence(),
         realization: body.realization(),
         foreground: body.foreground(),
         foreground_flow: body.foreground_flow(),
+        current_host_offers: offers.to_vec(),
     })
     .map_err(|error| Refusal::new("EncodingFailure", error.to_string()))
 }
@@ -409,17 +530,26 @@ fn durable_value(
         evidence: body.evidence(),
         admission: admissions,
         foreground: body.foreground(),
+        pending_archives: body.pending_archives(),
     })
     .map_err(|error| Refusal::new("EncodingFailure", error.to_string()))
 }
 
 fn snapshot(body: &WorkspaceBody) -> Result<Vec<u8>, Refusal> {
+    snapshot_with_offers(body, &current_host_offers())
+}
+
+fn snapshot_with_offers(
+    body: &WorkspaceBody,
+    offers: &[HostAdvertisement],
+) -> Result<Vec<u8>, Refusal> {
     encode(&Snapshot {
         schema: "conduit.workspace/body@1",
         evidence: body.evidence(),
         realization: body.realization(),
         foreground: body.foreground(),
         foreground_flow: body.foreground_flow(),
+        current_host_offers: offers.to_vec(),
     })
 }
 fn encode(value: &impl Serialize) -> Result<Vec<u8>, Refusal> {
@@ -435,4 +565,27 @@ fn encode(value: &impl Serialize) -> Result<Vec<u8>, Refusal> {
 }
 fn debug(error: conduit_workspace_model::WorkspaceBodyError) -> Refusal {
     error.into()
+}
+
+fn current_host_offers() -> Vec<HostAdvertisement> {
+    HOST_OFFERS.with(|offers| offers.borrow().hosts().to_vec())
+}
+
+fn host_offer_refusal(error: conduit_workspace_model::CurrentHostOfferError) -> Refusal {
+    Refusal::new(
+        "HostOffer",
+        format!("current Host offer refused: {error:?}"),
+    )
+}
+
+fn validate_offer_bytes(offers: &CurrentHostOffers) -> Result<(), Refusal> {
+    let bytes = serde_json::to_vec(offers.hosts())
+        .map_err(|error| Refusal::new("HostOffer", error.to_string()))?;
+    if bytes.len() > HOST_OFFERS_BYTES {
+        return Err(Refusal::new(
+            "HostOffer.Bound",
+            "current Host offers exceed the Workspace observation bound",
+        ));
+    }
+    Ok(())
 }

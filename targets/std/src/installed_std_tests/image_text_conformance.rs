@@ -119,6 +119,7 @@ fn authored_image_text_runs_through_planner_and_production_kernel() {
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

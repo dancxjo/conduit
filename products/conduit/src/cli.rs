@@ -4,7 +4,12 @@ use std::path::PathBuf;
 
 /// Product command-line entrance for installed Conduit workflows.
 #[derive(Debug, Parser)]
-#[command(name = "conduit", about = "Run and inspect Conduit Forms")]
+#[command(
+    name = "conduit",
+    about = "Run Forms and grow a living Conduit Body",
+    long_about = "Run Forms and grow a living Conduit Body.\n\nUse `conduit body invite` to issue bounded joining authority, `conduit body accept` on an installed machine to prepare its signed admission request, and `conduit body admit` on the owning machine to commit membership and current presence. Use `conduit host obtain` to resolve a reviewed target release. Body binding remains separate from `conduit host carry`, which downloads, launches, writes, or flashes an exact artifact through an explicit carrier. Inspect durable identity and current runtime truth with `conduit host service status`.",
+    after_help = "BODY GROWTH\n  1. conduit body invite --state-dir <OWNER_STATE> > invitation.json\n  2. conduit body accept invitation.json --state-dir <JOINING_STATE> --authorize-join > request.json\n  3. conduit body admit request.json --state-dir <OWNER_STATE> --authorize-admission > receipt.json\n  4. conduit body complete-join receipt.json --state-dir <JOINING_STATE> --authorize-membership\n  5. conduit host obtain <TARGET> --catalog <CATALOG> --catalog-id <ID> --mirror <MIRROR> --cache <CACHE>\n  6. conduit host carry <CARRIER> --help\n\nInvitation, request, and receipt documents are bounded JSON suitable for standard input/output. Admission reports membership and current offers without creating a Plan or Play. Artifact preparation never implies carrier execution, boot, admission, Plan, or Play."
+)]
 pub(crate) struct Cli {
     #[command(subcommand)]
     pub(crate) command: Command,
@@ -12,6 +17,8 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// Enter Conduit Home through the native presentation available on this Host.
+    Home,
     /// Birth and provision a Body through the browser Crèche.
     Creche,
     /// Enter the current Body through the shared Patchbay front door.
@@ -82,6 +89,36 @@ pub(crate) enum PatchbayHost {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum HostCommand {
+    /// Install, run, or inspect the durable local Host owner.
+    Service {
+        #[command(subcommand)]
+        command: HostServiceCommand,
+    },
+    /// Obtain one target's reviewed release manifest from HTTPS or an offline mirror.
+    Obtain {
+        /// Reviewed target identity to obtain.
+        target: String,
+        /// Bounded catalog path or HTTPS URL.
+        #[arg(long)]
+        catalog: PathBuf,
+        /// Exact expected catalog identity from the installed release channel.
+        #[arg(long)]
+        catalog_id: String,
+        /// Local/air-gapped mirror root or HTTPS base URL.
+        #[arg(long)]
+        mirror: PathBuf,
+        /// Immutable content-addressed cache directory.
+        #[arg(long)]
+        cache: PathBuf,
+        /// Refuse catalogs at or below this generation.
+        #[arg(long, default_value_t = 0)]
+        minimum_generation: u64,
+    },
+    /// Carry an exact Body-bound artifact without rebuilding it.
+    Carry {
+        #[command(subcommand)]
+        command: CarrierCommand,
+    },
     Check {
         source: PathBuf,
     },
@@ -93,10 +130,188 @@ pub(crate) enum HostCommand {
         #[arg(long, default_value = "target/host-build")]
         output: PathBuf,
     },
+    /// Offer this already-running local Host to the browser Crèche.
+    Rendezvous {
+        /// Installed durable Host state owned by the running service.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Line carrier used to reach this running Host.
+        #[arg(long, value_enum, default_value_t = RendezvousCarrier::Websocket)]
+        carrier: RendezvousCarrier,
+        /// Stop a WebSocket carrier if the code is unused for this many seconds.
+        #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=3600))]
+        timeout_seconds: u64,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum CarrierCommand {
+    /// Report the exact reviewed carriers available for one selected target.
+    Availability {
+        /// One or more reviewed carrier descriptor documents for the selected target.
+        #[arg(required = true, num_args = 1..)]
+        descriptors: Vec<PathBuf>,
+    },
+    /// Copy the exact artifact without starting or writing a Host.
+    Download {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        destination: PathBuf,
+    },
+    /// Install and start an exact Body-bound native Host package locally.
+    InstallNative {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        /// Durable local Host state retained across service restarts.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicitly authorize installation and service start on this machine.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_install: bool,
+    },
+    /// Flash an exact Body-bound RP2040 UF2 to one confirmed BOOTSEL volume.
+    FlashUf2 {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        /// Mounted RP2040 BOOTSEL volume containing INFO_UF2.TXT.
+        volume: PathBuf,
+        /// Repeat the exact mounted volume path to prevent ambiguous device selection.
+        #[arg(long)]
+        confirm_volume: String,
+        /// Explicitly authorize writing firmware to the confirmed microcontroller.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_flash: bool,
+    },
+    /// Launch the exact artifact through the reviewed local VM profile.
+    LaunchVm {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_launch: bool,
+    },
+    /// Serve an exact Body-bound boot image over finite HTTP Boot.
+    ServeHttpBoot {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        /// Explicit network address to bind, such as 0.0.0.0:8080.
+        #[arg(long)]
+        bind: String,
+        #[arg(long, default_value_t = 1, value_parser = clap::value_parser!(u16).range(1..=64))]
+        maximum_requests: u16,
+        #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=3600))]
+        timeout_seconds: u64,
+        /// Explicitly authorize exposing this exact boot artifact on the selected network address.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_serve: bool,
+    },
+    /// Destructively write and verify one explicitly confirmed removable device.
+    WriteRemovable {
+        descriptor: PathBuf,
+        artifact: PathBuf,
+        source: PathBuf,
+        destination: PathBuf,
+        #[arg(long)]
+        confirm_destination: String,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_write: bool,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub(crate) enum RendezvousCarrier {
+    /// Local browser WebSocket Line.
+    Websocket,
+    /// Newline-framed serial stream on standard input and output.
+    Serial,
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum HostServiceCommand {
+    /// Verify and install one reviewed release bundle without replacing durable identity.
+    Install {
+        manifest: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
+    /// Run the durable Host in the foreground for a platform service manager.
+    Run {
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
+    /// Print the retained Host identity and current runtime status.
+    Status {
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Emit bounded machine-readable Host, Boot, and release identity truth.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Make this durable Host retain one exact validated Body biography.
+    OwnBody {
+        /// Exported `conduit.body/biography-evidence@2` document.
+        evidence: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
 }
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
+    /// Inspect the Body retained by this installed Host.
+    Status {
+        /// Installed durable Host state that owns or has joined the Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Emit bounded machine-readable Body, Host, Boot, and biography identity truth.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Issue one bounded invitation from the Body owned by this installed Host.
+    Invite {
+        /// Installed durable Host state that owns the Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Invitation lifetime; never exceeds the architectural maximum.
+        #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=600))]
+        ttl_seconds: u64,
+    },
+    /// Accept one bounded invitation on this installed Host and emit an admission request.
+    Accept {
+        /// Invitation JSON path, or `-` to read the exact document from standard input.
+        invitation: PathBuf,
+        /// Installed durable Host state that will join the invited Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicitly authorize this Host to request membership in the invited Body.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_join: bool,
+    },
+    /// Admit one signed request into the Body owned by this installed Host.
+    Admit {
+        /// Admission-request JSON path, or `-` to read the exact document from standard input.
+        request: PathBuf,
+        /// Installed durable Host state that owns the Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicitly authorize adding the requested Host as a Body Part.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_admission: bool,
+    },
+    /// Retain the owner's exact admission receipt as this Host's durable membership.
+    CompleteJoin {
+        /// Owner-issued `conduit.body/spawn-admission-receipt@1` document.
+        receipt: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicitly authorize retaining membership in the admitted Body.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_membership: bool,
+    },
     Check {
         source: PathBuf,
     },
@@ -119,14 +334,321 @@ pub(crate) enum InspectCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn installed_help_exposes_the_body_growth_workflow_without_repository_commands() {
+        let mut command = Cli::command();
+        let mut rendered = Vec::new();
+        command.write_long_help(&mut rendered).unwrap();
+        let help = String::from_utf8(rendered).unwrap();
+
+        for entrance in [
+            "conduit body invite",
+            "conduit body accept",
+            "conduit body admit",
+            "conduit body complete-join",
+            "conduit host obtain",
+            "conduit host carry",
+            "conduit host service status",
+        ] {
+            assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
+        }
+        assert!(help.contains("bounded JSON"));
+        assert!(help.contains("without creating a Plan or Play"));
+        assert!(help.contains("never implies carrier execution"));
+        assert!(!help.contains("xtask"));
+    }
 
     #[test]
     fn public_command_tree_parses() {
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit", "host", "carry", "availability", "download.json", "vm.json",
+            ])
+            .expect("carrier availability parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Carry {
+                    command: CarrierCommand::Availability { descriptors }
+                }
+            } if descriptors.len() == 2
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "body",
+                "complete-join",
+                "receipt.json",
+                "--state-dir",
+                "installed",
+                "--authorize-membership",
+            ])
+            .expect("joining-side membership completion parses")
+            .command,
+            Command::Body {
+                command: BodyCommand::CompleteJoin {
+                    authorize_membership: true,
+                    ..
+                }
+            }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "body",
+                "status",
+                "--state-dir",
+                "installed",
+                "--json",
+            ])
+            .expect("current Body status parses")
+            .command,
+            Command::Body {
+                command: BodyCommand::Status { state_dir, json: true }
+            } if state_dir == std::path::Path::new("installed")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "carry",
+                "download",
+                "carrier.json",
+                "artifact.json",
+                "spore.iso",
+                "download.iso",
+            ])
+            .expect("artifact-only carrier parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Carry {
+                    command: CarrierCommand::Download { destination, .. }
+                }
+            } if destination == std::path::Path::new("download.iso")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "carry",
+                "flash-uf2",
+                "carrier.json",
+                "artifact.json",
+                "spore.uf2",
+                "/media/RPI-RP2",
+                "--confirm-volume",
+                "/media/RPI-RP2",
+                "--authorize-flash",
+            ])
+            .expect("consequential RP2040 UF2 carrier parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Carry {
+                    command: CarrierCommand::FlashUf2 {
+                        volume,
+                        confirm_volume,
+                        authorize_flash: true,
+                        ..
+                    }
+                }
+            } if volume == std::path::Path::new("/media/RPI-RP2")
+                && confirm_volume == "/media/RPI-RP2"
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "carry",
+                "launch-vm",
+                "carrier.json",
+                "artifact.json",
+                "spore.iso",
+                "--authorize-launch",
+            ])
+            .expect("consequential VM carrier parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Carry {
+                    command: CarrierCommand::LaunchVm {
+                        authorize_launch: true,
+                        ..
+                    }
+                }
+            }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "carry",
+                "serve-http-boot",
+                "carrier.json",
+                "artifact.json",
+                "spore.iso",
+                "--bind",
+                "0.0.0.0:8080",
+                "--maximum-requests",
+                "2",
+                "--timeout-seconds",
+                "30",
+                "--authorize-serve",
+            ])
+            .expect("consequential HTTP Boot carrier parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Carry {
+                    command: CarrierCommand::ServeHttpBoot {
+                        bind,
+                        maximum_requests: 2,
+                        timeout_seconds: 30,
+                        authorize_serve: true,
+                        ..
+                    }
+                }
+            } if bind == "0.0.0.0:8080"
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "home"])
+                .expect("Home entrance parses")
+                .command,
+            Command::Home
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "obtain",
+                "conduitos/x86_64/pc",
+                "--catalog",
+                "release/catalog.json",
+                "--catalog-id",
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--mirror",
+                "release",
+                "--cache",
+                "installed-cache",
+            ])
+            .expect("installed target obtain entrance parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Obtain { target, .. }
+            } if target == "conduitos/x86_64/pc"
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "body",
+                "accept",
+                "-",
+                "--state-dir",
+                "installed-host",
+                "--authorize-join",
+            ])
+            .expect("scriptable Body invitation acceptance parses")
+            .command,
+            Command::Body {
+                command: BodyCommand::Accept {
+                    invitation,
+                    state_dir,
+                    authorize_join: true,
+                }
+            } if invitation == std::path::Path::new("-")
+                && state_dir == std::path::Path::new("installed-host")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "body",
+                "admit",
+                "-",
+                "--state-dir",
+                "body-owner",
+                "--authorize-admission",
+            ])
+            .expect("scriptable Body admission parses")
+            .command,
+            Command::Body {
+                command: BodyCommand::Admit {
+                    request,
+                    state_dir,
+                    authorize_admission: true,
+                }
+            } if request == std::path::Path::new("-")
+                && state_dir == std::path::Path::new("body-owner")
+        ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "creche"])
                 .expect("Crèche entrance parses")
                 .command,
             Command::Creche
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit", "host", "service", "own-body", "body.json", "--state-dir", "installed-host",
+            ])
+            .expect("durable Body ownership entrance parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Service {
+                    command: HostServiceCommand::OwnBody { evidence, state_dir }
+                }
+            } if evidence == std::path::Path::new("body.json")
+                && state_dir == std::path::Path::new("installed-host")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "service",
+                "status",
+                "--state-dir",
+                "installed-host",
+            ])
+            .expect("durable Host service entrance parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Service {
+                    command: HostServiceCommand::Status { state_dir, json: false }
+                }
+            } if state_dir == std::path::Path::new("installed-host")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "service",
+                "status",
+                "--state-dir",
+                "installed-host",
+                "--json",
+            ])
+            .expect("scriptable durable Host status parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Service {
+                    command: HostServiceCommand::Status { json: true, .. }
+                }
+            }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "rendezvous",
+                "--state-dir",
+                "installed-host",
+                "--timeout-seconds", "30"
+            ])
+                .expect("Host rendezvous entrance parses")
+                .command,
+            Command::Host {
+                command: HostCommand::Rendezvous {
+                    state_dir,
+                    carrier: RendezvousCarrier::Websocket,
+                    timeout_seconds: 30
+                }
+            } if state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "patchbay", "--on", "browser"])
@@ -256,6 +778,25 @@ mod tests {
             Command::Host {
                 command: HostCommand::Build { .. }
             }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "body",
+                "invite",
+                "--state-dir",
+                "installed-host",
+                "--ttl-seconds",
+                "30",
+            ])
+            .expect("scriptable Body invitation parses")
+            .command,
+            Command::Body {
+                command: BodyCommand::Invite {
+                    state_dir,
+                    ttl_seconds: 30,
+                }
+            } if state_dir == std::path::Path::new("installed-host")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "body", "show", "current.body.conduit"])

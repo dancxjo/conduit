@@ -1,6 +1,6 @@
 use conduit_host_fabrication::{
     build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
-    BuildInputs, PostBuildAction, SporeOutputKind,
+    BuildInputs, FabricationStrategy, PostBuildAction, SporeOutputKind,
 };
 use std::path::Path;
 
@@ -55,6 +55,16 @@ fn native_and_browser_are_not_flash_shaped() {
     );
     assert_eq!(browser.manifest.output, SporeOutputKind::BrowserBundle);
     assert_eq!(
+        browser.manifest.fabrication_strategy,
+        FabricationStrategy::BindReviewedSuperset
+    );
+    for specialized in [&clock_host, &serial_host] {
+        assert_eq!(
+            specialized.manifest.fabrication_strategy,
+            FabricationStrategy::DeterministicSpecializedBuild
+        );
+    }
+    assert_eq!(
         browser.manifest.post_build_actions,
         [PostBuildAction::Load, PostBuildAction::Launch]
     );
@@ -68,6 +78,57 @@ fn native_and_browser_are_not_flash_shaped() {
             .post_build_actions
             .contains(&PostBuildAction::Boot));
     }
+}
+
+#[test]
+fn every_target_declares_its_reviewed_ordinary_strategy() {
+    let packages = conduit_workspace_fabrication::package_set();
+    for descriptor in packages.target_descriptors() {
+        let expected = if descriptor.key() == "browser/wasm32/page" {
+            FabricationStrategy::BindReviewedSuperset
+        } else {
+            FabricationStrategy::DeterministicSpecializedBuild
+        };
+        assert_eq!(descriptor.strategy, expected, "{}", descriptor.key());
+    }
+}
+
+#[test]
+fn prebuilt_binding_needs_no_local_compiler_but_specialized_builds_do() {
+    let packages = conduit_workspace_fabrication::package_set();
+    let catalog = conduit_workspace_fabrication::catalog();
+    let checked = |source: &str| {
+        check_host_configuration(
+            parse_host_configuration_conduit(source).unwrap(),
+            &catalog,
+            &packages,
+        )
+        .unwrap()
+        .into_profile()
+    };
+    let inputs = BuildInputs {
+        source_identity: "release:reviewed-distribution".into(),
+        toolchain_available: false,
+    };
+
+    assert!(build_default_host_image(
+        checked(include_str!(
+            "../../../targets/browser/profiles/browser-page.host.conduit"
+        )),
+        &catalog,
+        &packages,
+        &inputs,
+    )
+    .is_ok());
+    assert!(build_default_host_image(
+        checked(include_str!(
+            "../../../targets/std/profiles/linux-clock.host.conduit"
+        )),
+        &catalog,
+        &packages,
+        &inputs,
+    )
+    .is_err());
 }
 
 #[test]

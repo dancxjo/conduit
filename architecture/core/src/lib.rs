@@ -42,6 +42,7 @@ mod resource_reference_access;
 mod route;
 mod shared_pool;
 mod state_delay;
+mod stream_sampling;
 pub use plan_fingerprint::compute_fragment_id;
 use plan_fingerprint::compute_plan_id;
 mod structured_info;
@@ -83,6 +84,7 @@ pub use resource_reference_access::*;
 pub use route::*;
 pub use shared_pool::*;
 pub use state_delay::*;
+pub use stream_sampling::*;
 pub use structured_info::*;
 pub use temporal::*;
 pub use temporal_civil_conversion::*;
@@ -598,6 +600,8 @@ pub struct PlannedConnection {
     pub value_kind: KindId,
     #[serde(default)]
     pub temporal: PortTemporal,
+    #[serde(default)]
+    pub pressure_policy: DeliveryPressurePolicy,
     /// Initially selected exact Line. Local Cords have no Line.
     #[serde(default)]
     pub selected_line: Option<AdmittedLine>,

@@ -14,6 +14,7 @@ use crate::display::DisplayError;
 use crate::product_journey::{JourneyProjection, JourneyStatus};
 
 mod arrival;
+mod home;
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
 mod projection;
@@ -21,6 +22,7 @@ mod scene;
 mod workspace;
 mod workspace_scene;
 pub use arrival::ArrivalInput;
+pub use home::{HomeInput, HomeView};
 mod semantics;
 #[cfg(any(test, feature = "native-compositor"))]
 pub use presenter::{FrontDoorPresenter, PresenterError};
@@ -55,6 +57,7 @@ pub struct FrontDoor {
     journey: Option<JourneyProjection>,
     connectivity: Option<ConnectivityProjection>,
     arrival: Option<arrival::Arrival>,
+    home: Option<home::Home>,
     refusal: Option<workspace::WorkspaceRefusal>,
     workspace: Option<crate::product_journey::WorkspaceProjection>,
     application_view: Option<conduit_presentation::ApplicationView>,
@@ -150,6 +153,7 @@ impl FrontDoor {
             journey: None,
             connectivity: None,
             arrival: None,
+            home: None,
             refusal: None,
             workspace: None,
             application_view: None,

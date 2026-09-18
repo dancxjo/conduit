@@ -44,6 +44,24 @@ not introduce a generic installed-IMAGE state.
 no Host, Boot, offer, Body, Plan, Play, membership, or authority. BUILD emits a
 build receipt and IMAGE evidence; it never emits a Born Sign.
 
+Every target descriptor declares its reviewed ordinary fabrication strategy:
+
+```text
+bind-reviewed-superset           bind an exact PROFILE to reviewed prebuilt bytes
+compose-sealed-providers         compose separately sealed Base/provider artifacts
+deterministic-specialized-build  invoke an explicit builder for selected machinery
+reviewed-hybrid                  use a reviewed combination of those routes
+```
+
+The resolved strategy is recorded in the BUILD manifest. It is catalog truth,
+not an instruction to compile on the initiating Body or destination Host.
+Today the browser package binds its reviewed superset distribution; the
+current hosted, ConduitOS, and embedded packages use explicit specialized
+builders. A future builder Host must advertise and be selected for that
+capability explicitly. Produced Hosts do not inherit build authority or a
+toolchain, and Conduit does not require a binary for every Base combination or
+an ambient plugin/DLL manager.
+
 ## Authored Host configurations
 
 ```text

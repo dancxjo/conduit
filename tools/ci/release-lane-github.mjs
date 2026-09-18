@@ -127,6 +127,7 @@ async function enact(snapshot, decision) {
     );
   }
 
+  let releaseAdmissionNeedsWake = false;
   for (const action of decision.actions.close) {
     const pull = snapshot.pulls.find((candidate) => candidate.number === action.prNumber);
     if (!pull || pull.head.sha !== action.headSha) continue;
@@ -136,6 +137,17 @@ async function enact(snapshot, decision) {
       `This release never materially started and a newer queued release superseded it. Exact head: \`${action.headSha}\`.`,
     );
     await api(`/pulls/${action.prNumber}`, { method: "PATCH", ...body({ state: "closed" }) });
+    releaseAdmissionNeedsWake = true;
+  }
+
+  // GITHUB_TOKEN mutations intentionally do not recursively start workflows.
+  // Closing a release owner may unblock already-proven dev work, so make that
+  // state transition an explicit wake-up instead of waiting for a cron poll.
+  if (releaseAdmissionNeedsWake) {
+    await api("/actions/workflows/promote-dev.yml/dispatches", {
+      method: "POST",
+      ...body({ ref: "main" }),
+    });
   }
 
   for (const action of decision.actions.escalate) {

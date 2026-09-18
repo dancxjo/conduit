@@ -87,6 +87,11 @@ fn target(
             .collect(),
         toolchain_identity: toolchain.into(),
         builder_adapter: builder.into(),
+        strategy: if family == "browser" {
+            crate::FabricationStrategy::BindReviewedSuperset
+        } else {
+            crate::FabricationStrategy::DeterministicSpecializedBuild
+        },
         deployment_adapter: deployment.map(Into::into),
         outputs,
         default_output: match family {

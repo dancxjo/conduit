@@ -17,6 +17,59 @@ impl TourSession {
             engine::BrowserHostEffect::AudioCue => Ok(TourHostEffect::AudioCue(Box::new(
                 super::audio::describe(self, placement, pending.request.request.0),
             ))),
+            engine::BrowserHostEffect::AudioCapture => Ok(TourHostEffect::AudioIo(Box::new(
+                protocol::TourAudioIoEffect {
+                    schema: "conduit.browser/pcm-audio-effect@1",
+                    effect_kind: "audio-capture",
+                    source_document_id: fragment.source_document_id.as_str().into(),
+                    checked_form_id: fragment.checked_form_id.as_str().into(),
+                    expanded_form_id: fragment.expanded_form_id.as_str().into(),
+                    plan_id: fragment.plan_id.as_str().into(),
+                    fragment_id: fragment.fragment_id.as_str().into(),
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: pending.request.request.0,
+                    maximum_output_bytes: Some(
+                        conduit_audio::MAXIMUM_PCM_FRAME_BYTES
+                            + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
+                    ),
+                    maximum_gain_millionths: None,
+                    frame_hex: None,
+                    source_interaction: self.source_interaction.clone(),
+                },
+            ))),
+            engine::BrowserHostEffect::PcmPlayback { frame } => Ok(TourHostEffect::AudioIo(
+                Box::new(protocol::TourAudioIoEffect {
+                    schema: "conduit.browser/pcm-audio-effect@1",
+                    effect_kind: "pcm-playback",
+                    source_document_id: fragment.source_document_id.as_str().into(),
+                    checked_form_id: fragment.checked_form_id.as_str().into(),
+                    expanded_form_id: fragment.expanded_form_id.as_str().into(),
+                    plan_id: fragment.plan_id.as_str().into(),
+                    fragment_id: fragment.fragment_id.as_str().into(),
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: pending.request.request.0,
+                    maximum_output_bytes: None,
+                    maximum_gain_millionths: Some(
+                        crate::installed_browser::audio_io::MAXIMUM_SAFE_GAIN_MILLIONTHS,
+                    ),
+                    frame_hex: Some(hex_bytes(frame)),
+                    source_interaction: self.source_interaction.clone(),
+                }),
+            )),
+            engine::BrowserHostEffect::PitchTone { hertz } => Ok(TourHostEffect::PitchTone(
+                Box::new(super::audio::describe_pitch(
+                    self,
+                    placement,
+                    pending.request.request.0,
+                    *hertz,
+                )),
+            )),
             engine::BrowserHostEffect::Snapshot { .. } => {
                 let request = engine::resource_effect::describe(&self.scheduler, pending)?;
                 Ok(TourHostEffect::Snapshot(Box::new(
@@ -204,4 +257,14 @@ impl TourSession {
             }
         }
     }
+}
+
+fn hex_bytes(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for &byte in bytes {
+        encoded.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        encoded.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
+    }
+    encoded
 }

@@ -2,27 +2,39 @@ use super::*;
 use crate::{BodyState, Wake, WakeLifecycleEvent};
 
 impl BodyBiographyEvidence {
-    /// Remove one oldest completed Wake from the retained exact window. The
-    /// operation is loss-explicit and preserves the birth event, current Body
-    /// state, workload history, and a monotonic sequence boundary.
-    pub fn compact_oldest_terminal_wake(&mut self) -> Result<bool, BodyBiographyError> {
+    /// Seal and remove one oldest completed Wake from the active window.
+    /// The caller must durably retain the returned segment before committing
+    /// the updated active evidence.
+    pub fn seal_oldest_terminal_wake(
+        &mut self,
+    ) -> Result<Option<BodyBiographyArchiveSegment>, BodyBiographyError> {
+        // Remove one oldest completed Wake from the retained exact window. The
+        // operation preserves birth, current truth, and a monotonic boundary.
         self.validate()?;
+        let claimed_final_wake_id = self.body.events.iter().find_map(|event| match event {
+            BodyLifecycleEvent::Fulfilled {
+                final_wake_id: Some(wake_id),
+                ..
+            } => Some(wake_id),
+            _ => None,
+        });
         let Some((index, wake)) = self
             .wakes
             .iter()
             .enumerate()
             .find(|(_, wake)| {
-                matches!(
-                    wake.lifecycle,
-                    crate::WakeLifecycle::Lulled | crate::WakeLifecycle::Failed
-                )
+                claimed_final_wake_id != Some(&wake.wake_id)
+                    && matches!(
+                        wake.lifecycle,
+                        crate::WakeLifecycle::Lulled | crate::WakeLifecycle::Failed
+                    )
             })
             .map(|(index, wake)| (index, wake.clone()))
         else {
-            return Ok(false);
+            return Ok(None);
         };
         if matches!(&self.body.state, BodyState::Awake { wake_id } if wake_id == &wake.wake_id) {
-            return Ok(false);
+            return Ok(None);
         }
         let removed: Vec<_> = self
             .records
@@ -37,11 +49,29 @@ impl BodyBiographyEvidence {
         if removed.is_empty() {
             return Err(BodyBiographyError::InvalidEvidence);
         }
+        let removed_body_events: Vec<_> = self
+            .body
+            .events
+            .iter()
+            .filter(|event| match event {
+                BodyLifecycleEvent::Woke { wake_id, .. }
+                | BodyLifecycleEvent::LullRetained { wake_id, .. } => wake_id == &wake.wake_id,
+                _ => false,
+            })
+            .cloned()
+            .collect();
+        let segment = BodyBiographyArchiveSegment::seal(
+            self,
+            removed.clone(),
+            vec![wake.clone()],
+            removed_body_events,
+            Vec::new(),
+        )?;
         let first_wake_id = self
             .compaction
             .as_ref()
-            .map(|value| value.first_wake_id.clone())
-            .unwrap_or_else(|| wake.wake_id.clone());
+            .and_then(|value| value.first_wake_id.clone())
+            .or_else(|| Some(wake.wake_id.clone()));
         let prior_wakes = self.compaction.as_ref().map_or(0, |value| value.wakes);
         let prior_records = self.compaction.as_ref().map_or(0, |value| value.records);
         let through = removed.last().expect("non-empty removed records");
@@ -69,9 +99,17 @@ impl BodyBiographyEvidence {
             through_sequence: through.sequence,
             through_sign_id: through.sign_id.clone(),
             first_wake_id,
+            sealed_segments: segment.ordinal,
+            archive_head_digest: Some(segment.digest),
         });
         self.validate()?;
-        Ok(true)
+        Ok(Some(segment))
+    }
+
+    #[deprecated(note = "persist the segment returned by seal_oldest_terminal_wake")]
+    pub fn compact_oldest_terminal_wake(&mut self) -> Result<bool, BodyBiographyError> {
+        self.seal_oldest_terminal_wake()
+            .map(|segment| segment.is_some())
     }
 
     /// Retain an exact extension of one Wake and its Body lifecycle atomically.
@@ -205,6 +243,12 @@ impl BodyBiographyEvidence {
             sign_id.clone(),
         )
         .map_err(invalid)?;
+        if let Some(checkpoint) = &self.body.history_checkpoint {
+            body.workset = checkpoint.workset.clone();
+            body.workload_revision = checkpoint.workload_revision;
+            body.history_checkpoint = Some(checkpoint.clone());
+            body.validate().map_err(invalid)?;
+        }
         let mut consumed = vec![0usize; self.wakes.len()];
         let mut begun = 0usize;
         for record in self.records.iter().skip(1) {
@@ -315,6 +359,25 @@ impl BodyBiographyEvidence {
                     }
                     body = body
                         .retain_after_lull(wake, record.sign_id.clone())
+                        .map_err(invalid)?;
+                }
+                BodyBiographyRecordKind::Fulfilled {
+                    final_wake_id,
+                    authority_grant_id,
+                    attribution,
+                    settled_obligations,
+                    ..
+                } => {
+                    body = body
+                        .fulfill(
+                            crate::BodyFulfillment {
+                                final_wake_id: final_wake_id.clone(),
+                                authority_grant_id: authority_grant_id.clone(),
+                                attribution: attribution.clone(),
+                                settled_obligations: settled_obligations.clone(),
+                            },
+                            record.sign_id.clone(),
+                        )
                         .map_err(invalid)?;
                 }
                 _ => {}

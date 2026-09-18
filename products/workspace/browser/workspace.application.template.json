@@ -21,11 +21,11 @@
         },
         {
           "role": "creche-lifecycle",
-          "specifier": "../../creche/browser/creche-lifecycle.mjs"
+          "specifier": "./body-bootstrap.mjs"
         },
         {
           "role": "creche-form-selection",
-          "specifier": "../../creche/browser/creche-form-selection.mjs"
+          "specifier": "./reviewed-form-selection.mjs"
         },
         {
           "role": "workspace-session",
@@ -38,6 +38,10 @@
         {
           "role": "workspace-play",
           "specifier": "./workspace-play.mjs"
+        },
+        {
+          "role": "workspace-voice-play",
+          "specifier": "./workspace-voice-play.mjs"
         },
         {
           "role": "browser-body-continuity",
@@ -54,14 +58,32 @@
         {
           "role": "workspace-surface",
           "specifier": "./workspace-surface.mjs"
+        },
+        {
+          "role": "body-tutorial",
+          "specifier": "./body-tutorial.mjs"
         }
       ]
+    },
+    {
+      "role": "body-tutorial",
+      "kind": "module",
+      "path": "body-tutorial.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": []
     },
     {
       "role": "reviewed-form-inventory",
       "kind": "content",
       "path": "forms/initial-body.conduit",
       "maximum_bytes": 16384,
+      "dependencies": []
+    },
+    {
+      "role": "reviewed-form-catalog",
+      "kind": "content",
+      "path": "forms/workspace-catalog.json",
+      "maximum_bytes": 131072,
       "dependencies": []
     },
     {
@@ -98,7 +120,7 @@
     {
       "role": "creche-lifecycle",
       "kind": "module",
-      "path": "creche-lifecycle.mjs",
+      "path": "body-bootstrap.mjs",
       "maximum_bytes": 24576,
       "dependencies": [
         {
@@ -107,14 +129,14 @@
         },
         {
           "role": "creche-form-selection",
-          "specifier": "./creche-form-selection.mjs"
+          "specifier": "./reviewed-form-selection.mjs"
         }
       ]
     },
     {
       "role": "creche-form-selection",
       "kind": "module",
-      "path": "creche-form-selection.mjs",
+      "path": "reviewed-form-selection.mjs",
       "maximum_bytes": 8192,
       "dependencies": []
     },
@@ -155,7 +177,42 @@
       "role": "workspace-membership",
       "kind": "module",
       "path": "workspace-membership.mjs",
+      "maximum_bytes": 20480,
+      "dependencies": [
+        {
+          "role": "creche-rendezvous",
+          "specifier": "../../creche/browser/creche-rendezvous.mjs"
+        },
+        {
+          "role": "workspace-host-configuration",
+          "specifier": "./workspace-host-configuration.mjs"
+        }
+      ]
+    },
+    {
+      "role": "workspace-host-configuration",
+      "kind": "module",
+      "path": "workspace-host-configuration.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "browser-host-configuration",
+          "specifier": "../../creche/browser/creche-browser-configuration.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-host-configuration",
+      "kind": "module",
+      "path": "browser-host-configuration.mjs",
       "maximum_bytes": 16384,
+      "dependencies": []
+    },
+    {
+      "role": "creche-rendezvous",
+      "kind": "module",
+      "path": "creche-rendezvous.mjs",
+      "maximum_bytes": 24576,
       "dependencies": []
     },
     {
@@ -170,13 +227,6 @@
       "kind": "style",
       "path": "workspace.css",
       "maximum_bytes": 32768,
-      "dependencies": []
-    },
-    {
-      "role": "resident-tour-style",
-      "kind": "style",
-      "path": "resident-tour.css",
-      "maximum_bytes": 8192,
       "dependencies": []
     },
     {
@@ -199,6 +249,41 @@
       "dependencies": []
     },
     {
+      "role": "workspace-voice-play",
+      "kind": "module",
+      "path": "workspace-voice-play.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "browser-remote-fragment",
+          "specifier": "../../../targets/browser/host/assets/browser-remote-fragment.mjs"
+        },
+        {
+          "role": "browser-remote-voice",
+          "specifier": "../../../targets/browser/host/assets/browser-remote-voice.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-remote-fragment",
+      "kind": "module",
+      "path": "browser-remote-fragment.mjs",
+      "maximum_bytes": 16384,
+      "dependencies": []
+    },
+    {
+      "role": "browser-remote-voice",
+      "kind": "module",
+      "path": "browser-remote-voice.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "browser-pcm-audio",
+          "specifier": "./browser-pcm-audio.mjs"
+        }
+      ]
+    },
+    {
       "role": "browser-body-host",
       "kind": "module",
       "path": "browser-body-host.mjs",
@@ -219,6 +304,10 @@
         {
           "role": "browser-audio-cue",
           "specifier": "./browser-audio-cue.mjs"
+        },
+        {
+          "role": "browser-pcm-audio",
+          "specifier": "./browser-pcm-audio.mjs"
         },
         {
           "role": "application-presentation",
@@ -256,7 +345,7 @@
       "role": "browser-form-effects",
       "kind": "module",
       "path": "browser-form-effects.mjs",
-      "maximum_bytes": 8192,
+      "maximum_bytes": 16384,
       "dependencies": []
     },
     {
@@ -283,6 +372,18 @@
       "kind": "module",
       "path": "browser-audio-cue.mjs",
       "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "browser-form-effects",
+          "specifier": "./browser-form-effects.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-pcm-audio",
+      "kind": "module",
+      "path": "browser-pcm-audio.mjs",
+      "maximum_bytes": 16384,
       "dependencies": [
         {
           "role": "browser-form-effects",

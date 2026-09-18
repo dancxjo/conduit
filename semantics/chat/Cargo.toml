@@ -4,15 +4,24 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-ai = { path = "../ai", optional = true, default-features = false }
+conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-core = { path = "../../architecture/core" }
 conduit-form = { path = "../../architecture/form", optional = true }
 conduit-net = { path = "../net" }
 conduit-presentation = { path = "../presentation", default-features = false }
+conduit-text = { path = "../text" }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+serde-json-core = "0.6"
+sha2 = { version = "0.10", default-features = false }
 
 [features]
 default = []
 form-catalog = [
+    "dep:conduit-ai",
     "dep:conduit-form",
+    "conduit-ai/form-catalog",
     "conduit-net/form-catalog",
     "conduit-presentation/form-catalog",
 ]
@@ -20,3 +29,8 @@ form-catalog = [
 [dev-dependencies]
 conduit-form = { path = "../../architecture/form" }
 conduit-planner = { path = "../../architecture/planner" }
+conduit-semantic-catalog = { path = "../catalog" }
+
+[[test]]
+name = "body_chat"
+required-features = ["form-catalog"]

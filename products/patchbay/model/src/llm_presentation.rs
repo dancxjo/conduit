@@ -44,6 +44,7 @@ pub struct LlmPatchbayTruth<'a> {
     pub model_offer: Option<&'a LocalModelOffer>,
     pub activity: LlmGearActivity,
     pub result: Option<&'a ModelDerivedResult>,
+    pub generated_flow: Option<&'a conduit_ai::GeneratedTextFlowEvidence>,
     pub candidate_form: Option<&'a CandidateFormInspection>,
     pub proposals: &'a [ModelEffectProposal],
     pub decisions: &'a [ProposalDecision],
@@ -183,6 +184,28 @@ pub fn project_llm_patchbay(
 
     append_realization(&mut content, truth);
     append_result(&mut content, truth)?;
+    if let Some(flow) = truth.generated_flow {
+        content.text_property(
+            &truth.gear_identity,
+            "generated-flow-terminal",
+            format!("{:?}", flow.terminal),
+        );
+        content.text_property(
+            &truth.gear_identity,
+            "generated-flow-chunks",
+            flow.chunks.to_string(),
+        );
+        content.text_property(
+            &truth.gear_identity,
+            "generated-flow-bytes",
+            flow.generated_bytes.to_string(),
+        );
+        content.text_property(
+            &truth.gear_identity,
+            "generated-private-text-retained",
+            flow.retained_private_text.to_string(),
+        );
+    }
     append_candidate(&mut content, truth)?;
     append_request_stages(&mut content, truth)?;
 
@@ -224,6 +247,11 @@ fn validate_truth(truth: &LlmPatchbayTruth<'_>) -> Result<(), LlmPresentationErr
         if result.provenance != ModelResultProvenance::ModelDerived {
             return Err(LlmPresentationError::ResultMismatch);
         }
+    }
+    if truth.generated_flow.is_some()
+        && truth.contract.kind_id.as_str() != conduit_ai::LLM_STREAM_GENERATE_KIND
+    {
+        return Err(LlmPresentationError::ContractMismatch);
     }
     Ok(())
 }

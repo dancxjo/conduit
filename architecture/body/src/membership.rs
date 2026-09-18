@@ -35,6 +35,14 @@ pub struct PartMembership {
     pub current: Option<AuthenticatedHostObservation>,
 }
 
+/// Exact current membership state at the boundary before the retained event
+/// suffix. Older events remain in digest-linked biography archive segments.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BodyMembershipCheckpoint {
+    pub revision: BodyMembershipRevision,
+    pub parts: Vec<PartMembership>,
+}
+
 impl PartMembership {
     pub fn is_present(&self) -> bool {
         self.state == MembershipState::Admitted && self.current.is_some()
@@ -70,7 +78,11 @@ pub struct BodyMembership {
     pub body_id: BodyId,
     pub revision: BodyMembershipRevision,
     pub parts: Vec<PartMembership>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub checkpoint: Option<BodyMembershipCheckpoint>,
     pub events: Vec<MembershipEvent>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fulfilled_sign_id: Option<SignId>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -90,6 +102,7 @@ pub enum MembershipRefusal {
     StaleOfferGeneration,
     ObservationMismatch,
     MalformedState,
+    BodyFulfilled,
 }
 
 impl From<BodyLifecycleError> for MembershipRefusal {
@@ -109,7 +122,9 @@ impl BodyMembership {
             body_id,
             revision: BodyMembershipRevision(0),
             parts: Vec::new(),
+            checkpoint: None,
             events: Vec::new(),
+            fulfilled_sign_id: None,
         })
     }
 
@@ -254,15 +269,24 @@ impl BodyMembership {
 
     pub fn validate(&self) -> Result<(), MembershipRefusal> {
         validate_ids(&[self.body_id.as_str()])?;
+        if let Some(sign_id) = &self.fulfilled_sign_id {
+            validate_ids(&[sign_id.as_str()])?;
+        }
         if self.parts.len() > MAX_BODY_PARTS || self.events.len() > MAX_MEMBERSHIP_EVENTS {
             return Err(MembershipRefusal::MalformedState);
         }
-        if self.events.len() as u64 != self.revision.0 {
+        let base_revision = self
+            .checkpoint
+            .as_ref()
+            .map_or(0, |checkpoint| checkpoint.revision.0);
+        if self.events.len() as u64 != self.revision.0.saturating_sub(base_revision)
+            || base_revision > self.revision.0
+        {
             return Err(MembershipRefusal::MalformedState);
         }
         for (index, event) in self.events.iter().enumerate() {
             if event.body_id != self.body_id
-                || event.revision != BodyMembershipRevision(index as u64 + 1)
+                || event.revision != BodyMembershipRevision(base_revision + index as u64 + 1)
                 || event.change_id != self.change_id(&event.part_id, &event.sign_id, event.revision)
             {
                 return Err(MembershipRefusal::MalformedState);
@@ -285,23 +309,56 @@ impl BodyMembership {
                 return Err(MembershipRefusal::DuplicateSign);
             }
         }
-        let replayed = replay_events(&self.body_id, &self.events)?;
+        let base_parts = self
+            .checkpoint
+            .as_ref()
+            .map_or_else(Vec::new, |checkpoint| checkpoint.parts.clone());
+        validate_parts(&base_parts)?;
+        let replayed = replay_events(&self.body_id, base_parts, &self.events)?;
         if replayed != self.parts {
             return Err(MembershipRefusal::MalformedState);
         }
-        for (index, part) in self.parts.iter().enumerate() {
-            validate_ids(&[part.part_id.as_str()])?;
-            if self.parts[..index]
-                .iter()
-                .any(|prior| prior.part_id == part.part_id)
-                || (part.state == MembershipState::Revoked && part.current.is_some())
-            {
-                return Err(MembershipRefusal::MalformedState);
-            }
-            if let Some(observation) = &part.current {
-                validate_observation(observation)?;
-            }
+        validate_parts(&self.parts)?;
+        Ok(())
+    }
+
+    /// Move the complete retained event prefix behind an exact checkpoint.
+    /// The caller must seal and durably retain the returned events before
+    /// committing this newer active membership state.
+    pub fn checkpoint_events(&mut self) -> Result<Vec<MembershipEvent>, MembershipRefusal> {
+        self.validate()?;
+        if self.events.is_empty() {
+            return Ok(Vec::new());
         }
+        let archived = core::mem::take(&mut self.events);
+        self.checkpoint = Some(BodyMembershipCheckpoint {
+            revision: self.revision,
+            parts: self.parts.clone(),
+        });
+        self.validate()?;
+        Ok(archived)
+    }
+
+    /// Fence all future membership mutation to the exact terminal Body Sign.
+    /// This changes no Part truth; settlement/revocation must happen first.
+    pub fn seal_fulfilled(&mut self, body: &crate::Body) -> Result<(), MembershipRefusal> {
+        self.validate()?;
+        body.validate()
+            .map_err(|_| MembershipRefusal::MalformedState)?;
+        if body.body_id != self.body_id {
+            return Err(MembershipRefusal::WrongBody);
+        }
+        let crate::BodyState::Fulfilled { sign_id } = &body.state else {
+            return Err(MembershipRefusal::MalformedState);
+        };
+        if self
+            .fulfilled_sign_id
+            .as_ref()
+            .is_some_and(|prior| prior != sign_id)
+        {
+            return Err(MembershipRefusal::MalformedState);
+        }
+        self.fulfilled_sign_id = Some(sign_id.clone());
         Ok(())
     }
 
@@ -313,6 +370,9 @@ impl BodyMembership {
         sign_id: &SignId,
     ) -> Result<(), MembershipRefusal> {
         self.validate()?;
+        if self.fulfilled_sign_id.is_some() {
+            return Err(MembershipRefusal::BodyFulfilled);
+        }
         validate_ids(&[body_id.as_str(), part_id.as_str(), sign_id.as_str()])?;
         if body_id != &self.body_id {
             return Err(MembershipRefusal::WrongBody);
@@ -364,9 +424,9 @@ impl BodyMembership {
 
 fn replay_events(
     body_id: &BodyId,
+    mut parts: Vec<PartMembership>,
     events: &[MembershipEvent],
 ) -> Result<Vec<PartMembership>, MembershipRefusal> {
-    let mut parts: Vec<PartMembership> = Vec::new();
     for event in events {
         match &event.kind {
             MembershipEventKind::Admitted { proof_id } => {
@@ -421,6 +481,26 @@ fn replay_events(
         }
     }
     Ok(parts)
+}
+
+fn validate_parts(parts: &[PartMembership]) -> Result<(), MembershipRefusal> {
+    if parts.len() > MAX_BODY_PARTS {
+        return Err(MembershipRefusal::MalformedState);
+    }
+    for (index, part) in parts.iter().enumerate() {
+        validate_ids(&[part.part_id.as_str()])?;
+        if parts[..index]
+            .iter()
+            .any(|prior| prior.part_id == part.part_id)
+            || (part.state == MembershipState::Revoked && part.current.is_some())
+        {
+            return Err(MembershipRefusal::MalformedState);
+        }
+        if let Some(observation) = &part.current {
+            validate_observation(observation)?;
+        }
+    }
+    Ok(())
 }
 
 fn replay_part_mut<'a>(

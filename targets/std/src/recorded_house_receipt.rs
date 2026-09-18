@@ -1,5 +1,17 @@
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct RecordedHouseProofReceipt {
+    /// Identity of the source document actually checked for this proof run.
+    pub executed_source_document_id: String,
+    /// Identity of the exact checked Form actually planned for this proof run.
+    pub executed_checked_form_id: String,
+    /// Honest provenance for the semantic topology behind the identities above.
+    pub semantic_topology_origin: String,
+    /// Reviewed entry Form selected from the checked proof source.
+    pub executed_form_name: String,
+    /// Exact reviewed source document checked, planned, and executed by this run.
+    pub executed_source: String,
+    /// Checked-in sources whose exact concatenation produced the source identity.
+    pub reviewed_source_paths: Vec<String>,
     pub plan_id: String,
     pub play_id: String,
     pub whisper_implementation_id: String,

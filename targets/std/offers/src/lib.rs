@@ -78,12 +78,18 @@ mod signal;
 pub use signal::*;
 mod house_conversation;
 pub use house_conversation::*;
+mod body_chat;
+pub use body_chat::*;
 mod model_text;
 pub use model_text::*;
 mod speech_recognition;
 pub use speech_recognition::*;
+mod speech_commit;
+pub use speech_commit::*;
 mod speech_synthesis;
 pub use speech_synthesis::*;
+mod conversation_commit;
+pub use conversation_commit::*;
 mod microphone;
 pub use microphone::*;
 

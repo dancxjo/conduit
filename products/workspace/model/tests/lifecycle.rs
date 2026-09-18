@@ -3,12 +3,96 @@ use conduit_body::{
     BodyPlayIdentity, BodyState, MembershipProofId, PartId, ResidentForm, WakeLifecycle,
 };
 use conduit_core::{
-    BootId, ExpandedFormId, FormIdentity, HostId, OfferGeneration, bind_sign, seal_plan,
+    AuthorityGrantId, BootId, ExpandedFormId, FormIdentity, HostAdvertisement, HostId,
+    HostProfileId, OfferGeneration, PROTOCOL_VERSION, bind_sign, seal_plan,
 };
-use conduit_workspace_model::{WorkspaceBody, WorkspaceBodyError};
+use conduit_workspace_model::{
+    CurrentHostOfferError, CurrentHostOffers, WorkspaceBody, WorkspaceBodyError,
+};
 
 fn host() -> HostId {
     "host/here".into()
+}
+
+#[test]
+fn explicit_fulfillment_is_terminal_attributable_and_inspectable_after_restore() {
+    let mut body = born();
+    body.fulfill(
+        &host(),
+        &boot(),
+        AuthorityGrantId::from("grant/operator-finish"),
+        "operator/alice".into(),
+    )
+    .unwrap();
+
+    assert!(matches!(
+        body.evidence().body.state,
+        BodyState::Fulfilled { .. }
+    ));
+    assert!(body.evidence().membership.fulfilled_sign_id.is_some());
+    let last = body.evidence().records.last().unwrap();
+    assert!(matches!(
+        &last.kind,
+        conduit_body::BodyBiographyRecordKind::Fulfilled {
+            authority_grant_id,
+            attribution,
+            settled_obligations,
+            ..
+        } if authority_grant_id.as_str() == "grant/operator-finish"
+            && attribution == "operator/alice"
+            && settled_obligations.len() == 1
+            && settled_obligations[0].obligation_id == "obligation/workspace-runtime-empty"
+    ));
+
+    assert_eq!(
+        body.admit_form(0, form("notes"), &host(), &boot()),
+        Err(WorkspaceBodyError::Lifecycle(
+            conduit_body::BodyLifecycleError::Fulfilled
+        ))
+    );
+    assert_eq!(
+        body.fulfill(
+            &host(),
+            &boot(),
+            AuthorityGrantId::from("grant/operator-finish"),
+            "operator/alice".into(),
+        ),
+        Err(WorkspaceBodyError::Lifecycle(
+            conduit_body::BodyLifecycleError::Fulfilled
+        ))
+    );
+    let restored: BodyBiographyEvidence =
+        serde_json::from_str(&serde_json::to_string(body.evidence()).unwrap()).unwrap();
+    let restored = WorkspaceBody::open(restored).unwrap();
+    assert!(matches!(
+        restored.evidence().body.state,
+        BodyState::Fulfilled { .. }
+    ));
+}
+
+#[test]
+fn fulfillment_refuses_until_the_current_play_is_retired() {
+    let mut body = born();
+    let play = start(&mut body);
+    let before = body.evidence().clone();
+    assert_eq!(
+        body.fulfill(
+            &host(),
+            &boot(),
+            AuthorityGrantId::from("grant/operator-finish"),
+            "operator/alice".into(),
+        ),
+        Err(WorkspaceBodyError::NotLulled)
+    );
+    assert_eq!(body.evidence(), &before);
+    body.lull(&host(), &boot(), Some(&play)).unwrap();
+    body.fulfill(
+        &host(),
+        &boot(),
+        AuthorityGrantId::from("grant/operator-finish"),
+        "operator/alice".into(),
+    )
+    .unwrap();
 }
 fn boot() -> BootId {
     "boot/one".into()
@@ -62,6 +146,18 @@ fn born() -> WorkspaceBody {
         .unwrap();
     WorkspaceBody::open(evidence).unwrap()
 }
+fn advertisement(host_id: HostId, boot_id: BootId, generation: u64) -> HostAdvertisement {
+    HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id,
+        boot_id,
+        offer_generation: OfferGeneration(generation),
+        profile: HostProfileId::from("test/current-offers@1"),
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    }
+}
 fn plans(body: &WorkspaceBody) -> Vec<BodyFormPlan> {
     body.evidence()
         .body
@@ -93,6 +189,41 @@ fn start(body: &mut WorkspaceBody) -> BodyPlayIdentity {
         .unwrap();
     body.started(&host(), &boot(), play.clone(), wake).unwrap();
     play
+}
+
+fn persist_archives(body: &mut WorkspaceBody) {
+    let Some(head) = body.pending_archives().last() else {
+        return;
+    };
+    head.validate_as_head_of(body.evidence()).unwrap();
+    let digest = head.digest;
+    body.acknowledge_archives(digest).unwrap();
+}
+
+#[test]
+fn current_host_offers_require_exact_membership_and_are_reconciled_after_boot_loss() {
+    let body = born();
+    let mut offers = CurrentHostOffers::new();
+    offers
+        .observe(body.evidence(), advertisement(host(), boot(), 1))
+        .unwrap();
+    assert_eq!(offers.hosts().len(), 1);
+    assert_eq!(
+        offers.observe(
+            body.evidence(),
+            advertisement(host(), "boot/stale".into(), 1)
+        ),
+        Err(CurrentHostOfferError::NotCurrentMember)
+    );
+    assert_eq!(
+        offers.observe(body.evidence(), advertisement(host(), boot(), 2)),
+        Err(CurrentHostOfferError::NotCurrentMember)
+    );
+    let resumed =
+        WorkspaceBody::resume_here(body.evidence().clone(), &host(), &"boot/restarted".into())
+            .unwrap();
+    offers.reconcile(resumed.evidence());
+    assert!(offers.hosts().is_empty());
 }
 
 #[test]
@@ -177,6 +308,7 @@ fn repeated_refused_starts_compact_history_without_exhausting_the_body() {
     for _ in 0..64 {
         body.propose(plans(&body), &host(), &boot()).unwrap();
         body.lull(&host(), &boot(), None).unwrap();
+        persist_archives(&mut body);
         body.evidence().validate().unwrap();
     }
     assert_eq!(body.evidence().body_id, identity);
@@ -196,6 +328,7 @@ fn repeated_started_plays_compact_without_growing_the_retained_window() {
     for _ in 0..32 {
         let play = start(&mut body);
         body.lull(&host(), &boot(), Some(&play)).unwrap();
+        persist_archives(&mut body);
         body.evidence().validate().unwrap();
         assert!(body.evidence().body.sign_ids.len() <= conduit_body::MAX_BODY_SIGNS);
         assert!(body.evidence().wakes.len() <= conduit_body::MAX_BODY_BIOGRAPHY_WAKES);
@@ -217,6 +350,160 @@ fn repeated_started_plays_compact_without_growing_the_retained_window() {
         .unwrap();
     assert!(!startup.eligible(conduit_body::StartupScope::Body));
     assert!(startup.eligible(conduit_body::StartupScope::Wake));
+}
+
+#[test]
+fn sealed_history_is_body_bound_chained_and_corruption_explicit() {
+    let mut body = born();
+    while body.pending_archives().is_empty() {
+        body.propose(plans(&body), &host(), &boot()).unwrap();
+        body.lull(&host(), &boot(), None).unwrap();
+    }
+    let first = body.pending_archives()[0].clone();
+    first.validate_as_head_of(body.evidence()).unwrap();
+    let first_digest = first.digest;
+    body.acknowledge_archives(first_digest).unwrap();
+
+    while body.pending_archives().is_empty() {
+        body.propose(plans(&body), &host(), &boot()).unwrap();
+        body.lull(&host(), &boot(), None).unwrap();
+    }
+    let second = body.pending_archives()[0].clone();
+    assert_eq!(second.previous_digest, Some(first_digest));
+    second.validate_as_head_of(body.evidence()).unwrap();
+    let page = conduit_body::BodyBiographyArchiveSegment::load_page(
+        body.evidence(),
+        vec![second.clone(), first.clone()],
+    )
+    .unwrap();
+    assert_eq!(page.segments.len(), 2);
+    assert_eq!(page.next_digest, None);
+
+    let mut corrupt = second.clone();
+    corrupt.records[0].sequence += 1;
+    assert_eq!(
+        corrupt.validate(),
+        Err(conduit_body::BodyBiographyError::InvalidEvidence)
+    );
+    let mut foreign = second;
+    foreign.body_id = Body::born(
+        "source/foreign".into(),
+        "checked/foreign".into(),
+        99,
+        "sign/foreign".into(),
+    )
+    .unwrap()
+    .body_id;
+    assert_eq!(
+        foreign.validate_as_head_of(body.evidence()),
+        Err(conduit_body::BodyBiographyError::InvalidEvidence)
+    );
+}
+
+#[test]
+fn ten_thousand_wakes_keep_one_body_and_a_bounded_active_window() {
+    let mut body = born();
+    let identity = body.evidence().body_id.clone();
+    let mut sealed_segments = 0u64;
+    for cycle in 0..10_000 {
+        body.propose(plans(&body), &host(), &boot()).unwrap();
+        body.lull(&host(), &boot(), None).unwrap();
+        if let Some(head) = body.pending_archives().last() {
+            head.validate_as_head_of(body.evidence()).unwrap();
+            sealed_segments += body.pending_archives().len() as u64;
+            let digest = head.digest;
+            body.acknowledge_archives(digest).unwrap();
+        }
+        if cycle == 2_000 || cycle == 6_000 {
+            body.admit_form(
+                body.evidence().body.workload_revision,
+                form("soak-companion"),
+                &host(),
+                &boot(),
+            )
+            .unwrap();
+        }
+        if cycle == 4_000 || cycle == 8_000 {
+            body.remove_form(
+                body.evidence().body.workload_revision,
+                &form("soak-companion"),
+                &host(),
+                &boot(),
+            )
+            .unwrap();
+        }
+        assert!(body.evidence().body.sign_ids.len() <= conduit_body::MAX_BODY_SIGNS);
+        assert!(body.evidence().wakes.len() <= conduit_body::MAX_BODY_BIOGRAPHY_WAKES);
+        assert!(body.evidence().records.len() <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS);
+    }
+    assert_eq!(body.evidence().body_id, identity);
+    assert!(sealed_segments > 1_000);
+    assert_eq!(body.evidence().body.workload_revision, 4);
+    body.evidence().validate().unwrap();
+}
+
+#[test]
+fn repeated_form_changes_roll_over_without_rebirth_or_active_growth() {
+    let mut body = born();
+    let identity = body.evidence().body_id.clone();
+    let companion = form("rolling-companion");
+    let mut archived_form_events = 0usize;
+    for cycle in 0..200 {
+        let revision = body.evidence().body.workload_revision;
+        if cycle % 2 == 0 {
+            body.admit_form(revision, companion.clone(), &host(), &boot())
+                .unwrap();
+        } else {
+            body.remove_form(revision, &companion, &host(), &boot())
+                .unwrap();
+        }
+        for segment in body.pending_archives() {
+            segment.validate().unwrap();
+            archived_form_events += segment.body_events.len();
+            assert!(segment.membership_events.is_empty());
+        }
+        persist_archives(&mut body);
+        assert!(body.evidence().body.sign_ids.len() <= conduit_body::MAX_BODY_SIGNS);
+        assert!(body.evidence().records.len() <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS);
+    }
+    assert_eq!(body.evidence().body_id, identity);
+    assert_eq!(body.evidence().body.workload_revision, 200);
+    assert!(archived_form_events >= 100);
+    body.evidence().validate().unwrap();
+}
+
+#[test]
+fn repeated_host_continuity_rolls_membership_history_into_exact_segments() {
+    let initial = born();
+    let identity = initial.evidence().body_id.clone();
+    let mut evidence = initial.evidence().clone();
+    let mut current_boot = boot();
+    let mut archived_membership_events = 0usize;
+    for cycle in 0..100 {
+        let next_boot = BootId::from(format!("boot/continuity-{cycle}"));
+        let mut resumed = WorkspaceBody::resume_here(evidence, &host(), &next_boot).unwrap();
+        for segment in resumed.pending_archives() {
+            segment.validate().unwrap();
+            archived_membership_events += segment.membership_events.len();
+            assert!(segment.body_events.is_empty());
+        }
+        persist_archives(&mut resumed);
+        assert!(resumed.evidence().membership.events.len() <= conduit_body::MAX_MEMBERSHIP_EVENTS);
+        assert!(resumed.evidence().records.len() <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS);
+        evidence = resumed.evidence().clone();
+        current_boot = next_boot;
+    }
+    assert_eq!(evidence.body_id, identity);
+    assert_eq!(
+        evidence.membership.parts[0]
+            .current
+            .as_ref()
+            .unwrap()
+            .boot_id,
+        current_boot
+    );
+    assert!(archived_membership_events >= 64);
+    evidence.validate().unwrap();
 }
 
 #[test]
@@ -336,18 +623,29 @@ fn stale_or_absent_removal_preserves_current_workload_and_evidence() {
 
 #[test]
 fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtered() {
-    use conduit_workspace_model::library::{FormLibrary, LibraryEntry, LibraryRefusal};
+    use conduit_workspace_model::library::{
+        FormLibrary, LibraryAvailability, LibraryEntry, LibraryRefusal,
+    };
     let body = born();
     let library = FormLibrary::new(vec![
         LibraryEntry {
             form: form("morse"),
             title: "Morse".into(),
             search_text: "keyboard light".into(),
+            availability: LibraryAvailability::Available,
+            graceful_fallback: None,
         },
         LibraryEntry {
             form: form("notes"),
             title: "Notes".into(),
             search_text: "keyboard text".into(),
+            availability: LibraryAvailability::NeedsCapability(
+                "Needs a text model realization.".into(),
+            ),
+            graceful_fallback: Some(conduit_workspace_model::library::LibraryFallback {
+                title: "Keyboard Notes".into(),
+                availability: LibraryAvailability::Available,
+            }),
         },
     ])
     .unwrap();
@@ -358,7 +656,8 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
         .unwrap();
     assert_eq!(view.revision, 7);
     assert!(
-        view.actions
+        !view
+            .actions
             .iter()
             .any(|action| action.id == "library.use.1")
     );
@@ -378,4 +677,69 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
         library.presentation(&body, 9, &"x".repeat(129)),
         Err(LibraryRefusal::SearchBound)
     ));
+}
+
+#[test]
+fn library_keeps_reviewed_forms_visible_when_the_body_is_at_capacity() {
+    use conduit_body::MAX_BODY_FORMS;
+    use conduit_workspace_model::library::{FormLibrary, LibraryAvailability, LibraryEntry};
+
+    let mut body = born();
+    for index in 1..MAX_BODY_FORMS {
+        body.admit_form(
+            body.evidence().body.workload_revision,
+            form(&format!("resident-{index}")),
+            &host(),
+            &boot(),
+        )
+        .unwrap();
+        persist_archives(&mut body);
+    }
+    let library = FormLibrary::new(vec![
+        LibraryEntry {
+            form: form("morse"),
+            title: "Morse".into(),
+            search_text: "resident".into(),
+            availability: LibraryAvailability::Available,
+            graceful_fallback: None,
+        },
+        LibraryEntry {
+            form: form("another"),
+            title: "Another reviewed Form".into(),
+            search_text: "candidate".into(),
+            availability: LibraryAvailability::Available,
+            graceful_fallback: None,
+        },
+    ])
+    .unwrap();
+
+    let semantic = library.presentation(&body, 10, "candidate").unwrap();
+    let encoded = format!("{semantic:?}");
+    assert!(encoded.contains("Body at capacity"));
+    assert!(encoded.contains("Remove a Form before adding another"));
+    let lowered = semantic.lower().unwrap();
+    assert!(
+        !lowered
+            .actions
+            .iter()
+            .any(|action| action.id == "library.use.1")
+    );
+
+    let resident = library
+        .presentation(&body, 11, "resident")
+        .unwrap()
+        .lower()
+        .unwrap();
+    assert!(
+        resident
+            .actions
+            .iter()
+            .any(|action| action.id == "library.use.0")
+    );
+    assert!(
+        resident
+            .actions
+            .iter()
+            .any(|action| action.id == "library.remove.0")
+    );
 }

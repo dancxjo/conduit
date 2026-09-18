@@ -55,6 +55,7 @@ fn connection() -> PlannedConnection {
         sink_port_id: PortId::from("in"),
         value_kind: conduit_core::KindId::from("value/test"),
         temporal: conduit_core::PortTemporal::Value,
+        pressure_policy: Default::default(),
         selected_line: Some(line("line-a")),
         admitted_lines: vec![line("line-a"), line("line-b")],
         item_capacity: 1,

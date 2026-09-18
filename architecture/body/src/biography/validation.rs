@@ -13,26 +13,35 @@ impl BodyBiographyEvidence {
             || self.body_id != self.membership.body_id
             || self.friendly_name.trim().is_empty()
             || self.friendly_name.len() > MAX_BODY_FRIENDLY_NAME_BYTES
+            || match &self.body.state {
+                crate::BodyState::Fulfilled { sign_id } => {
+                    self.membership.fulfilled_sign_id.as_ref() != Some(sign_id)
+                }
+                _ => self.membership.fulfilled_sign_id.is_some(),
+            }
         {
             return Err(BodyBiographyError::InvalidMetadata);
         }
         if self.compaction.as_ref().is_some_and(|summary| {
-            summary.wakes == 0
-                || summary.records == 0
+            summary.records == 0
                 || summary.through_sequence <= self.body.birth_sequence
+                || (summary.wakes == 0 && summary.first_wake_id.is_some())
+                || (summary.wakes > 0 && summary.first_wake_id.is_none())
+                || (summary.sealed_segments == 0) != summary.archive_head_digest.is_none()
                 || self
                     .wakes
                     .iter()
-                    .any(|wake| wake.wake_id == summary.first_wake_id)
+                    .any(|wake| Some(&wake.wake_id) == summary.first_wake_id.as_ref())
         }) {
             return Err(BodyBiographyError::InvalidEvidence);
         }
         if let Some(summary) = &self.compaction {
-            crate::identity::validate_ids(&[
-                summary.through_sign_id.as_str(),
-                summary.first_wake_id.as_str(),
-            ])
-            .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+            crate::identity::validate_ids(&[summary.through_sign_id.as_str()])
+                .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+            if let Some(first_wake_id) = &summary.first_wake_id {
+                crate::identity::validate_ids(&[first_wake_id.as_str()])
+                    .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+            }
         }
         if let Some(graduation) = &self.graduation {
             validate_graduation(graduation)?;
@@ -159,6 +168,33 @@ impl BodyBiographyEvidence {
                         return Err(BodyBiographyError::InvalidEvidence);
                     }
                 }
+                BodyBiographyRecordKind::Fulfilled {
+                    final_workload_revision,
+                    final_wake_id,
+                    authority_grant_id,
+                    attribution,
+                    settled_obligations,
+                } => {
+                    let event = self.body.events.iter().find(|event| {
+                        matches!(event,
+                            BodyLifecycleEvent::Fulfilled {
+                                final_workload_revision: revision,
+                                final_wake_id: wake,
+                                authority_grant_id: authority,
+                                attribution: actor,
+                                settled_obligations: obligations,
+                                sign_id,
+                            } if sign_id == &record.sign_id
+                                && revision == final_workload_revision
+                                && wake == final_wake_id
+                                && authority == authority_grant_id
+                                && actor == attribution
+                                && obligations == settled_obligations)
+                    });
+                    if event.is_none() {
+                        return Err(BodyBiographyError::InvalidEvidence);
+                    }
+                }
                 BodyBiographyRecordKind::Graduated {
                     choice,
                     patchbay_plan_id,
@@ -203,6 +239,7 @@ impl BodyBiographyEvidence {
                     record.kind,
                     BodyBiographyRecordKind::FormAdmitted { .. }
                         | BodyBiographyRecordKind::FormRemoved { .. }
+                        | BodyBiographyRecordKind::Fulfilled { .. }
                 )
             })
             .count();
@@ -215,6 +252,7 @@ impl BodyBiographyEvidence {
                     event,
                     BodyLifecycleEvent::FormAdmitted { .. }
                         | BodyLifecycleEvent::FormRemoved { .. }
+                        | BodyLifecycleEvent::Fulfilled { .. }
                 )
             })
             .count();

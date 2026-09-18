@@ -26,6 +26,7 @@ fn bare_metal_target(label: &str, machine: &str) -> TargetDescriptor {
         host_operations: Vec::new(),
         toolchain_identity: "rustc:stable+armv6-none-eabi+rust-lld".into(),
         builder_adapter: "conduit-host-raspberry-pi/build-sd-image@1".into(),
+        strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
         deployment_adapter: Some("conduit-host-raspberry-pi/flash-removable-media@1".into()),
         outputs: vec![SporeOutputKind::SdImage],
         default_output: SporeOutputKind::SdImage,
@@ -64,6 +65,7 @@ fn raspberry_pi_os_target(
             "rustc:stable+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu+libc6-dev-arm64-cross"
                 .into(),
         builder_adapter: "conduit-host-raspberry-pi/build-raspios-native@1".into(),
+        strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
         deployment_adapter: Some("conduit-host-raspberry-pi/install-raspios-package@1".into()),
         outputs: vec![SporeOutputKind::NativeBundle],
         default_output: SporeOutputKind::NativeBundle,

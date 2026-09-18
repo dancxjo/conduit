@@ -1,6 +1,7 @@
 const MAXIMUM_IMAGE_BYTES = 80 * 1024 * 1024;
 
-export async function acquireConduitOsRelease(profile, signal) {
+export async function acquireConduitOsRelease(profile, signal, { resolved = null } = {}) {
+  if (resolved) return acquireResolvedConduitOsRelease(profile, signal, resolved);
   let response;
   try {
     response = await fetch(profile.manifestPath, { signal, cache: "no-store" });
@@ -21,6 +22,19 @@ export async function acquireConduitOsRelease(profile, signal) {
   if (bytes.byteLength !== manifest.artifact.bytes || bytes.byteLength < 1 || bytes.byteLength > MAXIMUM_IMAGE_BYTES) {
     refuse("StaleArtifact", "reviewed ConduitOS disk IMAGE violated its exact finite byte bound");
   }
+  const digest = await sha256(bytes);
+  if (digest !== manifest.artifact.sha256 || manifest.image_id !== `image:${digest}`) {
+    refuse("StaleArtifact", "reviewed ConduitOS disk IMAGE content identity is stale");
+  }
+  return Object.freeze({ manifest: Object.freeze(manifest), bytes, digest });
+}
+
+async function acquireResolvedConduitOsRelease(profile, signal, resolved) {
+  let manifest;
+  try { manifest = JSON.parse(new TextDecoder().decode(resolved.manifest)); }
+  catch (error) { refuse("StaleArtifact", "reviewed ConduitOS release manifest is malformed", error); }
+  validateConduitOsReleaseManifest(manifest, profile);
+  const bytes = await resolved.acquire(manifest.artifact, MAXIMUM_IMAGE_BYTES, signal);
   const digest = await sha256(bytes);
   if (digest !== manifest.artifact.sha256 || manifest.image_id !== `image:${digest}`) {
     refuse("StaleArtifact", "reviewed ConduitOS disk IMAGE content identity is stale");
@@ -49,6 +63,11 @@ export function validateConduitOsReleaseManifest(manifest, profile) {
     || manifest.boot_assets.boot_entry !== profile.bootEntry
     || manifest.artifact?.role !== "final-bootable-image"
     || manifest.artifact?.format !== "hybrid-iso"
+    || manifest.spore_region?.schema !== "conduit.conduitos/spore-region@1"
+    || manifest.spore_region?.encoding !== "conduit.spore/native-media-provision@1"
+    || !Number.isSafeInteger(manifest.spore_region?.offset) || manifest.spore_region.offset < 0
+    || manifest.spore_region?.bytes !== 4096
+    || manifest.spore_region.offset + manifest.spore_region.bytes > manifest.artifact?.bytes
     || typeof manifest.artifact?.path !== "string" || manifest.artifact.path.includes("/")
     || !Number.isSafeInteger(manifest.artifact?.bytes) || manifest.artifact.bytes < 1 || manifest.artifact.bytes > MAXIMUM_IMAGE_BYTES
     || !/^sha256:[0-9a-f]{64}$/.test(manifest.artifact?.sha256)
@@ -84,6 +103,30 @@ export function validateLoaderEvidence(evidence, profile, binding) {
     refuse("LoaderEvidenceInvalid", "local loader receipt omitted a supported carrier, explicit authority, or completed load truth");
   }
   return Object.freeze({ ...evidence });
+}
+
+export function parseConduitOsSerialJoin(serialOutput, binding) {
+  if (typeof serialOutput !== "string" || serialOutput.length < 1 || serialOutput.length > 64 * 1024) {
+    refuse("BootObservationAbsent", "loader did not retain one bounded ConduitOS serial observation");
+  }
+  const prefix = "CONDUIT_SPORE_JOIN ";
+  const lines = serialOutput.split(/\r?\n/).filter((line) => line.startsWith(prefix));
+  if (lines.length !== 1) refuse("BootObservationAmbiguous", "loader did not retain exactly one ConduitOS spore join");
+  let join;
+  try { join = JSON.parse(lines[0].slice(prefix.length)); }
+  catch (error) { refuse("BootObservationMalformed", "ConduitOS serial join is not valid JSON", error); }
+  const prepared = binding?.prepared;
+  if (join?.schema !== "conduit.conduitos/serial-spawn-observation@1" || join.protocol !== 1
+    || join.spore_id !== prepared?.spore_id || join.image_id !== prepared?.image_id
+    || join.invitation_id !== prepared?.invitation_id || join.body_id !== prepared?.body_id
+    || join.host_id !== join.advertisement?.host_id || join.boot_id !== join.advertisement?.boot_id
+    || !Array.isArray(join.nonce) || join.nonce.length !== 32
+    || join.nonce.some((byte, index) => byte !== prepared?.invitation_nonce?.[index])
+    || !Array.isArray(join.signature) || join.signature.length !== 64
+    || join.membership_claimed !== false || join.expiry_checked_by_body !== true) {
+    refuse("BootObservationStale", "ConduitOS serial join lost the exact spore, invitation, Host, or Boot identity");
+  }
+  return Object.freeze(join);
 }
 
 async function sha256(bytes) {

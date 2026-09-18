@@ -152,6 +152,14 @@ fn planned_gear_and_host_are_exact_bidirectional_cross_place_follows() {
             &projected.presentation,
             navigation,
             projected.presentation.revision,
+            NavigationOperation::Enter(PresentationPlace::Program),
+        )
+        .unwrap();
+    state
+        .navigate(
+            &projected.presentation,
+            navigation,
+            projected.presentation.revision,
             NavigationOperation::Focus(forward.source_subject.clone()),
         )
         .unwrap();

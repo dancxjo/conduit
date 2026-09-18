@@ -13,6 +13,17 @@ pub struct BodyBiographyProjection {
     pub body_id: BodyId,
     pub friendly_name: String,
     pub entries: Vec<BodyBiographyEntry>,
+    pub archived_history: Option<BodyBiographyArchiveProjection>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BodyBiographyArchiveProjection {
+    pub sealed_segments: u64,
+    pub wakes: u64,
+    pub records: u64,
+    pub through_sequence: u64,
+    pub head_digest: Option<[u8; 32]>,
+    pub explanation: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -119,6 +130,20 @@ pub fn project_body_biography(
                     workload_revision
                 ),
             ),
+            BodyBiographyRecordKind::Fulfilled {
+                final_workload_revision,
+                attribution,
+                settled_obligations,
+                ..
+            } => (
+                "Fulfilled",
+                format!(
+                    "This Body completed its useful life at workload revision {} by {} after {} settlement obligation(s). Its biography and evidence remain available.",
+                    final_workload_revision,
+                    attribution,
+                    settled_obligations.len(),
+                ),
+            ),
             BodyBiographyRecordKind::Graduated {
                 choice: BodyGraduationChoice::HostedPatchbay,
                 patchbay_plan_id,
@@ -161,6 +186,17 @@ pub fn project_body_biography(
         body_id: evidence.body_id.clone(),
         friendly_name: evidence.friendly_name.clone(),
         entries,
+        archived_history: evidence.compaction.as_ref().map(|summary| BodyBiographyArchiveProjection {
+            sealed_segments: summary.sealed_segments,
+            wakes: summary.wakes,
+            records: summary.records,
+            through_sequence: summary.through_sequence,
+            head_digest: summary.archive_head_digest,
+            explanation: format!(
+                "{} older Wake(s) and {} exact record(s) are sealed in {} integrity-linked history segment(s) through evidence sequence {}; load the exact head digest to inspect older evidence on demand.",
+                summary.wakes, summary.records, summary.sealed_segments, summary.through_sequence
+            ),
+        }),
     })
 }
 

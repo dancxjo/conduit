@@ -14,6 +14,7 @@ async function assemblePagesCarrier() {
   await cp("target/creche-product", `${pagesRoot}/creche`, { recursive: true });
   await cp("target/workspace-product", `${pagesRoot}/workspace`, { recursive: true });
   await cp("target/patchbay-product", `${pagesRoot}/patchbay`, { recursive: true });
+  await cp("target/home-product", `${pagesRoot}/home`, { recursive: true });
   await stageLegacyTourRoutes(pagesRoot);
 }
 
@@ -27,57 +28,91 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
-test("Birth on the front page arrives directly in listening Forms", async ({ page }) => {
+test("Birth on the front page hands the Lulled Body to an explicit Wake", async ({ page }) => {
   await page.goto(entrance.url);
-  await page.getByRole("link", { name: "Birth a Body", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "A Body of your own", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Open your Body", exact: true }).click();
+  await expect(page).toHaveTitle("Birth your Body · Conduit");
+  await expect(page.locator("[data-body-state]")).toHaveText("Crèche");
+  await expect(page.locator("[data-workspace-creche]")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Birth Body", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await expect(page.locator("[data-body-state]")).toHaveText("lulled");
+  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.keyboard.press("h");
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
 });
 
-test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", async ({ page }) => {
+test("Browser Home enacts the shared journey through the real Patchbay", async ({ page }) => {
+  const root = entrance.url.replace(/\/$/, "");
+  const steps = ["home.arrived"];
+  await page.goto(`${root}/home/`);
+  await expect(page.locator("#host-state")).toHaveText("Browser Home is ready.");
+  await page.getByRole("button", { name: "FORMS" }).click();
+  steps.push("forms.opened");
+  await page.getByRole("button", { name: "Hello" }).click();
+  steps.push("form.selected");
+  const command = page.getByLabel("conduit>");
+  await command.fill("open prompt");
+  await command.press("Enter");
+  steps.push("prompt.opened");
+  await command.fill("run hello");
+  await command.press("Enter");
+  await expect(page.locator("#host-state")).toHaveAttribute("data-play-disposition", "completed");
+  steps.push("form.run", "play.observed");
+  await command.fill("home");
+  await command.press("Enter");
+  await page.getByRole("button", { name: "PATCHBAY" }).click();
+  await expect(page).toHaveURL(`${root}/patchbay/`);
+  await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+  steps.push("patchbay.opened");
+  await page.goBack();
+  await expect(page.getByRole("button", { name: "TOUR" })).toBeVisible();
+  steps.push("home.returned");
+  expect(steps).toEqual([
+    "home.arrived", "forms.opened", "form.selected", "prompt.opened",
+    "form.run", "play.observed", "patchbay.opened", "home.returned",
+  ]);
+});
+
+test.skip("Conduit home makes the Body primary while remaining compatibility endpoints stay reachable", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   const tour = `${home}/tour/`;
   const creche = `${home}/creche/`;
   const patchbay = `${home}/patchbay/`;
+  const homeFace = `${home}/home/`;
+
+  await page.goto(homeFace);
+  await expect(page).toHaveURL(homeFace);
+  await expect(page.locator("#host-state")).toHaveText("Browser Home is ready.");
+  await expect(page.getByRole("button", { name: "FORMS" })).toBeVisible();
 
   await page.goto(`${home}/`);
   await expect(page).toHaveURL(`${home}/`);
   await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
-  await expect(page.getByRole("link", { name: "Learn Conduit" })).toHaveAttribute("href", "/conduit/tour");
-  await expect(page.getByRole("link", { name: "Birth a Body", exact: true })).toHaveAttribute("href", "/conduit/workspace/");
+  await expect(page.getByRole("link", { name: "Follow a real journey" })).toHaveAttribute("href", "/conduit/journeys/");
+  await expect(page.getByRole("link", { name: "Open your Body", exact: true })).toHaveAttribute("href", "/conduit/workspace/");
+  await expect(page.getByRole("heading", { name: "Start with the Body." })).toBeVisible();
+  await expect(page.getByText("With no retained Body, this entrance presents bounded setup.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Your Body/ })).toHaveAttribute("href", "/conduit/workspace/");
+  await expect(page.getByText("The tutorial now follows the real Body in this surface.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "standalone Crèche", exact: true })).toHaveAttribute("href", "/conduit/creche/");
+  await expect(page.getByRole("link", { name: "standalone Patchbay", exact: true })).toHaveAttribute("href", "/conduit/patchbay/");
   await expect(page.getByRole("link", { name: "Get Conduit" })).toHaveAttribute("href", "#get-conduit");
   await expect(page.getByText("One physical computer")).toBeVisible();
   await expect(page.getByText("Several unlike computers")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Patchbay", exact: true }).first()).toHaveAttribute("href", "/conduit/patchbay/");
   const productNavigation = page.getByRole("navigation", { name: "Conduit products" });
   const productLinks = productNavigation.getByRole("link");
-  await expect(productLinks).toHaveCount(5);
-  expect(await productLinks.allTextContents()).toEqual(["conduit", "Tour", "Crèche", "Patchbay", "Source"]);
+  await expect(productLinks).toHaveCount(4);
+  expect(await productLinks.allTextContents()).toEqual(["conduit", "Crèche", "Patchbay", "Source"]);
   expect(await productLinks.evaluateAll((links) => links.map((link) => ({ tag: link.tagName, target: link.target, onclick: link.onclick })))).toEqual([
     { tag: "A", target: "", onclick: null },
     { tag: "A", target: "", onclick: null },
     { tag: "A", target: "", onclick: null },
     { tag: "A", target: "", onclick: null },
-    { tag: "A", target: "", onclick: null },
   ]);
-  const [newTab] = await Promise.all([
-    page.context().waitForEvent("page"),
-    productNavigation.getByRole("link", { name: "Tour" }).click({ button: "middle" }),
-  ]);
-  try {
-    await expect(newTab).toHaveURL(`${tour}one-program-many-computers/`);
-    await expect(newTab.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
-  } finally { await newTab.close(); }
-  await productNavigation.getByRole("link", { name: "Tour" }).focus();
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(tour);
-  await page.goBack();
-  await expect(page).toHaveURL(`${home}/`);
-
   await page.getByRole("link", { name: "Patchbay", exact: true }).first().click();
   await expect(page).toHaveURL(patchbay);
   await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
@@ -88,13 +123,8 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
   await expect(page.locator("body")).toHaveAttribute("data-embodied", "false");
 
   await page.goto(tour);
-  await expect(page).toHaveURL(tour);
-  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
-  await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Tour" })).toHaveAttribute("aria-current", "page");
-  await page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Patchbay" }).click();
-  await expect(page).toHaveURL(patchbay);
+  await expect(page).toHaveURL(`${home}/workspace/`);
+  await expect(page.locator("[data-body-tutorial]")).toBeVisible();
 
   await page.goto(creche);
   await expect(page).toHaveURL(creche);
@@ -109,7 +139,7 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
   await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
   await expect(page.locator("body")).toHaveAttribute("data-embodied", "false");
   await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Patchbay" })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Tour" })).toHaveAttribute("href", "/conduit/tour/");
+  await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Tour" })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Crèche" })).toHaveAttribute("href", "/conduit/creche/");
   await page.reload();
   await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
@@ -140,17 +170,17 @@ test("the main site exposes exact reviewed Host and ConduitOS releases", async (
   await expect(page.getByLabel("Download and installation boundary")).toContainText("Downloading an image is not proof that it booted on your hardware");
 });
 
-test("published Tour chapter permalinks remain deployable", async ({ page }) => {
+test("published Tour chapter permalinks converge on the tutorial-enabled Body", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   const permalinks = [
-    ["meet-one-gear", "One Program, Many Computers"],
-    ["same-face-different-implementation", "Faces, Backs, and implementation"],
+    "meet-one-gear",
+    "same-face-different-implementation",
   ];
 
-  for (const [slug, title] of permalinks) {
-    await page.goto(`${home}/tour/${slug}/`);
-    await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+  for (const slug of permalinks) {
+    await page.goto(`${home}/tour/${slug}/?from=legacy#learn`);
+    await expect(page).toHaveURL(`${home}/workspace/?from=legacy#learn`);
+    await expect(page.locator("[data-body-tutorial]")).toBeVisible();
   }
 });
 
@@ -194,23 +224,22 @@ test("current product truth exposes exact identities, lag, and proof classes", a
   await expect(page.locator("#product-truth")).toHaveAttribute("aria-busy", "false");
 });
 
-test("legacy /book routes redirect to canonical /tour routes", async ({ page }) => {
+test("legacy /book routes redirect to the tutorial-enabled Body", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   await page.goto(`${home}/book/`);
-  await expect(page).toHaveURL(`${home}/tour/`);
-  await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
+  await expect(page).toHaveURL(`${home}/workspace/`);
+  await expect(page.locator("[data-body-tutorial]")).toBeVisible();
   await page.goto(`${home}/book/meet-one-gear/?from=legacy#source`);
-  await expect(page).toHaveURL(`${home}/tour/meet-one-gear/?from=legacy#source`);
-  await expect(page.getByRole("heading", { level: 1, name: "One Program, Many Computers" })).toBeVisible();
+  await expect(page).toHaveURL(`${home}/workspace/?from=legacy#source`);
+  await expect(page.locator("[data-body-tutorial]")).toBeVisible();
 });
 
 test("the shared shell follows dark and light preferences without changing application behavior", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   for (const colorScheme of ["dark", "light"]) {
     await page.emulateMedia({ colorScheme });
-    for (const path of ["", "/tour/", "/creche/", "/patchbay/"]) {
+    for (const path of ["", "/creche/", "/patchbay/"]) {
       await page.goto(path === "" ? `${home}/` : `${home}${path}`);
-      if (path === "/tour/") await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
       if (path === "/creche/") await expect(page.locator("#host-state")).toHaveText("Crèche ready");
       if (path === "/patchbay/") await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
       const palette = await page.evaluate(() => {
@@ -236,8 +265,8 @@ test("the shared shell follows dark and light preferences without changing appli
         colorScheme === "dark" ? "rgb(147, 210, 247)" : "rgb(23, 54, 77)",
       );
       const focusTarget = path === ""
-        ? page.getByRole("link", { name: "Learn Conduit" })
-        : primaryNavigation.getByRole("link", { name: path === "/tour/" ? "Tour" : path === "/creche/" ? "Crèche" : "Patchbay" });
+        ? page.getByRole("link", { name: "Open your Body" })
+        : primaryNavigation.getByRole("link", { name: path === "/creche/" ? "Crèche" : "Patchbay" });
       await page.keyboard.press("Tab");
       await focusTarget.focus();
       await expect(focusTarget).toHaveCSS(

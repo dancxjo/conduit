@@ -126,6 +126,12 @@ pub(super) fn cord_line_receipt(
         &mut state,
         &presentation,
         &navigation,
+        NavigationOperation::Enter(PresentationPlace::Program),
+    )?;
+    navigate(
+        &mut state,
+        &presentation,
+        &navigation,
         NavigationOperation::Show(PresentationAspect::Plan),
     )?;
     navigate(

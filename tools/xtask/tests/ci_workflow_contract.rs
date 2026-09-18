@@ -359,10 +359,13 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
     ] {
         assert!(stage.contains(&format!("needs.{prerequisite}.result == 'success'")));
     }
+    assert!(stage.contains("cargo +1.98.1 xtask host release-catalog"));
+    assert!(stage.contains("--root target/creche-release-artifacts"));
+    assert!(stage.contains("--generation \"${{ github.run_number }}\""));
 }
 
 #[test]
-fn hosted_release_jobs_run_the_packaged_tour_journey_on_linux_and_windows() {
+fn hosted_release_jobs_run_the_packaged_tour_and_home_journeys() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
@@ -371,8 +374,24 @@ fn hosted_release_jobs_run_the_packaged_tour_journey_on_linux_and_windows() {
         .nth(1)
         .and_then(|tail| tail.split("\n  raspberry-pi-release:\n").next())
         .expect("locate host releases job");
+    assert!(
+        workflow.contains("host_releases_required: ${{ inputs.full_suite || steps.native-host-release.outputs.required == 'true'")
+    );
+    assert!(releases.contains("if: needs.plan.outputs.host_releases_required == 'true'"));
     assert!(releases.contains("conduit-tour-linux-x86_64 --journey"));
     assert!(releases.contains("conduit-tour-windows-x86_64.exe --journey"));
+    assert!(releases.contains("gcc-aarch64-linux-gnu libc6-dev-arm64-cross xvfb"));
+    assert!(releases.contains("rm -rf target/creche-host-releases/home-face-linux-native"));
+    assert!(releases.contains(
+        "xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-face-linux-native"
+    ));
+    assert!(releases.contains(
+        "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/creche-host-releases/home-face-windows-native"
+    ));
+    assert!(releases.contains(
+        "conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-face-windows-native"
+    ));
+    assert!(releases.contains("name: conduit-existing-computer-releases-${{ matrix.artifact }}"));
 }
 
 #[test]
@@ -526,65 +545,12 @@ fn stacked_diff_base_does_not_select_the_controller_version() {
 }
 
 #[test]
-fn tour_proof_has_one_authoritative_candidate_workflow() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    assert!(!root.join(".github/workflows/book-pr-proof.yml").exists());
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
-        .expect("read product workflow");
-    let proof = workflow
-        .split("\n  tour-patchbay-proof:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  avr-release:\n").next())
-        .expect("locate authoritative early Tour proof");
-    assert!(proof.contains("ref: ${{ env.CONDUIT_CANDIDATE_SHA }}"));
-    assert!(proof.contains("node --test"));
-    assert!(proof.contains("proof/browser/patchbay-debugger-projection.test.mjs"));
-    assert!(proof.contains("proof/browser/playwright-config.test.mjs"));
-    assert!(proof.contains("real Patchbay renderer|animated Cords"));
-    assert!(proof.contains("Form Gallery browses exact canonical Forms"));
-    assert!(proof.contains(
-        "if: inputs.development_admission != true && needs.plan.outputs.exact_execution == 'true'"
-    ));
-}
-
-#[test]
-fn patchbay_debugger_has_one_authoritative_candidate_proof_node() {
+fn legacy_tour_and_patchbay_product_proofs_are_disabled() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
-    let proof = workflow
-        .split("\n  tour-patchbay-proof:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  avr-release:\n").next())
-        .expect("locate shared focused browser proof environment");
-    let gate = workflow
-        .split("\n  products-proof:\n")
-        .nth(1)
-        .expect("locate stable product gate");
-
-    assert!(!root
-        .join(".github/workflows/patchbay-debugger-pr-proof.yml")
-        .exists());
-    assert!(proof.contains("ref: ${{ env.CONDUIT_CANDIDATE_SHA }}"));
-    assert!(proof.contains("--workers 1"));
-    assert!(proof.contains("--retries 0"));
-    assert!(proof.contains("browser.patchbay-debugger"));
-    assert!(proof.contains("ci-proof-browser.patchbay-debugger-${{ env.CONDUIT_CANDIDATE_SHA }}"));
-    assert!(gate.contains("tour-patchbay-proof"));
-    assert!(workflow.contains("id: debugger-bootstrap"));
-    assert!(workflow.contains("reason=proof-definition-bootstrap"));
-    assert!(workflow.contains(
-        "inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.patchbay_debugger_required)"
-    ));
-    assert!(workflow.contains(
-        "inputs.execute_proofs == '' && steps.debugger-bootstrap.outputs.required == 'true'"
-    ));
-    assert_eq!(
-        proof
-            .matches("if: needs.plan.outputs.patchbay_debugger_required == 'true'")
-            .count(),
-        10
-    );
+    assert!(workflow.contains("      tour_required: false"));
+    assert!(workflow.contains("      patchbay_debugger_required: false"));
 }
 
 #[test]
@@ -745,7 +711,7 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
     assert!(!x86.contains("matrix:"));
     assert_eq!(x86.matches("runs-on: ubuntu-24.04").count(), 1);
     assert!(x86.contains("cargo xtask conduitos prove-many"));
-    assert!(x86.contains("--max-parallel 2 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked"));
+    assert!(x86.contains("--max-parallel 4 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked"));
     assert_eq!(
         x86.matches("CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many")
             .count(),
@@ -758,4 +724,24 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
     assert!(x86.contains("ci-proof-conduitos.x86.batch-${{ env.CONDUIT_CHECKOUT_SHA }}"));
     assert!(x86.contains("name: Preserve the exact x86 batch as the proof gate"));
     assert!(x86.contains("if: always()\n        uses: ./.github/actions/upload-artifact-retry"));
+}
+
+#[test]
+fn browser_home_is_staged_proven_in_two_engines_and_carried_to_pages() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+
+    assert!(workflow.contains("--no-default-features --features home-surface,form-runner"));
+    assert_eq!(
+        workflow
+            .matches("products/home/tools/stage-home-product.sh")
+            .count(),
+        2
+    );
+    assert!(workflow.matches("target/home-product").count() >= 6);
+    assert!(workflow.matches("proof/browser/home-host.spec.mjs").count() >= 2);
+    assert!(workflow.contains("name: Prove portable Home in pinned Firefox"));
+    assert!(workflow.contains("--project firefox"));
+    assert!(workflow.contains("target/pages-site/home/home.application.json"));
 }

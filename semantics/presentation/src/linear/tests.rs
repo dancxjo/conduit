@@ -117,7 +117,11 @@ fn linear_projection_preserves_exact_basis_and_all_nonspatial_content() {
     assert!(linear.encoded_bytes <= MAX_LINEAR_PRESENTATION_BYTES);
     assert_eq!(
         linear.encoded_bytes,
-        linear.lines.iter().map(|line| line.len() + 1).sum()
+        linear
+            .lines
+            .iter()
+            .map(|line| line.len() + 1)
+            .sum::<usize>()
     );
 }
 

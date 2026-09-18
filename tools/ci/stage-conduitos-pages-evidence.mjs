@@ -6,7 +6,12 @@ import path from "node:path";
 
 const JOURNEY = Object.freeze([
   stage("front-door-ready", "Crèche ready", "The native Crèche offers a Body name, a naming tradition, and the locally reviewed keyboard Form.", "The image opened the Crèche as its first ordinary product surface.", "The checked Form was inspected while Body, Wake, Plan, and Play remained absent.", "Crèche · Host · Form", "Boot"),
-  stage("body-awake", "Body awake", "The chosen Body is named and its included keyboard Form is listening.", "Return accepted the Crèche selection, birthed the Body, then requested Wake, Plan, and Play in order.", "Separate lifecycle records retain the exact Body, workset, Host, Boot, admitted Plan, and Play identities for each successful stage.", "Body · Wake · Plan · Play", "Return"),
+  stage("body-awake", "Home after first Wake", "ConduitOS has arrived at rest on Home while the chosen Body and status strip remain present.", "Return accepted the Crèche selection, birthed the Body, requested Wake, Plan, and Play, then opened the shell Home Presentation.", "Lifecycle records retain the exact Body, workset, Host, Boot, admitted Plan, and Play identities; Home is a projection over that truth.", "Home · Body · Wake · Plan · Play", "Return"),
+  stage("home-prompt", "Conduit Prompt", "The finite command bar is open inside the same shell session.", "Home selection opened Prompt without creating a process, filesystem, or second runtime.", "The prompt accepts only the bounded Conduit command vocabulary and routes supported actions through shell state.", "Prompt · command · Presentation", "Tab · Return"),
+  stage("home-forms", "Installed Forms", "Home lists the finite reviewed Forms installed in this native profile.", "The Forms launcher projected the existing native workset inventory.", "This is installed profile truth, not a claim that every catalog Form is runnable on this Host.", "Home · Forms · workset", "Arrow · Return"),
+  stage("home-play-observed", "Form running from Home", "The selected keyboard Form is active in the same Home session.", "Return requested the reviewed Form through the ordinary Home action path and the admitted Play reached quiescence.", "The visible result is correlated with the exact Body, Wake, Plan, Play, Host, and Boot identities retained by the journey.", "Home · Form · Plan · Play", "Return"),
+  stage("home-patchbay-open", "Patchbay launched from Home", "Patchbay replaces the Home workspace while the same Body and lifecycle remain current.", "The launcher selected the admitted resident Patchbay Form rather than spawning a parallel application runtime.", "The foreground Presentation changed; Body, Host, Boot, Plan, and Play identities remain exact.", "Home · Patchbay · persistence", "Arrow · Return"),
+  stage("home-returned", "Home returned", "The launcher returns with the same named Body and lifecycle status.", "Escape left Patchbay and manifested a fresh Home revision in the existing shell session.", "The stable journey step is home.returned; the Body, Host, Boot, Plan, and Play were not recreated.", "Home · persistence · manifestation", "Escape"),
   stage("host-current-offers", "Host offers inspected", "The exact-detail inspector lists the operations this running Host currently offers.", "F2 advanced through identity and binding details to CURRENT OFFERS.", "The visible inventory is projected from current Host truth while the same Body, Plan, and Play remain in place; it is not an authored Form claim or a catalog-wide availability promise.", "Host · offers · inspection · Plan", "F2"),
   stage("quiescent-awaiting-input", "Play quiescent", "The same admitted Play is quiescent and awaiting later input after its initial work drains.", "F2 opened details; Escape returned input focus to the Form without completing or replacing the Play.", "Inspection preserves the exact Body, Plan, and Play while structural drain remains distinct from semantic completion.", "Plan · Play · quiescence · focus", "F2 / Escape"),
   stage("input-continued", "Input continued", "The presentation shows HELLO while the same quiescent Play remains available for more input.", "Five keys crossed the admitted keyboard path, each with a press and release, and continued the existing Play.", "Every event retains the same Body, Plan, and Play; output is correlated with the port-specific kernel result without claiming completion.", "Form · Play · quiescence · presentation", "H E L L O"),
@@ -80,6 +85,8 @@ for (const name of CHECKPOINTS) {
   if (!entries.has(name)) throw new Error(`ConduitOS visual journey omitted '${name}'`);
 }
 
+const journeysIndexPath = path.join(siteRoot, "journeys", "index.html");
+const journeysHtml = await requireJourneyCardSlot(journeysIndexPath);
 const commitRoot = path.join(siteRoot, "commits", commit, "conduitos", "x86_64");
 const currentRoot = path.join(siteRoot, "current", "conduitos", "x86_64");
 await rm(commitRoot, { recursive: true, force: true });
@@ -98,30 +105,46 @@ for (const name of CHECKPOINTS) {
   }
   await cp(source, path.join(commitRoot, `${name}.png`));
   await cp(source, path.join(currentRoot, `${name}.png`));
-  await writePage(path.join(commitRoot, name, "index.html"), name, commit, "../", "../../../../../index.html", manifest.context);
-  await writePage(path.join(currentRoot, name, "index.html"), name, commit, "../", "../../../../index.html", manifest.context);
+  await writePage(path.join(commitRoot, name, "index.html"), name, commit, "../", "../../../../../index.html", "../manifest.json", manifest.context);
+  await writePage(path.join(currentRoot, name, "index.html"), name, commit, "../", "../../../../index.html", `../../../../commits/${commit}/conduitos/x86_64/manifest.json`, manifest.context);
 }
 await writeIndex(path.join(commitRoot, "index.html"), commit, "../../../../index.html", "manifest.json");
 await writeIndex(path.join(currentRoot, "index.html"), commit, "../../../index.html", `../../../commits/${commit}/conduitos/x86_64/manifest.json`);
+await installJourneyCard(journeysIndexPath, journeysHtml);
 
-async function writeIndex(destination, exactCommit, home, manifestLink) {
-  const sections = JOURNEY.map((entry, index) => `<article id="${entry.name}"><p class="step">Checkpoint ${index + 1} of ${JOURNEY.length} · ${entry.action}</p><h2><a href="${entry.name}/">${entry.title}</a></h2><a href="${entry.name}/"><img src="${entry.name}.png" alt="${entry.seeing}"></a>${narrative(entry)}</article>`).join("\n");
-  const highlights = [["front-door-ready","Boot"],["body-awake","Body wakes"],["host-current-offers","Host offers"],["patchbay-current-canvas","Patchbay"],["tour-result-visible","Tour runs"]].map(([id,label])=>`<a href="#${id}">${label}</a>`).join("<span aria-hidden=\"true\">→</span>");
-  await html(destination, "ConduitOS visual journey", `<nav><a href="${home}">Gallery home</a></nav><h1>ConduitOS visual journey</h1><p class="lede">Follow one ordinary QEMU session from boot, through Body and Play lifecycle, across a hot-plugged Line, and into Tour and Patchbay interaction.</p><section id="highlights" class="highlights" aria-labelledby="highlight-title"><h2 id="highlight-title">The five-minute path</h2><p>Start with the story; dive into all ${JOURNEY.length} checkpoints when you want the machinery.</p><div>${highlights}</div></section><p><strong>FREESTANDING EMULATOR EVIDENCE, NOT PHYSICAL HARDWARE EVIDENCE.</strong> The guest records and acceptance assertions prove the named behavior; these real captured pixels make that proof human-inspectable.</p><details><summary>Exact evidence identity</summary><p>Accepted commit: <code>${exactCommit}</code> · <a href="${manifestLink}">Correlated journey manifest</a></p></details>${sections}`);
+async function requireJourneyCardSlot(indexPath) {
+  const marker = "<!-- conduit-conduitos-journey-card@1 -->";
+  const html = await readFile(indexPath, "utf8");
+  if (html.split(marker).length !== 2) {
+    throw new Error("Journeys index does not contain one exact ConduitOS card slot");
+  }
+  return html;
 }
 
-async function writePage(destination, name, exactCommit, imageRoot, home, context) {
+async function installJourneyCard(indexPath, html) {
+  const marker = "<!-- conduit-conduitos-journey-card@1 -->";
+  const card = '<article class="journey-card"><p class="eyebrow">QEMU · x86_64 · freestanding</p><h2>A computer is born</h2><p>A ConduitOS Body wakes, discovers its Host, and reaches recognizable work in one validated session.</p><p class="card-boundary">Boundary: exact QEMU machine profile; not physical hardware.</p><p><a class="primary" href="../current/conduitos/x86_64/">Follow the evidence</a></p></article>';
+  await writeFile(indexPath, html.replace(marker, card));
+}
+
+async function writeIndex(destination, exactCommit, home, manifestLink) {
+  const sections = JOURNEY.map((entry, index) => `<article id="${entry.name}"><p class="step">Checkpoint ${index + 1} of ${JOURNEY.length} · ${entry.action}</p><h2><a href="${entry.name}/">${entry.title}</a></h2><a href="${entry.name}/"><img src="${entry.name}.png" alt="${entry.seeing}"></a>${narrative(entry, `${entry.name}/`)}</article>`).join("\n");
+  const highlights = [["front-door-ready","Boot"],["body-awake","Body wakes"],["host-current-offers","Host offers"],["patchbay-current-canvas","Patchbay"],["tour-result-visible","Tour runs"]].map(([id,label])=>`<a href="#${id}">${label}</a>`).join("<span aria-hidden=\"true\">→</span>");
+  await html(destination, "ConduitOS visual journey", `<nav><a href="${home}">Gallery home</a></nav><h1>ConduitOS visual journey</h1><p class="lede">Follow one ordinary QEMU session from boot, through Body and Play lifecycle, across a hot-plugged Line, and into Tour and Patchbay interaction.</p><section id="highlights" class="highlights" aria-labelledby="highlight-title"><h2 id="highlight-title">The five-minute path</h2><p>Start with the story; dive into all ${JOURNEY.length} checkpoints when you want the machinery.</p><div>${highlights}</div></section><div class="proof-grid"><section><h2>What this proves</h2><p>The exact freestanding QEMU profile completed the named Body, Plan, Play, Line, Tour, and Patchbay transitions whose assertions precede each capture.</p></section><section><h2>What it does not prove</h2><p>This is freestanding emulator evidence, not physical-hardware evidence. Captured pixels document accepted semantic behavior; they do not establish human perception.</p></section></div><h2>Reproduce</h2><pre><code>cargo xtask conduitos journey-proof</code></pre><details><summary>Exact evidence identity</summary><p>Accepted commit: <code>${exactCommit}</code> · <a href="${manifestLink}">Correlated journey manifest</a></p></details>${sections}`);
+}
+
+async function writePage(destination, name, exactCommit, imageRoot, home, manifestLink, context) {
   const entry = STAGES.get(name);
   const escapedContext = escapeHtml(JSON.stringify(context, null, 2));
-  await html(destination, entry.title, `<nav><a href="${home}">Gallery home</a> · <a href="../">ConduitOS journey</a></nav><h1>${entry.title}</h1><p class="step">Input or transition: ${entry.action}</p><img src="${imageRoot}${name}.png" alt="${entry.seeing}">${narrative(entry)}<p><strong>FREESTANDING EMULATOR EVIDENCE, NOT PHYSICAL HARDWARE EVIDENCE.</strong></p><h2>Exact correlation</h2><p>Accepted commit: <code>${exactCommit}</code></p><pre>${escapedContext}</pre>`);
+  await html(destination, entry.title, `<nav><a href="${home}">Gallery home</a> · <a href="../">ConduitOS journey</a></nav><h1>${entry.title}</h1><p class="step">Input or transition: ${entry.action}</p><img src="${imageRoot}${name}.png" alt="${entry.seeing}">${narrative(entry, manifestLink)}<p><strong>FREESTANDING EMULATOR EVIDENCE, NOT PHYSICAL HARDWARE EVIDENCE.</strong></p><h2>Exact correlation</h2><p>Accepted commit: <code>${exactCommit}</code></p><pre>${escapedContext}</pre>`);
 }
 
 async function html(destination, title, body) {
   await mkdir(path.dirname(destination), { recursive: true });
-  await writeFile(destination, `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>body{margin:2rem auto;max-width:82rem;padding:0 1rem;font:16px/1.55 system-ui,sans-serif;background:#101714;color:#e8f5ed}a{color:#70e0aa}code,pre{overflow-wrap:anywhere}pre{white-space:pre-wrap}.lede{font-size:1.2rem;max-width:65rem}.step{color:#a8cab8;font-weight:700;letter-spacing:.03em}.highlights{padding:1.2rem;border:1px solid #466455;border-radius:.75rem;background:#16231d}.highlights div{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center}.highlights a{padding:.45rem .65rem;background:#70e0aa;color:#102018;border-radius:.35rem;font-weight:800;text-decoration:none}details{margin:1rem 0;padding:1rem;border:1px solid #466455}summary{cursor:pointer;font-weight:800}article{margin:4rem 0;padding-top:1rem;border-top:1px solid #466455}dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.5rem 1rem}dt{font-weight:700}dd{margin:0}img{display:block;width:100%;height:auto;margin:1rem 0 1.5rem;border:1px solid #466455}</style></head><body>${body}</body></html>`);
+  await writeFile(destination, `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>body{margin:2rem auto;max-width:82rem;padding:0 1rem;font:16px/1.55 system-ui,sans-serif;background:#101714;color:#e8f5ed}a{color:#70e0aa}code,pre{overflow-wrap:anywhere}pre{white-space:pre-wrap;padding:1rem;background:#090e0c;border:1px solid #466455}.lede{font-size:1.2rem;max-width:65rem}.step{color:#a8cab8;font-weight:700;letter-spacing:.03em}.highlights{padding:1.2rem;border:1px solid #466455;border-radius:.75rem;background:#16231d}.highlights div{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center}.highlights a{padding:.45rem .65rem;background:#70e0aa;color:#102018;border-radius:.35rem;font-weight:800;text-decoration:none}.proof-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0}.proof-grid section{padding:1rem;background:#16231d;border-radius:.75rem}details{margin:1rem 0;padding:1rem;border:1px solid #466455}summary{cursor:pointer;font-weight:800}article{margin:4rem 0;padding-top:1rem;border-top:1px solid #466455}dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.5rem 1rem}dt{font-weight:700}dd{margin:0}img{display:block;width:100%;height:auto;margin:1rem 0 1.5rem;border:1px solid #466455}@media(max-width:48rem){.proof-grid,dl{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}</style></head><body>${body}</body></html>`);
 }
 
 function sha256(bytes) { return createHash("sha256").update(bytes).digest("hex"); }
 function stage(name, title, seeing, happened, proving, concepts, action) { return Object.freeze({ name, title, seeing, happened, proving, concepts, action }); }
-function narrative(entry) { return `<dl><dt>What you see</dt><dd>${entry.seeing}</dd><dt>What just happened</dt><dd>${entry.happened}</dd><dt>What the harness proves</dt><dd>${entry.proving}</dd><dt>Concepts in view</dt><dd>${entry.concepts}</dd></dl>`; }
+function narrative(entry, evidenceHref) { return `<dl><dt>What you see</dt><dd>${entry.seeing}</dd><dt>What happened</dt><dd>${entry.happened}</dd><dt>What Conduit established</dt><dd>${entry.proving}</dd><dt>Concepts in view</dt><dd>${entry.concepts}</dd><dt>Evidence</dt><dd><a href="${evidenceHref}">Focused artifact and exact correlation</a></dd></dl>`; }
 function escapeHtml(value) { return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"); }

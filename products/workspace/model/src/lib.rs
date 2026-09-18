@@ -6,7 +6,9 @@
 extern crate alloc;
 
 mod continuity;
+mod current_hosts;
 mod flow;
 pub mod library;
 mod lifecycle;
+pub use current_hosts::{CurrentHostOfferError, CurrentHostOffers};
 pub use lifecycle::{WorkspaceBody, WorkspaceBodyError, WorkspaceRealization};

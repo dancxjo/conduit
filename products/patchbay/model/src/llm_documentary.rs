@@ -98,6 +98,7 @@ pub fn llm_documentary_presentation_with_adapter(
             model_offer: Some(&offer),
             activity: LlmGearActivity::Completed,
             result: Some(&result),
+            generated_flow: None,
             candidate_form: Some(&candidate),
             proposals: &proposals,
             decisions: &decisions,

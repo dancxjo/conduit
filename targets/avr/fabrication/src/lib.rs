@@ -81,6 +81,8 @@ impl HostFabricationPackage for AvrProMicroFabricationPackage {
                 toolchain_identity: "arduino-cli:1.5.1+arduino-avr:1.8.8+sparkfun-avr:1.1.13"
                     .into(),
                 builder_adapter: BUILDER_ADAPTER.into(),
+                strategy:
+                    conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
                 // Browser Caterina/AVR109 reset and fresh-port acquisition are not proved.
                 deployment_adapter: None,
                 outputs: vec![SporeOutputKind::IntelHex],

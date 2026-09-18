@@ -5,6 +5,15 @@
 //! A Body is durable intent and obligations, never a physical host. A Wake is
 //! one active maintenance interval; Lull ends that interval while preserving
 //! the Body. Plans and Plays may be replaced within one Wake.
+//!
+//! Capacity taxonomy:
+//! - Form, Part, Line, active Wake/Plan, and simultaneous resource limits are
+//!   working-set bounds and may refuse additional concurrent work.
+//! - Body Signs, membership events, retained Wakes, and biography records are
+//!   active-history bounds; exact prefixes cross a checkpoint into bounded,
+//!   digest-linked archive segments instead of ending the Body's lifetime.
+//! - monotonic revisions/sequences and bounded identity encodings are protocol
+//!   bounds; exhaustion or malformed identity remains a permanent refusal.
 
 extern crate alloc;
 
@@ -13,7 +22,10 @@ mod administration;
 mod admission;
 mod biography;
 mod candidate;
+mod character_purpose;
+mod character_purpose_continuity;
 mod continuity;
+mod conversation;
 mod durable_body;
 mod events;
 #[cfg(feature = "authenticated-admission")]
@@ -28,6 +40,8 @@ mod offers;
 mod pico_admission;
 mod presence;
 mod provenance;
+mod rendezvous;
+mod rendezvous_attempt;
 mod reservations;
 mod space;
 mod startup;
@@ -41,7 +55,10 @@ pub use administration::*;
 pub use admission::*;
 pub use biography::*;
 pub use candidate::*;
+pub use character_purpose::*;
+pub use character_purpose_continuity::*;
 pub use continuity::*;
+pub use conversation::*;
 pub use durable_body::*;
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 #[cfg(feature = "authenticated-admission")]
@@ -61,6 +78,8 @@ pub use offers::*;
 pub use pico_admission::*;
 pub use presence::*;
 pub use provenance::*;
+pub use rendezvous::*;
+pub use rendezvous_attempt::*;
 pub use reservations::*;
 pub use space::*;
 pub use startup::*;

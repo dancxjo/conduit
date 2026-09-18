@@ -1,6 +1,7 @@
 use super::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, RemoteIngressOutcome,
-    SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    AssignedPressurePolicy, CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver,
+    RemoteIngressOutcome, SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
+    StepOutcome,
 };
 use crate::{
     BoundedValueRef, CanonicalValue, CordId, Failure, FailureCode, FixedHostOperationBindings,
@@ -1587,6 +1588,7 @@ fn host_output_bytes_are_borrowed_and_derived_output_uses_admitted_storage() {
                     slot_start: 0,
                     item_capacity: 1,
                     byte_capacity: 8,
+                    pressure_policy: Default::default(),
                 },
             )],
             routes,
@@ -1796,6 +1798,7 @@ where
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: 4,
+                pressure_policy: Default::default(),
             },
         )],
         routes,
@@ -2031,6 +2034,7 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: 4,
+                pressure_policy: Default::default(),
             },
         )],
         source_routes,
@@ -2061,6 +2065,7 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: 4,
+                pressure_policy: Default::default(),
             },
         )],
         sink_routes,
@@ -2344,6 +2349,7 @@ fn remote_delivery_sign_exhaustion_preserves_the_in_flight_value() {
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: 4,
+                pressure_policy: Default::default(),
             },
         )],
         routes,
@@ -2395,6 +2401,7 @@ fn remote_ingress_sign_exhaustion_preserves_queue_sequence_and_open_state() {
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: 4,
+                pressure_policy: Default::default(),
             },
         )],
         routes,
@@ -2433,6 +2440,57 @@ fn remote_ingress_sign_exhaustion_preserves_queue_sequence_and_open_state() {
     );
 }
 
+#[test]
+fn coalescing_cords_supersede_the_newest_pending_item_without_growth() {
+    let endpoint = RemoteEndpointId(0);
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes.seal().unwrap();
+    let signs = FixedSignLog::<16>::new_with_remote_storage(
+        (16 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        16,
+        crate::remote_sign_storage_bytes(16).unwrap(),
+    )
+    .unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
+        [node([Some(CordId(0)), None])],
+        [CordSpec::remote_ingress(
+            CordId(0),
+            endpoint,
+            (NodeId(0), PortId(0)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 4,
+                pressure_policy: AssignedPressurePolicy::CoalesceLatest,
+            },
+        )],
+        routes,
+        [Driver::BlockedSink { cancelled: false }],
+        FixedValueStore::<2, 8>::new(8).unwrap(),
+        signs,
+    )
+    .unwrap();
+
+    assert_eq!(
+        scheduler.admit_remote_input(endpoint, CordId(0), 0, b"old!"),
+        Ok(RemoteIngressOutcome::Accepted { sequence: 0 })
+    );
+    assert_eq!(scheduler.values().used_items(), 1);
+    assert_eq!(
+        scheduler.admit_remote_input(endpoint, CordId(0), 1, b"new!"),
+        Ok(RemoteIngressOutcome::Accepted { sequence: 1 })
+    );
+    assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (1, 4));
+    assert_eq!(scheduler.values().used_items(), 1);
+
+    scheduler.cancel().unwrap();
+    let Driver::BlockedSink { cancelled } = scheduler.drivers()[0] else {
+        panic!("blocked sink");
+    };
+    assert!(cancelled);
+    assert_eq!(scheduler.values().used_items(), 0);
+}
+
 fn cord(id: u16, source_node: u16, source_port: u16, sink_node: u16, sink_port: u16) -> CordSpec {
     CordSpec::local(
         CordId(id),
@@ -2442,6 +2500,7 @@ fn cord(id: u16, source_node: u16, source_port: u16, sink_node: u16, sink_port: 
             slot_start: id,
             item_capacity: 1,
             byte_capacity: 4,
+            pressure_policy: Default::default(),
         },
     )
 }

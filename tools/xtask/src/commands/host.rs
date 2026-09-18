@@ -22,6 +22,8 @@ mod host_esp32_inspection;
 mod host_esp32_inspection_tests;
 #[path = "host_hears_speaks.rs"]
 mod host_hears_speaks;
+#[path = "host_home_voice.rs"]
+mod host_home_voice;
 #[path = "host_local_model.rs"]
 mod host_local_model;
 #[path = "host_microphone.rs"]
@@ -34,6 +36,8 @@ mod host_piper;
 mod host_recorded_house;
 #[path = "host_release.rs"]
 mod host_release;
+#[path = "host_release_catalog.rs"]
+mod host_release_catalog;
 #[path = "host_spoken_microphone_house.rs"]
 mod host_spoken_microphone_house;
 #[path = "host_target.rs"]
@@ -84,6 +88,15 @@ enum HostCommand {
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,
+    },
+    /// Seal reviewed release manifests into the installed target catalog.
+    ReleaseCatalog {
+        /// Directory containing reviewed release manifests and their artifacts.
+        #[arg(long)]
+        root: PathBuf,
+        /// Monotonically increasing release-channel generation.
+        #[arg(long, value_parser = clap::value_parser!(u64).range(1..))]
+        generation: u64,
     },
     /// Verify one final target IMAGE and its exact BUILD closure.
     Verify {
@@ -244,6 +257,8 @@ enum HostCommand {
     ProveMicrophoneHouse(host_microphone_house::MicrophoneHouseArgs),
     /// Carry an authorized microphone-addressed House response to selected playback.
     ProveSpokenMicrophoneHouse(host_spoken_microphone_house::SpokenMicrophoneHouseArgs),
+    /// Run one explicitly authorized push-to-talk Home command through Whisper and Piper playback.
+    HomeVoice(host_home_voice::HomeVoiceArgs),
 }
 
 #[derive(Args, Debug)]
@@ -359,6 +374,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             opts,
         ),
         HostCommand::JourneyHearsSpeaks(request) => host_hears_speaks::run(request, opts),
+        HostCommand::HomeVoice(request) => host_home_voice::run(request, opts),
         HostCommand::JourneyHearsSpeaksLocal { profile, output } => {
             host_hears_speaks::run_local(&profile, output, opts)
         }
@@ -499,6 +515,9 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                     quiet: opts.quiet,
                 },
             )
+        }
+        HostCommand::ReleaseCatalog { root, generation } => {
+            host_release_catalog::run(&root, generation, opts.dry_run, opts.json, opts.quiet)
         }
         HostCommand::Capstone {
             output,

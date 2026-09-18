@@ -32,9 +32,10 @@ pub extern "C" fn conduit_browser_webrtc_session_start_granted(role: u32, length
         let bytes = &input[..length];
         let frame = decode_session_frame(bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)?;
         let binding = SessionBinding::from_hello_frame(frame)?;
-        if binding.attachment.base
-            != conduit_core::BaseImplementationId::from("conduit.base/webrtc-data-channel@1")
-        {
+        if !matches!(
+            binding.attachment.base.as_str(),
+            "conduit.base/webrtc-data-channel@1" | "conduit.base/websocket-rfc6455@1"
+        ) {
             return Err(WireError::InvalidBase);
         }
         let mut canonical = vec![0; FRAME_CAPACITY];

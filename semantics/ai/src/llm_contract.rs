@@ -6,6 +6,8 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 pub const LLM_GENERATE_KIND: &str = "llm/generate";
+pub const LLM_STREAM_GENERATE_KIND: &str = "llm/generate-stream";
+pub const LLM_GENERATE_FLOW_KIND: &str = "llm/generate-flow";
 pub const LLM_CLASSIFY_KIND: &str = "llm/classify";
 pub const LLM_EXTRACT_KIND: &str = "llm/extract";
 pub const LLM_EMBED_KIND: &str = "llm/embed";
@@ -13,16 +15,18 @@ pub const LLM_INTERPRET_KIND: &str = "llm/interpret";
 pub const LLM_PROPOSE_KIND: &str = "llm/propose";
 pub const LLM_COMPOSE_KIND: &str = "llm/compose";
 pub const LLM_JUDGE_KIND: &str = "llm/judge";
+pub const LLM_PRESENT_KIND: &str = "llm/present";
 
 pub const MAXIMUM_LLM_INPUT_BYTES: u64 = 262_144;
 pub const MAXIMUM_LLM_CONTEXT_ITEMS: u64 = 128;
 pub const MAXIMUM_LLM_OUTPUT_BYTES: u64 = 65_536;
 pub const MAXIMUM_LLM_WORK_UNITS: u64 = 1_000_000;
 pub const MAXIMUM_LLM_HISTORY_ITEMS: u64 = 64;
-pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 8;
+pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 11;
 
 pub const GENERATION_REQUEST_VALUE_KIND: &str = "llm/generation-request@1";
 pub const GENERATED_RESULT_VALUE_KIND: &str = "llm/generated-result@1";
+pub const GENERATED_TEXT_CHUNK_VALUE_KIND: &str = "llm/generated-text-chunk@1";
 const CLASSIFICATION_REQUEST: &str = "llm/classification-request@1";
 const CLASSIFICATION_RESULT: &str = "llm/classification-result@1";
 const EXTRACTION_REQUEST: &str = "llm/extraction-request@1";
@@ -37,6 +41,10 @@ const COMPOSITION_REQUEST: &str = "llm/composition-request@1";
 const COMPOSITION_RESULT: &str = "llm/composition-result@1";
 const JUDGMENT_REQUEST: &str = "llm/judgment-request@1";
 const JUDGMENT_RESULT: &str = "llm/judgment-result@1";
+pub const GENERATIVE_PRESENTER_INPUT_VALUE_KIND: &str =
+    "conduit.presentation/generative-presenter-input@1";
+pub const GENERATED_MANIFESTATION_VALUE_KIND: &str =
+    "conduit.presentation/generated-manifestation@2";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LlmDeterminismProfile {
@@ -138,6 +146,11 @@ pub fn llm_semantic_catalog() -> [LlmSemanticContract; MAXIMUM_LLM_CATALOG_KINDS
             GENERATION_REQUEST_VALUE_KIND,
             GENERATED_RESULT_VALUE_KIND,
         ),
+        flow_contract(
+            LLM_GENERATE_FLOW_KIND,
+            GENERATION_REQUEST_VALUE_KIND,
+            GENERATED_RESULT_VALUE_KIND,
+        ),
         contract(
             LLM_CLASSIFY_KIND,
             CLASSIFICATION_REQUEST,
@@ -153,7 +166,31 @@ pub fn llm_semantic_catalog() -> [LlmSemanticContract; MAXIMUM_LLM_CATALOG_KINDS
         contract(LLM_PROPOSE_KIND, PROPOSAL_REQUEST, PROPOSAL_RESULT),
         contract(LLM_COMPOSE_KIND, COMPOSITION_REQUEST, COMPOSITION_RESULT),
         contract(LLM_JUDGE_KIND, JUDGMENT_REQUEST, JUDGMENT_RESULT),
+        present_contract(),
+        stream_contract(),
     ]
+}
+
+fn stream_contract() -> LlmSemanticContract {
+    let mut contract = contract(
+        LLM_STREAM_GENERATE_KIND,
+        GENERATION_REQUEST_VALUE_KIND,
+        GENERATED_TEXT_CHUNK_VALUE_KIND,
+    );
+    contract.kind_contract_revision = KindContractRevision::from("conduit.llm/generate-stream@1");
+    contract.outputs[0].temporal = PortTemporal::Flow { closes: true };
+    contract.limits.max_queue_items = 8;
+    contract
+}
+
+fn present_contract() -> LlmSemanticContract {
+    let mut contract = contract(
+        LLM_PRESENT_KIND,
+        GENERATIVE_PRESENTER_INPUT_VALUE_KIND,
+        GENERATED_MANIFESTATION_VALUE_KIND,
+    );
+    contract.kind_contract_revision = KindContractRevision::from("conduit.llm/present@2");
+    contract
 }
 
 pub fn llm_contract(kind: &str) -> Option<LlmSemanticContract> {
@@ -163,12 +200,40 @@ pub fn llm_contract(kind: &str) -> Option<LlmSemanticContract> {
 }
 
 fn contract(kind: &str, request_kind: &str, result_kind: &str) -> LlmSemanticContract {
+    contract_with_temporal(kind, request_kind, result_kind, PortTemporal::Value)
+}
+
+fn flow_contract(kind: &str, request_kind: &str, result_kind: &str) -> LlmSemanticContract {
+    contract_with_temporal(
+        kind,
+        request_kind,
+        result_kind,
+        PortTemporal::Flow { closes: true },
+    )
+}
+
+fn contract_with_temporal(
+    kind: &str,
+    request_kind: &str,
+    result_kind: &str,
+    temporal: PortTemporal,
+) -> LlmSemanticContract {
     let bounds = LlmWorkBounds::reviewed_default();
     LlmSemanticContract {
         kind_id: kind_id(kind),
         kind_contract_revision: KindContractRevision::from(format!("conduit.{kind}@1")),
-        inputs: vec![port("request", request_kind, PortDirection::Input)],
-        outputs: vec![port("result", result_kind, PortDirection::Output)],
+        inputs: vec![port_with_temporal(
+            "request",
+            request_kind,
+            PortDirection::Input,
+            temporal,
+        )],
+        outputs: vec![port_with_temporal(
+            "result",
+            result_kind,
+            PortDirection::Output,
+            temporal,
+        )],
         result_payload_kind: kind_id(result_kind),
         bounds,
         terminal_outcomes: [
@@ -196,12 +261,17 @@ fn contract(kind: &str, request_kind: &str, result_kind: &str) -> LlmSemanticCon
     }
 }
 
-fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
+fn port_with_temporal(
+    name: &str,
+    value_kind: &str,
+    direction: PortDirection,
+    temporal: PortTemporal,
+) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
         value_kind: kind_id(value_kind),
         direction,
-        temporal: PortTemporal::Value,
+        temporal,
     }
 }
 

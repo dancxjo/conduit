@@ -3,6 +3,7 @@
 use conduit_core::PlannedGear;
 
 mod ollama;
+mod ollama_stream;
 pub use ollama::{OllamaDiscovery, OllamaLocalModelAdapter};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,6 +17,19 @@ pub enum LocalModelAdapterTerminal {
     InvalidStructuredResult,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StreamingChunkDisposition {
+    Accepted,
+    Backpressured,
+    Cancel,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LocalModelStreamStep {
+    Chunk(conduit_ai::GeneratedTextChunk),
+    Terminal(conduit_ai::GeneratedTextFlowEvidence),
+}
+
 pub trait HostedLocalModelAdapter: Send {
     fn offer(&self) -> &conduit_ai::LocalModelOffer;
 
@@ -25,6 +39,35 @@ pub trait HostedLocalModelAdapter: Send {
         input: &[u8],
         output: &mut Vec<u8>,
     ) -> LocalModelAdapterTerminal;
+
+    fn execute_stream(
+        &mut self,
+        _placement: &PlannedGear,
+        _input: &[u8],
+        _sink: &mut dyn FnMut(&conduit_ai::GeneratedTextChunk) -> StreamingChunkDisposition,
+    ) -> conduit_ai::GeneratedTextFlowEvidence {
+        conduit_ai::GeneratedTextFlowEvidence {
+            chunks: 0,
+            generated_bytes: 0,
+            terminal: conduit_ai::GeneratedTextFlowTerminal::ProviderLost,
+            retained_private_text: false,
+        }
+    }
+
+    fn execute_stream_step(
+        &mut self,
+        _placement: &PlannedGear,
+        _input: &[u8],
+    ) -> LocalModelStreamStep {
+        LocalModelStreamStep::Terminal(conduit_ai::GeneratedTextFlowEvidence {
+            chunks: 0,
+            generated_bytes: 0,
+            terminal: conduit_ai::GeneratedTextFlowTerminal::ProviderLost,
+            retained_private_text: false,
+        })
+    }
+
+    fn cancel_stream(&mut self) {}
 }
 
 pub(crate) fn resource_offers(

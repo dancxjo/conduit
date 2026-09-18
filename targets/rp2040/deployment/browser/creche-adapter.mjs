@@ -16,6 +16,13 @@ const PACKAGED_MANIFEST_PATH = new URL(
   import.meta.url,
 ).href;
 const BUILD_ID = "conduit-pico-w-signal:4ccd179a7ddf32c17ba8b7f948a1f528e6cf8d78:thumbv6m-none-eabi:release:pico-local";
+const RELEASE_PROFILE = Object.freeze({
+  target_id: TARGET_ID,
+  package_id: "conduit-pico-w-signal@1",
+  output: "uf2",
+  builder_adapter: "conduit-host-rp2040/build-pico-w-signal@1",
+  deployment_adapter: "conduit-host-rp2040/picoboot@1",
+});
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const TARGET = Object.freeze({
@@ -116,7 +123,10 @@ export function createRp2040CrecheTargetAdapter({ host }) {
     requireMode(mode, "obtain");
     requireCurrent(signal, mode, "obtain");
     try {
-      const fabrication = await createRp2040BrowserFabricationAdapter().fabricate({
+      const resolved = host?.resolveReviewedRelease
+        ? await host.resolveReviewedRelease(RELEASE_PROFILE, signal)
+        : null;
+      const fabrication = await createRp2040BrowserFabricationAdapter({ resolved }).fabricate({
         strategy,
         selection: {
           targetId: "conduit-target/rp2040-pico-w@1",

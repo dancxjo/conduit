@@ -92,6 +92,7 @@ fn final_pattern_adapter_is_reused_for_calibration_revisions() {
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

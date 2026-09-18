@@ -19,6 +19,7 @@ mod body_workload_session;
 mod build_birth;
 mod candidate_form;
 mod control;
+mod conversation_request_evidence;
 mod cross_host_renderer;
 mod current_body_frame;
 mod debugger_control;
@@ -58,6 +59,7 @@ mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
 mod lifecycle_explanation;
+mod live_conversation_flow;
 mod llm_documentary;
 mod llm_embodiment_presentation;
 mod llm_presentation;
@@ -120,8 +122,8 @@ mod zero_body_projection;
 mod degradation_explanation_tests;
 
 pub use body_biography::{
-    project_body_biography, BodyBiographyEntry, BodyBiographyProjection,
-    BodyBiographyProjectionError, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
+    project_body_biography, BodyBiographyArchiveProjection, BodyBiographyEntry,
+    BodyBiographyProjection, BodyBiographyProjectionError, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
 };
 pub use body_biography_entrance::{
     PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError,
@@ -151,6 +153,7 @@ pub use control::{
     admit_run, ControlError, ControlReceiptProjection, PatchbayRequestId, PlanDocument,
     PlayDocument, PlayExecutionProjection,
 };
+pub use conversation_request_evidence::ConversationRequestEvidence;
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
     CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
@@ -240,6 +243,7 @@ pub use learned_watch::{
     MAX_OBJECTIVE_COMPONENTS, MAX_PROBABILISTIC_ALTERNATIVES, MAX_SIGNAL_POINTS, MAX_TENSOR_AXES,
     MAX_TENSOR_SLICE_VALUES,
 };
+pub use live_conversation_flow::*;
 #[cfg(test)]
 pub use llm_documentary::llm_documentary_presentation;
 pub use llm_documentary::llm_documentary_presentation_with_adapter;
@@ -297,8 +301,9 @@ pub use presenter_topology_projection::*;
 pub use prewake::*;
 pub use readable_body_history::{
     BodyHistoryAccess, BodyHistoryEntry, BodyHistoryExactEvidence, BodyHistoryInspectTarget,
-    BodyHistoryManifestation, BodyHistoryMoment, ReadableBodyHistory, ReadableBodyHistoryError,
-    ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES, MAX_BODY_HISTORY_TITLE_BYTES,
+    BodyHistoryManifestation, BodyHistoryMoment, ReadableArchivedBodyHistory, ReadableBodyHistory,
+    ReadableBodyHistoryError, ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES,
+    MAX_BODY_HISTORY_TITLE_BYTES,
 };
 pub use recursive_form_projection::{
     project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,

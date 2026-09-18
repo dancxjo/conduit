@@ -4,6 +4,10 @@ use clap::{Args, Subcommand, ValueEnum};
 
 use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 
+#[path = "evidence_home_cross_face.rs"]
+mod home_cross_face;
+#[path = "evidence_three_body_journey.rs"]
+mod three_body_journey;
 #[path = "evidence_two_faces.rs"]
 mod two_faces;
 
@@ -15,6 +19,12 @@ pub struct EvidenceArgs {
 
 #[derive(Subcommand, Debug)]
 enum EvidenceCommand {
+    /// Publish the bounded Home index after every face supplies exact evidence.
+    HomeCrossFace(HomeCrossFaceArgs),
+    /// Verify three independently born Bodies against one semantic Journey contract.
+    ThreeBodyJourney(ThreeBodyJourneyArgs),
+    /// Write the canonical exact-commit contract for the three-Body Journey.
+    ThreeBodyJourneyContract(ThreeBodyJourneyContractArgs),
     /// Retain native and pinned-browser pixels for one exact Presentation.
     OneFormTwoFaces(TwoFacesArgs),
     /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
@@ -25,6 +35,50 @@ enum EvidenceCommand {
     Gallery(EvidenceGalleryArgs),
     /// Verify canonical documentation links structurally and against a built gallery.
     DocsVerify(EvidenceDocsVerifyArgs),
+}
+
+#[derive(Args, Debug)]
+struct HomeCrossFaceArgs {
+    /// One conduit.evidence/home-face@1 receipt; exactly six distinct faces are required.
+    #[arg(long = "receipt", required = true)]
+    receipts: Vec<PathBuf>,
+
+    /// New file that will receive the verified bounded index.
+    #[arg(
+        long,
+        default_value = "target/conduit-evidence/home-cross-face/index.json"
+    )]
+    output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+struct ThreeBodyJourneyArgs {
+    /// Exact commit whose three Body tracks are being verified.
+    #[arg(long)]
+    commit: String,
+
+    /// Shared conduit.evidence/semantic-journey-contract@2 document.
+    #[arg(long)]
+    contract: PathBuf,
+
+    /// One conduit.evidence/body-journey-track@2 manifest; exactly three are required.
+    #[arg(long = "track", required = true)]
+    tracks: Vec<PathBuf>,
+
+    /// New file that will receive the verified cross-Body index.
+    #[arg(long, default_value = "target/journeys/three-bodies/index.json")]
+    output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+struct ThreeBodyJourneyContractArgs {
+    /// Exact commit the future track evidence must match.
+    #[arg(long)]
+    commit: String,
+
+    /// New file that will receive the canonical contract.
+    #[arg(long, default_value = "target/journeys/three-bodies/contract.json")]
+    output: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -118,6 +172,13 @@ enum EvidenceResultArg {
 
 pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
+        EvidenceCommand::HomeCrossFace(args) => home_cross_face::run(args.receipts, args.output),
+        EvidenceCommand::ThreeBodyJourney(args) => {
+            three_body_journey::run(args.commit, args.contract, args.tracks, args.output)
+        }
+        EvidenceCommand::ThreeBodyJourneyContract(args) => {
+            three_body_journey::write_contract(args.commit, args.output).map_err(Into::into)
+        }
         EvidenceCommand::OneFormTwoFaces(args) => two_faces::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
         EvidenceCommand::Verify(args) => {

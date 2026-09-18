@@ -51,6 +51,11 @@ pub mod external_signal;
 pub mod external_websocket;
 mod host_execution;
 pub mod hosted_audio;
+mod hosted_body_conversation_context;
+pub use hosted_body_conversation_context::{
+    BodyConversationContextReplacement, BodyConversationContextSource,
+    BodyConversationContextUpdateRefusal,
+};
 pub mod hosted_calendar;
 pub mod hosted_data;
 pub mod hosted_geometry;
@@ -76,6 +81,8 @@ pub mod hosted_reminder;
 pub mod hosted_resource;
 pub mod hosted_speech;
 pub mod hosted_speech_recognition;
+mod voice_host;
+pub use voice_host::VoiceHostProviders;
 mod hosted_spoken_output_host;
 pub mod hosted_synth;
 pub mod hosted_vector_index;
@@ -85,6 +92,10 @@ pub mod hosted_wav_artifact;
 mod image_binding_tests;
 mod installed_std;
 pub use installed_std::{InstalledRemoteFragment, RemoteHostWork, RemoteValueTransfer};
+mod remote_host_fragment;
+pub use remote_host_fragment::AdmittedRemoteFragment;
+#[cfg(test)]
+mod body_chat_tests;
 #[cfg(test)]
 mod installed_std_tests;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
@@ -428,6 +439,7 @@ pub struct StdHost {
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
+    body_conversation_context: Option<BodyConversationContextSource>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
@@ -451,6 +463,48 @@ impl Default for StdHost {
 }
 
 impl StdHost {
+    pub fn install_body_conversation_context(
+        &mut self,
+        context: &conduit_body::BodyConversationContext,
+    ) -> Result<(), String> {
+        let newly_offered = self.body_conversation_context.is_none();
+        if newly_offered {
+            let offer = conduit_std_offers::body_conversation_context_std_offer();
+            if !self
+                .advertisement
+                .capabilities
+                .iter()
+                .any(|installed| installed.capability_id == offer.capability_id)
+            {
+                self.advertisement.capabilities.push(offer);
+            }
+            self.advertisement
+                .capabilities
+                .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+        }
+        if let Some(source) = &self.body_conversation_context {
+            source
+                .replace(context)
+                .map_err(|error| format!("replace Body conversation context: {error:?}"))?;
+        } else {
+            self.body_conversation_context = Some(BodyConversationContextSource::new(context)?);
+        }
+        if newly_offered {
+            self.advertisement.offer_generation = OfferGeneration(
+                self.advertisement
+                    .offer_generation
+                    .0
+                    .checked_add(1)
+                    .ok_or_else(|| "Body context offer generation exhausted".to_string())?,
+            );
+        }
+        Ok(())
+    }
+
+    pub fn body_conversation_context_source(&self) -> Option<BodyConversationContextSource> {
+        self.body_conversation_context.clone()
+    }
+
     pub fn issue_kernel_play(
         &mut self,
         fragment: &PlanFragment,
@@ -503,6 +557,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -542,13 +597,22 @@ impl StdHost {
             .push(conduit_std_offers::house_prompt_std_offer());
         advertisement
             .capabilities
+            .push(conduit_std_offers::body_chat_prompt_std_offer());
+        advertisement
+            .capabilities
             .push(conduit_std_offers::model_result_to_text_std_offer());
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::model_result_flow_to_text_std_offer());
         advertisement
             .capabilities
             .push(conduit_std_offers::address_detect_offer());
         advertisement
             .capabilities
             .push(conduit_std_offers::recognition_to_text_std_offer());
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::committed_turn_to_text_std_offer());
         advertisement.capabilities.extend(additional_capabilities);
         advertisement.resources.sort();
         advertisement.capabilities.sort_by(|left, right| {
@@ -570,6 +634,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -609,6 +674,7 @@ impl StdHost {
             microphone: None,
             vector_search: Some(adapter),
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -648,6 +714,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: Some(adapter),
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -671,12 +738,22 @@ impl StdHost {
             .resources
             .push(hosted_speech::process_resource_offer());
         advertisement.capabilities.retain(|offer| {
-            offer.implementation.implementation_id.as_str()
-                != conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+            !matches!(
+                offer.implementation.implementation_id.as_str(),
+                conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+                    | conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION
+            )
         });
         advertisement
             .capabilities
             .push(conduit_std_offers::piper_speech_offer());
+        if adapter.limits().maximum_text_bytes
+            >= conduit_tongues::MAXIMUM_SPEAKABLE_SEGMENT_BYTES as u32
+        {
+            advertisement
+                .capabilities
+                .push(conduit_std_offers::piper_streaming_speech_offer());
+        }
         advertisement
             .capabilities
             .push(conduit_std_offers::audio_convert_pcm_profile_offer());
@@ -707,6 +784,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -760,6 +838,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -814,6 +893,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -938,12 +1018,22 @@ impl StdHost {
             .resources
             .push(hosted_speech::process_resource_offer());
         advertisement.capabilities.retain(|offer| {
-            offer.implementation.implementation_id.as_str()
-                != conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+            !matches!(
+                offer.implementation.implementation_id.as_str(),
+                conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+                    | conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION
+            )
         });
         advertisement
             .capabilities
             .push(conduit_std_offers::piper_speech_offer());
+        if adapter.limits().maximum_text_bytes
+            >= conduit_tongues::MAXIMUM_SPEAKABLE_SEGMENT_BYTES as u32
+        {
+            advertisement
+                .capabilities
+                .push(conduit_std_offers::piper_streaming_speech_offer());
+        }
         advertisement
             .capabilities
             .push(conduit_std_offers::audio_convert_pcm_profile_offer());
@@ -967,6 +1057,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -991,6 +1082,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1039,6 +1131,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1082,6 +1175,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1114,6 +1208,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1159,6 +1254,7 @@ impl StdHost {
             microphone: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,

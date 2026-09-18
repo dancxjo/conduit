@@ -36,19 +36,31 @@ test("Patchbay has one stable Library and one contextual Inspect surface", async
     await expect(navigation.getByRole("button", { name: "Library" })).toHaveCount(1);
     await expect(navigation.getByRole("button", { name: "Inspect" })).toHaveCount(1);
     await expect(navigation.getByRole("button")).toHaveCount(3);
-    await expect(page.locator("#palette")).toBeVisible();
-    await expect(page.locator("#inspector")).toBeVisible();
+    await expect(page.locator("#palette")).toBeHidden();
+    await expect(page.locator("#inspector")).toBeHidden();
     await expect(page.locator("#library-query")).toHaveCount(1);
     await expect(page.locator("#form-query,#gear-query,#body-form-query")).toHaveCount(0);
     await expect(page.locator("#toggle-parts,#toggle-truth,#toggle-structured")).toHaveCount(0);
     await expect(page.locator("#structured-navigator")).toBeAttached();
     await expect(page.locator("#deep-inspection")).toBeAttached();
+    await expect(page.locator("#lens-label")).toHaveText("BODY · STRUCTURE");
+    await expect(page.getByRole("button", { name: "Form", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Realization", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Debug", exact: true })).toBeVisible();
 
     await navigation.getByRole("button", { name: "Library" }).click();
-    await expect(page.locator("#palette")).toBeHidden();
-    await expect(page.locator("#inspector")).toBeVisible();
-    await navigation.getByRole("button", { name: "Library" }).click();
     await expect(page.locator("#palette")).toBeVisible();
+    await expect(page.locator("#inspector")).toBeHidden();
+    await navigation.getByRole("button", { name: "Library" }).click();
+    await expect(page.locator("#palette")).toBeHidden();
+    await navigation.getByRole("button", { name: "Inspect" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#inspector")).toBeVisible();
+    await page.getByRole("button", { name: "Debug", exact: true }).click();
+    await expect(page.locator("#lens-label")).toHaveText("BODY · SIGNS");
+    await expect(page.locator("#debugger-control")).toBeVisible();
+    await expect(page.locator("#debugger-timeline")).toBeVisible();
+    await expect(page.locator("#debugger-watches")).toBeVisible();
   } finally {
     server.lines.close();
     server.process.kill("SIGTERM");

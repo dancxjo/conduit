@@ -1,7 +1,7 @@
 // Host realization of the shared portable Form library presentation.
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
-export function openWorkspaceLibrary({ panel, session, source, inventory, presentationFor, onUse, onRemove, onClose, onFailure }) {
+export function openWorkspaceLibrary({ panel, session, source, inventory, planningLines, presentationFor, onUse, onRemove, onClose, onFailure }) {
   const presentation = presentationFor(panel);
   let revision = 0, query = '', busy = false;
   const heading = panel.querySelector('h2');
@@ -10,7 +10,7 @@ export function openWorkspaceLibrary({ panel, session, source, inventory, presen
     if (revision === 0xffff_ffff) throw new Error('Form chooser presentation revision exhausted');
     const currentRevision = ++revision;
     const workloadRevision = session.current().workload_revision;
-    const view = session.libraryView(source, query, currentRevision);
+    const view = session.libraryView(source, query, currentRevision, planningLines());
     presentation.present('workspace-form-library', view, { onEvent(event) {
       presentation.nextEvent('workspace-form-library');
       if (busy) return;

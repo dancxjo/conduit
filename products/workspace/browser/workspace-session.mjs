@@ -4,6 +4,7 @@ const decoder = new TextDecoder('utf-8', { fatal: true });
 
 export function openWorkspaceSession({ host, storage }) {
   const api = host.runtime;
+  const localAdvertisement = host.membership.advertisement();
   let sequence = 0;
   let write = Promise.resolve();
   let persistenceFailure = null;
@@ -15,7 +16,7 @@ export function openWorkspaceSession({ host, storage }) {
     new Uint8Array(api.memory.buffer, pointer, bytes.length).set(bytes);
     const status = api.conduit_workspace_request(bytes.length);
     const length = api.conduit_workspace_output_len();
-    if (length < 1 || length > 256 * 1024) throw new Error('Workspace output exceeds its bound');
+    if (length < 1 || length > api.conduit_workspace_output_capacity()) throw new Error('Workspace output exceeds its bound');
     const output = new Uint8Array(api.memory.buffer, api.conduit_workspace_output_ptr(), length).slice();
     if (status >= 0 && binary) return output;
     const result = JSON.parse(decoder.decode(output));
@@ -46,7 +47,16 @@ export function openWorkspaceSession({ host, storage }) {
   const save = () => {
     const snapshot = workspace ? request('Durable') : call('conduit_creche_durable_snapshot');
     if (!snapshot) return write;
-    write = write.then(() => storage.writeJson('body-session', snapshot)).catch(error => {
+    write = write.then(async () => {
+      const archives = snapshot.pending_archives ?? [];
+      if (archives.length === 0) return storage.writeJson('body-session', snapshot);
+      const digestKey = digest => digest.map(byte => byte.toString(16).padStart(2, '0')).join('');
+      await storage.writeJsonBatch([
+        ...archives.map(segment => ({ key: `body-history/${segment.ordinal}-${digestKey(segment.digest)}`, value: segment, immutable: true })),
+        { key: 'body-session', value: snapshot },
+      ]);
+      request('AcknowledgeArchives', { head_digest: archives.at(-1).digest });
+    }).catch(error => {
       persistenceFailure ??= error;
       throw error;
     });
@@ -60,8 +70,10 @@ export function openWorkspaceSession({ host, storage }) {
       if (!workspace) return call('conduit_creche_current');
       const { evidence, realization } = request('Current');
       const part = evidence.membership.parts.find(part => part.current?.host_id === host.hostId && part.current?.boot_id === host.bootId);
+      const state = typeof evidence.body.state === 'object' && evidence.body.state?.Fulfilled
+        ? 'FULFILLED' : evidence.body.state === 'Lulled' ? 'LULLED' : 'AWAKE';
       return { body_id: evidence.body_id, friendly_name: evidence.friendly_name,
-        state: evidence.body.state === 'Lulled' ? 'LULLED' : 'AWAKE',
+        state,
         initial_forms: evidence.body.workset.forms, workload_revision: evidence.body.workload_revision,
         here_part_id: part?.part_id, host_id: part?.current?.host_id, boot_id: part?.current?.boot_id,
         wake_id: realization?.wake.wake_id, plan_id: realization?.plan.plan_id,
@@ -75,7 +87,7 @@ export function openWorkspaceSession({ host, storage }) {
       return call('conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(at));
     },
     selectForm(form) { request('SelectForm', { form }); return save(); },
-    libraryView(source, query, revision) { return request('LibraryView', { source, query, revision }, true); },
+    libraryView(source, query, revision, joinedLines = []) { return request('LibraryView', { ...here, source, query, revision, joined_lines: joinedLines }, true); },
     async changeWorkset(edit, form, source, expected_revision) {
       if (persistenceFailure) throw persistenceFailure;
       await write;
@@ -83,14 +95,20 @@ export function openWorkspaceSession({ host, storage }) {
       await save();
     },
     foreground: () => workspace ? request('Current').foreground : null,
-    arrive() { if (!workspace) request('Arrive'); return save(); },
+    arrive() { if (!workspace) request('Arrive', { advertisement: localAdvertisement }); return save(); },
     evidence: () => workspace ? request('Current') : null,
-    async propose(source) {
+    async propose(source, joinedLines = [], browserAudioAuthority = false) {
       if (persistenceFailure) throw persistenceFailure;
-      const proposal = request('Propose', { ...here, source }); workspace = request('Current'); await save(); return proposal;
+      const proposal = request('Propose', { ...here, source, joined_lines: joinedLines, browser_audio_authority: browserAudioAuthority }); workspace = request('Current'); await save(); return proposal;
     },
     async started(start) { request('Started', { ...here, play: start.play, wake_at_start: start.wake_at_start }); await save(); },
     async lull(play) { request('Lull', { ...here, terminated_play: play ?? null }); await save(); },
+    async fulfill(attribution = `operator/${host.hostId}`) {
+      if (persistenceFailure) throw persistenceFailure;
+      await write;
+      request('Fulfill', { ...here, attribution, authority_grant_id: `grant/${host.hostId}/workspace-fulfill` });
+      await save();
+    },
     save,
     settled: () => write,
     persistenceFailure: () => persistenceFailure,
@@ -112,9 +130,16 @@ export function openWorkspaceSession({ host, storage }) {
       await write;
       return receipt;
     },
+    async hostLost(hostId, bootId) {
+      if (persistenceFailure) throw persistenceFailure;
+      request('HostLost', { ...here, lost_host_id: hostId, lost_boot_id: bootId });
+      workspace = request('Current');
+      await save();
+      return workspace;
+    },
     async openAdmitted(durable) {
       if (workspace) throw new Error('Close the current Body before joining another Body');
-      request('OpenAdmitted', { evidence: durable.evidence, admission: durable.admission, ...here });
+      request('OpenAdmitted', { evidence: durable.evidence, admission: durable.admission, advertisement: localAdvertisement, ...here });
       if (durable.foreground) request('SelectForm', { form: durable.foreground });
       await save();
       return workspace;
@@ -123,10 +148,12 @@ export function openWorkspaceSession({ host, storage }) {
       const snapshot = await storage.readJson('body-session');
       if (snapshot === null) return null;
       if (snapshot.schema === 'conduit.workspace/body@1') {
-        request('Restore', { evidence: snapshot.evidence, admission: snapshot.admission ?? null, ...here });
+        const resumeWake = snapshot.evidence?.body?.state !== 'Lulled'
+          && !(typeof snapshot.evidence?.body?.state === 'object' && snapshot.evidence.body.state?.Fulfilled);
+        request('Restore', { evidence: snapshot.evidence, admission: snapshot.admission ?? null, advertisement: localAdvertisement, ...here });
         if (snapshot.foreground) request('SelectForm', { form: snapshot.foreground });
         await save();
-        return workspace;
+        return { body: workspace, resume_wake: resumeWake };
       }
       const bytes = encoder.encode(JSON.stringify(snapshot));
       put(bytes);
@@ -142,9 +169,9 @@ export function openWorkspaceSession({ host, storage }) {
         nextSequence();
         if (restored.host_id !== host.hostId || restored.boot_id !== host.bootId) throw new Error('Body membership did not reconcile to this Host and Boot');
         await save();
-        return restored;
+        return { body: restored, resume_wake: false };
       }
-      return receipt;
+      return { body: receipt, resume_wake: false };
     },
   });
 }

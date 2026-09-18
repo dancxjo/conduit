@@ -54,15 +54,16 @@ jobs:
       required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
       proofs: ${{ (inputs.execute_proofs != '' && inputs.execute_proofs) || steps.slice.outputs.proofs || steps.impact.outputs.pages_product_proofs || '[]' }}
       browser_runtime_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.browser_runtime_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
-      tour_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.tour_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      tour_required: false
       pages_carrier_required: ${{ inputs.full_suite || !inputs.development_admission && ((inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true'))) }}
       browser_admission_required: ${{ inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') }}
+      host_releases_required: ${{ inputs.full_suite || steps.native-host-release.outputs.required == 'true' || !inputs.development_admission && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true') }}
       stack_role: ${{ steps.stack.outputs.role || 'independent' }}
       stack_tip_pr: ${{ steps.stack.outputs.tip_pr || github.event.pull_request.number }}
       stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CANDIDATE_SHA }}
       standalone_locks_required: ${{ inputs.full_suite && 'true' || steps.impact.outputs.esp32_required || 'true' }}
       controller_sha: ${{ steps.controller.outputs.sha }}
-      patchbay_debugger_required: ${{ inputs.full_suite || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.patchbay_debugger_required)) || (inputs.execute_proofs == '' && steps.debugger-bootstrap.outputs.required == 'true') }}
+      patchbay_debugger_required: false
     steps:
       - uses: actions/checkout@v7
         with:
@@ -135,6 +136,21 @@ jobs:
             --json-out target/product-plan/impact.json \
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"
+      - name: Select native Home Host release proof
+        id: native-host-release
+        if: steps.stack.outputs.role != 'intermediate'
+        run: |
+          required=false
+          if ! git diff --quiet "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA" -- \
+            products/home/model \
+            products/home/native \
+            tools/xtask/src/commands/host_release.rs \
+            .github/workflows/tour-products.yml
+          then
+            required=true
+          fi
+          echo "required=$required" >> "$GITHUB_OUTPUT"
+          printf 'Native Home Host release proof: `%s`\n' "$required" >> "$GITHUB_STEP_SUMMARY"
       - name: Project the trusted reconciliation delta onto product jobs
         id: exact
         if: steps.stack.outputs.role != 'intermediate' && inputs.execute_proofs != ''
@@ -193,6 +209,8 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface,form-runner
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/workspace-runtime.wasm
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features home-surface,form-runner
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/home-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
           cargo build --locked -p patchbay-html --bin patchbay-static-assets
@@ -380,6 +398,7 @@ jobs:
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product unused browser-proof
           products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
+          products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
       - name: Retain the browser-only candidate surfaces
         uses: ./.github/actions/upload-artifact-retry
         with:
@@ -396,6 +415,7 @@ jobs:
             target/creche-product
             target/workspace-product
             target/patchbay-product
+            target/home-product
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 1
@@ -417,11 +437,11 @@ jobs:
       matrix:
         include:
           - shard: browser-host
-            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
+            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs
           - shard: creche-workspace
             specs: proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
-            specs: proof/browser/pages-front-door.spec.mjs proof/browser/web-accessibility.spec.mjs
+            specs: proof/browser/pages-front-door.spec.mjs proof/browser/home-cross-face.spec.mjs proof/browser/web-accessibility.spec.mjs
     name: browser-admission-${{ matrix.shard }}
     env:
       NPM_CONFIG_AUDIT: "false"
@@ -446,6 +466,7 @@ jobs:
         env:
           BROWSER_PROOF_SPECS: ${{ matrix.specs }}
           CONDUIT_BROWSER_PROOF_SHARD: admission-${{ matrix.shard }}
+          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-face-evidence
         run: >-
           node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
@@ -453,6 +474,27 @@ jobs:
           --project chromium
           --workers 1
           --retries 0
+      - name: Prove the exact Home journey in pinned Firefox
+        if: matrix.shard == 'pages'
+        env:
+          HOME: /root
+          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-face-evidence
+        run: >-
+          node proof/browser/node_modules/@playwright/test/cli.js test
+          --config proof/browser/playwright.config.mjs
+          proof/browser/home-cross-face.spec.mjs
+          --project firefox
+          --workers 1
+          --retries 0
+      - name: Retain exact browser Home face receipts
+        if: matrix.shard == 'pages'
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: home-face-browser-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/home-face-evidence
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
 
   avr-release:
     needs: plan
@@ -509,7 +551,7 @@ jobs:
 
   host-releases:
     needs: plan
-    if: needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.host_releases_required == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -541,7 +583,7 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross xvfb
       - name: Compile and seal the reviewed generic existing-computer releases
         run: cargo +1.98.1 xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
       - name: Run the packaged Linux Tour journey
@@ -549,9 +591,20 @@ jobs:
         run: |
           chmod +x target/creche-host-releases/conduit-tour-linux-x86_64
           target/creche-host-releases/conduit-tour-linux-x86_64 --journey
+      - name: Run the packaged Linux Home journey
+        if: matrix.platform == 'linux'
+        run: |
+          chmod +x target/creche-host-releases/conduit-home-linux-x86_64
+          rm -rf target/creche-host-releases/home-face-linux-native
+          xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-face-linux-native
       - name: Run the packaged Windows Tour journey
         if: matrix.platform == 'windows'
         run: target/creche-host-releases/conduit-tour-windows-x86_64.exe --journey
+      - name: Run the packaged Windows Home journey
+        if: matrix.platform == 'windows'
+        run: |
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/creche-host-releases/home-face-windows-native
+          target/creche-host-releases/conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-face-windows-native
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-${{ matrix.artifact }}
@@ -811,6 +864,7 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@1.98.1
       - name: Download the reviewed browser product runtimes
         uses: ./.github/actions/download-artifact-retry
         with:
@@ -851,6 +905,11 @@ jobs:
         with:
           name: conduit-conduitos-releases
           path: target/creche-release-artifacts
+      - name: Seal the bounded installed release catalog
+        run: >-
+          cargo +1.98.1 xtask host release-catalog
+          --root target/creche-release-artifacts
+          --generation "${{ github.run_number }}"
       - name: Stage the exact browser products
         run: |
           mkdir -p target/debug
@@ -862,12 +921,13 @@ jobs:
           chmod 755 target/browser-product-runtimes/patchbay-static-assets
           cp target/browser-product-runtimes/tour-runtime.wasm target/conduit_tour_runtime.wasm
           cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
-          rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product
+          rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product target/home-product
           site/tools/stage-pages-root.sh target/pages-root
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
           products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
+          products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
       - name: Retain the exact staged products once for parallel consumers
         uses: ./.github/actions/upload-artifact-retry
         with:
@@ -884,6 +944,7 @@ jobs:
             target/creche-product
             target/workspace-product
             target/patchbay-product
+            target/home-product
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 1
@@ -904,11 +965,11 @@ jobs:
           - shard: tour
             specs: proof/browser/executable-tour.spec.mjs
           - shard: browser-host
-            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
+            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs
           - shard: creche-machines
             specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
-            specs: proof/browser/pages-front-door.spec.mjs proof/browser/web-accessibility.spec.mjs
+            specs: proof/browser/pages-front-door.spec.mjs proof/browser/home-cross-face.spec.mjs proof/browser/web-accessibility.spec.mjs
     name: browser-proof-${{ matrix.shard }}
     env:
       NPM_CONFIG_AUDIT: "false"
@@ -935,6 +996,7 @@ jobs:
         env:
           BROWSER_PROOF_SPECS: ${{ matrix.specs }}
           CONDUIT_CRECHE_SPORE_OUTPUT: ${{ runner.temp }}/creche-export.iso
+          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-face-evidence
         run: >-
           node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
@@ -942,6 +1004,36 @@ jobs:
           --project chromium
           --workers 1
           --retries 0
+      - name: Prove portable Home in pinned Firefox
+        if: matrix.shard == 'browser-host'
+        env:
+          HOME: /root
+          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-face-evidence
+        run: >-
+          node proof/browser/node_modules/@playwright/test/cli.js test
+          --config proof/browser/playwright.config.mjs
+          proof/browser/home-host.spec.mjs proof/browser/home-cross-face.spec.mjs
+          --project firefox
+          --workers 1
+          --retries 0
+      - name: Retain the exact Chromium Home face receipt
+        if: matrix.shard == 'pages'
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: home-face-browser-chromium-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/home-face-evidence
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Retain the exact Firefox Home face receipt
+        if: matrix.shard == 'browser-host'
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: home-face-browser-firefox-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/home-face-evidence
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
       - name: Retain the exact Crèche-exported ConduitOS spore
         if: matrix.shard == 'creche-machines'
         uses: ./.github/actions/upload-artifact-retry
@@ -1120,15 +1212,18 @@ jobs:
       - name: Seal the already-proven Pages carrier
         run: |
           rm -rf target/pages-site target/pages-carrier
-          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/workspace target/pages-site/patchbay
+          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/workspace target/pages-site/patchbay target/pages-site/home
           cp -a target/pages-root/. target/pages-site/
           cp -a target/tour-product/. target/pages-site/tour/
           cp -a target/creche-product/. target/pages-site/creche/
           cp -a target/workspace-product/. target/pages-site/workspace/
           cp -a target/patchbay-product/. target/pages-site/patchbay/
+          cp -a target/home-product/. target/pages-site/home/
           node products/tour/tools/stage-legacy-routes.mjs target/pages-site
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/tour/tour.application.json
+          grep -Fq 'Redirecting to your Body' target/pages-site/tour/index.html
+          grep -Fq '../../workspace/' target/pages-site/tour/meet-one-gear/index.html
           test -f target/pages-site/book/index.html
           test -f target/pages-site/creche/index.html
           test -f target/pages-site/creche/creche.application.json
@@ -1136,6 +1231,7 @@ jobs:
           test -f target/pages-site/creche/runtime.wasm
           test -f target/pages-site/patchbay/patchbay.application.json
           test -f target/pages-site/patchbay/api/snapshot
+          test -f target/pages-site/home/home.application.json
           source_commit=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD)
           source_tree=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse 'HEAD^{tree}')
           node tools/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"

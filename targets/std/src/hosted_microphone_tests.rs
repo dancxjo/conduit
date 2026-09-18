@@ -146,7 +146,7 @@ fn stale_selection_and_oversized_capture_are_distinct() {
 }
 
 #[test]
-fn discovery_overflow_and_short_capture_fail_closed() {
+fn discovery_overflow_fails_closed() {
     let oversized = format!(
         "#!/bin/sh\nif [ \"$1\" = -l ]; then dd if=/dev/zero bs={} count=1 2>/dev/null; exit 0; fi\n",
         MAXIMUM_DISCOVERY_BYTES + 1
@@ -157,10 +157,13 @@ fn discovery_overflow_and_short_capture_fail_closed() {
         Err(MicrophoneFailure::DiscoveryFailed)
     ));
     fs::remove_dir_all(overflow_root).unwrap();
+}
 
+#[test]
+fn short_capture_fails_closed() {
     let short = format!(
         "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\nprintf '\\000\\000'\n",
-        listing().replace('\n', "\\n")
+        listing().replace('\n', "\\n"),
     );
     let (short_root, short_executable) = fixture(&short, "short-capture");
     let discovery = AlsaMicrophoneDiscovery::inspect(&short_executable).unwrap();

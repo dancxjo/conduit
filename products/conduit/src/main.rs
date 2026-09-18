@@ -4,12 +4,18 @@ mod construction;
 mod copy_task;
 #[cfg(test)]
 mod copy_task_tests;
+mod deployment_carrier;
 mod diagnostics;
+mod durable_host;
+mod durable_host_control;
 mod form_source;
+mod host_rendezvous;
+mod native_package_install;
 mod product_execution;
 #[cfg(test)]
 mod product_execution_tests;
 mod protected_task;
+mod release_obtain;
 mod report_artifact;
 mod std_websocket_line;
 #[cfg(test)]
@@ -78,19 +84,19 @@ fn enter_patchbay(
         cli::PatchbayHost::Native => "patchbay-native",
         cli::PatchbayHost::Browser => "patchbay-html",
     };
-    let status = command.status().map_err(|error| {
-        format!(
-            "{executable} is unavailable ({error}); install the selected Patchbay renderer or use `cargo xtask demo patchbay --on {}` from a Conduit checkout",
-            match host {
-                cli::PatchbayHost::Native => "native",
-                cli::PatchbayHost::Browser => "browser",
-            }
-        )
-    })?;
+    let status = command
+        .status()
+        .map_err(|error| patchbay_unavailable_message(executable, &error))?;
     status
         .success()
         .then_some(())
         .ok_or_else(|| format!("{executable} exited with {status}"))
+}
+
+fn patchbay_unavailable_message(executable: &str, error: &io::Error) -> String {
+    format!(
+        "{executable} is unavailable ({error}); install the selected Patchbay renderer alongside the `conduit` product entrance"
+    )
 }
 
 fn enter_creche() -> Result<(), String> {
@@ -121,6 +127,37 @@ fn enter_creche() -> Result<(), String> {
         .success()
         .then_some(())
         .ok_or_else(|| format!("{executable} exited with {status}"))
+}
+
+fn home_process() -> std::process::Command {
+    std::process::Command::new("conduit-home")
+}
+
+fn enter_home() -> Result<(), String> {
+    let executable = "conduit-home";
+    let status = home_process()
+        .status()
+        .map_err(|error| {
+            format!(
+                "{executable} is unavailable ({error}); install the native Home application alongside the `conduit` product entrance"
+            )
+        })?;
+    status
+        .success()
+        .then_some(())
+        .ok_or_else(|| format!("{executable} exited with {status}"))
+}
+
+#[cfg(test)]
+mod home_entrance_tests {
+    use super::*;
+
+    #[test]
+    fn public_home_enters_the_packaged_native_application() {
+        let command = home_process();
+        assert_eq!(command.get_program(), "conduit-home");
+        assert_eq!(command.get_args().count(), 0);
+    }
 }
 
 use crate::report_artifact::{read_report, snapshot_from_execution, write_report};
@@ -193,6 +230,7 @@ fn render_runtime_report(path: &Path) -> Result<String, String> {
 fn main() {
     let command = cli::Cli::parse().command;
     let result = match command {
+        cli::Command::Home => enter_home(),
         cli::Command::Creche => enter_creche(),
         cli::Command::Patchbay {
             on,
@@ -218,7 +256,65 @@ fn main() {
             body.as_deref(),
             await_terminal,
         ),
-        cli::Command::Host { command } => construction::host(command),
+        cli::Command::Host { command } => match command {
+            cli::HostCommand::Service { command } => durable_host::dispatch(command),
+            cli::HostCommand::Obtain {
+                target,
+                catalog,
+                catalog_id,
+                mirror,
+                cache,
+                minimum_generation,
+            } => release_obtain::run(
+                &target,
+                &catalog,
+                &catalog_id,
+                &mirror,
+                &cache,
+                minimum_generation,
+            ),
+            cli::HostCommand::Carry { command } => deployment_carrier::run(command),
+            cli::HostCommand::Rendezvous {
+                state_dir,
+                carrier,
+                timeout_seconds,
+            } => host_rendezvous::serve(&state_dir, carrier, timeout_seconds),
+            command => construction::host(command),
+        },
+        cli::Command::Body {
+            command: cli::BodyCommand::Status { state_dir, json },
+        } => durable_host::body_status(&state_dir, json),
+        cli::Command::Body {
+            command:
+                cli::BodyCommand::Invite {
+                    state_dir,
+                    ttl_seconds,
+                },
+        } => durable_host::issue_body_invitation(&state_dir, ttl_seconds),
+        cli::Command::Body {
+            command:
+                cli::BodyCommand::Accept {
+                    invitation,
+                    state_dir,
+                    authorize_join,
+                },
+        } => durable_host::accept_body_invitation(&invitation, &state_dir, authorize_join),
+        cli::Command::Body {
+            command:
+                cli::BodyCommand::Admit {
+                    request,
+                    state_dir,
+                    authorize_admission,
+                },
+        } => durable_host::admit_body_request(&request, &state_dir, authorize_admission),
+        cli::Command::Body {
+            command:
+                cli::BodyCommand::CompleteJoin {
+                    receipt,
+                    state_dir,
+                    authorize_membership,
+                },
+        } => durable_host::complete_body_join(&receipt, &state_dir, authorize_membership),
         cli::Command::Body { command } => construction::body(command),
         cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),
@@ -340,5 +436,16 @@ mod patchbay_entrance_tests {
             &[],
         )
         .is_err());
+    }
+
+    #[test]
+    fn unavailable_renderer_guidance_stays_inside_the_installed_product() {
+        let message = patchbay_unavailable_message(
+            "patchbay-html",
+            &io::Error::new(io::ErrorKind::NotFound, "missing"),
+        );
+        assert!(message.contains("alongside the `conduit` product entrance"));
+        assert!(!message.contains("cargo xtask"));
+        assert!(!message.contains("checkout"));
     }
 }

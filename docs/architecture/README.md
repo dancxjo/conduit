@@ -33,6 +33,7 @@ proposals do not override the current canon.
 ## Body, resources, and effects
 
 - [Body lifecycle architectural waists](body-lifecycle-waists.md)
+- [Embodied experience, perception, character, and Fulfillment](embodied-experience.md)
 - [Optional pre-Play HOLD](pre-play-hold.md)
 - [Durable system continuity](durable-continuity.md)
 - [Bounded addressable Resources](resources.md)

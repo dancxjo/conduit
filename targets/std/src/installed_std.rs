@@ -2,6 +2,8 @@ mod address_detect_operation;
 mod alife_host;
 mod alife_operations;
 mod audio_play_operation;
+mod body_chat_prompt_operation;
+mod body_conversation_context_operation;
 pub(crate) mod body_kernel;
 mod bool_presentation;
 mod calendar_proposal_codec;
@@ -19,8 +21,12 @@ mod facade;
 mod factory;
 mod final_normalized_pattern_operation;
 mod flow_gate_operation;
+#[cfg(test)]
+mod flow_pressure_form_tests;
+mod flow_pressure_operations;
 mod flow_state_operations;
 mod generate_text;
+mod generated_speech_commit_operation;
 mod house_prompt_operation;
 mod http;
 mod http_host;
@@ -69,6 +75,7 @@ mod pulse_observation_operation;
 mod pulse_observation_sink;
 mod quantity_mapping;
 mod recognition_text_operation;
+mod recognized_turn_commit_operation;
 mod record_delivery_operation;
 mod record_queue_operation;
 mod record_temporal_operation;
@@ -240,6 +247,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut local_model,
         mut vector_search,
         mut calendar,
+        body_conversation_context,
     } = host;
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
@@ -445,6 +453,15 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     #[cfg(test)]
     let mut speech_synthesis_hosts = speech_synthesis_operation::prepare_fake_hosts(fragment)?;
     let mut house_prompt_hosts = house_prompt_operation::prepare_hosts(fragment);
+    let mut body_chat_prompt_hosts = body_chat_prompt_operation::prepare_hosts(fragment);
+    let mut recognized_turn_commit_hosts =
+        recognized_turn_commit_operation::prepare_hosts(fragment);
+    let mut generated_speech_commit_hosts =
+        generated_speech_commit_operation::prepare_hosts(fragment)?;
+    let mut body_conversation_context_host =
+        body_conversation_context_operation::BodyConversationContextHost::new(
+            body_conversation_context,
+        );
     let mut navigation_hosts = navigation_operations::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
     let mut record_delivery_hosts = record_delivery_operation::prepare_hosts(fragment)?;
@@ -674,6 +691,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 || cancelled_operation.contract_id == button_contract_id
             {
                 keyboard_host.cancel();
+            } else if cancelled_operation.contract_id.as_str()
+                == conduit_std_offers::BODY_CONVERSATION_CONTEXT_OPERATION
+            {
+                body_conversation_context_host.cancel();
+            } else if matches!(
+                cancelled_operation.contract_id.as_str(),
+                conduit_std_offers::GENERATED_SPEECH_PUSH_OPERATION
+                    | conduit_std_offers::GENERATED_SPEECH_DRAIN_OPERATION
+                    | conduit_std_offers::GENERATED_SPEECH_CLOSE_OPERATION
+            ) {
+                generated_speech_commit_hosts
+                    .get_mut(usize::from(cancellation.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "cancelled generated-speech commit has no admitted host".to_string()
+                    })?
+                    .cancel();
             } else if cancelled_operation.contract_id.as_str()
                 == conduit_ai::VECTOR_SEARCH_OPERATION
             {
@@ -1752,6 +1786,71 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 }
                 #[cfg(not(any(test, feature = "local-model-proof")))]
                 return Err("proof-only recorded-speech contract is unavailable".into());
+            } else if contract.as_str() == conduit_std_offers::RECOGNIZED_TURN_COMMIT_OPERATION {
+                let completion = recognized_turn_commit_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "recognized-turn commit request has no admitted host".to_string()
+                    })?
+                    .execute(input)?;
+                let output = completion
+                    .map(|encoded| scheduler.store_host_value(encoded))
+                    .transpose()
+                    .map_err(|error| format!("store committed recognition turn: {error:?}"))?
+                    .map(|value| {
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                    })
+                    .transpose()
+                    .map_err(|error| format!("bound committed recognition turn: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete recognized-turn commit: {error:?}"))?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::GENERATED_SPEECH_PUSH_OPERATION
+                    | conduit_std_offers::GENERATED_SPEECH_DRAIN_OPERATION
+                    | conduit_std_offers::GENERATED_SPEECH_CLOSE_OPERATION
+            ) {
+                let completion = generated_speech_commit_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "generated-speech commit request has no admitted host".to_string()
+                    })?
+                    .execute(contract.as_str(), input)?;
+                let output = completion
+                    .map(|encoded| scheduler.store_host_value(encoded))
+                    .transpose()
+                    .map_err(|error| format!("store committed speech segment: {error:?}"))?
+                    .map(|value| {
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                    })
+                    .transpose()
+                    .map_err(|error| format!("bound committed speech segment: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete generated-speech commit: {error:?}"))?;
+                continue;
             } else if contract.as_str() == conduit_std_offers::PIPER_SPEECH_OPERATION {
                 #[cfg(test)]
                 if speech_synthesis_hosts
@@ -1796,6 +1895,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let completion = speech_synthesis_operation::execute_piper(
                     speech_synthesis.as_deref_mut(),
                     input,
+                    fragment
+                        .placements
+                        .get(usize::from(request.node.0))
+                        .is_some_and(|placement| {
+                            placement.implementation_id.as_str()
+                                == conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
+                        }),
                     control.requested_stop().is_some(),
                 );
                 let (disposition, output, failure) = match completion {
@@ -1860,6 +1966,35 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete recognition-to-text: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::COMMITTED_TURN_TO_TEXT_OPERATION {
+                let (disposition, output) =
+                    match conduit_tongues::project_encoded_committed_turn_text(input) {
+                        Ok(text) => {
+                            let value = scheduler.store_host_value(&text).map_err(|error| {
+                                format!("store bounded committed turn text: {error:?}")
+                            })?;
+                            let output = BoundedValueRef::new(
+                                value,
+                                conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u32,
+                            )
+                            .map_err(|error| format!("bound committed turn text: {error:?}"))?;
+                            (HostOperationDisposition::Completed, Some(output))
+                        }
+                        Err(_) => (HostOperationDisposition::Denied, None),
+                    };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete committed-turn-to-text: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION {
                 let (disposition, output) = match conduit_ai::project_generated_text(input) {
@@ -1954,6 +2089,46 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete address detection: {error:?}"))?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::BODY_CONVERSATION_CONTEXT_OPERATION
+            ) {
+                record_request(&mut requests, request);
+                body_conversation_context_host.accept(request, input)?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::BODY_CHAT_MESSAGE_OPERATION
+                    | conduit_std_offers::BODY_CHAT_RESPONSE_OPERATION
+                    | conduit_std_offers::BODY_CHAT_CONTEXT_OPERATION
+            ) {
+                let completion = body_chat_prompt_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "Body Chat prompt request has no admitted host".to_string())?
+                    .execute(contract.as_str(), input)?;
+                let output = completion
+                    .map(|encoded| scheduler.store_host_value(encoded))
+                    .transpose()
+                    .map_err(|error| format!("store Body Chat prompt output: {error:?}"))?
+                    .map(|value| {
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                    })
+                    .transpose()
+                    .map_err(|error| format!("bound Body Chat prompt output: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete Body Chat prompt operation: {error:?}"))?;
                 continue;
             } else if matches!(
                 contract.as_str(),
@@ -2454,6 +2629,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 lifecycle::await_live_control(control);
             }
             SchedulerStatus::Idle => {
+                if body_conversation_context_host.poll(&mut scheduler)? {
+                    continue;
+                }
                 if keyboard_host.poll(&mut scheduler)? {
                     continue;
                 }
@@ -2531,7 +2709,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if deadlines.complete_next(&mut scheduler, timer)? {
                     continue;
                 }
-                if pending_midi_input || keyboard_host.is_pending() {
+                if pending_midi_input
+                    || keyboard_host.is_pending()
+                    || body_conversation_context_host.is_pending()
+                {
                     std::thread::park_timeout(Duration::from_millis(1));
                     continue;
                 }
@@ -2574,8 +2755,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .placements
                     .iter()
                     .find(|placement| {
-                        placement.implementation_id.as_str()
-                            == conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION
+                        matches!(
+                            placement.implementation_id.as_str(),
+                            conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION
+                                | conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
+                        )
                     })
                     .ok_or_else(|| "Piper receipt has no exact planned placement".to_string())?;
                 vec![crate::SpeechSynthesisExecutionReceipt {

@@ -341,6 +341,121 @@ pub fn run(
                     );
                 }
             }
+            if !tour_open
+                && front_door.home_open()
+                && product_control(event.usage()) != Some(ProductControl::Lifecycle)
+            {
+                match front_door
+                    .accept_home(event, front_door.revision())
+                    .map_err(|error| error.as_str())?
+                {
+                    crate::front_door::HomeInput::Unchanged => {}
+                    crate::front_door::HomeInput::Changed => {
+                        presenter
+                            .present(&front_door, display)
+                            .map_err(|error| error.as_str())?;
+                        arch::early_write(
+                            format!(
+                                "CONDUIT_HOME_STATE {} {}\n",
+                                front_door
+                                    .home_view()
+                                    .map_or("closed", crate::front_door::HomeView::as_str),
+                                front_door.home_selection().unwrap_or(0)
+                            )
+                            .as_bytes(),
+                        );
+                    }
+                    crate::front_door::HomeInput::OpenTour => {
+                        presenter.suspend().map_err(|error| error.as_str())?;
+                        tour_open = true;
+                        let receipt = shell
+                            .present_with_lifecycle(&tour, &journey.projection(), display)
+                            .map_err(|error| error.as_str())?;
+                        emit_tour_sign(&tour, None, &receipt, identities, fabrication);
+                        arch::early_write(b"CONDUIT_HOME_CHECKPOINT tour-opened\n");
+                    }
+                    crate::front_door::HomeInput::OpenPatchbay => {
+                        for _ in 0..crate::native_workset::NATIVE_FORM_CAPACITY {
+                            if journey
+                                .workspace_projection()
+                                .and_then(|workspace| {
+                                    workspace.forms.into_iter().find(|form| form.foreground)
+                                })
+                                .is_some_and(|form| form.title == "Patchbay")
+                            {
+                                break;
+                            }
+                            journey
+                                .select_next_form(journey.revision())
+                                .map_err(|error| error.as_str())?;
+                        }
+                        front_door.close_home().map_err(|error| error.as_str())?;
+                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                        arch::early_write(b"CONDUIT_HOME_CHECKPOINT patchbay-opened\n");
+                    }
+                    crate::front_door::HomeInput::OpenCreche => {
+                        arch::early_write(
+                            b"CONDUIT_HOME_CHECKPOINT creche-unavailable-after-birth\n",
+                        );
+                        presenter
+                            .present(&front_door, display)
+                            .map_err(|error| error.as_str())?;
+                    }
+                    crate::front_door::HomeInput::OpenForm(index) => {
+                        let inventory = crate::native_workset::inventory();
+                        let requested =
+                            inventory.get(index).ok_or("home-form-selection-invalid")?;
+                        for _ in 0..crate::native_workset::NATIVE_FORM_CAPACITY {
+                            if journey
+                                .workspace_projection()
+                                .and_then(|workspace| {
+                                    workspace.forms.into_iter().find(|form| form.foreground)
+                                })
+                                .is_some_and(|form| form.title == requested.title())
+                            {
+                                break;
+                            }
+                            journey
+                                .select_next_form(journey.revision())
+                                .map_err(|error| error.as_str())?;
+                        }
+                        front_door.close_home().map_err(|error| error.as_str())?;
+                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                        arch::early_write(
+                            format!("CONDUIT_HOME_CHECKPOINT form-opened {}\n", requested.name())
+                                .as_bytes(),
+                        );
+                    }
+                    crate::front_door::HomeInput::RunForm(index) => {
+                        let inventory = crate::native_workset::inventory();
+                        let requested = inventory.get(index).ok_or("home-run-selection-invalid")?;
+                        for _ in 0..crate::native_workset::NATIVE_FORM_CAPACITY {
+                            if journey
+                                .workspace_projection()
+                                .and_then(|workspace| {
+                                    workspace.forms.into_iter().find(|form| form.foreground)
+                                })
+                                .is_some_and(|form| form.title == requested.title())
+                            {
+                                break;
+                            }
+                            journey
+                                .select_next_form(journey.revision())
+                                .map_err(|error| error.as_str())?;
+                        }
+                        front_door.close_home().map_err(|error| error.as_str())?;
+                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                        arch::early_write(
+                            format!("CONDUIT_HOME_CHECKPOINT form-run {}\n", requested.name())
+                                .as_bytes(),
+                        );
+                    }
+                }
+                return Ok(ProductInputControl::Continue);
+            }
             if !tour_open && front_door.creche_open() {
                 match front_door
                     .accept_creche(event, front_door.revision())
@@ -367,6 +482,18 @@ pub fn run(
                         )?;
                     }
                 }
+                return Ok(ProductInputControl::Continue);
+            }
+            if !tour_open
+                && event.transition() == KeyTransition::Pressed
+                && product_control(event.usage()) == Some(ProductControl::Escape)
+                && journey.projection().body_id.is_some()
+                && !front_door.exact_details_open()
+            {
+                front_door.open_home().map_err(|error| error.as_str())?;
+                let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                arch::early_write(b"CONDUIT_HOME_CHECKPOINT returned\n");
                 return Ok(ProductInputControl::Continue);
             }
             if !tour_open && !front_door.exact_details_open() {

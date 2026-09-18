@@ -119,6 +119,12 @@ pub(crate) fn project(
                     }
                 }
                 BodyState::Lulled => PresentationActionAvailability::Available,
+                BodyState::Fulfilled { .. } => PresentationActionAvailability::Unavailable {
+                    reason_code: "body-fulfilled".into(),
+                    explanation:
+                        "A fulfilled Body cannot admit another Form; birth a new Body instead."
+                            .into(),
+                },
             },
         });
         projection.disclosures.push(PresentationDisclosure {

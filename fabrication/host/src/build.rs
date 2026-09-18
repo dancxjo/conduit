@@ -5,11 +5,12 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     validate_profile, BaseSelection, DriverSelection, FabricationCatalog, FabricationPackageSet,
-    HostBounds, HostProfile, ImplementationPackageProvenance, PackageCompositionDiagnostic,
-    PostBuildAction, ProfileDiagnostic, ResourceBudget, SporeOutputKind,
+    FabricationStrategy, HostBounds, HostProfile, ImplementationPackageProvenance,
+    PackageCompositionDiagnostic, PostBuildAction, ProfileDiagnostic, ResourceBudget,
+    SporeOutputKind,
 };
 
-pub const BUILD_MANIFEST_SCHEMA: &str = "conduit.host/build-manifest@2";
+pub const BUILD_MANIFEST_SCHEMA: &str = "conduit.host/build-manifest@3";
 pub const IMAGE_SCHEMA: &str = "conduit.host/image@1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,6 +65,7 @@ pub struct BuildManifest {
     pub fabrication_package_id: String,
     pub fabrication_package_revision: u32,
     pub builder_adapter: String,
+    pub fabrication_strategy: FabricationStrategy,
     pub deployment_adapter: Option<String>,
     pub output: SporeOutputKind,
     pub implementation_packages: Vec<ImplementationPackageProvenance>,
@@ -159,7 +161,13 @@ pub fn build_host_image(
     if inputs.source_identity.trim().is_empty() {
         diagnostics.push(BuildDiagnostic::SourceIdentityMissing);
     }
-    if !inputs.toolchain_available {
+    if !inputs.toolchain_available
+        && matches!(
+            fabrication.strategy,
+            FabricationStrategy::DeterministicSpecializedBuild
+                | FabricationStrategy::ReviewedHybrid
+        )
+    {
         diagnostics.push(BuildDiagnostic::ToolchainUnavailable {
             toolchain: fabrication.toolchain_identity.clone(),
         });
@@ -211,6 +219,7 @@ pub fn build_host_image(
         fabrication.fabrication_package_revision,
         &fabrication.toolchain_identity,
         &fabrication.builder_adapter,
+        fabrication.strategy,
         &fabrication.output,
         &fabrication.features,
         &fabrication.implementation_packages,
@@ -269,6 +278,7 @@ pub fn build_host_image(
         fabrication_package_id: fabrication.fabrication_package_id,
         fabrication_package_revision: fabrication.fabrication_package_revision,
         builder_adapter: fabrication.builder_adapter,
+        fabrication_strategy: fabrication.strategy,
         deployment_adapter: fabrication.deployment_adapter,
         output: fabrication.output,
         implementation_packages: fabrication.implementation_packages,

@@ -22,6 +22,8 @@ mod application;
 pub use application::*;
 mod body_startup;
 pub use body_startup::*;
+mod pitch_tone;
+pub use pitch_tone::*;
 mod input_semantics;
 pub use input_semantics::*;
 mod text_state;
@@ -36,14 +38,28 @@ mod structured_selector;
 pub use structured_selector::*;
 mod structured_values;
 pub use structured_values::*;
+mod flow_pressure;
+pub use flow_pressure::*;
 mod diverse_structured_info;
 pub use diverse_structured_info::*;
+#[cfg(feature = "form-catalog")]
+mod experience_catalog;
+#[cfg(feature = "form-catalog")]
+pub use experience_catalog::*;
+#[cfg(feature = "form-catalog")]
+mod purpose_catalog;
+#[cfg(feature = "form-catalog")]
+pub use purpose_catalog::*;
 mod delivery_classification;
 pub use delivery_classification::*;
 mod vision;
 pub use vision::*;
 mod vision_realization;
 pub use vision_realization::*;
+mod vision_experience_catalog;
+pub use vision_experience_catalog::*;
+mod vision_local_cv;
+pub use vision_local_cv::*;
 #[cfg(feature = "form-catalog")]
 mod vision_catalog;
 #[cfg(feature = "form-catalog")]
@@ -273,7 +289,7 @@ pub use sound_stream::*;
 #[cfg(feature = "form-catalog")]
 mod sound_catalog;
 #[cfg(feature = "form-catalog")]
-pub use sound_catalog::install_sound_catalogs;
+pub use sound_catalog::{install_audio_capture_push_to_talk_catalog, install_sound_catalogs};
 #[cfg(feature = "form-catalog")]
 mod structured_music_form;
 #[cfg(feature = "form-catalog")]

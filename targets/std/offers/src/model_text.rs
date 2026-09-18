@@ -11,12 +11,25 @@ pub const MODEL_RESULT_TO_TEXT_STD_ARTIFACT: &str = "conduit-std-host/model-resu
 pub const MODEL_RESULT_TO_TEXT_OPERATION: &str = "conduit.host/model-result-to-text@1";
 
 pub fn model_result_to_text_std_offer() -> CapabilityOffer {
-    let contract = conduit_ai::model_result_to_text_contract();
+    model_text_offer(
+        conduit_ai::model_result_to_text_contract(),
+        "model-result-to-text",
+    )
+}
+
+pub fn model_result_flow_to_text_std_offer() -> CapabilityOffer {
+    model_text_offer(
+        conduit_ai::model_result_flow_to_text_contract(),
+        "model-result-flow-to-text",
+    )
+}
+
+fn model_text_offer(contract: conduit_ai::ModelTextContract, capability: &str) -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![],
         shorthand: None,
-        capability_id: CapabilityId::from("model-result-to-text"),
-        kind_id: contract.kind_id,
+        capability_id: CapabilityId::from(capability),
+        kind_id: contract.kind_id.clone(),
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
@@ -27,7 +40,7 @@ pub fn model_result_to_text_std_offer() -> CapabilityOffer {
         },
         host_operations: vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(MODEL_RESULT_TO_TEXT_OPERATION),
-            target_kind: Some(conduit_core::kind_id(conduit_ai::MODEL_RESULT_TO_TEXT_KIND)),
+            target_kind: Some(contract.kind_id.clone()),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES,
             maximum_output_bytes: conduit_ai::MAXIMUM_MODEL_TEXT_BYTES,

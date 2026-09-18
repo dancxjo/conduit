@@ -64,6 +64,7 @@ impl Esp32FamilyTarget {
             host_operations: Vec::new(),
             toolchain_identity: facts.toolchain_identity.into(),
             builder_adapter: facts.builder_adapter.into(),
+            strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
             deployment_adapter: facts.deployment_adapter.map(str::to_owned),
             outputs: vec![SporeOutputKind::Esp32Image],
             default_output: SporeOutputKind::Esp32Image,

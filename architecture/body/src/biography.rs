@@ -1,6 +1,7 @@
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    BootId, CheckedFormId, HostId, ImplementationId, PlanId, SignId, SourceDocumentId,
+    AuthorityGrantId, BootId, CheckedFormId, HostId, ImplementationId, PlanId, SignId,
+    SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -9,8 +10,11 @@ use crate::{
     MembershipEventKind, PartId, MAX_LIFECYCLE_ID_BYTES,
 };
 
+mod archive;
 mod validation;
 mod wake_history;
+
+pub use archive::*;
 
 pub const MAX_BODY_BIOGRAPHY_RECORDS: usize = 64;
 pub const MAX_BODY_BIOGRAPHY_WAKES: usize = 8;
@@ -24,7 +28,12 @@ pub struct BodyBiographyCompaction {
     pub records: u64,
     pub through_sequence: u64,
     pub through_sign_id: SignId,
-    pub first_wake_id: crate::WakeId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_wake_id: Option<crate::WakeId>,
+    #[serde(default)]
+    pub sealed_segments: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archive_head_digest: Option<[u8; 32]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -85,6 +94,13 @@ pub enum BodyBiographyRecordKind {
         checked_form_id: CheckedFormId,
         workload_revision: u64,
     },
+    Fulfilled {
+        final_workload_revision: u64,
+        final_wake_id: Option<crate::WakeId>,
+        authority_grant_id: AuthorityGrantId,
+        attribution: String,
+        settled_obligations: Vec<crate::FulfillmentObligation>,
+    },
     Graduated {
         choice: BodyGraduationChoice,
         patchbay_plan_id: Option<PlanId>,
@@ -123,6 +139,7 @@ pub enum BodyBiographyError {
     InvalidEvidence,
     DuplicateEvidence,
     CapacityExhausted,
+    BodyFulfilled,
 }
 
 impl BodyBiographyEvidence {
@@ -181,6 +198,9 @@ impl BodyBiographyEvidence {
         membership: BodyMembership,
         events: &[(MembershipChangeId, u64)],
     ) -> Result<(), BodyBiographyError> {
+        if matches!(self.body.state, crate::BodyState::Fulfilled { .. }) {
+            return Err(BodyBiographyError::BodyFulfilled);
+        }
         self.can_append(events.len())?;
         if membership.body_id != self.body_id {
             return Err(BodyBiographyError::WrongBody);
@@ -239,10 +259,10 @@ impl BodyBiographyEvidence {
         Ok(())
     }
 
-    /// Appends exact biography records for Body workload changes and replaces
-    /// current Body truth atomically. `events` pairs each workload event Sign
+    /// Appends exact biography records for Body-level lifecycle changes and
+    /// replaces current Body truth atomically. `events` pairs each event Sign
     /// with its monotonically increasing biography sequence.
-    pub fn append_body_workload_events(
+    pub fn append_body_lifecycle_events(
         &mut self,
         body: Body,
         events: &[(SignId, u64)],
@@ -256,6 +276,26 @@ impl BodyBiographyEvidence {
         }
         let mut candidate = self.clone();
         candidate.body = body;
+        if let Some(BodyLifecycleEvent::Fulfilled {
+            final_wake_id: Some(final_wake_id),
+            ..
+        }) = candidate.body.events.last()
+        {
+            if !candidate.wakes.iter().any(|wake| {
+                &wake.wake_id == final_wake_id
+                    && matches!(wake.lifecycle, crate::WakeLifecycle::Lulled | crate::WakeLifecycle::Failed)
+            }) || !candidate.body.events.iter().any(|event| {
+                matches!(event, BodyLifecycleEvent::LullRetained { wake_id, .. } if wake_id == final_wake_id)
+            }) {
+                return Err(BodyBiographyError::InvalidEvidence);
+            }
+        }
+        if matches!(candidate.body.state, crate::BodyState::Fulfilled { .. }) {
+            candidate
+                .membership
+                .seal_fulfilled(&candidate.body)
+                .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+        }
         for (sign_id, sequence) in events {
             if *sequence <= candidate.last_sequence()
                 || candidate
@@ -292,6 +332,20 @@ impl BodyBiographyEvidence {
                     checked_form_id: checked_form_id.clone(),
                     workload_revision: *workload_revision,
                 },
+                BodyLifecycleEvent::Fulfilled {
+                    final_workload_revision,
+                    final_wake_id,
+                    authority_grant_id,
+                    attribution,
+                    settled_obligations,
+                    ..
+                } => BodyBiographyRecordKind::Fulfilled {
+                    final_workload_revision: *final_workload_revision,
+                    final_wake_id: final_wake_id.clone(),
+                    authority_grant_id: authority_grant_id.clone(),
+                    attribution: attribution.clone(),
+                    settled_obligations: settled_obligations.clone(),
+                },
                 _ => return Err(BodyBiographyError::InvalidEvidence),
             };
             candidate.records.push(BodyBiographyRecord {
@@ -303,6 +357,27 @@ impl BodyBiographyEvidence {
         candidate.validate()?;
         *self = candidate;
         Ok(())
+    }
+
+    /// Compatibility entrance for callers appending only workload events.
+    pub fn append_body_workload_events(
+        &mut self,
+        body: Body,
+        events: &[(SignId, u64)],
+    ) -> Result<(), BodyBiographyError> {
+        if events.iter().any(|(sign_id, _)| {
+            body.events.iter().any(|event| {
+                event.sign_id() == sign_id
+                    && !matches!(
+                        event,
+                        BodyLifecycleEvent::FormAdmitted { .. }
+                            | BodyLifecycleEvent::FormRemoved { .. }
+                    )
+            })
+        }) {
+            return Err(BodyBiographyError::InvalidEvidence);
+        }
+        self.append_body_lifecycle_events(body, events)
     }
 
     pub fn graduate(&mut self, evidence: BodyGraduationEvidence) -> Result<(), BodyBiographyError> {
@@ -331,8 +406,15 @@ impl BodyBiographyEvidence {
         &mut self,
         membership: BodyMembership,
     ) -> Result<(), BodyBiographyError> {
+        if matches!(self.body.state, crate::BodyState::Fulfilled { .. }) {
+            return Err(BodyBiographyError::BodyFulfilled);
+        }
         if membership.body_id != self.body_id {
             return Err(BodyBiographyError::WrongBody);
+        }
+        let body_fulfilled = matches!(self.body.state, crate::BodyState::Fulfilled { .. });
+        if body_fulfilled != membership.fulfilled_sign_id.is_some() {
+            return Err(BodyBiographyError::InvalidEvidence);
         }
         self.membership = membership;
         self.validate()

@@ -23,6 +23,9 @@ impl Body {
         sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
+        if matches!(self.state, BodyState::Fulfilled { .. }) {
+            return Err(BodyLifecycleError::Fulfilled);
+        }
         validate_new_sign(&self.sign_ids, &sign_id, MAX_BODY_SIGNS)?;
         let mut next = self.clone();
         next.workset = self.effective_workset()?;
@@ -48,6 +51,9 @@ impl Body {
         sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
+        if matches!(self.state, BodyState::Fulfilled { .. }) {
+            return Err(BodyLifecycleError::Fulfilled);
+        }
         validate_new_sign(&self.sign_ids, &sign_id, MAX_BODY_SIGNS)?;
         let mut next = self.clone();
         next.workset = self.effective_workset()?;

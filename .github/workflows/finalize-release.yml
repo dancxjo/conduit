@@ -153,6 +153,11 @@ jobs:
           printf 'base_sha=%s\n' "$base_sha" >> "$GITHUB_OUTPUT"
           printf 'merge_sha=%s\n' "$merge_sha" >> "$GITHUB_OUTPUT"
           printf 'changed=true\n' >> "$GITHUB_OUTPUT"
+      - name: Revisit queued development after a no-op synchronization
+        if: steps.merge.outputs.changed == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run promote-dev.yml --ref main
       - name: Dispatch the exact synchronized development integration
         if: steps.merge.outputs.changed == 'true'
         env:

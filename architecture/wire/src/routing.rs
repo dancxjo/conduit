@@ -191,6 +191,7 @@ mod tests {
             sink_port_id: PortId::from("in"),
             value_kind: KindId::from("value/test@1"),
             temporal: PortTemporal::Value,
+            pressure_policy: Default::default(),
             selected_line: Some(lines[0].clone()),
             admitted_lines: lines.to_vec(),
             item_capacity: 1,

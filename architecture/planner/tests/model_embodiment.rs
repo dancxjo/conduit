@@ -304,6 +304,7 @@ fn connection(
         sink_port_id: port_id(sink_port),
         value_kind: kind_id(kind),
         temporal: PortTemporal::Value,
+        pressure_policy: Default::default(),
         selected_line: None,
         admitted_lines: vec![],
         item_capacity: 1,

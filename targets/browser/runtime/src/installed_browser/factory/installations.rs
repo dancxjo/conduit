@@ -3,10 +3,13 @@
 use super::BrowserInstallation;
 
 pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &crate::installed_browser::audio_io::CAPTURE,
+    &crate::installed_browser::audio_io::PLAYBACK,
     &crate::installed_browser::application::EVENT,
     &crate::installed_browser::application::STATE,
     &crate::installed_browser::application::PRESENTATION,
     &super::super::startup_chime::INSTALLATION,
+    &super::super::pitch_tone::INSTALLATION,
     &crate::installed_browser::body_startup::WAKE,
     &crate::installed_browser::body_startup::FIRST_WAKE,
     &crate::installed_browser::little_seismograph_source::INSTALLATION,

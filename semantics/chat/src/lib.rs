@@ -1,6 +1,13 @@
+//! Generic, transport-neutral chat contracts and bounded conversation state.
+//!
+//! Speech recognition and synthesis compose around these contracts in Tongues;
+//! they do not own Body prompt, history, or context semantics.
 #![no_std]
 
 extern crate alloc;
+
+mod body_chat;
+pub use body_chat::*;
 
 mod shared_pool;
 pub use shared_pool::*;

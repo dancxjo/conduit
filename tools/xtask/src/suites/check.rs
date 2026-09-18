@@ -684,6 +684,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         "node",
         &["--test", "proof/browser/browser-host-operations.test.mjs"],
     ),
+    Step::new(
+        "check.browser.creche-rendezvous",
+        "Prove bounded one-use Crèche running-Host rendezvous codes",
+        "node",
+        &["--test", "proof/browser/creche-rendezvous.test.mjs"],
+    ),
     Step::typed(
         "check.browser.wasm-build",
         "Build conduit-browser-runtime WASM",

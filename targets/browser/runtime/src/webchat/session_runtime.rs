@@ -282,6 +282,28 @@ impl BrowserChatSession {
                     )?;
                     continue;
                 }
+                if contract == conduit_chat::CHAT_FROM_WEBSOCKET_HOST_OPERATION
+                    || contract == conduit_chat::CHAT_TO_WEBSOCKET_HOST_OPERATION
+                    || contract == conduit_chat::CHAT_CONNECTION_FROM_WEBSOCKET_HOST_OPERATION
+                {
+                    let bytes = self
+                        .scheduler
+                        .host_value(request.input.value)
+                        .map_err(|_| -232)?
+                        .to_vec();
+                    core::str::from_utf8(&bytes).map_err(|_| -239)?;
+                    let value = self.scheduler.store_host_value(&bytes).map_err(|_| -232)?;
+                    let output =
+                        BoundedValueRef::new(value, conduit_chat::MAXIMUM_CHAT_MESSAGE_BYTES)
+                            .map_err(|_| -232)?;
+                    self.complete_request(
+                        request,
+                        HostOperationDisposition::Completed,
+                        Some(output),
+                        None,
+                    )?;
+                    continue;
+                }
                 if contract == conduit_chat::CHAT_SUBMIT_HOST_OPERATION {
                     let input = self
                         .scheduler

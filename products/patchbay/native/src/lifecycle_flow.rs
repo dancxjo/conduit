@@ -87,6 +87,12 @@ impl PatchbayApplication {
                     [action(PatchbayAction::Wake, "WAKE", "F5")],
                 ),
                 PatchbayMode::Awake(lifecycle) => self.awake_flow(lifecycle),
+                PatchbayMode::Fulfilled => flow(
+                    "BODY_FULFILLED",
+                    "BODY fulfilled",
+                    "Useful life is complete; biography remains available",
+                    [],
+                ),
             }
         };
         result.exact_basis = format!(

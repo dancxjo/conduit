@@ -169,7 +169,7 @@ jobs:
         if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true')
         run: |
           cargo test --locked --package conduit-xtask-dispatch --test repository_taxonomy
-          node --test proof/ci/browser-product-ownership.test.mjs proof/ci/tour-compatibility.test.mjs
+          node --test proof/ci/browser-product-ownership.test.mjs
       - name: Verify the exact generic Rust toolchain before proof fan-out
         if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true')
         run: >-
@@ -230,7 +230,6 @@ jobs:
           proof/ci/branch-boundary.spec.mjs
           proof/ci/browser-product-ownership.test.mjs
           proof/ci/release-lane-controller.spec.mjs
-          proof/ci/tour-compatibility.test.mjs
       - name: Verify the dependency-light typed CI planner contracts
         if: steps.stack.outputs.role != 'intermediate' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true'))
         run: cargo test --locked --package conduit-xtask-dispatch
@@ -927,7 +926,7 @@ jobs:
           mapfile -t proofs < <(jq -r '.[]' <<<"$SELECTED_PROOFS")
           args=()
           for proof in "${proofs[@]}"; do args+=(--proof "$proof"); done
-          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 2 --output-root "$CONDUIT_X86_BATCH_ROOT" --locked
+          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 4 --output-root "$CONDUIT_X86_BATCH_ROOT" --locked
       - name: Validate the complete x86 batch contract
         id: x86-contract
         if: always()

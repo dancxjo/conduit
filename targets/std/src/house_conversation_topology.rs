@@ -10,6 +10,9 @@ use std::collections::BTreeMap;
 pub(crate) type HouseConnectionEndpoints = (GearId, PortId, GearId, PortId);
 
 pub(crate) struct HouseConversationTopology {
+    pub entry: &'static str,
+    /// Exact reviewed source document checked to produce `expanded`.
+    pub source: &'static str,
     pub expanded: ExpandedCanonicalForm,
     pub connection_limits:
         BTreeMap<HouseConnectionEndpoints, conduit_planner::ConnectionQueueLimits>,
@@ -29,6 +32,10 @@ pub(crate) fn build(
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profiles)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profiles)?;
+    startup.insert_value_kind_alias(
+        "PcmClip",
+        conduit_core::kind_id(conduit_audio::AUDIO_PCM_CLIP_INFO_ID),
+    )?;
     crate::installed_std::test_local_model_io::install_house_source_catalog(
         &mut startup,
         &mut profiles,
@@ -37,53 +44,27 @@ pub(crate) fn build(
         &mut startup,
         &mut profiles,
     );
-    let (audio_kind, audio_wiring) = if microphone_source {
-        (
-            conduit_semantic_catalog::MICROPHONE_CLIP_SOURCE_KIND,
-            "\"capture\" > audio.request\n audio.clip > recognize.clip",
-        )
-    } else {
-        (
-            crate::installed_std::test_local_model_io::HOUSE_AUDIO_CLIP_SOURCE_KIND,
-            "audio.value > recognize.clip",
-        )
-    };
-    let (output_declarations, output_wiring) = if spoken_output {
-        (
-            format!(
-                "synthesize: speech/synthesize(maximum-output-bytes = {})\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n output: audio/play",
-                conduit_tongues::MAXIMUM_PCM_BYTES
-            ),
-            "house.response > synthesize.text\n synthesize.audio > convert.audio\n convert.converted > output.audio",
-        )
-    } else {
-        (
-            format!(
-                "sink: {}",
-                crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND
-            ),
-            "house.response > sink.value",
-        )
-    };
-    let source = format!(
-        "{}\n{}\nform recorded-house-proof {{\n audio: {}\n recognize: speech/recognize-clip\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n {}\n {}\n recognize.result > recognized.result\n recognized.text > addressed.recognized\n addresses.value > addressed.addresses\n addressed.detection > house.detection\n context.value > house.context\n {}\n}}\n",
+    const SOURCE: &str = concat!(
         include_str!("../../../forms/addressed-utterance/main.conduit"),
+        "\n",
         include_str!("../../../forms/house-conversation/main.conduit"),
-        audio_kind,
-        crate::installed_std::test_local_model_io::HOUSE_ADDRESSES_SOURCE_KIND,
-        crate::installed_std::test_local_model_io::HOUSE_CONTEXT_SOURCE_KIND,
-        output_declarations,
-        audio_wiring,
-        output_wiring,
+        "\n",
+        include_str!("../proof/recorded-house/main.conduit"),
     );
     let checked =
-        check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|error| {
+        check_syntax_document(&parse_syntax_document(SOURCE), &startup).map_err(|error| {
             format!(
-                "recorded House Form check: {} {}",
-                error.code, error.message
+                "recorded House Form check: {} {} at {}:{}",
+                error.code, error.message, error.span.line, error.span.column
             )
         })?;
-    let expanded = conduit_form::expand_canonical_form(&checked, "recorded-house-proof", &profiles)
+    let entry = match (microphone_source, spoken_output) {
+        (false, false) => "recorded-house-proof",
+        (false, true) => "recorded-house-spoken-proof",
+        (true, false) => "microphone-house-proof",
+        (true, true) => "microphone-house-spoken-proof",
+    };
+    let expanded = conduit_form::expand_canonical_form(&checked, entry, &profiles)
         .map_err(|error| format!("recorded House expansion: {} {}", error.code, error.message))?;
     let mut connection_limits = BTreeMap::new();
     for connection in &expanded.connections {
@@ -125,6 +106,8 @@ pub(crate) fn build(
         }
     }
     Ok(HouseConversationTopology {
+        entry,
+        source: SOURCE,
         expanded,
         connection_limits,
     })

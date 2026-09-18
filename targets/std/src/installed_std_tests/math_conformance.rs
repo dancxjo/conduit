@@ -274,6 +274,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
             local_model: None,
             vector_search: None,
             calendar: None,
+            body_conversation_context: None,
         },
         &plan.fragments[0],
         0,

@@ -33,6 +33,7 @@ function startLearnedServer() {
 }
 
 async function openRelatedSubjects(page) {
+  await openInspector(page);
   const disclosure = page.locator("details:has(#subjects)");
   if (!(await disclosure.evaluate(element => element.open))) {
     await disclosure.locator("summary").click();
@@ -44,6 +45,14 @@ async function openInspector(page) {
   if ((await toggle.getAttribute("aria-expanded")) !== "true") {
     await toggle.click();
   }
+}
+
+async function enterForm(page) {
+  await page.getByRole("button", { name: "Form", exact: true }).click();
+}
+
+async function enterDebug(page) {
+  await page.getByRole("button", { name: "Debug", exact: true }).click();
 }
 
 async function selectSubject(page, subject) {
@@ -61,6 +70,8 @@ test("the real Patchbay shows one bounded Tongues system across signals, belief,
     expect(initial.watches.watches).toHaveLength(3);
     expect(initial.watches.watches.flatMap(watch => watch.learned_projections)).toHaveLength(15);
     await page.goto(url);
+    await enterForm(page);
+    await enterDebug(page);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     await expect(page.locator(".watch-card")).toHaveCount(3);
     const activeCord = page.locator(".react-flow__edge.debugger-active .react-flow__edge-path");
@@ -101,6 +112,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     const cord = initial.watches.eligible_subjects.find(([, role]) => role === "cord")[0];
 
     await page.goto(url);
+    await enterForm(page);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     const admitted = await page.evaluate(() => ({
       application: globalThis.__conduitBrowserApplication.manifest.applicationId,
@@ -109,7 +121,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     }));
     expect(admitted.application).toBe("conduit.application/patchbay");
     expect(admitted.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
-    expect(admitted.resourceRoles.length).toBe(34);
+    expect(admitted.resourceRoles.length).toBe(35);
     expect(new Set(admitted.resourceRoles).size).toBe(admitted.resourceRoles.length);
     expect(admitted.resourceRoles).toContain("browser-host-identity");
     expect(admitted.resourceRoles).toContain("browser-body-input");
@@ -117,10 +129,15 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     await expect(page.locator('script[src="/assets/app.js"]')).toHaveCount(0);
     await expect(page.locator('[data-application-slot="product-masthead"]')).toHaveAttribute("data-application-revision", /^\d+$/);
     await expect(page.locator('[data-application-key="product-status"]')).toContainText("Presentation revision");
+    await enterDebug(page);
     await openRelatedSubjects(page);
     const subject = page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`);
     await subject.focus();
-    await subject.press("Space");
+    await expect(subject).toBeFocused();
+    await expect(subject).not.toBeChecked();
+    await page.keyboard.press("Space");
+    await expect(subject).toBeChecked();
+    await expect.poll(async () => (await (await page.request.get(`${url}/api/snapshot`)).json()).navigation.cursor.focus).toBe(cord);
 
     const addWatch = page.getByRole("button", { name: "Watch", exact: true });
     await addWatch.focus();
@@ -142,11 +159,15 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     await openRelatedSubjects(page);
     await expect(page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`)).toBeChecked();
     await openInspector(page);
+    await enterDebug(page);
     await expect(page.getByRole("button", { name: `Watch ${cord}`, exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Clear Watch history", exact: true }).click();
+    await page.getByRole("button", { name: "Clear Watch history", exact: true }).focus();
+    await page.getByRole("button", { name: "Clear Watch history", exact: true }).press("Enter");
     await expect(page.locator('#watch-history [data-application-component="artifact"]')).toHaveCount(0);
-    await page.getByRole("button", { name: "Remove Watch", exact: true }).click();
+    await selectSubject(page, cord);
+    await page.getByRole("button", { name: "Remove Watch", exact: true }).focus();
+    await page.getByRole("button", { name: "Remove Watch", exact: true }).press("Enter");
     await expect(page.locator(".watch-card")).toHaveCount(0);
     const afterRemove = await (await fetch(`${url}/api/snapshot`)).json();
     expect(afterRemove.presentation).toEqual(initial.presentation);
@@ -165,7 +186,9 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     const port = initial.watches.eligible_subjects.find(([, role]) => role === "port")[0];
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(url);
+    await enterForm(page);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+    await enterDebug(page);
     await selectSubject(page, cord);
     await page.getByRole("button", { name: "Watch", exact: true }).click();
 
@@ -182,6 +205,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
 
     await page.locator(".timeline-events button").filter({ hasText: "seq 41" }).click();
     await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(port);
+    await enterDebug(page);
     await selectSubject(page, cord);
     await page.getByRole("button", { name: "Focus events for exact subject" }).click();
     await expect(page.locator(".timeline-events")).toContainText("seq 39");
@@ -209,7 +233,9 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     const cord = initial.watches.eligible_subjects.find(([, role]) => role === "cord")[0];
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(url);
+    await enterForm(page);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+    await enterDebug(page);
     await selectSubject(page, gear);
     await page.getByRole("button", { name: "Watch", exact: true }).click();
     await page.getByRole("button", { name: "Break here", exact: true }).click();
@@ -222,6 +248,7 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     await expect(page.locator(".control-status")).toContainText("Execution running");
 
     await page.locator(".timeline-events button").filter({ hasText: "seq 40" }).click();
+    await enterDebug(page);
     await page.getByRole("button", { name: "Trace upstream" }).click();
     const exact = page.locator('.timeline-events [data-application-component="artifact"][data-causal-trace="exact"]');
     await expect(exact).toHaveCount(2);
@@ -229,11 +256,13 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     await expect(exact.nth(1)).toContainText("trace 2 · seq 40");
     await expect(page.locator(".watch-card")).toContainText("Fault 17");
     await expect(page.locator(".causal-trace-exact")).toHaveCount(2);
-    await exact.nth(0).getByRole("button").click();
+    await exact.nth(0).getByRole("button", { name: /trace 1 · seq 39/ }).click();
     await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(cord);
+    await enterDebug(page);
     await page.getByRole("button", { name: "Clear causal trace" }).click();
     await expect(page.locator('.timeline-events [data-application-component="artifact"][data-causal-trace="exact"]')).toHaveCount(0);
     await page.locator(".timeline-events button").filter({ hasText: "seq 39" }).click();
+    await enterDebug(page);
     await page.getByRole("button", { name: "Trace downstream" }).click();
     await expect(page.locator('.timeline-events [data-application-component="artifact"][data-causal-trace="exact"]')).toHaveCount(4);
     const final = await (await fetch(`${url}/api/snapshot`)).json();

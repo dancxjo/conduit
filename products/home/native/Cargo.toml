@@ -1,0 +1,31 @@
+[package]
+name = "conduit-home-native"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+conduit = { path = "../../conduit" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-home-model = { path = "../model" }
+conduit-presentation = { path = "../../../semantics/presentation" }
+patchbay-hosted = { path = "../../patchbay/hosted" }
+patchbay-model = { path = "../../patchbay/model" }
+embedded-graphics = "=0.8.1"
+png = "0.17"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+softbuffer = { version = "0.4", default-features = false }
+winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+softbuffer = { version = "0.4", default-features = false, features = ["wayland", "wayland-dlopen", "x11", "x11-dlopen"] }
+winit = { version = "0.30", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen", "x11"] }
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "conduit-home"
+path = "src/main.rs"

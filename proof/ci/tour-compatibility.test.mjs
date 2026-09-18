@@ -11,7 +11,7 @@ import {
   compactPatchbaySnapshot,
 } from "../../products/tour/browser/tour-compact-patchbay.mjs";
 
-test("published Book routes retain their exact Tour destination, query and fragment", async (t) => {
+test("published Book routes retire into the Body while retaining query and fragment", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "conduit-tour-compat-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   await stageLegacyTourRoutes(root);
@@ -24,7 +24,10 @@ test("published Book routes retain their exact Tour destination, query and fragm
       search: old.search, hash: old.hash,
       replace: (target) => { redirected = new URL(target, old).href; },
     } });
-    assert.equal(redirected, old.href.replace("/book/", "/tour/"));
+    const expected = new URL(route ? "../../workspace/" : "../workspace/", old);
+    expected.search = old.search;
+    expected.hash = old.hash;
+    assert.equal(redirected, expected.href);
   }
 });
 

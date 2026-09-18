@@ -98,9 +98,9 @@ struct JourneyProof {
 pub(super) struct JourneyIdentity {
     pub profile_id: String,
     pub build_id: String,
-    pub image_id: String,
     pub host_id: String,
     pub boot_id: String,
+    pub spore_join: Option<Value>,
 }
 
 pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -234,6 +234,101 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "ret", "creche-birth")?;
             journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
             artifacts.capture(&mut qmp, &mut reader, "body-awake", true)?;
+            for _ in 0..2 {
+                journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-forms")?;
+            }
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_STATE launcher 2",
+                "product-journey-home-forms-selection-timeout",
+            )?;
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-forms")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_STATE forms 2",
+                "product-journey-home-forms-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-forms", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-leave-forms")?;
+            for _ in 0..3 {
+                journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-prompt")?;
+            }
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-prompt")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_STATE prompt 5",
+                "product-journey-home-prompt-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-prompt", true)?;
+            for (index, key) in [
+                "r", "u", "n", "spc", "k", "e", "y", "b", "o", "a", "r", "d", "spc", "c", "a", "n",
+                "v", "a", "s",
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                journey_input::key_pair(&mut qmp, &mut reader, key, "home-type-run-form")?;
+                hid_qmp::wait_for_stage_count(
+                    &serial_path,
+                    &mut child,
+                    "CONDUIT_HOME_STATE prompt 5",
+                    index + 2,
+                    "product-journey-home-command-input-timeout",
+                )?;
+            }
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-run-form")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_CHECKPOINT form-run conduitos-keyboard-upper",
+                "product-journey-home-run-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-play-observed", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-return-after-play")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_CHECKPOINT returned",
+                "product-journey-home-post-play-return-timeout",
+            )?;
+            journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-patchbay")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-patchbay")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_CHECKPOINT patchbay-opened",
+                "product-journey-home-patchbay-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-patchbay-open", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "patchbay-return-home")?;
+            hid_qmp::wait_for_stage_count(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_CHECKPOINT returned",
+                2,
+                "product-journey-home-return-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "home-returned", true)?;
+            for _ in 0..2 {
+                journey_input::key_pair(&mut qmp, &mut reader, "right", "home-select-forms-again")?;
+            }
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-forms-again")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_STATE forms 2",
+                "product-journey-home-forms-return-timeout",
+            )?;
+            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-keyboard")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_HOME_CHECKPOINT form-opened conduitos-keyboard-upper",
+                "product-journey-home-keyboard-timeout",
+            )?;
             for label in [
                 "PROFILE ID",
                 "BUILD ID",
@@ -436,6 +531,7 @@ fn execute_image(
         let serial = fs::read_to_string(&serial_path).map_err(|error| {
             ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
         })?;
+        let spore_join = decode_spore_join(&serial)?;
         let records = journey_records(&serial)?;
         let tour_records = super::journey_records::tour(&serial)?;
         let pointer_records = super::journey_records::pointer(&serial)?;
@@ -652,9 +748,9 @@ fn execute_image(
         Ok(JourneyIdentity {
             profile_id: proof.profile_id.clone(),
             build_id: proof.build_id.clone(),
-            image_id: proof.image_id.clone(),
             host_id: proof.host_id.clone(),
             boot_id: proof.boot_id.clone(),
+            spore_join,
         })
     })();
     if result.is_err() {
@@ -683,7 +779,31 @@ fn execute_image(
         }
         eprintln!("failure artifact error: {error}");
     }
+    if result.is_ok() {
+        super::home_face_evidence::retain(&paths.target)?;
+    }
     result
+}
+
+fn decode_spore_join(serial: &str) -> Result<Option<Value>, ConduitosError> {
+    const PREFIX: &str = "CONDUIT_SPORE_JOIN ";
+    let values = serial
+        .lines()
+        .filter_map(|line| line.strip_prefix(PREFIX))
+        .map(|encoded| {
+            serde_json::from_str(encoded).map_err(|error| {
+                ConduitosError::refusal("creche-spore-join-invalid", error.to_string())
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    match values.len() {
+        0 => Ok(None),
+        1 => Ok(values.into_iter().next()),
+        _ => Err(ConduitosError::refusal(
+            "creche-spore-join-ambiguous",
+            "guest emitted more than one boot-time spore join",
+        )),
+    }
 }
 
 fn text(record: &Value, field: &str) -> Result<String, ConduitosError> {

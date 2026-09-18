@@ -9,10 +9,12 @@ fn inventory_form() -> InventoryForm {
         reusable_entries: Vec::new(),
         initial_body_order: None,
         initial_body_presentation_profile: 0,
+        workspace_catalog: true,
         deterministic: None,
         deterministic_not_applicable: None,
         browser_safe: None,
         browser_safe_not_applicable: None,
+        graceful_fallback: None,
     }
 }
 
@@ -40,6 +42,12 @@ fn quiet_check_suppresses_human_output_without_hiding_json() {
 fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
     let root = crate::workspace::workspace_root().unwrap();
     let inventory = load_inventory(&root).unwrap();
+    let legacy_tour = inventory
+        .forms
+        .iter()
+        .find(|form| form.slug == "tour")
+        .expect("legacy Tutorial remains explicitly inventoried for compatibility proof");
+    assert!(!legacy_tour.workspace_catalog);
     let report = build_report(&root, false, &GlobalOpts::default()).unwrap();
     let checks: Vec<_> = report
         .results
@@ -92,7 +100,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-check")
         .collect();
-    assert_eq!(reusable.len(), 29);
+    assert_eq!(reusable.len(), 30);
     assert!(reusable.iter().all(|result| {
         result.status == "passed"
             && result.source_document_id.is_some()
@@ -111,13 +119,13 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "composition-check")
         .collect();
-    assert_eq!(composition.len(), 29);
+    assert_eq!(composition.len(), 30);
     assert_eq!(
         composition
             .iter()
             .filter(|result| result.status == "passed")
             .count(),
-        27
+        28
     );
     assert_eq!(
         composition
@@ -140,7 +148,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-deterministic")
         .collect();
-    assert_eq!(reusable_deterministic.len(), 29);
+    assert_eq!(reusable_deterministic.len(), 30);
     assert!(reusable_deterministic
         .iter()
         .all(|result| result.status == "unavailable"));
@@ -208,7 +216,6 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
         ("night-radio", "night-radio"),
         ("secret-knock", "secret-knock-demo"),
         ("pocket-theremin", "pocket-theremin"),
-        ("tour", "tour"),
         ("patchbay", "patchbay"),
         ("little-seismograph", "little-seismograph-display"),
     ];

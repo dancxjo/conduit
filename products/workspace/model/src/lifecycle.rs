@@ -1,10 +1,12 @@
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use conduit_body::{
-    AdmissionManager, AdmissionRefusal, AdmissionSigns, BodyBiographyError, BodyBiographyEvidence,
-    BodyFormPlan, BodyLifecycleError, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyState,
-    MembershipCredential, MembershipState, ResidentForm, SpawnAdmissionProof, Wake,
+    AdmissionManager, AdmissionRefusal, AdmissionSigns, BodyBiographyArchiveSegment,
+    BodyBiographyError, BodyBiographyEvidence, BodyFormPlan, BodyFulfillment, BodyLifecycleError,
+    BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyState,
+    FulfillmentObligation, MembershipCredential, MembershipRefusal, MembershipState, ResidentForm,
+    SpawnAdmissionProof, Wake,
 };
-use conduit_core::{BootId, HostAdvertisement, HostId, SignId, bind_sign};
+use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId, SignId, bind_sign};
 use serde::{Deserialize, Serialize};
 
 /// An exact current proposal and its optional admitted Play, never a scheduler.
@@ -20,6 +22,7 @@ pub struct WorkspaceBody {
     evidence: BodyBiographyEvidence,
     realization: Option<WorkspaceRealization>,
     foreground: Option<ResidentForm>,
+    pub(crate) pending_archives: Vec<BodyBiographyArchiveSegment>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -28,6 +31,7 @@ pub enum WorkspaceBodyError {
     Admission(AdmissionRefusal),
     Lifecycle(BodyLifecycleError),
     Plan(BodyPlanError),
+    Membership(MembershipRefusal),
     NotLulled,
     NoProposal,
     AlreadyPlaying,
@@ -37,14 +41,19 @@ pub enum WorkspaceBodyError {
     UninstalledForm,
     SequenceExhausted,
     UnreconciledWake,
+    ArchivePersistenceRequired,
 }
 
 impl WorkspaceBody {
-    /// A Crèche handoff or a retained Lulled Body is ready for fresh admission.
+    /// A Crèche handoff or retained Body may be opened for inspection. Only a
+    /// Lulled Body can subsequently mutate; Fulfilled remains terminal.
     /// An Awake snapshot alone never proves its previous Play has ended.
     pub fn open(evidence: BodyBiographyEvidence) -> Result<Self, WorkspaceBodyError> {
         evidence.validate().map_err(WorkspaceBodyError::Biography)?;
-        if evidence.body.state != BodyState::Lulled {
+        if !matches!(
+            evidence.body.state,
+            BodyState::Lulled | BodyState::Fulfilled { .. }
+        ) {
             return Err(WorkspaceBodyError::UnreconciledWake);
         }
         let foreground = evidence.body.workset.forms().first().cloned();
@@ -52,6 +61,7 @@ impl WorkspaceBody {
             foreground,
             evidence,
             realization: None,
+            pending_archives: Vec::new(),
         })
     }
 
@@ -76,6 +86,23 @@ impl WorkspaceBody {
 
     pub fn foreground(&self) -> Option<&ResidentForm> {
         self.foreground.as_ref()
+    }
+
+    pub fn pending_archives(&self) -> &[BodyBiographyArchiveSegment] {
+        &self.pending_archives
+    }
+
+    /// A Host calls this only after the archive segments and the newer active
+    /// evidence committed in one durable transaction.
+    pub fn acknowledge_archives(
+        &mut self,
+        head_digest: [u8; 32],
+    ) -> Result<(), WorkspaceBodyError> {
+        if self.pending_archives.last().map(|segment| segment.digest) != Some(head_digest) {
+            return Err(WorkspaceBodyError::ArchivePersistenceRequired);
+        }
+        self.pending_archives.clear();
+        Ok(())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -109,6 +136,7 @@ impl WorkspaceBody {
         authority_boot: &BootId,
     ) -> Result<MembershipCredential, WorkspaceBodyError> {
         self.require_host(authority_host, authority_boot)?;
+        self.make_membership_room(2)?;
         let first_sequence = self.next_sequence()?;
         let second_sequence = first_sequence
             .checked_add(1)
@@ -143,6 +171,57 @@ impl WorkspaceBody {
         Ok(credential)
     }
 
+    /// Record an observed carrier loss without revoking the admitted Part.
+    /// The exact Host/Boot ceases to be current, so its offers can no longer
+    /// participate in planning; a future authenticated observation may attach
+    /// the Part again under fresh truth.
+    pub fn observe_host_lost(
+        &mut self,
+        lost_host: &HostId,
+        lost_boot: &BootId,
+        authority_host: &HostId,
+        authority_boot: &BootId,
+    ) -> Result<(), WorkspaceBodyError> {
+        self.require_host(authority_host, authority_boot)?;
+        let part_id = self
+            .evidence
+            .membership
+            .parts
+            .iter()
+            .find(|part| {
+                part.state == MembershipState::Admitted
+                    && part.current.as_ref().is_some_and(|current| {
+                        &current.host_id == lost_host && &current.boot_id == lost_boot
+                    })
+            })
+            .map(|part| part.part_id.clone())
+            .ok_or(WorkspaceBodyError::StaleHost)?;
+        self.make_membership_room(1)?;
+        let sequence = self.next_sequence()?;
+        let mut membership = self.evidence.membership.clone();
+        let prior_events = membership.events.len();
+        let change = membership
+            .observe_offline(
+                &self.evidence.body_id,
+                membership.revision,
+                &part_id,
+                lost_boot,
+                sign(authority_host, authority_boot, sequence),
+            )
+            .map_err(WorkspaceBodyError::Membership)?;
+        if membership.events.len() != prior_events + 1 {
+            return Err(WorkspaceBodyError::Biography(
+                BodyBiographyError::InvalidEvidence,
+            ));
+        }
+        let mut evidence = self.evidence.clone();
+        evidence
+            .append_membership_events(membership, &[(change, sequence)])
+            .map_err(WorkspaceBodyError::Biography)?;
+        self.evidence = evidence;
+        Ok(())
+    }
+
     /// Foreground is presentation focus within the current workset. Selecting a
     /// surface changes neither its Body lifecycle nor the exact admitted Play.
     pub fn select_form(&mut self, form: &ResidentForm) -> Result<(), WorkspaceBodyError> {
@@ -162,6 +241,7 @@ impl WorkspaceBody {
         host: &HostId,
         boot: &BootId,
     ) -> Result<&WorkspaceRealization, WorkspaceBodyError> {
+        self.require_mutable()?;
         if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
             return Err(WorkspaceBodyError::NotLulled);
         }
@@ -276,6 +356,55 @@ impl WorkspaceBody {
         Ok(())
     }
 
+    /// Record the explicit operator conclusion only after the browser runtime
+    /// has proved that no Play or implementation remains active.
+    pub fn fulfill(
+        &mut self,
+        host: &HostId,
+        boot: &BootId,
+        authority_grant_id: AuthorityGrantId,
+        attribution: alloc::string::String,
+    ) -> Result<(), WorkspaceBodyError> {
+        self.require_mutable()?;
+        self.require_host(host, boot)?;
+        if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
+            return Err(WorkspaceBodyError::NotLulled);
+        }
+        self.make_lifecycle_room(1, 0)?;
+        let sequence = self.next_sequence()?;
+        let sign_id = sign(host, boot, sequence);
+        let final_wake_id = self
+            .evidence
+            .body
+            .events
+            .iter()
+            .rev()
+            .find_map(|event| match event {
+                BodyLifecycleEvent::LullRetained { wake_id, .. } => Some(wake_id.clone()),
+                _ => None,
+            });
+        let fulfillment = BodyFulfillment {
+            final_wake_id,
+            authority_grant_id,
+            attribution,
+            settled_obligations: vec![FulfillmentObligation {
+                obligation_id: "obligation/workspace-runtime-empty".into(),
+                settlement_sign_id: sign_id.clone(),
+            }],
+        };
+        let body = self
+            .evidence
+            .body
+            .fulfill(fulfillment, sign_id.clone())
+            .map_err(WorkspaceBodyError::Lifecycle)?;
+        let mut evidence = self.evidence.clone();
+        evidence
+            .append_body_lifecycle_events(body, &[(sign_id, sequence)])
+            .map_err(WorkspaceBodyError::Biography)?;
+        self.evidence = evidence;
+        Ok(())
+    }
+
     /// Add checked meaning while Lulled. Current Play replacement is a separate
     /// Host-orchestrated lifecycle; this cannot mutate an admitted Plan.
     pub fn admit_form(
@@ -285,6 +414,7 @@ impl WorkspaceBody {
         host: &HostId,
         boot: &BootId,
     ) -> Result<(), WorkspaceBodyError> {
+        self.require_mutable()?;
         self.require_host(host, boot)?;
         if self.evidence.body.state != BodyState::Lulled {
             return Err(WorkspaceBodyError::NotLulled);
@@ -292,6 +422,7 @@ impl WorkspaceBody {
         if self.evidence.body.workload_revision != expected_revision {
             return Err(WorkspaceBodyError::StaleWorkload);
         }
+        self.make_lifecycle_room(1, 0)?;
         let sequence = self.next_sequence()?;
         let sign_id = sign(host, boot, sequence);
         let body = self
@@ -316,6 +447,7 @@ impl WorkspaceBody {
         host: &HostId,
         boot: &BootId,
     ) -> Result<(), WorkspaceBodyError> {
+        self.require_mutable()?;
         self.require_host(host, boot)?;
         if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
             return Err(WorkspaceBodyError::NotLulled);
@@ -323,6 +455,7 @@ impl WorkspaceBody {
         if self.evidence.body.workload_revision != expected_revision {
             return Err(WorkspaceBodyError::StaleWorkload);
         }
+        self.make_lifecycle_room(1, 0)?;
         let sequence = self.next_sequence()?;
         let sign_id = sign(host, boot, sequence);
         let body = self
@@ -355,6 +488,13 @@ impl WorkspaceBody {
         }
     }
 
+    fn require_mutable(&self) -> Result<(), WorkspaceBodyError> {
+        self.evidence
+            .body
+            .ensure_mutable()
+            .map_err(WorkspaceBodyError::Lifecycle)
+    }
+
     fn next_sequence(&self) -> Result<u64, WorkspaceBodyError> {
         self.evidence
             .last_sequence()
@@ -374,16 +514,56 @@ impl WorkspaceBody {
             || self.evidence.records.len().saturating_add(5)
                 > conduit_body::MAX_BODY_BIOGRAPHY_RECORDS
         {
-            if !self
+            if self.pending_archives.len() >= conduit_body::MAX_BODY_BIOGRAPHY_WAKES {
+                return Err(WorkspaceBodyError::ArchivePersistenceRequired);
+            }
+            let segment = self
                 .evidence
-                .compact_oldest_terminal_wake()
-                .map_err(WorkspaceBodyError::Biography)?
-            {
+                .seal_oldest_terminal_wake()
+                .map_err(WorkspaceBodyError::Biography)?;
+            let segment = match segment {
+                Some(segment) => Some(segment),
+                None => self
+                    .evidence
+                    .seal_body_workload_history()
+                    .map_err(WorkspaceBodyError::Biography)?,
+            };
+            let segment = match segment {
+                Some(segment) => Some(segment),
+                None => self
+                    .evidence
+                    .seal_membership_history()
+                    .map_err(WorkspaceBodyError::Biography)?,
+            };
+            let Some(segment) = segment else {
                 return Err(WorkspaceBodyError::Biography(
                     BodyBiographyError::CapacityExhausted,
                 ));
-            }
+            };
+            self.pending_archives.push(segment);
         }
+        Ok(())
+    }
+
+    fn make_membership_room(&mut self, events: usize) -> Result<(), WorkspaceBodyError> {
+        if self.evidence.membership.events.len().saturating_add(events)
+            <= conduit_body::MAX_MEMBERSHIP_EVENTS
+            && self.evidence.records.len().saturating_add(events)
+                <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS
+        {
+            return Ok(());
+        }
+        if self.pending_archives.len() >= conduit_body::MAX_BODY_BIOGRAPHY_WAKES {
+            return Err(WorkspaceBodyError::ArchivePersistenceRequired);
+        }
+        let segment = self
+            .evidence
+            .seal_membership_history()
+            .map_err(WorkspaceBodyError::Biography)?
+            .ok_or(WorkspaceBodyError::Biography(
+                BodyBiographyError::CapacityExhausted,
+            ))?;
+        self.pending_archives.push(segment);
         Ok(())
     }
 }

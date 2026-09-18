@@ -7,8 +7,8 @@ const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
 #[test]
 fn canonical_little_life_completes_exactly_thirty_two_presented_generations() {
     let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let report = workspace.join(format!(
-        "target/little-life-form-proof-{}.json",
+    let report = std::env::temp_dir().join(format!(
+        "conduit-little-life-form-proof-{}.json",
         std::process::id()
     ));
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))

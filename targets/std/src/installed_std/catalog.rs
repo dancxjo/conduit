@@ -5,6 +5,8 @@ use super::alife_operations::{
     LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_PRESENTATION_FACTORY,
 };
 use super::audio_play_operation::AUDIO_PLAY_FACTORY;
+use super::body_chat_prompt_operation::FACTORY as BODY_CHAT_PROMPT_FACTORY;
+use super::body_conversation_context_operation::FACTORY as BODY_CONVERSATION_CONTEXT_FACTORY;
 use super::bool_presentation::BOOL_PRESENTATION_FACTORY;
 use super::calendar_proposal_operation::FACTORY as CALENDAR_PROPOSAL_FACTORY;
 use super::calendar_provider_operation::{
@@ -15,10 +17,12 @@ use super::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
 use super::final_normalized_pattern_operation::FACTORY as FINAL_NORMALIZED_PATTERN_FACTORY;
 use super::flow_gate_operation::FLOW_GATE_SCALAR_FACTORY;
+use super::flow_pressure_operations::{FLOW_BACKPRESSURE_FACTORY, FLOW_COALESCE_LATEST_FACTORY};
 use super::flow_state_operations::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_FACTORY};
 use super::generate_text::{
     GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY, GENERATE_TEXT_SMALL_FACTORY,
 };
+use super::generated_speech_commit_operation::FACTORY as GENERATED_SPEECH_COMMIT_FACTORY;
 use super::house_prompt_operation::FACTORY as HOUSE_PROMPT_FACTORY;
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
 use super::image_text_operation::FACTORY as IMAGE_TEXT_FACTORY;
@@ -66,6 +70,7 @@ use super::presentation_composition::{
 #[cfg(test)]
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
 use super::recognition_text_operation::FACTORY as RECOGNITION_TEXT_FACTORY;
+use super::recognized_turn_commit_operation::FACTORY as RECOGNIZED_TURN_COMMIT_FACTORY;
 use super::record_delivery_operation::FACTORY as RECORD_DELIVERY_STATUS_FACTORY;
 use super::record_queue_operation::FACTORY as RECORD_QUEUE_FACTORY;
 use super::record_temporal_operation::{
@@ -85,7 +90,11 @@ use super::robotics_operations::{
 use super::sequence_normalization_operation::FACTORY as SEQUENCE_NORMALIZATION_FACTORY;
 #[cfg(test)]
 use super::speech_synthesis_operation::DETERMINISTIC_FACTORY as DETERMINISTIC_SPEECH_FACTORY;
-use super::speech_synthesis_operation::FACTORY as SPEECH_SYNTHESIS_FACTORY;
+#[cfg(test)]
+use super::speech_synthesis_operation::DETERMINISTIC_STREAMING_FACTORY;
+use super::speech_synthesis_operation::{
+    FACTORY as SPEECH_SYNTHESIS_FACTORY, STREAMING_FACTORY as STREAMING_SPEECH_FACTORY,
+};
 use super::state_select_operation::STATE_SELECT_SCALAR_FACTORY;
 use super::structured_selector_operation::FACTORY as STRUCTURED_SELECTOR_FACTORY;
 use super::structured_values_operation::{
@@ -156,6 +165,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &MICROPHONE_CLIP_FACTORY,
     &ADDRESS_DETECT_FACTORY,
     &RECOGNITION_TEXT_FACTORY,
+    &RECOGNIZED_TURN_COMMIT_FACTORY,
     &KEYBOARD_INPUT_FACTORY,
     &super::keyboard_input_operation::button::FACTORY,
     &super::keyboard_input_operation::button::indicator::MAPPER,
@@ -199,6 +209,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &STATE_COUNT_FACTORY,
     &STATE_TOGGLE_FACTORY,
     &COUNT_PRESENTATION_FACTORY,
+    &FLOW_BACKPRESSURE_FACTORY,
+    &FLOW_COALESCE_LATEST_FACTORY,
     &STATE_LATEST_SCALAR_FACTORY,
     &FLOW_TEE_SCALAR_FACTORY,
     &STATE_SELECT_SCALAR_FACTORY,
@@ -219,6 +231,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &LOGIC_SELECT_SCALAR_FACTORY,
     &LOCAL_MODEL_FACTORY,
     &MODEL_TEXT_FACTORY,
+    &GENERATED_SPEECH_COMMIT_FACTORY,
     &NAVIGATION_ROUTE_FACTORY,
     &NAVIGATION_TIME_FACTORY,
     &NAVIGATION_CONTROL_FACTORY,
@@ -257,8 +270,11 @@ const FACTORIES: &[&InstalledFactory] = &[
     &ROBOTICS_DRIVE_DIFFERENTIAL_FACTORY,
     &MUSIC_SYNTH_FACTORY,
     &SPEECH_SYNTHESIS_FACTORY,
+    &STREAMING_SPEECH_FACTORY,
     #[cfg(test)]
     &DETERMINISTIC_SPEECH_FACTORY,
+    #[cfg(test)]
+    &DETERMINISTIC_STREAMING_FACTORY,
     &AUDIO_RENDER_DEMAND_FACTORY,
     &AUDIO_PLAY_FACTORY,
     &WAV_ARTIFACT_FACTORY,
@@ -270,6 +286,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &GENERATE_TEXT_LARGE_FACTORY,
     &GENERATE_TEXT_REMOTE_FACTORY,
     &HOUSE_PROMPT_FACTORY,
+    &BODY_CHAT_PROMPT_FACTORY,
+    &BODY_CONVERSATION_CONTEXT_FACTORY,
     &HTTP_CLIENT_FACTORY,
     &HTTP_SERVER_FACTORY,
     &IMAGE_TEXT_FACTORY,

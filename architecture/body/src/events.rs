@@ -1,9 +1,11 @@
-use conduit_core::{ActivePlayId, CheckedFormId, PlanId, SignId, SourceDocumentId};
+use conduit_core::{
+    ActivePlayId, AuthorityGrantId, CheckedFormId, PlanId, SignId, SourceDocumentId,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    hold::validate_planning_basis_signs, BodyLifecycleError, BodyState, BodyWorkset, HoldPolicy,
-    ResidentForm, WakeId, WakeLifecycle, WakePlan,
+    hold::validate_planning_basis_signs, BodyHistoryCheckpoint, BodyLifecycleError, BodyState,
+    BodyWorkset, FulfillmentObligation, HoldPolicy, ResidentForm, WakeId, WakeLifecycle, WakePlan,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,6 +35,14 @@ pub enum BodyLifecycleEvent {
         wake_id: WakeId,
         sign_id: SignId,
     },
+    Fulfilled {
+        final_workload_revision: u64,
+        final_wake_id: Option<WakeId>,
+        authority_grant_id: AuthorityGrantId,
+        attribution: alloc::string::String,
+        settled_obligations: alloc::vec::Vec<FulfillmentObligation>,
+        sign_id: SignId,
+    },
 }
 
 impl BodyLifecycleEvent {
@@ -42,7 +52,8 @@ impl BodyLifecycleEvent {
             | Self::FormAdmitted { sign_id, .. }
             | Self::FormRemoved { sign_id, .. }
             | Self::Woke { sign_id, .. }
-            | Self::LullRetained { sign_id, .. } => sign_id,
+            | Self::LullRetained { sign_id, .. }
+            | Self::Fulfilled { sign_id, .. } => sign_id,
         }
     }
 }
@@ -132,6 +143,7 @@ pub(crate) fn validate_body_events(
     state: &BodyState,
     workset: &BodyWorkset,
     workload_revision: u64,
+    checkpoint: Option<&BodyHistoryCheckpoint>,
 ) -> Result<(), BodyLifecycleError> {
     if events.len() != sign.len()
         || events
@@ -149,7 +161,8 @@ pub(crate) fn validate_body_events(
         return Err(BodyLifecycleError::InvalidTransition);
     }
     let mut replayed = BodyState::Lulled;
-    let (mut replayed_workset, mut replayed_workload_revision) = match events.first() {
+    let mut last_retained_wake_id: Option<WakeId> = None;
+    let (initial_workset, initial_revision) = match events.first() {
         Some(BodyLifecycleEvent::Born {
             initial_workset,
             workload_revision,
@@ -160,7 +173,33 @@ pub(crate) fn validate_body_events(
         }
         _ => return Err(BodyLifecycleError::InvalidTransition),
     };
+    let (mut replayed_workset, mut replayed_workload_revision) =
+        if let Some(checkpoint) = checkpoint {
+            checkpoint.workset.validate()?;
+            if checkpoint.workload_revision < initial_revision {
+                return Err(BodyLifecycleError::InvalidTransition);
+            }
+            (checkpoint.workset.clone(), checkpoint.workload_revision)
+        } else {
+            (initial_workset, initial_revision)
+        };
     for event in events.iter().skip(1) {
+        if let BodyLifecycleEvent::Fulfilled {
+            final_wake_id,
+            authority_grant_id,
+            attribution,
+            settled_obligations,
+            ..
+        } = event
+        {
+            crate::lifecycle::validate_fulfillment(&crate::BodyFulfillment {
+                final_wake_id: final_wake_id.clone(),
+                authority_grant_id: authority_grant_id.clone(),
+                attribution: attribution.clone(),
+                settled_obligations: settled_obligations.clone(),
+            })
+            .map_err(|_| BodyLifecycleError::InvalidTransition)?;
+        }
         match event {
             BodyLifecycleEvent::FormAdmitted {
                 source_document_id,
@@ -209,7 +248,32 @@ pub(crate) fn validate_body_events(
                 BodyLifecycleEvent::LullRetained {
                     wake_id: retained, ..
                 },
-            ) if wake_id == retained => BodyState::Lulled,
+            ) if wake_id == retained => {
+                last_retained_wake_id = Some(retained.clone());
+                BodyState::Lulled
+            }
+            (
+                BodyState::Lulled,
+                BodyLifecycleEvent::Fulfilled {
+                    final_workload_revision,
+                    final_wake_id,
+                    authority_grant_id,
+                    attribution,
+                    settled_obligations,
+                    sign_id,
+                },
+            ) if *final_workload_revision == replayed_workload_revision
+                && final_wake_id
+                    .as_ref()
+                    .is_none_or(|wake_id| last_retained_wake_id.as_ref() == Some(wake_id))
+                && !authority_grant_id.as_str().is_empty()
+                && !attribution.trim().is_empty()
+                && settled_obligations.len() <= crate::MAX_FULFILLMENT_OBLIGATIONS =>
+            {
+                BodyState::Fulfilled {
+                    sign_id: sign_id.clone(),
+                }
+            }
             _ => return Err(BodyLifecycleError::InvalidTransition),
         };
     }

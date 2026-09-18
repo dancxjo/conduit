@@ -1,6 +1,7 @@
 //! Finite implementation registry installed by the ordinary browser Host.
 
 pub(crate) mod application;
+pub(crate) mod audio_io;
 pub(crate) mod body_startup;
 mod button_indicator;
 mod delay;
@@ -31,6 +32,7 @@ mod morse_composition;
 mod normalized_quantity;
 mod operation;
 mod phase_synchronization;
+pub(crate) mod pitch_tone;
 mod pointer;
 pub(crate) mod pointer_selector;
 mod presentation;

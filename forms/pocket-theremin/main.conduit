@@ -6,10 +6,12 @@ form pocket-theremin {
     pitch: quantity-range-map
     inspect: structured-info/wrap-quantity
     manifest: presentation/quantity
+    tone: sound/pitch-tone
 
     controller.pointer > project(PointerEvent.position) > project(Point2.x) > normalize.in
     normalize.out > pitch.control
     pitch.quantity > inspect.in
+    pitch.quantity > tone.pitch
     inspect.out > manifest.input
 }
 

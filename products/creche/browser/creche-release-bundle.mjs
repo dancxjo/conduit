@@ -3,30 +3,42 @@ const MAXIMUM_FILES = 16;
 const MAXIMUM_FILE_BYTES = 32 * 1024 * 1024;
 const MAXIMUM_BUNDLE_BYTES = 48 * 1024 * 1024;
 
-export async function acquireHostRelease(profile, signal) {
+export async function acquireHostRelease(profile, signal, {
+  manifestUrl = profile?.manifest_path,
+  expectedManifest = null,
+  manifestBytes = null,
+  fetcher = fetch,
+  cache = null,
+} = {}) {
   requireProfile(profile);
-  let response;
-  try {
-    response = await fetch(profile.manifest_path, { signal, cache: "no-store" });
-  } catch (error) {
-    refuse("ArtifactUnavailable", "reviewed generic Host release manifest is unavailable", error);
-  }
-  if (!response.ok) refuse("ArtifactUnavailable", `reviewed generic Host release manifest returned HTTP ${response.status}`);
-  const manifest = await response.json();
+  const manifestResource = manifestBytes
+    ? Object.freeze({ bytes: new Uint8Array(manifestBytes), url: String(manifestUrl), cache_hit: true })
+    : await acquireExactReleaseBytes({
+      url: manifestUrl,
+      expected: expectedManifest,
+      maximumBytes: 256 * 1024,
+      signal,
+      fetcher,
+      cache,
+      label: "manifest",
+    });
+  let manifest;
+  try { manifest = JSON.parse(new TextDecoder().decode(manifestResource.bytes)); }
+  catch (error) { refuse("StaleArtifact", "reviewed generic Host release manifest is malformed", error); }
   requireManifest(manifest, profile);
   const payloads = [];
   let totalBytes = 0;
   for (const file of manifest.files) {
-    const artifactResponse = await fetch(new URL(file.path, response.url), { signal, cache: "no-store" });
-    if (!artifactResponse.ok) refuse("ArtifactUnavailable", `reviewed Host release file returned HTTP ${artifactResponse.status}`);
-    const bytes = new Uint8Array(await artifactResponse.arrayBuffer());
+    const resource = await acquireExactReleaseBytes({
+      url: new URL(file.path, manifestResource.url), expected: file,
+      maximumBytes: MAXIMUM_FILE_BYTES, signal, fetcher, cache, label: file.path,
+    });
+    const bytes = resource.bytes;
     totalBytes += bytes.byteLength;
     if (bytes.byteLength !== file.bytes || bytes.byteLength < 1 || bytes.byteLength > MAXIMUM_FILE_BYTES
       || totalBytes > MAXIMUM_BUNDLE_BYTES) {
       refuse("ArtifactBound", "reviewed Host release violated its sealed byte bounds");
     }
-    const digest = await sha256(bytes);
-    if (digest !== file.sha256) refuse("StaleArtifact", `reviewed Host release file ${file.path} failed its exact digest`);
     payloads.push(Object.freeze({ ...file, bytes }));
   }
   const bundleDigest = await digestFileIdentities(payloads);
@@ -34,11 +46,37 @@ export async function acquireHostRelease(profile, signal) {
   return Object.freeze({ manifest: Object.freeze(manifest), payloads: Object.freeze(payloads), totalBytes });
 }
 
+export async function acquireExactReleaseBytes({ url, expected, maximumBytes, signal, fetcher, cache, label }) {
+  if (expected && cache) {
+    const cached = await cache.get(expected.sha256);
+    if (cached) {
+      const bytes = new Uint8Array(cached);
+      if (bytes.byteLength === expected.bytes && await sha256(bytes) === expected.sha256) {
+        return Object.freeze({ bytes, url: String(url), cache_hit: true });
+      }
+    }
+  }
+  let response;
+  try { response = await fetcher(url, { signal, cache: "no-store" }); }
+  catch (error) { refuse("ArtifactUnavailable", `reviewed Host release ${label} is unavailable`, error); }
+  if (!response?.ok) refuse("ArtifactUnavailable", `reviewed Host release ${label} returned HTTP ${response?.status}`);
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength < 1 || bytes.byteLength > maximumBytes
+    || expected && (bytes.byteLength !== expected.bytes || await sha256(bytes) !== expected.sha256)) {
+    refuse("StaleArtifact", `reviewed Host release ${label} failed its exact identity`);
+  }
+  if (expected && cache) await cache.put(expected.sha256, bytes);
+  return Object.freeze({ bytes, url: response.url || String(url), cache_hit: false });
+}
+
 function requireProfile(profile) {
-  for (const name of ["target_id", "manifest_path", "package_id", "output", "builder_adapter", "deployment_adapter"]) {
+  for (const name of ["target_id", "package_id", "output", "builder_adapter", "deployment_adapter"]) {
     if (typeof profile?.[name] !== "string" || profile[name].length < 1 || profile[name].length > 256) {
       throw new TypeError(`existing-computer target profile omitted ${name}`);
     }
+  }
+  if (typeof profile.manifest_path !== "string" && typeof profile.release_catalog_key !== "string") {
+    throw new TypeError("existing-computer target profile omitted release location");
   }
 }
 

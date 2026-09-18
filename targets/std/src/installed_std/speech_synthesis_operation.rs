@@ -12,10 +12,21 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     budget,
     prepare,
 };
+pub(super) static STREAMING_FACTORY: InstalledFactory = InstalledFactory {
+    implementation_id: conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION,
+    budget,
+    prepare,
+};
 
 #[cfg(test)]
 pub(super) static DETERMINISTIC_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+#[cfg(test)]
+pub(super) static DETERMINISTIC_STREAMING_FACTORY: InstalledFactory = InstalledFactory {
+    implementation_id: conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -26,6 +37,8 @@ pub(super) struct SpeechSynthesisOperation {
     next_request: u32,
     emitted_blocks: u16,
     maximum_blocks: u16,
+    streaming: bool,
+    input_closed: bool,
     started: bool,
     finished: bool,
 }
@@ -40,9 +53,13 @@ impl SpeechSynthesisOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if !self.started && self.pending.is_none() => {
-                let Ok(input) = BoundedValueRef::new(value, conduit_tongues::MAXIMUM_TEXT_BYTES)
-                else {
+            } if !self.started && self.pending.is_none() && !self.input_closed => {
+                let maximum = if self.streaming {
+                    conduit_tongues::SPEECH_COMMIT_QUEUE_BYTES
+                } else {
+                    conduit_tongues::MAXIMUM_TEXT_BYTES
+                };
+                let Ok(input) = BoundedValueRef::new(value, maximum) else {
                     return fail(FailureCode::InvalidInput, 1);
                 };
                 if value.byte_len == 0 {
@@ -70,8 +87,13 @@ impl SpeechSynthesisOperation {
                         }
                     }
                     (HostOperationDisposition::Completed, None, None) if self.started => {
-                        self.finished = true;
-                        OperationAction::Complete
+                        self.started = false;
+                        if self.streaming && !self.input_closed {
+                            OperationAction::Await
+                        } else {
+                            self.finished = true;
+                            OperationAction::Complete
+                        }
                     }
                     (HostOperationDisposition::Denied, _, Some(failure))
                     | (HostOperationDisposition::Cancelled, _, Some(failure))
@@ -92,6 +114,17 @@ impl SpeechSynthesisOperation {
                     }
                     _ => fail(FailureCode::InvalidLifecycle, 7),
                 }
+            }
+            OperationInput::Closed { port: PortId(0) }
+                if self.streaming && !self.started && self.pending.is_none() =>
+            {
+                self.input_closed = true;
+                self.finished = true;
+                OperationAction::Complete
+            }
+            OperationInput::Closed { port: PortId(0) } if self.streaming => {
+                self.input_closed = true;
+                OperationAction::Await
             }
             _ => fail(FailureCode::InvalidLifecycle, 8),
         }
@@ -157,8 +190,14 @@ fn maximum_blocks(placement: &PlannedGear) -> Result<u16, String> {
 fn validate(placement: &PlannedGear) -> Result<(), String> {
     let offer = match placement.implementation_id.as_str() {
         conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION => conduit_std_offers::piper_speech_offer(),
+        conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION => {
+            conduit_std_offers::piper_streaming_speech_offer()
+        }
         conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION => {
             conduit_std_offers::deterministic_speech_offer()
+        }
+        conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION => {
+            conduit_std_offers::deterministic_streaming_speech_offer()
         }
         _ => return Err("planned speech implementation is not installed".into()),
     };
@@ -175,8 +214,11 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     {
         return Err("planned Piper speech identity does not match its installation".into());
     }
-    let requires_process =
-        placement.implementation_id.as_str() == conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION;
+    let requires_process = matches!(
+        placement.implementation_id.as_str(),
+        conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION
+            | conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
+    );
     if requires_process
         != (placement.resources.len() == 1
             && placement.resources[0].class_id.as_str()
@@ -202,7 +244,12 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes: 1
             + conduit_tongues::MAXIMUM_TEXT_BYTES
             + conduit_std_offers::PIPER_PCM_BLOCK_BYTES,
-        host_requests: usize::from(maximum_blocks) + 1,
+        host_requests: usize::from(maximum_blocks)
+            + if placement.kind_id.as_str() == conduit_tongues::SPEECH_SYNTHESIZE_STREAM_KIND {
+                conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS
+            } else {
+                1
+            },
         sign_items: 64,
         maximum_value_bytes: conduit_std_offers::PIPER_PCM_BLOCK_BYTES
             .max(conduit_tongues::MAXIMUM_TEXT_BYTES),
@@ -217,6 +264,7 @@ fn prepare(
     let continuation = values
         .store(&[0])
         .map_err(|error| format!("store speech continuation marker: {error:?}"))?;
+    let streaming = placement.kind_id.as_str() == conduit_tongues::SPEECH_SYNTHESIZE_STREAM_KIND;
     Ok(InstalledOperation::SpeechSynthesis(
         SpeechSynthesisOperation {
             continuation,
@@ -224,6 +272,8 @@ fn prepare(
             next_request: 0,
             emitted_blocks: 0,
             maximum_blocks: maximum_blocks(placement)?,
+            streaming,
+            input_closed: false,
             started: false,
             finished: false,
         },
@@ -237,7 +287,17 @@ fn fail(code: FailureCode, detail: u16) -> OperationAction {
 pub(super) fn execute_piper<'a>(
     adapter: Option<&'a mut crate::hosted_speech::PiperSpeechAdapter>,
     input: &[u8],
+    streaming: bool,
     cancelled: bool,
+) -> Result<Option<&'a [u8]>, crate::hosted_speech::PiperFailure> {
+    execute_piper_cancellable(adapter, input, streaming, || cancelled)
+}
+
+pub(super) fn execute_piper_cancellable<'a>(
+    adapter: Option<&'a mut crate::hosted_speech::PiperSpeechAdapter>,
+    input: &[u8],
+    streaming: bool,
+    cancelled: impl Fn() -> bool,
 ) -> Result<Option<&'a [u8]>, crate::hosted_speech::PiperFailure> {
     let adapter = adapter.ok_or(crate::hosted_speech::PiperFailure::MissingProvider)?;
     if adapter.is_active() {
@@ -245,11 +305,25 @@ pub(super) fn execute_piper<'a>(
             return Err(crate::hosted_speech::PiperFailure::InvalidText);
         }
     } else {
-        let text = core::str::from_utf8(input)
+        let segment = streaming
+            .then(|| serde_json::from_slice::<conduit_tongues::SpeakableSegment>(input))
+            .transpose()
             .map_err(|_| crate::hosted_speech::PiperFailure::InvalidText)?;
+        let text = match &segment {
+            Some(segment)
+                if !segment.stream_identity.is_empty()
+                    && !segment.text.is_empty()
+                    && segment.text.len() <= conduit_tongues::MAXIMUM_SPEAKABLE_SEGMENT_BYTES =>
+            {
+                segment.text.as_str()
+            }
+            Some(_) => return Err(crate::hosted_speech::PiperFailure::InvalidText),
+            None => core::str::from_utf8(input)
+                .map_err(|_| crate::hosted_speech::PiperFailure::InvalidText)?,
+        };
         adapter.begin(text)?;
     }
-    match adapter.next(|| cancelled)? {
+    match adapter.next(cancelled)? {
         crate::hosted_speech::PiperSynthesisStep::Block(block) => Ok(Some(block)),
         crate::hosted_speech::PiperSynthesisStep::Complete(_) => Ok(None),
     }
@@ -375,7 +449,12 @@ impl FakeSpeechHost {
             return Err("fake speech continuation marker is malformed".into());
         }
         let output = self.blocks.get(self.next).map(Vec::as_slice);
-        self.next += usize::from(output.is_some());
+        if output.is_some() {
+            self.next += 1;
+        } else {
+            self.next = 0;
+            self.active = false;
+        }
         Ok(output)
     }
 }
@@ -388,9 +467,11 @@ pub(super) fn prepare_fake_hosts(
         .placements
         .iter()
         .map(|placement| {
-            if placement.implementation_id.as_str()
-                != conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
-            {
+            if !matches!(
+                placement.implementation_id.as_str(),
+                conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+                    | conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION
+            ) {
                 return Ok(None);
             }
             validate(placement)?;
@@ -444,6 +525,8 @@ mod tests {
             next_request: 0,
             emitted_blocks: 0,
             maximum_blocks: 2,
+            streaming: false,
+            input_closed: false,
             started: false,
             finished: false,
         };
@@ -494,6 +577,8 @@ mod tests {
             next_request: 3,
             emitted_blocks: 2,
             maximum_blocks: 2,
+            streaming: false,
+            input_closed: false,
             started: true,
             finished: false,
         };
@@ -512,6 +597,67 @@ mod tests {
                 code: FailureCode::WorkBudgetExhausted,
                 ..
             })
+        ));
+    }
+
+    #[test]
+    fn streaming_operation_synthesizes_ordered_segments_until_input_closes() {
+        let mut operation = SpeechSynthesisOperation {
+            continuation: value(9, 1),
+            pending: None,
+            next_request: 0,
+            emitted_blocks: 0,
+            maximum_blocks: 4,
+            streaming: true,
+            input_closed: false,
+            started: false,
+            finished: false,
+        };
+        assert!(matches!(
+            operation.resume(OperationInput::Value {
+                port: PortId(0),
+                value: value(1, 128),
+            }),
+            OperationAction::RequestHostOperation {
+                request: RequestId(0),
+                ..
+            }
+        ));
+        assert!(matches!(
+            operation.resume(OperationInput::HostOperationCompleted {
+                request: RequestId(0),
+                outcome: conduit_kernel::HostOperationOutcome {
+                    disposition: HostOperationDisposition::Completed,
+                    output: None,
+                    failure: None,
+                },
+            }),
+            OperationAction::Await
+        ));
+        assert!(matches!(
+            operation.resume(OperationInput::Value {
+                port: PortId(0),
+                value: value(2, 128),
+            }),
+            OperationAction::RequestHostOperation {
+                request: RequestId(1),
+                ..
+            }
+        ));
+        assert!(matches!(
+            operation.resume(OperationInput::HostOperationCompleted {
+                request: RequestId(1),
+                outcome: conduit_kernel::HostOperationOutcome {
+                    disposition: HostOperationDisposition::Completed,
+                    output: None,
+                    failure: None,
+                },
+            }),
+            OperationAction::Await
+        ));
+        assert!(matches!(
+            operation.resume(OperationInput::Closed { port: PortId(0) }),
+            OperationAction::Complete
         ));
     }
 
@@ -576,6 +722,8 @@ mod tests {
             next_request: 1,
             emitted_blocks: 0,
             maximum_blocks: 1,
+            streaming: false,
+            input_closed: false,
             started: true,
             finished: false,
         };
