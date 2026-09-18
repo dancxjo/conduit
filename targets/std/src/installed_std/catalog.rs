@@ -71,10 +71,6 @@ use super::presentation_composition::{
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
 use super::recognition_text_operation::FACTORY as RECOGNITION_TEXT_FACTORY;
 use super::recognized_turn_commit_operation::FACTORY as RECOGNIZED_TURN_COMMIT_FACTORY;
-use super::speech_recognition_adapter_operation::{
-    RESULT_STREAM_FACTORY as SPEECH_RESULT_STREAM_FACTORY,
-    WINDOW_FACTORY as SPEECH_WINDOW_FACTORY,
-};
 use super::record_delivery_operation::FACTORY as RECORD_DELIVERY_STATUS_FACTORY;
 use super::record_queue_operation::FACTORY as RECORD_QUEUE_FACTORY;
 use super::record_temporal_operation::{
@@ -92,6 +88,9 @@ use super::robotics_operations::{
     ROBOTICS_OBSERVE_RANGE_FACTORY, ROBOTICS_VELOCITY_INTENT_FACTORY,
 };
 use super::sequence_normalization_operation::FACTORY as SEQUENCE_NORMALIZATION_FACTORY;
+use super::speech_recognition_adapter_operation::{
+    RESULT_STREAM_FACTORY as SPEECH_RESULT_STREAM_FACTORY, WINDOW_FACTORY as SPEECH_WINDOW_FACTORY,
+};
 #[cfg(test)]
 use super::speech_synthesis_operation::DETERMINISTIC_FACTORY as DETERMINISTIC_SPEECH_FACTORY;
 #[cfg(test)]
