@@ -92,13 +92,27 @@ export async function connectRendezvousHost(code, {
           await line.close("conduit-terminal");
           return Object.freeze(join);
         }
-        let intentional = false, remotePrepared = false;
+        let intentional = false, membershipRetained = false, remotePrepared = false;
         const joinedLine = Object.freeze({
           schema: "conduit.creche/joined-host-line@1",
           line_id: decoded.line_id,
           onClosed(callback) { void line.closed.then(() => callback(Object.freeze({ intentional }))); },
+          async retainMembership(credential) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (membershipRetained) refuse("Replay", "joined Host membership is already retained");
+            requireMembershipCredential(credential, prepared.body_id, descriptor.advertisement);
+            await send(line, { kind: "admitted", protocol: PROTOCOL, credential });
+            const retained = await receive(line, signal);
+            if (retained?.kind !== "admission-retained" || retained.protocol !== PROTOCOL
+              || retained.body_id !== credential.body_id || retained.part_id !== credential.part_id) {
+              refuse("MembershipRetention", "joined Host did not retain the exact admitted membership");
+            }
+            membershipRetained = true;
+            return Object.freeze(retained);
+          },
           async prepareRemote(plan) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
             if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
             await send(line, { kind: "prepare-remote", protocol: PROTOCOL, plan });
             const prepared = await receive(line, signal);
@@ -144,6 +158,15 @@ export async function connectRendezvousHost(code, {
     await line.close("conduit-refused");
     if (error instanceof CrecheRendezvousRefusal) throw error;
     refuse("LineFailed", "running Host rendezvous Line failed", error);
+  }
+}
+
+function requireMembershipCredential(value, bodyId, advertisement) {
+  if (!value || !boundedIdentity(value.credential_id)
+    || value.body_id !== bodyId || !boundedIdentity(value.part_id)
+    || value.host_id !== advertisement.host_id || value.boot_id !== advertisement.boot_id
+    || !Number.isSafeInteger(value.issued_at_millis) || value.issued_at_millis < 0) {
+    refuse("MembershipCredential", "admitted membership credential lost the exact Body, Host, or Boot identity");
   }
 }
 
