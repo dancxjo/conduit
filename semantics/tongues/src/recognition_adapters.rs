@@ -323,7 +323,7 @@ mod tests {
                 text,
                 ..
             } => {
-                assert_eq!(*role, TextRole::Recognition);
+                assert_eq!(role, &TextRole::Recognition);
                 assert!(segment_id.0.starts_with("recognition/single-shot/"));
                 assert_eq!(text, "Hello Margret");
             }
