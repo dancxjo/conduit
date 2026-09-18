@@ -23,9 +23,10 @@ pub struct PiperLimits {
 
 impl PiperLimits {
     pub fn live_conversation(timeout: Duration) -> Self {
+        let required = conduit_tongues::live_conversation_speech_requirements();
         Self {
-            maximum_text_bytes: conduit_tongues::MAXIMUM_TEXT_BYTES,
-            maximum_frames: conduit_std_offers::PIPER_MAXIMUM_FRAMES,
+            maximum_text_bytes: required.speakable_segment_bytes,
+            maximum_frames: required.synthesized_pcm_bytes.div_ceil(2),
             maximum_blocks: conduit_std_offers::PIPER_MAXIMUM_BLOCKS,
             timeout,
         }
