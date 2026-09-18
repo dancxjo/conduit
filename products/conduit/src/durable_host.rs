@@ -688,17 +688,26 @@ fn systemd_exec_argument(path: &Path) -> Result<String, String> {
 #[cfg(target_os = "linux")]
 fn activate_service(state_dir: &Path) -> Result<(), String> {
     let unit = state_dir.join("conduit-host.service");
-    let link = std::process::Command::new("systemctl")
-        .args(["--user", "link"])
-        .arg(&unit)
-        .status()
-        .map_err(|error| format!("link durable Host user service: {error}"))?;
-    if !link.success() {
-        return Err(format!(
-            "installation is verified at {}, but linking durable startup failed with {link}",
-            state_dir.display()
-        ));
+    let first_link = link_linux_user_service(&unit)?;
+    if !first_link.success() {
+        // A previous Conduit installation may already own the stable user-unit
+        // name. systemctl disable is the documented inverse of link, so retire
+        // that stale activation before pointing the name at this newly verified
+        // installation. Installation remains recoverable if systemd itself
+        // cannot complete the handoff.
+        let retire = std::process::Command::new("systemctl")
+            .args(["--user", "disable", "--now", "conduit-host.service"])
+            .status()
+            .map_err(|error| format!("retire previous durable Host user service: {error}"))?;
+        let second_link = link_linux_user_service(&unit)?;
+        if !second_link.success() {
+            return Err(format!(
+                "installation is verified at {}, but durable startup handoff failed: initial link {first_link}, retire {retire}, replacement link {second_link}",
+                state_dir.display()
+            ));
+        }
     }
+
     let start = std::process::Command::new("systemctl")
         .args(["--user", "enable", "--now", "conduit-host.service"])
         .status()
@@ -710,6 +719,15 @@ fn activate_service(state_dir: &Path) -> Result<(), String> {
         ));
     }
     Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn link_linux_user_service(unit: &Path) -> Result<std::process::ExitStatus, String> {
+    std::process::Command::new("systemctl")
+        .args(["--user", "link"])
+        .arg(unit)
+        .status()
+        .map_err(|error| format!("link durable Host user service: {error}"))
 }
 
 #[cfg(target_os = "macos")]
