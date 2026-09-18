@@ -33,8 +33,7 @@ pub const SPEECH_RESULT_TO_EVENT_STREAM_KIND: &str = "speech/result-to-event-str
 pub const SPEECH_RESULT_TO_EVENT_STREAM_REVISION: &str =
     "conduit.speech/result-to-event-stream@1";
 const STREAMING_RECOGNITION_BACK: &str = r#"form speech/recognize-stream (
-    > audio: audio/pcm-frames@1...|
-    events: speech/recognition-event@1...| >
+    audio: audio/pcm-frames@1...| > events: speech/recognition-event@1...|
 ) {
     window: speech/window-to-clip
     recognize: speech/recognize-clip
@@ -230,6 +229,36 @@ mod tests {
         assert_eq!(event.text.as_deref(), Some("Hello Margret"));
         assert_eq!(event.provider_identity, "fixture/provider@1");
         assert_eq!(event.audio_extent_bytes, 320);
+    }
+
+    #[test]
+    fn streaming_back_preserves_the_exact_checked_face_including_shorthand() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        crate::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
+        let checked = check_syntax_document(
+            &parse_syntax_document(STREAMING_RECOGNITION_BACK),
+            &startup,
+        )
+        .unwrap();
+        let form = checked
+            .forms
+            .iter()
+            .find(|form| form.name == STREAMING_SPEECH_RECOGNIZE_KIND)
+            .unwrap();
+        let definition = profile
+            .get(&kind_id(STREAMING_SPEECH_RECOGNIZE_KIND))
+            .unwrap();
+        let expected = conduit_core::CheckedFace::new(
+            Vec::new(),
+            definition.inputs.clone(),
+            definition.outputs.clone(),
+            Some((
+                definition.inputs[0].port_id.clone(),
+                definition.outputs[0].port_id.clone(),
+            )),
+        );
+        assert_eq!(form.checked_face(), expected);
     }
 
     #[test]
