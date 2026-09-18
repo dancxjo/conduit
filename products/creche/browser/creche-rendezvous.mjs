@@ -92,7 +92,7 @@ export async function connectRendezvousHost(code, {
           await line.close("conduit-terminal");
           return Object.freeze(join);
         }
-        let intentional = false, membershipRetained = false, remotePrepared = false;
+        let intentional = false, membershipRetained = false, bodyContextInstalled = false, remotePrepared = false;
         const joinedLine = Object.freeze({
           schema: "conduit.creche/joined-host-line@1",
           line_id: decoded.line_id,
@@ -110,9 +110,24 @@ export async function connectRendezvousHost(code, {
             membershipRetained = true;
             return Object.freeze(retained);
           },
+          async installBodyContext(context) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            requireBodyConversationContext(context, prepared.body_id);
+            await send(line, { kind: "body-context", protocol: PROTOCOL, context });
+            const installed = await receive(line, signal);
+            if (installed?.kind !== "body-context-installed" || installed.protocol !== PROTOCOL
+              || installed.body_id !== context.body_id
+              || installed.basis_revision !== context.basis.revision) {
+              refuse("BodyContext", "joined Host did not retain the exact current Body context");
+            }
+            bodyContextInstalled = true;
+            return Object.freeze(installed);
+          },
           async prepareRemote(plan) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
             if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current Body conversation context");
             if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
             await send(line, { kind: "prepare-remote", protocol: PROTOCOL, plan });
             const prepared = await receive(line, signal);
@@ -158,6 +173,20 @@ export async function connectRendezvousHost(code, {
     await line.close("conduit-refused");
     if (error instanceof CrecheRendezvousRefusal) throw error;
     refuse("LineFailed", "running Host rendezvous Line failed", error);
+  }
+}
+
+function requireBodyConversationContext(value, bodyId) {
+  if (!value || value.schema !== "conduit.body/conversation-context-value@2"
+    || value.body_id !== bodyId || typeof value.display_name !== "string" || value.display_name.length < 1
+    || typeof value.wake_id !== "string" || value.wake_id.length < 1
+    || !Number.isSafeInteger(value.wake_sequence) || value.wake_sequence < 0
+    || value.basis?.body_id !== value.body_id || value.basis?.wake_id !== value.wake_id
+    || value.basis?.wake_sequence !== value.wake_sequence
+    || !Number.isSafeInteger(value.basis?.revision) || value.basis.revision < 0
+    || !Array.isArray(value.hosts) || !Array.isArray(value.active_forms)
+    || !Array.isArray(value.lines) || !Array.isArray(value.recent_sign_ids)) {
+    refuse("BodyContext", "Body conversation context is malformed or belongs to another Body");
   }
 }
 
