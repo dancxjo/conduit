@@ -4,12 +4,6 @@
 //! Provider mechanics such as Whisper process invocation and PCM resampling remain
 //! realization truth below these portable Faces.
 
-use std::{
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
     PortTemporal,
@@ -19,6 +13,12 @@ use conduit_form::{
     KindSignature, ProfileCatalog, StartupCatalog,
 };
 use sha2::{Digest, Sha256};
+use std::{
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 
 use crate::{
     decode_speech_recognition_result, encode_recognition_event, RecognitionEvent,
@@ -31,8 +31,7 @@ use speaking::{SegmentId, TextRole};
 pub const SPEECH_WINDOW_TO_CLIP_KIND: &str = "speech/window-to-clip";
 pub const SPEECH_WINDOW_TO_CLIP_REVISION: &str = "conduit.speech/window-to-clip@1";
 pub const SPEECH_RESULT_TO_EVENT_STREAM_KIND: &str = "speech/result-to-event-stream";
-pub const SPEECH_RESULT_TO_EVENT_STREAM_REVISION: &str =
-    "conduit.speech/result-to-event-stream@1";
+pub const SPEECH_RESULT_TO_EVENT_STREAM_REVISION: &str = "conduit.speech/result-to-event-stream@1";
 const STREAMING_RECOGNITION_BACK: &str = r#"form speech/recognize-stream (
     audio: audio/pcm-frames@1...| > events: speech/recognition-event@1...|
 ) {
@@ -187,8 +186,8 @@ pub fn speech_result_to_event_stream_limits() -> CapabilityLimits {
     CapabilityLimits {
         max_active_instances: 1,
         max_queue_items: 1,
-        max_queue_bytes: MAXIMUM_RECOGNITION_RESULT_BYTES
-            .max(MAXIMUM_RECOGNITION_EVENT_BYTES) as u32,
+        max_queue_bytes: MAXIMUM_RECOGNITION_RESULT_BYTES.max(MAXIMUM_RECOGNITION_EVENT_BYTES)
+            as u32,
     }
 }
 
@@ -218,11 +217,9 @@ pub fn install_single_shot_streaming_recognition_back(
     profile: &ProfileCatalog,
     backs: &mut CanonicalBackCatalog,
 ) -> Result<(), String> {
-    let checked = check_syntax_document(
-        &parse_syntax_document(STREAMING_RECOGNITION_BACK),
-        startup,
-    )
-    .map_err(|error| format!("check streaming-recognition Back: {error:?}"))?;
+    let checked =
+        check_syntax_document(&parse_syntax_document(STREAMING_RECOGNITION_BACK), startup)
+            .map_err(|error| format!("check streaming-recognition Back: {error:?}"))?;
     let definition = profile
         .get(&kind_id(STREAMING_SPEECH_RECOGNIZE_KIND))
         .ok_or_else(|| "missing streaming speech recognition definition".to_string())?;
@@ -250,10 +247,7 @@ pub fn recognition_result_to_terminal_event(
             identity.update(result.provider_identity.as_bytes());
             RecognitionEvent::CommittedSegment {
                 role: TextRole::Recognition,
-                segment_id: SegmentId(format!(
-                    "recognition/single-shot/{:x}",
-                    identity.finalize()
-                )),
+                segment_id: SegmentId(format!("recognition/single-shot/{:x}", identity.finalize())),
                 text,
                 words: Vec::new(),
                 language: None,
@@ -377,11 +371,9 @@ mod tests {
         let mut startup = StartupCatalog::new();
         let mut profile = ProfileCatalog::new();
         crate::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
-        let checked = check_syntax_document(
-            &parse_syntax_document(STREAMING_RECOGNITION_BACK),
-            &startup,
-        )
-        .unwrap();
+        let checked =
+            check_syntax_document(&parse_syntax_document(STREAMING_RECOGNITION_BACK), &startup)
+                .unwrap();
         let form = checked
             .forms
             .iter()
@@ -417,10 +409,7 @@ mod tests {
         let mut backs = CanonicalBackCatalog::new();
         install_single_shot_streaming_recognition_back(&startup, &profile, &mut backs).unwrap();
         let expanded = conduit_form::expand_canonical_form_for_authoring_with_backs(
-            &checked,
-            "main",
-            &profile,
-            &backs,
+            &checked, "main", &profile, &backs,
         )
         .unwrap()
         .expanded;
