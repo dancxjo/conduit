@@ -214,3 +214,23 @@ form live-recognized-turn (
         .iter()
         .any(|gear| gear.kind_id.as_str() == STREAMING_SPEECH_RECOGNIZE_KIND));
 }
+
+#[test]
+fn recognition_result_v2_bound_covers_maximum_escaped_semantic_fields() {
+    let result = conduit_tongues::SpeechRecognitionResult {
+        disposition: conduit_tongues::SpeechRecognitionDisposition::Recognized,
+        text: Some("\u{0001}".repeat(conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES)),
+        audio_sha256: [255; 32],
+        audio_extent_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+        provider_identity: "\u{0002}".repeat(
+            conduit_tongues::MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES,
+        ),
+    };
+    let encoded = conduit_tongues::encode_speech_recognition_result(&result)
+        .expect("declared v2 result bound admits every semantically valid field maximum");
+    assert!(encoded.len() <= conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES);
+    assert_eq!(
+        conduit_tongues::decode_speech_recognition_result(&encoded).unwrap(),
+        result
+    );
+}
