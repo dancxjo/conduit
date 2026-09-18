@@ -572,9 +572,12 @@ fn debug(error: conduit_workspace_model::WorkspaceBodyError) -> Refusal {
 
 fn conversation_context(body: &WorkspaceBody) -> Result<BodyConversationContext, Refusal> {
     let evidence = body.evidence();
-    let realization = body
-        .realization()
-        .ok_or_else(|| Refusal::new("BodyContext.NotAwake", "Body conversation context requires one current Wake/Plan"))?;
+    let realization = body.realization().ok_or_else(|| {
+        Refusal::new(
+            "BodyContext.NotAwake",
+            "Body conversation context requires one current Wake/Plan",
+        )
+    })?;
     if evidence.body.state
         != (BodyState::Awake {
             wake_id: realization.wake.wake_id.clone(),
