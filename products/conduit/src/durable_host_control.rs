@@ -765,9 +765,7 @@ pub(crate) fn install_body_context(
             protocol: PROTOCOL,
             advertisement,
         } => Ok(advertisement),
-        Response::Refused { code, .. } => {
-            Err(format!("durable Host refused Body context: {code}"))
-        }
+        Response::Refused { code, .. } => Err(format!("durable Host refused Body context: {code}")),
         _ => Err("durable Host returned the wrong Body context response".into()),
     }
 }
