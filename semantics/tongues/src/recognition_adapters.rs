@@ -18,8 +18,8 @@ use sha2::{Digest, Sha256};
 use crate::{
     decode_speech_recognition_result, encode_recognition_event, RecognitionEvent,
     RecognitionEventStatus, SpeechOrigin, SpeechRecognitionDisposition,
-    SpeechRecognitionValueError, MAXIMUM_RECOGNITION_EVENT_BYTES,
-    MAXIMUM_RECOGNITION_RESULT_BYTES, MAXIMUM_STREAMING_AUDIO_BYTES,
+    MAXIMUM_RECOGNITION_EVENT_BYTES, MAXIMUM_RECOGNITION_RESULT_BYTES,
+    MAXIMUM_STREAMING_AUDIO_BYTES,
     STREAMING_SPEECH_RECOGNIZE_KIND,
 };
 
@@ -28,6 +28,8 @@ pub const SPEECH_WINDOW_TO_CLIP_REVISION: &str = "conduit.speech/window-to-clip@
 pub const SPEECH_RESULT_TO_EVENT_STREAM_KIND: &str = "speech/result-to-event-stream";
 pub const SPEECH_RESULT_TO_EVENT_STREAM_REVISION: &str =
     "conduit.speech/result-to-event-stream@1";
+/// Finite turn extent independent of the current browser capture implementation.
+pub const MAXIMUM_SPEECH_WINDOW_BLOCKS: usize = 8_192;
 
 const STREAMING_RECOGNITION_BACK: &str = r#"form speech/recognize-stream (
     > audio: audio/pcm@1...|
