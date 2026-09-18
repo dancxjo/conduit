@@ -27,6 +27,11 @@ impl StdHost {
             vec![
                 conduit_std_offers::recognized_turn_commit_offer(),
                 conduit_std_offers::generated_speech_commit_offer(),
+                // A provider-ready Voice Host can realize the supervisor-owned
+                // Body context source even before one current value is
+                // published. The value itself is installed only after an exact
+                // Body Wake/Plan exists.
+                conduit_std_offers::body_conversation_context_std_offer(),
             ],
         )?;
         host.advertisement.resources.extend([
