@@ -3,9 +3,7 @@
 //! This module owns semantic capacity. Provider names, executables, process
 //! layout, sample-rate quirks, and other realization facts remain Host truth.
 
-use crate::{
-    MAXIMUM_PCM_BYTES, MAXIMUM_RECOGNIZED_TEXT_BYTES, MAXIMUM_SPEAKABLE_SEGMENT_BYTES,
-};
+use crate::{MAXIMUM_PCM_BYTES, MAXIMUM_RECOGNIZED_TEXT_BYTES, MAXIMUM_SPEAKABLE_SEGMENT_BYTES};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LiveConversationSpeechRequirements {
