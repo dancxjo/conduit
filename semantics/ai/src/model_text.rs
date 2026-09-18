@@ -81,7 +81,7 @@ pub fn generated_chunk_to_text_contract() -> ModelTextContract {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS,
-            max_queue_bytes: MAXIMUM_GENERATED_TEXT_CHUNK_BYTES as u32,
+            max_queue_bytes: crate::MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES as u32,
         },
     }
 }
