@@ -200,10 +200,12 @@ export async function startApplication(application) {
           const peer = plan.fragments.find(fragment => fragment.host_id !== host.hostId || fragment.boot_id !== host.bootId);
           const joined = peer && membership?.executionLine(peer.host_id, peer.boot_id);
           if (!joined) throw new Error('The planned Voice Host Line is no longer current');
+          await joined.line.installBodyContext(session.conversationContext());
           const voice = await prepareWorkspaceVoicePlay({ api: host.runtime,
             localAdvertisement: host.membership.advertisement(), joined, plan,
             outputRoot: root.querySelector('[data-form-output]') });
           return Object.freeze({ planId: plan.plan_id, identity: voice.identity,
+            updateContext: () => joined.line.installBodyContext(session.conversationContext()),
             run: () => voice.run(), close: () => voice.close() });
         }, onState(state) {
         playback = state;
