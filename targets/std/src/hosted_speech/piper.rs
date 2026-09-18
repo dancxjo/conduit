@@ -22,6 +22,15 @@ pub struct PiperLimits {
 }
 
 impl PiperLimits {
+    pub fn live_conversation(timeout: Duration) -> Self {
+        Self {
+            maximum_text_bytes: conduit_tongues::MAXIMUM_TEXT_BYTES,
+            maximum_frames: conduit_std_offers::PIPER_MAXIMUM_FRAMES,
+            maximum_blocks: conduit_std_offers::PIPER_MAXIMUM_BLOCKS,
+            timeout,
+        }
+    }
+
     pub fn validate(self) -> Result<Self, PiperFailure> {
         let block_frames = u32::from(conduit_std_offers::PIPER_FRAMES_PER_BLOCK);
         if self.maximum_text_bytes == 0
