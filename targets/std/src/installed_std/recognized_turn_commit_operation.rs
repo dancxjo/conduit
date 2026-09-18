@@ -98,8 +98,8 @@ impl RecognizedTurnCommitHost {
     }
 
     pub(super) fn execute(&mut self, input: &[u8]) -> Result<Option<&[u8]>, String> {
-        let event: conduit_tongues::RecognitionEvent = serde_json::from_slice(input)
-            .map_err(|error| format!("decode recognition event: {error}"))?;
+        let event = conduit_tongues::decode_recognition_event(input)
+            .map_err(|error| format!("decode recognition event: {error:?}"))?;
         if self.committer.is_none() {
             self.committer = Some(conduit_tongues::RecognizedTurnCommitter::new(
                 event.stream_id.clone(),
