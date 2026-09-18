@@ -62,7 +62,7 @@ fn raspberry_pi_os_target(
         presenter: None,
         host_operations: Vec::new(),
         toolchain_identity:
-            "rustc:stable+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu+libc6-dev-arm64-cross"
+            "rustc:1.98.1+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu+libc6-dev-arm64-cross"
                 .into(),
         builder_adapter: "conduit-host-raspberry-pi/build-raspios-native@1".into(),
         strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
