@@ -4,7 +4,12 @@
 //! Provider mechanics such as Whisper process invocation and PCM resampling remain
 //! realization truth below these portable Faces.
 
-use std::{format, string::{String, ToString}, vec, vec::Vec};
+use std::{
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
     PortTemporal,
@@ -19,8 +24,7 @@ use crate::{
     decode_speech_recognition_result, encode_recognition_event, RecognitionEvent,
     RecognitionEventStatus, SpeechOrigin, SpeechRecognitionDisposition,
     MAXIMUM_RECOGNITION_EVENT_BYTES, MAXIMUM_RECOGNITION_RESULT_BYTES,
-    MAXIMUM_STREAMING_AUDIO_BYTES,
-    STREAMING_SPEECH_RECOGNIZE_KIND,
+    MAXIMUM_STREAMING_AUDIO_BYTES, STREAMING_SPEECH_RECOGNIZE_KIND,
 };
 
 pub const SPEECH_WINDOW_TO_CLIP_KIND: &str = "speech/window-to-clip";
@@ -72,9 +76,7 @@ pub fn speech_window_to_clip_definition() -> KindDefinition {
 pub fn speech_result_to_event_stream_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(SPEECH_RESULT_TO_EVENT_STREAM_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            SPEECH_RESULT_TO_EVENT_STREAM_REVISION,
-        ),
+        kind_contract_revision: KindContractRevision::from(SPEECH_RESULT_TO_EVENT_STREAM_REVISION),
         inputs: vec![port(
             "result",
             crate::SPEECH_RECOGNITION_RESULT_KIND,
