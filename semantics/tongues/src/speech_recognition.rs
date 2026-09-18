@@ -315,6 +315,8 @@ impl RecordedSpeechRecognizer {
                 disposition: SpeechRecognitionDisposition::Recognized,
                 text: Some(fixture.transcript.clone()),
                 audio_sha256,
+                audio_extent_bytes: audio.len() as u32,
+                provider_identity: "tongues/recorded-fixture@1".into(),
             }));
         }
         Ok(SpeechRecognitionAttempt::Failed { audio_sha256 })
