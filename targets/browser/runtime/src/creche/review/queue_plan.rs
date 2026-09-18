@@ -394,8 +394,7 @@ mod tests {
                     minimum_lanes: 1,
                     preferred_lanes: 1,
                     maximum_lanes: 1,
-                    minimum_service_guarantee:
-                        conduit_core::ComputeServiceGuarantee::Shared,
+                    minimum_service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
                 },
                 maximum_in_flight: 1,
                 maximum_queue_items: 4,
@@ -481,5 +480,4 @@ mod tests {
             );
         }
     }
-
 }
