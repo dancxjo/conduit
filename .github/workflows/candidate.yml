@@ -39,7 +39,9 @@ jobs:
       - name: Diagnose canonical Cargo lock resolution
         run: |
           cargo metadata --format-version 1 >/dev/null
-          git diff -- Cargo.lock
+          echo "LOCK_B64_BEGIN"
+          base64 -w 4000 Cargo.lock
+          echo "LOCK_B64_END"
           echo "::error::intentional lock-resolution diagnostic"
           exit 1
       - name: Check CI policy contracts
