@@ -9,8 +9,7 @@ pub const MODEL_RESULT_TO_TEXT_STD_IMPLEMENTATION: &str = "std/model-result-to-t
 pub const MODEL_RESULT_TO_TEXT_STD_PROFILE: &str = "std/model-result-to-text-hosted@1";
 pub const MODEL_RESULT_TO_TEXT_STD_ARTIFACT: &str = "conduit-std-host/model-result-to-text@1";
 pub const MODEL_RESULT_TO_TEXT_OPERATION: &str = "conduit.host/model-result-to-text@1";
-pub const GENERATED_CHUNK_TO_TEXT_OPERATION: &str =
-    "conduit.host/generated-chunk-to-text@1";
+pub const GENERATED_CHUNK_TO_TEXT_OPERATION: &str = "conduit.host/generated-chunk-to-text@1";
 
 pub fn model_result_to_text_std_offer() -> CapabilityOffer {
     model_text_offer(
