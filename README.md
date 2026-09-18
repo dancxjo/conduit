@@ -88,7 +88,10 @@ cargo xtask demo tour
 
 The first build takes longer than subsequent runs. `cargo xtask doctor` reports
 prerequisites for several targets; missing browser-proof or Pico tools do not
-block the local Hello example. [Try Conduit](docs/try-conduit.md) covers native Patchbay,
+block the local Hello example. To prepare a Debian/Ubuntu checkout for the full
+Linux release set, including Raspberry Pi OS AArch64, run `cargo xtask setup
+linux-release` or its `just setup` convenience alias, then `cargo xtask doctor
+linux-release`. [Try Conduit](docs/try-conduit.md) covers native Patchbay,
 browser Hosts, and further examples.
 
 `conduit` is the installed product command. `cargo xtask` builds and runs

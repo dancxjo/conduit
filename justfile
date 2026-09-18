@@ -146,6 +146,10 @@ check-semantic-catalog-readiness:
 check-sim-readiness:
     cargo xtask check sim
 
+# Prepare the standard Linux release development environment.
+setup:
+    cargo xtask setup linux-release
+
 # Inspect repository and platform prerequisites.
 doctor target="all" *args:
     cargo xtask doctor {{target}} {{args}}

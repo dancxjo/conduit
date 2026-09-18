@@ -136,6 +136,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
       input.disabled = true;
       let secret = null;
       let nonce = null;
+      let join = null;
       try {
         runningHost = await connectRendezvousHost(input.value, { retainLine: true });
         secret = crypto.getRandomValues(new Uint8Array(32));
@@ -150,12 +151,13 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
           invitation_secret: secret,
           invitation_expires_at_millis: claim.expires_at_millis,
         };
-        const join = await runningHost.invite(prepared);
+        join = await runningHost.invite(prepared);
         runningHost = null;
         await beforeAdmission();
         const proof = { invitation_id: join.invitation_id, body_id: join.body_id,
           host_id: join.host_id, boot_id: join.boot_id, nonce: join.nonce, signature: join.signature };
-        await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
+        const receipt = await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
+        await join.line.retainMembership(receipt.credential);
         const lineKey = `${join.host_id}\u0000${join.boot_id}`;
         joinedLines.set(lineKey, Object.freeze({
           host_id: join.host_id,
@@ -175,6 +177,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
         onChanged(); render();
       } catch (error) {
         runningHost?.cancel(); runningHost = null;
+        try { await join?.line?.close(); } catch {}
         connect.disabled = false;
         input.disabled = false;
         onFailure(error);

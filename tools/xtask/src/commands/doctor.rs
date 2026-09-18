@@ -69,16 +69,19 @@ fn build_report(target: DoctorTarget, opts: &GlobalOpts, root: &Path) -> DoctorR
         .into_iter()
         .map(|spec| {
             let mut outcome = run_probe(&spec.step, root, opts);
-            if outcome.id == "doctor.pico.thumb-target"
-                && !outcome.skipped
-                && outcome.success
-                && !outcome
-                    .stdout
-                    .lines()
-                    .any(|line| line.trim() == "thumbv6m-none-eabi")
-            {
-                outcome.success = false;
-                outcome.stderr = "required Rust target is not installed".to_string();
+            let required_rust_target = match outcome.id.as_str() {
+                "doctor.pico.thumb-target" => Some("thumbv6m-none-eabi"),
+                "doctor.linux-release.aarch64-target" => Some("aarch64-unknown-linux-gnu"),
+                _ => None,
+            };
+            if let Some(required) = required_rust_target {
+                if !outcome.skipped
+                    && outcome.success
+                    && !outcome.stdout.lines().any(|line| line.trim() == required)
+                {
+                    outcome.success = false;
+                    outcome.stderr = format!("required Rust target {required} is not installed");
+                }
             }
             DoctorProbe {
                 section: spec.section,
@@ -129,6 +132,11 @@ fn probe_specs(target: DoctorTarget) -> Vec<ProbeSpec> {
     }
     if matches!(target, DoctorTarget::All | DoctorTarget::Pico) {
         probes.extend(pico_probes());
+    }
+    if matches!(target, DoctorTarget::LinuxRelease)
+        || (matches!(target, DoctorTarget::All) && cfg!(target_os = "linux"))
+    {
+        probes.extend(linux_release_probes());
     }
 
     probes
@@ -248,6 +256,68 @@ fn pico_probes() -> Vec<ProbeSpec> {
             "elf2uf2-rs",
             &["--help"],
             Some("cargo install elf2uf2-rs --locked"),
+        ),
+    ]
+}
+
+fn linux_release_probes() -> Vec<ProbeSpec> {
+    const REPAIR: &str = "cargo xtask setup linux-release";
+    vec![
+        probe(
+            "linux-release",
+            "doctor.linux-release.aarch64-target",
+            "aarch64-unknown-linux-gnu Rust target",
+            "rustup",
+            &["target", "list", "--installed"],
+            Some(REPAIR),
+        ),
+        probe(
+            "linux-release",
+            "doctor.linux-release.native-build",
+            "native C/C++ build tools",
+            "cc",
+            &["--version"],
+            Some(REPAIR),
+        ),
+        probe(
+            "linux-release",
+            "doctor.linux-release.cmake",
+            "CMake",
+            "cmake",
+            &["--version"],
+            Some(REPAIR),
+        ),
+        probe(
+            "linux-release",
+            "doctor.linux-release.cross-gcc",
+            "aarch64 GNU C cross compiler",
+            "aarch64-linux-gnu-gcc",
+            &["--version"],
+            Some(REPAIR),
+        ),
+        probe(
+            "linux-release",
+            "doctor.linux-release.cross-gxx",
+            "aarch64 GNU C++ cross compiler",
+            "aarch64-linux-gnu-g++",
+            &["--version"],
+            Some(REPAIR),
+        ),
+        probe(
+            "linux-release",
+            "doctor.linux-release.cross-libc",
+            "aarch64 cross libc development files",
+            "dpkg-query",
+            &["-W", "libc6-dev-arm64-cross"],
+            Some(REPAIR),
+        ),
+        probe(
+            "linux-release",
+            "doctor.linux-release.xvfb",
+            "Xvfb runner for packaged native journeys",
+            "xvfb-run",
+            &["--help"],
+            Some(REPAIR),
         ),
     ]
 }

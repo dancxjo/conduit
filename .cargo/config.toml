@@ -1,2 +1,6 @@
 [alias]
 xtask = "run --locked --package conduit-xtask-dispatch --"
+
+
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"

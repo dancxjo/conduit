@@ -26,8 +26,11 @@ Rust needs a working native linker. Running Tour also needs Node.js, npm, and
 the WASM target (`rustup target add wasm32-unknown-unknown`). Browser conformance
 uses the additional pinned tools described in the [browser proof guide](proof/browser/README.md).
 `cargo xtask doctor` reports prerequisites across targets and can fail for
-optional browser/Pico tools even when the hosted example can run. The
-first invocation compiles the repository tooling, so allow time and disk space.
+optional browser/Pico tools even when the hosted example can run. For the full
+Linux release set, including the Raspberry Pi OS AArch64 package, run
+`cargo xtask setup linux-release` (or `just setup`) once, then verify it with
+`cargo xtask doctor linux-release`. The first invocation compiles the repository
+tooling, so allow time and disk space.
 
 ## Find your place
 

@@ -45,7 +45,7 @@ checksum = "47c26fd925156183eb10e821b2ef7e06f8163f5a64a0bbe52fc896be2c6cbd3f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn",
 ]
 
 [[package]]
@@ -264,7 +264,7 @@ checksum = "d337d3be617449165cb4633c8dece429afd83f84051024079f97ad32a9663716"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn",
 ]
 
 [[package]]

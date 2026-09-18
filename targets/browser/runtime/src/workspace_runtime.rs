@@ -1,7 +1,8 @@
 //! Workspace lifecycle orchestration. The existing browser Body slot executes.
 use conduit_body::{
-    AdmissionManager, BodyBiographyEvidence, BodyPlayIdentity, BodyState, ResidentForm,
-    SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationSecret, Wake,
+    AdmissionManager, BodyBiographyEvidence, BodyConversationContext, BodyConversationContextBasis,
+    BodyConversationHost, BodyPlayIdentity, BodyState, ResidentForm, SpawnAdmissionProof,
+    SpawnInvitationClaim, SpawnInvitationSecret, Wake,
 };
 use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId};
 use conduit_workspace_model::CurrentHostOffers;
@@ -73,6 +74,7 @@ enum Request {
         lost_boot_id: BootId,
     },
     Current,
+    ConversationContext,
     SelectForm {
         form: ResidentForm,
     },
@@ -294,6 +296,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         let mut candidate = current.clone();
         match request {
             Request::Current => return snapshot(current),
+            Request::ConversationContext => return encode(&conversation_context(current)?),
             Request::Durable => return ADMISSIONS.with(|admissions| {
                 let admissions = admissions.borrow();
                 let admissions = admissions.as_ref().ok_or("Workspace admission state is missing")?;
@@ -565,6 +568,79 @@ fn encode(value: &impl Serialize) -> Result<Vec<u8>, Refusal> {
 }
 fn debug(error: conduit_workspace_model::WorkspaceBodyError) -> Refusal {
     error.into()
+}
+
+fn conversation_context(body: &WorkspaceBody) -> Result<BodyConversationContext, Refusal> {
+    let evidence = body.evidence();
+    let realization = body.realization().ok_or_else(|| {
+        Refusal::new(
+            "BodyContext.NotAwake",
+            "Body conversation context requires one current Wake/Plan",
+        )
+    })?;
+    if evidence.body.state
+        != (BodyState::Awake {
+            wake_id: realization.wake.wake_id.clone(),
+        })
+    {
+        return Err(Refusal::new(
+            "BodyContext.NotAwake",
+            "Body conversation context is available only while this Body is awake",
+        ));
+    }
+    let hosts = evidence
+        .membership
+        .parts
+        .iter()
+        .filter_map(|part| part.current.as_ref())
+        .map(|current| BodyConversationHost {
+            host_id: current.host_id.clone(),
+            present: true,
+        })
+        .collect::<Vec<_>>();
+    let active_forms = realization
+        .wake
+        .workset
+        .forms()
+        .iter()
+        .map(|form| form.source_document_id.as_str().into())
+        .collect::<Vec<_>>();
+    let mut recent_sign_ids = realization
+        .wake
+        .sign_ids
+        .iter()
+        .rev()
+        .take(conduit_body::MAXIMUM_CONVERSATION_SIGNS)
+        .cloned()
+        .collect::<Vec<_>>();
+    recent_sign_ids.reverse();
+    let context = BodyConversationContext {
+        schema: "conduit.body/conversation-context-value@2".into(),
+        display_name: evidence.friendly_name.clone(),
+        body_id: evidence.body_id.clone(),
+        wake_id: realization.wake.wake_id.clone(),
+        wake_sequence: realization.wake.wake_sequence,
+        basis: BodyConversationContextBasis {
+            body_id: evidence.body_id.clone(),
+            wake_id: realization.wake.wake_id.clone(),
+            wake_sequence: realization.wake.wake_sequence,
+            revision: evidence.last_sequence(),
+        },
+        hosts,
+        active_forms,
+        current_plan_id: Some(realization.plan.plan_id.clone()),
+        active_play_id: realization
+            .play
+            .as_ref()
+            .map(|play| play.active_play_id.clone()),
+        // Line availability remains separate execution truth. This first
+        // supervisor publication does not invent availability Signs.
+        lines: Vec::new(),
+        recent_sign_ids,
+    };
+    conduit_chat::encode_body_conversation_context(&context)
+        .map_err(|error| Refusal::new("BodyContext.Invalid", format!("{error:?}")))?;
+    Ok(context)
 }
 
 fn current_host_offers() -> Vec<HostAdvertisement> {

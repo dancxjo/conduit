@@ -22,12 +22,13 @@ pub const SPEECH_RECOGNIZE_KIND: &str = "speech/recognize";
 pub const SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize@1";
 pub const SPEECH_RECOGNIZE_CLIP_KIND: &str = "speech/recognize-clip";
 pub const SPEECH_RECOGNIZE_CLIP_REVISION: &str = "conduit.speech/recognize-clip@1";
-pub const SPEECH_RECOGNITION_RESULT_KIND: &str = "speech/recognition-result@1";
+pub const SPEECH_RECOGNITION_RESULT_KIND: &str = "speech/recognition-result@2";
+pub const MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES: usize = 128;
 pub const SPEECH_RECOGNITION_TO_TEXT_KIND: &str = "speech/recognition-to-text";
 pub const SPEECH_RECOGNITION_TO_TEXT_REVISION: &str = "conduit.speech/recognition-to-text@1";
 pub const MAXIMUM_RECOGNIZED_TEXT_BYTES: usize = 256;
-pub const MAXIMUM_RECOGNITION_RESULT_BYTES: usize = 2_048;
-pub const RECOGNITION_RESULT_QUEUE_BYTES: u32 = 4_096;
+pub const MAXIMUM_RECOGNITION_RESULT_BYTES: usize = 4_096;
+pub const RECOGNITION_RESULT_QUEUE_BYTES: u32 = MAXIMUM_RECOGNITION_RESULT_BYTES as u32;
 pub const MAXIMUM_RECOGNITION_FIXTURES: usize = 8;
 pub const MAXIMUM_RECOGNITION_AUDIO_BYTES: usize = 32_768;
 
@@ -51,6 +52,8 @@ pub struct SpeechRecognitionResult {
     pub disposition: SpeechRecognitionDisposition,
     pub text: Option<String>,
     pub audio_sha256: [u8; 32],
+    pub audio_extent_bytes: u32,
+    pub provider_identity: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -189,6 +192,7 @@ pub fn install_speech_recognition_catalog(
             })
             .map_err(|error| error.to_string())?;
     }
+    crate::install_speech_recognition_adapters(startup, profile)?;
     Ok(())
 }
 
@@ -197,7 +201,7 @@ pub fn encode_speech_recognition_result(
 ) -> Result<Vec<u8>, SpeechRecognitionValueError> {
     validate_result(result)?;
     let encoded = serde_json::to_vec(&SpeechRecognitionValue {
-        schema: "conduit.speech/recognition-result-value@1".into(),
+        schema: "conduit.speech/recognition-result-value@2".into(),
         result: result.clone(),
     })
     .map_err(|_| SpeechRecognitionValueError::Malformed)?;
@@ -215,7 +219,7 @@ pub fn decode_speech_recognition_result(
     }
     let value: SpeechRecognitionValue =
         serde_json::from_slice(encoded).map_err(|_| SpeechRecognitionValueError::Malformed)?;
-    if value.schema != "conduit.speech/recognition-result-value@1" {
+    if value.schema != "conduit.speech/recognition-result-value@2" {
         return Err(SpeechRecognitionValueError::InvalidValue);
     }
     validate_result(&value.result)?;
@@ -238,6 +242,12 @@ pub fn project_recognized_text(encoded: &[u8]) -> Result<Vec<u8>, RecognitionTex
 }
 
 fn validate_result(result: &SpeechRecognitionResult) -> Result<(), SpeechRecognitionValueError> {
+    if result.provider_identity.is_empty()
+        || result.provider_identity.len() > MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES
+        || result.audio_extent_bytes as usize > MAXIMUM_PCM_CLIP_BYTES
+    {
+        return Err(SpeechRecognitionValueError::InvalidValue);
+    }
     match (&result.disposition, &result.text) {
         (SpeechRecognitionDisposition::Recognized, Some(text))
             if !text.is_empty() && text.len() <= MAXIMUM_RECOGNIZED_TEXT_BYTES =>
@@ -292,6 +302,8 @@ impl RecordedSpeechRecognizer {
                 disposition: SpeechRecognitionDisposition::NoSpeech,
                 text: None,
                 audio_sha256,
+                audio_extent_bytes: audio.len() as u32,
+                provider_identity: "tongues/recorded-fixture@1".into(),
             }));
         }
         if let Some(fixture) = self
@@ -303,6 +315,8 @@ impl RecordedSpeechRecognizer {
                 disposition: SpeechRecognitionDisposition::Recognized,
                 text: Some(fixture.transcript.clone()),
                 audio_sha256,
+                audio_extent_bytes: audio.len() as u32,
+                provider_identity: "tongues/recorded-fixture@1".into(),
             }));
         }
         Ok(SpeechRecognitionAttempt::Failed { audio_sha256 })
