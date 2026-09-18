@@ -194,7 +194,7 @@ pub(super) struct SpeechWindowToClipHost {
     expected_start_frame: Option<u64>,
     source_frames: u64,
     target_frames: u64,
-    normalized: Vec<i16>,
+    window: conduit_tongues::AcousticWindow,
     output: Vec<u8>,
     blocks: usize,
 }
@@ -208,7 +208,10 @@ impl SpeechWindowToClipHost {
             expected_start_frame: None,
             source_frames: 0,
             target_frames: 0,
-            normalized: Vec::with_capacity(MAXIMUM_PCM_CLIP_FRAMES as usize),
+            window: conduit_tongues::AcousticWindow::new(
+                MAXIMUM_PCM_CLIP_FRAMES as usize * 2,
+            )
+            .expect("canonical Whisper turn fits the portable AcousticWindow bound"),
             output: Vec::with_capacity(conduit_audio::MAXIMUM_PCM_CLIP_BYTES),
             blocks: 0,
         }
@@ -255,6 +258,9 @@ impl SpeechWindowToClipHost {
         }
 
         let channels = usize::from(header.layout.channels());
+        let target_items = usize::try_from(target_end - self.target_frames)
+            .map_err(|_| "speech window target item count overflow".to_string())?;
+        let mut normalized_block = Vec::with_capacity(target_items.saturating_mul(2));
         for target in self.target_frames..target_end {
             let source = target
                 .checked_mul(source_rate)
@@ -273,8 +279,11 @@ impl SpeechWindowToClipHost {
                     ((left + right) / 2) as i16
                 }
             };
-            self.normalized.push(sample);
+            normalized_block.extend_from_slice(&sample.to_le_bytes());
         }
+        self.window
+            .push(&normalized_block)
+            .map_err(|error| format!("speech AcousticWindow refused normalized PCM: {error:?}"))?;
 
         self.source_frames = source_end;
         self.target_frames = target_end;
@@ -286,23 +295,22 @@ impl SpeechWindowToClipHost {
     }
 
     pub(super) fn close(&mut self) -> Result<&[u8], String> {
-        if self.normalized.is_empty() {
+        if self.window.retained_bytes() == 0 {
             return Err("speech recognition window closed without audio".into());
         }
         let clock = self
             .source_clock_id
             .ok_or_else(|| "speech recognition window has no source clock".to_string())?;
-        let mut encoded_frames = Vec::with_capacity(
-            self.normalized
-                .len()
-                .div_ceil(usize::from(MAXIMUM_PCM_FRAMES_PER_BLOCK)),
-        );
+        let raw = self.window.window();
+        if raw.len() % 2 != 0 {
+            return Err("speech AcousticWindow retained a partial signed-16 sample".into());
+        }
+        let maximum_payload_bytes = usize::from(MAXIMUM_PCM_FRAMES_PER_BLOCK) * 2;
+        let mut encoded_frames =
+            Vec::with_capacity(raw.len().div_ceil(maximum_payload_bytes));
         let mut start = 0_u64;
-        for chunk in self
-            .normalized
-            .chunks(usize::from(MAXIMUM_PCM_FRAMES_PER_BLOCK))
-        {
-            let frame_count = u16::try_from(chunk.len())
+        for chunk in raw.chunks(maximum_payload_bytes) {
+            let frame_count = u16::try_from(chunk.len() / 2)
                 .map_err(|_| "speech window frame count overflow".to_string())?;
             let header = PcmFrameHeader::new(
                 PcmSampleRepresentation::Signed16LittleEndian,
@@ -314,13 +322,9 @@ impl SpeechWindowToClipHost {
                 false,
             )
             .map_err(|error| format!("speech window normalized header: {error:?}"))?;
-            let mut payload = Vec::with_capacity(chunk.len() * 2);
-            for sample in chunk {
-                payload.extend_from_slice(&sample.to_le_bytes());
-            }
             encoded_frames.push(
                 header
-                    .encode_frame(&payload)
+                    .encode_frame(chunk)
                     .map_err(|error| format!("speech window normalized frame: {error:?}"))?,
             );
             start += u64::from(frame_count);
