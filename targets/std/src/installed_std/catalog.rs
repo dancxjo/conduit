@@ -71,6 +71,10 @@ use super::presentation_composition::{
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
 use super::recognition_text_operation::FACTORY as RECOGNITION_TEXT_FACTORY;
 use super::recognized_turn_commit_operation::FACTORY as RECOGNIZED_TURN_COMMIT_FACTORY;
+use super::speech_recognition_adapter_operation::{
+    RESULT_STREAM_FACTORY as SPEECH_RESULT_STREAM_FACTORY,
+    WINDOW_FACTORY as SPEECH_WINDOW_FACTORY,
+};
 use super::record_delivery_operation::FACTORY as RECORD_DELIVERY_STATUS_FACTORY;
 use super::record_queue_operation::FACTORY as RECORD_QUEUE_FACTORY;
 use super::record_temporal_operation::{
@@ -166,6 +170,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &ADDRESS_DETECT_FACTORY,
     &RECOGNITION_TEXT_FACTORY,
     &RECOGNIZED_TURN_COMMIT_FACTORY,
+    &SPEECH_WINDOW_FACTORY,
+    &SPEECH_RESULT_STREAM_FACTORY,
     &KEYBOARD_INPUT_FACTORY,
     &super::keyboard_input_operation::button::FACTORY,
     &super::keyboard_input_operation::button::indicator::MAPPER,
