@@ -40,6 +40,7 @@ pub mod pico;
 pub mod proofs;
 pub mod prove;
 pub mod r1_recovery;
+pub mod setup;
 pub mod toggle;
 pub mod tongues;
 pub mod unifont_subset;
