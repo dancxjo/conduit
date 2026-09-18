@@ -4,7 +4,7 @@
 //! session. Body membership remains an explicit invitation proof completed by
 //! the Body-side admission manager.
 
-use conduit_body::SpawnInvitationClaim;
+use conduit_body::{MembershipCredential, SpawnInvitationClaim};
 use conduit_core::HostAdvertisement;
 use conduit_std_host::websocket::{
     NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener,
@@ -141,6 +141,10 @@ enum Ingress {
         claim: SpawnInvitationClaim,
         secret: Vec<u8>,
     },
+    Admitted {
+        protocol: u16,
+        credential: MembershipCredential,
+    },
     Close {
         protocol: u16,
     },
@@ -176,6 +180,11 @@ enum Egress<'a> {
         nonce: [u8; 32],
         signature: Vec<u8>,
         observed_at_millis: u64,
+    },
+    AdmissionRetained {
+        protocol: u16,
+        body_id: &'a str,
+        part_id: &'a str,
     },
     RemotePrepared {
         protocol: u16,
@@ -340,6 +349,7 @@ fn run_session(
         claim,
         core::mem::take(&mut secret),
     )?;
+    let joined_body_id = join.body_id.clone();
     send(
         line,
         &Egress::Join {
@@ -360,11 +370,32 @@ fn run_session(
     // remain honestly idle indefinitely; only explicit joined-session polling
     // installs a short read deadline, and it restores this idle state.
     line.enter_retained_idle()?;
+    let mut membership_retained = false;
     let mut remote_prepared = None;
     loop {
         match receive_joined(line)? {
+            JoinedIngress::Control(Ingress::Admitted {
+                protocol,
+                credential,
+            }) if protocol == PROTOCOL && !membership_retained => {
+                crate::durable_host::retain_rendezvous_membership(
+                    state_dir,
+                    &credential,
+                    &joined_body_id,
+                    &truth.advertisement,
+                )?;
+                send(
+                    line,
+                    &Egress::AdmissionRetained {
+                        protocol: PROTOCOL,
+                        body_id: credential.body_id.as_str(),
+                        part_id: credential.part_id.as_str(),
+                    },
+                )?;
+                membership_retained = true;
+            }
             JoinedIngress::Control(Ingress::PrepareRemote { protocol, plan })
-                if protocol == PROTOCOL =>
+                if protocol == PROTOCOL && membership_retained =>
             {
                 if remote_prepared.is_some() {
                     return Err("joined Host Line already owns one remote Play".into());
@@ -406,7 +437,10 @@ fn run_session(
                 break;
             }
             _ => {
-                return Err("joined Host Line expected remote preparation or explicit close".into())
+                return Err(
+                    "joined Host Line expected admission retention, remote preparation, or explicit close"
+                        .into(),
+                )
             }
         }
     }
