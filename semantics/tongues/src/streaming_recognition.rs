@@ -22,6 +22,9 @@ pub const MAXIMUM_RECOGNITION_EVENT_BYTES: usize = 1_024;
 pub const MAXIMUM_COMMITTED_USER_MESSAGE_BYTES: usize = 1_024;
 pub const MAXIMUM_STREAMING_AUDIO_BYTES: usize = 262_144;
 pub const MAXIMUM_STREAMING_AUDIO_ITEMS: u16 = 32;
+/// Maximum source items retained into one clip-only provider window.
+/// This is a semantic turn bound, not a browser packetization constant.
+pub const MAXIMUM_ACOUSTIC_WINDOW_ITEMS: usize = 8_192;
 pub const MAXIMUM_RECOGNITION_EVENT_ITEMS: u16 = 32;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -108,6 +111,7 @@ pub enum StreamingRecognitionRefusal {
 pub struct AcousticWindow {
     bytes: Vec<u8>,
     maximum_bytes: usize,
+    items: usize,
     terminal: bool,
 }
 
@@ -119,6 +123,7 @@ impl AcousticWindow {
         Ok(Self {
             bytes: Vec::with_capacity(maximum_bytes),
             maximum_bytes,
+            items: 0,
             terminal: false,
         })
     }
@@ -127,6 +132,9 @@ impl AcousticWindow {
         if self.terminal {
             return Err(StreamingRecognitionRefusal::EventAfterTerminal);
         }
+        if self.items >= MAXIMUM_ACOUSTIC_WINDOW_ITEMS {
+            return Err(StreamingRecognitionRefusal::BoundExceeded);
+        }
         let length = self
             .bytes
             .len()
@@ -134,6 +142,7 @@ impl AcousticWindow {
             .filter(|length| *length <= self.maximum_bytes)
             .ok_or(StreamingRecognitionRefusal::BoundExceeded)?;
         self.bytes.extend_from_slice(pcm);
+        self.items += 1;
         debug_assert_eq!(self.bytes.len(), length);
         Ok(())
     }
@@ -146,10 +155,12 @@ impl AcousticWindow {
     /// allocation for the next window.
     pub fn release(&mut self) {
         self.bytes.clear();
+        self.items = 0;
     }
 
     pub fn cancel(&mut self) {
         self.bytes.clear();
+        self.items = 0;
         self.terminal = true;
     }
 
@@ -159,6 +170,10 @@ impl AcousticWindow {
 
     pub fn retained_bytes(&self) -> usize {
         self.bytes.len()
+    }
+
+    pub const fn retained_items(&self) -> usize {
+        self.items
     }
 }
 
