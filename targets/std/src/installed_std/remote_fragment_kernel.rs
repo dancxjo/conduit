@@ -231,6 +231,68 @@ impl InstalledRemoteFragment {
             }
             return Ok(true);
         }
+        if matches!(
+            contract,
+            conduit_std_offers::SPEECH_WINDOW_PUSH_OPERATION
+                | conduit_std_offers::SPEECH_WINDOW_CLOSE_OPERATION
+        ) {
+            let host = self
+                .speech_window_hosts
+                .get_mut(usize::from(request.node.0))
+                .and_then(Option::as_mut)
+                .ok_or_else(|| "remote speech-window request has no admitted host".to_string())?;
+            let output = if contract == conduit_std_offers::SPEECH_WINDOW_PUSH_OPERATION {
+                host.push(input)?;
+                None
+            } else {
+                Some(host.close()?)
+            };
+            let output = output
+                .map(|bytes| self.scheduler.store_host_value(&bytes))
+                .transpose()
+                .map_err(|error| format!("store remote speech-window output: {error:?}"))?
+                .map(|value| BoundedValueRef::new(value, maximum_output_bytes))
+                .transpose()
+                .map_err(|error| format!("bound remote speech-window output: {error:?}"))?;
+            self.scheduler
+                .complete_host_operation(
+                    request.node,
+                    request.request,
+                    HostOperationOutcome {
+                        disposition: HostOperationDisposition::Completed,
+                        output,
+                        failure: None,
+                    },
+                )
+                .map_err(|error| format!("complete remote speech-window operation: {error:?}"))?;
+            return Ok(true);
+        }
+        if contract == conduit_std_offers::SPEECH_RESULT_TO_EVENT_OPERATION {
+            let encoded = self
+                .speech_result_stream_hosts
+                .get_mut(usize::from(request.node.0))
+                .and_then(Option::as_mut)
+                .ok_or_else(|| "remote speech-result adapter has no admitted host".to_string())?
+                .execute(input)?;
+            let value = self
+                .scheduler
+                .store_host_value(&encoded)
+                .map_err(|error| format!("store remote recognition event: {error:?}"))?;
+            let output = BoundedValueRef::new(value, maximum_output_bytes)
+                .map_err(|error| format!("bound remote recognition event: {error:?}"))?;
+            self.scheduler
+                .complete_host_operation(
+                    request.node,
+                    request.request,
+                    HostOperationOutcome {
+                        disposition: HostOperationDisposition::Completed,
+                        output: Some(output),
+                        failure: None,
+                    },
+                )
+                .map_err(|error| format!("complete remote speech-result adapter: {error:?}"))?;
+            return Ok(true);
+        }
         let (disposition, output) = if contract
             == conduit_std_offers::TEXT_UPPER_HOST_OPERATION_CONTRACT
             && operation.target_kind.as_ref()
@@ -250,31 +312,6 @@ impl InstalledRemoteFragment {
                 .ok_or_else(|| "remote recognized-turn request has no admitted host".to_string())?
                 .execute(input)?;
             (HostOperationDisposition::Completed, output)
-        } else if matches!(
-            contract,
-            conduit_std_offers::SPEECH_WINDOW_PUSH_OPERATION
-                | conduit_std_offers::SPEECH_WINDOW_CLOSE_OPERATION
-        ) {
-            let host = self
-                .speech_window_hosts
-                .get_mut(usize::from(request.node.0))
-                .and_then(Option::as_mut)
-                .ok_or_else(|| "remote speech-window request has no admitted host".to_string())?;
-            if contract == conduit_std_offers::SPEECH_WINDOW_PUSH_OPERATION {
-                host.push(input)?;
-                (HostOperationDisposition::Completed, None)
-            } else {
-                let output = host.close()?;
-                (HostOperationDisposition::Completed, Some(output))
-            }
-        } else if contract == conduit_std_offers::SPEECH_RESULT_TO_EVENT_OPERATION {
-            let output = self
-                .speech_result_stream_hosts
-                .get_mut(usize::from(request.node.0))
-                .and_then(Option::as_mut)
-                .ok_or_else(|| "remote speech-result adapter has no admitted host".to_string())?
-                .execute(input)?;
-            (HostOperationDisposition::Completed, Some(output))
         } else if matches!(
             contract,
             conduit_std_offers::GENERATED_SPEECH_PUSH_OPERATION
