@@ -79,6 +79,8 @@ impl InstalledOperation {
             Self::WhisperSpeech(operation) => operation.cancel(),
             Self::RecognitionText(operation) => operation.cancel(),
             Self::RecognizedTurnCommit(operation) => operation.cancel(),
+            Self::SpeechWindowToClip(operation) => operation.cancel(),
+            Self::SpeechResultToEventStream(operation) => operation.cancel(),
             Self::HousePrompt(operation) => operation.cancel(),
             Self::BodyChatPrompt(operation) => operation.cancel(),
             Self::BodyConversationContext(operation) => operation.cancel(),
