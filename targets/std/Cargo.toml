@@ -47,8 +47,6 @@ conduit-std-offers = { path = "offers" }
 conduit-time = { path = "../../semantics/time", features = ["kernel-operation"] }
 conduit-text = { path = "../../semantics/text", default-features = false }
 conduit-tongues = { path = "../../semantics/tongues" }
-speaking = { git = "https://github.com/dancxjo/tongues.git", rev = "8f0b588d46a52aeabff19a2cdca4fe5efbef47fc", features = ["asr-whisper"] }
-tongues-tts = { git = "https://github.com/dancxjo/tongues.git", rev = "8f0b588d46a52aeabff19a2cdca4fe5efbef47fc" }
 conduit-wire = { path = "../../architecture/wire" }
 conduit-web = { path = "../../semantics/web", default-features = false }
 tungstenite = "0.30.0"
