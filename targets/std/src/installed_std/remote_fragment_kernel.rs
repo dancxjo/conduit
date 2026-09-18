@@ -313,8 +313,17 @@ impl InstalledRemoteFragment {
                 }
                 Err(_) => (HostOperationDisposition::Denied, None),
             }
-        } else if contract == conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION {
-            match conduit_ai::project_generated_text(input) {
+        } else if matches!(
+            contract,
+            conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION
+                | conduit_std_offers::GENERATED_CHUNK_TO_TEXT_OPERATION
+        ) {
+            let projected = if contract == conduit_std_offers::GENERATED_CHUNK_TO_TEXT_OPERATION {
+                conduit_ai::project_encoded_generated_chunk_text(input)
+            } else {
+                conduit_ai::project_generated_text(input)
+            };
+            match projected {
                 Ok(text) => {
                     self.text_output_buffer.clear();
                     self.text_output_buffer.extend_from_slice(&text);
