@@ -12,7 +12,7 @@ use crate::{
     OperationAction, PortId, ProtocolError, RemoteEndpointId, RequestId, RouteTarget, SignError,
     SignSink, StorageError, ValueRef, ValueStorage,
 };
-use conduit_core::DeliveryPressurePolicy;
+pub use conduit_assigned_plan::AssignedPressurePolicy;
 
 mod active_capacity;
 mod debug_control;
@@ -40,7 +40,7 @@ pub struct CordSpec {
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
-    pub pressure_policy: DeliveryPressurePolicy,
+    pub pressure_policy: AssignedPressurePolicy,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -48,7 +48,7 @@ pub struct CordCapacity {
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
-    pub pressure_policy: DeliveryPressurePolicy,
+    pub pressure_policy: AssignedPressurePolicy,
 }
 
 impl CordSpec {
@@ -2224,7 +2224,7 @@ where
         let spec = self.cord_specs[cord];
         let state = &mut self.cords[cord];
         if state.len >= spec.item_capacity {
-            if spec.pressure_policy != DeliveryPressurePolicy::CoalesceLatest || state.len == 0 {
+            if spec.pressure_policy != AssignedPressurePolicy::CoalesceLatest || state.len == 0 {
                 return Err(SchedulerError::QueueCapacityExceeded);
             }
             let offset = (state.head + state.len - 1) % spec.item_capacity;
@@ -2260,7 +2260,7 @@ where
         if state.len < spec.item_capacity {
             return Ok(spec.byte_capacity.saturating_sub(state.queued_bytes));
         }
-        if spec.pressure_policy != DeliveryPressurePolicy::CoalesceLatest || state.len == 0 {
+        if spec.pressure_policy != AssignedPressurePolicy::CoalesceLatest || state.len == 0 {
             return Ok(0);
         }
         let offset = (state.head + state.len - 1) % spec.item_capacity;

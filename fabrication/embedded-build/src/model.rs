@@ -2,8 +2,9 @@ use std::error::Error;
 use std::fmt;
 
 use conduit_core::{
-    BaseImplementationId, CancellationPolicy, DeliveryPressurePolicy, LineContract, TerminalPolicy,
+    BaseImplementationId, CancellationPolicy, LineContract, TerminalPolicy,
 };
+use conduit_kernel::scheduler::AssignedPressurePolicy;
 use conduit_plan_lowering::lowering::{RemoteCordDirection, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
 /// Reviewed finite ceilings for one generated fixed image.
@@ -164,7 +165,7 @@ pub struct GeneratedStaticCord {
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
-    pub pressure_policy: DeliveryPressurePolicy,
+    pub pressure_policy: AssignedPressurePolicy,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

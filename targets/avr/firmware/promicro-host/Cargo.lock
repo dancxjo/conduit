@@ -131,7 +131,7 @@ version = "0.1.0"
 name = "conduit-kernel"
 version = "0.1.0"
 dependencies = [
- "conduit-core",
+ "conduit-assigned-plan",
 ]
 
 [[package]]
