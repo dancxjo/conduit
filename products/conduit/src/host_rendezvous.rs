@@ -27,6 +27,9 @@ trait RendezvousLine {
     fn receive(&mut self) -> Result<Vec<u8>, String>;
     fn send(&mut self, bytes: &[u8]) -> Result<(), String>;
     fn close(&mut self) -> Result<(), String>;
+    fn enter_retained_idle(&mut self) -> Result<(), String> {
+        Ok(())
+    }
     fn poll_receive(&mut self, _timeout: Duration) -> Result<Option<Vec<u8>>, String> {
         Ok(Some(self.receive()?))
     }
@@ -54,13 +57,18 @@ impl RendezvousLine for NativeWebSocketLine {
         NativeWebSocketLine::close(self).map_err(debug("close rendezvous Line"))
     }
 
+    fn enter_retained_idle(&mut self) -> Result<(), String> {
+        self.set_read_timeout(None)
+            .map_err(debug("remove retained rendezvous read timeout"))
+    }
+
     fn poll_receive(&mut self, timeout: Duration) -> Result<Option<Vec<u8>>, String> {
         self.set_read_timeout(Some(timeout))
             .map_err(debug("set rendezvous poll timeout"))?;
         let mut bytes = vec![0_u8; MAXIMUM_FRAME_BYTES];
         let result = self.receive_binary(&mut bytes);
-        self.set_read_timeout(Some(Duration::from_secs(5)))
-            .map_err(debug("restore rendezvous receive timeout"))?;
+        self.set_read_timeout(None)
+            .map_err(debug("restore retained rendezvous idle timeout"))?;
         match result {
             Ok(length) => {
                 bytes.truncate(length);
@@ -347,6 +355,10 @@ fn run_session(
             observed_at_millis: join.observed_at_millis,
         },
     )?;
+    // Admission completes the bounded handshake. A retained Host Line may then
+    // remain honestly idle indefinitely; only explicit joined-session polling
+    // installs a short read deadline, and it restores this idle state.
+    line.enter_retained_idle()?;
     let mut remote_prepared = None;
     loop {
         match receive_joined(line)? {
@@ -563,6 +575,32 @@ mod tests {
         fn close(&mut self) -> Result<(), String> {
             Ok(())
         }
+    }
+
+    #[test]
+    fn retained_websocket_idle_removes_the_handshake_read_deadline() {
+        let listener =
+            NativeWebSocketListener::bind_loopback(64).expect("loopback listener binds");
+        let address = listener.local_addr().expect("loopback address");
+        let url = listener.url().expect("loopback url");
+        let client = std::thread::spawn(move || {
+            let mut line =
+                NativeWebSocketLine::connect(address, &url, 64).expect("client connects");
+            std::thread::sleep(Duration::from_millis(50));
+            line.send_binary(b"retained-idle")
+                .expect("client sends after idle interval");
+        });
+        let mut line = listener.accept().expect("server accepts");
+        line.set_read_timeout(Some(Duration::from_millis(10)))
+            .expect("short handshake deadline installs");
+        RendezvousLine::enter_retained_idle(&mut line)
+            .expect("retained joined Line removes handshake deadline");
+        let mut bytes = [0_u8; 64];
+        let length = line
+            .receive_binary(&mut bytes)
+            .expect("retained joined Line survives beyond old deadline");
+        assert_eq!(&bytes[..length], b"retained-idle");
+        client.join().expect("client thread completes");
     }
 
     #[test]
