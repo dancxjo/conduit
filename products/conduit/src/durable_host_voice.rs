@@ -108,16 +108,13 @@ fn validate(config: &DurableVoiceProviderConfig) -> Result<(), String> {
 }
 
 fn initialize(config: &DurableVoiceProviderConfig) -> Result<VoiceHostProviders, String> {
-    let recognition = WhisperDiscovery::inspect(
-        &config.whisper_executable,
-        &config.whisper_model,
-    )
-    .map_err(|error| format!("discover configured Whisper provider: {error:?}"))?
-    .initialize(WhisperLimits::live_conversation(
-        config.whisper_threads,
-        Duration::from_secs(config.whisper_timeout_seconds),
-    ))
-    .map_err(|error| format!("initialize configured Whisper provider: {error:?}"))?;
+    let recognition = WhisperDiscovery::inspect(&config.whisper_executable, &config.whisper_model)
+        .map_err(|error| format!("discover configured Whisper provider: {error:?}"))?
+        .initialize(WhisperLimits::live_conversation(
+            config.whisper_threads,
+            Duration::from_secs(config.whisper_timeout_seconds),
+        ))
+        .map_err(|error| format!("initialize configured Whisper provider: {error:?}"))?;
 
     let model = OllamaDiscovery::discover(&config.ollama_model)
         .map_err(|error| format!("discover configured Ollama model: {error}"))?
