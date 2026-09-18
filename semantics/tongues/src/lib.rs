@@ -6,6 +6,7 @@ mod contract;
 #[cfg(feature = "speech")]
 mod execution;
 mod house_conversation;
+mod live_conversation;
 #[cfg(feature = "speech")]
 mod pcm;
 #[cfg(feature = "speech")]
@@ -31,6 +32,7 @@ pub use contract::*;
 #[cfg(feature = "speech")]
 pub use execution::*;
 pub use house_conversation::*;
+pub use live_conversation::*;
 #[cfg(feature = "speech")]
 pub use planning::*;
 #[cfg(feature = "speech")]
