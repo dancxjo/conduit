@@ -18,7 +18,7 @@ pub struct LiveConversationSpeechRequirements {
 
 pub const fn live_conversation_speech_requirements() -> LiveConversationSpeechRequirements {
     LiveConversationSpeechRequirements {
-        recognition_audio_bytes: MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
+        recognition_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
         recognized_text_bytes: MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
         speakable_segment_bytes: MAXIMUM_SPEAKABLE_SEGMENT_BYTES as u32,
         synthesized_pcm_bytes: MAXIMUM_PCM_BYTES,
@@ -52,7 +52,7 @@ mod tests {
         let required = live_conversation_speech_requirements();
         assert_eq!(
             required.recognition_audio_bytes,
-            MAXIMUM_RECOGNITION_AUDIO_BYTES as u32
+            conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
         );
         assert_eq!(
             required.recognized_text_bytes,
