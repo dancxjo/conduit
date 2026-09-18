@@ -1,6 +1,6 @@
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect, Presentation,
-    PresentationIconKey,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
+    Presentation, PresentationIconKey,
 };
 
 use super::TourShellError;
@@ -161,8 +161,8 @@ pub(super) fn status_scene(
         ("lines", PresentationIconKey::Line),
         ("host", PresentationIconKey::Host),
     ]
-        .into_iter()
-        .enumerate()
+    .into_iter()
+    .enumerate()
     {
         let identity = alloc::format!("tour/status/{key}");
         let subject = presentation
@@ -191,7 +191,12 @@ pub(super) fn status_scene(
         scene
             .push(
                 GraphicsCommand::icon(
-                    LayoutRect { x: cell.x + 8, y: 12, width: 16, height: 16 },
+                    LayoutRect {
+                        x: cell.x + 8,
+                        y: 12,
+                        width: 16,
+                        height: 16,
+                    },
                     cell,
                     GraphicsPaintRole::Status,
                     icon,
@@ -246,7 +251,12 @@ pub(super) fn inspector_scene(
         scene
             .push(
                 GraphicsCommand::icon(
-                    LayoutRect { x: button.x + 8, y: button.y + 4, width: 16, height: 16 },
+                    LayoutRect {
+                        x: button.x + 8,
+                        y: button.y + 4,
+                        width: 16,
+                        height: 16,
+                    },
                     button,
                     GraphicsPaintRole::Accent,
                     PresentationIconKey::Close,
@@ -286,6 +296,55 @@ fn chooser_scene(
         return Err(TourShellError::Identity);
     }
     let mut scene = panel_scene(bounds, "CHOOSE GEAR", first_text(presentation))?;
+    if let Some(action) = presentation.subjects.iter().find(|subject| {
+        subject.identity == conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID
+            && subject.role == conduit_presentation::PresentationRole::Action
+    }) {
+        let button = super::controls::inspector_close_bounds(bounds.width);
+        scene
+            .push(
+                GraphicsCommand::rect(
+                    button,
+                    button,
+                    GraphicsPaintRole::Accent,
+                    GraphicsShapeStyle::Stroke,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+        scene
+            .push(
+                GraphicsCommand::icon(
+                    LayoutRect {
+                        x: button.x + 8,
+                        y: button.y + 4,
+                        width: 16,
+                        height: 16,
+                    },
+                    button,
+                    GraphicsPaintRole::Accent,
+                    PresentationIconKey::Close,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+        scene
+            .push(
+                GraphicsCommand::text(
+                    LayoutRect {
+                        x: button.x + 28,
+                        y: button.y + 4,
+                        width: button.width.saturating_sub(36).max(1),
+                        height: button.height.saturating_sub(8).max(1),
+                    },
+                    button,
+                    GraphicsPaintRole::Foreground,
+                    &action.label,
+                )
+                .map_err(|_| TourShellError::Scene)?,
+            )
+            .map_err(|_| TourShellError::Scene)?;
+    }
     let viewport = LayoutRect {
         x: 0,
         y: 70,
