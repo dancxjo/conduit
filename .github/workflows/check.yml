@@ -927,7 +927,7 @@ jobs:
           mapfile -t proofs < <(jq -r '.[]' <<<"$SELECTED_PROOFS")
           args=()
           for proof in "${proofs[@]}"; do args+=(--proof "$proof"); done
-          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 2 --output-root "$CONDUIT_X86_BATCH_ROOT" --locked
+          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 4 --output-root "$CONDUIT_X86_BATCH_ROOT" --locked
       - name: Validate the complete x86 batch contract
         id: x86-contract
         if: always()
