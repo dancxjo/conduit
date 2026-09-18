@@ -332,6 +332,33 @@ pub fn committed_turn_to_text_contract() -> SpeechRecognitionContract {
     }
 }
 
+pub fn encode_recognition_event(
+    event: &RecognitionEvent,
+) -> Result<Vec<u8>, StreamingRecognitionRefusal> {
+    validate_event(event)?;
+    let encoded =
+        serde_json::to_vec(event).map_err(|_| StreamingRecognitionRefusal::InvalidEvent)?;
+    if encoded.len() > MAXIMUM_RECOGNITION_EVENT_BYTES {
+        return Err(StreamingRecognitionRefusal::BoundExceeded);
+    }
+    Ok(encoded)
+}
+
+pub fn decode_recognition_event(
+    encoded: &[u8],
+) -> Result<RecognitionEvent, StreamingRecognitionRefusal> {
+    if encoded.len() > MAXIMUM_RECOGNITION_EVENT_BYTES {
+        return Err(StreamingRecognitionRefusal::BoundExceeded);
+    }
+    let event: RecognitionEvent =
+        serde_json::from_slice(encoded).map_err(|_| StreamingRecognitionRefusal::InvalidEvent)?;
+    validate_event(&event)?;
+    if encode_recognition_event(&event)? != encoded {
+        return Err(StreamingRecognitionRefusal::InvalidEvent);
+    }
+    Ok(event)
+}
+
 pub fn project_committed_turn_text(
     message: &CommittedUserMessage,
 ) -> Result<&str, StreamingRecognitionRefusal> {
@@ -375,7 +402,7 @@ fn validate_event(event: &RecognitionEvent) -> Result<(), StreamingRecognitionRe
     if event.stream_id.is_empty()
         || event.provider_identity.is_empty()
         || event.stream_id.len() > 128
-        || event.provider_identity.len() > 128
+        || event.provider_identity.len() > crate::MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES
         || event.audio_extent_bytes as usize > MAXIMUM_STREAMING_AUDIO_BYTES
     {
         return Err(StreamingRecognitionRefusal::InvalidEvent);
