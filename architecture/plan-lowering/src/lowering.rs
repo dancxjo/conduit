@@ -35,7 +35,6 @@ use remote::lower_remote_endpoints;
 use shared_pool::lower_shared_pools;
 pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
 fn lower_pressure_policy(policy: conduit_core::DeliveryPressurePolicy) -> AssignedPressurePolicy {
     match policy {
         conduit_core::DeliveryPressurePolicy::PreserveOrder => AssignedPressurePolicy::PreserveOrder,
@@ -43,6 +42,7 @@ fn lower_pressure_policy(policy: conduit_core::DeliveryPressurePolicy) -> Assign
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoweringError {
     InvalidFragment,
     UnsupportedState(conduit_core::StateId),
