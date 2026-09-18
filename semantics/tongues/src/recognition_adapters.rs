@@ -32,7 +32,7 @@ pub const SPEECH_RESULT_TO_EVENT_STREAM_REVISION: &str =
 pub const MAXIMUM_SPEECH_WINDOW_BLOCKS: usize = 8_192;
 
 const STREAMING_RECOGNITION_BACK: &str = r#"form speech/recognize-stream (
-    > audio: audio/pcm@1...|
+    > audio: audio/pcm-frames@1...|
     events: speech/recognition-event@1...| >
 ) {
     window: speech/window-to-clip
@@ -240,7 +240,7 @@ mod tests {
         crate::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
         let checked = check_syntax_document(
             &parse_syntax_document(
-                "form main ( > audio: audio/pcm@1...| events: speech/recognition-event@1...| > ) { recognize: speech/recognize-stream audio > recognize.audio recognize.events > events }",
+                "form main ( > audio: audio/pcm-frames@1...| events: speech/recognition-event@1...| > ) { recognize: speech/recognize-stream audio > recognize.audio recognize.events > events }",
             ),
             &startup,
         )
