@@ -8,7 +8,7 @@ default = []
 alloc = []
 
 [dependencies]
-conduit-core = { path = "../core" }
+conduit-assigned-plan = { path = "../assigned-plan" }
 
 [dev-dependencies]
 conduit-human = { path = "../../semantics/human" }

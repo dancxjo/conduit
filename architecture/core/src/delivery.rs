@@ -1,4 +1,5 @@
 use alloc::collections::VecDeque;
+use conduit_assigned_plan::DeliveryPressurePolicy;
 use serde::{Deserialize, Serialize};
 
 pub const DELIVERY_CONTRACT_VERSION: u16 = 1;
@@ -22,15 +23,6 @@ pub enum AdmissionUnit {
     Value,
     CoherentFrame,
     SignalBatch,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-#[repr(u8)]
-pub enum DeliveryPressurePolicy {
-    #[default]
-    PreserveOrder,
-    CoalesceLatest,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
