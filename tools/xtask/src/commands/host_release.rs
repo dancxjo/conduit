@@ -158,6 +158,10 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
 
 fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
+        Command::new("aarch64-linux-gnu-gcc").arg("--version"),
+        "Raspberry Pi OS cross linker unavailable; run `cargo xtask setup linux-release`",
+    )?;
+    require_success(
         Command::new("cargo").args([
             "build",
             "--locked",
