@@ -18,8 +18,8 @@ pub const COMMITTED_TURN_TO_TEXT_KIND: &str = "speech/committed-turn-to-text";
 pub const COMMITTED_TURN_TO_TEXT_REVISION: &str = "conduit.speech/committed-turn-to-text@1";
 pub const RECOGNITION_EVENT_VALUE_KIND: &str = "speech/recognition-event@1";
 pub const CHAT_MESSAGE_VALUE_KIND: &str = "ChatMessage";
-pub const MAXIMUM_RECOGNITION_EVENT_BYTES: usize = 1_024;
-pub const MAXIMUM_COMMITTED_USER_MESSAGE_BYTES: usize = 1_024;
+pub const MAXIMUM_RECOGNITION_EVENT_BYTES: usize = 4_096;
+pub const MAXIMUM_COMMITTED_USER_MESSAGE_BYTES: usize = 4_096;
 pub const MAXIMUM_STREAMING_AUDIO_BYTES: usize = 262_144;
 pub const MAXIMUM_STREAMING_AUDIO_ITEMS: u16 = 32;
 /// Maximum source items retained into one clip-only provider window.
@@ -342,7 +342,7 @@ pub fn committed_turn_to_text_contract() -> SpeechRecognitionContract {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: MAXIMUM_RECOGNITION_EVENT_ITEMS,
-            max_queue_bytes: MAXIMUM_RECOGNITION_EVENT_BYTES as u32,
+            max_queue_bytes: MAXIMUM_COMMITTED_USER_MESSAGE_BYTES as u32,
         },
     }
 }
