@@ -102,4 +102,5 @@ required-features = ["physical-effect-proof"]
 [dev-dependencies]
 conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
 ed25519-dalek = "2.2"
+rcgen = "0.14"
 wat = "1"

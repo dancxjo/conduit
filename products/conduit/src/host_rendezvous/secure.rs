@@ -1,14 +1,17 @@
 //! Opt-in secure network carrier for the shared running-Host session.
 
+use conduit_body::{
+    RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily,
+    RunningHostRendezvousDescriptor,
+};
 use conduit_std_host::secure_websocket::{
     SecureWebSocketError, SecureWebSocketLine, SecureWebSocketListener,
 };
-use serde::Serialize;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use super::{debug, hex, run_session, RendezvousLine, MAXIMUM_FRAME_BYTES};
+use super::{debug, run_session, RendezvousLine, MAXIMUM_FRAME_BYTES};
 
 pub(crate) struct SecureNetworkOptions {
     pub(crate) bind: Option<String>,
@@ -16,21 +19,6 @@ pub(crate) struct SecureNetworkOptions {
     pub(crate) tls_cert: Option<PathBuf>,
     pub(crate) tls_key: Option<PathBuf>,
     pub(crate) authorize_network: bool,
-}
-
-#[derive(Serialize)]
-#[serde(deny_unknown_fields)]
-struct RunningHostRendezvousDescriptor<'a> {
-    schema: &'static str,
-    candidate_id: &'static str,
-    line_family: &'static str,
-    reachability: &'a str,
-    server_identity: &'a str,
-    transport_binding_sha256: String,
-    expires_at_millis: u64,
-    maximum_attempts: u8,
-    attempt_timeout_millis: u32,
-    session_secret: Vec<u8>,
 }
 
 impl RendezvousLine for SecureWebSocketLine {
@@ -135,18 +123,23 @@ pub(crate) fn serve(
         .and_then(|remainder| remainder.split(['/', ':']).next())
         .filter(|identity| !identity.is_empty())
         .ok_or_else(|| "secure LAN rendezvous URL omitted a server identity".to_string())?;
-    let descriptor = RunningHostRendezvousDescriptor {
-        schema: "conduit.host/rendezvous-descriptor@1",
-        candidate_id: "candidate/secure-lan",
-        line_family: "authenticated-tls-stream",
-        reachability: &public_url,
-        server_identity,
-        transport_binding_sha256: hex(&listener.certificate_binding_sha256()).to_ascii_lowercase(),
-        expires_at_millis,
-        maximum_attempts: 1,
-        attempt_timeout_millis: timeout_seconds.min(30).saturating_mul(1_000) as u32,
-        session_secret: session_secret.to_vec(),
-    };
+    let descriptor = RunningHostRendezvousDescriptor::new(
+        vec![RendezvousCandidate {
+            candidate_id: "candidate/secure-lan".into(),
+            line_family: RendezvousLineFamily::AuthenticatedTlsStream,
+            reachability: public_url.clone(),
+            authentication: RendezvousAuthentication {
+                server_identity: server_identity.into(),
+                transport_binding_sha256: listener.certificate_binding_sha256(),
+            },
+            expires_at_millis,
+            maximum_attempts: 1,
+            attempt_timeout_millis: timeout_seconds.min(30).saturating_mul(1_000) as u32,
+        }],
+        session_secret,
+        now_millis,
+    )
+    .map_err(|error| format!("construct secure rendezvous descriptor: {error:?}"))?;
     println!(
         "Rendezvous descriptor: {}",
         serde_json::to_string(&descriptor)

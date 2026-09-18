@@ -26,26 +26,31 @@ test("serial rendezvous code selects the browser-attended serial Line", () => {
 test("finite secure LAN descriptor selects the authenticated TLS Line", () => {
   const descriptor = JSON.stringify({
     schema: "conduit.host/rendezvous-descriptor@1",
-    candidate_id: "candidate/secure-lan",
-    line_family: "authenticated-tls-stream",
-    reachability: "wss://conduit-host.test:7443/conduit",
-    server_identity: "conduit-host.test",
-    transport_binding_sha256: "ab".repeat(32),
-    expires_at_millis: Date.now() + 30_000,
-    maximum_attempts: 1,
-    attempt_timeout_millis: 10_000,
+    candidates: [{
+      candidate_id: "candidate/secure-lan",
+      line_family: "authenticated-tls-stream",
+      reachability: "wss://conduit-host.test:7443/conduit",
+      authentication: {
+        server_identity: "conduit-host.test",
+        transport_binding_sha256: new Array(32).fill(0xab),
+      },
+      expires_at_millis: Date.now() + 30_000,
+      maximum_attempts: 1,
+      attempt_timeout_millis: 10_000,
+    }],
     session_secret: new Array(32).fill(0xcd),
   });
   const decoded = decodeRendezvousCode(descriptor);
   assert.equal(decoded.url, "wss://conduit-host.test:7443/conduit");
   assert.equal(decoded.line_id, "conduit-line/authenticated-tls-stream@1");
   assert.equal(decoded.maximum_attempts, 1);
+  assert.equal(decoded.transport_binding_sha256, "ab".repeat(32));
 
   const stale = JSON.parse(descriptor);
-  stale.expires_at_millis = Date.now() - 1;
+  stale.candidates[0].expires_at_millis = Date.now() - 1;
   assert.throws(() => decodeRendezvousCode(JSON.stringify(stale)), { code: "InvalidDescriptor" });
   const relabelled = JSON.parse(descriptor);
-  relabelled.reachability = "ws://conduit-host.test:7443/conduit";
+  relabelled.candidates[0].reachability = "ws://conduit-host.test:7443/conduit";
   assert.throws(() => decodeRendezvousCode(JSON.stringify(relabelled)), { code: "InvalidDescriptor" });
 });
 
