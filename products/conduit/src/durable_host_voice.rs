@@ -123,7 +123,10 @@ fn initialize(config: &DurableVoiceProviderConfig) -> Result<VoiceHostProviders,
         .map_err(|error| format!("discover configured Ollama model: {error}"))?
         .initialize(
             config.admitted_memory_mib,
-            vec![LocalModelKindProfile::Generate],
+            vec![
+                LocalModelKindProfile::Generate,
+                LocalModelKindProfile::StreamGenerate,
+            ],
         )
         .map_err(|error| format!("initialize configured Ollama model: {error}"))?;
 
