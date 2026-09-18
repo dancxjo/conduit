@@ -329,11 +329,9 @@ fn prepare_runtime(
         offer_generation: OfferGeneration(1),
     };
     let host = match voice::load(state_dir)? {
-        Some(providers) => StdHost::new_with_voice_providers(
-            config,
-            StdHostComposition::reference(),
-            providers,
-        )?,
+        Some(providers) => {
+            StdHost::new_with_voice_providers(config, StdHostComposition::reference(), providers)?
+        }
         None => StdHost::new_with_config(config),
     };
     let status = RuntimeStatus {
