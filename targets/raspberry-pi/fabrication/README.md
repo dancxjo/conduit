@@ -33,7 +33,8 @@ Then compile and seal the Linux and Raspberry Pi OS Host releases:
 cargo xtask host release --platform linux --output target/creche-host-releases
 ```
 
-The setup command installs the GNU AArch64 cross toolchain and the headless X
+The setup command installs the native build toolchain and CMake, both GNU AArch64
+C and C++ cross compilers, the cross libc development files, and the headless X
 runner used by packaged native journey checks. Host-device audio support inside
 Tongues is not a prerequisite for this cross build; Conduit consumes Tongues'
 device-free DSP/TTS path for this release.
