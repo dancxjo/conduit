@@ -111,7 +111,6 @@ fn first_and_repeated_frames_have_no_runtime_font_allocations() {
     assert_eq!(ALLOCATIONS.with(Cell::get), 0);
 }
 
-
 #[test]
 fn icons_and_rounded_shapes_have_no_frame_allocations() {
     use conduit_presentation::{
@@ -158,13 +157,8 @@ fn icons_and_rounded_shapes_have_no_frame_allocations() {
                 .unwrap();
             scene
                 .push(
-                    GraphicsCommand::icon(
-                        bounds,
-                        bounds,
-                        GraphicsPaintRole::Foreground,
-                        icon,
-                    )
-                    .unwrap(),
+                    GraphicsCommand::icon(bounds, bounds, GraphicsPaintRole::Foreground, icon)
+                        .unwrap(),
                 )
                 .unwrap();
             let receipt = conduitos::display::render_scene(&mut surface, &scene).unwrap();
