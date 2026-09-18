@@ -1,7 +1,6 @@
 //! Explicit durable configuration of already-local Voice Host providers.
 
-use conduit_ai::LocalModelKindProfile;
-use conduit_std_host::hosted_local_model::OllamaDiscovery;
+use conduit_std_host::hosted_local_model::{LocalModelKindProfile, OllamaDiscovery};
 use conduit_std_host::hosted_speech::{PiperDiscovery, PiperLimits};
 use conduit_std_host::hosted_speech_recognition::{WhisperDiscovery, WhisperLimits};
 use conduit_std_host::VoiceHostProviders;
@@ -98,7 +97,7 @@ fn validate(config: &DurableVoiceProviderConfig) -> Result<(), String> {
         || !(1..=120).contains(&config.whisper_timeout_seconds)
         || !(1..=120).contains(&config.piper_timeout_seconds)
         || config.ollama_model.is_empty()
-        || config.ollama_model.len() > conduit_ai::MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES
+        || config.ollama_model.len() > 256
         || config.admitted_memory_mib == 0
     {
         return Err("durable Voice provider configuration violates its finite bounds".into());
@@ -112,12 +111,10 @@ fn initialize(config: &DurableVoiceProviderConfig) -> Result<VoiceHostProviders,
         &config.whisper_model,
     )
     .map_err(|error| format!("discover configured Whisper provider: {error:?}"))?
-    .initialize(WhisperLimits {
-        maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
-        maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
-        threads: config.whisper_threads,
-        timeout: Duration::from_secs(config.whisper_timeout_seconds),
-    })
+    .initialize(WhisperLimits::live_conversation(
+        config.whisper_threads,
+        Duration::from_secs(config.whisper_timeout_seconds),
+    ))
     .map_err(|error| format!("initialize configured Whisper provider: {error:?}"))?;
 
     let model = OllamaDiscovery::discover(&config.ollama_model)
@@ -135,12 +132,9 @@ fn initialize(config: &DurableVoiceProviderConfig) -> Result<VoiceHostProviders,
         config.piper_library_path.clone(),
     )
     .map_err(|error| format!("discover configured Piper provider: {error:?}"))?
-    .initialize(PiperLimits {
-        maximum_text_bytes: conduit_tongues::MAXIMUM_TEXT_BYTES,
-        maximum_frames: conduit_std_offers::PIPER_MAXIMUM_FRAMES,
-        maximum_blocks: conduit_std_offers::PIPER_MAXIMUM_BLOCKS,
-        timeout: Duration::from_secs(config.piper_timeout_seconds),
-    })
+    .initialize(PiperLimits::live_conversation(Duration::from_secs(
+        config.piper_timeout_seconds,
+    )))
     .map_err(|error| format!("initialize configured Piper provider: {error:?}"))?;
 
     Ok(VoiceHostProviders {
