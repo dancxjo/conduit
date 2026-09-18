@@ -2,7 +2,7 @@
 
 use crate::cli::HostServiceCommand;
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_std_host::{StdHost, StdHostConfig};
+use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -323,11 +323,19 @@ fn prepare_runtime(
 > {
     let installation = read_installation(&state_dir.join("installation.json"))?;
     let boot_id = fresh_identity("boot/installed", &installation.host_id);
-    let host = StdHost::new_with_config(StdHostConfig {
+    let config = StdHostConfig {
         host_id: HostId::from(installation.host_id.as_str()),
         boot_id: BootId::from(boot_id.as_str()),
         offer_generation: OfferGeneration(1),
-    });
+    };
+    let host = match voice::load(state_dir)? {
+        Some(providers) => StdHost::new_with_voice_providers(
+            config,
+            StdHostComposition::reference(),
+            providers,
+        )?,
+        None => StdHost::new_with_config(config),
+    };
     let status = RuntimeStatus {
         schema: RUNTIME_SCHEMA.into(),
         host_id: host.advertisement().host_id.as_str().into(),
