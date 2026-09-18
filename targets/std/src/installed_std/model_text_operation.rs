@@ -122,12 +122,10 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     let offer = selected_offer(placement);
     let input = offer.host_operations[0].maximum_input_bytes;
     let output = offer.host_operations[0].maximum_output_bytes;
-    let streaming_chunks =
-        placement.kind_id.as_str() == conduit_ai::GENERATED_CHUNK_TO_TEXT_KIND;
+    let streaming_chunks = placement.kind_id.as_str() == conduit_ai::GENERATED_CHUNK_TO_TEXT_KIND;
     Ok(OperationBudget {
         value_items: if streaming_chunks {
-            conduit_ai::MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS
-                .saturating_mul(2)
+            conduit_ai::MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS.saturating_mul(2)
         } else {
             2
         },
@@ -154,8 +152,7 @@ fn prepare(
         emitted: false,
         flow: matches!(
             placement.kind_id.as_str(),
-            conduit_ai::MODEL_RESULT_FLOW_TO_TEXT_KIND
-                | conduit_ai::GENERATED_CHUNK_TO_TEXT_KIND
+            conduit_ai::MODEL_RESULT_FLOW_TO_TEXT_KIND | conduit_ai::GENERATED_CHUNK_TO_TEXT_KIND
         ),
         maximum_input_bytes: offer.host_operations[0].maximum_input_bytes,
     }))
