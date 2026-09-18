@@ -15,7 +15,9 @@ export class CrecheRendezvousRefusal extends Error {
 }
 
 export function decodeRendezvousCode(value) {
-  const normalized = String(value ?? "").trim().toUpperCase();
+  const raw = String(value ?? "").trim();
+  if (raw.startsWith("{")) return decodeRemoteDescriptor(raw);
+  const normalized = raw.toUpperCase();
   const websocket = WEBSOCKET_CODE_PATTERN.exec(normalized);
   const serial = SERIAL_CODE_PATTERN.exec(normalized);
   if (!websocket && !serial) refuse("InvalidCode", "rendezvous code is not a supported finite Line code");
@@ -31,6 +33,51 @@ export function decodeRendezvousCode(value) {
     line_id: websocket ? "conduit-line/loopback-websocket@1" : "conduit-line/serial-text@1",
     url: websocket ? websocketUrl(websocket[1]) : null,
     session_secret: sessionSecret,
+  });
+}
+
+function decodeRemoteDescriptor(raw) {
+  let descriptor;
+  try { descriptor = JSON.parse(raw); }
+  catch (error) { refuse("InvalidDescriptor", "remote rendezvous descriptor is not valid JSON", error); }
+  const keys = Object.keys(descriptor ?? {}).sort().join(",");
+  const expectedKeys = ["candidate_id", "expires_at_millis", "line_family", "maximum_attempts",
+    "reachability", "schema", "server_identity", "session_secret", "transport_binding_sha256",
+    "attempt_timeout_millis"].sort().join(",");
+  if (keys !== expectedKeys
+    || descriptor.schema !== "conduit.host/rendezvous-descriptor@1"
+    || descriptor.candidate_id !== "candidate/secure-lan"
+    || descriptor.line_family !== "authenticated-tls-stream"
+    || typeof descriptor.reachability !== "string" || descriptor.reachability.length > 256
+    || !descriptor.reachability.startsWith("wss://")
+    || typeof descriptor.server_identity !== "string" || descriptor.server_identity.length < 1
+    || descriptor.server_identity.length > 256
+    || !/^[0-9a-f]{64}$/.test(descriptor.transport_binding_sha256)
+    || !Number.isSafeInteger(descriptor.expires_at_millis) || descriptor.expires_at_millis <= Date.now()
+    || descriptor.maximum_attempts !== 1
+    || !Number.isSafeInteger(descriptor.attempt_timeout_millis)
+    || descriptor.attempt_timeout_millis < 1 || descriptor.attempt_timeout_millis > 30_000
+    || !byteSequence(descriptor.session_secret, 32)
+    || descriptor.session_secret.every((byte) => byte === 0)) {
+    refuse("InvalidDescriptor", "remote rendezvous descriptor is stale, insecure, or outside its finite policy");
+  }
+  let endpoint;
+  try { endpoint = new URL(descriptor.reachability); }
+  catch (error) { refuse("InvalidDescriptor", "remote rendezvous endpoint is malformed", error); }
+  if (endpoint.protocol !== "wss:" || endpoint.hostname !== descriptor.server_identity) {
+    refuse("InvalidDescriptor", "remote rendezvous server identity does not match its secure endpoint");
+  }
+  return Object.freeze({
+    schema: descriptor.schema,
+    carrier: "websocket",
+    line_id: "conduit-line/authenticated-tls-stream@1",
+    url: descriptor.reachability,
+    session_secret: new Uint8Array(descriptor.session_secret),
+    candidate_id: descriptor.candidate_id,
+    transport_binding_sha256: descriptor.transport_binding_sha256,
+    expires_at_millis: descriptor.expires_at_millis,
+    maximum_attempts: descriptor.maximum_attempts,
+    attempt_timeout_millis: descriptor.attempt_timeout_millis,
   });
 }
 
