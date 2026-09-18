@@ -233,9 +233,11 @@ mod tests {
             confidence: None,
         };
         assert!(committed_user_message(&partial).unwrap().is_none());
-        assert!(committed_user_message(&committed(TextRole::Generation, "response"))
-            .unwrap()
-            .is_none());
+        assert!(
+            committed_user_message(&committed(TextRole::Generation, "response"))
+                .unwrap()
+                .is_none()
+        );
 
         let message = committed_user_message(&committed(TextRole::Recognition, "hello"))
             .unwrap()
