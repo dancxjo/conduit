@@ -77,22 +77,25 @@ impl StdHost {
 }
 
 fn validate_recognition(adapter: &WhisperSpeechAdapter) -> Result<(), String> {
-    if adapter.limits().maximum_audio_bytes
-        < conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32
-        || adapter.limits().maximum_text_bytes
-            < conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16
-    {
+    let limits = adapter.limits();
+    if !conduit_tongues::recognition_capacity_satisfies_live_conversation(
+        limits.maximum_audio_bytes,
+        limits.maximum_text_bytes,
+    ) {
         return Err("initialized Whisper adapter does not satisfy Live Conversation".into());
     }
     Ok(())
 }
 
 fn validate_synthesis(adapter: &PiperSpeechAdapter) -> Result<(), String> {
+    let limits = adapter.limits();
+    let pcm_bytes = limits.maximum_frames.saturating_mul(2);
     if adapter.discovery().sample_rate_hz != 22_050
-        || adapter.limits().maximum_frames < conduit_tongues::MAXIMUM_PCM_BYTES.div_ceil(2)
-        || adapter.limits().maximum_blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS
-        || adapter.limits().maximum_text_bytes
-            < conduit_tongues::MAXIMUM_SPEAKABLE_SEGMENT_BYTES as u32
+        || limits.maximum_blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS
+        || !conduit_tongues::synthesis_capacity_satisfies_live_conversation(
+            limits.maximum_text_bytes,
+            pcm_bytes,
+        )
     {
         return Err("initialized Piper adapter does not satisfy Live Conversation".into());
     }
