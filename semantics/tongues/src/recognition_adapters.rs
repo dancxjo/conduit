@@ -401,7 +401,7 @@ mod tests {
         crate::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
         let checked = check_syntax_document(
             &parse_syntax_document(
-                "form main ( > audio: audio/pcm-frames@1...| events: speech/recognition-event@1...| > ) { recognize: speech/recognize-stream audio > recognize.audio recognize.events > events }",
+                "form main (\n    > audio: audio/pcm-frames@1...|\n    events: speech/recognition-event@1...| >\n) {\n    recognize: speech/recognize-stream\n    audio > recognize.audio\n    recognize.events > events\n}",
             ),
             &startup,
         )
