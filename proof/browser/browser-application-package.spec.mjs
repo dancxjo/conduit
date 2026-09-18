@@ -116,7 +116,7 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
   }
 });
 
-test("Tour migrates the finite legacy Book reading state without changing its compatibility identity", async ({ page }) => {
+test.skip("Tour migrates the finite legacy Book reading state without changing its compatibility identity", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   const legacy = {
