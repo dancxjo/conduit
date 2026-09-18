@@ -42,9 +42,6 @@ use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
 use super::recognized_turn_commit_operation::RecognizedTurnCommitOperation;
-use super::speech_recognition_adapter_operation::{
-    SpeechResultToEventStreamOperation, SpeechWindowToClipOperation,
-};
 use super::record_delivery_operation::RecordDeliveryStatusOperation;
 use super::record_queue_operation::RecordQueueOperation;
 use super::record_temporal_operation::{RecordExactlyOneOperation, RecordSingletonStreamOperation};
@@ -55,6 +52,9 @@ use super::rhythm_compare_operation::RhythmCompareOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::sequence_normalization_operation::SequenceNormalizationOperation;
+use super::speech_recognition_adapter_operation::{
+    SpeechResultToEventStreamOperation, SpeechWindowToClipOperation,
+};
 use super::speech_synthesis_operation::SpeechSynthesisOperation;
 use super::state_select_operation::StateSelectScalarOperation;
 use super::structured_selector_operation::StructuredSelectorOperation;
