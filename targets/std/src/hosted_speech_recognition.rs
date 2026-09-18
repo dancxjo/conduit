@@ -191,6 +191,14 @@ impl WhisperSpeechAdapter {
         self.limits
     }
 
+    pub fn provider_identity(&self) -> String {
+        let mut digest = Sha256::new();
+        digest.update(b"conduit-whisper-provider-v1\0");
+        digest.update(self.discovery.executable_sha256.as_bytes());
+        digest.update(self.discovery.model_sha256.as_bytes());
+        format!("whisper/provider/{:x}", digest.finalize())
+    }
+
     pub fn recognize(
         &mut self,
         encoded: &[u8],
@@ -209,7 +217,7 @@ impl WhisperSpeechAdapter {
             return Err(WhisperFailure::UnsupportedPcmProfile);
         }
         let audio_sha256: [u8; 32] = Sha256::digest(encoded).into();
-        self.recognize_payload(payload, audio_sha256, cancelled)
+        self.recognize_payload(payload, audio_sha256, encoded.len() as u32, cancelled)
     }
 
     pub fn recognize_clip(
@@ -240,13 +248,14 @@ impl WhisperSpeechAdapter {
             payload.extend_from_slice(block.payload);
         }
         let audio_sha256: [u8; 32] = Sha256::digest(encoded).into();
-        self.recognize_payload(&payload, audio_sha256, cancelled)
+        self.recognize_payload(&payload, audio_sha256, encoded.len() as u32, cancelled)
     }
 
     fn recognize_payload(
         &mut self,
         payload: &[u8],
         audio_sha256: [u8; 32],
+        audio_extent_bytes: u32,
         mut cancelled: impl FnMut() -> bool,
     ) -> Result<Vec<u8>, WhisperFailure> {
         if cancelled() {
@@ -307,6 +316,8 @@ impl WhisperSpeechAdapter {
             },
             text: (!transcript.is_empty()).then(|| transcript.to_owned()),
             audio_sha256,
+            audio_extent_bytes,
+            provider_identity: self.provider_identity(),
         };
         let encoded_result = conduit_tongues::encode_speech_recognition_result(&result)
             .map_err(|_| WhisperFailure::OutputOverflow)?;
