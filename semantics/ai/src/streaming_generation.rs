@@ -4,6 +4,9 @@ use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_GENERATED_TEXT_CHUNK_BYTES: usize = 4 * 1024;
+/// Canonical JSON envelope headroom for sequence plus escaped text syntax.
+pub const MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES: usize =
+    MAXIMUM_GENERATED_TEXT_CHUNK_BYTES + 128;
 pub const MAXIMUM_GENERATED_TEXT_CHUNKS: u64 = 4_096;
 pub const MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS: u16 = 8;
 
@@ -39,6 +42,46 @@ pub enum GeneratedTextFlowRefusal {
     ChunkCountOverflow,
     OutputOverflow,
     AlreadyTerminal,
+}
+
+pub fn encode_generated_text_chunk(
+    chunk: &GeneratedTextChunk,
+) -> Result<alloc::vec::Vec<u8>, GeneratedTextFlowRefusal> {
+    validate_chunk(chunk)?;
+    let encoded =
+        serde_json::to_vec(chunk).map_err(|_| GeneratedTextFlowRefusal::ChunkOverflow)?;
+    if encoded.len() > MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES {
+        return Err(GeneratedTextFlowRefusal::ChunkOverflow);
+    }
+    Ok(encoded)
+}
+
+pub fn decode_generated_text_chunk(
+    encoded: &[u8],
+) -> Result<GeneratedTextChunk, GeneratedTextFlowRefusal> {
+    if encoded.len() > MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES {
+        return Err(GeneratedTextFlowRefusal::ChunkOverflow);
+    }
+    let chunk: GeneratedTextChunk =
+        serde_json::from_slice(encoded).map_err(|_| GeneratedTextFlowRefusal::ChunkOverflow)?;
+    validate_chunk(&chunk)?;
+    if encode_generated_text_chunk(&chunk)? != encoded {
+        return Err(GeneratedTextFlowRefusal::ChunkOverflow);
+    }
+    Ok(chunk)
+}
+
+fn validate_chunk(chunk: &GeneratedTextChunk) -> Result<(), GeneratedTextFlowRefusal> {
+    if chunk.sequence >= MAXIMUM_GENERATED_TEXT_CHUNKS {
+        return Err(GeneratedTextFlowRefusal::ChunkCountOverflow);
+    }
+    if chunk.text.is_empty() {
+        return Err(GeneratedTextFlowRefusal::EmptyChunk);
+    }
+    if chunk.text.len() > MAXIMUM_GENERATED_TEXT_CHUNK_BYTES {
+        return Err(GeneratedTextFlowRefusal::ChunkOverflow);
+    }
+    Ok(())
 }
 
 pub struct BoundedGeneratedTextFlow {
