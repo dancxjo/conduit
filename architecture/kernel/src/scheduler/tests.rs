@@ -1,6 +1,7 @@
 use super::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, RemoteIngressOutcome,
-    SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    AssignedPressurePolicy, CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver,
+    RemoteIngressOutcome, SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
+    StepOutcome,
 };
 use crate::{
     BoundedValueRef, CanonicalValue, CordId, Failure, FailureCode, FixedHostOperationBindings,
@@ -2460,7 +2461,7 @@ fn coalescing_cords_supersede_the_newest_pending_item_without_growth() {
                 slot_start: 0,
                 item_capacity: 1,
                 byte_capacity: 4,
-                pressure_policy: conduit_assigned_plan::DeliveryPressurePolicy::CoalesceLatest,
+                pressure_policy: AssignedPressurePolicy::CoalesceLatest,
             },
         )],
         routes,

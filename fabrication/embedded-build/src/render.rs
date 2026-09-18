@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
-use conduit_core::{CancellationPolicy, DeliveryPressurePolicy, TerminalPolicy};
+use conduit_core::{CancellationPolicy, TerminalPolicy};
+use conduit_kernel::scheduler::AssignedPressurePolicy;
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
 use crate::model::{
@@ -256,11 +257,11 @@ fn render_cords(output: &mut String, plan: &GeneratedEmbeddedPlan) {
             ),
         };
         let pressure_policy = match cord.pressure_policy {
-            DeliveryPressurePolicy::PreserveOrder => {
-                "conduit_core::DeliveryPressurePolicy::PreserveOrder"
+            AssignedPressurePolicy::PreserveOrder => {
+                "conduit_kernel::scheduler::AssignedPressurePolicy::PreserveOrder"
             }
-            DeliveryPressurePolicy::CoalesceLatest => {
-                "conduit_core::DeliveryPressurePolicy::CoalesceLatest"
+            AssignedPressurePolicy::CoalesceLatest => {
+                "conduit_kernel::scheduler::AssignedPressurePolicy::CoalesceLatest"
             }
         };
         writeln!(
