@@ -25,6 +25,15 @@ pub struct WhisperLimits {
 }
 
 impl WhisperLimits {
+    pub fn live_conversation(threads: u8, timeout: Duration) -> Self {
+        Self {
+            maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+            maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
+            threads,
+            timeout,
+        }
+    }
+
     fn validate(self) -> Result<Self, WhisperFailure> {
         if self.maximum_audio_bytes == 0
             || self.maximum_audio_bytes as usize > conduit_audio::MAXIMUM_PCM_CLIP_BYTES
