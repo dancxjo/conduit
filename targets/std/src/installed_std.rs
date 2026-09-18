@@ -457,6 +457,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut body_chat_prompt_hosts = body_chat_prompt_operation::prepare_hosts(fragment);
     let mut recognized_turn_commit_hosts =
         recognized_turn_commit_operation::prepare_hosts(fragment);
+    let mut speech_window_hosts =
+        speech_recognition_adapter_operation::prepare_window_hosts(fragment);
+    let mut speech_result_stream_hosts =
+        speech_recognition_adapter_operation::prepare_result_hosts(fragment);
     let mut generated_speech_commit_hosts =
         generated_speech_commit_operation::prepare_hosts(fragment)?;
     let mut body_conversation_context_host =
@@ -1787,6 +1791,79 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 }
                 #[cfg(not(any(test, feature = "local-model-proof")))]
                 return Err("proof-only recorded-speech contract is unavailable".into());
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::SPEECH_WINDOW_PUSH_OPERATION
+                    | conduit_std_offers::SPEECH_WINDOW_CLOSE_OPERATION
+            ) {
+                let host = speech_window_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "speech-window request has no admitted host".to_string()
+                    })?;
+                let completion = if contract.as_str()
+                    == conduit_std_offers::SPEECH_WINDOW_PUSH_OPERATION
+                {
+                    host.push(input)?;
+                    None
+                } else {
+                    Some(host.close()?.to_vec())
+                };
+                let output = completion
+                    .map(|encoded| scheduler.store_host_value(&encoded))
+                    .transpose()
+                    .map_err(|error| format!("store speech-window output: {error:?}"))?
+                    .map(|value| {
+                        BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                    })
+                    .transpose()
+                    .map_err(|error| format!("bound speech-window output: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete speech-window operation: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::SPEECH_RESULT_TO_EVENT_OPERATION {
+                let encoded = speech_result_stream_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "speech-result adapter request has no admitted host".to_string()
+                    })?
+                    .execute(input)?;
+                let value = scheduler
+                    .store_host_value(encoded)
+                    .map_err(|error| format!("store recognition event: {error:?}"))?;
+                let output = BoundedValueRef::new(
+                    value,
+                    lowered_operation.binding.maximum_output_bytes,
+                )
+                .map_err(|error| format!("bound recognition event: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(output),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete speech-result adapter: {error:?}"))?;
+                continue;
             } else if contract.as_str() == conduit_std_offers::RECOGNIZED_TURN_COMMIT_OPERATION {
                 let completion = recognized_turn_commit_hosts
                     .get_mut(usize::from(request.node.0))
