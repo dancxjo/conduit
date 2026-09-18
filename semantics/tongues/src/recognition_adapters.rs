@@ -28,9 +28,6 @@ pub const SPEECH_WINDOW_TO_CLIP_REVISION: &str = "conduit.speech/window-to-clip@
 pub const SPEECH_RESULT_TO_EVENT_STREAM_KIND: &str = "speech/result-to-event-stream";
 pub const SPEECH_RESULT_TO_EVENT_STREAM_REVISION: &str =
     "conduit.speech/result-to-event-stream@1";
-/// Finite turn extent independent of the current browser capture implementation.
-pub const MAXIMUM_SPEECH_WINDOW_BLOCKS: usize = 8_192;
-
 const STREAMING_RECOGNITION_BACK: &str = r#"form speech/recognize-stream (
     > audio: audio/pcm-frames@1...|
     events: speech/recognition-event@1...| >
