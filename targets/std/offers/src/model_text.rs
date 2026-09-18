@@ -9,6 +9,8 @@ pub const MODEL_RESULT_TO_TEXT_STD_IMPLEMENTATION: &str = "std/model-result-to-t
 pub const MODEL_RESULT_TO_TEXT_STD_PROFILE: &str = "std/model-result-to-text-hosted@1";
 pub const MODEL_RESULT_TO_TEXT_STD_ARTIFACT: &str = "conduit-std-host/model-result-to-text@1";
 pub const MODEL_RESULT_TO_TEXT_OPERATION: &str = "conduit.host/model-result-to-text@1";
+pub const GENERATED_CHUNK_TO_TEXT_OPERATION: &str =
+    "conduit.host/generated-chunk-to-text@1";
 
 pub fn model_result_to_text_std_offer() -> CapabilityOffer {
     model_text_offer(
@@ -22,6 +24,34 @@ pub fn model_result_flow_to_text_std_offer() -> CapabilityOffer {
         conduit_ai::model_result_flow_to_text_contract(),
         "model-result-flow-to-text",
     )
+}
+
+pub fn generated_chunk_to_text_std_offer() -> CapabilityOffer {
+    let contract = conduit_ai::generated_chunk_to_text_contract();
+    CapabilityOffer {
+        startup_parameters: vec![],
+        shorthand: None,
+        capability_id: CapabilityId::from("generated-chunk-to-text"),
+        kind_id: contract.kind_id.clone(),
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(MODEL_RESULT_TO_TEXT_STD_PROFILE),
+            implementation_id: ImplementationId::from(MODEL_RESULT_TO_TEXT_STD_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(MODEL_RESULT_TO_TEXT_STD_ARTIFACT),
+        },
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(GENERATED_CHUNK_TO_TEXT_OPERATION),
+            target_kind: Some(contract.kind_id),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES as u32,
+            maximum_output_bytes: conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNK_BYTES as u32,
+        }],
+        resource_requirements: vec![],
+        authority_requirements: vec![],
+        limits: contract.limits,
+    }
 }
 
 fn model_text_offer(contract: conduit_ai::ModelTextContract, capability: &str) -> CapabilityOffer {
