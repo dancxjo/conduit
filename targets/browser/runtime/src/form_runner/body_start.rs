@@ -39,7 +39,36 @@ pub(super) struct BodyStarted {
     pub progress: TourProgress,
 }
 
-pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodyStarted), String> {
+#[derive(Debug)]
+pub(super) struct BodyStartRefusal {
+    pub message: String,
+    pub rejections: Vec<conduit_body::WakeRejectionEvidence>,
+}
+
+impl BodyStartRefusal {
+    #[cfg(test)]
+    fn contains(&self, pattern: &str) -> bool {
+        self.message.contains(pattern)
+    }
+}
+
+impl From<String> for BodyStartRefusal {
+    fn from(message: String) -> Self {
+        Self {
+            message,
+            rejections: Vec::new(),
+        }
+    }
+}
+impl From<&str> for BodyStartRefusal {
+    fn from(message: &str) -> Self {
+        message.to_owned().into()
+    }
+}
+
+pub(super) fn prepare(
+    request: BodyStartRequest,
+) -> Result<(TourSession, BodyStarted), BodyStartRefusal> {
     use crate::installed_browser::*;
     request
         .plan
@@ -108,7 +137,33 @@ pub(super) fn prepare(request: BodyStartRequest) -> Result<(TourSession, BodySta
                 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
         },
     )
-    .map_err(|error| format!("Body lowering: {error:?}"))?;
+    .map_err(|error| {
+        let message = format!("Body lowering: {error:?}");
+        let rejections = match error {
+            conduit_plan_lowering::fragment_set::FragmentSetError::Capacity(deficit) => {
+                vec![conduit_body::WakeRejectionEvidence {
+                    reason_code: "lowering.capacity".into(),
+                    category: "Capacity".into(),
+                    stage: "Body lowering".into(),
+                    resource: deficit.resource.into(),
+                    required: deficit.required,
+                    available: deficit.available,
+                    host_id: request.local_host_id.clone(),
+                    boot_id: request.local_boot_id.clone(),
+                    plan_id: Some(request.plan.plan_id.clone()),
+                    checked_form_ids: fragments
+                        .iter()
+                        .map(|fragment| fragment.checked_form_id.clone())
+                        .collect(),
+                }]
+            }
+            _ => Vec::new(),
+        };
+        BodyStartRefusal {
+            message,
+            rejections,
+        }
+    })?;
     // Lowering has already bounded the placements. Dynamic selectors are pure,
     // installed realizations whose exact types and configuration are revalidated.
     for gear in fragments.iter().flat_map(|fragment| &fragment.placements) {

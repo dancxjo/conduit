@@ -212,6 +212,8 @@ pub(crate) struct TourRefusal {
     pub(super) disposition: &'static str,
     pub(super) category: &'static str,
     pub(super) message: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) rejections: Vec<conduit_body::WakeRejectionEvidence>,
 }
 
 pub(crate) fn refusal(message: String) -> TourRefusal {
@@ -244,7 +246,17 @@ pub(crate) fn refusal(message: String) -> TourRefusal {
         disposition: "refused-before-play",
         category,
         message,
+        rejections: Vec::new(),
     }
+}
+
+pub(crate) fn refusal_with_rejections(
+    message: String,
+    rejections: Vec<conduit_body::WakeRejectionEvidence>,
+) -> TourRefusal {
+    let mut refusal = refusal(message);
+    refusal.rejections = rejections;
+    refusal
 }
 
 pub(super) fn decode_manifestation(

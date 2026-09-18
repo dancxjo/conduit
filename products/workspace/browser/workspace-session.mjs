@@ -107,6 +107,7 @@ export function openWorkspaceSession({ host, storage }) {
     },
     async started(start) { request('Started', { ...here, play: start.play, wake_at_start: start.wake_at_start }); await save(); },
     async lull(play) { request('Lull', { ...here, terminated_play: play ?? null }); await save(); },
+    async failed(rejections) { request('Failed', { ...here, rejections }); await save(); },
     async fulfill(attribution = `operator/${host.hostId}`) {
       if (persistenceFailure) throw persistenceFailure;
       await write;

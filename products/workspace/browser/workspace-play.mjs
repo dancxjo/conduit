@@ -85,6 +85,9 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
             requireTerminal(closed?.receipt);
             adapter = null;
             await session.lull(started.play);
+          } else if (session.evidence()?.realization && error?.refusal?.rejections?.length) {
+            adapter = null;
+            await session.failed(error.refusal.rejections);
           } else if (session.evidence()?.realization && (!closed || closed.startOutcome === 'refused-before-play' || closed.startOutcome === 'not-attempted')) {
             adapter = null;
             await session.lull(null);

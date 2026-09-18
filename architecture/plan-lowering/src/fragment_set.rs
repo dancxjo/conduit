@@ -22,7 +22,7 @@ pub struct FragmentSetBounds {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FragmentSetError {
     Empty,
-    Capacity,
+    Capacity(FragmentSetCapacityDeficit),
     DifferentHostBootOrGeneration,
     DuplicateFragment,
     RemoteUnsupported,
@@ -30,6 +30,13 @@ pub enum FragmentSetError {
     FusionUnsupported,
     SharedPoolUnsupported,
     Fragment(LoweringError),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FragmentSetCapacityDeficit {
+    pub resource: &'static str,
+    pub required: u64,
+    pub available: u64,
 }
 
 #[derive(Debug)]
@@ -55,7 +62,11 @@ pub fn lower_local_fragment_set(
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
     let first = fragments.first().ok_or(FragmentSetError::Empty)?;
     if fragments.len() > usize::from(bounds.fragments) {
-        return Err(FragmentSetError::Capacity);
+        return Err(capacity(
+            "fragments",
+            fragments.len() as u64,
+            bounds.fragments.into(),
+        ));
     }
     let mut result = LoweredFragmentSet {
         partitions: Vec::with_capacity(fragments.len()),
@@ -94,9 +105,20 @@ pub fn lower_local_fragment_set(
         if !lowered.shared_pools.is_empty() {
             return Err(FragmentSetError::SharedPoolUnsupported);
         }
-        let next_nodes = bounded(result.nodes, count(lowered.nodes.len())?, bounds.nodes)?;
-        let next_cords = bounded(result.cords, count(lowered.cords.len())?, bounds.cords)?;
+        let next_nodes = bounded(
+            "nodes",
+            result.nodes,
+            count("nodes", lowered.nodes.len())?,
+            bounds.nodes,
+        )?;
+        let next_cords = bounded(
+            "cords",
+            result.cords,
+            count("cords", lowered.cords.len())?,
+            bounds.cords,
+        )?;
         let next_slots = bounded(
+            "queue-slots",
             result.queue_slots,
             lowered.cord_value_slots,
             bounds.queue_slots,
@@ -105,18 +127,43 @@ pub fn lower_local_fragment_set(
             .value_bytes
             .checked_add(lowered.cord_value_bytes)
             .filter(|value| *value <= bounds.value_bytes)
-            .ok_or(FragmentSetError::Capacity)?;
-        let next_sign_items = bounded(result.sign_items, lowered.sign_items, bounds.sign_items)?;
+            .ok_or_else(|| {
+                capacity(
+                    "value-bytes",
+                    u64::from(result.value_bytes) + u64::from(lowered.cord_value_bytes),
+                    bounds.value_bytes.into(),
+                )
+            })?;
+        let next_sign_items = bounded(
+            "sign-items",
+            result.sign_items,
+            lowered.sign_items,
+            bounds.sign_items,
+        )?;
         let next_sign_bytes = result
             .sign_bytes
             .checked_add(lowered.sign_bytes)
             .filter(|value| *value <= bounds.sign_bytes)
-            .ok_or(FragmentSetError::Capacity)?;
+            .ok_or_else(|| {
+                capacity(
+                    "sign-bytes",
+                    u64::from(result.sign_bytes) + u64::from(lowered.sign_bytes),
+                    bounds.sign_bytes.into(),
+                )
+            })?;
         let targets = lowered.routes.iter().try_fold(0_u16, |total, route| {
-            add(total, count(route.targets.len())?)
+            add(
+                "route-targets",
+                total,
+                count("route-targets", route.targets.len())?,
+            )
         })?;
-        let next_targets = add(route_targets, targets)?;
-        let next_expectations = add(sign_expectations, count(lowered.signs.len())?)?;
+        let next_targets = add("route-targets", route_targets, targets)?;
+        let next_expectations = add(
+            "sign-expectations",
+            sign_expectations,
+            count("sign-expectations", lowered.signs.len())?,
+        )?;
         reindex(
             &mut lowered,
             result.nodes,
@@ -138,23 +185,43 @@ pub fn lower_local_fragment_set(
     Ok(result)
 }
 
-fn count(value: usize) -> Result<u16, FragmentSetError> {
-    value.try_into().map_err(|_| FragmentSetError::Capacity)
+fn capacity(resource: &'static str, required: u64, available: u64) -> FragmentSetError {
+    FragmentSetError::Capacity(FragmentSetCapacityDeficit {
+        resource,
+        required,
+        available,
+    })
 }
-fn add(left: u16, right: u16) -> Result<u16, FragmentSetError> {
-    left.checked_add(right).ok_or(FragmentSetError::Capacity)
+fn count(resource: &'static str, value: usize) -> Result<u16, FragmentSetError> {
+    value
+        .try_into()
+        .map_err(|_| capacity(resource, value as u64, u16::MAX.into()))
 }
-fn bounded(left: u16, right: u16, maximum: u16) -> Result<u16, FragmentSetError> {
-    let value = add(left, right)?;
+fn add(resource: &'static str, left: u16, right: u16) -> Result<u16, FragmentSetError> {
+    left.checked_add(right).ok_or_else(|| {
+        capacity(
+            resource,
+            u64::from(left) + u64::from(right),
+            u16::MAX.into(),
+        )
+    })
+}
+fn bounded(
+    resource: &'static str,
+    left: u16,
+    right: u16,
+    maximum: u16,
+) -> Result<u16, FragmentSetError> {
+    let value = add(resource, left, right)?;
     if value > maximum {
-        Err(FragmentSetError::Capacity)
+        Err(capacity(resource, value.into(), maximum.into()))
     } else {
         Ok(value)
     }
 }
 fn endpoint(endpoint: &mut CordEndpoint, nodes: u16) -> Result<(), FragmentSetError> {
     match endpoint {
-        CordEndpoint::Local { node, .. } => node.0 = add(node.0, nodes)?,
+        CordEndpoint::Local { node, .. } => node.0 = add("node-index", node.0, nodes)?,
         CordEndpoint::Remote(_) => return Err(FragmentSetError::RemoteUnsupported),
     }
     Ok(())
@@ -169,58 +236,58 @@ fn reindex(
     signs: u16,
 ) -> Result<(), FragmentSetError> {
     for node in &mut part.nodes {
-        node.node.0 = add(node.node.0, nodes)?;
+        node.node.0 = add("node-index", node.node.0, nodes)?;
         for port in node.inputs.iter_mut().chain(&mut node.outputs) {
-            port.node.0 = add(port.node.0, nodes)?;
+            port.node.0 = add("node-index", port.node.0, nodes)?;
         }
     }
     for spec in &mut part.node_specs {
         for cord in spec.input_cords.iter_mut().flatten() {
-            cord.0 = add(cord.0, cords)?;
+            cord.0 = add("cord-index", cord.0, cords)?;
         }
     }
     for cord in &mut part.cords {
-        cord.spec.cord.0 = add(cord.spec.cord.0, cords)?;
-        cord.spec.slot_start = add(cord.spec.slot_start, slots)?;
+        cord.spec.cord.0 = add("cord-index", cord.spec.cord.0, cords)?;
+        cord.spec.slot_start = add("queue-slot-index", cord.spec.slot_start, slots)?;
         endpoint(&mut cord.spec.source, nodes)?;
         endpoint(&mut cord.spec.sink, nodes)?;
     }
     for route in &mut part.routes {
-        route.source_node.0 = add(route.source_node.0, nodes)?;
-        route.range.start = add(route.range.start, targets)?;
+        route.source_node.0 = add("node-index", route.source_node.0, nodes)?;
+        route.range.start = add("route-target-index", route.range.start, targets)?;
         for target in &mut route.targets {
-            target.cord.0 = add(target.cord.0, cords)?;
+            target.cord.0 = add("cord-index", target.cord.0, cords)?;
             endpoint(&mut target.sink, nodes)?;
         }
     }
     for operation in &mut part.host_operations {
-        operation.node.0 = add(operation.node.0, nodes)?;
+        operation.node.0 = add("node-index", operation.node.0, nodes)?;
     }
     for resource in &mut part.resources {
-        resource.node.0 = add(resource.node.0, nodes)?;
+        resource.node.0 = add("node-index", resource.node.0, nodes)?;
     }
     for sign in &mut part.signs {
-        sign.expectation.0 = add(sign.expectation.0, signs)?;
+        sign.expectation.0 = add("sign-expectation-index", sign.expectation.0, signs)?;
         match &mut sign.target {
-            SignExpectationTarget::Node(node) => node.0 = add(node.0, nodes)?,
-            SignExpectationTarget::Cord(cord) => cord.0 = add(cord.0, cords)?,
+            SignExpectationTarget::Node(node) => node.0 = add("node-index", node.0, nodes)?,
+            SignExpectationTarget::Cord(cord) => cord.0 = add("cord-index", cord.0, cords)?,
             SignExpectationTarget::Fragment => {}
         }
     }
     for (node, _) in &mut part.identity.placements {
-        node.0 = add(node.0, nodes)?;
+        node.0 = add("node-index", node.0, nodes)?;
     }
     for port in &mut part.identity.ports {
-        port.node.0 = add(port.node.0, nodes)?;
+        port.node.0 = add("node-index", port.node.0, nodes)?;
     }
     for (cord, _) in &mut part.identity.connections {
-        cord.0 = add(cord.0, cords)?;
+        cord.0 = add("cord-index", cord.0, cords)?;
     }
     for (node, _, _) in &mut part.identity.host_operations {
-        node.0 = add(node.0, nodes)?;
+        node.0 = add("node-index", node.0, nodes)?;
     }
     for (node, _, _) in &mut part.identity.resources {
-        node.0 = add(node.0, nodes)?;
+        node.0 = add("node-index", node.0, nodes)?;
     }
     Ok(())
 }

@@ -129,6 +129,11 @@ enum Request {
         boot_id: BootId,
         terminated_play: Option<BodyPlayIdentity>,
     },
+    Failed {
+        host_id: HostId,
+        boot_id: BootId,
+        rejections: Vec<conduit_body::WakeRejectionEvidence>,
+    },
     Fulfill {
         host_id: HostId,
         boot_id: BootId,
@@ -516,6 +521,16 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 crate::form_runner::workspace::require_empty()?;
                 candidate
                     .lull(&host_id, &boot_id, terminated_play.as_ref())
+                    .map_err(debug)?;
+            }
+            Request::Failed {
+                host_id,
+                boot_id,
+                rejections,
+            } => {
+                crate::form_runner::workspace::require_empty()?;
+                candidate
+                    .fail(&host_id, &boot_id, rejections)
                     .map_err(debug)?;
             }
             Request::Fulfill {

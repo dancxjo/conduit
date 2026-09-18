@@ -17,6 +17,7 @@ mod workload;
 pub const MAX_BODY_SIGNS: usize = 16;
 pub const MAX_WAKE_SIGNS: usize = 32;
 pub const MAX_WAKE_PLANS: usize = 8;
+pub const MAX_WAKE_REJECTIONS: usize = 8;
 pub const MAX_FULFILLMENT_OBLIGATIONS: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -100,6 +101,24 @@ pub struct WakePlan {
     pub hold: Option<crate::PlanHold>,
 }
 
+/// Host-neutral facts retained when a candidate Plan or realization cannot be
+/// admitted. Presentation copy is derived later; these are durable evidence.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WakeRejectionEvidence {
+    pub reason_code: alloc::string::String,
+    pub category: alloc::string::String,
+    pub stage: alloc::string::String,
+    pub resource: alloc::string::String,
+    pub required: u64,
+    pub available: u64,
+    pub host_id: conduit_core::HostId,
+    pub boot_id: conduit_core::BootId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plan_id: Option<PlanId>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub checked_form_ids: Vec<CheckedFormId>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Wake {
     pub wake_id: WakeId,
@@ -109,6 +128,8 @@ pub struct Wake {
     pub wake_sequence: u64,
     pub lifecycle: WakeLifecycle,
     pub plans: Vec<WakePlan>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rejections: Vec<WakeRejectionEvidence>,
     pub sign_ids: Vec<SignId>,
     pub events: Vec<WakeLifecycleEvent>,
 }
@@ -232,6 +253,7 @@ impl Body {
             wake_sequence,
             lifecycle: WakeLifecycle::AwaitingPlan,
             plans: Vec::new(),
+            rejections: Vec::new(),
             sign_ids: vec![sign_id],
             events: vec![WakeLifecycleEvent::Woke {
                 sign_id: body.sign_ids.last().cloned().expect("wake sign is present"),
@@ -543,6 +565,14 @@ impl Wake {
     }
 
     pub fn fail(&self, sign_id: SignId) -> Result<Self, BodyLifecycleError> {
+        self.fail_with_rejections(sign_id, Vec::new())
+    }
+
+    pub fn fail_with_rejections(
+        &self,
+        sign_id: SignId,
+        rejections: Vec<WakeRejectionEvidence>,
+    ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
         if matches!(
             self.lifecycle,
@@ -551,6 +581,10 @@ impl Wake {
             return Err(BodyLifecycleError::InvalidTransition);
         }
         let mut next = self.clone();
+        if rejections.len() > MAX_WAKE_REJECTIONS {
+            return Err(BodyLifecycleError::PlanCapacityExhausted);
+        }
+        next.rejections = rejections;
         next.push_event(WakeLifecycleEvent::Failed { sign_id })?;
         next.lifecycle = WakeLifecycle::Failed;
         Ok(next)
@@ -560,6 +594,18 @@ impl Wake {
         validate_ids(&[self.wake_id.as_str(), self.body_id.as_str()])?;
         validate_sign(&self.sign_ids, MAX_WAKE_SIGNS)?;
         self.workset.validate()?;
+        if self.rejections.len() > MAX_WAKE_REJECTIONS
+            || self.rejections.iter().any(|rejection| {
+                rejection.reason_code.is_empty()
+                    || rejection.category.is_empty()
+                    || rejection.stage.is_empty()
+                    || rejection.resource.is_empty()
+                    || rejection.required <= rejection.available
+                    || rejection.checked_form_ids.len() > crate::MAX_BODY_FORMS
+            })
+        {
+            return Err(BodyLifecycleError::InvalidPlanningBasis);
+        }
         crate::events::validate_wake_events(
             &self.events,
             &self.sign_ids,
