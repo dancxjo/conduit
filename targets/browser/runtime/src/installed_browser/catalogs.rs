@@ -176,6 +176,7 @@ pub(crate) fn backs(
     conduit_text::install_morse_backs(startup, profile, &mut backs)?;
     conduit_data::install_measurement_plot_form_back(startup, profile, &mut backs)?;
     conduit_semantic_catalog::install_signal_garden_backs(startup, profile, &mut backs)?;
+    conduit_tongues::install_single_shot_streaming_recognition_back(startup, profile, &mut backs)?;
     Ok(backs)
 }
 

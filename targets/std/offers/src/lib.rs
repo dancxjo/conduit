@@ -76,19 +76,33 @@ mod patchbay;
 pub use patchbay::*;
 mod signal;
 pub use signal::*;
+#[cfg(feature = "speech")]
 mod house_conversation;
+#[cfg(feature = "speech")]
 pub use house_conversation::*;
 mod body_chat;
 pub use body_chat::*;
 mod model_text;
 pub use model_text::*;
+#[cfg(feature = "speech")]
 mod speech_recognition;
+#[cfg(feature = "speech")]
 pub use speech_recognition::*;
+#[cfg(feature = "speech")]
+mod speech_recognition_adapters;
+#[cfg(feature = "speech")]
+pub use speech_recognition_adapters::*;
+#[cfg(feature = "speech")]
 mod speech_commit;
+#[cfg(feature = "speech")]
 pub use speech_commit::*;
+#[cfg(feature = "speech")]
 mod speech_synthesis;
+#[cfg(feature = "speech")]
 pub use speech_synthesis::*;
+#[cfg(feature = "speech")]
 mod conversation_commit;
+#[cfg(feature = "speech")]
 pub use conversation_commit::*;
 mod microphone;
 pub use microphone::*;

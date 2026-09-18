@@ -97,6 +97,7 @@ export function openWorkspaceSession({ host, storage }) {
     foreground: () => workspace ? request('Current').foreground : null,
     arrive() { if (!workspace) request('Arrive', { advertisement: localAdvertisement }); return save(); },
     evidence: () => workspace ? request('Current') : null,
+    conversationContext: () => request('ConversationContext'),
     async propose(source, joinedLines = [], browserAudioAuthority = false) {
       if (persistenceFailure) throw persistenceFailure;
       const proposal = request('Propose', { ...here, source, joined_lines: joinedLines, browser_audio_authority: browserAudioAuthority }); workspace = request('Current'); await save(); return proposal;

@@ -196,7 +196,13 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
             1
         },
         sign_items: 32,
-        maximum_value_bytes: maximum_input_bytes.max(maximum_output_bytes),
+        maximum_value_bytes: maximum_input_bytes.max(
+            if placement.kind_id.as_str() == conduit_ai::LLM_STREAM_GENERATE_KIND {
+                conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES as u32
+            } else {
+                maximum_output_bytes
+            },
+        ),
     })
 }
 

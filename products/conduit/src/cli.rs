@@ -251,6 +251,36 @@ pub(crate) enum HostServiceCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Configure already-local Whisper, Ollama, and Piper providers for this durable Host.
+    ConfigureVoice {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        whisper_executable: PathBuf,
+        #[arg(long)]
+        whisper_model: PathBuf,
+        #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u8).range(1..=32))]
+        whisper_threads: u8,
+        #[arg(long, default_value_t = 60, value_parser = clap::value_parser!(u64).range(1..=120))]
+        whisper_timeout_seconds: u64,
+        #[arg(long)]
+        ollama_model: String,
+        #[arg(long)]
+        admitted_memory_mib: u32,
+        #[arg(long)]
+        piper_executable: PathBuf,
+        #[arg(long)]
+        piper_model: PathBuf,
+        #[arg(long)]
+        piper_config: PathBuf,
+        #[arg(long)]
+        piper_library_path: Option<PathBuf>,
+        #[arg(long, default_value_t = 60, value_parser = clap::value_parser!(u64).range(1..=120))]
+        piper_timeout_seconds: u64,
+        /// Explicitly authorize local provider discovery, warmup, and durable configuration.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_local_voice: bool,
+    },
     /// Make this durable Host retain one exact validated Body biography.
     OwnBody {
         /// Exported `conduit.body/biography-evidence@2` document.

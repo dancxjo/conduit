@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
@@ -146,6 +146,10 @@ test("an already-running Host joins without displacing the browser Host or its B
     expect(after.evidence.membership.revision).toBe(before.revision + 2);
     expect(after.evidence.membership.parts.every(part => part.state === "Admitted" && part.current)).toBe(true);
     expect(after.current_host_offers).toHaveLength(2);
+    const nativeInstallation = JSON.parse(await readFile(`${installed.stateDir}/installation.json`, "utf8"));
+    expect(nativeInstallation.joined_body_state?.body_id).toBe(after.evidence.body_id);
+    const nativeRuntime = JSON.parse(await readFile(`${installed.stateDir}/runtime.json`, "utf8"));
+    expect(nativeRuntime.body_id).toBe(after.evidence.body_id);
     await page.reload();
     await expectProcessSuccess(running);
     await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();

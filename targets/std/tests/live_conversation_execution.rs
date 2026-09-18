@@ -7,9 +7,8 @@ use conduit_ai::{
 use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
 use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
 use conduit_tongues::{
-    barge_in_decision, project_committed_turn_text, BargeInDecision, RecognitionEvent,
-    RecognitionEventStatus, RecognizedTurnCommitter, SpeechOrigin, StreamingSpeechCommitter,
-    TurnCommitOutcome,
+    committed_user_message, project_committed_turn_text, SegmentId, StreamEvent,
+    StreamingSpeechCommitter, TextRole,
 };
 
 fn context() -> BodyConversationContext {
@@ -59,39 +58,29 @@ fn committed_external_barge_in_cancels_generation_and_pending_speech_exactly() {
     assert!(!committed_pcm.is_empty());
     assert_eq!(speech.pending_text(), "unfinished");
 
-    let mut recognition = RecognizedTurnCommitter::new("recognition/barge-in");
-    let provisional = RecognitionEvent {
-        stream_id: "recognition/barge-in".into(),
-        sequence: 0,
-        status: RecognitionEventStatus::Provisional,
-        origin: SpeechOrigin::External,
-        text: Some("Wait".into()),
-        audio_extent_bytes: 256,
-        elapsed_milliseconds: 10,
-        provider_identity: "deterministic-asr@1".into(),
+    let provisional = StreamEvent::PartialHypothesis {
+        role: TextRole::Recognition,
+        segment_id: SegmentId("recognition/barge-in".into()),
+        text: "Wait".into(),
+        confidence: None,
     };
-    let (outcome, _, _) = recognition.accept(&provisional).unwrap();
-    assert_eq!(
-        barge_in_decision(outcome),
-        BargeInDecision::KeepActiveAnswer
-    );
+    assert!(committed_user_message(&provisional).unwrap().is_none());
     assert_eq!(speech.pending_text(), "unfinished");
 
-    let committed = RecognitionEvent {
-        sequence: 1,
-        status: RecognitionEventStatus::Committed,
-        text: Some("Wait.".into()),
-        audio_extent_bytes: 512,
-        elapsed_milliseconds: 20,
-        ..provisional
+    let committed = StreamEvent::CommittedSegment {
+        role: TextRole::Recognition,
+        segment_id: SegmentId("recognition/barge-in".into()),
+        text: "Wait.".into(),
+        words: Vec::new(),
+        language: None,
+        speaker_id: None,
+        confidence: None,
     };
-    let (outcome, message, recognition_evidence) = recognition.accept(&committed).unwrap();
-    assert_eq!(
-        barge_in_decision(outcome),
-        BargeInDecision::CancelActiveAnswerForCommittedExternalTurn
-    );
-    assert!(message.is_some());
-    assert!(recognition_evidence.turn_identity.is_some());
+    let message = committed_user_message(&committed)
+        .unwrap()
+        .expect("committed external recognition requests barge-in");
+    assert_eq!(message.text, "Wait.");
+    assert!(!message.turn_identity.is_empty());
 
     let generation_evidence = generation.finish(GeneratedTextFlowTerminal::Cancelled);
     speech.cancel();
@@ -167,34 +156,29 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
     expected_kinds.sort_unstable();
     assert_eq!(exact_kinds, expected_kinds);
 
-    let mut recognition = RecognizedTurnCommitter::new("recognition/fake-one");
-    let provisional = RecognitionEvent {
-        stream_id: "recognition/fake-one".into(),
-        sequence: 0,
-        status: RecognitionEventStatus::Provisional,
-        origin: SpeechOrigin::External,
-        text: Some("How is".into()),
-        audio_extent_bytes: 512,
-        elapsed_milliseconds: 20,
-        provider_identity: "deterministic-asr@1".into(),
+    let provisional = StreamEvent::PartialHypothesis {
+        role: TextRole::Recognition,
+        segment_id: SegmentId("recognition/fake-one".into()),
+        text: "How is".into(),
+        confidence: None,
     };
-    let (outcome, message, _) = recognition.accept(&provisional).unwrap();
-    assert_eq!(outcome, TurnCommitOutcome::Provisional);
-    assert!(message.is_none());
-    let committed = RecognitionEvent {
-        sequence: 1,
-        status: RecognitionEventStatus::Committed,
-        text: Some("How is the Body?".into()),
-        audio_extent_bytes: 1024,
-        elapsed_milliseconds: 40,
-        ..provisional
+    assert!(committed_user_message(&provisional).unwrap().is_none());
+
+    let committed = StreamEvent::CommittedSegment {
+        role: TextRole::Recognition,
+        segment_id: SegmentId("recognition/fake-one".into()),
+        text: "How is the Body?".into(),
+        words: Vec::new(),
+        language: None,
+        speaker_id: None,
+        confidence: None,
     };
-    let (outcome, message, recognition_evidence) = recognition.accept(&committed).unwrap();
-    assert_eq!(outcome, TurnCommitOutcome::Message);
-    let message = message.unwrap();
+    let message = committed_user_message(&committed)
+        .unwrap()
+        .expect("committed recognition becomes one Body turn");
     let user_text = project_committed_turn_text(&message).unwrap();
     assert_eq!(user_text, "How is the Body?");
-    assert!(recognition_evidence.turn_identity.is_some());
+    assert!(!message.turn_identity.is_empty());
 
     let encoded_context = conduit_chat::encode_body_conversation_context(&context()).unwrap();
     let mut chat = conduit_chat::BodyChatPromptState::new(&encoded_context, 4).unwrap();

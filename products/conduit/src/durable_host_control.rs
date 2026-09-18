@@ -1,6 +1,6 @@
 //! Authenticated local control plane into the durable installed Host owner.
 
-use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret};
+use conduit_body::{BodyConversationContext, SpawnInvitationClaim, SpawnInvitationSecret};
 use conduit_core::{ActivePlayIdentity, HostAdvertisement, Plan};
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
@@ -53,6 +53,26 @@ impl DurableHostRuntime {
             image_content_digest: self.image_content_digest.clone(),
             advertisement: self.host.advertisement().clone(),
         }
+    }
+
+    fn install_body_context(
+        &mut self,
+        expected_boot_id: &str,
+        expected_offer_generation: u64,
+        context: &BodyConversationContext,
+    ) -> Result<HostAdvertisement, String> {
+        let before = self.host.advertisement().clone();
+        if before.boot_id.as_str() != expected_boot_id
+            || before.offer_generation.0 != expected_offer_generation
+        {
+            return Err("stale-host-truth".into());
+        }
+        self.host.install_body_conversation_context(context)?;
+        let after = self.host.advertisement().clone();
+        if after.host_id != before.host_id || after.boot_id != before.boot_id {
+            return Err("body-context-host-identity-changed".into());
+        }
+        Ok(after)
     }
 
     fn prepare_remote(
@@ -484,6 +504,13 @@ enum Request {
         claim: SpawnInvitationClaim,
         secret: Vec<u8>,
     },
+    InstallBodyContext {
+        protocol: u16,
+        token: Vec<u8>,
+        expected_boot_id: String,
+        expected_offer_generation: u64,
+        context: BodyConversationContext,
+    },
     PrepareRemote {
         protocol: u16,
         token: Vec<u8>,
@@ -519,6 +546,10 @@ enum Response {
         nonce: [u8; 32],
         signature: Vec<u8>,
         observed_at_millis: u64,
+    },
+    BodyContextInstalled {
+        protocol: u16,
+        advertisement: HostAdvertisement,
     },
     RemotePrepared {
         protocol: u16,
@@ -705,6 +736,50 @@ pub(crate) fn join(
 }
 
 #[cfg(unix)]
+pub(crate) fn install_body_context(
+    state_dir: &Path,
+    expected: &HostAdvertisement,
+    context: BodyConversationContext,
+) -> Result<HostAdvertisement, String> {
+    use std::os::unix::net::UnixStream;
+    let mut token = read_secret(&state_dir.join("control.token"))?;
+    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
+        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+    let mut request = Request::InstallBodyContext {
+        protocol: PROTOCOL,
+        token: token.to_vec(),
+        expected_boot_id: expected.boot_id.as_str().into(),
+        expected_offer_generation: expected.offer_generation.0,
+        context,
+    };
+    write_sensitive_frame(&mut stream, &request)?;
+    stream
+        .shutdown(std::net::Shutdown::Write)
+        .map_err(|error| format!("finish durable Host Body context request: {error}"))?;
+    token.fill(0);
+    if let Request::InstallBodyContext { token, .. } = &mut request {
+        token.fill(0);
+    }
+    match read_frame::<_, Response>(&mut stream)? {
+        Response::BodyContextInstalled {
+            protocol: PROTOCOL,
+            advertisement,
+        } => Ok(advertisement),
+        Response::Refused { code, .. } => Err(format!("durable Host refused Body context: {code}")),
+        _ => Err("durable Host returned the wrong Body context response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn install_body_context(
+    _state_dir: &Path,
+    _expected: &HostAdvertisement,
+    _context: BodyConversationContext,
+) -> Result<HostAdvertisement, String> {
+    Err("no reviewed local durable Host control carrier exists on this platform".into())
+}
+
+#[cfg(unix)]
 pub(crate) fn prepare_remote(
     state_dir: &Path,
     expected: &HostAdvertisement,
@@ -846,6 +921,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
     let offered = match &mut request {
         Request::Status { token, .. }
         | Request::Join { token, .. }
+        | Request::InstallBodyContext { token, .. }
         | Request::PrepareRemote { token, .. }
         | Request::ExchangeRemote { token, .. }
         | Request::ReleaseRemote { token, .. } => token,
@@ -881,6 +957,19 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             secret.fill(0);
             result.unwrap_or_else(|code| refused(&code))
         }
+        Request::InstallBodyContext {
+            protocol,
+            expected_boot_id,
+            expected_offer_generation,
+            context,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .install_body_context(&expected_boot_id, expected_offer_generation, &context)
+            .map(|advertisement| Response::BodyContextInstalled {
+                protocol: PROTOCOL,
+                advertisement,
+            })
+            .unwrap_or_else(|code| refused(&code)),
         Request::PrepareRemote {
             protocol,
             expected_boot_id,

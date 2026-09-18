@@ -18,6 +18,7 @@ pub(super) struct ModelTextOperation {
     next_request: u32,
     emitted: bool,
     flow: bool,
+    maximum_input_bytes: u32,
 }
 
 impl ModelTextOperation {
@@ -31,9 +32,7 @@ impl ModelTextOperation {
                 port: PortId(0),
                 value,
             } if self.pending.is_none() && (self.flow || !self.emitted) => {
-                let Ok(input) =
-                    BoundedValueRef::new(value, conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES)
-                else {
+                let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
                     return fail(FailureCode::InvalidInput, 1);
                 };
                 let request = RequestId(self.next_request);
@@ -87,12 +86,20 @@ impl ModelTextOperation {
     }
 }
 
+fn selected_offer(placement: &PlannedGear) -> conduit_core::CapabilityOffer {
+    match placement.kind_id.as_str() {
+        conduit_ai::MODEL_RESULT_FLOW_TO_TEXT_KIND => {
+            conduit_std_offers::model_result_flow_to_text_std_offer()
+        }
+        conduit_ai::GENERATED_CHUNK_TO_TEXT_KIND => {
+            conduit_std_offers::generated_chunk_to_text_std_offer()
+        }
+        _ => conduit_std_offers::model_result_to_text_std_offer(),
+    }
+}
+
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = if placement.kind_id.as_str() == conduit_ai::MODEL_RESULT_FLOW_TO_TEXT_KIND {
-        conduit_std_offers::model_result_flow_to_text_std_offer()
-    } else {
-        conduit_std_offers::model_result_to_text_std_offer()
-    };
+    let offer = selected_offer(placement);
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id.as_str()
@@ -112,12 +119,24 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
+    let offer = selected_offer(placement);
+    let input = offer.host_operations[0].maximum_input_bytes;
+    let output = offer.host_operations[0].maximum_output_bytes;
+    let streaming_chunks = placement.kind_id.as_str() == conduit_ai::GENERATED_CHUNK_TO_TEXT_KIND;
     Ok(OperationBudget {
-        value_items: 1,
-        value_bytes: conduit_ai::MAXIMUM_MODEL_TEXT_BYTES,
-        host_requests: 1,
-        sign_items: 16,
-        maximum_value_bytes: conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES,
+        value_items: if streaming_chunks {
+            conduit_ai::MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS.saturating_mul(2)
+        } else {
+            2
+        },
+        value_bytes: input.saturating_add(output),
+        host_requests: if streaming_chunks {
+            conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNKS as usize
+        } else {
+            1
+        },
+        sign_items: 32,
+        maximum_value_bytes: input.max(output),
     })
 }
 
@@ -126,11 +145,16 @@ fn prepare(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;
+    let offer = selected_offer(placement);
     Ok(InstalledOperation::ModelText(ModelTextOperation {
         pending: None,
         next_request: 0,
         emitted: false,
-        flow: placement.kind_id.as_str() == conduit_ai::MODEL_RESULT_FLOW_TO_TEXT_KIND,
+        flow: matches!(
+            placement.kind_id.as_str(),
+            conduit_ai::MODEL_RESULT_FLOW_TO_TEXT_KIND | conduit_ai::GENERATED_CHUNK_TO_TEXT_KIND
+        ),
+        maximum_input_bytes: offer.host_operations[0].maximum_input_bytes,
     }))
 }
 

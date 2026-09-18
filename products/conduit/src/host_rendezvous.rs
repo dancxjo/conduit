@@ -4,7 +4,7 @@
 //! session. Body membership remains an explicit invitation proof completed by
 //! the Body-side admission manager.
 
-use conduit_body::SpawnInvitationClaim;
+use conduit_body::{BodyConversationContext, MembershipCredential, SpawnInvitationClaim};
 use conduit_core::HostAdvertisement;
 use conduit_std_host::websocket::{
     NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener,
@@ -27,6 +27,9 @@ trait RendezvousLine {
     fn receive(&mut self) -> Result<Vec<u8>, String>;
     fn send(&mut self, bytes: &[u8]) -> Result<(), String>;
     fn close(&mut self) -> Result<(), String>;
+    fn enter_retained_idle(&mut self) -> Result<(), String> {
+        Ok(())
+    }
     fn poll_receive(&mut self, _timeout: Duration) -> Result<Option<Vec<u8>>, String> {
         Ok(Some(self.receive()?))
     }
@@ -54,13 +57,18 @@ impl RendezvousLine for NativeWebSocketLine {
         NativeWebSocketLine::close(self).map_err(debug("close rendezvous Line"))
     }
 
+    fn enter_retained_idle(&mut self) -> Result<(), String> {
+        self.set_read_timeout(None)
+            .map_err(debug("remove retained rendezvous read timeout"))
+    }
+
     fn poll_receive(&mut self, timeout: Duration) -> Result<Option<Vec<u8>>, String> {
         self.set_read_timeout(Some(timeout))
             .map_err(debug("set rendezvous poll timeout"))?;
         let mut bytes = vec![0_u8; MAXIMUM_FRAME_BYTES];
         let result = self.receive_binary(&mut bytes);
-        self.set_read_timeout(Some(Duration::from_secs(5)))
-            .map_err(debug("restore rendezvous receive timeout"))?;
+        self.set_read_timeout(None)
+            .map_err(debug("restore retained rendezvous idle timeout"))?;
         match result {
             Ok(length) => {
                 bytes.truncate(length);
@@ -133,6 +141,14 @@ enum Ingress {
         claim: SpawnInvitationClaim,
         secret: Vec<u8>,
     },
+    Admitted {
+        protocol: u16,
+        credential: MembershipCredential,
+    },
+    BodyContext {
+        protocol: u16,
+        context: BodyConversationContext,
+    },
     Close {
         protocol: u16,
     },
@@ -168,6 +184,16 @@ enum Egress<'a> {
         nonce: [u8; 32],
         signature: Vec<u8>,
         observed_at_millis: u64,
+    },
+    AdmissionRetained {
+        protocol: u16,
+        body_id: &'a str,
+        part_id: &'a str,
+    },
+    BodyContextInstalled {
+        protocol: u16,
+        body_id: &'a str,
+        basis_revision: u64,
     },
     RemotePrepared {
         protocol: u16,
@@ -209,12 +235,13 @@ fn serve_websocket(state_dir: &Path, timeout_seconds: u64) -> Result<(), String>
     let code = encode_code(address.port(), &session_secret);
     println!("Rendezvous code: {code}");
     println!("Enter this one-use code in Crèche → Add Host → Already running.");
-    println!("Waiting up to {timeout_seconds} seconds on the local WebSocket Line…");
+    println!("Waiting up to {timeout_seconds} seconds for the initial local WebSocket connection…");
 
     let result = (|| {
         let mut line = listener
             .accept_with_timeout(Duration::from_secs(timeout_seconds))
             .map_err(debug("accept rendezvous Line"))?;
+        println!("Initial Host connection accepted; rendezvous deadline cleared. Retaining the Line until explicit close or loss.");
         run_session(
             &mut line,
             state_dir,
@@ -224,7 +251,7 @@ fn serve_websocket(state_dir: &Path, timeout_seconds: u64) -> Result<(), String>
     })();
     session_secret.fill(0);
     if result.is_ok() {
-        println!("Host invitation proof sent; Crèche still decides admission.");
+        println!("Retained Host Line closed cleanly.");
     }
     result
 }
@@ -331,6 +358,7 @@ fn run_session(
         claim,
         core::mem::take(&mut secret),
     )?;
+    let joined_body_id = join.body_id.clone();
     send(
         line,
         &Egress::Join {
@@ -347,11 +375,66 @@ fn run_session(
             observed_at_millis: join.observed_at_millis,
         },
     )?;
+    // Admission completes the bounded handshake. A retained Host Line may then
+    // remain honestly idle indefinitely; only explicit joined-session polling
+    // installs a short read deadline, and it restores this idle state.
+    line.enter_retained_idle()?;
+    let mut membership_retained = false;
+    let mut body_context_installed = false;
     let mut remote_prepared = None;
     loop {
         match receive_joined(line)? {
+            JoinedIngress::Control(Ingress::Admitted {
+                protocol,
+                credential,
+            }) if protocol == PROTOCOL && !membership_retained => {
+                crate::durable_host::retain_rendezvous_membership(
+                    state_dir,
+                    &credential,
+                    &joined_body_id,
+                    &truth.advertisement,
+                )?;
+                send(
+                    line,
+                    &Egress::AdmissionRetained {
+                        protocol: PROTOCOL,
+                        body_id: credential.body_id.as_str(),
+                        part_id: credential.part_id.as_str(),
+                    },
+                )?;
+                membership_retained = true;
+            }
+            JoinedIngress::Control(Ingress::BodyContext {
+                protocol,
+                context,
+            }) if protocol == PROTOCOL && membership_retained => {
+                if context.body_id.as_str() != joined_body_id {
+                    return Err("joined Host Body context belongs to another Body".into());
+                }
+                let body_id = context.body_id.as_str().to_owned();
+                let basis_revision = context.basis.revision;
+                let advertisement = crate::durable_host_control::install_body_context(
+                    state_dir,
+                    &truth.advertisement,
+                    context,
+                )?;
+                if advertisement != truth.advertisement {
+                    return Err(
+                        "provider-ready Body context publication changed current Host offers".into(),
+                    );
+                }
+                send(
+                    line,
+                    &Egress::BodyContextInstalled {
+                        protocol: PROTOCOL,
+                        body_id: &body_id,
+                        basis_revision,
+                    },
+                )?;
+                body_context_installed = true;
+            }
             JoinedIngress::Control(Ingress::PrepareRemote { protocol, plan })
-                if protocol == PROTOCOL =>
+                if protocol == PROTOCOL && membership_retained && body_context_installed =>
             {
                 if remote_prepared.is_some() {
                     return Err("joined Host Line already owns one remote Play".into());
@@ -393,7 +476,10 @@ fn run_session(
                 break;
             }
             _ => {
-                return Err("joined Host Line expected remote preparation or explicit close".into())
+                return Err(
+                    "joined Host Line expected admission retention, Body context, remote preparation, or explicit close"
+                        .into(),
+                )
             }
         }
     }
@@ -472,6 +558,10 @@ fn exchange_joined_frame(
     })
 }
 
+// Keep the bounded control envelope inline: boxing it would add an avoidable
+// allocation to every retained-Line control message merely to equalize this
+// private dispatch enum's variant sizes.
+#[allow(clippy::large_enum_variant)]
 enum JoinedIngress {
     Control(Ingress),
     Frame(Vec<u8>),
@@ -563,6 +653,31 @@ mod tests {
         fn close(&mut self) -> Result<(), String> {
             Ok(())
         }
+    }
+
+    #[test]
+    fn retained_websocket_idle_removes_the_handshake_read_deadline() {
+        let listener = NativeWebSocketListener::bind_loopback(64).expect("loopback listener binds");
+        let address = listener.local_addr().expect("loopback address");
+        let url = listener.url().expect("loopback url");
+        let client = std::thread::spawn(move || {
+            let mut line =
+                NativeWebSocketLine::connect(address, &url, 64).expect("client connects");
+            std::thread::sleep(Duration::from_millis(50));
+            line.send_binary(b"retained-idle")
+                .expect("client sends after idle interval");
+        });
+        let mut line = listener.accept().expect("server accepts");
+        line.set_read_timeout(Some(Duration::from_millis(10)))
+            .expect("short handshake deadline installs");
+        RendezvousLine::enter_retained_idle(&mut line)
+            .expect("retained joined Line removes handshake deadline");
+        let mut bytes = [0_u8; 64];
+        let length = line
+            .receive_binary(&mut bytes)
+            .expect("retained joined Line survives beyond old deadline");
+        assert_eq!(&bytes[..length], b"retained-idle");
+        client.join().expect("client thread completes");
     }
 
     #[test]

@@ -2,10 +2,11 @@
 
 use super::invitation::{PendingBodyJoin, PortableAdmissionReceipt};
 use super::{
-    bounded_read, digest, observe_current_runtime, read_installation, write_json_atomic,
-    Installation, RuntimeStatus, RUNTIME_SCHEMA,
+    bounded_read, digest, observe_current_runtime, read_installation, restrict_directory,
+    write_json_atomic, Installation, RuntimeStatus, RUNTIME_SCHEMA,
 };
 use conduit_body::MembershipCredential;
+use conduit_core::HostAdvertisement;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 
@@ -56,13 +57,55 @@ pub(crate) fn complete_body_join(
             "Body admission receipt lost its exact pending join identity or claims effects".into(),
         );
     }
-    let credential_path = state_dir.join("body/membership-credential.json");
-    let credential_bytes = serde_json::to_vec_pretty(&receipt.credential)
+    persist_joined_membership(state_dir, &mut installation, &receipt.credential)?;
+    fs::remove_file(&pending_path)
+        .map_err(|error| format!("consume pending Body join: {error}"))?;
+    println!(
+        "{}",
+        serde_json::to_string(&receipt)
+            .map_err(|error| format!("encode retained admission receipt: {error}"))?
+    );
+    Ok(())
+}
+
+pub(crate) fn retain_rendezvous_membership(
+    state_dir: &Path,
+    credential: &MembershipCredential,
+    expected_body_id: &str,
+    expected_advertisement: &HostAdvertisement,
+) -> Result<(), String> {
+    let mut installation = read_installation(&state_dir.join("installation.json"))?;
+    if installation.body_state.is_some() || installation.joined_body_state.is_some() {
+        return Err("this installed Host already has current Body state".into());
+    }
+    if credential.body_id.as_str() != expected_body_id
+        || credential.host_id != expected_advertisement.host_id
+        || credential.boot_id != expected_advertisement.boot_id
+        || credential.host_id.as_str() != installation.host_id
+    {
+        return Err(
+            "rendezvous admission receipt lost its exact Body, Host, or Boot identity".into(),
+        );
+    }
+    persist_joined_membership(state_dir, &mut installation, credential)
+}
+
+fn persist_joined_membership(
+    state_dir: &Path,
+    installation: &mut Installation,
+    credential: &MembershipCredential,
+) -> Result<(), String> {
+    let body_dir = state_dir.join("body");
+    fs::create_dir_all(&body_dir)
+        .map_err(|error| format!("create Body state directory: {error}"))?;
+    restrict_directory(&body_dir)?;
+    let credential_path = body_dir.join("membership-credential.json");
+    let credential_bytes = serde_json::to_vec_pretty(credential)
         .map_err(|error| format!("encode membership credential: {error}"))?;
-    write_json_atomic(&credential_path, &receipt.credential)?;
+    write_json_atomic(&credential_path, credential)?;
     installation.joined_body_state = Some(JoinedBodyBinding {
-        body_id: receipt.credential.body_id.as_str().into(),
-        part_id: receipt.credential.part_id.as_str().into(),
+        body_id: credential.body_id.as_str().into(),
+        part_id: credential.part_id.as_str().into(),
         credential_sha256: digest(&credential_bytes),
         credential_path: credential_path.display().to_string(),
     });
@@ -73,27 +116,20 @@ pub(crate) fn complete_body_join(
                 .map_err(|error| format!("durable Host runtime status: {error}"))?;
         if runtime.schema != RUNTIME_SCHEMA
             || runtime.host_id != installation.host_id
-            || runtime.boot_id != receipt.credential.boot_id.as_str()
+            || runtime.boot_id != credential.boot_id.as_str()
             || runtime.body_id.is_some()
         {
             return Err("current runtime differs from the Boot that was admitted".into());
         }
-        runtime.body_id = Some(receipt.credential.body_id.as_str().into());
+        runtime.body_id = Some(credential.body_id.as_str().into());
         Some(runtime)
     } else {
         None
     };
-    write_json_atomic(&install_path, &installation)?;
+    write_json_atomic(&state_dir.join("installation.json"), installation)?;
     if let Some(runtime) = current_runtime {
         write_json_atomic(&runtime_path, &runtime)?;
     }
-    fs::remove_file(&pending_path)
-        .map_err(|error| format!("consume pending Body join: {error}"))?;
-    println!(
-        "{}",
-        serde_json::to_string(&receipt)
-            .map_err(|error| format!("encode retained admission receipt: {error}"))?
-    );
     Ok(())
 }
 

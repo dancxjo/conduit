@@ -283,6 +283,8 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
                                         "Rosehip House, what is the temperature upstairs?".into(),
                                     ),
                                     audio_sha256: sha2::Sha256::digest(&work.input).into(),
+                                    audio_extent_bytes: work.input.len() as u32,
+                                    provider_identity: "fixture/distributed-whisper@1".into(),
                                 },
                             )
                             .unwrap(),

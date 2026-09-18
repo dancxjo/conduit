@@ -81,9 +81,15 @@ pub fn generated_chunk_to_text_contract() -> ModelTextContract {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS,
-            max_queue_bytes: MAXIMUM_GENERATED_TEXT_CHUNK_BYTES as u32,
+            max_queue_bytes: crate::MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES as u32,
         },
     }
+}
+
+pub fn project_encoded_generated_chunk_text(encoded: &[u8]) -> Result<Vec<u8>, ModelTextRefusal> {
+    let chunk = crate::decode_generated_text_chunk(encoded)
+        .map_err(|_| ModelTextRefusal::MalformedEnvelope)?;
+    project_generated_chunk_text(&chunk).map(|text| text.as_bytes().to_vec())
 }
 
 pub fn project_generated_chunk_text(chunk: &GeneratedTextChunk) -> Result<&str, ModelTextRefusal> {

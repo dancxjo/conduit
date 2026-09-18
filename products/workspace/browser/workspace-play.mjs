@@ -41,6 +41,7 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
           externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
         await session.started(started);
+        await external?.updateContext?.();
         publish('Playing', 'Forms are awake');
         const running = adapter;
         const runningPlay = started.play;

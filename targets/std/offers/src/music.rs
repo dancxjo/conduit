@@ -41,8 +41,15 @@ pub const AUDIO_CONVERT_PCM_IMPLEMENTATION: &str =
     "std/kernel-pcm-nearest-s16le-mono-22050-to-stereo-48000@1";
 pub const AUDIO_CONVERT_PCM_ARTIFACT: &str = "conduit-std-host/pcm-profile-conversion@1";
 pub const AUDIO_CONVERT_PCM_OPERATION: &str = "conduit.host/pcm-profile-convert@1";
+pub const AUDIO_CONVERT_PCM_INPUT_MAXIMUM_BYTES: u32 = 131_072;
+pub const AUDIO_CONVERT_PCM_INPUT_FRAMES_PER_BLOCK: u16 = 25;
+pub const AUDIO_CONVERT_PCM_MAXIMUM_INPUT_BYTES: u32 = conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN
+    as u32
+    + AUDIO_CONVERT_PCM_INPUT_FRAMES_PER_BLOCK as u32 * 2;
 pub const AUDIO_CONVERT_PCM_OUTPUT_FRAMES: u16 = 55;
-pub const AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BLOCKS: u16 = crate::PIPER_MAXIMUM_BLOCKS;
+pub const AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BLOCKS: u16 = (AUDIO_CONVERT_PCM_INPUT_MAXIMUM_BYTES / 2)
+    .div_ceil(AUDIO_CONVERT_PCM_INPUT_FRAMES_PER_BLOCK as u32)
+    as u16;
 pub const AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES: u32 =
     conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32 + AUDIO_CONVERT_PCM_OUTPUT_FRAMES as u32 * 4;
 
@@ -242,7 +249,7 @@ pub fn audio_convert_pcm_profile_offer() -> CapabilityOffer {
             contract_id: HostOperationContractId::from(AUDIO_CONVERT_PCM_OPERATION),
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
-            maximum_input_bytes: crate::PIPER_PCM_BLOCK_BYTES,
+            maximum_input_bytes: AUDIO_CONVERT_PCM_MAXIMUM_INPUT_BYTES,
             maximum_output_bytes: AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
         }],
         resource_requirements: Vec::new(),

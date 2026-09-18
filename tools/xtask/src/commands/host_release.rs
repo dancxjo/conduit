@@ -158,6 +158,18 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
 
 fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
+        Command::new("aarch64-linux-gnu-gcc").arg("--version"),
+        "Raspberry Pi OS C cross compiler unavailable; run `cargo xtask setup linux-release`",
+    )?;
+    require_success(
+        Command::new("aarch64-linux-gnu-g++").arg("--version"),
+        "Raspberry Pi OS C++ cross compiler unavailable; run `cargo xtask setup linux-release`",
+    )?;
+    require_success(
+        Command::new("cmake").arg("--version"),
+        "CMake unavailable; run `cargo xtask setup linux-release`",
+    )?;
+    require_success(
         Command::new("cargo").args([
             "build",
             "--locked",
