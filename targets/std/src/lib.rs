@@ -462,6 +462,22 @@ impl Default for StdHost {
     }
 }
 
+fn normalize_capability_offers(
+    capabilities: &mut Vec<conduit_core::CapabilityOffer>,
+) -> Result<(), String> {
+    capabilities.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    if let Some(conflict) = capabilities.windows(2).find(|pair| {
+        pair[0].capability_id == pair[1].capability_id && pair[0] != pair[1]
+    }) {
+        return Err(format!(
+            "Host composition produced conflicting offers for capability {}",
+            conflict[0].capability_id.as_str()
+        ));
+    }
+    capabilities.dedup_by(|left, right| left.capability_id == right.capability_id);
+    Ok(())
+}
+
 impl StdHost {
     pub fn install_body_conversation_context(
         &mut self,
@@ -615,11 +631,7 @@ impl StdHost {
             .push(conduit_std_offers::committed_turn_to_text_std_offer());
         advertisement.capabilities.extend(additional_capabilities);
         advertisement.resources.sort();
-        advertisement.capabilities.sort_by(|left, right| {
-            left.capability_id
-                .as_str()
-                .cmp(right.capability_id.as_str())
-        });
+        normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
