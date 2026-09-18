@@ -24,7 +24,7 @@ mod invitation;
 #[path = "durable_host_membership.rs"]
 mod membership;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
-pub(crate) use membership::complete_body_join;
+pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
 
 #[derive(Debug, Deserialize)]
 struct ReleaseManifest {
