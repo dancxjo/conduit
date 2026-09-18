@@ -13,7 +13,7 @@ fn setup_linux_release(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Erro
         return Err("linux-release setup must run on a Linux development host".into());
     }
 
-    run(
+    run_command(
         "install the pinned Rust aarch64 target",
         "rustup",
         &["target", "add", "aarch64-unknown-linux-gnu"],
@@ -55,10 +55,10 @@ fn run_privileged(
     let mut sudo_args = Vec::with_capacity(args.len() + 1);
     sudo_args.push(program);
     sudo_args.extend_from_slice(args);
-    run(description, "sudo", &sudo_args, opts)
+    run_command(description, "sudo", &sudo_args, opts)
 }
 
-fn run(
+fn run_command(
     description: &str,
     program: &str,
     args: &[&str],
