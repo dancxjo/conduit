@@ -196,7 +196,6 @@ pub(super) struct SpeechWindowToClipHost {
     target_frames: u64,
     window: conduit_tongues::AcousticWindow,
     output: Vec<u8>,
-    blocks: usize,
 }
 
 impl SpeechWindowToClipHost {
@@ -213,14 +212,10 @@ impl SpeechWindowToClipHost {
             )
             .expect("canonical Whisper turn fits the portable AcousticWindow bound"),
             output: Vec::with_capacity(conduit_audio::MAXIMUM_PCM_CLIP_BYTES),
-            blocks: 0,
         }
     }
 
     pub(super) fn push(&mut self, input: &[u8]) -> Result<(), String> {
-        if self.blocks == conduit_tongues::MAXIMUM_SPEECH_WINDOW_BLOCKS {
-            return Err("speech recognition window exceeded its block bound".into());
-        }
         let (header, payload) = PcmFrameHeader::decode_frame(input)
             .map_err(|error| format!("speech window PCM frame: {error:?}"))?;
         if header.representation != PcmSampleRepresentation::Signed16LittleEndian
@@ -290,7 +285,6 @@ impl SpeechWindowToClipHost {
         self.expected_start_frame = header
             .start_frame
             .checked_add(u64::from(header.frame_count));
-        self.blocks += 1;
         Ok(())
     }
 
@@ -397,7 +391,7 @@ fn window_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     Ok(OperationBudget {
         value_items: 2,
         value_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32 + 1,
-        host_requests: conduit_tongues::MAXIMUM_SPEECH_WINDOW_BLOCKS + 1,
+        host_requests: MAXIMUM_PCM_CLIP_FRAMES as usize * 12 + 1,
         sign_items: 64,
         maximum_value_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
     })
