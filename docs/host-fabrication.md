@@ -99,6 +99,7 @@ cargo xtask host rpi [--board <board>]   # build an exact Raspberry Pi SD IMAGE
 cargo xtask host configure [path]
 cargo xtask host config check path/to/config.host.conduit
 cargo xtask host config show path/to/config.host.conduit
+cargo xtask host catalog                  # portable checked target/Base choices
 cargo xtask host build path/to/config.host.conduit
 ```
 
@@ -115,6 +116,15 @@ by validation and BUILD; it owns no private catalog. `check` and interactive
 validation write nothing. Canonicalization sorts declaration order before
 deriving the configuration identity, so equivalent structural meaning lowers
 to the same existing `HostProfile` identity.
+
+`cargo xtask host catalog` emits the same composed package truth as bounded,
+portable JSON for product choosers. Each target retains its exact strategy,
+artifact kinds, adapters, finite maxima, and compatible Base implementation
+and package revisions. The projection has a deterministic catalog identity so
+saved selections can refuse stale catalog truth. Product code may render that projection but must not
+copy or extend it as a second catalog. The projection explicitly records that
+selection creates no Host/Boot identity, Base readiness, current offer, Body
+membership, authority, Plan, or Play.
 
 Checked examples live in `targets/std/profiles/`,
 `targets/rp2040/profiles/`, and `targets/browser/profiles/` for hosted Linux,
