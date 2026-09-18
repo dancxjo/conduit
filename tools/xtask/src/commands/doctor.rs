@@ -133,7 +133,9 @@ fn probe_specs(target: DoctorTarget) -> Vec<ProbeSpec> {
     if matches!(target, DoctorTarget::All | DoctorTarget::Pico) {
         probes.extend(pico_probes());
     }
-    if matches!(target, DoctorTarget::All | DoctorTarget::LinuxRelease) {
+    if matches!(target, DoctorTarget::LinuxRelease)
+        || (matches!(target, DoctorTarget::All) && cfg!(target_os = "linux"))
+    {
         probes.extend(linux_release_probes());
     }
 
