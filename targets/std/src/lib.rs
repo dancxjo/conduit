@@ -466,9 +466,10 @@ fn normalize_capability_offers(
     capabilities: &mut Vec<conduit_core::CapabilityOffer>,
 ) -> Result<(), String> {
     capabilities.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-    if let Some(conflict) = capabilities.windows(2).find(|pair| {
-        pair[0].capability_id == pair[1].capability_id && pair[0] != pair[1]
-    }) {
+    if let Some(conflict) = capabilities
+        .windows(2)
+        .find(|pair| pair[0].capability_id == pair[1].capability_id && pair[0] != pair[1])
+    {
         return Err(format!(
             "Host composition produced conflicting offers for capability {}",
             conflict[0].capability_id.as_str()
