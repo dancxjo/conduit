@@ -653,8 +653,7 @@ mod tests {
 
     #[test]
     fn retained_websocket_idle_removes_the_handshake_read_deadline() {
-        let listener =
-            NativeWebSocketListener::bind_loopback(64).expect("loopback listener binds");
+        let listener = NativeWebSocketListener::bind_loopback(64).expect("loopback listener binds");
         let address = listener.local_addr().expect("loopback address");
         let url = listener.url().expect("loopback url");
         let client = std::thread::spawn(move || {
