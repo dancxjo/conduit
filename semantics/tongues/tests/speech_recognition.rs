@@ -222,9 +222,8 @@ fn recognition_result_v2_bound_covers_maximum_escaped_semantic_fields() {
         text: Some("\u{0001}".repeat(conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES)),
         audio_sha256: [255; 32],
         audio_extent_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
-        provider_identity: "\u{0002}".repeat(
-            conduit_tongues::MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES,
-        ),
+        provider_identity: "\u{0002}"
+            .repeat(conduit_tongues::MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES),
     };
     let encoded = conduit_tongues::encode_speech_recognition_result(&result)
         .expect("declared v2 result bound admits every semantically valid field maximum");
