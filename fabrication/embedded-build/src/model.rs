@@ -1,9 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-use conduit_core::{
-    BaseImplementationId, CancellationPolicy, LineContract, TerminalPolicy,
-};
+use conduit_core::{BaseImplementationId, CancellationPolicy, LineContract, TerminalPolicy};
 use conduit_kernel::scheduler::AssignedPressurePolicy;
 use conduit_plan_lowering::lowering::{RemoteCordDirection, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 

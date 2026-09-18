@@ -37,8 +37,12 @@ pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
 
 fn lower_pressure_policy(policy: conduit_core::DeliveryPressurePolicy) -> AssignedPressurePolicy {
     match policy {
-        conduit_core::DeliveryPressurePolicy::PreserveOrder => AssignedPressurePolicy::PreserveOrder,
-        conduit_core::DeliveryPressurePolicy::CoalesceLatest => AssignedPressurePolicy::CoalesceLatest,
+        conduit_core::DeliveryPressurePolicy::PreserveOrder => {
+            AssignedPressurePolicy::PreserveOrder
+        }
+        conduit_core::DeliveryPressurePolicy::CoalesceLatest => {
+            AssignedPressurePolicy::CoalesceLatest
+        }
     }
 }
 
