@@ -2,8 +2,8 @@
 
 use super::invitation::{PendingBodyJoin, PortableAdmissionReceipt};
 use super::{
-    bounded_read, digest, observe_current_runtime, read_installation, write_json_atomic,
-    Installation, RuntimeStatus, RUNTIME_SCHEMA,
+    bounded_read, digest, observe_current_runtime, read_installation, restrict_directory,
+    write_json_atomic, Installation, RuntimeStatus, RUNTIME_SCHEMA,
 };
 use conduit_body::MembershipCredential;
 use conduit_core::HostAdvertisement;
@@ -93,7 +93,11 @@ fn persist_joined_membership(
     installation: &mut Installation,
     credential: &MembershipCredential,
 ) -> Result<(), String> {
-    let credential_path = state_dir.join("body/membership-credential.json");
+    let body_dir = state_dir.join("body");
+    fs::create_dir_all(&body_dir)
+        .map_err(|error| format!("create Body state directory: {error}"))?;
+    restrict_directory(&body_dir)?;
+    let credential_path = body_dir.join("membership-credential.json");
     let credential_bytes = serde_json::to_vec_pretty(credential)
         .map_err(|error| format!("encode membership credential: {error}"))?;
     write_json_atomic(&credential_path, credential)?;
