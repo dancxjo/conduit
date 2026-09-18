@@ -1,14 +1,19 @@
-//! Portable streaming recognition and the stable user-turn commit boundary.
+//! Conduit Faces for Tongues streaming recognition.
+//!
+//! Tongues owns the speech event lifecycle, recognition commitment, segmentation,
+//! and barge-in semantics. Conduit owns only the portable Face and the boundary
+//! where one immutable Tongues recognition commit becomes a Body user message.
 
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
     PortTemporal,
 };
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::{string::String, vec, vec::Vec};
 
 use crate::{SpeechRecognitionContract, MAXIMUM_RECOGNIZED_TEXT_BYTES};
+
+pub use speaking::StreamEvent as RecognitionEvent;
 
 pub const STREAMING_SPEECH_RECOGNIZE_KIND: &str = "speech/recognize-stream";
 pub const STREAMING_SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize-stream@1";
@@ -18,46 +23,15 @@ pub const COMMITTED_TURN_TO_TEXT_KIND: &str = "speech/committed-turn-to-text";
 pub const COMMITTED_TURN_TO_TEXT_REVISION: &str = "conduit.speech/committed-turn-to-text@1";
 pub const RECOGNITION_EVENT_VALUE_KIND: &str = "speech/recognition-event@1";
 pub const CHAT_MESSAGE_VALUE_KIND: &str = "ChatMessage";
-pub const MAXIMUM_RECOGNITION_EVENT_BYTES: usize = 4_096;
+
+/// The Conduit transport envelope for one Tongues StreamEvent.
+///
+/// Tongues owns event semantics. Conduit owns this finite carrier bound.
+pub const MAXIMUM_RECOGNITION_EVENT_BYTES: usize = 64 * 1024;
 pub const MAXIMUM_COMMITTED_USER_MESSAGE_BYTES: usize = 4_096;
 pub const MAXIMUM_STREAMING_AUDIO_BYTES: usize = 262_144;
 pub const MAXIMUM_STREAMING_AUDIO_ITEMS: u16 = 32;
-/// Maximum source items retained into one clip-only provider window.
-/// This is a semantic turn bound, not a browser packetization constant.
-pub const MAXIMUM_ACOUSTIC_WINDOW_ITEMS: usize = 8_192;
 pub const MAXIMUM_RECOGNITION_EVENT_ITEMS: u16 = 32;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum RecognitionEventStatus {
-    Provisional,
-    Revised,
-    Committed,
-    NoSpeech,
-    ProviderLost,
-    Cancelled,
-    Closed,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum SpeechOrigin {
-    External,
-    SelfSpeech,
-    Ambiguous,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct RecognitionEvent {
-    pub stream_id: String,
-    pub sequence: u32,
-    pub status: RecognitionEventStatus,
-    pub origin: SpeechOrigin,
-    pub text: Option<String>,
-    pub audio_extent_bytes: u32,
-    pub elapsed_milliseconds: u32,
-    pub provider_identity: String,
-}
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CommittedUserMessage {
@@ -67,217 +41,10 @@ pub struct CommittedUserMessage {
     pub text: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RecognitionEvidence {
-    pub stream_id: String,
-    pub sequence: u32,
-    pub status: RecognitionEventStatus,
-    pub audio_extent_bytes: u32,
-    pub elapsed_milliseconds: u32,
-    pub provider_identity: String,
-    pub turn_identity: Option<String>,
-    pub text_sha256: Option<[u8; 32]>,
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TurnCommitOutcome {
-    Provisional,
-    Message,
-    NoTurn,
-    SelfSpeechRefused,
-    AmbiguousWaits,
-    ProviderLost,
-    Cancelled,
-    Closed,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BargeInDecision {
-    KeepActiveAnswer,
-    CancelActiveAnswerForCommittedExternalTurn,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StreamingRecognitionRefusal {
     BoundExceeded,
     InvalidEvent,
-    StaleOrDuplicateSequence,
-    EventAfterTerminal,
-}
-
-/// Bounded state for a clip-only provider realizing a streaming semantic face.
-/// Windows are explicit realization state; they are not the authored Form value.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AcousticWindow {
-    bytes: Vec<u8>,
-    maximum_bytes: usize,
-    items: usize,
-    terminal: bool,
-}
-
-impl AcousticWindow {
-    pub fn new(maximum_bytes: usize) -> Result<Self, StreamingRecognitionRefusal> {
-        if maximum_bytes == 0 || maximum_bytes > MAXIMUM_STREAMING_AUDIO_BYTES {
-            return Err(StreamingRecognitionRefusal::BoundExceeded);
-        }
-        Ok(Self {
-            bytes: Vec::with_capacity(maximum_bytes),
-            maximum_bytes,
-            items: 0,
-            terminal: false,
-        })
-    }
-
-    pub fn push(&mut self, pcm: &[u8]) -> Result<(), StreamingRecognitionRefusal> {
-        if self.terminal {
-            return Err(StreamingRecognitionRefusal::EventAfterTerminal);
-        }
-        if self.items >= MAXIMUM_ACOUSTIC_WINDOW_ITEMS {
-            return Err(StreamingRecognitionRefusal::BoundExceeded);
-        }
-        let length = self
-            .bytes
-            .len()
-            .checked_add(pcm.len())
-            .filter(|length| *length <= self.maximum_bytes)
-            .ok_or(StreamingRecognitionRefusal::BoundExceeded)?;
-        self.bytes.extend_from_slice(pcm);
-        self.items += 1;
-        debug_assert_eq!(self.bytes.len(), length);
-        Ok(())
-    }
-
-    pub fn window(&self) -> &[u8] {
-        &self.bytes
-    }
-
-    /// Releases the completed provider window while retaining its admitted
-    /// allocation for the next window.
-    pub fn release(&mut self) {
-        self.bytes.clear();
-        self.items = 0;
-    }
-
-    pub fn cancel(&mut self) {
-        self.bytes.clear();
-        self.items = 0;
-        self.terminal = true;
-    }
-
-    pub fn provider_lost(&mut self) {
-        self.cancel();
-    }
-
-    pub fn retained_bytes(&self) -> usize {
-        self.bytes.len()
-    }
-
-    pub const fn retained_items(&self) -> usize {
-        self.items
-    }
-}
-
-pub fn barge_in_decision(outcome: TurnCommitOutcome) -> BargeInDecision {
-    if outcome == TurnCommitOutcome::Message {
-        BargeInDecision::CancelActiveAnswerForCommittedExternalTurn
-    } else {
-        BargeInDecision::KeepActiveAnswer
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RecognizedTurnCommitter {
-    stream_id: String,
-    next_sequence: u32,
-    terminal: bool,
-    committed: bool,
-}
-
-impl RecognizedTurnCommitter {
-    pub fn new(stream_id: impl Into<String>) -> Self {
-        Self {
-            stream_id: stream_id.into(),
-            next_sequence: 0,
-            terminal: false,
-            committed: false,
-        }
-    }
-
-    pub fn accept(
-        &mut self,
-        event: &RecognitionEvent,
-    ) -> Result<
-        (
-            TurnCommitOutcome,
-            Option<CommittedUserMessage>,
-            RecognitionEvidence,
-        ),
-        StreamingRecognitionRefusal,
-    > {
-        validate_event(event)?;
-        if self.terminal {
-            return Err(StreamingRecognitionRefusal::EventAfterTerminal);
-        }
-        if event.stream_id != self.stream_id || event.sequence != self.next_sequence {
-            return Err(StreamingRecognitionRefusal::StaleOrDuplicateSequence);
-        }
-        self.next_sequence = self.next_sequence.saturating_add(1);
-        let mut message = None;
-        let outcome = match event.status {
-            RecognitionEventStatus::Provisional | RecognitionEventStatus::Revised => {
-                TurnCommitOutcome::Provisional
-            }
-            RecognitionEventStatus::Committed if event.origin == SpeechOrigin::SelfSpeech => {
-                TurnCommitOutcome::SelfSpeechRefused
-            }
-            RecognitionEventStatus::Committed if event.origin == SpeechOrigin::Ambiguous => {
-                TurnCommitOutcome::AmbiguousWaits
-            }
-            RecognitionEventStatus::Committed if self.committed => {
-                return Err(StreamingRecognitionRefusal::InvalidEvent);
-            }
-            RecognitionEventStatus::Committed => {
-                self.committed = true;
-                message = Some(CommittedUserMessage {
-                    turn_identity: format!("{}/turn/{}", event.stream_id, event.sequence),
-                    role: "user".into(),
-                    source: "committed-external-speech".into(),
-                    text: event
-                        .text
-                        .clone()
-                        .ok_or(StreamingRecognitionRefusal::InvalidEvent)?,
-                });
-                TurnCommitOutcome::Message
-            }
-            RecognitionEventStatus::NoSpeech => TurnCommitOutcome::NoTurn,
-            RecognitionEventStatus::ProviderLost => {
-                self.terminal = true;
-                TurnCommitOutcome::ProviderLost
-            }
-            RecognitionEventStatus::Cancelled => {
-                self.terminal = true;
-                TurnCommitOutcome::Cancelled
-            }
-            RecognitionEventStatus::Closed => {
-                self.terminal = true;
-                TurnCommitOutcome::Closed
-            }
-        };
-        let evidence = RecognitionEvidence {
-            stream_id: event.stream_id.clone(),
-            sequence: event.sequence,
-            status: event.status,
-            audio_extent_bytes: event.audio_extent_bytes,
-            elapsed_milliseconds: event.elapsed_milliseconds,
-            provider_identity: event.provider_identity.clone(),
-            turn_identity: message.as_ref().map(|value| value.turn_identity.clone()),
-            text_sha256: event
-                .text
-                .as_ref()
-                .map(|text| Sha256::digest(text.as_bytes()).into()),
-        };
-        Ok((outcome, message, evidence))
-    }
 }
 
 pub fn streaming_speech_recognition_contract() -> SpeechRecognitionContract {
@@ -348,9 +115,8 @@ pub fn committed_turn_to_text_contract() -> SpeechRecognitionContract {
 }
 
 pub fn encode_recognition_event(
-    event: &RecognitionEvent,
+    event: &speaking::StreamEvent,
 ) -> Result<Vec<u8>, StreamingRecognitionRefusal> {
-    validate_event(event)?;
     let encoded =
         serde_json::to_vec(event).map_err(|_| StreamingRecognitionRefusal::InvalidEvent)?;
     if encoded.len() > MAXIMUM_RECOGNITION_EVENT_BYTES {
@@ -361,17 +127,36 @@ pub fn encode_recognition_event(
 
 pub fn decode_recognition_event(
     encoded: &[u8],
-) -> Result<RecognitionEvent, StreamingRecognitionRefusal> {
+) -> Result<speaking::StreamEvent, StreamingRecognitionRefusal> {
     if encoded.len() > MAXIMUM_RECOGNITION_EVENT_BYTES {
         return Err(StreamingRecognitionRefusal::BoundExceeded);
     }
-    let event: RecognitionEvent =
+    let event: speaking::StreamEvent =
         serde_json::from_slice(encoded).map_err(|_| StreamingRecognitionRefusal::InvalidEvent)?;
-    validate_event(&event)?;
     if encode_recognition_event(&event)? != encoded {
         return Err(StreamingRecognitionRefusal::InvalidEvent);
     }
     Ok(event)
+}
+
+/// Crosses the Conduit Body boundary only for an immutable recognition commit
+/// selected by Tongues. Partial/revised recognition and generated speech remain
+/// speech-runtime events and never become user messages here.
+pub fn committed_user_message(
+    event: &speaking::StreamEvent,
+) -> Result<Option<CommittedUserMessage>, StreamingRecognitionRefusal> {
+    let Some((segment_id, text)) = speaking::committed_recognition_segment(event) else {
+        return Ok(None);
+    };
+    if text.is_empty() || text.len() > MAXIMUM_RECOGNIZED_TEXT_BYTES {
+        return Err(StreamingRecognitionRefusal::InvalidEvent);
+    }
+    Ok(Some(CommittedUserMessage {
+        turn_identity: format!("tongues/{}/turn", segment_id.0),
+        role: "user".into(),
+        source: "committed-external-speech".into(),
+        text: text.into(),
+    }))
 }
 
 pub fn project_committed_turn_text(
@@ -413,39 +198,6 @@ pub fn project_encoded_committed_turn_text(
     Ok(message.text.into_bytes())
 }
 
-fn validate_event(event: &RecognitionEvent) -> Result<(), StreamingRecognitionRefusal> {
-    if event.stream_id.is_empty()
-        || event.provider_identity.is_empty()
-        || event.stream_id.len() > 128
-        || event.provider_identity.len() > crate::MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES
-        || event.audio_extent_bytes as usize > MAXIMUM_STREAMING_AUDIO_BYTES
-    {
-        return Err(StreamingRecognitionRefusal::InvalidEvent);
-    }
-    let has_text = event
-        .text
-        .as_ref()
-        .is_some_and(|text| !text.is_empty() && text.len() <= MAXIMUM_RECOGNIZED_TEXT_BYTES);
-    match event.status {
-        RecognitionEventStatus::Provisional
-        | RecognitionEventStatus::Revised
-        | RecognitionEventStatus::Committed
-            if has_text =>
-        {
-            Ok(())
-        }
-        RecognitionEventStatus::NoSpeech
-        | RecognitionEventStatus::ProviderLost
-        | RecognitionEventStatus::Cancelled
-        | RecognitionEventStatus::Closed
-            if event.text.is_none() =>
-        {
-            Ok(())
-        }
-        _ => Err(StreamingRecognitionRefusal::InvalidEvent),
-    }
-}
-
 fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
@@ -458,121 +210,45 @@ fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDesc
 #[cfg(test)]
 mod tests {
     use super::*;
+    use speaking::{SegmentId, StreamEvent, TextRole};
 
-    fn event(
-        sequence: u32,
-        status: RecognitionEventStatus,
-        text: Option<&str>,
-    ) -> RecognitionEvent {
-        RecognitionEvent {
-            stream_id: "recognition/session-1".into(),
-            sequence,
-            status,
-            origin: SpeechOrigin::External,
-            text: text.map(Into::into),
-            audio_extent_bytes: 320,
-            elapsed_milliseconds: sequence * 20,
-            provider_identity: "fixture/asr-1".into(),
+    fn committed(role: TextRole, text: &str) -> StreamEvent {
+        StreamEvent::CommittedSegment {
+            role,
+            segment_id: SegmentId("segment-1".into()),
+            text: text.into(),
+            words: Vec::new(),
+            language: None,
+            speaker_id: None,
+            confidence: None,
         }
     }
 
     #[test]
-    fn revisions_do_not_create_messages_before_one_commit() {
-        let mut committer = RecognizedTurnCommitter::new("recognition/session-1");
-        let mut messages = Vec::new();
-        for value in [
-            event(
-                0,
-                RecognitionEventStatus::Provisional,
-                Some("what is the temper"),
-            ),
-            event(
-                1,
-                RecognitionEventStatus::Revised,
-                Some("what is the temperature"),
-            ),
-            event(
-                2,
-                RecognitionEventStatus::Committed,
-                Some("what is the temperature upstairs?"),
-            ),
-        ] {
-            let (_, message, _) = committer.accept(&value).unwrap();
-            messages.extend(message);
-        }
-        assert_eq!(messages.len(), 1);
-        assert_eq!(messages[0].text, "what is the temperature upstairs?");
-    }
+    fn only_tongues_committed_recognition_crosses_the_body_turn_boundary() {
+        let partial = StreamEvent::PartialHypothesis {
+            role: TextRole::Recognition,
+            segment_id: SegmentId("segment-1".into()),
+            text: "hel".into(),
+            confidence: None,
+        };
+        assert!(committed_user_message(&partial).unwrap().is_none());
+        assert!(committed_user_message(&committed(TextRole::Generation, "response"))
+            .unwrap()
+            .is_none());
 
-    #[test]
-    fn energy_and_self_speech_do_not_become_user_turns() {
-        let mut committer = RecognizedTurnCommitter::new("recognition/session-1");
-        let (_, message, _) = committer
-            .accept(&event(
-                0,
-                RecognitionEventStatus::Provisional,
-                Some("noise"),
-            ))
+        let message = committed_user_message(&committed(TextRole::Recognition, "hello"))
+            .unwrap()
             .unwrap();
-        assert!(message.is_none());
-        assert_eq!(
-            barge_in_decision(TurnCommitOutcome::Provisional),
-            BargeInDecision::KeepActiveAnswer
-        );
-        let mut echoed = event(1, RecognitionEventStatus::Committed, Some("our own answer"));
-        echoed.origin = SpeechOrigin::SelfSpeech;
-        let (outcome, message, _) = committer.accept(&echoed).unwrap();
-        assert_eq!(outcome, TurnCommitOutcome::SelfSpeechRefused);
-        assert!(message.is_none());
-        assert_eq!(
-            barge_in_decision(outcome),
-            BargeInDecision::KeepActiveAnswer
-        );
+        assert_eq!(message.text, "hello");
+        assert_eq!(project_committed_turn_text(&message), Ok("hello"));
     }
 
     #[test]
-    fn acoustic_window_item_bound_is_semantic_and_packetization_explicit() {
-        let mut window = AcousticWindow::new(MAXIMUM_STREAMING_AUDIO_BYTES).unwrap();
-        for _ in 0..MAXIMUM_ACOUSTIC_WINDOW_ITEMS {
-            window.push(&[1]).unwrap();
-        }
-        assert_eq!(window.retained_items(), MAXIMUM_ACOUSTIC_WINDOW_ITEMS);
-        assert_eq!(
-            window.push(&[1]),
-            Err(StreamingRecognitionRefusal::BoundExceeded)
-        );
-        window.release();
-        assert_eq!(window.retained_items(), 0);
-        assert_eq!(window.retained_bytes(), 0);
-    }
-
-    #[test]
-    fn cancellation_and_provider_loss_release_bounded_audio() {
-        let mut cancelled = AcousticWindow::new(16).unwrap();
-        cancelled.push(&[1, 2, 3]).unwrap();
-        cancelled.cancel();
-        assert_eq!(cancelled.retained_bytes(), 0);
-        let mut lost = AcousticWindow::new(16).unwrap();
-        lost.push(&[1, 2, 3]).unwrap();
-        lost.provider_lost();
-        assert_eq!(lost.retained_bytes(), 0);
-    }
-
-    #[test]
-    fn only_a_committed_external_turn_requests_barge_in() {
-        let mut committer = RecognizedTurnCommitter::new("recognition/session-1");
-        let (outcome, message, _) = committer
-            .accept(&event(
-                0,
-                RecognitionEventStatus::Committed,
-                Some("new question"),
-            ))
-            .unwrap();
-        assert!(message.is_some());
-        assert_eq!(
-            barge_in_decision(outcome),
-            BargeInDecision::CancelActiveAnswerForCommittedExternalTurn
-        );
+    fn recognition_wire_is_the_tongues_stream_event_ir() {
+        let event = committed(TextRole::Recognition, "Hello, Body.");
+        let encoded = encode_recognition_event(&event).unwrap();
+        assert_eq!(decode_recognition_event(&encoded).unwrap(), event);
     }
 
     #[test]
@@ -591,39 +267,6 @@ mod tests {
         assert_eq!(
             commit.outputs[0].value_kind.as_str(),
             CHAT_MESSAGE_VALUE_KIND
-        );
-    }
-
-    #[test]
-    fn only_committed_external_user_messages_project_to_conversation_text() {
-        let message = CommittedUserMessage {
-            turn_identity: "recognition/session-1/turn/2".into(),
-            role: "user".into(),
-            source: "committed-external-speech".into(),
-            text: "Hello, Roseau.".into(),
-        };
-        assert_eq!(project_committed_turn_text(&message), Ok("Hello, Roseau."));
-        let mut wrong_role = message;
-        wrong_role.role = "assistant".into();
-        assert_eq!(
-            project_committed_turn_text(&wrong_role),
-            Err(StreamingRecognitionRefusal::InvalidEvent)
-        );
-    }
-
-    #[test]
-    fn committed_message_wire_projection_preserves_escaped_text() {
-        let message = CommittedUserMessage {
-            turn_identity: "recognition/session-1/turn/3".into(),
-            role: "user".into(),
-            source: "committed-external-speech".into(),
-            text: "Say \"hello\".\nThen listen.".into(),
-        };
-        let encoded = encode_committed_user_message(&message).unwrap();
-        assert!(encoded.len() <= MAXIMUM_COMMITTED_USER_MESSAGE_BYTES);
-        assert_eq!(
-            project_encoded_committed_turn_text(&encoded).unwrap(),
-            message.text.as_bytes()
         );
     }
 }
