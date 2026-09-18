@@ -35,4 +35,5 @@ conduit-text = { path = "../text" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
-tongues-pipeline = { git = "https://github.com/dancxjo/tongues.git", rev = "5748f20ee4fd133be6a9332b01d96dc0649b26a3", optional = true }
+tongues-pipeline = { git = "https://github.com/dancxjo/tongues.git", rev = "b03702798db5a5e7d174278ac2fc1233f171b02e", optional = true }
+speaking = { git = "https://github.com/dancxjo/tongues.git", rev = "b03702798db5a5e7d174278ac2fc1233f171b02e" }
