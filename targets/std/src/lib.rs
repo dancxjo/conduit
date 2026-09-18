@@ -603,6 +603,9 @@ impl StdHost {
             .push(conduit_std_offers::model_result_flow_to_text_std_offer());
         advertisement
             .capabilities
+            .push(conduit_std_offers::generated_chunk_to_text_std_offer());
+        advertisement
+            .capabilities
             .push(conduit_std_offers::address_detect_offer());
         advertisement
             .capabilities
