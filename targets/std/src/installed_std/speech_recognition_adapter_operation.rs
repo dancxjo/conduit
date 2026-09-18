@@ -8,7 +8,7 @@ use conduit_audio::{
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 const TARGET_RATE_HZ: u32 = 16_000;
