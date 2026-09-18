@@ -367,4 +367,119 @@ mod tests {
         )
         .is_err());
     }
+
+    fn actual_voice_offers() -> Vec<CapabilityOffer> {
+        let model = conduit_ai::LocalModelOffer {
+            identity: conduit_ai::LocalModelIdentity {
+                runtime_name: "fixture".into(),
+                runtime_version: "1".into(),
+                runtime_build_identity: "fixture/build-1".into(),
+                model_name: "fixture-model".into(),
+                model_content_identity: "sha256-fixture".into(),
+                architecture: "fixture".into(),
+                parameter_profile: "tiny".into(),
+                quantization: "exact".into(),
+            },
+            limits: conduit_ai::LocalModelLimits {
+                work: conduit_ai::LlmWorkBounds {
+                    maximum_input_bytes: 4_096,
+                    maximum_context_items: 1,
+                    maximum_output_bytes: 4_096,
+                    maximum_work_units: 4_096,
+                    maximum_history_items: 0,
+                },
+                model_bytes: 1,
+                admitted_memory_mib: 1,
+                compute: conduit_ai::LocalModelComputeNeed {
+                    minimum_lanes: 1,
+                    preferred_lanes: 1,
+                    maximum_lanes: 1,
+                    minimum_service_guarantee:
+                        conduit_core::ComputeServiceGuarantee::Shared,
+                },
+                maximum_in_flight: 1,
+                maximum_queue_items: 4,
+                maximum_queue_bytes: 16_384,
+                cancellation_supported: true,
+                cache_policy: conduit_ai::LocalModelCachePolicy::OneLoadedModelUntilShutdown,
+            },
+            supported_profiles: vec![conduit_ai::LocalModelKindProfile::StreamGenerate],
+            initialized: true,
+            lifecycle: conduit_ai::LocalModelLifecycleState::Ready,
+            determinism: conduit_ai::LlmDeterminismProfile::ProviderNondeterministic,
+        };
+        let mut offers = vec![
+            conduit_std_offers::speech_window_to_clip_std_offer(),
+            conduit_std_offers::whisper_clip_speech_offer(),
+            conduit_std_offers::speech_result_to_event_stream_std_offer(),
+            conduit_std_offers::recognized_turn_commit_offer(),
+            conduit_std_offers::committed_turn_to_text_std_offer(),
+            conduit_std_offers::body_conversation_context_std_offer(),
+            conduit_std_offers::body_chat_prompt_std_offer(),
+            conduit_std_offers::generated_chunk_to_text_std_offer(),
+            conduit_std_offers::generated_speech_commit_offer(),
+            conduit_std_offers::piper_streaming_speech_offer(),
+        ];
+        offers.extend(model.capability_offers().unwrap());
+        offers
+    }
+
+    #[test]
+    fn actual_std_voice_offers_cover_every_expanded_remote_conversation_gear() {
+        let source = include_str!("../../../../../../forms/live-conversation/main.conduit");
+        let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(
+            crate::installed_browser::PresentationProfile::Annotation,
+        )
+        .unwrap();
+        let checked = conduit_form::check_syntax_document(
+            &conduit_form::parse_syntax_document(source),
+            &startup,
+        )
+        .unwrap();
+        crate::installed_browser::catalogs::install_checked_structured_selectors(
+            &checked,
+            &mut profile,
+        )
+        .unwrap();
+        let backs = crate::installed_browser::backs(&startup, &profile).unwrap();
+        let expanded = conduit_form::expand_canonical_form_with_backs(
+            &checked,
+            "spoken-live-conversation",
+            &profile,
+            &backs,
+        )
+        .unwrap();
+        let offers = actual_voice_offers();
+
+        for gear in expanded.gears.iter().filter(|gear| {
+            !matches!(
+                gear.kind_id.as_str(),
+                conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND
+                    | conduit_semantic_catalog::AUDIO_PLAY_KIND
+            )
+        }) {
+            assert!(
+                offers
+                    .iter()
+                    .any(|offer| offer.checked_face() == gear.checked_face()),
+                "real Voice Host offers do not realize expanded Gear {}",
+                gear.kind_id.as_str()
+            );
+        }
+
+        for required_adapter in [
+            conduit_tongues::SPEECH_WINDOW_TO_CLIP_KIND,
+            conduit_tongues::SPEECH_RECOGNIZE_CLIP_KIND,
+            conduit_tongues::SPEECH_RESULT_TO_EVENT_STREAM_KIND,
+        ] {
+            assert!(
+                expanded
+                    .gears
+                    .iter()
+                    .any(|gear| gear.kind_id.as_str() == required_adapter),
+                "streaming recognition Back hid adapter {required_adapter}"
+            );
+        }
+    }
+
 }
