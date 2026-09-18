@@ -217,7 +217,7 @@ fn serve_websocket(state_dir: &Path, timeout_seconds: u64) -> Result<(), String>
     let code = encode_code(address.port(), &session_secret);
     println!("Rendezvous code: {code}");
     println!("Enter this one-use code in Crèche → Add Host → Already running.");
-    println!("Waiting up to {timeout_seconds} seconds on the local WebSocket Line…");
+    println!("Waiting up to {timeout_seconds} seconds for the initial local WebSocket connection…");
 
     let result = (|| {
         let mut line = listener
@@ -232,7 +232,7 @@ fn serve_websocket(state_dir: &Path, timeout_seconds: u64) -> Result<(), String>
     })();
     session_secret.fill(0);
     if result.is_ok() {
-        println!("Host invitation proof sent; Crèche still decides admission.");
+        println!("Retained Host Line closed cleanly.");
     }
     result
 }
