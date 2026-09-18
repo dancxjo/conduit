@@ -9,7 +9,6 @@ import { readWorkspaceHandoff, consumeWorkspaceHandoff } from "./workspace-hando
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
 import { openWorkspaceMembership, readBodyInvitation } from "./workspace-membership.mjs";
 import { prepareWorkspaceVoicePlay } from "./workspace-voice-play.mjs";
-import { renderBodyTutorial } from "./body-tutorial.mjs";
 
 export async function startApplication(application) {
   const root = document.querySelector('.workspace-shell');
@@ -25,6 +24,8 @@ export async function startApplication(application) {
   const lullButton = root.querySelector('[data-lull-body]');
   const fulfillButton = root.querySelector('[data-fulfill-body]');
   const tutorial = root.querySelector('[data-body-tutorial]');
+  const tutorialPresentation = application.presentationFor(tutorial);
+  let tutorialRevision = 0;
   const fail = error => {
     notice.textContent = error instanceof Error ? error.message : String(error);
     notice.dataset.disposition = 'refused';
@@ -59,6 +60,20 @@ export async function startApplication(application) {
     let playback = { state: 'Lulled', detail: 'Its Forms can wake here.' };
     let play = null;
     let library = null, membership = null, editing = false;
+    const renderTutorial = () => {
+      if (!session.current()) return;
+      const revision = ++tutorialRevision;
+      tutorialPresentation.present('body-tutorial', session.tutorialView(revision, playback.state), { onEvent(event) {
+        tutorialPresentation.nextEvent('body-tutorial');
+        if (event.revision !== tutorialRevision || event.kind !== 1 || event.value.length !== 0) {
+          fail(new Error('This tutorial action is stale'));
+        } else if (event.action === 'body.wake') play?.wake(true).catch(fail);
+        else if (event.action === 'body.inspect-lifecycle') inspect('lifecycle');
+        else if (event.action === 'body.open-library') { surface.hidden = true; inspection.hidden = true; library?.show(); }
+        else if (event.action === 'body.use-current') { surface.hidden = false; inspection.hidden = true; library?.hide(); if (!input.disabled) input.focus(); }
+        else fail(new Error('Unknown tutorial action'));
+      } });
+    };
     const bodyChanged = () => {
       saving = saving.then(() => session.save()).then(async () => {
         if (!session.current()?.here_part_id) {
@@ -120,7 +135,8 @@ export async function startApplication(application) {
     };
     function render() {
       const body = session.current();
-      renderBodyTutorial(tutorial, { current: body, evidence: session.evidence(), playback });
+      tutorial.hidden = !body;
+      renderTutorial();
       membership?.render();
       const arriving = !body || (!body.here_part_id && body.state !== 'FULFILLED');
       const joining = membership?.isJoining();
@@ -209,7 +225,7 @@ export async function startApplication(application) {
             run: () => voice.run(), close: () => voice.close() });
         }, onState(state) {
         playback = state;
-        renderBodyTutorial(tutorial, { current: session.current(), evidence: session.evidence(), playback });
+        renderTutorial();
         root.querySelector('[data-play-state]').textContent = state.state;
         root.querySelector('[data-body-state]').textContent = session.current().state.toLowerCase();
         root.querySelector('#surface-guidance').textContent = state.detail;

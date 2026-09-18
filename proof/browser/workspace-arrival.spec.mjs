@@ -154,18 +154,17 @@ test("an intentionally empty Body remains lulled without inventing a Play", asyn
 test("contextual tutorial follows the real Body instead of retaining lesson progress", async ({ page }) => {
   await page.goto(entrance.url);
   const tutorial = page.locator('[data-body-tutorial]');
-  await expect(tutorial).toHaveAttribute('data-tutorial-phase', 'birth');
+  await expect(tutorial).toBeHidden();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
-  await expect(tutorial).toHaveAttribute('data-tutorial-phase', 'wake');
+  await expect(tutorial).toContainText('Wake this Body');
+  await expect(tutorial.getByRole('button', { name: 'Wake the retained Body' })).toBeVisible();
   await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
-  await expect(tutorial).toHaveAttribute('data-tutorial-phase', 'living');
   await expect(tutorial).toContainText('finite Body may remain awake');
   await page.getByRole('button', { name: 'Lull Body', exact: true }).click();
-  await expect(tutorial).toHaveAttribute('data-tutorial-phase', 'lull');
   await expect(tutorial).toContainText('Retained rest is not completion');
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
-  await expect(tutorial).toHaveAttribute('data-tutorial-phase', 'lull');
+  await expect(tutorial).toContainText('Retained rest is not completion');
 });
 
 test("explicit Finish retires work, records provenance, and restores as read-only Fulfilled history", async ({ page }) => {

@@ -10,6 +10,22 @@ use conduit_workspace_model::{
     CurrentHostOfferError, CurrentHostOffers, WorkspaceBody, WorkspaceBodyError,
 };
 
+#[test]
+fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
+    let body = born();
+    let view = conduit_workspace_model::tutorial::presentation(
+        &body,
+        7,
+        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+    )
+    .unwrap()
+    .lower()
+    .unwrap();
+    assert_eq!(view.revision, 7);
+    assert!(view.nodes.iter().any(|node| node.text == "Wake this Body"));
+    assert!(view.actions.iter().any(|action| action.id == "body.wake"));
+}
+
 fn host() -> HostId {
     "host/here".into()
 }
