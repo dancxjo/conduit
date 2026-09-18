@@ -4,9 +4,11 @@ use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_GENERATED_TEXT_CHUNK_BYTES: usize = 4 * 1024;
-/// Canonical JSON envelope headroom for sequence plus escaped text syntax.
+const GENERATED_TEXT_CHUNK_MAGIC: &[u8; 8] = b"CDTGTC01";
+const GENERATED_TEXT_CHUNK_HEADER_BYTES: usize = 8 + 8 + 4;
+/// Fixed canonical envelope: magic + sequence + text length + raw UTF-8.
 pub const MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES: usize =
-    MAXIMUM_GENERATED_TEXT_CHUNK_BYTES + 128;
+    GENERATED_TEXT_CHUNK_HEADER_BYTES + MAXIMUM_GENERATED_TEXT_CHUNK_BYTES;
 pub const MAXIMUM_GENERATED_TEXT_CHUNKS: u64 = 4_096;
 pub const MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS: u16 = 8;
 
@@ -48,26 +50,46 @@ pub fn encode_generated_text_chunk(
     chunk: &GeneratedTextChunk,
 ) -> Result<alloc::vec::Vec<u8>, GeneratedTextFlowRefusal> {
     validate_chunk(chunk)?;
-    let encoded =
-        serde_json::to_vec(chunk).map_err(|_| GeneratedTextFlowRefusal::ChunkOverflow)?;
-    if encoded.len() > MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES {
-        return Err(GeneratedTextFlowRefusal::ChunkOverflow);
-    }
+    let mut encoded =
+        alloc::vec::Vec::with_capacity(GENERATED_TEXT_CHUNK_HEADER_BYTES + chunk.text.len());
+    encoded.extend_from_slice(GENERATED_TEXT_CHUNK_MAGIC);
+    encoded.extend_from_slice(&chunk.sequence.to_le_bytes());
+    encoded.extend_from_slice(&(chunk.text.len() as u32).to_le_bytes());
+    encoded.extend_from_slice(chunk.text.as_bytes());
     Ok(encoded)
 }
 
 pub fn decode_generated_text_chunk(
     encoded: &[u8],
 ) -> Result<GeneratedTextChunk, GeneratedTextFlowRefusal> {
-    if encoded.len() > MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES {
+    if encoded.len() < GENERATED_TEXT_CHUNK_HEADER_BYTES
+        || encoded.len() > MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES
+        || encoded.get(..8) != Some(GENERATED_TEXT_CHUNK_MAGIC)
+    {
         return Err(GeneratedTextFlowRefusal::ChunkOverflow);
     }
-    let chunk: GeneratedTextChunk =
-        serde_json::from_slice(encoded).map_err(|_| GeneratedTextFlowRefusal::ChunkOverflow)?;
+    let sequence = u64::from_le_bytes(
+        encoded[8..16]
+            .try_into()
+            .map_err(|_| GeneratedTextFlowRefusal::ChunkOverflow)?,
+    );
+    let text_len = u32::from_le_bytes(
+        encoded[16..20]
+            .try_into()
+            .map_err(|_| GeneratedTextFlowRefusal::ChunkOverflow)?,
+    ) as usize;
+    if GENERATED_TEXT_CHUNK_HEADER_BYTES
+        .checked_add(text_len)
+        .filter(|length| *length == encoded.len())
+        .is_none()
+    {
+        return Err(GeneratedTextFlowRefusal::ChunkOverflow);
+    }
+    let text = core::str::from_utf8(&encoded[GENERATED_TEXT_CHUNK_HEADER_BYTES..])
+        .map_err(|_| GeneratedTextFlowRefusal::ChunkOverflow)?
+        .into();
+    let chunk = GeneratedTextChunk { sequence, text };
     validate_chunk(&chunk)?;
-    if encode_generated_text_chunk(&chunk)? != encoded {
-        return Err(GeneratedTextFlowRefusal::ChunkOverflow);
-    }
     Ok(chunk)
 }
 
