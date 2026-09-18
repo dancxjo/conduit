@@ -197,6 +197,9 @@ dependencies = [
 [[package]]
 name = "conduit-assigned-plan"
 version = "0.1.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "conduit-audio"
