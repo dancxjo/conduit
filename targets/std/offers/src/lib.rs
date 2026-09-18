@@ -84,6 +84,8 @@ mod model_text;
 pub use model_text::*;
 mod speech_recognition;
 pub use speech_recognition::*;
+mod speech_recognition_adapters;
+pub use speech_recognition_adapters::*;
 mod speech_commit;
 pub use speech_commit::*;
 mod speech_synthesis;
