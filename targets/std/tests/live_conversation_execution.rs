@@ -7,9 +7,9 @@ use conduit_ai::{
 use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
 use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
 use conduit_tongues::{
-    committed_user_message, project_committed_turn_text, StreamingSpeechCommitter,
+    committed_user_message, project_committed_turn_text, SegmentId, StreamEvent,
+    StreamingSpeechCommitter, TextRole,
 };
-use speaking::{SegmentId, StreamEvent, TextRole};
 
 fn context() -> BodyConversationContext {
     let body = Body::born(
