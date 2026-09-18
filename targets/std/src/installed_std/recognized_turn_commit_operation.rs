@@ -85,36 +85,25 @@ impl RecognizedTurnCommitOperation {
 }
 
 pub(super) struct RecognizedTurnCommitHost {
-    committer: Option<conduit_tongues::RecognizedTurnCommitter>,
     output: Vec<u8>,
 }
 
 impl RecognizedTurnCommitHost {
     fn new() -> Self {
         Self {
-            committer: None,
             output: Vec::with_capacity(conduit_tongues::MAXIMUM_COMMITTED_USER_MESSAGE_BYTES),
         }
     }
 
     pub(super) fn execute(&mut self, input: &[u8]) -> Result<Option<&[u8]>, String> {
         let event = conduit_tongues::decode_recognition_event(input)
-            .map_err(|error| format!("decode recognition event: {error:?}"))?;
-        if self.committer.is_none() {
-            self.committer = Some(conduit_tongues::RecognizedTurnCommitter::new(
-                event.stream_id.clone(),
-            ));
-        }
-        let (_, message, _) = self
-            .committer
-            .as_mut()
-            .expect("committer initialized")
-            .accept(&event)
-            .map_err(|error| format!("commit recognized turn: {error:?}"))?;
+            .map_err(|error| format!("decode Tongues recognition event: {error:?}"))?;
+        let message = conduit_tongues::committed_user_message(&event)
+            .map_err(|error| format!("project Tongues recognition commit: {error:?}"))?;
         self.output.clear();
         if let Some(message) = message {
-            self.output = serde_json::to_vec(&message)
-                .map_err(|error| format!("encode committed turn: {error}"))?;
+            self.output = conduit_tongues::encode_committed_user_message(&message)
+                .map_err(|error| format!("encode committed Body turn: {error:?}"))?;
             Ok(Some(&self.output))
         } else {
             Ok(None)
@@ -188,50 +177,38 @@ fn fail(detail: u16) -> OperationAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_tongues::{RecognitionEvent, RecognitionEventStatus, SpeechOrigin};
+    use speaking::{SegmentId, StreamEvent, TextRole};
 
-    fn event(sequence: u32, status: RecognitionEventStatus, text: Option<&str>) -> Vec<u8> {
-        serde_json::to_vec(&RecognitionEvent {
-            stream_id: "recognition/test-turn".into(),
-            sequence,
-            status,
-            origin: SpeechOrigin::External,
-            text: text.map(str::to_string),
-            audio_extent_bytes: 320,
-            elapsed_milliseconds: 20,
-            provider_identity: "test/recognizer".into(),
-        })
-        .expect("encode event")
+    fn encoded(event: StreamEvent) -> Vec<u8> {
+        conduit_tongues::encode_recognition_event(&event).expect("encode Tongues event")
     }
 
     #[test]
-    fn provisional_waits_and_committed_event_emits_exactly_once() {
+    fn only_tongues_committed_recognition_emits_a_body_turn() {
         let mut host = RecognizedTurnCommitHost::new();
-        assert!(host
-            .execute(&event(
-                0,
-                RecognitionEventStatus::Provisional,
-                Some("Hello")
-            ))
-            .expect("provisional")
-            .is_none());
-        let encoded = host
-            .execute(&event(
-                1,
-                RecognitionEventStatus::Committed,
-                Some("Hello there"),
-            ))
-            .expect("committed")
-            .expect("message");
+        let partial = StreamEvent::PartialHypothesis {
+            role: TextRole::Recognition,
+            segment_id: SegmentId("turn-1".into()),
+            text: "Hello".into(),
+            confidence: None,
+        };
+        assert!(host.execute(&encoded(partial)).unwrap().is_none());
+
+        let committed = StreamEvent::CommittedSegment {
+            role: TextRole::Recognition,
+            segment_id: SegmentId("turn-1".into()),
+            text: "Hello there".into(),
+            words: Vec::new(),
+            language: None,
+            speaker_id: None,
+            confidence: None,
+        };
+        let output = host
+            .execute(&encoded(committed))
+            .unwrap()
+            .expect("committed Body message");
         let message: conduit_tongues::CommittedUserMessage =
-            serde_json::from_slice(encoded).expect("decode message");
+            serde_json::from_slice(output).unwrap();
         assert_eq!(message.text, "Hello there");
-        assert!(host
-            .execute(&event(
-                1,
-                RecognitionEventStatus::Committed,
-                Some("Hello there")
-            ))
-            .is_err());
     }
 }
