@@ -89,6 +89,8 @@ export function openWorkspaceSession({ host, storage }) {
     selectForm(form) { request('SelectForm', { form }); return save(); },
     libraryView(source, query, revision, joinedLines = []) { return request('LibraryView', { ...here, source, query, revision, joined_lines: joinedLines }, true); },
     tutorialView(revision, playback) { return request('TutorialView', { revision, playback }, true); },
+    invitationView(fields) { return request('InvitationView', fields, true); },
+    invitationQr(transfer_uri) { return request('InvitationQr', { transfer_uri }); },
     async changeWorkset(edit, form, source, expected_revision) {
       if (persistenceFailure) throw persistenceFailure;
       await write;
