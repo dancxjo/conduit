@@ -326,7 +326,13 @@ impl SpeechWindowToClipHost {
         let borrowed = encoded_frames.iter().map(Vec::as_slice).collect::<Vec<_>>();
         self.output = conduit_audio::encode_pcm_clip(&borrowed)
             .map_err(|error| format!("encode speech recognition clip: {error:?}"))?;
+        self.window.release();
         Ok(&self.output)
+    }
+
+    pub(super) fn cancel(&mut self) {
+        self.window.cancel();
+        self.output.clear();
     }
 }
 
@@ -345,6 +351,10 @@ impl SpeechResultToEventStreamHost {
         self.output = conduit_tongues::recognition_result_to_terminal_event(input)
             .map_err(|error| format!("adapt recognition result to event stream: {error:?}"))?;
         Ok(&self.output)
+    }
+
+    pub(super) fn cancel(&mut self) {
+        self.output.clear();
     }
 }
 
