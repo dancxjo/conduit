@@ -180,6 +180,46 @@ test("the POST share target refuses ambiguous, oversized, and GET delivery", asy
   expect(response.status()).toBe(404);
 });
 
+test("pending share delivery survives worker replacement and expired delivery refuses", async ({ context, page }) => {
+  await page.goto(entrance.url);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  const retain = ({ token, value, expiresAt }) => page.evaluate(({ token: identity, value: payload, expiresAt: expiry }) => new Promise((resolve, reject) => {
+    const request = indexedDB.open("conduit-workspace-share-target", 1);
+    request.onerror = () => reject(request.error);
+    request.onupgradeneeded = () => request.result.createObjectStore("pending-invitations", { keyPath: "token" });
+    request.onsuccess = () => {
+      const transaction = request.result.transaction("pending-invitations", "readwrite");
+      transaction.objectStore("pending-invitations").put({ token: identity, value: payload, expires_at_millis: expiry });
+      transaction.oncomplete = () => { request.result.close(); resolve(); };
+      transaction.onerror = () => reject(transaction.error);
+    };
+  }), { token, value, expiresAt });
+
+  const restartToken = crypto.randomUUID();
+  await retain({ token: restartToken, value: "not-json", expiresAt: Date.now() + 60_000 });
+  await page.evaluate(async () => (await navigator.serviceWorker.ready).unregister());
+  await page.close();
+  const restarted = await context.newPage();
+  await restarted.goto(`${entrance.url}#body-share=${restartToken}`);
+  await expect(restarted.locator("[data-workspace-notice]")).toContainText("Body invitation is malformed");
+
+  const expiredToken = crypto.randomUUID();
+  await restarted.evaluate(({ token, expiresAt }) => new Promise((resolve, reject) => {
+    const request = indexedDB.open("conduit-workspace-share-target", 1);
+    request.onerror = () => reject(request.error);
+    request.onupgradeneeded = () => request.result.createObjectStore("pending-invitations", { keyPath: "token" });
+    request.onsuccess = () => {
+      const transaction = request.result.transaction("pending-invitations", "readwrite");
+      transaction.objectStore("pending-invitations").put({ token, value: "not-json", expires_at_millis: expiresAt });
+      transaction.oncomplete = () => { request.result.close(); resolve(); };
+      transaction.onerror = () => reject(transaction.error);
+    };
+  }), { token: expiredToken, expiresAt: Date.now() - 1 });
+  await restarted.goto("about:blank");
+  await restarted.goto(`${entrance.url}#body-share=${expiredToken}`);
+  await expect(restarted.locator("[data-workspace-notice]")).toContainText("Body invitation share expired");
+});
+
 test("malformed invitation framing is refused without creating a Body", async ({ page }) => {
   await page.goto(`${entrance.url}#body-invitation=not-json`);
   await expect(page.locator("[data-workspace-notice]")).toContainText("Body invitation is malformed");
