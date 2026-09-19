@@ -7,11 +7,12 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["form-runner", "tour-surface", "creche-surface", "home-surface"]
+default = ["form-runner", "tour-surface", "creche-surface", "home-surface", "protected-line"]
 form-runner = []
 tour-surface = ["form-runner"]
 creche-surface = []
 home-surface = []
+protected-line = ["dep:conduit-protected-line"]
 
 [dependencies]
 conduit-synth = { path = "../../../mechanisms/implementations/synth" }
@@ -42,6 +43,7 @@ conduit-semantic-catalog = { path = "../../../semantics/catalog", default-featur
 conduit-text = { path = "../../../semantics/text", default-features = false, features = ["form-catalog"] }
 conduit-time = { path = "../../../semantics/time", features = ["form-catalog", "kernel-operation"] }
 conduit-wire = { path = "../../../architecture/wire" }
+conduit-protected-line = { path = "../../../architecture/protected-line", optional = true }
 conduit-host-fabrication = { path = "../../../fabrication/host" }
 conduit-host-avr-fabrication = { path = "../../avr/fabrication" }
 conduit-host-rp2040 = { path = "../../rp2040/fabrication" }

@@ -20,6 +20,7 @@ conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-presentation = { path = "../../semantics/presentation" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
+conduit-protected-line = { path = "../../architecture/protected-line" }
 conduit-signal = { path = "../../semantics/signal", features = ["host-profile"] }
 conduit-std-host = { path = "../../targets/std" }
 conduit-std-offers = { path = "../../targets/std/offers" }

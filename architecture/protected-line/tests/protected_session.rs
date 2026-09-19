@@ -1,7 +1,14 @@
 use conduit_protected_line::{
-    BindingMismatch, EndpointBinding, ProtectedHandshake, ProtectedLineError, ProtectedSession,
-    Role, SessionBinding, SessionDisposition, SessionLimits,
+    establish_protected_session, BindingMismatch, CarrierFailure, EndpointBinding,
+    ProtectedCarrier, ProtectedFrameCarrier, ProtectedHandshake, ProtectedLineError,
+    ProtectedSession, ProtectedSessionAdmission, ProtectedSessionPolicy, Role, SessionBinding,
+    SessionDisposition, SessionLimits,
 };
+use std::sync::{
+    mpsc::{self, Receiver, SyncSender},
+    Arc, Mutex,
+};
+use std::time::Duration;
 
 fn binding() -> SessionBinding {
     SessionBinding {
@@ -28,12 +35,95 @@ fn limits() -> SessionLimits {
     }
 }
 
+fn policy() -> ProtectedSessionPolicy {
+    ProtectedSessionPolicy {
+        traffic: limits(),
+        maximum_simultaneous_sessions: 2,
+        maximum_pending_frames_per_session: 1,
+        handshake_work_units: 2,
+        handshake_timeout_millis: 1_000,
+        idle_timeout_millis: 1_000,
+    }
+}
+
+struct ChannelCarrier {
+    send: Option<SyncSender<Vec<u8>>>,
+    receive: Receiver<Vec<u8>>,
+    inspected: Arc<Mutex<Vec<Vec<u8>>>>,
+}
+
+impl ProtectedFrameCarrier for ChannelCarrier {
+    fn send_frame(&mut self, frame: &[u8]) -> Result<(), CarrierFailure> {
+        self.inspected.lock().unwrap().push(frame.to_vec());
+        self.send
+            .as_ref()
+            .ok_or(CarrierFailure::Lost)?
+            .try_send(frame.to_vec())
+            .map_err(|error| match error {
+                mpsc::TrySendError::Full(_) => CarrierFailure::Pressure,
+                mpsc::TrySendError::Disconnected(_) => CarrierFailure::Lost,
+            })
+    }
+
+    fn receive_frame(
+        &mut self,
+        output: &mut [u8],
+        timeout_millis: u32,
+    ) -> Result<usize, CarrierFailure> {
+        let frame = self
+            .receive
+            .recv_timeout(Duration::from_millis(u64::from(timeout_millis)))
+            .map_err(|error| match error {
+                mpsc::RecvTimeoutError::Timeout => CarrierFailure::TimedOut,
+                mpsc::RecvTimeoutError::Disconnected => CarrierFailure::Lost,
+            })?;
+        if frame.len() > output.len() {
+            return Err(CarrierFailure::Pressure);
+        }
+        output[..frame.len()].copy_from_slice(&frame);
+        Ok(frame.len())
+    }
+
+    fn close(&mut self) -> Result<(), CarrierFailure> {
+        self.send = None;
+        Ok(())
+    }
+}
+
+fn channel_carriers() -> (ChannelCarrier, ChannelCarrier, Arc<Mutex<Vec<Vec<u8>>>>) {
+    let (a_send, b_receive) = mpsc::sync_channel(1);
+    let (b_send, a_receive) = mpsc::sync_channel(1);
+    let inspected = Arc::new(Mutex::new(Vec::new()));
+    let carriers = (
+        ChannelCarrier {
+            send: Some(a_send),
+            receive: a_receive,
+            inspected: Arc::clone(&inspected),
+        },
+        ChannelCarrier {
+            send: Some(b_send),
+            receive: b_receive,
+            inspected: Arc::clone(&inspected),
+        },
+    );
+    (carriers.0, carriers.1, inspected)
+}
+
 fn sessions() -> (ProtectedSession, ProtectedSession) {
-    let psk = [7; 32];
+    sessions_for(binding(), limits(), [7; 32], [1; 32], [2; 32])
+}
+
+fn sessions_for(
+    binding: SessionBinding,
+    limits: SessionLimits,
+    psk: [u8; 32],
+    initiator_key: [u8; 32],
+    responder_key: [u8; 32],
+) -> (ProtectedSession, ProtectedSession) {
     let mut a =
-        ProtectedHandshake::new(Role::Initiator, &binding(), limits(), psk, [1; 32]).unwrap();
+        ProtectedHandshake::new(Role::Initiator, &binding, limits, psk, initiator_key).unwrap();
     let mut b =
-        ProtectedHandshake::new(Role::Responder, &binding(), limits(), psk, [2; 32]).unwrap();
+        ProtectedHandshake::new(Role::Responder, &binding, limits, psk, responder_key).unwrap();
     let mut first = vec![0; a.next_message_bytes().unwrap()];
     a.write_message(&mut first).unwrap();
     b.read_message(&first).unwrap();
@@ -120,6 +210,68 @@ fn mutation_replay_reordering_direction_and_bounds_refuse_distinctly() {
 }
 
 #[test]
+fn splice_stale_session_truncation_and_exhaustion_retire_exact_keys() {
+    let (mut sender, _) = sessions();
+    let mut stale_binding = binding();
+    stale_binding.line_session_id = "line/stale".into();
+    let (_, mut stale_receiver) = sessions_for(stale_binding, limits(), [7; 32], [3; 32], [4; 32]);
+    let mut frame = [0; 128];
+    let length = sender.seal(b"session-bound", &mut frame).unwrap();
+    assert_eq!(
+        stale_receiver.open(&frame[..length], &mut [0; 64]),
+        Err(ProtectedLineError::AuthenticationFailed)
+    );
+    assert_eq!(
+        stale_receiver.open(&frame[..length], &mut [0; 64]),
+        Err(ProtectedLineError::Closed)
+    );
+
+    let (mut sender, mut receiver) = sessions();
+    let length = sender.seal(b"truncate", &mut frame).unwrap();
+    assert_eq!(
+        receiver.open(&frame[..length - 1], &mut [0; 64]),
+        Err(ProtectedLineError::TruncatedFrame)
+    );
+
+    let one_frame = SessionLimits {
+        maximum_payload_bytes: 8,
+        maximum_frames_per_direction: 1,
+        maximum_bytes_per_direction: 8,
+    };
+    let (mut sender, mut receiver) = sessions_for(binding(), one_frame, [9; 32], [5; 32], [6; 32]);
+    let length = sender.seal(b"first", &mut frame).unwrap();
+    receiver.open(&frame[..length], &mut [0; 8]).unwrap();
+    assert_eq!(
+        sender.seal(b"second", &mut frame),
+        Err(ProtectedLineError::FrameLimitExhausted)
+    );
+    assert_eq!(
+        sender.seal(b"late", &mut frame),
+        Err(ProtectedLineError::Closed)
+    );
+
+    let byte_limited = SessionLimits {
+        maximum_payload_bytes: 8,
+        maximum_frames_per_direction: 2,
+        maximum_bytes_per_direction: 8,
+    };
+    let (mut sender, _) = sessions_for(binding(), byte_limited, [10; 32], [7; 32], [8; 32]);
+    sender.seal(b"12345678", &mut frame).unwrap();
+    assert_eq!(
+        sender.seal(b"x", &mut frame),
+        Err(ProtectedLineError::ByteLimitExhausted)
+    );
+
+    let (mut first_sender, _) = sessions_for(binding(), limits(), [11; 32], [9; 32], [10; 32]);
+    let (_, mut second_receiver) = sessions_for(binding(), limits(), [11; 32], [11; 32], [12; 32]);
+    let length = first_sender.seal(b"spliced", &mut frame).unwrap();
+    assert_eq!(
+        second_receiver.open(&frame[..length], &mut [0; 64]),
+        Err(ProtectedLineError::AuthenticationFailed)
+    );
+}
+
+#[test]
 fn wrong_secret_or_bound_identity_cannot_complete_the_handshake() {
     let mut a =
         ProtectedHandshake::new(Role::Initiator, &binding(), limits(), [7; 32], [1; 32]).unwrap();
@@ -139,12 +291,17 @@ fn wrong_secret_or_bound_identity_cannot_complete_the_handshake() {
         b.read_message(&first),
         Err(ProtectedLineError::AuthenticationFailed)
     );
+    assert_eq!(b.read_message(&first), Err(ProtectedLineError::Closed));
 
     let mut wrong_secret =
         ProtectedHandshake::new(Role::Responder, &binding(), limits(), [8; 32], [2; 32]).unwrap();
     assert_eq!(
         wrong_secret.read_message(&first),
         Err(ProtectedLineError::AuthenticationFailed)
+    );
+    assert_eq!(
+        wrong_secret.read_message(&first),
+        Err(ProtectedLineError::Closed)
     );
 }
 
@@ -259,6 +416,70 @@ fn fixed_buffers_cross_one_hundred_thousand_frames_without_lifetime_growth() {
         sender.seal(&[0; 8], &mut protected),
         Err(ProtectedLineError::FrameLimitExhausted)
     );
+}
+
+#[test]
+fn bounded_driver_interoperates_over_one_slot_inspecting_carrier() {
+    let (mut initiator_io, mut responder_io, inspected) = channel_carriers();
+    let responder = std::thread::spawn(move || {
+        let session = establish_protected_session(
+            &mut responder_io,
+            Role::Responder,
+            &binding(),
+            policy(),
+            [17; 32],
+            [19; 32],
+        )
+        .unwrap();
+        ProtectedCarrier::new(responder_io, session, policy()).unwrap()
+    });
+    let initiator_session = establish_protected_session(
+        &mut initiator_io,
+        Role::Initiator,
+        &binding(),
+        policy(),
+        [17; 32],
+        [18; 32],
+    )
+    .unwrap();
+    let mut initiator = ProtectedCarrier::new(initiator_io, initiator_session, policy()).unwrap();
+    let mut responder = responder.join().unwrap();
+
+    initiator.send(b"ordinary rendezvous frame").unwrap();
+    assert_eq!(responder.receive().unwrap(), b"ordinary rendezvous frame");
+    responder.send(b"ordinary response").unwrap();
+    assert_eq!(initiator.receive().unwrap(), b"ordinary response");
+    let inspected = inspected.lock().unwrap();
+    assert_eq!(inspected.len(), 4);
+    assert!(inspected.iter().all(|frame| {
+        !frame
+            .windows(b"ordinary".len())
+            .any(|part| part == b"ordinary")
+    }));
+    drop(inspected);
+    initiator.close().unwrap();
+    assert_eq!(
+        responder.receive(),
+        Err(ProtectedLineError::OuterCarrierLost)
+    );
+}
+
+#[test]
+fn policy_admits_only_finite_sessions_and_reuses_retired_slots() {
+    let mut admission = ProtectedSessionAdmission::<2>::new(policy()).unwrap();
+    let first = admission.admit().unwrap();
+    let second = admission.admit().unwrap();
+    assert_ne!(first, second);
+    assert_eq!(admission.admit(), Err(ProtectedLineError::SessionCapacity));
+    admission.retire(first).unwrap();
+    assert_eq!(admission.admit().unwrap(), first);
+    assert_eq!(admission.retire(9), Err(ProtectedLineError::Closed));
+
+    let invalid = ProtectedSessionPolicy {
+        maximum_pending_frames_per_session: 2,
+        ..policy()
+    };
+    assert_eq!(invalid.validate(), Err(ProtectedLineError::InvalidPolicy));
 }
 
 fn hex(bytes: &[u8]) -> String {
