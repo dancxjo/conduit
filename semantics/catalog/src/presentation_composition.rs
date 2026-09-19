@@ -53,9 +53,9 @@ pub fn presentation_frame_contract() -> StandardKindContract {
         PRESENTATION_FRAME_KIND,
         "Presentation frame",
         "Group bounded content with one renderer-neutral semantic frame role.",
-        vec![text_field(ROLE_KEY, "panel"), name_field("Gear Face")],
+        vec![text_field(ROLE_KEY, "panel"), name_field("Gear Front")],
         true,
-        "frame: presentation/frame(role = \"panel\", accessibility-name = \"Gear Face\")",
+        "frame: presentation/frame(role = \"panel\", accessibility-name = \"Gear Front\")",
     )
 }
 

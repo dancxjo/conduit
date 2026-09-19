@@ -1,4 +1,4 @@
-//! Portable vector-search face and deterministic exact-oracle realization facts.
+//! Portable vector-search front and deterministic exact-oracle realization facts.
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{

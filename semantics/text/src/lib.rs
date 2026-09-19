@@ -2,7 +2,7 @@
 
 //! Host-neutral, bounded UTF-8 text Kind semantics.
 //!
-//! This crate owns text Kind identity, exact typed faces, semantic
+//! This crate owns text Kind identity, exact typed fronts, semantic
 //! configuration, finite bounds, and canonical Form catalog installation. It
 //! owns no Host implementation, execution profile, host operation, artifact,
 //! resource, authority, or manifestation claim.

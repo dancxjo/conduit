@@ -533,7 +533,7 @@ fn host_offer(identities: &BootIdentities) -> HostOffer<'_> {
             mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
             controller_id: [3; 32],
             device_id: [4; 32],
-            interface_id: [5; 32],
+            interfront_id: [5; 32],
             endpoint_id: [6; 32],
             report_buffers: 2,
             transition_slots: 8,

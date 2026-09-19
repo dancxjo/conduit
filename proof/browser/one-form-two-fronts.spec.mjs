@@ -5,19 +5,19 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startJourneyEntrance() {
-  const child=spawn("target/debug/patchbay-html",["--one-form-two-faces"],{stdio:["ignore","pipe","pipe"]});
+  const child=spawn("target/debug/patchbay-html",["--one-form-two-fronts"],{stdio:["ignore","pipe","pipe"]});
   const errors=[];
   child.stderr.setEncoding("utf8");
   child.stderr.on("data",chunk=>errors.push(chunk));
   const lines=createInterface({input:child.stdout});
   const url=new Promise((resolve,reject)=>{
     lines.once("line",line=>resolve(line.replace("PATCHBAY_HTML_URL=","")));
-    child.once("exit",code=>reject(new Error(`two-faces Patchbay exited ${code}: ${errors.join("")}`)));
+    child.once("exit",code=>reject(new Error(`two-fronts Patchbay exited ${code}: ${errors.join("")}`)));
   });
   return {child,lines,url};
 }
 
-test("one Presentation manifests as retained native and pinned-browser faces",async({browser,page})=>{
+test("one Presentation manifests as retained native and pinned-browser fronts",async({browser,page})=>{
   const evidenceRoot=process.env.CONDUIT_TWO_FACES_EVIDENCE_ROOT;
   expect(evidenceRoot).toBeTruthy();
   const native=JSON.parse(await readFile(path.join(evidenceRoot,"native.json"),"utf8"));
@@ -40,7 +40,7 @@ test("one Presentation manifests as retained native and pinned-browser faces",as
     });
     const viewport=page.viewportSize();
     const receipt={
-      schema:"conduit.journey/one-form-two-faces-browser@1",
+      schema:"conduit.journey/one-form-two-fronts-browser@1",
       presentation_id:snapshot.presentation.identity,
       presentation_revision:snapshot.presentation.revision,
       presentation_basis:snapshot.presentation.basis,

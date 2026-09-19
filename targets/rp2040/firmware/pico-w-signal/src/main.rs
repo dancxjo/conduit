@@ -6,7 +6,7 @@
 //! allocation. The explicit `usb-remote` image uses one finite startup arena
 //! for owned session identities; active transport remains statically bounded.
 //! `pico-local-minimal` is a compile-only composition proof with the same
-//! kernel-backed Signal faces and USB sign, but no wire/session or BOOTSEL
+//! kernel-backed Signal fronts and USB sign, but no wire/session or BOOTSEL
 //! lifecycle-control base. It is not a substitute for physical acceptance.
 #![no_std]
 #![no_main]

@@ -102,7 +102,7 @@ fn explicit_positional_binding_recursively_executes_only_primitive_leaves() {
 }
 
 #[test]
-fn omitted_argument_uses_the_checked_face_default_without_mutating_the_form() {
+fn omitted_argument_uses_the_checked_front_default_without_mutating_the_form() {
     let (explicit, explicit_output, explicit_plan, _) = run("welcome");
     let (defaulted, default_output, default_plan, _) = run("default-welcome");
     assert!(explicit_output.contains("WelcomeTravis\n"));

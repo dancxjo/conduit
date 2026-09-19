@@ -136,15 +136,15 @@ pub fn run(record: boot::BootRecord) -> ! {
         usb.attachment_epoch,
     );
     let first_interface = usb.interfaces[0];
-    let interface_id = identity::derive_usb_interface(
+    let interfront_id = identity::derive_usb_interface(
         &device_id,
         first_interface.number,
         first_interface.alternate_setting,
     );
     let first_endpoint = usb.endpoints[0];
-    let endpoint_id = identity::derive_usb_endpoint(&interface_id, first_endpoint.address);
+    let endpoint_id = identity::derive_usb_endpoint(&interfront_id, first_endpoint.address);
     let usb_sign = format!(
-        "CONDUIT_USB_SIGN {{\"schema\":\"conduit.conduitos.usb-device/v1\",\"status\":\"configured\",\"proof_class\":\"freestanding-emulator\",\"controller_base_id\":\"{}\",\"boot_id\":\"{}\",\"device_instance_id\":\"{}\",\"root_port\":{},\"slot\":{},\"address\":{},\"attachment_epoch\":{},\"usb_version\":{},\"device_class\":{},\"device_subclass\":{},\"device_protocol\":{},\"ep0_maximum_packet_size\":{},\"vendor_id\":{},\"product_id\":{},\"device_version\":{},\"configuration_value\":{},\"configuration_bytes\":{},\"descriptor_records\":{},\"interface_count\":{},\"endpoint_count\":{},\"first_interface_id\":\"{}\",\"first_interface_number\":{},\"first_interface_alternate\":{},\"first_interface_class\":{},\"first_interface_subclass\":{},\"first_interface_protocol\":{},\"first_endpoint_id\":\"{}\",\"first_endpoint_address\":{},\"first_endpoint_direction_in\":{},\"first_endpoint_transfer_type\":{},\"first_endpoint_maximum_packet_size\":{},\"first_endpoint_interval\":{},\"configuration_limit_bytes\":{},\"interface_limit\":{},\"endpoint_limit\":{},\"descriptor_record_limit\":{},\"outstanding_control_transfer_limit\":{},\"enumeration_retries\":{},\"control_transfers\":{},\"short_packets\":{},\"transfer_trbs\":{},\"dma_bytes\":{},\"dma_alignment\":{},\"port_poll_steps\":{},\"sign_slots\":{},\"semantic_keyboard_offer\":false}}\n",
+        "CONDUIT_USB_SIGN {{\"schema\":\"conduit.conduitos.usb-device/v1\",\"status\":\"configured\",\"proof_class\":\"freestanding-emulator\",\"controller_base_id\":\"{}\",\"boot_id\":\"{}\",\"device_instance_id\":\"{}\",\"root_port\":{},\"slot\":{},\"address\":{},\"attachment_epoch\":{},\"usb_version\":{},\"device_class\":{},\"device_subclass\":{},\"device_protocol\":{},\"ep0_maximum_packet_size\":{},\"vendor_id\":{},\"product_id\":{},\"device_version\":{},\"configuration_value\":{},\"configuration_bytes\":{},\"descriptor_records\":{},\"interfront_count\":{},\"endpoint_count\":{},\"first_interfront_id\":\"{}\",\"first_interfront_number\":{},\"first_interfront_alternate\":{},\"first_interfront_class\":{},\"first_interfront_subclass\":{},\"first_interfront_protocol\":{},\"first_endpoint_id\":\"{}\",\"first_endpoint_address\":{},\"first_endpoint_direction_in\":{},\"first_endpoint_transfer_type\":{},\"first_endpoint_maximum_packet_size\":{},\"first_endpoint_interval\":{},\"configuration_limit_bytes\":{},\"interfront_limit\":{},\"endpoint_limit\":{},\"descriptor_record_limit\":{},\"outstanding_control_transfer_limit\":{},\"enumeration_retries\":{},\"control_transfers\":{},\"short_packets\":{},\"transfer_trbs\":{},\"dma_bytes\":{},\"dma_alignment\":{},\"port_poll_steps\":{},\"sign_slots\":{},\"semantic_keyboard_offer\":false}}\n",
         xhci_base_id,
         identity::hex(&identities.boot),
         identity::hex(&device_id),
@@ -163,9 +163,9 @@ pub fn run(record: boot::BootRecord) -> ! {
         usb.configuration_value,
         usb.configuration_bytes,
         usb.descriptor_records,
-        usb.interface_count,
+        usb.interfront_count,
         usb.endpoint_count,
-        identity::hex(&interface_id),
+        identity::hex(&interfront_id),
         first_interface.number,
         first_interface.alternate_setting,
         first_interface.class,
@@ -178,7 +178,7 @@ pub fn run(record: boot::BootRecord) -> ! {
         first_endpoint.maximum_packet_size,
         first_endpoint.interval,
         usb.configuration_limit_bytes,
-        usb.interface_limit,
+        usb.interfront_limit,
         usb.endpoint_limit,
         usb.descriptor_record_limit,
         usb.outstanding_control_transfer_limit,
@@ -236,7 +236,7 @@ pub fn run(record: boot::BootRecord) -> ! {
                     mechanism: conduitos::keyboard_offer::KeyboardMechanism::Ps2,
                     controller_id: identity::derive_base(&identities.boot, "conduitos/i8042/0"),
                     device_id: identity::derive_base(&identities.boot, "conduitos/i8042/keyboard"),
-                    interface_id: identity::derive_base(
+                    interfront_id: identity::derive_base(
                         &identities.boot,
                         "conduitos/i8042/keyboard/port",
                     ),
@@ -253,7 +253,7 @@ pub fn run(record: boot::BootRecord) -> ! {
                     mechanism: conduitos::keyboard_offer::KeyboardMechanism::UsbHid,
                     controller_id: xhci_base,
                     device_id,
-                    interface_id,
+                    interfront_id,
                     endpoint_id,
                     report_buffers: hid_ready.report_buffers,
                     transition_slots: hid_ready.transition_slots,
@@ -270,7 +270,7 @@ pub fn run(record: boot::BootRecord) -> ! {
                     mechanism: conduitos::pointer_offer::PointerMechanism::Ps2,
                     controller_id: identity::derive_base(&identities.boot, "conduitos/i8042/0"),
                     device_id: identity::derive_base(&identities.boot, "conduitos/i8042/pointer"),
-                    interface_id: identity::derive_base(
+                    interfront_id: identity::derive_base(
                         &identities.boot,
                         "conduitos/i8042/pointer/port",
                     ),
@@ -388,7 +388,7 @@ pub fn run(record: boot::BootRecord) -> ! {
         rescue_matcher,
         xhci_base,
         device_id,
-        interface_id,
+        interfront_id,
         endpoint_id,
         keyboard_limits: [
             hid_ready.report_buffers,

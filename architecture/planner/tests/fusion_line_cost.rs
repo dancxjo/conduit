@@ -72,7 +72,7 @@ fn capability(fixture: &Fixture, gear: &str, host: usize) -> CapabilityId {
     fixture.hosts[host]
         .capabilities
         .iter()
-        .find(|offer| offer.checked_face() == gear.checked_face())
+        .find(|offer| offer.checked_front() == gear.checked_front())
         .unwrap()
         .capability_id
         .clone()

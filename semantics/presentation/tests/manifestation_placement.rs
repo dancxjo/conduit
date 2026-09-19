@@ -14,7 +14,7 @@ use conduit_presentation::{
 };
 
 const SHARED_FACE_SOURCE: &str =
-    "form shared-face {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
+    "form shared-front {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
 
 fn two_presenter_plan() -> (conduit_form::CheckedForm, conduit_core::Plan) {
     let mut catalog = ProfileCatalog::new();
@@ -41,14 +41,14 @@ fn two_presenter_plan() -> (conduit_form::CheckedForm, conduit_core::Plan) {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("shared-face/native"),
+                GearId::from("shared-front/native"),
                 PlacementChoice {
                     host_id: native.host_id.clone(),
                     capability_id: CapabilityId::from("renderer-wayland"),
                 },
             ),
             (
-                GearId::from("shared-face/browser"),
+                GearId::from("shared-front/browser"),
                 PlacementChoice {
                     host_id: browser.host_id.clone(),
                     capability_id: CapabilityId::from("renderer-dom-svg"),
@@ -128,7 +128,7 @@ fn one_presentation_has_two_exact_independent_cross_host_manifestations() {
                     prior.play_sequence,
                 ),
                 prior.placement_id.clone(),
-                prior.face_subject.clone(),
+                prior.front_subject.clone(),
                 prior.target_subject.clone(),
                 SignId::from(format!("{}/revision-prepared", prior.host_id.as_str())),
             )
@@ -263,7 +263,7 @@ fn assert_negative_identity_and_bound_cases(
                 manifestations[0].play_sequence,
             ),
             manifestations[0].placement_id.clone(),
-            "invented/face".into(),
+            "invented/front".into(),
             "native/display".into(),
             SignId::from("invented/prepared"),
         ),

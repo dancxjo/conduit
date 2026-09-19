@@ -1,4 +1,4 @@
-//! Portable pulse-observation presentation face.
+//! Portable pulse-observation presentation front.
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{

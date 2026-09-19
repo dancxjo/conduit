@@ -54,7 +54,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offers_preserve_the_portable_bounded_faces() {
+    fn offers_preserve_the_portable_bounded_fronts() {
         for (offer, contract) in [
             (
                 text_edit_std_offer(),

@@ -1,4 +1,4 @@
-//! Strict Home face receipt derived from one completed ordinary QEMU journey.
+//! Strict Home front receipt derived from one completed ordinary QEMU journey.
 
 use std::{fs, path::Path};
 
@@ -11,7 +11,7 @@ use super::ConduitosError;
 #[derive(Serialize)]
 struct HomeFaceReceipt {
     schema: &'static str,
-    face_id: &'static str,
+    front_id: &'static str,
     proof_class: &'static str,
     step_ids: [&'static str; 8],
     host_id: String,
@@ -27,16 +27,16 @@ struct HomeFaceReceipt {
 pub(super) fn retain(target: &Path) -> Result<(), ConduitosError> {
     let visual_path = target.join("journey-frames/manifest.json");
     let visual: Value = serde_json::from_slice(&fs::read(&visual_path).map_err(io_error)?)
-        .map_err(|error| refusal("home-face-visual-invalid", error.to_string()))?;
+        .map_err(|error| refusal("home-front-visual-invalid", error.to_string()))?;
     if visual["status"] != "complete" || visual["proof_class"] != "freestanding-emulator" {
         return Err(refusal(
-            "home-face-visual-incomplete",
+            "home-front-visual-incomplete",
             "the ordinary QEMU journey is not complete",
         ));
     }
     let checkpoints = visual["checkpoints"]
         .as_array()
-        .ok_or_else(|| refusal("home-face-checkpoints-missing", "checkpoints"))?;
+        .ok_or_else(|| refusal("home-front-checkpoints-missing", "checkpoints"))?;
     let play = checkpoint(checkpoints, "home-play-observed")?;
     for (checkpoint_name, expected) in [
         (
@@ -72,14 +72,14 @@ pub(super) fn retain(target: &Path) -> Result<(), ConduitosError> {
     ] {
         let actual = checkpoint(checkpoints, checkpoint_name)?["journey_step_ids"]
             .as_array()
-            .ok_or_else(|| refusal("home-face-step-correlation-missing", checkpoint_name))?;
+            .ok_or_else(|| refusal("home-front-step-correlation-missing", checkpoint_name))?;
         if actual
             .iter()
             .filter_map(Value::as_str)
             .ne(expected.iter().copied())
         {
             return Err(refusal(
-                "home-face-step-correlation-invalid",
+                "home-front-step-correlation-invalid",
                 checkpoint_name,
             ));
         }
@@ -93,16 +93,16 @@ pub(super) fn retain(target: &Path) -> Result<(), ConduitosError> {
     let digest = format!("sha256:{:x}", Sha256::digest(&artifact));
     if frame["png_sha256"].as_str() != Some(&digest[7..]) {
         return Err(refusal(
-            "home-face-artifact-digest-invalid",
+            "home-front-artifact-digest-invalid",
             "visual manifest and retained PNG differ",
         ));
     }
-    let output = target.join("home-face-conduitos");
+    let output = target.join("home-front-conduitos");
     fs::create_dir(&output).map_err(io_error)?;
     fs::write(output.join("home-conduitos.png"), &artifact).map_err(io_error)?;
     let receipt = HomeFaceReceipt {
-        schema: "conduit.evidence/home-face@1",
-        face_id: "conduitos",
+        schema: "conduit.evidence/home-front@1",
+        front_id: "conduitos",
         proof_class: "freestanding-emulator",
         step_ids: conduit_home_model::JOURNEY_STEP_IDS,
         host_id: text(record, "host_id")?,
@@ -115,9 +115,9 @@ pub(super) fn retain(target: &Path) -> Result<(), ConduitosError> {
         artifact_sha256: digest,
     };
     fs::write(
-        output.join("home-face-conduitos.json"),
+        output.join("home-front-conduitos.json"),
         serde_json::to_vec_pretty(&receipt)
-            .map_err(|error| refusal("home-face-receipt-invalid", error.to_string()))?,
+            .map_err(|error| refusal("home-front-receipt-invalid", error.to_string()))?,
     )
     .map_err(io_error)
 }
@@ -126,7 +126,7 @@ fn checkpoint<'a>(checkpoints: &'a [Value], name: &str) -> Result<&'a Value, Con
     checkpoints
         .iter()
         .find(|entry| entry["checkpoint"].as_str() == Some(name))
-        .ok_or_else(|| refusal("home-face-checkpoint-missing", name))
+        .ok_or_else(|| refusal("home-front-checkpoint-missing", name))
 }
 
 fn text(value: &Value, field: &str) -> Result<String, ConduitosError> {
@@ -134,11 +134,11 @@ fn text(value: &Value, field: &str) -> Result<String, ConduitosError> {
         .as_str()
         .filter(|text| !text.is_empty())
         .map(ToOwned::to_owned)
-        .ok_or_else(|| refusal("home-face-identity-missing", field))
+        .ok_or_else(|| refusal("home-front-identity-missing", field))
 }
 
 fn io_error(error: std::io::Error) -> ConduitosError {
-    refusal("home-face-evidence-io", error.to_string())
+    refusal("home-front-evidence-io", error.to_string())
 }
 
 fn refusal(reason: &'static str, detail: impl ToString) -> ConduitosError {
@@ -151,9 +151,9 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn retains_only_a_complete_correlated_home_face() {
+    fn retains_only_a_complete_correlated_home_front() {
         let root = std::env::temp_dir().join(format!(
-            "conduit-home-face-{}-{}",
+            "conduit-home-front-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -221,7 +221,7 @@ mod tests {
 
         retain(&root).unwrap();
         let receipt: Value = serde_json::from_slice(
-            &fs::read(root.join("home-face-conduitos/home-face-conduitos.json")).unwrap(),
+            &fs::read(root.join("home-front-conduitos/home-front-conduitos.json")).unwrap(),
         )
         .unwrap();
         assert_eq!(
@@ -230,7 +230,7 @@ mod tests {
         );
         assert_eq!(receipt["artifact_sha256"], format!("sha256:{digest}"));
         assert!(root
-            .join("home-face-conduitos/home-conduitos.png")
+            .join("home-front-conduitos/home-conduitos.png")
             .is_file());
         fs::remove_dir_all(root).unwrap();
     }

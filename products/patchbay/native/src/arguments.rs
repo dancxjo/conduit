@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-pub const USAGE: &str = "Usage: patchbay-native [OPTIONS]\n\nOptions:\n  --front-door                         Enter Patchbay truthfully; the current Body may be NONE\n  --form <PATH>                         Open a canonical .conduit Form\n  --body-evidence <PATH>                Attach validated serialized Body biography evidence\n  --external-reader                     Read the graduated Body without inventing placement\n  --hosted-reader <PLAN> <IMPLEMENTATION>  Require the exact graduated Patchbay placement\n  --environment <PATH>                  Open an authored environment\n  --prewake                             Rehearse against authored simulation truth\n  --prewake-hold                        Hold the simulated Plan effect-free until explicitly released\n  --observatory-snapshot <PATH>         Open an Observatory snapshot\n  --linear-observatory-snapshot <PATH>  Print an Observatory snapshot as text\n  --control-demo                        Run the native control demonstration\n  --control-demo-stop                   Run the native control stop demonstration\n  --body-parts-demo                     Birth and open the canonical Parts view\n  --browser-page-url <URL>              Browser Host page used by + Browser Part\n  --browser-chat-url <WS-URL>           Planned browser Host chat Line endpoint\n  --pico-admission-port <PATH>          Existing Pico USB CDC 0 admission Line\n  --native-copy-demo                    Run the protected-copy demonstration\n  --distributed-route-demo              Run the distributed-route demonstration\n  --distributed-play                    Run the distributed Play client\n  --distributed-play-server             Run the distributed Play server\n  --smoke-exit-after-window             Exit after the first rendered frame\n  --first-run-proof                     Run the finite native first-run acceptance journey\n  --two-faces-capture <DIR>             Retain the deterministic native journey frame and receipt\n  --help                                Print help";
+pub const USAGE: &str = "Usage: patchbay-native [OPTIONS]\n\nOptions:\n  --front-door                         Enter Patchbay truthfully; the current Body may be NONE\n  --form <PATH>                         Open a canonical .conduit Form\n  --body-evidence <PATH>                Attach validated serialized Body biography evidence\n  --external-reader                     Read the graduated Body without inventing placement\n  --hosted-reader <PLAN> <IMPLEMENTATION>  Require the exact graduated Patchbay placement\n  --environment <PATH>                  Open an authored environment\n  --prewake                             Rehearse against authored simulation truth\n  --prewake-hold                        Hold the simulated Plan effect-free until explicitly released\n  --observatory-snapshot <PATH>         Open an Observatory snapshot\n  --linear-observatory-snapshot <PATH>  Print an Observatory snapshot as text\n  --control-demo                        Run the native control demonstration\n  --control-demo-stop                   Run the native control stop demonstration\n  --body-parts-demo                     Birth and open the canonical Parts view\n  --browser-page-url <URL>              Browser Host page used by + Browser Part\n  --browser-chat-url <WS-URL>           Planned browser Host chat Line endpoint\n  --pico-admission-port <PATH>          Existing Pico USB CDC 0 admission Line\n  --native-copy-demo                    Run the protected-copy demonstration\n  --distributed-route-demo              Run the distributed-route demonstration\n  --distributed-play                    Run the distributed Play client\n  --distributed-play-server             Run the distributed Play server\n  --smoke-exit-after-window             Exit after the first rendered frame\n  --first-run-proof                     Run the finite native first-run acceptance journey\n  --two-fronts-capture <DIR>             Retain the deterministic native journey frame and receipt\n  --help                                Print help";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NativeBodyEntrance {
@@ -35,7 +35,7 @@ pub struct Arguments {
     pub distributed_play: bool,
     pub distributed_play_server: bool,
     pub first_run_proof: bool,
-    pub two_faces_capture: Option<PathBuf>,
+    pub two_fronts_capture: Option<PathBuf>,
 }
 
 pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Arguments, String> {
@@ -138,11 +138,11 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
                 parsed.distributed_play_server = true;
             }
             "--first-run-proof" if !parsed.first_run_proof => parsed.first_run_proof = true,
-            "--two-faces-capture" if parsed.two_faces_capture.is_none() => {
-                parsed.two_faces_capture = Some(
+            "--two-fronts-capture" if parsed.two_fronts_capture.is_none() => {
+                parsed.two_fronts_capture = Some(
                     arguments
                         .next()
-                        .ok_or("--two-faces-capture requires an evidence directory")?
+                        .ok_or("--two-fronts-capture requires an evidence directory")?
                         .into(),
                 );
             }
@@ -159,13 +159,13 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
     if parsed.prewake_hold && !parsed.prewake {
         return Err("--prewake-hold requires --prewake".into());
     }
-    if parsed.two_faces_capture.is_some()
+    if parsed.two_fronts_capture.is_some()
         && (parsed.front_door
             || parsed.form_path.is_some()
             || parsed.first_run_proof
             || parsed.body_evidence_path.is_some())
     {
-        return Err("--two-faces-capture is an exclusive deterministic entrance".into());
+        return Err("--two-fronts-capture is an exclusive deterministic entrance".into());
     }
     if parsed.body_evidence_path.is_some() {
         if parsed.form_path.is_none() {

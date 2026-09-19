@@ -21,7 +21,7 @@ fn planning_inputs() -> (
     let form = pulse_form();
     let host = pico_local_advertisement();
     let placements = default_placements(&form, std::slice::from_ref(&host))
-        .expect("pulse realization is face-compatible");
+        .expect("pulse realization is front-compatible");
     (form, host, placements)
 }
 
@@ -111,7 +111,7 @@ fn resource_and_effect_allowlists_are_hard_gates_not_rankings() {
 }
 
 #[test]
-fn checked_face_compatibility_is_evaluated_before_hard_requirements() {
+fn checked_front_compatibility_is_evaluated_before_hard_requirements() {
     let (form, mut host, placements) = planning_inputs();
     host.capabilities[0].outputs[0].value_kind = kind_id("test/different-value");
     let requirements = BTreeMap::from([(

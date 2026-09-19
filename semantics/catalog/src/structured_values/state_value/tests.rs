@@ -119,7 +119,7 @@ fn missing_wrong_typed_and_forged_initializations_do_not_become_state() {
 }
 
 #[test]
-fn a_matching_unary_face_does_not_authorize_state_initialization() {
+fn a_matching_unary_front_does_not_authorize_state_initialization() {
     let (ty, initial) = boolean();
     let (mut startup, mut profile) = catalogs(&ty, &initial);
     let mut signature = startup.signature(STATE_VALUE_KIND).unwrap().clone();

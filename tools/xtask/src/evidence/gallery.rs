@@ -13,13 +13,13 @@ mod conduitos;
 mod hears_speaks;
 mod little_life;
 mod retention;
-mod two_faces;
+mod two_fronts;
 
 use conduitos::{write_conduitos_commit, write_conduitos_current};
 use hears_speaks::{write_hears_speaks_commit, write_hears_speaks_current};
 use little_life::{write_little_life_commit, write_little_life_current};
 use retention::{trim_indexed_history_to_bounds, validate_existing_tree};
-use two_faces::{write_two_faces_commit, write_two_faces_current};
+use two_fronts::{write_two_fronts_commit, write_two_fronts_current};
 
 const GALLERY_SCHEMA: &str = "conduit.visual-evidence-gallery/v1";
 const RETAINED_COMMITS: usize = 32;
@@ -40,7 +40,7 @@ pub struct GalleryRequest {
     pub evidence_root: Option<PathBuf>,
     pub conduitos_evidence_root: Option<PathBuf>,
     pub hears_speaks_evidence_root: Option<PathBuf>,
-    pub two_faces_evidence_root: Option<PathBuf>,
+    pub two_fronts_evidence_root: Option<PathBuf>,
     pub little_life_evidence_root: Option<PathBuf>,
     pub site_root: PathBuf,
     pub commit: String,
@@ -60,7 +60,7 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
     if request.evidence_root.is_none()
         && request.conduitos_evidence_root.is_none()
         && request.hears_speaks_evidence_root.is_none()
-        && request.two_faces_evidence_root.is_none()
+        && request.two_fronts_evidence_root.is_none()
         && request.little_life_evidence_root.is_none()
     {
         return Err("gallery publication requires at least one verified evidence input".into());
@@ -104,15 +104,15 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
             })
         })
         .transpose()?;
-    let two_faces = request
-        .two_faces_evidence_root
+    let two_fronts = request
+        .two_fronts_evidence_root
         .as_ref()
         .map(|root| {
             verify(&VerificationRequest {
                 root: root.clone(),
                 commit: request.commit.clone(),
                 result: ExpectedEvidenceResult::Complete,
-                proof_id: "journey-one-form-two-faces".into(),
+                proof_id: "journey-one-form-two-fronts".into(),
                 suite_id: "journey-gallery".into(),
             })
         })
@@ -192,14 +192,14 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
             })?;
         }
     }
-    if let (Some(root), Some(evidence)) = (&request.two_faces_evidence_root, &two_faces) {
-        write_two_faces_commit(&site_root, root, evidence)?;
-        write_two_faces_current(&site_root, root, evidence)?;
+    if let (Some(root), Some(evidence)) = (&request.two_fronts_evidence_root, &two_fronts) {
+        write_two_fronts_commit(&site_root, root, evidence)?;
+        write_two_fronts_current(&site_root, root, evidence)?;
     } else {
-        let current = site_root.join("current/one-form-two-faces");
+        let current = site_root.join("current/one-form-two-fronts");
         if current.exists() {
             fs::remove_dir_all(current)
-                .map_err(|error| format!("cannot clear stale Two Faces evidence: {error}"))?;
+                .map_err(|error| format!("cannot clear stale Two Fronts evidence: {error}"))?;
         }
     }
     if let (Some(root), Some(evidence)) = (&request.little_life_evidence_root, &little_life) {
@@ -378,13 +378,13 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
             } else {
                 String::new()
             };
-            let two_faces = if root
+            let two_fronts = if root
                 .join("commits")
                 .join(commit)
-                .join("one-form-two-faces/index.html")
+                .join("one-form-two-fronts/index.html")
                 .is_file()
             {
-                format!(" · <a href=\"commits/{commit}/one-form-two-faces/\">One Form, Two Faces</a>")
+                format!(" · <a href=\"commits/{commit}/one-form-two-fronts/\">One Form, Two Fronts</a>")
             } else {
                 String::new()
             };
@@ -409,7 +409,7 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
                 String::new()
             };
             format!(
-                "<li><code>{commit}</code>{patchbay}{conduitos}{hears_speaks}{two_faces}{little_life}</li>"
+                "<li><code>{commit}</code>{patchbay}{conduitos}{hears_speaks}{two_fronts}{little_life}</li>"
             )
         })
         .collect::<Vec<_>>()
@@ -424,8 +424,11 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
     } else {
         ""
     };
-    let two_faces = if root.join("current/one-form-two-faces/index.html").is_file() {
-        "\n<p><a href=\"current/one-form-two-faces/\">Current One Form, Two Faces journey</a></p>"
+    let two_fronts = if root
+        .join("current/one-form-two-fronts/index.html")
+        .is_file()
+    {
+        "\n<p><a href=\"current/one-form-two-fronts/\">Current One Form, Two Fronts journey</a></p>"
     } else {
         ""
     };
@@ -444,8 +447,11 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
     } else {
         ""
     };
-    let two_faces_card = if root.join("current/one-form-two-faces/index.html").is_file() {
-        "<article class=\"journey-card\"><p class=\"eyebrow\">Pinned Chromium + native software renderer</p><h2>One meaning, two faces</h2><img src=\"current/one-form-two-faces/browser.png\" alt=\"Morse Network manifested in a browser\"><p>The same semantic Presentation crossed two rendering boundaries without changing identity.</p><p class=\"card-boundary\">Boundary: software-rendered native pixels and pinned Chromium; not physical display proof.</p><p><a class=\"primary\" href=\"current/one-form-two-faces/\">Follow the evidence</a></p></article>"
+    let two_fronts_card = if root
+        .join("current/one-form-two-fronts/index.html")
+        .is_file()
+    {
+        "<article class=\"journey-card\"><p class=\"eyebrow\">Pinned Chromium + native software renderer</p><h2>One meaning, two fronts</h2><img src=\"current/one-form-two-fronts/browser.png\" alt=\"Morse Network manifested in a browser\"><p>The same semantic Presentation crossed two rendering boundaries without changing identity.</p><p class=\"card-boundary\">Boundary: software-rendered native pixels and pinned Chromium; not physical display proof.</p><p><a class=\"primary\" href=\"current/one-form-two-fronts/\">Follow the evidence</a></p></article>"
     } else {
         ""
     };
@@ -460,7 +466,7 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
         "<!-- conduit-conduitos-journey-card@1 -->"
     };
     let body = format!(
-        "<header class=\"gallery-hero\"><p class=\"eyebrow\">True stories from ordinary Conduit execution</p><h1>Follow the evidence</h1><p class=\"lede\">Begin with a recognizable moment. Then follow what Conduit was asked to do, what actually happened, and the exact evidence that makes the claim honest.</p><p class=\"boundary\"><strong>Nothing here is a simulated demo.</strong> Every displayed artifact was admitted by a verified manifest for the accepted source commit. Each story names its limits.</p></header><div class=\"cards\">{audio_card}{two_faces_card}{little_life_card}{conduitos_card}</div><details class=\"history\"><summary>All accepted evidence and history</summary><p>Current accepted main: <code>{}</code></p>{patchbay}{conduitos}{hears_speaks}{two_faces}{little_life}<ul>{history}</ul><p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; media are documentary evidence.</p></details>",
+        "<header class=\"gallery-hero\"><p class=\"eyebrow\">True stories from ordinary Conduit execution</p><h1>Follow the evidence</h1><p class=\"lede\">Begin with a recognizable moment. Then follow what Conduit was asked to do, what actually happened, and the exact evidence that makes the claim honest.</p><p class=\"boundary\"><strong>Nothing here is a simulated demo.</strong> Every displayed artifact was admitted by a verified manifest for the accepted source commit. Each story names its limits.</p></header><div class=\"cards\">{audio_card}{two_fronts_card}{little_life_card}{conduitos_card}</div><details class=\"history\"><summary>All accepted evidence and history</summary><p>Current accepted main: <code>{}</code></p>{patchbay}{conduitos}{hears_speaks}{two_fronts}{little_life}<ul>{history}</ul><p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; media are documentary evidence.</p></details>",
         escape_html(&index.current_commit)
     );
     write_html(&root.join("index.html"), "Conduit evidence gallery", &body)

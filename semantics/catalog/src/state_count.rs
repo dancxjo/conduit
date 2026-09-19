@@ -193,6 +193,6 @@ mod tests {
             .iter()
             .find(|operation| operation.kind_id.as_str() == STATE_COUNT_KIND)
             .unwrap();
-        assert_eq!(count.checked_face(), state.checked_face());
+        assert_eq!(count.checked_front(), state.checked_front());
     }
 }

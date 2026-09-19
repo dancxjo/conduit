@@ -35,6 +35,6 @@ pub fn validate() {
             bytes.len(),
             "exact finite coverage storage"
         );
-        assert!(bytes.len() < 600_000, "per-face storage bound");
+        assert!(bytes.len() < 600_000, "per-front storage bound");
     }
 }

@@ -59,7 +59,7 @@ impl FormEditor {
                 .configuration
                 .iter()
                 .map(|field| {
-                    crate::face_configuration::configuration_spelling(
+                    crate::front_configuration::configuration_spelling(
                         &field.rule,
                         &field.default_value,
                     )
@@ -183,8 +183,8 @@ impl FormEditor {
             .iter()
             .flat_map(|gear| &gear.outputs)
             .find(|port| port.identity == source_port_identity);
-        let face_source = graph
-            .face_inputs
+        let front_source = graph
+            .front_inputs
             .iter()
             .find(|port| port.identity == source_port_identity);
         let composition_source = graph.compositions.iter().find_map(|composition| {
@@ -199,8 +199,8 @@ impl FormEditor {
             .iter()
             .flat_map(|gear| &gear.inputs)
             .find(|port| port.identity == sink_port_identity);
-        let face_sink = graph
-            .face_outputs
+        let front_sink = graph
+            .front_outputs
             .iter()
             .find(|port| port.identity == sink_port_identity);
         let composition_sink = graph.compositions.iter().find_map(|composition| {
@@ -244,7 +244,7 @@ impl FormEditor {
                 port.descriptor.port_id.as_str()
             )
         } else {
-            face_source
+            front_source
                 .expect("source compatibility was resolved")
                 .descriptor
                 .port_id
@@ -261,7 +261,7 @@ impl FormEditor {
                 port.descriptor.port_id.as_str()
             )
         } else {
-            face_sink
+            front_sink
                 .expect("sink compatibility was resolved")
                 .descriptor
                 .port_id

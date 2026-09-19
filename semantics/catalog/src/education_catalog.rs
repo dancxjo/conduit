@@ -24,7 +24,7 @@ pub const EDUCATION_REVISION: &str = "conduit.std/education-assessment@1";
 
 pub type EducationKindContract = (KindId, Vec<PortDescriptor>, Vec<PortDescriptor>);
 
-/// Exact portable education Kinds and typed faces, without any Host realization facts.
+/// Exact portable education Kinds and typed fronts, without any Host realization facts.
 pub fn education_kind_contracts() -> Vec<EducationKindContract> {
     vec![
         (

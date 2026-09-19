@@ -1,6 +1,6 @@
 # Patchbay graph projection
 
-This `no_std` package owns Patchbay's finite gear, port, cord, face-control,
+This `no_std` package owns Patchbay's finite gear, port, cord, front-control,
 and recursive form-boundary projections. It derives them from checked and
 expanded form truth; it does not own execution, host offers, rendering, or
 input-device state.

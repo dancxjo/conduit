@@ -460,7 +460,7 @@ mod tests {
             assert!(
                 offers
                     .iter()
-                    .any(|offer| offer.checked_face() == gear.checked_face()),
+                    .any(|offer| offer.checked_front() == gear.checked_front()),
                 "real Voice Host offers do not realize expanded Gear {}",
                 gear.kind_id.as_str()
             );

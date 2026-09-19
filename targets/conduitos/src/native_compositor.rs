@@ -56,7 +56,7 @@ pub struct CompositionReceipt {
     pub presenter_implementation_id: ImplementationId,
     pub presenter_capability_id: CapabilityId,
     pub presenter_artifact_id: ArtifactId,
-    pub face_subject: String,
+    pub front_subject: String,
     pub display_base_id: HostBaseId,
     pub surface_id: String,
     /// Work used to render this revision into its retained offscreen buffer.
@@ -189,7 +189,7 @@ struct SurfaceBinding {
     manifestation_id: ManifestationId,
     plan_id: PlanId,
     placement_id: PlacementId,
-    face_subject: String,
+    front_subject: String,
     last_revision: u64,
 }
 pub(super) struct CompositorSurface {
@@ -317,7 +317,7 @@ impl NativeCompositor {
         if let Some(binding) = &surface.binding {
             if binding.plan_id != manifestation.plan_id
                 || binding.placement_id != manifestation.placement_id
-                || binding.face_subject != manifestation.face_subject
+                || binding.front_subject != manifestation.front_subject
             {
                 return Err(NativeCompositorError::SurfaceAlreadyBound);
             }
@@ -337,7 +337,7 @@ impl NativeCompositor {
             manifestation_id: manifestation.manifestation_id.clone(),
             plan_id: manifestation.plan_id.clone(),
             placement_id: manifestation.placement_id.clone(),
-            face_subject: manifestation.face_subject.clone(),
+            front_subject: manifestation.front_subject.clone(),
             last_revision: presentation.revision,
         });
         surface.receipt = Some(CompositionReceipt {
@@ -353,7 +353,7 @@ impl NativeCompositor {
             presenter_implementation_id: manifestation.presenter_implementation_id.clone(),
             presenter_capability_id: manifestation.presenter_capability_id.clone(),
             presenter_artifact_id: manifestation.presenter_artifact_id.clone(),
-            face_subject: manifestation.face_subject.clone(),
+            front_subject: manifestation.front_subject.clone(),
             display_base_id: display_base_id.clone(),
             surface_id: surface_id.into(),
             display,

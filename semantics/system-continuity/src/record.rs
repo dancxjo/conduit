@@ -92,8 +92,8 @@ impl SystemRecord {
                     requirement.role_id.as_str().into(),
                 ));
             }
-            let face = offer.checked_face();
-            if face != requirement.checked_face {
+            let front = offer.checked_front();
+            if front != requirement.checked_front {
                 return Err(ContinuityError::CheckedFaceMismatch(
                     requirement.role_id.as_str().into(),
                 ));
@@ -105,7 +105,7 @@ impl SystemRecord {
                 capability_id: placement.capability_id.clone(),
                 implementation_id: placement.implementation_id.clone(),
                 artifact_id: placement.artifact_id.clone(),
-                checked_face: face,
+                checked_front: front,
             });
         }
 

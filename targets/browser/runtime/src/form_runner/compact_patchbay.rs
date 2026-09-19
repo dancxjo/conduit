@@ -115,7 +115,7 @@ pub(super) fn project_with_presentation(
 
     // The visible graph is authored meaning. A recursive realization may have a
     // different expanded identity and Back evidence, but it cannot replace the
-    // checked Gear/Port/Cord face shown beside the source.
+    // checked Gear/Port/Cord front shown beside the source.
     let visible =
         match conduit_form::expand_canonical_form_for_authoring(&checked, &entry, &catalog) {
             Ok(visible) => visible.expanded,
@@ -405,7 +405,7 @@ mod tests {
     }
 
     #[test]
-    fn projects_reusable_form_with_unbound_face_port_for_authoring() {
+    fn projects_reusable_form_with_unbound_front_port_for_authoring() {
         let source = r#"form pulse-manifestation (
     > tick: value/tick@1...
 ) {
@@ -421,7 +421,7 @@ mod tests {
     }
 
     #[test]
-    fn recursive_realization_preserves_the_face_and_carries_bounded_back_topology() {
+    fn recursive_realization_preserves_the_front_and_carries_bounded_back_topology() {
         let direct = project(MORSE, 8, false).unwrap();
         let recursive = project(MORSE, 9, true).unwrap();
         assert_eq!(direct.gears, recursive.gears);

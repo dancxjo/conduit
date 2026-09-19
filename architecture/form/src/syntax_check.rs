@@ -29,16 +29,16 @@ pub(crate) fn check_document(
         });
     }
     let form_signatures = form_signatures(&document.forms)?;
-    let mut form_faces = BTreeMap::new();
+    let mut form_fronts = BTreeMap::new();
     for form in &document.forms {
-        form_faces.insert(
+        form_fronts.insert(
             form.name.text.clone(),
-            crate::value_type::checked_face(form, catalog)?,
+            crate::value_type::checked_front(form, catalog)?,
         );
     }
     let mut forms = Vec::with_capacity(document.forms.len());
     for form in &document.forms {
-        forms.push(check_form(form, catalog, &form_signatures, &form_faces)?);
+        forms.push(check_form(form, catalog, &form_signatures, &form_fronts)?);
     }
     forms.sort_by(|left, right| left.name.cmp(&right.name));
     Ok(CheckedSyntaxDocument {
@@ -61,7 +61,7 @@ fn form_signatures(
         }
         let mut names = BTreeSet::new();
         let mut startup_parameters = Vec::new();
-        for parameter in &form.face.startup_parameters {
+        for parameter in &form.front.startup_parameters {
             if !names.insert(parameter.name.text.clone()) {
                 return Err(
                     SyntaxCheckError::DuplicateImmutable(parameter.name.text.clone())
@@ -89,7 +89,7 @@ fn check_form(
     form: &FormSyntax,
     catalog: &StartupCatalog,
     form_signatures: &BTreeMap<String, KindSignature>,
-    form_faces: &BTreeMap<String, CheckedFace>,
+    form_fronts: &BTreeMap<String, CheckedFace>,
 ) -> Result<CheckedCanonicalForm, SyntaxCheckDiagnostic> {
     let signature = form_signatures
         .get(&form.name.text)
@@ -101,7 +101,7 @@ fn check_form(
         .map(|parameter| parameter.name.clone())
         .collect::<BTreeSet<_>>();
     let mut runtime_names = BTreeSet::new();
-    for port in &form.face.runtime_ports {
+    for port in &form.front.runtime_ports {
         if !runtime_names.insert(port.name.text.clone())
             || parameter_names.contains(&port.name.text)
         {
@@ -110,13 +110,13 @@ fn check_form(
             );
         }
     }
-    let face_names = parameter_names
+    let front_names = parameter_names
         .union(&runtime_names)
         .cloned()
         .collect::<BTreeSet<_>>();
     let mut locals = BTreeMap::new();
     let mut named_gears = BTreeSet::new();
-    let pool_names = check_pool_declarations(form, &face_names, form_faces)?;
+    let pool_names = check_pool_declarations(form, &front_names, form_fronts)?;
     for statement in &form.back {
         match statement {
             BackStatement::LocalValue(local) => {
@@ -137,7 +137,7 @@ fn check_form(
                 }
             }
             BackStatement::NamedGear(gear) => {
-                if face_names.contains(&gear.name.text) || pool_names.contains(&gear.name.text) {
+                if front_names.contains(&gear.name.text) || pool_names.contains(&gear.name.text) {
                     return Err(SyntaxCheckError::AmbiguousFaceName(gear.name.text.clone())
                         .diagnostic(gear.span));
                 }
@@ -214,7 +214,7 @@ fn check_form(
                 }
                 cords.push(CheckedCanonicalCord { stages });
             }
-            BackStatement::Pool(pool) => pools.push(checked_pool(pool, form_faces)),
+            BackStatement::Pool(pool) => pools.push(checked_pool(pool, form_fronts)),
             BackStatement::LocalValue(_) => {}
         }
     }
@@ -231,15 +231,15 @@ fn check_form(
     cords.sort_by_key(canonical_cord);
     pools.sort_by(|left, right| left.name.cmp(&right.name));
     local_values.sort_by(|left, right| left.0.cmp(&right.0));
-    let runtime_face = form_faces
+    let runtime_front = form_fronts
         .get(&form.name.text)
-        .expect("every parsed form has a checked face")
+        .expect("every parsed form has a checked front")
         .clone();
     let checked_form_id = checked_identity(
         (&form.name.text, form.completion),
         &parameters,
-        &runtime_face,
-        form.face.shorthand.as_ref().map(|pair| {
+        &runtime_front,
+        form.front.shorthand.as_ref().map(|pair| {
             (
                 pair.input_port.text.as_str(),
                 pair.output_port.text.as_str(),
@@ -254,10 +254,10 @@ fn check_form(
         name: form.name.text.clone(),
         completion: form.completion,
         startup_parameters: parameters,
-        runtime_ports: form.face.runtime_ports.clone(),
-        runtime_face,
+        runtime_ports: form.front.runtime_ports.clone(),
+        runtime_front,
         shorthand: form
-            .face
+            .front
             .shorthand
             .as_ref()
             .map(|pair| (pair.input_port.text.clone(), pair.output_port.text.clone())),
@@ -280,7 +280,7 @@ fn checked_parameters(
             Some(
                 resolve_bound_value(index, &mut values, signature, catalog, &mut BTreeSet::new())
                     .map_err(|error| {
-                    let parameter = &form.face.startup_parameters[index];
+                    let parameter = &form.front.startup_parameters[index];
                     error.diagnostic(
                         parameter
                             .default

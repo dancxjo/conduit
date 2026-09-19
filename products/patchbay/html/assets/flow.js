@@ -5,7 +5,7 @@ import {
   projectFlowScene,
   reconcileFlowScene,
 } from "./flow-scene.js";
-import { FaceplateNode } from "./flow-faceplate.js";
+import { FaceplateNode } from "./flow-frontplate.js";
 
 const React = window.React;
 const ReactDOM = window.ReactDOM;

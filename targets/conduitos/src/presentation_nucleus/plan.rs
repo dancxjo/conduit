@@ -16,7 +16,7 @@ use conduit_planner::{
 
 use super::TEXT_SOURCE_KIND;
 
-pub const FORM_SOURCE: &str = "form conduitos-gear-face {\n source: conduitos/fixture-text-source\n face: patchbay/gear-face\n source > face.subject\n}\n";
+pub const FORM_SOURCE: &str = "form conduitos-gear-front {\n source: conduitos/fixture-text-source\n front: patchbay/gear-front\n source > front.subject\n}\n";
 
 pub struct PreparedPresentationPlay {
     pub advertisement: HostAdvertisement,
@@ -54,7 +54,7 @@ pub fn prepare(host: &str, boot: &str) -> Result<PreparedPresentationPlay, Prepa
     let mut backs = CanonicalBackCatalog::new();
     conduit_semantic_catalog::install_patchbay_presentation_backs(&startup, &profile, &mut backs)
         .map_err(|_| PreparationError::Back)?;
-    let form = expand_canonical_form_with_backs(&checked, "conduitos-gear-face", &profile, &backs)
+    let form = expand_canonical_form_with_backs(&checked, "conduitos-gear-front", &profile, &backs)
         .map_err(|_| PreparationError::Back)?;
     let advertisement = advertisement(host, boot);
     let hosts = [advertisement.clone()];
@@ -181,7 +181,7 @@ mod tests {
     use alloc::string::ToString;
 
     #[test]
-    fn plan_is_one_exact_recursive_gear_face_realization() {
+    fn plan_is_one_exact_recursive_gear_front_realization() {
         let prepared = prepare("test-host", "test-boot").unwrap();
         let [back] = prepared.plan.realization_backs.as_slice() else {
             panic!("expected one realization Back")
@@ -190,7 +190,7 @@ mod tests {
             back.kind_id.as_str(),
             conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND
         );
-        assert_eq!(back.invocation_path, "conduitos-gear-face/face");
+        assert_eq!(back.invocation_path, "conduitos-gear-front/front");
         assert_ne!(
             prepared.plan.source_document_id.as_str(),
             prepared.plan.checked_form_id.as_str()
@@ -228,7 +228,7 @@ mod tests {
         let checked = check_syntax_document(&parse_syntax_document(FORM_SOURCE), &startup).unwrap();
         let unexpanded = expand_canonical_form_with_backs(
             &checked,
-            "conduitos-gear-face",
+            "conduitos-gear-front",
             &profile,
             &CanonicalBackCatalog::new(),
         )
@@ -252,7 +252,7 @@ mod tests {
         )
         .unwrap();
         let expanded =
-            expand_canonical_form_with_backs(&checked, "conduitos-gear-face", &profile, &backs)
+            expand_canonical_form_with_backs(&checked, "conduitos-gear-front", &profile, &backs)
                 .unwrap();
         let mut host = host_without_patchbay_direct;
         host.capabilities.retain(|offer| {

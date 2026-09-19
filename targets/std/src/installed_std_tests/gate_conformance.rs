@@ -7,7 +7,7 @@ fn latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure(
     let mut host = host("typed-gate-host");
     let form = parse(FORM, &installed_std::test_catalog()).expect("typed gate Form parses");
     let hosts = [host.advertisement().clone()];
-    assert_gate_face_is_advertised(&form, &hosts[0]);
+    assert_gate_front_is_advertised(&form, &hosts[0]);
     let placements = default_placements(&form, &hosts).expect("typed gate placements resolve");
     let plan = plan_with_options(
         &form,
@@ -87,7 +87,7 @@ fn gate_zero_capacity_and_mutated_decoder_identity_fail_before_play() {
     let baseline_host = host("gate-negative-host");
     let form = parse(FORM, &installed_std::test_catalog()).expect("typed gate Form parses");
     let hosts = [baseline_host.advertisement().clone()];
-    assert_gate_face_is_advertised(&form, &hosts[0]);
+    assert_gate_front_is_advertised(&form, &hosts[0]);
     let placements = default_placements(&form, &hosts).expect("typed gate placements resolve");
     assert!(plan_with_options(
         &form,
@@ -142,7 +142,7 @@ fn gate_zero_capacity_and_mutated_decoder_identity_fail_before_play() {
     assert!(timer.waits.is_empty());
 }
 
-fn assert_gate_face_is_advertised(
+fn assert_gate_front_is_advertised(
     form: &conduit_form::CheckedForm,
     host: &conduit_core::HostAdvertisement,
 ) {
@@ -156,5 +156,5 @@ fn assert_gate_face_is_advertised(
         .iter()
         .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::GATE_KIND)
         .expect("reference std Host advertises gate");
-    assert_eq!(offer.checked_face(), gear.checked_face());
+    assert_eq!(offer.checked_front(), gear.checked_front());
 }

@@ -1,4 +1,4 @@
-//! Native half of the deterministic One Form, Two Faces journey.
+//! Native half of the deterministic One Form, Two Fronts journey.
 
 use crate::{png_capture::write_rgb_png, presentation::ordinary_front_door_lines, render};
 use conduit_core::{BootId, HostId, SignId};
@@ -18,7 +18,7 @@ pub(super) fn run(root: &Path) -> Result<(), String> {
         .metadata()
         .map_err(|error| format!("inspect {}: {error}", root.display()))?;
     if !metadata.is_dir() {
-        return Err("two-faces evidence root must be an existing directory".into());
+        return Err("two-fronts evidence root must be an existing directory".into());
     }
     let mut session = ZeroBodyFrontDoor::with_identity(
         std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter),
@@ -29,7 +29,7 @@ pub(super) fn run(root: &Path) -> Result<(), String> {
         .form_ids()
         .into_iter()
         .next()
-        .ok_or("two-faces entrance has no reviewed Form")?;
+        .ok_or("two-fronts entrance has no reviewed Form")?;
     session.open_form(&form, session.revision())?;
     let projection = session.project()?;
     let lines = ordinary_front_door_lines(&projection.presentation, &projection.navigation, None)?;
@@ -39,22 +39,22 @@ pub(super) fn run(root: &Path) -> Result<(), String> {
         RendererAdapterIdentity {
             host_id: HostId::from(ONE_FORM_TWO_FACES_HOST_ID),
             boot_id: BootId::from(ONE_FORM_TWO_FACES_BOOT_ID),
-            target_subject: "journey/one-form-two-faces/native-frame".into(),
+            target_subject: "journey/one-form-two-fronts/native-frame".into(),
         },
-        SignId::from("journey/one-form-two-faces/native-prepared"),
+        SignId::from("journey/one-form-two-fronts/native-prepared"),
     )
     .map_err(|error| error.to_string())?;
     let mut pixels = vec![render::BACKGROUND; WIDTH * HEIGHT];
     render::draw_document(&mut pixels, WIDTH, HEIGHT, &lines);
     write_rgb_png(&root.join("native.png"), &pixels, WIDTH, HEIGHT)?;
     execution
-        .mark_available(SignId::from("journey/one-form-two-faces/native-retained"))
+        .mark_available(SignId::from("journey/one-form-two-fronts/native-retained"))
         .map_err(|error| error.to_string())?;
     if execution.manifestation.lifecycle != ManifestationLifecycle::Available {
         return Err("native manifestation did not become available".into());
     }
     let receipt = serde_json::json!({
-        "schema": "conduit.journey/one-form-two-faces-native@1",
+        "schema": "conduit.journey/one-form-two-fronts-native@1",
         "presentation_id": projection.presentation.identity,
         "presentation_revision": projection.presentation.revision,
         "presentation_basis": projection.presentation.basis,

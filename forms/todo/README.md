@@ -1,7 +1,7 @@
 # Todo state slice
 
 `main.conduit` composes `todo/state-step` and `todo/snapshot` through their
-faces. Task records are application data with `complete` and `text` members.
+fronts. Task records are application data with `complete` and `text` members.
 The reusable `json/collection-step` operation knows only JSON collection edits;
 it contains no task, browser, persistence, or renderer logic.
 
@@ -34,7 +34,7 @@ user interaction, and a manual application entrance remain separate work.
 
 `todo/summary` configures the reusable `json/boolean-summary` operation with
 field `complete`. `todo/command-summary` composes an edit, summary, and encoding
-through their faces. Its snapshot reports `false` (remaining), `true` (completed),
+through their fronts. Its snapshot reports `false` (remaining), `true` (completed),
 and `total` counts. Missing or non-Boolean completion fields refuse with distinct
 details `123` and `124`; an empty collection reports three zero counts. The same
 operation counts an arbitrary configured Boolean field outside Todo.
@@ -42,6 +42,6 @@ operation counts an arbitrary configured Boolean field outside Todo.
 `todo/restore` decodes stored snapshot bytes through the ordinary JSON operation.
 `todo/restore-summary` consumes it as a gear and derives counts through the same
 summary form. The deterministic proof supplies the actual preceding edit output
-to this restore face and refuses corrupt JSON or invalid completion fields.
+to this restore front and refuses corrupt JSON or invalid completion fields.
 This proves semantic restore and the runtime resource-operation boundary;
 durable storage across a real restart remains a separate acceptance claim.

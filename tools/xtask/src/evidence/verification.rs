@@ -213,9 +213,9 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
         verify_hears_speaks(&root, &manifest)?;
     }
     if request.result == ExpectedEvidenceResult::Complete
-        && request.proof_id == "journey-one-form-two-faces"
+        && request.proof_id == "journey-one-form-two-fronts"
     {
-        verify_one_form_two_faces(&root, &manifest)?;
+        verify_one_form_two_fronts(&root, &manifest)?;
     }
     if request.result == ExpectedEvidenceResult::Complete
         && request.proof_id == "journey-little-life"
@@ -250,31 +250,31 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
     })
 }
 
-fn verify_one_form_two_faces(root: &Path, manifest: &Manifest) -> Result<(), String> {
+fn verify_one_form_two_fronts(root: &Path, manifest: &Manifest) -> Result<(), String> {
     let expected = [
         (
-            "two-faces.native-frame",
+            "two-fronts.native-frame",
             EvidenceKind::Screenshot,
             "native.png",
         ),
         (
-            "two-faces.native-receipt",
+            "two-fronts.native-receipt",
             EvidenceKind::MachineReadableManifest,
             "native.json",
         ),
         (
-            "two-faces.browser-frame",
+            "two-fronts.browser-frame",
             EvidenceKind::Screenshot,
             "browser.png",
         ),
         (
-            "two-faces.browser-receipt",
+            "two-fronts.browser-receipt",
             EvidenceKind::MachineReadableManifest,
             "browser.json",
         ),
     ];
     if manifest.outputs.len() != expected.len() {
-        return Err("complete two-faces evidence must contain exactly four outputs".into());
+        return Err("complete two-fronts evidence must contain exactly four outputs".into());
     }
     let mut presentation = None;
     for (id, kind, path) in expected {
@@ -282,7 +282,7 @@ fn verify_one_form_two_faces(root: &Path, manifest: &Manifest) -> Result<(), Str
             .outputs
             .iter()
             .find(|output| output.id == id)
-            .ok_or_else(|| format!("complete two-faces evidence is missing '{id}'"))?;
+            .ok_or_else(|| format!("complete two-fronts evidence is missing '{id}'"))?;
         let native = id.contains("native");
         if !output.required
             || output.kind != kind
@@ -293,7 +293,7 @@ fn verify_one_form_two_faces(root: &Path, manifest: &Manifest) -> Result<(), Str
                 } else {
                     "application/json"
                 }
-            || output.provenance.scenario_id != "one-form-two-faces.front-door@1"
+            || output.provenance.scenario_id != "one-form-two-fronts.front-door@1"
             || output.provenance.proof_class.as_deref()
                 != Some(if native {
                     "native-software-renderer"
@@ -330,7 +330,7 @@ fn verify_one_form_two_faces(root: &Path, manifest: &Manifest) -> Result<(), Str
                 .any(|value| value.is_none_or(str::is_empty)))
         {
             return Err(format!(
-                "two-faces output '{id}' lacks exact typed provenance"
+                "two-fronts output '{id}' lacks exact typed provenance"
             ));
         }
         let identity = (
@@ -338,36 +338,36 @@ fn verify_one_form_two_faces(root: &Path, manifest: &Manifest) -> Result<(), Str
             output.provenance.presentation_revision.as_deref().unwrap(),
         );
         if presentation.is_some_and(|prior| prior != identity) {
-            return Err("two-faces outputs do not share one Presentation identity".into());
+            return Err("two-fronts outputs do not share one Presentation identity".into());
         }
         presentation = Some(identity);
         if kind == EvidenceKind::Screenshot {
             let bytes = fs::read(root.join(path))
-                .map_err(|error| format!("read two-faces PNG: {error}"))?;
+                .map_err(|error| format!("read two-fronts PNG: {error}"))?;
             if bytes.len() < 24 || &bytes[..8] != b"\x89PNG\r\n\x1a\n" || &bytes[12..16] != b"IHDR"
             {
-                return Err(format!("two-faces output '{id}' is not a bounded PNG"));
+                return Err(format!("two-fronts output '{id}' is not a bounded PNG"));
             }
         }
     }
     for native in [true, false] {
-        verify_two_faces_receipt(root, manifest, native)?;
+        verify_two_fronts_receipt(root, manifest, native)?;
     }
     Ok(())
 }
 
-fn verify_two_faces_receipt(root: &Path, manifest: &Manifest, native: bool) -> Result<(), String> {
+fn verify_two_fronts_receipt(root: &Path, manifest: &Manifest, native: bool) -> Result<(), String> {
     let side = if native { "native" } else { "browser" };
     let output = manifest
         .outputs
         .iter()
-        .find(|output| output.id == format!("two-faces.{side}-receipt"))
-        .ok_or_else(|| format!("two-faces evidence lacks {side} receipt"))?;
+        .find(|output| output.id == format!("two-fronts.{side}-receipt"))
+        .ok_or_else(|| format!("two-fronts evidence lacks {side} receipt"))?;
     let receipt: Value = serde_json::from_slice(
         &fs::read(root.join(&output.path))
-            .map_err(|error| format!("read two-faces {side} receipt: {error}"))?,
+            .map_err(|error| format!("read two-fronts {side} receipt: {error}"))?,
     )
-    .map_err(|error| format!("decode two-faces {side} receipt: {error}"))?;
+    .map_err(|error| format!("decode two-fronts {side} receipt: {error}"))?;
     let expected = [
         (
             "presentation_id",
@@ -394,14 +394,14 @@ fn verify_two_faces_receipt(root: &Path, manifest: &Manifest, native: bool) -> R
     for (field, provenance) in expected {
         let value = receipt
             .get(field)
-            .ok_or_else(|| format!("two-faces {side} receipt lacks required field '{field}'"))?;
+            .ok_or_else(|| format!("two-fronts {side} receipt lacks required field '{field}'"))?;
         let value = value
             .as_str()
             .map(str::to_owned)
             .or_else(|| value.as_u64().map(|value| value.to_string()));
         if value.as_deref() != provenance {
             return Err(format!(
-                "two-faces {side} receipt field '{field}' disagrees with manifest provenance"
+                "two-fronts {side} receipt field '{field}' disagrees with manifest provenance"
             ));
         }
     }
@@ -412,7 +412,7 @@ fn verify_two_faces_receipt(root: &Path, manifest: &Manifest, native: bool) -> R
             != Some(false)
     {
         return Err(format!(
-            "two-faces {side} receipt makes an invalid manifestation claim"
+            "two-fronts {side} receipt makes an invalid manifestation claim"
         ));
     }
     if !native {
@@ -435,7 +435,7 @@ fn verify_two_faces_receipt(root: &Path, manifest: &Manifest, native: bool) -> R
         ] {
             if receipt.get(field).and_then(Value::as_str) != provenance {
                 return Err(format!(
-                    "two-faces browser receipt field '{field}' disagrees with manifest provenance"
+                    "two-fronts browser receipt field '{field}' disagrees with manifest provenance"
                 ));
             }
         }

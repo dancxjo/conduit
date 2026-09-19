@@ -64,8 +64,8 @@ CORD   typed semantic connection between compatible ports on gears
 INFO   shaped, typed data carried through cords
 RESOURCE bounded addressable content with explicit lifecycle and sharing obligations
 SIGNAL one particular info semantic or mechanism where explicitly named
-FACE   stable visible semantic contract of a kind or form, including ports
-BACK   form that implements a face in Conduit terms
+FRONT   stable visible semantic contract of a kind or form, including ports
+BACK   form that implements a front in Conduit terms
 
 IMPL   platform-specific realization of a kind
 HOST   running software environment that makes truthful finite offers
@@ -73,7 +73,7 @@ PLAN   exact immutable realization of an admitted workload
 PLAY   one active execution of a plan
 ```
 
-A kind is not a gear, and neither is an implementation. A port is not a renderer jack, queue slot, line endpoint, or base handle. info is specifically shaped/typed data and is not automatically Signal. A face is not its back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active play.
+A kind is not a gear, and neither is an implementation. A port is not a renderer jack, queue slot, line endpoint, or base handle. info is specifically shaped/typed data and is not automatically Signal. A front is not its back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active play.
 
 ### resource, state, and line
 
@@ -213,7 +213,7 @@ may alter their appearance, but does not recreate native interaction semantics
 when the platform control already expresses the operation.
 
 An already-resolved bounded graphics scene may cross one terminal presentation
-face to request manifestation. That face names no framebuffer, DOM, window,
+front to request manifestation. That front names no framebuffer, DOM, window,
 pixel format, or toolkit object: the selected implementation, admitted host
 operation, finite presentation resource, and exact display base remain plan and
 host truth. Transform kinds do not acquire hidden manifestation side effects.
@@ -318,7 +318,7 @@ A form may contain:
 - semantic configuration;
 - explicit finite work bounds;
 - nested forms;
-- named input and output faces;
+- named input and output fronts;
 - semantic requirements that truly belong to the work.
 
 A form does not contain:
@@ -334,9 +334,9 @@ A form does not contain:
 - resource handles;
 - authority grants.
 
-All forms are conceptually composite. A form with one opaque implementation is simply the smallest composition. A nested form becomes substitutable through its checked faces while its hidden expansion remains bound into expanded and plan identity.
+All forms are conceptually composite. A form with one opaque implementation is simply the smallest composition. A nested form becomes substitutable through its checked fronts while its hidden expansion remains bound into expanded and plan identity.
 
-A BODY may later appear through a FACE inside another form without becoming a copy of that body.
+A BODY may later appear through a FRONT inside another form without becoming a copy of that body.
 
 ## body identity and lifecycle
 
@@ -482,7 +482,7 @@ These ideas are current, load-bearing direction and have executable implementati
 - generic host operations;
 - exact resource, authority, and observed-link planning contracts;
 - lossless source retention and located diagnostics;
-- inline nested forms and named composite faces;
+- inline nested forms and named composite fronts;
 - hosted and browser execution through the kernel, with separately proved lines;
 - the portable semantic catalog and host-owned realization offers;
 - body membership, workload and continuity contracts;
@@ -538,8 +538,8 @@ These remain intentionally open questions:
 - how much automatic placement and negotiation belongs above explicit planning;
 - how bodies gather on neutral ground without confusing discovery with trust;
 - which timing profiles can be admitted across which local regions;
-- the final operator experience connecting task faces, Observatory, and Workbench;
-- how a body exposes a face into another body while preserving continuity and authority;
+- the final operator experience connecting task fronts, Observatory, and Workbench;
+- how a body exposes a front into another body while preserving continuity and authority;
 - how much infrastructure installation Conduit should replace rather than compose with.
 
 An unresolved dream is not a promise and not a rejection. It is a question whose answer must eventually be made executable.

@@ -11,7 +11,7 @@ use crate::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NativeHomeJourneyReceipt {
     pub schema: &'static str,
-    pub host_face: &'static str,
+    pub host_front: &'static str,
     pub step_ids: Vec<&'static str>,
     pub final_revision: u32,
     pub host_id: String,
@@ -73,7 +73,7 @@ pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
 
     Ok(NativeHomeJourneyReceipt {
         schema: "conduit.evidence/native-home-journey@1",
-        host_face: if cfg!(target_os = "windows") {
+        host_front: if cfg!(target_os = "windows") {
             "windows-native"
         } else if cfg!(target_os = "linux") {
             "linux-native"
@@ -108,11 +108,11 @@ mod tests {
     use conduit_home_model::JOURNEY_STEP_IDS;
 
     #[test]
-    fn native_face_enacts_the_shared_home_journey() {
+    fn native_front_enacts_the_shared_home_journey() {
         let receipt = run_native_home_journey().unwrap();
         assert_eq!(receipt.step_ids, JOURNEY_STEP_IDS);
         assert!(receipt.final_revision > 1);
-        assert!(!receipt.host_face.is_empty());
+        assert!(!receipt.host_front.is_empty());
         assert!(!receipt.host_id.is_empty());
         assert!(!receipt.boot_id.is_empty());
         assert!(!receipt.form_plan_id.is_empty());

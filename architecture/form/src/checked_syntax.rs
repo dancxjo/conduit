@@ -52,10 +52,10 @@ impl StartupCatalog {
         self.kinds.get(kind)
     }
 
-    /// Returns the exact startup Face installed for one semantic Kind.
+    /// Returns the exact startup Front installed for one semantic Kind.
     ///
     /// Reusable Back installers use this together with the profile contract so
-    /// substitution checks the complete Face, including startup parameters.
+    /// substitution checks the complete Front, including startup parameters.
     pub fn signature(&self, kind: &str) -> Option<&KindSignature> {
         self.kinds.get(kind)
     }
@@ -168,7 +168,7 @@ pub struct CheckedCanonicalCord {
 pub struct CheckedPoolDeclaration {
     pub name: String,
     pub member_form: String,
-    pub member_face: CheckedFace,
+    pub member_front: CheckedFace,
     pub maximum_members: u16,
 }
 
@@ -179,7 +179,7 @@ pub struct CheckedCanonicalForm {
     pub completion: FormCompletionPolicy,
     pub startup_parameters: Vec<CheckedStartupParameter>,
     pub runtime_ports: Vec<RuntimePort>,
-    pub runtime_face: CheckedFace,
+    pub runtime_front: CheckedFace,
     pub shorthand: Option<(String, String)>,
     pub local_values: Vec<(String, CanonicalStartupValue)>,
     pub pools: Vec<CheckedPoolDeclaration>,
@@ -220,18 +220,18 @@ pub struct ExpandedCanonicalForm {
 /// Canonical graph expansion for authoring an open Back.
 ///
 /// Unlike [`ExpandedCanonicalForm`] admission through `expand_canonical_form`, this projection
-/// deliberately retains unbound runtime Face Ports. It is not a runnable-root claim.
+/// deliberately retains unbound runtime Front Ports. It is not a runnable-root claim.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpandedAuthoringForm {
     pub expanded: ExpandedCanonicalForm,
-    pub face: CheckedFace,
+    pub front: CheckedFace,
     pub input_bindings: Vec<AuthoringFaceBinding>,
     pub output_bindings: Vec<AuthoringFaceBinding>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthoringFaceBinding {
-    pub face_port_id: conduit_core::PortId,
+    pub front_port_id: conduit_core::PortId,
     pub gear_id: conduit_core::GearId,
     pub gear_port_id: conduit_core::PortId,
 }
@@ -240,7 +240,7 @@ pub struct AuthoringFaceBinding {
 pub struct ExpandedSharedPool {
     pub pool_id: conduit_core::SharedPoolId,
     pub declaration_id: conduit_core::PoolDeclarationId,
-    pub member_face: CheckedFace,
+    pub member_front: CheckedFace,
     pub maximum_members: u16,
     pub consumers: Vec<conduit_core::GearId>,
 }
@@ -349,7 +349,7 @@ impl SyntaxCheckError {
             ),
             Self::AmbiguousFaceName(name) => (
                 "CND-FRM-050",
-                format!("face name '{name}' is duplicated or ambiguously shadowed"),
+                format!("front name '{name}' is duplicated or ambiguously shadowed"),
                 None,
             ),
             Self::StructuredExpression(detail, owned_span) => ("CND-FRM-051", detail, owned_span),

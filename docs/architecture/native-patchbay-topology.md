@@ -43,6 +43,6 @@ toolkit dependency. The
 validates it through Observatory, and does not discover, control, or persist
 the reported subjects.
 
-Canonical checked-face equality from #522 remains the compatibility rule. The
+Canonical checked-front equality from #522 remains the compatibility rule. The
 view displays exact checked capability facts and availability but performs no
 compatibility matching, planning, selection, realization, or authority action.

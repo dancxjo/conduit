@@ -36,7 +36,7 @@ authority, and neither becomes the Conduit scheduler.
 Implementation identity, architecture-specific artifact identity, compute-pool
 identity, selected reservation, and runtime backend or lane assignment remain
 distinct. The same implementation may therefore advertise different artifacts
-for different architectures while retaining an equal checked face.
+for different architectures while retaining an equal checked front.
 
 ## Proof limits
 
@@ -52,14 +52,14 @@ The examples below explain how the contract can apply; they do not claim
 installed video-transcoding or network-storage implementations.
 
 The realization machinery above contains no AI-specific core concept. The same
-checked-face, offer, observation, hard-requirement, policy, reservation, and plan
+checked-front, offer, observation, hard-requirement, policy, reservation, and plan
 identities encode the following two examples without changing the planner.
 
 ### Video transcoding: CPU or GPU
 
-An authored operation requests a checked `media/transcode-video` face with exact
+An authored operation requests a checked `media/transcode-video` front with exact
 bounded input/output ports and semantic codec/output limits. Two hosts can offer
-that equal face with different nominal revisions and exact realizations:
+that equal front with different nominal revisions and exact realizations:
 
 | General R2 fact | CPU realization | GPU realization |
 | --- | --- | --- |
@@ -74,14 +74,14 @@ before ranking. With both admitted, explicit policy can prefer locality, fewer
 resource units, a measured throughput class, or a stronger compute-service
 guarantee. The plan seals the selected host, implementation, artifact, resource
 bindings, semantic limits, and characteristics. It never changes the authored
-face into `CUDA`, `VA-API`, or a device name, and it never seals a transient GPU
+front into `CUDA`, `VA-API`, or a device name, and it never seals a transient GPU
 queue/core identifier.
 
 ### Storage write: local disk or network storage
 
-An authored operation requests a checked `storage/write-object` face with a
+An authored operation requests a checked `storage/write-object` front with a
 finite byte bound and explicit terminal behavior. A local-filesystem base
-and a network-object base can advertise that equal face:
+and a network-object base can advertise that equal front:
 
 | General R2 fact | Local realization | Network realization |
 | --- | --- | --- |

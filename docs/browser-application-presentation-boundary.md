@@ -78,7 +78,7 @@ not semantic or runtime identities.
 | Book staging and browser specifications | Packaging and acceptance proof for the current compatibility shell | Update incrementally to prove the shared boundary, then remove compatibility-only staging | 2, 5 |
 
 Book migration must preserve lesson routes, navigation, executable examples,
-real Patchbay inspection, gear face/back flipping, and animated cord activity.
+real Patchbay inspection, gear front/back flipping, and animated cord activity.
 Those are application acceptance behaviors; they are not permission to duplicate
 the Patchbay renderer inside Book.
 
@@ -104,7 +104,7 @@ to a device or select a host implementation by themselves.
 |---|---|---|---|
 | `products/patchbay/model/src/` | Renderer-neutral Patchbay state, actions, projections, layout, and theme | Remain the authoritative application/presentation model used by browser and native renderers | 1, 4 |
 | `products/patchbay/model/src/theme.rs` | Fixed, bounded, toolkit-independent theme roles explicitly excluded from semantic identities | Generalize or narrowly wrap as the shared presentation-theme nucleus; preserve identity exclusion | 1 |
-| `products/patchbay/html/assets/flow.js`, `flow-scene.js`, `flow-layout.js`, and `flow-faceplate.js` | Actual React Flow browser manifestation of Patchbay projections | Become one host-owned browser Patchbay renderer used by both Patchbay HTML and Book | 4 |
+| `products/patchbay/html/assets/flow.js`, `flow-scene.js`, `flow-layout.js`, and `flow-frontplate.js` | Actual React Flow browser manifestation of Patchbay projections | Become one host-owned browser Patchbay renderer used by both Patchbay HTML and Book | 4 |
 | `products/patchbay/html/assets/app.js` | Patchbay action orchestration mixed with generic DOM construction and updates | Keep Patchbay actions/projections in the app; move generic manifestation and event plumbing to the host | 4 |
 | `panel-furniture.js`, `index.html`, and `app.css` | Generic panels, controls, shell, and duplicated styling | Replace with shared components/theme roles; keep only Patchbay-specific layout | 1, 4-5 |
 | `products/patchbay/html/src/server.rs` and `src/server/*` | Patchbay HTTP compatibility server, application endpoints, theme transport, and asset serving | Preserve application endpoints until host application loading is complete; retire duplicate HTTP/shell delivery in Phase 5 | 4-5 |

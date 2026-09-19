@@ -135,8 +135,8 @@ impl TourShellPresenter {
             .presentation
             .clone()
             .ok_or(TourShellError::Identity)?;
-        let face = self.surfaces[index]
-            .face_subject
+        let front = self.surfaces[index]
+            .front_subject
             .clone()
             .ok_or(TourShellError::Identity)?;
         let revised = revised(presentation)?;
@@ -148,7 +148,7 @@ impl TourShellPresenter {
         let composition = self.present_surface(
             slot,
             &revised,
-            &face,
+            &front,
             bounds,
             if slot == Slot::Inspector { 2 } else { 3 },
             &scene,
@@ -178,7 +178,7 @@ impl TourShellPresenter {
         if !matches!(state.slot, Slot::Inspector | Slot::Transient) {
             return Ok(None);
         }
-        if state.face_subject.as_deref()
+        if state.front_subject.as_deref()
             == Some(super::TourTransientKind::Chooser.subject_identity())
         {
             return Ok(super::chooser_layout::hit(

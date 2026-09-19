@@ -1,7 +1,7 @@
 //! Conduit envelope for Tongues' irreversible generated-speech boundary.
 //!
 //! Tongues owns streaming text segmentation. Conduit adds only the portable
-//! Face, bounded segment envelope, and content-private execution evidence.
+//! Front, bounded segment envelope, and content-private execution evidence.
 
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,

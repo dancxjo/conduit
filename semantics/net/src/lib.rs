@@ -131,7 +131,7 @@ pub fn network_join_offer(
 }
 
 /// Semantic source of one volatile credential-bearing join request. The Plan
-/// binds only this Face and an exact authority grant; secret bytes enter only
+/// binds only this Front and an exact authority grant; secret bytes enter only
 /// as the bounded host-operation result after Play starts.
 pub fn network_credentials_offer(
     capability_id: CapabilityId,
@@ -315,13 +315,13 @@ pub fn execute_fixture_join(
         .iter()
         .find(|offer| &offer.capability_id == selected_capability_id)
         .ok_or(NetworkJoinError::Unsupported)?;
-    if offer.checked_face()
+    if offer.checked_front()
         != network_join_offer(
-            CapabilityId::from("face/network-join"),
-            ImplementationId::from("face/network-join"),
-            ArtifactId::from("face/network-join"),
+            CapabilityId::from("front/network-join"),
+            ImplementationId::from("front/network-join"),
+            ArtifactId::from("front/network-join"),
         )
-        .checked_face()
+        .checked_front()
     {
         return Err(NetworkJoinError::Unsupported);
     }
@@ -367,7 +367,7 @@ pub fn execute_fixture_join(
         attachment_id,
         host_id: advertisement.host_id.clone(),
         boot_id: advertisement.boot_id.clone(),
-        interface_pool_id: resource.pool_id.clone(),
+        interfront_pool_id: resource.pool_id.clone(),
         generation,
     })
 }

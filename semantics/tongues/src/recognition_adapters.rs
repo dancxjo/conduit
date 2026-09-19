@@ -2,7 +2,7 @@
 //!
 //! These Gears make temporal conversion visible in the expanded Form and Plan.
 //! Provider mechanics such as Whisper process invocation and PCM resampling remain
-//! realization truth below these portable Faces.
+//! realization truth below these portable Fronts.
 
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
@@ -54,7 +54,7 @@ pub enum RecognitionAdapterRefusal {
 
 /// Maximum source blocks retained by the clip-only recognition adapter.
 ///
-/// This is finite realization state for adapting a streaming Face to a
+/// This is finite realization state for adapting a streaming Front to a
 /// single-shot provider, not part of Tongues' recognition event semantics.
 pub const MAXIMUM_ACOUSTIC_WINDOW_ITEMS: usize = 8_192;
 
@@ -211,7 +211,7 @@ pub fn install_speech_recognition_adapters(
 }
 
 /// Reviewed realization Back for a single-shot recognizer serving the portable
-/// streaming recognition Face. The Back is semantic and provider-neutral.
+/// streaming recognition Front. The Back is semantic and provider-neutral.
 pub fn install_single_shot_streaming_recognition_back(
     startup: &StartupCatalog,
     profile: &ProfileCatalog,
@@ -367,7 +367,7 @@ mod tests {
     }
 
     #[test]
-    fn streaming_back_preserves_the_exact_checked_face_including_shorthand() {
+    fn streaming_back_preserves_the_exact_checked_front_including_shorthand() {
         let mut startup = StartupCatalog::new();
         let mut profile = ProfileCatalog::new();
         crate::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
@@ -391,11 +391,11 @@ mod tests {
                 definition.outputs[0].port_id.clone(),
             )),
         );
-        assert_eq!(form.checked_face(), expected);
+        assert_eq!(form.checked_front(), expected);
     }
 
     #[test]
-    fn streaming_face_expands_to_visible_single_shot_adapters() {
+    fn streaming_front_expands_to_visible_single_shot_adapters() {
         let mut startup = StartupCatalog::new();
         let mut profile = ProfileCatalog::new();
         crate::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();

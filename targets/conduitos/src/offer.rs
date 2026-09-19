@@ -524,7 +524,7 @@ pub struct ImplementationCandidate {
     pub artifact_requirement: IsaRequirement,
 }
 
-pub fn select_equal_face<'a>(
+pub fn select_equal_front<'a>(
     offer: &HostOffer<'_>,
     candidates: &'a [ImplementationCandidate],
 ) -> Result<&'a ImplementationCandidate, OfferError> {

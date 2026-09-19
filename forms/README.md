@@ -2,7 +2,7 @@
 
 This directory owns product-facing authored form source. Each canonical form
 has one stable `forms/<name>/main.conduit` owner whether it is used as a workload
-root or recursively behind another form's face. Tour, Crèche, Patchbay, CLI
+root or recursively behind another form's front. Tour, Crèche, Patchbay, CLI
 workflows, bodies, and conformance consume those same bytes; they do not own
 editable copies.
 

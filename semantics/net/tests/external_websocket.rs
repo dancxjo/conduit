@@ -31,7 +31,7 @@ fn listener() -> conduit_core::CapabilityOffer {
 }
 
 #[test]
-fn external_websocket_faces_are_exact_finite_and_host_specific() {
+fn external_websocket_fronts_are_exact_finite_and_host_specific() {
     let client = client();
     let listener = listener();
     assert_eq!(client.kind_id.as_str(), EXTERNAL_WEBSOCKET_CLIENT_KIND);
@@ -88,8 +88,8 @@ fn external_websocket_faces_are_exact_finite_and_host_specific() {
 
     let browser = browser_external_websocket_family();
     let std = std_external_websocket_family();
-    assert_eq!(browser.capability.checked_face(), client.checked_face());
-    assert_eq!(std.capability.checked_face(), listener.checked_face());
+    assert_eq!(browser.capability.checked_front(), client.checked_front());
+    assert_eq!(std.capability.checked_front(), listener.checked_front());
     assert_eq!(browser.resource.capacity_units, 1);
     assert_eq!(std.resource.capacity_units, 1);
     assert_eq!(
@@ -103,13 +103,13 @@ fn external_websocket_faces_are_exact_finite_and_host_specific() {
 }
 
 #[test]
-fn external_websocket_compatibility_is_the_checked_face_not_the_nominal_kind() {
+fn external_websocket_compatibility_is_the_checked_front_not_the_nominal_kind() {
     let client = client();
     let mut renamed = client.clone();
     renamed.kind_id = conduit_core::kind_id("example/renamed-websocket-client");
     renamed.kind_contract_revision =
         conduit_core::KindContractRevision::from("example/renamed-websocket-client@9");
-    assert_eq!(renamed.checked_face(), client.checked_face());
+    assert_eq!(renamed.checked_front(), client.checked_front());
 
     let mut generic_duplex_bytes = client.clone();
     generic_duplex_bytes.inputs[0].value_kind = conduit_core::kind_id("Bytes");
@@ -118,7 +118,7 @@ fn external_websocket_compatibility_is_the_checked_face_not_the_nominal_kind() {
         generic_duplex_bytes.kind_id.as_str(),
         EXTERNAL_WEBSOCKET_CLIENT_KIND
     );
-    assert_ne!(generic_duplex_bytes.checked_face(), client.checked_face());
+    assert_ne!(generic_duplex_bytes.checked_front(), client.checked_front());
 }
 
 #[test]

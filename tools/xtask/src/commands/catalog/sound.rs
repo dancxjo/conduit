@@ -151,7 +151,7 @@ fn build() -> Result<Report, CatalogError> {
         recursive_realization: RecursiveRealization {
             requirement_kind: conduit_semantic_catalog::MUSIC_PLAY_THROUGH_SYNTH.requirement_kind,
             stages: conduit_semantic_catalog::MUSIC_PLAY_THROUGH_SYNTH.stages,
-            selection_basis: "ordinary-offers-faces-resources-policy-and-constraints",
+            selection_basis: "ordinary-offers-fronts-resources-policy-and-constraints",
             proof_class: ProofClass::DeterministicReference,
             proof_command: "cargo test -p conduit-composite --test sound_realization",
         },

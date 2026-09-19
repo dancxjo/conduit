@@ -41,7 +41,7 @@ pub struct GraphItem {
 pub struct GraphForm {
     pub name: String,
     pub checked_form_id: conduit_core::CheckedFormId,
-    pub face: conduit_core::CheckedFace,
+    pub front: conduit_core::CheckedFace,
     pub source_span: Span,
     pub items: Vec<GraphItem>,
     pub cords: Vec<GraphCord>,
@@ -288,7 +288,7 @@ impl FormEditor {
             let gear_id = conduit_core::GearId::from(format!("{name}/{gear_name}"));
             let nested = self.expand_form_for_authoring(back_name)?;
             let inputs = back
-                .face
+                .front
                 .inputs()
                 .iter()
                 .cloned()
@@ -301,7 +301,7 @@ impl FormEditor {
                 })
                 .collect::<Vec<_>>();
             let outputs = back
-                .face
+                .front
                 .outputs()
                 .iter()
                 .cloned()
@@ -335,9 +335,9 @@ impl FormEditor {
                         .input_bindings
                         .iter()
                         .map(|binding| crate::PatchbayCompositionBinding {
-                            face_port: format!(
+                            front_port: format!(
                                 "composition/{gear_name}/input/{}",
-                                binding.face_port_id.as_str()
+                                binding.front_port_id.as_str()
                             ),
                             internal_port: translated_port(binding, "input"),
                         })
@@ -346,9 +346,9 @@ impl FormEditor {
                         .output_bindings
                         .iter()
                         .map(|binding| crate::PatchbayCompositionBinding {
-                            face_port: format!(
+                            front_port: format!(
                                 "composition/{gear_name}/output/{}",
-                                binding.face_port_id.as_str()
+                                binding.front_port_id.as_str()
                             ),
                             internal_port: translated_port(binding, "output"),
                         })
@@ -403,7 +403,7 @@ fn graph_revision(
             .expect("checked forms retain parsed names");
         let mut items = Vec::new();
         let mut cords = Vec::new();
-        for parameter in &syntax.face.startup_parameters {
+        for parameter in &syntax.front.startup_parameters {
             push_item(
                 &mut items,
                 &form.name,
@@ -413,7 +413,7 @@ fn graph_revision(
                 parameter.span,
             )?;
         }
-        for port in &syntax.face.runtime_ports {
+        for port in &syntax.front.runtime_ports {
             let kind = match port.direction {
                 conduit_form::RuntimePortDirection::Input => GraphItemKind::FaceInput,
                 conduit_form::RuntimePortDirection::Output => GraphItemKind::FaceOutput,
@@ -502,7 +502,7 @@ fn graph_revision(
         forms.push(GraphForm {
             name: form.name.clone(),
             checked_form_id: form.checked_form_id.clone(),
-            face: form.checked_face(),
+            front: form.checked_front(),
             source_span: syntax.span,
             items,
             cords,

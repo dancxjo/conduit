@@ -20,7 +20,7 @@ pub fn install_sound_catalogs(
     Ok(())
 }
 
-/// Install only the portable push-to-talk Face when another semantic owner
+/// Install only the portable push-to-talk Front when another semantic owner
 /// has already installed the shared `audio/play` contract.
 pub fn install_audio_capture_push_to_talk_catalog(
     startup: &mut conduit_form::StartupCatalog,

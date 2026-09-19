@@ -41,7 +41,7 @@ explicit Tour migration boundaries.
 
 `forms/inventory.toml` is the authoritative reviewed membership and proof inventory. Directory discovery validates membership; it never creates it. Tour Gallery, the body Workspace's reviewed initial selection, the Crèche compatibility route, conformance, body composition and other forms consume those canonical sources through the existing inventory/checked-form paths. Consumer projections and finite selections are not new registries. Repository validation checks source paths against that same inventory.
 
-Under #2291, one checked canonical form may serve as a workload root or as one gear inside another form through its face. Both uses refer to the same source and identity. There is no separate `subforms/`, `components/`, `modules/`, or second form inventory. This placement rule does not claim a downstream composition proof before its owning issue establishes it.
+Under #2291, one checked canonical form may serve as a workload root or as one gear inside another form through its front. Both uses refer to the same source and identity. There is no separate `subforms/`, `components/`, `modules/`, or second form inventory. This placement rule does not claim a downstream composition proof before its owning issue establishes it.
 
 Zero-body bootstrap selects ordinary initial active forms into body workload revision 0. Later revisions add or remove ordinary forms. There is no current Seed repository category, `SeedId`, `BirthForm`, or `InitialProgramId` layer. Historical sources and evidence may retain historical terms; they are not current ontology.
 

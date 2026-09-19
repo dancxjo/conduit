@@ -135,7 +135,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn hosted_offers_preserve_portable_faces_without_exporting_motion_authority() {
+    fn hosted_offers_preserve_portable_fronts_without_exporting_motion_authority() {
         let education = education_std_offers();
         let vision = vision_std_offers();
         let robotics = robotics_structured_deterministic_offers();

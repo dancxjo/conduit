@@ -294,7 +294,7 @@ pub fn plan_expanded_canonical_with_shared_pools(
             .flat_map(|host| {
                 host.capabilities
                     .iter()
-                    .filter(|capability| capability.checked_face() == pool.member_face)
+                    .filter(|capability| capability.checked_front() == pool.member_front)
                     .map(move |capability| (host, capability))
             })
             .collect::<Vec<_>>();
@@ -406,7 +406,7 @@ pub fn plan_expanded_canonical_with_shared_pools(
         let planned = PlannedSharedPool {
             pool_id: pool.pool_id.clone(),
             declaration_id: pool.declaration_id.clone(),
-            member_face: pool.member_face.clone(),
+            member_front: pool.member_front.clone(),
             maximum_members: pool.maximum_members,
             member_limits: requirement.member_limits,
             realization_envelope,

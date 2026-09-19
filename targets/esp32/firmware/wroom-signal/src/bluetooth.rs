@@ -50,7 +50,7 @@ pub async fn run<C>(
 ) where
     C: Controller,
 {
-    let mac = efuse::interface_mac_address(InterfaceMacAddress::Bluetooth);
+    let mac = efuse::interfront_mac_address(InterfaceMacAddress::Bluetooth);
     let mut address = [0_u8; 6];
     address.copy_from_slice(mac.as_bytes());
     // The controller API currently accepts a random-address configuration.

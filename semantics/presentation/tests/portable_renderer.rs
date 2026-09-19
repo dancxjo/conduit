@@ -14,7 +14,7 @@ mod common;
 use common::{checked_renderer_form, host, plan_for, presentation, DOM_RESOURCE, WAYLAND_RESOURCE};
 
 #[test]
-fn unchanged_face_plans_to_exact_wayland_and_dom_realizations() {
+fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
     let form = checked_renderer_form();
     let wayland = plan_for(
         &form,
@@ -82,7 +82,7 @@ fn headless_host_is_valid_but_cannot_invent_a_renderer_offer() {
 }
 
 #[test]
-fn renderer_face_can_be_composed_as_an_ordinary_form_back() {
+fn renderer_front_can_be_composed_as_an_ordinary_form_back() {
     let mut startup = StartupCatalog::new();
     startup
         .insert(KindSignature {

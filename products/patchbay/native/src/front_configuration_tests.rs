@@ -2,9 +2,9 @@ use super::{gui::GuiAction, Arguments, PatchbayApplication};
 use conduit_core::ConfigurationValue;
 
 #[test]
-fn native_face_control_uses_interaction_execution_and_persists_canonical_source() {
+fn native_front_control_uses_interaction_execution_and_persists_canonical_source() {
     let directory =
-        std::env::temp_dir().join(format!("patchbay-face-control-{}", std::process::id()));
+        std::env::temp_dir().join(format!("patchbay-front-control-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
     let path = directory.join("controls.conduit");
     std::fs::write(
@@ -118,9 +118,9 @@ fn native_face_control_uses_interaction_execution_and_persists_canonical_source(
 }
 
 #[test]
-fn native_face_control_refuses_invalid_value_without_changing_source() {
+fn native_front_control_refuses_invalid_value_without_changing_source() {
     let directory =
-        std::env::temp_dir().join(format!("patchbay-face-refusal-{}", std::process::id()));
+        std::env::temp_dir().join(format!("patchbay-front-refusal-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
     let path = directory.join("controls.conduit");
     std::fs::write(
@@ -159,7 +159,8 @@ fn native_face_control_refuses_invalid_value_without_changing_source() {
 
 #[test]
 fn maximum_short_text_crosses_the_bounded_interaction_envelope() {
-    let directory = std::env::temp_dir().join(format!("patchbay-face-text-{}", std::process::id()));
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-front-text-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
     let path = directory.join("controls.conduit");
     std::fs::write(
@@ -195,9 +196,9 @@ fn maximum_short_text_crosses_the_bounded_interaction_envelope() {
 }
 
 #[test]
-fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
+fn pointer_hit_prefers_front_control_over_containing_gear_rectangle() {
     let directory =
-        std::env::temp_dir().join(format!("patchbay-face-pointer-{}", std::process::id()));
+        std::env::temp_dir().join(format!("patchbay-front-pointer-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
     let path = directory.join("controls.conduit");
     std::fs::write(
@@ -226,7 +227,7 @@ fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
             form_selection: 0,
             form_scroll: 0,
             exact_identity_open: false,
-            face_control_focus: 0,
+            front_control_focus: 0,
             presentation_layout: &application.layout,
             realization_plan: None,
             realization_hosts: &[],

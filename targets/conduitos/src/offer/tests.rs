@@ -163,25 +163,25 @@ fn isa_admission_rejects_stale_missing_and_disagreeing_facts() {
         },
     };
     assert_eq!(
-        select_equal_face(&offer, &[vector, scalar]).unwrap().id,
+        select_equal_front(&offer, &[vector, scalar]).unwrap().id,
         "scalar"
     );
     assert_eq!(
-        select_equal_face(&offer, &[vector]),
+        select_equal_front(&offer, &[vector]),
         Err(OfferError::MissingIsaFeature)
     );
 
     let mut stale = scalar;
     stale.boot_id = [9; 32];
     assert_eq!(
-        select_equal_face(&offer, &[stale]),
+        select_equal_front(&offer, &[stale]),
         Err(OfferError::StaleObservation)
     );
 
     let mut disagreeing = scalar;
     disagreeing.artifact_requirement.rdrand = true;
     assert_eq!(
-        select_equal_face(&offer, &[disagreeing]),
+        select_equal_front(&offer, &[disagreeing]),
         Err(OfferError::ArtifactRequirementMismatch)
     );
 }

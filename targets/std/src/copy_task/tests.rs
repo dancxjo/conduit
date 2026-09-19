@@ -67,7 +67,7 @@ fn planned_copy(
     )
     .expect("copy Form checks without resource paths");
     let placements = default_placements(&form, std::slice::from_ref(host.advertisement()))
-        .expect("copy placement resolves by equal checked face");
+        .expect("copy placement resolves by equal checked front");
     let source_handle = ResourceHandleId::from("handle/source");
     let destination_handle = ResourceHandleId::from("handle/destination");
     let mut registry = ProtectedFileRegistry::default();

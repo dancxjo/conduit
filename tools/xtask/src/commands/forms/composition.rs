@@ -1,4 +1,4 @@
-//! Checked evidence that a reviewed reusable Form is consumed through its face.
+//! Checked evidence that a reviewed reusable Form is consumed through its front.
 
 use super::{result, FormProofResult, InventoryForm};
 use std::collections::BTreeSet;
@@ -93,7 +93,7 @@ pub(super) fn check_all(
                     started.elapsed().as_millis(),
                     (
                         "passed",
-                        "checked parent consumes the reusable Form through its exact face",
+                        "checked parent consumes the reusable Form through its exact front",
                     ),
                     subject.ok(),
                     Some(parent_id),

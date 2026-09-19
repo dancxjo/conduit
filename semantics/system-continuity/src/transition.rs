@@ -165,7 +165,7 @@ impl ObservedReplacement {
                     .capabilities
                     .iter()
                     .filter(|offer| {
-                        offer.checked_face() == assignment.checked_face
+                        offer.checked_front() == assignment.checked_front
                             && status_is_available(&self.report.capabilities, &offer.capability_id)
                     })
                     .map(|offer| CompatibleReplacement {

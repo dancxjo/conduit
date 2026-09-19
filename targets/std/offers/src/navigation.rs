@@ -142,7 +142,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     #[test]
-    fn offers_preserve_exact_portable_navigation_faces() {
+    fn offers_preserve_exact_portable_navigation_fronts() {
         let offers = navigation_std_offers();
         let contracts = conduit_semantic_catalog::navigation_kind_contracts();
         assert_eq!(offers.len(), contracts.len());

@@ -218,7 +218,7 @@ fn plan_with_http_part(
                 let capability = selected
                     .capabilities
                     .iter()
-                    .find(|offer| offer.checked_face() == gear.checked_face())
+                    .find(|offer| offer.checked_front() == gear.checked_front())
                     .unwrap();
                 (
                     gear.gear_id.clone(),

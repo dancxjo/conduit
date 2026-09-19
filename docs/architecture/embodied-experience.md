@@ -1348,7 +1348,7 @@ This direction does **not** authorize:
 - a privileged consciousness service;
 - an ambient autonomous-agent loop;
 - model output promoted to physical evidence;
-- facial identity claims merely because a detector emits a face region;
+- facial identity claims merely because a detector emits a front region;
 - implicit camera/microphone permission;
 - a permanent `brain` host;
 - hidden chain-of-thought stored as body cognition;

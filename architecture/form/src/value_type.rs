@@ -34,12 +34,12 @@ pub(crate) fn checked_value_kind(
         .unwrap_or_else(|| Ok(canonical_value_kind(source_type)))
 }
 
-pub(crate) fn checked_face(
+pub(crate) fn checked_front(
     form: &FormSyntax,
     catalog: &StartupCatalog,
 ) -> Result<CheckedFace, SyntaxCheckDiagnostic> {
     let startup_parameters = form
-        .face
+        .front
         .startup_parameters
         .iter()
         .map(|parameter| FaceStartupParameter {
@@ -50,7 +50,7 @@ pub(crate) fn checked_face(
         .collect();
     let mut inputs = Vec::new();
     let mut outputs = Vec::new();
-    for port in &form.face.runtime_ports {
+    for port in &form.front.runtime_ports {
         let descriptor = PortDescriptor {
             port_id: conduit_core::port_id(&port.name.text),
             value_kind: checked_value_kind(&port.value_type.text, catalog).map_err(|_| {
@@ -75,7 +75,7 @@ pub(crate) fn checked_face(
         startup_parameters,
         inputs,
         outputs,
-        form.face.shorthand.as_ref().map(|pair| {
+        form.front.shorthand.as_ref().map(|pair| {
             (
                 conduit_core::port_id(&pair.input_port.text),
                 conduit_core::port_id(&pair.output_port.text),

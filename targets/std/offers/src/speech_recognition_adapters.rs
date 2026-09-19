@@ -86,7 +86,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offers_preserve_explicit_tongues_adapter_faces() {
+    fn offers_preserve_explicit_tongues_adapter_fronts() {
         let window = speech_window_to_clip_std_offer();
         let window_definition = conduit_tongues::speech_window_to_clip_definition();
         assert_eq!(window.kind_id, window_definition.kind_id);

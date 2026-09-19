@@ -1,4 +1,4 @@
-//! Compact control rendering and hit actions inside a semantic Gear Face.
+//! Compact control rendering and hit actions inside a semantic Gear Front.
 
 use crate::{
     gui_hit::{GuiAction, HitShape, HitTarget},
@@ -10,7 +10,7 @@ use embedded_graphics::{
 };
 use patchbay_model::{ApplicationTheme, PatchbayGear, PatchbayGraph};
 
-pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
+pub(super) fn draw_front_controls<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
     gear: &PatchbayGear,
@@ -113,7 +113,7 @@ pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
     }
 }
 
-pub(super) fn focused_face_action(
+pub(super) fn focused_front_action(
     graph: &PatchbayGraph,
     subject_identity: &str,
     focused: usize,
@@ -137,7 +137,7 @@ pub(super) fn focused_face_action(
         .nth(focused)
 }
 
-pub(super) fn face_action_count(graph: &PatchbayGraph, subject_identity: &str) -> usize {
+pub(super) fn front_action_count(graph: &PatchbayGraph, subject_identity: &str) -> usize {
     graph
         .gears
         .iter()

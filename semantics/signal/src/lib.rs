@@ -37,7 +37,7 @@ pub const SHOW_KIND: &str = "presentation/show";
 pub const SIGNAL_PORT: &str = "signal";
 
 #[cfg(feature = "host-profile")]
-pub fn pulse_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+pub fn pulse_front_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
     vec![
         conduit_core::FaceStartupParameter {
             name: "count".to_string(),

@@ -24,9 +24,9 @@ impl Write for LostGraphicsSurface {
     }
 }
 
-const FORM: &str = r#"form canonical_gear_face {
+const FORM: &str = r#"form canonical_gear_front {
  icon: presentation/icon(icon = "presentation", accessibility-name = "Patchbay")
- frame: presentation/frame(role = "panel", accessibility-name = "Gear Face")
+ frame: presentation/frame(role = "panel", accessibility-name = "Gear Front")
  badge: presentation/badge(state = "ready", accessibility-name = "ready")
  rect: graphics/rect(style = "stroke")
  text: graphics/text(text = "ready")

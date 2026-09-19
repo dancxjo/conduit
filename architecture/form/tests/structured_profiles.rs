@@ -27,10 +27,10 @@ fn runtime_ports_use_semantic_profile_identity_instead_of_alias_spelling() {
         .unwrap();
     let source = "form source (\n event: MusicEvent >\n) {\n}\n\nform sink (\n > event: RenamedEvent\n) {\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &catalog).unwrap();
-    let source_face = checked.forms[1].checked_face();
-    let sink_face = checked.forms[0].checked_face();
-    let source_kind = &source_face.outputs()[0].value_kind;
-    let sink_kind = &sink_face.inputs()[0].value_kind;
+    let source_front = checked.forms[1].checked_front();
+    let sink_front = checked.forms[0].checked_front();
+    let source_kind = &source_front.outputs()[0].value_kind;
+    let sink_kind = &sink_front.inputs()[0].value_kind;
 
     assert_eq!(source_kind, sink_kind);
     assert!(source_kind.as_str().starts_with("structured-info/profile-"));
@@ -57,8 +57,8 @@ fn changing_shape_changes_checked_identity_and_port_compatibility() {
         second.forms[0].checked_form_id
     );
     assert_ne!(
-        first.forms[0].checked_face().outputs()[0].value_kind,
-        second.forms[0].checked_face().outputs()[0].value_kind
+        first.forms[0].checked_front().outputs()[0].value_kind,
+        second.forms[0].checked_front().outputs()[0].value_kind
     );
 }
 
@@ -67,8 +67,8 @@ fn ordinary_unregistered_port_kinds_keep_the_existing_exact_vocabulary() {
     let source = "form source (\n text: Text >\n exact: domain/custom@2 >\n) {\n}\n";
     let checked =
         check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
-    let face = checked.forms[0].checked_face();
-    let outputs = face.outputs();
+    let front = checked.forms[0].checked_front();
+    let outputs = front.outputs();
     assert_eq!(outputs[0].value_kind.as_str(), "domain/custom@2");
     assert_eq!(outputs[1].value_kind.as_str(), "value/text@1");
 }

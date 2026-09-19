@@ -13,7 +13,7 @@ use conduit_core::{
 };
 
 use crate::{
-    pulse_contract_revision, pulse_execution_profile, pulse_face_startup_parameters,
+    pulse_contract_revision, pulse_execution_profile, pulse_front_startup_parameters,
     pulse_host_operation_requirements, pulse_kind, pulse_outputs, pulse_resource_requirements,
     show_contract_revision, show_execution_profile, show_host_operation_requirements, show_inputs,
     show_kind, show_resource_requirements, signal_resource_offers,
@@ -45,7 +45,7 @@ pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
-                startup_parameters: pulse_face_startup_parameters(),
+                startup_parameters: pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("esp32-wroom-pulse-1"),
                 kind_id: pulse_kind(),

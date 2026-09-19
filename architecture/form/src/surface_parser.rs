@@ -148,7 +148,7 @@ impl<'a> Parser<'a> {
         })?;
         let boundary = rest.find(['(', '{']).ok_or_else(|| {
             (
-                FormError::InvalidSyntax("expected form face or back".into()),
+                FormError::InvalidSyntax("expected form front or back".into()),
                 self.span(header_start, header_start + header.len()),
             )
         })?;
@@ -164,19 +164,19 @@ impl<'a> Parser<'a> {
         let name = self.spanned(name_text, name_offset);
         let form_start = header_start;
         let marker = rest.as_bytes()[boundary] as char;
-        let mut face = FormFace::default();
+        let mut front = FormFace::default();
         if marker == '(' {
             if !rest[boundary + 1..].trim().is_empty() {
                 return Err((
                     FormError::InvalidSyntax(
-                        "face declarations must follow '(' on their own lines".into(),
+                        "front declarations must follow '(' on their own lines".into(),
                     ),
                     self.line_span(header_line),
                 ));
             }
             let open = header_start + "form ".len() + boundary;
             self.index += 1;
-            face = self.parse_face(open)?;
+            front = self.parse_front(open)?;
         } else {
             if !rest[boundary..].trim().starts_with('{') || rest[boundary + 1..].trim() != "" {
                 return Err((
@@ -190,31 +190,32 @@ impl<'a> Parser<'a> {
         let close = self.lines[self.index - 1];
         Ok(FormSyntax {
             name,
-            face,
+            front,
             completion,
             back,
             span: self.span(form_start, close.start + close.text.len()),
         })
     }
 
-    fn parse_face(&mut self, open: usize) -> Result<FormFace, (FormError, Span)> {
-        let mut face = FormFace::default();
+    fn parse_front(&mut self, open: usize) -> Result<FormFace, (FormError, Span)> {
+        let mut front = FormFace::default();
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
             let (text, start) = line.statement();
             if text == ") {" || text == "){" {
-                face.span = Some(self.span(open, start + text.find(')').unwrap() + 1));
+                front.span = Some(self.span(open, start + text.find(')').unwrap() + 1));
                 self.index += 1;
-                return Ok(face);
+                return Ok(front);
             }
             if text.is_empty() || text.starts_with('#') {
                 self.index += 1;
                 continue;
             }
             if text.contains('>') {
-                self.parse_face_runtime(text, start, &mut face)?;
+                self.parse_front_runtime(text, start, &mut front)?;
             } else {
-                face.startup_parameters
+                front
+                    .startup_parameters
                     .push(self.parse_startup(text, start)?);
             }
             self.index += 1;
@@ -241,16 +242,16 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_face_runtime(
+    fn parse_front_runtime(
         &self,
         text: &str,
         start: usize,
-        face: &mut FormFace,
+        front: &mut FormFace,
     ) -> Result<(), (FormError, Span)> {
         let arrows = top_level_positions(text, '>');
         if arrows.len() != 1 {
             return Err((
-                FormError::InvalidSyntax("malformed face arrows".into()),
+                FormError::InvalidSyntax("malformed front arrows".into()),
                 self.span(start, start + text.len()),
             ));
         }
@@ -258,33 +259,33 @@ impl<'a> Parser<'a> {
         let left = text[..arrow].trim();
         let right = text[arrow + 1..].trim();
         match (left.is_empty(), right.is_empty()) {
-            (true, false) => face.runtime_ports.push(self.runtime_port(
+            (true, false) => front.runtime_ports.push(self.runtime_port(
                 right,
                 text,
                 start,
                 RuntimePortDirection::Input,
             )?),
-            (false, true) => face.runtime_ports.push(self.runtime_port(
+            (false, true) => front.runtime_ports.push(self.runtime_port(
                 left,
                 text,
                 start,
                 RuntimePortDirection::Output,
             )?),
             (false, false) => {
-                if face.shorthand.is_some() {
+                if front.shorthand.is_some() {
                     return Err((
-                        FormError::InvalidSyntax("more than one shorthand face pair".into()),
+                        FormError::InvalidSyntax("more than one shorthand front pair".into()),
                         self.span(start, start + text.len()),
                     ));
                 }
                 let input = self.runtime_port(left, text, start, RuntimePortDirection::Input)?;
                 let output = self.runtime_port(right, text, start, RuntimePortDirection::Output)?;
-                face.shorthand = Some(ShorthandPair {
+                front.shorthand = Some(ShorthandPair {
                     input_port: input.name.clone(),
                     output_port: output.name.clone(),
                     span: self.span(start, start + text.len()),
                 });
-                face.runtime_ports.extend([input, output]);
+                front.runtime_ports.extend([input, output]);
             }
             (true, true) => return Err(self.invalid_statement(text, start)),
         }

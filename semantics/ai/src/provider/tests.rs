@@ -69,7 +69,7 @@ fn line(
 }
 
 #[test]
-fn portable_face_and_provider_protocol_keep_realization_and_failures_distinct() {
+fn portable_front_and_provider_protocol_keep_realization_and_failures_distinct() {
     let contract = generate_text_contract();
     let encoded = serde_json::to_string(&contract).unwrap();
     for forbidden in ["http", "credential", "openai", "socket", "address"] {
@@ -119,7 +119,7 @@ fn portable_face_and_provider_protocol_keep_realization_and_failures_distinct() 
 }
 
 #[test]
-fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
+fn unchanged_form_selects_direct_front_or_distributed_provider_back_exactly() {
     let (startup, profile, backs) = catalogs();
     let checked = checked(&startup);
     let direct = expand_canonical_form(&checked, "answer", &profile).unwrap();
@@ -217,7 +217,7 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
                 let capability = host
                     .capabilities
                     .iter()
-                    .find(|offer| offer.checked_face() == gear.checked_face())
+                    .find(|offer| offer.checked_front() == gear.checked_front())
                     .unwrap();
                 (
                     gear.gear_id.clone(),

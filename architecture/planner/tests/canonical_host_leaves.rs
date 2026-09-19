@@ -266,7 +266,7 @@ fn explicit_form_completion_reaches_the_exact_plan() {
 }
 
 #[test]
-fn equal_face_with_different_name_and_revision_is_compatible() {
+fn equal_front_with_different_name_and_revision_is_compatible() {
     let expanded = expanded();
     let mut wrong_kind = host();
     let join = wrong_kind
@@ -276,7 +276,7 @@ fn equal_face_with_different_name_and_revision_is_compatible() {
         .unwrap();
     join.kind_id = kind_id("text/coincident-shape");
     let placements = default_expanded_placements(&expanded, std::slice::from_ref(&wrong_kind))
-        .expect("different nominal gear with the same face is compatible");
+        .expect("different nominal gear with the same front is compatible");
     let plan = plan_expanded_canonical(
         &expanded,
         std::slice::from_ref(&wrong_kind),
@@ -297,14 +297,14 @@ fn equal_face_with_different_name_and_revision_is_compatible() {
         .unwrap()
         .kind_contract_revision = KindContractRevision::from("text/join@2");
     default_expanded_placements(&expanded, &[wrong_revision])
-        .expect("face-preserving revision is compatible");
+        .expect("front-preserving revision is compatible");
 }
 
 #[test]
-fn same_name_with_a_different_face_is_incompatible() {
+fn same_name_with_a_different_front_is_incompatible() {
     let expanded = expanded();
-    let mut changed_face = host();
-    changed_face
+    let mut changed_front = host();
+    changed_front
         .capabilities
         .iter_mut()
         .find(|capability| capability.kind_id.as_str() == "text/join")
@@ -312,13 +312,13 @@ fn same_name_with_a_different_face_is_incompatible() {
         .inputs[0]
         .value_kind = kind_id("test/other-text");
     assert_eq!(
-        default_expanded_placements(&expanded, &[changed_face]).unwrap_err(),
+        default_expanded_placements(&expanded, &[changed_front]).unwrap_err(),
         PlannerError::UnknownCapability("text/join".into())
     );
 }
 
 #[test]
-fn two_gears_of_one_kind_can_select_different_equal_face_hosts() {
+fn two_gears_of_one_kind_can_select_different_equal_front_hosts() {
     let (startup, profile) = catalogs();
     let syntax =
         parse_syntax_document("form split {\n    left: text/source\n    right: text/source\n}\n");
@@ -365,7 +365,7 @@ fn two_gears_of_one_kind_can_select_different_equal_face_hosts() {
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
-    .expect("one unchanged semantic form may place equal-face gears on peer hosts");
+    .expect("one unchanged semantic form may place equal-front gears on peer hosts");
 
     assert_eq!(plan.fragments.len(), 2);
     assert_eq!(

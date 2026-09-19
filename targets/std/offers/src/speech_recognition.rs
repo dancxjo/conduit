@@ -138,7 +138,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_the_portable_face_and_finite_bounds() {
+    fn offer_preserves_the_portable_front_and_finite_bounds() {
         let offer = recognition_to_text_std_offer();
         let contract = conduit_tongues::speech_recognition_to_text_contract();
         assert_eq!(offer.kind_id, contract.kind_id);
@@ -149,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn committed_turn_offer_preserves_the_flow_face_and_finite_bounds() {
+    fn committed_turn_offer_preserves_the_flow_front_and_finite_bounds() {
         let offer = committed_turn_to_text_std_offer();
         let contract = conduit_tongues::committed_turn_to_text_contract();
         assert_eq!(offer.kind_id, contract.kind_id);

@@ -182,7 +182,7 @@ fn forward_reference_chains_resolve_to_one_canonical_value() {
 }
 
 #[test]
-fn reusable_form_arguments_use_declared_face_startup_signature_without_expansion() {
+fn reusable_form_arguments_use_declared_front_startup_signature_without_expansion() {
     let checked =
         check("form badge (\n title: Text = \"Conduit\"\n) {\n}\n\nform page {\n hero: badge\n}\n");
     let page = checked
@@ -199,7 +199,7 @@ fn reusable_form_arguments_use_declared_face_startup_signature_without_expansion
 }
 
 #[test]
-fn face_defaults_are_resolved_in_definition_scope_for_checked_identity() {
+fn front_defaults_are_resolved_in_definition_scope_for_checked_identity() {
     let alias = check("form badge (\n title: Text = \"Conduit\"\n label: Text = title\n) {\n}\n");
     let literal =
         check("form badge (\n title: Text = \"Conduit\"\n label: Text = \"Conduit\"\n) {\n}\n");
@@ -260,7 +260,7 @@ fn startup_dependency_cycles_are_rejected_exactly() {
 }
 
 #[test]
-fn face_default_cycles_are_rejected_even_before_invocation() {
+fn front_default_cycles_are_rejected_even_before_invocation() {
     let error = diagnostic("form a (\n left: Text = right\n right: Text = left\n) {\n}\n");
     assert_eq!(error.code, "CND-FRM-026");
 }
@@ -279,7 +279,7 @@ fn runtime_ports_hidden_inside_unsupported_expressions_still_fail_as_runtime_val
 }
 
 #[test]
-fn local_bindings_cannot_shadow_face_values_or_runtime_ports() {
+fn local_bindings_cannot_shadow_front_values_or_runtime_ports() {
     let parameter = diagnostic("form a (\n freq: Duration\n) {\n freq = 1s\n}\n");
     let runtime = diagnostic("form a (\n > freq: Duration\n) {\n freq = 1s\n}\n");
     assert_eq!(parameter.code, "CND-FRM-020");
@@ -287,7 +287,7 @@ fn local_bindings_cannot_shadow_face_values_or_runtime_ports() {
 }
 
 #[test]
-fn public_face_names_cannot_be_duplicated_or_shadowed_by_gears() {
+fn public_front_names_cannot_be_duplicated_or_shadowed_by_gears() {
     let duplicate = diagnostic("form a (\n > value: Text\n > value: Text\n) {\n}\n");
     let shadow = diagnostic("form a (\n > clock: Duration\n) {\n clock: time/every(1s)\n}\n");
     assert_eq!(duplicate.code, "CND-FRM-050");
@@ -332,13 +332,13 @@ fn delimiter_like_literal_text_is_bound_unambiguously_into_identity() {
 }
 
 #[test]
-fn checked_face_equality_ignores_callable_name_and_back() {
+fn checked_front_equality_ignores_callable_name_and_back() {
     let checked = check(
         "form first (\n count: Count = 1\n input: Tick > output: Tick\n) {\n}\n\nform second (\n count: Count = 2\n input: Tick > output: Tick\n) {\n clock: time/every(1s)\n}\n",
     );
     assert_eq!(
-        checked.forms[0].checked_face(),
-        checked.forms[1].checked_face()
+        checked.forms[0].checked_front(),
+        checked.forms[1].checked_front()
     );
     assert_ne!(
         checked.forms[0].checked_form_id,
@@ -347,7 +347,7 @@ fn checked_face_equality_ignores_callable_name_and_back() {
 }
 
 #[test]
-fn checked_face_equality_binds_startup_ports_and_shorthand() {
+fn checked_front_equality_binds_startup_ports_and_shorthand() {
     let baseline = check("form a (\n count: Count = 1\n input: Tick > output: Tick\n) {\n}\n");
     let required = check("form a (\n count: Count\n input: Tick > output: Tick\n) {\n}\n");
     let renamed = check("form a (\n limit: Count = 1\n input: Tick > output: Tick\n) {\n}\n");
@@ -358,27 +358,27 @@ fn checked_face_equality_binds_startup_ports_and_shorthand() {
     let current = check("form a (\n count: Count = 1\n input: $Tick > output: $Tick\n) {\n}\n");
     for changed in [required, renamed, auxiliary, flow, closing_flow, current] {
         assert_ne!(
-            baseline.forms[0].checked_face(),
-            changed.forms[0].checked_face()
+            baseline.forms[0].checked_front(),
+            changed.forms[0].checked_front()
         );
     }
 }
 
 #[test]
-fn checked_face_canonicalizes_runtime_port_declaration_order() {
+fn checked_front_canonicalizes_runtime_port_declaration_order() {
     let first =
         check("form a (\n > alpha: Tick\n > beta: Text\n omega: Text >\n zeta: Tick >\n) {\n}\n");
     let reordered = check(
         "form renamed (\n zeta: Tick >\n omega: Text >\n > beta: Text\n > alpha: Tick\n) {\n}\n",
     );
     assert_eq!(
-        first.forms[0].checked_face(),
-        reordered.forms[0].checked_face()
+        first.forms[0].checked_front(),
+        reordered.forms[0].checked_front()
     );
 }
 
 #[test]
-fn pool_declaration_seals_member_face_and_bound_without_nominal_identity() {
+fn pool_declaration_seals_member_front_and_bound_without_nominal_identity() {
     let first = check(
         "form chat/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n}\n",
     );
@@ -392,8 +392,8 @@ fn pool_declaration_seals_member_face_and_bound_without_nominal_identity() {
         .find(|form| form.name == "room")
         .unwrap();
     assert_eq!(
-        first_room.pools[0].member_face,
-        renamed_room.pools[0].member_face
+        first_room.pools[0].member_front,
+        renamed_room.pools[0].member_front
     );
     assert_eq!(first_room.checked_form_id, renamed_room.checked_form_id);
 

@@ -1,4 +1,4 @@
-//! Reviewed high-level Face and canonical Back for bounded measurement plotting.
+//! Reviewed high-level Front and canonical Back for bounded measurement plotting.
 
 use alloc::{format, string::ToString, vec};
 use conduit_core::{

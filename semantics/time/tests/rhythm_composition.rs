@@ -139,7 +139,7 @@ fn missing_reusable_definition_and_incompatible_nested_port_refuse() {
 }
 
 #[test]
-fn heartbeat_face_has_runtime_inputs_and_outputs_without_startup_parameters() {
+fn heartbeat_front_has_runtime_inputs_and_outputs_without_startup_parameters() {
     let (startup, profile) = catalogs();
     let source = include_str!("../../../forms/heartbeat-phase-follower/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
@@ -153,12 +153,12 @@ fn heartbeat_face_has_runtime_inputs_and_outputs_without_startup_parameters() {
     let inputs: Vec<_> = authoring
         .input_bindings
         .iter()
-        .map(|binding| binding.face_port_id.as_str())
+        .map(|binding| binding.front_port_id.as_str())
         .collect();
     let outputs: Vec<_> = authoring
         .output_bindings
         .iter()
-        .map(|binding| binding.face_port_id.as_str())
+        .map(|binding| binding.front_port_id.as_str())
         .collect();
     assert_eq!(inputs, ["local", "peer", "tick"]);
     assert_eq!(outputs, ["heartbeat", "updated"]);

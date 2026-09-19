@@ -44,9 +44,9 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
   page.on("request", (request) => {
     if (request.url().startsWith("http:")) requests.push(new URL(request.url()).pathname);
   });
-  await page.goto(`${entrance.url}faces-backs-and-implementation/`);
+  await page.goto(`${entrance.url}fronts-backs-and-implementation/`);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fronts, Backs, and implementation" })).toBeVisible();
   const admission = await page.evaluate(() => ({
     applicationId: globalThis.__conduitBrowserApplication.manifest.applicationId,
     packageDigest: globalThis.__conduitBrowserApplication.manifest.packageDigest,
@@ -88,9 +88,9 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
     const decode = (role) => new TextDecoder().decode(application.bytes(role));
     return { tour: decode("tour-style"), flow: decode("patchbay-flow-style") };
   });
-  expect(separatedStyles.tour).not.toContain(".flow-faceplate header");
+  expect(separatedStyles.tour).not.toContain(".flow-frontplate header");
   expect(separatedStyles.tour).not.toContain(".react-flow__edge-path");
-  expect(separatedStyles.flow).toContain(".flow-faceplate header");
+  expect(separatedStyles.flow).toContain(".flow-frontplate header");
   expect(separatedStyles.flow).toContain(".react-flow__edge.animated");
   const runnerStatus = page.locator('[data-application-key="play-status"]');
   await expect(runnerStatus).toHaveAttribute("data-application-component", "status");
@@ -106,7 +106,7 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
 
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fronts, Backs, and implementation" })).toBeVisible();
   await expect(page.locator("textarea")).toHaveValue(edited);
   await expect(page.locator(".gear-back-expansion")).toBeVisible();
   await expect(page.locator(".gear-back-flow")).toHaveAttribute("data-renderer", "react-flow");
@@ -354,10 +354,10 @@ test("Tour navigation is one finite Host-manifested view with stale and pressure
     globalThis.__staleTourNavigationButton = document.querySelector('[data-application-key="next"]');
     globalThis.__staleTourNavigationButton.click();
   });
-  await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fronts, Backs, and implementation" })).toBeVisible();
   await page.evaluate(() => globalThis.__staleTourNavigationButton.click());
   expect(await page.evaluate(() => globalThis.__conduitBrowserApplication.presentation.lastRefusal("tour-navigation"))).toBe("stale-revision");
-  await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fronts, Backs, and implementation" })).toBeVisible();
 
   const presentationEvidence = await page.evaluate(() => {
     const presentation = globalThis.__conduitBrowserApplication.presentation;

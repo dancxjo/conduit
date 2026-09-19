@@ -39,7 +39,7 @@ pub struct HostInstance {
 pub struct RoleRequirement {
     pub role_id: RoleId,
     pub gear_id: GearId,
-    pub checked_face: CheckedFace,
+    pub checked_front: CheckedFace,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -50,7 +50,7 @@ pub struct ExactAssignment {
     pub capability_id: CapabilityId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
-    pub checked_face: CheckedFace,
+    pub checked_front: CheckedFace,
 }
 
 /// An external authority fact consumed by continuity. This crate never issues it.

@@ -114,9 +114,9 @@ pub(super) fn portable_offer(kind: &str) -> Option<CapabilityOffer> {
         contract,
         revision,
         conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: "browser/portable-presentation-face",
+            capability: "browser/portable-presentation-front",
             execution_profile: BROWSER_PRESENTATION_PROFILE,
-            implementation: "browser/portable-presentation-face@1",
+            implementation: "browser/portable-presentation-front@1",
             artifact: BROWSER_PRESENTATION_ARTIFACT,
         },
         host_operations,

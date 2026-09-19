@@ -1,8 +1,8 @@
-//! Keyboard focus and activation for authoritative visible Face-control actions.
+//! Keyboard focus and activation for authoritative visible Front-control actions.
 
 use crate::{
     gui::GuiAction,
-    gui_face_controls::{face_action_count, focused_face_action},
+    gui_front_controls::{focused_front_action, front_action_count},
 };
 use winit::keyboard::{Key, ModifiersState, NamedKey};
 
@@ -12,7 +12,7 @@ pub(super) enum FaceControlKey {
     Action(GuiAction),
 }
 
-pub(super) fn resolve_face_control_key(
+pub(super) fn resolve_front_control_key(
     key: &Key,
     modifiers: ModifiersState,
     graph: Option<&patchbay_model::PatchbayGraph>,
@@ -32,21 +32,21 @@ pub(super) fn resolve_face_control_key(
         None if matches!(key, Key::Character(character) if character.eq_ignore_ascii_case("j"))
             || matches!(key, Key::Named(NamedKey::Enter)) =>
         {
-            return Err("select a Gear before using its Face controls".into())
+            return Err("select a Gear before using its Front controls".into())
         }
         None => return Ok(FaceControlKey::NotHandled),
     };
     if matches!(key, Key::Character(character) if character.eq_ignore_ascii_case("j")) {
-        let count = face_action_count(graph, selected);
+        let count = front_action_count(graph, selected);
         if count == 0 {
-            return Err("select a Gear with an actionable Face control".into());
+            return Err("select a Gear with an actionable Front control".into());
         }
         *focus = focus.saturating_add(1) % count;
         return Ok(FaceControlKey::FocusChanged);
     }
     if matches!(key, Key::Named(NamedKey::Enter)) {
-        let action = focused_face_action(graph, selected, *focus)
-            .ok_or("select a Gear with an actionable Face control")?;
+        let action = focused_front_action(graph, selected, *focus)
+            .ok_or("select a Gear with an actionable Front control")?;
         return Ok(FaceControlKey::Action(action));
     }
     Ok(FaceControlKey::NotHandled)

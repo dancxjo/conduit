@@ -7,7 +7,7 @@ parser, discovery, GPU dependency, allocation, or glyph cache. The build rejects
 missing, malformed, noncanonical, or oversized atlases. Headless products do not
 select the native compositor and do not link these resources.
 
-| Purpose | face / pixels | line advance |
+| Purpose | front / pixels | line advance |
 | --- | --- | --- |
 | Title | Sans 26 | 34 |
 | Heading, action | Sans Bold 18 | 24 |
@@ -15,7 +15,7 @@ select the native compositor and do not link these resources.
 | Code and exact identifiers | Mono 13 | 18 |
 
 The admitted corpus is the pinned Unifont subset. Covered glyphs use the primary
-face; remaining admitted characters (including the Chinese specimen) use the
+front; remaining admitted characters (including the Chinese specimen) use the
 same pinned Unifont bitmaps. Unadmitted characters deterministically use U+FFFD.
 This is bounded glyph coverage, not general multilingual shaping. Exact UTF-8
 content remains unchanged. Measurement and raster placement share advances and

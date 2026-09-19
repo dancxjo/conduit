@@ -1,4 +1,4 @@
-//! Digest-bound native Home face evidence produced by the packaged application.
+//! Digest-bound native Home front evidence produced by the packaged application.
 
 use std::{
     fs::OpenOptions,
@@ -18,7 +18,7 @@ const HEIGHT: usize = 720;
 #[derive(Serialize)]
 struct HomeFaceReceipt<'a> {
     schema: &'static str,
-    face_id: &'a str,
+    front_id: &'a str,
     proof_class: &'static str,
     step_ids: &'a [&'static str],
     host_id: &'a str,
@@ -34,10 +34,10 @@ struct HomeFaceReceipt<'a> {
 pub fn retain(journey: &NativeHomeJourneyReceipt, root: &Path) -> Result<PathBuf, String> {
     std::fs::create_dir(root)
         .map_err(|error| format!("create new native Home evidence directory: {error}"))?;
-    let face = journey.host_face;
-    if !matches!(face, "linux-native" | "windows-native") {
+    let front = journey.host_front;
+    if !matches!(front, "linux-native" | "windows-native") {
         return Err(format!(
-            "{face} is not an admitted native Home evidence face"
+            "{front} is not an admitted native Home evidence front"
         ));
     }
 
@@ -48,16 +48,16 @@ pub fn retain(journey: &NativeHomeJourneyReceipt, root: &Path) -> Result<PathBuf
         &journey.form_presentation,
         &journey.form_notice,
     );
-    let artifact_name = format!("home-{face}.png");
+    let artifact_name = format!("home-{front}.png");
     let artifact_path = root.join(&artifact_name);
     let artifact = png(&pixels)?;
     create_new(&artifact_path, &artifact)?;
     let digest = format!("sha256:{:x}", Sha256::digest(&artifact));
-    let renderer_id = format!("presentation/renderer-native-software-{face}@1");
-    let manifestation_id = format!("manifestation/home/{face}/{}", &digest[7..]);
+    let renderer_id = format!("presentation/renderer-native-software-{front}@1");
+    let manifestation_id = format!("manifestation/home/{front}/{}", &digest[7..]);
     let receipt = HomeFaceReceipt {
-        schema: "conduit.evidence/home-face@1",
-        face_id: face,
+        schema: "conduit.evidence/home-front@1",
+        front_id: front,
         proof_class: "native-software-renderer",
         step_ids: &journey.step_ids,
         host_id: &journey.host_id,
@@ -69,9 +69,9 @@ pub fn retain(journey: &NativeHomeJourneyReceipt, root: &Path) -> Result<PathBuf
         artifact_path: artifact_name,
         artifact_sha256: digest,
     };
-    let receipt_path = root.join(format!("home-face-{face}.json"));
+    let receipt_path = root.join(format!("home-front-{front}.json"));
     let bytes = serde_json::to_vec_pretty(&receipt)
-        .map_err(|error| format!("encode native Home face receipt: {error}"))?;
+        .map_err(|error| format!("encode native Home front receipt: {error}"))?;
     create_new(&receipt_path, &bytes)?;
     Ok(receipt_path)
 }

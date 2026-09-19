@@ -139,11 +139,11 @@ pinned Chromium DOM/SVG renderer:
 
 ```bash
 npm --prefix proof/browser ci --ignore-scripts --prefer-offline
-cargo xtask evidence one-form-two-faces
+cargo xtask evidence one-form-two-fronts
 ```
 
 The command refuses an existing output directory. On success,
-`target/journeys/one-form-two-faces/` contains native and browser PNGs, their
+`target/journeys/one-form-two-fronts/` contains native and browser PNGs, their
 distinct renderer receipts, and one four-output digest-bound manifest. The
 verifier requires a shared presentation identity and revision but deliberately
 does not require pixel equality. The native frame proves the repository's

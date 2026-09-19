@@ -32,12 +32,13 @@ pub fn structured_planner_diagnostic(
 
 fn classification(error: &PlannerError) -> Option<(&'static str, &'static str)> {
     match error {
-        PlannerError::UnknownCapability(_) => {
-            Some(("CND-PLN-006", "no face-compatible realization is available"))
-        }
+        PlannerError::UnknownCapability(_) => Some((
+            "CND-PLN-006",
+            "no front-compatible realization is available",
+        )),
         PlannerError::IncompatibleCheckedFace(_) => Some((
             "CND-PLN-012",
-            "selected realization has a different canonical checked face",
+            "selected realization has a different canonical checked front",
         )),
         PlannerError::HardRealizationRequirementUnsatisfied(_) => Some((
             "CND-PLN-013",
@@ -80,17 +81,17 @@ mod tests {
     }
 
     #[test]
-    fn face_mismatch_is_structured_without_nominal_or_private_detail() {
+    fn front_mismatch_is_structured_without_nominal_or_private_detail() {
         let diagnostic = structured_planner_diagnostic(
             &checked_form(),
             &PlannerError::IncompatibleCheckedFace(
-                "gear secret face differs from host-local secret".into(),
+                "gear secret front differs from host-local secret".into(),
             ),
         )
         .unwrap();
         let json = serde_json::to_string(&diagnostic).unwrap();
         assert_eq!(diagnostic.code, "CND-PLN-012");
-        assert!(diagnostic.summary.contains("canonical checked face"));
+        assert!(diagnostic.summary.contains("canonical checked front"));
         assert!(!json.contains("host-local secret"));
         assert!(!json.contains("gear secret"));
         assert_eq!(diagnostic.source_document_id, "source-1");
@@ -98,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_face_compatible_offer_has_a_stable_functional_code() {
+    fn missing_front_compatible_offer_has_a_stable_functional_code() {
         let diagnostic = structured_planner_diagnostic(
             &checked_form(),
             &PlannerError::UnknownCapability("nominal-name-is-not-the-gate".into()),
@@ -107,7 +108,7 @@ mod tests {
         assert_eq!(diagnostic.code, "CND-PLN-006");
         assert_eq!(
             diagnostic.summary,
-            "no face-compatible realization is available"
+            "no front-compatible realization is available"
         );
     }
 

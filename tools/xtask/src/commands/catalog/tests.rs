@@ -73,14 +73,14 @@ fn exact_profile_offers_drive_positive_cells() {
         .filter(|entry| matches!(entry.coverage, Coverage::Recursive))
         .count();
     assert_eq!(missing + direct + recursive, os.catalog_entry_count);
-    let gear_face = os
+    let gear_front = os
         .entries
         .iter()
         .find(|entry| entry.kind_id == conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND)
         .unwrap();
-    assert!(matches!(gear_face.coverage, Coverage::Recursive));
-    assert!(gear_face.implementation.is_none());
-    assert_eq!(gear_face.recursive_implementations.len(), 10);
+    assert!(matches!(gear_front.coverage, Coverage::Recursive));
+    assert!(gear_front.implementation.is_none());
+    assert_eq!(gear_front.recursive_implementations.len(), 10);
 }
 
 #[test]

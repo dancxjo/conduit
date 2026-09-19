@@ -10,7 +10,7 @@ fn keyboard_device() -> UsbDevice {
         &[18, 1, 0, 2, 0, 0, 0, 8, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
     )
     .unwrap();
-    device.interface_count = 1;
+    device.interfront_count = 1;
     device.endpoint_count = 1;
     device.interfaces[0] = UsbInterface {
         number: 0,
@@ -22,7 +22,7 @@ fn keyboard_device() -> UsbDevice {
         endpoint_count: 1,
     };
     device.endpoints[0] = UsbEndpoint {
-        interface_index: 0,
+        interfront_index: 0,
         address: 0x81,
         direction_in: true,
         transfer_type: 3,
@@ -33,7 +33,7 @@ fn keyboard_device() -> UsbDevice {
 }
 
 #[test]
-fn exact_boot_keyboard_interface_and_endpoint_match() {
+fn exact_boot_keyboard_interfront_and_endpoint_match() {
     let (interface, endpoint) = match_keyboard(&keyboard_device()).unwrap();
     assert_eq!(
         (interface.class, interface.subclass, interface.protocol),
@@ -44,7 +44,7 @@ fn exact_boot_keyboard_interface_and_endpoint_match() {
 }
 
 #[test]
-fn interface_and_endpoint_refusals_are_distinct() {
+fn interfront_and_endpoint_refusals_are_distinct() {
     let mut device = keyboard_device();
     device.interfaces[0].class = 2;
     assert_eq!(match_keyboard(&device), Err(HidError::InterfaceAbsent));
@@ -65,7 +65,7 @@ fn interface_and_endpoint_refusals_are_distinct() {
     );
 
     let mut ambiguous = keyboard_device();
-    ambiguous.interface_count = 2;
+    ambiguous.interfront_count = 2;
     ambiguous.interfaces[1] = ambiguous.interfaces[0];
     ambiguous.interfaces[1].number = 1;
     assert_eq!(

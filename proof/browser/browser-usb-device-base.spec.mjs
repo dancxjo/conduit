@@ -147,7 +147,7 @@ test("explicit WebUSB acquisition creates one exact finite Base then bounded use
     product_id: 0x000a,
     configuration: {
       configuration_value: 1,
-      interface_number: 0,
+      interfront_number: 0,
       alternate_setting: 0,
       in_endpoint: 1,
       out_endpoint: 1,

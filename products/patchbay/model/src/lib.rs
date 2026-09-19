@@ -40,12 +40,12 @@ mod dormant_readmission_explanation;
 mod evidence_lineage;
 mod execution_disposition_explanation;
 mod experience_inspection;
-mod face_configuration;
-mod face_controls;
 mod form_editor;
 mod form_editor_catalogs;
 mod form_editor_error;
 mod form_edits;
+mod front_configuration;
+mod front_controls;
 mod front_door;
 mod front_door_projection;
 mod front_door_session;
@@ -205,11 +205,11 @@ pub use execution_disposition_explanation::{
     explain_execution_disposition, ExecutionDispositionExplanation,
 };
 pub use experience_inspection::*;
-pub use face_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
 };
+pub use front_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use front_door::{
     EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
     PatchbayEntranceState, MAX_ENTRANCE_ACTIONS,
@@ -353,7 +353,7 @@ pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES
 #[cfg(test)]
 mod build_birth_tests;
 #[cfg(test)]
-mod face_configuration_tests;
+mod front_configuration_tests;
 #[cfg(test)]
 mod front_door_session_tests;
 #[cfg(test)]

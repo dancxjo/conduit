@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 // application owns public route truth, and redirects never choose a destination
 // from caller input. The legacy Tour remains available through its explicit
 // repository-development entrance.
-const routes = ["", "a-form-you-can-run", "faces-backs-and-implementation", "hosts-make-forms-real", "one-form-across-several-hosts", "the-body-one-computer-one-machine-or-many", "many-forms-one-body-wide-realization", "birth-spores-and-the-creche", "meet-one-gear", "same-face-different-implementation"];
+const routes = ["", "a-form-you-can-run", "fronts-backs-and-implementation", "hosts-make-forms-real", "one-form-across-several-hosts", "the-body-one-computer-one-machine-or-many", "many-forms-one-body-wide-realization", "birth-spores-and-the-creche", "meet-one-gear", "same-front-different-implementation"];
 
 async function stageRedirects(root, entrance) {
   for (const route of routes) {

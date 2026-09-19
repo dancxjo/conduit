@@ -25,7 +25,7 @@ form secret-knock (
     compare.comparison > manifest.input
 }
 
-# Reusable finite relative-duration normalization through its typed Face.
+# Reusable finite relative-duration normalization through its typed Front.
 form normalize-durations (
     > intervals: IntervalSequence
     normalized: NormalizedDurationSequence >
@@ -35,7 +35,7 @@ form normalize-durations (
     normalize.normalized > normalized
 }
 
-# Reusable ordered-event interval derivation through its typed Face.
+# Reusable ordered-event interval derivation through its typed Front.
 form derive-intervals (
     > events: TimedEventSequence
     intervals: IntervalSequence >

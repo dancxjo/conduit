@@ -77,7 +77,7 @@ complete these stages.
 
 ## Reusable forms
 
-forms can now act as gears through their checked faces. The remaining work is
+forms can now act as gears through their checked fronts. The remaining work is
 to finish useful compositions and demonstrate reuse outside each namesake app:
 
 - [Pocket Theremin #2217](https://github.com/dancxjo/conduit/issues/2217): input mapping and parameter control.

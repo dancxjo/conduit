@@ -377,7 +377,7 @@ fn read_recovery_sign(
             return "Pico recovery Sign exceeded its admitted format bound".into();
         }
         if status == conduit_r1_network_conformance::R1_USB_NETWORK_FAILURE_SIGN_DISCONNECTED {
-            return "Pico recovery Sign face disconnected during delivery".into();
+            return "Pico recovery Sign front disconnected during delivery".into();
         }
         if status.as_slice() != conduit_r1_network_conformance::R1_USB_NETWORK_FAILURE_SIGN_WRITTEN
         {
@@ -531,7 +531,7 @@ fn verify_attachment_sign(
         ("boot_id", runtime.boot_id.as_str()),
         ("active_play_id", runtime.active_play_id.as_str()),
         (
-            "interface_pool_id",
+            "interfront_pool_id",
             conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         ),
         ("sign_id", generated.terminal_sign_id.as_str()),

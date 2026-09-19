@@ -102,7 +102,7 @@ inputs during one play. That does not mutate the immutable **Conduit plan**,
 which owns the exact realization of the authored form on current hosts, bases,
 resources, and authority. Navigation code must not use `PlanId` for route
 identity. Changing the selected route or controller implementation leaves the
-authored goal and the form's portable face unchanged.
+authored goal and the form's portable front unchanged.
 
 ## Authority and Create safety boundary
 

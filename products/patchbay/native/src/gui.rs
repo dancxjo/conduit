@@ -83,7 +83,7 @@ pub struct PatchbayViewContext<'a> {
     pub form_selection: usize,
     pub form_scroll: usize,
     pub exact_identity_open: bool,
-    pub face_control_focus: usize,
+    pub front_control_focus: usize,
     pub presentation_layout: &'a patchbay_model::PatchbayLayout,
     pub realization_plan: Option<&'a conduit_core::Plan>,
     pub realization_hosts: &'a [conduit_core::HostAdvertisement],
@@ -137,7 +137,7 @@ pub fn draw_patchbay_with_debugger(
         form_selection,
         form_scroll,
         exact_identity_open,
-        face_control_focus,
+        front_control_focus,
         presentation_layout,
         realization_plan,
         realization_hosts,
@@ -287,7 +287,7 @@ pub fn draw_patchbay_with_debugger(
                 presentation_layout,
                 realization_plan,
                 realization_hosts,
-                face_control_focus,
+                front_control_focus,
             };
             for layout in &layouts {
                 draw_gear(
@@ -485,7 +485,7 @@ pub(super) fn layout_boundaries(graph: &PatchbayGraph, width: i32) -> Vec<Bounda
     let left = NAV_WIDTH + 8;
     let right = (width - INSPECTOR_WIDTH - 8).max(left + 80);
     graph
-        .face_inputs
+        .front_inputs
         .iter()
         .enumerate()
         .map(|(index, port)| {
@@ -503,7 +503,7 @@ pub(super) fn layout_boundaries(graph: &PatchbayGraph, width: i32) -> Vec<Bounda
                 is_output: false,
             }
         })
-        .chain(graph.face_outputs.iter().enumerate().map(|(index, port)| {
+        .chain(graph.front_outputs.iter().enumerate().map(|(index, port)| {
             let y = HEADER_HEIGHT + 42 + index as i32 * 34;
             BoundaryLayout {
                 identity: port.identity.clone(),

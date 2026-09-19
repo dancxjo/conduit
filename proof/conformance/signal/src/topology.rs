@@ -40,7 +40,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
-                startup_parameters: pulse_face_startup_parameters(),
+                startup_parameters: pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("pico-pulse-1"),
                 kind_id: pulse_kind(),
@@ -97,7 +97,7 @@ pub fn distributed_std_source_advertisement() -> HostAdvertisement {
         resources: vec![resource_offer("s4/std-timer", TIMER_RESOURCE_CLASS, 1)],
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
-            startup_parameters: pulse_face_startup_parameters(),
+            startup_parameters: pulse_front_startup_parameters(),
             shorthand: None,
             capability_id: CapabilityId::from("pulse-1"),
             kind_id: pulse_kind(),

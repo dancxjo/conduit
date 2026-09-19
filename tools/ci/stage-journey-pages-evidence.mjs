@@ -9,7 +9,7 @@ const MAXIMUM_FILE_BYTES = 64 * 1024 * 1024;
 const MAXIMUM_TOTAL_BYTES = 192 * 1024 * 1024;
 const ROOT_ENTRIES = new Set([".nojekyll", "index.html", "gallery.json", "current", "commits"]);
 const JOURNEYS = new Map([
-  ["one-form-two-faces", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
+  ["one-form-two-fronts", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
   ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "presentation.txt", "execution.json"]],
 ]);
 const OPTIONAL_JOURNEYS = new Map([

@@ -1,4 +1,4 @@
-.react-flow__node-faceplate {
+.react-flow__node-frontplate {
   width: 15rem;
   min-width: 15rem;
   padding: 0;
@@ -6,7 +6,7 @@
   background: transparent;
   font-weight: 400;
 }
-.flow-faceplate {
+.flow-frontplate {
   width: 15rem;
   max-width: 15rem;
   overflow: hidden;
@@ -15,7 +15,7 @@
   background: var(--conduit-surface);
   color: var(--conduit-text-primary);
 }
-.flow-faceplate header {
+.flow-frontplate header {
   display: grid;
   grid-template-columns: auto minmax(0,1.6rem) minmax(0,1fr) minmax(0,4.75rem);
   gap: .35rem;
@@ -85,7 +85,7 @@
 }
 .react-flow__edge-text { fill: var(--conduit-text-primary); font-size: .66rem; }
 .react-flow__edge-textbg { fill: var(--conduit-surface); }
-.flow-faceplate.semantic-selected,.react-flow__node.selected {
+.flow-frontplate.semantic-selected,.react-flow__node.selected {
   outline: 3px solid var(--conduit-focus);
   outline-offset: 2px;
 }
@@ -100,7 +100,7 @@
 .react-flow__edge.cord-line .react-flow__edge-path { stroke: var(--conduit-success); }
 .react-flow__edge.cord-pressure-unknown .react-flow__edge-path { stroke: var(--conduit-warning); }
 .react-flow__edge.cord-pressure-known .react-flow__edge-path { stroke: var(--conduit-emphasis); }
-.flow-faceplate.diagnostic-error { border-color: #ff776d; box-shadow: 0 0 0 2px color-mix(in srgb,#ff776d 35%,transparent); }
+.flow-frontplate.diagnostic-error { border-color: #ff776d; box-shadow: 0 0 0 2px color-mix(in srgb,#ff776d 35%,transparent); }
 .faceplate-port.diagnostic-error { color: #ffd2ce; background: color-mix(in srgb,#ff776d 18%,transparent); }
 .react-flow__edge.diagnostic-error .react-flow__edge-path { stroke: #ff776d; stroke-width: 4; animation: none; }
 .react-flow__edge.animated .react-flow__edge-path {
@@ -114,16 +114,16 @@
 .react-flow__controls { box-shadow: none; border: 1px solid var(--conduit-structure-secondary); }
 .react-flow__controls-button { border-radius: 0; padding: 0; }
 @media (max-width: 720px) {
-  .react-flow__node-faceplate,.flow-faceplate { width: 13rem; min-width: 13rem; max-width: 13rem; }
+  .react-flow__node-frontplate,.flow-frontplate { width: 13rem; min-width: 13rem; max-width: 13rem; }
 }
-.flow-faceplate.debugger-active,
+.flow-frontplate.debugger-active,
 .faceplate-port.debugger-active {
   border-color: var(--conduit-focus);
   box-shadow: 0 0 0 2px color-mix(in srgb,var(--conduit-focus) 45%,transparent);
 }
-.flow-faceplate.debugger-recent,
+.flow-frontplate.debugger-recent,
 .faceplate-port.debugger-recent { border-color: var(--conduit-structure-secondary); }
-.flow-faceplate.debugger-faulted,
+.flow-frontplate.debugger-faulted,
 .faceplate-port.debugger-faulted { border-color: #ff776d; }
 .react-flow__edge.debugger-active .react-flow__edge-path { stroke: var(--conduit-focus); }
 .react-flow__edge.debugger-recent .react-flow__edge-path { stroke: var(--conduit-structure-secondary); }

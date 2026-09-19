@@ -1,4 +1,4 @@
-//! Deterministic bounded extraction below the portable source-extraction face.
+//! Deterministic bounded extraction below the portable source-extraction front.
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{

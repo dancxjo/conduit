@@ -6,7 +6,7 @@ use conduit_core::{
 };
 use conduit_observatory::{HostReport, OperationalState};
 use conduit_system_continuity::{
-    delegated_reboot_face, delegated_reboot_offer, DelegatedRebootGrant,
+    delegated_reboot_front, delegated_reboot_offer, DelegatedRebootGrant,
     DelegatedRebootTransaction, HostInstance, LineLossDisposition, RebootDecision, RebootDenial,
     RebootPendingState, RebootProgressError, RebootRequest, RebootRequestId,
 };
@@ -119,7 +119,7 @@ fn request(controller: &HostInstance, target: &HostInstance, id: &str) -> Reboot
         request_id: RebootRequestId::from(id),
         controller: controller.clone(),
         target: target.clone(),
-        required_face: delegated_reboot_face(),
+        required_front: delegated_reboot_front(),
         selected_line_id: LineId::from("line/controller-to-target"),
     }
 }
@@ -300,7 +300,7 @@ fn malformed_request_is_denied_with_machine_readable_sign() {
 }
 
 #[test]
-fn equal_face_realization_is_compatible_but_does_not_bypass_exact_grant() {
+fn equal_front_realization_is_compatible_but_does_not_bypass_exact_grant() {
     let controller = host("host/controller", "boot/controller-1");
     let target = host("host/target", "boot/target-1");
     let mut renamed = advertisement(&target, true);
@@ -308,12 +308,12 @@ fn equal_face_realization_is_compatible_but_does_not_bypass_exact_grant() {
     renamed.capabilities[0].kind_contract_revision =
         conduit_core::KindContractRevision::from("vendor/maintenance-cycle@9");
     assert_eq!(
-        renamed.capabilities[0].checked_face(),
-        delegated_reboot_face()
+        renamed.capabilities[0].checked_front(),
+        delegated_reboot_front()
     );
 
     let accepted = DelegatedRebootTransaction::new(grant(&controller, &target)).submit(
-        &request(&controller, &target, "request/equal-face"),
+        &request(&controller, &target, "request/equal-front"),
         &renamed,
         &session(&controller, &target),
     );

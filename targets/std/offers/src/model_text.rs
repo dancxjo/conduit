@@ -85,7 +85,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_the_portable_face_and_finite_projection_boundary() {
+    fn offer_preserves_the_portable_front_and_finite_projection_boundary() {
         let offer = model_result_to_text_std_offer();
         let contract = conduit_ai::model_result_to_text_contract();
         assert_eq!(offer.kind_id, contract.kind_id);

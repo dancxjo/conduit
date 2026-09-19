@@ -174,7 +174,7 @@ mod tests {
         assert_eq!(blocks.len(), 11);
         assert_eq!(
             chapter_title(1).unwrap(),
-            "Faces, Backs, and implementation"
+            "Fronts, Backs, and implementation"
         );
         assert_eq!(chapter_title(6).unwrap(), "Birth, spores, and the Crèche");
         assert_eq!(chapter_title(7), Err("tour-lesson-chapter-refused"));

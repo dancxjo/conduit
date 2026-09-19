@@ -24,7 +24,7 @@ mod back_catalog;
 mod canonical_expansion;
 mod checked_syntax;
 mod diagnostic;
-mod functional_face;
+mod functional_front;
 mod structured_expression;
 mod structured_selector;
 mod structured_startup;
@@ -216,29 +216,29 @@ impl CheckedForm {
                 ))
             })?;
         export.capability_id = capability_id.clone();
-        validate_export_faces(&export, &self.gears)?;
+        validate_export_fronts(&export, &self.gears)?;
         let inputs = export
-            .input_faces
+            .input_fronts
             .iter()
-            .map(|face| face.external_port.clone())
+            .map(|front| front.external_port.clone())
             .collect::<Vec<_>>();
         let outputs = export
-            .output_faces
+            .output_fronts
             .iter()
-            .map(|face| face.external_port.clone())
+            .map(|front| front.external_port.clone())
             .collect::<Vec<_>>();
         Ok(CheckedCompositeBoundary {
             capability_id: export.capability_id.clone(),
             kind_id: export.kind_id.clone(),
             kind_contract_revision: exported_contract_revision(
                 &export.kind_id,
-                &export.input_faces,
-                &export.output_faces,
+                &export.input_fronts,
+                &export.output_fronts,
             ),
             inputs,
             outputs,
-            input_faces: export.input_faces.clone(),
-            output_faces: export.output_faces.clone(),
+            input_fronts: export.input_fronts.clone(),
+            output_fronts: export.output_fronts.clone(),
         })
     }
 }
@@ -254,12 +254,12 @@ pub struct CheckedNestedForm {
 pub struct CheckedExport {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub input_faces: Vec<CheckedCompositeFace>,
-    pub output_faces: Vec<CheckedCompositeFace>,
+    pub input_fronts: Vec<CheckedCompositeFace>,
+    pub output_fronts: Vec<CheckedCompositeFace>,
 }
 
-/// Terminal behavior is part of the exported face contract, independently for
-/// every face. More policies can be added without weakening the current exact
+/// Terminal behavior is part of the exported front contract, independently for
+/// every front. More policies can be added without weakening the current exact
 /// `independent` contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompositeFaceTerminal {
@@ -284,8 +284,8 @@ pub struct CheckedCompositeBoundary {
     pub kind_contract_revision: KindContractRevision,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    pub input_faces: Vec<CheckedCompositeFace>,
-    pub output_faces: Vec<CheckedCompositeFace>,
+    pub input_fronts: Vec<CheckedCompositeFace>,
+    pub output_fronts: Vec<CheckedCompositeFace>,
 }
 
 impl CheckedCompositeBoundary {
@@ -468,46 +468,46 @@ pub fn parse_with_startup(
     let authoring = expand_canonical_form_for_authoring(&checked, &entry, catalog)
         .map_err(|diagnostic| FormError::InvalidSyntax(diagnostic.message))?;
     let expanded = authoring.expanded;
-    let input_faces = authoring
+    let input_fronts = authoring
         .input_bindings
         .iter()
         .map(|binding| CheckedCompositeFace {
             external_port: authoring
-                .face
+                .front
                 .inputs()
                 .iter()
-                .find(|port| port.port_id == binding.face_port_id)
-                .expect("authoring input binding names a checked face port")
+                .find(|port| port.port_id == binding.front_port_id)
+                .expect("authoring input binding names a checked front port")
                 .clone(),
             internal_gear_id: binding.gear_id.clone(),
             internal_port_id: binding.gear_port_id.clone(),
             terminal: CompositeFaceTerminal::Independent,
         })
         .collect::<Vec<_>>();
-    let output_faces = authoring
+    let output_fronts = authoring
         .output_bindings
         .iter()
         .map(|binding| CheckedCompositeFace {
             external_port: authoring
-                .face
+                .front
                 .outputs()
                 .iter()
-                .find(|port| port.port_id == binding.face_port_id)
-                .expect("authoring output binding names a checked face port")
+                .find(|port| port.port_id == binding.front_port_id)
+                .expect("authoring output binding names a checked front port")
                 .clone(),
             internal_gear_id: binding.gear_id.clone(),
             internal_port_id: binding.gear_port_id.clone(),
             terminal: CompositeFaceTerminal::Independent,
         })
         .collect::<Vec<_>>();
-    let exports = if input_faces.is_empty() && output_faces.is_empty() {
+    let exports = if input_fronts.is_empty() && output_fronts.is_empty() {
         Vec::new()
     } else {
         vec![CheckedExport {
             capability_id: CapabilityId::from(entry.rsplit('/').next().unwrap_or(&entry)),
             kind_id: KindId::from(entry.as_str()),
-            input_faces,
-            output_faces,
+            input_fronts,
+            output_fronts,
         }]
     };
     let checked_form_id = checked_form_id(
@@ -679,44 +679,44 @@ fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
     }
 }
 
-fn validate_export_faces(export: &CheckedExport, gears: &[CheckedGear]) -> Result<(), FormError> {
+fn validate_export_fronts(export: &CheckedExport, gears: &[CheckedGear]) -> Result<(), FormError> {
     let mut names = BTreeSet::new();
-    for face in export.input_faces.iter().chain(&export.output_faces) {
-        if !names.insert(face.external_port.port_id.clone()) {
+    for front in export.input_fronts.iter().chain(&export.output_fronts) {
+        if !names.insert(front.external_port.port_id.clone()) {
             return Err(FormError::InvalidExport(format!(
-                "duplicate face name '{}'",
-                face.external_port.port_id.as_str()
+                "duplicate front name '{}'",
+                front.external_port.port_id.as_str()
             )));
         }
     }
-    for (direction, faces) in [
-        (PortDirection::Input, &export.input_faces),
-        (PortDirection::Output, &export.output_faces),
+    for (direction, fronts) in [
+        (PortDirection::Input, &export.input_fronts),
+        (PortDirection::Output, &export.output_fronts),
     ] {
-        for face in faces {
-            if face.external_port.direction != direction {
+        for front in fronts {
+            if front.external_port.direction != direction {
                 return Err(FormError::InvalidExport(
-                    "face direction differs from its export collection".into(),
+                    "front direction differs from its export collection".into(),
                 ));
             }
             let gear = gears
                 .iter()
-                .find(|gear| gear.gear_id == face.internal_gear_id)
-                .ok_or_else(|| FormError::InvalidExport("face names a missing Gear".into()))?;
+                .find(|gear| gear.gear_id == front.internal_gear_id)
+                .ok_or_else(|| FormError::InvalidExport("front names a missing Gear".into()))?;
             let endpoint = match direction {
                 PortDirection::Input => &gear.inputs,
                 PortDirection::Output => &gear.outputs,
             }
             .iter()
-            .find(|port| port.port_id == face.internal_port_id)
+            .find(|port| port.port_id == front.internal_port_id)
             .ok_or_else(|| {
-                FormError::InvalidExport("face names a missing or wrongly directed Port".into())
+                FormError::InvalidExport("front names a missing or wrongly directed Port".into())
             })?;
-            if endpoint.value_kind != face.external_port.value_kind
-                || face.terminal != CompositeFaceTerminal::Independent
+            if endpoint.value_kind != front.external_port.value_kind
+                || front.terminal != CompositeFaceTerminal::Independent
             {
                 return Err(FormError::InvalidExport(
-                    "face contract differs from its internal endpoint".into(),
+                    "front contract differs from its internal endpoint".into(),
                 ));
             }
         }
@@ -780,18 +780,18 @@ fn canonical_form_text(
             export.capability_id.as_str(),
             export.kind_id.as_str(),
         ));
-        for face in export.input_faces.iter().chain(&export.output_faces) {
-            let direction = match face.external_port.direction {
+        for front in export.input_fronts.iter().chain(&export.output_fronts) {
+            let direction = match front.external_port.direction {
                 PortDirection::Input => "input",
                 PortDirection::Output => "output",
             };
             text.push_str(&format!(
-                "face:{direction}:{}:{}:{}={}:{}:terminal-independent|",
-                face.external_port.port_id.as_str(),
-                face.external_port.value_kind.as_str(),
-                face.external_port.temporal.as_str(),
-                face.internal_gear_id.as_str(),
-                face.internal_port_id.as_str(),
+                "front:{direction}:{}:{}:{}={}:{}:terminal-independent|",
+                front.external_port.port_id.as_str(),
+                front.external_port.value_kind.as_str(),
+                front.external_port.temporal.as_str(),
+                front.internal_gear_id.as_str(),
+                front.internal_port_id.as_str(),
             ));
         }
     }
@@ -835,15 +835,15 @@ fn exported_contract_revision(
 ) -> KindContractRevision {
     let mut canonical = String::from("checked-export-contract:");
     push_identity_field(&mut canonical, kind_id.as_str());
-    for (direction, faces) in [("input", inputs), ("output", outputs)] {
-        for face in faces {
+    for (direction, fronts) in [("input", inputs), ("output", outputs)] {
+        for front in fronts {
             push_identity_field(&mut canonical, direction);
-            push_identity_field(&mut canonical, face.external_port.port_id.as_str());
-            push_identity_field(&mut canonical, face.external_port.value_kind.as_str());
-            push_identity_field(&mut canonical, face.external_port.temporal.as_str());
+            push_identity_field(&mut canonical, front.external_port.port_id.as_str());
+            push_identity_field(&mut canonical, front.external_port.value_kind.as_str());
+            push_identity_field(&mut canonical, front.external_port.temporal.as_str());
             push_identity_field(
                 &mut canonical,
-                match face.terminal {
+                match front.terminal {
                     CompositeFaceTerminal::Independent => "independent",
                     CompositeFaceTerminal::Coupled => "coupled",
                 },

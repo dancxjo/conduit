@@ -85,7 +85,7 @@ pub struct PoolRealizationEnvelope {
 pub struct PlannedSharedPool {
     pub pool_id: SharedPoolId,
     pub declaration_id: PoolDeclarationId,
-    pub member_face: CheckedFace,
+    pub member_front: CheckedFace,
     pub maximum_members: u16,
     pub member_limits: PoolMemberLimits,
     pub realization_envelope: Vec<PoolRealizationEnvelope>,
@@ -163,9 +163,9 @@ impl PlannedSharedPool {
         host_id: &HostId,
         boot_id: &BootId,
         capability_id: &CapabilityId,
-        face: &CheckedFace,
+        front: &CheckedFace,
     ) -> bool {
-        face == &self.member_face
+        front == &self.member_front
             && self.realization_envelope.iter().any(|allowed| {
                 &allowed.host_id == host_id
                     && &allowed.boot_id == boot_id

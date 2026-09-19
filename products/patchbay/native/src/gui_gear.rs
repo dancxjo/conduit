@@ -1,8 +1,8 @@
-//! Native rendering for the two presentation faces of one semantic Gear.
+//! Native rendering for the two presentation fronts of one semantic Gear.
 
 use crate::{
     gui::{GearLayout, GuiAction, HitTarget},
-    gui_face_controls::draw_face_controls,
+    gui_front_controls::draw_front_controls,
     gui_hit::HitShape,
     gui_primitives::{fill_rect, frame_rect, rgb, text, PixelRect},
     icon::{draw_icon, Icon},
@@ -23,7 +23,7 @@ pub(super) struct GearViewContext<'a> {
     pub(super) presentation_layout: &'a PatchbayLayout,
     pub(super) realization_plan: Option<&'a conduit_core::Plan>,
     pub(super) realization_hosts: &'a [conduit_core::HostAdvertisement],
-    pub(super) face_control_focus: usize,
+    pub(super) front_control_focus: usize,
 }
 
 pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
@@ -93,12 +93,12 @@ pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
     draw_flip_control(&mut target, graph, layout, reversed, theme, targets);
     if !reversed {
         draw_ports(&mut target, graph, layout, selected, theme, targets);
-        draw_face_controls(
+        draw_front_controls(
             &mut target,
             graph,
             layout.gear,
             layout.bounds,
-            is_selected.then_some(view.face_control_focus),
+            is_selected.then_some(view.front_control_focus),
             theme,
             targets,
         );

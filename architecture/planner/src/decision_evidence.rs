@@ -32,7 +32,7 @@ pub enum RealizationDecisionDisposition {
     Selected,
 }
 
-/// Bounded, prompt-free planning signs for one equal-face candidate.
+/// Bounded, prompt-free planning signs for one equal-front candidate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RealizationDecisionRecord {
     pub gear_id: GearId,

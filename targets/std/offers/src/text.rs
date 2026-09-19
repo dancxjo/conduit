@@ -193,7 +193,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn std_offers_consume_exact_portable_text_faces() {
+    fn std_offers_consume_exact_portable_text_fronts() {
         for (offer, semantic) in [
             (text_literal_offer(), conduit_text::text_literal_semantics()),
             (text_upper_offer(), conduit_text::text_upper_semantics()),

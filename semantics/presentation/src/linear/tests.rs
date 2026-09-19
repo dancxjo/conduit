@@ -12,8 +12,8 @@ use crate::{
 };
 
 fn exact_presentation() -> Presentation {
-    let source_document_id = SourceDocumentId::from("source/interface-parity");
-    let checked_form_id = CheckedFormId::from("checked/interface-parity");
+    let source_document_id = SourceDocumentId::from("source/interfront-parity");
+    let checked_form_id = CheckedFormId::from("checked/interfront-parity");
     let body = Body::born(
         source_document_id.clone(),
         checked_form_id.clone(),
@@ -29,9 +29,9 @@ fn exact_presentation() -> Presentation {
             wake_id: Some(wake.wake_id),
             source_document_id: Some(source_document_id),
             checked_form_id: Some(checked_form_id),
-            expanded_form_id: Some(ExpandedFormId::from("expanded/interface-parity")),
-            plan_id: Some(PlanId::from("plan/interface-parity")),
-            active_play_id: Some(ActivePlayId::from("play/interface-parity")),
+            expanded_form_id: Some(ExpandedFormId::from("expanded/interfront-parity")),
+            plan_id: Some(PlanId::from("plan/interfront-parity")),
+            active_play_id: Some(ActivePlayId::from("play/interfront-parity")),
             sign_ids: vec![SignId::from("sign/playing"), SignId::from("sign/presented")],
         },
         vec![

@@ -1,7 +1,7 @@
 //! Fixed graphical font resources. Lookup and coverage sampling allocate nothing.
 //!
 //! Roles belong to the graphical Presenter, not authored Presentation identity.
-//! Missing face coverage uses the pinned rescue subset; unsupported scalars use
+//! Missing front coverage uses the pinned rescue subset; unsupported scalars use
 //! its explicit replacement glyph. This is scalar rendering, not general shaping.
 
 mod raster;

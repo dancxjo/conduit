@@ -26,7 +26,7 @@ pub const SSD1306_I2C_RESOURCE: &str = "pete.resource/ssd1306-i2c-base@1";
 pub const SSD1306_ATTACHMENT_RESOURCE: &str = "pete.resource/ssd1306-attachment@1";
 pub const SSD1306_FRAMEBUFFER_RESOURCE: &str = "pete.resource/ssd1306-framebuffer@1";
 
-const FORM: &str = "form face {\n    renderer: presentation/renderer\n}\n";
+const FORM: &str = "form front {\n    renderer: presentation/renderer\n}\n";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Ssd1306PresenterEvidence {
@@ -132,7 +132,7 @@ impl Ssd1306Presenter {
         if presentation.revision <= self.last_revision {
             return Err(Ssd1306PresenterError::StaleRevision);
         }
-        let face = presentation
+        let front = presentation
             .subjects
             .iter()
             .find(|subject| subject.role == PresentationRole::Host)
@@ -152,7 +152,7 @@ impl Ssd1306Presenter {
             &self.plan,
             active,
             self.placement_id.clone(),
-            face,
+            front,
             self.evidence.attachment_id.clone(),
             SignId::from(format!(
                 "pete/ssd1306/manifestation-prepared/{}",

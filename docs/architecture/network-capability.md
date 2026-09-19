@@ -4,7 +4,7 @@ The first network capability slice keeps five facts distinct:
 
 ```text
 finite Wi-Fi station resource
-  -> optional equal-face network/join capability
+  -> optional equal-front network/join capability
   -> admitted base host operation under exact authority
   -> boot-scoped NetworkAttachment runtime fact
   != WebSocket base or Conduit link
@@ -15,7 +15,7 @@ catalog family and not mandatory host core. A concrete host advertises the
 `conduit.resource/network/wifi-station@1` resource only when its selected
 composition provides one. A separately selected `network/join` offer consumes
 exactly one such resource and one network-configuration authority grant.
-Callable compatibility is canonical checked-face equality; resource, selected
+Callable compatibility is canonical checked-front equality; resource, selected
 capability, authority, host, and boot identities remain exact admission gates.
 
 The first request carries bounded volatile SSID and credential bytes directly to

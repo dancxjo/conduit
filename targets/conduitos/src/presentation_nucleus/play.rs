@@ -96,7 +96,7 @@ pub fn run(
         return Err(PresentationRunError::Shape);
     };
     if realization_back.kind_id.as_str() != conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND
-        || realization_back.invocation_path != "conduitos-gear-face/face"
+        || realization_back.invocation_path != "conduitos-gear-front/front"
         || fragment.realization_backs != prepared.plan.realization_backs
     {
         return Err(PresentationRunError::Shape);
@@ -276,7 +276,7 @@ fn prepare_scheduler(
                 let encoded = value.encode();
                 source(&mut values, &encoded[..value.encoded_len()])?
             }
-            TEXT_SOURCE_KIND => source(&mut values, b"Gear Face")?,
+            TEXT_SOURCE_KIND => source(&mut values, b"Gear Front")?,
             conduit_semantic_catalog::TEXT_PRESENTATION_KIND
             | conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND
             | conduit_semantic_catalog::LAYOUT_COLUMN_KIND => PresentationOperation::Sink {
@@ -453,7 +453,7 @@ mod tests {
             let prepared = super::super::prepare("test-host", "test-boot").unwrap();
             let mut display = Buffer::new();
             let proof = run(&prepared, &mut display).unwrap();
-            assert_eq!(proof.text, "Gear Face");
+            assert_eq!(proof.text, "Gear Front");
             assert_eq!(proof.layout_children, 3);
             assert_eq!(proof.graphics_commands, 3);
             assert_eq!(proof.text_display.commands, 1);

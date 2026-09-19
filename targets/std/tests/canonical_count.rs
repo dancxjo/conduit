@@ -99,7 +99,7 @@ fn canonical_program_reacts_to_open_flow_until_explicit_stop() {
 }
 
 #[test]
-fn reactive_face_range_overflow_and_selected_identity_are_exact() {
+fn reactive_front_range_overflow_and_selected_identity_are_exact() {
     let (startup, profile) = catalogs();
     let single_value = PROGRAM.replace("Tick...", "Tick");
     let checked = check_syntax_document(&parse_syntax_document(&single_value), &startup).unwrap();

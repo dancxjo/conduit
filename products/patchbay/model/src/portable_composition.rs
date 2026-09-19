@@ -134,13 +134,13 @@ mod tests {
     fn direct_and_reference_presenters_normalize_the_same_obligations() {
         let reference = PresentationComposition::icon("presentation", "Patchbay")
             .unwrap()
-            .frame("panel", "Gear Face")
+            .frame("panel", "Gear Front")
             .unwrap()
             .badge("warning", "Cord pressure")
             .unwrap();
         let direct = DirectPresentation::icon("presentation", "Patchbay")
             .unwrap()
-            .frame("panel", "Gear Face")
+            .frame("panel", "Gear Front")
             .badge("warning", "Cord pressure")
             .normalize()
             .unwrap();

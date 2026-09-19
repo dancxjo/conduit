@@ -147,7 +147,7 @@ impl JoinKernel {
                     if attachment.attachment_id != expected.attachment_id
                         || attachment.host_id != expected.host_id
                         || attachment.boot_id != expected.boot_id
-                        || attachment.interface_pool_id != expected.interface_pool_id
+                        || attachment.interfront_pool_id != expected.interfront_pool_id
                         || attachment.generation != expected.generation
                     {
                         return Err(UsbLinkError::InvalidNetworkJoin);
@@ -226,7 +226,7 @@ impl JoinKernel {
                         attachment_id: identity.attachment_id,
                         host_id: identity.host_id,
                         boot_id: identity.boot_id,
-                        interface_pool_id: identity.interface_pool_id,
+                        interfront_pool_id: identity.interfront_pool_id,
                         generation: identity.generation,
                     },
                     &mut attachment,
@@ -511,7 +511,7 @@ pub(crate) fn attachment_identity<'a>(
         boot_id: runtime.boot_id(),
         active_play_id: runtime.active_play_id(),
         attachment_id: ATTACHMENT_ID,
-        interface_pool_id: conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
+        interfront_pool_id: conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         generation: 1,
         sign_id: crate::network_image::ATTACHMENT_SIGN_ID,
     }

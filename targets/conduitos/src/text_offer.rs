@@ -217,11 +217,11 @@ struct LeafFace {
 
 fn composition_leaf<'a>(
     build_id: &'a str,
-    face: LeafFace,
+    front: LeafFace,
     implementation: &'static str,
 ) -> CapabilityOffer<'a> {
     CapabilityOffer {
-        kind: face.kind,
+        kind: front.kind,
         contract_revision: conduit_text::MORSE_COMPOSITION_CONTRACT_REVISION,
         implementation,
         artifact_build: build_id,
@@ -229,19 +229,19 @@ fn composition_leaf<'a>(
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: Some(PortOffer {
-            name: face.input_name,
-            value_kind: face.input_kind,
+            name: front.input_name,
+            value_kind: front.input_kind,
             direction: PortDirection::Input,
             closes: true,
         }),
         output: Some(PortOffer {
-            name: face.output_name,
-            value_kind: face.output_kind,
+            name: front.output_name,
+            value_kind: front.output_kind,
             direction: PortDirection::Output,
             closes: true,
         }),
         maximum_in_flight: 1,
-        maximum_input_bytes: face.maximum_bytes,
-        maximum_output_bytes: face.maximum_bytes,
+        maximum_input_bytes: front.maximum_bytes,
+        maximum_output_bytes: front.maximum_bytes,
     }
 }

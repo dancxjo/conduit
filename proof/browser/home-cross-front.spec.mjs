@@ -4,7 +4,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { startStaticProduct } from "./tour-test-server.mjs";
 
-const root = "target/home-cross-face-browser-proof";
+const root = "target/home-cross-front-browser-proof";
 const sharedSteps = [
   "home.arrived", "forms.opened", "form.selected", "prompt.opened",
   "form.run", "play.observed", "patchbay.opened", "home.returned",
@@ -22,7 +22,7 @@ test.beforeAll(async () => {
 test.beforeEach(async () => { entrance = await startStaticProduct(root, "/conduit/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("browser Home retains one exact cross-face receipt", async ({ page }, testInfo) => {
+test("browser Home retains one exact cross-front receipt", async ({ page }, testInfo) => {
   const carrier = entrance.url.replace(/\/$/, "");
   const steps = ["home.arrived"];
   await page.goto(`${carrier}/home/`);
@@ -59,11 +59,11 @@ test("browser Home retains one exact cross-face receipt", async ({ page }, testI
   steps.push("home.returned");
   expect(steps).toEqual(sharedSteps);
 
-  const face = `browser-${testInfo.project.name}`;
-  const artifactName = `${face}.png`;
+  const front = `browser-${testInfo.project.name}`;
+  const artifactName = `${front}.png`;
   const receipt = {
-    schema: "conduit.evidence/home-face@1",
-    face_id: face,
+    schema: "conduit.evidence/home-front@1",
+    front_id: front,
     proof_class: "live-browser",
     step_ids: steps,
     host_id: execution.effect.host_id,
@@ -76,8 +76,8 @@ test("browser Home retains one exact cross-face receipt", async ({ page }, testI
     artifact_sha256: `sha256:${createHash("sha256").update(screenshot).digest("hex")}`,
   };
   const configured = process.env.CONDUIT_HOME_FACE_EVIDENCE_ROOT;
-  const output = configured ?? testInfo.outputPath("home-face-evidence");
+  const output = configured ?? testInfo.outputPath("home-front-evidence");
   await mkdir(output, { recursive: true });
   await writeFile(path.join(output, artifactName), screenshot, { flag: "wx" });
-  await writeFile(path.join(output, `${face}.json`), `${JSON.stringify(receipt, null, 2)}\n`, { flag: "wx" });
+  await writeFile(path.join(output, `${front}.json`), `${JSON.stringify(receipt, null, 2)}\n`, { flag: "wx" });
 });

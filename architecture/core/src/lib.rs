@@ -21,7 +21,7 @@ mod delivery;
 mod device;
 mod execution;
 mod execution_fusion;
-mod face;
+mod front;
 mod implementation;
 mod info;
 mod interop;
@@ -64,7 +64,7 @@ pub use delivery::*;
 pub use device::*;
 pub use execution::*;
 pub use execution_fusion::*;
-pub use face::{CheckedFace, FaceStartupParameter};
+pub use front::{CheckedFace, FaceStartupParameter};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
 };

@@ -71,7 +71,7 @@ and Pico W HIL remain distinct evidence classes.
 | `reset_motherbrain` | service or delete | exact installed GPIO service attachment | Unavailable unless installed and observed; never implied by the common form |
 | `Unsupported` retired verbs | delete/fixture | no production seam | Exact compatibility rejection fixtures remain only while useful |
 
-The old navigation-shaped verbs (`face_bearing`, `track_bearing`,
+The old navigation-shaped verbs (`front_bearing`, `track_bearing`,
 `hold_heading`, `turn_to_heading`, `turn_by`, `drive_for`, `arc_for`,
 `creep_until`, `scan_arc`, `dock_align`, `wall_follow`, `wiggle_align`,
 `bump_escape`, and `unstick`) remain deleted from Brainstem. Navigation,

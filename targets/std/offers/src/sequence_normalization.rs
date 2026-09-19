@@ -48,7 +48,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_the_portable_normalization_face() {
+    fn offer_preserves_the_portable_normalization_front() {
         let contract = conduit_semantic_catalog::normalize_relative_duration_definition();
         let offer = normalize_sequence_std_offer();
         assert_eq!(offer.kind_id, contract.kind_id);

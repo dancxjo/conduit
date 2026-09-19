@@ -23,7 +23,7 @@ fn push_to_talk_is_one_host_neutral_bounded_pcm_flow() {
 }
 
 #[test]
-fn semantic_faces_are_distinct_and_backend_free() {
+fn semantic_fronts_are_distinct_and_backend_free() {
     let encoded = alloc::format!("{:?}", sound_contracts_with_revisions());
     for forbidden in [
         "MIDI",

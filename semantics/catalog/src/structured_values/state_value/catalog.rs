@@ -72,7 +72,7 @@ pub enum StateValueAdmissionError {
     InitialValueExceedsCapacity,
 }
 
-/// Derive State only from the exact authored Kind, Face and typed initializer.
+/// Derive State only from the exact authored Kind, Front and typed initializer.
 /// This is not a migration permission or an effect-authority grant. A Host must
 /// separately admit its storage, lifetime/evidence resources and implementation.
 pub fn derive_state_boundary(
@@ -131,7 +131,7 @@ pub fn derive_state_boundary(
     })
 }
 
-/// Validate fresh State initialization against its exact planned semantic Face.
+/// Validate fresh State initialization against its exact planned semantic Front.
 /// Host installation must additionally validate implementation and Boot identity.
 /// Migration uses a separate admitted continuity contract, never this fresh path.
 pub fn validate_state_placement(

@@ -53,7 +53,7 @@ fn robotics_catalog_rejects_invalid_observation_and_motion_configuration() {
 }
 
 #[test]
-fn differential_drive_face_cannot_author_wire_around_local_safety() {
+fn differential_drive_front_cannot_author_wire_around_local_safety() {
     let contract = robotics_drive_differential_contract();
     assert_eq!(
         contract

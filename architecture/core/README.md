@@ -19,7 +19,7 @@ depends on semantic, application, target, or proof packages.
 | `control_loop.rs` | universal architecture | Generic plan satisfaction, recovery, and replan decisions over current truth. |
 | `execution.rs` | universal architecture | Generic execution-region and admitted execution-profile records. |
 | `execution_fusion.rs` | universal architecture | Exact optional fusion of ordinary planned placements without a second executor. |
-| `face.rs` | universal architecture | Checked generic capability face and typed port surface. |
+| `front.rs` | universal architecture | Checked generic capability front and typed port surface. |
 | `implementation.rs` | universal architecture | Exact implementation and realization offers, distinct from availability and active instances. |
 | `interop.rs` | universal architecture | Exact directional bridge identity, bounded mapping, reflection fencing, and machine-readable refusal without granting sibling authority. |
 | `plan_fingerprint.rs` | universal architecture | Canonical fragment and plan commitment encoding; preserves immutable realization identity. |

@@ -12,7 +12,7 @@ impl PatchbayGraph {
     /// Adds one presentation boundary for realization truth already projected
     /// from an admitted recursive Form Back. The flattened Gears and Cords
     /// remain authoritative; this records only how Patchbay may collapse that
-    /// graph behind the checked Face.
+    /// graph behind the checked Front.
     pub fn admit_recursive_form(
         &mut self,
         projection: &RecursiveFormGearProjection,
@@ -28,7 +28,7 @@ impl PatchbayGraph {
             format!("port/{}/{direction}/{port}", gear.as_str())
         };
         let inputs = projection
-            .face
+            .front
             .inputs()
             .iter()
             .cloned()
@@ -38,7 +38,7 @@ impl PatchbayGraph {
             })
             .collect::<Vec<_>>();
         let outputs = projection
-            .face
+            .front
             .outputs()
             .iter()
             .cloned()
@@ -59,7 +59,7 @@ impl PatchbayGraph {
                 port.descriptor.value_kind == connection.value_kind
                     && port.descriptor.temporal == connection.temporal
             });
-            let Some(face) = compatible.next() else {
+            let Some(front) = compatible.next() else {
                 return Err(PatchbayGraphError::MissingCordEndpoint);
             };
             if compatible.next().is_some() {
@@ -81,7 +81,7 @@ impl PatchbayGraph {
                 )
             };
             bindings.push(PatchbayCompositionBinding {
-                face_port: face.identity.clone(),
+                front_port: front.identity.clone(),
                 internal_port: internal_port(gear, direction, port),
             });
         }

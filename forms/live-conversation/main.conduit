@@ -26,7 +26,7 @@ form live-conversation (
     synthesize.audio > spoken
 }
 
-# An ordinary complete spoken turn. The reusable live-conversation Face above
+# An ordinary complete spoken turn. The reusable live-conversation Front above
 # remains the refined explicit-PCM pipeline; acquisition and playback are
 # separate portable meanings selected by the Plan.
 form spoken-live-conversation {

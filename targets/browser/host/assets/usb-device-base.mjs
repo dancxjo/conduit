@@ -401,7 +401,7 @@ export function createBrowserUsbDeviceBase({
     terminal = true;
     requireStatus(api.conduit_browser_usb_cancel(), "page cancellation");
     device = null;
-    void closePlatform(current, evidence(api).configuration.interface_number);
+    void closePlatform(current, evidence(api).configuration.interfront_number);
     publish();
   }
 

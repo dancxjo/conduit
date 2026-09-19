@@ -1,4 +1,4 @@
-//! Compact Gear Face controls derived from authoritative checked contracts.
+//! Compact Gear Front controls derived from authoritative checked contracts.
 
 use crate::prelude::*;
 
@@ -14,7 +14,7 @@ use conduit_semantic_catalog::StandardConfigurationRule;
 
 use crate::PatchbayGraphError;
 
-/// Finite Gear-face control bound. Sixteen covers the reviewed 14-field
+/// Finite Gear-front control bound. Sixteen covers the reviewed 14-field
 /// Instrument 1 synth surface without making arbitrary catalog growth free.
 pub const MAX_FACE_CONTROLS: usize = 16;
 

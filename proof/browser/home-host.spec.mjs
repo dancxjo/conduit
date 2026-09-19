@@ -48,7 +48,7 @@ test("Home package binds its exact browser runtime", async ({ request }) => {
   expect(manifest.resources.find((resource) => resource.role === "runtime")?.sha256).toMatch(/^sha256:[0-9a-f]{64}$/);
 });
 
-test("Home face has keyboard and WCAG 2.2 AA structure", async ({ page }) => {
+test("Home front has keyboard and WCAG 2.2 AA structure", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Home is ready.");
   const skip = page.getByRole("link", { name: "Skip to main content" });

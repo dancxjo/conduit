@@ -5,11 +5,11 @@ plans, and plays. It is not a runtime, scheduler, planner, discovery service,
 membership database, or authority issuer.
 
 The `no_std` `conduit-system-continuity` contract consumes a validated
-Observatory snapshot. Callers separately declare membership and checked-face
+Observatory snapshot. Callers separately declare membership and checked-front
 role requirements. Construction succeeds only when each role maps to one exact
 planned placement, one explicitly available host+boot offer, and one matching
 play. The assignment retains exact capability, implementation, artifact,
-placement, host, and boot identity. Equal checked faces establish functional
+placement, host, and boot identity. Equal checked fronts establish functional
 compatibility; they never transfer assignment or proof provenance.
 
 ## Distinct facts
@@ -38,7 +38,7 @@ local request or externally authorized request accepted
 ```
 
 Request acceptance cannot be used as termination or replacement proof. A report
-reusing the old boot fails. A face-compatible offer on the new boot is only a
+reusing the old boot fails. A front-compatible offer on the new boot is only a
 candidate: continuity resumes only after a different exact plan assigns the
 role to that boot, stale grants are absent, and play identities are new.
 
@@ -46,13 +46,13 @@ role to that boot, stale grants are absent, and play identities are new.
 
 Delegated reboot is an optional exact operation offer, not host core. One
 externally issued `DelegatedTransitionGrant` names the exact controller and
-target host boots, selected equal-face capability realization, admitted session
+target host boots, selected equal-front capability realization, admitted session
 link, maximum attempts, proof window, and host-reserved sign sequence range.
 The bounded transaction consumes that existing grant fact; it does not issue
 authority or create another authority store.
 
 Admission independently checks current target advertisement, canonical
-checked-face compatibility, exact selected capability, controller and target
+checked-front compatibility, exact selected capability, controller and target
 boots, and the existing validated `SessionBinding`. Unsupported, unauthorized,
 stale, malformed, replayed, exhausted, and wrong-session requests remain
 distinct machine-readable denials. Acceptance sign is not completion:

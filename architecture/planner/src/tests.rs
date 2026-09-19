@@ -45,7 +45,7 @@ fn host() -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
-                startup_parameters: conduit_signal::pulse_face_startup_parameters(),
+                startup_parameters: conduit_signal::pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: conduit_core::CapabilityId::from("pulse-1"),
                 kind_id: kind_id(PULSE_KIND),
@@ -877,7 +877,7 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
 }
 
 #[test]
-fn planning_accepts_face_preserving_revision_and_rejects_face_change() {
+fn planning_accepts_front_preserving_revision_and_rejects_front_change() {
     let form = form();
     let original_host = host();
     let placements = default_placements(&form, std::slice::from_ref(&original_host))
@@ -892,7 +892,7 @@ fn planning_accepts_face_preserving_revision_and_rejects_face_change() {
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
-    .expect("face-preserving revision is compatible");
+    .expect("front-preserving revision is compatible");
     assert_eq!(
         revised.fragments[0].placements[0]
             .kind_contract_revision

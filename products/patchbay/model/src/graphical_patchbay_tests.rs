@@ -27,8 +27,8 @@ fn composition_graph() -> PatchbayGraph {
 #[test]
 fn composition_admission_combines_gear_port_and_subject_bounds_atomically() {
     let graph = composition_graph();
-    let port_count = graph.face_inputs.len()
-        + graph.face_outputs.len()
+    let port_count = graph.front_inputs.len()
+        + graph.front_outputs.len()
         + graph
             .gears
             .iter()

@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const SOURCE: &str = "form chat/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform consumer (\n members: Pool\n) {\n use: flow/pool-observe(members)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
 
-fn peer_face() -> conduit_core::CheckedFace {
+fn peer_front() -> conduit_core::CheckedFace {
     let checked =
         check_syntax_document(&parse_syntax_document(SOURCE), &startup_with_observe()).unwrap();
     checked
@@ -26,7 +26,7 @@ fn peer_face() -> conduit_core::CheckedFace {
         .iter()
         .find(|form| form.name == "chat/peer")
         .unwrap()
-        .checked_face()
+        .checked_front()
 }
 
 fn startup_with_observe() -> StartupCatalog {
@@ -60,15 +60,15 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     expand_canonical_form(&checked, "room", &profile).unwrap()
 }
 
-fn offer_from_face(
+fn offer_from_front(
     capability: &str,
     kind: &str,
-    face: &conduit_core::CheckedFace,
+    front: &conduit_core::CheckedFace,
     maximum: u16,
 ) -> CapabilityOffer {
     CapabilityOffer {
-        startup_parameters: face.startup_parameters().to_vec(),
-        shorthand: face
+        startup_parameters: front.startup_parameters().to_vec(),
+        shorthand: front
             .shorthand()
             .map(|(input, output)| (input.clone(), output.clone())),
         capability_id: CapabilityId::from(capability),
@@ -79,8 +79,8 @@ fn offer_from_face(
             implementation_id: ImplementationId::from(format!("implementation/{capability}")),
             artifact_id: ArtifactId::from(format!("artifact/{capability}")),
         },
-        inputs: face.inputs().to_vec(),
-        outputs: face.outputs().to_vec(),
+        inputs: front.inputs().to_vec(),
+        outputs: front.outputs().to_vec(),
         host_operations: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
@@ -102,16 +102,16 @@ fn host(form: &conduit_form::ExpandedCanonicalForm) -> HostAdvertisement {
         profile: HostProfileId::from("browser-profile"),
         resources: vec![],
         capabilities: vec![
-            offer_from_face(
+            offer_from_front(
                 "browser/pool-observe",
                 "flow/pool-observe",
-                &observe.checked_face(),
+                &observe.checked_front(),
                 2,
             ),
-            offer_from_face(
+            offer_from_front(
                 "browser/renamed-peer",
                 "renamed/browser-peer",
-                &peer_face(),
+                &peer_front(),
                 2,
             ),
         ],
@@ -159,7 +159,7 @@ fn requirements() -> BTreeMap<SharedPoolId, SharedPoolPlanningRequirement> {
 }
 
 #[test]
-fn canonical_pool_plans_equal_face_members_and_exact_consumers_envelope_and_authority() {
+fn canonical_pool_plans_equal_front_members_and_exact_consumers_envelope_and_authority() {
     let form = expanded();
     let host = host(&form);
     let placements = default_expanded_placements(&form, std::slice::from_ref(&host)).unwrap();
@@ -209,7 +209,7 @@ fn canonical_pool_plans_equal_face_members_and_exact_consumers_envelope_and_auth
 }
 
 #[test]
-fn pool_planning_fails_when_face_capacity_or_authority_scope_is_not_exact() {
+fn pool_planning_fails_when_front_capacity_or_authority_scope_is_not_exact() {
     let form = expanded();
     let mut host = host(&form);
     host.capabilities[1].limits.max_active_instances = 1;

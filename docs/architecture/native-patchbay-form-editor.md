@@ -9,8 +9,8 @@ through `conduit-form`'s lossless parser and canonical syntax checker. A result 
 only for the current revision, so delayed work cannot restore stale semantics.
 
 The graph is rebuilt from `CheckedSyntaxDocument` plus the parser's exact spans. Its item
-identities name forms, face ports, startup values, gears, and cords; graph selection maps back to
-the same byte span. Reusable gears remain one collapsed face item such as `hello: greet` until the
+identities name forms, front ports, startup values, gears, and cords; graph selection maps back to
+the same byte span. Reusable gears remain one collapsed front item such as `hello: greet` until the
 user opens `greet`'s back. That back contains authored Conduit gears and cords, never bases,
 implementations, plans, or runtime state.
 

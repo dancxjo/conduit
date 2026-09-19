@@ -1,6 +1,6 @@
 # Native Patchbay protected file base
 
-Native Patchbay's first optional desktop family reuses the standard `file/copy` checked face and bounded copy implementation. The native file dialog is only a base for user choices. It does not define a new operation, planner, scheduler, or task result.
+Native Patchbay's first optional desktop family reuses the standard `file/copy` checked front and bounded copy implementation. The native file dialog is only a base for user choices. It does not define a new operation, planner, scheduler, or task result.
 
 The base is composed only when a display connection and a usable dialog executable are present. The conforming omitted-base composition uses the same minimal host with no file capability or protected-file resource advertisement. A click while the base is absent or cancellation of the dialog creates no grant.
 
