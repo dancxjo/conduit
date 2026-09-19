@@ -49,6 +49,7 @@ mod membership_abi;
 pub mod presentation_nucleus;
 #[cfg(feature = "protected-line")]
 mod protected_line_abi;
+mod rendezvous_cbor_abi;
 pub mod resource_snapshot;
 pub use installed_browser::resource::advertisement as snapshot_advertisement;
 #[cfg(any(
