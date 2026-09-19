@@ -1,4 +1,7 @@
 import { connectRendezvousHost } from "../../creche/browser/creche-rendezvous.mjs";
+import { createPhysicalHostRunner } from "../../creche/browser/creche-physical.mjs";
+import { createPhysicalHostTargetCatalog } from "../../creche/browser/creche-target-catalog.mjs";
+import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "../../../targets/browser/deployment/browser/creche-adapter.mjs";
 import { createBrowserConfigurationOutfitter } from "./workspace-host-configuration.mjs";
 
 const SCHEMA = "conduit.workspace/body-invitation@1";
@@ -124,7 +127,7 @@ function renderInvitationQr(root, projection) {
   svg.append(background, path); root.replaceChildren(svg); root.hidden = false;
 }
 
-export function openWorkspaceMembership({ root, session, host, invitation, invitationLabel, presentationFor, beforeAdmission, onChanged, onFailure }) {
+export function openWorkspaceMembership({ root, session, host, hostOperations, invitation, invitationLabel, presentationFor, beforeAdmission, onChanged, onFailure }) {
   const panel = root.querySelector("#workspace-membership");
   const content = panel.querySelector("[data-membership-content]");
   const openButton = root.querySelector("[data-open-membership]");
@@ -209,14 +212,67 @@ export function openWorkspaceMembership({ root, session, host, invitation, invit
       back.addEventListener("click", render);
       actions.append(back);
       if (outfitter.checked()) {
-        const invite = document.createElement("button"); invite.type = "button"; invite.textContent = "Create separate Body invitation";
-        invite.addEventListener("click", () => renderInvite().catch(onFailure));
-        actions.prepend(invite);
+        const proceed = document.createElement("button"); proceed.type = "button"; proceed.textContent = "Continue with reviewed Host";
+        proceed.addEventListener("click", () => renderBrowserFabrication(outfitter.selection()));
+        actions.prepend(proceed);
       }
       content.append(actions);
     };
     outfitter = createBrowserConfigurationOutfitter({ host, presentationFor, onChange: redraw });
     redraw();
+  }
+
+  function renderBrowserFabrication(configurationSelection) {
+    if (!configurationSelection) throw new Error("Review the exact browser Host PROFILE before fabrication");
+    content.replaceChildren();
+    const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a Host";
+    const heading = document.createElement("h3"); heading.textContent = "Bind and admit this reviewed browser Host";
+    const explanation = document.createElement("p");
+    explanation.textContent = "Acquire the reviewed distribution, bind this exact PROFILE and a separate finite Body invitation, then realize and explicitly admit the fresh browser Host.";
+    const catalog = createPhysicalHostTargetCatalog({
+      generation: 1,
+      contributions: [BROWSER_EXISTING_COMPUTER_CONTRIBUTION],
+    });
+    const runner = createPhysicalHostRunner({
+      host,
+      hostOperations,
+      presentationFor,
+      targetCatalog: catalog,
+      adapterContext: {
+        configurationSelection,
+        async prepareSpore({ selection, imageDigest, nowMillis, entropy }) {
+          const nonce = crypto.getRandomValues(new Uint8Array(32));
+          try {
+            return await session.prepareBrowserSpore(selection, imageDigest, entropy, nonce, nowMillis);
+          } finally {
+            nonce.fill(0);
+          }
+        },
+      },
+      async admitJoin(join) {
+        await beforeAdmission();
+        const proof = {
+          invitation_id: join.invitation_id,
+          body_id: join.body_id,
+          host_id: join.host_id,
+          boot_id: join.boot_id,
+          nonce: join.nonce,
+          signature: join.signature,
+        };
+        const receipt = await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
+        return Object.freeze({
+          schema: "conduit.workspace/physical-host-admission@1",
+          membership_revision: receipt.body.evidence.membership.revision,
+          offer_count: receipt.body.current_host_offers.length,
+        });
+      },
+      onBodyChanged() { onChanged(); render(); },
+    });
+    const actions = document.createElement("div"); actions.className = "membership-actions";
+    const back = document.createElement("button"); back.type = "button"; back.textContent = "Back to Host review";
+    back.addEventListener("click", renderAddHost);
+    actions.append(back);
+    content.append(kicker, heading, explanation, runner, actions);
   }
 
   function renderRunningHost() {

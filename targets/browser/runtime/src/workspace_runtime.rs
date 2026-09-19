@@ -60,6 +60,16 @@ enum Request {
         now_millis: u64,
         expires_at_millis: u64,
     },
+    PrepareBrowserSpore {
+        host_id: HostId,
+        boot_id: BootId,
+        secret: Vec<u8>,
+        nonce: [u8; 32],
+        now_millis: u64,
+        expires_at_millis: u64,
+        image_content_digest: String,
+        selection: crate::creche::BrowserConfigurationSelection,
+    },
     AdmitInvitation {
         host_id: HostId,
         boot_id: BootId,
@@ -338,6 +348,58 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     current.issue_invitation(admissions, secret, nonce, now_millis, expires_at_millis, &host_id, &boot_id).map_err(debug)
                 })?;
                 return encode(&claim);
+            }
+            Request::PrepareBrowserSpore {
+                host_id,
+                boot_id,
+                secret,
+                nonce,
+                now_millis,
+                expires_at_millis,
+                image_content_digest,
+                selection,
+            } => {
+                let secret_bytes = <[u8; 32]>::try_from(secret.as_slice()).map_err(|_| {
+                    Refusal::new(
+                        "Admission.WeakSecret",
+                        "Invitation secret must have exactly 32 bytes",
+                    )
+                })?;
+                let invitation_secret = SpawnInvitationSecret::from_csprng_bytes(secret_bytes)
+                    .map_err(|error| {
+                        Refusal::new(
+                            &format!("Admission.{error:?}"),
+                            "Invitation entropy was refused",
+                        )
+                    })?;
+                let mut next_admissions = ADMISSIONS.with(|admissions| {
+                    admissions
+                        .borrow()
+                        .clone()
+                        .ok_or("Workspace admission state is missing")
+                })?;
+                let claim = candidate
+                    .issue_invitation(
+                        &mut next_admissions,
+                        invitation_secret,
+                        nonce,
+                        now_millis,
+                        expires_at_millis,
+                        &host_id,
+                        &boot_id,
+                    )
+                    .map_err(debug)?;
+                let prepared = crate::creche::prepare_workspace_browser(
+                    candidate.evidence(),
+                    &claim,
+                    &secret_bytes,
+                    &image_content_digest,
+                    selection,
+                )
+                .map_err(|message| Refusal::new("Fabrication.Prepare", &message))?;
+                let response = encode(&prepared)?;
+                ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
+                return Ok(response);
             }
             Request::AdmitInvitation { host_id, boot_id, advertisement, proof, now_millis } => {
                 let signature = <[u8; conduit_body::ADMISSION_SIGNATURE_BYTES]>::try_from(

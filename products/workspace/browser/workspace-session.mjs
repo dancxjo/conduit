@@ -124,6 +124,20 @@ export function openWorkspaceSession({ host, storage }) {
       await save();
       return claim;
     },
+    async prepareBrowserSpore(selection, imageContentDigest, secret, nonce, now = Date.now(), expires = now + 10 * 60_000) {
+      if (persistenceFailure) throw persistenceFailure;
+      const prepared = request('PrepareBrowserSpore', {
+        ...here,
+        secret: Array.from(secret),
+        nonce: Array.from(nonce),
+        now_millis: now,
+        expires_at_millis: expires,
+        image_content_digest: imageContentDigest,
+        selection,
+      });
+      await save();
+      return prepared;
+    },
     async admitInvitation(advertisement, proof, now = Date.now()) {
       if (persistenceFailure) throw persistenceFailure;
       const receipt = request('AdmitInvitation', { ...here, advertisement, proof, now_millis: now });
