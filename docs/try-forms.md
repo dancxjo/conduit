@@ -1,6 +1,6 @@
-# Try Forms
+# Try forms
 
-Forms describe portable meaning. The reviewed examples live under
+forms describe portable meaning. The reviewed examples live under
 [`forms/`](../forms/README.md), with explicit membership and proof declarations
 in [`forms/inventory.toml`](../forms/inventory.toml). A source example can be
 checked without having a live implementation of every operation it needs.
@@ -14,20 +14,20 @@ cargo xtask forms check
 cargo xtask forms report --output target/form-conformance.json
 ```
 
-The first runs Hello on the native Host. The second parses and checks the
+The first runs Hello on the native host. The second parses and checks the
 reviewed inventory. The report describes available proof modes and limitations;
 it does not execute all those proofs.
 
 ## Read a small program
 
-| Form | What to look for | Current example result |
+| form | What to look for | Current example result |
 | --- | --- | --- |
 | [Hello](../forms/hello/main.conduit) | A literal flows through `text/upper` to presentation | `HELLO, WORLD.` |
-| [Greet](../forms/greet/main.conduit) | A reusable Form with parameters and a checked face | Explicit positional binding produces `WelcomeTravis` |
+| [Greet](../forms/greet/main.conduit) | A reusable form with parameters and a checked face | Explicit positional binding produces `WelcomeTravis` |
 | [Clock](../forms/clock/main.conduit) | A finite time source and duration arguments | Four admitted ticks |
 | [Count](../forms/count/main.conduit) | Startup value, closing input flow, and current value | Values 2 through 6 |
 | [Webchat](../forms/webchat/main.conduit) | Bounded chat state and semantic WebSocket operations | A two-page browser proof exercises delivery and disconnect |
-| [Signal demo](../forms/signal-demo/main.conduit) | The same source can be planned across different Hosts | Native/browser proof produces sixteen receipts |
+| [Signal demo](../forms/signal-demo/main.conduit) | The same source can be planned across different hosts | Native/browser proof produces sixteen receipts |
 
 The first four are a useful reading order. In particular, Count's `$Count`
 means a current observation, not an unbounded history:
@@ -51,7 +51,7 @@ cargo xtask demo text-lab
 
 It begins with an effect-free rehearsal; inspect the selected environment and
 use the explicit execution controls when ready. The [Tour](https://dancxjo.github.io/conduit/tour/)
-and its Form Gallery provide another route through the examples.
+and its form Gallery provide another route through the examples.
 
 ## Run the declared proofs
 
@@ -60,9 +60,9 @@ cargo xtask forms run --deterministic
 ```
 
 This runs the deterministic checks declared by the inventory. Those checks
-range from semantic conformance to complete Plan/Play execution, so read each
-result's proof mode and reason. A parsed Form is not automatically an executed
-program. The inventory also records reusable-Form and combined-workload checks.
+range from semantic conformance to complete plan/play execution, so read each
+result's proof mode and reason. A parsed form is not automatically an executed
+program. The inventory also records reusable-form and combined-workload checks.
 
 For the declared browser-safe cases:
 
@@ -88,7 +88,7 @@ it does not establish attached-board or physical acceptance.
 ## Find something to add
 
 Use the inventory and `cargo xtask catalog matrix` to distinguish authored
-Forms, installed implementations, and missing realizations. A good contribution
+forms, installed implementations, and missing realizations. A good contribution
 can improve an example, add a meaningful negative check, or complete one
 missing implementation. Follow the [contributor guide](../CONTRIBUTING.md) and
 [current roadmap](roadmap.md) to keep that change focused.

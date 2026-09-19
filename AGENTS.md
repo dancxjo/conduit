@@ -20,7 +20,7 @@ to the canon; changing an invariant requires an explicit architecture issue.
 ## Work within a clear scope
 
 - Start from current `dev`; ordinary PRs target `dev`.
-- State the outcome, scope limits, files/contracts owned, and necessary proof.
+- state the outcome, scope limits, files/contracts owned, and necessary proof.
   Check open PRs for overlap before substantial work.
 - Keep changes reviewable. Do not add unrelated refactors, dependencies,
   generated files, broad renames, or speculative abstractions.
@@ -39,26 +39,26 @@ to the canon; changing an invariant requires an explicit architecture issue.
 
 ## Preserve the architecture
 
-1. **Forms describe meaning. Hosts offer implementations. Plans make realization exact.**
-2. Authored Forms contain no Host, Boot, implementation, OS, device, transport,
+1. **forms describe meaning. hosts offer implementations. plans make realization exact.**
+2. Authored forms contain no host, boot, implementation, OS, device, transport,
    socket, address, DOM, GPIO, stdout, credential, or resource-binding facts.
-3. Source, checked Form, expanded Form, Plan, fragment, Play, Sign, and
-   Presentation are distinct identities.
-4. Kinds, implementations, initialized implementations, capabilities, selected
+3. Source, checked form, expanded form, plan, fragment, play, sign, and
+   presentation are distinct identities.
+4. kinds, implementations, initialized implementations, capabilities, selected
    capabilities, reservations, and active instances are distinct states.
-5. Every executable input/output has an exact typed Port. Emission is
-   Port-specific; fan-out is explicit and atomic under pressure.
-6. All runtime storage and mandatory work are finite and admitted before Play.
-   Hosted profiles may allocate during preparation; Play must not hide growth.
+5. Every executable input/output has an exact typed port. Emission is
+   port-specific; fan-out is explicit and atomic under pressure.
+6. All runtime storage and mandatory work are finite and admitted before play.
+   Hosted profiles may allocate during preparation; play must not hide growth.
 7. Platform effects cross the generic admitted host-operation boundary.
    Adapters do not become schedulers, planners, policy engines, or runtime truth.
 8. Availability, reachability, membership, trust, and authority remain distinct.
    Seeing an external subject is not permission to use it.
-9. A Line realizes an exact planned Cord. It cannot invent connectivity,
-   identity, authority, or retries absent from the Plan.
+9. A line realizes an exact planned cord. It cannot invent connectivity,
+   identity, authority, or retries absent from the plan.
 10. There is one execution kernel. Name and fence fixtures or temporary
     compatibility façades away from production paths.
-11. Pressure, failure, cancellation, Sign gaps, stale identities, and unsupported
+11. Pressure, failure, cancellation, sign gaps, stale identities, and unsupported
     behavior remain distinct and machine-readable, including in presentation.
 12. Compilation, simulation, browser execution, firmware execution, live
     transport, physical/HIL evidence, and human enactment prove different things.

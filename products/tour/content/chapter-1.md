@@ -8,13 +8,13 @@ stage: canonical-form:branch-a-cord|run
 ---
 # One Program, Many Computers
 
-Conduit lets you make **one logical computer — a Body — from one or many physical or virtual computers**. One Body might be a single multicore machine; another might combine a browser, laptop, VM, and microcontroller. The point of this chapter is smaller: build one Form you can run and read.
+Conduit lets you make **one logical computer — a body — from one or many physical or virtual computers**. One body might be a single multicore machine; another might combine a browser, laptop, VM, and microcontroller. The point of this chapter is smaller: build one form you can run and read.
 
-## Gear, Port, Cord, Form
+## gear, port, cord, form
 
-A **Form** is a program made from connected **Gears**. Each Gear has typed directional **Ports**, and each **Cord** names one exact connection between an output Port and an input Port.
+A **form** is a program made from connected **gears**. Each gear has typed directional **ports**, and each **cord** names one exact connection between an output port and an input port.
 
-Start with one tiny Form:
+Start with one tiny form:
 
 ```conduit run
 form meet-one-gear {
@@ -27,11 +27,11 @@ form meet-one-gear {
 }
 ```
 
-Run it, then inspect the graph. The source and the Patchbay show the same Form from different views. The Patchbay **projects** checked Form truth; it is not the Form itself.
+Run it, then inspect the graph. The source and the Patchbay show the same form from different views. The Patchbay **projects** checked form truth; it is not the form itself.
 
-## Edit one Gear without rewriting its neighbors
+## Edit one gear without rewriting its neighbors
 
-Because the surrounding Cords and Ports stay compatible, you can change one Gear and keep the rest of the Form intact.
+Because the surrounding cords and ports stay compatible, you can change one gear and keep the rest of the form intact.
 
 ```conduit run
 form edit-one-gear {
@@ -45,7 +45,7 @@ form edit-one-gear {
 
 ## Branch one output explicitly
 
-Fan-out is explicit: one output Port can feed multiple downstream inputs when each Cord is named.
+Fan-out is explicit: one output port can feed multiple downstream inputs when each cord is named.
 
 ```conduit run
 form branch-a-cord {
@@ -60,4 +60,4 @@ form branch-a-cord {
 }
 ```
 
-If you try an incompatible connection, the refusal is local and typed: this Form fails admission before Play, and nearby Forms are unaffected.
+If you try an incompatible connection, the refusal is local and typed: this form fails admission before play, and nearby forms are unaffected.

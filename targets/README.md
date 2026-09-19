@@ -1,22 +1,22 @@
-# Target Hosts and fabrication
+# Target hosts and fabrication
 
-Each target family contains the Host, firmware, fabrication, and deployment work needed for that execution environment. Start with [ConduitOS](conduitos/README.md), [RP2040/Pico W](rp2040/README.md), [ESP32](esp32/README.md), or the [repository layout](../docs/repository-layout.md) for the wider source map.
+Each target family contains the host, firmware, fabrication, and deployment work needed for that execution environment. Start with [ConduitOS](conduitos/README.md), [RP2040/Pico W](rp2040/README.md), [ESP32](esp32/README.md), or the [repository layout](../docs/repository-layout.md) for the wider source map.
 
 Families use the responsibilities they need; there is no requirement to create an empty directory for every row below.
 
 | Responsibility | Contents |
 |---|---|
-| `host/` | A separately packaged Host implementation, as in browser. |
-| `runtime/` | Lower execution machinery distinct from the Host entrance, as in browser WASM. |
+| `host/` | A separately packaged host implementation, as in browser. |
+| `runtime/` | Lower execution machinery distinct from the host entrance, as in browser WASM. |
 | `offers/` | Separately packaged exact implementation offers, as in std. |
 | `fabrication/` | Target descriptors and PROFILE/BUILD/IMAGE contribution; `xtask/` within it owns repository build orchestration when needed. |
 | `firmware/` | Firmware projects and their `assets/`; ConduitOS also owns product linker scripts in `firmware/linker/` and Limine configuration in `firmware/boot/`. |
 | `deployment/browser/` | Deployment of this target through an admitted browser carrier. These adapters retain target policy; Crèche consumes them. |
-| `profiles/` | Reviewed Host configurations and PROFILE examples understood by this family. |
+| `profiles/` | Reviewed host configurations and PROFILE examples understood by this family. |
 | `tools/` | Target-specific setup, tool installation, credential preparation, and flashing support behind `cargo xtask`. |
 | `proof/` | Tightly coupled target appliances and fixtures, not a second general conformance tree. |
 
-Std and ConduitOS retain their Host Cargo package at the family root (`Cargo.toml`, `src/`, and package integration `tests/`). Browser separates its Host server and WASM runtime packages. This is a package boundary choice, not an invitation to add empty Host directories to the other families.
+Std and ConduitOS retain their host Cargo package at the family root (`Cargo.toml`, `src/`, and package integration `tests/`). Browser separates its host server and WASM runtime packages. This is a package boundary choice, not an invitation to add empty host directories to the other families.
 
 Browser, std, ConduitOS, RP2040, ESP32, AVR, Raspberry Pi and Orange Pi fabrication contributions all live in `fabrication/`. Existing Cargo package names are preserved. For ConduitOS and SBCs, a lightweight descriptor package and build orchestration share that responsibility: `src/` advertises exact targets without loading the builders, while `xtask/` owns image manufacture and proof commands.
 

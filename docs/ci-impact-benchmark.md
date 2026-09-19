@@ -42,7 +42,7 @@ making those proofs materially faster. Neither belongs to impact selection.
 
 ## Planning cost
 
-The three retained `Plan exact CI impact` steps took 4s, 16s, and 4s. The 16s
+The three retained `plan exact CI impact` steps took 4s, 16s, and 4s. The 16s
 kernel sample included a fresh dispatch compilation; even there, planning was
 less than two percent of workflow wall time. The small dispatch boundary keeps
 ordinary planning startup from compiling the full `xtask` dependency universe.

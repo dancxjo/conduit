@@ -16,22 +16,22 @@ I/O instructions fault rather than reaching a port.
 
 The trusted computing base for this profile is the ConduitOS x86_64 bootstrap,
 GDT/TSS and IDT setup, page-table construction, trap assembly, kernel
-capability table, serial Base provider, Limine, QEMU's emulated processor and
+capability table, serial base provider, Limine, QEMU's emulated processor and
 UART, and the repository proof harness. The provider remains trusted kernel
 code. The implementation receives no kernel or device pointer.
 
 ## Capability gate
 
 `protection_domain.rs` is the architecture-neutral, allocation-free kernel
-table. Each entry binds a protection-domain identity to the exact Host, Boot,
-Plan, Play, implementation, Base and generation, Resource and generation,
+table. Each entry binds a protection-domain identity to the exact host, boot,
+plan, play, implementation, base and generation, resource and generation,
 operation, subject, authority, parameter/work envelope, operation count, and
 in-flight bound. An untrusted integer is accepted only when it matches a live
 kernel entry owned by the calling domain. Completion leases carry the table
 generation, so revocation fences in-flight completion as well as later calls.
 
-Cancellation, completion, Plan replacement, authority revocation, Resource or
-Base replacement, and Boot replacement all enter the same kernel-owned
+Cancellation, completion, plan replacement, authority revocation, resource or
+base replacement, and boot replacement all enter the same kernel-owned
 revocation transition with a distinct machine-readable cause. Semantic state
 may use its own typed continuity mechanism; handles never cross that boundary.
 
@@ -54,16 +54,16 @@ authorized serial presentation through the capability gate. The kernel resumes
 the bounded fixture after expected protection faults and terminates on any
 unexpected vector or sequence.
 
-Acceptance requires both the structured protection Sign and the independently
+Acceptance requires both the structured protection sign and the independently
 observed `CONDUIT_SERIAL_PRESENT protected-domain-authorized-effect` line. The
 sibling sentinel is independently checked by the kernel before success. A
 protection fault is recorded as a refusal fact, never semantic completion.
 
 ## Deliberate limits
 
-This profile proves CPU page, privilege, I/O-port, handle, and one serial Base
+This profile proves CPU page, privilege, I/O-port, handle, and one serial base
 boundary on emulated x86_64. It does not prove an IOMMU, DMA containment,
 mutually isolated kernel drivers/providers, physical hardware execution, SMP,
-or any non-x86_64 target. The Sign reports `dma_isolation:false` and
+or any non-x86_64 target. The sign reports `dma_isolation:false` and
 `driver_isolation:false`. Follow-on architecture profiles must earn their own
 mechanism-level evidence; none inherit this proof by analogy.

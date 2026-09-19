@@ -8,7 +8,7 @@ Run the checked-in experiment through the repository entrance:
 cargo xtask --json demo tongues-research
 ```
 
-The command validates the exact derived corpus identity, checks the portable training and bidirectional-inference Forms, trains the deterministic paired model, freezes an exact checkpoint, evaluates held-out examples, and only then exposes segment labels to a small diagnostic probe. The JSON report records corpus, preprocessing, objective, seed, work, checkpoint, callable-signature, held-out, uncertainty, and negative-result evidence.
+The command validates the exact derived corpus identity, checks the portable training and bidirectional-inference forms, trains the deterministic paired model, freezes an exact checkpoint, evaluates held-out examples, and only then exposes segment labels to a small diagnostic probe. The JSON report records corpus, preprocessing, objective, seed, work, checkpoint, callable-signature, held-out, uncertainty, and negative-result evidence.
 
 ## Data and lineage
 
@@ -41,6 +41,6 @@ Run the finite analysis layer over that same exact frozen checkpoint and corpus 
 cargo xtask --json demo tongues-analysis
 ```
 
-The generated identity-bound report includes descriptive relative phase and lag over a declared -3..3-bin window, pairing-reversed and alternate-seed controls, label-free turning-point events followed by annotation comparison, three-cluster induction fitted without labels, the frozen lightweight probe, and a thresholded polynomial sparse-dynamics fit evaluated on held-out utterances beside a constant-state baseline. The dedicated `.conduit` Form keeps continuous extraction and dynamics analysis upstream of the post-freeze overlay.
+The generated identity-bound report includes descriptive relative phase and lag over a declared -3..3-bin window, pairing-reversed and alternate-seed controls, label-free turning-point events followed by annotation comparison, three-cluster induction fitted without labels, the frozen lightweight probe, and a thresholded polynomial sparse-dynamics fit evaluated on held-out utterances beside a constant-state baseline. The dedicated `.conduit` form keeps continuous extraction and dynamics analysis upstream of the post-freeze overlay.
 
 These are deliberately modest empirical results. Reversed-pair phase locking is not lower in this slice, so it does not support a stable coupling narrative. Some learned turning points align with post-hoc boundaries and others systematically miss them. The sparse predictor improves on its stated baseline but is an association, not a causal law. A C-center comparison, cross-speaker stability, rate/context effects, alternative front ends, and claims that the learned coordinates are oscillators remain non-identifiable. Patchbay renders the actual report values—relative phase, events, cluster assignments, later labels, and observed versus sparse-predicted deltas—through the existing authoritative Watch renderer.

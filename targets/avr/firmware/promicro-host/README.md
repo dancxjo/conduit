@@ -1,8 +1,8 @@
-# Pro Micro Host firmware
+# Pro Micro host firmware
 
-This standalone Rust firmware realizes an ATmega32U4 SparkFun Pro Micro Host.
-It receives a bounded `AssignedPlan` and matching activation over its USB Line,
-validates their Host/Boot identities, and executes the admitted Create contact
+This standalone Rust firmware realizes an ATmega32U4 SparkFun Pro Micro host.
+It receives a bounded `AssignedPlan` and matching activation over its USB line,
+validates their host/boot identities, and executes the admitted Create contact
 observation through the ordinary kernel's single-source executor. It returns
 a compact execution receipt; it does not introduce another scheduler.
 

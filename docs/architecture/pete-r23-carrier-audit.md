@@ -51,12 +51,12 @@ at commit `116be443e7970de1574b5dc5f91e414828854c08`:
 | Safe | opcode 131 |
 | Full | opcode 132 |
 | LEDs | opcode 139 plus three data bytes |
-| Song / Play | opcodes 140 / 141 |
+| Song / play | opcodes 140 / 141 |
 | Drive / Drive Direct | opcodes 137 / 145 |
-| Play LED | LED-command mask `0x02` (bit 1) |
+| play LED | LED-command mask `0x02` (bit 1) |
 | Advance LED | LED-command mask `0x08` (bit 3) |
 
-Create 1's button sensor packet uses Play bit 0 and Advance bit 2. Those button
+Create 1's button sensor packet uses play bit 0 and Advance bit 2. Those button
 positions are not the LED-command positions. AutonomyLab names the same generic
 LED mask values after Create 2 panel labels, but its Create 1 model is protocol
 V2 at 57,600 baud and emits the same opcode-139 four-byte command.

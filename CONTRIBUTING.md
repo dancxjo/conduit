@@ -20,7 +20,7 @@ cd conduit
 cargo xtask host std
 ```
 
-The last command builds the product CLI and runs the checked-in Hello Form.
+The last command builds the product CLI and runs the checked-in Hello form.
 For a browser or native interface, follow [Try Conduit](docs/try-conduit.md).
 Rust needs a working native linker. Running Tour also needs Node.js, npm, and
 the WASM target (`rustup target add wasm32-unknown-unknown`). Browser conformance
@@ -36,10 +36,10 @@ tooling, so allow time and disk space.
 
 | If you want to work on… | Begin with… |
 |---|---|
-| Examples and the programming experience | [Forms](forms/README.md), [Tour](products/tour/README.md) |
-| Visual interaction and inspection | [Patchbay](products/patchbay/README.md), [Presentation boundary](docs/presenter-hourglass.md) |
+| Examples and the programming experience | [forms](forms/README.md), [Tour](products/tour/README.md) |
+| Visual interaction and inspection | [Patchbay](products/patchbay/README.md), [presentation boundary](docs/presenter-hourglass.md) |
 | Language, planning, or execution | [Canon](docs/conduit-canon.md), [architecture index](docs/architecture/README.md) |
-| A device, Host, or ConduitOS | [Targets](targets/README.md), then that target's README |
+| A device, host, or ConduitOS | [Targets](targets/README.md), then that target's README |
 | Setup, documentation, or tests | [Documentation index](docs/README.md), [repository map](docs/repository-layout.md), [CI guide](docs/contributing/ci.md) |
 
 The [roadmap](docs/roadmap.md) groups current work and links to the open issues.
@@ -64,7 +64,7 @@ Use a clean checkout, or preserve unrelated local work before switching.
 Read [AGENTS.md](AGENTS.md) before changing code. It records the shared
 architecture and collaboration rules; the important starting points are:
 
-- Forms describe meaning; Hosts supply implementations and platform effects.
+- forms describe meaning; hosts supply implementations and platform effects.
 - Use the existing planner, kernel, and authoritative state for product work.
 - Keep resource bounds, failures, and permissions explicit.
 - Test the behavior you changed and describe what the evidence establishes.
@@ -82,7 +82,7 @@ Choose the check that exercises your change. List supported suites with:
 cargo xtask check --help
 ```
 
-For example, `cargo xtask check form-s3` checks the Form boundary, while
+For example, `cargo xtask check form-s3` checks the form boundary, while
 `cargo xtask check input-semantics` checks portable input behavior. The broader
 local workspace check is:
 

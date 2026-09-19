@@ -2,7 +2,7 @@
 
 Unmodified DejaVu Sans and DejaVu Sans Mono from upstream release **2.37**
 are the proportional UI and monospace code sources for #3163. These are
-fabrication inputs, not ambient Host fonts. The complete upstream license is
+fabrication inputs, not ambient host fonts. The complete upstream license is
 preserved in `LICENSE`.
 
 Source: <https://github.com/dejavu-fonts/dejavu-fonts/releases/tag/version_2_37>

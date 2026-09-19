@@ -15,7 +15,7 @@ portable planning inputs
 optional advertised planner profile and finite admission limits
                               |
                               v
-shared deterministic planner contract -> exact Plan and PlanFragment values
+shared deterministic planner contract -> exact plan and PlanFragment values
 ```
 
 `HostAdvertisement::planner_capabilities` is empty for a host that cannot plan.
@@ -28,18 +28,18 @@ The standard reference host advertises `conduit.planner/full@1`. The actual
 browser/WASM host advertises `conduit.planner/browser-wasm@1` and invokes the
 same deterministic contract inside its own WASM instance before lowering and
 executing its fragment. The browser path does not call a std process to plan.
-Both current profiles have allocating scratch state before Play start. Neither
+Both current profiles have allocating scratch state before play start. Neither
 claims an allocator-free bounded embedded implementation.
 
 The planner host advertisement is consulted only to select a truthful profile
-and admit the request. Host ID, boot ID, offer generation, and profile ID of the
+and admit the request. host ID, boot ID, offer generation, and profile ID of the
 planner are not passed into plan construction and therefore do not enter
 `PlanId`, `FragmentId`, placements, or validity. Equivalent portable inputs
 produce the same plan regardless of which capable host invokes the contract.
 
 A target host does not need a planner offer. Its ordinary advertisements remain
 complete planning input, and its exact fragment retains the same validation,
-lowering, execution, and Sign contracts. In particular, the Pico profile
+lowering, execution, and sign contracts. In particular, the Pico profile
 continues to advertise no planner capability while accepting the generated
 bounded fragment used by the existing firmware path.
 
@@ -64,4 +64,4 @@ planner; it establishes that the host contract does not forbid such a profile.
   non-planner constrained target can consume and execute its exact fragment.
 
 WASM compilation is not by itself browser execution, and a Thumb build is not
-physical Sign. This capability boundary changes neither proof class.
+physical sign. This capability boundary changes neither proof class.
