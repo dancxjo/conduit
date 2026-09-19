@@ -391,7 +391,7 @@ mod tests {
             assert_ne!(multi.source_fragment_id, multi.sink_fragment_id);
             assert_ne!(multi.source_active_play_id, multi.sink_active_play_id);
             assert_eq!(multi.transferred_values, 1);
-            assert_eq!(proof.result, "hello across one Cord");
+            assert_eq!(proof.result, "hello across one cord");
             assert_eq!(proof.terminal, TourRunTerminal::Completed);
         }
     }

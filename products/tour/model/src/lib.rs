@@ -403,7 +403,7 @@ mod tests {
 
         state.progress.chapter = 3;
         state.specimen_id = "canonical-form:hello-across".into();
-        state.result = Some("hello across one Cord".into());
+        state.result = Some("hello across one cord".into());
         assert!(result_detail(&state).contains("one planned Line"));
         assert!(patchbay_label(&state).starts_with("Active Form canonical-form:hello-across"));
     }
