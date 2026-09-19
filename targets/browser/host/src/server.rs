@@ -12,6 +12,7 @@ const BOOTSTRAP: &[u8] = include_bytes!("../assets/host.mjs");
 const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.mjs");
 const HOST_MEMBERSHIP: &[u8] = include_bytes!("../assets/browser-host-membership.mjs");
 const HOST_IDENTITY: &[u8] = include_bytes!("../assets/browser-host-identity.mjs");
+const RELAY_LINE: &[u8] = include_bytes!("../assets/browser-relay-line.mjs");
 const APPLICATION_PRESENTATION: &[u8] = include_bytes!("../assets/application-presentation.mjs");
 const APPLICATION_THEME_MODULE: &[u8] = include_bytes!("../assets/application-theme.mjs");
 const BROWSER_HOST_OPERATIONS: &[u8] = include_bytes!("../assets/browser-host-operations.mjs");
@@ -166,6 +167,9 @@ impl BrowserHostServer {
             }
             Some("GET /browser-host-identity.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", HOST_IDENTITY)
+            }
+            Some("GET /browser-relay-line.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", RELAY_LINE)
             }
             Some("GET /assets/application-presentation.mjs HTTP/1.1") => (
                 "200 OK",

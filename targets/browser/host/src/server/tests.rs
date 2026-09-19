@@ -132,3 +132,27 @@ fn bare_host_serves_the_bounded_generic_operation_adapter() {
     });
     std::fs::remove_file(runtime).unwrap();
 }
+
+#[test]
+fn bare_host_serves_the_reviewed_protected_relay_adapter() {
+    let runtime = runtime_fixture();
+    let server = BrowserHostServer::bind(&runtime).unwrap();
+    let address = server.local_addr().unwrap();
+    std::thread::scope(|scope| {
+        scope.spawn(|| {
+            let (mut stream, _) = server.listener.accept().unwrap();
+            server.respond(&mut stream).unwrap();
+        });
+        let mut stream = TcpStream::connect(address).unwrap();
+        stream
+            .write_all(b"GET /browser-relay-line.mjs HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            .unwrap();
+        let mut response = Vec::new();
+        stream.read_to_end(&mut response).unwrap();
+        let response = String::from_utf8(response).unwrap();
+        assert!(response.starts_with("HTTP/1.1 200 OK"));
+        assert!(response.contains("conduit-line/user-operated-protected-relay@1"));
+        assert!(response.contains("openBrowserRelayLine"));
+    });
+    std::fs::remove_file(runtime).unwrap();
+}

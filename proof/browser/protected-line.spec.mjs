@@ -137,3 +137,147 @@ test("browser and std protected Lines interoperate through an inspecting relay",
   expect(result.relayCandidate).toBe(0);
   expect(result.candidateInputCleared).toBe(true);
 });
+
+test("two outbound browser clients carry one end-to-end protected session through relay semantics", async ({ page }) => {
+  await page.goto("/proof/browser/signal-dom-host.test.html");
+  const result = await page.evaluate(async () => {
+    const { openBrowserRelayLine } = await import("/targets/browser/host/assets/browser-relay-line.mjs");
+    const wasm = await (await fetch("/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm")).arrayBuffer();
+    const api = async () => (await WebAssembly.instantiate(wasm.slice(0), {})).instance.exports;
+    const enc = new TextEncoder();
+    const dec = new TextDecoder();
+    const sockets = [];
+    const forwarded = [];
+
+    class RelaySocket {
+      static OPEN = 1;
+      constructor(url) {
+        this.url = url;
+        this.readyState = 0;
+        this.listeners = new Map();
+        sockets.push(this);
+        queueMicrotask(() => {
+          this.readyState = RelaySocket.OPEN;
+          this.emit("open", {});
+        });
+      }
+      addEventListener(name, listener) {
+        const list = this.listeners.get(name) ?? [];
+        list.push(listener);
+        this.listeners.set(name, list);
+      }
+      emit(name, event) {
+        for (const listener of this.listeners.get(name) ?? []) listener(event);
+      }
+      send(value) {
+        const bytes = value instanceof Uint8Array ? value.slice() : new Uint8Array(value);
+        if (bytes[0] === 0x43 && bytes[1] === 0x4e && bytes[2] === 0x44 && bytes[3] === 0x52) {
+          forwarded.push(bytes);
+          const peer = sockets.find((socket) => socket !== this && socket.attachment?.route_id === this.attachment.route_id);
+          if (!peer) throw new Error("fake relay peer missing");
+          queueMicrotask(() => peer.emit("message", { data: bytes.buffer }));
+          return;
+        }
+        const control = JSON.parse(dec.decode(bytes));
+        if (control.schema === "conduit.relay/control@1") {
+          this.closedByProtocol = true;
+          return;
+        }
+        if (control.schema !== "conduit.relay/attach@1") throw new Error("fake relay control mismatch");
+        this.attachment = control;
+        const outcome = (status) => enc.encode(JSON.stringify({
+          schema: "conduit.relay/outcome@1",
+          implementation_id: "conduit.relay/opaque-two-endpoint@1",
+          route_id: control.route_id,
+          status,
+        })).buffer;
+        const peer = sockets.find((socket) => socket !== this && socket.attachment?.route_id === control.route_id);
+        if (!peer) {
+          queueMicrotask(() => this.emit("message", { data: outcome("waiting-for-peer") }));
+        } else {
+          queueMicrotask(() => {
+            this.emit("message", { data: outcome("paired") });
+            peer.emit("message", { data: outcome("paired") });
+          });
+        }
+      }
+      close() { this.readyState = 3; }
+    }
+
+    const binding = {
+      initiator: { host_id: "host/browser/one", boot_id: "boot/browser/one" },
+      responder: { host_id: "host/browser/two", boot_id: "boot/browser/two" },
+      negotiation_id: "negotiation/browser-relay",
+      line_session_id: "line/browser-relay",
+      candidate_binding: "route/browser-relay",
+      transport_binding: "relay/wss/certificate/browser-proof",
+    };
+    const candidate = (role, capability, endpoint) => ({
+      schema: "conduit.relay/endpoint-candidate@1",
+      relay_implementation_id: "conduit.relay/opaque-two-endpoint@1",
+      relay_locator: "wss://relay.example/conduit",
+      relay_server_identity: "relay.example",
+      certificate_binding_sha256: new Uint8Array(32).fill(1),
+      negotiation_id: binding.negotiation_id,
+      route_id: binding.candidate_binding,
+      role,
+      endpoint_binding: endpoint,
+      session_binding: binding,
+      expires_at_millis: 10_000,
+      relay_capability: new Uint8Array(32).fill(capability),
+      protected_session_psk: new Uint8Array(32).fill(8),
+      bounds: {
+        maximum_protected_frame_bytes: 290,
+        maximum_attempts: 1,
+        attempt_timeout_millis: 2_000,
+        maximum_payload_bytes: 256,
+        maximum_frames_per_direction: 8,
+        maximum_bytes_per_direction: 2_048,
+        handshake_timeout_millis: 2_000,
+        idle_timeout_millis: 2_000,
+      },
+    });
+    const firstCandidate = candidate("initiator", 7, "host/browser/one/boot/browser/one");
+    const secondCandidate = candidate("responder", 8, "host/browser/two/boot/browser/two");
+    const [first, second] = await Promise.all([
+      openBrowserRelayLine({
+        api: await api(),
+        candidate: firstCandidate,
+        ephemeralPrivateKey: new Uint8Array(32).fill(4),
+        WebSocketType: RelaySocket,
+        nowMillis: 1_000,
+      }),
+      openBrowserRelayLine({
+        api: await api(),
+        candidate: secondCandidate,
+        ephemeralPrivateKey: new Uint8Array(32).fill(5),
+        WebSocketType: RelaySocket,
+        nowMillis: 1_000,
+      }),
+    ]);
+    await first.sendSessionFrame(enc.encode("browser secret one"));
+    const atSecond = dec.decode(await second.receiveSessionFrame());
+    await second.sendSessionFrame(enc.encode("browser secret two"));
+    const atFirst = dec.decode(await first.receiveSessionFrame());
+    first.close();
+    second.close();
+    return {
+      atFirst,
+      atSecond,
+      forwarded: forwarded.length,
+      leaked: forwarded.some((frame) => dec.decode(frame).includes("browser secret")),
+      erased: [firstCandidate, secondCandidate].every((item) =>
+        item.relay_capability.every((byte) => byte === 0) &&
+        item.protected_session_psk.every((byte) => byte === 0)),
+      explicitlyClosed: sockets.some((socket) => socket.closedByProtocol),
+    };
+  });
+  expect(result).toEqual({
+    atFirst: "browser secret two",
+    atSecond: "browser secret one",
+    forwarded: 4,
+    leaked: false,
+    erased: true,
+    explicitlyClosed: true,
+  });
+});
