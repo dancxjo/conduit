@@ -1,8 +1,8 @@
-# Canonical reviewed Forms
+# Canonical reviewed forms
 
-This directory owns product-facing authored Form source. Each canonical Form
+This directory owns product-facing authored form source. Each canonical form
 has one stable `forms/<name>/main.conduit` owner whether it is used as a workload
-root or recursively behind another Form's face. Tour, Crèche, Patchbay, CLI
+root or recursively behind another form's face. Tour, Crèche, Patchbay, CLI
 workflows, bodies, and conformance consume those same bytes; they do not own
 editable copies.
 
@@ -10,21 +10,21 @@ editable copies.
 or proof-only specimens. Directory presence alone never promotes such input
 into the reviewed inventory.
 
-Adding or changing a canonical Form requires checker coverage and explicit
-consumer updates. Form source grants no Host, membership, authority, Plan, or
-Play truth.
+Adding or changing a canonical form requires checker coverage and explicit
+consumer updates. form source grants no host, membership, authority, plan, or
+play truth.
 
 [Startup Chime](startup-chime/README.md) and
-[First Wake Chime](first-wake-chime/README.md) demonstrate non-graphical
-embodiment: a Body wakes its installed Forms, and a Form may simply make a
+[First wake Chime](first-wake-chime/README.md) demonstrate non-graphical
+embodiment: a body wakes its installed forms, and a form may simply make a
 sound. The first is an optional browser default; the second demonstrates the
-reusable Body-scoped first-wake source. Both use the same portable sound Kind.
+reusable body-scoped first-wake source. Both use the same portable sound kind.
 
 `inventory.toml` is the bounded reviewed-membership registry. `cargo xtask
 forms check` validates every declared entry and ratchets every canonical
 `forms/<name>/main.conduit` owner into the registry; it never promotes arbitrary
 source by scanning for `.conduit` files. `cargo xtask forms report` emits the
-machine-readable per-Form result seam. Gated execution remains `unavailable`
+machine-readable per-form result seam. Gated execution remains `unavailable`
 until its deterministic, browser, device, or physical owner supplies evidence.
 
 Run the declared execution oracles with:
@@ -34,7 +34,7 @@ cargo xtask forms run --deterministic
 cargo xtask forms run --browser
 ```
 
-Deterministic execution continues through individual Form failures. Browser
+Deterministic execution continues through individual form failures. Browser
 execution builds the WASM runtime and runs reviewed browser-safe cases with
 pinned Chromium, one worker, and zero retries. It needs the repository's
 Playwright installation; absent prerequisites are reported as unavailable.

@@ -1,6 +1,6 @@
 # Patchbay
 
-Patchbay lets you work with Forms and inspect their realized execution. Open it
+Patchbay lets you work with forms and inspect their realized execution. Open it
 from a checkout with:
 
 ```sh
@@ -13,8 +13,8 @@ The installed product entrance is `conduit patchbay`. See the
 for native Patchbay in use, or the [visual evidence guide](../../docs/visual-evidence.md)
 for browser captures and provenance.
 
-Patchbay is a Conduit application and projection over authoritative Form,
-Plan, Play, Body, Host, Boot, Sign, and Observatory truth. It is not a Host,
+Patchbay is a Conduit application and projection over authoritative form,
+plan, play, body, host, boot, sign, and Observatory truth. It is not a host,
 planner, runtime, capability registry, or source of current realization truth.
 
 - `model/` owns presentation-neutral application state and projections.
@@ -31,7 +31,7 @@ on `conduit-std-host` or reconstructing a second current-truth registry.
 - Voyager scar explanations and presenter-plan descriptions remain reusable
   product projections: they consume exact supplied evidence and are used by
   ordinary catalog or inspection surfaces. Their historical `capstone` names
-  are owned by the later residual naming cleanup; they do not construct Hosts.
+  are owned by the later residual naming cleanup; they do not construct hosts.
 - The heterogeneous capstone baseline is a historical proof specimen. It is
   compiled only with the model's unit tests and is absent from the ordinary
   model API.

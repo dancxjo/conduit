@@ -1,4 +1,4 @@
-# Host fabrication contract
+# host fabrication contract
 
 **Status:** canonical vocabulary and identity boundary for issue #1137
 **Execution status:** see [STATUS.md](../STATUS.md)
@@ -15,23 +15,23 @@ The words name different kinds of truth. They are not parallel aliases.
 ## Meaning becomes living
 
 - **FORM** is dormant semantic material that can be opened and inspected.
-- **BIRTH** is the explicit human-authorized action that creates a Body.
-- the **birth Sign/event** is the bounded evidence that the action succeeded.
+- **BIRTH** is the explicit human-authorized action that creates a body.
+- the **birth sign/event** is the bounded evidence that the action succeeded.
 - **BODY** is the resulting living semantic identity, potentially realized by
-  several Parts and Hosts.
+  several parts and hosts.
 
 `OPEN FORM` is inert. It does not admit membership, issue authority, start a
-Play, or cause platform effects. `BIRTH` is explicit, attributable operator
-authority; it admits the exact bounded selection of checked Forms, creates a durable Body
-identity and originating Part, and leaves the Body LULLED. BIRTH does not
-implicitly Wake, Plan, or Play. Public Conduit UI, command, schema, and action
+play, or cause platform effects. `BIRTH` is explicit, attributable operator
+authority; it admits the exact bounded selection of checked forms, creates a durable body
+identity and originating part, and leaves the body LULLED. BIRTH does not
+implicitly wake, plan, or play. Public Conduit UI, command, schema, and action
 labels use **BIRTH**. Conventional past-tense prose and internal event fields
 may use `born`, `birthed`, or `birth_sequence`; those name resulting state or
 evidence, not a competing action.
 
 ## Machinery becomes concrete
 
-- **PROFILE** is a finite declarative description of one Host to construct.
+- **PROFILE** is a finite declarative description of one host to construct.
 - **BUILD** is deterministic resolution, validation, and fabrication of that
   PROFILE under exact source and toolchain inputs.
 - **IMAGE** is the exact BUILD output plus its bound machine-readable manifest.
@@ -41,28 +41,28 @@ An IMAGE is machinery, not meaning. After BUILD it may be **FLASHed**,
 not introduce a generic installed-IMAGE state.
 
 `OPEN PROFILE` is also inert: reading or validating construction intent creates
-no Host, Boot, offer, Body, Plan, Play, membership, or authority. BUILD emits a
-build receipt and IMAGE evidence; it never emits a Born Sign.
+no host, boot, offer, body, plan, play, membership, or authority. BUILD emits a
+build receipt and IMAGE evidence; it never emits a Born sign.
 
 Every target descriptor declares its reviewed ordinary fabrication strategy:
 
 ```text
 bind-reviewed-superset           bind an exact PROFILE to reviewed prebuilt bytes
-compose-sealed-providers         compose separately sealed Base/provider artifacts
+compose-sealed-providers         compose separately sealed base/provider artifacts
 deterministic-specialized-build  invoke an explicit builder for selected machinery
 reviewed-hybrid                  use a reviewed combination of those routes
 ```
 
 The resolved strategy is recorded in the BUILD manifest. It is catalog truth,
-not an instruction to compile on the initiating Body or destination Host.
+not an instruction to compile on the initiating body or destination host.
 Today the browser package binds its reviewed superset distribution; the
 current hosted, ConduitOS, and embedded packages use explicit specialized
-builders. A future builder Host must advertise and be selected for that
-capability explicitly. Produced Hosts do not inherit build authority or a
-toolchain, and Conduit does not require a binary for every Base combination or
+builders. A future builder host must advertise and be selected for that
+capability explicitly. Produced hosts do not inherit build authority or a
+toolchain, and Conduit does not require a binary for every base combination or
 an ambient plugin/DLL manager.
 
-## Authored Host configurations
+## Authored host configurations
 
 ```text
 one canonical Conduit language
@@ -79,27 +79,27 @@ execution fact.
 
 A versioned `*.host.conduit` document is the small structural recipe from
 which the checked PROFILE is derived. It names one target, a finite set of
-Bases, an explicit implementation (or finite ordered preferences) for each
-Base, authorable finite `need` templates, and complete finite Host limits. It contains no Form,
+bases, an explicit implementation (or finite ordered preferences) for each
+base, authorable finite `need` templates, and complete finite host limits. It contains no form,
 application pin meaning, current presence, or authority truth.
 
-Host construction uses the same lossless tokenizer, declaration syntax,
-structured values, source spans, and diagnostic model as ordinary Form source.
+host construction uses the same lossless tokenizer, declaration syntax,
+structured values, source spans, and diagnostic model as ordinary form source.
 `host` selects the document role; it does not introduce another language or an
 embedded TOML section. A Need remains construction appetite. It does not create
-a current OFFER, OBSERVE, ADMIT, binding, assignment, Plan, or Play.
+a current OFFER, OBSERVE, ADMIT, binding, assignment, plan, or play.
 
 The repository entrances are:
 
 ```text
-cargo xtask host                         # launch the default std Host
+cargo xtask host                         # launch the default std host
 cargo xtask host std                     # explicit spelling of the default
-cargo xtask host browser                 # launch an independent browser Host
+cargo xtask host browser                 # launch an independent browser host
 cargo xtask host rpi [--board <board>]   # build an exact Raspberry Pi SD IMAGE
 cargo xtask host configure [path]
 cargo xtask host config check path/to/config.host.conduit
 cargo xtask host config show path/to/config.host.conduit
-cargo xtask host catalog                  # portable checked target/Base choices
+cargo xtask host catalog                  # portable checked target/base choices
 cargo xtask host build path/to/config.host.conduit
 ```
 
@@ -110,7 +110,7 @@ physical-proof` retains the bounded UART verifier. Image fabrication never
 implies that an IMAGE was flashed, booted, or physically proven. Pi 4 and Pi 5
 remain unsupported until their exact machine backends exist.
 
-The configurator creates or edits canonical Conduit source itself. Its target and Base
+The configurator creates or edits canonical Conduit source itself. Its target and base
 choices come from the same descriptors and `FabricationCatalog` metadata used
 by validation and BUILD; it owns no private catalog. `check` and interactive
 validation write nothing. Canonicalization sorts declaration order before
@@ -119,20 +119,20 @@ to the same existing `HostProfile` identity.
 
 `cargo xtask host catalog` emits the same composed package truth as bounded,
 portable JSON for product choosers. Each target retains its exact strategy,
-artifact kinds, adapters, finite maxima, and compatible Base implementation
+artifact kinds, adapters, finite maxima, and compatible base implementation
 and package revisions. The projection has a deterministic catalog identity so
 saved selections can refuse stale catalog truth. Product code may render that projection but must not
 copy or extend it as a second catalog. The projection explicitly records that
-selection creates no Host/Boot identity, Base readiness, current offer, Body
-membership, authority, Plan, or Play.
+selection creates no host/boot identity, base readiness, current offer, body
+membership, authority, plan, or play.
 
 Checked examples live in `targets/std/profiles/`,
 `targets/rp2040/profiles/`, and `targets/browser/profiles/` for hosted Linux,
 Pico W, and browser pages. BUILD manifests and IMAGE payloads retain the exact
-source-configuration identity together with the resolved target, Base/driver
+source-configuration identity together with the resolved target, base/driver
 selections, resource budgets, and limits.
 
-Canonical `*.host.conduit` documents are the only Host construction source.
+Canonical `*.host.conduit` documents are the only host construction source.
 Repository loaders do not infer or import a second format. The checked semantic
 model and the stable configuration/Profile identities established during the
 earlier migration remain unchanged.
@@ -142,21 +142,21 @@ earlier migration remain unchanged.
 The following identities never substitute for one another:
 
 ```text
-checked Form identity  ProfileId
-source Form identity   BuildId
+checked form identity  ProfileId
+source form identity   BuildId
 BodyId                 ImageId / ArtifactId
-birth Sign             build receipt
+birth sign             build receipt
                        HostId
                        BootId
                        OfferGeneration
 ```
 
 A rebuild creates fresh BUILD and IMAGE truth. A launch or boot creates fresh
-Boot and offer-generation truth. A durable HostId may remain the same only
-under the existing Host identity contract. None of those changes rewrites an
-old immutable Plan or changes a Body identity.
+boot and offer-generation truth. A durable HostId may remain the same only
+under the existing host identity contract. None of those changes rewrites an
+old immutable plan or changes a body identity.
 
-Compiled capability is possibility, not current availability. A running Host
+Compiled capability is possibility, not current availability. A running host
 may offer only the subset of its IMAGE whose exact runtime prerequisites are
 currently satisfied and authorized.
 
@@ -184,20 +184,20 @@ package. For ConduitOS x86_64, `cargo xtask host build` owns this full path and
 `cargo xtask host verify` recomputes both artifact digests and the description,
 PROFILE, BUILD, and target bindings. The lower-level `cargo xtask conduitos
 image` command remains target-development machinery and emits no competing
-canonical Host-fabrication identity.
+canonical host-fabrication identity.
 
-BUILD still creates no Host, Boot, offer, Body, Plan, or Play. Carrying the
+BUILD still creates no host, boot, offer, body, plan, or play. Carrying the
 bounded description as a boot asset establishes artifact provenance only;
-validating it inside a fresh Boot and deriving current offers remain separate
+validating it inside a fresh boot and deriving current offers remain separate
 runtime obligations.
 
 ## Public schema vocabulary
 
-New Host-fabrication schemas and APIs spell the public concepts `PROFILE`,
+New host-fabrication schemas and APIs spell the public concepts `PROFILE`,
 `BUILD`, and `IMAGE`, with conventional expanded type names such as
 `HostProfile`, `BuildManifest`, and `HostImage`. They do not introduce `PROF`,
 `MAKE`, or `IMAG` aliases. No compatibility alias is provided for pre-v0
 project-owned lifecycle labels.
 
 This note freezes the vocabulary, not a package manager, installer, dynamic
-module system, or Body lifecycle redesign.
+module system, or body lifecycle redesign.

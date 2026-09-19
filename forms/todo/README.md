@@ -1,7 +1,7 @@
 # Todo state slice
 
 `main.conduit` composes `todo/state-step` and `todo/snapshot` through their
-Faces. Task records are application data with `complete` and `text` members.
+faces. Task records are application data with `complete` and `text` members.
 The reusable `json/collection-step` operation knows only JSON collection edits;
 it contains no task, browser, persistence, or renderer logic.
 
@@ -11,8 +11,8 @@ Run the current deterministic proof with:
 cargo xtask check todo-state
 ```
 
-This checks and expands the authored Forms, plans their ordinary std and
-browser Host offers, and runs add → toggle → remove through the production
+This checks and expands the authored forms, plans their ordinary std and
+browser host offers, and runs add → toggle → remove through the production
 kernel in Rust tests. Each next request
 uses the preceding kernel-produced snapshot. Source and stdout sink are explicit
 test fixtures; they do not perform the state transition. An unknown index refuses
@@ -21,12 +21,12 @@ with detail `105` and produces no success snapshot.
 The inherited JSON profile admits at most 32 array items, 128 total nodes,
 8 levels of nesting, 1,024 bytes in one string, 2,048 total string bytes, and
 4,096 encoded bytes. These limits apply together to the complete request and
-result. The proof explicitly plans 4,096-byte, capacity-one Cords. Actual task
+result. The proof explicitly plans 4,096-byte, capacity-one cords. Actual task
 capacity can be lower than 32 because records consume multiple JSON nodes and
 the command contributes to the request bounds.
 
 This is an executable state-transition slice, not the finished application.
-The browser runtime also tests admitted Resource publish/read requests and
+The browser runtime also tests admitted resource publish/read requests and
 restores only after a matching storage completion. Those Rust tests supply
 storage completions; they do not establish durable browser storage across
 reloads. A complete Todo interface, application-specific validation, causal
@@ -34,14 +34,14 @@ user interaction, and a manual application entrance remain separate work.
 
 `todo/summary` configures the reusable `json/boolean-summary` operation with
 field `complete`. `todo/command-summary` composes an edit, summary, and encoding
-through their Faces. Its snapshot reports `false` (remaining), `true` (completed),
+through their faces. Its snapshot reports `false` (remaining), `true` (completed),
 and `total` counts. Missing or non-Boolean completion fields refuse with distinct
 details `123` and `124`; an empty collection reports three zero counts. The same
 operation counts an arbitrary configured Boolean field outside Todo.
 
 `todo/restore` decodes stored snapshot bytes through the ordinary JSON operation.
-`todo/restore-summary` consumes it as a Gear and derives counts through the same
-summary Form. The deterministic proof supplies the actual preceding edit output
-to this restore Face and refuses corrupt JSON or invalid completion fields.
-This proves semantic restore and the runtime Resource-operation boundary;
+`todo/restore-summary` consumes it as a gear and derives counts through the same
+summary form. The deterministic proof supplies the actual preceding edit output
+to this restore face and refuses corrupt JSON or invalid completion fields.
+This proves semantic restore and the runtime resource-operation boundary;
 durable storage across a real restart remains a separate acceptance claim.

@@ -1,7 +1,7 @@
 # Deadline and WCET regions
 
 Conduit supports general finite computation and stricter deadline-bounded
-regions in the same Form. The boundary is an admission rule, not a second
+regions in the same form. The boundary is an admission rule, not a second
 language or execution engine.
 
 ## Separate facts
@@ -16,7 +16,7 @@ These facts must remain distinct:
 | WCET basis | the selected realization has an exact worst-case time on this target | required |
 | deadline region | a composition whose transitive timing/resource basis was admitted | result |
 
-A bounded parser over 16 MiB can be ordinary valid Form work while remaining
+A bounded parser over 16 MiB can be ordinary valid form work while remaining
 ineligible for a 50 µs motor step if it has no compatible WCET basis. No
 semantic-unboundedness concept is needed to describe that result.
 
@@ -30,7 +30,7 @@ total above the region deadline. Capacity and operation facts remain available
 to ordinary finite-form analysis but are never substituted for WCET.
 
 This is conservative composition: an unknown child makes the parent unknown.
-An implementation may be valid in a general-purpose Form and still be
+An implementation may be valid in a general-purpose form and still be
 rejected in the region. Continuous finite-state control is eligible when each
 step has the same compatible finite basis; an indefinite lifetime does not
 turn that per-step proof into a whole-lifetime completion claim.
@@ -41,7 +41,7 @@ The admitted region records its exact identity, deadline, resource ceiling, and
 timing-basis identities. A replacement must retain the region identity,
 deadline, and resource ceiling and independently pass the same admission checks. A slower selected
 realization therefore produces a machine-readable refusal; it cannot silently
-replace the old Plan. The old admission remains immutable and usable for
+replace the old plan. The old admission remains immutable and usable for
 diagnosis or explicit replacement planning.
 
 The contract proves planner admission only. It is not a physical timing claim,

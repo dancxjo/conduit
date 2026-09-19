@@ -1,12 +1,12 @@
-# Conduit Host Specification
+# Conduit host Specification
 
-> Historical CHS-0 draft for #347, superseded as a normative specification. Use [Hosts and execution](hosts.md), the [canon](../conduit-canon.md), and the current source contracts. In particular, Body is distinct from Host, Play has its own identity, compatibility uses checked Face equality, and authored Forms contain no realization facts. The original MUST/SHOULD language below records the proposal; it does not impose additional contributor requirements.
+> Historical CHS-0 draft for #347, superseded as a normative specification. Use [hosts and execution](hosts.md), the [canon](../conduit-canon.md), and the current source contracts. In particular, body is distinct from host, play has its own identity, compatibility uses checked face equality, and authored forms contain no realization facts. The original MUST/SHOULD language below records the proposal; it does not impose additional contributor requirements.
 > Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
 
 **Document:** CHS-0  
 **Status:** historical CHS-0 draft; superseded as a normative specification
 **Implementation issue:** [#347](https://github.com/dancxjo/conduit/issues/347)
-**Companion architecture:** [Portable Host Architecture](portable-hosts.md)  
+**Companion architecture:** [Portable host architecture](portable-hosts.md)
 **Audience:** Implementers, reviewers, maintainers, and coding agents
 
 ## 1. Purpose
@@ -22,7 +22,7 @@ A host produced through composition is itself a host and obeys the same external
 This recursive rule is the foundation of the architecture:
 
 ```text
-Host := PrimitiveHost | CompositeHost(Form, ChildHosts, Plan)
+host := PrimitiveHost | CompositeHost(form, ChildHosts, plan)
 ```
 
 The distinction between primitive and composite hosts is private to the host unless explicitly exposed for inspection.
@@ -72,7 +72,7 @@ The plan does.
 
 ## 4. Fundamental concepts
 
-### 4.1 Host implementation
+### 4.1 host implementation
 
 A **host implementation** is software capable of creating host instances.
 
@@ -87,7 +87,7 @@ Examples include:
 
 A host implementation is comparable to a program or runtime class. It is not one particular running host.
 
-### 4.2 Host instance
+### 4.2 host instance
 
 A **host instance** is one running or recoverable instance of a host implementation.
 
@@ -148,9 +148,9 @@ A capability offer is not:
 - an active gear;
 - a plan;
 - a promise of permanent availability;
-- or Sign that the capability has already been used.
+- or sign that the capability has already been used.
 
-### 4.6 Kind
+### 4.6 kind
 
 A **kind** defines semantic meaning.
 
@@ -184,7 +184,7 @@ presentation/show
 
 These implementations may all satisfy the same kind. They differ in manifestation and platform mechanics, not in semantic purpose.
 
-### 4.8 Form
+### 4.8 form
 
 A **form** is an authored semantic graph.
 
@@ -200,7 +200,7 @@ A form declares:
 
 A form MUST NOT require exact host identities, boot identities, implementation identities, transport addresses, device paths, or physical manifestations unless those facts are part of the form's intended meaning.
 
-### 4.9 Plan
+### 4.9 plan
 
 A **plan** is an immutable, exact realization of a form for a particular set of host instances and capability offers.
 
@@ -214,9 +214,9 @@ A plan selects:
 - capacities;
 - resource limits;
 - initialization data;
-- Play start order;
+- play start order;
 - authority requirements;
-- and expected completion Sign.
+- and expected completion sign.
 
 Creating a plan MUST NOT start it.
 
@@ -293,9 +293,9 @@ No additional fundamental dataflow direction is required.
 
 Control operations such as prepare, start, cancel, and inspect belong to the host protocol rather than ordinary form dataflow.
 
-## 6. Host identity
+## 6. host identity
 
-### 6.1 Host identity
+### 6.1 host identity
 
 Every host instance MUST have a `host_id`.
 
@@ -310,7 +310,7 @@ A host identity MUST NOT be derived solely from:
 - a hostname;
 - or a transient transport endpoint.
 
-### 6.2 Boot identity
+### 6.2 boot identity
 
 Every host start MUST create a fresh `boot_id`.
 
@@ -346,7 +346,7 @@ Its identity is not merely the set of its child host identities.
 
 A composite host MAY replace, add, remove, or replan child hosts while preserving its external host identity, provided it continues to satisfy its advertised contracts and continuity policy.
 
-## 7. Host profiles
+## 7. host profiles
 
 Every host declares one or more conformance profiles.
 
@@ -361,7 +361,7 @@ The core profile requires:
 - capability advertisement;
 - plan-fragment validation;
 - preparation;
-- Play start;
+- play start;
 - cancellation;
 - cleanup;
 - bounded connections;
@@ -414,7 +414,7 @@ A composite host MUST satisfy every external requirement of the core profile.
 
 A parent planner MUST NOT need to understand the composite host's internal topology to use its advertised capabilities.
 
-## 8. Host lifecycle
+## 8. host lifecycle
 
 A host session has the following conceptual lifecycle states:
 
@@ -458,7 +458,7 @@ It MUST expose the fault where communication remains possible.
 
 ## 9. Placement lifecycle
 
-Host lifecycle and placement lifecycle are separate.
+host lifecycle and placement lifecycle are separate.
 
 A host may operate many placements concurrently while remaining available.
 
@@ -553,7 +553,7 @@ struct CapabilityOffer {
 
 The kind contract revision owns the exact ordered input and output contracts.
 An offer is compatible only when the advertised revision and every port agree
-with the checked Gear; queue limits do not stand in for type or port
+with the checked gear; queue limits do not stand in for type or port
 compatibility.
 
 ### 10.1 Offer generation
@@ -620,7 +620,7 @@ manifestation: onboard LED
 
 The manifestation does not change the kind.
 
-## 11. Plan fragments
+## 11. plan fragments
 
 A host receives only the fragment of a plan assigned to it.
 
@@ -632,7 +632,7 @@ It MUST identify:
 - exact host identity;
 - exact boot identity;
 - exact offer generation;
-- assigned Gears;
+- assigned gears;
 - selected implementations;
 - capability bindings;
 - typed inputs and outputs;
@@ -657,11 +657,11 @@ A host MUST reject a fragment that is:
 - unauthorized;
 - or internally inconsistent.
 
-## 12. Preparation and Play start
+## 12. Preparation and play start
 
 ### 12.1 Separation
 
-Preparation and Play start MUST be separate operations.
+Preparation and play start MUST be separate operations.
 
 Preparation may allocate resources and establish links.
 
@@ -682,11 +682,11 @@ A host preparing a plan fragment MUST:
 9. verify authority;
 10. report prepared status or a precise rejection.
 
-### 12.3 Play start
+### 12.3 play start
 
 A host starts a prepared fragment only after receiving a valid commit for the exact plan.
 
-Play start MUST be idempotent or MUST reject duplicate commits unambiguously.
+play start MUST be idempotent or MUST reject duplicate commits unambiguously.
 
 ### 12.4 Failed preparation
 
@@ -694,9 +694,9 @@ If any required host fails to prepare, the planner or coordinating host MUST NOT
 
 Every host that prepared successfully MUST be instructed to release its prepared fragment.
 
-### 12.5 Failure after Play start
+### 12.5 Failure after play start
 
-A failure after Play start MUST NOT be rewritten as successful completion.
+A failure after play start MUST NOT be rewritten as successful completion.
 
 The host MUST report:
 
@@ -773,11 +773,11 @@ struct ConnectionEnvelope {
 
 Malformed or oversized envelopes MUST be rejected before unbounded allocation or semantic execution.
 
-## 14. Observation and Signs
+## 14. Observation and signs
 
 A host MUST provide machine-readable observations.
 
-Visual or physical manifestation alone is insufficient Sign.
+Visual or physical manifestation alone is insufficient sign.
 
 For example, a Pico W LED may visibly blink, but the host must also retain or emit records such as:
 
@@ -797,7 +797,7 @@ Required observation classes include:
 - plan-fragment receipt;
 - preparation success;
 - preparation rejection;
-- Play start;
+- play start;
 - value receipt;
 - value production;
 - semantic manifestation;
@@ -861,7 +861,7 @@ Therefore:
 compose(host A, host B, form F) -> host C
 ```
 
-Host C may then participate in another planning scope:
+host C may then participate in another planning scope:
 
 ```text
 compose(host C, host D, form G) -> host E
@@ -905,7 +905,7 @@ The resulting composite host might expose:
 capability: demonstration/run-signal
 ```
 
-or it might expose the pulse output, show input, completion Sign, or another declared boundary.
+or it might expose the pulse output, show input, completion sign, or another declared boundary.
 
 The parent planning scope sees one host offering the exposed capability.
 
@@ -945,10 +945,10 @@ A host may offer a planning capability.
 For example:
 
 ```text
-Input<Form>
+Input<form>
 Input<HostAdvertisementSet>
 Input<PlacementPolicy>
-Output<Plan>
+Output<plan>
 Output<PlanningDiagnostic>
 ```
 
@@ -956,7 +956,7 @@ The first implementation may place this capability on the Rust standard-library 
 
 A later composite host may realize planning through several internal hosts.
 
-Forms, capability advertisements, plans, and diagnostics can therefore participate in the same host-composition model as other data.
+forms, capability advertisements, plans, and diagnostics can therefore participate in the same host-composition model as other data.
 
 ## 18. A planning scope as a composite host
 
@@ -1082,7 +1082,7 @@ A semantic kind is not its manifestation.
 
 A remote connection is not its transport.
 
-A visual effect is not sufficient execution Sign.
+A visual effect is not sufficient execution sign.
 
 A composite host is still a host.
 ```
@@ -1095,8 +1095,8 @@ A core host implementation MUST demonstrate:
 2. a bounded capability advertisement;
 3. rejection of a stale boot identity;
 4. rejection of a stale capability generation;
-5. successful preparation without premature Play start;
-6. successful Play start after commit;
+5. successful preparation without premature play start;
+6. successful play start after commit;
 7. bounded input and output connections;
 8. correct pressure behavior;
 9. deterministic completion or explicit failure;
@@ -1155,7 +1155,7 @@ The following questions remain open:
 
 ## 24. Summary
 
-The Conduit host is a software runtime that offers bounded semantic capabilities, accepts exact plan fragments, prepares them without starting them, starts them only after commitment, carries typed values through bounded connections, and produces machine-readable Sign.
+The Conduit host is a software runtime that offers bounded semantic capabilities, accepts exact plan fragments, prepares them without starting them, starts them only after commitment, carries typed values through bounded connections, and produces machine-readable sign.
 
 A primitive host realizes capabilities from a platform.
 
@@ -1183,7 +1183,7 @@ those hosts may be composed again
 The architectural closure is:
 
 ```text
-Host + Host + Form + Plan -> Host
+host + host + form + plan -> host
 ```
 
 That closure is the system.

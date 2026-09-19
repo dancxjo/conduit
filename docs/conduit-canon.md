@@ -12,11 +12,11 @@ The archive, the August reboot, and the current implementation are parts of one 
 
 ## The center
 
-> **Forms describe meaning. Hosts offer implementations. Plans make realization exact.**
+> **forms describe meaning. hosts offer implementations. plans make realization exact.**
 
 Conduit is a portable execution substrate for finite, typed flows of work.
 
-An author should be able to describe what must happen without deciding which operating system, browser, microcontroller, process, transport, device, or service will realize it. Hosts report what they can currently do. A planner combines the authored meaning with exact current offers, resources, authority, and links. The resulting plan is immutable and complete enough to execute without ambient guesses.
+An author should be able to describe what must happen without deciding which operating system, browser, microcontroller, process, transport, device, or service will realize it. hosts report what they can currently do. A planner combines the authored meaning with exact current offers, resources, authority, and links. The resulting plan is immutable and complete enough to execute without ambient guesses.
 
 The same form may therefore run:
 
@@ -59,11 +59,11 @@ The project succeeds by refusing to collapse concepts that are convenient to con
 KIND   reusable semantic behavior such as text/upper
 FORM   authored composition of semantic work; the program Conduit runs
 GEAR   one configured occurrence of a kind in a form
-PORT   typed directional point through which Info enters or leaves
+PORT   typed directional point through which info enters or leaves
 CORD   typed semantic connection between compatible ports on gears
 INFO   shaped, typed data carried through cords
 RESOURCE bounded addressable content with explicit lifecycle and sharing obligations
-SIGNAL one particular Info semantic or mechanism where explicitly named
+SIGNAL one particular info semantic or mechanism where explicitly named
 FACE   stable visible semantic contract of a kind or form, including ports
 BACK   form that implements a face in Conduit terms
 
@@ -73,29 +73,29 @@ PLAN   exact immutable realization of an admitted workload
 PLAY   one active execution of a plan
 ```
 
-A Kind is not a Gear, and neither is an implementation. A Port is not a renderer jack, queue slot, Line endpoint, or Base handle. Info is specifically shaped/typed data and is not automatically Signal. A Face is not its Back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active Play.
+A kind is not a gear, and neither is an implementation. A port is not a renderer jack, queue slot, line endpoint, or base handle. info is specifically shaped/typed data and is not automatically Signal. A face is not its back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active play.
 
-### Resource, State, and Line
+### resource, state, and line
 
-A Resource is bounded addressable content whose residence, lifetime, sharing,
-access, generation, or durability matters beyond an ordinary inline Info value.
-`value/resource-ref@1` remains portable Info referring to exact semantic content
-and version; possession grants no authority. Structured records remain Info,
-not collections of Gears masquerading as objects.
+A resource is bounded addressable content whose residence, lifetime, sharing,
+access, generation, or durability matters beyond an ordinary inline info value.
+`value/resource-ref@1` remains portable info referring to exact semantic content
+and version; possession grants no authority. Structured records remain info,
+not collections of gears masquerading as objects.
 
-A Cord carries Info. A Line realizes that Cord's traffic. Shared memory used by
-a Line is transport machinery; shared memory backing an explicitly admitted
-Resource is residence. Neither introduces a portable pointer, fd, mapping,
-device handle, or distributed shared memory. Resource residence belongs to
-exact Host/Boot/Base realization and Plan truth.
+A cord carries info. A line realizes that cord's traffic. Shared memory used by
+a line is transport machinery; shared memory backing an explicitly admitted
+resource is residence. Neither introduces a portable pointer, fd, mapping,
+device handle, or distributed shared memory. resource residence belongs to
+exact host/boot/base realization and plan truth.
 
-Published Info names stable Resource generations. Candidate publication and
+Published info names stable resource generations. Candidate publication and
 read leases are finite, explicit contracts; a reader cannot silently observe
 mutation beneath immutable content. Unsupported coherence refuses. Another
-sealed generation or residence requires fresh exact Plan truth.
+sealed generation or residence requires fresh exact plan truth.
 
-State retains evolving Info across an explicit time boundary and may retain a
-ResourceRef. Persistence is a Resource operation and lifecycle obligation.
+state retains evolving info across an explicit time boundary and may retain a
+ResourceRef. Persistence is a resource operation and lifecycle obligation.
 Recording retains historical evidence under its own contract. Retain, persist,
 and record are distinct; there is no universal `save` primitive.
 
@@ -110,16 +110,16 @@ expanded form
 plan
 plan fragment
 active play
-Sign item
+sign item
 presentation
 ```
 
-A spelling-only edit may change source identity without changing checked meaning. A hidden nested implementation may change expanded identity without changing the visible checked contract. A new placement or boot changes the plan. A replay creates a new play. A UI row is not a Sign identity.
+A spelling-only edit may change source identity without changing checked meaning. A hidden nested implementation may change expanded identity without changing the visible checked contract. A new placement or boot changes the plan. A replay creates a new play. A UI row is not a sign identity.
 
 ### Availability, authority, and relationship
 
 ```text
-reachable       a Line can currently address an endpoint
+reachable       a line can currently address an endpoint
 observed link   one exact boot-scoped path is currently available
 member          a participant belongs to a larger durable relationship
 trusted         an authority decision permits some action
@@ -136,36 +136,36 @@ A discovered device is not automatically a host. A host on the network is not au
 An implementation must not possess materially more effect authority than the
 exact admitted realization it executes. General-purpose computation and
 continuous lifetime grant no filesystem, network, device, subprocess,
-credential, or other effect authority. Every concrete Play remains finitely
-admitted, including its memory, queues, operations, Resources, and mandatory
-work. Resource containment is distinct from proving that every future step
+credential, or other effect authority. Every concrete play remains finitely
+admitted, including its memory, queues, operations, resources, and mandatory
+work. resource containment is distinct from proving that every future step
 will fit or that a computation will terminate.
 
 A grant identity describes authority; a serializable identity does not itself
 constitute unforgeable possession. The trusted enforcement boundary must
-validate exact current authority independently of a planner's proposed Plan.
-Replacement Boot truth requires fresh admission. Signs describe decisions and
+validate exact current authority independently of a planner's proposed plan.
+Replacement boot truth requires fresh admission. signs describe decisions and
 effects; they neither grant permission nor prevent an unauthorized effect.
 
 This is a durable requirement, not a claim of existing hostile-code isolation.
 A cooperative std process, an isolated implementation with restricted imports,
 a native ConduitOS boundary, and a remote authenticated peer have different
-attacker assumptions and proof obligations. State the actual mechanism and
+attacker assumptions and proof obligations. state the actual mechanism and
 trust class; never collapse them into a generic security flag. The
 [confinement contract](architecture/implementation-confinement.md) records
 these boundaries and current evidence under #2685.
 
-The normal distributable unit of effect authority is a narrow **Base**, not a
-privileged universal Host. A thin Host supervisor owns Host/Boot identity,
-current offer truth, shared planning participation, finite Play accounting,
-capability issuance and revocation, Sign correlation, and Base lifecycle. It
-aggregates only the offers of Bases that are installed, configured, current,
-and ready. It does not inherit a Base's filesystem, network, process, device,
-service, or actuator authority merely because it supervises that Base.
+The normal distributable unit of effect authority is a narrow **base**, not a
+privileged universal host. A thin host supervisor owns host/boot identity,
+current offer truth, shared planning participation, finite play accounting,
+capability issuance and revocation, sign correlation, and base lifecycle. It
+aggregates only the offers of bases that are installed, configured, current,
+and ready. It does not inherit a base's filesystem, network, process, device,
+service, or actuator authority merely because it supervises that base.
 
-A Base is the last trusted Conduit seam for one bounded family of external
-reality. Its provider identity and generation remain distinct from Host, Boot,
-resource, Plan, and Play identity. Replacement invalidates stale provider
+A base is the last trusted Conduit seam for one bounded family of external
+reality. Its provider identity and generation remain distinct from host, boot,
+resource, plan, and play identity. Replacement invalidates stale provider
 truth. Registration and discovery communicate availability, never authority;
 the shared planner consumes independently valid authority and may only narrow
 it. Confinement class is descriptive mechanism truth—such as cooperative,
@@ -173,11 +173,11 @@ process-isolated, WASM-confined, OS-capability-mediated, ConduitOS-kernel-
 enforced, or hardware-gated—not an ordered score or `secure` boolean.
 
 Integration is not assimilation. An external resource keeps its external
-identity, semantics, lifecycle, and native security sovereignty when a Base
-maps it to or manifests a Conduit meaning. External identity, semantic Kind,
-directional mapping, adapter/Base, authority, and outward manifestation are
+identity, semantics, lifecycle, and native security sovereignty when a base
+maps it to or manifests a Conduit meaning. External identity, semantic kind,
+directional mapping, adapter/base, authority, and outward manifestation are
 never aliases. Import and export are independently configured and authorized;
-discovery supplies observation only and cannot fabricate a Host, Part,
+discovery supplies observation only and cannot fabricate a host, part,
 capability, membership, trust, or authority.
 
 An outward manifestation that may be observed again carries exact adapter,
@@ -191,43 +191,43 @@ of Conduit ontology.
 
 Remote authentication attributes a claim; it grants no membership, trust,
 planning eligibility, or effect authority. A remote effect receiver binds the
-current peer Host/Boot/offer generation and exact Line/session, fences replay,
-then independently validates current Body membership and an exact local Base
+current peer host/boot/offer generation and exact line/session, fences replay,
+then independently validates current body membership and an exact local base
 capability at the receiving provider. Authority is non-transitive across
 peers: a capability on A→B does not authorize B→C, proxying, delegation, or
 failover unless each hop has its own explicit bounded contract and current
-authority. Transport confidentiality, peer authentication, membership/Line
+authority. Transport confidentiality, peer authentication, membership/line
 admission, and effect authorization remain separate inspection facts.
 
 ### Execution and presentation
 
-The DOM, stdout, LEDs, dashboards, and workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or Sign.
+The DOM, stdout, LEDs, dashboards, and workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or sign.
 
 A presentation may summarize or arrange runtime facts. It may not manufacture them.
 
 Web manifestations use the native HTML control whose semantics match the
 operation: checkboxes for independent choices, radio buttons for one choice
 among alternatives, selects for bounded lists, buttons for actions, anchors
-for navigation, and fieldsets with legends for grouped choices. Presentation
+for navigation, and fieldsets with legends for grouped choices. presentation
 may alter their appearance, but does not recreate native interaction semantics
 when the platform control already expresses the operation.
 
 An already-resolved bounded graphics scene may cross one terminal presentation
-Face to request manifestation. That Face names no framebuffer, DOM, window,
+face to request manifestation. That face names no framebuffer, DOM, window,
 pixel format, or toolkit object: the selected implementation, admitted host
-operation, finite presentation resource, and exact display Base remain Plan and
-Host truth. Transform Kinds do not acquire hidden manifestation side effects.
+operation, finite presentation resource, and exact display base remain plan and
+host truth. Transform kinds do not acquire hidden manifestation side effects.
 
 ### Fabrication and runtime
 
-A Host fabrication package is a Rust project boundary that knows how to manufacture machinery for a finite coherent family of exact targets. An anchor package owns each target's descriptor, toolchain and build adapter, finite maxima, artifact kinds, and target-appropriate post-build mechanics. Extension packages may add exact Base implementation offers without editing the anchor or generic Conduit fabrication.
+A host fabrication package is a Rust project boundary that knows how to manufacture machinery for a finite coherent family of exact targets. An anchor package owns each target's descriptor, toolchain and build adapter, finite maxima, artifact kinds, and target-appropriate post-build mechanics. Extension packages may add exact base implementation offers without editing the anchor or generic Conduit fabrication.
 
 ```text
 fabrication packages present in a project
     -> exact target and implementation offers
 
-Host construction
-    -> target + selected Base implementations + finite bounds
+host construction
+    -> target + selected base implementations + finite bounds
 
 PROFILE -> BUILD -> IMAGE
     -> exact machinery plus package, implementation, and tooling provenance
@@ -243,7 +243,7 @@ The common contract is not an artifact format, CPU architecture, firmware ontolo
 
 Package inspection is lightweight. Heavy toolchains and builders run only for BUILD. The package environment is composed explicitly through ordinary Rust dependencies rather than a central closed target list, runtime plugin loader, or package marketplace. Competing implementation offers are explicit; duplicate exact implementation identity refuses rather than resolving by load order.
 
-PROFILE, BUILD, and IMAGE describe and manufacture inert machinery. They do not create HostId, BootId, reachability, membership, authority, live offers, reservations, Plans, or Plays.
+PROFILE, BUILD, and IMAGE describe and manufacture inert machinery. They do not create HostId, BootId, reachability, membership, authority, live offers, reservations, plans, or plays.
 
 ## Execution invariants
 
@@ -253,7 +253,7 @@ Every executable input and output has a port identity, direction, and value kind
 
 Fan-out is an explicit planned property. One emission is admitted atomically to the required branches or waits under pressure. The kernel never interprets an unqualified `emit` as broadcast to whatever happens to be connected.
 
-### Bounded before Play start
+### Bounded before play start
 
 Before a play starts, the host knows and admits the finite shape needed for execution:
 
@@ -263,10 +263,10 @@ Before a play starts, the host knows and admits the finite shape needed for exec
 - queue items and buffered bytes;
 - timers and host-operation concurrency;
 - resource reservations;
-- mandatory Sign storage;
+- mandatory sign storage;
 - cancellation and terminal bookkeeping.
 
-Hosted profiles may use heap-backed storage before Play start. Constrained profiles may use fixed arenas. Neither may conceal unbounded growth, discovery, retry, string lookup, graph scanning, or queue creation in an admitted hot path.
+Hosted profiles may use heap-backed storage before play start. Constrained profiles may use fixed arenas. Neither may conceal unbounded growth, discovery, retry, string lookup, graph scanning, or queue creation in an admitted hot path.
 
 ### Generic host operations
 
@@ -278,7 +278,7 @@ The kernel owns execution order and correlation. The platform adapter owns only 
 
 Pressure is not an implementation inconvenience to hide with buffering. It is runtime truth.
 
-Values remain accounted for through offered, accepted, delivered, failed, cancelled, or terminal disposition. Disconnect, malformed input, stale boot, authority denial, resource exhaustion, Sign exhaustion, and unsupported behavior remain distinguishable.
+Values remain accounted for through offered, accepted, delivered, failed, cancelled, or terminal disposition. Disconnect, malformed input, stale boot, authority denial, resource exhaustion, sign exhaustion, and unsupported behavior remain distinguishable.
 
 Automatic retry is a semantic promise and therefore must be planned. A base may not invent it.
 
@@ -291,15 +291,15 @@ Temporary compatibility façades may help migrate old tests or composite fixture
 ## General-purpose finite computation
 
 Conduit targets general-purpose computation under explicit finite bounds.
-Every checked executable Form has exact finite semantic/resource capacities
+Every checked executable form has exact finite semantic/resource capacities
 after specialization. Reusable algorithms may parameterize those capacities;
 a different semantic bound may produce a different checked identity. Large
 finite state spaces remain finite but may be impractical to enumerate.
 
-General typed State, branching/selection, explicit recurrence and bounded
+General typed state, branching/selection, explicit recurrence and bounded
 structured memory provide computational generality through ordinary typed
 composition. Continuous externally driven lifetime requires no special mode
-and does not imply unbounded retained State or instantaneous resources.
+and does not imply unbounded retained state or instantaneous resources.
 Strict Turing completeness and semantically infinite memory are not current
 requirements. They require a new concrete architectural justification before
 introduction, rather than an opt-out flag added for convenience. The
@@ -307,13 +307,13 @@ introduction, rather than an opt-out flag added for convenience. The
 records the revised #2682 direction and its analysis, lifecycle, timing,
 continuity and confinement obligations.
 
-## Form and composition direction
+## form and composition direction
 
 A form is semantic source, not platform installation configuration.
 
 A form may contain:
 
-- configured Gears and their Kinds;
+- configured gears and their kinds;
 - typed cords;
 - semantic configuration;
 - explicit finite work bounds;
@@ -338,7 +338,7 @@ All forms are conceptually composite. A form with one opaque implementation is s
 
 A BODY may later appear through a FACE inside another form without becoming a copy of that body.
 
-## Body identity and lifecycle
+## body identity and lifecycle
 
 The retired realm table is not the intended durable model.
 
@@ -352,86 +352,86 @@ CAPABILITY  truthful finite current realization offer from a host boot
 ROLE  semantic requirement declared by a form
 CAST  exact binding of roles to capabilities
 LINK  communication path between parts
-BODY  durable logical computer with a bounded workset of Forms
+BODY  durable logical computer with a bounded workset of forms
 SOUL  durable continuity and recoverable identity of a body
 ```
 
-A Body is not a Host, transport, address, coordinator process, or UI document. A Part is not a Host or Boot: it records an explicitly admitted durable relationship. Current authenticated Host/Boot presence may attach to that relationship and later disappear without deleting membership or retaining a fake current Boot. Current offers remain Host-advertisement truth rather than durable Part properties. Admission and revocation carry exact bounded event and Sign provenance; membership alone grants no authority, placement, Line, or execution.
+A body is not a host, transport, address, coordinator process, or UI document. A part is not a host or boot: it records an explicitly admitted durable relationship. Current authenticated host/boot presence may attach to that relationship and later disappear without deleting membership or retaining a fake current boot. Current offers remain host-advertisement truth rather than durable part properties. Admission and revocation carry exact bounded event and sign provenance; membership alone grants no authority, placement, line, or execution.
 
-A Body is one logical computer. It may contain one machine or many, and it may
-run many Forms. One Body scheduler plans all of that work together; one Play is
-the Body's current running realization. The same Body/Plan/Play model covers a
-single Host, multiple cores, and multiple Hosts; distribution does not create a
+A body is one logical computer. It may contain one machine or many, and it may
+run many forms. One body scheduler plans all of that work together; one play is
+the body's current running realization. The same body/plan/play model covers a
+single host, multiple cores, and multiple hosts; distribution does not create a
 second scheduler or execution ontology.
 
-A Body is a **continuant**. An explicit attributable human/operator action
+A body is a **continuant**. An explicit attributable human/operator action
 **BIRTHs** it with a bounded initial workset of zero, one, or many exact checked
-Forms and records distinct birth event/Sign evidence. No initial Form is
-privileged after birth. In Conduit vocabulary a program is a Form; there is no
-separate Program identity. The newborn Body is LULLED; BIRTH creates no implicit
-Wake, Plan, or Play. Thereafter changes in Parts, Hosts and Boots, Lines, the
-bounded current Form workset, Wake/Lull episodes, Plans, Plays, and
-manifestations are events in the history of the same Body rather than
-replacement Body identities.
+forms and records distinct birth event/sign evidence. No initial form is
+privileged after birth. In Conduit vocabulary a program is a form; there is no
+separate Program identity. The newborn body is LULLED; BIRTH creates no implicit
+wake, plan, or play. Thereafter changes in parts, hosts and boots, lines, the
+bounded current form workset, wake/lull episodes, plans, plays, and
+manifestations are events in the history of the same body rather than
+replacement body identities.
 
-The Form workset may contain zero, one, or many exact checked Forms. Adding or
-removing a Form advances bounded workload truth without replacing the Body.
-During one Wake, one Body-wide immutable Plan covers the complete current
-workset, globally admits its resources, and may have at most one active Play.
-Forms inside that Play may progress concurrently under the one kernel. A
-workset change retires the current Plan and Play and requires a replacement
-Body-wide Plan before execution resumes; it never starts a second scheduler.
-Legacy seed-era Body evidence remains explicitly versioned historical evidence;
+The form workset may contain zero, one, or many exact checked forms. Adding or
+removing a form advances bounded workload truth without replacing the body.
+During one wake, one body-wide immutable plan covers the complete current
+workset, globally admits its resources, and may have at most one active play.
+forms inside that play may progress concurrently under the one kernel. A
+workset change retires the current plan and play and requires a replacement
+body-wide plan before execution resumes; it never starts a second scheduler.
+Legacy seed-era body evidence remains explicitly versioned historical evidence;
 it does not restore a privileged identity in the current model.
 
-Absence is not death. Offline Parts, unreachable Hosts, lost Boots or Lines,
-Lull, stale or missing Plans, terminated Plays, and even loss of all current
-realization do not by themselves erase Body continuity. Routine cleanup,
+Absence is not death. Offline parts, unreachable hosts, lost boots or lines,
+lull, stale or missing plans, terminated plays, and even loss of all current
+realization do not by themselves erase body continuity. Routine cleanup,
 shutdown, garbage collection, or disappearance of current offers must retain
-the durable Body and membership evidence. Any future irreversible destruction
+the durable body and membership evidence. Any future irreversible destruction
 protocol requires its own explicit authority and semantics; it is not an
-ordinary `delete Body` operation.
+ordinary `delete body` operation.
 
-The minimum continuity law is one surviving Part: a Body remains the same Body
-while at least one admitted Part retains sufficient bounded durable continuity
-truth. That truth binds the exact Body, surviving membership relationship and
+The minimum continuity law is one surviving part: a body remains the same body
+while at least one admitted part retains sufficient bounded durable continuity
+truth. That truth binds the exact body, surviving membership relationship and
 generation, workload revision where lifecycle law requires it, and durable
 authority or revocation provenance needed to reject a stale or copied claim.
-Reboot and replacement rotate current Boot, resource, Line, offer, authority,
-Plan, and Play truth without replacing the Body. After the final continuity-
-bearing Part and its evidence are destroyed, Conduit makes no promise of
+Reboot and replacement rotate current boot, resource, line, offer, authority,
+plan, and play truth without replacing the body. After the final continuity-
+bearing part and its evidence are destroyed, Conduit makes no promise of
 same-identity resurrection. SOUL, where used, names only this material and
 protocol rather than supernatural recovery after total extinction.
 
 Workload revision is atomic with realization truth. One serialized lifecycle
 checks the proposed complete workset, plans and admits it, prepares replacement,
-quiesces affected old work, and commits a new immutable revision and Plan. A
+quiesces affected old work, and commits a new immutable revision and plan. A
 refused attempt preserves the coherent prior state or an explicit LULLED state;
 it never publishes a hybrid or starts another scheduler. Planned failure
 disposition may terminate an exact scope, select a checked degraded path, wait
 under finite admission, request this same replacement lifecycle, or lull. It
 never implies a hidden retry or a parallel supervisor runtime.
 
-Signs may carry bounded exact causal relationships. These relationships record
+signs may carry bounded exact causal relationships. These relationships record
 what caused, requested, admitted, realized, observed, superseded, corrected, or
 terminated exact evidence across exact sessions. Temporal adjacency is not
 causality, missing evidence remains unknown, and presentation never owns the
 causal history.
 
-A Form contains configured Gears and may require Roles. A Cast binds Roles to exact capabilities. A Body-wide Plan binds every Form's Gears to exact implementation, Part, Host, Boot, Base, authority, resource, route, and bound facts. A Play starts that complete Plan. A later Soul policy may prove continuity across restarts without pretending a restarted Boot is the same execution session or changing what Part membership means.
+A form contains configured gears and may require Roles. A Cast binds Roles to exact capabilities. A body-wide plan binds every form's gears to exact implementation, part, host, boot, base, authority, resource, route, and bound facts. A play starts that complete plan. A later Soul policy may prove continuity across restarts without pretending a restarted boot is the same execution session or changing what part membership means.
 
-ConduitOS is a native Host substrate for this same admitted Plan and kernel. It
+ConduitOS is a native host substrate for this same admitted plan and kernel. It
 does not supply an alternate scheduler or kernel semantics. Current ConduitOS
 proof uses cooperative execution through the one kernel; it does not yet prove
 SMP, preemption, or physical parallel execution.
 
 Membership, reachability, authority, capability, placement, and link state remain separate.
 
-Body membership, continuity, administration, and workload-transition contracts
+body membership, continuity, administration, and workload-transition contracts
 now have dedicated implementations in `architecture/body`. Product integration
 and recovery proof remain distinct from those contracts. The layer consumes
-Host reports, Lines, planning, and the one kernel; it does not invent a parallel
-distributed runtime. See [Body lifecycle contracts](architecture/body-lifecycle-waists.md)
+host reports, lines, planning, and the one kernel; it does not invent a parallel
+distributed runtime. See [body lifecycle contracts](architecture/body-lifecycle-waists.md)
 and the [current roadmap](roadmap.md).
 
 ## Proof classes
@@ -444,7 +444,7 @@ The repository uses precise proof names:
 4. actual platform adapter or runtime;
 5. live transport;
 6. actual firmware execution;
-7. physical or hardware-in-the-loop Sign.
+7. physical or hardware-in-the-loop sign.
 
 A Thumb build is not firmware execution. A WASM build is not browser execution. A browser test is not a live network link. A loopback socket is not installation security. An LED blink is not a machine-readable receipt.
 
@@ -456,12 +456,12 @@ remaining gaps for each surface.
 ## Direction of travel
 
 The dependency direction remains meaning and typed contracts → exact planning
-and admission → the execution kernel → Host effects → product presentation.
-Body lifecycle coordinates the current workset through those same boundaries.
+and admission → the execution kernel → host effects → product presentation.
+body lifecycle coordinates the current workset through those same boundaries.
 Domain applications consume them rather than introducing another runtime.
 
 The early S1–S5 salvage sequence is historical. Conduit now has a semantic
-catalog, Body lifecycle, browser and native product surfaces, device work, and
+catalog, body lifecycle, browser and native product surfaces, device work, and
 ConduitOS emulator execution. Those surfaces have different levels of proof;
 their existence is not a claim that every end-to-end journey is complete.
 [STATUS.md](../STATUS.md) describes those limits, and the [roadmap](roadmap.md)
@@ -476,17 +476,17 @@ Ideas are classified so that deferral does not feel like erasure and preservatio
 These ideas are current, load-bearing direction and have executable implementations and bounded proof surfaces in the repository:
 
 - semantic forms, host capability offers, and exact plans;
-- source, checked, expanded, plan, play, Sign, and presentation identity separation;
+- source, checked, expanded, plan, play, sign, and presentation identity separation;
 - typed named ports and explicit fan-out;
 - bounded port-aware `conduit-kernel` execution;
 - generic host operations;
 - exact resource, authority, and observed-link planning contracts;
 - lossless source retention and located diagnostics;
 - inline nested forms and named composite faces;
-- hosted and browser execution through the kernel, with separately proved Lines;
-- the portable semantic catalog and Host-owned realization offers;
-- Body membership, workload and continuity contracts;
-- read-only Observatory and portable Presentation/Manifestation contracts;
+- hosted and browser execution through the kernel, with separately proved lines;
+- the portable semantic catalog and host-owned realization offers;
+- body membership, workload and continuity contracts;
+- read-only Observatory and portable presentation/Manifestation contracts;
 - CLI, Tour, Crèche, Patchbay, and ConduitOS product surfaces;
 - ConduitOS freestanding emulator execution and retained visual evidence;
 - honest proof-class boundaries.
@@ -497,7 +497,7 @@ These are valuable directions waiting on named prerequisites. An implemented
 slice belongs in the living project even when its larger ambition remains open:
 
 - broader SOUL recovery and durable policy beyond bounded continuity evidence;
-- Zenoh as a possible later Line Base;
+- Zenoh as a possible later line base;
 - general package and artifact distribution beyond reviewed fabrication packages;
 - domain expansion beyond the current House, Laptop, and Pete slices.
 
@@ -533,7 +533,7 @@ A superseded experiment may contain an excellent algorithm, vocabulary lesson, c
 These remain intentionally open questions:
 
 - future language ergonomics beyond the current canonical `.conduit` syntax;
-- broader durable trust, delegation, and recovery beyond current Body admission protocols;
+- broader durable trust, delegation, and recovery beyond current body admission protocols;
 - the exact package, artifact, and implementation installation workflow;
 - how much automatic placement and negotiation belongs above explicit planning;
 - how bodies gather on neutral ground without confusing discovery with trust;
@@ -570,31 +570,31 @@ Conduit should become useful from the outside inward:
 - then let an unfamiliar person complete one useful task;
 - only then grow the freeform Workbench and larger domains.
 
-A user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, Sign, and presentation.
+A user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, sign, and presentation.
 
 The current product loop is:
 
 ```text
-Enter -> See -> Make -> Rehearse -> Wake -> Observe -> Explain
+Enter -> See -> Make -> Rehearse -> wake -> Observe -> Explain
 ```
 
-This is one semantic loop across radically different Hosts and Presenters, not
-a request for identical pixels or mechanisms. Presentation states what exists,
+This is one semantic loop across radically different hosts and Presenters, not
+a request for identical pixels or mechanisms. presentation states what exists,
 which ordinary semantic actions are available, why an action is unavailable,
 and which exact truth waits behind inspection. A Presenter binds local gestures
 such as keys, pointer activation, numbered serial choices, or touch to those
 actions; the gesture does not become the meaning or a second mutation path.
 
 The ordinary surface prioritizes the meaningful object, current state, current
-action, effect, and refusal. Exact source, Form, Body, Plan, placement, Host,
-implementation, Base, Play, and Sign truth remains reachable through explicit
+action, effect, and refusal. Exact source, form, body, plan, placement, host,
+implementation, base, play, and sign truth remains reachable through explicit
 explanation rather than occupying the lobby. Geometry, focus, clipping,
 scrolling, and responsive layout remain Presenter-local.
 
-Temporal context follows the same boundary. A Presentation may state how an
+Temporal context follows the same boundary. A presentation may state how an
 exact event, observation, or ingestion instant relates to an exact reference
-instant for that Presentation turn, but relative age is derived Presentation
-truth rather than event, Sign, or evidence identity. Portable temporal facts
+instant for that presentation turn, but relative age is derived presentation
+truth rather than event, sign, or evidence identity. Portable temporal facts
 therefore retain the exact source instant, its finite clock-basis identity and
 resolution, its admitted uncertainty, and its semantic time role. They refer to
 one member of a bounded collection of exact, identified reference instants;
@@ -610,11 +610,11 @@ an explicit indeterminate relation when admitted uncertainty overlaps the
 reference. Clock-basis mismatch, absent references, incompatible scales, and
 overflow remain typed refusals rather than approximate prose.
 
-Temporal facts name an existing Presentation subject. When they claim Sign
-provenance, that Sign is already present in the Presentation basis. A new
-reference instant may change Presentation content identity, revision, and the
+Temporal facts name an existing presentation subject. When they claim sign
+provenance, that sign is already present in the presentation basis. A new
+reference instant may change presentation content identity, revision, and the
 derived temporal relation without changing the referenced subject, event,
-observation, exact instant, or Sign identity. Relative wording, locale,
+observation, exact instant, or sign identity. Relative wording, locale,
 periodic refresh, clock acquisition, and domain-specific freshness thresholds
 remain Presenter or separately reviewed policy concerns; relative strings are
 never stored as canonical evidence.
@@ -625,8 +625,8 @@ repository-development entrance, recognize the intended object, perform the
 intended ordinary action, see its correlated effect or refusal, and descend to
 the exact proof when curious.
 
-Product demonstrations are ordinary checked Forms travelling through
-the real checker, planner, kernel, Presentation, and Presenter. A bespoke demo
+Product demonstrations are ordinary checked forms travelling through
+the real checker, planner, kernel, presentation, and Presenter. A bespoke demo
 appliance may diagnose a lower boundary, but it does not define the product
 experience. The product priority is to make the enactment loop understandable before
 expanding the interface. The roadmap records the actual sequencing; this design
