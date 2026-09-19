@@ -124,7 +124,7 @@ function renderInvitationQr(root, projection) {
   svg.append(background, path); root.replaceChildren(svg); root.hidden = false;
 }
 
-export function openWorkspaceMembership({ root, session, host, invitation, presentationFor, beforeAdmission, onChanged, onFailure }) {
+export function openWorkspaceMembership({ root, session, host, invitation, invitationLabel, presentationFor, beforeAdmission, onChanged, onFailure }) {
   const panel = root.querySelector("#workspace-membership");
   const content = panel.querySelector("[data-membership-content]");
   const openButton = root.querySelector("[data-open-membership]");
@@ -154,6 +154,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
     openButton.hidden = !session.current();
     const fulfilled = session.current()?.state === "FULFILLED";
     inviteButton.hidden = !session.current() || fulfilled;
+    inviteButton.textContent = invitationLabel?.() ?? "Invite another Host";
     openButton.setAttribute("aria-expanded", String(open));
     if (!open) return;
     if (invitation && !session.current()) { renderJoin(invitation); return; }
@@ -174,7 +175,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
       summary.textContent = "Exact membership evidence"; pre.textContent = JSON.stringify(part, null, 2); exact.append(summary, pre);
       item.append(title, state, exact); list.append(item);
     }
-    const action = document.createElement("button"); action.type = "button"; action.textContent = "Invite another Host";
+    const action = document.createElement("button"); action.type = "button"; action.textContent = invitationLabel?.() ?? "Invite another Host";
     action.addEventListener("click", () => renderInvite().catch(onFailure));
     const add = document.createElement("button"); add.type = "button"; add.textContent = "Add a Host";
     add.addEventListener("click", renderAddHost);

@@ -13,8 +13,10 @@ test("the ordinary Body surface reviews exact browser Host machinery before a se
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "Firefly Choir", exact: true }).check();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
+  await expect(page.getByLabel("Parts and Hosts").getByRole("button", { name: "Invite another phone", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Add a Host", exact: true }).click();
   await expect(page.getByRole("heading", { name: "What should this browser contribute?", exact: true })).toBeVisible();
@@ -47,6 +49,7 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "Firefly Choir", exact: true }).check();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
 
   await expect(page.getByRole("button", { name: "Parts / Hosts", exact: true })).toBeVisible();
@@ -56,7 +59,7 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   await expect(page.locator(".member-card")).toContainText("admitted · present · local Host");
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
 
-  await page.getByRole("button", { name: "Invite another Host", exact: true }).click();
+  await page.getByLabel("Parts and Hosts").getByRole("button", { name: "Invite another phone", exact: true }).click();
   await expect(page.locator('[data-application-key="invitation-status"]')).toContainText("Single-use Body invitation");
   const link = (await page.locator('[data-application-key^="invitation-link-"]').allTextContents()).join("");
   const afterOffer = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
