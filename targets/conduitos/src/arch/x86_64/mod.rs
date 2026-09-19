@@ -1,5 +1,6 @@
 mod acpi;
 mod cpu;
+mod entropy;
 mod ftdi_line;
 mod gdt;
 mod hid;
@@ -21,9 +22,12 @@ mod ps2;
 mod reboot;
 mod serial;
 mod usb;
+mod virtio_net;
+mod virtio_net_pci;
 mod xhci;
 
 pub use cpu::{boot_entropy, deterministic_exit, feature_basis};
+pub use entropy::RdrandEntropy;
 pub use ftdi_line::{
     FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS, FtdiLineError, FtdiLineReady,
     FtdiLineSession, prepare_ftdi_line, start_ftdi_line_session,
@@ -53,6 +57,7 @@ pub use usb::{
     UsbDevice, enumerate_attached_at_epochs, enumerate_one as enumerate_usb,
     enumerate_one_at_epoch, retire_removed_device, wait_for_attachment_state,
 };
+pub use virtio_net::{VirtioNetError, VirtioNetIdentity, VirtioNetReady, initialize_virtio_net};
 pub use xhci::{XhciReady, initialize_xhci};
 
 pub const TIMER_IRQ_VECTOR: u8 = 0x20;

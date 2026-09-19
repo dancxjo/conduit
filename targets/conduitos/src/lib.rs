@@ -7,8 +7,11 @@ pub mod arch;
 pub mod boot;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod bounded_host_operations;
+#[cfg(feature = "virtio-net-proof")]
+pub(crate) mod bounded_websocket;
 pub mod composition;
 pub mod cooperative_timer_lane;
+pub mod cryptographic_entropy;
 pub mod display;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
@@ -83,6 +86,7 @@ pub mod opl2_plan;
 pub mod opl2_play;
 mod ordinary_form;
 pub mod ordinary_plan;
+pub mod outbound_network;
 #[cfg(any(target_arch = "x86_64", feature = "hosted-tools"))]
 #[cfg_attr(
     all(feature = "hosted-tools", not(target_arch = "x86_64")),
@@ -103,6 +107,19 @@ pub mod protection_domain;
 pub mod usb_line_offer;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod usb_line_session;
+#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+pub mod virtio_net_proof;
+#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+pub mod virtio_tcp;
+#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+pub(crate) mod virtio_tcp_stream;
+#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+pub mod virtio_tls;
+#[cfg(all(
+    target_arch = "x86_64",
+    any(feature = "virtio-net-proof", feature = "hosted-tools")
+))]
+pub mod virtio_tls_fixture;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
 #[cfg(any(

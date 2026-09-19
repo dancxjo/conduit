@@ -285,7 +285,7 @@ fn execute_with_features(
     } else {
         command.env(
             "RUSTFLAGS",
-            "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\"",
+            "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg aes_force_soft --cfg polyval_force_soft",
         );
     }
     if let Some(fabrication) = fabrication {
@@ -343,6 +343,17 @@ pub(super) fn execute_isolation_proof(opts: &GlobalOpts) -> Result<BuildRecord, 
         ConduitosArch::X86_64,
         opts,
         &["native-compositor", "conduitos-isolation-proof"],
+        None,
+        ArtifactRole::ArchitectureProofAppliance,
+        None,
+    )
+}
+
+pub(super) fn execute_virtio_net_proof(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    execute_with_features(
+        ConduitosArch::X86_64,
+        opts,
+        &["virtio-net-proof"],
         None,
         ArtifactRole::ArchitectureProofAppliance,
         None,
