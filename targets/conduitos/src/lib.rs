@@ -107,6 +107,8 @@ pub mod usb_line_offer;
 pub mod usb_line_session;
 #[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
 pub mod virtio_net_proof;
+#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+pub mod virtio_tcp;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
 #[cfg(any(
