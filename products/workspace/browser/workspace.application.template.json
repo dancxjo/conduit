@@ -219,6 +219,27 @@
       "dependencies": []
     },
     {
+      "role": "workspace-web-manifest",
+      "kind": "content",
+      "path": "workspace.webmanifest",
+      "maximum_bytes": 2048,
+      "dependencies": []
+    },
+    {
+      "role": "workspace-install-icon",
+      "kind": "content",
+      "path": "workspace-icon.svg",
+      "maximum_bytes": 2048,
+      "dependencies": []
+    },
+    {
+      "role": "workspace-share-target-worker",
+      "kind": "content",
+      "path": "workspace-share-target-sw.js",
+      "maximum_bytes": 8192,
+      "dependencies": []
+    },
+    {
       "role": "workspace-play",
       "kind": "module",
       "path": "workspace-play.mjs",
