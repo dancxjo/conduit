@@ -79,6 +79,10 @@ fn exact_capability_pairs_two_endpoints_and_forwards_only_opaque_envelopes() {
         ),
         Ok(RelayAttachmentDisposition::Paired)
     );
+    assert_eq!(
+        relay.attachment_status("route/one", RelayEndpointRole::First, 11, 300),
+        Ok(RelayAttachmentDisposition::Paired)
+    );
 
     let protected = [0xa5; 48];
     let carried = envelope("route/one", &protected);

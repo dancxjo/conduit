@@ -344,6 +344,26 @@ impl OpaqueRelayService {
         Ok(())
     }
 
+    pub fn attachment_status(
+        &mut self,
+        route_id: &str,
+        role: RelayEndpointRole,
+        connection_id: u64,
+        now_millis: u64,
+    ) -> Result<RelayAttachmentDisposition, RelayServiceError> {
+        let limits = self.limits;
+        let slot = self.slot_mut(route_id)?;
+        Self::ensure_live(slot, limits, now_millis)?;
+        if slot.endpoints[role.index()].connection_id != Some(connection_id) {
+            return Err(RelayServiceError::ConnectionMismatch);
+        }
+        if slot.endpoints[role.peer()].connection_id.is_some() {
+            Ok(RelayAttachmentDisposition::Paired)
+        } else {
+            Ok(RelayAttachmentDisposition::WaitingForPeer)
+        }
+    }
+
     pub fn receive(
         &mut self,
         route_id: &str,
