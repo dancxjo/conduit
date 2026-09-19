@@ -53,6 +53,7 @@ package_test_shard!(
         "conduit-semantic-catalog",
         "conduit-midi",
         "conduit-presentation",
+        "conduit-protected-line",
         "conduit-robotics",
         "conduit-body",
         "conduit-body-fabrication",
