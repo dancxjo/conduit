@@ -7,7 +7,7 @@ import { configureWorkspaceInput } from "./workspace-surface.mjs";
 import { openWorkspaceLibrary } from "./workspace-library.mjs";
 import { readWorkspaceHandoff, consumeWorkspaceHandoff } from "./workspace-handoff.mjs";
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
-import { createBodyInvitationReceiver, openWorkspaceMembership, readBodyInvitation } from "./workspace-membership.mjs";
+import { createBodyInvitationReceiver, openWorkspaceMembership, readBodyInvitation, readSharedBodyInvitation } from "./workspace-membership.mjs";
 import { prepareWorkspaceVoicePlay } from "./workspace-voice-play.mjs";
 
 export async function startApplication(application) {
@@ -31,7 +31,7 @@ export async function startApplication(application) {
     notice.dataset.disposition = 'refused';
   };
   try {
-    const invitation = readBodyInvitation(globalThis.location);
+    const invitation = await readSharedBodyInvitation(globalThis.location) ?? readBodyInvitation(globalThis.location);
     if (!invitation) await acquireBrowserBodyContinuity();
     const host = await initializeBrowserHost({ runtimeBytes: application.bytes('runtime'), durable: !invitation });
     const session = openWorkspaceSession({ host, storage: application.storage });

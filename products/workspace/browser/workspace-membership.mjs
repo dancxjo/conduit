@@ -44,6 +44,30 @@ export function readPastedBodyInvitation(input, location) {
   return Object.freeze({ artifact, fragment: new URLSearchParams({ "body-invitation": value }).toString() });
 }
 
+export async function readSharedBodyInvitation(location) {
+  if (!("serviceWorker" in navigator)) return null;
+  const workerUrl = new URL("./workspace-share-target-sw.js", import.meta.url);
+  const registration = await navigator.serviceWorker.register(workerUrl, { scope: "./" });
+  const token = new URLSearchParams(location.hash.slice(1)).get("body-share");
+  if (!token) return null;
+  const ready = await navigator.serviceWorker.ready;
+  const worker = ready.active;
+  if (!worker) throw new Error("Body invitation share worker is unavailable");
+  const value = await new Promise((resolve, reject) => {
+    const channel = new MessageChannel();
+    const timeout = setTimeout(() => reject(new Error("Body invitation share delivery timed out")), 5_000);
+    channel.port1.onmessage = ({ data }) => {
+      clearTimeout(timeout);
+      if (data?.type === "body-invitation") resolve(data.value);
+      else reject(new Error(data?.message ?? "Body invitation share was refused"));
+    };
+    worker.postMessage({ type: "consume-body-invitation", token }, [channel.port2]);
+  });
+  const decoded = readPastedBodyInvitation(value, location);
+  history.replaceState(null, "", `${location.pathname}${location.search}#${decoded.fragment}`);
+  return decoded.artifact;
+}
+
 export function createBodyInvitationReceiver({ location, onReceive }) {
   const receiver = document.createElement("section");
   receiver.className = "body-invitation-receiver";
