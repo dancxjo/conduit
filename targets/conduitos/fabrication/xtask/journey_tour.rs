@@ -191,8 +191,8 @@ pub(super) fn validate_complete_tour(records: &[Value]) -> Result<(), ConduitosE
             1,
         ),
         (2, 0, "1", "stopped", 2, 1),
-        (3, 0, "hello across one Cord", "completed", 1, 1),
-        (3, 1, "hello across one Cord", "completed", 1, 1),
+        (3, 0, "hello across one cord", "completed", 1, 1),
+        (3, 1, "hello across one cord", "completed", 1, 1),
     ];
     for (chapter, stage, result, terminal, manifestations, count) in expected {
         let matches = results

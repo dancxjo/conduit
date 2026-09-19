@@ -82,14 +82,14 @@ const CHAPTER_FOUR_STAGES: [TourStage; 2] = [
     TourStage {
         identity: "canonical-form:hello-across",
         mode: TourStageMode::TwoHost,
-        expected_text: Some("hello across one Cord"),
+        expected_text: Some("hello across one cord"),
         expected_manifestations: Some(1),
         expected_timer_completions: None,
     },
     TourStage {
         identity: "canonical-form:hello-across",
         mode: TourStageMode::TwoHostPlan,
-        expected_text: Some("hello across one Cord"),
+        expected_text: Some("hello across one cord"),
         expected_manifestations: Some(1),
         expected_timer_completions: None,
     },

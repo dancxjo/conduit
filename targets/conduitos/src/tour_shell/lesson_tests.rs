@@ -17,7 +17,7 @@ fn lesson_end_reaches_final_paragraph_and_preserves_the_laboratory() {
         .collect::<Vec<_>>()
         .join(" ");
     assert!(prose.contains("Conduit lets you make"));
-    assert!(prose.contains("nearby Forms are unaffected."));
+    assert!(prose.contains("nearby forms are unaffected."));
     shell.route_pointer(20, 100, true).unwrap();
     let current_offset = match shell
         .scroll_focused(ScrollDirection::End, &mut display)
@@ -31,9 +31,9 @@ fn lesson_end_reaches_final_paragraph_and_preserves_the_laboratory() {
     let last = visible
         .commands()
         .iter()
-        .rfind(|command| command.payload().contains("nearby Forms are unaffected."))
+        .rfind(|command| command.payload().contains("nearby forms are unaffected."))
         .unwrap();
-    assert!(last.payload().ends_with("nearby Forms are unaffected."));
+    assert!(last.payload().ends_with("nearby forms are unaffected."));
     assert_eq!(
         last.clip_class(),
         conduit_presentation::GraphicsClipClass::FullyVisible
