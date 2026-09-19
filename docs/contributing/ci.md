@@ -69,7 +69,7 @@ may still be skipped; exhaustive release proof cannot omit x86.
 
 The prepared x86 proof image is built once and distributed with its exact digest
 to the five compatible hardware proofs. It is an architecture-proof appliance,
-not the differently configured product Host image. Product artifacts are also
+not the differently configured product host image. Product artifacts are also
 built once per target and shared by staging, browser proofs, sealing, and Pages;
 Crèche acceptance boots the exported artifact without rebuilding it. Neither a
 cache hit nor force-pushing replaces required execution proof.

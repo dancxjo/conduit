@@ -22,8 +22,8 @@ light realization through the user's color-scheme preference, preserving the sam
 focus cues, and semantic behavior. The shell carries the same Home, Book, Crèche, and Source routes;
 application workflow controls remain separate from those global destinations.
 
-Theme values are decorative inputs after semantic planning. They do not participate in Form,
-Body, Wake, Plan, Play, Host, Line, Sign, renderer-plan, or presentation identity. Tests verify
+Theme values are decorative inputs after semantic planning. They do not participate in form,
+body, wake, plan, play, host, line, sign, renderer-plan, or presentation identity. Tests verify
 the exact shared mapping, native finite clipping, browser computed colors and focus/selection
 cues, identity stability across theme changes, minimum contrast, and a deuteranopia simulation.
 

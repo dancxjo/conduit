@@ -7,11 +7,11 @@ parser, discovery, GPU dependency, allocation, or glyph cache. The build rejects
 missing, malformed, noncanonical, or oversized atlases. Headless products do not
 select the native compositor and do not link these resources.
 
-| Purpose | Face / pixels | Line advance |
+| Purpose | face / pixels | line advance |
 | --- | --- | --- |
 | Title | Sans 26 | 34 |
 | Heading, action | Sans Bold 18 | 24 |
-| Body, label, status, warning, supporting | Sans 14 | 18 |
+| body, label, status, warning, supporting | Sans 14 | 18 |
 | Code and exact identifiers | Mono 13 | 18 |
 
 The admitted corpus is the pinned Unifont subset. Covered glyphs use the primary
@@ -26,11 +26,11 @@ radii. Foreground, background, accent, warning, success, and supporting colors
 are defined in `display/profile.rs`. Text tokens meet 4.5:1 contrast against the
 background. Keyboard focus is an outline, hover changes the outlined cursor,
 and selection retains its separate marked item. Icons redundantly accompany
-labels rather than replacing them. Original fixed 16×16 mechanisms cover Body,
-Wake, Plan, Play, Host, Gear, Port, Line, status, warning, close, back, and confirm.
+labels rather than replacing them. Original fixed 16×16 mechanisms cover body,
+wake, plan, play, host, gear, port, line, status, warning, close, back, and confirm.
 
 Semantic text roles travel in the bounded graphics leaf, without font-family or
-pixel facts in Presentation. Graphics encoding v2 carries one role byte per
+pixel facts in presentation. Graphics encoding v2 carries one role byte per
 command; the decoder accepts v1 as the body role. Shape and text identities and
 canonical validation remain distinct. The primitive font path is retained for
 non-compositor proof appliances; successful ordinary graphical boot emits the

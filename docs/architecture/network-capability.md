@@ -20,14 +20,14 @@ capability, authority, host, and boot identities remain exact admission gates.
 
 The first request carries bounded volatile SSID and credential bytes directly to
 the base. That request deliberately implements neither serialization nor
-debug/display formatting. Plans and advertisements contain only semantic limits,
+debug/display formatting. plans and advertisements contain only semantic limits,
 resource requirements, authority requirements, and opaque identities; credential
-bytes never enter plan identity, reports, attachment facts, Sign, or ordinary
+bytes never enter plan identity, reports, attachment facts, sign, or ordinary
 diagnostics.
 
 Successful execution yields a finite `NetworkAttachment` naming its exact host,
 boot, resource pool, attachment identity, and generation. The attachment contains
-no credentials, IP address, socket, Line, or route. It says only that this boot
+no credentials, IP address, socket, line, or route. It says only that this boot
 currently has an admitted network attachment. WebSocket initialization, Conduit
 link observation, route candidates, physical Pico association, DHCP/DNS behavior,
 durable secrets, discovery, and failover are later slices.

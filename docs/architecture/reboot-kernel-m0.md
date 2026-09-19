@@ -1,4 +1,4 @@
-# Reboot Kernel M0 Sign
+# Reboot Kernel M0 sign
 
 > Historical local validation record for the August 2026 reboot. Its commands, identities, and acceptance statements refer to that checkpoint, not the current implementation.
 > Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
@@ -10,7 +10,7 @@ This records the local validation for GitHub issue #349,
 
 - Exact issue: https://github.com/dancxjo/conduit/issues/349
 - Re-fetched: 2026-08-05T04:16Z
-- Base `HEAD` at validation: `c13478e01ddabc2ec5a7e6bb73982fb2a74e8a51`
+- base `HEAD` at validation: `c13478e01ddabc2ec5a7e6bb73982fb2a74e8a51`
 - Scope: M0 kernel exactness and adapter readiness. Later milestone issues
   #350-#360 are treated as downstream constraints, not completion targets here.
 
@@ -35,9 +35,9 @@ cargo check -p conduit-core --target thumbv6m-none-eabi
 - Runtime remains semantic-profile independent: executable semantics are
   installed through runtime implementation registries rather than a
   `conduit-signal` production dependency or kind-name match in runtime.
-- Plan and fragment identities bind executable fields including implementation
+- plan and fragment identities bind executable fields including implementation
   IDs, artifact IDs, ports, value kinds, connection base and capacities,
-  startup order, expected terminals, and expected Sign.
+  startup order, expected terminals, and expected sign.
 - Runtime preparation verifies sealed plan identity before accepting work and
   rejects mutated executable identity fields deterministically.
 - Composite capability boundaries are derived from checked form exports and the

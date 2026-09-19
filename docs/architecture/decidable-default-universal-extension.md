@@ -34,24 +34,24 @@ for useful Conduit software.
 
 ## Meaning, specialization, and realization
 
-Every checked executable Form has explicit finite semantic/resource capacities
-after specialization. A reusable Form may parameterize capacities instead of
+Every checked executable form has explicit finite semantic/resource capacities
+after specialization. A reusable form may parameterize capacities instead of
 copying an algorithm for each size. Checking chooses exact finite values;
 checked/expanded identity retains those values. Planning then binds exact
-finite implementation, storage, queues, outstanding operations, Resources,
-Lines, mandatory Sign storage and work obligations before Play starts.
+finite implementation, storage, queues, outstanding operations, resources,
+lines, mandatory sign storage and work obligations before play starts.
 
 For example, a natural-number algorithm may use a capacity parameter of 32 or
 4096 bytes, a syntax tree may admit two million nodes, and a database may admit
 10 TiB. These are large finite instances, not implicit infinite domains.
 Bounds belong to meaning or realization according to their contract. An
 admitted buffer limit does not redefine an authored integer type, and an
-integer-domain bound does not guarantee enough physical storage for a Play.
+integer-domain bound does not guarantee enough physical storage for a play.
 
 Increasing a semantic capacity can create a different checked specialization.
 Increasing only realization storage need not change checked meaning. Neither
 operation is permission for hidden allocation or automatic expansion during
-Play. Exhaustion is explicit; a larger instance requires fresh checking or
+play. Exhaustion is explicit; a larger instance requires fresh checking or
 admission as appropriate.
 
 ## Practical computational generality
@@ -59,13 +59,13 @@ admission as appropriate.
 The engineering target is to express computation executable on a finite
 conventional machine with finite memory/input/output bounds as ordinary finite
 Conduit composition. It does not require a grand theorem before useful slices
-can land, and it does not allow a hidden Python/WASM interpreter Gear to stand
+can land, and it does not allow a hidden Python/WASM interpreter gear to stand
 in for Conduit computation.
 
-General typed State retains finite typed values with explicit initialization,
+General typed state retains finite typed values with explicit initialization,
 current/candidate-next semantics, ownership, transition evidence, reset,
 cancellation, failure, and resource cost. Same-generation ordinary dataflow
-remains acyclic. Recurrence crosses explicit State/delay boundaries.
+remains acyclic. Recurrence crosses explicit state/delay boundaries.
 Comparison, Boolean logic, selection, arithmetic, indexing, projection, and
 bounded sequence/tree/map operations supply control and structured memory.
 
@@ -75,7 +75,7 @@ is introduced. Any future syntax sugar must lower losslessly to the same graph.
 
 The #2682 specimens must expose missing machinery: a bounded parser/compiler
 pipeline and a bounded evaluator with data-dependent recurrence through
-ordinary semantic composition. Reusable capacity parameters, retained State,
+ordinary semantic composition. Reusable capacity parameters, retained state,
 and actual execution are required; an opaque privileged VM is not acceptance.
 
 ## Finite does not mean tractable
@@ -99,15 +99,15 @@ budget is not a proof of semantic termination.
 ## Continuous lifetime
 
 A controller, server, compositor, sensor pipeline, audio graph or UI may remain
-active indefinitely with finite graph and retained State, finite work per
+active indefinitely with finite graph and retained state, finite work per
 admitted interaction, and bounded instantaneous queues and resources. The
 environment need not announce a final input count. Quiescence means awaiting
 input; it does not mean semantic completion.
 
 Continuous execution is ordinary Conduit, requiring no computational opt-out.
-The same explicit State transitions and one kernel carry continuing work. A
+The same explicit state transitions and one kernel carry continuing work. A
 timer-owned scheduler or hidden restart loop cannot masquerade as continuity.
-Each active Play must retain honest finite admission and pressure semantics.
+Each active play must retain honest finite admission and pressure semantics.
 
 ## Results and bounds
 
@@ -115,15 +115,15 @@ The machine-readable vocabulary under #2690 must distinguish:
 
 - semantic completion / HALT;
 - quiescent / awaiting input;
-- Lull / Body-level suspension;
+- lull / body-level suspension;
 - cancellation;
 - value/domain overflow or semantic refusal;
-- State capacity exhaustion;
+- state capacity exhaustion;
 - other resource capacity exhaustion;
 - work/fuel budget exhaustion where a budget exists;
 - failure;
-- Host/Boot/Resource/Line loss;
-- Plan retirement or replacement;
+- host/boot/resource/line loss;
+- plan retirement or replacement;
 - continued operation.
 
 Computing 256 in U8 is domain overflow. A valid semantic result that cannot fit
@@ -131,25 +131,25 @@ an admitted output buffer is resource exhaustion. Neither is HALT. A full
 bounded collection uses its declared full/overflow contract. Refusal must not
 be hidden through retries, wrapping, silent truncation or automatic replan.
 
-## Replanning and State continuity
+## Replanning and state continuity
 
-Distinguish authored Form family/source identity, checked/specialized Form
-identity, State identity/generation, Plan identity, and Play identity. Replacing
-a realization changes Plan/Play truth without necessarily changing checked
-Form identity. Changing a semantic capacity may change the checked and expanded
+Distinguish authored form family/source identity, checked/specialized form
+identity, state identity/generation, plan identity, and play identity. Replacing
+a realization changes plan/play truth without necessarily changing checked
+form identity. Changing a semantic capacity may change the checked and expanded
 identities even when the higher-level workload continues.
 
 Under #2691, continuity transfer is finite, typed and explicitly admitted. An
-approved larger specialization may receive eligible State only under an exact
-semantic migration contract. Source/destination identities, State generations,
+approved larger specialization may receive eligible state only under an exact
+semantic migration contract. Source/destination identities, state generations,
 value types and capacities must be validated. Insufficient capacity, stale
-State, or incompatible specialization refuses or exposes reset/loss; it must
+state, or incompatible specialization refuses or exposes reset/loss; it must
 not silently initialize and call that continuation.
 
-A transfer does not carry old Boot grants, Resource bindings, or initialized
-implementation authority into a replacement Play. Fresh truthful offers and
+A transfer does not carry old boot grants, resource bindings, or initialized
+implementation authority into a replacement play. Fresh truthful offers and
 authority are required. There is no general checkpoint magic and no assumption
-that all State is durable.
+that all state is durable.
 
 ## Deadline regions
 
@@ -167,11 +167,11 @@ capacity, or simulation alone is not a hard deadline guarantee.
 ## Authority and confinement
 
 An implementation must not possess materially more effect authority than its
-admitted realization. Finite computation, large values, long lifetime, Host
+admitted realization. Finite computation, large values, long lifetime, host
 membership, and capability availability grant no additional effects. The
-planner consumes authority; it does not mint privilege by writing a Plan.
+planner consumes authority; it does not mint privilege by writing a plan.
 
-Descriptive grant IDs and Signs are not unforgeable authority possession or
+Descriptive grant IDs and signs are not unforgeable authority possession or
 mechanisms that prevent unauthorized effects. Native code sharing a broadly
 privileged std process can bypass cooperative checks. The
 [confinement contract](implementation-confinement.md) defines separate std,
@@ -184,10 +184,10 @@ isolate effects. No generic secure flag or second authority system is justified.
 
 ## Acceptance boundary
 
-This is a documentation contract. It does not claim that all requested State,
+This is a documentation contract. It does not claim that all requested state,
 structured memory, parser/evaluator, continuous execution, migration, analysis,
 WCET, or confinement proof already exists. The linked issues preserve the decisions and implementation history.
-[Explicit State](explicit-state-delay.md) describes the installed hosted State
+[Explicit state](explicit-state-delay.md) describes the installed hosted state
 and owned-continuity path; the [roadmap](../roadmap.md) and
 [STATUS.md](../../STATUS.md) track current work and proof limits. This note's
 original acceptance record belongs to #2687.

@@ -6,9 +6,9 @@ specimen is `StarterGraph::TextToSpeech` from
 `5748f20ee4fd133be6a9332b01d96dc0649b26a3`. The crate calls that pinned upstream API and checks
 the original graph remains `text_source.out -> tts.in -> audio_output.in`.
 
-The authored Conduit Form retains only text-to-speech-to-audio meaning. Planning separately seals
-the exact implementation, artifact, Host, Boot, output Base resource pool, authority grant, host
-operations, and capacity-one/32,768-byte Cords. Play uses the production `conduit-kernel`
+The authored Conduit form retains only text-to-speech-to-audio meaning. Planning separately seals
+the exact implementation, artifact, host, boot, output base resource pool, authority grant, host
+operations, and capacity-one/32,768-byte cords. play uses the production `conduit-kernel`
 scheduler and its admitted host-operation table. There is no Tongues dispatcher in the execution
 path.
 
@@ -20,9 +20,9 @@ Two output conditions are deliberately different:
   playback or persistence beyond the admitted artifact operation.
 
 The deterministic PCM fixture makes the boundary repeatable; it is not a production voice model.
-Receipts expose a PCM digest and bounded kernel Sign digest, not source text, PCM samples, model
+Receipts expose a PCM digest and bounded kernel sign digest, not source text, PCM samples, model
 contents, or device details. Format mismatch, pressure, cancellation, underrun, unavailable
-implementation, Base denial, Base loss, and output failure remain distinct outcomes.
+implementation, base denial, base loss, and output failure remain distinct outcomes.
 
 Run the focused repository proof with:
 

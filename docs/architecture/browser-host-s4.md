@@ -1,6 +1,6 @@
 # Actual browser kernel host checkpoint
 
-> Historical browser-local S4 proof record. Its browser-local scope remains the limit of this particular proof; later browser Host, membership, and Line work is described in the [architecture index](README.md).
+> Historical browser-local S4 proof record. Its browser-local scope remains the limit of this particular proof; later browser host, membership, and line work is described in the [architecture index](README.md).
 > Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
 
 This S4 checkpoint is intentionally browser-local, not a restoration of the
@@ -12,7 +12,7 @@ The production browser crate has no alternate executor.
 
 The JavaScript adapter accepts only a `presentation/signal` request with the
 exact source, checked, expanded, plan, fragment, host, boot, active-play,
-node/request/operation, presentation, Sign, and placement identities
+node/request/operation, presentation, sign, and placement identities
 issued by Rust. It
 decodes the shared nine-byte `value/signal` representation, appends one
 machine-readable `output` element, and returns a completion echoing those exact
@@ -22,14 +22,14 @@ item or byte capacity fail before another receipt is retained.
 The Chromium proof creates two independent WebAssembly host instances in one
 page and retains sixteen ordered receipts in each. Real browser timers and DOM
 effects are the only JavaScript-owned platform work. Numeric routes,
-operations, values, Sign, identity storage, bounds, cancellation, and
+operations, values, sign, identity storage, bounds, cancellation, and
 terminal truth remain in Rust. All storage and operation capacity is sealed
-before Play start and checked for stable capacity afterward; this does not
+before play start and checked for stable capacity afterward; this does not
 overstate JavaScript/WASM allocation instrumentation as an allocation-free
 measurement.
 
 The proof also rejects duplicate and malformed completion frames, wrong exact
-identity, cancellation, exhausted Sign storage, and platform failure. It
+identity, cancellation, exhausted sign storage, and platform failure. It
 does not provide a live WebSocket or prove another browser engine. There is
 one bounded Chromium project with one worker, zero retries, no forced
 interaction, and no physical claim.

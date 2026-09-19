@@ -1,6 +1,6 @@
-# Portable Host Architecture
+# Portable host Architecture
 
-> Historical reboot proposal for #347. The current Host overview is [Hosts and execution](hosts.md). The later canon supersedes the composite-Host/SOUL model, nominal revision matching, speculative grammar, and early browser-test policy below. This record preserves the original rationale, not current acceptance requirements.
+> Historical reboot proposal for #347. The current host overview is [hosts and execution](hosts.md). The later canon supersedes the composite-host/SOUL model, nominal revision matching, speculative grammar, and early browser-test policy below. This record preserves the original rationale, not current acceptance requirements.
 > Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
 
 **Status:** historical reboot proposal
@@ -25,7 +25,7 @@ The form does not name stdout, the DOM, GPIO, Linux, a browser tab, an IP addres
 
 This is the center of the reboot:
 
-> Forms describe meaning. Hosts offer implementations of that meaning. Plans make the mapping exact.
+> forms describe meaning. hosts offer implementations of that meaning. plans make the mapping exact.
 
 ## Why this architecture exists
 
@@ -57,9 +57,9 @@ A planning scope is the set of host instances currently visible to one planning 
 
 For the first implementation, planning scope membership may be explicit and development-oriented. A host can register with the local operator or planner and become available for placement.
 
-The original development membership table was retired. Current durable membership is described in [Body lifecycle contracts](body-lifecycle-waists.md).
+The original development membership table was retired. Current durable membership is described in [body lifecycle contracts](body-lifecycle-waists.md).
 
-The first read-only operational projection is recorded in [Host Observatory readiness](host-observatory.md).
+The first read-only operational projection is recorded in [host Observatory readiness](host-observatory.md).
 
 The host-neutral portable catalog is recorded in [Portable catalog and hosted std offer boundary](semantic-catalog.md).
 
@@ -76,7 +76,7 @@ A planning scope is not merely a network segment. A reachable endpoint is not au
 
 Durable body identity, secure admission, recovery, and `.soul` archives are later layers described near the end of this document. They must build on this model rather than distort the first implementation.
 
-### Host
+### host
 
 A host is a software runtime that can execute gears and advertise capabilities.
 
@@ -142,7 +142,7 @@ These are different states. They must not collapse into one boolean.
 
 Advertising a capability is an observation, not an authority grant and not an instruction to start work.
 
-### Kind
+### kind
 
 A kind is a semantic contract.
 
@@ -156,7 +156,7 @@ presentation/show
 value/signal
 ```
 
-Kinds do not name platforms.
+kinds do not name platforms.
 
 `presentation/show` is not `stdout`, `set_led`, or `update_dom`. Those are implementations or manifestations of the same semantic request on particular hosts.
 
@@ -203,7 +203,7 @@ The standard host may print `off` and `on`. The browser may show text and a lamp
 
 This is why the first demonstration uses a signal instead of arbitrary text. A single LED cannot faithfully display arbitrary prose without adding another transformation such as Morse encoding. That would test two semantic operations at once and blur the architectural proof.
 
-### Form
+### form
 
 A form is an authored semantic graph.
 
@@ -232,7 +232,7 @@ A form does not name:
 
 The same form should remain valid when the planner chooses a different faithful realization.
 
-### Gear
+### gear
 
 A gear is one named occurrence in a form.
 
@@ -264,13 +264,13 @@ A sink is responsible for:
 - accepting values of one declared kind;
 - preserving their required ordering;
 - performing its semantic effect;
-- producing Sign or receipts when required;
+- producing sign or receipts when required;
 - completing explicitly;
 - and reporting failure rather than pretending success.
 
 Transformations will later consume and produce values, effectively composing a sink side with a source side. The first proof does not need a third fundamental shape to establish portability.
 
-### Cord
+### cord
 
 A cord carries typed values between gears.
 
@@ -286,7 +286,7 @@ The semantic meaning of a cord does not depend on whether the selected plan real
 
 Transport independence does not mean transport differences disappear. The exact plan records the base, limits, ordering guarantees, framing, and failure behavior.
 
-### Plan
+### plan
 
 A plan is an immutable, exact realization of a form for one planning scope state.
 
@@ -312,13 +312,13 @@ A plan is not active merely because it exists.
 
 Any change to placement, implementation, transport, bounds, or required capabilities creates a new plan.
 
-### Play start
+### play start
 
-Play start prepares and starts a plan.
+play start prepares and starts a plan.
 
 The source must not begin emitting merely because planning succeeded. Every required sink, queue, and remote link must be prepared first.
 
-The minimum Play start sequence is:
+The minimum play start sequence is:
 
 1. Resolve every selected host by exact host ID and boot ID.
 2. Confirm every selected capability advertisement is still current.
@@ -333,15 +333,15 @@ The minimum Play start sequence is:
 
 If preparation fails, no source begins.
 
-If execution fails after Play start, the plan must expose the failure and account for values already delivered and values not delivered. The first implementation does not need transparent reconnection or replay.
+If execution fails after play start, the plan must expose the failure and account for values already delivered and values not delivered. The first implementation does not need transparent reconnection or replay.
 
 ### Receipt
 
-A receipt is machine-readable Sign that an expected semantic event occurred.
+A receipt is machine-readable sign that an expected semantic event occurred.
 
 For the first `show(Signal)` sink, a receipt records the exact sequence and level that the host implementation successfully manifested.
 
-Receipts matter because human observation is not sufficient Sign:
+Receipts matter because human observation is not sufficient sign:
 
 - seeing an LED blink does not prove which sequence value it represented;
 - seeing browser text does not prove the runtime accepted the correct envelope;
@@ -627,7 +627,7 @@ Required rejection categories include:
 - duplicate or contradictory placement;
 - and malformed form bounds.
 
-A planner error should identify the gear, required kind, rejected candidates, and concrete reason. `No plan found` is not sufficient when more exact Sign is available.
+A planner error should identify the gear, required kind, rejected candidates, and concrete reason. `No plan found` is not sufficient when more exact sign is available.
 
 ## Exact plan model
 
@@ -636,7 +636,7 @@ A plan should contain enough information that a host never has to guess what the
 At minimum:
 
 ```rust
-pub struct Plan {
+pub struct plan {
     pub plan_id: PlanId,
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
@@ -677,7 +677,7 @@ Each cord realization identifies:
 
 The plan should be hashable or otherwise assigned a stable identity based on canonical contents.
 
-## Cords and transports
+## cords and transports
 
 The first cord profile is intentionally narrow:
 
@@ -701,7 +701,7 @@ websocket         browser host to std host
 tcp-or-udp        std host to Pico W host
 ```
 
-Base APIs must report a common set of outcomes:
+base APIs must report a common set of outcomes:
 
 ```text
 ready
@@ -768,7 +768,7 @@ When a queue is full, the source must observe pressure. It may wait, yield, or f
 
 This requirement keeps the same semantics credible on the Pico W and prevents desktop and browser implementations from hiding invalid assumptions behind abundant memory.
 
-## Receipts and Signs
+## Receipts and signs
 
 Every successful show sink produces receipts equivalent to:
 
@@ -855,7 +855,7 @@ conduit-plan
     host advertisements, placement validation, exact plans, diagnostics
 
 conduit-plan-lowering
-    exact rich-Plan to fixed numeric kernel-table lowering and identity recovery
+    exact rich-plan to fixed numeric kernel-table lowering and identity recovery
 
 conduit-host-std
     portable Rust std host, stdout, timers, operator/planner fixture
@@ -882,17 +882,17 @@ Do not add stdout, DOM, GPIO, browser, Pico, Linux, TCP, UDP, or WebSocket names
 
 Add platform-specific behavior as an implementation and capability advertisement.
 
-### Hosts offer, planners choose
+### hosts offer, planners choose
 
 A host must not decide global placement merely because it owns an implementation.
 
 A planner must not assume an implementation exists merely because a kind exists.
 
-### Plans are exact
+### plans are exact
 
-Do not leave runtime placement, implementation selection, queue sizing, or transport choice to ambient discovery after Play start begins.
+Do not leave runtime placement, implementation selection, queue sizing, or transport choice to ambient discovery after play start begins.
 
-### Play start is separate from planning
+### play start is separate from planning
 
 Creating or validating a plan must not produce effects.
 
@@ -900,7 +900,7 @@ Creating or validating a plan must not produce effects.
 
 Reject an unsupported bound rather than silently allocating more memory, truncating data, or creating a hidden queue.
 
-### Sign beats appearance
+### sign beats appearance
 
 Tests should compare semantic receipts and deterministic state. Visual browser output and LED behavior remain useful smoke tests, not the only proof.
 
@@ -958,7 +958,7 @@ That later model should preserve the foundation established here:
 hosts advertise capabilities
 forms describe semantic work
 plans map forms to exact host realizations
-Play start begins only after preparation
+play start begins only after preparation
 receipts account for semantic effects
 ```
 
@@ -977,7 +977,7 @@ A host advertises current capabilities under explicit limits.
 A capability advertisement is not authority and does not start work.
 A planner combines forms, offers, links, placement policy, and bounds.
 A plan makes every execution choice exact.
-A plan is immutable and inactive until Play start.
+A plan is immutable and inactive until play start.
 A cord carries typed values independently of its selected transport.
 Every queue and frame is bounded.
 A semantic sink may manifest differently while preserving the same value.
@@ -997,7 +997,7 @@ This document captures the following current decisions:
 6. Keep forms free of platform and transport details.
 7. Let hosts advertise exact implementations and limits.
 8. Let the planner produce an immutable exact plan.
-9. Separate planning from Play start.
+9. Separate planning from play start.
 10. Require bounded cords, frames, queues, and executions.
 11. Use machine-readable receipts as the cross-host correctness proof.
 12. Defer durable body and soul mechanics until the portable execution waist works.

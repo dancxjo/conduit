@@ -1,40 +1,40 @@
-# Browser Host fabrication inventory
+# Browser host fabrication inventory
 
-The authoritative configurable inventory is [`BROWSER_IMPLEMENTATIONS`](../../targets/browser/fabrication/src/inventory.rs) in the browser Host fabrication package. Crèche, BUILD validation, and other configurators consume that package contribution; product code must not maintain another browser implementation list.
+The authoritative configurable inventory is [`BROWSER_IMPLEMENTATIONS`](../../targets/browser/fabrication/src/inventory.rs) in the browser host fabrication package. Crèche, BUILD validation, and other configurators consume that package contribution; product code must not maintain another browser implementation list.
 
 Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `conduit.browser/reviewed-distribution@1` / `browser-runtime-superset.wasm`, and carries finite instance and buffered-byte limits. The shared artifact may contain all implementations, but PROFILE admission and current runtime truth remain separate gates.
 
 | Runtime mechanism | Fabrication classification | Runtime prerequisite truth |
 | --- | --- | --- |
-| DOM presentation | selectable structural and portable presentation Bases | initialized surface |
-| keyboard and pointer | selectable portable human-input Bases | focus/page lifecycle; no permission claim at BUILD |
-| IndexedDB application storage | selectable durable-storage Base | secure context, availability, quota, schema and corruption checks |
-| WebSocket | selectable Line Base | secure context plus endpoint and credential truth |
-| WebRTC DataChannel | selectable Line Base | secure context plus negotiated session/grant truth |
-| camera and microphone | selectable media Bases | secure context, user activation, permission, device acquisition |
+| DOM presentation | selectable structural and portable presentation bases | initialized surface |
+| keyboard and pointer | selectable portable human-input bases | focus/page lifecycle; no permission claim at BUILD |
+| IndexedDB application storage | selectable durable-storage base | secure context, availability, quota, schema and corruption checks |
+| WebSocket | selectable line base | secure context plus endpoint and credential truth |
+| WebRTC DataChannel | selectable line base | secure context plus negotiated session/grant truth |
+| camera and microphone | selectable media bases | secure context, user activation, permission, device acquisition |
 | Web Audio output | no selectable reviewed realization | API presence alone is insufficient; intentionally unadvertised |
-| WebSerial and WebUSB | selectable device Bases | secure context, user activation, permission, explicit device acquisition |
-| browser Host identity and Body membership | Host mechanism, not a configurable semantic Base | durable profile and admitted membership authority |
-| application package loader/presentation bridge | Host operation and product substrate | exact admitted package bytes |
-| Book runners and browser proof fixtures | application/proof code, never ordinary Host choices | intentionally excluded |
+| WebSerial and WebUSB | selectable device bases | secure context, user activation, permission, explicit device acquisition |
+| browser host identity and body membership | host mechanism, not a configurable semantic base | durable profile and admitted membership authority |
+| application package loader/presentation bridge | host operation and product substrate | exact admitted package bytes |
+| Book runners and browser proof fixtures | application/proof code, never ordinary host choices | intentionally excluded |
 | touch and gamepad | portable value contracts and deterministic fixtures exist, but no selectable live browser realization exists | intentionally unadvertised |
 
-Implementation availability, PROFILE selection, Boot initialization, current resource/permission truth, and immutable Plan selection are distinct. BUILD records only the first two. In particular, selecting camera, microphone, WebSerial, or WebUSB never prompts for permission and never claims a device exists.
+Implementation availability, PROFILE selection, boot initialization, current resource/permission truth, and immutable plan selection are distinct. BUILD records only the first two. In particular, selecting camera, microphone, WebSerial, or WebUSB never prompts for permission and never claims a device exists.
 
 Camera and microphone selection exposes only the finite ability to request an
 acquisition through `conduit.host/acquire-human-media@1`. Permission and an
 opaque acquired track become new runtime truth after that admitted operation;
-semantic use then requires a second immutable Plan. The reviewed realization
+semantic use then requires a second immutable plan. The reviewed realization
 retains no invented stable physical-device identity. Web Audio is not presently
-advertised: API detection alone is not an accepted finite audio-output Host
+advertised: API detection alone is not an accepted finite audio-output host
 implementation.
 
 WebSerial and WebUSB follow the same boundary. PROFILE selection admits only a
 finite chooser capability; it performs no browser prompt. The adapter may call
-`requestPort` or `requestDevice` only after an explicit admitted Host operation,
+`requestPort` or `requestDevice` only after an explicit admitted host operation,
 then records the browser-visible opaque resource and optional numeric vendor or
 product fields without treating them as stable hardware identity. Transfer use
-requires a later immutable Plan and remains bounded to one active device, one
+requires a later immutable plan and remains bounded to one active device, one
 in-flight transfer, and 4096 bytes per transfer in the reviewed realization.
 
 ## Reviewed distribution and ordinary BUILD
@@ -55,18 +55,18 @@ refuses undeclared files.
 
 Two PROFILEs may reuse the same superset `runtime.wasm`; their selected
 implementation closures still produce different BuildIds, IMAGE identities,
-and BrowserBundle content identities. The bundle remains Body-independent.
-Crèche adds `conduit-spore.json` with the Body invitation only afterward, so
-HostId, BootId, membership, offers, Plans, and Plays remain runtime truth.
+and BrowserBundle content identities. The bundle remains body-independent.
+Crèche adds `conduit-spore.json` with the body invitation only afterward, so
+HostId, BootId, membership, offers, plans, and plays remain runtime truth.
 
-## Profile-gated Boot truth
+## Profile-gated boot truth
 
 The reviewed distribution carries a self-contained
 `browser-boot-profile.mjs` entry, and the IMAGE binds its exact path and digest.
-The Host admits and imports those packaged bytes before instantiating the WASM
+The host admits and imports those packaged bytes before instantiating the WASM
 runtime. Applications receive no generic module importer or browser-capability
-registry: the Host-owned entrance supplies current browser observations to the
-exact Boot module and returns only its finite truth projection.
+registry: the host-owned entrance supplies current browser observations to the
+exact boot module and returns only its finite truth projection.
 
 That projection contains entries only for IMAGE-selected implementation
 revisions and keeps configured, admitted, initialized, resource-ready, and
@@ -76,18 +76,18 @@ permission state, user activation, page lifecycle, provider loss, resource
 loss, and initialization failure narrow current truth without changing the
 PROFILE or IMAGE.
 
-Offer truth is Boot-local and generation-numbered. A lost prerequisite removes
+Offer truth is boot-local and generation-numbered. A lost prerequisite removes
 the current offer and yields an exact invalidation for each dependent
-realization, retaining its Form and Plan identities while explicitly recording
-that neither the authored Form nor IMAGE changed. A reduced-module bundle and
+realization, retaining its form and plan identities while explicitly recording
+that neither the authored form nor IMAGE changed. A reduced-module bundle and
 the superset bundle therefore produce the same semantic registry and offers for
 one selected PROFILE; only their artifact layout and size may differ.
 
 ## Human-facing realization boundary
 
 `BROWSER_HUMAN_PRESENTATION_REALIZATIONS` is the checked join between each
-fabrication identity and its portable Kind, ordinary runtime implementation,
-runtime artifact identity, Host-operation contract, and finite limits. Runtime
+fabrication identity and its portable kind, ordinary runtime implementation,
+runtime artifact identity, host-operation contract, and finite limits. Runtime
 tests compare that table to the real installed `CapabilityOffer`s so a label in
 the configurator cannot silently drift away from what the planner selects.
 
@@ -97,12 +97,12 @@ keyboard offer and no window-input resource. The control-surface profile adds
 `browser/keyboard-events@1` and `browser/pointer-events@1`; their presence in a
 superset WASM alone grants no offer.
 
-`browser-human-input.mjs` is the shared Host-owned DOM adapter used by browser
+`browser-human-input.mjs` is the shared host-owned DOM adapter used by browser
 products and the pointer vertical. It binds every delivered value to exact
-Host, Boot, and offer-generation truth, translates keys and normalized pointer
+host, boot, and offer-generation truth, translates keys and normalized pointer
 coordinates into the existing portable value schemas, and keeps unsupported
-input, focus/page loss, finite pressure, cancellation, and stale Boot distinct.
-The authored Form and portable contract never receive DOM objects, selectors,
+input, focus/page loss, finite pressure, cancellation, and stale boot distinct.
+The authored form and portable contract never receive DOM objects, selectors,
 CSS, or Web API event classes. Touch and gamepad stay absent until a reviewed
 live browser implementation and lifecycle exist; their portable schemas alone
 are not an implementation claim.
@@ -110,14 +110,14 @@ are not an implementation claim.
 ## Durable-storage realization boundary
 
 `BROWSER_DURABLE_STORAGE_REALIZATION` binds `browser/indexeddb@1` to the
-reviewed `browser-application-storage.mjs@1` Host adapter and records the same
+reviewed `browser-application-storage.mjs@1` host adapter and records the same
 finite limits enforced by that adapter: 64 records, 256-byte keys, 64 KiB
 values, and 1 MiB per application; at most 16 applications, 1,024 records, and
-16 MiB are admitted across one browser Host database. These are Conduit
+16 MiB are admitted across one browser host database. These are Conduit
 admission bounds, not a promise that a browser grants or permanently retains
 that much storage.
 
-Each admitted application package names its selected Host implementations in
+Each admitted application package names its selected host implementations in
 its content digest. The loader initializes application storage only when
 `browser/indexeddb@1` is selected and the API is currently available. Superset
 JavaScript therefore does not create an offer or an implicit in-memory
@@ -127,20 +127,20 @@ substitute. The adapter reports `EvictionPossible`, `PersistenceGranted`, or
 Application records are namespaced by exact state-compatibility identity and
 version. Package content identity remains recorded separately, so compatible
 package revisions can intentionally share one state schema. Version mismatch,
-corrupt records, application and Host admission exhaustion, browser quota
+corrupt records, application and host admission exhaustion, browser quota
 exhaustion, unavailable storage, explicit deletion, and a stale application
 generation are distinct failures or lifecycle states.
 
 The `application-state` and `browser-host-identity` object stores are separate.
-Clearing one application's records cannot reset Host identity, mutate Body
-membership, or revoke a Host. Book and Crèche receive only the bounded Host
+Clearing one application's records cannot reset host identity, mutate body
+membership, or revoke a host. Book and Crèche receive only the bounded host
 adapter from their application context; neither owns an ambient IndexedDB or
 localStorage path.
 
-## Line realization boundary
+## line realization boundary
 
 `BROWSER_LINE_REALIZATIONS` is the checked join from each selectable browser
-Line fabrication identity to its exact portable `LineContract`, Base
+line fabrication identity to its exact portable `LineContract`, base
 implementation, reviewed JavaScript artifact, runtime authority requirements,
 and finite session, message, queue, and buffer limits. The WebSocket realization
 is `conduit.base/websocket-rfc6455@1`: routed-network, message,
@@ -152,18 +152,18 @@ application payload, and 256 KiB buffered per session. WebSocket admits a 64 KiB
 message; WebRTC separately admits a 128 KiB framed protocol message so its
 bounded session control envelope does not consume the application payload.
 
-PROFILE selection alone does not create either offer. Boot must also observe a
+PROFILE selection alone does not create either offer. boot must also observe a
 current provider, an endpoint grant, and endpoint authority. WebRTC additionally
-requires the current Body-scoped signaling bootstrap and session grant. Browser
+requires the current body-scoped signaling bootstrap and session grant. Browser
 API presence alone sets none of those authority facts. Addresses, signaling
-data, and opaque credentials remain runtime Host inputs and never enter the
-authored Form; the browser adapter initiates only explicitly granted outbound
-sessions and does not treat network reachability as Body membership.
+data, and opaque credentials remain runtime host inputs and never enter the
+authored form; the browser adapter initiates only explicitly granted outbound
+sessions and does not treat network reachability as body membership.
 
 Provider loss, endpoint-authority loss, signaling loss, session loss, pressure,
-cancellation, stale Boot or negotiation identity, unsupported APIs, and finite
+cancellation, stale boot or negotiation identity, unsupported APIs, and finite
 capacity exhaustion remain distinct refusals. There is no implicit reconnect:
-a later session requires new current authority. The same portable Form and Line
+a later session requires new current authority. The same portable form and line
 contract may therefore select this browser realization or a materially different
 non-browser realization without changing authored transport syntax, because no
-such syntax exists in the Form.
+such syntax exists in the form.

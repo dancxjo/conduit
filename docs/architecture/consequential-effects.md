@@ -7,26 +7,26 @@ attended low-energy physical-HIL profile for issue #3100.
 which can affect people, property, or the physical environment. Consequence is
 a realization profile fact: the same portable meaning may select an ordinary
 indicator, a controlled bench fixture, or an attended hazardous provider
-without changing authored Form meaning.
+without changing authored form meaning.
 
 The gate admits an effect only when all of these independently agree:
 
 - exact current resource identity and generation;
-- an unforgeable, Play-scoped #3072 Base capability;
+- an unforgeable, play-scoped #3072 base capability;
 - a fresh, single-use attended possession when the profile requires it;
 - current local safety/interlock evidence;
 - operation-specific magnitude, duration, and rate bounds.
 
 The provider returns `Observed` or `Uncertain`; command submission is never
 reported as physical success. An ambiguous provider result terminates the
-attempt and is not retried. Provider/Line/Host loss revokes the capability and
+attempt and is not retried. Provider/line/host loss revokes the capability and
 invokes the profile's explicit local safe disposition. Failure of that cleanup
 remains separately visible.
 
 The attended issuer, capability table, local safety observer, and final effect
-provider are separate trusted boundaries. A planner, remote peer, model, Body
+provider are separate trusted boundaries. A planner, remote peer, model, body
 membership, valid transport, or stale prior approval cannot manufacture their
-possessions. ROS, Pete, smart-home, GPIO, industrial, and other Bases should
+possessions. ROS, Pete, smart-home, GPIO, industrial, and other bases should
 consume this contract and add their domain envelope rather than creating a
 parallel authority system.
 

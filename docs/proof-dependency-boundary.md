@@ -1,7 +1,7 @@
 # Proof dependency boundary
 
 Fixed proof identities, topologies, and fixtures belong under `proof/`. Ordinary
-product, Body, target, semantic, and architecture code must not import them as
+product, body, target, semantic, and architecture code must not import them as
 runtime truth merely because they make a scenario convenient. Proof harnesses
 may depend on the production code they exercise, and `cargo xtask` may depend on
 proof packages to provide the repository-development entrance.
@@ -23,6 +23,6 @@ explicit classification and review rather than silently widening the inversion.
 
 Extraction work should move the smallest truthful reusable contract to its
 architecture, semantic, mechanism, fabrication, or target owner. It must not
-copy fixed Host, Boot, Line, board, transport, Plan, or scenario identity into a
+copy fixed host, boot, line, board, transport, plan, or scenario identity into a
 new production location, and it must not promote simulated advertisements into
 claims about physical target availability.

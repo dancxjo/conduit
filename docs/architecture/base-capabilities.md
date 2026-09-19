@@ -1,19 +1,19 @@
-# Base capability possession
+# base capability possession
 
 Status: universal possession and revocation contract; mechanism-specific
 confinement is proved separately. Owner: #3072 under epic #3069.
 
 ## Law
 
-An `AuthorityGrantId`, capability ID, Host/Boot identity, Plan field, Base or
+An `AuthorityGrantId`, capability ID, host/boot identity, plan field, base or
 resource identity is descriptive. Knowing or copying it grants no permission.
 An effect provider accepts only an opaque capability issued from trusted current
-authority after Plan and Play admission.
+authority after plan and play admission.
 
 `conduit-core::BaseCapabilityTable` supplies the shared contract. Its issuer
 owns private key material and a bounded table. `BaseCapabilityHandle` has no
 public constructor, serialization, or bearer-revealing debug form. Patchbay,
-Signs, and logs may expose `CapabilityPossessionId`, exact scope, lifecycle, and
+signs, and logs may expose `CapabilityPossessionId`, exact scope, lifecycle, and
 accounting, but never bearer bytes or issuer key material.
 
 ## Exact scope
@@ -21,19 +21,19 @@ accounting, but never bearer bytes or issuer key material.
 Every issued capability binds:
 
 ```text
-Host / Boot
-Base provider instance / generation
-Plan / active Play
+host / boot
+base provider instance / generation
+plan / active play
 authority grant / authority contract / selected capability
 selected implementation
 operation contract / subject
 resource pool / resource generation
-Base-owned parameter-envelope identity
+base-owned parameter-envelope identity
 maximum parameter bytes / result bytes / work
 maximum in-flight operations / total operations
 ```
 
-The trusted authority ceiling contains the same current Base, operation,
+The trusted authority ceiling contains the same current base, operation,
 subject, resource, and envelope facts plus upper bounds. Issuance rejects any
 requested scope which differs or broadens a bound. The planner can therefore
 narrow authority, never create or enlarge it.
@@ -45,10 +45,10 @@ completion is stale evidence, not success. Exhaustion, pressure, wrong scope,
 wrong envelope, revocation, unknown capability, unknown lease, and stale
 completion remain distinct.
 
-Play cancellation/completion, Plan replacement, authority revocation, and
-resource-generation replacement revoke matching entries. A Boot or Base
+play cancellation/completion, plan replacement, authority revocation, and
+resource-generation replacement revoke matching entries. A boot or base
 provider replacement creates a fresh table with a fresh issuer key; old bearer
-values are unknown. Semantic State continuity never transfers possession.
+values are unknown. Semantic state continuity never transfers possession.
 
 ## Mechanism mappings
 
@@ -62,10 +62,10 @@ The shared scope and lifecycle stay the same while possession mechanisms differ:
 | Remote provider | Authenticated delegation binds the same scope plus peer identity and replay state | Requires cryptographic delegation and receiving-provider validation; TLS alone is insufficient |
 | ConduitOS | An opaque index resolves only inside a kernel-owned table for the caller's protection domain | Requires actual privilege/memory/device isolation; a shared address space is not proof |
 
-Domain-specific Bases own envelope semantics. A file Base can bind read-only
+Domain-specific bases own envelope semantics. A file base can bind read-only
 access to one already-resolved file/directory resource and byte limit; a network
-Base can bind one protocol/endpoint/redirect policy and request budget; a ROS
-Base can bind one direction/topic/type/rate or actuator envelope. Envelope
+base can bind one protocol/endpoint/redirect policy and request budget; a ROS
+base can bind one direction/topic/type/rate or actuator envelope. Envelope
 identity never becomes a wildcard or a second authority system.
 
 ## Non-claims
@@ -77,4 +77,4 @@ enforcement each require their own positive and adversarial proof against the
 actual last trusted effect seam.
 
 The first executed hosted mapping is the Linux
-[hosted Base confinement profile](hosted-base-confinement.md).
+[hosted base confinement profile](hosted-base-confinement.md).

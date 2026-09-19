@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Conduit browser Host</title>
+<title>Conduit browser host</title>
 <style>
   :root {
     color-scheme: light;
@@ -97,38 +97,38 @@
 <main id="suspense" class="suspense" aria-busy="true">
   <div class="suspense-card">
     <div class="spinner" aria-hidden="true"></div>
-    <p class="eyebrow">Conduit browser Host</p>
-    <h1>Waking up a little Host…</h1>
+    <p class="eyebrow">Conduit browser host</p>
+    <h1>Waking up a little host…</h1>
     <p id="starting-status" role="status">Preparing one fresh, bounded WebAssembly incarnation.</p>
   </div>
 </main>
 <main id="host" class="host" hidden>
-  <h1>Conduit browser Host</h1>
+  <h1>Conduit browser host</h1>
   <p id="status" role="status">Current and independently initialized</p>
-  <p><a href="/creche/">Open the Crèche to birth or provision a Body</a></p>
+  <p><a href="/creche/">Open the Crèche to birth or provision a body</a></p>
   <dl hidden id="identity">
-    <dt>Host</dt><dd id="host-id"></dd>
-    <dt>Boot</dt><dd id="boot-id"></dd>
-    <dt>Body membership</dt><dd>None</dd>
+    <dt>host</dt><dd id="host-id"></dd>
+    <dt>boot</dt><dd id="boot-id"></dd>
+    <dt>body membership</dt><dd>None</dd>
     <dt>Runtime</dt><dd>Independent bounded WebAssembly instance</dd>
   </dl>
   <section hidden id="media">
     <h2>Human media offers</h2>
-    <p>Access is requested only after an explicit action and an admitted acquisition Play.</p>
+    <p>Access is requested only after an explicit action and an admitted acquisition play.</p>
     <button id="camera" type="button">Acquire camera</button>
     <button id="microphone" type="button">Acquire microphone</button>
     <p id="media-status" role="status">Camera and microphone offers available</p>
     <output id="media-evidence"></output>
   </section>
   <section hidden id="devices">
-    <h2>Device Base offers</h2>
+    <h2>Device base offers</h2>
     <p>Permission is requested only by this explicit action. Acquisition creates resource truth, not target identity, membership, deployment, or readiness.</p>
-    <button id="serial" type="button">Acquire serial Base</button>
-    <button disabled id="serial-close" type="button">Close serial Base</button>
+    <button id="serial" type="button">Acquire serial base</button>
+    <button disabled id="serial-close" type="button">Close serial base</button>
     <p id="device-status" role="status">Web Serial acquisition offer available</p>
     <details id="serial-evidence-details"><summary>Exact serial evidence</summary><pre><output id="device-evidence"></output></pre></details>
-    <button id="usb" type="button">Acquire USB Base</button>
-    <button disabled id="usb-close" type="button">Close USB Base</button>
+    <button id="usb" type="button">Acquire USB base</button>
+    <button disabled id="usb-close" type="button">Close USB base</button>
     <p id="usb-device-status" role="status">WebUSB acquisition offer available</p>
     <details id="usb-evidence-details"><summary>Exact USB evidence</summary><pre><output id="usb-device-evidence"></output></pre></details>
   </section>
