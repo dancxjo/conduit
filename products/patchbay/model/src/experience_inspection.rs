@@ -5,6 +5,7 @@
 //! action authority.
 
 use conduit_human::{CurrentExperience, ExperienceItem, ExperienceRelation};
+use conduit_presentation::{Presentation, PresentationError};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CurrentExperienceTrace {
@@ -12,10 +13,26 @@ pub struct CurrentExperienceTrace {
     pub relationships: Vec<ExperienceRelation>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PresentedCurrentExperienceTrace {
+    pub presentation_identity: String,
+    pub presentation_revision: u64,
+    pub subject_identity: String,
+    pub experience: CurrentExperienceTrace,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CurrentExperienceInspectionError {
     EmptyItemIdentity,
     UnknownItem,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PresentedCurrentExperienceInspectionError {
+    InvalidPresentation(PresentationError),
+    Experience(CurrentExperienceInspectionError),
+    UnknownPresentationSubject,
+    MissingSourceSign,
 }
 
 /// Trace one exact semantic experience item to its retained source references
@@ -47,6 +64,44 @@ pub fn inspect_current_experience_item(
     })
 }
 
+/// Correlate a presented semantic subject to the exact experience item with
+/// the same identity. Every retained Sign source must be present in the
+/// immutable Presentation basis, so neither deterministic nor generative
+/// manifestation can silently detach the statement from its evidence.
+pub fn inspect_presented_current_experience(
+    experience: &CurrentExperience,
+    presentation: &Presentation,
+    item_identity: &str,
+) -> Result<PresentedCurrentExperienceTrace, PresentedCurrentExperienceInspectionError> {
+    presentation
+        .validate()
+        .map_err(PresentedCurrentExperienceInspectionError::InvalidPresentation)?;
+    if !presentation
+        .subjects
+        .iter()
+        .any(|subject| subject.identity == item_identity)
+    {
+        return Err(PresentedCurrentExperienceInspectionError::UnknownPresentationSubject);
+    }
+    let trace = inspect_current_experience_item(experience, item_identity)
+        .map_err(PresentedCurrentExperienceInspectionError::Experience)?;
+    let every_sign_is_in_basis = trace.item.sources.iter().all(|source| match source {
+        conduit_human::ExperienceSourceRef::Sign(sign_id) => {
+            presentation.basis.sign_ids.contains(sign_id)
+        }
+        _ => true,
+    });
+    if !every_sign_is_in_basis {
+        return Err(PresentedCurrentExperienceInspectionError::MissingSourceSign);
+    }
+    Ok(PresentedCurrentExperienceTrace {
+        presentation_identity: presentation.identity.as_str().into(),
+        presentation_revision: presentation.revision,
+        subject_identity: item_identity.into(),
+        experience: trace,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -55,6 +110,12 @@ mod tests {
         ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceLimits,
         ExperienceOrigin, ExperienceRelationKind, ExperienceSourceRef, ExperienceTemporalPolicy,
         ExperienceTemporalRole,
+    };
+    use conduit_presentation::{
+        BodySurface, BodySurfaceContext, BodySurfaceFocus, GenerativeNarratorRole,
+        GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest,
+        PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel, PresentationRole,
+        PresentationSubject, PresentationText,
     };
 
     fn at(ticks: u64) -> TemporalInstant {
@@ -138,6 +199,101 @@ mod tests {
         assert_eq!(
             inspect_current_experience_item(&experience, "invented"),
             Err(CurrentExperienceInspectionError::UnknownItem)
+        );
+    }
+
+    #[test]
+    fn one_correlated_experience_subject_feeds_deterministic_and_generative_presenters() {
+        let mut experience = experience();
+        experience
+            .try_admit(item("door-open", "sign/camera/7"))
+            .unwrap();
+        let presentation = Presentation::new_with_semantics(
+            4,
+            PresentationBasis {
+                body_id: None,
+                wake_id: None,
+                source_document_id: None,
+                checked_form_id: None,
+                expanded_form_id: None,
+                plan_id: None,
+                active_play_id: None,
+                sign_ids: vec![SignId::from("sign/camera/7")],
+            },
+            vec![PresentationSubject {
+                identity: "door-open".into(),
+                role: PresentationRole::Info,
+                label: "Door state".into(),
+                accessibility_name: "Door state".into(),
+            }],
+            vec![],
+            vec![],
+            vec![PresentationText {
+                subject: "door-open".into(),
+                text: "The door is open.".into(),
+            }],
+            vec![],
+            vec![PresentationDisclosure {
+                subject: "door-open".into(),
+                level: PresentationDisclosureLevel::Primary,
+            }],
+        )
+        .unwrap();
+        let correlation =
+            inspect_presented_current_experience(&experience, &presentation, "door-open").unwrap();
+        let deterministic =
+            conduit_presentation::render_linear_presentation(&presentation).unwrap();
+        let surface = BodySurface {
+            context: BodySurfaceContext::Overview,
+            focus: BodySurfaceFocus::Body,
+            presentation: presentation.clone(),
+            application_actions: vec![],
+            operator_actions: vec![],
+        };
+        let generative = GenerativePresenterRequest::from_body_surface(
+            "request/experience/4".into(),
+            GenerativePresenterPolicy {
+                template_contract_revision: "experience-presenter/1".into(),
+                narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
+                instructions: "Render only the correlated semantic Presentation.".into(),
+            },
+            &surface,
+            None,
+            GenerativePresenterBounds::reviewed_default(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            correlation.presentation_identity,
+            deterministic.presentation_id.as_str()
+        );
+        assert_eq!(
+            correlation.presentation_identity,
+            generative.semantic_data.source_presentation_identity
+        );
+        assert_eq!(correlation.subject_identity, "door-open");
+        assert_eq!(
+            correlation.experience.item.sources,
+            vec![ExperienceSourceRef::Sign(SignId::from("sign/camera/7"))]
+        );
+
+        let ungrounded = Presentation::new_with_semantics(
+            4,
+            PresentationBasis {
+                sign_ids: vec![],
+                ..presentation.basis.clone()
+            },
+            presentation.subjects.clone(),
+            presentation.relationships.clone(),
+            presentation.properties.clone(),
+            presentation.text.clone(),
+            presentation.actions.clone(),
+            presentation.disclosures.clone(),
+        )
+        .unwrap();
+        assert_eq!(
+            inspect_presented_current_experience(&experience, &ungrounded, "door-open"),
+            Err(PresentedCurrentExperienceInspectionError::MissingSourceSign)
         );
     }
 }
