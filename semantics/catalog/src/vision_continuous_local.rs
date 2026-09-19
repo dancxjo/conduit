@@ -19,6 +19,8 @@ pub struct ContinuousLocalVisionObservation {
     pub motion: Option<MotionRegion>,
     pub components: [Option<PixelRegion>; MAXIMUM_LOCAL_COMPONENTS],
     pub component_count: u8,
+    pub observed_component_count: u32,
+    pub components_truncated: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -109,7 +111,7 @@ impl ContinuousLocalVision {
             .has_previous
             .then(|| motion(self.width, &self.previous, pixels, minimum_motion_delta))
             .flatten();
-        let (components, component_count) =
+        let (components, component_count, observed_component_count) =
             self.components(pixels, component_threshold, minimum_component_area);
         self.previous.copy_from_slice(pixels);
         self.has_previous = true;
@@ -119,6 +121,8 @@ impl ContinuousLocalVision {
             motion,
             components,
             component_count: component_count as u8,
+            observed_component_count,
+            components_truncated: observed_component_count > component_count as u32,
         })
     }
 
@@ -127,11 +131,12 @@ impl ContinuousLocalVision {
         pixels: &[u8],
         threshold: u8,
         minimum_area: u32,
-    ) -> ([Option<PixelRegion>; MAXIMUM_LOCAL_COMPONENTS], usize) {
+    ) -> ([Option<PixelRegion>; MAXIMUM_LOCAL_COMPONENTS], usize, u32) {
         self.visited.fill(false);
         self.queue.clear();
         let mut output = [None; MAXIMUM_LOCAL_COMPONENTS];
         let mut count = 0usize;
+        let mut observed = 0u32;
         for start in 0..pixels.len() {
             if self.visited[start] || pixels[start] < threshold {
                 continue;
@@ -161,17 +166,20 @@ impl ContinuousLocalVision {
                     }
                 }
             }
-            if area >= minimum_area && count < self.maximum_components {
-                output[count] = Some(PixelRegion {
-                    x: min_x as u16,
-                    y: min_y as u16,
-                    width: (max_x - min_x + 1) as u16,
-                    height: (max_y - min_y + 1) as u16,
-                });
-                count += 1;
+            if area >= minimum_area {
+                observed = observed.saturating_add(1);
+                if count < self.maximum_components {
+                    output[count] = Some(PixelRegion {
+                        x: min_x as u16,
+                        y: min_y as u16,
+                        width: (max_x - min_x + 1) as u16,
+                        height: (max_y - min_y + 1) as u16,
+                    });
+                    count += 1;
+                }
             }
         }
-        (output, count)
+        (output, count, observed)
     }
 }
 
@@ -237,5 +245,17 @@ mod tests {
         assert_eq!(final_observation.sequence, 100_000);
         assert_eq!(final_observation.motion.unwrap().changed_pixels, 2);
         assert_eq!(final_observation.component_count, 1);
+        assert_eq!(final_observation.observed_component_count, 1);
+        assert!(!final_observation.components_truncated);
+    }
+
+    #[test]
+    fn component_pressure_is_explicit_instead_of_silent() {
+        let mut vision = ContinuousLocalVision::new(5, 2, 2).unwrap();
+        let pixels = [255, 0, 255, 0, 255, 0, 255, 0, 255, 0];
+        let observation = vision.observe(&pixels, 32, 128, 1).unwrap();
+        assert_eq!(observation.component_count, 2);
+        assert_eq!(observation.observed_component_count, 5);
+        assert!(observation.components_truncated);
     }
 }
