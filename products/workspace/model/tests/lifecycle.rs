@@ -1,10 +1,11 @@
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyFormPlan, BodyMembership,
-    BodyPlayIdentity, BodyState, MembershipProofId, PartId, ResidentForm, WakeLifecycle,
+    BodyPlayIdentity, BodyState, FulfillmentReadiness, MembershipProofId, PartId,
+    PurposeObligationState, ResidentForm, WakeLifecycle, derive_fulfillment_readiness,
 };
 use conduit_core::{
     AuthorityGrantId, BootId, ExpandedFormId, FormIdentity, HostAdvertisement, HostId,
-    HostProfileId, OfferGeneration, PROTOCOL_VERSION, bind_sign, seal_plan,
+    HostProfileId, OfferGeneration, PROTOCOL_VERSION, SignId, bind_sign, seal_plan,
 };
 use conduit_workspace_model::{
     CurrentHostOfferError, CurrentHostOffers, WorkspaceBody, WorkspaceBodyError,
@@ -24,6 +25,45 @@ fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
     assert_eq!(view.revision, 7);
     assert!(view.nodes.iter().any(|node| node.text == "Wake this Body"));
     assert!(view.actions.iter().any(|action| action.id == "body.wake"));
+    assert!(view.nodes.iter().any(|node| {
+        node.text.contains("Purpose · exact readiness") && node.text.contains("not ready")
+    }));
+}
+
+#[test]
+fn tutorial_purpose_is_derived_from_exact_body_evidence_not_a_chapter_counter() {
+    let mut body = born();
+    let initial = conduit_workspace_model::tutorial::purpose_state(&body).unwrap();
+    assert!(matches!(
+        initial.obligations[0].state,
+        PurposeObligationState::Satisfied { ref evidence_sign_ids }
+            if evidence_sign_ids == &[SignId::from("sign/birth")]
+    ));
+    assert!(
+        initial.obligations[1..]
+            .iter()
+            .all(|obligation| matches!(obligation.state, PurposeObligationState::Pending))
+    );
+
+    start(&mut body);
+    let active = conduit_workspace_model::tutorial::purpose_state(&body).unwrap();
+    for obligation_id in ["born", "wake", "plan-ready", "play-started"] {
+        let obligation = active
+            .obligations
+            .iter()
+            .find(|obligation| obligation.obligation_id == obligation_id)
+            .unwrap();
+        assert!(matches!(
+            obligation.state,
+            PurposeObligationState::Satisfied { .. }
+        ));
+    }
+    assert!(matches!(
+        derive_fulfillment_readiness(&active).unwrap(),
+        FulfillmentReadiness::NotReady { ref reasons, .. }
+            if reasons.iter().any(|reason| reason.obligation_id == "add-host")
+                && reasons.iter().any(|reason| reason.obligation_id == "repair-fault")
+    ));
 }
 
 fn host() -> HostId {
