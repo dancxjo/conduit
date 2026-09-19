@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit browser Body input pressure proof</title>
+<style>#surface { width: 400px; height: 200px; touch-action: none; }</style>
+<div id="surface" tabindex="0" aria-label="Pocket Theremin pointer surface"></div>
+<output id="status">ready</output>
+<script type="module">
+import { createBodyInputRouting } from "../../targets/browser/host/assets/browser-body-input.mjs";
+import { openBrowserHumanInput } from "../../targets/browser/host/assets/browser-human-input.mjs";
+
+const boot = {
+  host_id: "browser/pocket-theremin-pressure-proof",
+  boot_id: "browser/pocket-theremin-pressure-proof-boot",
+  offer_generation: 1,
+  implementation_registry: [{ id: "browser/pointer-events@1", revision: 1 }],
+};
+const forms = [{
+  form: { checked_form_id: "form/pocket-theremin" },
+  plan: { fragments: [{ placements: [{
+    placement_id: "placement/pocket-theremin-pointer",
+    kind_id: "input/pointer-source",
+  }] }] },
+}];
+let routing;
+const input = openBrowserHumanInput({
+  target: document.querySelector("#surface"),
+  boot,
+  routeInput: (kind, value) => routing.capture(kind, value),
+});
+routing = createBodyInputRouting({ forms, foreground: () => "form/pocket-theremin", maximumPlacements: 1 });
+routing.attach(input);
+
+globalThis.__conduitBodyInput = Object.freeze({
+  async stress(count) {
+    const first = routing.next("pointer", "placement/pocket-theremin-pointer", new AbortController().signal);
+    const surface = document.querySelector("#surface");
+    for (let sequence = 0; sequence < count; sequence += 1) {
+      surface.dispatchEvent(new PointerEvent("pointermove", {
+        bubbles: true,
+        clientX: 1 + (sequence % 399),
+        clientY: 1 + (sequence % 199),
+        movementX: 1,
+        movementY: 1,
+        buttons: sequence % 2,
+      }));
+    }
+    const firstValue = await first;
+    const latest = await routing.next("pointer", "placement/pocket-theremin-pointer", new AbortController().signal);
+    return { first: firstValue.sequence, latest, pressure: routing.pressure() };
+  },
+  close() { routing.close(); input.close(); },
+});
+</script>
