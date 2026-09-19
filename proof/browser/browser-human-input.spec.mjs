@@ -29,6 +29,11 @@ test("ordered button transitions survive gaps between Host requests and refuse o
     await page.mouse.up();
   }
   expect(await page.evaluate(() => globalThis.__conduitHumanInput.adapter.nextButton().catch((error) => error.code))).toBe("Pressure");
+  const key = page.evaluate(() => globalThis.__conduitHumanInput.adapter.nextKeyboard());
+  await page.locator("#surface").focus();
+  await page.keyboard.down("KeyA");
+  expect(Array.from((await key).canonical_bytes)).toEqual([0x04, 0, 0]);
+  await page.keyboard.up("KeyA");
 });
 
 test("queued button release cannot survive a replacement Boot", async ({ page }) => {
@@ -78,7 +83,7 @@ test("selected keyboard and pointer adapt real Chromium actions to portable valu
     coalesced: 0,
     dropped: 0,
     queue_capacity: 1,
-    sequence: 1,
+    sequence: 2,
   });
   expect(failures).toEqual([]);
 });
@@ -97,6 +102,10 @@ test("ordered keyboard transitions survive gaps between Host requests and refuse
 
   for (const key of ["KeyB", "KeyC", "KeyD", "KeyE", "KeyF"]) await page.keyboard.press(key);
   expect(await page.evaluate(() => globalThis.__conduitHumanInput.adapter.nextKeyboard().catch((error) => error.code))).toBe("Pressure");
+  const before = await page.evaluate(() => globalThis.__conduitHumanInput.pointerValues.length);
+  const bounds = await page.locator("#surface").boundingBox();
+  await page.mouse.move(bounds.x + 300, bounds.y + 100);
+  await expect.poll(() => page.evaluate(() => globalThis.__conduitHumanInput.pointerValues.length)).toBeGreaterThan(before);
 });
 
 test("profile omission, finite pressure, cancellation, and stale Boot stay distinct", async ({ page }) => {
@@ -135,4 +144,26 @@ test("focus loss is recoverable while page loss is terminal", async ({ page }) =
   await pagePending;
   await expect(page.locator("#keyboard")).toHaveText("PageLost");
   expect(await page.evaluate(async () => (await globalThis.__conduitHumanInput.acquireKeyboard()).code)).toBe("PageLost");
+});
+
+test("Pocket Theremin Body routing reuses one pointer slot for 100,000 browser observations", async ({ page }) => {
+  await page.goto("/proof/browser/browser-body-input.test.html");
+  await expect(page.locator("#status")).toHaveText("ready");
+  const result = await page.evaluate(() => globalThis.__conduitBodyInput.stress(100_000));
+  expect(result.first).toBe(0);
+  expect(result.latest.sequence).toBe(99_999);
+  expect(result.latest.queue_capacity).toBe(1);
+  expect(result.latest.coalesced).toBe(99_998);
+  expect(result.pressure).toEqual([expect.objectContaining({
+    kind: "pointer",
+    form: "form/pocket-theremin",
+    capacity: 1,
+    occupancy: 0,
+    accepted: 100_000,
+    delivered: 2,
+    coalesced: 99_998,
+    refusals: 0,
+    terminal: null,
+  })]);
+  await page.evaluate(() => globalThis.__conduitBodyInput.close());
 });

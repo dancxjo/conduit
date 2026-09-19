@@ -141,6 +141,21 @@ pub(crate) enum HostCommand {
         /// Stop a WebSocket carrier if the code is unused for this many seconds.
         #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=3600))]
         timeout_seconds: u64,
+        /// Exact non-loopback socket to expose for the secure WebSocket carrier.
+        #[arg(long, required_if_eq("carrier", "secure-websocket"))]
+        bind: Option<String>,
+        /// Browser-reachable wss URL whose host is covered by the TLS certificate.
+        #[arg(long, required_if_eq("carrier", "secure-websocket"))]
+        public_url: Option<String>,
+        /// PEM certificate chain for the explicitly exposed TLS identity.
+        #[arg(long, required_if_eq("carrier", "secure-websocket"))]
+        tls_cert: Option<PathBuf>,
+        /// PEM private key for the explicitly exposed TLS identity.
+        #[arg(long, required_if_eq("carrier", "secure-websocket"))]
+        tls_key: Option<PathBuf>,
+        /// Explicitly authorize listening beyond loopback.
+        #[arg(long, required_if_eq("carrier", "secure-websocket"), action = clap::ArgAction::SetTrue)]
+        authorize_network: bool,
     },
 }
 
@@ -226,6 +241,8 @@ pub(crate) enum CarrierCommand {
 pub(crate) enum RendezvousCarrier {
     /// Local browser WebSocket Line.
     Websocket,
+    /// Explicit TLS-authenticated WebSocket Line on a selected network endpoint.
+    SecureWebsocket,
     /// Newline-framed serial stream on standard input and output.
     Serial,
 }
@@ -250,6 +267,36 @@ pub(crate) enum HostServiceCommand {
         /// Emit bounded machine-readable Host, Boot, and release identity truth.
         #[arg(long)]
         json: bool,
+    },
+    /// Configure already-local Whisper, Ollama, and Piper providers for this durable Host.
+    ConfigureVoice {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        whisper_executable: PathBuf,
+        #[arg(long)]
+        whisper_model: PathBuf,
+        #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u8).range(1..=32))]
+        whisper_threads: u8,
+        #[arg(long, default_value_t = 60, value_parser = clap::value_parser!(u64).range(1..=120))]
+        whisper_timeout_seconds: u64,
+        #[arg(long)]
+        ollama_model: String,
+        #[arg(long)]
+        admitted_memory_mib: u32,
+        #[arg(long)]
+        piper_executable: PathBuf,
+        #[arg(long)]
+        piper_model: PathBuf,
+        #[arg(long)]
+        piper_config: PathBuf,
+        #[arg(long)]
+        piper_library_path: Option<PathBuf>,
+        #[arg(long, default_value_t = 60, value_parser = clap::value_parser!(u64).range(1..=120))]
+        piper_timeout_seconds: u64,
+        /// Explicitly authorize local provider discovery, warmup, and durable configuration.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_local_voice: bool,
     },
     /// Make this durable Host retain one exact validated Body biography.
     OwnBody {
@@ -615,6 +662,30 @@ mod tests {
         ));
         assert!(matches!(
             Cli::try_parse_from([
+                "conduit", "host", "rendezvous", "--state-dir", "installed-host", "--carrier",
+                "secure-websocket", "--bind", "192.0.2.10:7443", "--public-url",
+                "wss://host.example:7443/conduit", "--tls-cert", "host-cert.pem", "--tls-key",
+                "host-key.pem", "--authorize-network",
+            ])
+            .expect("explicit secure LAN rendezvous entrance parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Rendezvous {
+                    carrier: RendezvousCarrier::SecureWebsocket,
+                    authorize_network: true,
+                    bind: Some(bind),
+                    public_url: Some(public_url),
+                    tls_cert: Some(cert),
+                    tls_key: Some(key),
+                    ..
+                }
+            } if bind == "192.0.2.10:7443"
+                && public_url == "wss://host.example:7443/conduit"
+                && cert == std::path::Path::new("host-cert.pem")
+                && key == std::path::Path::new("host-key.pem")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
                 "conduit",
                 "host",
                 "service",
@@ -646,7 +717,12 @@ mod tests {
                 command: HostCommand::Rendezvous {
                     state_dir,
                     carrier: RendezvousCarrier::Websocket,
-                    timeout_seconds: 30
+                    timeout_seconds: 30,
+                    bind: None,
+                    public_url: None,
+                    tls_cert: None,
+                    tls_key: None,
+                    authorize_network: false,
                 }
             } if state_dir == std::path::Path::new("installed-host")
         ));

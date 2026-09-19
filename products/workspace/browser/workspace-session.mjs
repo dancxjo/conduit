@@ -88,6 +88,9 @@ export function openWorkspaceSession({ host, storage }) {
     },
     selectForm(form) { request('SelectForm', { form }); return save(); },
     libraryView(source, query, revision, joinedLines = []) { return request('LibraryView', { ...here, source, query, revision, joined_lines: joinedLines }, true); },
+    tutorialView(revision, playback) { return request('TutorialView', { revision, playback }, true); },
+    invitationView(fields) { return request('InvitationView', fields, true); },
+    invitationQr(transfer_uri) { return request('InvitationQr', { transfer_uri }); },
     async changeWorkset(edit, form, source, expected_revision) {
       if (persistenceFailure) throw persistenceFailure;
       await write;
@@ -97,12 +100,14 @@ export function openWorkspaceSession({ host, storage }) {
     foreground: () => workspace ? request('Current').foreground : null,
     arrive() { if (!workspace) request('Arrive', { advertisement: localAdvertisement }); return save(); },
     evidence: () => workspace ? request('Current') : null,
+    conversationContext: () => request('ConversationContext'),
     async propose(source, joinedLines = [], browserAudioAuthority = false) {
       if (persistenceFailure) throw persistenceFailure;
       const proposal = request('Propose', { ...here, source, joined_lines: joinedLines, browser_audio_authority: browserAudioAuthority }); workspace = request('Current'); await save(); return proposal;
     },
     async started(start) { request('Started', { ...here, play: start.play, wake_at_start: start.wake_at_start }); await save(); },
     async lull(play) { request('Lull', { ...here, terminated_play: play ?? null }); await save(); },
+    async failed(rejections) { request('Failed', { ...here, rejections }); await save(); },
     async fulfill(attribution = `operator/${host.hostId}`) {
       if (persistenceFailure) throw persistenceFailure;
       await write;
@@ -118,6 +123,20 @@ export function openWorkspaceSession({ host, storage }) {
       const claim = request('CreateInvitation', { ...here, secret: Array.from(secret), nonce: Array.from(nonce), now_millis: now, expires_at_millis: expires });
       await save();
       return claim;
+    },
+    async prepareBrowserSpore(selection, imageContentDigest, secret, nonce, now = Date.now(), expires = now + 10 * 60_000) {
+      if (persistenceFailure) throw persistenceFailure;
+      const prepared = request('PrepareBrowserSpore', {
+        ...here,
+        secret: Array.from(secret),
+        nonce: Array.from(nonce),
+        now_millis: now,
+        expires_at_millis: expires,
+        image_content_digest: imageContentDigest,
+        selection,
+      });
+      await save();
+      return prepared;
     },
     async admitInvitation(advertisement, proof, now = Date.now()) {
       if (persistenceFailure) throw persistenceFailure;

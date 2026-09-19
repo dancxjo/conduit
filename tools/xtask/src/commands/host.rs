@@ -5,8 +5,8 @@ use std::{
 
 use clap::{Args, Subcommand};
 use conduit_host_fabrication::{
-    build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
-    BuildInputs, HostImage, HostProfile,
+    build_default_host_image, check_host_configuration, fabrication_chooser_catalog,
+    parse_host_configuration_conduit, BuildInputs, HostImage, HostProfile,
 };
 
 use crate::cli::GlobalOpts;
@@ -69,6 +69,8 @@ enum HostCommand {
         #[command(subcommand)]
         command: HostConfigCommand,
     },
+    /// Emit the checked target and Base chooser catalog as portable JSON.
+    Catalog,
     /// Resolve one PROFILE and emit its exact IMAGE and build manifest.
     Build {
         profile: PathBuf,
@@ -451,6 +453,12 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 }
                 HostConfigCommand::Show { .. } => host_configurator::print_summary(&checked, opts)?,
             }
+            Ok(())
+        }
+        HostCommand::Catalog => {
+            let catalog =
+                fabrication_chooser_catalog(&conduit_workspace_fabrication::package_set());
+            println!("{}", serde_json::to_string_pretty(&catalog)?);
             Ok(())
         }
         HostCommand::Build {

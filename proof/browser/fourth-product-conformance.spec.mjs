@@ -259,7 +259,7 @@ test("fourth application is admitted without product HTML, CSS, DOM, or browser 
     }
 
     const productNavigation = page.getByRole("navigation", { name: "Conduit products" });
-    await expect(productNavigation.getByRole("link")).toHaveCount(4);
+    await expect(productNavigation.getByRole("link")).toHaveCount(3);
     await expect(productNavigation.getByRole("link", { name: "Tour" })).toHaveCount(0);
 
     const navigation = page.getByRole("navigation", { name: "Field Notes destinations" });
@@ -322,8 +322,8 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
     ["Patchbay", "patchbay", () => startStaticProduct(patchbayProduct, "/conduit/patchbay/"), ["navigation", "definition-table", "disclosure"]],
     ["Field Notes", null, () => startStaticProduct(stagedFixture), ["navigation", "artifact", "disclosure", "progress"]],
   ];
-  const expectedLabels = ["conduit", "Crèche", "Patchbay", "Source"];
-  const expectedDestinations = ["home", "creche", "patchbay", "source"];
+  const expectedLabels = ["conduit", "Patchbay", "Source"];
+  const expectedDestinations = ["home", "patchbay", "source"];
   for (const [name, current, start, components] of products) {
     const entrance = await start();
     try {
@@ -338,7 +338,7 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
       const masthead = page.locator('[data-application-key="product-masthead"]');
       const navigation = masthead.getByRole("navigation", { name: "Conduit products" });
       const links = navigation.locator('[data-application-component="navigation-link"]');
-      await expect(links, `${name} shared masthead links`).toHaveCount(4);
+      await expect(links, `${name} shared masthead links`).toHaveCount(3);
       expect(await links.allTextContents(), `${name} shared masthead labels`).toEqual(expectedLabels);
       expect(await links.evaluateAll((elements) => elements.map((element) => element.dataset.applicationKey)), `${name} admitted destinations`).toEqual(expectedDestinations);
       const currentIsPublic = current !== null && expectedDestinations.includes(current);

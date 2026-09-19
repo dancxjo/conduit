@@ -2,9 +2,9 @@ import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/bro
 
 export function openWorkspacePlay({ host, session, source, planningLines, inputTarget, outputRoot, foregroundForm, onState,
   prepareExternal = async () => null, acquireBody = acquireBrowserBodyHost }) {
-  let adapter = null, external = null, started = null, terminal = null, transition = false;
+  let adapter = null, external = null, proposal = null, started = null, terminal = null, transition = false;
   const publish = (state, detail = '', error = null) => onState({ state, detail, play: started?.play, terminal,
-    refusal: error ? { code: typeof error.code === 'string' ? error.code : error.name, message: error.message } : null });
+    proposal, refusal: error ? { code: typeof error.code === 'string' ? error.code : error.name, message: error.message } : null });
   const requireTerminal = receipt => {
     if (receipt?.schema !== 'conduit.tour/manifestation-receipt@3' ||
         receipt.active_play_id !== started?.play.active_play_id ||
@@ -33,7 +33,7 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
       transition = true; terminal = null; started = null;
       publish('Preparing', 'Checking the installed Forms');
       try {
-        const proposal = await session.propose(source, planningLines(), authorizeAudio);
+        proposal = await session.propose(source, planningLines(), authorizeAudio);
         publish('Preparing', 'Acquiring the required capabilities');
         external = await prepareExternal(proposal);
         adapter = acquireBody({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal,
@@ -41,6 +41,7 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
           externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
         await session.started(started);
+        await external?.updateContext?.();
         publish('Playing', 'Forms are awake');
         const running = adapter;
         const runningPlay = started.play;
@@ -84,6 +85,9 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
             requireTerminal(closed?.receipt);
             adapter = null;
             await session.lull(started.play);
+          } else if (session.evidence()?.realization && error?.refusal?.rejections?.length) {
+            adapter = null;
+            await session.failed(error.refusal.rejections);
           } else if (session.evidence()?.realization && (!closed || closed.startOutcome === 'refused-before-play' || closed.startOutcome === 'not-attempted')) {
             adapter = null;
             await session.lull(null);

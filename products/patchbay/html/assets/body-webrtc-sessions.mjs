@@ -1,7 +1,7 @@
 import { BodyWebRtcSession } from "./body-webrtc-session.mjs";
 
 const MAXIMUM_WEB_RTC_SESSIONS = 4;
-const MAXIMUM_GRANT_GENERATIONS = 2;
+const MAXIMUM_GRANT_GENERATION = 0xffff_ffff;
 
 function negotiationIdentity(value) {
   if (typeof value !== "string" || value.length === 0) {
@@ -26,7 +26,7 @@ export class BodyWebRtcSessions {
   #begun = false;
   #lifecycleGeneration = 0;
   #grantGeneration = 0;
-  #retiredNegotiations = new Set();
+  #retiredNegotiations = 0;
   #terminal = null;
 
   constructor({ wasmBytes, sendSignal, requestGrant, onState, createSession = BodyWebRtcSession.create }) {
@@ -89,7 +89,7 @@ export class BodyWebRtcSessions {
     try {
       creation = this.#createSession({
         wasmBytes: this.#wasmBytes,
-        grant,
+        grant: Object.freeze({ ...grant, generation }),
         sendSignal: (signal) => this.#sendSignal(signal),
         onSession: (session) => {
           if (typeof session?.close !== "function") throw new Error("invalid WebRTC session ownership");
@@ -141,10 +141,11 @@ export class BodyWebRtcSessions {
 
   async acceptSignal(frame) {
     if (this.#terminal !== null || !this.#begun) throw new Error("WebRTC signal stage refused");
-    const negotiationId = negotiationIdentity(frame?.signal?.negotiation_id);
-    if (this.#retiredNegotiations.has(negotiationId)) {
-      throw new Error("stale WebRTC negotiation identity");
+    if (!Number.isInteger(frame?.signal?.generation) ||
+        frame.signal.generation !== this.#grantGeneration) {
+      throw new Error("stale WebRTC signal generation");
     }
+    const negotiationId = negotiationIdentity(frame?.signal?.negotiation_id);
     const session = this.#sessions.get(negotiationId);
     if (session !== undefined) {
       await session.acceptSignal(frame);
@@ -180,11 +181,11 @@ export class BodyWebRtcSessions {
         [...this.#sessions.values()].some((session) => session.state().terminalReason === null)) {
       throw new Error("WebRTC replan requires only terminal current sessions");
     }
-    if (this.#grantGeneration + 1 >= MAXIMUM_GRANT_GENERATIONS) {
+    if (this.#grantGeneration >= MAXIMUM_GRANT_GENERATION) {
       throw new Error("WebRTC grant generation capacity exhausted");
     }
+    this.#retiredNegotiations = this.#sessions.size;
     for (const [negotiationId, session] of this.#sessions) {
-      this.#retiredNegotiations.add(negotiationId);
       session.close();
     }
     this.#sessions.clear();
@@ -204,9 +205,10 @@ export class BodyWebRtcSessions {
         this.#inFlightGrantIndex !== null || this.#nextGrantIndex !== 1) {
       throw new Error("WebRTC Plan activation requires an exact completed empty grant set");
     }
-    if (this.#grantGeneration + 1 >= MAXIMUM_GRANT_GENERATIONS) {
+    if (this.#grantGeneration >= MAXIMUM_GRANT_GENERATION) {
       throw new Error("WebRTC grant generation capacity exhausted");
     }
+    this.#retiredNegotiations = 0;
     this.#expectedTotal = null;
     this.#nextGrantIndex = 0;
     this.#grantGeneration += 1;
@@ -257,7 +259,7 @@ export class BodyWebRtcSessions {
       activeSessions: this.#sessions.size,
       creatingSessions: this.#creating.size,
       pendingSignals: this.#pendingSignals.size,
-      retiredNegotiations: this.#retiredNegotiations.size,
+      retiredNegotiations: this.#retiredNegotiations,
       sessions: Object.freeze([...this.#sessions.values()].map((session) => session.state())),
       terminalReason: this.#terminal,
     });

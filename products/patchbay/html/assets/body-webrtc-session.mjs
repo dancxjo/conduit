@@ -22,6 +22,13 @@ function exactText(value, label) {
   return value;
 }
 
+function exactGeneration(value) {
+  if (!Number.isInteger(value) || value < 0 || value > 0xffff_ffff) {
+    throw new Error("invalid WebRTC generation");
+  }
+  return value;
+}
+
 function exactHello(value) {
   if (!Array.isArray(value) || value.length === 0 || value.length > 1024 ||
       !value.every((byte) => Number.isInteger(byte) && byte >= 0 && byte <= 255)) {
@@ -71,6 +78,7 @@ export class BodyWebRtcSession {
     if (role !== "source" && role !== "sink") throw new Error("invalid Body grant role");
     const exactGrant = Object.freeze({
       negotiation_id: exactText(grant.negotiation_id, "negotiation identity"),
+      generation: exactGeneration(grant.generation),
       role,
       peer_host_id: exactText(grant.peer_host_id, "peer Host identity"),
       peer_boot_id: exactText(grant.peer_boot_id, "peer Boot identity"),
@@ -143,6 +151,7 @@ export class BodyWebRtcSession {
       targetHostId: this.#grant.peer_host_id,
       targetBootId: this.#grant.peer_boot_id,
       signal: Object.freeze({
+        generation: this.#grant.generation,
         negotiation_id: this.#grant.negotiation_id,
         description,
         session_hello: this.#hello,
@@ -157,6 +166,7 @@ export class BodyWebRtcSession {
     const signal = frame?.signal;
     if (frame?.source_host_id !== this.#grant.peer_host_id ||
         frame?.source_boot_id !== this.#grant.peer_boot_id ||
+        signal?.generation !== this.#grant.generation ||
         signal?.negotiation_id !== this.#grant.negotiation_id ||
         signal?.description !== expectedDescription ||
         exactText(signal?.sdp, "remote SDP") !== signal.sdp ||

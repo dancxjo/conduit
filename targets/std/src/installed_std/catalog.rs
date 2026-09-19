@@ -88,6 +88,9 @@ use super::robotics_operations::{
     ROBOTICS_OBSERVE_RANGE_FACTORY, ROBOTICS_VELOCITY_INTENT_FACTORY,
 };
 use super::sequence_normalization_operation::FACTORY as SEQUENCE_NORMALIZATION_FACTORY;
+use super::speech_recognition_adapter_operation::{
+    RESULT_STREAM_FACTORY as SPEECH_RESULT_STREAM_FACTORY, WINDOW_FACTORY as SPEECH_WINDOW_FACTORY,
+};
 #[cfg(test)]
 use super::speech_synthesis_operation::DETERMINISTIC_FACTORY as DETERMINISTIC_SPEECH_FACTORY;
 #[cfg(test)]
@@ -166,6 +169,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &ADDRESS_DETECT_FACTORY,
     &RECOGNITION_TEXT_FACTORY,
     &RECOGNIZED_TURN_COMMIT_FACTORY,
+    &SPEECH_WINDOW_FACTORY,
+    &SPEECH_RESULT_STREAM_FACTORY,
     &KEYBOARD_INPUT_FACTORY,
     &super::keyboard_input_operation::button::FACTORY,
     &super::keyboard_input_operation::button::indicator::MAPPER,

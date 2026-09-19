@@ -369,11 +369,12 @@ jobs:
           retention-days: 14
 
   browser-admission-stage:
-    needs: [plan, browser-runtimes]
+    needs: [plan, browser-runtimes, browser-release]
     if: >-
       always() && !cancelled() && needs.plan.result == 'success' &&
       needs.plan.outputs.browser_admission_required == 'true' &&
-      needs.browser-runtimes.result == 'success'
+      needs.browser-runtimes.result == 'success' &&
+      needs.browser-release.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
@@ -385,6 +386,11 @@ jobs:
         with:
           name: conduit-browser-product-runtimes
           path: target/browser-product-runtimes
+      - name: Download the exact reviewed browser Host distribution
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-existing-computer-releases-browser
+          path: target/workspace-release-artifacts
       - name: Stage the affected browser surfaces without release fabrication
         run: |
           mkdir -p target/debug target/wasm32-unknown-unknown/release
@@ -396,7 +402,7 @@ jobs:
           site/tools/stage-pages-root.sh target/pages-root
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product unused browser-proof
-          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
+          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/workspace-release-artifacts
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
           products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
       - name: Retain the browser-only candidate surfaces
@@ -498,7 +504,7 @@ jobs:
 
   avr-release:
     needs: plan
-    if: needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true' || needs.plan.outputs.browser_admission_required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -527,7 +533,7 @@ jobs:
 
   browser-release:
     needs: plan
-    if: needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true' || needs.plan.outputs.browser_admission_required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -541,7 +547,9 @@ jobs:
         with:
           cache-on-failure: false
       - name: Compile and seal the reviewed browser distribution
-        run: cargo +1.98.1 xtask host release --platform browser --output target/creche-host-releases
+        run: |
+          cargo +1.98.1 xtask host release --platform browser --output target/creche-host-releases
+          cargo +1.98.1 xtask host release-catalog --root target/creche-host-releases --generation "${{ github.run_number }}"
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-browser
@@ -576,14 +584,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: false
-      - name: Install the Linux cross targets
+      - name: Prepare the Linux release toolchain
         if: matrix.platform == 'linux'
-        run: rustup target add aarch64-unknown-linux-gnu
-      - name: Install the Raspberry Pi OS cross linker
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross xvfb
+        run: cargo +1.98.1 xtask setup linux-release
       - name: Compile and seal the reviewed generic existing-computer releases
         run: cargo +1.98.1 xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
       - name: Run the packaged Linux Tour journey
@@ -906,10 +909,11 @@ jobs:
           name: conduit-conduitos-releases
           path: target/creche-release-artifacts
       - name: Seal the bounded installed release catalog
-        run: >-
-          cargo +1.98.1 xtask host release-catalog
-          --root target/creche-release-artifacts
-          --generation "${{ github.run_number }}"
+        run: |
+          rm -f target/creche-release-artifacts/release-catalog.json
+          cargo +1.98.1 xtask host release-catalog \
+            --root target/creche-release-artifacts \
+            --generation "${{ github.run_number }}"
       - name: Stage the exact browser products
         run: |
           mkdir -p target/debug
@@ -925,7 +929,7 @@ jobs:
           site/tools/stage-pages-root.sh target/pages-root
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
-          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
+          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/creche-release-artifacts
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
           products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
       - name: Retain the exact staged products once for parallel consumers
@@ -1220,12 +1224,14 @@ jobs:
           cp -a target/patchbay-product/. target/pages-site/patchbay/
           cp -a target/home-product/. target/pages-site/home/
           node products/tour/tools/stage-legacy-routes.mjs target/pages-site
+          node products/creche/tools/stage-legacy-routes.mjs target/pages-site
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/tour/tour.application.json
           grep -Fq 'Redirecting to your Body' target/pages-site/tour/index.html
           grep -Fq '../../workspace/' target/pages-site/tour/meet-one-gear/index.html
           test -f target/pages-site/book/index.html
           test -f target/pages-site/creche/index.html
+          grep -Fq 'Redirecting to your Body' target/pages-site/creche/index.html
           test -f target/pages-site/creche/creche.application.json
           test -f target/pages-site/workspace/workspace.application.json
           test -f target/pages-site/creche/runtime.wasm

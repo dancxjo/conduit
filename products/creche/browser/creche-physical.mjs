@@ -7,8 +7,19 @@ const PRESENTABLE_RETAINED_EVIDENCE_BYTES = 120 * 1024;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createPhysicalHostRunner({ host, hostOperations, presentationFor, targetCatalog, onBodyChanged }) {
+export function createPhysicalHostRunner({
+  host,
+  hostOperations,
+  presentationFor,
+  targetCatalog,
+  onBodyChanged,
+  admitJoin = (join) => admitObservation(host.runtime, join),
+  adapterContext = {},
+}) {
   const catalog = requireTargetCatalog(targetCatalog);
+  if (typeof admitJoin !== "function") {
+    throw new TypeError("physical Host admission boundary is missing");
+  }
   const runner = document.createElement("section");
   runner.className = "physical-host-runner";
   runner.innerHTML = `
@@ -45,6 +56,7 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
     admission: null,
     download: null,
     hostOperations,
+    adapterContext,
     intentions: PHYSICAL_HOST_INTENTIONS,
     selectionDisabled: false,
     actionEnabled: null,
@@ -58,7 +70,7 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
     bind: () => bindInvitation(runner, host, state),
     realize: () => realizeHost(runner, host, state),
     observe: () => observeJoin(runner, host, state),
-    admit: () => admitPart(runner, host, state, onBodyChanged),
+    admit: () => admitPart(runner, state, admitJoin, onBodyChanged),
     cancel: () => cancelActive(runner, state, true),
   })[action]?.();
   presentPhysicalActions(state);
@@ -114,7 +126,12 @@ function selectMode(runner, host, state, mode) {
     return;
   }
   if (!state.adapter) {
-    state.adapter = state.catalog.createAdapter({ targetId: state.entry.target.id, host, presentationFor: state.presentationFor });
+    state.adapter = state.catalog.createAdapter({
+      targetId: state.entry.target.id,
+      host,
+      presentationFor: state.presentationFor,
+      ...state.adapterContext,
+    });
   }
   const targetOptions = state.adapter.createOptions({
     mode: state.mode,
@@ -220,8 +237,8 @@ function observeJoin(runner, host, state) {
   });
 }
 
-function admitPart(runner, host, state, onBodyChanged) {
-  void operate(runner, state, "admit", () => Promise.resolve(admitObservation(host.runtime, state.observation.join)), (result) => {
+function admitPart(runner, state, admitJoin, onBodyChanged) {
+  void operate(runner, state, "admit", () => Promise.resolve(admitJoin(state.observation.join)), (result) => {
     state.admission = { evidence: result };
     state.phase = "admitted";
     completeStage(state, "admit", `revision ${result.membership_revision}`);
@@ -440,6 +457,12 @@ function compactRealizationEvidence(realization, omitted) {
       implementation_count: Array.isArray(implementation_registry) ? implementation_registry.length : null,
       offer_count: Array.isArray(offers) ? offers.length : null,
       inspection_count: Array.isArray(inspection) ? inspection.length : null,
+      admitted_implementation_ids: Array.isArray(implementation_registry)
+        ? implementation_registry.map(({ id }) => id)
+        : null,
+      ready_implementation_ids: Array.isArray(offers)
+        ? offers.map(({ implementation_id }) => implementation_id)
+        : null,
     },
   };
 }

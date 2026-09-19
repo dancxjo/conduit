@@ -105,7 +105,7 @@ export function createPhysicalHostTargetCatalog({
     });
   }
 
-  function createAdapter({ targetId, host, presentationFor }) {
+  function createAdapter({ targetId, host, presentationFor, ...context }) {
     const record = records.find(({ entry }) => entry.target.id === targetId);
     if (!record) {
       refuse("UnknownTarget", "selected physical Host target is absent from the current catalog generation", generation, {
@@ -114,7 +114,7 @@ export function createPhysicalHostTargetCatalog({
     }
     let adapter;
     try {
-      adapter = record.createAdapter({ host, presentationFor });
+      adapter = record.createAdapter({ host, presentationFor, ...context });
     } catch (error) {
       refuse("IncompatibleAdapter", "physical Host target adapter factory refused its catalog entry", generation, {
         target_id: targetId,

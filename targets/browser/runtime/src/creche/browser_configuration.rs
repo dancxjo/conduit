@@ -93,9 +93,9 @@ struct BrowserCapabilityIntentConfigurationReview {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct BrowserConfigurationSelection {
-    pub(super) catalog_generation: u32,
-    pub(super) implementations: Vec<String>,
+pub(crate) struct BrowserConfigurationSelection {
+    pub(crate) catalog_generation: u32,
+    pub(crate) implementations: Vec<String>,
 }
 
 fn capability_intent_catalog() -> BrowserCapabilityIntentCatalog {

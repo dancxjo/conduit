@@ -31,26 +31,26 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
             }
             ApplicationComponent::FieldLabel
             | ApplicationComponent::FieldHelp
-            | ApplicationComponent::FieldError => {
+            | ApplicationComponent::FieldError
                 if node.parent.is_none_or(|parent| {
                     nodes[usize::from(parent)].component != ApplicationComponent::FormField
-                }) {
-                    return Err(ApplicationViewRefusal::InvalidControlValue);
-                }
+                }) =>
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
             }
-            ApplicationComponent::Option => {
+            ApplicationComponent::Option
                 if node.parent.is_none_or(|parent| {
                     nodes[usize::from(parent)].component != ApplicationComponent::Select
-                }) {
-                    return Err(ApplicationViewRefusal::InvalidControlValue);
-                }
+                }) =>
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
             }
-            ApplicationComponent::NavigationLink => {
+            ApplicationComponent::NavigationLink
                 if node.parent.is_none_or(|parent| {
                     nodes[usize::from(parent)].component != ApplicationComponent::Navigation
-                }) {
-                    return Err(ApplicationViewRefusal::InvalidControlValue);
-                }
+                }) =>
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
             }
             ApplicationComponent::Stepper => {
                 let total = node
@@ -96,14 +96,14 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
                     return Err(ApplicationViewRefusal::InvalidControlValue);
                 }
             }
-            ApplicationComponent::ChoiceGroupLabel => {
+            ApplicationComponent::ChoiceGroupLabel
                 if node.parent.is_none_or(|parent| {
                     nodes[usize::from(parent)].component != ApplicationComponent::ChoiceGroup
-                }) {
-                    return Err(ApplicationViewRefusal::InvalidControlValue);
-                }
+                }) =>
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
             }
-            ApplicationComponent::ChoiceOptionLabel => {
+            ApplicationComponent::ChoiceOptionLabel
                 if node.parent.is_none_or(|parent| {
                     nodes[usize::from(parent)].component != ApplicationComponent::ChoiceGroup
                 }) || children
@@ -115,10 +115,9 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
                         )
                     })
                     .count()
-                    != 1
-                {
-                    return Err(ApplicationViewRefusal::InvalidControlValue);
-                }
+                    != 1 =>
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
             }
             ApplicationComponent::IndependentChoice | ApplicationComponent::ExclusiveChoice
                 if !matches!(node.value.as_str(), "true" | "false")

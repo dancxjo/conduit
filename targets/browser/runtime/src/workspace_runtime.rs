@@ -1,7 +1,8 @@
 //! Workspace lifecycle orchestration. The existing browser Body slot executes.
 use conduit_body::{
-    AdmissionManager, BodyBiographyEvidence, BodyPlayIdentity, BodyState, ResidentForm,
-    SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationSecret, Wake,
+    AdmissionManager, BodyBiographyEvidence, BodyConversationContext, BodyConversationContextBasis,
+    BodyConversationHost, BodyPlayIdentity, BodyState, ResidentForm, SpawnAdmissionProof,
+    SpawnInvitationClaim, SpawnInvitationSecret, Wake,
 };
 use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId};
 use conduit_workspace_model::CurrentHostOffers;
@@ -59,6 +60,16 @@ enum Request {
         now_millis: u64,
         expires_at_millis: u64,
     },
+    PrepareBrowserSpore {
+        host_id: HostId,
+        boot_id: BootId,
+        secret: Vec<u8>,
+        nonce: [u8; 32],
+        now_millis: u64,
+        expires_at_millis: u64,
+        image_content_digest: String,
+        selection: crate::creche::BrowserConfigurationSelection,
+    },
     AdmitInvitation {
         host_id: HostId,
         boot_id: BootId,
@@ -73,6 +84,7 @@ enum Request {
         lost_boot_id: BootId,
     },
     Current,
+    ConversationContext,
     SelectForm {
         form: ResidentForm,
     },
@@ -83,6 +95,23 @@ enum Request {
         query: String,
         revision: u32,
         joined_lines: Vec<crate::creche::JoinedLineObservation>,
+    },
+    TutorialView {
+        revision: u32,
+        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+    },
+    InvitationView {
+        invitation_id: String,
+        body_id: String,
+        body_name: String,
+        expires_at_millis: u64,
+        transfer_uri: String,
+        revision: u32,
+        clipboard_available: bool,
+        share_available: bool,
+    },
+    InvitationQr {
+        transfer_uri: String,
     },
     ChangeWorkset {
         host_id: HostId,
@@ -109,6 +138,11 @@ enum Request {
         host_id: HostId,
         boot_id: BootId,
         terminated_play: Option<BodyPlayIdentity>,
+    },
+    Failed {
+        host_id: HostId,
+        boot_id: BootId,
+        rejections: Vec<conduit_body::WakeRejectionEvidence>,
     },
     Fulfill {
         host_id: HostId,
@@ -294,6 +328,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         let mut candidate = current.clone();
         match request {
             Request::Current => return snapshot(current),
+            Request::ConversationContext => return encode(&conversation_context(current)?),
             Request::Durable => return ADMISSIONS.with(|admissions| {
                 let admissions = admissions.borrow();
                 let admissions = admissions.as_ref().ok_or("Workspace admission state is missing")?;
@@ -313,6 +348,58 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     current.issue_invitation(admissions, secret, nonce, now_millis, expires_at_millis, &host_id, &boot_id).map_err(debug)
                 })?;
                 return encode(&claim);
+            }
+            Request::PrepareBrowserSpore {
+                host_id,
+                boot_id,
+                secret,
+                nonce,
+                now_millis,
+                expires_at_millis,
+                image_content_digest,
+                selection,
+            } => {
+                let secret_bytes = <[u8; 32]>::try_from(secret.as_slice()).map_err(|_| {
+                    Refusal::new(
+                        "Admission.WeakSecret",
+                        "Invitation secret must have exactly 32 bytes",
+                    )
+                })?;
+                let invitation_secret = SpawnInvitationSecret::from_csprng_bytes(secret_bytes)
+                    .map_err(|error| {
+                        Refusal::new(
+                            &format!("Admission.{error:?}"),
+                            "Invitation entropy was refused",
+                        )
+                    })?;
+                let mut next_admissions = ADMISSIONS.with(|admissions| {
+                    admissions
+                        .borrow()
+                        .clone()
+                        .ok_or("Workspace admission state is missing")
+                })?;
+                let claim = candidate
+                    .issue_invitation(
+                        &mut next_admissions,
+                        invitation_secret,
+                        nonce,
+                        now_millis,
+                        expires_at_millis,
+                        &host_id,
+                        &boot_id,
+                    )
+                    .map_err(debug)?;
+                let prepared = crate::creche::prepare_workspace_browser(
+                    candidate.evidence(),
+                    &claim,
+                    &secret_bytes,
+                    &image_content_digest,
+                    selection,
+                )
+                .map_err(|message| Refusal::new("Fabrication.Prepare", &message))?;
+                let response = encode(&prepared)?;
+                ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
+                return Ok(response);
             }
             Request::AdmitInvitation { host_id, boot_id, advertisement, proof, now_millis } => {
                 let signature = <[u8; conduit_body::ADMISSION_SIGNATURE_BYTES]>::try_from(
@@ -401,6 +488,25 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                         }
                     });
             }
+            Request::TutorialView { revision, playback } => {
+                let semantic = conduit_workspace_model::tutorial::presentation(current, revision, playback)
+                    .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
+                let view = semantic.lower()
+                    .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
+                return view.encode()
+                    .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")));
+            }
+            Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
+                transfer_uri, revision, clipboard_available, share_available } => {
+                let semantic = conduit_workspace_model::invitation::InvitationPresentation {
+                    invitation_id: &invitation_id, body_id: &body_id, body_name: &body_name,
+                    expires_at_millis, transfer_uri: &transfer_uri, clipboard_available, share_available,
+                }.view(revision).map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")))?;
+                return semantic.lower()
+                    .map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")))?
+                    .encode().map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")));
+            }
+            Request::InvitationQr { transfer_uri } => return invitation_qr(&transfer_uri),
             Request::ChangeWorkset {
                 host_id,
                 boot_id,
@@ -479,6 +585,16 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .lull(&host_id, &boot_id, terminated_play.as_ref())
                     .map_err(debug)?;
             }
+            Request::Failed {
+                host_id,
+                boot_id,
+                rejections,
+            } => {
+                crate::form_runner::workspace::require_empty()?;
+                candidate
+                    .fail(&host_id, &boot_id, rejections)
+                    .map_err(debug)?;
+            }
             Request::Fulfill {
                 host_id,
                 boot_id,
@@ -506,6 +622,41 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         *slot = Some(candidate);
         Ok(bytes)
     })
+}
+
+fn invitation_qr(transfer_uri: &str) -> Result<Vec<u8>, Refusal> {
+    if transfer_uri.is_empty()
+        || transfer_uri.len() > conduit_workspace_model::invitation::MAX_INVITATION_TRANSFER_BYTES
+        || !transfer_uri.contains('#')
+    {
+        return Err(Refusal::new(
+            "InvitationQr",
+            "Invitation transfer URI is invalid",
+        ));
+    }
+    let code = qrcode::QrCode::new(transfer_uri.as_bytes()).map_err(|_| {
+        Refusal::new(
+            "InvitationQr",
+            "Invitation does not fit the reviewed QR bound",
+        )
+    })?;
+    let width = code.width();
+    let rows = (0..width)
+        .map(|y| {
+            (0..width)
+                .map(|x| {
+                    if code[(x, y)] == qrcode::Color::Dark {
+                        '1'
+                    } else {
+                        '0'
+                    }
+                })
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>();
+    encode(
+        &serde_json::json!({ "schema": "conduit.presentation/invitation-qr@1", "width": width, "rows": rows }),
+    )
 }
 fn snapshot_value(
     body: &WorkspaceBody,
@@ -565,6 +716,79 @@ fn encode(value: &impl Serialize) -> Result<Vec<u8>, Refusal> {
 }
 fn debug(error: conduit_workspace_model::WorkspaceBodyError) -> Refusal {
     error.into()
+}
+
+fn conversation_context(body: &WorkspaceBody) -> Result<BodyConversationContext, Refusal> {
+    let evidence = body.evidence();
+    let realization = body.realization().ok_or_else(|| {
+        Refusal::new(
+            "BodyContext.NotAwake",
+            "Body conversation context requires one current Wake/Plan",
+        )
+    })?;
+    if evidence.body.state
+        != (BodyState::Awake {
+            wake_id: realization.wake.wake_id.clone(),
+        })
+    {
+        return Err(Refusal::new(
+            "BodyContext.NotAwake",
+            "Body conversation context is available only while this Body is awake",
+        ));
+    }
+    let hosts = evidence
+        .membership
+        .parts
+        .iter()
+        .filter_map(|part| part.current.as_ref())
+        .map(|current| BodyConversationHost {
+            host_id: current.host_id.clone(),
+            present: true,
+        })
+        .collect::<Vec<_>>();
+    let active_forms = realization
+        .wake
+        .workset
+        .forms()
+        .iter()
+        .map(|form| form.source_document_id.as_str().into())
+        .collect::<Vec<_>>();
+    let mut recent_sign_ids = realization
+        .wake
+        .sign_ids
+        .iter()
+        .rev()
+        .take(conduit_body::MAXIMUM_CONVERSATION_SIGNS)
+        .cloned()
+        .collect::<Vec<_>>();
+    recent_sign_ids.reverse();
+    let context = BodyConversationContext {
+        schema: "conduit.body/conversation-context-value@2".into(),
+        display_name: evidence.friendly_name.clone(),
+        body_id: evidence.body_id.clone(),
+        wake_id: realization.wake.wake_id.clone(),
+        wake_sequence: realization.wake.wake_sequence,
+        basis: BodyConversationContextBasis {
+            body_id: evidence.body_id.clone(),
+            wake_id: realization.wake.wake_id.clone(),
+            wake_sequence: realization.wake.wake_sequence,
+            revision: evidence.last_sequence(),
+        },
+        hosts,
+        active_forms,
+        current_plan_id: Some(realization.plan.plan_id.clone()),
+        active_play_id: realization
+            .play
+            .as_ref()
+            .map(|play| play.active_play_id.clone()),
+        // Line availability remains separate execution truth. This first
+        // supervisor publication does not invent availability Signs.
+        lines: Vec::new(),
+        recent_sign_ids,
+    };
+    conduit_chat::encode_body_conversation_context(&context)
+        .map_err(|error| Refusal::new("BodyContext.Invalid", format!("{error:?}")))?;
+    Ok(context)
 }
 
 fn current_host_offers() -> Vec<HostAdvertisement> {

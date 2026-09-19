@@ -234,6 +234,7 @@ fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
         fs::read_to_string(root.join("rust-toolchain.toml")).expect("read Rust toolchain");
     assert!(toolchain.contains("channel = \"1.98.1\""));
     assert!(toolchain.contains("components = [\"clippy\", \"rustfmt\"]"));
+    assert!(toolchain.contains("targets = [\"aarch64-unknown-linux-gnu\"]"));
 
     let workflows = root.join(".github/workflows");
     let mut exact_setups = 0;
@@ -380,7 +381,7 @@ fn hosted_release_jobs_run_the_packaged_tour_and_home_journeys() {
     assert!(releases.contains("if: needs.plan.outputs.host_releases_required == 'true'"));
     assert!(releases.contains("conduit-tour-linux-x86_64 --journey"));
     assert!(releases.contains("conduit-tour-windows-x86_64.exe --journey"));
-    assert!(releases.contains("gcc-aarch64-linux-gnu libc6-dev-arm64-cross xvfb"));
+    assert!(releases.contains("cargo +1.98.1 xtask setup linux-release"));
     assert!(releases.contains("rm -rf target/creche-host-releases/home-face-linux-native"));
     assert!(releases.contains(
         "xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-face-linux-native"
@@ -404,6 +405,9 @@ fn browser_release_installs_its_exact_wasm_target() {
         .nth(1)
         .and_then(|tail| tail.split("\n  tour-patchbay-proof:\n").next())
         .expect("locate browser release job");
+    assert!(browser_release.contains(
+        "if: needs.plan.outputs.pages_carrier_required == 'true' || needs.plan.outputs.browser_admission_required == 'true'"
+    ));
     assert!(browser_release.contains("targets: wasm32-unknown-unknown"));
 }
 

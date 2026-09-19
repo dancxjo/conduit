@@ -87,6 +87,8 @@ struct JourneyProof {
     usb_line_source_active_play_id: String,
     usb_line_sink_active_play_id: String,
     usb_line_value: String,
+    usb_line_values: u64,
+    usb_line_acknowledgements: u64,
     usb_line_membership: String,
     usb_line_body_unchanged: bool,
     open_effects: u8,
@@ -388,7 +390,7 @@ fn execute_image(
                 "product-journey-usb-line-peer-timeout",
             )?;
             artifacts.capture(&mut qmp, &mut reader, "peer-attached", true)?;
-            line_peer.receive_value_and_acknowledge()?;
+            line_peer.receive_values_and_acknowledge()?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
@@ -614,6 +616,10 @@ fn execute_image(
             }
         }
         if usb_line_records[2].get("value").and_then(Value::as_str) != Some("HELLO USB LINE")
+            || usb_line_records[2]
+                .get("lifetime_values")
+                .and_then(Value::as_u64)
+                != Some(conduitos::product_usb_line::LINE_LIFETIME_VALUES)
             || usb_line_records[0].get("body_id") != by_status["lulled"].get("body_id")
         {
             return Err(ConduitosError::refusal(
@@ -726,6 +732,8 @@ fn execute_image(
             usb_line_source_active_play_id: text(&usb_line_records[0], "source_active_play_id")?,
             usb_line_sink_active_play_id: text(&usb_line_records[0], "sink_active_play_id")?,
             usb_line_value: text(&usb_line_records[2], "value")?,
+            usb_line_values: conduitos::product_usb_line::LINE_LIFETIME_VALUES,
+            usb_line_acknowledgements: conduitos::product_usb_line::LINE_LIFETIME_VALUES * 2,
             usb_line_membership: text(&usb_line_records[0], "membership")?,
             usb_line_body_unchanged: true,
             open_effects: 0,

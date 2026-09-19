@@ -3,6 +3,7 @@
 use core::ptr::{read_volatile, write_volatile};
 
 use super::{
+    hid_transfer_ring::{TransferPosition, publish},
     usb::{UsbDevice, descriptor::UsbEndpoint, dma::device_dma_pointer},
     xhci::{Event, XhciError, XhciReady},
 };
@@ -13,6 +14,7 @@ pub const FTDI_DEVICE_VERSION: u16 = 0x0400;
 pub const FTDI_PACKET_BYTES: usize = 64;
 pub const FTDI_PAYLOAD_BYTES: usize = FTDI_PACKET_BYTES - 2;
 pub const FTDI_TRANSFER_TRBS: usize = 128;
+const FTDI_TRANSFER_SLOTS: usize = FTDI_TRANSFER_TRBS - 1;
 pub const FTDI_POLL_WINDOWS: u16 = 1_024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -162,10 +164,7 @@ impl FtdiLineSession {
         if payload.len() > FTDI_PACKET_BYTES {
             return Err(FtdiLineError::OversizedPayload);
         }
-        let index = self.next_output;
-        if index >= FTDI_TRANSFER_TRBS {
-            return Err(FtdiLineError::TransferOverflow);
-        }
+        let sequence = self.next_output;
         unsafe {
             FTDI_DMA.output_packet = [0; FTDI_PACKET_BYTES];
             FTDI_DMA.output_packet[..payload.len()].copy_from_slice(payload);
@@ -174,14 +173,16 @@ impl FtdiLineSession {
             controller,
             device,
             self.ready,
-            index,
+            sequence,
             payload.len(),
             TransferDirection::Output,
         )?;
         if sent != payload.len() {
             return Err(FtdiLineError::TransferError);
         }
-        self.next_output += 1;
+        self.next_output = sequence
+            .checked_add(1)
+            .ok_or(FtdiLineError::TransferOverflow)?;
         Ok(())
     }
 
@@ -191,16 +192,13 @@ impl FtdiLineSession {
         device: &UsbDevice,
         output: &mut [u8; FTDI_PAYLOAD_BYTES],
     ) -> Result<usize, FtdiLineError> {
-        let index = self.next_input;
-        if index >= FTDI_TRANSFER_TRBS {
-            return Err(FtdiLineError::TransferOverflow);
-        }
+        let sequence = self.next_input;
         unsafe { FTDI_DMA.input_packet = [0; FTDI_PACKET_BYTES] };
         let received = submit(
             controller,
             device,
             self.ready,
-            index,
+            sequence,
             FTDI_PACKET_BYTES,
             TransferDirection::Input,
         )?;
@@ -213,7 +211,9 @@ impl FtdiLineSession {
         }
         let payload = received - 2;
         output[..payload].copy_from_slice(&packet[2..received]);
-        self.next_input += 1;
+        self.next_input = sequence
+            .checked_add(1)
+            .ok_or(FtdiLineError::TransferOverflow)?;
         Ok(payload)
     }
 }
@@ -382,7 +382,7 @@ fn submit(
     controller: &mut XhciReady,
     device: &UsbDevice,
     ready: FtdiLineReady,
-    index: usize,
+    sequence: usize,
     length: usize,
     direction: TransferDirection,
 ) -> Result<usize, FtdiLineError> {
@@ -400,20 +400,32 @@ fn submit(
     };
     let ring = ready.dma_physical + ring_offset as u64;
     let buffer = ready.dma_physical + buffer_offset as u64;
-    let trb = ring + (index * 16) as u64;
-    let entry = [
-        buffer as u32,
-        (buffer >> 32) as u32,
-        length as u32,
-        (1 << 10) | (1 << 5) | 1,
-    ];
-    unsafe {
-        let destination = match direction {
-            TransferDirection::Input => core::ptr::addr_of_mut!(FTDI_DMA.input_ring[index]),
-            TransferDirection::Output => core::ptr::addr_of_mut!(FTDI_DMA.output_ring[index]),
-        };
-        write_volatile(destination, entry);
+    let position = TransferPosition::at(sequence, FTDI_TRANSFER_SLOTS, 1);
+    let trb = ring + (position.slot * 16) as u64;
+    if sequence == 0 || position.slot == FTDI_TRANSFER_SLOTS - 1 {
+        publish(position.link(ring), |word, value| unsafe {
+            let destination = match direction {
+                TransferDirection::Input => {
+                    core::ptr::addr_of_mut!(FTDI_DMA.input_ring[FTDI_TRANSFER_SLOTS][word])
+                }
+                TransferDirection::Output => {
+                    core::ptr::addr_of_mut!(FTDI_DMA.output_ring[FTDI_TRANSFER_SLOTS][word])
+                }
+            };
+            write_volatile(destination, value);
+        });
     }
+    publish(position.normal_at(buffer, length), |word, value| unsafe {
+        let destination = match direction {
+            TransferDirection::Input => {
+                core::ptr::addr_of_mut!(FTDI_DMA.input_ring[position.slot][word])
+            }
+            TransferDirection::Output => {
+                core::ptr::addr_of_mut!(FTDI_DMA.output_ring[position.slot][word])
+            }
+        };
+        write_volatile(destination, value);
+    });
     controller.ring_endpoint(device.slot, dci);
     let mut completed = None;
     for _ in 0..FTDI_POLL_WINDOWS {

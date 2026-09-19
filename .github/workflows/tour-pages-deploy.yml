@@ -266,11 +266,13 @@ jobs:
           cargo build --locked -p patchbay-html --bin patchbay-static-assets
           cp target/debug/patchbay-static-assets target/browser-product-runtimes/patchbay-static-assets
           cargo build --locked -p patchbay-html --bin patchbay-html -p conduit-std-host --bin browser-admission-probe
+          cargo +1.98.1 xtask host release --platform browser --output target/workspace-release-artifacts
+          cargo +1.98.1 xtask host release-catalog --root target/workspace-release-artifacts --generation "${{ github.run_number }}"
           rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product
           site/tools/stage-pages-root.sh target/pages-root
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product unused browser-proof
-          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
+          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/workspace-release-artifacts
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
       - name: Seal the deploy-first Pages carrier without the stale browser-proof veto
         run: |
@@ -282,12 +284,14 @@ jobs:
           cp -a target/workspace-product/. target/pages-site/workspace/
           cp -a target/patchbay-product/. target/pages-site/patchbay/
           node products/tour/tools/stage-legacy-routes.mjs target/pages-site
+          node products/creche/tools/stage-legacy-routes.mjs target/pages-site
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/tour/tour.application.json
           grep -Fq 'Redirecting to your Body' target/pages-site/tour/index.html
           grep -Fq '../../workspace/' target/pages-site/tour/meet-one-gear/index.html
           test -f target/pages-site/book/index.html
           test -f target/pages-site/creche/index.html
+          grep -Fq 'Redirecting to your Body' target/pages-site/creche/index.html
           test -f target/pages-site/creche/creche.application.json
           test -f target/pages-site/workspace/workspace.application.json
           test -f target/pages-site/creche/runtime.wasm

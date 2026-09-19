@@ -1,4 +1,7 @@
 import { connectRendezvousHost } from "../../creche/browser/creche-rendezvous.mjs";
+import { createPhysicalHostRunner } from "../../creche/browser/creche-physical.mjs";
+import { createPhysicalHostTargetCatalog } from "../../creche/browser/creche-target-catalog.mjs";
+import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "../../../targets/browser/deployment/browser/creche-adapter.mjs";
 import { createBrowserConfigurationOutfitter } from "./workspace-host-configuration.mjs";
 
 const SCHEMA = "conduit.workspace/body-invitation@1";
@@ -9,6 +12,10 @@ const decoder = new TextDecoder("utf-8", { fatal: true });
 export function readBodyInvitation(location) {
   const value = new URLSearchParams(location.hash.slice(1)).get("body-invitation");
   if (!value) return null;
+  return decodeBodyInvitation(value);
+}
+
+function decodeBodyInvitation(value) {
   if (value.length > 8192) throw new Error("Body invitation exceeds its portable bound");
   try {
     const padding = "=".repeat((4 - value.length % 4) % 4);
@@ -23,6 +30,70 @@ export function readBodyInvitation(location) {
   }
 }
 
+export function readPastedBodyInvitation(input, location) {
+  const pasted = input.trim();
+  if (!pasted) throw new Error("Paste a Body invitation link or portable code");
+  if (pasted.length > 8192) throw new Error("Body invitation exceeds its portable bound");
+  let value;
+  try {
+    const candidate = new URL(pasted, location.href);
+    value = new URLSearchParams(candidate.hash.slice(1)).get("body-invitation");
+  } catch {}
+  if (!value) {
+    const fragment = pasted.startsWith("#") ? pasted.slice(1) : pasted;
+    value = new URLSearchParams(fragment).get("body-invitation") ?? fragment;
+  }
+  const artifact = decodeBodyInvitation(value);
+  return Object.freeze({ artifact, fragment: new URLSearchParams({ "body-invitation": value }).toString() });
+}
+
+export async function readSharedBodyInvitation(location) {
+  if (!("serviceWorker" in navigator)) return null;
+  const workerUrl = new URL("./workspace-share-target-sw.js", import.meta.url);
+  const registration = await navigator.serviceWorker.register(workerUrl, { scope: "./" });
+  const token = new URLSearchParams(location.hash.slice(1)).get("body-share");
+  if (!token) return null;
+  const ready = await navigator.serviceWorker.ready;
+  const worker = ready.active;
+  if (!worker) throw new Error("Body invitation share worker is unavailable");
+  const value = await new Promise((resolve, reject) => {
+    const channel = new MessageChannel();
+    const timeout = setTimeout(() => reject(new Error("Body invitation share delivery timed out")), 5_000);
+    channel.port1.onmessage = ({ data }) => {
+      clearTimeout(timeout);
+      if (data?.type === "body-invitation") resolve(data.value);
+      else reject(new Error(data?.message ?? "Body invitation share was refused"));
+    };
+    worker.postMessage({ type: "consume-body-invitation", token }, [channel.port2]);
+  });
+  const decoded = readPastedBodyInvitation(value, location);
+  history.replaceState(null, "", `${location.pathname}${location.search}#${decoded.fragment}`);
+  return decoded.artifact;
+}
+
+export function createBodyInvitationReceiver({ location, onReceive }) {
+  const receiver = document.createElement("section");
+  receiver.className = "body-invitation-receiver";
+  receiver.innerHTML = `<h2>Join an existing Body</h2>
+    <p>Paste an invitation link or portable code. Decoding it creates no membership; you will inspect and explicitly accept the same invitation next.</p>
+    <form><label>Body invitation link or code<input type="text" autocomplete="off" spellcheck="false" required></label>
+    <button type="submit">Inspect invitation</button></form><p role="status"></p>`;
+  const form = receiver.querySelector("form");
+  const input = receiver.querySelector("input");
+  const status = receiver.querySelector('[role="status"]');
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    try {
+      const decoded = readPastedBodyInvitation(input.value, location);
+      status.textContent = "Invitation decoded. No membership has been created.";
+      onReceive(decoded);
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : String(error);
+    }
+  });
+  return receiver;
+}
+
 function invitationUrl(location, artifact) {
   const bytes = encoder.encode(JSON.stringify(artifact));
   let binary = "";
@@ -35,16 +106,39 @@ function invitationUrl(location, artifact) {
   return url.href;
 }
 
-export function openWorkspaceMembership({ root, session, host, invitation, presentationFor, beforeAdmission, onChanged, onFailure }) {
+function renderInvitationQr(root, projection) {
+  if (projection?.schema !== "conduit.presentation/invitation-qr@1"
+      || !Number.isSafeInteger(projection.width) || projection.width < 21 || projection.width > 177
+      || !Array.isArray(projection.rows) || projection.rows.length !== projection.width
+      || projection.rows.some(row => typeof row !== "string" || row.length !== projection.width || /[^01]/u.test(row))) {
+    throw new Error("Invitation QR projection is malformed");
+  }
+  const quiet = 4, size = projection.width + quiet * 2;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "QR representation of this exact Body invitation");
+  svg.style.imageRendering = "pixelated";
+  const background = document.createElementNS(svg.namespaceURI, "rect");
+  background.setAttribute("width", String(size)); background.setAttribute("height", String(size)); background.setAttribute("fill", "white");
+  const path = document.createElementNS(svg.namespaceURI, "path"), commands = [];
+  projection.rows.forEach((row, y) => [...row].forEach((cell, x) => { if (cell === "1") commands.push(`M${x + quiet} ${y + quiet}h1v1h-1z`); }));
+  path.setAttribute("d", commands.join("")); path.setAttribute("fill", "black");
+  svg.append(background, path); root.replaceChildren(svg); root.hidden = false;
+}
+
+export function openWorkspaceMembership({ root, session, host, hostOperations, invitation, invitationLabel, presentationFor, beforeAdmission, onChanged, onFailure }) {
   const panel = root.querySelector("#workspace-membership");
   const content = panel.querySelector("[data-membership-content]");
   const openButton = root.querySelector("[data-open-membership]");
   const inviteButton = root.querySelector("[data-invite-host]");
   const closeButton = root.querySelector("[data-close-membership]");
+  const invitationPresentation = presentationFor(content);
   const channels = new Set();
   const joinedLines = new Map();
   let runningHost = null;
   let open = Boolean(invitation);
+  let invitationRevision = 0;
 
   const close = () => {
     if (invitation && !session.current()) return;
@@ -54,8 +148,14 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
     onChanged();
     openButton?.focus();
   };
+  const show = () => {
+    open = true;
+    render();
+    onChanged();
+    panel.querySelector("h2").focus();
+  };
   closeButton.addEventListener("click", close);
-  openButton.addEventListener("click", () => { open = true; render(); onChanged(); panel.querySelector("h2").focus(); });
+  openButton.addEventListener("click", show);
   inviteButton.addEventListener("click", () => { open = true; renderInvite().catch(onFailure); onChanged(); });
 
   function render() {
@@ -63,6 +163,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
     openButton.hidden = !session.current();
     const fulfilled = session.current()?.state === "FULFILLED";
     inviteButton.hidden = !session.current() || fulfilled;
+    inviteButton.textContent = invitationLabel?.() ?? "Invite another Host";
     openButton.setAttribute("aria-expanded", String(open));
     if (!open) return;
     if (invitation && !session.current()) { renderJoin(invitation); return; }
@@ -83,7 +184,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
       summary.textContent = "Exact membership evidence"; pre.textContent = JSON.stringify(part, null, 2); exact.append(summary, pre);
       item.append(title, state, exact); list.append(item);
     }
-    const action = document.createElement("button"); action.type = "button"; action.textContent = "Invite another Host";
+    const action = document.createElement("button"); action.type = "button"; action.textContent = invitationLabel?.() ?? "Invite another Host";
     action.addEventListener("click", () => renderInvite().catch(onFailure));
     const add = document.createElement("button"); add.type = "button"; add.textContent = "Add a Host";
     add.addEventListener("click", renderAddHost);
@@ -111,14 +212,67 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
       back.addEventListener("click", render);
       actions.append(back);
       if (outfitter.checked()) {
-        const invite = document.createElement("button"); invite.type = "button"; invite.textContent = "Create separate Body invitation";
-        invite.addEventListener("click", () => renderInvite().catch(onFailure));
-        actions.prepend(invite);
+        const proceed = document.createElement("button"); proceed.type = "button"; proceed.textContent = "Continue with reviewed Host";
+        proceed.addEventListener("click", () => renderBrowserFabrication(outfitter.selection()));
+        actions.prepend(proceed);
       }
       content.append(actions);
     };
     outfitter = createBrowserConfigurationOutfitter({ host, presentationFor, onChange: redraw });
     redraw();
+  }
+
+  function renderBrowserFabrication(configurationSelection) {
+    if (!configurationSelection) throw new Error("Review the exact browser Host PROFILE before fabrication");
+    content.replaceChildren();
+    const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a Host";
+    const heading = document.createElement("h3"); heading.textContent = "Bind and admit this reviewed browser Host";
+    const explanation = document.createElement("p");
+    explanation.textContent = "Acquire the reviewed distribution, bind this exact PROFILE and a separate finite Body invitation, then realize and explicitly admit the fresh browser Host.";
+    const catalog = createPhysicalHostTargetCatalog({
+      generation: 1,
+      contributions: [BROWSER_EXISTING_COMPUTER_CONTRIBUTION],
+    });
+    const runner = createPhysicalHostRunner({
+      host,
+      hostOperations,
+      presentationFor,
+      targetCatalog: catalog,
+      adapterContext: {
+        configurationSelection,
+        async prepareSpore({ selection, imageDigest, nowMillis, entropy }) {
+          const nonce = crypto.getRandomValues(new Uint8Array(32));
+          try {
+            return await session.prepareBrowserSpore(selection, imageDigest, entropy, nonce, nowMillis);
+          } finally {
+            nonce.fill(0);
+          }
+        },
+      },
+      async admitJoin(join) {
+        await beforeAdmission();
+        const proof = {
+          invitation_id: join.invitation_id,
+          body_id: join.body_id,
+          host_id: join.host_id,
+          boot_id: join.boot_id,
+          nonce: join.nonce,
+          signature: join.signature,
+        };
+        const receipt = await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
+        return Object.freeze({
+          schema: "conduit.workspace/physical-host-admission@1",
+          membership_revision: receipt.body.evidence.membership.revision,
+          offer_count: receipt.body.current_host_offers.length,
+        });
+      },
+      onBodyChanged() { onChanged(); render(); },
+    });
+    const actions = document.createElement("div"); actions.className = "membership-actions";
+    const back = document.createElement("button"); back.type = "button"; back.textContent = "Back to Host review";
+    back.addEventListener("click", renderAddHost);
+    actions.append(back);
+    content.append(kicker, heading, explanation, runner, actions);
   }
 
   function renderRunningHost() {
@@ -136,6 +290,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
       input.disabled = true;
       let secret = null;
       let nonce = null;
+      let join = null;
       try {
         runningHost = await connectRendezvousHost(input.value, { retainLine: true });
         secret = crypto.getRandomValues(new Uint8Array(32));
@@ -150,12 +305,13 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
           invitation_secret: secret,
           invitation_expires_at_millis: claim.expires_at_millis,
         };
-        const join = await runningHost.invite(prepared);
+        join = await runningHost.invite(prepared);
         runningHost = null;
         await beforeAdmission();
         const proof = { invitation_id: join.invitation_id, body_id: join.body_id,
           host_id: join.host_id, boot_id: join.boot_id, nonce: join.nonce, signature: join.signature };
-        await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
+        const receipt = await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
+        await join.line.retainMembership(receipt.credential);
         const lineKey = `${join.host_id}\u0000${join.boot_id}`;
         joinedLines.set(lineKey, Object.freeze({
           host_id: join.host_id,
@@ -175,6 +331,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
         onChanged(); render();
       } catch (error) {
         runningHost?.cancel(); runningHost = null;
+        try { await join?.line?.close(); } catch {}
         connect.disabled = false;
         input.disabled = false;
         onFailure(error);
@@ -198,15 +355,26 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
     const url = invitationUrl(globalThis.location, artifact);
     const channel = listenForJoin(claim);
     channels.add(channel);
-    content.innerHTML = `<p class="membership-kicker">Invitation ready</p><h3>${escapeText(body.friendly_name)}</h3>
-      <p>This single-use invitation offers admission to this Body for ten minutes. It does not authorize Forms or arbitrary effects. Keep this Workspace open while the other Host joins.</p>
-      <label>Portable invitation link<textarea readonly data-invitation-link></textarea></label>
-      <div class="membership-actions"><button type="button" data-copy-invitation>Copy invitation</button><button type="button" data-cancel-invitation>Back to members</button></div>
+    content.innerHTML = `<div data-application-slot="workspace-invitation"></div><div data-invitation-qr hidden></div>
       <details><summary>Invitation details</summary><pre>${escapeText(JSON.stringify({ ...artifact, secret: "redacted bounded invitation capability" }, null, 2))}</pre></details>
       <p class="transport-note">Available now: another Host in this browser’s same-origin rendezvous. Remote internet rendezvous is not yet supported.</p>`;
-    content.querySelector("[data-invitation-link]").value = url;
-    content.querySelector("[data-copy-invitation]").addEventListener("click", async event => { await navigator.clipboard.writeText(url); event.currentTarget.textContent = "Copied"; });
-    content.querySelector("[data-cancel-invitation]").addEventListener("click", () => { channel.close(); channels.delete(channel); render(); });
+    const revision = ++invitationRevision;
+    const view = session.invitationView({ invitation_id: claim.invitation_id, body_id: claim.body_id,
+      body_name: body.friendly_name, expires_at_millis: claim.expires_at_millis, transfer_uri: url, revision,
+      clipboard_available: typeof navigator.clipboard?.writeText === "function", share_available: typeof navigator.share === "function" });
+    invitationPresentation.present("workspace-invitation", view, { async onEvent(event) {
+      invitationPresentation.nextEvent("workspace-invitation");
+      if (event.revision !== invitationRevision || event.kind !== 1 || event.value.length !== 0) {
+        onFailure(new Error("This invitation presentation is stale")); return;
+      }
+      try {
+        if (event.action === "invitation.show-qr") renderInvitationQr(content.querySelector("[data-invitation-qr]"), session.invitationQr(url));
+        else if (event.action === "invitation.copy-link") await navigator.clipboard.writeText(url);
+        else if (event.action === "invitation.share") await navigator.share({ title: `Join ${body.friendly_name}`, url });
+        else if (event.action === "invitation.dismiss") { channel.close(); channels.delete(channel); render(); }
+        else throw new Error("Unknown invitation presentation action");
+      } catch (error) { onFailure(error); }
+    } });
   }
 
   function listenForJoin(claim) {
@@ -269,6 +437,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
     isOpen: () => open,
     isJoining: () => Boolean(invitation && !session.current()),
     render,
+    show,
     close,
     planningLines: () => Array.from(joinedLines.values(), joined => ({
       host_id: joined.host_id,

@@ -39,6 +39,11 @@ capacity, cancellation/terminal bookkeeping, and mandatory Sign storage. A
 continuous Form may perform arbitrarily many transitions over time, but each
 transition uses only that admitted finite workset. No transition counter is a
 semantic limit, and no restart is used to renew a resource or timer budget.
+An admitted queue, slot pool, or hardware ring is ordinarily a simultaneous
+occupancy bound: after an occupant is consumed or retired, that storage is
+reusable in the same Play. It becomes a lifetime-transition bound only when
+that cardinality is explicit authored meaning rather than an implementation
+counter that happens to reach the storage capacity.
 
 The finite-state specimen in `conduit-body` retains one bounded integer and one
 fixed resource envelope. Its caller may provide any number of transitions. A

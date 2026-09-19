@@ -1,17 +1,129 @@
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyFormPlan, BodyMembership,
-    BodyPlayIdentity, BodyState, MembershipProofId, PartId, ResidentForm, WakeLifecycle,
+    BodyPlayIdentity, BodyState, FulfillmentReadiness, MembershipProofId, PartId,
+    PurposeObligationState, ResidentForm, WakeLifecycle, derive_fulfillment_readiness,
 };
 use conduit_core::{
     AuthorityGrantId, BootId, ExpandedFormId, FormIdentity, HostAdvertisement, HostId,
-    HostProfileId, OfferGeneration, PROTOCOL_VERSION, bind_sign, seal_plan,
+    HostProfileId, OfferGeneration, PROTOCOL_VERSION, SignId, bind_sign, seal_plan,
 };
 use conduit_workspace_model::{
     CurrentHostOfferError, CurrentHostOffers, WorkspaceBody, WorkspaceBodyError,
 };
 
+#[test]
+fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
+    let body = born();
+    let view = conduit_workspace_model::tutorial::presentation(
+        &body,
+        7,
+        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+    )
+    .unwrap()
+    .lower()
+    .unwrap();
+    assert_eq!(view.revision, 7);
+    assert!(view.nodes.iter().any(|node| node.text == "Wake this Body"));
+    assert!(view.actions.iter().any(|action| action.id == "body.wake"));
+    assert!(view.nodes.iter().any(|node| {
+        node.text.contains("Purpose · exact readiness") && node.text.contains("not ready")
+    }));
+}
+
+#[test]
+fn revised_tutorial_uses_the_shared_host_invitation_action() {
+    let mut body = born();
+    body.admit_form(0, form("notes"), &host(), &boot()).unwrap();
+    start(&mut body);
+    let view = conduit_workspace_model::tutorial::presentation(
+        &body,
+        8,
+        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+    )
+    .unwrap()
+    .lower()
+    .unwrap();
+    assert!(
+        view.nodes
+            .iter()
+            .any(|node| node.text == "Invite another Host")
+    );
+    assert!(
+        view.actions
+            .iter()
+            .any(|action| action.id == "body.invite-host")
+    );
+}
+
+#[test]
+fn tutorial_purpose_is_derived_from_exact_body_evidence_not_a_chapter_counter() {
+    let mut body = born();
+    let initial = conduit_workspace_model::tutorial::purpose_state(&body).unwrap();
+    assert!(matches!(
+        initial.obligations[0].state,
+        PurposeObligationState::Satisfied { ref evidence_sign_ids }
+            if evidence_sign_ids == &[SignId::from("sign/birth")]
+    ));
+    assert!(
+        initial.obligations[1..]
+            .iter()
+            .all(|obligation| matches!(obligation.state, PurposeObligationState::Pending))
+    );
+
+    start(&mut body);
+    let active = conduit_workspace_model::tutorial::purpose_state(&body).unwrap();
+    for obligation_id in ["born", "wake", "plan-ready", "play-started"] {
+        let obligation = active
+            .obligations
+            .iter()
+            .find(|obligation| obligation.obligation_id == obligation_id)
+            .unwrap();
+        assert!(matches!(
+            obligation.state,
+            PurposeObligationState::Satisfied { .. }
+        ));
+    }
+    assert!(matches!(
+        derive_fulfillment_readiness(&active).unwrap(),
+        FulfillmentReadiness::NotReady { ref reasons, .. }
+            if reasons.iter().any(|reason| reason.obligation_id == "add-host")
+                && reasons.iter().any(|reason| reason.obligation_id == "repair-fault")
+    ));
+}
+
 fn host() -> HostId {
     "host/here".into()
+}
+
+#[test]
+fn invitation_transfer_methods_share_one_revision_bound_semantic_identity() {
+    let semantic = conduit_workspace_model::invitation::InvitationPresentation {
+        invitation_id: "invitation/one",
+        body_id: "body/one",
+        body_name: "Orifina",
+        expires_at_millis: 42,
+        transfer_uri: "https://example.invalid/workspace/#body-invitation=opaque",
+        clipboard_available: true,
+        share_available: false,
+    }
+    .view(12)
+    .unwrap();
+    let view = semantic.lower().unwrap();
+    assert_eq!(view.revision, 12);
+    for identity in [
+        "invitation.show-qr",
+        "invitation.copy-link",
+        "invitation.dismiss",
+    ] {
+        assert!(view.actions.iter().any(|action| action.id == identity));
+    }
+    assert!(
+        !view
+            .actions
+            .iter()
+            .any(|action| action.id == "invitation.share")
+    );
+    assert!(format!("{semantic:?}").contains("body-invitation=opaque"));
 }
 
 #[test]
@@ -258,6 +370,90 @@ fn missing_workload_and_stale_boot_refuse_before_publishing_a_wake() {
     );
     assert_eq!(body.evidence(), &before);
     assert!(body.realization().is_none());
+}
+
+#[test]
+fn quantitative_pre_play_refusal_survives_into_the_body_biography() {
+    let mut body = born();
+    let proposal = body
+        .propose(plans(&body), &host(), &boot())
+        .unwrap()
+        .clone();
+    let rejection = conduit_body::WakeRejectionEvidence {
+        reason_code: "lowering.capacity".into(),
+        category: "Capacity".into(),
+        stage: "Body lowering".into(),
+        resource: "nodes".into(),
+        required: 33,
+        available: 32,
+        host_id: host(),
+        boot_id: boot(),
+        plan_id: Some(proposal.plan.plan_id.clone()),
+        checked_form_ids: proposal
+            .plan
+            .forms
+            .iter()
+            .map(|form| form.form.checked_form_id.clone())
+            .collect(),
+    };
+    body.fail(&host(), &boot(), vec![rejection.clone()])
+        .unwrap();
+    assert!(body.realization().is_none());
+    let wake = body.evidence().wakes.last().unwrap();
+    assert_eq!(wake.lifecycle, conduit_body::WakeLifecycle::Failed);
+    assert_eq!(wake.plans.len(), 1);
+    assert_eq!(wake.plans[0].plan_id, proposal.plan.plan_id);
+    assert_eq!(
+        wake.plans[0].state,
+        conduit_body::WakePlanState::AwaitingPlay
+    );
+    assert_eq!(wake.rejections, vec![rejection]);
+}
+
+#[test]
+fn refusal_evidence_cannot_claim_unrelated_host_plan_or_form_provenance() {
+    let mut body = born();
+    let proposal = body
+        .propose(plans(&body), &host(), &boot())
+        .unwrap()
+        .clone();
+    let valid = conduit_body::WakeRejectionEvidence {
+        reason_code: "lowering.capacity".into(),
+        category: "Capacity".into(),
+        stage: "Body lowering".into(),
+        resource: "nodes".into(),
+        required: 33,
+        available: 32,
+        host_id: host(),
+        boot_id: boot(),
+        plan_id: Some(proposal.plan.plan_id.clone()),
+        checked_form_ids: proposal
+            .plan
+            .forms
+            .iter()
+            .map(|form| form.form.checked_form_id.clone())
+            .collect(),
+    };
+    for forged in [
+        conduit_body::WakeRejectionEvidence {
+            host_id: "host/other".into(),
+            ..valid.clone()
+        },
+        conduit_body::WakeRejectionEvidence {
+            plan_id: Some("plan/other".into()),
+            ..valid.clone()
+        },
+        conduit_body::WakeRejectionEvidence {
+            checked_form_ids: vec!["form/other".into()],
+            ..valid.clone()
+        },
+    ] {
+        assert_eq!(
+            body.fail(&host(), &boot(), vec![forged]),
+            Err(WorkspaceBodyError::StalePlay)
+        );
+        assert!(body.realization().is_some());
+    }
 }
 
 #[test]

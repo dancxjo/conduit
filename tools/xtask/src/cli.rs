@@ -71,6 +71,8 @@ pub enum Command {
     Forms(FormsArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
+    /// Install explicit prerequisites for a repository workflow.
+    Setup(SetupArgs),
     /// Check the standalone ESP32 fabrication package without touching hardware.
     Esp32Firmware(Esp32FirmwareArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
@@ -324,6 +326,7 @@ pub enum DoctorTarget {
     All,
     Browser,
     Pico,
+    LinuxRelease,
 }
 
 impl DoctorTarget {
@@ -332,8 +335,21 @@ impl DoctorTarget {
             Self::All => "all",
             Self::Browser => "browser",
             Self::Pico => "pico",
+            Self::LinuxRelease => "linux-release",
         }
     }
+}
+
+#[derive(Args, Debug)]
+pub struct SetupArgs {
+    /// Repository workflow to prepare.
+    #[arg(default_value = "linux-release")]
+    pub target: SetupTarget,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SetupTarget {
+    LinuxRelease,
 }
 
 #[cfg(test)]
@@ -354,6 +370,14 @@ mod tests {
             .expect("doctor command parses");
         assert!(doctor.global.dry_run);
         assert!(matches!(doctor.command, Command::Doctor(_)));
+
+        let release_doctor = Cli::try_parse_from(["xtask", "doctor", "linux-release"])
+            .expect("Linux release doctor command parses");
+        assert!(matches!(release_doctor.command, Command::Doctor(_)));
+
+        let setup = Cli::try_parse_from(["xtask", "setup", "linux-release"])
+            .expect("Linux release setup command parses");
+        assert!(matches!(setup.command, Command::Setup(_)));
 
         let pico = Cli::try_parse_from(["xtask", "pico", "build"]).expect("pico command parses");
         assert!(matches!(pico.command, Command::Pico(_)));

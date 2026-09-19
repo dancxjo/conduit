@@ -145,3 +145,21 @@ fn every_refusal_is_machine_readable_and_storage_is_fixed() {
     assert_eq!(FTDI_TRANSFER_TRBS, 128);
     assert_eq!(FTDI_PAYLOAD_BYTES, 62);
 }
+
+#[test]
+fn completed_bulk_transfers_reuse_each_fixed_direction_ring() {
+    let lifetime_transfers = FTDI_TRANSFER_SLOTS * 100;
+    for sequence in 0..lifetime_transfers {
+        let position = TransferPosition::at(sequence, FTDI_TRANSFER_SLOTS, 1);
+        assert_eq!(position.slot, sequence % FTDI_TRANSFER_SLOTS);
+        assert_eq!(position.buffer, 0);
+        assert_eq!(
+            position.cycle,
+            1 ^ ((sequence / FTDI_TRANSFER_SLOTS) & 1) as u32
+        );
+        let trb = position.normal_at(0x4000, FTDI_PACKET_BYTES);
+        assert_eq!((trb[0], trb[1], trb[2]), (0x4000, 0, 64));
+        assert_eq!(trb[3] & 1, position.cycle);
+    }
+    assert_eq!(core::mem::size_of::<FtdiDma>(), 8_192);
+}

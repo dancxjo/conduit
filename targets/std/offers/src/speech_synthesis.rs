@@ -20,12 +20,12 @@ pub const DETERMINISTIC_STREAMING_SPEECH_PROFILE: &str =
 pub const DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION: &str =
     "conduit-proof/deterministic-streaming-speech@1";
 pub const DETERMINISTIC_SPEECH_ARTIFACT: &str = "conduit-std-host/proof-deterministic-speech@1";
-pub const PIPER_FRAMES_PER_BLOCK: u16 = 25;
+const _: () =
+    assert!(conduit_tongues::MAXIMUM_PCM_BYTES == crate::AUDIO_CONVERT_PCM_INPUT_MAXIMUM_BYTES);
+pub const PIPER_FRAMES_PER_BLOCK: u16 = crate::AUDIO_CONVERT_PCM_INPUT_FRAMES_PER_BLOCK;
 pub const PIPER_MAXIMUM_FRAMES: u32 = conduit_tongues::MAXIMUM_PCM_BYTES / 2;
-pub const PIPER_PCM_BLOCK_BYTES: u32 =
-    conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32 + PIPER_FRAMES_PER_BLOCK as u32 * 2;
-pub const PIPER_MAXIMUM_BLOCKS: u16 =
-    PIPER_MAXIMUM_FRAMES.div_ceil(PIPER_FRAMES_PER_BLOCK as u32) as u16;
+pub const PIPER_PCM_BLOCK_BYTES: u32 = crate::AUDIO_CONVERT_PCM_MAXIMUM_INPUT_BYTES;
+pub const PIPER_MAXIMUM_BLOCKS: u16 = crate::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BLOCKS;
 
 pub fn piper_speech_offer() -> CapabilityOffer {
     speech_offer(

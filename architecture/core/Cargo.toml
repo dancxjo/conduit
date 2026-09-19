@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-conduit-assigned-plan = { path = "../assigned-plan" }
+conduit-assigned-plan = { path = "../assigned-plan", features = ["serde"] }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 sha2 = { version = "0.10", default-features = false }
 libm = "0.2"

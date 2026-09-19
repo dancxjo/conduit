@@ -21,9 +21,10 @@ fn repeated_wraps_reuse_fixed_slots_with_independent_report_buffer_and_cycle() {
         if sequence == 0 || position.slot == TRANSFER_RING_REPORT_SLOTS - 1 {
             storage[63] = position.link(ring);
         }
-        publish(position.normal(reports), |word, value| {
-            storage[position.slot][word] = value
-        });
+        publish(
+            position.normal(reports, BOOT_REPORT_BYTES),
+            |word, value| storage[position.slot][word] = value,
+        );
         let trb = storage[consumer];
         assert_eq!(trb[3] & 1, cycle);
         assert_eq!(
@@ -48,9 +49,10 @@ fn repeated_wraps_reuse_fixed_slots_with_independent_report_buffer_and_cycle() {
 #[test]
 fn payload_is_fully_written_before_cycle_publishes_ownership() {
     let mut writes = Vec::new();
-    publish(Position::at(63).normal(0x1000), |word, value| {
-        writes.push((word, value))
-    });
+    publish(
+        Position::at(63).normal(0x1000, BOOT_REPORT_BYTES),
+        |word, value| writes.push((word, value)),
+    );
     assert_eq!(
         writes.iter().map(|(word, _)| *word).collect::<Vec<_>>(),
         [0, 1, 2, 3]

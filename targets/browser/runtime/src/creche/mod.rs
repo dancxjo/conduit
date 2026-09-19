@@ -3,6 +3,7 @@
 mod abi;
 mod birth_draft;
 mod browser_configuration;
+pub(crate) use browser_configuration::BrowserConfigurationSelection;
 mod durable;
 mod graduation;
 mod graduation_presentation;
@@ -32,6 +33,7 @@ pub(crate) struct PlanningAuthority {
     pub browser_audio: bool,
 }
 mod spore;
+pub(crate) use spore::prepare_workspace_browser;
 mod spore_target;
 
 #[cfg(test)]
