@@ -31,8 +31,8 @@ pub enum Ps2Error {
     UnsupportedKeyboardCode,
     MalformedPointerPacket,
     KeyboardQueuePressure,
-    PointerQueuePressure,
     SequenceOverflow,
+    PressureEvidenceOverflow,
 }
 
 impl Ps2Error {
@@ -48,8 +48,8 @@ impl Ps2Error {
             Self::UnsupportedKeyboardCode => "ps2-keyboard-code-unsupported",
             Self::MalformedPointerPacket => "ps2-pointer-packet-malformed",
             Self::KeyboardQueuePressure => "ps2-keyboard-queue-pressure",
-            Self::PointerQueuePressure => "ps2-pointer-queue-pressure",
             Self::SequenceOverflow => "ps2-pointer-sequence-overflow",
+            Self::PressureEvidenceOverflow => "ps2-pointer-pressure-evidence-overflow",
         }
     }
 }
@@ -175,6 +175,38 @@ pub struct Ps2Input {
 }
 
 impl Ps2Input {
+    fn retain_pointer(&mut self, sample: NormalizedPointerSample) -> Result<(), Ps2Error> {
+        let retained = match self.pending_pointer {
+            None => sample,
+            Some(previous) => NormalizedPointerSample {
+                position_x: sample.position_x,
+                position_y: sample.position_y,
+                delta_x: previous
+                    .delta_x
+                    .checked_add(sample.delta_x)
+                    .ok_or(Ps2Error::PressureEvidenceOverflow)?,
+                delta_y: previous
+                    .delta_y
+                    .checked_add(sample.delta_y)
+                    .ok_or(Ps2Error::PressureEvidenceOverflow)?,
+                primary_pressed: sample.primary_pressed,
+                coalesced: previous
+                    .coalesced
+                    .checked_add(sample.coalesced)
+                    .and_then(|count| count.checked_add(1))
+                    .ok_or(Ps2Error::PressureEvidenceOverflow)?,
+                dropped: previous
+                    .dropped
+                    .checked_add(sample.dropped)
+                    .ok_or(Ps2Error::PressureEvidenceOverflow)?,
+                queue_capacity: 1,
+                sequence: sample.sequence,
+            },
+        };
+        self.pending_pointer = Some(retained);
+        Ok(())
+    }
+
     pub fn initialize() -> Result<(Self, Ps2Ready), Ps2Error> {
         command(0xad)?;
         command(0xa7)?;
@@ -241,10 +273,8 @@ impl Ps2Input {
             return Ok(None);
         };
         if auxiliary {
-            if let Some(sample) = self.pointer.accept(byte)?
-                && self.pending_pointer.replace(sample).is_some()
-            {
-                return Err(Ps2Error::PointerQueuePressure);
+            if let Some(sample) = self.pointer.accept(byte)? {
+                self.retain_pointer(sample)?;
             }
             return Ok(None);
         }
@@ -457,47 +487,5 @@ const fn set2_usage(extended: bool, code: u8) -> Option<u8> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn set_two_make_break_maps_directly_to_portable_usage() {
-        let mut decoder = KeyboardDecoder::new();
-        let press = decoder.accept(0x1c).unwrap().unwrap();
-        assert_eq!(
-            (press.usage(), press.pressed(), press.modifiers()),
-            (4, true, 0)
-        );
-        assert_eq!(decoder.accept(0xf0).unwrap(), None);
-        let release = decoder.accept(0x1c).unwrap().unwrap();
-        assert_eq!((release.usage(), release.pressed()), (4, false));
-    }
-
-    #[test]
-    fn modifier_state_is_after_each_transition() {
-        let mut decoder = KeyboardDecoder::new();
-        let control = decoder.accept(0x14).unwrap().unwrap();
-        assert_eq!(control.modifiers(), 1);
-        assert_eq!(decoder.accept(0xf0).unwrap(), None);
-        assert_eq!(decoder.accept(0x14).unwrap().unwrap().modifiers(), 0);
-    }
-
-    #[test]
-    fn relative_pointer_packet_preserves_only_truthful_semantics() {
-        let mut decoder = PointerDecoder::new();
-        assert_eq!(decoder.accept(0x09).unwrap(), None);
-        assert_eq!(decoder.accept(2).unwrap(), None);
-        let sample = decoder.accept(1).unwrap().unwrap();
-        assert_eq!((sample.delta_x, sample.delta_y), (8_000, -4_000));
-        assert!(sample.primary_pressed);
-        assert_eq!(sample.sequence, 1);
-    }
-
-    #[test]
-    fn malformed_and_unsupported_input_refuse() {
-        let mut keyboard = KeyboardDecoder::new();
-        assert_eq!(keyboard.accept(0), Err(Ps2Error::UnsupportedKeyboardCode));
-        let mut pointer = PointerDecoder::new();
-        assert_eq!(pointer.accept(0), Err(Ps2Error::MalformedPointerPacket));
-    }
-}
+#[path = "ps2_tests.rs"]
+mod tests;

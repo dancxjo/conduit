@@ -1,59 +1,18 @@
 //! One reusable, admitted interrupt ring; exact report completion is unchanged.
-use core::{
-    ptr::write_volatile,
-    sync::atomic::{Ordering, fence},
-};
+use core::ptr::write_volatile;
 
+use super::super::hid_transfer_ring::{TransferPosition, publish};
 use super::{
     BOOT_REPORT_BYTES, HID_DMA, HidDma, HidError, INTERRUPT_POLL_WINDOWS, REPORT_BUFFERS,
     TRANSFER_RING_REPORT_SLOTS, ensure_device_present, validate_interrupt_event,
 };
 use crate::arch::x86_64::{serial, usb::UsbDevice, xhci::XhciReady};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct Position {
-    slot: usize,
-    buffer: usize,
-    cycle: u32,
-}
+struct Position;
 impl Position {
-    fn at(sequence: usize) -> Self {
-        Self {
-            slot: sequence % TRANSFER_RING_REPORT_SLOTS,
-            buffer: sequence % REPORT_BUFFERS,
-            cycle: 1 ^ ((sequence / TRANSFER_RING_REPORT_SLOTS) & 1) as u32,
-        }
+    fn at(sequence: usize) -> TransferPosition {
+        TransferPosition::at(sequence, TRANSFER_RING_REPORT_SLOTS, REPORT_BUFFERS)
     }
-    fn normal(self, reports: u64) -> [u32; 4] {
-        let address = reports + (self.buffer * BOOT_REPORT_BYTES) as u64;
-        [
-            address as u32,
-            (address >> 32) as u32,
-            BOOT_REPORT_BYTES as u32,
-            (1 << 10) | (1 << 5) | self.cycle,
-        ]
-    }
-    fn link(self, ring: u64) -> [u32; 4] {
-        // xHCI 1.2b §4.9.2, §6.4.4.1: one Link TRB toggles cycle at wrap.
-        // https://cdrdv2-public.intel.com/625472/625472_xHCI_Rev1_2b.pdf
-        [
-            ring as u32,
-            (ring >> 32) as u32,
-            0,
-            (6 << 10) | (1 << 1) | self.cycle,
-        ]
-    }
-}
-
-/// Publish payload before granting the controller ownership through cycle.
-/// The x86 coherent DMA boundary supplies hardware ordering; release prevents
-/// compiler reordering of payload after the final control-word write.
-fn publish(trb: [u32; 4], mut write: impl FnMut(usize, u32)) {
-    for (word, value) in trb[..3].iter().copied().enumerate() {
-        write(word, value);
-    }
-    fence(Ordering::Release);
-    write(3, trb[3]);
 }
 
 fn enqueue(sequence: usize, ring: u64, reports: u64) {
@@ -68,12 +27,15 @@ fn enqueue(sequence: usize, ring: u64, reports: u64) {
             );
         });
     }
-    publish(position.normal(reports), |word, value| unsafe {
-        write_volatile(
-            core::ptr::addr_of_mut!(HID_DMA.transfer_ring[position.slot][word]),
-            value,
-        );
-    });
+    publish(
+        position.normal(reports, BOOT_REPORT_BYTES),
+        |word, value| unsafe {
+            write_volatile(
+                core::ptr::addr_of_mut!(HID_DMA.transfer_ring[position.slot][word]),
+                value,
+            );
+        },
+    );
 }
 
 /// Publish the next fixed receive window without waiting for completion.
