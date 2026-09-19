@@ -39,6 +39,7 @@ mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
 mod evidence_lineage;
 mod execution_disposition_explanation;
+mod experience_inspection;
 mod face_configuration;
 mod face_controls;
 mod form_editor;
@@ -203,6 +204,7 @@ pub use evidence_lineage::{PatchbayEvidenceLineage, PatchbayEvidenceLineageRow};
 pub use execution_disposition_explanation::{
     explain_execution_disposition, ExecutionDispositionExplanation,
 };
+pub use experience_inspection::*;
 pub use face_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
