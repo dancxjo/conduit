@@ -18,11 +18,11 @@ mod projection;
 use core_projection::{append_execution_truth, append_operator_actions};
 use projection::append_contribution;
 
-pub const MAX_BODY_SURFACE_CONTRIBUTIONS: usize = 5;
-pub const MAX_BODY_SURFACE_TRANSIENTS: usize = 2;
+pub const MAX_FACE_CONTRIBUTIONS: usize = 5;
+pub const MAX_FACE_TRANSIENTS: usize = 2;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BodySurfaceContext {
+pub enum FaceContext {
     Overview,
     Library,
     ResidentForm(CheckedFormId),
@@ -31,14 +31,14 @@ pub enum BodySurfaceContext {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BodySurfaceContributionRole {
+pub enum FaceContributionRole {
     Foreground,
     Tutorial,
     Inspection,
     Transient,
 }
 
-impl BodySurfaceContributionRole {
+impl FaceContributionRole {
     fn token(self) -> &'static str {
         match self {
             Self::Foreground => "foreground",
@@ -50,8 +50,8 @@ impl BodySurfaceContributionRole {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BodySurfaceContribution {
-    pub role: BodySurfaceContributionRole,
+pub struct FaceContribution {
+    pub role: FaceContributionRole,
     pub checked_form_id: CheckedFormId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
@@ -59,27 +59,27 @@ pub struct BodySurfaceContribution {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BodySurfaceFocus {
+pub enum FaceFocus {
     Body,
     Contribution {
-        role: BodySurfaceContributionRole,
+        role: FaceContributionRole,
         node_key: Option<String>,
     },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BodySurface {
-    pub context: BodySurfaceContext,
-    pub focus: BodySurfaceFocus,
+pub struct Face {
+    pub context: FaceContext,
+    pub focus: FaceFocus,
     pub presentation: Presentation,
-    pub application_actions: Vec<BodySurfaceApplicationAction>,
-    pub operator_actions: Vec<BodySurfaceOperatorAction>,
+    pub application_actions: Vec<FaceApplicationAction>,
+    pub operator_actions: Vec<FaceOperatorAction>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BodySurfaceApplicationAction {
+pub struct FaceApplicationAction {
     pub surface_action_id: String,
-    pub role: BodySurfaceContributionRole,
+    pub role: FaceContributionRole,
     pub checked_form_id: CheckedFormId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
@@ -89,13 +89,13 @@ pub struct BodySurfaceApplicationAction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BodySurfaceOperatorAction {
+pub struct FaceOperatorAction {
     pub surface_action_id: String,
-    pub kind: BodySurfaceOperatorActionKind,
+    pub kind: FaceOperatorActionKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BodySurfaceOperatorActionKind {
+pub enum FaceOperatorActionKind {
     Wake,
     Lull,
     OpenOverview,
@@ -105,7 +105,7 @@ pub enum BodySurfaceOperatorActionKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BodySurfaceRefusal {
+pub enum FaceRefusal {
     InvalidBody,
     InvalidWake,
     MissingCurrentWake,
@@ -125,19 +125,18 @@ pub enum BodySurfaceRefusal {
     UnavailableAction,
 }
 
-impl BodySurface {
+impl Face {
     /// Projects Body truth first, then admits optional resident application
     /// contributions only from exact Plays in the current Wake.
     pub fn project(
         body: &Body,
         wake: Option<&Wake>,
         revision: u64,
-        context: BodySurfaceContext,
-        focus: BodySurfaceFocus,
-        contributions: Vec<BodySurfaceContribution>,
-    ) -> Result<Self, BodySurfaceRefusal> {
-        body.validate()
-            .map_err(|_| BodySurfaceRefusal::InvalidBody)?;
+        context: FaceContext,
+        focus: FaceFocus,
+        contributions: Vec<FaceContribution>,
+    ) -> Result<Self, FaceRefusal> {
+        body.validate().map_err(|_| FaceRefusal::InvalidBody)?;
         validate_wake(body, wake)?;
         validate_contributions(body, wake, &context, &focus, &contributions)?;
 
@@ -305,7 +304,7 @@ impl BodySurface {
             inputs,
             disclosures,
         )
-        .map_err(BodySurfaceRefusal::InvalidPresentation)?;
+        .map_err(FaceRefusal::InvalidPresentation)?;
         Ok(Self {
             context,
             focus,
@@ -316,50 +315,49 @@ impl BodySurface {
     }
 }
 
-fn validate_wake(body: &Body, wake: Option<&Wake>) -> Result<(), BodySurfaceRefusal> {
+fn validate_wake(body: &Body, wake: Option<&Wake>) -> Result<(), FaceRefusal> {
     match (&body.state, wake) {
         (BodyState::Lulled | BodyState::Fulfilled { .. }, None) => Ok(()),
         (BodyState::Lulled | BodyState::Fulfilled { .. }, Some(_)) => {
-            Err(BodySurfaceRefusal::UnexpectedWake)
+            Err(FaceRefusal::UnexpectedWake)
         }
         (BodyState::Awake { wake_id }, Some(wake)) => {
-            wake.validate()
-                .map_err(|_| BodySurfaceRefusal::InvalidWake)?;
+            wake.validate().map_err(|_| FaceRefusal::InvalidWake)?;
             if &wake.wake_id != wake_id
                 || wake.body_id != body.body_id
                 || wake.workset != body.workset
                 || wake.workload_revision != body.workload_revision
             {
-                return Err(BodySurfaceRefusal::InvalidWake);
+                return Err(FaceRefusal::InvalidWake);
             }
             Ok(())
         }
-        (BodyState::Awake { .. }, None) => Err(BodySurfaceRefusal::MissingCurrentWake),
+        (BodyState::Awake { .. }, None) => Err(FaceRefusal::MissingCurrentWake),
     }
 }
 
 fn validate_contributions(
     body: &Body,
     wake: Option<&Wake>,
-    context: &BodySurfaceContext,
-    focus: &BodySurfaceFocus,
-    contributions: &[BodySurfaceContribution],
-) -> Result<(), BodySurfaceRefusal> {
-    if contributions.len() > MAX_BODY_SURFACE_CONTRIBUTIONS {
-        return Err(BodySurfaceRefusal::TooManyContributions);
+    context: &FaceContext,
+    focus: &FaceFocus,
+    contributions: &[FaceContribution],
+) -> Result<(), FaceRefusal> {
+    if contributions.len() > MAX_FACE_CONTRIBUTIONS {
+        return Err(FaceRefusal::TooManyContributions);
     }
     if contributions
         .iter()
-        .filter(|item| item.role == BodySurfaceContributionRole::Transient)
+        .filter(|item| item.role == FaceContributionRole::Transient)
         .count()
-        > MAX_BODY_SURFACE_TRANSIENTS
+        > MAX_FACE_TRANSIENTS
     {
-        return Err(BodySurfaceRefusal::TooManyTransients);
+        return Err(FaceRefusal::TooManyTransients);
     }
     for role in [
-        BodySurfaceContributionRole::Foreground,
-        BodySurfaceContributionRole::Tutorial,
-        BodySurfaceContributionRole::Inspection,
+        FaceContributionRole::Foreground,
+        FaceContributionRole::Tutorial,
+        FaceContributionRole::Inspection,
     ] {
         if contributions
             .iter()
@@ -367,27 +365,27 @@ fn validate_contributions(
             .count()
             > 1
         {
-            return Err(BodySurfaceRefusal::DuplicateRole);
+            return Err(FaceRefusal::DuplicateRole);
         }
     }
     for (index, contribution) in contributions.iter().enumerate() {
         contribution
             .view
             .validate()
-            .map_err(BodySurfaceRefusal::InvalidApplicationView)?;
+            .map_err(FaceRefusal::InvalidApplicationView)?;
         if !body
             .workset
             .forms()
             .iter()
             .any(|form| form.checked_form_id == contribution.checked_form_id)
         {
-            return Err(BodySurfaceRefusal::FormNotResident);
+            return Err(FaceRefusal::FormNotResident);
         }
         if contributions[index + 1..]
             .iter()
             .any(|other| other.active_play_id == contribution.active_play_id)
         {
-            return Err(BodySurfaceRefusal::DuplicatePlay);
+            return Err(FaceRefusal::DuplicatePlay);
         }
         let current = wake.is_some_and(|wake| {
             wake.plans.iter().any(|plan| {
@@ -397,7 +395,7 @@ fn validate_contributions(
             })
         });
         if !current {
-            return Err(BodySurfaceRefusal::PlayNotCurrent);
+            return Err(FaceRefusal::PlayNotCurrent);
         }
     }
     if let Some(form) = context_form(context) {
@@ -407,18 +405,18 @@ fn validate_contributions(
             .iter()
             .any(|resident| &resident.checked_form_id == form)
         {
-            return Err(BodySurfaceRefusal::InvalidContext);
+            return Err(FaceRefusal::InvalidContext);
         }
     }
-    if let BodySurfaceFocus::Contribution { role, node_key } = focus {
+    if let FaceFocus::Contribution { role, node_key } = focus {
         let Some(contribution) = contributions.iter().find(|item| &item.role == role) else {
-            return Err(BodySurfaceRefusal::InvalidFocus);
+            return Err(FaceRefusal::InvalidFocus);
         };
         if node_key
             .as_ref()
             .is_some_and(|key| !contribution.view.nodes.iter().any(|node| &node.key == key))
         {
-            return Err(BodySurfaceRefusal::InvalidFocus);
+            return Err(FaceRefusal::InvalidFocus);
         }
     }
     Ok(())
@@ -440,29 +438,29 @@ fn lifecycle_label(state: &BodyState) -> &'static str {
     }
 }
 
-fn context_label(context: &BodySurfaceContext) -> &'static str {
+fn context_label(context: &FaceContext) -> &'static str {
     match context {
-        BodySurfaceContext::Overview => "overview",
-        BodySurfaceContext::Library => "library",
-        BodySurfaceContext::ResidentForm(_) => "resident-form",
-        BodySurfaceContext::Tutorial(_) => "tutorial",
-        BodySurfaceContext::Inspection(_) => "inspection",
+        FaceContext::Overview => "overview",
+        FaceContext::Library => "library",
+        FaceContext::ResidentForm(_) => "resident-form",
+        FaceContext::Tutorial(_) => "tutorial",
+        FaceContext::Inspection(_) => "inspection",
     }
 }
 
-fn context_form(context: &BodySurfaceContext) -> Option<&CheckedFormId> {
+fn context_form(context: &FaceContext) -> Option<&CheckedFormId> {
     match context {
-        BodySurfaceContext::ResidentForm(form)
-        | BodySurfaceContext::Tutorial(form)
-        | BodySurfaceContext::Inspection(form) => Some(form),
-        BodySurfaceContext::Overview | BodySurfaceContext::Library => None,
+        FaceContext::ResidentForm(form)
+        | FaceContext::Tutorial(form)
+        | FaceContext::Inspection(form) => Some(form),
+        FaceContext::Overview | FaceContext::Library => None,
     }
 }
 
-fn focus_label(focus: &BodySurfaceFocus) -> String {
+fn focus_label(focus: &FaceFocus) -> String {
     match focus {
-        BodySurfaceFocus::Body => "body".into(),
-        BodySurfaceFocus::Contribution { role, node_key } => node_key.as_ref().map_or_else(
+        FaceFocus::Body => "body".into(),
+        FaceFocus::Contribution { role, node_key } => node_key.as_ref().map_or_else(
             || format!("contribution/{}", role.token()),
             |key| format!("contribution/{}/node/{key}", role.token()),
         ),

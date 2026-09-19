@@ -9,7 +9,7 @@ let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("the ordinary Body surface binds and admits one compiler-free reviewed browser Host", async ({ page }) => {
+test("the ordinary Face binds and admits one compiler-free reviewed browser Host", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();

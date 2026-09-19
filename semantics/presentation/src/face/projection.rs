@@ -10,12 +10,12 @@ use crate::{
     UTF8_TEXT_VALUE_KIND,
 };
 
-use super::{BodySurfaceApplicationAction, BodySurfaceContribution, BodySurfaceContributionRole};
+use super::{FaceApplicationAction, FaceContribution, FaceContributionRole};
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn append_contribution(
     index: usize,
-    contribution: &BodySurfaceContribution,
+    contribution: &FaceContribution,
     context_subject: &str,
     subjects: &mut Vec<PresentationSubject>,
     relationships: &mut Vec<PresentationRelationship>,
@@ -24,7 +24,7 @@ pub(super) fn append_contribution(
     actions: &mut Vec<PresentationAction>,
     inputs: &mut Vec<PresentationInput>,
     disclosures: &mut Vec<PresentationDisclosure>,
-    application_actions: &mut Vec<BodySurfaceApplicationAction>,
+    application_actions: &mut Vec<FaceApplicationAction>,
 ) {
     let prefix = format!("surface/{}/{index}", contribution.role.token());
     let root = format!("{prefix}/application");
@@ -130,7 +130,7 @@ pub(super) fn append_contribution(
                 disclosure: contribution_disclosure(contribution.role),
                 availability: action_availability(node.state),
             });
-            application_actions.push(BodySurfaceApplicationAction {
+            application_actions.push(FaceApplicationAction {
                 surface_action_id: action_identity.clone(),
                 role: contribution.role,
                 checked_form_id: contribution.checked_form_id.clone(),
@@ -183,12 +183,12 @@ fn action_availability(state: ApplicationNodeState) -> PresentationActionAvailab
     }
 }
 
-fn contribution_disclosure(role: BodySurfaceContributionRole) -> PresentationDisclosureLevel {
+fn contribution_disclosure(role: FaceContributionRole) -> PresentationDisclosureLevel {
     match role {
-        BodySurfaceContributionRole::Foreground => PresentationDisclosureLevel::Primary,
-        BodySurfaceContributionRole::Tutorial => PresentationDisclosureLevel::CurrentAction,
-        BodySurfaceContributionRole::Inspection => PresentationDisclosureLevel::SelectedDetail,
-        BodySurfaceContributionRole::Transient => PresentationDisclosureLevel::CurrentAction,
+        FaceContributionRole::Foreground => PresentationDisclosureLevel::Primary,
+        FaceContributionRole::Tutorial => PresentationDisclosureLevel::CurrentAction,
+        FaceContributionRole::Inspection => PresentationDisclosureLevel::SelectedDetail,
+        FaceContributionRole::Transient => PresentationDisclosureLevel::CurrentAction,
     }
 }
 

@@ -5,9 +5,9 @@ use conduit_core::{
 };
 use conduit_presentation::{
     ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationNodeState,
-    ApplicationView, ApplicationViewNode, BodySurface, BodySurfaceContext, BodySurfaceContribution,
-    BodySurfaceContributionRole, BodySurfaceFocus, BodySurfaceOperatorActionKind,
-    BodySurfaceRefusal, PresentationPropertyValue, PresentationRole,
+    ApplicationView, ApplicationViewNode, Face, FaceContext, FaceContribution,
+    FaceContributionRole, FaceFocus, FaceOperatorActionKind, FaceRefusal,
+    PresentationPropertyValue, PresentationRole,
 };
 
 fn born_body() -> Body {
@@ -81,12 +81,12 @@ fn tutorial_view(revision: u32) -> ApplicationView {
 #[test]
 fn lulled_body_has_an_exact_surface_without_a_running_form() {
     let body = born_body();
-    let surface = BodySurface::project(
+    let surface = Face::project(
         &body,
         None,
         7,
-        BodySurfaceContext::Overview,
-        BodySurfaceFocus::Body,
+        FaceContext::Overview,
+        FaceFocus::Body,
         vec![],
     )
     .unwrap();
@@ -100,7 +100,7 @@ fn lulled_body_has_an_exact_surface_without_a_running_form() {
             && property.value == PresentationPropertyValue::Text("lulled".into())
     }));
     assert!(surface.operator_actions.iter().any(|action| {
-        action.kind == BodySurfaceOperatorActionKind::Wake
+        action.kind == FaceOperatorActionKind::Wake
             && surface
                 .resolve_operator_action(7, &action.surface_action_id)
                 .is_ok()
@@ -110,20 +110,20 @@ fn lulled_body_has_an_exact_surface_without_a_running_form() {
 #[test]
 fn resident_view_joins_body_truth_only_for_its_current_play() {
     let (body, wake, plan_id, play_id) = playing();
-    let contribution = BodySurfaceContribution {
-        role: BodySurfaceContributionRole::Tutorial,
+    let contribution = FaceContribution {
+        role: FaceContributionRole::Tutorial,
         checked_form_id: CheckedFormId::from("checked/tutorial"),
         plan_id: plan_id.clone(),
         active_play_id: play_id.clone(),
         view: tutorial_view(11),
     };
-    let surface = BodySurface::project(
+    let surface = Face::project(
         &body,
         Some(&wake),
         20,
-        BodySurfaceContext::Tutorial(CheckedFormId::from("checked/tutorial")),
-        BodySurfaceFocus::Contribution {
-            role: BodySurfaceContributionRole::Tutorial,
+        FaceContext::Tutorial(CheckedFormId::from("checked/tutorial")),
+        FaceFocus::Contribution {
+            role: FaceContributionRole::Tutorial,
             node_key: Some("continue".into()),
         },
         vec![contribution.clone()],
@@ -167,75 +167,73 @@ fn resident_view_joins_body_truth_only_for_its_current_play() {
     assert_eq!(routed.application_action_id, "tutorial.continue");
     assert_eq!(
         surface.resolve_application_action(19, &action.identity),
-        Err(BodySurfaceRefusal::StaleAction)
+        Err(FaceRefusal::StaleAction)
     );
     let library = surface
         .operator_actions
         .iter()
-        .find(|action| action.kind == BodySurfaceOperatorActionKind::OpenLibrary)
+        .find(|action| action.kind == FaceOperatorActionKind::OpenLibrary)
         .unwrap();
     assert!(surface
         .resolve_operator_action(20, &library.surface_action_id)
         .is_ok());
     assert_eq!(
         surface.resolve_operator_action(19, &library.surface_action_id),
-        Err(BodySurfaceRefusal::StaleAction)
+        Err(FaceRefusal::StaleAction)
     );
     let inspection = surface
         .operator_actions
         .iter()
         .find(|action| {
             action.kind
-                == BodySurfaceOperatorActionKind::OpenInspection(CheckedFormId::from(
-                    "checked/tutorial",
-                ))
+                == FaceOperatorActionKind::OpenInspection(CheckedFormId::from("checked/tutorial"))
         })
         .unwrap();
     assert_eq!(
         surface.resolve_operator_action(20, &inspection.surface_action_id),
-        Err(BodySurfaceRefusal::UnavailableAction)
+        Err(FaceRefusal::UnavailableAction)
     );
 
     let lulled = born_body();
     assert_eq!(
-        BodySurface::project(
+        Face::project(
             &lulled,
             None,
             21,
-            BodySurfaceContext::Overview,
-            BodySurfaceFocus::Body,
+            FaceContext::Overview,
+            FaceFocus::Body,
             vec![contribution],
         ),
-        Err(BodySurfaceRefusal::PlayNotCurrent)
+        Err(FaceRefusal::PlayNotCurrent)
     );
 }
 
 #[test]
 fn presentation_only_navigation_does_not_change_body_or_running_work() {
     let (body, wake, plan_id, play_id) = playing();
-    let contribution = BodySurfaceContribution {
-        role: BodySurfaceContributionRole::Foreground,
+    let contribution = FaceContribution {
+        role: FaceContributionRole::Foreground,
         checked_form_id: CheckedFormId::from("checked/tutorial"),
         plan_id,
         active_play_id: play_id,
         view: tutorial_view(4),
     };
-    let overview = BodySurface::project(
+    let overview = Face::project(
         &body,
         Some(&wake),
         1,
-        BodySurfaceContext::Overview,
-        BodySurfaceFocus::Body,
+        FaceContext::Overview,
+        FaceFocus::Body,
         vec![contribution.clone()],
     )
     .unwrap();
-    let foreground = BodySurface::project(
+    let foreground = Face::project(
         &body,
         Some(&wake),
         2,
-        BodySurfaceContext::ResidentForm(CheckedFormId::from("checked/tutorial")),
-        BodySurfaceFocus::Contribution {
-            role: BodySurfaceContributionRole::Foreground,
+        FaceContext::ResidentForm(CheckedFormId::from("checked/tutorial")),
+        FaceFocus::Contribution {
+            role: FaceContributionRole::Foreground,
             node_key: None,
         },
         vec![contribution],
@@ -261,20 +259,20 @@ fn presentation_only_navigation_does_not_change_body_or_running_work() {
 #[test]
 fn composition_is_finite_and_deterministic() {
     let (body, wake, plan_id, play_id) = playing();
-    let contribution = BodySurfaceContribution {
-        role: BodySurfaceContributionRole::Tutorial,
+    let contribution = FaceContribution {
+        role: FaceContributionRole::Tutorial,
         checked_form_id: CheckedFormId::from("checked/tutorial"),
         plan_id,
         active_play_id: play_id,
         view: tutorial_view(8),
     };
     let project = || {
-        BodySurface::project(
+        Face::project(
             &body,
             Some(&wake),
             31,
-            BodySurfaceContext::Tutorial(CheckedFormId::from("checked/tutorial")),
-            BodySurfaceFocus::Body,
+            FaceContext::Tutorial(CheckedFormId::from("checked/tutorial")),
+            FaceFocus::Body,
             vec![contribution.clone()],
         )
         .unwrap()
@@ -283,15 +281,15 @@ fn composition_is_finite_and_deterministic() {
     let repeat = project();
     assert_eq!(first.presentation.identity, repeat.presentation.identity);
     assert_eq!(
-        BodySurface::project(
+        Face::project(
             &body,
             Some(&wake),
             32,
-            BodySurfaceContext::Overview,
-            BodySurfaceFocus::Body,
+            FaceContext::Overview,
+            FaceFocus::Body,
             vec![contribution.clone(), contribution],
         ),
-        Err(BodySurfaceRefusal::DuplicateRole)
+        Err(FaceRefusal::DuplicateRole)
     );
 }
 
@@ -311,12 +309,12 @@ fn fulfilled_body_keeps_terminal_surface_without_wake_or_actions() {
             SignId::from("sign/fulfilled"),
         )
         .unwrap();
-    let surface = BodySurface::project(
+    let surface = Face::project(
         &fulfilled,
         None,
         40,
-        BodySurfaceContext::Overview,
-        BodySurfaceFocus::Body,
+        FaceContext::Overview,
+        FaceFocus::Body,
         vec![],
     )
     .unwrap();
@@ -324,7 +322,7 @@ fn fulfilled_body_keeps_terminal_surface_without_wake_or_actions() {
     assert!(surface.application_actions.is_empty());
     assert!(!surface.operator_actions.iter().any(|action| matches!(
         action.kind,
-        BodySurfaceOperatorActionKind::Wake | BodySurfaceOperatorActionKind::Lull
+        FaceOperatorActionKind::Wake | FaceOperatorActionKind::Lull
     )));
     assert!(surface.presentation.properties.iter().any(|property| {
         property.name == "lifecycle-state"

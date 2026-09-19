@@ -1,4 +1,4 @@
-//! Current execution and operator-action truth for the Body Surface core.
+//! Current execution and operator-action truth for the Face core.
 
 use alloc::{format, vec::Vec};
 use conduit_body::{Body, BodyState, Wake};
@@ -9,10 +9,7 @@ use crate::{
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
 };
 
-use super::{
-    BodySurfaceContribution, BodySurfaceContributionRole, BodySurfaceOperatorAction,
-    BodySurfaceOperatorActionKind,
-};
+use super::{FaceContribution, FaceContributionRole, FaceOperatorAction, FaceOperatorActionKind};
 
 pub(super) fn append_execution_truth(
     wake: Option<&Wake>,
@@ -76,10 +73,10 @@ pub(super) fn append_execution_truth(
 
 pub(super) fn append_operator_actions(
     body: &Body,
-    contributions: &[BodySurfaceContribution],
+    contributions: &[FaceContribution],
     body_subject: &str,
     actions: &mut Vec<PresentationAction>,
-    routing: &mut Vec<BodySurfaceOperatorAction>,
+    routing: &mut Vec<FaceOperatorAction>,
 ) {
     match body.state {
         BodyState::Lulled => push_action(
@@ -89,7 +86,7 @@ pub(super) fn append_operator_actions(
             "conduit.intent/wake@1",
             "Wake",
             PresentationActionAvailability::Available,
-            BodySurfaceOperatorActionKind::Wake,
+            FaceOperatorActionKind::Wake,
             actions,
             routing,
         ),
@@ -100,7 +97,7 @@ pub(super) fn append_operator_actions(
             "conduit.intent/lull@1",
             "Lull",
             PresentationActionAvailability::Available,
-            BodySurfaceOperatorActionKind::Lull,
+            FaceOperatorActionKind::Lull,
             actions,
             routing,
         ),
@@ -111,13 +108,13 @@ pub(super) fn append_operator_actions(
             "open-overview",
             "conduit.intent/open-body-overview@1",
             "Open Body overview",
-            BodySurfaceOperatorActionKind::OpenOverview,
+            FaceOperatorActionKind::OpenOverview,
         ),
         (
             "open-library",
             "conduit.intent/open-form-library@1",
             "Open Forms library",
-            BodySurfaceOperatorActionKind::OpenLibrary,
+            FaceOperatorActionKind::OpenLibrary,
         ),
     ] {
         push_action(
@@ -136,10 +133,10 @@ pub(super) fn append_operator_actions(
         let checked = &form.checked_form_id;
         let form_target = format!("form/{}", checked.as_str());
         let foreground = contributions.iter().any(|item| {
-            item.role == BodySurfaceContributionRole::Foreground && item.checked_form_id == *checked
+            item.role == FaceContributionRole::Foreground && item.checked_form_id == *checked
         });
         let inspection = contributions.iter().any(|item| {
-            item.role == BodySurfaceContributionRole::Inspection && item.checked_form_id == *checked
+            item.role == FaceContributionRole::Inspection && item.checked_form_id == *checked
         });
         push_action(
             body,
@@ -152,7 +149,7 @@ pub(super) fn append_operator_actions(
                 "form-not-playing",
                 "The resident Form is not currently presenting.",
             ),
-            BodySurfaceOperatorActionKind::OpenResidentForm(checked.clone()),
+            FaceOperatorActionKind::OpenResidentForm(checked.clone()),
             actions,
             routing,
         );
@@ -167,7 +164,7 @@ pub(super) fn append_operator_actions(
                 "inspection-not-playing",
                 "No admitted inspection contribution is currently playing.",
             ),
-            BodySurfaceOperatorActionKind::OpenInspection(checked.clone()),
+            FaceOperatorActionKind::OpenInspection(checked.clone()),
             actions,
             routing,
         );
@@ -182,9 +179,9 @@ fn push_action(
     intent: &str,
     label: &str,
     availability: PresentationActionAvailability,
-    kind: BodySurfaceOperatorActionKind,
+    kind: FaceOperatorActionKind,
     actions: &mut Vec<PresentationAction>,
-    routing: &mut Vec<BodySurfaceOperatorAction>,
+    routing: &mut Vec<FaceOperatorAction>,
 ) {
     let identity = format!("body/action/{token}/{}", body.workload_revision);
     actions.push(PresentationAction {
@@ -195,7 +192,7 @@ fn push_action(
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability,
     });
-    routing.push(BodySurfaceOperatorAction {
+    routing.push(FaceOperatorAction {
         surface_action_id: identity,
         kind,
     });
