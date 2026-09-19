@@ -16,7 +16,7 @@ pub(super) struct ReviewedBrowserDistribution<'a> {
     source_commit: &'a str,
     maximum_bundle_bytes: u64,
     implementations: Vec<ReviewedBrowserImplementation<'a>>,
-    modules: [ReviewedBrowserModule<'static>; 8],
+    modules: [ReviewedBrowserModule<'static>; 9],
 }
 
 #[derive(Serialize)]
@@ -101,6 +101,7 @@ pub(super) fn seal(
                     &["browser-host-identity.mjs"],
                 ),
                 module("browser-host-identity.mjs", &[]),
+                module("browser-relay-line.mjs", &[]),
                 module("browser-boot-profile.mjs", &[]),
                 module("media-host.mjs", &[]),
                 module("device-base.mjs", &[]),
