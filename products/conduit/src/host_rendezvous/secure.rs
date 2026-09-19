@@ -94,9 +94,14 @@ pub(crate) fn serve(
     let private_key = options
         .tls_key
         .ok_or_else(|| "secure LAN rendezvous requires --tls-key".to_string())?;
-    let listener =
-        SecureWebSocketListener::bind(bind, &certificate, &private_key, MAXIMUM_FRAME_BYTES as u32)
-            .map_err(debug("bind secure rendezvous Line"))?;
+    let listener = SecureWebSocketListener::bind(
+        bind,
+        &certificate,
+        &private_key,
+        MAXIMUM_FRAME_BYTES as u32,
+        options.authorize_network,
+    )
+    .map_err(debug("bind secure rendezvous Line"))?;
     let actual = listener
         .local_addr()
         .map_err(debug("read secure rendezvous address"))?;
