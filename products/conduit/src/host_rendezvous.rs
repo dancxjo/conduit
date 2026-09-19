@@ -19,6 +19,7 @@ use crate::cli::RendezvousCarrier;
 
 mod secure;
 pub(crate) use secure::SecureNetworkOptions;
+mod relay;
 
 const PROTOCOL: u16 = 1;
 const MAXIMUM_FRAME_BYTES: usize = 96 * 1024;
@@ -217,11 +218,17 @@ pub(crate) fn serve(
     carrier: RendezvousCarrier,
     timeout_seconds: u64,
     secure: SecureNetworkOptions,
+    relay_descriptor: Option<&Path>,
 ) -> Result<(), String> {
     match carrier {
         RendezvousCarrier::Websocket => serve_websocket(state_dir, timeout_seconds),
         RendezvousCarrier::SecureWebsocket => secure::serve(state_dir, timeout_seconds, secure),
         RendezvousCarrier::Serial => serve_serial(state_dir),
+        RendezvousCarrier::Relay => relay::connect(
+            state_dir,
+            relay_descriptor
+                .ok_or_else(|| "relay rendezvous requires --relay-descriptor".to_string())?,
+        ),
     }
 }
 
