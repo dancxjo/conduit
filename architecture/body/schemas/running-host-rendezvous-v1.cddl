@@ -7,7 +7,10 @@ running-host-rendezvous = {
   0: 1,                         ; profile version
   1: [1*4 rendezvous-candidate],
   2: bytes .size 32,            ; one-use bounded rendezvous capability
-  *4 (128..255) => extension
+  ? 128: extension,
+  ? 129: extension,
+  ? 130: extension,
+  ? 131: extension
 }
 
 rendezvous-candidate = {
