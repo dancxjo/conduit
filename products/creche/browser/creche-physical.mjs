@@ -7,8 +7,18 @@ const PRESENTABLE_RETAINED_EVIDENCE_BYTES = 120 * 1024;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createPhysicalHostRunner({ host, hostOperations, presentationFor, targetCatalog, onBodyChanged }) {
+export function createPhysicalHostRunner({
+  host,
+  hostOperations,
+  presentationFor,
+  targetCatalog,
+  onBodyChanged,
+  admitJoin = (join) => admitObservation(host.runtime, join),
+}) {
   const catalog = requireTargetCatalog(targetCatalog);
+  if (typeof admitJoin !== "function") {
+    throw new TypeError("physical Host admission boundary is missing");
+  }
   const runner = document.createElement("section");
   runner.className = "physical-host-runner";
   runner.innerHTML = `
@@ -58,7 +68,7 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
     bind: () => bindInvitation(runner, host, state),
     realize: () => realizeHost(runner, host, state),
     observe: () => observeJoin(runner, host, state),
-    admit: () => admitPart(runner, host, state, onBodyChanged),
+    admit: () => admitPart(runner, state, admitJoin, onBodyChanged),
     cancel: () => cancelActive(runner, state, true),
   })[action]?.();
   presentPhysicalActions(state);
@@ -220,8 +230,8 @@ function observeJoin(runner, host, state) {
   });
 }
 
-function admitPart(runner, host, state, onBodyChanged) {
-  void operate(runner, state, "admit", () => Promise.resolve(admitObservation(host.runtime, state.observation.join)), (result) => {
+function admitPart(runner, state, admitJoin, onBodyChanged) {
+  void operate(runner, state, "admit", () => Promise.resolve(admitJoin(state.observation.join)), (result) => {
     state.admission = { evidence: result };
     state.phase = "admitted";
     completeStage(state, "admit", `revision ${result.membership_revision}`);
