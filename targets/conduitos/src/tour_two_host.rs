@@ -28,7 +28,7 @@ pub fn run(
         expanded_form_id: prepared.plan.expanded_form_id.clone(),
         plan_id: prepared.plan.plan_id.clone(),
         active_play_id: prepared.source_active.active_play_id.clone(),
-        result: "hello across one Cord",
+        result: "hello across one cord",
         manifestations: 1,
         comparison_expanded_form_id: None,
         comparison_plan_id: None,

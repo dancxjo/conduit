@@ -95,7 +95,7 @@ pub fn prepare(
     let source_kernel = crate::tour_two_host_kernel::SourceKernel::prepare(
         source_fragment,
         &source_lowered,
-        "hello across one Cord",
+        "hello across one cord",
     )
     .map_err(|_| PreparationError::KernelRejected)?;
     let sink_kernel =
@@ -292,7 +292,7 @@ mod tests {
         );
         let mut serial = Serial(Vec::new());
         let evidence = crate::tour_two_host::run(&mut prepared, &mut serial).unwrap();
-        assert_eq!(serial.0, [b"hello across one Cord".to_vec()]);
+        assert_eq!(serial.0, [b"hello across one cord".to_vec()]);
         assert_eq!(evidence.run.logical_operations, 2);
         assert_eq!(evidence.run.serial_presentations, 1);
         let multi_host = evidence.multi_host.unwrap();

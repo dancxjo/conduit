@@ -165,7 +165,7 @@ mod tests {
                 .last()
                 .unwrap()
                 .1
-                .ends_with("nearby Forms are unaffected.")
+                .ends_with("nearby forms are unaffected.")
         );
         assert!(blocks.iter().all(|(_, text)| !text.contains("**")
             && !text.contains("stage:")
@@ -174,7 +174,7 @@ mod tests {
         assert_eq!(blocks.len(), 11);
         assert_eq!(
             chapter_title(1).unwrap(),
-            "Fronts, Backs, and implementation"
+            "fronts, backs, and implementation"
         );
         assert_eq!(chapter_title(6).unwrap(), "Birth, spores, and the Crèche");
         assert_eq!(chapter_title(7), Err("tour-lesson-chapter-refused"));
