@@ -60,6 +60,8 @@ mod vision_experience_catalog;
 pub use vision_experience_catalog::*;
 mod vision_local_cv;
 pub use vision_local_cv::*;
+mod vision_continuous_local;
+pub use vision_continuous_local::*;
 #[cfg(feature = "form-catalog")]
 mod vision_catalog;
 #[cfg(feature = "form-catalog")]
