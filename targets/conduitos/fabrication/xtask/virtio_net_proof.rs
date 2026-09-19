@@ -3,17 +3,34 @@ use std::{
     io::{Read, Write},
     net::{Shutdown, TcpListener},
     process::{Command, Stdio},
+    sync::Arc,
     thread,
     time::{Duration, Instant},
 };
 
 use crate::cli::GlobalOpts;
+use conduitos::virtio_tls_fixture::PINNED_CERTIFICATE_DER;
+use rustls::{
+    pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
+    ServerConfig, ServerConnection, StreamOwned,
+};
 
 use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
 
 const PREFIX: &str = "CONDUIT_VIRTIO_NET_SIGN ";
 const REQUEST: &[u8] = b"CONDUIT TCP PING\n";
 const RESPONSE: &[u8] = b"CONDUIT TCP PONG\n";
+const PRIVATE_KEY_DER: &[u8] = &[
+    0x30, 0x81, 0x87, 0x02, 0x01, 0x00, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
+    0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, 0x04, 0x6d, 0x30, 0x6b, 0x02,
+    0x01, 0x01, 0x04, 0x20, 0x22, 0x93, 0x96, 0xc2, 0x6e, 0xe3, 0x82, 0x7f, 0x73, 0x17, 0xfd, 0xf8,
+    0x0b, 0x34, 0xfb, 0x5e, 0xae, 0x10, 0x4b, 0xcc, 0x7e, 0xb1, 0xf0, 0xa9, 0xe7, 0x48, 0xfc, 0x59,
+    0x12, 0x84, 0xa0, 0x51, 0xa1, 0x44, 0x03, 0x42, 0x00, 0x04, 0x8e, 0x09, 0x9b, 0x49, 0xcd, 0x99,
+    0x18, 0x09, 0xcc, 0x9c, 0x0e, 0xa2, 0x5b, 0x56, 0xce, 0x37, 0x25, 0x2c, 0xfa, 0xcd, 0x05, 0x08,
+    0xfb, 0x58, 0xce, 0x4b, 0xc6, 0xa4, 0xa1, 0x7a, 0x15, 0xcd, 0xc8, 0x8b, 0x46, 0x76, 0xaf, 0x1c,
+    0xf4, 0x4f, 0xd8, 0x9d, 0xc1, 0xb6, 0xbd, 0x06, 0xcf, 0x51, 0x8c, 0x6a, 0x66, 0x40, 0xb9, 0x5e,
+    0xd1, 0x71, 0x12, 0xd0, 0xce, 0xe5, 0xd3, 0x19, 0x60, 0xff,
+];
 
 pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     build::execute_virtio_net_proof(opts)?
@@ -140,13 +157,16 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         || sign["queue_entries"] != 256
         || sign["entropy_provider_generation"] != 1
         || sign["entropy_requests"] != 1
-        || sign["schema"] != "conduit.conduitos/virtio-tcp-proof@1"
+        || sign["schema"] != "conduit.conduitos/virtio-tls-proof@1"
         || sign["remote_ip"] != "10.0.2.100"
         || sign["remote_port"] != 9000
-        || sign["tcp_transmitted_bytes"] != REQUEST.len() as u64
-        || sign["tcp_received_bytes"] != RESPONSE.len() as u64
+        || sign["server_name"] != "relay.conduit.invalid"
+        || sign["certificate_sha256"]
+            != "b58b58d2cfc273d464dd6dfaa5eacc8d5b0b404b236839af0360f78caebe7648"
+        || sign["plaintext_transmitted_bytes"] != REQUEST.len() as u64
+        || sign["plaintext_received_bytes"] != RESPONSE.len() as u64
         || sign["tcp_claimed"] != true
-        || sign["tls_claimed"] != false
+        || sign["tls_claimed"] != true
         || sign["websocket_claimed"] != false
         || sign["bounded"] != true
     {
@@ -156,14 +176,14 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     if !opts.quiet && !opts.json {
-        println!("PROVED x86_64 ConduitOS bounded VirtIO-net TCP exchange");
+        println!("PROVED x86_64 ConduitOS bounded pinned TLS exchange");
     }
     Ok(())
 }
 
 fn serve_once(listener: TcpListener) -> Result<(), String> {
     let deadline = Instant::now() + Duration::from_secs(20);
-    let mut stream = loop {
+    let stream = loop {
         match listener.accept() {
             Ok((stream, _)) => break stream,
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
@@ -181,17 +201,29 @@ fn serve_once(listener: TcpListener) -> Result<(), String> {
     stream
         .set_write_timeout(Some(Duration::from_secs(5)))
         .map_err(|error| error.to_string())?;
+    let provider = rustls::crypto::ring::default_provider();
+    let config = ServerConfig::builder_with_provider(Arc::new(provider))
+        .with_protocol_versions(&[&rustls::version::TLS13])
+        .map_err(|error| error.to_string())?
+        .with_no_client_auth()
+        .with_single_cert(
+            vec![CertificateDer::from(PINNED_CERTIFICATE_DER.to_vec())],
+            PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(PRIVATE_KEY_DER.to_vec())),
+        )
+        .map_err(|error| error.to_string())?;
+    let connection = ServerConnection::new(Arc::new(config)).map_err(|error| error.to_string())?;
+    let mut tls = StreamOwned::new(connection, stream);
     let mut request = [0; REQUEST.len()];
-    stream
-        .read_exact(&mut request)
+    tls.read_exact(&mut request)
         .map_err(|error| error.to_string())?;
     if request != REQUEST {
         return Err(format!("unexpected request: {request:?}"));
     }
-    stream
-        .write_all(RESPONSE)
-        .map_err(|error| error.to_string())?;
-    stream
+    tls.write_all(RESPONSE).map_err(|error| error.to_string())?;
+    tls.flush().map_err(|error| error.to_string())?;
+    tls.conn.send_close_notify();
+    tls.flush().map_err(|error| error.to_string())?;
+    tls.sock
         .shutdown(Shutdown::Write)
         .map_err(|error| error.to_string())?;
     Ok(())

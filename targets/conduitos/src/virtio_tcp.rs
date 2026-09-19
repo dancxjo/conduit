@@ -15,8 +15,8 @@ use smoltcp::{
 
 use crate::arch::{VirtioNetError, VirtioNetReady};
 
-const ETHERNET_FRAME_BYTES: usize = 1514;
-const SOCKET_BUFFER_BYTES: usize = 1024;
+pub(crate) const ETHERNET_FRAME_BYTES: usize = 1514;
+pub(crate) const SOCKET_BUFFER_BYTES: usize = 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct VirtioTcpEndpoint {
@@ -212,14 +212,14 @@ const fn ipv4(address: [u8; 4]) -> Ipv4Address {
     Ipv4Address::new(address[0], address[1], address[2], address[3])
 }
 
-struct VirtioDevice {
+pub(crate) struct VirtioDevice {
     device: RefCell<VirtioNetReady>,
     receive: [u8; ETHERNET_FRAME_BYTES],
     error: Cell<Option<VirtioNetError>>,
 }
 
 impl VirtioDevice {
-    fn new(device: VirtioNetReady) -> Self {
+    pub(crate) fn new(device: VirtioNetReady) -> Self {
         Self {
             device: RefCell::new(device),
             receive: [0; ETHERNET_FRAME_BYTES],
@@ -227,7 +227,7 @@ impl VirtioDevice {
         }
     }
 
-    fn take_error(&self) -> Option<VirtioNetError> {
+    pub(crate) fn take_error(&self) -> Option<VirtioNetError> {
         self.error.take()
     }
 }
@@ -270,7 +270,7 @@ impl Device for VirtioDevice {
     }
 }
 
-struct VirtioRxToken<'a> {
+pub(crate) struct VirtioRxToken<'a> {
     frame: &'a [u8],
 }
 
@@ -283,7 +283,7 @@ impl RxToken for VirtioRxToken<'_> {
     }
 }
 
-struct VirtioTxToken<'a> {
+pub(crate) struct VirtioTxToken<'a> {
     device: &'a RefCell<VirtioNetReady>,
     error: &'a Cell<Option<VirtioNetError>>,
 }

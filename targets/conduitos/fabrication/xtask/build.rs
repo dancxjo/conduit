@@ -285,7 +285,7 @@ fn execute_with_features(
     } else {
         command.env(
             "RUSTFLAGS",
-            "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\"",
+            "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg aes_force_soft --cfg polyval_force_soft",
         );
     }
     if let Some(fabrication) = fabrication {

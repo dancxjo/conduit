@@ -9,7 +9,9 @@ use crate::{
     cryptographic_entropy::CryptographicEntropyBase,
     identity::BootIdentities,
     sign_format::FixedText,
-    virtio_tcp::{self, VirtioTcpEndpoint},
+    virtio_tcp::VirtioTcpEndpoint,
+    virtio_tls,
+    virtio_tls_fixture::{PINNED_CERTIFICATE_DER, SERVER_NAME},
 };
 
 const REQUEST: &[u8] = b"CONDUIT TCP PING\n";
@@ -35,16 +37,23 @@ pub fn run(record: &BootRecord, identities: BootIdentities) -> ! {
         Ok(entropy) => entropy,
         Err(error) => refuse(error.as_str()),
     };
-    let (random_seed, entropy_receipt) = match entropy
-        .with_secret::<8, _>(|secret, receipt| (u64::from_le_bytes(*secret), receipt))
-    {
-        Ok(value) => value,
-        Err(error) => refuse(error.as_str()),
-    };
+    let (tcp_seed, tls_seed, entropy_receipt) =
+        match entropy.with_secret::<40, _>(|secret, receipt| {
+            let mut tcp_bytes = [0; 8];
+            tcp_bytes.copy_from_slice(&secret[..8]);
+            let tcp_seed = u64::from_le_bytes(tcp_bytes);
+            let mut tls_seed = [0; 32];
+            tls_seed.copy_from_slice(&secret[8..]);
+            (tcp_seed, tls_seed, receipt)
+        }) {
+            Ok(value) => value,
+            Err(error) => refuse(error.as_str()),
+        };
     let mut response = [0; RESPONSE.len()];
-    let receipt = match virtio_tcp::exchange(
+    let receipt = match virtio_tls::exchange(
         device,
-        random_seed,
+        tcp_seed,
+        tls_seed,
         VirtioTcpEndpoint {
             guest_address: [10, 0, 2, 15],
             prefix_length: 24,
@@ -53,6 +62,8 @@ pub fn run(record: &BootRecord, identities: BootIdentities) -> ! {
             remote_port: 9000,
             local_port: 49152,
         },
+        SERVER_NAME,
+        PINNED_CERTIFICATE_DER,
         REQUEST,
         &mut response,
         RESPONSE.len(),
@@ -66,7 +77,7 @@ pub fn run(record: &BootRecord, identities: BootIdentities) -> ! {
     let mut sign = FixedText::new();
     if writeln!(
         sign,
-        "CONDUIT_VIRTIO_NET_SIGN {{\"schema\":\"conduit.conduitos/virtio-tcp-proof@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"device\":\"virtio-net-pci-transitional\",\"bdf\":\"{:02x}:{:02x}.{}\",\"mac\":\"{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}\",\"provider_generation\":{},\"entropy_provider_generation\":{},\"entropy_requests\":{},\"queue_entries\":256,\"queue_dma_bytes\":24576,\"frame_buffer_bytes\":4096,\"static_dma_bytes\":32768,\"socket_rx_bytes\":1024,\"socket_tx_bytes\":1024,\"tcp_polls\":{},\"tcp_transmitted_bytes\":{},\"tcp_received_bytes\":{},\"remote_ip\":\"10.0.2.100\",\"remote_port\":9000,\"tcp_claimed\":true,\"tls_claimed\":false,\"websocket_claimed\":false,\"bounded\":true}}",
+        "CONDUIT_VIRTIO_NET_SIGN {{\"schema\":\"conduit.conduitos/virtio-tls-proof@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"device\":\"virtio-net-pci-transitional\",\"bdf\":\"{:02x}:{:02x}.{}\",\"mac\":\"{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}\",\"provider_generation\":{},\"entropy_provider_generation\":{},\"entropy_requests\":{},\"entropy_bytes\":40,\"queue_entries\":256,\"queue_dma_bytes\":24576,\"frame_buffer_bytes\":4096,\"static_dma_bytes\":32768,\"tcp_rx_bytes\":4096,\"tcp_tx_bytes\":4096,\"tls_record_rx_bytes\":4096,\"tls_record_tx_bytes\":4096,\"tcp_polls\":{},\"plaintext_transmitted_bytes\":{},\"plaintext_received_bytes\":{},\"remote_ip\":\"10.0.2.100\",\"remote_port\":9000,\"server_name\":\"relay.conduit.invalid\",\"certificate_sha256\":\"b58b58d2cfc273d464dd6dfaa5eacc8d5b0b404b236839af0360f78caebe7648\",\"tcp_claimed\":true,\"tls_claimed\":true,\"websocket_claimed\":false,\"bounded\":true}}",
         identity.bus,
         identity.device,
         identity.function,
@@ -79,9 +90,9 @@ pub fn run(record: &BootRecord, identities: BootIdentities) -> ! {
         identity.provider_generation,
         entropy_receipt.provider.provider_generation,
         entropy_receipt.request_index,
-        receipt.polls,
-        receipt.transmitted_bytes,
-        receipt.received_bytes,
+        receipt.tcp_polls,
+        receipt.transmitted_plaintext_bytes,
+        receipt.received_plaintext_bytes,
     )
     .is_err()
     {

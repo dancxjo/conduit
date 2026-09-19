@@ -175,7 +175,7 @@ scripted-keyboard-proof = []
 native-compositor = ["dep:fontdue"]
 native-http-client = []
 conduitos-isolation-proof = []
-virtio-net-proof = ["dep:smoltcp"]
+virtio-net-proof = ["dep:embedded-io", "dep:embedded-tls", "dep:rand_chacha", "dep:rand_core", "dep:smoltcp"]
 ps2-input = []
 # Proof-appliance selectors. Every selected entrypoint lives under the explicit
 # proof/appliances tree and remains absent from an ordinary product build.
@@ -218,6 +218,10 @@ conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-presentation = { path = "../../semantics/presentation" }
 conduit-tour-model = { path = "../../products/tour/model" }
+embedded-io = { version = "0.7.1", optional = true, default-features = false }
+embedded-tls = { version = "0.19.0", optional = true, default-features = false, features = ["rustpki"] }
+rand_chacha = { version = "0.3.1", optional = true, default-features = false }
+rand_core = { version = "0.6.4", optional = true, default-features = false }
 smoltcp = { version = "0.13.1", optional = true, default-features = false, features = ["medium-ethernet", "proto-ipv4", "socket-tcp", "iface-max-addr-count-1", "iface-max-route-count-1", "iface-neighbor-cache-count-4"] }
 patchbay-graph = { path = "../../products/patchbay/graph" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
