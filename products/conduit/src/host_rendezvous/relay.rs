@@ -132,6 +132,46 @@ struct DescriptorLimits {
 }
 
 pub(super) fn connect(state_dir: &Path, descriptor_path: &Path) -> Result<(), String> {
+    let now_millis: u64 = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| "system clock precedes Unix epoch".to_string())?
+        .as_millis()
+        .try_into()
+        .map_err(|_| "system clock exceeds relay representation".to_string())?;
+    let (mut descriptor, candidate, role, binding, policy) =
+        load_endpoint_descriptor(descriptor_path, now_millis)?;
+    let (mut line, journal) = establish_relay_line(
+        descriptor.address,
+        &candidate,
+        role,
+        &binding,
+        policy,
+        now_millis,
+    )?;
+    eprintln!("Relay candidate attempts: {:?}", journal.records());
+    let result = run_session(
+        &mut line,
+        state_dir,
+        &descriptor.rendezvous_session_secret,
+        "conduit-line/user-operated-protected-relay@1",
+    );
+    descriptor.rendezvous_session_secret.fill(0);
+    result
+}
+
+fn load_endpoint_descriptor(
+    descriptor_path: &Path,
+    now_millis: u64,
+) -> Result<
+    (
+        HostRelayDescriptor,
+        RelayCandidateDescriptor,
+        Role,
+        SessionBinding,
+        ProtectedSessionPolicy,
+    ),
+    String,
+> {
     let metadata = fs::metadata(descriptor_path)
         .map_err(|error| format!("inspect relay endpoint descriptor: {error}"))?;
     if metadata.len() == 0 || metadata.len() > MAXIMUM_DESCRIPTOR_BYTES {
@@ -146,12 +186,6 @@ pub(super) fn connect(state_dir: &Path, descriptor_path: &Path) -> Result<(), St
     if descriptor.schema != DESCRIPTOR_SCHEMA {
         return Err("relay endpoint descriptor used the wrong protocol".into());
     }
-    let now_millis: u64 = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|_| "system clock precedes Unix epoch".to_string())?
-        .as_millis()
-        .try_into()
-        .map_err(|_| "system clock exceeds relay representation".to_string())?;
     let policy = ProtectedSessionPolicy {
         traffic: SessionLimits {
             maximum_payload_bytes: descriptor.candidate.bounds.maximum_payload_bytes,
@@ -199,23 +233,15 @@ pub(super) fn connect(state_dir: &Path, descriptor_path: &Path) -> Result<(), St
     .map_err(|error| format!("validate portable relay candidate: {error:?}"))?;
     descriptor.candidate.relay_capability.fill(0);
     descriptor.candidate.protected_session_psk.fill(0);
-    let (mut line, journal) = establish_relay_line(
-        descriptor.address,
-        &candidate,
-        role,
-        &binding,
-        policy,
-        now_millis,
-    )?;
-    eprintln!("Relay candidate attempts: {:?}", journal.records());
-    let result = run_session(
-        &mut line,
-        state_dir,
-        &descriptor.rendezvous_session_secret,
-        "conduit-line/user-operated-protected-relay@1",
-    );
-    descriptor.rendezvous_session_secret.fill(0);
-    result
+    Ok((descriptor, candidate, role, binding, policy))
+}
+
+#[cfg(test)]
+pub(crate) fn validate_endpoint_descriptor(
+    descriptor_path: &Path,
+    now_millis: u64,
+) -> Result<(), String> {
+    load_endpoint_descriptor(descriptor_path, now_millis).map(drop)
 }
 
 fn establish_relay_line(
