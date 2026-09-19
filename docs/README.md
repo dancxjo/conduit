@@ -23,6 +23,7 @@ current capabilities, practical workflows, and detailed design references.
 | [Targets](../targets/README.md) | Platform setup, fabrication, and target-specific proof |
 | [Body building](body-building.md) | Body-bound target artifacts and deployment boundaries |
 | [Host fabrication](host-fabrication.md) | PROFILE, BUILD, IMAGE, and fabrication packages |
+| [User-operated relay](user-operated-relay.md) | Provision and run one private outbound-only remote rendezvous path |
 | [Visual evidence](visual-evidence.md) | Screenshots, provenance, reproduction, and publication |
 
 ## Understand the design
