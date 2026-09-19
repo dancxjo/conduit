@@ -21,6 +21,9 @@ const OUTCOME_SCHEMA: &str = "conduit.relay/outcome@1";
 const MAXIMUM_SLOT_FILE_BYTES: u64 = 16 * 1024;
 const MAXIMUM_CONTROL_BYTES: usize = 4 * 1024;
 
+mod provision;
+pub(crate) use provision::{provision, ProvisionOptions};
+
 pub(crate) struct ServeOptions {
     pub(crate) bind: String,
     pub(crate) public_url: String,
