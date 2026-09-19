@@ -1,7 +1,7 @@
 const encoder = new TextEncoder();
 const MAXIMUM_FILES = 16;
 const MAXIMUM_FILE_BYTES = 32 * 1024 * 1024;
-const MAXIMUM_BUNDLE_BYTES = 48 * 1024 * 1024;
+const MAXIMUM_BUNDLE_BYTES = 64 * 1024 * 1024;
 
 export async function acquireHostRelease(profile, signal, {
   manifestUrl = profile?.manifest_path,
