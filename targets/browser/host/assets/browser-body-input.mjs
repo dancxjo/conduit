@@ -104,11 +104,12 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
       if (!Number.isSafeInteger(value)) throw new BrowserInputRefusal("SequenceOverflow", "coalesced pointer evidence overflowed");
       return value;
     };
+    const boundedDelta = (value) => Math.max(-1_000_000, Math.min(1_000_000, value));
     increment(state, "coalesced");
     return Object.freeze({
       ...newer,
-      delta_x: add(older.delta_x ?? 0, newer.delta_x ?? 0),
-      delta_y: add(older.delta_y ?? 0, newer.delta_y ?? 0),
+      delta_x: boundedDelta(add(older.delta_x ?? 0, newer.delta_x ?? 0)),
+      delta_y: boundedDelta(add(older.delta_y ?? 0, newer.delta_y ?? 0)),
       coalesced: add(add(older.coalesced ?? 0, newer.coalesced ?? 0), 1),
       dropped: add(older.dropped ?? 0, newer.dropped ?? 0),
       queue_capacity: 1,
