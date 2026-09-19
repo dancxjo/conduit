@@ -63,6 +63,11 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: BodyCommand,
     },
+    /// Operate finite self-hosted rendezvous infrastructure.
+    RendezvousRelay {
+        #[command(subcommand)]
+        command: RendezvousRelayCommand,
+    },
     /// Check a Form and render owned diagnostics without executing it.
     Check {
         form: PathBuf,
@@ -78,6 +83,34 @@ pub(crate) enum Command {
     Copy {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         arguments: Vec<String>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum RendezvousRelayCommand {
+    /// Serve one configured two-endpoint opaque relay slot over pinned WSS.
+    Serve {
+        /// Exact non-loopback socket explicitly exposed by this relay.
+        #[arg(long)]
+        bind: String,
+        /// Browser/native reachable wss URL covered by the TLS certificate.
+        #[arg(long)]
+        public_url: String,
+        /// PEM certificate chain for the relay's pinned outer identity.
+        #[arg(long)]
+        tls_cert: PathBuf,
+        /// PEM private key for the relay's pinned outer identity.
+        #[arg(long)]
+        tls_key: PathBuf,
+        /// Bounded private relay-slot configuration.
+        #[arg(long)]
+        slot: PathBuf,
+        /// Stop if both endpoints do not attach within this many seconds.
+        #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=3600))]
+        accept_timeout_seconds: u64,
+        /// Explicitly authorize listening beyond loopback.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_network: bool,
     },
 }
 
@@ -726,6 +759,56 @@ mod tests {
                 }
             } if state_dir == std::path::Path::new("installed-host")
         ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "rendezvous-relay",
+                "serve",
+                "--bind",
+                "192.0.2.10:7443",
+                "--public-url",
+                "wss://relay.example:7443/conduit",
+                "--tls-cert",
+                "relay-cert.pem",
+                "--tls-key",
+                "relay-key.pem",
+                "--slot",
+                "private-slot.json",
+                "--accept-timeout-seconds",
+                "30",
+                "--authorize-network",
+            ])
+            .expect("bounded user-operated relay entrance parses")
+            .command,
+            Command::RendezvousRelay {
+                command: RendezvousRelayCommand::Serve {
+                    bind,
+                    public_url,
+                    slot,
+                    accept_timeout_seconds: 30,
+                    authorize_network: true,
+                    ..
+                }
+            } if bind == "192.0.2.10:7443"
+                && public_url == "wss://relay.example:7443/conduit"
+                && slot == std::path::Path::new("private-slot.json")
+        ));
+        assert!(Cli::try_parse_from([
+            "conduit",
+            "rendezvous-relay",
+            "serve",
+            "--bind",
+            "192.0.2.10:7443",
+            "--public-url",
+            "wss://relay.example:7443/conduit",
+            "--tls-cert",
+            "relay-cert.pem",
+            "--tls-key",
+            "relay-key.pem",
+            "--slot",
+            "private-slot.json",
+        ])
+        .is_err());
         assert!(matches!(
             Cli::try_parse_from(["conduit", "patchbay", "--on", "browser"])
                 .expect("Patchbay browser entrance parses")
