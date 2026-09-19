@@ -4,6 +4,10 @@ extern crate alloc;
 
 mod relay;
 pub use relay::*;
+#[cfg(feature = "noise-session")]
+mod supplied_x25519;
+mod transport;
+pub use transport::*;
 
 use alloc::string::String;
 #[cfg(feature = "noise-session")]
@@ -13,7 +17,9 @@ use noise_protocol::{
     patterns::noise_nn_psk0, CipherState, HandshakeState, HandshakeStateBuilder, U8Array,
 };
 #[cfg(feature = "noise-session")]
-use noise_rust_crypto::{sensitive::Sensitive, ChaCha20Poly1305, Sha256, X25519};
+use noise_rust_crypto::{sensitive::Sensitive, ChaCha20Poly1305, Sha256};
+#[cfg(feature = "noise-session")]
+use supplied_x25519::SuppliedX25519;
 
 pub const IMPLEMENTATION_ID: &str = "conduit.line/noise-nnpsk0-25519-chachapoly-sha256@1";
 pub const PROTOCOL_NAME: &str = "Noise_NNpsk0_25519_ChaChaPoly_SHA256";
@@ -28,7 +34,7 @@ const MAGIC: [u8; 4] = *b"CNDP";
 const VERSION: u8 = 1;
 
 #[cfg(feature = "noise-session")]
-type NoiseHandshake = HandshakeState<X25519, ChaCha20Poly1305, Sha256>;
+type NoiseHandshake = HandshakeState<SuppliedX25519, ChaCha20Poly1305, Sha256>;
 #[cfg(feature = "noise-session")]
 type NoiseCipher = CipherState<ChaCha20Poly1305>;
 
@@ -118,11 +124,19 @@ pub enum ProtectedLineError {
     FrameTooLarge,
     OutputTooSmall,
     MalformedFrame,
+    TruncatedFrame,
     WrongDirection,
     Replay,
     Reordered,
     FrameLimitExhausted,
     ByteLimitExhausted,
+    InvalidPolicy,
+    SessionCapacity,
+    Pressure,
+    HandshakeTimedOut,
+    SessionTimedOut,
+    OuterCarrierLost,
+    Cancelled,
     Closed,
 }
 
@@ -166,12 +180,16 @@ impl SessionBinding {
         ] {
             push(&mut bytes, value)?;
         }
+        if bytes
+            .len()
+            .checked_add(4 + 8 + 8)
+            .is_none_or(|length| length > MAXIMUM_BINDING_BYTES)
+        {
+            return Err(ProtectedLineError::BindingTooLarge);
+        }
         bytes.extend_from_slice(&limits.maximum_payload_bytes.to_le_bytes());
         bytes.extend_from_slice(&limits.maximum_frames_per_direction.to_le_bytes());
         bytes.extend_from_slice(&limits.maximum_bytes_per_direction.to_le_bytes());
-        if bytes.len() > MAXIMUM_BINDING_BYTES {
-            return Err(ProtectedLineError::BindingTooLarge);
-        }
         Ok(bytes)
     }
 }
@@ -198,7 +216,7 @@ pub struct ProtectedHandshake {
     role: Role,
     binding: SessionBinding,
     limits: SessionLimits,
-    state: NoiseHandshake,
+    state: Option<NoiseHandshake>,
 }
 
 #[cfg(feature = "noise-session")]
@@ -218,7 +236,7 @@ impl ProtectedHandshake {
             return Err(ProtectedLineError::EmptyEphemeralKey);
         }
         let prologue = binding.prologue(limits)?;
-        let mut builder = HandshakeStateBuilder::<X25519>::new();
+        let mut builder = HandshakeStateBuilder::<SuppliedX25519>::new();
         builder
             .set_pattern(noise_nn_psk0())
             .set_is_initiator(role == Role::Initiator)
@@ -230,46 +248,59 @@ impl ProtectedHandshake {
             role,
             binding: binding.clone(),
             limits,
-            state,
+            state: Some(state),
         })
     }
 
     pub fn next_message_bytes(&self) -> Result<usize, ProtectedLineError> {
-        if self.state.completed() {
+        let state = self.state.as_ref().ok_or(ProtectedLineError::Closed)?;
+        if state.completed() {
             return Err(ProtectedLineError::HandshakeIncomplete);
         }
-        Ok(self.state.get_next_message_overhead())
+        Ok(state.get_next_message_overhead())
+    }
+
+    pub fn is_write_turn(&self) -> bool {
+        self.state
+            .as_ref()
+            .is_some_and(HandshakeState::is_write_turn)
     }
 
     pub fn write_message(&mut self, output: &mut [u8]) -> Result<(), ProtectedLineError> {
-        if !self.state.is_write_turn() {
+        let state = self.state.as_mut().ok_or(ProtectedLineError::Closed)?;
+        if !state.is_write_turn() {
             return Err(ProtectedLineError::WrongHandshakeTurn);
         }
-        if output.len() != self.state.get_next_message_overhead() {
+        if output.len() != state.get_next_message_overhead() {
             return Err(ProtectedLineError::HandshakeFrameLength);
         }
-        self.state
+        state
             .write_message(&[], output)
             .map_err(|_| ProtectedLineError::AuthenticationFailed)
     }
 
     pub fn read_message(&mut self, input: &[u8]) -> Result<(), ProtectedLineError> {
-        if self.state.is_write_turn() {
+        let state = self.state.as_mut().ok_or(ProtectedLineError::Closed)?;
+        if state.is_write_turn() {
             return Err(ProtectedLineError::WrongHandshakeTurn);
         }
-        if input.len() != self.state.get_next_message_overhead() {
+        if input.len() != state.get_next_message_overhead() {
+            self.state = None;
             return Err(ProtectedLineError::HandshakeFrameLength);
         }
-        self.state
-            .read_message(input, &mut [])
-            .map_err(|_| ProtectedLineError::AuthenticationFailed)
+        if state.read_message(input, &mut []).is_err() {
+            self.state = None;
+            return Err(ProtectedLineError::AuthenticationFailed);
+        }
+        Ok(())
     }
 
-    pub fn finish(self) -> Result<ProtectedSession, ProtectedLineError> {
-        if !self.state.completed() {
+    pub fn finish(mut self) -> Result<ProtectedSession, ProtectedLineError> {
+        let state = self.state.take().ok_or(ProtectedLineError::Closed)?;
+        if !state.completed() {
             return Err(ProtectedLineError::HandshakeIncomplete);
         }
-        let (initiator_send, responder_send) = self.state.get_ciphers();
+        let (initiator_send, responder_send) = state.get_ciphers();
         let (send, receive) = match self.role {
             Role::Initiator => (initiator_send, responder_send),
             Role::Responder => (responder_send, initiator_send),
@@ -330,6 +361,10 @@ pub struct ProtectedSession {
 impl ProtectedSession {
     pub fn maximum_frame_bytes(&self) -> usize {
         HEADER_BYTES + self.limits.maximum_payload_bytes as usize + TAG_BYTES
+    }
+
+    pub fn limits(&self) -> SessionLimits {
+        self.limits
     }
 
     pub fn seal(
@@ -398,11 +433,18 @@ impl ProtectedSession {
             return Err(ProtectedLineError::FrameLimitExhausted);
         }
         let payload_bytes = u32::from_le_bytes(frame[14..18].try_into().unwrap()) as usize;
-        if payload_bytes > self.limits.maximum_payload_bytes as usize
-            || frame.len() != HEADER_BYTES + payload_bytes + TAG_BYTES
-        {
+        if payload_bytes > self.limits.maximum_payload_bytes as usize {
             self.fail(ProtectedLineError::FrameTooLarge);
             return Err(ProtectedLineError::FrameTooLarge);
+        }
+        let expected_frame_bytes = HEADER_BYTES + payload_bytes + TAG_BYTES;
+        if frame.len() < expected_frame_bytes {
+            self.fail(ProtectedLineError::TruncatedFrame);
+            return Err(ProtectedLineError::TruncatedFrame);
+        }
+        if frame.len() > expected_frame_bytes {
+            self.fail(ProtectedLineError::MalformedFrame);
+            return Err(ProtectedLineError::MalformedFrame);
         }
         if output.len() < payload_bytes {
             return Err(ProtectedLineError::OutputTooSmall);
@@ -456,7 +498,7 @@ impl ProtectedSession {
         self.retire(SessionDisposition::Cancelled);
     }
 
-    fn fail(&mut self, error: ProtectedLineError) {
+    pub(crate) fn fail(&mut self, error: ProtectedLineError) {
         self.retire(SessionDisposition::Failed(error));
     }
 

@@ -1,6 +1,7 @@
 # Protected Line session profile
 
-Status: portable contract and deterministic conformance vectors for #3650. Target adapters and relay integration remain separate work.
+Status: portable contract, std driver, browser WASM adapter, and deterministic
+cross-target conformance for #3650. The operator relay remains separate work.
 
 The first protected-session profile is
 `conduit.line/noise-nnpsk0-25519-chachapoly-sha256@1`, realized by the
@@ -46,14 +47,22 @@ request refuse before consuming the session.
 
 All retained state is finite. The binding is at most 2,048 encoded bytes;
 payloads are at most 65,519 bytes; configured frame and plaintext-byte ceilings
-are validated before handshake; one caller-owned input and output buffer can be
-reused for the session lifetime. Evidence retains only the bound identities,
-profile revision, role, limits, finite counters, and terminal disposition.
+are validated before handshake. The shared policy also bounds simultaneous
+sessions, exactly two handshake work units, one pending ordered frame, handshake
+timeout, and idle timeout. The std carrier driver allocates one admitted send,
+receive, and plaintext buffer and never grows them with lifetime traffic.
+Carrier pressure, timeout, cancellation, and loss remain distinct from endpoint
+authentication failures. Evidence retains only the bound identities, profile
+revision, role, limits, finite counters, and terminal disposition.
 
 `architecture/protected-line/vectors/noise-nnpsk0-v1.json` is the immutable
-cross-implementation vector. The Rust realization also proves 100,000 ordered
-frames through fixed buffers. The crate's contract-only build disables crypto
-and compiles for `x86_64-unknown-none`; a ConduitOS Host must use that boundary
-to refuse this profile until an exact entropy source and target realization are
-admitted. Browser and hosted adapters must consume the same vector and profile;
-compilation alone is not interoperability evidence.
+cross-implementation vector. The native realization and the raw browser WASM
+ABI consume the same vector byte-for-byte; pinned Chromium proves both endpoint
+roles, decryption, and ciphertext production against the native vector. The std
+driver proves an ordered exchange over a one-slot carrier and distinguishes
+outer-carrier loss. The ordinary hosted `run_session()` proof carries its Hello,
+Host advertisement, invitation, Join proof, and explicit close above that same
+driver. The Rust realization also proves 100,000 ordered frames through fixed
+buffers. The crate's contract-only build disables crypto and compiles for
+`x86_64-unknown-none`; a ConduitOS Host must use that boundary to refuse this
+profile until an exact entropy source and target realization are admitted.
