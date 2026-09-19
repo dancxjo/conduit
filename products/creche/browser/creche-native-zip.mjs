@@ -7,7 +7,7 @@ const CENTRAL_FILE = 0x02014b50;
 const END = 0x06054b50;
 const UTF8 = 0x0800;
 const MAXIMUM_FILES = 17;
-const MAXIMUM_BYTES = 48 * 1024 * 1024;
+const MAXIMUM_BYTES = 64 * 1024 * 1024;
 const PROVISION_PATH = "conduit-spore.json";
 const CRC_TABLE = createCrcTable();
 

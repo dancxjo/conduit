@@ -12,7 +12,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const MAXIMUM_PACKAGE_BYTES: usize = 48 * 1024 * 1024;
+const MAXIMUM_PACKAGE_BYTES: usize = 64 * 1024 * 1024;
 const MAXIMUM_FILES: usize = 17;
 const PROVISION_PATH: &str = "conduit-spore.json";
 const LOCAL_FILE: u32 = 0x0403_4b50;
