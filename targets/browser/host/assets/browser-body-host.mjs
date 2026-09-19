@@ -27,6 +27,29 @@ function readOutput(api) {
   ));
 }
 
+function refuseUnavailableExecutionLine(proposal, fragment) {
+  const error = new Error("Body proposal selected an admitted Host without a current execution Line");
+  error.code = "ExecutionLineUnavailable";
+  error.refusal = Object.freeze({
+    schema: "conduit.body/wake-refusal@1",
+    rejections: Object.freeze([Object.freeze({
+      reason_code: "execution.line-unavailable",
+      category: "Connectivity",
+      stage: "Browser Host acquisition",
+      resource: "remote-fragment-execution-line",
+      required: 1,
+      available: 0,
+      host_id: proposal.authority_host_id,
+      boot_id: proposal.authority_boot_id,
+      plan_id: proposal.plan.plan_id,
+      checked_form_ids: proposal.plan.forms.map(({ form }) => form.checked_form_id),
+      selected_host_id: fragment.host_id,
+      selected_boot_id: fragment.boot_id,
+    })]),
+  });
+  throw error;
+}
+
 /** Acquire this page Host's local resources before coordinator start admission.
  * The exact proposal is still only a proposal. No WASM Play is started here.
  * One owner per WASM instance prevents duplicate page-side resource ownership.
@@ -65,7 +88,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     if (form.plan.fragments.length !== 1) throw new Error("distributed Body Form requires an external manager");
     const fragment = form.plan.fragments[0];
     if (fragment.host_id !== hostId || fragment.boot_id !== bootId || fragment.offer_generation !== 1) {
-      throw new Error("Body proposal does not name this browser Host and Boot");
+      refuseUnavailableExecutionLine({ ...proposal, authority_host_id: hostId, authority_boot_id: bootId }, fragment);
     }
     placements.push(...fragment.placements);
     if (placements.length > maximumPlacements) throw new Error("browser Body placement bound exceeded");

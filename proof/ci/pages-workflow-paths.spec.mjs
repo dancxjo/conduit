@@ -88,7 +88,8 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /shard: browser-host/);
   assert.match(productWorkflow, /shard: creche-machines/);
   assert.match(productWorkflow, /shard: pages/);
-  assert.match(productWorkflow, /browser-admission-stage:\n    needs: \[plan, browser-runtimes\]/);
+  assert.match(productWorkflow, /browser-admission-stage:\n    needs: \[plan, browser-runtimes, browser-release\]/);
+  assert.match(productWorkflow, /browser-release:\n    needs: plan\n    if: needs\.plan\.outputs\.pages_carrier_required == 'true' \|\| needs\.plan\.outputs\.browser_admission_required == 'true'/);
   assert.match(productWorkflow, /stage-creche-product\.sh[^\n]+unused browser-proof/);
   assert.match(productWorkflow, /name: browser-admission-\$\{\{ matrix\.shard \}\}/);
   assert.match(

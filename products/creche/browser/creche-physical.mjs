@@ -14,6 +14,7 @@ export function createPhysicalHostRunner({
   targetCatalog,
   onBodyChanged,
   admitJoin = (join) => admitObservation(host.runtime, join),
+  adapterContext = {},
 }) {
   const catalog = requireTargetCatalog(targetCatalog);
   if (typeof admitJoin !== "function") {
@@ -55,6 +56,7 @@ export function createPhysicalHostRunner({
     admission: null,
     download: null,
     hostOperations,
+    adapterContext,
     intentions: PHYSICAL_HOST_INTENTIONS,
     selectionDisabled: false,
     actionEnabled: null,
@@ -124,7 +126,12 @@ function selectMode(runner, host, state, mode) {
     return;
   }
   if (!state.adapter) {
-    state.adapter = state.catalog.createAdapter({ targetId: state.entry.target.id, host, presentationFor: state.presentationFor });
+    state.adapter = state.catalog.createAdapter({
+      targetId: state.entry.target.id,
+      host,
+      presentationFor: state.presentationFor,
+      ...state.adapterContext,
+    });
   }
   const targetOptions = state.adapter.createOptions({
     mode: state.mode,
@@ -450,6 +457,12 @@ function compactRealizationEvidence(realization, omitted) {
       implementation_count: Array.isArray(implementation_registry) ? implementation_registry.length : null,
       offer_count: Array.isArray(offers) ? offers.length : null,
       inspection_count: Array.isArray(inspection) ? inspection.length : null,
+      admitted_implementation_ids: Array.isArray(implementation_registry)
+        ? implementation_registry.map(({ id }) => id)
+        : null,
+      ready_implementation_ids: Array.isArray(offers)
+        ? offers.map(({ implementation_id }) => implementation_id)
+        : null,
     },
   };
 }

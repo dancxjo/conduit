@@ -103,6 +103,35 @@ test("wrong Boot, excessive demand, unsupported pools, and lost slots refuse", (
   owner.close();
 });
 
+test("a Plan selecting another admitted Host retains an exact pre-Play Line refusal", () => {
+  const f = fixture();
+  f.proposal.plan.plan_id = "body-plan";
+  f.proposal.plan.forms[0].form = { checked_form_id: "checked/form" };
+  f.proposal.plan.forms[0].plan.plan_id = "partition";
+  const fragment = f.proposal.plan.forms[0].plan.fragments[0];
+  fragment.host_id = "host/remote";
+  fragment.boot_id = "boot/remote";
+  assert.throws(() => acquireBrowserBodyHost(f), error => {
+    assert.equal(error.code, "ExecutionLineUnavailable");
+    assert.deepEqual(error.refusal.rejections, [{
+      reason_code: "execution.line-unavailable",
+      category: "Connectivity",
+      stage: "Browser Host acquisition",
+      resource: "remote-fragment-execution-line",
+      required: 1,
+      available: 0,
+      host_id: "host",
+      boot_id: "boot",
+      plan_id: "body-plan",
+      checked_form_ids: ["checked/form"],
+      selected_host_id: "host/remote",
+      selected_boot_id: "boot/remote",
+    }]);
+    return true;
+  });
+  assert.equal(f.count().starts, 0);
+});
+
 test("Body placement admission follows the runtime envelope instead of a duplicated page constant", () => {
   const f = fixture();
   const fragment = f.proposal.plan.forms[0].plan.fragments[0];

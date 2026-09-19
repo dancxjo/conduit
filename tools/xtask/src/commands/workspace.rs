@@ -45,6 +45,46 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
             opts,
         )?;
     }
+    let releases = root.join("target/workspace-release-artifacts");
+    if releases.exists() && !opts.dry_run {
+        std::fs::remove_dir_all(&releases)?;
+    }
+    run_step(
+        &Step::new(
+            "demo.workspace.browser-release",
+            "Seal the reviewed compiler-free browser Host distribution",
+            "cargo",
+            &[
+                "xtask",
+                "host",
+                "release",
+                "--platform",
+                "browser",
+                "--output",
+                "target/workspace-release-artifacts",
+            ],
+        ),
+        &root,
+        opts,
+    )?;
+    run_step(
+        &Step::new(
+            "demo.workspace.release-catalog",
+            "Seal the Workspace browser Host release catalog",
+            "cargo",
+            &[
+                "xtask",
+                "host",
+                "release-catalog",
+                "--root",
+                "target/workspace-release-artifacts",
+                "--generation",
+                "1",
+            ],
+        ),
+        &root,
+        opts,
+    )?;
     let product = root.join("target/workspace-product");
     if product.exists() && !opts.dry_run {
         std::fs::remove_dir_all(product)?;
@@ -58,6 +98,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                 "products/workspace/tools/stage-workspace-product.sh",
                 "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
                 "target/workspace-product",
+                "target/workspace-release-artifacts",
             ],
         ),
         &root,

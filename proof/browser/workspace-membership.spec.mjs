@@ -9,7 +9,8 @@ let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("the ordinary Body surface reviews exact browser Host machinery before a separate invitation", async ({ page }) => {
+test("the ordinary Body surface binds and admits one compiler-free reviewed browser Host", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
@@ -25,7 +26,7 @@ test("the ordinary Body surface reviews exact browser Host machinery before a se
   await expect(page.getByRole("checkbox", { name: "Display this Body", exact: true })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: "Keyboard and pointer input", exact: true })).toBeChecked();
   await page.getByRole("checkbox", { name: "Microphone input", exact: true }).check();
-  await expect(page.getByRole("button", { name: "Create separate Body invitation", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Continue with reviewed Host", exact: true })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Resolve reviewed Bases", exact: true }).click();
   await expect(page.locator('[data-application-key="configuration-review-values"]')).toContainText("PROFILE");
@@ -34,11 +35,118 @@ test("the ordinary Body surface reviews exact browser Host machinery before a se
   await expect(page.getByRole("checkbox", { name: /browser\/dom@1/ })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: /browser\/media-devices-microphone@1/ })).toBeChecked();
   await page.getByRole("button", { name: "Review Host", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Create separate Body invitation", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with reviewed Host", exact: true })).toBeVisible();
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
-  await page.getByRole("button", { name: "Create separate Body invitation", exact: true }).click();
-  await expect(page.locator('[data-application-key="invitation-status"]')).toContainText("Single-use Body invitation");
+  const beforeRealization = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().realization);
+  await page.getByRole("button", { name: "Continue with reviewed Host", exact: true }).click();
+  const runner = page.locator(".physical-host-runner");
+  await expect(page.getByRole("heading", { name: "Bind and admit this reviewed browser Host", exact: true })).toBeVisible();
+  await expect(runner.locator('[data-application-key="physical-target"]')).toHaveValue("browser/wasm32/page");
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
+  let evidence = JSON.parse((await runner.locator(".physical-evidence details code").allTextContents()).join(""));
+  expect(evidence.obtainment).toMatchObject({
+    target_id: "browser/wasm32/page",
+    profile_id: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+    source_configuration_id: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+    distribution_id: "conduit.browser/reviewed-distribution@1",
+    build_id: expect.stringMatching(/^build:sha256:/),
+    image_id: expect.stringMatching(/^image:sha256:/),
+    builder_adapter: "conduit-host-browser/bind-prebuilt@1",
+    compiler_started: false,
+  });
+  expect(evidence.obtainment.image_content_digest).not.toBe(evidence.obtainment.distribution_sha256);
+
+  await runner.getByRole("button", { name: "Bind Body invitation", exact: true }).click();
+  await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
+  await expect(runner.locator('[data-application-key="download-spore"]')).toContainText("Download ZIP");
+  evidence = JSON.parse((await runner.locator(".physical-evidence details code").allTextContents()).join(""));
+  expect(evidence.binding).toMatchObject({
+    body_id: await page.evaluate(() => globalThis.__conduitWorkspace.current().body_id),
+    browser_configuration_id: evidence.obtainment.source_configuration_id,
+    browser_profile_id: evidence.obtainment.profile_id,
+    image_content_digest: evidence.obtainment.image_content_digest,
+  });
   expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership)).toEqual(before);
+  expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().realization)).toEqual(beforeRealization);
+
+  await page.evaluate(() => {
+    let next = 1n;
+    Object.defineProperty(Crypto.prototype, "randomUUID", {
+      configurable: true,
+      value: () => `00000000-0000-4000-8000-${(next++).toString(16).padStart(12, "0")}`,
+    });
+  });
+  await runner.getByRole("button", { name: "Realize selected Host", exact: true }).click();
+  await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
+  evidence = JSON.parse((await runner.locator(".physical-evidence details code").allTextContents()).join(""));
+  const admittedImplementationIds = evidence.realization.implementation_registry?.map(({ id }) => id)
+    ?? evidence.realization.retained_summary?.admitted_implementation_ids;
+  const readyImplementationIds = evidence.realization.offers?.map(({ implementation_id }) => implementation_id)
+    ?? evidence.realization.retained_summary?.ready_implementation_ids;
+  expect(admittedImplementationIds.sort()).toEqual([
+    "browser/dom-presentation@1",
+    "browser/dom@1",
+    "browser/keyboard-events@1",
+    "browser/media-devices-microphone@1",
+    "browser/pointer-events@1",
+  ]);
+  expect(readyImplementationIds.sort()).toEqual([
+    "browser/dom-presentation@1",
+    "browser/dom@1",
+    "browser/keyboard-events@1",
+    "browser/media-devices-microphone@1",
+    "browser/pointer-events@1",
+  ]);
+  expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership)).toEqual(before);
+  await runner.getByRole("button", { name: "Observe Boot and join", exact: true }).click();
+  const admit = runner.getByRole("button", { name: "Admit Part and offers", exact: true });
+  await expect(admit).toBeEnabled({ timeout: 15_000 });
+  expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership)).toEqual(before);
+  await admit.click();
+  await expect(page.locator(".member-card")).toHaveCount(2);
+  const after = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
+  expect(after.evidence.membership.revision).toBe(before.revision + 2);
+  expect(after.evidence.membership.parts.every(part => part.state === "Admitted" && part.current)).toBe(true);
+  expect(after.current_host_offers).toHaveLength(2);
+  const added = after.evidence.membership.parts.find(part => part.current.host_id !== before.parts[0].current.host_id);
+  const offer = after.current_host_offers.find(candidate => candidate.host_id === added.current.host_id);
+  expect(offer.boot_id).toBe(added.current.boot_id);
+  expect(offer.host_id).toBe(added.current.host_id);
+  expect(offer.capabilities.length).toBeGreaterThan(0);
+
+  const authoredForms = await page.evaluate(() => globalThis.__conduitWorkspace.current().initial_forms);
+  await page.locator("[data-close-membership]").click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Refused");
+  const replan = await page.evaluate(() => ({
+    playback: globalThis.__conduitWorkspace.state(),
+    evidence: globalThis.__conduitWorkspace.evidence(),
+  }));
+  expect(replan.playback.refusal).toMatchObject({
+    code: "ExecutionLineUnavailable",
+    message: "Body proposal selected an admitted Host without a current execution Line",
+  });
+  expect(replan.playback.proposal.plan.workset.forms).toEqual(
+    authoredForms.map(({ source_document_id, checked_form_id }) => ({ source_document_id, checked_form_id })),
+  );
+  const plannedFragments = replan.playback.proposal.plan.forms.flatMap(({ plan }) => plan.fragments);
+  expect(plannedFragments.map(({ host_id }) => host_id)).toEqual([added.current.host_id]);
+  expect(plannedFragments.flatMap(({ placements }) => placements.map(({ implementation_id }) => implementation_id)))
+    .toContain("browser/presentation-rhythm@1");
+  const failedWake = replan.evidence.evidence.wakes.at(-1);
+  expect(failedWake).toMatchObject({
+    lifecycle: "Failed",
+    plans: [{ plan_id: replan.playback.proposal.plan.plan_id, state: "AwaitingPlay" }],
+    rejections: [{
+      reason_code: "execution.line-unavailable",
+      category: "Connectivity",
+      required: 1,
+      available: 0,
+      plan_id: replan.playback.proposal.plan.plan_id,
+    }],
+  });
+  expect(replan.evidence.evidence.body.workset.forms).toEqual(authoredForms);
+  expect(replan.evidence.realization).toBeNull();
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {

@@ -140,7 +140,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     try {
       let prepared;
       if (prepareSpore) {
-        prepared = prepareSpore({ imageDigest: release.manifest.bundle_sha256, nowMillis, entropy });
+        prepared = await prepareSpore({ imageDigest: release.manifest.bundle_sha256, nowMillis, entropy });
       } else {
         const targetBytes = encoder.encode(profile.target_id);
         const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
@@ -198,7 +198,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     }
   }
 
-  function bindRendezvous({ obtainment, nowMillis, signal, prepareSpore }) {
+  async function bindRendezvous({ obtainment, nowMillis, signal, prepareSpore }) {
     const session = obtainment?.private?.rendezvous;
     const digest = session?.descriptor?.image_content_digest;
     if (!session || session !== rendezvous || typeof digest !== "string") {
@@ -209,7 +209,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     try {
       let prepared;
       if (prepareSpore) {
-        prepared = prepareSpore({ imageDigest: digest, nowMillis, entropy });
+        prepared = await prepareSpore({ imageDigest: digest, nowMillis, entropy });
       } else {
         const targetBytes = encoder.encode(profile.target_id);
         const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);

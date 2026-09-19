@@ -9,6 +9,8 @@ import { readWorkspaceHandoff, consumeWorkspaceHandoff } from "./workspace-hando
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
 import { createBodyInvitationReceiver, openWorkspaceMembership, readBodyInvitation, readSharedBodyInvitation } from "./workspace-membership.mjs";
 import { prepareWorkspaceVoicePlay } from "./workspace-voice-play.mjs";
+import { createMemoryReleaseCache, openReleaseCatalog } from "../../creche/browser/creche-release-catalog.mjs";
+import { browserHostOperationLimits, createBrowserHostOperations } from "../../../targets/browser/host/assets/browser-host-operations.mjs";
 
 export async function startApplication(application) {
   const root = document.querySelector('.workspace-shell');
@@ -33,7 +35,43 @@ export async function startApplication(application) {
   try {
     const invitation = await readSharedBodyInvitation(globalThis.location) ?? readBodyInvitation(globalThis.location);
     if (!invitation) await acquireBrowserBodyContinuity();
-    const host = await initializeBrowserHost({ runtimeBytes: application.bytes('runtime'), durable: !invitation });
+    const initializedHost = await initializeBrowserHost({ runtimeBytes: application.bytes('runtime'), durable: !invitation });
+    const releaseCatalogSource = new URL('./artifacts/release-catalog.json', import.meta.url).href;
+    const releaseArtifactCache = createMemoryReleaseCache();
+    const host = Object.freeze({
+      ...initializedHost,
+      admitProfileGatedBrowserBoot: application.admitProfileGatedBrowserBoot,
+      releaseCatalogSource,
+      releaseArtifactCache,
+      async resolveReviewedRelease(profile, signal) {
+        const catalog = await openReleaseCatalog({ source: releaseCatalogSource, signal, cache: releaseArtifactCache });
+        return catalog.resolve(profile, signal);
+      },
+    });
+    const operations = createBrowserHostOperations({ hostId: host.hostId, bootId: host.bootId,
+      applicationId: application.manifest.applicationId, applicationGeneration: 1, authorityGeneration: 1 });
+    let artifactSequence = 0;
+    const hostOperations = Object.freeze({
+      handoffArtifact(artifact) {
+        artifactSequence += 1;
+        return operations.handoffArtifact({
+          contract: browserHostOperationLimits.contract,
+          kind: 'artifact-handoff',
+          operationId: `workspace/artifact-${artifactSequence}`,
+          hostId: host.hostId,
+          bootId: host.bootId,
+          applicationId: application.manifest.applicationId,
+          applicationGeneration: 1,
+          authorityGeneration: 1,
+          userActivation: true,
+          artifactId: artifact.artifact_id,
+          bytes: artifact.payload,
+          maximumBytes: artifact.maximum_bytes,
+          filename: artifact.filename,
+          mediaType: artifact.media_type,
+        });
+      },
+    });
     const session = openWorkspaceSession({ host, storage: application.storage });
     const source = application.text('reviewed-form-inventory');
     const inventory = readReviewedFormInventory(host.runtime, source);
@@ -284,7 +322,7 @@ export async function startApplication(application) {
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
     globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
-    membership = openWorkspaceMembership({ root, session, host, invitation, presentationFor: application.presentationFor,
+    membership = openWorkspaceMembership({ root, session, host, hostOperations, invitation, presentationFor: application.presentationFor,
       invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
         ? 'Invite another phone' : 'Invite another Host',
       async beforeAdmission() {

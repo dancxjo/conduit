@@ -389,13 +389,19 @@ impl WorkspaceBody {
         {
             return Err(WorkspaceBodyError::StalePlay);
         }
-        let sequence = self.next_sequence()?;
-        let retain_sequence = sequence
+        let plan_sequence = self.next_sequence()?;
+        let failure_sequence = plan_sequence
+            .checked_add(1)
+            .ok_or(WorkspaceBodyError::SequenceExhausted)?;
+        let retain_sequence = failure_sequence
             .checked_add(1)
             .ok_or(WorkspaceBodyError::SequenceExhausted)?;
         let wake = current
             .wake
-            .fail_with_rejections(sign(host, boot, sequence), rejections)
+            .body_plan_ready(&current.plan, sign(host, boot, plan_sequence))
+            .and_then(|wake| {
+                wake.fail_with_rejections(sign(host, boot, failure_sequence), rejections)
+            })
             .map_err(WorkspaceBodyError::Lifecycle)?;
         let body = self
             .evidence
@@ -404,7 +410,7 @@ impl WorkspaceBody {
             .map_err(WorkspaceBodyError::Lifecycle)?;
         let mut evidence = self.evidence.clone();
         evidence
-            .append_wake(body, wake, sequence)
+            .append_wake(body, wake, plan_sequence)
             .map_err(WorkspaceBodyError::Biography)?;
         self.evidence = evidence;
         self.realization = None;

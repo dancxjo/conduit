@@ -58,6 +58,14 @@
         {
           "role": "workspace-surface",
           "specifier": "./workspace-surface.mjs"
+        },
+        {
+          "role": "creche-release-catalog",
+          "specifier": "../../creche/browser/creche-release-catalog.mjs"
+        },
+        {
+          "role": "browser-host-operations",
+          "specifier": "../../../targets/browser/host/assets/browser-host-operations.mjs"
         }
       ]
     },
@@ -166,7 +174,7 @@
       "role": "workspace-membership",
       "kind": "module",
       "path": "workspace-membership.mjs",
-      "maximum_bytes": 24576,
+      "maximum_bytes": 32768,
       "dependencies": [
         {
           "role": "creche-rendezvous",
@@ -175,6 +183,18 @@
         {
           "role": "workspace-host-configuration",
           "specifier": "./workspace-host-configuration.mjs"
+        },
+        {
+          "role": "creche-physical",
+          "specifier": "../../creche/browser/creche-physical.mjs"
+        },
+        {
+          "role": "creche-target-catalog",
+          "specifier": "../../creche/browser/creche-target-catalog.mjs"
+        },
+        {
+          "role": "browser-adapter",
+          "specifier": "../../../targets/browser/deployment/browser/creche-adapter.mjs"
         }
       ]
     },
@@ -204,6 +224,67 @@
       "maximum_bytes": 32768,
       "dependencies": []
     },
+    {
+      "role": "creche-physical",
+      "kind": "module",
+      "path": "creche-physical.mjs",
+      "maximum_bytes": 32768,
+      "dependencies": [
+        { "role": "creche-target-catalog", "specifier": "./creche-target-catalog.mjs" },
+        { "role": "creche-physical-presentation", "specifier": "./creche-physical-presentation.mjs" }
+      ]
+    },
+    { "role": "creche-physical-presentation", "kind": "module", "path": "creche-physical-presentation.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "creche-target-catalog", "kind": "module", "path": "creche-target-catalog.mjs", "maximum_bytes": 16384, "dependencies": [] },
+    {
+      "role": "creche-existing-computer",
+      "kind": "module",
+      "path": "creche-existing-computer.mjs",
+      "maximum_bytes": 32768,
+      "dependencies": [
+        { "role": "creche-release-catalog", "specifier": "./creche-release-catalog.mjs" },
+        { "role": "creche-spore-bundle", "specifier": "./creche-spore-bundle.mjs" },
+        { "role": "creche-native-zip", "specifier": "./creche-native-zip.mjs" },
+        { "role": "creche-target-catalog", "specifier": "./creche-target-catalog.mjs" },
+        { "role": "creche-rendezvous", "specifier": "./creche-rendezvous.mjs" }
+      ]
+    },
+    { "role": "creche-rendezvous-candidates", "kind": "module", "path": "creche-rendezvous-candidates.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "creche-release-bundle", "kind": "module", "path": "creche-release-bundle.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    {
+      "role": "creche-release-catalog",
+      "kind": "module",
+      "path": "creche-release-catalog.mjs",
+      "maximum_bytes": 12288,
+      "dependencies": [{ "role": "creche-release-bundle", "specifier": "./creche-release-bundle.mjs" }]
+    },
+    {
+      "role": "creche-spore-bundle",
+      "kind": "module",
+      "path": "creche-spore-bundle.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [{ "role": "creche-rendezvous-candidates", "specifier": "./creche-rendezvous-candidates.mjs" }]
+    },
+    {
+      "role": "creche-native-zip",
+      "kind": "module",
+      "path": "creche-native-zip.mjs",
+      "maximum_bytes": 16384,
+      "dependencies": [{ "role": "creche-rendezvous-candidates", "specifier": "./creche-rendezvous-candidates.mjs" }]
+    },
+    {
+      "role": "browser-adapter",
+      "kind": "module",
+      "path": "targets/browser/browser-deployment/creche-adapter.mjs",
+      "maximum_bytes": 12288,
+      "dependencies": [
+        { "role": "creche-existing-computer", "specifier": "../../../creche-existing-computer.mjs" },
+        { "role": "browser-host-configuration", "specifier": "../../../creche-browser-configuration.mjs" },
+        { "role": "creche-release-bundle", "specifier": "../../../creche-release-bundle.mjs" },
+        { "role": "browser-bundle-builder", "specifier": "./browser-bundle.mjs" }
+      ]
+    },
+    { "role": "browser-bundle-builder", "kind": "module", "path": "targets/browser/browser-deployment/browser-bundle.mjs", "maximum_bytes": 24576, "dependencies": [] },
     {
       "role": "shared-presentation-style",
       "kind": "style",

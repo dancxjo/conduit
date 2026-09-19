@@ -369,11 +369,12 @@ jobs:
           retention-days: 14
 
   browser-admission-stage:
-    needs: [plan, browser-runtimes]
+    needs: [plan, browser-runtimes, browser-release]
     if: >-
       always() && !cancelled() && needs.plan.result == 'success' &&
       needs.plan.outputs.browser_admission_required == 'true' &&
-      needs.browser-runtimes.result == 'success'
+      needs.browser-runtimes.result == 'success' &&
+      needs.browser-release.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
@@ -385,6 +386,11 @@ jobs:
         with:
           name: conduit-browser-product-runtimes
           path: target/browser-product-runtimes
+      - name: Download the exact reviewed browser Host distribution
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-existing-computer-releases-browser
+          path: target/workspace-release-artifacts
       - name: Stage the affected browser surfaces without release fabrication
         run: |
           mkdir -p target/debug target/wasm32-unknown-unknown/release
@@ -396,7 +402,7 @@ jobs:
           site/tools/stage-pages-root.sh target/pages-root
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product unused browser-proof
-          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
+          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/workspace-release-artifacts
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
           products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
       - name: Retain the browser-only candidate surfaces
@@ -498,7 +504,7 @@ jobs:
 
   avr-release:
     needs: plan
-    if: needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true' || needs.plan.outputs.browser_admission_required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -527,7 +533,7 @@ jobs:
 
   browser-release:
     needs: plan
-    if: needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true' || needs.plan.outputs.browser_admission_required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -541,7 +547,9 @@ jobs:
         with:
           cache-on-failure: false
       - name: Compile and seal the reviewed browser distribution
-        run: cargo +1.98.1 xtask host release --platform browser --output target/creche-host-releases
+        run: |
+          cargo +1.98.1 xtask host release --platform browser --output target/creche-host-releases
+          cargo +1.98.1 xtask host release-catalog --root target/creche-host-releases --generation "${{ github.run_number }}"
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-browser
@@ -901,10 +909,11 @@ jobs:
           name: conduit-conduitos-releases
           path: target/creche-release-artifacts
       - name: Seal the bounded installed release catalog
-        run: >-
-          cargo +1.98.1 xtask host release-catalog
-          --root target/creche-release-artifacts
-          --generation "${{ github.run_number }}"
+        run: |
+          rm -f target/creche-release-artifacts/release-catalog.json
+          cargo +1.98.1 xtask host release-catalog \
+            --root target/creche-release-artifacts \
+            --generation "${{ github.run_number }}"
       - name: Stage the exact browser products
         run: |
           mkdir -p target/debug
@@ -920,7 +929,7 @@ jobs:
           site/tools/stage-pages-root.sh target/pages-root
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
-          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product
+          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/creche-release-artifacts
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
           products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
       - name: Retain the exact staged products once for parallel consumers

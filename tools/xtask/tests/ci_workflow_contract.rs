@@ -405,6 +405,9 @@ fn browser_release_installs_its_exact_wasm_target() {
         .nth(1)
         .and_then(|tail| tail.split("\n  tour-patchbay-proof:\n").next())
         .expect("locate browser release job");
+    assert!(browser_release.contains(
+        "if: needs.plan.outputs.pages_carrier_required == 'true' || needs.plan.outputs.browser_admission_required == 'true'"
+    ));
     assert!(browser_release.contains("targets: wasm32-unknown-unknown"));
 }
 

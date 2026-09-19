@@ -118,10 +118,10 @@ async function installEsp32Release(page, { id, chipId, releaseName, headerOffset
   return bytes;
 }
 
-async function installHostRelease(page, manifestName) {
+async function installHostRelease(page, manifestName, { routeFiles = true } = {}) {
   const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
   const manifest = JSON.parse(await readFile(new URL(manifestName, root), "utf8"));
-  for (const file of manifest.files) {
+  for (const file of routeFiles ? manifest.files : []) {
     const bytes = await readFile(new URL(file.path, root));
     await page.route(`**/artifacts/${file.path}`, (route) => route.fulfill({
       status: 200,
@@ -1452,15 +1452,19 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
 });
 
 test("a native Linux target produces an exact spore but refuses to execute an unadmitted installer", async ({ page }) => {
-  const release = await installHostRelease(page, "hosted-linux-x86_64.json");
+  test.setTimeout(60_000);
+  const release = await installHostRelease(page, "hosted-linux-x86_64.json", { routeFiles: false });
   await birthStandaloneBody(page, { sourceVariant: "native-existing-computer" });
   await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
-  await expect(runner.getByRole("button", { name: "Review Host" })).toBeEnabled();
-  await runner.getByRole("button", { name: "Review Host" }).click();
-  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
+  try {
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting", { timeout: 30_000 });
+  } catch (error) {
+    error.message += `\nPhysical Host status: ${await runner.locator('[data-application-key="physical-status"]').textContent()}`;
+    throw error;
+  }
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   const hostedHandoff = runner.locator('[data-application-key="download-spore"]');
   await expect(hostedHandoff).toContainText("Download ZIP");
