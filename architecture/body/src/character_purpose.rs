@@ -1,76 +1,16 @@
-//! Finite Body character, purpose, and deterministic Fulfillment readiness.
+//! Finite optional purpose and deterministic Fulfillment readiness.
 //!
-//! These are semantic facts for a Body/application. They grant no lifecycle
-//! authority, contain no Presenter prompt, and name no realizing Host.
+//! These are semantic facts for a Body application. They grant no lifecycle
+//! authority, contain no Presenter policy, and name no realizing Host.
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::SignId;
 use serde::{Deserialize, Serialize};
 
-pub const MAX_CHARACTER_PURPOSE_ID_BYTES: usize = 128;
-pub const MAX_CHARACTER_PURPOSE_SUMMARY_BYTES: usize = 512;
+pub const MAX_PURPOSE_ID_BYTES: usize = 128;
+pub const MAX_PURPOSE_SUMMARY_BYTES: usize = 512;
 pub const MAX_PURPOSE_OBLIGATIONS: usize = 32;
 pub const MAX_OBLIGATION_EVIDENCE_SIGNS: usize = 8;
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum WorkOrientation {
-    UsefulCompletion,
-    ContinuingService,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum UncertaintyOrientation {
-    InvestigateBeforeClaimingCompletion,
-    PreserveAsUnresolved,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum FaultOrientation {
-    RepairWhilePurposeRemains,
-    ReportWithoutInferringCompletion,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum FulfillmentOrientation {
-    WelcomeWhenExactlyReady,
-    NoDeclaredOrientation,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct CharacterProfile {
-    pub profile_id: String,
-    pub revision: u64,
-    pub work: WorkOrientation,
-    pub uncertainty: UncertaintyOrientation,
-    pub faults: FaultOrientation,
-    pub fulfillment: FulfillmentOrientation,
-}
-
-impl CharacterProfile {
-    pub fn purposeful_completion(profile_id: String, revision: u64) -> Self {
-        Self {
-            profile_id,
-            revision,
-            work: WorkOrientation::UsefulCompletion,
-            uncertainty: UncertaintyOrientation::InvestigateBeforeClaimingCompletion,
-            faults: FaultOrientation::RepairWhilePurposeRemains,
-            fulfillment: FulfillmentOrientation::WelcomeWhenExactlyReady,
-        }
-    }
-
-    pub fn validate(&self) -> Result<(), CharacterPurposeRefusal> {
-        validate_identity(&self.profile_id)?;
-        if self.revision == 0 {
-            return Err(CharacterPurposeRefusal::InvalidRevision);
-        }
-        Ok(())
-    }
-}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -109,14 +49,14 @@ pub struct PurposeState {
 }
 
 impl PurposeState {
-    pub fn validate(&self) -> Result<(), CharacterPurposeRefusal> {
+    pub fn validate(&self) -> Result<(), PurposeRefusal> {
         validate_identity(&self.purpose_id)?;
         validate_summary(&self.summary)?;
         if self.revision == 0 {
-            return Err(CharacterPurposeRefusal::InvalidRevision);
+            return Err(PurposeRefusal::InvalidRevision);
         }
         if self.obligations.is_empty() || self.obligations.len() > MAX_PURPOSE_OBLIGATIONS {
-            return Err(CharacterPurposeRefusal::ObligationBound);
+            return Err(PurposeRefusal::ObligationBound);
         }
         for (index, obligation) in self.obligations.iter().enumerate() {
             validate_identity(&obligation.obligation_id)?;
@@ -125,7 +65,7 @@ impl PurposeState {
                 .iter()
                 .any(|prior| prior.obligation_id == obligation.obligation_id)
             {
-                return Err(CharacterPurposeRefusal::DuplicateObligation);
+                return Err(PurposeRefusal::DuplicateObligation);
             }
             validate_obligation_state(&obligation.state)?;
         }
@@ -170,7 +110,7 @@ pub enum FulfillmentReadiness {
 
 pub fn derive_fulfillment_readiness(
     purpose: &PurposeState,
-) -> Result<FulfillmentReadiness, CharacterPurposeRefusal> {
+) -> Result<FulfillmentReadiness, PurposeRefusal> {
     purpose.validate()?;
     if purpose.completion_policy == PurposeCompletionPolicy::NoFulfillmentCondition {
         return Ok(FulfillmentReadiness::Unavailable {
@@ -220,78 +160,7 @@ pub fn derive_fulfillment_readiness(
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum CharacterOrientationCue {
-    ContinueUsefulWork,
-    RepairBeforeCompletion,
-    InvestigateCompletion,
-    PreserveDisagreement,
-    WelcomeAppropriateFulfillment,
-    ContinueWithoutFulfillmentClaim,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct CharacterContext {
-    pub character_profile_id: String,
-    pub character_revision: u64,
-    pub purpose_id: String,
-    pub purpose_revision: u64,
-    pub readiness: FulfillmentReadiness,
-    pub cues: Vec<CharacterOrientationCue>,
-}
-
-pub fn derive_character_context(
-    character: &CharacterProfile,
-    purpose: &PurposeState,
-) -> Result<CharacterContext, CharacterPurposeRefusal> {
-    character.validate()?;
-    let readiness = derive_fulfillment_readiness(purpose)?;
-    let mut cues = Vec::new();
-    match &readiness {
-        FulfillmentReadiness::Ready { .. }
-            if character.fulfillment == FulfillmentOrientation::WelcomeWhenExactlyReady =>
-        {
-            cues.push(CharacterOrientationCue::WelcomeAppropriateFulfillment);
-        }
-        FulfillmentReadiness::Ready { .. } | FulfillmentReadiness::Unavailable { .. } => {
-            cues.push(CharacterOrientationCue::ContinueWithoutFulfillmentClaim);
-        }
-        FulfillmentReadiness::NotReady { reasons, .. } => {
-            for reason in reasons {
-                let cue = match reason.kind {
-                    FulfillmentReadinessReasonKind::Unfinished => {
-                        CharacterOrientationCue::ContinueUsefulWork
-                    }
-                    FulfillmentReadinessReasonKind::RepairRequired => {
-                        CharacterOrientationCue::RepairBeforeCompletion
-                    }
-                    FulfillmentReadinessReasonKind::CompletionEvidenceMissing
-                    | FulfillmentReadinessReasonKind::CompletionUncertain => {
-                        CharacterOrientationCue::InvestigateCompletion
-                    }
-                    FulfillmentReadinessReasonKind::CompletionDisputed => {
-                        CharacterOrientationCue::PreserveDisagreement
-                    }
-                };
-                if !cues.contains(&cue) {
-                    cues.push(cue);
-                }
-            }
-        }
-    }
-    Ok(CharacterContext {
-        character_profile_id: character.profile_id.clone(),
-        character_revision: character.revision,
-        purpose_id: purpose.purpose_id.clone(),
-        purpose_revision: purpose.revision,
-        readiness,
-        cues,
-    })
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum CharacterPurposeRefusal {
+pub enum PurposeRefusal {
     EmptyIdentity,
     IdentityBound,
     InvalidRevision,
@@ -304,29 +173,27 @@ pub enum CharacterPurposeRefusal {
     DuplicateEvidence,
 }
 
-fn validate_identity(value: &str) -> Result<(), CharacterPurposeRefusal> {
+fn validate_identity(value: &str) -> Result<(), PurposeRefusal> {
     if value.is_empty() {
-        return Err(CharacterPurposeRefusal::EmptyIdentity);
+        return Err(PurposeRefusal::EmptyIdentity);
     }
-    if value.len() > MAX_CHARACTER_PURPOSE_ID_BYTES {
-        return Err(CharacterPurposeRefusal::IdentityBound);
+    if value.len() > MAX_PURPOSE_ID_BYTES {
+        return Err(PurposeRefusal::IdentityBound);
     }
     Ok(())
 }
 
-fn validate_summary(value: &str) -> Result<(), CharacterPurposeRefusal> {
+fn validate_summary(value: &str) -> Result<(), PurposeRefusal> {
     if value.is_empty() {
-        return Err(CharacterPurposeRefusal::EmptySummary);
+        return Err(PurposeRefusal::EmptySummary);
     }
-    if value.len() > MAX_CHARACTER_PURPOSE_SUMMARY_BYTES {
-        return Err(CharacterPurposeRefusal::SummaryBound);
+    if value.len() > MAX_PURPOSE_SUMMARY_BYTES {
+        return Err(PurposeRefusal::SummaryBound);
     }
     Ok(())
 }
 
-fn validate_obligation_state(
-    state: &PurposeObligationState,
-) -> Result<(), CharacterPurposeRefusal> {
+fn validate_obligation_state(state: &PurposeObligationState) -> Result<(), PurposeRefusal> {
     let evidence = match state {
         PurposeObligationState::Satisfied { evidence_sign_ids }
         | PurposeObligationState::Uncertain { evidence_sign_ids }
@@ -339,19 +206,19 @@ fn validate_obligation_state(
         }
     };
     if evidence.is_empty() {
-        return Err(CharacterPurposeRefusal::MissingEvidence);
+        return Err(PurposeRefusal::MissingEvidence);
     }
     if evidence.len() > MAX_OBLIGATION_EVIDENCE_SIGNS {
-        return Err(CharacterPurposeRefusal::EvidenceBound);
+        return Err(PurposeRefusal::EvidenceBound);
     }
     for (index, sign) in evidence.iter().enumerate() {
         validate_identity(sign.as_str())?;
         if evidence[..index].contains(sign) {
-            return Err(CharacterPurposeRefusal::DuplicateEvidence);
+            return Err(PurposeRefusal::DuplicateEvidence);
         }
     }
     if matches!(state, PurposeObligationState::Disputed { .. }) && evidence.len() < 2 {
-        return Err(CharacterPurposeRefusal::MissingEvidence);
+        return Err(PurposeRefusal::MissingEvidence);
     }
     Ok(())
 }

@@ -1,7 +1,7 @@
 use conduit_body::{
-    Body, BodyCharacterPurpose, BodyFulfillment, CharacterOrientationCue, CharacterProfile,
-    CharacterPurposeContinuityRefusal, FulfillmentObligation, PurposeCompletionPolicy,
-    PurposeObligation, PurposeObligationState, PurposeState,
+    Body, BodyFulfillment, BodyPurpose, FulfillmentObligation, FulfillmentReadiness,
+    PurposeCompletionPolicy, PurposeContinuityRefusal, PurposeObligation, PurposeObligationState,
+    PurposeState,
 };
 use conduit_core::{
     bind_active_play, seal_plan, AuthorityGrantId, CheckedFormId, ExpandedFormId, FormIdentity,
@@ -48,16 +48,12 @@ fn plan(identity: &str) -> Plan {
 }
 
 #[test]
-fn character_and_purpose_survive_replan_host_change_lull_and_new_wake() {
+fn purpose_survives_replan_host_change_lull_and_new_wake() {
     let initial = body();
-    let orientation = BodyCharacterPurpose::establish(
-        &initial,
-        CharacterProfile::purposeful_completion("character/orifina@1".into(), 1),
-        purpose(1, PurposeObligationState::Pending),
-    )
-    .unwrap();
-    let retained_truth = orientation.clone();
-    let retained_truth: BodyCharacterPurpose =
+    let retained_purpose =
+        BodyPurpose::establish(&initial, purpose(1, PurposeObligationState::Pending)).unwrap();
+    let retained_truth = retained_purpose.clone();
+    let retained_truth: BodyPurpose =
         serde_json::from_slice(&serde_json::to_vec(&retained_truth).unwrap()).unwrap();
     let (awake, wake) = initial.wake(1, SignId::from("sign/woke")).unwrap();
     let first = plan("expanded/first");
@@ -94,24 +90,20 @@ fn character_and_purpose_survive_replan_host_change_lull_and_new_wake() {
         .unwrap();
     let (rewoken, _) = retained.wake(2, SignId::from("sign/rewoken")).unwrap();
 
-    assert_eq!(orientation, retained_truth);
-    orientation.validate_for(&rewoken).unwrap();
-    assert_eq!(
-        orientation.active_context(&rewoken).unwrap().cues,
-        vec![CharacterOrientationCue::ContinueUsefulWork]
-    );
+    assert_eq!(retained_purpose, retained_truth);
+    retained_purpose.validate_for(&rewoken).unwrap();
+    assert!(matches!(
+        retained_purpose.active_readiness(&rewoken).unwrap(),
+        FulfillmentReadiness::NotReady { .. }
+    ));
 }
 
 #[test]
-fn purpose_revision_is_explicit_and_cannot_change_character() {
+fn purpose_revision_is_explicit() {
     let body = body();
-    let orientation = BodyCharacterPurpose::establish(
-        &body,
-        CharacterProfile::purposeful_completion("character/orifina@1".into(), 4),
-        purpose(7, PurposeObligationState::Pending),
-    )
-    .unwrap();
-    let next = orientation
+    let retained_purpose =
+        BodyPurpose::establish(&body, purpose(7, PurposeObligationState::Pending)).unwrap();
+    let next = retained_purpose
         .revise_purpose(purpose(
             8,
             PurposeObligationState::Satisfied {
@@ -120,20 +112,18 @@ fn purpose_revision_is_explicit_and_cannot_change_character() {
         ))
         .unwrap();
 
-    assert_eq!(next.character, orientation.character);
     assert_eq!(next.purpose.revision, 8);
     assert_eq!(
-        orientation.revise_purpose(purpose(9, PurposeObligationState::Pending)),
-        Err(CharacterPurposeContinuityRefusal::StalePurposeRevision)
+        retained_purpose.revise_purpose(purpose(9, PurposeObligationState::Pending)),
+        Err(PurposeContinuityRefusal::StalePurposeRevision)
     );
 }
 
 #[test]
-fn fulfilled_body_retains_inspection_but_has_no_active_character_context() {
+fn fulfilled_body_retains_purpose_inspection_but_has_no_active_readiness() {
     let body = body();
-    let orientation = BodyCharacterPurpose::establish(
+    let retained_purpose = BodyPurpose::establish(
         &body,
-        CharacterProfile::purposeful_completion("character/orifina@1".into(), 1),
         purpose(
             1,
             PurposeObligationState::Satisfied {
@@ -158,17 +148,17 @@ fn fulfilled_body_retains_inspection_but_has_no_active_character_context() {
         .unwrap();
 
     assert_eq!(
-        orientation.active_context(&fulfilled),
-        Err(CharacterPurposeContinuityRefusal::BodyFulfilled)
+        retained_purpose.active_readiness(&fulfilled),
+        Err(PurposeContinuityRefusal::BodyFulfilled)
     );
-    assert_eq!(
-        orientation.inspect_context().unwrap().cues,
-        vec![CharacterOrientationCue::WelcomeAppropriateFulfillment]
-    );
+    assert!(matches!(
+        retained_purpose.inspect_readiness().unwrap(),
+        FulfillmentReadiness::Ready { .. }
+    ));
 }
 
 #[test]
-fn orientation_state_contains_no_host_model_provider_or_authority_identity() {
+fn purpose_state_contains_no_host_model_provider_or_authority_identity() {
     let source = include_str!("../src/character_purpose_continuity.rs");
     for forbidden in [
         "HostId",
