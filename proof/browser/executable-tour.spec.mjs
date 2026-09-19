@@ -29,7 +29,9 @@ function browserApplicationPackageDigest(manifest) {
 }
 
 async function startCreche() {
-  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/creche-product", "--mount", "/creche/", "--no-open"], {
+  const host = process.env.CONDUIT_BROWSER_HOST_BIN ?? "target/debug/conduit-browser-host";
+  const product = process.env.CONDUIT_CRECHE_PRODUCT_ROOT ?? "target/creche-product";
+  const child = spawn(host, ["--application", product, "--mount", "/creche/", "--no-open"], {
     cwd: new URL("../..", import.meta.url).pathname,
     env: process.env,
     stdio: ["ignore", "pipe", "pipe"],
@@ -1900,6 +1902,88 @@ test("the physical workflow cancels one bounded catalog operation without accept
   await expect(bounded.locator("details code")).toContainText('"terminal": "EvidenceBound"');
   const boundedEvidence = JSON.parse(await bounded.locator("details code").textContent());
   expect(boundedEvidence).toMatchObject({ phase: "terminal", admitted_operations: 1, obtainment: null });
+});
+
+test("the shared physical workflow delegates final admission to its owning Body product", async ({ page }) => {
+  await birthStandaloneBody(page);
+  await page.evaluate(async () => {
+    const { createPhysicalHostRunner } = await import("/creche/creche-physical.mjs");
+    const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
+    const { createApplicationPresentationHost } = await import("/creche/application-presentation.mjs");
+    const target = {
+      id: "fixture/delegated-admission",
+      label: "Delegated admission fixture",
+      model_id: "fixture/delegated-admission-model",
+      profile_id: "fixture/delegated-admission-profile",
+    };
+    const modes = [
+      { id: "fabricate-new", resultKind: "artifact", supported: true },
+      { id: "install-existing", resultKind: "installation", supported: false },
+      { id: "attach-running", resultKind: "attachment", supported: false },
+    ];
+    const bounds = { maximumOperations: 5, maximumOperationEvidenceBytes: 2048, maximumRetainedEvidenceBytes: 8192 };
+    const join = Object.freeze({
+      schema: "fixture/join@1",
+      spore_id: "spore/delegated",
+      image_id: "image/delegated",
+      invitation_id: "invitation/delegated",
+      body_id: "body/delegated",
+      host_id: "host/delegated",
+      boot_id: "boot/delegated",
+      observed_at_millis: 1,
+    });
+    const adapter = {
+      schema: "conduit.creche/physical-host-target-adapter@1",
+      target,
+      modes,
+      bounds,
+      createOptions() { return null; },
+      async obtain() { return { resultKind: "artifact", evidence: { schema: "fixture/obtainment@1" } }; },
+      async bind() { return { prepared: { spore_id: join.spore_id }, evidence: { schema: "fixture/binding@1" } }; },
+      async realize() { return { terminal: "FixtureRealized", evidence: { schema: "fixture/realization@1" } }; },
+      async observe() { return { join, evidence: { schema: "fixture/observation@1", ...join } }; },
+      async cancel() {},
+    };
+    const contribution = {
+      schema: "conduit.creche/physical-host-target-entry@1",
+      family: { id: "fixture/family", label: "Fixture family" },
+      target,
+      intentions: modes,
+      fabrication_strategies: [{ id: "fixture/strategy", label: "Fixture strategy" }],
+      carriers: { deployment: [], installation: [], attachment: [], observation: [] },
+      bounds,
+      expected_join_contract: join.schema,
+      target_profile: { schema: "fixture/target-profile@1" },
+      createAdapter: () => adapter,
+    };
+    const targetCatalog = createPhysicalHostTargetCatalog({ generation: 1, contributions: [contribution] });
+    globalThis.__delegatedAdmission = { calls: 0, changed: 0, join: null };
+    const runner = createPhysicalHostRunner({
+      host: globalThis.__conduitCrecheHost,
+      targetCatalog,
+      presentationFor: (scope) => createApplicationPresentationHost(scope),
+      async admitJoin(candidate) {
+        globalThis.__delegatedAdmission.calls += 1;
+        globalThis.__delegatedAdmission.join = candidate;
+        return { schema: "fixture/admission@1", membership_revision: 7, offer_count: 2 };
+      },
+      onBodyChanged() { globalThis.__delegatedAdmission.changed += 1; },
+    });
+    runner.dataset.fixture = "delegated-admission";
+    document.querySelector("#workspace").append(runner);
+  });
+  const runner = page.locator('[data-fixture="delegated-admission"]');
+  await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await runner.getByRole("button", { name: "Observe Boot and join" }).click();
+  await runner.getByRole("button", { name: "Admit Part and offers" }).click();
+  await expect(runner.locator('[data-application-key="physical-stage-admit"] dd')).toHaveText("revision 7");
+  await expect(runner.locator('[data-application-key="physical-status"]')).toContainText("2 current offers are ready");
+  expect(await page.evaluate(() => globalThis.__delegatedAdmission)).toMatchObject({
+    calls: 1,
+    changed: 1,
+    join: { spore_id: "spore/delegated", host_id: "host/delegated", boot_id: "boot/delegated" },
+  });
 });
 
 test("the guided arc names each idea after the reader has met the prior one", async ({ page }) => {

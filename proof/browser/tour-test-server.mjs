@@ -23,7 +23,9 @@ function awaitUrl(child, pattern, label) {
 }
 
 export async function startTour() {
-  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/tour-product", "--mount", "/tour/", "--no-open"], {
+  const host = process.env.CONDUIT_BROWSER_HOST_BIN ?? "target/debug/conduit-browser-host";
+  const product = process.env.CONDUIT_TOUR_PRODUCT_ROOT ?? "target/tour-product";
+  const child = spawn(host, ["--application", product, "--mount", "/tour/", "--no-open"], {
     cwd: new URL("../..", import.meta.url).pathname,
     env: process.env,
     stdio: ["ignore", "pipe", "pipe"],
