@@ -1,11 +1,16 @@
 //! Outbound ordinary Host rendezvous above one protected relay Line.
 
-use conduit_protected_line::{
-    establish_protected_session, EndpointBinding, ProtectedCarrier, ProtectedSessionPolicy,
-    RelayCandidateBounds, RelayCandidateDescriptor, RelayCandidateIdentity, RelayCandidateSecrets,
-    RelayEndpointRole, Role, SessionBinding, SessionLimits,
+use conduit_body::{
+    RendezvousAttemptDecision, RendezvousAttemptJournal, RendezvousAttemptOutcome,
+    RendezvousAttemptSchedule, RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily,
 };
-use conduit_std_host::relay_client::{HostedRelayCarrier, RelayClientDescriptor};
+use conduit_protected_line::{
+    establish_protected_session, EndpointBinding, ProtectedCarrier, ProtectedFrameCarrier,
+    ProtectedLineError, ProtectedSessionPolicy, RelayCandidateBounds, RelayCandidateDescriptor,
+    RelayCandidateIdentity, RelayCandidateSecrets, RelayEndpointRole, Role, SessionBinding,
+    SessionLimits,
+};
+use conduit_std_host::relay_client::{HostedRelayCarrier, RelayClientDescriptor, RelayClientError};
 use serde::Deserialize;
 use std::fs;
 use std::net::SocketAddr;
@@ -194,41 +199,15 @@ pub(super) fn connect(state_dir: &Path, descriptor_path: &Path) -> Result<(), St
     .map_err(|error| format!("validate portable relay candidate: {error:?}"))?;
     descriptor.candidate.relay_capability.fill(0);
     descriptor.candidate.protected_session_psk.fill(0);
-    let client = RelayClientDescriptor {
-        address: descriptor.address,
-        public_url: candidate.identity.relay_locator.clone(),
-        server_identity: candidate.identity.relay_server_identity.clone(),
-        certificate_binding_sha256: candidate.identity.certificate_binding_sha256,
-        route_id: candidate.identity.route_id.clone(),
-        role: candidate.identity.role,
-        endpoint_binding: candidate.identity.endpoint_binding.clone(),
-        capability: candidate.copy_relay_capability_for_attempt(),
-        maximum_protected_frame_bytes: candidate.bounds.maximum_protected_frame_bytes,
-        timeout_millis: candidate.bounds.attempt_timeout_millis,
-    };
-    let mut carrier = HostedRelayCarrier::connect(client)
-        .map_err(|error| format!("connect user-operated relay: {error:?}"))?;
-    let mut ephemeral_private_key = [0_u8; 32];
-    getrandom::fill(&mut ephemeral_private_key)
-        .map_err(|error| format!("create protected relay ephemeral key: {error}"))?;
-    if ephemeral_private_key == [0; 32] {
-        return Err("system randomness returned a weak relay ephemeral key".into());
-    }
-    let mut protected_session_psk = candidate.copy_protected_session_psk_for_attempt();
-    let session = establish_protected_session(
-        &mut carrier,
+    let (mut line, journal) = establish_relay_line(
+        descriptor.address,
+        &candidate,
         role,
         &binding,
         policy,
-        protected_session_psk,
-        ephemeral_private_key,
-    )
-    .map_err(|error| format!("establish end-to-end protected relay Line: {error:?}"));
-    protected_session_psk.fill(0);
-    ephemeral_private_key.fill(0);
-    let session = session?;
-    let mut line = ProtectedCarrier::new(carrier, session, policy)
-        .map_err(|error| format!("activate end-to-end protected relay Line: {error:?}"))?;
+        now_millis,
+    )?;
+    eprintln!("Relay candidate attempts: {:?}", journal.records());
     let result = run_session(
         &mut line,
         state_dir,
@@ -237,6 +216,154 @@ pub(super) fn connect(state_dir: &Path, descriptor_path: &Path) -> Result<(), St
     );
     descriptor.rendezvous_session_secret.fill(0);
     result
+}
+
+fn establish_relay_line(
+    address: SocketAddr,
+    candidate: &RelayCandidateDescriptor,
+    role: Role,
+    binding: &SessionBinding,
+    policy: ProtectedSessionPolicy,
+    now_millis: u64,
+) -> Result<
+    (
+        ProtectedCarrier<HostedRelayCarrier>,
+        RendezvousAttemptJournal,
+    ),
+    String,
+> {
+    let scheduled = [RendezvousCandidate {
+        candidate_id: candidate.identity.route_id.clone(),
+        line_family: RendezvousLineFamily::AuthenticatedConduitLine,
+        reachability: candidate.identity.relay_locator.clone(),
+        authentication: RendezvousAuthentication {
+            server_identity: candidate.identity.relay_server_identity.clone(),
+            transport_binding_sha256: candidate.identity.certificate_binding_sha256,
+        },
+        expires_at_millis: candidate.identity.expires_at_millis,
+        maximum_attempts: candidate.bounds.maximum_attempts,
+        attempt_timeout_millis: candidate.bounds.attempt_timeout_millis,
+    }];
+    let mut schedule = RendezvousAttemptSchedule::for_candidates(&scheduled, now_millis)
+        .map_err(|error| format!("schedule protected relay candidate: {error:?}"))?;
+    let mut journal = RendezvousAttemptJournal::default();
+    loop {
+        let attempt_now = current_millis()?;
+        let RendezvousAttemptDecision::Try(attempt) = schedule.next(attempt_now) else {
+            return Err(format!(
+                "protected relay candidates exhausted: {:?}",
+                journal.records()
+            ));
+        };
+        journal
+            .begin(attempt)
+            .map_err(|error| format!("begin protected relay attempt: {error:?}"))?;
+        let client = RelayClientDescriptor {
+            address,
+            public_url: candidate.identity.relay_locator.clone(),
+            server_identity: candidate.identity.relay_server_identity.clone(),
+            certificate_binding_sha256: candidate.identity.certificate_binding_sha256,
+            route_id: candidate.identity.route_id.clone(),
+            role: candidate.identity.role,
+            endpoint_binding: candidate.identity.endpoint_binding.clone(),
+            capability: candidate.copy_relay_capability_for_attempt(),
+            maximum_protected_frame_bytes: candidate.bounds.maximum_protected_frame_bytes,
+            timeout_millis: attempt.timeout_millis,
+        };
+        let mut carrier = match HostedRelayCarrier::connect(client) {
+            Ok(carrier) => carrier,
+            Err(error) => {
+                journal
+                    .finish(
+                        &attempt.candidate.candidate_id,
+                        attempt.attempt,
+                        relay_attempt_outcome(error),
+                    )
+                    .map_err(|journal| format!("record protected relay refusal: {journal:?}"))?;
+                continue;
+            }
+        };
+        let mut ephemeral_private_key = [0_u8; 32];
+        getrandom::fill(&mut ephemeral_private_key)
+            .map_err(|error| format!("create protected relay ephemeral key: {error}"))?;
+        if ephemeral_private_key == [0; 32] {
+            return Err("system randomness returned a weak relay ephemeral key".into());
+        }
+        let mut protected_session_psk = candidate.copy_protected_session_psk_for_attempt();
+        let session = establish_protected_session(
+            &mut carrier,
+            role,
+            binding,
+            policy,
+            protected_session_psk,
+            ephemeral_private_key,
+        );
+        protected_session_psk.fill(0);
+        ephemeral_private_key.fill(0);
+        let session = match session {
+            Ok(session) => session,
+            Err(error) => {
+                let _close = carrier.close();
+                journal
+                    .finish(
+                        &attempt.candidate.candidate_id,
+                        attempt.attempt,
+                        protected_attempt_outcome(error),
+                    )
+                    .map_err(|journal| {
+                        format!("record protected relay authentication refusal: {journal:?}")
+                    })?;
+                continue;
+            }
+        };
+        let line = ProtectedCarrier::new(carrier, session, policy)
+            .map_err(|error| format!("activate end-to-end protected relay Line: {error:?}"))?;
+        journal
+            .finish(
+                &attempt.candidate.candidate_id,
+                attempt.attempt,
+                RendezvousAttemptOutcome::Connected,
+            )
+            .map_err(|error| format!("record protected relay connection: {error:?}"))?;
+        return Ok((line, journal));
+    }
+}
+
+fn relay_attempt_outcome(error: RelayClientError) -> RendezvousAttemptOutcome {
+    match error {
+        RelayClientError::InvalidDescriptor | RelayClientError::Protocol => {
+            RendezvousAttemptOutcome::PeerBindingRefused
+        }
+        RelayClientError::RelayUnreachable => RendezvousAttemptOutcome::RouteUnavailable,
+        RelayClientError::TransportAuthenticationFailed => {
+            RendezvousAttemptOutcome::AuthenticationRefused
+        }
+        RelayClientError::TimedOut => RendezvousAttemptOutcome::TimedOut,
+        RelayClientError::Pressure => RendezvousAttemptOutcome::PressureRefused,
+        RelayClientError::TransportLost => RendezvousAttemptOutcome::TransportLost,
+    }
+}
+
+fn protected_attempt_outcome(error: ProtectedLineError) -> RendezvousAttemptOutcome {
+    match error {
+        ProtectedLineError::HandshakeTimedOut | ProtectedLineError::SessionTimedOut => {
+            RendezvousAttemptOutcome::TimedOut
+        }
+        ProtectedLineError::Pressure
+        | ProtectedLineError::FrameTooLarge
+        | ProtectedLineError::OutputTooSmall => RendezvousAttemptOutcome::PressureRefused,
+        ProtectedLineError::OuterCarrierLost => RendezvousAttemptOutcome::TransportLost,
+        _ => RendezvousAttemptOutcome::EndToEndAuthenticationRefused,
+    }
+}
+
+fn current_millis() -> Result<u64, String> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| "system clock precedes Unix epoch".to_string())?
+        .as_millis()
+        .try_into()
+        .map_err(|_| "system clock exceeds relay representation".to_string())
 }
 
 impl RendezvousLine for ProtectedCarrier<HostedRelayCarrier> {
