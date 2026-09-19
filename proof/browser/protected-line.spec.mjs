@@ -43,6 +43,43 @@ test("browser and std protected Lines interoperate through an inspecting relay",
         0,
       );
     };
+    const candidate = new TextEncoder().encode(JSON.stringify({
+      schema: "conduit.relay/endpoint-candidate@1",
+      relay_implementation_id: "conduit.relay/opaque-two-endpoint@1",
+      relay_locator: "wss://relay.example/conduit",
+      relay_server_identity: "relay.example",
+      certificate_binding_sha256: Array(32).fill(1),
+      negotiation_id: vector.binding.negotiation_id,
+      route_id: vector.binding.candidate_binding,
+      role: "initiator",
+      endpoint_binding: `${vector.binding.initiator_host_id}/${vector.binding.initiator_boot_id}`,
+      session_binding: {
+        initiator: { host_id: vector.binding.initiator_host_id, boot_id: vector.binding.initiator_boot_id },
+        responder: { host_id: vector.binding.responder_host_id, boot_id: vector.binding.responder_boot_id },
+        negotiation_id: vector.binding.negotiation_id,
+        line_session_id: vector.binding.line_session_id,
+        candidate_binding: vector.binding.candidate_binding,
+        transport_binding: vector.binding.transport_binding,
+      },
+      expires_at_millis: 10_000,
+      relay_capability: Array(32).fill(7),
+      protected_session_psk: Array(32).fill(8),
+      bounds: {
+        maximum_protected_frame_bytes: vector.limits.maximum_payload_bytes + 34,
+        maximum_attempts: 1,
+        attempt_timeout_millis: 2_000,
+        maximum_payload_bytes: vector.limits.maximum_payload_bytes,
+        maximum_frames_per_direction: vector.limits.maximum_frames_per_direction,
+        maximum_bytes_per_direction: vector.limits.maximum_bytes_per_direction,
+        handshake_timeout_millis: 2_000,
+        idle_timeout_millis: 5_000,
+      },
+    }));
+    input(candidate);
+    const relayCandidate = api.conduit_browser_relay_candidate_validate(candidate.length, 1_000, 0);
+    const candidateInputCleared = memory()
+      .slice(api.conduit_browser_protected_line_input_ptr(), api.conduit_browser_protected_line_input_ptr() + candidate.length)
+      .every((byte) => byte === 0);
 
     const responderInitialized = initialize(1, vector.responder_ephemeral_private_key_hex);
     input(bytes(vector.first_handshake_message_hex));
@@ -83,6 +120,8 @@ test("browser and std protected Lines interoperate through an inspecting relay",
       replay,
       rejectedRole,
       rejectedKeysCleared,
+      relayCandidate,
+      candidateInputCleared,
     };
   }, vector);
 
@@ -95,4 +134,6 @@ test("browser and std protected Lines interoperate through an inspecting relay",
   expect(result.replay).toBe(-325);
   expect(result.rejectedRole).toBe(-300);
   expect(result.rejectedKeysCleared).toBe(true);
+  expect(result.relayCandidate).toBe(0);
+  expect(result.candidateInputCleared).toBe(true);
 });

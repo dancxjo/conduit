@@ -1,8 +1,10 @@
 //! Fixed-buffer WASM ABI for the portable protected-Line profile.
 
 use conduit_protected_line::{
-    EndpointBinding, ProtectedHandshake, ProtectedLineError, ProtectedSession, Role,
-    SessionBinding, SessionLimits,
+    EndpointBinding, ProtectedHandshake, ProtectedLineError, ProtectedSession,
+    ProtectedSessionPolicy, RelayCandidateBounds, RelayCandidateDescriptor, RelayCandidateError,
+    RelayCandidateIdentity, RelayCandidateSecrets, RelayEndpointRole, Role, SessionBinding,
+    SessionLimits,
 };
 use serde::Deserialize;
 use std::cell::RefCell;
@@ -30,6 +32,45 @@ struct AbiSessionBinding {
     line_session_id: String,
     candidate_binding: String,
     transport_binding: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum AbiRelayRole {
+    Initiator,
+    Responder,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AbiRelayBounds {
+    maximum_protected_frame_bytes: u32,
+    maximum_attempts: u8,
+    attempt_timeout_millis: u32,
+    maximum_payload_bytes: u32,
+    maximum_frames_per_direction: u64,
+    maximum_bytes_per_direction: u64,
+    handshake_timeout_millis: u32,
+    idle_timeout_millis: u32,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AbiRelayCandidate {
+    schema: String,
+    relay_implementation_id: String,
+    relay_locator: String,
+    relay_server_identity: String,
+    certificate_binding_sha256: [u8; 32],
+    negotiation_id: String,
+    route_id: String,
+    role: AbiRelayRole,
+    endpoint_binding: String,
+    session_binding: AbiSessionBinding,
+    expires_at_millis: u64,
+    relay_capability: [u8; 32],
+    protected_session_psk: [u8; 32],
+    bounds: AbiRelayBounds,
 }
 
 impl From<AbiSessionBinding> for SessionBinding {
@@ -229,6 +270,73 @@ pub extern "C" fn conduit_browser_protected_line_close() -> i32 {
     result.unwrap_or_else(|error| error)
 }
 
+/// Validate and erase one serialized portable relay candidate before any
+/// browser WebSocket authority is exercised.
+#[no_mangle]
+pub extern "C" fn conduit_browser_relay_candidate_validate(
+    length: u32,
+    now_millis_low: u32,
+    now_millis_high: u32,
+) -> i32 {
+    let length = length as usize;
+    if length == 0 || length > INPUT_CAPACITY {
+        INPUT.with(|input| input.borrow_mut().fill(0));
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let decoded: Result<AbiRelayCandidate, _> = serde_json::from_slice(&input[..length]);
+        input[..length].fill(0);
+        let candidate = match decoded {
+            Ok(candidate) => candidate,
+            Err(_) => return ERROR_INPUT,
+        };
+        let role = match candidate.role {
+            AbiRelayRole::Initiator => RelayEndpointRole::First,
+            AbiRelayRole::Responder => RelayEndpointRole::Second,
+        };
+        let policy = ProtectedSessionPolicy {
+            traffic: SessionLimits {
+                maximum_payload_bytes: candidate.bounds.maximum_payload_bytes,
+                maximum_frames_per_direction: candidate.bounds.maximum_frames_per_direction,
+                maximum_bytes_per_direction: candidate.bounds.maximum_bytes_per_direction,
+            },
+            maximum_simultaneous_sessions: 1,
+            maximum_pending_frames_per_session: 1,
+            handshake_work_units: 2,
+            handshake_timeout_millis: candidate.bounds.handshake_timeout_millis,
+            idle_timeout_millis: candidate.bounds.idle_timeout_millis,
+        };
+        let descriptor = RelayCandidateDescriptor::new(
+            RelayCandidateIdentity {
+                schema: candidate.schema,
+                relay_implementation_id: candidate.relay_implementation_id,
+                relay_locator: candidate.relay_locator,
+                relay_server_identity: candidate.relay_server_identity,
+                certificate_binding_sha256: candidate.certificate_binding_sha256,
+                negotiation_id: candidate.negotiation_id,
+                route_id: candidate.route_id,
+                role,
+                endpoint_binding: candidate.endpoint_binding,
+                session_binding: candidate.session_binding.into(),
+                expires_at_millis: candidate.expires_at_millis,
+            },
+            RelayCandidateBounds {
+                maximum_protected_frame_bytes: candidate.bounds.maximum_protected_frame_bytes,
+                maximum_attempts: candidate.bounds.maximum_attempts,
+                attempt_timeout_millis: candidate.bounds.attempt_timeout_millis,
+                protected_session: policy,
+            },
+            RelayCandidateSecrets::new(candidate.relay_capability, candidate.protected_session_psk),
+            join_u64(now_millis_low, now_millis_high),
+        );
+        match descriptor {
+            Ok(_) => STATUS_READY,
+            Err(error) => map_relay_candidate(error),
+        }
+    })
+}
+
 fn with_handshake<T>(
     action: impl FnOnce(&mut ProtectedHandshake) -> Result<T, i32>,
 ) -> Result<T, i32> {
@@ -297,6 +405,16 @@ fn map_protected(error: ProtectedLineError) -> i32 {
         ProtectedLineError::OuterCarrierLost => -334,
         ProtectedLineError::Cancelled => -335,
         ProtectedLineError::Closed => -336,
+    }
+}
+
+fn map_relay_candidate(error: RelayCandidateError) -> i32 {
+    match error {
+        RelayCandidateError::WrongProtocol => -340,
+        RelayCandidateError::InvalidRelayIdentity => -341,
+        RelayCandidateError::BindingMismatch => -342,
+        RelayCandidateError::Expired => -343,
+        RelayCandidateError::InvalidBounds => -344,
     }
 }
 
