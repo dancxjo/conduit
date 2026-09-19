@@ -298,6 +298,30 @@ fn run_session(
     line_id: &'static str,
 ) -> Result<(), String> {
     let truth = crate::durable_host_control::current(state_dir)?;
+    run_session_with_join(
+        line,
+        state_dir,
+        session_secret,
+        line_id,
+        truth,
+        |expected, claim, secret| {
+            crate::durable_host_control::join(state_dir, expected, claim, secret)
+        },
+    )
+}
+
+fn run_session_with_join(
+    line: &mut impl RendezvousLine,
+    state_dir: &Path,
+    session_secret: &[u8; 32],
+    line_id: &'static str,
+    truth: crate::durable_host_control::DurableHostTruth,
+    join_host: impl FnOnce(
+        &HostAdvertisement,
+        SpawnInvitationClaim,
+        Vec<u8>,
+    ) -> Result<crate::durable_host_control::DurableJoinProof, String>,
+) -> Result<(), String> {
     match receive(line)? {
         Ingress::Hello {
             protocol,
@@ -357,12 +381,7 @@ fn run_session(
     };
     bounded_id(&spore_id, "spore")?;
     bounded_id(&image_id, "IMAGE")?;
-    let join = crate::durable_host_control::join(
-        state_dir,
-        &truth.advertisement,
-        claim,
-        core::mem::take(&mut secret),
-    )?;
+    let join = join_host(&truth.advertisement, claim, core::mem::take(&mut secret))?;
     let joined_body_id = join.body_id.clone();
     send(
         line,
@@ -634,6 +653,10 @@ fn authenticate(offered: &mut [u8], expected: &[u8; 32]) -> bool {
 fn debug<T: core::fmt::Debug>(context: &'static str) -> impl FnOnce(T) -> String {
     move |error| format!("{context}: {error:?}")
 }
+
+#[cfg(test)]
+#[path = "host_rendezvous/protected_tests.rs"]
+mod protected_tests;
 
 #[cfg(test)]
 mod tests {
