@@ -130,12 +130,27 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
         .text
         .iter()
         .all(|item| !item.text.starts_with('I')));
+    assert!(surface
+        .presentation
+        .text
+        .iter()
+        .any(|item| item.text == "Still to do: Span another Host."));
+    assert!(surface
+        .presentation
+        .text
+        .iter()
+        .all(|item| !item.text.contains("span-host")));
 
     let intended = request(
         "request/orifina/intended",
         orifina_completion_presenter_policy(),
         &surface,
     );
+    assert_eq!(
+        intended.policy.template_contract_revision,
+        "orifina/completion-voice@2"
+    );
+    assert!(intended.policy.instructions.contains("I still need to"));
     let neutral = request(
         "request/orifina/neutral",
         policy(

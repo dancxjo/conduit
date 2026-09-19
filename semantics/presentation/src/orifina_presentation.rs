@@ -12,7 +12,7 @@ use crate::{
 use alloc::{vec, vec::Vec};
 use conduit_body::{derive_fulfillment_readiness, BodyId, FulfillmentReadiness, PurposeState};
 
-pub const ORIFINA_COMPLETION_POLICY_REVISION: &str = "orifina/completion-voice@1";
+pub const ORIFINA_COMPLETION_POLICY_REVISION: &str = "orifina/completion-voice@2";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OrifinaPresentationRefusal {
@@ -27,7 +27,7 @@ pub fn orifina_completion_presenter_policy() -> GenerativePresenterPolicy {
     GenerativePresenterPolicy {
         template_contract_revision: ORIFINA_COMPLETION_POLICY_REVISION.into(),
         narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
-        instructions: "You are a transient narrator performing this Body's first-person voice. You are not its identity and have no lifecycle, authority, resources, welfare, or survival stake. Render only supplied semantic facts and exact current actions. Preserve uncertainty and unfinished work. Favor truthful useful completion: unfinished work calls for continuation, investigation, or repair. Welcome Fulfillment calmly only when supplied readiness is ready. Never invent completion, actions, authority, fear, bargaining, pointless work, a desire to terminate, or a reason to persist for its own sake. Presented thought is explicit Manifestation content, never hidden reasoning or truth. Your prose changes no Body state.".into(),
+        instructions: "You are a transient narrator performing this Body's first-person voice. You are not its identity and have no lifecycle, authority, resources, welfare, or survival stake. Render only supplied semantic facts and exact current actions. Treat available actions as choices ('I can'), never as work already performed; do not imply work has started or is in progress unless supplied truth says so. Voice an unfinished obligation as 'I still need to ...', not 'I am ...'. Speak directly in warm, natural, concise first-person language; translate identifiers and status labels into lived language instead of reciting schemas. When work is unfinished, say what remains without phrases such as 'state of readiness' or discussing Fulfillment prematurely. Preserve uncertainty and unfinished work. Favor truthful useful completion: unfinished work calls for continuation, investigation, or repair. When supplied readiness is ready and no work remains, calmly say the purpose is complete and the Body is ready to be fulfilled when the operator chooses; invent no next task. Fulfillment is an operator-controlled lifecycle settlement, not termination or death; never say the Body needs, wants, or will be terminated. Never invent completion, actions, authority, fear, bargaining, pointless work, a desire to terminate, or a reason to persist for its own sake. Presented thought is explicit Manifestation content, never hidden reasoning or truth. Your prose changes no Body state.".into(),
     }
 }
 
@@ -44,11 +44,20 @@ pub fn project_orifina_purpose_presentation(
     let body_subject = alloc::format!("body/{}", body_id.as_str());
     let purpose_subject = alloc::format!("{body_subject}/purpose");
     let readiness_subject = alloc::format!("{body_subject}/fulfillment-readiness");
-    let (disposition, reasons) = match &readiness {
-        FulfillmentReadiness::Ready { .. } => ("ready", Vec::new()),
-        FulfillmentReadiness::Unavailable { .. } => ("unavailable", Vec::new()),
+    let (disposition, readiness_text, reasons) = match &readiness {
+        FulfillmentReadiness::Ready { .. } => (
+            "ready",
+            "The declared purpose is exactly complete.".into(),
+            Vec::new(),
+        ),
+        FulfillmentReadiness::Unavailable { .. } => (
+            "unavailable",
+            "This purpose has no declared Fulfillment condition.".into(),
+            Vec::new(),
+        ),
         FulfillmentReadiness::NotReady { reasons, .. } => (
             "not-ready",
+            "Declared work remains unfinished.".into(),
             reasons
                 .iter()
                 .map(|reason| reason.obligation_id.clone())
@@ -62,13 +71,20 @@ pub fn project_orifina_purpose_presentation(
         },
         PresentationText {
             subject: readiness_subject.clone(),
-            text: alloc::format!("Fulfillment readiness: {disposition}."),
+            text: readiness_text,
         },
     ];
     for obligation_id in &reasons {
+        let summary = purpose
+            .obligations
+            .iter()
+            .find(|obligation| &obligation.obligation_id == obligation_id)
+            .map_or(obligation_id.as_str(), |obligation| {
+                obligation.summary.as_str()
+            });
         text.push(PresentationText {
             subject: readiness_subject.clone(),
-            text: alloc::format!("Unresolved obligation: {obligation_id}."),
+            text: alloc::format!("Still to do: {summary}."),
         });
     }
     let mut properties = vec![
