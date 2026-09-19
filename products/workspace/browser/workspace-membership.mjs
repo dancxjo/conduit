@@ -9,6 +9,10 @@ const decoder = new TextDecoder("utf-8", { fatal: true });
 export function readBodyInvitation(location) {
   const value = new URLSearchParams(location.hash.slice(1)).get("body-invitation");
   if (!value) return null;
+  return decodeBodyInvitation(value);
+}
+
+function decodeBodyInvitation(value) {
   if (value.length > 8192) throw new Error("Body invitation exceeds its portable bound");
   try {
     const padding = "=".repeat((4 - value.length % 4) % 4);
@@ -21,6 +25,46 @@ export function readBodyInvitation(location) {
   } catch (error) {
     throw new Error(`Body invitation is malformed: ${error instanceof Error ? error.message : String(error)}`);
   }
+}
+
+export function readPastedBodyInvitation(input, location) {
+  const pasted = input.trim();
+  if (!pasted) throw new Error("Paste a Body invitation link or portable code");
+  if (pasted.length > 8192) throw new Error("Body invitation exceeds its portable bound");
+  let value;
+  try {
+    const candidate = new URL(pasted, location.href);
+    value = new URLSearchParams(candidate.hash.slice(1)).get("body-invitation");
+  } catch {}
+  if (!value) {
+    const fragment = pasted.startsWith("#") ? pasted.slice(1) : pasted;
+    value = new URLSearchParams(fragment).get("body-invitation") ?? fragment;
+  }
+  const artifact = decodeBodyInvitation(value);
+  return Object.freeze({ artifact, fragment: new URLSearchParams({ "body-invitation": value }).toString() });
+}
+
+export function createBodyInvitationReceiver({ location, onReceive }) {
+  const receiver = document.createElement("section");
+  receiver.className = "body-invitation-receiver";
+  receiver.innerHTML = `<h2>Join an existing Body</h2>
+    <p>Paste an invitation link or portable code. Decoding it creates no membership; you will inspect and explicitly accept the same invitation next.</p>
+    <form><label>Body invitation link or code<input type="text" autocomplete="off" spellcheck="false" required></label>
+    <button type="submit">Inspect invitation</button></form><p role="status"></p>`;
+  const form = receiver.querySelector("form");
+  const input = receiver.querySelector("input");
+  const status = receiver.querySelector('[role="status"]');
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    try {
+      const decoded = readPastedBodyInvitation(input.value, location);
+      status.textContent = "Invitation decoded. No membership has been created.";
+      onReceive(decoded);
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : String(error);
+    }
+  });
+  return receiver;
 }
 
 function invitationUrl(location, artifact) {
