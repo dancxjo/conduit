@@ -70,6 +70,7 @@ export async function startApplication(application) {
         } else if (event.action === 'body.wake') play?.wake(true).catch(fail);
         else if (event.action === 'body.inspect-lifecycle') inspect('lifecycle');
         else if (event.action === 'body.open-library') { surface.hidden = true; inspection.hidden = true; library?.show(); }
+        else if (event.action === 'body.invite-host') membership?.show();
         else if (event.action === 'body.use-current') { surface.hidden = false; inspection.hidden = true; library?.hide(); if (!input.disabled) input.focus(); }
         else fail(new Error('Unknown tutorial action'));
       } });

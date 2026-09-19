@@ -145,8 +145,14 @@ export function openWorkspaceMembership({ root, session, host, invitation, invit
     onChanged();
     openButton?.focus();
   };
+  const show = () => {
+    open = true;
+    render();
+    onChanged();
+    panel.querySelector("h2").focus();
+  };
   closeButton.addEventListener("click", close);
-  openButton.addEventListener("click", () => { open = true; render(); onChanged(); panel.querySelector("h2").focus(); });
+  openButton.addEventListener("click", show);
   inviteButton.addEventListener("click", () => { open = true; renderInvite().catch(onFailure); onChanged(); });
 
   function render() {
@@ -375,6 +381,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, invit
     isOpen: () => open,
     isJoining: () => Boolean(invitation && !session.current()),
     render,
+    show,
     close,
     planningLines: () => Array.from(joinedLines.values(), joined => ({
       host_id: joined.host_id,

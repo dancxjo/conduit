@@ -31,6 +31,31 @@ fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
 }
 
 #[test]
+fn revised_tutorial_uses_the_shared_host_invitation_action() {
+    let mut body = born();
+    body.admit_form(0, form("notes"), &host(), &boot()).unwrap();
+    start(&mut body);
+    let view = conduit_workspace_model::tutorial::presentation(
+        &body,
+        8,
+        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+    )
+    .unwrap()
+    .lower()
+    .unwrap();
+    assert!(
+        view.nodes
+            .iter()
+            .any(|node| node.text == "Invite another Host")
+    );
+    assert!(
+        view.actions
+            .iter()
+            .any(|action| action.id == "body.invite-host")
+    );
+}
+
+#[test]
 fn tutorial_purpose_is_derived_from_exact_body_evidence_not_a_chapter_counter() {
     let mut body = born();
     let initial = conduit_workspace_model::tutorial::purpose_state(&body).unwrap();

@@ -225,6 +225,21 @@ fn guidance(body: &WorkspaceBody, playback: TutorialPlayback) -> Guidance {
             label: "Wake the retained Body",
         };
     }
+    let another_host_joined = evidence
+        .records
+        .iter()
+        .filter(|record| matches!(record.kind, BodyBiographyRecordKind::HostJoined { .. }))
+        .count()
+        > 1;
+    if evidence.body.workload_revision > 0 && !another_host_joined {
+        return Guidance {
+            phase: "add-host",
+            title: "Invite another Host",
+            detail: "The workset changed without rebirth. Invite another Host through the same finite Body admission path, then inspect its exact membership and offers.",
+            action: "body.invite-host",
+            label: "Invite another Host",
+        };
+    }
     if evidence.body.workload_revision > 0 {
         return Guidance {
             phase: "revised",
