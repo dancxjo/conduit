@@ -533,7 +533,7 @@ jobs:
 
   browser-release:
     needs: plan
-    if: needs.plan.outputs.pages_carrier_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true' || needs.plan.outputs.browser_admission_required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
