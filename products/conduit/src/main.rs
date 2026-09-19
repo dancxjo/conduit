@@ -337,6 +337,36 @@ fn main() {
         cli::Command::Body { command } => construction::body(command),
         cli::Command::RendezvousRelay {
             command:
+                cli::RendezvousRelayCommand::Provision {
+                    relay_address,
+                    relay_url,
+                    server_identity,
+                    certificate_sha256,
+                    first_host_id,
+                    first_boot_id,
+                    second_host_id,
+                    second_boot_id,
+                    output,
+                    expires_in_seconds,
+                    maximum_attempts,
+                    authorize_provision,
+                },
+        } => rendezvous_relay::provision(rendezvous_relay::ProvisionOptions {
+            relay_address,
+            relay_url,
+            server_identity,
+            certificate_sha256,
+            first_host_id,
+            first_boot_id,
+            second_host_id,
+            second_boot_id,
+            output,
+            expires_in_seconds,
+            maximum_attempts,
+            authorize_provision,
+        }),
+        cli::Command::RendezvousRelay {
+            command:
                 cli::RendezvousRelayCommand::Serve {
                     bind,
                     public_url,
