@@ -108,6 +108,7 @@ fn binding(source: &MembershipCredential, sink: &MembershipCredential) -> Sessio
 
 fn signal(description: BrowserWebRtcDescription, hello: Vec<u8>) -> BrowserWebRtcSignal {
     BrowserWebRtcSignal {
+        generation: 0,
         negotiation_id: LinkBindingId::from("binding/rendezvous"),
         description,
         session_hello: hello,

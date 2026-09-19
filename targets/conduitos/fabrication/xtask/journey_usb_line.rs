@@ -79,31 +79,35 @@ impl Peer {
         })
     }
 
-    pub(super) fn receive_value_and_acknowledge(&mut self) -> Result<(), ConduitosError> {
-        receive_expected(
-            &mut self.stream,
-            &mut self.machine,
-            &self.binding,
-            |message| {
-                matches!(
-                    message,
-                    SessionMessage::Offered { sequence: 0, payload }
-                        if payload == conduitos::product_usb_line::LINE_VALUE
-                )
-            },
-        )?;
-        send(
-            &mut self.stream,
-            &mut self.machine,
-            &self.binding,
-            SessionMessage::Accepted { sequence: 0 },
-        )?;
-        send(
-            &mut self.stream,
-            &mut self.machine,
-            &self.binding,
-            SessionMessage::Delivered { sequence: 0 },
-        )
+    pub(super) fn receive_values_and_acknowledge(&mut self) -> Result<(), ConduitosError> {
+        for sequence in 0..conduitos::product_usb_line::LINE_LIFETIME_VALUES {
+            receive_expected(
+                &mut self.stream,
+                &mut self.machine,
+                &self.binding,
+                |message| {
+                    matches!(
+                        message,
+                        SessionMessage::Offered { sequence: found, payload }
+                            if found == sequence
+                                && payload == conduitos::product_usb_line::LINE_VALUE
+                    )
+                },
+            )?;
+            send(
+                &mut self.stream,
+                &mut self.machine,
+                &self.binding,
+                SessionMessage::Accepted { sequence },
+            )?;
+            send(
+                &mut self.stream,
+                &mut self.machine,
+                &self.binding,
+                SessionMessage::Delivered { sequence },
+            )?;
+        }
+        Ok(())
     }
 }
 

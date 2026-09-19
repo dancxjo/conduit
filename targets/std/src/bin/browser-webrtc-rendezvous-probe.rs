@@ -118,7 +118,7 @@ fn main() -> Result<(), String> {
 
     let mut relayed = 0_u8;
     let mut active = vec![true, true];
-    let mut grant_generation = 0_u16;
+    let mut grant_generation = 0_u32;
     let mut stale_rendezvous = None;
     let mut restart_admitted = false;
     let mut observed_at_millis = 1_u64;
