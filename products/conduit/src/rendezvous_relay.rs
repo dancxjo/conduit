@@ -289,23 +289,23 @@ fn serve_endpoint(
             Ok(_) => {}
             Err(RelayServiceError::UnknownRoute) => match terminal {
                 Some(RelaySlotDisposition::Closed) => {
-                    send_outcome(
+                    let _terminal_notice = send_outcome(
                         &mut line,
                         &attachment.route_id,
                         OutcomeStatus::Closed,
                         Some("peer-explicit-close"),
-                    )?;
-                    line.close().map_err(debug("close relay WSS line"))?;
+                    );
+                    let _outer_close = line.close();
                     return Ok(());
                 }
                 Some(RelaySlotDisposition::Lost) => {
-                    send_outcome(
+                    let _terminal_notice = send_outcome(
                         &mut line,
                         &attachment.route_id,
                         OutcomeStatus::Lost,
                         Some("peer-connection-lost"),
-                    )?;
-                    line.close().map_err(debug("close relay WSS line"))?;
+                    );
+                    let _outer_close = line.close();
                     return Ok(());
                 }
                 _ => return Err("relay slot disappeared without terminal truth".into()),
