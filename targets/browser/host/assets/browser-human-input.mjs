@@ -128,6 +128,8 @@ export function openBrowserHumanInput({
       const surface = target.nodeType === 9 ? target.documentElement : target;
       const bounds = surface.getBoundingClientRect();
       if (!(bounds.width > 0 && bounds.height > 0)) refuse("TargetLost", "pointer target has no extent");
+      const boundedAxis = (value) => Math.max(-1_000_000, Math.min(1_000_000, value));
+      const boundedPosition = (value) => Math.max(0, Math.min(1_000_000, value));
       const millionth = (value) => Math.round(value * 1_000_000);
       const coalesced = typeof event.getCoalescedEvents === "function"
         ? Math.max(0, event.getCoalescedEvents().length - 1)
@@ -135,10 +137,10 @@ export function openBrowserHumanInput({
       const value = Object.freeze({
         schema: "input/pointer-event@1",
         ...(routeInput ? { delivery_form: pointerForm } : {}),
-        position_x: millionth((event.clientX - bounds.left) / bounds.width),
-        position_y: millionth((event.clientY - bounds.top) / bounds.height),
-        delta_x: millionth(event.movementX / bounds.width),
-        delta_y: millionth(event.movementY / bounds.height),
+        position_x: boundedPosition(millionth((event.clientX - bounds.left) / bounds.width)),
+        position_y: boundedPosition(millionth((event.clientY - bounds.top) / bounds.height)),
+        delta_x: boundedAxis(millionth(event.movementX / bounds.width)),
+        delta_y: boundedAxis(millionth(event.movementY / bounds.height)),
         primary_pressed: event.buttons === 1,
         coalesced,
         dropped,
