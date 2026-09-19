@@ -13,8 +13,10 @@ test("the ordinary Body surface reviews exact browser Host machinery before a se
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "Firefly Choir", exact: true }).check();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
+  await expect(page.getByLabel("Parts and Hosts").getByRole("button", { name: "Invite another phone", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Add a Host", exact: true }).click();
   await expect(page.getByRole("heading", { name: "What should this browser contribute?", exact: true })).toBeVisible();
@@ -39,7 +41,7 @@ test("the ordinary Body surface reviews exact browser Host machinery before a se
   expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership)).toEqual(before);
 });
 
-test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context }) => {
+test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, "share", {
     configurable: true,
     value: async value => { globalThis.__sharedInvitation = value; },
@@ -47,6 +49,7 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "Firefly Choir", exact: true }).check();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
 
   await expect(page.getByRole("button", { name: "Parts / Hosts", exact: true })).toBeVisible();
@@ -56,7 +59,7 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   await expect(page.locator(".member-card")).toContainText("admitted · present · local Host");
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
 
-  await page.getByRole("button", { name: "Invite another Host", exact: true }).click();
+  await page.getByLabel("Parts and Hosts").getByRole("button", { name: "Invite another phone", exact: true }).click();
   await expect(page.locator('[data-application-key="invitation-status"]')).toContainText("Single-use Body invitation");
   const link = (await page.locator('[data-application-key^="invitation-link-"]').allTextContents()).join("");
   const afterOffer = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
@@ -67,10 +70,49 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   await page.getByRole("button", { name: "Share…", exact: true }).click();
   expect(await page.evaluate(() => globalThis.__sharedInvitation.url)).toBe(link);
 
+  const receiverContext = await browser.newContext();
+  const receiverPage = await receiverContext.newPage();
+  await receiverPage.goto(entrance.url);
+  await expect(receiverPage.getByLabel("Body invitation link or code", { exact: true })).toBeVisible();
+  expect(await receiverPage.evaluate(() => globalThis.__conduitWorkspace.current())).toBeNull();
+  const portableCode = new URLSearchParams(new URL(link).hash.slice(1)).get("body-invitation");
+  await receiverPage.getByLabel("Body invitation link or code", { exact: true }).fill(portableCode);
+  await receiverPage.getByRole("button", { name: "Inspect invitation", exact: true }).click();
+  await expect(receiverPage.getByText("Body invitation", { exact: true })).toBeVisible();
+  await expect(receiverPage.getByText("It grants no Form or effect authority.")).toBeVisible();
+  expect(await receiverPage.evaluate(() => globalThis.__conduitWorkspace.current())).toBeNull();
+  await receiverContext.close();
+
+  const shareContext = await browser.newContext();
+  const sharedPage = await shareContext.newPage();
+  await sharedPage.goto(entrance.url);
+  await sharedPage.evaluate(() => navigator.serviceWorker.ready);
+  let shareDeliveryUrl = null;
+  sharedPage.on("framenavigated", frame => {
+    if (frame === sharedPage.mainFrame() && frame.url().includes("#body-share=")) shareDeliveryUrl = frame.url();
+  });
+  await sharedPage.evaluate(value => {
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = new URL("share-body-invitation", location.href).href;
+    const invitation = document.createElement("input");
+    invitation.name = "body-invitation";
+    invitation.value = value;
+    form.append(invitation);
+    document.body.append(form);
+    form.submit();
+  }, portableCode);
+  await expect(sharedPage.getByText("Body invitation", { exact: true })).toBeVisible();
+  await expect(sharedPage.getByText("It grants no Form or effect authority.")).toBeVisible();
+  expect(await sharedPage.evaluate(() => ({ current: globalThis.__conduitWorkspace.current(), search: location.search }))).toEqual({ current: null, search: "" });
+  expect(shareDeliveryUrl).toContain("#body-share=");
+  const replayPage = await shareContext.newPage();
+  await replayPage.goto(shareDeliveryUrl);
+  await expect(replayPage.locator("[data-workspace-notice]")).toContainText("already consumed or unavailable");
+  await shareContext.close();
+
   const joining = await context.newPage();
   await joining.goto(link);
-  await expect(joining.getByText("Body invitation", { exact: true })).toBeVisible();
-  await expect(joining.getByText("It grants no Form or effect authority.")).toBeVisible();
   await joining.getByRole("button", { name: "Join this Body", exact: true }).click();
 
   await expect(joining.locator(".member-card")).toHaveCount(2);
@@ -102,6 +144,83 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   const restoredOffers = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().current_host_offers);
   expect(restoredOffers).toHaveLength(1);
   expect(restoredOffers[0].host_id).toBe(restored.parts.find(part => part.current).current.host_id);
+});
+
+test("the POST share target refuses ambiguous, oversized, and GET delivery", async ({ page }) => {
+  await page.goto(entrance.url);
+  const manifest = await page.evaluate(async () => (await fetch(document.querySelector('link[rel="manifest"]').href)).json());
+  expect(manifest.share_target).toEqual({
+    action: "share-body-invitation",
+    method: "POST",
+    enctype: "application/x-www-form-urlencoded",
+    params: { text: "body-invitation" },
+  });
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  const submit = values => page.evaluate(shared => {
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = new URL("share-body-invitation", location.href).href;
+    for (const value of shared) {
+      const invitation = document.createElement("input");
+      invitation.name = "body-invitation";
+      invitation.value = value;
+      form.append(invitation);
+    }
+    document.body.append(form);
+    form.submit();
+  }, values);
+
+  await submit(["first", "second"]);
+  await expect(page.locator("body")).toHaveText("Body invitation share is absent or duplicated");
+  expect(new URL(page.url()).search).toBe("");
+
+  await page.goto(entrance.url);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await submit(["x".repeat(8193)]);
+  await expect(page.locator("body")).toHaveText("Body invitation share exceeds its bound");
+
+  const response = await page.goto(new URL("share-body-invitation?body-invitation=dummy", entrance.url).href);
+  expect(response.status()).toBe(404);
+});
+
+test("pending share delivery survives worker replacement and expired delivery refuses", async ({ context, page }) => {
+  await page.goto(entrance.url);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  const retain = ({ token, value, expiresAt }) => page.evaluate(({ token: identity, value: payload, expiresAt: expiry }) => new Promise((resolve, reject) => {
+    const request = indexedDB.open("conduit-workspace-share-target", 1);
+    request.onerror = () => reject(request.error);
+    request.onupgradeneeded = () => request.result.createObjectStore("pending-invitations", { keyPath: "token" });
+    request.onsuccess = () => {
+      const transaction = request.result.transaction("pending-invitations", "readwrite");
+      transaction.objectStore("pending-invitations").put({ token: identity, value: payload, expires_at_millis: expiry });
+      transaction.oncomplete = () => { request.result.close(); resolve(); };
+      transaction.onerror = () => reject(transaction.error);
+    };
+  }), { token, value, expiresAt });
+
+  const restartToken = crypto.randomUUID();
+  await retain({ token: restartToken, value: "not-json", expiresAt: Date.now() + 60_000 });
+  await page.evaluate(async () => (await navigator.serviceWorker.ready).unregister());
+  await page.close();
+  const restarted = await context.newPage();
+  await restarted.goto(`${entrance.url}#body-share=${restartToken}`);
+  await expect(restarted.locator("[data-workspace-notice]")).toContainText("Body invitation is malformed");
+
+  const expiredToken = crypto.randomUUID();
+  await restarted.evaluate(({ token, expiresAt }) => new Promise((resolve, reject) => {
+    const request = indexedDB.open("conduit-workspace-share-target", 1);
+    request.onerror = () => reject(request.error);
+    request.onupgradeneeded = () => request.result.createObjectStore("pending-invitations", { keyPath: "token" });
+    request.onsuccess = () => {
+      const transaction = request.result.transaction("pending-invitations", "readwrite");
+      transaction.objectStore("pending-invitations").put({ token, value: "not-json", expires_at_millis: expiresAt });
+      transaction.oncomplete = () => { request.result.close(); resolve(); };
+      transaction.onerror = () => reject(transaction.error);
+    };
+  }), { token: expiredToken, expiresAt: Date.now() - 1 });
+  await restarted.goto("about:blank");
+  await restarted.goto(`${entrance.url}#body-share=${expiredToken}`);
+  await expect(restarted.locator("[data-workspace-notice]")).toContainText("Body invitation share expired");
 });
 
 test("malformed invitation framing is refused without creating a Body", async ({ page }) => {

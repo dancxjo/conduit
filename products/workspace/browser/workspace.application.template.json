@@ -166,7 +166,7 @@
       "role": "workspace-membership",
       "kind": "module",
       "path": "workspace-membership.mjs",
-      "maximum_bytes": 20480,
+      "maximum_bytes": 24576,
       "dependencies": [
         {
           "role": "creche-rendezvous",
@@ -216,6 +216,27 @@
       "kind": "style",
       "path": "workspace.css",
       "maximum_bytes": 32768,
+      "dependencies": []
+    },
+    {
+      "role": "workspace-web-manifest",
+      "kind": "content",
+      "path": "workspace.webmanifest",
+      "maximum_bytes": 2048,
+      "dependencies": []
+    },
+    {
+      "role": "workspace-install-icon",
+      "kind": "content",
+      "path": "workspace-icon.svg",
+      "maximum_bytes": 2048,
+      "dependencies": []
+    },
+    {
+      "role": "workspace-share-target-worker",
+      "kind": "content",
+      "path": "workspace-share-target-sw.js",
+      "maximum_bytes": 8192,
       "dependencies": []
     },
     {

@@ -19,7 +19,10 @@ use crate::{
 
 pub const HARNESS_HOST_ID: &str = "host/qemu-usb-line-peer";
 pub const HARNESS_BOOT_ID: &str = "boot/qemu-usb-line-peer/1";
-pub const LINE_LIFETIME_VALUES: u64 = 130;
+/// More than two complete laps of the 127-data-TRB output ring. Each value
+/// also receives two peer acknowledgements, crossing four input-ring laps in
+/// the same admitted Line session.
+pub const LINE_LIFETIME_VALUES: u64 = 260;
 pub const LINE_VALUE: &[u8] = b"HELLO USB LINE";
 
 pub struct ProductUsbLine {

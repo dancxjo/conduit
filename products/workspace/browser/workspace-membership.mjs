@@ -9,6 +9,10 @@ const decoder = new TextDecoder("utf-8", { fatal: true });
 export function readBodyInvitation(location) {
   const value = new URLSearchParams(location.hash.slice(1)).get("body-invitation");
   if (!value) return null;
+  return decodeBodyInvitation(value);
+}
+
+function decodeBodyInvitation(value) {
   if (value.length > 8192) throw new Error("Body invitation exceeds its portable bound");
   try {
     const padding = "=".repeat((4 - value.length % 4) % 4);
@@ -21,6 +25,70 @@ export function readBodyInvitation(location) {
   } catch (error) {
     throw new Error(`Body invitation is malformed: ${error instanceof Error ? error.message : String(error)}`);
   }
+}
+
+export function readPastedBodyInvitation(input, location) {
+  const pasted = input.trim();
+  if (!pasted) throw new Error("Paste a Body invitation link or portable code");
+  if (pasted.length > 8192) throw new Error("Body invitation exceeds its portable bound");
+  let value;
+  try {
+    const candidate = new URL(pasted, location.href);
+    value = new URLSearchParams(candidate.hash.slice(1)).get("body-invitation");
+  } catch {}
+  if (!value) {
+    const fragment = pasted.startsWith("#") ? pasted.slice(1) : pasted;
+    value = new URLSearchParams(fragment).get("body-invitation") ?? fragment;
+  }
+  const artifact = decodeBodyInvitation(value);
+  return Object.freeze({ artifact, fragment: new URLSearchParams({ "body-invitation": value }).toString() });
+}
+
+export async function readSharedBodyInvitation(location) {
+  if (!("serviceWorker" in navigator)) return null;
+  const workerUrl = new URL("./workspace-share-target-sw.js", import.meta.url);
+  const registration = await navigator.serviceWorker.register(workerUrl, { scope: "./" });
+  const token = new URLSearchParams(location.hash.slice(1)).get("body-share");
+  if (!token) return null;
+  const ready = await navigator.serviceWorker.ready;
+  const worker = ready.active;
+  if (!worker) throw new Error("Body invitation share worker is unavailable");
+  const value = await new Promise((resolve, reject) => {
+    const channel = new MessageChannel();
+    const timeout = setTimeout(() => reject(new Error("Body invitation share delivery timed out")), 5_000);
+    channel.port1.onmessage = ({ data }) => {
+      clearTimeout(timeout);
+      if (data?.type === "body-invitation") resolve(data.value);
+      else reject(new Error(data?.message ?? "Body invitation share was refused"));
+    };
+    worker.postMessage({ type: "consume-body-invitation", token }, [channel.port2]);
+  });
+  const decoded = readPastedBodyInvitation(value, location);
+  history.replaceState(null, "", `${location.pathname}${location.search}#${decoded.fragment}`);
+  return decoded.artifact;
+}
+
+export function createBodyInvitationReceiver({ location, onReceive }) {
+  const receiver = document.createElement("section");
+  receiver.className = "body-invitation-receiver";
+  receiver.innerHTML = `<h2>Join an existing Body</h2>
+    <p>Paste an invitation link or portable code. Decoding it creates no membership; you will inspect and explicitly accept the same invitation next.</p>
+    <form><label>Body invitation link or code<input type="text" autocomplete="off" spellcheck="false" required></label>
+    <button type="submit">Inspect invitation</button></form><p role="status"></p>`;
+  const form = receiver.querySelector("form");
+  const input = receiver.querySelector("input");
+  const status = receiver.querySelector('[role="status"]');
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    try {
+      const decoded = readPastedBodyInvitation(input.value, location);
+      status.textContent = "Invitation decoded. No membership has been created.";
+      onReceive(decoded);
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : String(error);
+    }
+  });
+  return receiver;
 }
 
 function invitationUrl(location, artifact) {
@@ -56,7 +124,7 @@ function renderInvitationQr(root, projection) {
   svg.append(background, path); root.replaceChildren(svg); root.hidden = false;
 }
 
-export function openWorkspaceMembership({ root, session, host, invitation, presentationFor, beforeAdmission, onChanged, onFailure }) {
+export function openWorkspaceMembership({ root, session, host, invitation, invitationLabel, presentationFor, beforeAdmission, onChanged, onFailure }) {
   const panel = root.querySelector("#workspace-membership");
   const content = panel.querySelector("[data-membership-content]");
   const openButton = root.querySelector("[data-open-membership]");
@@ -77,8 +145,14 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
     onChanged();
     openButton?.focus();
   };
+  const show = () => {
+    open = true;
+    render();
+    onChanged();
+    panel.querySelector("h2").focus();
+  };
   closeButton.addEventListener("click", close);
-  openButton.addEventListener("click", () => { open = true; render(); onChanged(); panel.querySelector("h2").focus(); });
+  openButton.addEventListener("click", show);
   inviteButton.addEventListener("click", () => { open = true; renderInvite().catch(onFailure); onChanged(); });
 
   function render() {
@@ -86,6 +160,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
     openButton.hidden = !session.current();
     const fulfilled = session.current()?.state === "FULFILLED";
     inviteButton.hidden = !session.current() || fulfilled;
+    inviteButton.textContent = invitationLabel?.() ?? "Invite another Host";
     openButton.setAttribute("aria-expanded", String(open));
     if (!open) return;
     if (invitation && !session.current()) { renderJoin(invitation); return; }
@@ -106,7 +181,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
       summary.textContent = "Exact membership evidence"; pre.textContent = JSON.stringify(part, null, 2); exact.append(summary, pre);
       item.append(title, state, exact); list.append(item);
     }
-    const action = document.createElement("button"); action.type = "button"; action.textContent = "Invite another Host";
+    const action = document.createElement("button"); action.type = "button"; action.textContent = invitationLabel?.() ?? "Invite another Host";
     action.addEventListener("click", () => renderInvite().catch(onFailure));
     const add = document.createElement("button"); add.type = "button"; add.textContent = "Add a Host";
     add.addEventListener("click", renderAddHost);
@@ -306,6 +381,7 @@ export function openWorkspaceMembership({ root, session, host, invitation, prese
     isOpen: () => open,
     isJoining: () => Boolean(invitation && !session.current()),
     render,
+    show,
     close,
     planningLines: () => Array.from(joinedLines.values(), joined => ({
       host_id: joined.host_id,

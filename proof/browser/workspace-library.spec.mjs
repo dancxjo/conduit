@@ -69,6 +69,12 @@ test("Use installs into the same Body; repeated Use preserves Play and removal s
   expect(installed.workload_revision).toBe(1);
   expect(installed.active_play_id).not.toBe(initial.active_play_id);
   expect(installed.initial_forms).toHaveLength(2);
+  const tutorial = page.locator('[data-body-tutorial]');
+  await expect(tutorial).toContainText("Invite another Host");
+  await tutorial.getByRole("button", { name: "Invite another Host", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Parts and Hosts", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Back to the surface", exact: true }).click();
+  await page.locator("#form-input").focus();
   await page.keyboard.type("hello");
   await page.keyboard.press("Enter");
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("hello");
