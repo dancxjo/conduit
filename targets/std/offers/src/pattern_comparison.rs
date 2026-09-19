@@ -67,7 +67,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_face_configuration_and_finite_operations() {
+    fn offer_preserves_front_configuration_and_finite_operations() {
         let definition = conduit_semantic_catalog::compare_normalized_pattern_definition();
         let offer = compare_pattern_std_offer();
         assert_eq!(offer.kind_id, definition.kind_id);

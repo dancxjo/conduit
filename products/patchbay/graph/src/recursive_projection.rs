@@ -16,7 +16,7 @@ pub struct RecursiveFormGearProjection {
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
-    pub face: CheckedFace,
+    pub front: CheckedFace,
     pub open: bool,
     pub nested_gear_count: u16,
     pub boundary_connections: Vec<CheckedConnection>,
@@ -32,12 +32,12 @@ pub enum RecursiveFormProjectionError {
 }
 
 /// Projects exact expansion truth already sealed into the expanded Form.
-/// Opening changes visibility only; the face, invocation identity, caller
+/// Opening changes visibility only; the front, invocation identity, caller
 /// boundary connections, and every realization identity remain unchanged.
 pub fn project_recursive_form_gear(
     form: &ExpandedCanonicalForm,
     invocation_path: &str,
-    face: CheckedFace,
+    front: CheckedFace,
     open: bool,
 ) -> Result<RecursiveFormGearProjection, RecursiveFormProjectionError> {
     let back = form
@@ -86,7 +86,7 @@ pub fn project_recursive_form_gear(
         source_document_id: back.source_document_id.clone(),
         checked_form_id: back.checked_form_id.clone(),
         expanded_form_id: form.expanded_form_id.clone(),
-        face,
+        front,
         open,
         nested_gear_count,
         boundary_connections,

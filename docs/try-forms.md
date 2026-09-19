@@ -23,7 +23,7 @@ it does not execute all those proofs.
 | form | What to look for | Current example result |
 | --- | --- | --- |
 | [Hello](../forms/hello/main.conduit) | A literal flows through `text/upper` to presentation | `HELLO, WORLD.` |
-| [Greet](../forms/greet/main.conduit) | A reusable form with parameters and a checked face | Explicit positional binding produces `WelcomeTravis` |
+| [Greet](../forms/greet/main.conduit) | A reusable form with parameters and a checked front | Explicit positional binding produces `WelcomeTravis` |
 | [Clock](../forms/clock/main.conduit) | A finite time source and duration arguments | Four admitted ticks |
 | [Count](../forms/count/main.conduit) | Startup value, closing input flow, and current value | Values 2 through 6 |
 | [Webchat](../forms/webchat/main.conduit) | Bounded chat state and semantic WebSocket operations | A two-page browser proof exercises delivery and disconnect |

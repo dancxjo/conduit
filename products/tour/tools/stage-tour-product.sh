@@ -35,7 +35,7 @@ cp targets/browser/host/assets/application-theme.mjs "$destination/application-t
 cp products/shared/browser/conduit.css "$destination/conduit.css"
 cp semantics/presentation/assets/product-masthead.mjs "$destination/product-masthead.mjs"
 cp "$runtime" "$destination/runtime.wasm"
-for asset in react.min.js react-dom.min.js react-flow.min.js react-flow.css flow.css flow.js flow-scene.js flow-layout.js flow-faceplate.js portable-navigation.js; do
+for asset in react.min.js react-dom.min.js react-flow.min.js react-flow.css flow.css flow.js flow-scene.js flow-layout.js flow-frontplate.js portable-navigation.js; do
     cp "products/patchbay/html/assets/$asset" "$destination/assets/$asset"
 done
 
@@ -53,7 +53,7 @@ printf '%s\n' "$chapters" | while IFS= read -r chapter; do
 done
 
 page_routes='one-program-many-computers
-faces-backs-and-implementation
+fronts-backs-and-implementation
 hosts-make-forms-real
 one-form-across-several-hosts
 the-body-one-computer-one-machine-or-many
@@ -66,7 +66,7 @@ done
 
 # Preserve the two public chapter URLs published before the chapter-title refresh.
 legacy_page_routes='meet-one-gear
-same-face-different-implementation'
+same-front-different-implementation'
 printf '%s\n' "$legacy_page_routes" | while IFS= read -r route; do
     mkdir "$destination/$route"
     cp products/tour/browser/tour.html "$destination/$route/index.html"

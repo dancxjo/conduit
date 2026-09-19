@@ -91,7 +91,7 @@ mod tests {
 
     #[cfg(feature = "form-catalog")]
     #[test]
-    fn keyboard_catalog_has_exact_semantic_face_without_an_implementation_offer() {
+    fn keyboard_catalog_has_exact_semantic_front_without_an_implementation_offer() {
         let mut startup = conduit_form::StartupCatalog::new();
         let mut profile = conduit_form::ProfileCatalog::new();
         install_keyboard_catalogs(&mut startup, &mut profile).unwrap();

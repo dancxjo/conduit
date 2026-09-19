@@ -3,11 +3,11 @@ use conduit_core::ConfigurationValue;
 use crate::{FaceControlKind, FormEditor, FormEditorError, PatchbayGraph};
 
 fn editor(source: &str) -> FormEditor {
-    FormEditor::from_source("face-controls.conduit".into(), source.into()).unwrap()
+    FormEditor::from_source("front-controls.conduit".into(), source.into()).unwrap()
 }
 
 #[test]
-fn face_controls_project_actual_values_and_visible_contracts() {
+fn front_controls_project_actual_values_and_visible_contracts() {
     let editor = editor("form controls {\n    clock: time/every(freq = 25ms)\n}\n");
     let graph = PatchbayGraph::from_expanded(&editor.expand_form("controls").unwrap()).unwrap();
     let controls = &graph.gears[0].controls;
@@ -245,7 +245,7 @@ fn boolean_contract_projects_a_toggle_with_explicit_choices() {
         }],
         pool_references: Vec::new(),
     };
-    let controls = crate::face_controls::project_controls(&gear).unwrap();
+    let controls = crate::front_controls::project_controls(&gear).unwrap();
     assert!(matches!(
         controls[0].kind,
         FaceControlKind::BooleanChoice {
@@ -256,7 +256,7 @@ fn boolean_contract_projects_a_toggle_with_explicit_choices() {
 }
 
 #[test]
-fn face_edit_preserves_gear_identity_and_reseals_all_form_identities() {
+fn front_edit_preserves_gear_identity_and_reseals_all_form_identities() {
     let mut editor = editor("form controls {\n    clock: time/every(freq = 25ms)\n}\n");
     let before = editor.expand_form("controls").unwrap();
     let revision = editor.view().revision;
@@ -278,7 +278,7 @@ fn face_edit_preserves_gear_identity_and_reseals_all_form_identities() {
 }
 
 #[test]
-fn face_edit_accepts_an_open_back_with_runtime_face_ports() {
+fn front_edit_accepts_an_open_back_with_runtime_front_ports() {
     let mut editor = editor(
         "form greet (\n    name: Text > text: Text\n) {\n    join: text/join(\"Hello\")\n    name > join > text\n}\n\nform welcome {\n    hello: greet\n    \"Travis\" > hello > presentation/text\n}\n",
     );

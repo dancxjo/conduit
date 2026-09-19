@@ -8,12 +8,12 @@ use conduit_planner::{
 };
 
 #[test]
-fn different_ordered_policies_choose_different_equal_face_realizations() {
+fn different_ordered_policies_choose_different_equal_front_realizations() {
     let gear = pulse_gear();
     let hosts = competing_hosts();
     assert_eq!(
-        hosts[0].capabilities[0].checked_face(),
-        hosts[1].capabilities[0].checked_face(),
+        hosts[0].capabilities[0].checked_front(),
+        hosts[1].capabilities[0].checked_front(),
         "nominal identity does not alter functional compatibility"
     );
 

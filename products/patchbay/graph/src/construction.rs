@@ -46,7 +46,7 @@ impl PatchbayGraph {
                         .iter()
                         .map(|port| patchbay_port(&gear.gear_id, port))
                         .collect(),
-                    controls: crate::face_controls::project_controls(gear)?,
+                    controls: crate::front_controls::project_controls(gear)?,
                 })
             })
             .collect::<Result<Vec<_>, PatchbayGraphError>>()?;
@@ -93,8 +93,8 @@ impl PatchbayGraph {
             checked_form_id: form.checked_form_id.clone(),
             expanded_form_id: form.expanded_form_id.clone(),
             form_name: form.name.clone(),
-            face_inputs: Vec::new(),
-            face_outputs: Vec::new(),
+            front_inputs: Vec::new(),
+            front_outputs: Vec::new(),
             compositions: Vec::new(),
             gears,
             cords,
@@ -105,7 +105,7 @@ impl PatchbayGraph {
         form: &conduit_form::ExpandedAuthoringForm,
     ) -> Result<Self, PatchbayGraphError> {
         let mut graph = Self::from_expanded(&form.expanded)?;
-        let boundary_count = form.face.inputs().len() + form.face.outputs().len();
+        let boundary_count = form.front.inputs().len() + form.front.outputs().len();
         let port_count = graph
             .gears
             .iter()
@@ -117,23 +117,23 @@ impl PatchbayGraph {
         {
             return Err(PatchbayGraphError::TooManyPorts);
         }
-        graph.face_inputs = form
-            .face
+        graph.front_inputs = form
+            .front
             .inputs()
             .iter()
             .cloned()
             .map(|descriptor| PatchbayFacePort {
-                identity: face_port_identity(PortDirection::Input, descriptor.port_id.as_str()),
+                identity: front_port_identity(PortDirection::Input, descriptor.port_id.as_str()),
                 descriptor,
             })
             .collect();
-        graph.face_outputs = form
-            .face
+        graph.front_outputs = form
+            .front
             .outputs()
             .iter()
             .cloned()
             .map(|descriptor| PatchbayFacePort {
-                identity: face_port_identity(PortDirection::Output, descriptor.port_id.as_str()),
+                identity: front_port_identity(PortDirection::Output, descriptor.port_id.as_str()),
                 descriptor,
             })
             .collect();
@@ -147,14 +147,14 @@ impl PatchbayGraph {
             return Err(PatchbayGraphError::TooManyCords);
         }
         for binding in &form.input_bindings {
-            let source = face_port_identity(PortDirection::Input, binding.face_port_id.as_str());
+            let source = front_port_identity(PortDirection::Input, binding.front_port_id.as_str());
             let sink = port_identity(
                 &binding.gear_id,
                 PortDirection::Input,
                 binding.gear_port_id.as_str(),
             );
             let descriptor = graph
-                .face_inputs
+                .front_inputs
                 .iter()
                 .find(|port| port.identity == source)
                 .ok_or(PatchbayGraphError::MissingCordEndpoint)?
@@ -174,9 +174,9 @@ impl PatchbayGraph {
                 PortDirection::Output,
                 binding.gear_port_id.as_str(),
             );
-            let sink = face_port_identity(PortDirection::Output, binding.face_port_id.as_str());
+            let sink = front_port_identity(PortDirection::Output, binding.front_port_id.as_str());
             let descriptor = graph
-                .face_outputs
+                .front_outputs
                 .iter()
                 .find(|port| port.identity == sink)
                 .ok_or(PatchbayGraphError::MissingCordEndpoint)?
@@ -210,10 +210,10 @@ fn port_identity(gear: &GearId, direction: PortDirection, port: &str) -> String 
     format!("port/{}/{direction}/{port}", gear.as_str())
 }
 
-fn face_port_identity(direction: PortDirection, port: &str) -> String {
+fn front_port_identity(direction: PortDirection, port: &str) -> String {
     let direction = match direction {
         PortDirection::Input => "input",
         PortDirection::Output => "output",
     };
-    format!("face/{direction}/{port}")
+    format!("front/{direction}/{port}")
 }

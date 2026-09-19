@@ -7,7 +7,7 @@ presentation
   exact basis, subjects, relationships, labels, accessible names,
   semantic controls, lens-relevant facts, diagnostics, and provenance
                          |
-                  presentation face
+                  presentation front
                          |
         +----------------+----------------+
         |                |                |
@@ -41,9 +41,9 @@ presentation meaning and content identity
 The same presentation may therefore reach several materially different
 presenters. Each presenter joins at the highest seam it can truthfully satisfy:
 
-- the browser implements the presentation face directly with DOM/SVG/CSS and
+- the browser implements the presentation front directly with DOM/SVG/CSS and
   browser accessibility mechanisms;
-- the native presenter implements the same face directly with its own bounded
+- the native presenter implements the same front directly with its own bounded
   layout and raster work;
 - the deterministic linear presenter consumes the same value without claiming
   two-dimensional geometry;

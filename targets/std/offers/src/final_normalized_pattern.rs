@@ -42,7 +42,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_exact_temporal_and_value_face() {
+    fn offer_preserves_exact_temporal_and_value_front() {
         let definition = conduit_semantic_catalog::final_normalized_pattern_definition();
         let offer = final_normalized_pattern_std_offer();
         assert_eq!(offer.inputs, definition.inputs);

@@ -355,7 +355,7 @@ fn validate_presentation(
         || sign.realization != "recursive"
         || sign.back_kind != conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND
         || sign.back_contract_revision != conduit_semantic_catalog::PATCHBAY_PRESENTATION_REVISION
-        || sign.back_invocation_path != "conduitos-gear-face/face"
+        || sign.back_invocation_path != "conduitos-gear-front/front"
         || !exact_id(&sign.back_source_document_id)
         || !exact_id(&sign.back_checked_form_id)
         || sign.host_id != boot.host_id
@@ -374,7 +374,7 @@ fn validate_presentation(
         || !exact_id(&sign.fragment_id)
         || sign.node_count != 11
         || sign.cord_count != 8
-        || sign.text != "Gear Face"
+        || sign.text != "Gear Front"
         || sign.layout_children != 3
         || sign.graphics_commands != 3
         || sign.text_commands != 1

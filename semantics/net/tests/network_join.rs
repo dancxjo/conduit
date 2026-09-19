@@ -47,7 +47,7 @@ fn boot_scoped_attachment_info_round_trips_through_one_bounded_value() {
         host_id: "r1/pico-w",
         boot_id:
             "conduit-pico-w-signal/runtime-boot:0000000000000000:00000000000000000000000000000000",
-        interface_pool_id: "r1/pico-wifi-station-0",
+        interfront_pool_id: "r1/pico-wifi-station-0",
         generation: 1,
     };
     let mut encoded = [0_u8; MAXIMUM_JOIN_OUTPUT_BYTES as usize];
@@ -78,7 +78,7 @@ fn base_executes_with_exact_resource_authority_and_boot_scoped_attachment() {
     .unwrap();
     assert_eq!(attachment.host_id, advertisement.host_id);
     assert_eq!(attachment.boot_id, advertisement.boot_id);
-    assert_eq!(attachment.interface_pool_id, resource().pool_id);
+    assert_eq!(attachment.interfront_pool_id, resource().pool_id);
 }
 
 #[test]
@@ -163,13 +163,13 @@ fn credential_bytes_never_enter_serialized_advertisement_or_attachment() {
 }
 
 #[test]
-fn equal_face_is_compatible_but_resource_and_authority_stay_exact() {
+fn equal_front_is_compatible_but_resource_and_authority_stay_exact() {
     let mut advertisement = network_capable_advertisement("host/network", "boot/network-1");
-    let canonical = advertisement.capabilities[0].checked_face();
+    let canonical = advertisement.capabilities[0].checked_front();
     advertisement.capabilities[0].kind_id = kind_id("vendor/associate-network");
     advertisement.capabilities[0].kind_contract_revision =
         conduit_core::KindContractRevision::from("vendor/associate-network@7");
-    assert_eq!(advertisement.capabilities[0].checked_face(), canonical);
+    assert_eq!(advertisement.capabilities[0].checked_front(), canonical);
     assert_eq!(
         canonical,
         network_join_offer(
@@ -177,7 +177,7 @@ fn equal_face_is_compatible_but_resource_and_authority_stay_exact() {
             conduit_core::ImplementationId::from("other/implementation"),
             conduit_core::ArtifactId::from("other/artifact"),
         )
-        .checked_face()
+        .checked_front()
     );
 
     let mut wrong = grant(&advertisement);

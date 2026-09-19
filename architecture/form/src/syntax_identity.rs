@@ -8,7 +8,7 @@ use conduit_core::CheckedFormId;
 pub(crate) fn checked_identity(
     meaning: (&str, FormCompletionPolicy),
     parameters: &[CheckedStartupParameter],
-    runtime_face: &conduit_core::CheckedFace,
+    runtime_front: &conduit_core::CheckedFace,
     shorthand: Option<(&str, &str)>,
     gears: &[CheckedCanonicalGear],
     cords: &[CheckedCanonicalCord],
@@ -35,7 +35,7 @@ pub(crate) fn checked_identity(
             .unwrap_or_else(|| "required".into());
         push_field(&mut canonical, &default);
     }
-    for port in runtime_face.inputs().iter().chain(runtime_face.outputs()) {
+    for port in runtime_front.inputs().iter().chain(runtime_front.outputs()) {
         canonical.push_str("port");
         push_field(&mut canonical, port.port_id.as_str());
         push_field(&mut canonical, port.value_kind.as_str());
@@ -59,7 +59,7 @@ pub(crate) fn checked_identity(
         canonical.push_str("pool");
         push_field(&mut canonical, &pool.name);
         push_field(&mut canonical, &pool.maximum_members.to_string());
-        for parameter in pool.member_face.startup_parameters() {
+        for parameter in pool.member_front.startup_parameters() {
             push_field(&mut canonical, &parameter.name);
             push_field(&mut canonical, &parameter.value_type);
             push_field(
@@ -72,17 +72,17 @@ pub(crate) fn checked_identity(
             );
         }
         for port in pool
-            .member_face
+            .member_front
             .inputs()
             .iter()
-            .chain(pool.member_face.outputs())
+            .chain(pool.member_front.outputs())
         {
             push_field(&mut canonical, port.port_id.as_str());
             push_field(&mut canonical, port.value_kind.as_str());
             push_field(&mut canonical, port.temporal.as_str());
             push_field(&mut canonical, &format!("{:?}", port.direction));
         }
-        if let Some((input, output)) = pool.member_face.shorthand() {
+        if let Some((input, output)) = pool.member_front.shorthand() {
             push_field(&mut canonical, input.as_str());
             push_field(&mut canonical, output.as_str());
         }

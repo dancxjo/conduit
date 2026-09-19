@@ -261,7 +261,7 @@ pub fn robotics_drive_differential_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(ROBOTICS_DRIVE_DIFFERENTIAL_KIND),
         plain_name: "Differential drive".to_string(),
-        summary: "Consume bounded body-forward linear and angular intent with an exact motion TTL; physical implementations require non-bypassable local safety and authority below this authored face."
+        summary: "Consume bounded body-forward linear and angular intent with an exact motion TTL; physical implementations require non-bypassable local safety and authority below this authored front."
             .to_string(),
         inputs: vec![
             current_input("linear", SCALAR_INFO_ID),

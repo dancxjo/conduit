@@ -509,7 +509,7 @@ mod tests {
             application_view
                 .nodes
                 .iter()
-                .any(|node| node.text.contains("Faces, Backs, and implementation"))
+                .any(|node| node.text.contains("Fronts, Backs, and implementation"))
         );
         let workspace = controller.state().workspace_presentation().unwrap();
         assert!(

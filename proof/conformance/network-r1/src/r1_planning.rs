@@ -53,7 +53,7 @@ pub fn r1_signal_source_advertisement() -> HostAdvertisement {
             .collect(),
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
-            startup_parameters: conduit_signal::pulse_face_startup_parameters(),
+            startup_parameters: conduit_signal::pulse_front_startup_parameters(),
             shorthand: None,
             capability_id: CapabilityId::from(R1_PULSE_CAPABILITY_ID),
             kind_id: conduit_signal::pulse_kind(),

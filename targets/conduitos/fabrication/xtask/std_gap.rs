@@ -252,7 +252,7 @@ mod tests {
             }));
         }
         assert!(report.entries.iter().any(|entry| {
-            entry.kind_id == "patchbay/gear-face"
+            entry.kind_id == "patchbay/gear-front"
                 && entry.classification == catalog::GapClassification::Implemented
                 && entry.realization_mode == "recursive"
                 && entry.host_capability.is_none()

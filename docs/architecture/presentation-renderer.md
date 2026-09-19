@@ -1,15 +1,15 @@
 # Portable presentation renderer contract
 
-Conduit presentation follows the same face/back law as every other semantic
+Conduit presentation follows the same front/back law as every other semantic
 kind:
 
 ```text
 presentation -> presentation/renderer -> Manifestation
 ```
 
-`presentation/renderer` is the portable face. Its checked face contains one
+`presentation/renderer` is the portable front. Its checked front contains one
 bounded `presentation` info input and one bounded `Manifestation` info
-output. The kind name and face do not contain Wayland, DOM, SVG,
+output. The kind name and front do not contain Wayland, DOM, SVG,
 framebuffer, terminal, window, browser, or operating-system facts.
 
 ## presentation
@@ -31,7 +31,7 @@ content identity; reordering or duplicating canonical sign is rejected.
 An optional finite `PresentationInput` collection binds a semantic target,
 typed value kind, byte ceiling, empty-value policy, accessible label, and
 submit action. Human gestures cross the portable
-`presentation/interaction` face only after an Available Manifestation binds
+`presentation/interaction` front only after an Available Manifestation binds
 the exact presentation revision. Accepted interactions carry exact
 presentation, Manifestation, input, action, target, type, sequence, and
 payload identities; retained evidence records payload length but never its
@@ -69,7 +69,7 @@ The value contains no raw surface, DOM, framebuffer, or pixel payload.
 
 ## Realizations and planning
 
-hosts supply exact renderer offers beneath the shared checked face. An offer
+hosts supply exact renderer offers beneath the shared checked front. An offer
 names its implementation, artifact, execution profile, host-operation target,
 resource class, and finite limits. For example, a Linux host may bind a
 Wayland surface base while a browser host binds a DOM/SVG document
@@ -91,7 +91,7 @@ than a `machine/*` semantic catalog.
 Patchbay inspects the realization currently drawing Patchbay through one
 bounded typed `RendererSelfInspection`. The value contains the actual validated
 renderer plan and Manifestation; it does not reconstruct selected identities
-from display strings. Both native and HTML surfaces derive the renderer face
+from display strings. Both native and HTML surfaces derive the renderer front
 and ports, placement, implementation and artifact, host and boot, resources,
 finite limits, renderer plan and play, Manifestation lifecycle, and exact sign
 chain from that same value.

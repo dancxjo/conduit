@@ -10,19 +10,19 @@ const FORM: &str = r#"form patchbay_shell {
  row: layout/row(gap = 8)
  column: layout/column(gap = 6)
  stack: layout/stack
- face: layout/align(horizontal = "center", vertical = "end")
+ front: layout/align(horizontal = "center", vertical = "end")
  sink: conduit-test/layout-sink
  viewport.placements > inset.frame
  inset.placements > row.frame
  row.placements > column.frame
  column.placements > stack.frame
- stack.placements > face.frame
- face.placements > sink.in
+ stack.placements > front.frame
+ front.placements > sink.in
 }
 "#;
 
 #[test]
-fn representative_shell_and_face_execute_as_one_ordinary_form() {
+fn representative_shell_and_front_execute_as_one_ordinary_form() {
     let mut host = host("layout-host");
     let form = parse(FORM, &installed_std::test_catalog()).expect("layout Form parses");
     let hosts = [host.advertisement().clone()];

@@ -151,8 +151,8 @@ fn expand_instance_inner(
         instances.insert(name.to_string(), instance);
     }
 
-    let runtime_face = form.checked_face();
-    let face_ports = checked_face_ports(form, &runtime_face);
+    let runtime_front = form.checked_front();
+    let front_ports = checked_front_ports(form, &runtime_front);
     let mut inputs = BTreeMap::new();
     let mut outputs = BTreeMap::new();
     let mut anonymous_counts = BTreeMap::<String, usize>::new();
@@ -161,7 +161,7 @@ fn expand_instance_inner(
         for cord_stage in &cord.stages {
             pending.push(match cord_stage {
                 CheckedCordStage::Reference(reference) => structured_selector::PendingStage::Ready(
-                    resolve_reference(reference, &instances, &face_ports)?,
+                    resolve_reference(reference, &instances, &front_ports)?,
                 ),
                 CheckedCordStage::InlineGear(gear) => {
                     let key = inline_key(gear);
@@ -262,7 +262,7 @@ fn expand_instance_inner(
             }
         }
     }
-    validate_face_bindings(form, &inputs, &outputs)?;
+    validate_front_bindings(form, &inputs, &outputs)?;
     if let Some((input, output)) = &form.shorthand {
         if !inputs.contains_key(input) || !outputs.contains_key(output) {
             return Err(CanonicalExpansionDiagnostic::new(

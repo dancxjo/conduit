@@ -289,10 +289,10 @@ fn executable_entry(checked: &conduit_form::CheckedSyntaxDocument) -> Result<Str
         .iter()
         .rev()
         .find(|form| {
-            let face = form.checked_face();
-            face.inputs().is_empty()
-                && face.outputs().is_empty()
-                && face
+            let front = form.checked_front();
+            front.inputs().is_empty()
+                && front.outputs().is_empty()
+                && front
                     .startup_parameters()
                     .iter()
                     .all(|parameter| parameter.has_default)

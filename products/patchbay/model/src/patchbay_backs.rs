@@ -97,7 +97,7 @@ impl From<conduit_presentation::CompositionError> for PatchbayBackError {
     }
 }
 
-pub fn gear_face_presentation(
+pub fn gear_front_presentation(
     gear: &PatchbayGear,
 ) -> Result<GearFacePresentation, PatchbayBackError> {
     if gear.identity.is_empty() {
@@ -185,7 +185,7 @@ pub fn realize_recursive(
     inspection: BackInspection,
 ) -> Result<PatchbayRealization, PatchbayBackError> {
     let graphics = match &subject {
-        PatchbaySubjectPresentation::GearFace(face) => gear_graphics(face)?,
+        PatchbaySubjectPresentation::GearFace(front) => gear_graphics(front)?,
         PatchbaySubjectPresentation::Port(port) => {
             label_graphics(&port.accessibility_name, GraphicsPaintRole::Foreground)?
         }
@@ -214,12 +214,12 @@ pub fn normalized_subject(realization: &PatchbayRealization) -> (&str, &str) {
     }
 }
 
-fn gear_graphics(face: &GearFacePresentation) -> Result<GraphicsScene, PatchbayBackError> {
-    let icon = conduit_semantic_catalog::palette_metadata(&face.kind_id)
+fn gear_graphics(front: &GearFacePresentation) -> Result<GraphicsScene, PatchbayBackError> {
+    let icon = conduit_semantic_catalog::palette_metadata(&front.kind_id)
         .map(|metadata| metadata.icon)
         .unwrap_or(PresentationIconKey::GenericGear);
-    let composition = PresentationComposition::icon(icon.as_str(), &face.accessibility_name)?
-        .frame("gear-face", &face.accessibility_name)?
+    let composition = PresentationComposition::icon(icon.as_str(), &front.accessibility_name)?
+        .frame("gear-front", &front.accessibility_name)?
         .badge("ready", "Gear ready")?;
     let mut scene = crate::constrained_graphics_scene(&composition, 160, 96)?;
     scene.push(GraphicsCommand::text(
@@ -236,7 +236,7 @@ fn gear_graphics(face: &GearFacePresentation) -> Result<GraphicsScene, PatchbayB
             height: 88,
         },
         GraphicsPaintRole::Foreground,
-        face.kind_id.as_str(),
+        front.kind_id.as_str(),
     )?)?;
     Ok(scene)
 }
@@ -330,19 +330,20 @@ mod tests {
                 interaction: None,
             }],
         };
-        let subject = PatchbaySubjectPresentation::GearFace(gear_face_presentation(&gear).unwrap());
+        let subject =
+            PatchbaySubjectPresentation::GearFace(gear_front_presentation(&gear).unwrap());
         let direct = realize_direct(subject.clone(), BackInspection::Hidden);
         let recursive = realize_recursive(subject, BackInspection::Explicit).unwrap();
         assert_eq!(normalized_subject(&direct), normalized_subject(&recursive));
         assert!(!direct.back_inspected);
         assert!(recursive.back_inspected);
         assert!(recursive.graphics.unwrap().commands().len() >= 4);
-        let PatchbaySubjectPresentation::GearFace(face) = &direct.subject else {
-            panic!("Gear Face subject");
+        let PatchbaySubjectPresentation::GearFace(front) = &direct.subject else {
+            panic!("Gear Front subject");
         };
-        assert_eq!(face.controls[0].key, "enabled");
+        assert_eq!(front.controls[0].key, "enabled");
         assert!(matches!(
-            face.controls[0].kind,
+            front.controls[0].kind,
             FaceControlKind::BooleanChoice { .. }
         ));
     }

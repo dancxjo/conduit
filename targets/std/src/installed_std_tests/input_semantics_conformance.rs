@@ -28,7 +28,7 @@ fn plan(source: &str) -> (super::StdHost, conduit_core::PlanFragment) {
             .iter()
             .find(|offer| offer.kind_id.as_str() == kind)
             .unwrap_or_else(|| panic!("missing offered {kind}"));
-        assert_eq!(offer.checked_face(), gear.checked_face(), "{kind}");
+        assert_eq!(offer.checked_front(), gear.checked_front(), "{kind}");
     }
     let hosts = [host.advertisement().clone()];
     let placements = default_placements(&form, &hosts).expect("portable input placements resolve");

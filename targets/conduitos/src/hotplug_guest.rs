@@ -258,14 +258,14 @@ fn realization(
         device.attachment_epoch,
     );
     let interface = device.interfaces[0];
-    let interface_id =
+    let interfront_id =
         identity::derive_usb_interface(&device_id, interface.number, interface.alternate_setting);
-    let endpoint_id = identity::derive_usb_endpoint(&interface_id, device.endpoints[0].address);
+    let endpoint_id = identity::derive_usb_endpoint(&interfront_id, device.endpoints[0].address);
     KeyboardRealization {
         mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
         controller_id,
         device_id,
-        interface_id,
+        interfront_id,
         endpoint_id,
         report_buffers,
         transition_slots,

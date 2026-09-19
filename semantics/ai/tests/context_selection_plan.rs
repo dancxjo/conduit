@@ -69,7 +69,7 @@ fn plan(source: &str) -> conduit_core::Plan {
 }
 
 #[test]
-fn portable_faces_are_typed_bounded_and_require_no_authority() {
+fn portable_fronts_are_typed_bounded_and_require_no_authority() {
     let rerank = rerank_contract();
     let select = context_select_contract();
     assert_eq!(

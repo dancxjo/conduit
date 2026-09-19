@@ -145,7 +145,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_the_portable_face_and_finite_bounds() {
+    fn offer_preserves_the_portable_front_and_finite_bounds() {
         let offer = image_text_std_offer();
         assert_eq!(
             offer.kind_id.as_str(),

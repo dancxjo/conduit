@@ -147,7 +147,7 @@ fn selected_canonical_back_changes_only_expansion_identity_and_records_exact_pro
 }
 
 #[test]
-fn canonical_back_refuses_a_face_that_differs_from_the_high_level_kind() {
+fn canonical_back_refuses_a_front_that_differs_from_the_high_level_kind() {
     let (startup, profile) = catalogs();
     let document = check_syntax_document(
         &parse_syntax_document("form wrong {\n leaf: test/source\n}\n"),
@@ -370,7 +370,7 @@ fn reusable_form_without_declared_shorthand_requires_named_port() {
 }
 
 #[test]
-fn primitive_contract_bounds_and_face_types_fail_closed() {
+fn primitive_contract_bounds_and_front_types_fail_closed() {
     let bounded = "form main {\n source: test/source\n pass: test/pass(9)\n sink: test/sink\n source > pass > sink\n}\n";
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(bounded), &startup).unwrap();
@@ -381,8 +381,8 @@ fn primitive_contract_bounds_and_face_types_fail_closed() {
         "CND-FRM-040"
     );
 
-    let wrong_face = "form relay (\n input: wrong/value > output: wrong/value\n) {\n pass: test/pass\n input > pass > output\n}\n\nform main {\n source: test/source\n relay: relay\n sink: test/sink\n source > relay > sink\n}\n";
-    let checked = check_syntax_document(&parse_syntax_document(wrong_face), &startup).unwrap();
+    let wrong_front = "form relay (\n input: wrong/value > output: wrong/value\n) {\n pass: test/pass\n input > pass > output\n}\n\nform main {\n source: test/source\n relay: relay\n sink: test/sink\n source > relay > sink\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(wrong_front), &startup).unwrap();
     assert_eq!(
         expand_canonical_form(&checked, "main", &profile)
             .unwrap_err()
@@ -443,7 +443,7 @@ fn inline_reusable_and_primitive_gears_expand_without_a_parallel_path() {
 }
 
 #[test]
-fn face_binding_preserves_flow_closure_and_current_observation_contracts() {
+fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
     let mut startup = StartupCatalog::new();
     for gear in ["state/count", "test/ticks", "test/current"] {
         startup
@@ -514,7 +514,7 @@ fn face_binding_preserves_flow_closure_and_current_observation_contracts() {
         .iter()
         .find(|gear| gear.kind_id.as_str() == "state/count")
         .unwrap();
-    assert_eq!(count.checked_face(), state.checked_face());
+    assert_eq!(count.checked_front(), state.checked_front());
 
     let mismatched = source.replace("Tick...|", "Tick...");
     let checked = check_syntax_document(&parse_syntax_document(&mismatched), &startup).unwrap();

@@ -48,7 +48,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_the_portable_timed_sequence_face() {
+    fn offer_preserves_the_portable_timed_sequence_front() {
         let contract = conduit_semantic_catalog::ordered_event_intervals_definition();
         let offer = ordered_event_intervals_std_offer();
         assert_eq!(offer.kind_id, contract.kind_id);

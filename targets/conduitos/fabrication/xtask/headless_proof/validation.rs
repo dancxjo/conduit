@@ -170,7 +170,7 @@ mod tests {
         for name in [
             "conduitos::native_compositor::run",
             "conduitos::native_typography::FONT_DATA",
-            "ttf_parser::Face::parse",
+            "ttf_parser::Front::parse",
         ] {
             assert!(validate_symbols(&format!("0000 T conduitos_start\n0001 T {name}\n")).is_err());
         }

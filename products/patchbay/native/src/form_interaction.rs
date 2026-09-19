@@ -173,13 +173,13 @@ impl PatchbayApplication {
                 value,
                 maximum_bytes,
             } => {
-                self.face_text_edit = Some(crate::first_run_proof::ShortTextEdit {
+                self.front_text_edit = Some(crate::first_run_proof::ShortTextEdit {
                     subject,
                     key,
                     value,
                     maximum_bytes,
                 });
-                self.publish_completed("Editing bounded Face text; Enter applies, Escape cancels");
+                self.publish_completed("Editing bounded Front text; Enter applies, Escape cancels");
             }
         }
         if semantic_edit {
@@ -498,26 +498,26 @@ impl PatchbayApplication {
             return Ok(true);
         }
         let selected = self.selected_graphical_identity().map(str::to_owned);
-        let face_key = crate::face_control_keyboard::resolve_face_control_key(
+        let front_key = crate::front_control_keyboard::resolve_front_control_key(
             key,
             self.modifiers,
             self.graphical_form.as_ref(),
             self.linear_view,
             selected.as_deref(),
-            &mut self.face_control_focus,
+            &mut self.front_control_focus,
         )?;
-        match face_key {
-            crate::face_control_keyboard::FaceControlKey::Action(action) => {
+        match front_key {
+            crate::front_control_keyboard::FaceControlKey::Action(action) => {
                 self.handle_gui_action(action)?;
                 return Ok(true);
             }
-            crate::face_control_keyboard::FaceControlKey::FocusChanged => {
+            crate::front_control_keyboard::FaceControlKey::FocusChanged => {
                 if let Some(window) = &self.window {
                     window.request_redraw();
                 }
                 return Ok(true);
             }
-            crate::face_control_keyboard::FaceControlKey::NotHandled => {}
+            crate::front_control_keyboard::FaceControlKey::NotHandled => {}
         }
         let mut synchronize_linear_selection = true;
         match key {

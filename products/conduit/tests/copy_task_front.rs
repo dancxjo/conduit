@@ -9,7 +9,7 @@ fn test_directory(label: &str) -> PathBuf {
         .expect("clock must follow the Unix epoch")
         .as_nanos();
     let path = std::env::temp_dir().join(format!(
-        "conduit-copy-face-{label}-{}-{nonce}",
+        "conduit-copy-front-{label}-{}-{nonce}",
         std::process::id()
     ));
     fs::create_dir(&path).expect("test directory should be creatable");
@@ -66,11 +66,11 @@ fn copy_task_runs_then_reveals_path_free_form_and_exact_plan() {
         "{inspected}"
     );
     assert!(
-        inspected.contains("gear: copy-task/task (face: 0 inputs, 1 outputs)"),
+        inspected.contains("gear: copy-task/task (front: 0 inputs, 1 outputs)"),
         "{inspected}"
     );
     assert!(
-        inspected.contains("gear: copy-task/show (face: 1 inputs, 0 outputs)"),
+        inspected.contains("gear: copy-task/show (front: 1 inputs, 0 outputs)"),
         "{inspected}"
     );
     assert!(!inspected.contains(source.to_str().unwrap()), "{inspected}");

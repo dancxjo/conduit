@@ -4,12 +4,12 @@ use clap::{Args, Subcommand, ValueEnum};
 
 use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 
-#[path = "evidence_home_cross_face.rs"]
-mod home_cross_face;
+#[path = "evidence_home_cross_front.rs"]
+mod home_cross_front;
 #[path = "evidence_three_body_journey.rs"]
 mod three_body_journey;
-#[path = "evidence_two_faces.rs"]
-mod two_faces;
+#[path = "evidence_two_fronts.rs"]
+mod two_fronts;
 
 #[derive(Args, Debug)]
 pub struct EvidenceArgs {
@@ -19,7 +19,7 @@ pub struct EvidenceArgs {
 
 #[derive(Subcommand, Debug)]
 enum EvidenceCommand {
-    /// Publish the bounded Home index after every face supplies exact evidence.
+    /// Publish the bounded Home index after every front supplies exact evidence.
     HomeCrossFace(HomeCrossFaceArgs),
     /// Verify three independently born Bodies against one semantic Journey contract.
     ThreeBodyJourney(ThreeBodyJourneyArgs),
@@ -39,14 +39,14 @@ enum EvidenceCommand {
 
 #[derive(Args, Debug)]
 struct HomeCrossFaceArgs {
-    /// One conduit.evidence/home-face@1 receipt; exactly six distinct faces are required.
+    /// One conduit.evidence/home-front@1 receipt; exactly six distinct fronts are required.
     #[arg(long = "receipt", required = true)]
     receipts: Vec<PathBuf>,
 
     /// New file that will receive the verified bounded index.
     #[arg(
         long,
-        default_value = "target/conduit-evidence/home-cross-face/index.json"
+        default_value = "target/conduit-evidence/home-cross-front/index.json"
     )]
     output: PathBuf,
 }
@@ -84,7 +84,7 @@ struct ThreeBodyJourneyContractArgs {
 #[derive(Args, Debug)]
 struct TwoFacesArgs {
     /// New directory that will receive the bounded sibling evidence manifest.
-    #[arg(long, default_value = "target/journeys/one-form-two-faces")]
+    #[arg(long, default_value = "target/journeys/one-form-two-fronts")]
     output: PathBuf,
 }
 
@@ -124,9 +124,9 @@ struct EvidenceGalleryArgs {
     #[arg(long)]
     hears_speaks_evidence_root: Option<PathBuf>,
 
-    /// Optional complete One Form, Two Faces evidence for the same commit.
+    /// Optional complete One Form, Two Fronts evidence for the same commit.
     #[arg(long)]
-    two_faces_evidence_root: Option<PathBuf>,
+    two_fronts_evidence_root: Option<PathBuf>,
 
     /// Optional complete Little Life evolution evidence for the same commit.
     #[arg(long)]
@@ -172,14 +172,14 @@ enum EvidenceResultArg {
 
 pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
-        EvidenceCommand::HomeCrossFace(args) => home_cross_face::run(args.receipts, args.output),
+        EvidenceCommand::HomeCrossFace(args) => home_cross_front::run(args.receipts, args.output),
         EvidenceCommand::ThreeBodyJourney(args) => {
             three_body_journey::run(args.commit, args.contract, args.tracks, args.output)
         }
         EvidenceCommand::ThreeBodyJourneyContract(args) => {
             three_body_journey::write_contract(args.commit, args.output).map_err(Into::into)
         }
-        EvidenceCommand::OneFormTwoFaces(args) => two_faces::run(args.output),
+        EvidenceCommand::OneFormTwoFaces(args) => two_fronts::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
         EvidenceCommand::Verify(args) => {
             let result = match args.result {
@@ -201,7 +201,7 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
             evidence_root: args.evidence_root,
             conduitos_evidence_root: args.conduitos_evidence_root,
             hears_speaks_evidence_root: args.hears_speaks_evidence_root,
-            two_faces_evidence_root: args.two_faces_evidence_root,
+            two_fronts_evidence_root: args.two_fronts_evidence_root,
             little_life_evidence_root: args.little_life_evidence_root,
             site_root: args.site_root,
             commit: args.commit,

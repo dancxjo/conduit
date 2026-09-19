@@ -27,7 +27,7 @@ use crate::{
 
 const SURFACE_CLASS: &str = "presentation/surface";
 const SURFACE_ID: &str = "conduitos/front-door/surface/0";
-const RENDERER_FORM: &str = "form face {\n    renderer: presentation/renderer\n}\n";
+const RENDERER_FORM: &str = "form front {\n    renderer: presentation/renderer\n}\n";
 
 pub struct FrontDoorPresenter {
     plan: Plan,
@@ -205,7 +205,7 @@ impl FrontDoorPresenter {
         if presentation.revision <= self.last_revision {
             return Err(PresenterError::StaleRevision);
         }
-        let face_subject = presentation
+        let front_subject = presentation
             .subjects
             .iter()
             .find(|subject| subject.role == PresentationRole::Host)
@@ -223,7 +223,7 @@ impl FrontDoorPresenter {
             &self.plan,
             active,
             self.placement_id.clone(),
-            face_subject,
+            front_subject,
             SURFACE_ID.into(),
             SignId::from("conduitos/front-door/manifestation-prepared"),
         )

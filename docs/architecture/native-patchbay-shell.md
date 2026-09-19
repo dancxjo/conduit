@@ -33,7 +33,7 @@ headless Wayland compositor can prove window creation and both lifecycle
 reports without timing, forced input, or a second UI path. Unknown or repeated
 arguments fail closed.
 
-Canonical checked-face equality from #522 remains the compatibility law when a
+Canonical checked-front equality from #522 remains the compatibility law when a
 later Patchbay request plans semantic work. This shell performs no matching and
 therefore neither reintroduces nominal matching nor treats UI labels as
 capability identity.

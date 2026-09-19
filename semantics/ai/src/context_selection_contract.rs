@@ -1,4 +1,4 @@
-//! Portable R3 reranking and structured context-selection faces.
+//! Portable R3 reranking and structured context-selection fronts.
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{

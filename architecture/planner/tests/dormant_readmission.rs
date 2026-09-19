@@ -231,7 +231,7 @@ fn plan(
                 let capability = host
                     .capabilities
                     .iter()
-                    .find(|offer| offer.checked_face() == gear.checked_face())
+                    .find(|offer| offer.checked_front() == gear.checked_front())
                     .unwrap();
                 (
                     gear.gear_id.clone(),

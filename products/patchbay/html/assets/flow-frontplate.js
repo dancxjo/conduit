@@ -28,7 +28,7 @@ function PortRow({ port, onActivate }) {
 export function FaceplateNode({ data }) {
   const title = data.role === "Gear" ? data.label.slice(data.label.lastIndexOf("/") + 1) : data.label;
   return e("article", {
-    className: `flow-faceplate role-${data.role.toLowerCase()}${data.semanticSelected ? " semantic-selected" : ""}${data.diagnosticError ? " diagnostic-error" : ""}${data.debugger ? ` debugger-${data.debugger.phase}` : ""}`,
+    className: `flow-frontplate role-${data.role.toLowerCase()}${data.semanticSelected ? " semantic-selected" : ""}${data.diagnosticError ? " diagnostic-error" : ""}${data.debugger ? ` debugger-${data.debugger.phase}` : ""}`,
     "data-subject": data.subjectIdentity,
     "data-subject-id": data.subjectIdentity,
     "data-lens": data.lens,

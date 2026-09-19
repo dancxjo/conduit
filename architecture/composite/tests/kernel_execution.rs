@@ -353,7 +353,7 @@ fn child_failure_is_a_machine_readable_kernel_execution_terminal() {
 #[test]
 fn stale_child_identity_refuses_before_any_kernel_is_started() {
     let mut stale = definition();
-    stale.boundary.input_faces[0].internal_child = HostId::from("stale-child");
+    stale.boundary.input_fronts[0].internal_child = HostId::from("stale-child");
     assert!(matches!(
         KernelCompositeHost::prepare(stale, &registry()),
         Err(KernelCompositeError::StaleChild(_))
@@ -363,7 +363,7 @@ fn stale_child_identity_refuses_before_any_kernel_is_started() {
 #[test]
 fn malformed_boundary_binding_and_value_kind_refuse_distinctly() {
     let mut malformed = definition();
-    malformed.boundary.input_faces[0].internal_port_id = conduit_core::port_id("missing");
+    malformed.boundary.input_fronts[0].internal_port_id = conduit_core::port_id("missing");
     assert!(matches!(
         KernelCompositeHost::prepare(malformed, &registry()),
         Err(KernelCompositeError::InvalidBoundary(_))

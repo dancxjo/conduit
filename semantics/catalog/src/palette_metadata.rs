@@ -433,7 +433,7 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
         ),
         PATCHBAY_GEAR_FACE_KIND => metadata(
             PaletteCategory::Presentation,
-            &["patchbay", "gear", "face", "controls"],
+            &["patchbay", "gear", "front", "controls"],
             PaletteIconKey::Presentation,
         ),
         PATCHBAY_PORT_KIND => metadata(

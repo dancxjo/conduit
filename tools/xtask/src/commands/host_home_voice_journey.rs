@@ -38,7 +38,7 @@ pub(super) fn run(
     if opts.dry_run {
         if opts.json {
             println!(
-                "{{\"schema\":\"conduit.home/voice-face@1\",\"complete_journey\":true,\"dry_run\":true}}"
+                "{{\"schema\":\"conduit.home/voice-front@1\",\"complete_journey\":true,\"dry_run\":true}}"
             );
         } else if !opts.quiet {
             println!("would capture and speak six bounded turns of the complete Home journey");
@@ -71,7 +71,7 @@ pub(super) fn run(
     }
     let final_turn = turns.last().ok_or("Home Voice retained no journey turns")?;
     let report = serde_json::json!({
-        "schema": "conduit.home/voice-face@1",
+        "schema": "conduit.home/voice-front@1",
         "journey_step_ids": conduit_home_model::JOURNEY_STEP_IDS,
         "observed_journey_step_ids": journey.observed_step_ids(),
         "physical_scope": "complete attended multi-turn Home journey through microphone recognition and semantic aural playback",

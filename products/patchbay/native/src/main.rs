@@ -33,7 +33,6 @@ mod environment_resource;
 mod environment_view;
 #[cfg(test)]
 mod environment_view_tests;
-mod face_control_keyboard;
 mod file_task;
 mod first_run_proof;
 mod font;
@@ -42,6 +41,7 @@ mod form_interaction;
 mod forms_navigation;
 #[cfg(test)]
 mod forms_navigation_tests;
+mod front_control_keyboard;
 mod front_door;
 mod front_door_follow;
 mod front_door_keyboard;
@@ -50,7 +50,7 @@ mod front_door_tests;
 mod gui;
 mod gui_composition;
 mod gui_debugger;
-mod gui_face_controls;
+mod gui_front_controls;
 mod gui_gear;
 mod gui_gear_layout;
 mod gui_gesture;
@@ -96,7 +96,7 @@ mod resource;
 mod semantic_history;
 mod semantic_invocation;
 mod temporal_presentation;
-mod two_faces_capture;
+mod two_fronts_capture;
 mod viewport_input;
 #[cfg(test)]
 mod viewport_tests;
@@ -155,8 +155,8 @@ struct PatchbayApplication {
     body_candidates: Option<conduit_body::CandidateInventory>,
     browser_parts: Option<browser_parts::BrowserPartsCoordinator>,
     pico_parts: Option<pico_parts::PicoPartsCoordinator>,
-    face_control_focus: usize,
-    face_text_edit: Option<first_run_proof::ShortTextEdit>,
+    front_control_focus: usize,
+    front_text_edit: Option<first_run_proof::ShortTextEdit>,
     palette_drag: Option<String>,
     cord_drag: Option<patchbay_model::PatchbaySubjectRef>,
     cord_route_drag: Option<patchbay_model::PatchbaySubjectRef>,
@@ -495,8 +495,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         first_run_proof::run(arguments)?;
         return Ok(());
     }
-    if let Some(path) = arguments.two_faces_capture.as_deref() {
-        two_faces_capture::run(path)?;
+    if let Some(path) = arguments.two_fronts_capture.as_deref() {
+        two_fronts_capture::run(path)?;
         return Ok(());
     }
     let event_loop = EventLoop::new()?;
@@ -530,8 +530,8 @@ mod render_tests;
 mod gui_tests;
 
 #[cfg(test)]
-#[path = "face_configuration_tests.rs"]
-mod face_configuration_tests;
+#[path = "front_configuration_tests.rs"]
+mod front_configuration_tests;
 
 #[cfg(test)]
 #[path = "cord_editing_tests.rs"]

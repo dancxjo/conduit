@@ -168,7 +168,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     for pool in &fragment.shared_pools {
         push_string(&mut canonical, pool.pool_id.as_str());
         push_string(&mut canonical, pool.declaration_id.as_str());
-        push_checked_face(&mut canonical, &pool.member_face);
+        push_checked_front(&mut canonical, &pool.member_front);
         canonical.extend_from_slice(&pool.maximum_members.to_le_bytes());
         canonical.extend_from_slice(&pool.member_limits.queue_item_capacity.to_le_bytes());
         push_u32(&mut canonical, pool.member_limits.queue_byte_capacity);
@@ -252,16 +252,16 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     FragmentId::from(hash_bytes(&canonical))
 }
 
-fn push_checked_face(canonical: &mut Vec<u8>, face: &CheckedFace) {
-    push_u32(canonical, face.startup_parameters().len() as u32);
-    for parameter in face.startup_parameters() {
+fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFace) {
+    push_u32(canonical, front.startup_parameters().len() as u32);
+    for parameter in front.startup_parameters() {
         push_string(canonical, &parameter.name);
         push_string(canonical, &parameter.value_type);
         canonical.push(u8::from(parameter.has_default));
     }
-    push_ports(canonical, face.inputs());
-    push_ports(canonical, face.outputs());
-    match face.shorthand() {
+    push_ports(canonical, front.inputs());
+    push_ports(canonical, front.outputs());
+    match front.shorthand() {
         Some((input, output)) => {
             canonical.push(1);
             push_string(canonical, input.as_str());

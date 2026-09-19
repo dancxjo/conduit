@@ -23,7 +23,7 @@ pub const VISION_REVISION: &str = "conduit.std/vision-metadata@1";
 
 pub type VisionKindContract = (KindId, Vec<PortDescriptor>, Vec<PortDescriptor>);
 
-/// Exact portable vision Kinds and typed faces, without any Host realization facts.
+/// Exact portable vision Kinds and typed fronts, without any Host realization facts.
 pub fn vision_kind_contracts() -> Vec<VisionKindContract> {
     let mut contracts = vec![
         (

@@ -19,7 +19,7 @@ proposals do not override the current canon.
 ## Execution and planning
 
 - [hosts and execution](hosts.md)
-- [Functional compatibility: the face is the contract](functional-compatibility.md)
+- [Functional compatibility: the front is the contract](functional-compatibility.md)
 - [plan-to-kernel lowering](plan-kernel-lowering.md)
 - [Portable planner capability](portable-planner-capability.md)
 - [Continuous execution over finite plays](continuous-execution.md)

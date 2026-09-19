@@ -259,7 +259,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_the_portable_face_and_one_finite_slot() {
+    fn offer_preserves_the_portable_front_and_one_finite_slot() {
         let contract = conduit_semantic_catalog::named_pattern_template_storage_definition();
         let offer = offer();
         assert_eq!(offer.inputs, contract.inputs);

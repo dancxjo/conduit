@@ -8,7 +8,7 @@ The canonical form adapter preserves `CND-FRM-*` codes and exact parser spans.
 `conduit check <form.conduit> [--json]` is the executable source-facing path.
 Paths are used only to read input and are not included in the record.
 
-The planner adapter deliberately recognizes only a reviewed subset of failures. Its capability diagnostic describes the absence of a face-compatible realization; nominal identity is not the compatibility gate. host-local planner detail is named as redacted and is never copied into the public record. Unreviewed planner failures produce no structured record instead of being collapsed into a generic code.
+The planner adapter deliberately recognizes only a reviewed subset of failures. Its capability diagnostic describes the absence of a front-compatible realization; nominal identity is not the compatibility gate. host-local planner detail is named as redacted and is never copied into the public record. Unreviewed planner failures produce no structured record instead of being collapsed into a generic code.
 
 All collections have fixed item limits and every text field has a fixed byte limit. Oversized form messages are truncated on a UTF-8 boundary with an explicit note. Other invalid records fail validation.
 

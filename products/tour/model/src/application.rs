@@ -104,8 +104,8 @@ pub const TOUR_CHAPTERS: [TourChapter; TOUR_CHAPTER_COUNT as usize] = [
         stages: &CHAPTER_ONE_STAGES,
     },
     TourChapter {
-        identity: "faces-and-backs",
-        route: "faces-backs-and-implementation",
+        identity: "fronts-and-backs",
+        route: "fronts-backs-and-implementation",
         companion: "recursive-form",
         stages: &CHAPTER_TWO_STAGES,
     },

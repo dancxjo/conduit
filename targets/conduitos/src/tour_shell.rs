@@ -98,7 +98,7 @@ struct SurfaceState {
     slot: Slot,
     placement_id: PlacementId,
     admitted: bool,
-    face_subject: Option<String>,
+    front_subject: Option<String>,
     manifestation_id: Option<ManifestationId>,
     scroll: ScrollState,
     bounds: Option<LayoutRect>,
@@ -244,7 +244,7 @@ impl TourShellPresenter {
                 slot,
                 placement_id: placement.placement_id.clone(),
                 admitted: false,
-                face_subject: None,
+                front_subject: None,
                 manifestation_id: None,
                 scroll: ScrollState::empty(),
                 bounds: None,
@@ -337,7 +337,7 @@ impl TourShellPresenter {
                 .iter()
                 .find(|state| state.slot == Slot::Inspector)
                 .map_or(0, |state| state.scroll.offset());
-            let face = presentation
+            let front = presentation
                 .subjects
                 .iter()
                 .find(|subject| subject.identity.ends_with("/inspection"))
@@ -347,7 +347,7 @@ impl TourShellPresenter {
             Some(self.present_surface(
                 Slot::Inspector,
                 &presentation,
-                &face,
+                &front,
                 layout.inspector,
                 2,
                 &inspector_scene(layout.inspector, &presentation, scroll_offset)?,
@@ -433,7 +433,7 @@ impl TourShellPresenter {
                 .remove_surface(slot.surface())
                 .map_err(TourShellError::Compositor)?;
             state.admitted = false;
-            state.face_subject = None;
+            state.front_subject = None;
             state.manifestation_id = None;
             state.bounds = None;
             state.presentation = None;

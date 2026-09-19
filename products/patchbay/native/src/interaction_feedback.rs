@@ -78,7 +78,7 @@ impl PatchbayApplication {
             }
             InteractionDisposition::Refused(PatchbayRefusal::InvalidConfiguration) => {
                 self.publish_refusal(
-                    "Cannot configure: value does not fit this Gear Face type or bounds",
+                    "Cannot configure: value does not fit this Gear Front type or bounds",
                 );
                 Ok(())
             }

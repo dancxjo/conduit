@@ -147,7 +147,7 @@ fn renderer_self_inspection_lines(
     let manifestation = &inspection.manifestation;
     let mut lines = vec![
         format!(
-            "RENDERER FACE {} inputs={} outputs={}",
+            "RENDERER FRONT {} inputs={} outputs={}",
             placement.kind_id.as_str(),
             placement.inputs.len(),
             placement.outputs.len()
@@ -470,8 +470,8 @@ impl PatchbayApplication {
                     " "
                 };
                 let kind = match item.kind {
-                    GraphItemKind::FaceInput => "face-in",
-                    GraphItemKind::FaceOutput => "face-out",
+                    GraphItemKind::FaceInput => "front-in",
+                    GraphItemKind::FaceOutput => "front-out",
                     GraphItemKind::StartupValue => "startup",
                     GraphItemKind::Gear => "gear",
                     GraphItemKind::Cord => "cord",

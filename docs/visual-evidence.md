@@ -146,8 +146,8 @@ and `current/hears-speaks/` pages with native browser audio controls. Omitting
 that input clears a stale current audio exhibit instead of silently carrying
 it across releases.
 
-The One form, Two faces sibling uses a separate four-output manifest. Its
-supported entrance is `cargo xtask evidence one-form-two-faces`, which feeds
+The One form, Two fronts sibling uses a separate four-output manifest. Its
+supported entrance is `cargo xtask evidence one-form-two-fronts`, which feeds
 one deterministic front-door presentation into the native software renderer
 and the pinned Chromium DOM/SVG renderer. It retains `native.png`,
 `native.json`, `browser.png`, and `browser.json`; complete verification requires
@@ -156,10 +156,10 @@ revision, and semantic basis across both receipts. The renderer plans, plays,
 Manifestations, and pixels remain deliberately distinct.
 
 The gallery accepts that sibling only through
-`--two-faces-evidence-root <directory>` bound to the same accepted commit as
+`--two-fronts-evidence-root <directory>` bound to the same accepted commit as
 the other inputs. Its side-by-side page states that neither pixel equality,
 physical-display output, nor human perception is established. Omitting the
-input clears stale `current/one-form-two-faces/` content.
+input clears stale `current/one-form-two-fronts/` content.
 
 Little Life uses a separate six-output manifest rather than consuming a
 ConduitOS capture slot. `cargo xtask evidence little-life` retains PNGs at

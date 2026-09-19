@@ -67,7 +67,7 @@ fn capability(
     hosts[host]
         .capabilities
         .iter()
-        .find(|offer| offer.checked_face() == gear.checked_face())
+        .find(|offer| offer.checked_front() == gear.checked_front())
         .unwrap()
         .capability_id
         .clone()
@@ -419,13 +419,13 @@ fn insufficient_local_resource_observation_moves_reduction_remote() {
         .capabilities
         .iter()
         .find(|offer| {
-            offer.checked_face()
+            offer.checked_front()
                 == form
                     .gears
                     .iter()
                     .find(|gear| gear.gear_id.as_str() == "locality/source")
                     .unwrap()
-                    .checked_face()
+                    .checked_front()
         })
         .unwrap()
         .resource_requirements[0]
@@ -438,7 +438,7 @@ fn insufficient_local_resource_observation_moves_reduction_remote() {
             .unwrap();
         host.capabilities
             .iter_mut()
-            .find(|offer| offer.checked_face() == reduction.checked_face())
+            .find(|offer| offer.checked_front() == reduction.checked_front())
             .unwrap()
             .resource_requirements
             .push(timer_requirement.clone());

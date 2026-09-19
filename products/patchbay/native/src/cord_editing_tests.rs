@@ -16,7 +16,7 @@ fn redraw(application: &mut PatchbayApplication) {
             form_selection: 0,
             form_scroll: 0,
             exact_identity_open: false,
-            face_control_focus: 0,
+            front_control_focus: 0,
             presentation_layout: &application.layout,
             realization_plan: None,
             realization_hosts: &[],

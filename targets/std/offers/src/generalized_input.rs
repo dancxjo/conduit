@@ -64,7 +64,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offers_preserve_portable_faces_and_finite_effects() {
+    fn offers_preserve_portable_fronts_and_finite_effects() {
         let offers = generalized_input_std_offers();
         assert_eq!(offers.len(), 2);
         assert_eq!(

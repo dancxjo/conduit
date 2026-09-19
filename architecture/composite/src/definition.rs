@@ -22,8 +22,8 @@ impl std::error::Error for KernelCompositeDefinitionError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelCompositeBoundary {
-    pub input_faces: Vec<KernelCompositeFaceBinding>,
-    pub output_faces: Vec<KernelCompositeFaceBinding>,
+    pub input_fronts: Vec<KernelCompositeFaceBinding>,
+    pub output_fronts: Vec<KernelCompositeFaceBinding>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,63 +75,63 @@ impl KernelCompositeDefinition {
             .map_err(|error| {
                 KernelCompositeDefinitionError::InvalidInternalPlan(error.to_string())
             })?;
-        let bind_faces = |faces: &[conduit_form::CheckedCompositeFace]| {
-            faces
+        let bind_fronts = |fronts: &[conduit_form::CheckedCompositeFace]| {
+            fronts
                 .iter()
-                .map(|face| {
+                .map(|front| {
                     let placement = internal_plan
                         .fragments
                         .iter()
                         .flat_map(|fragment| &fragment.placements)
-                        .find(|placement| placement.gear_id == face.internal_gear_id)
+                        .find(|placement| placement.gear_id == front.internal_gear_id)
                         .ok_or_else(|| {
                             KernelCompositeDefinitionError::InvalidInternalPlan(format!(
-                                "face '{}' internal operation is absent from the exact plan",
-                                face.external_port.port_id.as_str()
+                                "front '{}' internal operation is absent from the exact plan",
+                                front.external_port.port_id.as_str()
                             ))
                         })?;
-                    let planned_port = match face.external_port.direction {
+                    let planned_port = match front.external_port.direction {
                         PortDirection::Input => &placement.inputs,
                         PortDirection::Output => &placement.outputs,
                     }
                     .iter()
-                    .find(|port| port.port_id == face.internal_port_id)
+                    .find(|port| port.port_id == front.internal_port_id)
                     .ok_or_else(|| {
                         KernelCompositeDefinitionError::InvalidInternalPlan(format!(
-                            "face '{}' internal endpoint is absent from the exact plan",
-                            face.external_port.port_id.as_str()
+                            "front '{}' internal endpoint is absent from the exact plan",
+                            front.external_port.port_id.as_str()
                         ))
                     })?;
-                    if planned_port.value_kind != face.external_port.value_kind
-                        || planned_port.direction != face.external_port.direction
-                        || planned_port.temporal != face.external_port.temporal
+                    if planned_port.value_kind != front.external_port.value_kind
+                        || planned_port.direction != front.external_port.direction
+                        || planned_port.temporal != front.external_port.temporal
                     {
                         return Err(KernelCompositeDefinitionError::InvalidInternalPlan(
                             format!(
-                                "face '{}' differs from its exact planned endpoint",
-                                face.external_port.port_id.as_str()
+                                "front '{}' differs from its exact planned endpoint",
+                                front.external_port.port_id.as_str()
                             ),
                         ));
                     }
                     Ok(KernelCompositeFaceBinding {
-                        external_port: face.external_port.clone(),
+                        external_port: front.external_port.clone(),
                         internal_child: placement.host_id.clone(),
                         internal_placement_id: placement.placement_id.clone(),
-                        internal_port_id: face.internal_port_id.clone(),
-                        terminal: face.terminal,
+                        internal_port_id: front.internal_port_id.clone(),
+                        terminal: front.terminal,
                     })
                 })
                 .collect::<Result<Vec<_>, KernelCompositeDefinitionError>>()
         };
-        let input_faces = bind_faces(&exported.input_faces)?;
-        let output_faces = bind_faces(&exported.output_faces)?;
-        if input_faces
+        let input_fronts = bind_fronts(&exported.input_fronts)?;
+        let output_fronts = bind_fronts(&exported.output_fronts)?;
+        if input_fronts
             .iter()
-            .chain(&output_faces)
-            .any(|face| face.terminal != CompositeFaceTerminal::Independent)
+            .chain(&output_fronts)
+            .any(|front| front.terminal != CompositeFaceTerminal::Independent)
         {
             return Err(KernelCompositeDefinitionError::InvalidInternalPlan(
-                "the kernel composite profile currently requires independent faces".into(),
+                "the kernel composite profile currently requires independent fronts".into(),
             ));
         }
         let queue_items = internal_plan
@@ -180,8 +180,8 @@ impl KernelCompositeDefinition {
             },
             internal_plan,
             boundary: KernelCompositeBoundary {
-                input_faces,
-                output_faces,
+                input_fronts,
+                output_fronts,
             },
             failure_translation,
         })

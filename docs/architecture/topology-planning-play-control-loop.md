@@ -6,7 +6,7 @@ and the functional-compatibility rule from #522.
 
 ```text
 boot-scoped observations
-  host advertisements, equal checked faces, resources, authority, links
+  host advertisements, equal checked fronts, resources, authority, links
         |
         v
 planning request + explicit requirements/policy
@@ -36,7 +36,7 @@ convenience.
 | Stage | Inputs | Durable or semantic output | state that remains outside plan identity |
 | --- | --- | --- | --- |
 | Observation | current host boot/generation reports, capability/resource facts, authority facts, line availability signs | sign identities and exact facts supplied to planning | readiness, utilization, pressure, current selected line |
-| Planning | checked semantic intent, equal-face candidate realizations, hard requirements, current observations, explicit policy, exact grants | a new immutable plan with exact host/implementation/artifact/resources/authority/routes/bounds | planner identity, scratch state, rejected candidates, mutable readiness |
+| Planning | checked semantic intent, equal-front candidate realizations, hard requirements, current observations, explicit policy, exact grants | a new immutable plan with exact host/implementation/artifact/resources/authority/routes/bounds | planner identity, scratch state, rejected candidates, mutable readiness |
 | Realization | one exact plan and current host/boot/line state | installed exact fragments/lines and fresh play identities, or an explicit refusal/unsatisfied record | adapter handles, sockets, base queues, current line selection |
 | Execution | installed fragment, active play, admitted inputs/effects | terminal or continuing play sign | transient pressure, in-flight work, base-local identifiers |
 | sign/observation | exact runtime/base facts | bounded machine-readable records that may become fresh planning input | inferred causality or authority not stated by the producer |
@@ -155,7 +155,7 @@ the replacement plan. An acknowledgement of a request is not terminal proof.
 Retention is permitted only when the replacement plan independently seals the
 same fragment/binding commitments and the target host, boot, offer generation,
 implementation, artifact, resources, authority, ports, bounds, and relevant
-session identity all match exactly. Equal checked faces alone are insufficient:
+session identity all match exactly. Equal checked fronts alone are insufficient:
 they admit candidates during planning but do not transfer a prior realization,
 play, grant, reservation, or attachment. Without that proof realization replaces
 the state and reports the gap.

@@ -69,7 +69,7 @@ fn belongs(lens: DetailsLens, line: &str) -> bool {
                 || line.starts_with("FORM NAVIGATOR")
                 || line.starts_with("DIAGNOSTIC")
                 || line.starts_with("> ")
-                || line.starts_with("  face-")
+                || line.starts_with("  front-")
                 || line.starts_with("  startup")
                 || line.starts_with("  gear")
                 || line.starts_with("  cord")

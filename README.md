@@ -40,7 +40,7 @@ plan through the shared kernel.
 
 forms are graphs of configured **gears**, joined at typed **ports** by **cords**.
 A form can also appear as a gear inside another form through its public
-**face**. Its **back** exposes the composition behind that contract. You can
+**front**. Its **back** exposes the composition behind that contract. You can
 inspect those relationships in Patchbay.
 
 The body gives this work continuity: it can contain several forms and retain

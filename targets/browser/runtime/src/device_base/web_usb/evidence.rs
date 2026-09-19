@@ -47,7 +47,7 @@ pub(super) fn refresh_evidence(state: &mut AbiState) {
         "product_id": resource.map(|value| value.product_id),
         "configuration": {
             "configuration_value": state.configuration.configuration_value,
-            "interface_number": state.configuration.interface_number,
+            "interfront_number": state.configuration.interfront_number,
             "alternate_setting": state.configuration.alternate_setting,
             "in_endpoint": state.configuration.in_endpoint,
             "out_endpoint": state.configuration.out_endpoint,

@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    fn exact_item_trace_retains_epistemic_facets_sources_and_contradiction() {
+    fn exact_item_trace_retains_epistemic_frontts_sources_and_contradiction() {
         let mut experience = experience();
         experience
             .try_admit(item("door-open", "sign/camera/7"))

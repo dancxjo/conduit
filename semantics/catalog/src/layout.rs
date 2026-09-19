@@ -89,7 +89,7 @@ pub fn layout_align_contract() -> StandardKindContract {
             alignment_field(VERTICAL_KEY),
         ],
         true,
-        "face: layout/align(horizontal = \"center\", vertical = \"center\")",
+        "front: layout/align(horizontal = \"center\", vertical = \"center\")",
     )
 }
 

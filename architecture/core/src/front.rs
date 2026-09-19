@@ -55,7 +55,7 @@ impl CheckedFace {
 }
 
 impl CapabilityOffer {
-    pub fn checked_face(&self) -> CheckedFace {
+    pub fn checked_front(&self) -> CheckedFace {
         let shorthand = self.shorthand.clone().or_else(|| {
             if let ([input], [output]) = (self.inputs.as_slice(), self.outputs.as_slice()) {
                 Some((input.port_id.clone(), output.port_id.clone()))

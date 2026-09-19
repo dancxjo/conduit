@@ -15,10 +15,10 @@ pub(super) fn run(output: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     } else {
         workspace.join(output)
     };
-    let parent = output.parent().ok_or("two-faces output has no parent")?;
+    let parent = output.parent().ok_or("two-fronts output has no parent")?;
     std::fs::create_dir_all(parent)?;
     std::fs::create_dir(&output)
-        .map_err(|error| format!("create new two-faces evidence directory: {error}"))?;
+        .map_err(|error| format!("create new two-fronts evidence directory: {error}"))?;
     let mut guard = NewDirectory::new(output.clone());
 
     command(
@@ -35,7 +35,7 @@ pub(super) fn run(output: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     command(
         Command::new(workspace.join("target/debug/patchbay-native"))
             .current_dir(&workspace)
-            .arg("--two-faces-capture")
+            .arg("--two-fronts-capture")
             .arg(&output),
         "capture native renderer pixels",
     )?;
@@ -47,7 +47,7 @@ pub(super) fn run(output: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
                 "proof/browser/node_modules/@playwright/test/cli.js",
                 "test",
                 "--config",
-                "proof/browser/one-form-two-faces.playwright.config.mjs",
+                "proof/browser/one-form-two-fronts.playwright.config.mjs",
                 "--project",
                 "chromium",
                 "--workers",
@@ -60,7 +60,7 @@ pub(super) fn run(output: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
 
     finish_manifest(&output, &workspace)?;
     guard.retain();
-    println!("ONE FORM, TWO FACES COMPLETE: {}", output.display());
+    println!("ONE FORM, TWO FRONTS COMPLETE: {}", output.display());
     Ok(())
 }
 
@@ -94,33 +94,33 @@ fn finish_manifest(root: &Path, workspace: &Path) -> Result<(), String> {
     let mut manifest = EvidenceManifest::new(
         root,
         workspace,
-        "journey-one-form-two-faces",
+        "journey-one-form-two-fronts",
         "journey-gallery",
     )?;
     for (id, kind, path, receipt, proof_class) in [
         (
-            "two-faces.native-frame",
+            "two-fronts.native-frame",
             EvidenceKind::Screenshot,
             "native.png",
             &native,
             "native-software-renderer",
         ),
         (
-            "two-faces.native-receipt",
+            "two-fronts.native-receipt",
             EvidenceKind::MachineReadableManifest,
             "native.json",
             &native,
             "native-software-renderer",
         ),
         (
-            "two-faces.browser-frame",
+            "two-fronts.browser-frame",
             EvidenceKind::Screenshot,
             "browser.png",
             &browser,
             "live-browser",
         ),
         (
-            "two-faces.browser-receipt",
+            "two-fronts.browser-receipt",
             EvidenceKind::MachineReadableManifest,
             "browser.json",
             &browser,
@@ -138,7 +138,7 @@ fn finish_manifest(root: &Path, workspace: &Path) -> Result<(), String> {
             },
             required: true,
             provenance: EvidenceProvenance {
-                scenario_id: "one-form-two-faces.front-door@1".into(),
+                scenario_id: "one-form-two-fronts.front-door@1".into(),
                 presentation_id: Some(presentation_id.into()),
                 presentation_revision: Some(revision.to_string()),
                 manifestation_id: Some(text(receipt, "manifestation_id")?.into()),
@@ -188,14 +188,14 @@ fn text<'a>(receipt: &'a Value, field: &str) -> Result<&'a str, String> {
         .get(field)
         .and_then(Value::as_str)
         .filter(|value| !value.is_empty())
-        .ok_or_else(|| format!("two-faces receipt lacks {field}"))
+        .ok_or_else(|| format!("two-fronts receipt lacks {field}"))
 }
 
 fn integer(receipt: &Value, field: &str) -> Result<u64, String> {
     receipt
         .get(field)
         .and_then(Value::as_u64)
-        .ok_or_else(|| format!("two-faces receipt lacks {field}"))
+        .ok_or_else(|| format!("two-fronts receipt lacks {field}"))
 }
 
 struct NewDirectory {

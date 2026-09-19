@@ -83,7 +83,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_keeps_every_reviewed_backend_fact_outside_the_portable_face() {
+    fn offer_keeps_every_reviewed_backend_fact_outside_the_portable_front() {
         let provider = HostedHnswProviderIdentity::reviewed("pid-4102").unwrap();
         let profile = HostedHnswProfile {
             metric: SimilarityMetric::CosineSimilarity,

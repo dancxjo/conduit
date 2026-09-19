@@ -8,7 +8,7 @@ mod prelude {
     pub use alloc::{borrow::ToOwned, string::String, vec::Vec};
 }
 mod construction;
-mod face_controls;
+mod front_controls;
 mod graph;
 mod inspection;
 mod recursive_graph;
@@ -18,8 +18,8 @@ pub use recursive_projection::{
     project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
 };
 
-pub use face_controls::{
-    project_controls as project_face_controls, FaceControl, FaceControlKind, FaceInteraction,
+pub use front_controls::{
+    project_controls as project_front_controls, FaceControl, FaceControlKind, FaceInteraction,
     MAX_FACE_CONTROLS,
 };
 pub use types::*;

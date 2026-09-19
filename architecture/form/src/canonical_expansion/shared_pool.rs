@@ -48,7 +48,7 @@ pub(super) fn expanded_pool_declarations(
                     pool_id.as_str()
                 ))),
                 pool_id,
-                member_face: pool.member_face.clone(),
+                member_front: pool.member_front.clone(),
                 maximum_members: pool.maximum_members,
                 consumers: Vec::new(),
             }

@@ -1,14 +1,14 @@
 # Portable catalog and hosted std offer boundary
 
 `conduit-semantic-catalog` is the remaining host-neutral semantic catalog. It owns
-portable kind faces, configuration rules, finite semantic limits, canonical
+portable kind fronts, configuration rules, finite semantic limits, canonical
 catalog installation, and deterministic calculations. It is not a host and it
 does not advertise that any implementation is currently available.
 
 The hosted reference host owns its exact realization identities and
 `CapabilityOffer` construction in `targets/std/offers` (`conduit-std-offers`).
 Its `supported_nucleus_offers()` inventory must preserve every selected
-portable face exactly while adding the std execution profile, implementation,
+portable front exactly while adding the std execution profile, implementation,
 artifact, host-operation, resource, and authority facts required to execute it.
 Runtime advertisement remains planner truth; catalog membership does not imply
 availability.

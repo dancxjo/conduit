@@ -10,7 +10,7 @@ Read the [canon](../conduit-canon.md) for the architectural rules and
 
 ```text
 canonical .conduit source
-    -> checked form and checked faces
+    -> checked form and checked fronts
     -> expanded form, including selected reusable backs
     -> plan over current host offers, resources, authority and lines
     -> prepared host-assigned fragments and numeric kernel tables
@@ -34,7 +34,7 @@ An old boot's plan bindings do not silently become valid after a restart.
 
 An installed implementation, a current offer, a selected capability, a reserved
 resource, and an active instance are separate states. The planner selects among
-[equal checked faces](functional-compatibility.md), then seals exact
+[equal checked fronts](functional-compatibility.md), then seals exact
 implementation, artifact, host, boot, resource, authority and bound facts.
 A familiar kind name alone does not establish compatibility or availability.
 
@@ -70,7 +70,7 @@ One body-wide plan covers the workset; one active play realizes it during a wake
 Workload replacement follows the bounded lifecycle transaction, retaining the
 body and exact evidence. body continuity is not represented by recursively
 pretending that a set of hosts is another host. Reusable composition belongs to
-forms and their faces/backs.
+forms and their fronts/backs.
 
 A cord is a typed semantic connection. A remote cord uses an exact planned
 [line](route-candidates.md), with a separate [session and attachment](session-route-attachment.md).

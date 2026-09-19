@@ -194,7 +194,7 @@ fn exact_bounded_response_requirement_refuses_unproven_fast_hosts() {
 }
 
 #[test]
-fn hard_facets_gate_before_work_class_ranking() {
+fn hard_frontts_gate_before_work_class_ranking() {
     let mut batch = policy(PerformanceIntent::ThroughputBatch);
     batch.maximum_startup_us = Some(100);
     batch.minimum_throughput_items_per_second = Some(90);

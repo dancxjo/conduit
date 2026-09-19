@@ -381,7 +381,7 @@ fn framing_and_deframing_are_independent_reusable_checked_forms() {
 }
 
 #[test]
-fn desk_telegraph_uses_reusable_text_record_faces_around_exact_framing() {
+fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     install_typed_record_catalogs(&mut startup, &mut profile).unwrap();

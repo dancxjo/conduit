@@ -92,7 +92,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn commit_offers_preserve_portable_faces_and_finite_host_calls() {
+    fn commit_offers_preserve_portable_fronts_and_finite_host_calls() {
         let recognized = recognized_turn_commit_offer();
         let recognized_contract = conduit_tongues::committed_recognition_turn_contract();
         assert_eq!(recognized.kind_id, recognized_contract.kind_id);

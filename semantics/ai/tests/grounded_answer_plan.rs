@@ -70,7 +70,7 @@ fn plan(source: &str) -> conduit_core::Plan {
 }
 
 #[test]
-fn ordinary_answer_face_consumes_query_and_structured_context_without_prompt_semantics() {
+fn ordinary_answer_front_consumes_query_and_structured_context_without_prompt_semantics() {
     let contract = rag_answer_contract();
     assert_eq!(contract.inputs.len(), 2);
     assert_eq!(

@@ -27,7 +27,7 @@ pub fn realization_offer(
     authority_requirements: Vec<AuthorityRequirement>,
 ) -> CapabilityOffer {
     CapabilityOffer {
-        startup_parameters: startup_face(&contract.configuration),
+        startup_parameters: startup_front(&contract.configuration),
         shorthand: None,
         capability_id: CapabilityId::from(identity.capability),
         kind_id: contract.kind_id,
@@ -46,7 +46,7 @@ pub fn realization_offer(
     }
 }
 
-pub fn startup_face(fields: &[StandardConfigurationField]) -> Vec<FaceStartupParameter> {
+pub fn startup_front(fields: &[StandardConfigurationField]) -> Vec<FaceStartupParameter> {
     fields
         .iter()
         .map(|field| FaceStartupParameter {

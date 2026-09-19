@@ -76,7 +76,7 @@ pub(super) fn append_exact_graph(
                 PresentationRole::Port,
                 port.descriptor.port_id.as_str(),
                 format!(
-                    "Stable Face {:?} Port {} carrying {}",
+                    "Stable Front {:?} Port {} carrying {}",
                     port.descriptor.direction,
                     port.descriptor.port_id.as_str(),
                     port.descriptor.value_kind.as_str()
@@ -236,7 +236,7 @@ pub(super) fn append_exact_graph(
                     content,
                     &subject,
                     "collapsed-source-port",
-                    &binding.face_port,
+                    &binding.front_port,
                 );
             }
             if let Some(binding) = composition
@@ -244,7 +244,12 @@ pub(super) fn append_exact_graph(
                 .iter()
                 .find(|binding| binding.internal_port == cord.sink_port)
             {
-                identity(content, &subject, "collapsed-sink-port", &binding.face_port);
+                identity(
+                    content,
+                    &subject,
+                    "collapsed-sink-port",
+                    &binding.front_port,
+                );
             }
         }
         append_cord_plan(content, &subject, graph, cord, plan, play);

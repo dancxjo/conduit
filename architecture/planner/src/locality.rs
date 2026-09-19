@@ -201,11 +201,11 @@ fn evaluate(
         };
         let Some(offer) = host.capabilities.iter().find(|offer| {
             offer.capability_id == choice.capability_id
-                && offer.checked_face() == gear.checked_face()
+                && offer.checked_front() == gear.checked_front()
         }) else {
             reject(
                 &mut evidence,
-                "placement capability does not offer the checked Face",
+                "placement capability does not offer the checked Front",
             );
             return evidence;
         };

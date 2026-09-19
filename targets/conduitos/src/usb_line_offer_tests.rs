@@ -4,7 +4,7 @@ fn realization() -> UsbLineRealization {
     UsbLineRealization {
         controller_id: [1; 32],
         device_id: [2; 32],
-        interface_id: [3; 32],
+        interfront_id: [3; 32],
         input_endpoint_id: [4; 32],
         output_endpoint_id: [5; 32],
         attachment_epoch: 1,

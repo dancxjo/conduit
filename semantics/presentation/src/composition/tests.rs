@@ -4,7 +4,7 @@ use super::*;
 fn canonical_round_trip_and_exact_icon_policy() {
     let value = PresentationComposition::icon("presentation", "Patchbay")
         .unwrap()
-        .frame("panel", "Gear Face")
+        .frame("panel", "Gear Front")
         .unwrap()
         .badge("warning", "Cord pressure")
         .unwrap();

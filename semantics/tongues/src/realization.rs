@@ -182,12 +182,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn primary_and_degraded_outputs_share_face_but_not_guarantees_or_authority() {
+    fn primary_and_degraded_outputs_share_front_but_not_guarantees_or_authority() {
         let primary = speech_host_fixture(OutputCondition::PrimaryPlayback);
         let degraded = speech_host_fixture(OutputCondition::DegradedWavArtifact);
         assert_eq!(
-            primary.advertisement.capabilities[1].checked_face(),
-            degraded.advertisement.capabilities[1].checked_face()
+            primary.advertisement.capabilities[1].checked_front(),
+            degraded.advertisement.capabilities[1].checked_front()
         );
         assert_ne!(
             primary.facts.output_guarantee,

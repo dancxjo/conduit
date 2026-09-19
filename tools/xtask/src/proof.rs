@@ -547,7 +547,7 @@ mod tests {
         assert!(config.contains("name: \"chromium\""));
         assert!(config.contains("name: \"firefox\""));
         assert!(config.contains(
-            "testMatch: [\"browser-webrtc-body.spec.mjs\", \"home-host.spec.mjs\", \"home-cross-face.spec.mjs\"]"
+            "testMatch: [\"browser-webrtc-body.spec.mjs\", \"home-host.spec.mjs\", \"home-cross-front.spec.mjs\"]"
         ));
     }
 
@@ -580,7 +580,7 @@ mod tests {
                 .collect(),
         };
         assert!(record.validate_against(contract).is_ok());
-        record.command = "another face-compatible implementation".into();
+        record.command = "another front-compatible implementation".into();
         assert_eq!(
             record.validate_against(contract),
             Err("record does not identify the exact proof command and class")

@@ -15,7 +15,7 @@ pub struct BootIdentity {
 
 impl BootIdentity {
     pub fn fresh(rng: &Trng) -> Self {
-        let host = efuse::interface_mac_address(InterfaceMacAddress::Station);
+        let host = efuse::interfront_mac_address(InterfaceMacAddress::Station);
         let mut host_mac = [0_u8; 6];
         host_mac.copy_from_slice(host.as_bytes());
         let mut nonce = [0_u8; 16];

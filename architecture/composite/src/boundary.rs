@@ -68,7 +68,7 @@ pub(crate) fn augment_boundary_cords(
                 .and_then(|node| node.input_cords.get_mut(usize::from(identity.port.0)))
                 .ok_or_else(|| "boundary input exceeds the lowered node shape".to_string())?;
             if slot.replace(boundary.cord).is_some() {
-                return Err("composite input face already has an internal Cord".into());
+                return Err("composite input front already has an internal Cord".into());
             }
         }
     }

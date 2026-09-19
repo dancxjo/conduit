@@ -25,7 +25,7 @@ pub fn checked_renderer_form() -> conduit_form::CheckedForm {
         "form patchbay-show {\n    renderer: presentation/renderer\n}\n",
         &catalog,
     )
-    .expect("one ordinary portable renderer Face checks")
+    .expect("one ordinary portable renderer Front checks")
 }
 
 pub fn host(

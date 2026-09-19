@@ -1097,7 +1097,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
         }],
         capabilities: vec![
             CapabilityOffer {
-                startup_parameters: conduit_signal::pulse_face_startup_parameters(),
+                startup_parameters: conduit_signal::pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("pulse-1"),
                 kind_id: kind_id(PULSE_KIND),

@@ -8,7 +8,7 @@ use crate::{MAXIMUM_PCM_BYTES, MAXIMUM_RECOGNIZED_TEXT_BYTES, MAXIMUM_SPEAKABLE_
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LiveConversationSpeechRequirements {
     /// Capacity required for one recognition request admitted by the portable
-    /// speech face.
+    /// speech front.
     pub recognition_audio_bytes: u32,
     /// Capacity required for the exact bounded recognized text value.
     pub recognized_text_bytes: u16,

@@ -18,7 +18,7 @@ struct Arguments {
     body_entrance: Option<BrowserBodyWorkbenchEntrance>,
     body_invitation: Option<String>,
     body_workbench_fixture: Option<bool>,
-    one_form_two_faces: bool,
+    one_form_two_fronts: bool,
 }
 
 fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments, String> {
@@ -26,8 +26,8 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
     let mut parsed = Arguments::default();
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
-            "--one-form-two-faces" if parsed == Arguments::default() => {
-                parsed.one_form_two_faces = true;
+            "--one-form-two-fronts" if parsed == Arguments::default() => {
+                parsed.one_form_two_fronts = true;
             }
             "--recursive-form-proof" if parsed == Arguments::default() => {
                 parsed.recursive_form_proof = true;
@@ -167,7 +167,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             }
         }
     }
-    if parsed.one_form_two_faces
+    if parsed.one_form_two_fronts
         && (parsed.documentary_fixture
             || parsed.debugger_watch_fixture
             || parsed.recursive_form_proof
@@ -180,15 +180,15 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             || parsed.body_invitation.is_some()
             || parsed.body_workbench_fixture.is_some())
     {
-        return Err("--one-form-two-faces is an exclusive deterministic entrance".into());
+        return Err("--one-form-two-fronts is an exclusive deterministic entrance".into());
     }
     Ok(parsed)
 }
 
 fn main() -> Result<(), String> {
     let arguments = parse_arguments(std::env::args().skip(1))?;
-    let server = if arguments.one_form_two_faces {
-        let snapshot = patchbay_html::one_form_two_faces_snapshot()?;
+    let server = if arguments.one_form_two_fronts {
+        let snapshot = patchbay_html::one_form_two_fronts_snapshot()?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
     } else if arguments.debugger_watch_fixture {
         let snapshot = demonstration_snapshot()?;

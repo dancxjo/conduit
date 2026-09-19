@@ -149,7 +149,7 @@ fn structured_catalog_and_form_defaults_are_checked_semantic_values() {
     let Some(CanonicalStartupValue::Structured(default)) =
         &checked.forms[0].startup_parameters[1].default
     else {
-        panic!("Form-face default must use the same checked substrate");
+        panic!("Form-front default must use the same checked substrate");
     };
     assert!(default.try_concrete().is_some());
 

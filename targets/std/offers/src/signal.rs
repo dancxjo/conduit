@@ -7,7 +7,7 @@ pub const SIGNAL_SHOW_STD_IMPLEMENTATION: &str = "std/stdout-show-signal-v1";
 
 pub fn signal_pulse_offer() -> CapabilityOffer {
     CapabilityOffer {
-        startup_parameters: conduit_signal::pulse_face_startup_parameters(),
+        startup_parameters: conduit_signal::pulse_front_startup_parameters(),
         shorthand: None,
         capability_id: CapabilityId::from("pulse-1"),
         kind_id: conduit_signal::pulse_kind(),

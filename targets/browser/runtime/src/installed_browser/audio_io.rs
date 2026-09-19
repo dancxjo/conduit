@@ -55,7 +55,7 @@ fn identity(implementation: &str) -> ImplementationOffer {
 pub(crate) fn capture_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::audio_capture_push_to_talk_contract();
     CapabilityOffer {
-        startup_parameters: conduit_semantic_catalog::startup_face(&contract.configuration),
+        startup_parameters: conduit_semantic_catalog::startup_front(&contract.configuration),
         shorthand: None,
         capability_id: CapabilityId::from(CAPTURE_IMPLEMENTATION),
         kind_id: contract.kind_id,

@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn browser_offers_preserve_semantic_faces_but_own_realization_identity() {
+fn browser_offers_preserve_semantic_fronts_but_own_realization_identity() {
     let offers = offers();
     assert_eq!(offers.len(), 13);
     for offer in offers {

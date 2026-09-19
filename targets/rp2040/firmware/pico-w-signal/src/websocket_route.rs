@@ -37,7 +37,7 @@ pub async fn run(
     let identity = WebSocketRouteIdentity {
         firmware_build_id: crate::network_image::FIRMWARE_BUILD_ID,
         attachment_id: ATTACHMENT_ID,
-        interface_pool_id: conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
+        interfront_pool_id: conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         usb_link,
         websocket_link,
         address,

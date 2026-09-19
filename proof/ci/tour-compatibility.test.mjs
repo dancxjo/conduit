@@ -15,7 +15,7 @@ test("published Book routes retire into the Body while retaining query and fragm
   const root = await mkdtemp(join(tmpdir(), "conduit-tour-compat-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   await stageLegacyTourRoutes(root);
-  for (const route of ["", "meet-one-gear", "same-face-different-implementation", "faces-backs-and-implementation"]) {
+  for (const route of ["", "meet-one-gear", "same-front-different-implementation", "fronts-backs-and-implementation"]) {
     const html = await readFile(join(root, "book", route, "index.html"), "utf8");
     const script = html.match(/<script>(.*?)<\/script>/s)[1];
     const old = new URL(`https://example.test/conduit/book/${route ? `${route}/` : ""}?from=legacy#source`);

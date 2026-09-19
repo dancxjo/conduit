@@ -69,8 +69,8 @@ pub fn generate() {
     let mut coverage = Vec::new();
     let mut records = String::from("pub(super) static GLYPHS: &[Glyph] = &[\n");
     let mut profiles = String::from("pub(super) static PROFILES: &[ProfileMetrics] = &[\n");
-    for (profile, &(face, size)) in PROFILES.iter().enumerate() {
-        let font = &fonts[face];
+    for (profile, &(front, size)) in PROFILES.iter().enumerate() {
+        let font = &fonts[front];
         let line = font
             .horizontal_line_metrics(f32::from(size))
             .expect("horizontal font metrics");
@@ -82,7 +82,7 @@ pub fn generate() {
         )
         .unwrap();
         for &character in &repertoire {
-            // The pinned UI face supplies scalars absent from the code face.
+            // The pinned UI front supplies scalars absent from the code front.
             // Keep the code profile's cell advance even for fallback outlines.
             let raster_font = if font.lookup_glyph_index(character) == 0 {
                 &fonts[0]
@@ -95,7 +95,7 @@ pub fn generate() {
                 continue;
             }
             let (metrics, bitmap) = raster_font.rasterize(character, f32::from(size));
-            let advance = if face == 1 && metrics.advance_width != 0.0 {
+            let advance = if front == 1 && metrics.advance_width != 0.0 {
                 font.metrics('M', f32::from(size)).advance_width
             } else {
                 metrics.advance_width

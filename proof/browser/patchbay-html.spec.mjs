@@ -54,8 +54,8 @@ async function prepareCanvasEvidence(page,{inspector=false,structured=false}={})
 
 async function expectFlowDominant(page,{inspector=false}={}) {
   await expect(page.locator("#flow-root .react-flow")).toBeVisible();
-  await expect(page.locator("#flow-root .flow-faceplate").first()).toBeVisible();
-  await expect(page.locator('#flow-root .flow-faceplate input[type="radio"]').first()).toBeVisible();
+  await expect(page.locator("#flow-root .flow-frontplate").first()).toBeVisible();
+  await expect(page.locator('#flow-root .flow-frontplate input[type="radio"]').first()).toBeVisible();
   const root=await page.locator("#patchbay-root").boundingBox();
   const flow=await page.locator("#flow-root").boundingBox();
   expect(flow.width).toBeGreaterThan(root.width*(inspector ? .55 : .65));
@@ -69,7 +69,7 @@ function rectanglesOverlap(left,right) {
 }
 
 async function expectFaceplateTextContained(page) {
-  const result=await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>faceplates.map(faceplate=>{
+  const result=await page.locator("#flow-root .flow-frontplate").evaluateAll(faceplates=>faceplates.map(faceplate=>{
     const bounds=element=>{
       const box=element.getBoundingClientRect();
       return {left:box.left,right:box.right,top:box.top,bottom:box.bottom};
@@ -139,7 +139,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.getByRole("navigation",{name:"Conduit products"}).getByRole("link")).toHaveCount(3);
     await expect(page.getByRole("link",{name:"Conduit home"})).toHaveAttribute("href","/conduit");
     await expect(page.locator('style[data-application-resource="flow-style"]')).toHaveCount(1);
-    await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveCSS("width", "240px");
+    await expect(page.locator("#flow-root .flow-frontplate").first()).toHaveCSS("width", "240px");
     await expect(page.locator('[data-application-key="product-status"]')).toContainText("Presentation revision 1");
     await expect(page.locator('[data-application-key="product-status"]')).toContainText("Manifestation Available");
     await expect(page.locator('[data-application-slot="product-masthead"]')).toHaveAttribute("data-application-revision", /^\d+$/);
@@ -293,7 +293,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(first).toBeChecked();
     await expect(page.locator("#inspector .inspector-hint")).toContainText("Gear");
     await expect(page.locator("#inspector .exact-selection dd").first()).toHaveText(identity);
-    await expect(page.locator(`#flow-root .flow-faceplate[data-subject="${identity.replaceAll('"','\\"')}"]`)).toHaveClass(/semantic-selected/);
+    await expect(page.locator(`#flow-root .flow-frontplate[data-subject="${identity.replaceAll('"','\\"')}"]`)).toHaveClass(/semantic-selected/);
     await expect(page.locator("#interaction-proof")).toContainText("Succeeded");
     await expect(page.locator("#interaction-proof")).toContainText("navigation/");
     const selectedSnapshot=await (await fetch(`${url}/api/snapshot`)).json();
@@ -301,7 +301,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(selectedSnapshot.navigation.cursor.focus).toBe(identity);
     await prepareCanvasEvidence(page,{inspector:true});
     await expectFlowDominant(page,{inspector:true});
-    const selectedFaceplate=page.locator(`#flow-root .flow-faceplate[data-subject="${identity.replaceAll('"','\\"')}"]`);
+    const selectedFaceplate=page.locator(`#flow-root .flow-frontplate[data-subject="${identity.replaceAll('"','\\"')}"]`);
     await expect(selectedFaceplate).toBeVisible();
     await expect(selectedFaceplate).toHaveClass(/semantic-selected/);
     await expect(selectedFaceplate.locator('input[type="radio"]')).toBeChecked();
@@ -326,7 +326,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).toContainText("Completed");
     await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).toContainText("pressure unavailable");
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"play-lens",selectedSnapshot,"same-graph-active-play-state-and-pressure-overlay");
-    await page.getByRole("button",{name:"Debug",exact:true}).click();await expect(page.locator("#lens-label")).toHaveText("PROGRAM · SIGNS");await expect(page.locator("#flow-root .flow-faceplate")).toHaveCount(0);await expect(page.locator("#flow-root .react-flow")).toBeVisible();
+    await page.getByRole("button",{name:"Debug",exact:true}).click();await expect(page.locator("#lens-label")).toHaveText("PROGRAM · SIGNS");await expect(page.locator("#flow-root .flow-frontplate")).toHaveCount(0);await expect(page.locator("#flow-root .react-flow")).toBeVisible();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"signs-lens",selectedSnapshot,"same-graph-selected-subject-causal-evidence");
     await page.getByRole("button",{name:"Structure",exact:true}).click();await expect(page.locator("#flow-root .flow-gear")).toHaveCount(3);
     const afterLenses=await (await fetch(`${url}/api/snapshot`)).json();expect({presentation:afterLenses.presentation.identity,plan:afterLenses.presentation.basis.plan_id,play:afterLenses.presentation.basis.active_play_id}).toEqual(stableLensIdentity);expect(afterLenses.navigation.cursor.focus).toBeNull();expect(afterLenses.interaction.revision).toBeGreaterThan(selectedSnapshot.interaction.revision);
@@ -423,7 +423,7 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     await page.goto(url);
     await page.getByRole("button",{name:"Form",exact:true}).click();
     await expect(page.locator("#flow-root")).toHaveAttribute("data-renderer","react-flow");
-    await expect(page.locator("#flow-root .flow-faceplate").first()).toBeVisible();
+    await expect(page.locator("#flow-root .flow-frontplate").first()).toBeVisible();
     const before=await (await fetch(`${url}/api/snapshot`)).json();
     const identities={
       presentation:before.presentation.identity,
@@ -484,11 +484,11 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     expect(spaceSelection.navigation.cursor.focus).toBe(pointerSelection.navigation.cursor.focus);
     const lensAnchor=await nodes.first().boundingBox();
     await page.getByRole("button",{name:"Structure",exact:true}).click();
-    await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveAttribute("data-lens","form");
+    await expect(page.locator("#flow-root .flow-frontplate").first()).toHaveAttribute("data-lens","form");
     const intentAnchor=await nodes.first().boundingBox();
     expect(Math.abs(intentAnchor.x-lensAnchor.x)+Math.abs(intentAnchor.y-lensAnchor.y)).toBeLessThan(3);
     await page.getByRole("button",{name:"Realization",exact:true}).click();
-    await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveAttribute("data-lens","plan");
+    await expect(page.locator("#flow-root .flow-frontplate").first()).toHaveAttribute("data-lens","plan");
 
     const after=await (await fetch(`${url}/api/snapshot`)).json();
     expect(after.interaction.revision).toBe(spaceSelection.interaction.revision+2);
@@ -520,11 +520,11 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
     await page.setViewportSize({width:700,height:900});
     await page.emulateMedia({reducedMotion:"reduce"});
     await page.goto(url);
-    await expect(page.locator("#flow-root .flow-faceplate").first()).toBeVisible();
+    await expect(page.locator("#flow-root .flow-frontplate").first()).toBeVisible();
     await expectFaceplateTextContained(page);
-    expect(await page.locator("#flow-root .flow-faceplate").first().evaluate(element=>({animation:getComputedStyle(element).animationName,transition:getComputedStyle(element).transitionDuration}))).toEqual({animation:"none",transition:"0s"});
-    const exactFaceplateTruth=await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>faceplates.map(faceplate=>({subject:faceplate.dataset.subject,accessibilityName:faceplate.getAttribute("aria-label")})));
-    await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>{
+    expect(await page.locator("#flow-root .flow-frontplate").first().evaluate(element=>({animation:getComputedStyle(element).animationName,transition:getComputedStyle(element).transitionDuration}))).toEqual({animation:"none",transition:"0s"});
+    const exactFaceplateTruth=await page.locator("#flow-root .flow-frontplate").evaluateAll(faceplates=>faceplates.map(faceplate=>({subject:faceplate.dataset.subject,accessibilityName:faceplate.getAttribute("aria-label")})));
+    await page.locator("#flow-root .flow-frontplate").evaluateAll(faceplates=>{
       const maximal="A human-readable faceplate label that is deliberately much longer than its compact finite visual region · exact/generated/subject/identity/with/no/short/break/opportunity";
       for(const faceplate of faceplates){
         for(const field of faceplate.querySelectorAll(".faceplate-title,.faceplate-clue,.faceplate-port-name,.faceplate-port code")){
@@ -537,7 +537,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
     });
     await page.evaluate(()=>document.documentElement.style.fontSize="200%");
     await expectFaceplateTextContained(page);
-    await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>{
+    await page.locator("#flow-root .flow-frontplate").evaluateAll(faceplates=>{
       for(const field of faceplates.flatMap(faceplate=>[...faceplate.querySelectorAll("[data-original-text]")])){
         field.textContent=field.dataset.originalText;
         field.title=field.dataset.originalTitle;
@@ -546,7 +546,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
       }
     });
     await expectFaceplateTextContained(page);
-    expect(await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>faceplates.map(faceplate=>({subject:faceplate.dataset.subject,accessibilityName:faceplate.getAttribute("aria-label")})))).toEqual(exactFaceplateTruth);
+    expect(await page.locator("#flow-root .flow-frontplate").evaluateAll(faceplates=>faceplates.map(faceplate=>({subject:faceplate.dataset.subject,accessibilityName:faceplate.getAttribute("aria-label")})))).toEqual(exactFaceplateTruth);
     expect(await page.evaluate(()=>({height:document.scrollingElement.scrollHeight,width:document.scrollingElement.scrollWidth}))).toEqual({height:900,width:700});
     const topbarBox=await page.locator('[data-application-slot="product-masthead"]').boundingBox(),navBox=await page.getByRole("navigation",{name:"Patchbay workspace"}).boundingBox();
     expect(topbarBox.y+topbarBox.height).toBeLessThanOrEqual(navBox.y);
@@ -598,7 +598,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
       const selected=await (await fetch(`${url}/api/snapshot`)).json();
       expect(selected.navigation.cursor.focus).toBe(target);
       const spatial=page.locator(`#flow-root .react-flow__node[data-id="${target.replaceAll('"','\\"')}"]`);
-      if(await spatial.count())await expect(spatial.locator(".flow-faceplate")).toHaveClass(/semantic-selected/);
+      if(await spatial.count())await expect(spatial.locator(".flow-frontplate")).toHaveClass(/semantic-selected/);
     }
     await page.keyboard.press("Escape");
     await expect(page.locator("#inspector")).toBeHidden();
@@ -607,7 +607,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
     expect(flowBox.x).toBeGreaterThanOrEqual(0);
     expect(flowBox.x+flowBox.width).toBeLessThanOrEqual(700);
     expect(flowBox.y+flowBox.height).toBeLessThanOrEqual(900);
-    await expect(page.locator("#flow-root .flow-faceplate").first()).toBeVisible();
+    await expect(page.locator("#flow-root .flow-frontplate").first()).toBeVisible();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"responsive",snapshot,"narrow-enlarged-content-accessibility-after-semantic-assertions");
   } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
 });

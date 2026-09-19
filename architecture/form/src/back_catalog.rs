@@ -48,7 +48,7 @@ impl CanonicalBackCatalog {
         self.insert_checked(kind, &[], document, form_name)
     }
 
-    /// Installs a Back only when the whole checked Face is equal, including
+    /// Installs a Back only when the whole checked Front is equal, including
     /// exact startup parameter names, types, and default presence.
     pub fn insert_with_startup(
         &mut self,
@@ -108,7 +108,7 @@ impl CanonicalBackCatalog {
             .find(|form| form.name == form_name)
             .cloned()
             .ok_or_else(|| CanonicalBackError::MissingForm(form_name.into()))?;
-        if form.checked_face() != definition_face(kind, startup) {
+        if form.checked_front() != definition_front(kind, startup) {
             return Err(CanonicalBackError::FaceMismatch(
                 kind.kind_id.as_str().into(),
             ));
@@ -140,7 +140,7 @@ impl CanonicalBackCatalog {
     }
 }
 
-fn definition_face(kind: &KindDefinition, startup: &[StartupParameterSignature]) -> CheckedFace {
+fn definition_front(kind: &KindDefinition, startup: &[StartupParameterSignature]) -> CheckedFace {
     CheckedFace::new(
         startup
             .iter()

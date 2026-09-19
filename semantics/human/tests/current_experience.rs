@@ -59,7 +59,7 @@ fn item(id: &str, domain: ExperienceDomain, source: &str) -> ExperienceItem {
 }
 
 #[test]
-fn heterogeneous_items_retain_epistemic_facets_and_sources() {
+fn heterogeneous_items_retain_epistemic_frontts_and_sources() {
     let mut experience = new_experience(limits());
     let visual = item("door-open", ExperienceDomain::Visual, "sign/camera/7");
     let mut utterance = item(

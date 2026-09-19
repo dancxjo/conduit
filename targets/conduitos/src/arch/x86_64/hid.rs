@@ -71,10 +71,10 @@ pub enum HidError {
 impl HidError {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::InterfaceAbsent => "hid-interface-absent",
-            Self::AmbiguousInterface => "hid-interface-ambiguous",
-            Self::NonBootInterface => "hid-interface-not-boot",
-            Self::MouseProtocol => "hid-interface-is-mouse",
+            Self::InterfaceAbsent => "hid-interfront-absent",
+            Self::AmbiguousInterface => "hid-interfront-ambiguous",
+            Self::NonBootInterface => "hid-interfront-not-boot",
+            Self::MouseProtocol => "hid-interfront-is-mouse",
             Self::EndpointAbsent => "hid-interrupt-in-absent",
             Self::AmbiguousEndpoint => "hid-interrupt-in-ambiguous",
             Self::InvalidEndpoint => "hid-interrupt-in-invalid",
@@ -152,7 +152,7 @@ impl HidKeyTransition {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct HidProof {
-    pub interface_number: u8,
+    pub interfront_number: u8,
     pub endpoint_address: u8,
     pub endpoint_dci: u8,
     pub endpoint_maximum_packet_size: u16,
@@ -174,7 +174,7 @@ pub struct HidProof {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HidKeyboardReady {
-    pub interface_number: u8,
+    pub interfront_number: u8,
     pub endpoint_address: u8,
     pub endpoint_dci: u8,
     pub endpoint_maximum_packet_size: u16,
@@ -235,7 +235,7 @@ pub fn prepare_boot_keyboard(
     let dci = endpoint_dci(endpoint.address)?;
     configure_interrupt_endpoint(controller, device, endpoint, dci, dma_physical)?;
     Ok(HidKeyboardReady {
-        interface_number: interface.number,
+        interfront_number: interface.number,
         endpoint_address: endpoint.address,
         endpoint_dci: dci,
         endpoint_maximum_packet_size: endpoint.maximum_packet_size,
@@ -275,7 +275,7 @@ fn match_keyboard(
 > {
     let mut matched = None;
     let mut saw_hid = false;
-    for interface in device.interfaces[..usize::from(device.interface_count)]
+    for interface in device.interfaces[..usize::from(device.interfront_count)]
         .iter()
         .copied()
     {
@@ -299,14 +299,14 @@ fn match_keyboard(
         HidError::InterfaceAbsent
     })?;
     let mut endpoint = None;
-    let index = device.interfaces[..usize::from(device.interface_count)]
+    let index = device.interfaces[..usize::from(device.interfront_count)]
         .iter()
         .position(|candidate| *candidate == interface)
         .ok_or(HidError::InterfaceAbsent)? as u8;
     for candidate in device.endpoints[..usize::from(device.endpoint_count)]
         .iter()
         .copied()
-        .filter(|candidate| candidate.interface_index == index)
+        .filter(|candidate| candidate.interfront_index == index)
     {
         if !candidate.direction_in || candidate.transfer_type != 3 {
             continue;

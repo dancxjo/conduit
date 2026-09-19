@@ -4,9 +4,9 @@ use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
 use conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES;
 
-const FORM: &str = r#"form gear_face_presentation {
+const FORM: &str = r#"form gear_front_presentation {
  icon: presentation/icon(icon = "presentation", accessibility-name = "Patchbay")
- frame: presentation/frame(role = "panel", accessibility-name = "Gear Face")
+ frame: presentation/frame(role = "panel", accessibility-name = "Gear Front")
  badge: presentation/badge(state = "warning", accessibility-name = "Cord pressure")
  sink: conduit-test/presentation-sink
  icon.presented > frame.content

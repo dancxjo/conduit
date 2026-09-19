@@ -1,4 +1,4 @@
-# Canonical external WebSocket client face. The demo root supplies a concrete
+# Canonical external WebSocket client front. The demo root supplies a concrete
 # local address; host admission still decides whether it can be realized.
 form echo-client (
     url: Url

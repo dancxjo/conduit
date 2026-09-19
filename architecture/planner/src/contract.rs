@@ -107,7 +107,7 @@ impl core::fmt::Display for PlannerError {
                 write!(f, "incompatible port contract: {value}")
             }
             Self::IncompatibleCheckedFace(value) => {
-                write!(f, "incompatible checked face: {value}")
+                write!(f, "incompatible checked front: {value}")
             }
             Self::InvalidHardRealizationRequirement(value) => {
                 write!(f, "invalid hard realization requirement: {value}")

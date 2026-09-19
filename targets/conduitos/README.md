@@ -154,7 +154,7 @@ Use [STATUS](../../STATUS.md) for recorded proof boundaries and the linked
 issues for the current scope of each contribution.
 
 The canonical x86_64 image uses the [default graphical profile](assets/graphical/README.md)
-with proportional UI typography, a distinct code face, deterministic Unicode
+with proportional UI typography, a distinct code front, deterministic Unicode
 fallback, and bounded shell icons. `cargo xtask conduitos graphical-profile-proof`
 boots that exact live ISO and retains its profile receipt and shell screenshots.
 This development capability is separate from stable or physical acceptance.

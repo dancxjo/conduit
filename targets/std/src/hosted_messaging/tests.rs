@@ -100,7 +100,7 @@ fn authority_recipient_attachment_retry_and_provider_failures_stay_distinct() {
 }
 
 #[test]
-fn github_offer_preserves_portable_face_with_exact_resource_and_authority() {
+fn github_offer_preserves_portable_front_with_exact_resource_and_authority() {
     let github = github_messaging_offer();
     let deterministic = messaging_std_offers()
         .into_iter()

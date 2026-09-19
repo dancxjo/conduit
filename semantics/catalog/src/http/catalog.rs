@@ -60,7 +60,7 @@ mod tests {
     };
 
     #[test]
-    fn catalog_description_preserves_the_exact_portable_faces() {
+    fn catalog_description_preserves_the_exact_portable_fronts() {
         let client = http_client_contract();
         let server = http_server_contract();
         let portable_client = conduit_web::http_client_semantics();

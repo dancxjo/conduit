@@ -44,7 +44,7 @@ impl StdHost {
             ),
             crate::hosted_speech::process_resource_offer(),
         ]);
-        // Retain the old single-shot face, and expose the explicit clip leaf
+        // Retain the old single-shot front, and expose the explicit clip leaf
         // selected by the Tongues streaming-recognition Back.
         host.advertisement
             .capabilities

@@ -12,7 +12,7 @@ fn device() -> UsbDevice {
         ],
     )
     .unwrap();
-    device.interface_count = 1;
+    device.interfront_count = 1;
     device.endpoint_count = 2;
     device.interfaces[0] = UsbInterface {
         number: 0,
@@ -24,7 +24,7 @@ fn device() -> UsbDevice {
         endpoint_count: 2,
     };
     device.endpoints[0] = UsbEndpoint {
-        interface_index: 0,
+        interfront_index: 0,
         address: 0x81,
         direction_in: true,
         transfer_type: 2,
@@ -32,7 +32,7 @@ fn device() -> UsbDevice {
         interval: 0,
     };
     device.endpoints[1] = UsbEndpoint {
-        interface_index: 0,
+        interfront_index: 0,
         address: 0x02,
         direction_in: false,
         transfer_type: 2,

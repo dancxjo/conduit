@@ -354,13 +354,13 @@ fn append_form_lines(
     };
     for form in &checked.forms {
         lines.push(format!(
-            "FORM {} checked={} FACE inputs={} outputs={}",
+            "FORM {} checked={} FRONT inputs={} outputs={}",
             form.name,
             form.checked_form_id.as_str(),
-            form.face.inputs().len(),
-            form.face.outputs().len()
+            form.front.inputs().len(),
+            form.front.outputs().len()
         ));
-        for port in form.face.inputs().iter().chain(form.face.outputs()) {
+        for port in form.front.inputs().iter().chain(form.front.outputs()) {
             lines.push(format!(
                 "PORT {} direction={:?} info={} temporal={:?}",
                 port.port_id.as_str(),

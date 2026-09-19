@@ -171,7 +171,7 @@ test("published Tour chapter permalinks converge on the tutorial-enabled Body", 
   const home = entrance.url.replace(/\/$/, "");
   const permalinks = [
     "meet-one-gear",
-    "same-face-different-implementation",
+    "same-front-different-implementation",
   ];
 
   for (const slug of permalinks) {

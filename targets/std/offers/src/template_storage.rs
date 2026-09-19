@@ -60,7 +60,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_portable_face_and_requires_one_finite_storage_slot() {
+    fn offer_preserves_portable_front_and_requires_one_finite_storage_slot() {
         let definition = conduit_semantic_catalog::named_pattern_template_storage_definition();
         let offer = template_storage_std_offer();
         assert_eq!(offer.inputs, definition.inputs);

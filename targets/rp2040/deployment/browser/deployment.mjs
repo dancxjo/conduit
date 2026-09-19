@@ -65,7 +65,7 @@ function exactBaseTruth(base) {
   }
   if (
     truth.configuration?.configuration_value !== 1
-    || truth.configuration.interface_number !== 1
+    || truth.configuration.interfront_number !== 1
     || truth.configuration.alternate_setting !== 0
     || truth.configuration.in_endpoint !== 4
     || truth.configuration.out_endpoint !== 3
@@ -86,7 +86,7 @@ function baseIdentity(truth) {
     baseImplementationId: truth.base_implementation_id,
     baseInstanceId: truth.base_instance_id,
     useAuthorityGrant: truth.use_authority_grant,
-    interfaceNumber: truth.configuration.interface_number,
+    interfaceNumber: truth.configuration.interfront_number,
   });
 }
 
@@ -97,7 +97,7 @@ function sameBase(current, expected) {
     && current.base_implementation_id === expected.baseImplementationId
     && current.base_instance_id === expected.baseInstanceId
     && current.use_authority_grant === expected.useAuthorityGrant
-    && current.configuration?.interface_number === expected.interfaceNumber;
+    && current.configuration?.interfront_number === expected.interfaceNumber;
 }
 
 function copyEvidence(value) {

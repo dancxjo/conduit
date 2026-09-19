@@ -330,11 +330,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn three_materially_different_fixtures_offer_one_equal_checked_face() {
+    fn three_materially_different_fixtures_offer_one_equal_checked_front() {
         let fixtures = generate_text_base_fixtures();
-        let face = fixtures[0].advertisement.capabilities[0].checked_face();
+        let front = fixtures[0].advertisement.capabilities[0].checked_front();
         for fixture in &fixtures {
-            assert_eq!(fixture.advertisement.capabilities[0].checked_face(), face);
+            assert_eq!(fixture.advertisement.capabilities[0].checked_front(), front);
             assert_eq!(
                 fixture.facts.proof_class,
                 BaseProofClass::DeterministicConformanceFixture

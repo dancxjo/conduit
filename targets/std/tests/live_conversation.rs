@@ -44,11 +44,11 @@ fn canonical_live_conversation_is_one_reviewed_temporal_form() {
     let authored =
         expand_canonical_form_for_authoring(&checked, "live-conversation", &profile).unwrap();
     assert_eq!(
-        authored.face.inputs()[0].temporal,
+        authored.front.inputs()[0].temporal,
         PortTemporal::Flow { closes: true }
     );
     assert_eq!(
-        authored.face.outputs()[0].temporal,
+        authored.front.outputs()[0].temporal,
         PortTemporal::Flow { closes: true }
     );
     let kinds = authored
@@ -201,7 +201,7 @@ fn unchanged_live_conversation_source_plans_across_compatible_hosts() {
                 let capability = host
                     .capabilities
                     .iter()
-                    .find(|offer| offer.checked_face() == gear.checked_face())
+                    .find(|offer| offer.checked_front() == gear.checked_front())
                     .unwrap();
                 (
                     gear.gear_id.clone(),

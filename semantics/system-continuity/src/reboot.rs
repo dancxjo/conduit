@@ -34,7 +34,7 @@ impl RebootRequestId {
 }
 
 /// One optional reboot realization. Its name and revision are provenance;
-/// callable compatibility is the returned canonical checked face.
+/// callable compatibility is the returned canonical checked front.
 pub fn delegated_reboot_offer(
     capability_id: CapabilityId,
     implementation_id: ImplementationId,
@@ -84,13 +84,13 @@ pub fn delegated_reboot_offer(
     }
 }
 
-pub fn delegated_reboot_face() -> CheckedFace {
+pub fn delegated_reboot_front() -> CheckedFace {
     delegated_reboot_offer(
-        CapabilityId::from("face-only/reboot"),
-        ImplementationId::from("face-only/reboot"),
-        ArtifactId::from("face-only/reboot"),
+        CapabilityId::from("front-only/reboot"),
+        ImplementationId::from("front-only/reboot"),
+        ArtifactId::from("front-only/reboot"),
     )
-    .checked_face()
+    .checked_front()
 }
 
 /// Reboot consumes the existing external delegated-transition authority fact;
@@ -102,7 +102,7 @@ pub struct RebootRequest {
     pub request_id: RebootRequestId,
     pub controller: HostInstance,
     pub target: HostInstance,
-    pub required_face: CheckedFace,
+    pub required_front: CheckedFace,
     pub selected_line_id: LineId,
 }
 
@@ -300,13 +300,13 @@ impl DelegatedRebootTransaction {
         let compatible = target
             .capabilities
             .iter()
-            .any(|offer| offer.checked_face() == request.required_face);
+            .any(|offer| offer.checked_front() == request.required_front);
         if !compatible {
             Some(RebootDenial::Unsupported)
         } else if target
             .capabilities
             .iter()
-            .filter(|offer| offer.checked_face() == request.required_face)
+            .filter(|offer| offer.checked_front() == request.required_front)
             .all(|offer| offer.capability_id != self.grant.capability_id)
         {
             Some(RebootDenial::Unauthorized)

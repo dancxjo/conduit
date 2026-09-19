@@ -8,7 +8,7 @@ impl PatchbayGraph {
             .iter()
             .flat_map(|gear| &gear.inputs)
             .map(|port| port.identity.as_str())
-            .chain(self.face_outputs.iter().map(|port| port.identity.as_str()))
+            .chain(self.front_outputs.iter().map(|port| port.identity.as_str()))
             .chain(self.compositions.iter().flat_map(|composition| {
                 composition.inputs.iter().map(|port| port.identity.as_str())
             }))
@@ -30,7 +30,7 @@ impl PatchbayGraph {
             .flat_map(|gear| &gear.outputs)
             .map(|port| (&port.identity, &port.descriptor))
             .chain(
-                self.face_inputs
+                self.front_inputs
                     .iter()
                     .map(|port| (&port.identity, &port.descriptor)),
             )
@@ -47,7 +47,7 @@ impl PatchbayGraph {
             .flat_map(|gear| &gear.inputs)
             .map(|port| (&port.identity, &port.descriptor))
             .chain(
-                self.face_outputs
+                self.front_outputs
                     .iter()
                     .map(|port| (&port.identity, &port.descriptor)),
             )
@@ -87,14 +87,14 @@ impl PatchbayGraph {
             composition
                 .output_bindings
                 .iter()
-                .find(|binding| binding.face_port == source_identity)
+                .find(|binding| binding.front_port == source_identity)
                 .map(|binding| binding.internal_port.as_str())
         });
         let bound_sink = self.compositions.iter().find_map(|composition| {
             composition
                 .input_bindings
                 .iter()
-                .find(|binding| binding.face_port == sink_identity)
+                .find(|binding| binding.front_port == sink_identity)
                 .map(|binding| binding.internal_port.as_str())
         });
         if self.cords.iter().any(|cord| {
@@ -109,8 +109,8 @@ impl PatchbayGraph {
     pub fn subject_count(&self) -> usize {
         self.gears.len()
             + self.compositions.len()
-            + self.face_inputs.len()
-            + self.face_outputs.len()
+            + self.front_inputs.len()
+            + self.front_outputs.len()
             + self
                 .gears
                 .iter()
@@ -136,8 +136,8 @@ impl PatchbayGraph {
         if gear_count.is_none_or(|count| count > MAX_PATCHBAY_GEARS) {
             return Err(PatchbayGraphError::TooManyGears);
         }
-        let existing_ports = self.face_inputs.len()
-            + self.face_outputs.len()
+        let existing_ports = self.front_inputs.len()
+            + self.front_outputs.len()
             + self
                 .gears
                 .iter()

@@ -51,7 +51,7 @@ fn pool() -> PlannedSharedPool {
     PlannedSharedPool {
         pool_id: SharedPoolId::from("room/peers"),
         declaration_id: PoolDeclarationId::from("webchat/pool/peers"),
-        member_face: member_offer("chat/peer", "chat/peer@1").checked_face(),
+        member_front: member_offer("chat/peer", "chat/peer@1").checked_front(),
         maximum_members: 2,
         member_limits: PoolMemberLimits {
             queue_item_capacity: 4,
@@ -139,14 +139,14 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
 }
 
 #[test]
-fn member_compatibility_uses_checked_face_while_envelope_identity_stays_exact() {
+fn member_compatibility_uses_checked_front_while_envelope_identity_stays_exact() {
     let pool = pool();
     let renamed = member_offer("renamed/browser-peer", "renamed/browser-peer@9");
     assert!(pool.permits_realization(
         &HostId::from("browser-host"),
         &BootId::from("browser-boot"),
         &CapabilityId::from("browser/peer"),
-        &renamed.checked_face(),
+        &renamed.checked_front(),
     ));
 
     let mut changed = renamed;
@@ -155,18 +155,18 @@ fn member_compatibility_uses_checked_face_while_envelope_identity_stays_exact() 
         &HostId::from("browser-host"),
         &BootId::from("browser-boot"),
         &CapabilityId::from("browser/peer"),
-        &changed.checked_face(),
+        &changed.checked_front(),
     ));
     assert!(!pool.permits_realization(
         &HostId::from("other-host"),
         &BootId::from("browser-boot"),
         &CapabilityId::from("browser/peer"),
-        &pool.member_face,
+        &pool.member_front,
     ));
 }
 
 #[test]
-fn plan_identity_seals_pool_bound_face_envelope_authority_and_consumers() {
+fn plan_identity_seals_pool_bound_front_envelope_authority_and_consumers() {
     let identity = FormIdentity {
         source_document_id: SourceDocumentId::from("source"),
         checked_form_id: CheckedFormId::from("checked"),
