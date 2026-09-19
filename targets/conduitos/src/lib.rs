@@ -99,6 +99,7 @@ pub mod pointer_offer;
 #[path = "presentation_nucleus/offers.rs"]
 mod presentation_offers;
 pub mod protection_domain;
+pub mod rendezvous_descriptor;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod usb_line_offer;
 #[cfg(any(test, target_arch = "x86_64"))]
