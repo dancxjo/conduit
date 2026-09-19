@@ -97,7 +97,7 @@ fn canonical_step(milestone: JourneyMilestone) -> ContractStep {
         JourneyMilestone::BodyInspected => (
             "body.inspected",
             "The Body inspected itself",
-            "The resident Body Surface presented current realization truth.",
+            "The resident Face presented current realization truth.",
             "The Presentation and Manifestation described this exact Body.",
             &["Body", "Presentation", "Manifestation"][..],
             EvidenceRung::SemanticPresentation,

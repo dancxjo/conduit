@@ -4,10 +4,10 @@ use conduit_body::{
 };
 use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
 use conduit_presentation::{
-    orifina_completion_presenter_policy, project_orifina_purpose_presentation, BodySurface,
-    BodySurfaceContext, BodySurfaceFocus, GeneratedContentRole, GeneratedContentSegment,
-    GeneratedManifestation, GeneratedManifestationDisposition, GenerativeNarratorRole,
-    GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest,
+    orifina_completion_presenter_policy, project_orifina_purpose_presentation, Face, FaceContext,
+    FaceFocus, GeneratedContentRole, GeneratedContentSegment, GeneratedManifestation,
+    GeneratedManifestationDisposition, GenerativeNarratorRole, GenerativePresenterBounds,
+    GenerativePresenterPolicy, GenerativePresenterRequest,
 };
 
 fn body_id() -> BodyId {
@@ -51,10 +51,10 @@ fn purpose(state: PurposeObligationState, revision: u64) -> PurposeState {
     }
 }
 
-fn surface(purpose: &PurposeState, experience_revision: u64, revision: u64) -> BodySurface {
-    BodySurface {
-        context: BodySurfaceContext::Overview,
-        focus: BodySurfaceFocus::Body,
+fn surface(purpose: &PurposeState, experience_revision: u64, revision: u64) -> Face {
+    Face {
+        context: FaceContext::Overview,
+        focus: FaceFocus::Body,
         presentation: project_orifina_purpose_presentation(
             body_id(),
             experience_revision,
@@ -78,9 +78,9 @@ fn policy(revision: &str, instructions: &str) -> GenerativePresenterPolicy {
 fn request(
     identity: &str,
     policy: GenerativePresenterPolicy,
-    surface: &BodySurface,
+    surface: &Face,
 ) -> GenerativePresenterRequest {
-    GenerativePresenterRequest::from_body_surface(
+    GenerativePresenterRequest::from_face(
         identity.into(),
         policy,
         surface,

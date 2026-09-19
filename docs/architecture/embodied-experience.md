@@ -20,7 +20,7 @@ creating a new cognitive runtime. In particular:
   evidence;
 - browser camera acquisition already treats permission and acquired media as
   explicit host/resource truth;
-- current presentation and body Surface work keeps semantic state authoritative
+- current presentation and face work keeps semantic state authoritative
   while allowing materially different Presenters and Manifestations.
 
 The new claim is that these pieces can compose into something much more useful

@@ -9,7 +9,7 @@ use crate::{
     generative_presenter_policy::{
         GenerativePresenterBounds, GenerativePresenterPolicy, MAX_GENERATIVE_PRESENTER_POLICY_BYTES,
     },
-    BodySurface, BodySurfaceContext, BodySurfaceFocus, Presentation, PresentationError,
+    Face, FaceContext, FaceFocus, Presentation, PresentationError,
 };
 use alloc::string::String;
 use serde::{Deserialize, Serialize};
@@ -24,8 +24,8 @@ pub const MAX_GENERATIVE_PRESENTER_IDENTITY_BYTES: usize = 128;
 pub struct GenerativePresenterInput {
     pub source_presentation_identity: String,
     pub source_presentation_revision: u64,
-    pub context: BodySurfaceContext,
-    pub focus: BodySurfaceFocus,
+    pub context: FaceContext,
+    pub focus: FaceFocus,
     pub presentation: Presentation,
 }
 
@@ -63,10 +63,10 @@ pub enum GenerativePresenterRefusal {
 }
 
 impl GenerativePresenterRequest {
-    pub fn from_body_surface(
+    pub fn from_face(
         request_identity: String,
         policy: GenerativePresenterPolicy,
-        surface: &BodySurface,
+        surface: &Face,
         previous_presentation_identity: Option<String>,
         bounds: GenerativePresenterBounds,
     ) -> Result<Self, GenerativePresenterRefusal> {
@@ -139,7 +139,7 @@ mod tests {
     };
     use alloc::vec;
 
-    fn surface() -> BodySurface {
+    fn surface() -> Face {
         let presentation = Presentation::new_with_semantics(
             7,
             PresentationBasis {
@@ -191,9 +191,9 @@ mod tests {
             }],
         )
         .unwrap();
-        BodySurface {
-            context: BodySurfaceContext::Overview,
-            focus: BodySurfaceFocus::Body,
+        Face {
+            context: FaceContext::Overview,
+            focus: FaceFocus::Body,
             presentation,
             application_actions: vec![],
             operator_actions: vec![],
@@ -201,7 +201,7 @@ mod tests {
     }
 
     fn request() -> GenerativePresenterRequest {
-        GenerativePresenterRequest::from_body_surface(
+        GenerativePresenterRequest::from_face(
             "request/present/7".into(),
             GenerativePresenterPolicy {
                 template_contract_revision: "presenter-template/1".into(),
@@ -245,8 +245,8 @@ mod tests {
     fn preserves_structured_semantics_separately_from_implementation_policy() {
         let request = request();
         assert_eq!(request.semantic_data.presentation, surface().presentation);
-        assert_eq!(request.semantic_data.context, BodySurfaceContext::Overview);
-        assert_eq!(request.semantic_data.focus, BodySurfaceFocus::Body);
+        assert_eq!(request.semantic_data.context, FaceContext::Overview);
+        assert_eq!(request.semantic_data.focus, FaceFocus::Body);
         assert_eq!(request.semantic_data.source_presentation_revision, 7);
         assert_eq!(
             request.semantic_data.source_presentation_identity,
@@ -275,7 +275,7 @@ mod tests {
             ..bounds
         };
         assert_eq!(
-            GenerativePresenterRequest::from_body_surface(
+            GenerativePresenterRequest::from_face(
                 "request/present/over-cap".into(),
                 GenerativePresenterPolicy {
                     template_contract_revision: "presenter-template/1".into(),
@@ -336,7 +336,7 @@ mod tests {
     }
 
     #[test]
-    fn wire_shape_keeps_policy_and_semantic_body_surface_structurally_separate() {
+    fn wire_shape_keeps_policy_and_semantic_face_structurally_separate() {
         let request = request();
         let encoded = serde_json::to_vec(&request).unwrap();
         let value: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
@@ -370,10 +370,10 @@ mod tests {
     }
 
     #[test]
-    fn one_body_surface_feeds_deterministic_and_generative_presenters() {
+    fn one_face_feeds_deterministic_and_generative_presenters() {
         let surface = surface();
         let linear = crate::render_linear_presentation(&surface.presentation).unwrap();
-        let request = GenerativePresenterRequest::from_body_surface(
+        let request = GenerativePresenterRequest::from_face(
             "request/cross-presenter/7".into(),
             GenerativePresenterPolicy {
                 template_contract_revision: "presenter-template/1".into(),
