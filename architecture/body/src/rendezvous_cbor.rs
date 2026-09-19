@@ -25,6 +25,7 @@ const KEY_VERSION: u8 = 0;
 const KEY_CANDIDATES: u8 = 1;
 const KEY_SESSION_SECRET: u8 = 2;
 const FIRST_EXTENSION_KEY: u8 = 128;
+const LAST_EXTENSION_KEY: u8 = FIRST_EXTENSION_KEY + MAX_RENDEZVOUS_EXTENSIONS as u8 - 1;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RendezvousCborRefusal {
@@ -214,7 +215,7 @@ fn encode_fields<'a>(
             .and_then(|encoder| encoder.bytes(session_secret))
             .map_err(|_| RendezvousCborRefusal::EncodedBound)?;
         for extension in extensions {
-            if extension.key < FIRST_EXTENSION_KEY
+            if !(FIRST_EXTENSION_KEY..=LAST_EXTENSION_KEY).contains(&extension.key)
                 || extension.value.len() > MAX_RENDEZVOUS_EXTENSION_BYTES
                 || prior_extension_key.is_some_and(|prior| extension.key <= prior)
             {
@@ -305,7 +306,7 @@ fn decode_inner(
                 }
                 return Err(RendezvousCborRefusal::UnsupportedMandatoryField);
             }
-            FIRST_EXTENSION_KEY..=u8::MAX => {
+            FIRST_EXTENSION_KEY..=LAST_EXTENSION_KEY => {
                 if prior_extension_key.is_some_and(|prior| key <= prior) {
                     return Err(RendezvousCborRefusal::NonCanonical);
                 }
@@ -325,6 +326,9 @@ fn decode_inner(
                 extensions[extension_count] = Some(BorrowedRendezvousExtension { key, value });
                 extension_count += 1;
                 prior_extension_key = Some(key);
+            }
+            _ => {
+                return Err(RendezvousCborRefusal::UnsupportedMandatoryField);
             }
         }
     }
