@@ -10,6 +10,7 @@ members = [
 	"architecture/observatory",
 	"architecture/plan-lowering",
 	"architecture/planner",
+	"architecture/protected-line",
 	"architecture/wire",
 
 	# Host-neutral semantic and domain packages.

@@ -1,0 +1,18 @@
+[package]
+name = "conduit-protected-line"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+noise-protocol = { version = "0.2.1", default-features = false, features = ["use_alloc"], optional = true }
+noise-rust-crypto = { version = "0.6.2", default-features = false, features = ["use-x25519", "use-chacha20poly1305", "use-sha2"], optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"], optional = true }
+
+[features]
+default = ["noise-session"]
+noise-session = ["dep:noise-protocol", "dep:noise-rust-crypto", "dep:getrandom"]
+
+[dev-dependencies]
+serde_json = "1"
