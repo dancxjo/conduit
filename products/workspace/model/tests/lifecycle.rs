@@ -401,7 +401,12 @@ fn quantitative_pre_play_refusal_survives_into_the_body_biography() {
     assert!(body.realization().is_none());
     let wake = body.evidence().wakes.last().unwrap();
     assert_eq!(wake.lifecycle, conduit_body::WakeLifecycle::Failed);
-    assert!(wake.plans.is_empty());
+    assert_eq!(wake.plans.len(), 1);
+    assert_eq!(wake.plans[0].plan_id, proposal.plan.plan_id);
+    assert_eq!(
+        wake.plans[0].state,
+        conduit_body::WakePlanState::AwaitingPlay
+    );
     assert_eq!(wake.rejections, vec![rejection]);
 }
 

@@ -69,6 +69,13 @@ test("the ordinary Body surface binds and admits one compiler-free reviewed brow
   expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership)).toEqual(before);
   expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().realization)).toEqual(beforeRealization);
 
+  await page.evaluate(() => {
+    let next = 1n;
+    Object.defineProperty(Crypto.prototype, "randomUUID", {
+      configurable: true,
+      value: () => `00000000-0000-4000-8000-${(next++).toString(16).padStart(12, "0")}`,
+    });
+  });
   await runner.getByRole("button", { name: "Realize selected Host", exact: true }).click();
   await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
   evidence = JSON.parse((await runner.locator(".physical-evidence details code").allTextContents()).join(""));
@@ -106,6 +113,40 @@ test("the ordinary Body surface binds and admits one compiler-free reviewed brow
   expect(offer.boot_id).toBe(added.current.boot_id);
   expect(offer.host_id).toBe(added.current.host_id);
   expect(offer.capabilities.length).toBeGreaterThan(0);
+
+  const authoredForms = await page.evaluate(() => globalThis.__conduitWorkspace.current().initial_forms);
+  await page.locator("[data-close-membership]").click();
+  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Refused");
+  const replan = await page.evaluate(() => ({
+    playback: globalThis.__conduitWorkspace.state(),
+    evidence: globalThis.__conduitWorkspace.evidence(),
+  }));
+  expect(replan.playback.refusal).toMatchObject({
+    code: "ExecutionLineUnavailable",
+    message: "Body proposal selected an admitted Host without a current execution Line",
+  });
+  expect(replan.playback.proposal.plan.workset.forms).toEqual(
+    authoredForms.map(({ source_document_id, checked_form_id }) => ({ source_document_id, checked_form_id })),
+  );
+  const plannedFragments = replan.playback.proposal.plan.forms.flatMap(({ plan }) => plan.fragments);
+  expect(plannedFragments.map(({ host_id }) => host_id)).toEqual([added.current.host_id]);
+  expect(plannedFragments.flatMap(({ placements }) => placements.map(({ implementation_id }) => implementation_id)))
+    .toContain("browser/presentation-rhythm@1");
+  const failedWake = replan.evidence.evidence.wakes.at(-1);
+  expect(failedWake).toMatchObject({
+    lifecycle: "Failed",
+    plans: [{ plan_id: replan.playback.proposal.plan.plan_id, state: "AwaitingPlay" }],
+    rejections: [{
+      reason_code: "execution.line-unavailable",
+      category: "Connectivity",
+      required: 1,
+      available: 0,
+      plan_id: replan.playback.proposal.plan.plan_id,
+    }],
+  });
+  expect(replan.evidence.evidence.body.workset.forms).toEqual(authoredForms);
+  expect(replan.evidence.realization).toBeNull();
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {
