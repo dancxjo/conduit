@@ -169,7 +169,7 @@ impl SpawnRendezvousDescriptor {
     }
 }
 
-fn validate_candidates(
+pub(crate) fn validate_candidates(
     candidates: &[RendezvousCandidate],
     now_millis: u64,
 ) -> Result<(), RendezvousDescriptorRefusal> {
