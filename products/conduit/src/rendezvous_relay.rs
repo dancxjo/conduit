@@ -337,19 +337,42 @@ fn serve_endpoint(
                                 let mut runtime = runtime
                                     .lock()
                                     .map_err(|_| "relay state lock poisoned".to_string())?;
-                                runtime.terminal = Some(RelaySlotDisposition::Closed);
-                                runtime
-                                    .service
-                                    .close(&attachment.route_id, RelaySlotDisposition::Closed)
-                                    .map_err(debug("close relay slot"))?
+                                match runtime.terminal {
+                                    Some(RelaySlotDisposition::Closed) => None,
+                                    Some(RelaySlotDisposition::Lost) => {
+                                        return Err(
+                                            "relay received close after terminal connection loss"
+                                                .into(),
+                                        );
+                                    }
+                                    Some(other) => {
+                                        return Err(format!(
+                                            "relay retained nonterminal disposition as terminal: {other:?}"
+                                        ));
+                                    }
+                                    None => {
+                                        runtime.terminal = Some(RelaySlotDisposition::Closed);
+                                        Some(
+                                            runtime
+                                                .service
+                                                .close(
+                                                    &attachment.route_id,
+                                                    RelaySlotDisposition::Closed,
+                                                )
+                                                .map_err(debug("close relay slot"))?,
+                                        )
+                                    }
+                                }
                             };
-                            send_outcome(
+                            let _terminal_notice = send_outcome(
                                 &mut line,
                                 &attachment.route_id,
                                 OutcomeStatus::Closed,
                                 Some("explicit-close"),
-                            )?;
-                            eprintln!("Relay closed: {evidence:?}");
+                            );
+                            if let Some(evidence) = evidence {
+                                eprintln!("Relay closed: {evidence:?}");
+                            }
                             // The explicit protocol close is already terminal; the
                             // endpoint may have closed its outer WSS immediately.
                             let _outer_close = line.close();
