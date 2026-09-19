@@ -186,6 +186,9 @@ pub(crate) enum HostCommand {
         /// PEM private key for the explicitly exposed TLS identity.
         #[arg(long, required_if_eq("carrier", "secure-websocket"))]
         tls_key: Option<PathBuf>,
+        /// Private endpoint descriptor for one outbound user-operated relay candidate.
+        #[arg(long, required_if_eq("carrier", "relay"))]
+        relay_descriptor: Option<PathBuf>,
         /// Explicitly authorize listening beyond loopback.
         #[arg(long, required_if_eq("carrier", "secure-websocket"), action = clap::ArgAction::SetTrue)]
         authorize_network: bool,
@@ -278,6 +281,8 @@ pub(crate) enum RendezvousCarrier {
     SecureWebsocket,
     /// Newline-framed serial stream on standard input and output.
     Serial,
+    /// Outbound end-to-end protected Line through a user-operated relay.
+    Relay,
 }
 
 #[derive(Debug, Subcommand)]
@@ -755,9 +760,32 @@ mod tests {
                     public_url: None,
                     tls_cert: None,
                     tls_key: None,
+                    relay_descriptor: None,
                     authorize_network: false,
                 }
             } if state_dir == std::path::Path::new("installed-host")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "rendezvous",
+                "--state-dir",
+                "installed-host",
+                "--carrier",
+                "relay",
+                "--relay-descriptor",
+                "relay-endpoint.json",
+            ])
+            .expect("outbound protected relay Host entrance parses")
+            .command,
+            Command::Host {
+                command: HostCommand::Rendezvous {
+                    carrier: RendezvousCarrier::Relay,
+                    relay_descriptor: Some(descriptor),
+                    ..
+                }
+            } if descriptor == std::path::Path::new("relay-endpoint.json")
         ));
         assert!(matches!(
             Cli::try_parse_from([

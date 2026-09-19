@@ -283,6 +283,7 @@ fn main() {
                 public_url,
                 tls_cert,
                 tls_key,
+                relay_descriptor,
                 authorize_network,
             } => host_rendezvous::serve(
                 &state_dir,
@@ -295,6 +296,7 @@ fn main() {
                     tls_key,
                     authorize_network,
                 },
+                relay_descriptor.as_deref(),
             ),
             command => construction::host(command),
         },
