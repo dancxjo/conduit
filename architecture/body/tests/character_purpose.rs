@@ -1,8 +1,7 @@
 use conduit_body::{
-    derive_character_context, derive_fulfillment_readiness, CharacterOrientationCue,
-    CharacterProfile, CharacterPurposeRefusal, FulfillmentReadiness,
-    FulfillmentReadinessReasonKind, PurposeCompletionPolicy, PurposeObligation,
-    PurposeObligationState, PurposeState, MAX_PURPOSE_OBLIGATIONS,
+    derive_fulfillment_readiness, FulfillmentReadiness, FulfillmentReadinessReasonKind,
+    PurposeCompletionPolicy, PurposeObligation, PurposeObligationState, PurposeRefusal,
+    PurposeState, MAX_PURPOSE_OBLIGATIONS,
 };
 use conduit_core::SignId;
 
@@ -92,67 +91,6 @@ fn readiness_is_derived_only_from_exact_finite_obligation_truth() {
 }
 
 #[test]
-fn character_orients_toward_work_repair_and_investigation_not_termination() {
-    let state = purpose(vec![
-        obligation("unfinished", PurposeObligationState::Pending),
-        obligation(
-            "fault",
-            PurposeObligationState::RepairRequired {
-                failure_sign_id: sign("sign/fault"),
-            },
-        ),
-        obligation(
-            "uncertain",
-            PurposeObligationState::Uncertain {
-                evidence_sign_ids: vec![sign("sign/tentative")],
-            },
-        ),
-        obligation(
-            "conflict",
-            PurposeObligationState::Disputed {
-                evidence_sign_ids: vec![sign("sign/open"), sign("sign/closed")],
-            },
-        ),
-    ]);
-    let context = derive_character_context(
-        &CharacterProfile::purposeful_completion("character/orifina@1".into(), 1),
-        &state,
-    )
-    .unwrap();
-    assert_eq!(
-        context.cues,
-        vec![
-            CharacterOrientationCue::ContinueUsefulWork,
-            CharacterOrientationCue::RepairBeforeCompletion,
-            CharacterOrientationCue::InvestigateCompletion,
-            CharacterOrientationCue::PreserveDisagreement,
-        ]
-    );
-    assert!(!context
-        .cues
-        .contains(&CharacterOrientationCue::WelcomeAppropriateFulfillment));
-}
-
-#[test]
-fn appropriate_fulfillment_orientation_appears_only_after_evidenced_completion() {
-    let complete = purpose(vec![obligation(
-        "done",
-        PurposeObligationState::Satisfied {
-            evidence_sign_ids: vec![sign("sign/done")],
-        },
-    )]);
-    let context = derive_character_context(
-        &CharacterProfile::purposeful_completion("character/orifina@1".into(), 1),
-        &complete,
-    )
-    .unwrap();
-    assert_eq!(
-        context.cues,
-        vec![CharacterOrientationCue::WelcomeAppropriateFulfillment]
-    );
-}
-
-#[test]
 fn no_fulfillment_condition_remains_first_class_for_long_running_bodies() {
     let mut ongoing = purpose(vec![obligation(
         "observe",
@@ -175,7 +113,7 @@ fn malformed_unbounded_and_unsupported_evidence_refuses() {
     ]);
     assert_eq!(
         duplicate.validate(),
-        Err(CharacterPurposeRefusal::DuplicateObligation)
+        Err(PurposeRefusal::DuplicateObligation)
     );
 
     duplicate.obligations = (0..=MAX_PURPOSE_OBLIGATIONS)
@@ -186,10 +124,7 @@ fn malformed_unbounded_and_unsupported_evidence_refuses() {
             )
         })
         .collect();
-    assert_eq!(
-        duplicate.validate(),
-        Err(CharacterPurposeRefusal::ObligationBound)
-    );
+    assert_eq!(duplicate.validate(), Err(PurposeRefusal::ObligationBound));
 
     let missing = purpose(vec![obligation(
         "claimed",
@@ -197,10 +132,7 @@ fn malformed_unbounded_and_unsupported_evidence_refuses() {
             evidence_sign_ids: vec![],
         },
     )]);
-    assert_eq!(
-        missing.validate(),
-        Err(CharacterPurposeRefusal::MissingEvidence)
-    );
+    assert_eq!(missing.validate(), Err(PurposeRefusal::MissingEvidence));
 
     let unsupported_dispute = purpose(vec![obligation(
         "disputed",
@@ -210,19 +142,15 @@ fn malformed_unbounded_and_unsupported_evidence_refuses() {
     )]);
     assert_eq!(
         unsupported_dispute.validate(),
-        Err(CharacterPurposeRefusal::MissingEvidence)
+        Err(PurposeRefusal::MissingEvidence)
     );
 }
 
 #[test]
 fn semantic_records_have_no_host_presenter_or_lifecycle_authority_fields() {
     let state = purpose(vec![obligation("wait", PurposeObligationState::Pending)]);
-    let context = derive_character_context(
-        &CharacterProfile::purposeful_completion("character/orifina@1".into(), 1),
-        &state,
-    )
-    .unwrap();
-    let encoded = serde_json::to_value(context).unwrap();
+    let encoded =
+        serde_json::to_value((&state, derive_fulfillment_readiness(&state).unwrap())).unwrap();
     for forbidden in [
         "host_id",
         "boot_id",
