@@ -100,6 +100,7 @@ pub mod pointer_offer;
 mod presentation_offers;
 pub mod protected_line_support;
 pub mod protection_domain;
+pub mod rendezvous_descriptor;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod usb_line_offer;
 #[cfg(any(test, target_arch = "x86_64"))]

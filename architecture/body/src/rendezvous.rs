@@ -173,42 +173,7 @@ pub(crate) fn validate_candidates(
     candidates: &[RendezvousCandidate],
     now_millis: u64,
 ) -> Result<(), RendezvousDescriptorRefusal> {
-    if candidates.is_empty() || candidates.len() > MAX_RENDEZVOUS_CANDIDATES {
-        return Err(RendezvousDescriptorRefusal::CandidateBound);
-    }
-    for (index, candidate) in candidates.iter().enumerate() {
-        if !bounded_text(&candidate.candidate_id)
-            || candidates[..index]
-                .iter()
-                .any(|prior| prior.candidate_id == candidate.candidate_id)
-        {
-            return Err(RendezvousDescriptorRefusal::DuplicateCandidate);
-        }
-        if !bounded_text(&candidate.reachability) {
-            return Err(RendezvousDescriptorRefusal::InvalidReachability);
-        }
-        if !bounded_text(&candidate.authentication.server_identity)
-            || candidate.authentication.transport_binding_sha256 == [0; 32]
-        {
-            return Err(RendezvousDescriptorRefusal::MissingAuthentication);
-        }
-        if candidate.expires_at_millis <= now_millis {
-            return Err(RendezvousDescriptorRefusal::Expired);
-        }
-        if candidate.maximum_attempts == 0
-            || candidate.maximum_attempts > MAX_RENDEZVOUS_ATTEMPTS_PER_CANDIDATE
-            || candidate.attempt_timeout_millis == 0
-            || candidate.attempt_timeout_millis > MAX_RENDEZVOUS_ATTEMPT_MILLIS
-        {
-            return Err(RendezvousDescriptorRefusal::AttemptPolicy);
-        }
-        if candidate.line_family == RendezvousLineFamily::LocalLoopbackWebSocket
-            && !loopback_reachability(&candidate.reachability)
-        {
-            return Err(RendezvousDescriptorRefusal::InsecureRemoteWebSocket);
-        }
-    }
-    Ok(())
+    crate::rendezvous_validation::validate_owned_candidates(candidates, now_millis)
 }
 
 impl RunningHostRendezvousDescriptor {
@@ -246,10 +211,6 @@ impl RunningHostRendezvousDescriptor {
 
 fn bounded_text(value: &str) -> bool {
     !value.is_empty() && value.len() <= MAX_RENDEZVOUS_TEXT_BYTES
-}
-
-fn loopback_reachability(value: &str) -> bool {
-    value.starts_with("ws://127.0.0.1:") || value.starts_with("ws://[::1]:")
 }
 
 #[cfg(test)]
