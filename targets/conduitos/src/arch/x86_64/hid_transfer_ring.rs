@@ -20,11 +20,14 @@ impl TransferPosition {
     }
 
     pub(super) fn normal(self, reports: u64, report_bytes: usize) -> [u32; 4] {
-        let address = reports + (self.buffer * report_bytes) as u64;
+        self.normal_at(reports + (self.buffer * report_bytes) as u64, report_bytes)
+    }
+
+    pub(super) fn normal_at(self, address: u64, transfer_bytes: usize) -> [u32; 4] {
         [
             address as u32,
             (address >> 32) as u32,
-            report_bytes as u32,
+            transfer_bytes as u32,
             (1 << 10) | (1 << 5) | self.cycle,
         ]
     }
