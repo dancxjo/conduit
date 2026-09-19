@@ -1,9 +1,13 @@
 use super::*;
+use conduit_core::PROTOCOL_VERSION;
 use conduit_protected_line::{
     establish_protected_session, EndpointBinding, ProtectedCarrier, ProtectedSessionPolicy, Role,
     SessionBinding, SessionLimits,
 };
 use conduit_std_host::relay_client::{HostedRelayCarrier, RelayClientDescriptor};
+use conduit_wire::{
+    decode_session_frame, encode_session_frame_into, SessionFrame, SessionIdentity, SessionMessage,
+};
 use rcgen::{generate_simple_self_signed, CertifiedKey};
 use sha2::{Digest, Sha256};
 use std::net::{Ipv4Addr, SocketAddrV4, TcpListener};
@@ -64,7 +68,7 @@ fn explicit_close_control_is_versioned_and_exact() {
 }
 
 #[test]
-fn two_outbound_native_clients_exchange_end_to_end_protected_frames() {
+fn remote_execution_session_frames_cross_two_outbound_protected_relay_clients() {
     let CertifiedKey { cert, signing_key } =
         generate_simple_self_signed(vec!["localhost".into()]).unwrap();
     let certificate_binding: [u8; 32] = Sha256::digest(cert.der().as_ref()).into();
@@ -175,8 +179,22 @@ fn two_outbound_native_clients_exchange_end_to_end_protected_frames() {
         )
         .unwrap();
         let mut line = ProtectedCarrier::new(carrier, session, policy).unwrap();
-        line.send(b"opaque from first").unwrap();
-        assert_eq!(line.receive().unwrap(), b"opaque from second");
+        let mut frame = [0_u8; 256];
+        let length = encode_session_frame_into(
+            remote_frame(SessionMessage::Offered {
+                sequence: 0,
+                payload: b"remote-value",
+            }),
+            &mut frame,
+            32,
+            256,
+        )
+        .unwrap();
+        line.send(&frame[..length]).unwrap();
+        let response = line.receive().unwrap();
+        let response = decode_session_frame(response, 32, 256).unwrap();
+        assert_eq!(response.identity.plan_id, "plan/relay-proof");
+        assert_eq!(response.message, SessionMessage::Accepted { sequence: 0 });
         line.close().unwrap();
     });
     let mut second_carrier = HostedRelayCarrier::connect(RelayClientDescriptor {
@@ -202,10 +220,55 @@ fn two_outbound_native_clients_exchange_end_to_end_protected_frames() {
     )
     .unwrap();
     let mut second_line = ProtectedCarrier::new(second_carrier, second_session, policy).unwrap();
-    assert_eq!(second_line.receive().unwrap(), b"opaque from first");
-    second_line.send(b"opaque from second").unwrap();
+    let offered = second_line.receive().unwrap();
+    let offered = decode_session_frame(offered, 32, 256).unwrap();
+    assert_eq!(offered.identity.plan_id, "plan/relay-proof");
+    assert_eq!(offered.identity.source_active_play_id, "play/source");
+    assert_eq!(offered.identity.sink_active_play_id, "play/sink");
+    assert_eq!(offered.identity.connection_id, "connection/relay-proof");
+    assert_eq!(
+        offered.message,
+        SessionMessage::Offered {
+            sequence: 0,
+            payload: b"remote-value"
+        }
+    );
+    let mut response = [0_u8; 256];
+    let response_length = encode_session_frame_into(
+        remote_frame(SessionMessage::Accepted { sequence: 0 }),
+        &mut response,
+        32,
+        256,
+    )
+    .unwrap();
+    second_line.send(&response[..response_length]).unwrap();
     first.join().unwrap();
     drop(second_line);
     assert_eq!(server.join().unwrap(), Ok(()));
     fs::remove_dir_all(directory).unwrap();
+}
+
+fn remote_frame(message: SessionMessage<'_>) -> SessionFrame<'_> {
+    SessionFrame {
+        identity: SessionIdentity {
+            protocol_version: PROTOCOL_VERSION,
+            plan_id: "plan/relay-proof",
+            source_fragment_id: "fragment/source",
+            sink_fragment_id: "fragment/sink",
+            source_active_play_id: "play/source",
+            sink_active_play_id: "play/sink",
+            connection_id: "connection/relay-proof",
+            source_host_id: "host/first",
+            source_boot_id: "boot/one",
+            sink_host_id: "host/second",
+            sink_boot_id: "boot/two",
+            value_kind: "text/plain",
+            limits: conduit_wire::SessionLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: 32,
+                maximum_buffered_bytes: 32,
+            },
+        },
+        message,
+    }
 }
