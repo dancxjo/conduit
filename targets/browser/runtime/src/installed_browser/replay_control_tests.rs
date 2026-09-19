@@ -247,3 +247,69 @@ fn absent_event_and_closed_inputs_remain_explicit() {
         OperationAction::Complete
     );
 }
+
+#[test]
+fn completed_requests_reuse_two_fixed_stage_identities_for_long_lived_replay() {
+    let mut operation = ReplayControlOperation::new();
+    for sequence in 0..100_000 {
+        let OperationAction::RequestHostOperation { request, .. } =
+            operation.resume(OperationInput::Value {
+                port: PortId(2),
+                value: value(1),
+            })
+        else {
+            panic!("clock input must request processing");
+        };
+        assert_eq!(request, RequestId(0), "processing request {sequence}");
+        assert!(matches!(
+            operation.resume(OperationInput::HostOperationCompleted {
+                request,
+                outcome: completed(Some(value(2))),
+            }),
+            OperationAction::Emit {
+                port: PortId(1),
+                ..
+            }
+        ));
+        let OperationAction::RequestHostOperation { request, .. } = operation.advance() else {
+            panic!("state emission must request its event");
+        };
+        assert_eq!(request, RequestId(1), "event request {sequence}");
+        assert_eq!(
+            operation.resume(OperationInput::HostOperationCompleted {
+                request,
+                outcome: completed(None),
+            }),
+            OperationAction::Await
+        );
+    }
+    assert_eq!(operation.next_request, 0);
+}
+
+#[test]
+fn a_noncurrent_reused_identity_cannot_complete_the_pending_stage() {
+    let mut operation = ReplayControlOperation::new();
+    let OperationAction::RequestHostOperation { request, .. } =
+        operation.resume(OperationInput::Value {
+            port: PortId(0),
+            value: value(1),
+        })
+    else {
+        panic!("timeline input must request processing");
+    };
+    assert_eq!(request, RequestId(0));
+    assert_eq!(
+        operation.resume(OperationInput::HostOperationCompleted {
+            request: RequestId(1),
+            outcome: completed(None),
+        }),
+        fail(14)
+    );
+    assert_eq!(
+        operation.resume(OperationInput::HostOperationCompleted {
+            request,
+            outcome: completed(None),
+        }),
+        OperationAction::Await
+    );
+}
