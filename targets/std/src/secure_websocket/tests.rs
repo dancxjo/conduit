@@ -1,6 +1,7 @@
 use super::*;
 use rcgen::{generate_simple_self_signed, CertifiedKey};
 use rustls::pki_types::PrivatePkcs8KeyDer;
+use std::fs;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::thread;
 
@@ -11,11 +12,43 @@ fn secure_remote_listener_cannot_rebrand_loopback() {
         Path::new("missing-cert.pem"),
         Path::new("missing-key.pem"),
         1024,
+        false,
     );
     assert!(matches!(
         result,
         Err(SecureWebSocketError::InvalidConfiguration)
     ));
+}
+
+#[test]
+fn wildcard_listener_requires_explicit_authorization_and_retains_exact_scope() {
+    let CertifiedKey { cert, signing_key } =
+        generate_simple_self_signed(vec!["host.example".into()]).unwrap();
+    let directory = std::env::temp_dir().join(format!(
+        "conduit-secure-websocket-{}-{}",
+        std::process::id(),
+        std::thread::current().name().unwrap_or("wildcard")
+    ));
+    fs::create_dir_all(&directory).unwrap();
+    let certificate = directory.join("certificate.pem");
+    let private_key = directory.join("private-key.pem");
+    fs::write(&certificate, cert.pem()).unwrap();
+    fs::write(&private_key, signing_key.serialize_pem()).unwrap();
+    let reservation = TcpListener::bind((Ipv4Addr::UNSPECIFIED, 0)).unwrap();
+    let port = reservation.local_addr().unwrap().port();
+    drop(reservation);
+    let address = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port));
+
+    assert!(matches!(
+        SecureWebSocketListener::bind(address, &certificate, &private_key, 1024, false),
+        Err(SecureWebSocketError::InvalidConfiguration)
+    ));
+    let listener =
+        SecureWebSocketListener::bind(address, &certificate, &private_key, 1024, true).unwrap();
+    assert_eq!(listener.local_addr().unwrap(), address);
+
+    drop(listener);
+    fs::remove_dir_all(directory).unwrap();
 }
 
 #[test]

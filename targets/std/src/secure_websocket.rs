@@ -54,12 +54,13 @@ impl SecureWebSocketListener {
         certificate_pem: &Path,
         private_key_pem: &Path,
         maximum_message_bytes: u32,
+        authorize_network: bool,
     ) -> Result<Self, SecureWebSocketError> {
         let maximum_message_bytes = usize::try_from(maximum_message_bytes)
             .map_err(|_| SecureWebSocketError::InvalidConfiguration)?;
         if maximum_message_bytes == 0
+            || !authorize_network
             || address.ip().is_loopback()
-            || address.ip().is_unspecified()
             || address.port() == 0
         {
             return Err(SecureWebSocketError::InvalidConfiguration);

@@ -1,7 +1,8 @@
 use conduit_core::{
-    process_owned_line_offer_with_limits, BaseImplementationId, BootId, BoundedResourceRef,
-    HostAdvertisement, HostId, HostProfileId, LinkLimits, OfferGeneration, Quantity, QuantityUnit,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
+    process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId, BootId,
+    BoundedResourceRef, CapabilityId, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, LinkLimits, OfferGeneration, Quantity, QuantityUnit, StructuredInfoTypeShape,
+    StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -177,6 +178,88 @@ fn continuous_vision_seals_the_same_authored_graph_across_two_hosts() {
             .admitted_lines
             .iter()
             .any(|line| { line.line_id.as_str() == "line/vision-edge-model" })));
+}
+
+#[test]
+fn model_provider_loss_refuses_and_a_compatible_replacement_changes_only_realization() {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    install_geometry_catalogs(&mut startup, &mut profile).unwrap();
+    install_vision_catalogs(&mut startup, &mut profile).unwrap();
+    let checked =
+        check_syntax_document(&parse_syntax_document(CONTINUOUS_SOURCE), &startup).unwrap();
+    let authored = expand_canonical_form_for_authoring(&checked, "vision", &profile).unwrap();
+
+    let mut edge = host();
+    edge.host_id = HostId::from("host/vision-edge");
+    edge.boot_id = BootId::from("boot/vision-edge");
+    edge.capabilities
+        .retain(|offer| offer.kind_id.as_str() != conduit_semantic_catalog::VISION_DESCRIBE_KIND);
+    let flow_contract = conduit_semantic_catalog::flow_coalesce_latest_contract(
+        image_resource_type().profile().unwrap().value_kind(),
+        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+    );
+    edge.capabilities.push(proof_domain_offer(
+        flow_contract.kind_id,
+        flow_contract.inputs,
+        flow_contract.outputs,
+        conduit_semantic_catalog::FLOW_COALESCE_LATEST_REVISION,
+        DOMAIN_PROOF_OPERATION,
+    ));
+    let mut model = host();
+    model.host_id = HostId::from("host/vision-model-a");
+    model.boot_id = BootId::from("boot/vision-model-a");
+    model
+        .capabilities
+        .retain(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::VISION_DESCRIBE_KIND);
+
+    let original = conduit_planner::default_expanded_placements(
+        &authored.expanded,
+        &[edge.clone(), model.clone()],
+    )
+    .unwrap();
+    let describe = authored
+        .expanded
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::VISION_DESCRIBE_KIND)
+        .unwrap();
+    let original_choice = &original.by_gear[&describe.gear_id];
+    assert_eq!(original_choice.host_id, model.host_id);
+
+    assert!(
+        conduit_planner::default_expanded_placements(&authored.expanded, &[edge.clone()]).is_err(),
+        "provider loss must refuse rather than hide a fallback"
+    );
+
+    let mut replacement = model.clone();
+    replacement.host_id = HostId::from("host/vision-model-b");
+    replacement.boot_id = BootId::from("boot/vision-model-b");
+    let replacement_offer = &mut replacement.capabilities[0];
+    replacement_offer.capability_id = CapabilityId::from("replacement/vision-model-describe@1");
+    replacement_offer.implementation.execution_profile_id =
+        ExecutionProfileId::from("replacement/vision-model-profile@1");
+    replacement_offer.implementation.implementation_id =
+        ImplementationId::from("replacement/vision-model-describe@1");
+    replacement_offer.implementation.artifact_id =
+        ArtifactId::from("replacement/vision-model-artifact@1");
+
+    let replanned = conduit_planner::default_expanded_placements(
+        &authored.expanded,
+        &[edge, replacement.clone()],
+    )
+    .unwrap();
+    let replacement_choice = &replanned.by_gear[&describe.gear_id];
+    assert_eq!(replacement_choice.host_id, replacement.host_id);
+    assert_ne!(replacement_choice, original_choice);
+    assert_eq!(
+        replacement.capabilities[0].kind_id,
+        model.capabilities[0].kind_id
+    );
+    assert_eq!(
+        replacement.capabilities[0].kind_contract_revision,
+        model.capabilities[0].kind_contract_revision
+    );
 }
 
 #[test]
