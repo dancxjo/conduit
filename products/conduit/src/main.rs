@@ -16,6 +16,7 @@ mod product_execution;
 mod product_execution_tests;
 mod protected_task;
 mod release_obtain;
+mod rendezvous_relay;
 mod report_artifact;
 mod std_websocket_line;
 #[cfg(test)]
@@ -332,6 +333,26 @@ fn main() {
                 },
         } => durable_host::complete_body_join(&receipt, &state_dir, authorize_membership),
         cli::Command::Body { command } => construction::body(command),
+        cli::Command::RendezvousRelay {
+            command:
+                cli::RendezvousRelayCommand::Serve {
+                    bind,
+                    public_url,
+                    tls_cert,
+                    tls_key,
+                    slot,
+                    accept_timeout_seconds,
+                    authorize_network,
+                },
+        } => rendezvous_relay::serve(rendezvous_relay::ServeOptions {
+            bind,
+            public_url,
+            tls_cert,
+            tls_key,
+            slot,
+            accept_timeout_seconds,
+            authorize_network,
+        }),
         cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),
             Ok(false) => std::process::exit(1),
