@@ -7,7 +7,7 @@ import { configureWorkspaceInput } from "./workspace-surface.mjs";
 import { openWorkspaceLibrary } from "./workspace-library.mjs";
 import { readWorkspaceHandoff, consumeWorkspaceHandoff } from "./workspace-handoff.mjs";
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
-import { openWorkspaceMembership, readBodyInvitation } from "./workspace-membership.mjs";
+import { createBodyInvitationReceiver, openWorkspaceMembership, readBodyInvitation } from "./workspace-membership.mjs";
 import { prepareWorkspaceVoicePlay } from "./workspace-voice-play.mjs";
 
 export async function startApplication(application) {
@@ -153,9 +153,10 @@ export async function startApplication(application) {
       if (arriving && !joining) {
         document.title = 'Birth your Body · Conduit';
         const slot = nursery.querySelector('[data-creche-content]');
-        slot.replaceChildren(body
-          ? createFirstHostRunner({ host, presentationFor: application.presentationFor, nextSequence: session.nextMembershipSequence, onBodyChanged: bodyChanged })
-          : createBodyBirthRunner({
+        if (body) {
+          slot.replaceChildren(createFirstHostRunner({ host, presentationFor: application.presentationFor, nextSequence: session.nextMembershipSequence, onBodyChanged: bodyChanged }));
+        } else {
+          const birth = createBodyBirthRunner({
             source, sourceKey: 'workspace-creche', listingId: 'workspace-forms', host,
             presentationFor: application.presentationFor, inventory, initialSelection: selection,
             nextSequence: session.nextSequence, onBodyChanged: bodyChanged,
@@ -165,7 +166,13 @@ export async function startApplication(application) {
                 ? application.storage.deleteJson('form-selection')
                 : application.storage.writeJson('form-selection', persistedFormSelection(inventory, selected))).catch(fail);
             },
-          }));
+          });
+          const receiver = createBodyInvitationReceiver({ location: globalThis.location, onReceive({ fragment }) {
+            history.replaceState(null, '', `${location.pathname}${location.search}#${fragment}`);
+            location.reload();
+          } });
+          slot.replaceChildren(birth, receiver);
+        }
         return;
       }
       document.title = `${body.friendly_name} · Conduit`;

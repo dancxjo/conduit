@@ -39,7 +39,7 @@ test("the ordinary Body surface reviews exact browser Host machinery before a se
   expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership)).toEqual(before);
 });
 
-test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context }) => {
+test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, "share", {
     configurable: true,
     value: async value => { globalThis.__sharedInvitation = value; },
@@ -67,10 +67,21 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   await page.getByRole("button", { name: "Share…", exact: true }).click();
   expect(await page.evaluate(() => globalThis.__sharedInvitation.url)).toBe(link);
 
+  const receiverContext = await browser.newContext();
+  const receiverPage = await receiverContext.newPage();
+  await receiverPage.goto(entrance.url);
+  await expect(receiverPage.getByLabel("Body invitation link or code", { exact: true })).toBeVisible();
+  expect(await receiverPage.evaluate(() => globalThis.__conduitWorkspace.current())).toBeNull();
+  const portableCode = new URLSearchParams(new URL(link).hash.slice(1)).get("body-invitation");
+  await receiverPage.getByLabel("Body invitation link or code", { exact: true }).fill(portableCode);
+  await receiverPage.getByRole("button", { name: "Inspect invitation", exact: true }).click();
+  await expect(receiverPage.getByText("Body invitation", { exact: true })).toBeVisible();
+  await expect(receiverPage.getByText("It grants no Form or effect authority.")).toBeVisible();
+  expect(await receiverPage.evaluate(() => globalThis.__conduitWorkspace.current())).toBeNull();
+  await receiverContext.close();
+
   const joining = await context.newPage();
   await joining.goto(link);
-  await expect(joining.getByText("Body invitation", { exact: true })).toBeVisible();
-  await expect(joining.getByText("It grants no Form or effect authority.")).toBeVisible();
   await joining.getByRole("button", { name: "Join this Body", exact: true }).click();
 
   await expect(joining.locator(".member-card")).toHaveCount(2);
