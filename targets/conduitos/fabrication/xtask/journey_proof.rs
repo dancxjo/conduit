@@ -388,7 +388,7 @@ fn execute_image(
                 "product-journey-usb-line-peer-timeout",
             )?;
             artifacts.capture(&mut qmp, &mut reader, "peer-attached", true)?;
-            line_peer.receive_value_and_acknowledge()?;
+            line_peer.receive_values_and_acknowledge()?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
@@ -614,6 +614,10 @@ fn execute_image(
             }
         }
         if usb_line_records[2].get("value").and_then(Value::as_str) != Some("HELLO USB LINE")
+            || usb_line_records[2]
+                .get("lifetime_values")
+                .and_then(Value::as_u64)
+                != Some(conduitos::product_usb_line::LINE_LIFETIME_VALUES)
             || usb_line_records[0].get("body_id") != by_status["lulled"].get("body_id")
         {
             return Err(ConduitosError::refusal(
