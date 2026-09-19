@@ -347,7 +347,9 @@ fn serve_endpoint(
                                 Some("explicit-close"),
                             )?;
                             eprintln!("Relay closed: {evidence:?}");
-                            line.close().map_err(debug("close relay WSS line"))?;
+                            // The explicit protocol close is already terminal; the
+                            // endpoint may have closed its outer WSS immediately.
+                            let _outer_close = line.close();
                             return Ok(());
                         }
                     }
@@ -377,11 +379,21 @@ fn serve_endpoint(
             Err(SecureWebSocketError::Transport(
                 std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut,
             )) => {}
-            Err(SecureWebSocketError::Disconnected) => {
+            Err(
+                SecureWebSocketError::Disconnected
+                | SecureWebSocketError::Transport(
+                    std::io::ErrorKind::UnexpectedEof
+                    | std::io::ErrorKind::ConnectionReset
+                    | std::io::ErrorKind::BrokenPipe,
+                ),
+            ) => {
                 let evidence = {
                     let mut runtime = runtime
                         .lock()
                         .map_err(|_| "relay state lock poisoned".to_string())?;
+                    if runtime.terminal.is_some() {
+                        return Ok(());
+                    }
                     runtime.terminal = Some(RelaySlotDisposition::Lost);
                     runtime
                         .service
