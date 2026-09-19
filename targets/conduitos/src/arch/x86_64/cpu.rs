@@ -18,6 +18,11 @@ pub fn feature_basis() -> CpuFeatures {
     }
 }
 
+/// Best-effort material for stable Boot identity derivation.
+///
+/// The clock/address fallback is deliberately permitted for identity only. It
+/// is not cryptographic entropy and must never feed protected-session keys;
+/// those use the separately admitted `RdrandEntropy` Base.
 pub fn boot_entropy(timestamp: u64, image_address: u64) -> [u64; 4] {
     let mut words = [0; 4];
     let rdrand_available = feature_basis().rdrand;

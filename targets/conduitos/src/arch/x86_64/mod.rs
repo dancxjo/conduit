@@ -1,5 +1,6 @@
 mod acpi;
 mod cpu;
+mod entropy;
 mod ftdi_line;
 mod gdt;
 mod hid;
@@ -24,6 +25,7 @@ mod usb;
 mod xhci;
 
 pub use cpu::{boot_entropy, deterministic_exit, feature_basis};
+pub use entropy::RdrandEntropy;
 pub use ftdi_line::{
     FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS, FtdiLineError, FtdiLineReady,
     FtdiLineSession, prepare_ftdi_line, start_ftdi_line_session,

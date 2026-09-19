@@ -9,6 +9,7 @@ pub mod boot;
 pub mod bounded_host_operations;
 pub mod composition;
 pub mod cooperative_timer_lane;
+pub mod cryptographic_entropy;
 pub mod display;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
