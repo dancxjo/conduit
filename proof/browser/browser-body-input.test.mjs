@@ -77,12 +77,19 @@ test("uninstalled identities and duplicate requests refuse without consuming inp
   f.close();
 });
 
-test("input pressure has a finite boundary and closes outstanding delivery", async () => {
+test("ordered pressure terminates only the affected Form stream", async () => {
   const f = setup();
-  const failed = assert.rejects(f.next("morse"), { code: "Pressure" });
+  const notes = f.next("notes");
+  f.select("morse");
   for (let usage = 4; usage < 13; usage++) await f.send(f.capture(usage));
-  await failed;
-  await assert.rejects(f.next("notes"), { code: "Pressure" });
+  await assert.rejects(f.next("morse"), { code: "Pressure" });
+  f.select("notes");
+  await f.send(f.capture(20));
+  assert.equal((await notes).canonical_bytes[0], 20);
+  assert.deepEqual(f.routing.pressure().map(({ form, occupancy, terminal }) => ({ form, occupancy, terminal })), [
+    { form: "morse", occupancy: 0, terminal: "Pressure" },
+    { form: "notes", occupancy: 0, terminal: null },
+  ]);
   f.close();
 });
 
@@ -102,4 +109,59 @@ test('pointer delivery follows its captured Form and unrelated input cannot fill
   await assert.rejects(routing.next('pointer', 'notes/input', signal), { code: 'StalePlacement' });
   routing.close();
   assert.equal(stopped, true);
+});
+
+test("pointer pressure coalesces 100,000 observations through one reusable slot", async () => {
+  let consume;
+  const forms = [{ form: { checked_form_id: "theremin" }, plan: { fragments: [{ placements: [{ placement_id: "theremin/pointer", kind_id: "input/pointer-source" }] }] } }];
+  const routing = createBodyInputRouting({ forms, foreground: () => "theremin", maximumPlacements: 1 });
+  routing.attach({ observePointer(listener) { consume = listener; return () => {}; } });
+  const signal = new AbortController().signal;
+  const first = routing.next("pointer", "theremin/pointer", signal);
+  for (let sequence = 0; sequence < 100_000; sequence += 1) {
+    consume(Object.freeze({
+      schema: "input/pointer-event@1",
+      delivery_form: routing.capture("pointer", null),
+      position_x: sequence,
+      position_y: sequence * 2,
+      delta_x: 1,
+      delta_y: -1,
+      primary_pressed: sequence % 2 === 0,
+      coalesced: 0,
+      dropped: 0,
+      queue_capacity: 1,
+      sequence,
+    }));
+  }
+  assert.equal((await first).sequence, 0);
+  const latest = await routing.next("pointer", "theremin/pointer", signal);
+  assert.equal(latest.sequence, 99_999);
+  assert.equal(latest.position_x, 99_999);
+  assert.equal(latest.primary_pressed, false);
+  assert.equal(latest.delta_x, 99_999);
+  assert.equal(latest.delta_y, -99_999);
+  assert.equal(latest.coalesced, 99_998);
+  assert.deepEqual(routing.pressure(), [{
+    kind: "pointer", form: "theremin", capacity: 1, occupancy: 0,
+    accepted: 100_000, delivered: 2, coalesced: 99_998, dropped: 0,
+    refusals: 0, terminal: null,
+  }]);
+  routing.close();
+});
+
+test("ordered storage is reusable across repeated queue wraparound", async () => {
+  const f = setup();
+  for (let sequence = 0; sequence < 1_024; sequence += 1) {
+    const pending = f.next("notes");
+    await f.send(f.capture(4 + (sequence % 20), sequence % 2));
+    const value = await pending;
+    assert.equal(value.canonical_bytes[0], 4 + (sequence % 20));
+    assert.equal(value.canonical_bytes[1], sequence % 2);
+  }
+  assert.deepEqual(f.routing.pressure(), [{
+    kind: "keyboard", form: "notes", capacity: 8, occupancy: 0,
+    accepted: 1_024, delivered: 1_024, coalesced: 0, dropped: 0,
+    refusals: 0, terminal: null,
+  }]);
+  f.close();
 });
