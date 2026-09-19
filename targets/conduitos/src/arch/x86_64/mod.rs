@@ -4,6 +4,7 @@ mod ftdi_line;
 mod gdt;
 mod hid;
 mod hid_pointer;
+mod hid_transfer_ring;
 mod idt;
 mod interrupt_controller;
 mod io;
