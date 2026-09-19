@@ -1,6 +1,5 @@
 //! Fixed-storage, descriptor-pinned TLS 1.3 over one admitted TCP session.
 
-use embedded_io::{Read, Write};
 use embedded_tls::{
     Aes128GcmSha256, Certificate, CryptoProvider, MaxFragmentLength, NoClock, TlsConfig,
     TlsContext, TlsError, TlsVerifier, blocking::TlsConnection, pki::CertVerifier,
@@ -11,6 +10,7 @@ use smoltcp::iface::SocketStorage;
 
 use crate::{
     arch::VirtioNetReady,
+    bounded_websocket::{self, WebSocketError},
     virtio_tcp::{VirtioTcpEndpoint, VirtioTcpError},
     virtio_tcp_stream::VirtioTcpStream,
 };
@@ -37,6 +37,7 @@ pub enum VirtioTlsError {
     Write,
     Read,
     Close,
+    WebSocket(WebSocketError),
 }
 
 impl VirtioTlsError {
@@ -51,6 +52,7 @@ impl VirtioTlsError {
             Self::Write => "virtio-tls-write-failed",
             Self::Read => "virtio-tls-read-failed",
             Self::Close => "virtio-tls-close-failed",
+            Self::WebSocket(error) => error.as_str(),
         }
     }
 }
@@ -60,6 +62,7 @@ pub fn exchange(
     device: VirtioNetReady,
     tcp_seed: u64,
     tls_seed: [u8; 32],
+    websocket_seed: [u8; 32],
     endpoint: VirtioTcpEndpoint,
     server_name: &str,
     pinned_certificate_der: &[u8],
@@ -110,10 +113,16 @@ pub fn exchange(
         TlsConnection::<_, Aes128GcmSha256>::new(stream, &mut tls_receive, &mut tls_transmit);
     tls.open(TlsContext::new(&config, provider))
         .map_err(classify_handshake)?;
-    tls.write_all(request).map_err(|_| VirtioTlsError::Write)?;
-    tls.flush().map_err(|_| VirtioTlsError::Write)?;
-    tls.read_exact(&mut response[..expected_response_bytes])
-        .map_err(|_| VirtioTlsError::Read)?;
+    bounded_websocket::exchange(
+        &mut tls,
+        ErasedChaCha::new(websocket_seed),
+        server_name,
+        "/conduit",
+        request,
+        response,
+        expected_response_bytes,
+    )
+    .map_err(VirtioTlsError::WebSocket)?;
     let stream = tls.close().map_err(|(_, _)| VirtioTlsError::Close)?;
     let tcp_polls = stream.close_tcp().map_err(VirtioTlsError::Tcp)?;
     Ok(VirtioTlsReceipt {

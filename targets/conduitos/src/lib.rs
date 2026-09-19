@@ -7,6 +7,8 @@ pub mod arch;
 pub mod boot;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod bounded_host_operations;
+#[cfg(feature = "virtio-net-proof")]
+pub(crate) mod bounded_websocket;
 pub mod composition;
 pub mod cooperative_timer_lane;
 pub mod cryptographic_entropy;

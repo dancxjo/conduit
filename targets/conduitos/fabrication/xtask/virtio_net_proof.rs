@@ -10,6 +10,7 @@ use std::{
 
 use crate::cli::GlobalOpts;
 use conduitos::virtio_tls_fixture::PINNED_CERTIFICATE_DER;
+use embedded_websocket::{WebSocketReceiveMessageType, WebSocketSendMessageType, WebSocketServer};
 use rustls::{
     pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
     ServerConfig, ServerConnection, StreamOwned,
@@ -156,8 +157,8 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         || sign["mac"] != "52:54:00:12:34:56"
         || sign["queue_entries"] != 256
         || sign["entropy_provider_generation"] != 1
-        || sign["entropy_requests"] != 1
-        || sign["schema"] != "conduit.conduitos/virtio-tls-proof@1"
+        || sign["entropy_requests"] != 2
+        || sign["schema"] != "conduit.conduitos/virtio-websocket-proof@1"
         || sign["remote_ip"] != "10.0.2.100"
         || sign["remote_port"] != 9000
         || sign["server_name"] != "relay.conduit.invalid"
@@ -167,7 +168,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         || sign["plaintext_received_bytes"] != RESPONSE.len() as u64
         || sign["tcp_claimed"] != true
         || sign["tls_claimed"] != true
-        || sign["websocket_claimed"] != false
+        || sign["websocket_claimed"] != true
         || sign["bounded"] != true
     {
         return Err(ConduitosError::refusal(
@@ -176,7 +177,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     if !opts.quiet && !opts.json {
-        println!("PROVED x86_64 ConduitOS bounded pinned TLS exchange");
+        println!("PROVED x86_64 ConduitOS bounded pinned TLS WebSocket exchange");
     }
     Ok(())
 }
@@ -213,13 +214,82 @@ fn serve_once(listener: TcpListener) -> Result<(), String> {
         .map_err(|error| error.to_string())?;
     let connection = ServerConnection::new(Arc::new(config)).map_err(|error| error.to_string())?;
     let mut tls = StreamOwned::new(connection, stream);
-    let mut request = [0; REQUEST.len()];
-    tls.read_exact(&mut request)
+    let mut handshake = [0; 1024];
+    let mut handshake_bytes = 0;
+    let context = loop {
+        let count = tls
+            .read(&mut handshake[handshake_bytes..])
+            .map_err(|error| error.to_string())?;
+        if count == 0 || handshake_bytes + count == handshake.len() {
+            return Err("bounded WebSocket upgrade request was incomplete".into());
+        }
+        handshake_bytes += count;
+        let mut headers = [httparse::EMPTY_HEADER; 16];
+        let mut request = httparse::Request::new(&mut headers);
+        match request
+            .parse(&handshake[..handshake_bytes])
+            .map_err(|error| error.to_string())?
+        {
+            httparse::Status::Partial => continue,
+            httparse::Status::Complete(used) if used == handshake_bytes => {
+                if request.path != Some("/conduit") {
+                    return Err("unexpected WebSocket resource path".into());
+                }
+                let context = embedded_websocket::read_http_header(
+                    request
+                        .headers
+                        .iter()
+                        .map(|header| (header.name, header.value)),
+                )
+                .map_err(|error| error.to_string())?
+                .ok_or_else(|| "request did not offer WebSocket upgrade".to_owned())?;
+                break context;
+            }
+            httparse::Status::Complete(_) => {
+                return Err("upgrade request carried trailing bytes".into());
+            }
+        }
+    };
+    let mut websocket = WebSocketServer::new_server();
+    let response_bytes = websocket
+        .server_accept(&context.sec_websocket_key, None, &mut handshake)
         .map_err(|error| error.to_string())?;
-    if request != REQUEST {
-        return Err(format!("unexpected request: {request:?}"));
+    tls.write_all(&handshake[..response_bytes])
+        .map_err(|error| error.to_string())?;
+    tls.flush().map_err(|error| error.to_string())?;
+
+    let mut frame = [0; 4096];
+    let mut frame_bytes = 0;
+    let mut request = [0; REQUEST.len()];
+    loop {
+        let count = tls
+            .read(&mut frame[frame_bytes..])
+            .map_err(|error| error.to_string())?;
+        if count == 0 || frame_bytes + count == frame.len() {
+            return Err("bounded WebSocket request frame was incomplete".into());
+        }
+        frame_bytes += count;
+        match websocket.read(&frame[..frame_bytes], &mut request) {
+            Ok(result) => {
+                if result.message_type != WebSocketReceiveMessageType::Binary
+                    || !result.end_of_message
+                    || result.len_from != frame_bytes
+                    || result.len_to != REQUEST.len()
+                    || request != REQUEST
+                {
+                    return Err("unexpected WebSocket request frame".into());
+                }
+                break;
+            }
+            Err(embedded_websocket::Error::ReadFrameIncomplete) => {}
+            Err(error) => return Err(error.to_string()),
+        }
     }
-    tls.write_all(RESPONSE).map_err(|error| error.to_string())?;
+    let frame_bytes = websocket
+        .write(WebSocketSendMessageType::Binary, true, RESPONSE, &mut frame)
+        .map_err(|error| error.to_string())?;
+    tls.write_all(&frame[..frame_bytes])
+        .map_err(|error| error.to_string())?;
     tls.flush().map_err(|error| error.to_string())?;
     tls.conn.send_close_notify();
     tls.flush().map_err(|error| error.to_string())?;

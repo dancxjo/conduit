@@ -33,7 +33,7 @@ pub fn run(record: &BootRecord, identities: BootIdentities) -> ! {
         Ok(source) => source,
         Err(error) => refuse(error.as_str()),
     };
-    let mut entropy = match CryptographicEntropyBase::<_, 1>::admit(source) {
+    let mut entropy = match CryptographicEntropyBase::<_, 2>::admit(source) {
         Ok(entropy) => entropy,
         Err(error) => refuse(error.as_str()),
     };
@@ -43,9 +43,14 @@ pub fn run(record: &BootRecord, identities: BootIdentities) -> ! {
             tcp_bytes.copy_from_slice(&secret[..8]);
             let tcp_seed = u64::from_le_bytes(tcp_bytes);
             let mut tls_seed = [0; 32];
-            tls_seed.copy_from_slice(&secret[8..]);
+            tls_seed.copy_from_slice(&secret[8..40]);
             (tcp_seed, tls_seed, receipt)
         }) {
+            Ok(value) => value,
+            Err(error) => refuse(error.as_str()),
+        };
+    let (websocket_seed, websocket_entropy_receipt) =
+        match entropy.with_secret::<32, _>(|secret, receipt| (*secret, receipt)) {
             Ok(value) => value,
             Err(error) => refuse(error.as_str()),
         };
@@ -54,6 +59,7 @@ pub fn run(record: &BootRecord, identities: BootIdentities) -> ! {
         device,
         tcp_seed,
         tls_seed,
+        websocket_seed,
         VirtioTcpEndpoint {
             guest_address: [10, 0, 2, 15],
             prefix_length: 24,
@@ -77,7 +83,7 @@ pub fn run(record: &BootRecord, identities: BootIdentities) -> ! {
     let mut sign = FixedText::new();
     if writeln!(
         sign,
-        "CONDUIT_VIRTIO_NET_SIGN {{\"schema\":\"conduit.conduitos/virtio-tls-proof@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"device\":\"virtio-net-pci-transitional\",\"bdf\":\"{:02x}:{:02x}.{}\",\"mac\":\"{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}\",\"provider_generation\":{},\"entropy_provider_generation\":{},\"entropy_requests\":{},\"entropy_bytes\":40,\"queue_entries\":256,\"queue_dma_bytes\":24576,\"frame_buffer_bytes\":4096,\"static_dma_bytes\":32768,\"tcp_rx_bytes\":4096,\"tcp_tx_bytes\":4096,\"tls_record_rx_bytes\":4096,\"tls_record_tx_bytes\":4096,\"tcp_polls\":{},\"plaintext_transmitted_bytes\":{},\"plaintext_received_bytes\":{},\"remote_ip\":\"10.0.2.100\",\"remote_port\":9000,\"server_name\":\"relay.conduit.invalid\",\"certificate_sha256\":\"b58b58d2cfc273d464dd6dfaa5eacc8d5b0b404b236839af0360f78caebe7648\",\"tcp_claimed\":true,\"tls_claimed\":true,\"websocket_claimed\":false,\"bounded\":true}}",
+        "CONDUIT_VIRTIO_NET_SIGN {{\"schema\":\"conduit.conduitos/virtio-websocket-proof@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"device\":\"virtio-net-pci-transitional\",\"bdf\":\"{:02x}:{:02x}.{}\",\"mac\":\"{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}\",\"provider_generation\":{},\"entropy_provider_generation\":{},\"entropy_requests\":{},\"entropy_bytes\":72,\"queue_entries\":256,\"queue_dma_bytes\":24576,\"frame_buffer_bytes\":4096,\"static_dma_bytes\":32768,\"tcp_rx_bytes\":4096,\"tcp_tx_bytes\":4096,\"tls_record_rx_bytes\":4096,\"tls_record_tx_bytes\":4096,\"websocket_handshake_bytes\":1024,\"websocket_frame_bytes\":4096,\"tcp_polls\":{},\"plaintext_transmitted_bytes\":{},\"plaintext_received_bytes\":{},\"remote_ip\":\"10.0.2.100\",\"remote_port\":9000,\"server_name\":\"relay.conduit.invalid\",\"websocket_path\":\"/conduit\",\"certificate_sha256\":\"b58b58d2cfc273d464dd6dfaa5eacc8d5b0b404b236839af0360f78caebe7648\",\"tcp_claimed\":true,\"tls_claimed\":true,\"websocket_claimed\":true,\"bounded\":true}}",
         identity.bus,
         identity.device,
         identity.function,
@@ -89,7 +95,7 @@ pub fn run(record: &BootRecord, identities: BootIdentities) -> ! {
         identity.mac[5],
         identity.provider_generation,
         entropy_receipt.provider.provider_generation,
-        entropy_receipt.request_index,
+        websocket_entropy_receipt.request_index,
         receipt.tcp_polls,
         receipt.transmitted_plaintext_bytes,
         receipt.received_plaintext_bytes,
