@@ -349,6 +349,17 @@ pub(super) fn execute_isolation_proof(opts: &GlobalOpts) -> Result<BuildRecord, 
     )
 }
 
+pub(super) fn execute_virtio_net_proof(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    execute_with_features(
+        ConduitosArch::X86_64,
+        opts,
+        &["virtio-net-proof"],
+        None,
+        ArtifactRole::ArchitectureProofAppliance,
+        None,
+    )
+}
+
 #[derive(Clone, Copy)]
 struct ProfileFabrication<'a> {
     generated: &'a Path,

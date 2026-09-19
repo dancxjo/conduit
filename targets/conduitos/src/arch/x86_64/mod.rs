@@ -22,6 +22,8 @@ mod ps2;
 mod reboot;
 mod serial;
 mod usb;
+mod virtio_net;
+mod virtio_net_pci;
 mod xhci;
 
 pub use cpu::{boot_entropy, deterministic_exit, feature_basis};
@@ -55,6 +57,7 @@ pub use usb::{
     UsbDevice, enumerate_attached_at_epochs, enumerate_one as enumerate_usb,
     enumerate_one_at_epoch, retire_removed_device, wait_for_attachment_state,
 };
+pub use virtio_net::{VirtioNetError, VirtioNetIdentity, VirtioNetReady, initialize_virtio_net};
 pub use xhci::{XhciReady, initialize_xhci};
 
 pub const TIMER_IRQ_VECTOR: u8 = 0x20;

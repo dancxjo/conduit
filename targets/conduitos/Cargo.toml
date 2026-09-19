@@ -175,6 +175,7 @@ scripted-keyboard-proof = []
 native-compositor = ["dep:fontdue"]
 native-http-client = []
 conduitos-isolation-proof = []
+virtio-net-proof = []
 ps2-input = []
 # Proof-appliance selectors. Every selected entrypoint lives under the explicit
 # proof/appliances tree and remains absent from an ordinary product build.

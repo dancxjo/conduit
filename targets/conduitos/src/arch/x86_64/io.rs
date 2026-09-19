@@ -25,6 +25,18 @@ pub(super) unsafe fn outl(port: u16, value: u32) {
 }
 
 #[inline]
+pub(super) unsafe fn outw(port: u16, value: u16) {
+    unsafe {
+        asm!(
+            "out dx, ax",
+            in("dx") port,
+            in("ax") value,
+            options(nostack, nomem, preserves_flags)
+        );
+    }
+}
+
+#[inline]
 pub(super) unsafe fn inl(port: u16) -> u32 {
     let value: u32;
     unsafe {
@@ -46,6 +58,20 @@ pub(super) unsafe fn inb(port: u16) -> u8 {
             "in al, dx",
             in("dx") port,
             out("al") value,
+            options(nostack, nomem, preserves_flags)
+        );
+    }
+    value
+}
+
+#[inline]
+pub(super) unsafe fn inw(port: u16) -> u16 {
+    let value: u16;
+    unsafe {
+        asm!(
+            "in ax, dx",
+            in("dx") port,
+            out("ax") value,
             options(nostack, nomem, preserves_flags)
         );
     }

@@ -93,6 +93,7 @@ mod target_lowering;
 mod timing_profile;
 mod usb_proof;
 mod usb_run;
+mod virtio_net_proof;
 mod x86_64_product_boot;
 mod xhci_proof;
 
@@ -177,6 +178,8 @@ enum ConduitosCommand {
     Opl2Proof,
     /// Prove one x86_64 ring-3 protection domain and exact kernel capability gate.
     IsolationProof,
+    /// Prove one real fixed-ring VirtIO-net exchange with the QEMU gateway.
+    VirtioNetProof,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -520,6 +523,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::RescueProof(args) => rescue_proof::execute(args.prepared_image, opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
         ConduitosCommand::IsolationProof => isolation_proof::execute(opts),
+        ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }
 }
 
