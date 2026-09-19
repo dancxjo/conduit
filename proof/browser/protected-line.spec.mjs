@@ -1,4 +1,7 @@
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { readFile } from "node:fs/promises";
+import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 const vector = JSON.parse(await readFile(
@@ -6,7 +9,7 @@ const vector = JSON.parse(await readFile(
   "utf8",
 ));
 
-test("browser and std protected Lines interoperate through an inspecting relay", async ({ page }) => {
+test("browser WASM matches the native protected-Line vector", async ({ page }) => {
   await page.goto("/proof/browser/signal-dom-host.test.html");
   const result = await page.evaluate(async (vector) => {
     const response = await fetch("/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm");
@@ -280,4 +283,116 @@ test("two outbound browser clients carry one end-to-end protected session throug
     erased: true,
     explicitlyClosed: true,
   });
+});
+
+test("Chromium and native std interoperate through an inspecting relay", async ({ page }) => {
+  const peer = spawn("target/debug/protected-line-browser-peer", [], {
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const exit = once(peer, "exit");
+  const errors = [];
+  peer.stderr.setEncoding("utf8");
+  peer.stderr.on("data", (chunk) => errors.push(chunk));
+  const lines = createInterface({ input: peer.stdout })[Symbol.asyncIterator]();
+  const relayFrames = [];
+  const forwardToNative = (bytes) => {
+    const frame = Buffer.from(bytes);
+    relayFrames.push(frame);
+    peer.stdin.write(`${frame.toString("hex")}\n`);
+  };
+  const forwardToBrowser = async () => {
+    const next = await lines.next();
+    if (next.done) throw new Error(`native peer ended before its frame: ${errors.join("")}`);
+    const frame = Buffer.from(next.value, "hex");
+    relayFrames.push(frame);
+    return [...frame];
+  };
+
+  try {
+    await page.goto("/proof/browser/signal-dom-host.test.html");
+    const firstHandshake = await page.evaluate(async () => {
+      const wasm = await (await fetch("/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm")).arrayBuffer();
+      const { instance: { exports: api } } = await WebAssembly.instantiate(wasm, {});
+      const binding = {
+        initiator: { host_id: "host/browser/one", boot_id: "boot/browser/one" },
+        responder: { host_id: "host/native/two", boot_id: "boot/native/two" },
+        negotiation_id: "negotiation/browser-native",
+        line_session_id: "line/browser-native",
+        candidate_binding: "route/browser-native",
+        transport_binding: "relay/inspecting-proof@1",
+      };
+      const encodedBinding = new TextEncoder().encode(JSON.stringify(binding));
+      const input = new Uint8Array(api.memory.buffer, api.conduit_browser_protected_line_input_ptr());
+      input.set(encodedBinding);
+      input.fill(8, encodedBinding.length, encodedBinding.length + 32);
+      input.fill(4, encodedBinding.length + 32, encodedBinding.length + 64);
+      if (api.conduit_browser_protected_line_initialize(0, encodedBinding.length, 256, 8, 0, 2_048, 0) !== 0) {
+        throw new Error("browser initiator refused initialization");
+      }
+      const secretsErased = new Uint8Array(api.memory.buffer, api.conduit_browser_protected_line_input_ptr())
+        .slice(encodedBinding.length, encodedBinding.length + 64)
+        .every((byte) => byte === 0);
+      if (api.conduit_browser_protected_line_write_handshake() !== 0) {
+        throw new Error("browser initiator refused its handshake");
+      }
+      const output = new Uint8Array(
+        api.memory.buffer,
+        api.conduit_browser_protected_line_output_ptr(),
+        api.conduit_browser_protected_line_output_len(),
+      );
+      globalThis.protectedLineInterop = { api, secretsErased };
+      return [...output];
+    });
+    forwardToNative(firstHandshake);
+    const secondHandshake = await forwardToBrowser();
+    const browserProtected = await page.evaluate((handshake) => {
+      const { api } = globalThis.protectedLineInterop;
+      const input = new Uint8Array(api.memory.buffer, api.conduit_browser_protected_line_input_ptr());
+      input.set(handshake);
+      if (api.conduit_browser_protected_line_read_handshake(handshake.length) !== 0) {
+        throw new Error("browser initiator refused native handshake");
+      }
+      const plaintext = new TextEncoder().encode("browser-to-native secret");
+      input.set(plaintext);
+      if (api.conduit_browser_protected_line_seal(plaintext.length) !== 0) {
+        throw new Error("browser initiator refused protected payload");
+      }
+      return [...new Uint8Array(
+        api.memory.buffer,
+        api.conduit_browser_protected_line_output_ptr(),
+        api.conduit_browser_protected_line_output_len(),
+      )];
+    }, secondHandshake);
+    forwardToNative(browserProtected);
+    const nativeProtected = await forwardToBrowser();
+    const result = await page.evaluate((frame) => {
+      const { api, secretsErased } = globalThis.protectedLineInterop;
+      const input = new Uint8Array(api.memory.buffer, api.conduit_browser_protected_line_input_ptr());
+      input.set(frame);
+      if (api.conduit_browser_protected_line_open(frame.length) !== 0) {
+        throw new Error("browser initiator refused native protected response");
+      }
+      const plaintext = new TextDecoder().decode(new Uint8Array(
+        api.memory.buffer,
+        api.conduit_browser_protected_line_output_ptr(),
+        api.conduit_browser_protected_line_output_len(),
+      ));
+      const closed = api.conduit_browser_protected_line_close();
+      delete globalThis.protectedLineInterop;
+      return { plaintext, closed, secretsErased };
+    }, nativeProtected);
+    peer.stdin.end();
+    const [code, signal] = await exit;
+    expect({ code, signal, errors: errors.join("") }).toEqual({ code: 0, signal: null, errors: "" });
+    expect(result).toEqual({
+      plaintext: "native-to-browser secret",
+      closed: 0,
+      secretsErased: true,
+    });
+    expect(relayFrames).toHaveLength(4);
+    expect(relayFrames.some((frame) => frame.includes(Buffer.from("browser-to-native secret")))).toBe(false);
+    expect(relayFrames.some((frame) => frame.includes(Buffer.from("native-to-browser secret")))).toBe(false);
+  } finally {
+    if (peer.exitCode === null) peer.kill("SIGTERM");
+  }
 });
