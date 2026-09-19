@@ -78,6 +78,7 @@ export default defineConfig({
     "home-host.spec.mjs",
     "home-cross-front.spec.mjs",
     "webrtc-datachannel-line.spec.mjs",
+    "protected-line.spec.mjs",
   ],
   fullyParallel: false,
   workers: 1,
