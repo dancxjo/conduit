@@ -21,6 +21,7 @@ pub enum BrowserWebRtcDescription {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BrowserWebRtcSignal {
+    pub generation: u32,
     pub negotiation_id: LinkBindingId,
     pub description: BrowserWebRtcDescription,
     pub session_hello: Vec<u8>,

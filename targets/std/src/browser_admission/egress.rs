@@ -36,10 +36,7 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
             generation,
             plan_id,
         } => {
-            if *generation == 0
-                || *generation >= MAX_WEBRTC_GRANT_GENERATIONS
-                || plan_id.as_str().is_empty()
-            {
+            if *generation == 0 || plan_id.as_str().is_empty() {
                 return Err(BrowserAdmissionFrameError::InvalidGrant);
             }
             protocol
@@ -52,13 +49,12 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
         }
         BrowserAdmissionEgress::WebRtcGrant {
             protocol,
-            generation,
             index,
             total,
             grant,
+            ..
         } => {
-            if *generation >= MAX_WEBRTC_GRANT_GENERATIONS
-                || usize::from(*index) >= MAX_WEBRTC_NEGOTIATIONS
+            if usize::from(*index) >= MAX_WEBRTC_NEGOTIATIONS
                 || usize::from(*total) > MAX_WEBRTC_NEGOTIATIONS
                 || grant.is_some() != (*index < *total)
             {

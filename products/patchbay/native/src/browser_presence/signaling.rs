@@ -364,6 +364,7 @@ mod tests {
             target_host_id: sink.host_id.clone(),
             target_boot_id: sink.boot_id.clone(),
             signal: BrowserWebRtcSignal {
+                generation: 0,
                 negotiation_id: LinkBindingId::from("binding/native-rendezvous"),
                 description: BrowserWebRtcDescription::Offer,
                 session_hello,

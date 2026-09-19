@@ -36,7 +36,7 @@ The classifications are:
 | Kernel Cord/value queues | Planned item and byte capacity | B | Dequeue/ack retires occupancy; atomic fan-out must still refuse genuine pressure without partial delivery. | kernel queue, fan-out, and long-session tests | classified correct |
 | Bounded Line transcripts | Fixed retained item/byte history plus gap | D | Old retention may be superseded only with explicit gap evidence; active Line delivery capacity is separate. | multihost transcript evidence and retention-gap tests | classified correct |
 | Browser WebRTC sessions | Four current/creating sessions and four pending signals | B | These are simultaneous bounds; closed sessions release their slots. | #3609 / #3619 session lifecycle proof | classified correct |
-| Browser WebRTC grant generations and retired negotiation set | Two lifetime generations; unbounded retired identities | A/D/E | Replace the two-replan quota with bounded reusable generation fencing and bounded stale-negotiation evidence; never trade it for unbounded history. | #3609 audit comment | confirmed, owned |
+| Browser WebRTC grant generations and retired negotiation set | `u32` generation plus one retirement-batch count | A/D/E | Signals carry their exact generation, stale generations are rejected, and retirement retains only a bounded count rather than identities. The native provider still requires a replacement Plan before it can issue a nonzero generation. | #3609; 100,000 browser replans, stale-generation rejection, and pinned-browser session proof | corrected locally / broader owner open |
 | Timers and interval sources | Concurrent arms plus typed tick/value domains | B/E | Completion releases an arm; checked tick/value overflow remains real. Proof fixture tick counts do not constrain production lifetime. | timer nucleus and standing timer tests | classified correct |
 | Audio synthesis/playback buffers | Fixed frames, voices, channels, and interval output | B/C | Frames are reused per interval; voice/channel saturation is simultaneous; authored render lengths remain transaction bounds. | synth/OPL2/PC-speaker stress and cancellation tests | classified correct |
 | Camera/image resources | Planned frame byte/item bounds and current-frame ownership | B/C | Frame storage is reusable after consumer retirement; typed dimensions and one-frame payload size remain semantic resource bounds. | browser camera realization tests; #3551 owns continuous Vision expansion | classified / owner open |
@@ -55,7 +55,7 @@ remain governed by classes E and F; they are not candidates merely because
 they are finite.
 
 The audit remains open while its owner issues are not admitted to `dev` and
-the WebRTC generation/retention defect remains unresolved. Closing the owner
+the native WebRTC replacement-Plan path remains unresolved. Closing the owner
 issue requires refreshing this ledger against the then-current tree and
 rerunning its cited stresses; local commits or a larger constant are not
 completion.
