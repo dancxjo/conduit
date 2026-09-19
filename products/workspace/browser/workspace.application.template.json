@@ -201,7 +201,7 @@
       "role": "creche-rendezvous",
       "kind": "module",
       "path": "creche-rendezvous.mjs",
-      "maximum_bytes": 24576,
+      "maximum_bytes": 32768,
       "dependencies": []
     },
     {

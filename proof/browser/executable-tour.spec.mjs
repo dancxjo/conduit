@@ -1456,6 +1456,7 @@ test("a native Linux target produces an exact spore but refuses to execute an un
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
+  await runner.getByRole("button", { name: "Review Host" }).click();
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   const hostedHandoff = runner.locator('[data-application-key="download-spore"]');
