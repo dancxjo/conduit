@@ -41,6 +41,17 @@ fn provisioning_creates_distinct_private_exact_descriptors_without_overwrite() {
         first["candidate"]["protected_session_psk"],
         second["candidate"]["protected_session_psk"]
     );
+    let now = now_millis().unwrap();
+    crate::host_rendezvous::validate_relay_endpoint_descriptor(
+        &output.join("endpoint-first.json"),
+        now,
+    )
+    .unwrap();
+    crate::host_rendezvous::validate_relay_endpoint_descriptor(
+        &output.join("endpoint-second.json"),
+        now,
+    )
+    .unwrap();
     assert!(provision(options()).unwrap_err().contains("already exists"));
     #[cfg(unix)]
     {

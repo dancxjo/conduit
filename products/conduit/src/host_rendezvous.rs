@@ -20,6 +20,8 @@ use crate::cli::RendezvousCarrier;
 mod secure;
 pub(crate) use secure::SecureNetworkOptions;
 mod relay;
+#[cfg(test)]
+pub(crate) use relay::validate_endpoint_descriptor as validate_relay_endpoint_descriptor;
 
 const PROTOCOL: u16 = 1;
 const MAXIMUM_FRAME_BYTES: usize = 96 * 1024;
