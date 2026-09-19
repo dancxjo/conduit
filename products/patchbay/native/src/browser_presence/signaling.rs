@@ -56,7 +56,7 @@ impl BrowserPresenceCoordinator {
         );
         response
             .send(WorkerResponse::WebRtcGrant {
-                generation,
+                generation: generation as u16,
                 index: grant_index,
                 total,
                 grant,
