@@ -45,12 +45,14 @@ export function openBrowserHumanInput({
   const pointerConsumers = new Set();
   let closed = false;
   let terminal = null;
+  let keyboardFailure = null;
+  let buttonFailure = null;
   let pointerSequence = 0;
   let buttonSequence = 0;
   let dropped = 0;
 
   const onKey = (event) => {
-    if (closed) return;
+    if (closed || keyboardFailure) return;
     const usage = browserKeyboardUsage(event.code);
     if (usage === null) return;
     // A document-wide adapter must leave ordinary browser controls operable
@@ -76,15 +78,15 @@ export function openBrowserHumanInput({
       if (keyboardWaiters.length > 0) keyboardWaiters.shift().resolve(transition);
       else {
         if (keyboardQueue.length >= maximumQueueItems) {
-          terminal = new BrowserInputRefusal("Pressure", "ordered keyboard queue is full");
+          keyboardFailure = new BrowserInputRefusal("Pressure", "ordered keyboard queue is full");
           keyboardQueue.length = 0;
-          while (keyboardWaiters.length) keyboardWaiters.shift().reject(terminal);
+          while (keyboardWaiters.length) keyboardWaiters.shift().reject(keyboardFailure);
           return;
         }
         keyboardQueue.push(transition);
       }
     } catch (error) {
-      terminal = error;
+      keyboardFailure = error;
       keyboardQueue.length = 0;
       while (keyboardWaiters.length) keyboardWaiters.shift().reject(error);
     }
@@ -99,8 +101,11 @@ export function openBrowserHumanInput({
       if (event.buttons !== 0 && event.buttons !== 1) {
         refuse("UnsupportedInput", "pointer buttons exceed the reviewed primary-button profile");
       }
-      const buttonForm = buttonActive ? routeInput?.("button", { pressed: event.type === "pointerdown" }) : null;
-      if (buttonActive && (!routeInput || buttonForm !== null)) {
+      const isButtonTransition = event.type === "pointerdown" || event.type === "pointerup";
+      const buttonForm = buttonActive && isButtonTransition
+        ? routeInput?.("button", { pressed: event.type === "pointerdown" })
+        : null;
+      if (buttonActive && isButtonTransition && !buttonFailure && (!routeInput || buttonForm !== null)) {
         const transition = Object.freeze({
           schema: "input/button-transition@1",
           pressed: event.type === "pointerdown",
@@ -110,8 +115,11 @@ export function openBrowserHumanInput({
         });
         if (buttonWaiters.length > 0) buttonWaiters.shift().resolve(transition);
         else {
-          if (buttonQueue.length >= maximumQueueItems) refuse("Pressure", "ordered button queue is full");
-          buttonQueue.push(transition);
+          if (buttonQueue.length >= maximumQueueItems) {
+            buttonFailure = new BrowserInputRefusal("Pressure", "ordered button queue is full");
+            buttonQueue.length = 0;
+            while (buttonWaiters.length) buttonWaiters.shift().reject(buttonFailure);
+          } else buttonQueue.push(transition);
         }
       }
       if (pointerConsumers.size === 0) return;
@@ -142,10 +150,10 @@ export function openBrowserHumanInput({
       dropped = 0;
       for (const consume of pointerConsumers) consume(value);
     } catch (error) {
-      if (buttonActive) {
-        terminal = error;
-        buttonQueue.length = 0;
-      }
+      terminal = error;
+      buttonQueue.length = 0;
+      keyboardQueue.length = 0;
+      while (keyboardWaiters.length) keyboardWaiters.shift().reject(error);
       while (buttonWaiters.length) buttonWaiters.shift().reject(error);
       for (const consume of pointerConsumers) consume(null, error);
     }
@@ -169,6 +177,7 @@ export function openBrowserHumanInput({
   target.addEventListener("keydown", onKey, true);
   target.addEventListener("keyup", onKey, true);
   target.addEventListener("pointerdown", onPointer, true);
+  target.addEventListener("pointermove", onPointer, true);
   target.addEventListener("pointerup", onPointer, true);
   const pageLost = () => end("PageLost");
   const focusLost = () => end("FocusLost");
@@ -189,7 +198,7 @@ export function openBrowserHumanInput({
     }),
     nextKeyboard() {
       requireSelected(admitted, KEYBOARD_IMPLEMENTATION);
-      if (closed || terminal) return Promise.reject(terminal ?? new BrowserInputRefusal("Cancelled", "browser input adapter is closed"));
+      if (closed || terminal || keyboardFailure) return Promise.reject(terminal ?? keyboardFailure ?? new BrowserInputRefusal("Cancelled", "browser input adapter is closed"));
       try {
         assertCurrent(owner, currentBoot());
         assertPageActive(target);
@@ -206,7 +215,7 @@ export function openBrowserHumanInput({
     },
     nextButton() {
       requireSelected(admitted, POINTER_IMPLEMENTATION);
-      if (closed || terminal) return Promise.reject(terminal ?? new BrowserInputRefusal("Cancelled", "browser input adapter is closed"));
+      if (closed || terminal || buttonFailure) return Promise.reject(terminal ?? buttonFailure ?? new BrowserInputRefusal("Cancelled", "browser input adapter is closed"));
       try {
         assertCurrent(owner, currentBoot());
         assertPageActive(target);
@@ -243,6 +252,7 @@ export function openBrowserHumanInput({
       target.removeEventListener("keydown", onKey, true);
       target.removeEventListener("keyup", onKey, true);
       target.removeEventListener("pointerdown", onPointer, true);
+      target.removeEventListener("pointermove", onPointer, true);
       target.removeEventListener("pointerup", onPointer, true);
       window.removeEventListener?.("pagehide", pageLost);
       window.removeEventListener?.("blur", focusLost);

@@ -20,7 +20,10 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
       if (inputKinds.has(placement.kind_id)) placementInputs.set(placement.placement_id, inputKinds.get(placement.kind_id));
     }
   }
-  const waiters = [], queued = [];
+  const waiters = [];
+  const queues = new Map();
+  const streamFailures = new Map();
+  const pressure = new Map();
   const heldKeys = new Array(256).fill(null);
   const pumping = new Set();
   let heldButton = null, input = null, terminal = null, stopPointer = null;
@@ -28,7 +31,7 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
     if (terminal) return;
     terminal = error;
     stopPointer?.();
-    queued.length = 0;
+    queues.clear();
     for (const waiter of waiters.splice(0)) { waiter.dispose(); waiter.reject(error); }
   };
   const selected = () => {
@@ -40,15 +43,105 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
     for (const [placement, inputKind] of placementInputs) if (inputKind === kind && placementForms.get(placement) === form) return true;
     return false;
   };
+  const streamKey = (kind, form) => `${kind}\u0000${form}`;
+  const streamPressure = (kind, form) => {
+    const key = streamKey(kind, form);
+    let state = pressure.get(key);
+    if (!state) {
+      state = { kind, form, capacity: kind === "pointer" ? 1 : 8, accepted: 0, delivered: 0, coalesced: 0, dropped: 0, refusals: 0 };
+      pressure.set(key, state);
+    }
+    return state;
+  };
+  const queueFor = (kind, form) => {
+    const key = streamKey(kind, form);
+    let queue = queues.get(key);
+    if (!queue) {
+      const capacity = streamPressure(kind, form).capacity;
+      queue = { items: new Array(capacity).fill(null), head: 0, length: 0 };
+      queues.set(key, queue);
+    }
+    return queue;
+  };
+  const clearQueue = (queue) => {
+    queue.items.fill(null);
+    queue.head = 0;
+    queue.length = 0;
+  };
+  const enqueue = (queue, event) => {
+    queue.items[(queue.head + queue.length) % queue.items.length] = event;
+    queue.length += 1;
+  };
+  const dequeue = (queue) => {
+    const event = queue.items[queue.head];
+    queue.items[queue.head] = null;
+    queue.head = (queue.head + 1) % queue.items.length;
+    queue.length -= 1;
+    return event;
+  };
+  const increment = (state, field, amount = 1) => {
+    const next = state[field] + amount;
+    if (!Number.isSafeInteger(next)) throw new BrowserInputRefusal("SequenceOverflow", "input pressure evidence overflowed");
+    state[field] = next;
+  };
+  const failStream = (kind, form, error) => {
+    const key = streamKey(kind, form);
+    streamFailures.set(key, error);
+    const queue = queues.get(key);
+    if (queue) clearQueue(queue);
+    increment(streamPressure(kind, form), "refusals");
+    for (let index = waiters.length - 1; index >= 0; index -= 1) {
+      const waiter = waiters[index];
+      if (waiter.kind !== kind || waiter.form !== form) continue;
+      waiters.splice(index, 1);
+      waiter.dispose();
+      waiter.reject(error);
+    }
+  };
+  const coalescePointer = (older, newer, state) => {
+    const add = (left, right) => {
+      const value = left + right;
+      if (!Number.isSafeInteger(value)) throw new BrowserInputRefusal("SequenceOverflow", "coalesced pointer evidence overflowed");
+      return value;
+    };
+    increment(state, "coalesced");
+    return Object.freeze({
+      ...newer,
+      delta_x: add(older.delta_x ?? 0, newer.delta_x ?? 0),
+      delta_y: add(older.delta_y ?? 0, newer.delta_y ?? 0),
+      coalesced: add(add(older.coalesced ?? 0, newer.coalesced ?? 0), 1),
+      dropped: add(older.dropped ?? 0, newer.dropped ?? 0),
+      queue_capacity: 1,
+    });
+  };
   const deliver = (kind, event) => {
     if (!formIds.has(event.delivery_form)) throw new BrowserInputRefusal("StaleForm", "input lacks its captured Form identity");
+    const form = event.delivery_form;
+    const key = streamKey(kind, form);
+    if (streamFailures.has(key)) return;
+    const state = streamPressure(kind, form);
+    increment(state, "accepted");
+    if (kind === "pointer") {
+      increment(state, "coalesced", event.coalesced ?? 0);
+      increment(state, "dropped", event.dropped ?? 0);
+    }
     const index = waiters.findIndex(waiter => waiter.kind === kind && waiter.form === event.delivery_form);
     if (index >= 0) {
       const waiter = waiters.splice(index, 1)[0];
+      increment(state, "delivered");
       waiter.dispose(); waiter.resolve(event);
     } else {
-      if (queued.length === 8) throw new BrowserInputRefusal("Pressure", "foreground input queue capacity exhausted");
-      queued.push({ kind, event });
+      const queue = queueFor(kind, form);
+      if (kind === "pointer" && queue.length === 1) {
+        try { queue.items[queue.head] = coalescePointer(queue.items[queue.head], event, state); }
+        catch (error) { failStream(kind, form, error); }
+        return;
+      }
+      if (queue.length === state.capacity) {
+        failStream(kind, form, new BrowserInputRefusal("Pressure", `ordered ${kind} stream capacity exhausted`));
+        return;
+      }
+      enqueue(queue, event);
     }
   };
   const pump = async kind => {
@@ -107,8 +200,15 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
         return Promise.reject(new BrowserInputRefusal("DuplicateRequest", "Body input placement already has a pending request"));
       }
       const form = placementForms.get(placement);
-      const index = queued.findIndex(item => item.kind === kind && item.event.delivery_form === form);
-      if (index >= 0) return Promise.resolve(queued.splice(index, 1)[0].event);
+      const key = streamKey(kind, form);
+      const failed = streamFailures.get(key);
+      if (failed) return Promise.reject(failed);
+      const queue = queues.get(key);
+      if (queue?.length) {
+        const event = dequeue(queue);
+        increment(streamPressure(kind, form), "delivered");
+        return Promise.resolve(event);
+      }
       if (waiters.length === 16) {
         return Promise.reject(new BrowserInputRefusal("Pressure", "Body input pending request capacity exceeded"));
       }
@@ -124,6 +224,13 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
       });
       void pump(kind);
       return pending;
+    },
+    pressure() {
+      return Object.freeze([...pressure.values()].map(state => Object.freeze({
+        ...state,
+        occupancy: queues.get(streamKey(state.kind, state.form))?.length ?? 0,
+        terminal: streamFailures.get(streamKey(state.kind, state.form))?.code ?? null,
+      })));
     },
     close() { fail(new BrowserInputRefusal("Cancelled", "Body input routing closed")); },
   });
