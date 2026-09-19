@@ -63,8 +63,11 @@ pub extern "C" fn conduit_browser_body_start(length: usize) -> i32 {
             }
             STATUS_READY
         }
-        Err(message) => {
-            let _ = write_output(&super::super::refusal(message));
+        Err(error) => {
+            let _ = write_output(&super::super::protocol::refusal_with_rejections(
+                error.message,
+                error.rejections,
+            ));
             ERROR_PREPARE
         }
     }

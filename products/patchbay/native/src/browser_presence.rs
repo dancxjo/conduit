@@ -480,7 +480,7 @@ fn spawn_worker(
                 if socket
                     .send(&BrowserAdmissionEgress::WebRtcGrant {
                         protocol: BROWSER_ADMISSION_PROTOCOL,
-                        generation,
+                        generation: generation.into(),
                         index,
                         total,
                         grant,

@@ -287,6 +287,9 @@ dependencies = [
 [[package]]
 name = "conduit-assigned-plan"
 version = "0.1.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "conduit-audio"
@@ -588,7 +591,6 @@ dependencies = [
  "conduit-signal",
  "conduit-text",
  "conduit-time",
- "conduit-tongues",
  "conduit-web",
 ]
 
@@ -609,25 +611,6 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "serde",
-]
-
-[[package]]
-name = "conduit-tongues"
-version = "0.1.0"
-dependencies = [
- "conduit-ai",
- "conduit-audio",
- "conduit-core",
- "conduit-data",
- "conduit-form",
- "conduit-kernel",
- "conduit-plan-lowering",
- "conduit-planner",
- "conduit-semantic-catalog",
- "conduit-text",
- "serde",
- "serde_json",
- "sha2",
 ]
 
 [[package]]

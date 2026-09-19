@@ -306,7 +306,7 @@ pub(super) fn execute_piper_cancellable<'a>(
         }
     } else {
         let segment = streaming
-            .then(|| serde_json::from_slice::<conduit_tongues::SpeakableSegment>(input))
+            .then(|| conduit_tongues::decode_speakable_segment(input))
             .transpose()
             .map_err(|_| crate::hosted_speech::PiperFailure::InvalidText)?;
         let text = match &segment {

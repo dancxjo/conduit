@@ -4,6 +4,7 @@ use conduit_semantic_catalog::NormalizedPointerSample;
 use core::ptr::{read_volatile, write_volatile};
 
 use super::{
+    hid_transfer_ring::{TransferPosition, publish},
     usb::{UsbDevice, descriptor::UsbEndpoint, dma::device_dma_pointer, select_boot_protocol},
     xhci::{Event, XhciError, XhciReady},
 };
@@ -13,6 +14,7 @@ use super::{
 pub const POINTER_REPORT_BYTES: usize = 4;
 pub const POINTER_REPORT_BUFFERS: usize = 2;
 pub const POINTER_TRANSFER_TRBS: usize = 64;
+pub const POINTER_TRANSFER_REPORT_SLOTS: usize = POINTER_TRANSFER_TRBS - 1;
 pub const POINTER_QUEUE_CAPACITY: u64 = 2;
 pub const POINTER_DELTA_SCALE: i64 = 4_000;
 pub const POINTER_POLL_WINDOWS: u16 = 1_024;
@@ -165,15 +167,23 @@ impl HidPointerSession {
         self.sequence
     }
 
+    pub const fn physical_transfers(&self) -> usize {
+        self.next_transfer
+    }
+
+    pub const fn ring_wraps(&self) -> usize {
+        self.next_transfer / POINTER_TRANSFER_REPORT_SLOTS
+    }
+
     pub fn receive(
         &mut self,
         controller: &mut XhciReady,
         device: &UsbDevice,
     ) -> Result<NormalizedPointerSample, HidPointerError> {
-        if self.next_transfer >= POINTER_TRANSFER_TRBS {
-            return Err(HidPointerError::TransferOverflow);
-        }
         let index = self.next_transfer;
+        let next_transfer = index
+            .checked_add(1)
+            .ok_or(HidPointerError::TransferOverflow)?;
         submit_report(controller, device, self.ready, index)?;
         let report = unsafe { POINTER_DMA.reports[index % POINTER_REPORT_BUFFERS] };
         let sample = apply_report(self.position_x, self.position_y, self.sequence, report)?;
@@ -181,7 +191,7 @@ impl HidPointerSession {
         self.position_y = sample.position_y;
         self.primary_pressed = sample.primary_pressed;
         self.sequence = sample.sequence;
-        self.next_transfer += 1;
+        self.next_transfer = next_transfer;
         Ok(sample)
     }
 }
@@ -345,21 +355,28 @@ fn submit_report(
     index: usize,
 ) -> Result<(), HidPointerError> {
     let ring = ready.dma_physical + core::mem::offset_of!(PointerDma, transfer_ring) as u64;
-    let report_slot = index % POINTER_REPORT_BUFFERS;
-    let buffer = ready.dma_physical
-        + core::mem::offset_of!(PointerDma, reports) as u64
-        + (report_slot * POINTER_REPORT_BYTES) as u64;
-    unsafe {
-        write_volatile(
-            core::ptr::addr_of_mut!(POINTER_DMA.transfer_ring[index]),
-            [
-                buffer as u32,
-                (buffer >> 32) as u32,
-                POINTER_REPORT_BYTES as u32,
-                (1 << 10) | (1 << 5) | 1,
-            ],
-        );
+    let position =
+        TransferPosition::at(index, POINTER_TRANSFER_REPORT_SLOTS, POINTER_REPORT_BUFFERS);
+    let reports = ready.dma_physical + core::mem::offset_of!(PointerDma, reports) as u64;
+    if index == 0 || position.slot == POINTER_TRANSFER_REPORT_SLOTS - 1 {
+        publish(position.link(ring), |word, value| unsafe {
+            write_volatile(
+                core::ptr::addr_of_mut!(
+                    POINTER_DMA.transfer_ring[POINTER_TRANSFER_REPORT_SLOTS][word]
+                ),
+                value,
+            );
+        });
     }
+    publish(
+        position.normal(reports, POINTER_REPORT_BYTES),
+        |word, value| unsafe {
+            write_volatile(
+                core::ptr::addr_of_mut!(POINTER_DMA.transfer_ring[position.slot][word]),
+                value,
+            );
+        },
+    );
     controller.ring_endpoint(device.slot, ready.endpoint_dci);
     let mut completed = None;
     let mut retired_relinquished_completion = false;
@@ -392,7 +409,7 @@ fn submit_report(
         completed.ok_or(HidPointerError::TransferTimeout)?,
         device.slot,
         ready.endpoint_dci,
-        ring + (index * 16) as u64,
+        ring + (position.slot * 16) as u64,
     )?;
     ensure_present(controller.port_status(device.root_port))
 }

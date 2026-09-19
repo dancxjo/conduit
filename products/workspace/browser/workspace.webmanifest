@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "Conduit Workspace",
+  "short_name": "Conduit",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101114",
+  "theme_color": "#101114",
+  "icons": [
+    {
+      "src": "workspace-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "share-body-invitation",
+    "method": "POST",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "text": "body-invitation"
+    }
+  }
+}

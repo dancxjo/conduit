@@ -2,7 +2,7 @@
 
 use crate::cli::HostServiceCommand;
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_std_host::{StdHost, StdHostConfig};
+use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -23,8 +23,10 @@ const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 mod invitation;
 #[path = "durable_host_membership.rs"]
 mod membership;
+#[path = "durable_host_voice.rs"]
+mod voice;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
-pub(crate) use membership::complete_body_join;
+pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
 
 #[derive(Debug, Deserialize)]
 struct ReleaseManifest {
@@ -84,6 +86,35 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
         }),
         HostServiceCommand::Run { state_dir } => run(&state_dir),
         HostServiceCommand::Status { state_dir, json } => status(&state_dir, json),
+        HostServiceCommand::ConfigureVoice {
+            state_dir,
+            whisper_executable,
+            whisper_model,
+            whisper_threads,
+            whisper_timeout_seconds,
+            ollama_model,
+            admitted_memory_mib,
+            piper_executable,
+            piper_model,
+            piper_config,
+            piper_library_path,
+            piper_timeout_seconds,
+            authorize_local_voice,
+        } => voice::configure(
+            &state_dir,
+            whisper_executable,
+            whisper_model,
+            whisper_threads,
+            whisper_timeout_seconds,
+            ollama_model,
+            admitted_memory_mib,
+            piper_executable,
+            piper_model,
+            piper_config,
+            piper_library_path,
+            piper_timeout_seconds,
+            authorize_local_voice,
+        ),
         HostServiceCommand::OwnBody {
             evidence,
             state_dir,
@@ -292,11 +323,17 @@ fn prepare_runtime(
 > {
     let installation = read_installation(&state_dir.join("installation.json"))?;
     let boot_id = fresh_identity("boot/installed", &installation.host_id);
-    let host = StdHost::new_with_config(StdHostConfig {
+    let config = StdHostConfig {
         host_id: HostId::from(installation.host_id.as_str()),
         boot_id: BootId::from(boot_id.as_str()),
         offer_generation: OfferGeneration(1),
-    });
+    };
+    let host = match voice::load(state_dir)? {
+        Some(providers) => {
+            StdHost::new_with_voice_providers(config, StdHostComposition::reference(), providers)?
+        }
+        None => StdHost::new_with_config(config),
+    };
     let status = RuntimeStatus {
         schema: RUNTIME_SCHEMA.into(),
         host_id: host.advertisement().host_id.as_str().into(),
@@ -649,17 +686,36 @@ fn systemd_exec_argument(path: &Path) -> Result<String, String> {
 #[cfg(target_os = "linux")]
 fn activate_service(state_dir: &Path) -> Result<(), String> {
     let unit = state_dir.join("conduit-host.service");
-    let link = std::process::Command::new("systemctl")
-        .args(["--user", "link"])
-        .arg(&unit)
-        .status()
-        .map_err(|error| format!("link durable Host user service: {error}"))?;
-    if !link.success() {
-        return Err(format!(
-            "installation is verified at {}, but linking durable startup failed with {link}",
-            state_dir.display()
-        ));
+    let first_link = link_linux_user_service(&unit)?;
+    if !first_link.status.success() {
+        // A previous Conduit installation may already own the stable user-unit
+        // name. systemctl disable is the documented inverse of link, so retire
+        // that stale activation before pointing the name at this newly verified
+        // installation. Installation remains recoverable if systemd itself
+        // cannot complete the handoff.
+        let retire = std::process::Command::new("systemctl")
+            .args(["--user", "disable", "--now", "conduit-host.service"])
+            .status()
+            .map_err(|error| format!("retire previous durable Host user service: {error}"))?;
+        let second_link = link_linux_user_service(&unit)?;
+        if !second_link.status.success() {
+            let initial_detail = String::from_utf8_lossy(&first_link.stderr);
+            let replacement_detail = String::from_utf8_lossy(&second_link.stderr);
+            return Err(format!(
+                "installation is verified at {}, but durable startup handoff failed: initial link {} ({}), retire {retire}, replacement link {} ({})",
+                state_dir.display(),
+                first_link.status,
+                initial_detail.trim(),
+                second_link.status,
+                replacement_detail.trim(),
+            ));
+        }
+        println!(
+            "replaced the previous Conduit user-service link with {}",
+            unit.display()
+        );
     }
+
     let start = std::process::Command::new("systemctl")
         .args(["--user", "enable", "--now", "conduit-host.service"])
         .status()
@@ -671,6 +727,15 @@ fn activate_service(state_dir: &Path) -> Result<(), String> {
         ));
     }
     Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn link_linux_user_service(unit: &Path) -> Result<std::process::Output, String> {
+    std::process::Command::new("systemctl")
+        .args(["--user", "link"])
+        .arg(unit)
+        .output()
+        .map_err(|error| format!("link durable Host user service: {error}"))
 }
 
 #[cfg(target_os = "macos")]

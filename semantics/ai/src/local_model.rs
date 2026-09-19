@@ -269,7 +269,11 @@ impl LocalModelOffer {
             target_kind: Some(contract.kind_id.clone()),
             maximum_in_flight: self.limits.maximum_in_flight,
             maximum_input_bytes: self.limits.work.maximum_input_bytes as u32,
-            maximum_output_bytes: self.limits.work.maximum_output_bytes as u32,
+            maximum_output_bytes: if profile == LocalModelKindProfile::StreamGenerate {
+                crate::MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES as u32
+            } else {
+                self.limits.work.maximum_output_bytes as u32
+            },
         };
         let mut resource_requirements = vec![
             resource_requirement(LOCAL_MODEL_MEMORY_RESOURCE, self.limits.admitted_memory_mib),

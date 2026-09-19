@@ -269,15 +269,15 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
         decode_browser_admission_frame(&serde_json::to_vec(&request).unwrap()),
         Ok(request.clone())
     );
-    let mut exhausted_generation = request.clone();
-    let BrowserAdmissionIngress::WebRtcGrantRequest { generation, .. } = &mut exhausted_generation
+    let mut maximum_generation = request.clone();
+    let BrowserAdmissionIngress::WebRtcGrantRequest { generation, .. } = &mut maximum_generation
     else {
         unreachable!()
     };
-    *generation = super::MAX_WEBRTC_GRANT_GENERATIONS;
+    *generation = u32::MAX;
     assert_eq!(
-        decode_browser_admission_frame(&serde_json::to_vec(&exhausted_generation).unwrap()),
-        Err(BrowserAdmissionFrameError::InvalidGrant)
+        decode_browser_admission_frame(&serde_json::to_vec(&maximum_generation).unwrap()),
+        Ok(maximum_generation)
     );
 
     let reply = BrowserAdmissionEgress::WebRtcGrant {
@@ -293,19 +293,14 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
         serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
         reply
     );
-    assert_eq!(
-        encode_browser_admission_frame(
-            &BrowserAdmissionEgress::WebRtcGrant {
-                protocol: BROWSER_ADMISSION_PROTOCOL,
-                generation: super::MAX_WEBRTC_GRANT_GENERATIONS,
-                index: 0,
-                total: 1,
-                grant: Some(canonical_grant()),
-            },
-            &mut output,
-        ),
-        Err(BrowserAdmissionFrameError::InvalidGrant)
-    );
+    let maximum_reply = BrowserAdmissionEgress::WebRtcGrant {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        generation: u32::MAX,
+        index: 0,
+        total: 1,
+        grant: Some(canonical_grant()),
+    };
+    assert!(encode_browser_admission_frame(&maximum_reply, &mut output).is_ok());
     assert!(encode_browser_admission_frame(
         &BrowserAdmissionEgress::WebRtcGrant {
             protocol: BROWSER_ADMISSION_PROTOCOL,

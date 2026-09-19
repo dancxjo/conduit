@@ -15,7 +15,9 @@ export class CrecheRendezvousRefusal extends Error {
 }
 
 export function decodeRendezvousCode(value) {
-  const normalized = String(value ?? "").trim().toUpperCase();
+  const raw = String(value ?? "").trim();
+  if (raw.startsWith("{")) return decodeRemoteDescriptor(raw);
+  const normalized = raw.toUpperCase();
   const websocket = WEBSOCKET_CODE_PATTERN.exec(normalized);
   const serial = SERIAL_CODE_PATTERN.exec(normalized);
   if (!websocket && !serial) refuse("InvalidCode", "rendezvous code is not a supported finite Line code");
@@ -32,6 +34,82 @@ export function decodeRendezvousCode(value) {
     url: websocket ? websocketUrl(websocket[1]) : null,
     session_secret: sessionSecret,
   });
+}
+
+function decodeRemoteDescriptor(raw) {
+  let descriptor;
+  try { descriptor = JSON.parse(raw); }
+  catch (error) { refuse("InvalidDescriptor", "remote rendezvous descriptor is not valid JSON", error); }
+  const keys = Object.keys(descriptor ?? {}).sort().join(",");
+  const expectedKeys = ["candidates", "schema", "session_secret"].sort().join(",");
+  if (keys !== expectedKeys
+    || descriptor.schema !== "conduit.host/rendezvous-descriptor@1"
+    || !Array.isArray(descriptor.candidates) || descriptor.candidates.length < 1
+    || descriptor.candidates.length > 4
+    || !byteSequence(descriptor.session_secret, 32)
+    || descriptor.session_secret.every((byte) => byte === 0)) {
+    refuse("InvalidDescriptor", "remote rendezvous descriptor is stale, insecure, or outside its finite policy");
+  }
+  const seen = new Set();
+  const candidates = descriptor.candidates.map((candidate) => {
+    const candidateKeys = Object.keys(candidate ?? {}).sort().join(",");
+    const expectedCandidateKeys = ["attempt_timeout_millis", "authentication", "candidate_id",
+      "expires_at_millis", "line_family", "maximum_attempts", "reachability"].sort().join(",");
+    const authenticationKeys = Object.keys(candidate?.authentication ?? {}).sort().join(",");
+    if (candidateKeys !== expectedCandidateKeys
+      || authenticationKeys !== "server_identity,transport_binding_sha256"
+      || typeof candidate.candidate_id !== "string" || candidate.candidate_id.length < 1
+      || candidate.candidate_id.length > 256 || seen.has(candidate.candidate_id)
+      || !Number.isSafeInteger(candidate.expires_at_millis) || candidate.expires_at_millis <= Date.now()
+      || !Number.isSafeInteger(candidate.maximum_attempts) || candidate.maximum_attempts < 1
+      || candidate.maximum_attempts > 3
+      || !Number.isSafeInteger(candidate.attempt_timeout_millis)
+      || candidate.attempt_timeout_millis < 1 || candidate.attempt_timeout_millis > 30_000
+      || typeof candidate.reachability !== "string" || candidate.reachability.length < 1
+      || candidate.reachability.length > 256
+      || typeof candidate.authentication.server_identity !== "string"
+      || candidate.authentication.server_identity.length < 1
+      || candidate.authentication.server_identity.length > 256
+      || !byteSequence(candidate.authentication.transport_binding_sha256, 32)
+      || candidate.authentication.transport_binding_sha256.every((byte) => byte === 0)) {
+      refuse("InvalidDescriptor", "remote rendezvous candidate is stale, duplicated, or outside its finite policy");
+    }
+    seen.add(candidate.candidate_id);
+    if (candidate.line_family !== "authenticated-tls-stream") {
+      return Object.freeze({ supported: false, candidate_id: candidate.candidate_id });
+    }
+    let endpoint;
+    try { endpoint = new URL(candidate.reachability); }
+    catch (error) { refuse("InvalidDescriptor", "remote rendezvous endpoint is malformed", error); }
+    if (endpoint.protocol !== "wss:" || endpoint.hostname !== candidate.authentication.server_identity) {
+      refuse("InvalidDescriptor", "remote rendezvous server identity does not match its secure endpoint");
+    }
+    return Object.freeze({
+      supported: true,
+      candidate_id: candidate.candidate_id,
+      carrier: "websocket",
+      line_id: "conduit-line/authenticated-tls-stream@1",
+      url: candidate.reachability,
+      transport_binding_sha256: hexBytes(candidate.authentication.transport_binding_sha256),
+      expires_at_millis: candidate.expires_at_millis,
+      maximum_attempts: candidate.maximum_attempts,
+      attempt_timeout_millis: candidate.attempt_timeout_millis,
+    });
+  });
+  const selected = candidates.find((candidate) => candidate.supported);
+  if (!selected) {
+    refuse("LineUnavailable", "this browser offers none of the descriptor's bounded Line candidates");
+  }
+  return Object.freeze({
+    ...selected,
+    schema: descriptor.schema,
+    session_secret: new Uint8Array(descriptor.session_secret),
+    candidates: Object.freeze(candidates),
+  });
+}
+
+function hexBytes(bytes) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export async function connectRendezvousHost(code, {
@@ -92,13 +170,42 @@ export async function connectRendezvousHost(code, {
           await line.close("conduit-terminal");
           return Object.freeze(join);
         }
-        let intentional = false, remotePrepared = false;
+        let intentional = false, membershipRetained = false, bodyContextInstalled = false, remotePrepared = false;
         const joinedLine = Object.freeze({
           schema: "conduit.creche/joined-host-line@1",
           line_id: decoded.line_id,
           onClosed(callback) { void line.closed.then(() => callback(Object.freeze({ intentional }))); },
+          async retainMembership(credential) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (membershipRetained) refuse("Replay", "joined Host membership is already retained");
+            requireMembershipCredential(credential, prepared.body_id, descriptor.advertisement);
+            await send(line, { kind: "admitted", protocol: PROTOCOL, credential });
+            const retained = await receive(line, signal);
+            if (retained?.kind !== "admission-retained" || retained.protocol !== PROTOCOL
+              || retained.body_id !== credential.body_id || retained.part_id !== credential.part_id) {
+              refuse("MembershipRetention", "joined Host did not retain the exact admitted membership");
+            }
+            membershipRetained = true;
+            return Object.freeze(retained);
+          },
+          async installBodyContext(context) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            requireBodyConversationContext(context, prepared.body_id);
+            await send(line, { kind: "body-context", protocol: PROTOCOL, context });
+            const installed = await receive(line, signal);
+            if (installed?.kind !== "body-context-installed" || installed.protocol !== PROTOCOL
+              || installed.body_id !== context.body_id
+              || installed.basis_revision !== context.basis.revision) {
+              refuse("BodyContext", "joined Host did not retain the exact current Body context");
+            }
+            bodyContextInstalled = true;
+            return Object.freeze(installed);
+          },
           async prepareRemote(plan) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current Body conversation context");
             if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
             await send(line, { kind: "prepare-remote", protocol: PROTOCOL, plan });
             const prepared = await receive(line, signal);
@@ -144,6 +251,29 @@ export async function connectRendezvousHost(code, {
     await line.close("conduit-refused");
     if (error instanceof CrecheRendezvousRefusal) throw error;
     refuse("LineFailed", "running Host rendezvous Line failed", error);
+  }
+}
+
+function requireBodyConversationContext(value, bodyId) {
+  if (!value || value.schema !== "conduit.body/conversation-context-value@2"
+    || value.body_id !== bodyId || typeof value.display_name !== "string" || value.display_name.length < 1
+    || typeof value.wake_id !== "string" || value.wake_id.length < 1
+    || !Number.isSafeInteger(value.wake_sequence) || value.wake_sequence < 0
+    || value.basis?.body_id !== value.body_id || value.basis?.wake_id !== value.wake_id
+    || value.basis?.wake_sequence !== value.wake_sequence
+    || !Number.isSafeInteger(value.basis?.revision) || value.basis.revision < 0
+    || !Array.isArray(value.hosts) || !Array.isArray(value.active_forms)
+    || !Array.isArray(value.lines) || !Array.isArray(value.recent_sign_ids)) {
+    refuse("BodyContext", "Body conversation context is malformed or belongs to another Body");
+  }
+}
+
+function requireMembershipCredential(value, bodyId, advertisement) {
+  if (!value || !boundedIdentity(value.credential_id)
+    || value.body_id !== bodyId || !boundedIdentity(value.part_id)
+    || value.host_id !== advertisement.host_id || value.boot_id !== advertisement.boot_id
+    || !Number.isSafeInteger(value.issued_at_millis) || value.issued_at_millis < 0) {
+    refuse("MembershipCredential", "admitted membership credential lost the exact Body, Host, or Boot identity");
   }
 }
 

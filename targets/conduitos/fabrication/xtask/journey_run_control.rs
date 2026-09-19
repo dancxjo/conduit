@@ -18,6 +18,7 @@ const SELECTED_NARRATIVE_PERCENT: u16 = 30;
 const POINTER_CENTER_NORMALIZED: i64 = 500_000;
 const POINTER_NORMALIZED_SCALE: i64 = 4_000;
 const POINTER_NORMALIZED_MAX: i64 = 1_000_000;
+const POINTER_RING_STRESS_REPORTS: usize = 1_050;
 
 pub(super) fn execute(paths: &Paths, image: &Path, digest: &str) -> Result<(), ConduitosError> {
     // Keep each boot's evidence; do not overwrite another live proof's sockets.
@@ -100,6 +101,13 @@ pub(super) fn execute(paths: &Paths, image: &Path, digest: &str) -> Result<(), C
             )?;
         }
         wait(&serial, &mut child, READY, 0)?;
+        // Cross sixteen complete 63-data-TRB laps on the real xHCI path while
+        // retaining the same Boot and pointer service. Alternating relative
+        // motion keeps the semantic position centered for the acceptance flow.
+        for report in 0..POINTER_RING_STRESS_REPORTS {
+            let x = if report % 2 == 0 { 1 } else { -1 };
+            motion(&mut stream, &mut reader, &serial, &mut child, x, 0)?;
+        }
         button(&mut stream, &mut reader, &serial, &mut child, true)?;
         wait(&serial, &mut child, "chooser-gear-selected", 0)?;
         let offset = fs::metadata(&serial).map_err(io)?.len() as usize;
@@ -129,6 +137,7 @@ pub(super) fn execute(paths: &Paths, image: &Path, digest: &str) -> Result<(), C
         let proof = serde_json::json!({"schema":"conduit.conduitos/run-control-proof@1",
             "proof_class":"freestanding-emulator", "source_commit":git_head(&paths.root)?,
             "image_sha256":digest, "qemu_argv":argv, "run_activations":1,
+            "pointer_ring_stress_reports":POINTER_RING_STRESS_REPORTS,
             "held_gesture_did_not_repeat":true, "production_result":"HELLO"});
         fs::write(
             directory.join("proof.json"),

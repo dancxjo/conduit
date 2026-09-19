@@ -7,9 +7,8 @@ import { configureWorkspaceInput } from "./workspace-surface.mjs";
 import { openWorkspaceLibrary } from "./workspace-library.mjs";
 import { readWorkspaceHandoff, consumeWorkspaceHandoff } from "./workspace-handoff.mjs";
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
-import { openWorkspaceMembership, readBodyInvitation } from "./workspace-membership.mjs";
+import { createBodyInvitationReceiver, openWorkspaceMembership, readBodyInvitation, readSharedBodyInvitation } from "./workspace-membership.mjs";
 import { prepareWorkspaceVoicePlay } from "./workspace-voice-play.mjs";
-import { renderBodyTutorial } from "./body-tutorial.mjs";
 
 export async function startApplication(application) {
   const root = document.querySelector('.workspace-shell');
@@ -25,12 +24,14 @@ export async function startApplication(application) {
   const lullButton = root.querySelector('[data-lull-body]');
   const fulfillButton = root.querySelector('[data-fulfill-body]');
   const tutorial = root.querySelector('[data-body-tutorial]');
+  const tutorialPresentation = application.presentationFor(tutorial);
+  let tutorialRevision = 0;
   const fail = error => {
     notice.textContent = error instanceof Error ? error.message : String(error);
     notice.dataset.disposition = 'refused';
   };
   try {
-    const invitation = readBodyInvitation(globalThis.location);
+    const invitation = await readSharedBodyInvitation(globalThis.location) ?? readBodyInvitation(globalThis.location);
     if (!invitation) await acquireBrowserBodyContinuity();
     const host = await initializeBrowserHost({ runtimeBytes: application.bytes('runtime'), durable: !invitation });
     const session = openWorkspaceSession({ host, storage: application.storage });
@@ -59,6 +60,21 @@ export async function startApplication(application) {
     let playback = { state: 'Lulled', detail: 'Its Forms can wake here.' };
     let play = null;
     let library = null, membership = null, editing = false;
+    const renderTutorial = () => {
+      if (!session.current()) return;
+      const revision = ++tutorialRevision;
+      tutorialPresentation.present('body-tutorial', session.tutorialView(revision, playback.state), { onEvent(event) {
+        tutorialPresentation.nextEvent('body-tutorial');
+        if (event.revision !== tutorialRevision || event.kind !== 1 || event.value.length !== 0) {
+          fail(new Error('This tutorial action is stale'));
+        } else if (event.action === 'body.wake') play?.wake(true).catch(fail);
+        else if (event.action === 'body.inspect-lifecycle') inspect('lifecycle');
+        else if (event.action === 'body.open-library') { surface.hidden = true; inspection.hidden = true; library?.show(); }
+        else if (event.action === 'body.invite-host') membership?.show();
+        else if (event.action === 'body.use-current') { surface.hidden = false; inspection.hidden = true; library?.hide(); if (!input.disabled) input.focus(); }
+        else fail(new Error('Unknown tutorial action'));
+      } });
+    };
     const bodyChanged = () => {
       saving = saving.then(() => session.save()).then(async () => {
         if (!session.current()?.here_part_id) {
@@ -120,7 +136,8 @@ export async function startApplication(application) {
     };
     function render() {
       const body = session.current();
-      renderBodyTutorial(tutorial, { current: body, evidence: session.evidence(), playback });
+      tutorial.hidden = !body;
+      renderTutorial();
       membership?.render();
       const arriving = !body || (!body.here_part_id && body.state !== 'FULFILLED');
       const joining = membership?.isJoining();
@@ -137,9 +154,10 @@ export async function startApplication(application) {
       if (arriving && !joining) {
         document.title = 'Birth your Body · Conduit';
         const slot = nursery.querySelector('[data-creche-content]');
-        slot.replaceChildren(body
-          ? createFirstHostRunner({ host, presentationFor: application.presentationFor, nextSequence: session.nextMembershipSequence, onBodyChanged: bodyChanged })
-          : createBodyBirthRunner({
+        if (body) {
+          slot.replaceChildren(createFirstHostRunner({ host, presentationFor: application.presentationFor, nextSequence: session.nextMembershipSequence, onBodyChanged: bodyChanged }));
+        } else {
+          const birth = createBodyBirthRunner({
             source, sourceKey: 'workspace-creche', listingId: 'workspace-forms', host,
             presentationFor: application.presentationFor, inventory, initialSelection: selection,
             nextSequence: session.nextSequence, onBodyChanged: bodyChanged,
@@ -149,7 +167,13 @@ export async function startApplication(application) {
                 ? application.storage.deleteJson('form-selection')
                 : application.storage.writeJson('form-selection', persistedFormSelection(inventory, selected))).catch(fail);
             },
-          }));
+          });
+          const receiver = createBodyInvitationReceiver({ location: globalThis.location, onReceive({ fragment }) {
+            history.replaceState(null, '', `${location.pathname}${location.search}#${fragment}`);
+            location.reload();
+          } });
+          slot.replaceChildren(birth, receiver);
+        }
         return;
       }
       document.title = `${body.friendly_name} · Conduit`;
@@ -200,14 +224,16 @@ export async function startApplication(application) {
           const peer = plan.fragments.find(fragment => fragment.host_id !== host.hostId || fragment.boot_id !== host.bootId);
           const joined = peer && membership?.executionLine(peer.host_id, peer.boot_id);
           if (!joined) throw new Error('The planned Voice Host Line is no longer current');
+          await joined.line.installBodyContext(session.conversationContext());
           const voice = await prepareWorkspaceVoicePlay({ api: host.runtime,
             localAdvertisement: host.membership.advertisement(), joined, plan,
             outputRoot: root.querySelector('[data-form-output]') });
           return Object.freeze({ planId: plan.plan_id, identity: voice.identity,
+            updateContext: () => joined.line.installBodyContext(session.conversationContext()),
             run: () => voice.run(), close: () => voice.close() });
         }, onState(state) {
         playback = state;
-        renderBodyTutorial(tutorial, { current: session.current(), evidence: session.evidence(), playback });
+        renderTutorial();
         root.querySelector('[data-play-state]').textContent = state.state;
         root.querySelector('[data-body-state]').textContent = session.current().state.toLowerCase();
         root.querySelector('#surface-guidance').textContent = state.detail;
@@ -259,6 +285,8 @@ export async function startApplication(application) {
     });
     globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
     membership = openWorkspaceMembership({ root, session, host, invitation, presentationFor: application.presentationFor,
+      invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
+        ? 'Invite another phone' : 'Invite another Host',
       async beforeAdmission() {
         if (['Playing', 'Idle', 'Completed', 'Failed'].includes(playback.state)) await play?.lull();
       },

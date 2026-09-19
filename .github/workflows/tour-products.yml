@@ -576,14 +576,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: false
-      - name: Install the Linux cross targets
+      - name: Prepare the Linux release toolchain
         if: matrix.platform == 'linux'
-        run: rustup target add aarch64-unknown-linux-gnu
-      - name: Install the Raspberry Pi OS cross linker
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross xvfb
+        run: cargo +1.98.1 xtask setup linux-release
       - name: Compile and seal the reviewed generic existing-computer releases
         run: cargo +1.98.1 xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
       - name: Run the packaged Linux Tour journey
@@ -1220,12 +1215,14 @@ jobs:
           cp -a target/patchbay-product/. target/pages-site/patchbay/
           cp -a target/home-product/. target/pages-site/home/
           node products/tour/tools/stage-legacy-routes.mjs target/pages-site
+          node products/creche/tools/stage-legacy-routes.mjs target/pages-site
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/tour/tour.application.json
           grep -Fq 'Redirecting to your Body' target/pages-site/tour/index.html
           grep -Fq '../../workspace/' target/pages-site/tour/meet-one-gear/index.html
           test -f target/pages-site/book/index.html
           test -f target/pages-site/creche/index.html
+          grep -Fq 'Redirecting to your Body' target/pages-site/creche/index.html
           test -f target/pages-site/creche/creche.application.json
           test -f target/pages-site/workspace/workspace.application.json
           test -f target/pages-site/creche/runtime.wasm

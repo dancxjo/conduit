@@ -16,6 +16,7 @@ use conduit_kernel::{
 pub(crate) const HOST_OPERATION: &str = "conduit.host/replay@1";
 const IMPLEMENTATION: &str = "browser/replay@1";
 const MAXIMUM_INPUTS: u32 = 64;
+const REQUEST_ID_SLOTS: u32 = 2;
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
     implementation_id: IMPLEMENTATION,
@@ -219,13 +220,14 @@ impl ReplayControlOperation {
         }
     }
 
-    fn next(&mut self) -> Result<RequestId, Failure> {
-        if self.next_request >= MAXIMUM_INPUTS.saturating_mul(2) {
-            return Err(failure(FailureCode::StorageExhausted, 12));
-        }
+    fn next(&mut self) -> RequestId {
         let request = RequestId(self.next_request);
-        self.next_request += 1;
-        Ok(request)
+        // The operation permits only one Host request in flight. Its matching
+        // completion retires this identity before the next stage can request
+        // another, so two fixed stage identities are reusable for its entire
+        // continuous lifetime.
+        self.next_request = (self.next_request + 1) % REQUEST_ID_SLOTS;
+        request
     }
 }
 
@@ -242,9 +244,7 @@ impl Operation for ReplayControlOperation {
                     && !self.closed[usize::from(port.0)]
                     && value.byte_len <= super::MAXIMUM_BROWSER_VALUE_BYTES as u32 =>
             {
-                let Ok(request) = self.next() else {
-                    return fail(12);
-                };
+                let request = self.next();
                 if port.0 > 2 {
                     return fail(13);
                 }
@@ -306,9 +306,7 @@ impl Operation for ReplayControlOperation {
     fn advance(&mut self) -> OperationAction {
         match self.stage {
             Stage::StateEmitted(value) => {
-                let Ok(request) = self.next() else {
-                    return fail(15);
-                };
+                let request = self.next();
                 self.stage = Stage::EventPending(request);
                 OperationAction::RequestHostOperation {
                     request,

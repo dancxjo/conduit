@@ -52,6 +52,9 @@ use super::rhythm_compare_operation::RhythmCompareOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::sequence_normalization_operation::SequenceNormalizationOperation;
+use super::speech_recognition_adapter_operation::{
+    SpeechResultToEventStreamOperation, SpeechWindowToClipOperation,
+};
 use super::speech_synthesis_operation::SpeechSynthesisOperation;
 use super::state_select_operation::StateSelectScalarOperation;
 use super::structured_selector_operation::StructuredSelectorOperation;
@@ -93,6 +96,8 @@ pub(super) enum InstalledOperation {
     AddressDetect(super::address_detect_operation::AddressDetectOperation),
     RecognitionText(super::recognition_text_operation::RecognitionTextOperation),
     RecognizedTurnCommit(RecognizedTurnCommitOperation),
+    SpeechWindowToClip(SpeechWindowToClipOperation),
+    SpeechResultToEventStream(SpeechResultToEventStreamOperation),
     TypedState(Box<crate::state_value::TypedStateOperation>),
     KeyboardInput(KeyboardInputOperation),
     ButtonInput(super::keyboard_input_operation::button::ButtonOperation),

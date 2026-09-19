@@ -6,12 +6,14 @@ mod contract;
 #[cfg(feature = "speech")]
 mod execution;
 mod house_conversation;
+mod live_conversation;
 #[cfg(feature = "speech")]
 mod pcm;
 #[cfg(feature = "speech")]
 mod planning;
 #[cfg(feature = "speech")]
 mod realization;
+mod recognition_adapters;
 mod research_compute;
 mod research_data;
 mod research_form;
@@ -31,10 +33,12 @@ pub use contract::*;
 #[cfg(feature = "speech")]
 pub use execution::*;
 pub use house_conversation::*;
+pub use live_conversation::*;
 #[cfg(feature = "speech")]
 pub use planning::*;
 #[cfg(feature = "speech")]
 pub use realization::*;
+pub use recognition_adapters::*;
 pub use research_compute::*;
 pub use research_data::*;
 pub use research_form::*;

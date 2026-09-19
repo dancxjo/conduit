@@ -356,6 +356,61 @@ impl WorkspaceBody {
         Ok(())
     }
 
+    /// Retain a pre-Play refusal as part of the exact Wake biography. The
+    /// caller supplies typed facts from the layer that made the decision.
+    pub fn fail(
+        &mut self,
+        host: &HostId,
+        boot: &BootId,
+        rejections: Vec<conduit_body::WakeRejectionEvidence>,
+    ) -> Result<(), WorkspaceBodyError> {
+        self.require_host(host, boot)?;
+        let current = self
+            .realization
+            .as_ref()
+            .ok_or(WorkspaceBodyError::NoProposal)?;
+        if current.play.is_some() {
+            return Err(WorkspaceBodyError::StalePlay);
+        }
+        if rejections.is_empty()
+            || rejections.iter().any(|rejection| {
+                rejection.host_id != *host
+                    || rejection.boot_id != *boot
+                    || rejection.plan_id.as_ref() != Some(&current.plan.plan_id)
+                    || rejection.checked_form_ids.is_empty()
+                    || rejection.checked_form_ids.iter().any(|checked| {
+                        !current
+                            .plan
+                            .forms
+                            .iter()
+                            .any(|form| &form.form.checked_form_id == checked)
+                    })
+            })
+        {
+            return Err(WorkspaceBodyError::StalePlay);
+        }
+        let sequence = self.next_sequence()?;
+        let retain_sequence = sequence
+            .checked_add(1)
+            .ok_or(WorkspaceBodyError::SequenceExhausted)?;
+        let wake = current
+            .wake
+            .fail_with_rejections(sign(host, boot, sequence), rejections)
+            .map_err(WorkspaceBodyError::Lifecycle)?;
+        let body = self
+            .evidence
+            .body
+            .retain_after_lull(&wake, sign(host, boot, retain_sequence))
+            .map_err(WorkspaceBodyError::Lifecycle)?;
+        let mut evidence = self.evidence.clone();
+        evidence
+            .append_wake(body, wake, sequence)
+            .map_err(WorkspaceBodyError::Biography)?;
+        self.evidence = evidence;
+        self.realization = None;
+        Ok(())
+    }
+
     /// Record the explicit operator conclusion only after the browser runtime
     /// has proved that no Play or implementation remains active.
     pub fn fulfill(

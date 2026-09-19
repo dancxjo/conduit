@@ -17,6 +17,7 @@ pub const MAX_RENDEZVOUS_ATTEMPTS_PER_CANDIDATE: u8 = 3;
 pub const MAX_RENDEZVOUS_ATTEMPT_MILLIS: u32 = 30_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum RendezvousLineFamily {
     AuthenticatedTlsStream,
     AuthenticatedConduitLine,
@@ -55,6 +56,20 @@ pub struct SpawnRendezvousDescriptor {
     pub body_id: String,
     pub invitation_id: String,
     pub candidates: Vec<RendezvousCandidate>,
+}
+
+/// Transport-neutral finite candidates for attaching one already-running Host.
+///
+/// Unlike [`SpawnRendezvousDescriptor`], this descriptor precedes a Body
+/// invitation and therefore carries no Body or invitation identity. Its
+/// one-use secret authenticates only this rendezvous session; admission above
+/// the resulting Line remains separate.
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RunningHostRendezvousDescriptor {
+    pub schema: String,
+    pub candidates: Vec<RendezvousCandidate>,
+    session_secret: [u8; 32],
 }
 
 /// Exact self-joining authority and reachability embedded in one fresh spore.
@@ -150,42 +165,82 @@ impl SpawnRendezvousDescriptor {
         if !bounded_text(&self.body_id) || !bounded_text(&self.invitation_id) {
             return Err(RendezvousDescriptorRefusal::InvalidIdentity);
         }
-        if self.candidates.is_empty() || self.candidates.len() > MAX_RENDEZVOUS_CANDIDATES {
-            return Err(RendezvousDescriptorRefusal::CandidateBound);
+        validate_candidates(&self.candidates, now_millis)
+    }
+}
+
+fn validate_candidates(
+    candidates: &[RendezvousCandidate],
+    now_millis: u64,
+) -> Result<(), RendezvousDescriptorRefusal> {
+    if candidates.is_empty() || candidates.len() > MAX_RENDEZVOUS_CANDIDATES {
+        return Err(RendezvousDescriptorRefusal::CandidateBound);
+    }
+    for (index, candidate) in candidates.iter().enumerate() {
+        if !bounded_text(&candidate.candidate_id)
+            || candidates[..index]
+                .iter()
+                .any(|prior| prior.candidate_id == candidate.candidate_id)
+        {
+            return Err(RendezvousDescriptorRefusal::DuplicateCandidate);
         }
-        for (index, candidate) in self.candidates.iter().enumerate() {
-            if !bounded_text(&candidate.candidate_id)
-                || self.candidates[..index]
-                    .iter()
-                    .any(|prior| prior.candidate_id == candidate.candidate_id)
-            {
-                return Err(RendezvousDescriptorRefusal::DuplicateCandidate);
-            }
-            if !bounded_text(&candidate.reachability) {
-                return Err(RendezvousDescriptorRefusal::InvalidReachability);
-            }
-            if !bounded_text(&candidate.authentication.server_identity)
-                || candidate.authentication.transport_binding_sha256 == [0; 32]
-            {
-                return Err(RendezvousDescriptorRefusal::MissingAuthentication);
-            }
-            if candidate.expires_at_millis <= now_millis {
-                return Err(RendezvousDescriptorRefusal::Expired);
-            }
-            if candidate.maximum_attempts == 0
-                || candidate.maximum_attempts > MAX_RENDEZVOUS_ATTEMPTS_PER_CANDIDATE
-                || candidate.attempt_timeout_millis == 0
-                || candidate.attempt_timeout_millis > MAX_RENDEZVOUS_ATTEMPT_MILLIS
-            {
-                return Err(RendezvousDescriptorRefusal::AttemptPolicy);
-            }
-            if candidate.line_family == RendezvousLineFamily::LocalLoopbackWebSocket
-                && !loopback_reachability(&candidate.reachability)
-            {
-                return Err(RendezvousDescriptorRefusal::InsecureRemoteWebSocket);
-            }
+        if !bounded_text(&candidate.reachability) {
+            return Err(RendezvousDescriptorRefusal::InvalidReachability);
+        }
+        if !bounded_text(&candidate.authentication.server_identity)
+            || candidate.authentication.transport_binding_sha256 == [0; 32]
+        {
+            return Err(RendezvousDescriptorRefusal::MissingAuthentication);
+        }
+        if candidate.expires_at_millis <= now_millis {
+            return Err(RendezvousDescriptorRefusal::Expired);
+        }
+        if candidate.maximum_attempts == 0
+            || candidate.maximum_attempts > MAX_RENDEZVOUS_ATTEMPTS_PER_CANDIDATE
+            || candidate.attempt_timeout_millis == 0
+            || candidate.attempt_timeout_millis > MAX_RENDEZVOUS_ATTEMPT_MILLIS
+        {
+            return Err(RendezvousDescriptorRefusal::AttemptPolicy);
+        }
+        if candidate.line_family == RendezvousLineFamily::LocalLoopbackWebSocket
+            && !loopback_reachability(&candidate.reachability)
+        {
+            return Err(RendezvousDescriptorRefusal::InsecureRemoteWebSocket);
+        }
+    }
+    Ok(())
+}
+
+impl RunningHostRendezvousDescriptor {
+    pub fn new(
+        candidates: Vec<RendezvousCandidate>,
+        session_secret: [u8; 32],
+        now_millis: u64,
+    ) -> Result<Self, RendezvousDescriptorRefusal> {
+        let descriptor = Self {
+            schema: "conduit.host/rendezvous-descriptor@1".into(),
+            candidates,
+            session_secret,
+        };
+        descriptor.validate(now_millis)?;
+        Ok(descriptor)
+    }
+
+    pub fn validate(&self, now_millis: u64) -> Result<(), RendezvousDescriptorRefusal> {
+        if self.schema != "conduit.host/rendezvous-descriptor@1" {
+            return Err(RendezvousDescriptorRefusal::WrongProtocol);
+        }
+        validate_candidates(&self.candidates, now_millis)?;
+        if self.session_secret == [0; 32] {
+            return Err(RendezvousDescriptorRefusal::WeakInvitationSecret);
         }
         Ok(())
+    }
+
+    /// Copy the one-use transport capability into an exact attempt buffer.
+    /// The caller must zero the returned buffer when the attempt terminates.
+    pub fn copy_session_secret_for_attempt(&self) -> [u8; 32] {
+        self.session_secret
     }
 }
 
@@ -243,6 +298,54 @@ mod tests {
         };
         assert_eq!(descriptor.validate(1_000), Ok(()));
         assert_eq!(descriptor.candidates.len(), 2);
+    }
+
+    #[test]
+    fn running_host_descriptor_carries_ordered_candidates_without_body_authority() {
+        let descriptor = RunningHostRendezvousDescriptor::new(
+            vec![
+                candidate(
+                    "candidate/lan",
+                    RendezvousLineFamily::AuthenticatedTlsStream,
+                    "wss://host.example:7443/conduit",
+                ),
+                candidate(
+                    "candidate/relay",
+                    RendezvousLineFamily::AuthenticatedConduitLine,
+                    "relay:operator/one",
+                ),
+            ],
+            [19; 32],
+            1_000,
+        )
+        .unwrap();
+        assert_eq!(descriptor.validate(1_000), Ok(()));
+        assert_eq!(descriptor.candidates[0].candidate_id, "candidate/lan");
+        assert_eq!(descriptor.candidates[1].candidate_id, "candidate/relay");
+        assert_eq!(descriptor.copy_session_secret_for_attempt(), [19; 32]);
+        let encoded = serde_json::to_value(&descriptor).unwrap();
+        assert_eq!(
+            encoded["candidates"][0]["line_family"],
+            "authenticated-tls-stream"
+        );
+        assert!(encoded.get("body_id").is_none());
+        assert!(encoded.get("invitation_id").is_none());
+    }
+
+    #[test]
+    fn running_host_descriptor_refuses_weak_secret_and_unbounded_candidates() {
+        assert!(matches!(
+            RunningHostRendezvousDescriptor::new(
+                vec![candidate(
+                    "candidate/lan",
+                    RendezvousLineFamily::AuthenticatedTlsStream,
+                    "wss://host.example:7443/conduit",
+                )],
+                [0; 32],
+                1_000,
+            ),
+            Err(RendezvousDescriptorRefusal::WeakInvitationSecret)
+        ));
     }
 
     #[test]

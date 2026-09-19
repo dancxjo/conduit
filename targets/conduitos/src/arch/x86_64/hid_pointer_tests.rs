@@ -141,5 +141,54 @@ fn storage_and_work_are_fixed() {
     assert_eq!(core::mem::align_of::<PointerDma>(), 4096);
     assert_eq!(POINTER_REPORT_BUFFERS, 2);
     assert_eq!(POINTER_TRANSFER_TRBS, 64);
+    assert_eq!(POINTER_TRANSFER_REPORT_SLOTS, 63);
     assert_eq!(POINTER_POLL_WINDOWS, 1_024);
+}
+
+#[test]
+fn transfer_positions_reuse_fixed_pointer_slots_across_sixteen_wraps() {
+    let ring = 0x1000;
+    let reports = 0x2000;
+    let mut storage = [[0_u32; 4]; POINTER_TRANSFER_TRBS];
+    for sequence in 0..1_024 {
+        let position = TransferPosition::at(
+            sequence,
+            POINTER_TRANSFER_REPORT_SLOTS,
+            POINTER_REPORT_BUFFERS,
+        );
+        if sequence == 0 || position.slot == POINTER_TRANSFER_REPORT_SLOTS - 1 {
+            storage[POINTER_TRANSFER_REPORT_SLOTS] = position.link(ring);
+        }
+        storage[position.slot] = position.normal(reports, POINTER_REPORT_BYTES);
+        assert_eq!(storage[position.slot][3] & 1, position.cycle);
+        assert_eq!(
+            storage[position.slot][0],
+            reports as u32 + (sequence % POINTER_REPORT_BUFFERS * POINTER_REPORT_BYTES) as u32
+        );
+        assert_eq!(storage[POINTER_TRANSFER_REPORT_SLOTS][3] >> 10, 6);
+    }
+    let final_position =
+        TransferPosition::at(1_023, POINTER_TRANSFER_REPORT_SLOTS, POINTER_REPORT_BUFFERS);
+    assert_eq!(1_024 / POINTER_TRANSFER_REPORT_SLOTS, 16);
+    assert_eq!(final_position.slot, 15);
+    assert_eq!(core::mem::size_of_val(&storage), 1_024);
+}
+
+#[test]
+fn physical_wrap_accounting_is_independent_of_portable_sequence() {
+    let ready = HidPointerReady {
+        interface_number: 0,
+        endpoint_address: 0x81,
+        endpoint_dci: 3,
+        endpoint_interval: 7,
+        report_buffers: POINTER_REPORT_BUFFERS as u8,
+        transfer_trbs: POINTER_TRANSFER_TRBS as u8,
+        dma_physical: 0x1000,
+    };
+    let mut session = start_pointer_session(ready);
+    session.next_transfer = 1_024;
+    session.sequence = 77;
+    assert_eq!(session.physical_transfers(), 1_024);
+    assert_eq!(session.ring_wraps(), 16);
+    assert_eq!(session.sequence(), 77);
 }

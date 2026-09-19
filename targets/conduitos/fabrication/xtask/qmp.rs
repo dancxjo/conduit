@@ -10,12 +10,13 @@ use std::{
 };
 const MAXIMUM_MESSAGE_BYTES: usize = 16 * 1024;
 const MAXIMUM_EVENTS: usize = 8;
+const REQUEST_ID_SLOTS: u16 = 1024;
 
 pub(super) struct Reader {
     inner: BufReader<UnixStream>,
     transcript: Option<std::fs::File>,
     trace_bytes: usize,
-    next_request: u16,
+    next_request_slot: u16,
 }
 impl Reader {
     pub(super) fn new(stream: UnixStream) -> Self {
@@ -23,8 +24,14 @@ impl Reader {
             inner: BufReader::new(stream),
             transcript: None,
             trace_bytes: 0,
-            next_request: 0,
+            next_request_slot: 0,
         }
+    }
+
+    fn next_request_id(&mut self, label: &str) -> String {
+        let slot = self.next_request_slot;
+        self.next_request_slot = (slot + 1) % REQUEST_ID_SLOTS;
+        format!("{slot}:{label}")
     }
     fn record(&mut self, direction: &str, bytes: &[u8]) -> Result<(), ConduitosError> {
         let Some(file) = &mut self.transcript else {
@@ -130,14 +137,10 @@ pub(super) fn request_value(
     command: &[u8],
     id: &str,
 ) -> Result<serde_json::Value, ConduitosError> {
-    if reader.next_request >= 1024 {
-        return Err(ConduitosError::refusal(
-            "qemu-qmp-command-bound",
-            "connection exhausted its 1024 admitted command IDs",
-        ));
-    }
-    let id = format!("{}:{id}", reader.next_request);
-    reader.next_request += 1;
+    // Requests are synchronous: the matching response retires the sole
+    // in-flight identity before another command is issued. Reuse the admitted
+    // identity slots instead of treating their count as lifetime throughput.
+    let id = reader.next_request_id(id);
     let mut command: serde_json::Value = serde_json::from_slice(command)
         .map_err(|error| ConduitosError::refusal("qemu-qmp-invalid-command", error.to_string()))?;
     let object = command
@@ -397,6 +400,22 @@ mod tests {
             "qemu-qmp-response-id"
         );
         worker.join().unwrap();
+    }
+
+    #[test]
+    fn completed_requests_reuse_the_fixed_identity_slots() {
+        let (_sender, stream) = UnixStream::pair().unwrap();
+        let mut reader = Reader::new(stream);
+        for sequence in 0_u32..100_000 {
+            assert_eq!(
+                reader.next_request_id("stress"),
+                format!("{}:stress", sequence % u32::from(REQUEST_ID_SLOTS))
+            );
+        }
+        assert_eq!(
+            reader.next_request_slot,
+            (100_000 % u32::from(REQUEST_ID_SLOTS)) as u16
+        );
     }
 
     #[test]

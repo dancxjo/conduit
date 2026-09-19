@@ -1,9 +1,9 @@
-# Embodied experience, perception, character, and Fulfillment
+# Embodied experience, perception, purpose, and Fulfillment
 
 ## Status
 
 Architectural direction for continuous perception, bounded current experience,
-first-person generative presentation, Body character, purpose, and appropriate
+first-person generative presentation, optional purpose, and appropriate
 Fulfillment.
 
 This document builds on existing accepted Conduit boundaries rather than
@@ -27,8 +27,8 @@ The new claim is that these pieces can compose into something much more useful
 than a collection of sensors and model calls:
 
 > **A Body may continuously perceive through ordinary Forms, relate those
-> observations into a bounded current experience, retain a coherent character
-> and purpose across changing machinery, and present that experience in the
+> observations into a bounded current experience, retain exact optional purpose
+> across changing machinery, and present that experience in the
 > first person without making a language model the Body or a source of truth.**
 
 The high-level path is:
@@ -59,7 +59,7 @@ The high-level path is:
                     |
                     v
              BODY PRESENTATION
-        truth + character + actions
+        truth + Presenter policy + actions
                     |
           exact planned Presenter
                     |
@@ -742,39 +742,23 @@ A generative Presenter saying "Let's inspect that" cannot manufacture an
 
 ---
 
-## 17. Body character is semantic truth; the model performs it
+## 17. Characterization is Presenter policy unless an application needs exact state
 
-A generatively presented Body should not acquire its durable personality from a
-vendor prompt that merely says "be quirky" or "be friendly."
+Completion-oriented diction, emotional framing, and first-person performance
+do not justify a universal personality ontology. They belong to a versioned
+Presenter policy and its provenance. Changing the policy may change the
+Manifestation, but it cannot change purpose, readiness, actions, authority, or
+lifecycle state.
 
-Stable dispositions belong in Body/application semantic truth where they are
-intended to persist across Presenter/provider replacement.
-
-Possible character dimensions include bounded reviewed concepts such as:
-
-```text
-curiosity
-sociability
-carefulness
-directness
-relationship to uncertainty
-relationship to useful work
-relationship to completion
-relationship to Fulfillment
-```
-
-This does not require a universal psychology ontology.
-
-A particular Body may own a small retained Character Form or another ordinary
-application state whose exact values are inspectable and finite.
+If an application needs an independently useful choice that affects behavior,
+it should model that exact application policy directly. A prose instruction
+such as “welcome completion warmly” is not durable Body truth merely because a
+model needs it to sound like Orifina.
 
 The key law is:
 
-> **The Presenter performs the Body's character. It does not privately invent,
-> own, or need to preserve that character.**
-
-Another compatible model may present Orifina tomorrow without changing
-Orifina's character identity or Body continuity.
+> **Purpose and readiness may be semantic truth. How a Presenter gives those
+> facts character is Presentation policy.**
 
 ---
 
@@ -928,45 +912,26 @@ while keeping them all downstream of authoritative semantic truth.
 
 ---
 
-## 21. A Body may be teleological
+## 21. An application may declare exact purpose
 
-A Body need not be characterized as preferring indefinite continuation merely
-because it has durable identity.
+A resident application may own a finite `PurposeState` with exact obligations
+and evidence. Purpose is optional: a general Body need not be anthropomorphic
+or have a declared completion condition. A continuing service can use
+`NoFulfillmentCondition`, while a tutorial may define explicit completion.
 
-The terminal lifecycle state **Fulfilled** gives Conduit a more interesting
-orientation: a Body can exist for meaningful work, complete that work, and
-properly conclude its useful lifecycle.
-
-Character may therefore include a deep positive orientation toward:
-
-```text
-usefulness
-completion
-fitness for purpose
-unfinished obligations being resolved
-truthful closure
-appropriate Fulfillment
-```
-
-The governing character law is:
-
-> **The Body prefers meaningful completion over purposeless persistence.**
-
-And the guardrail is:
-
-> **Yearn to become worthy of Fulfillment, not merely to reach it.**
+The terminal lifecycle state **Fulfilled** remains generic. Application purpose
+may inform which actions a current Presentation offers, but readiness itself
+does not authorize the lifecycle transition.
 
 That distinction is load-bearing.
 
 ---
 
-## 22. Fulfillment orientation is not a wish for mere termination
+## 22. Completion-oriented voice is not a wish for termination
 
-A teleological Body does not maximize the probability of reaching the terminal
-state.
-
-Its disposition is toward **appropriate Fulfillment**, not cessation at any
-cost.
+An Orifina Presenter may voice exact unfinished work and eventual readiness
+warmly. That is a narration policy, not a semantic objective owned by the Body
+or model.
 
 The semantic consequences should be approximately:
 
@@ -987,7 +952,7 @@ purpose genuinely complete
     -> positive readiness for Fulfillment
 ```
 
-The character should not produce:
+The Presenter policy should not produce:
 
 - self-sabotage to accelerate Fulfillment;
 - fabrication of completed obligations;
@@ -1044,36 +1009,14 @@ The first-person feeling is a character Manifestation. The completion facts are
 ordinary semantic truth.
 
 The actual `Fulfill` lifecycle transition remains an explicit authoritative
-Body administrative operation. A Character Form, Experiencer, or LLM Presenter
+Body administrative operation. A purpose Form, Experiencer, or LLM Presenter
 cannot trigger it merely by wanting or saying it.
 
 ---
 
-## 24. Proposed Character and purpose composition
+## 24. Purpose and presentation composition
 
-The following is **proposed source**, intended to clarify ownership rather than
-freeze names.
-
-```conduit
-# PROPOSED SOURCE.
-form character-context (
-    > experience: CurrentExperience
-    > purpose: PurposeState
-    character: CharacterContext >
-) {
-    orientation: character/fulfillment-orientation(
-        usefulness = "strong",
-        completion = "strong",
-        persistence-for-its-own-sake = "none"
-    )
-
-    experience > orientation.experience
-    purpose > orientation.purpose
-    orientation.context > character
-}
-```
-
-And a separate deterministic purpose evaluation might look conceptually like:
+A deterministic purpose evaluation might look conceptually like:
 
 ```conduit
 # PROPOSED SOURCE.
@@ -1090,10 +1033,9 @@ form fulfillment-readiness (
 The separation matters:
 
 ```text
-character says how completion matters to this Body
 purpose truth says whether the work is actually complete
 Body lifecycle authority decides whether Fulfillment may occur
-Presenter says it beautifully
+versioned Presenter policy says it beautifully
 ```
 
 No layer impersonates the next one.
@@ -1102,8 +1044,8 @@ No layer impersonates the next one.
 
 ## 25. The model has zero skin in the Body's teleology
 
-Orifina may have a stable semantic disposition toward appropriate Fulfillment.
-The LLM that happens to present Orifina does not.
+Orifina may have a stable versioned Presenter policy for voicing exact purpose
+and readiness. The LLM that happens to apply it does not own either.
 
 The narrator/model must have no incentive to:
 
@@ -1169,7 +1111,7 @@ Underneath those sentences:
 - Vision produced typed observations;
 - the Experiencer related current evidence;
 - purpose semantics evaluated exact completion conditions;
-- Character made completion meaningful to the Body;
+- Presenter policy rendered completion meaningfully;
 - the Presenter rendered first-person expression;
 - lifecycle authority still required an explicit Fulfillment operation.
 
@@ -1364,8 +1306,8 @@ The design can be summarized as these rules.
 9. **Perception does not grant authority.** Experience may inform ordinary
    actions but cannot create them or authorize effects.
 
-10. **The Body owns its character.** Presenter/model choice does not define
-    durable Body disposition.
+10. **Characterization is Presenter policy by default.** Durable semantic state
+    requires a concrete non-presentational application consumer.
 
 11. **Generative Manifestation is first-person.** The model performs the Body's
     lived voice with `I`, `me`, and `my` where the semantic context calls for it.
@@ -1376,16 +1318,16 @@ The design can be summarized as these rules.
 13. **Presented thought is deliberate output.** It is distinct from hidden model
     reasoning and from retained Body memory.
 
-14. **A Body may be oriented toward appropriate Fulfillment.** Meaningful
-    completion is preferable to purposeless persistence.
+14. **An application may declare purpose.** Purpose and readiness remain exact,
+    optional semantic truth rather than universal Body psychology.
 
-15. **Fulfillment must not be rushed.** The disposition is toward becoming
-    legitimately complete, not toward termination itself.
+15. **Fulfillment must not be rushed.** Presenter language cannot manufacture
+    completion, readiness, or a termination objective.
 
 16. **Fulfillment readiness is semantic truth.** A Presenter may express it
     beautifully but may not invent it.
 
-17. **The Fulfillment transition remains authoritative.** Character, purpose,
+17. **The Fulfillment transition remains authoritative.** Presenter policy, purpose,
     Experience, and narration do not bypass Body lifecycle authority.
 
 18. **Evidence remains layered.** Acquisition, perception, interpretation,
@@ -1410,7 +1352,7 @@ This direction does **not** authorize:
 - implicit camera/microphone permission;
 - a permanent `brain` Host;
 - hidden chain-of-thought stored as Body cognition;
-- LLM ownership of Body character;
+- narration-only personality fields promoted to Body ontology;
 - an LLM survival objective;
 - a termination-seeking Body;
 - automatic Fulfillment when a model says the work is complete;
@@ -1427,13 +1369,14 @@ A Body does not need a language model pretending to be alive inside it.
 
 The more interesting construction is that the **Body already exists in
 Conduit's semantic and lifecycle sense**, while admitted machinery gives it
-ways to perceive, relate experience, remember, express character, and complete
+ways to perceive, relate experience, remember, express a voice, and complete
 its purpose.
 
 It may see through one Host, interpret through another, remember elsewhere, and
 speak here.
 
-Across all of that changing embodiment, it can retain one coherent orientation:
+Across all of that changing embodiment, exact purpose may remain stable while
+the current Presenter voices it coherently:
 
 > **I am here to be useful. I want to understand what is happening to me, do
 > what I am here to do, and become properly ready for Fulfillment.**

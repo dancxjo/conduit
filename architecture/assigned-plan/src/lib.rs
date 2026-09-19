@@ -39,6 +39,16 @@ pub enum AssignedPressurePolicy {
     CoalesceLatest = 1,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[repr(u8)]
+pub enum DeliveryPressurePolicy {
+    #[default]
+    PreserveOrder,
+    CoalesceLatest,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AssignedIdentity(pub [u8; 16]);
 

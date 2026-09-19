@@ -19,6 +19,10 @@ use crate::{
 
 pub const HARNESS_HOST_ID: &str = "host/qemu-usb-line-peer";
 pub const HARNESS_BOOT_ID: &str = "boot/qemu-usb-line-peer/1";
+/// More than two complete laps of the 127-data-TRB output ring. Each value
+/// also receives two peer acknowledgements, crossing four input-ring laps in
+/// the same admitted Line session.
+pub const LINE_LIFETIME_VALUES: u64 = 260;
 pub const LINE_VALUE: &[u8] = b"HELLO USB LINE";
 
 pub struct ProductUsbLine {
@@ -154,16 +158,26 @@ impl ProductUsbLine {
         )?;
         emit("peer-attached", self, body_id, None);
         crate::arch::early_write(b"CONDUIT_BOOT_STAGE peer-attached\n");
-        self.send(
-            controller,
-            device,
-            SessionMessage::Offered {
-                sequence: 0,
-                payload: LINE_VALUE,
-            },
-        )?;
-        self.expect(controller, device, ReceivedSessionMessage::Accepted(0))?;
-        self.expect(controller, device, ReceivedSessionMessage::Delivered(0))?;
+        for sequence in 0..LINE_LIFETIME_VALUES {
+            self.send(
+                controller,
+                device,
+                SessionMessage::Offered {
+                    sequence,
+                    payload: LINE_VALUE,
+                },
+            )?;
+            self.expect(
+                controller,
+                device,
+                ReceivedSessionMessage::Accepted(sequence),
+            )?;
+            self.expect(
+                controller,
+                device,
+                ReceivedSessionMessage::Delivered(sequence),
+            )?;
+        }
         manifest(
             crate::front_door::ConnectivityStatus::ValueVisible,
             self.session.binding().attachment.line_id.as_str(),
@@ -258,7 +272,7 @@ fn emit(status: &str, line: &ProductUsbLine, body_id: &str, value: Option<&str>)
     let value = value.map_or_else(|| "null".into(), |value| format!("\"{value}\""));
     crate::arch::early_write(
         format!(
-            "CONDUIT_USB_LINE_SIGN {{\"schema\":\"conduit.conduitos.usb-line/v1\",\"status\":\"{status}\",\"line_id\":\"{}\",\"binding_id\":\"{}\",\"base_instance_id\":\"{}\",\"plan_id\":\"{}\",\"source_active_play_id\":\"{}\",\"sink_active_play_id\":\"{}\",\"source_host_id\":\"{}\",\"source_boot_id\":\"{}\",\"sink_host_id\":\"{}\",\"sink_boot_id\":\"{}\",\"body_id\":\"{body_id}\",\"value\":{value},\"proof_class\":\"freestanding-emulator\",\"membership\":\"not-requested\",\"bounded\":true}}\n",
+            "CONDUIT_USB_LINE_SIGN {{\"schema\":\"conduit.conduitos.usb-line/v1\",\"status\":\"{status}\",\"line_id\":\"{}\",\"binding_id\":\"{}\",\"base_instance_id\":\"{}\",\"plan_id\":\"{}\",\"source_active_play_id\":\"{}\",\"sink_active_play_id\":\"{}\",\"source_host_id\":\"{}\",\"source_boot_id\":\"{}\",\"sink_host_id\":\"{}\",\"sink_boot_id\":\"{}\",\"body_id\":\"{body_id}\",\"value\":{value},\"lifetime_values\":{},\"proof_class\":\"freestanding-emulator\",\"membership\":\"not-requested\",\"bounded\":true}}\n",
             binding.attachment.line_id.as_str(),
             binding.attachment.link_binding_id.as_str(),
             binding.attachment.base_instance_id.as_str(),
@@ -269,6 +283,7 @@ fn emit(status: &str, line: &ProductUsbLine, body_id: &str, value: Option<&str>)
             binding.source.boot_id.as_str(),
             binding.sink.host_id.as_str(),
             binding.sink.boot_id.as_str(),
+            LINE_LIFETIME_VALUES,
         )
         .as_bytes(),
     );

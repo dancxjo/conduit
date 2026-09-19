@@ -106,3 +106,37 @@ fn startup_sources_refuse_missing_or_altered_history_before_execution() {
         .unwrap()
         .contains("no admitted lifecycle evidence"));
 }
+
+#[test]
+fn combined_body_lowering_reports_exact_capacity_and_provenance() {
+    let sources = (0..8)
+        .map(|index| format!(
+            "form capacity-{index} {{\n a: text/literal(\"a\")\n show-a: presentation/text\n b: text/literal(\"b\")\n show-b: presentation/text\n c: text/literal(\"c\")\n show-c: presentation/text\n a > show-a\n b > show-b\n c > show-c\n}}\n"
+        ))
+        .collect::<Vec<_>>();
+    let refs = sources.iter().map(String::as_str).collect::<Vec<_>>();
+    let request = request_from_sources(&refs);
+    let plan_id = request.plan.plan_id.clone();
+    let checked = request
+        .plan
+        .forms
+        .iter()
+        .map(|form| form.form.checked_form_id.clone())
+        .collect::<Vec<_>>();
+    let error = match prepare(request) {
+        Err(error) => error,
+        Ok(_) => panic!("combined Body unexpectedly fit the browser bound"),
+    };
+    assert!(error.message.contains("Body lowering"));
+    let rejection = error
+        .rejections
+        .first()
+        .expect("structured capacity rejection");
+    assert_eq!(rejection.reason_code, "lowering.capacity");
+    assert_eq!(rejection.category, "Capacity");
+    assert!(rejection.required > rejection.available);
+    assert_eq!(rejection.plan_id.as_ref(), Some(&plan_id));
+    assert_eq!(rejection.checked_form_ids, checked);
+    assert_eq!(rejection.host_id.as_str(), "body-host");
+    assert_eq!(rejection.boot_id.as_str(), "body-boot");
+}

@@ -41,6 +41,7 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
           externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
         await session.started(started);
+        await external?.updateContext?.();
         publish('Playing', 'Forms are awake');
         const running = adapter;
         const runningPlay = started.play;
@@ -84,6 +85,9 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
             requireTerminal(closed?.receipt);
             adapter = null;
             await session.lull(started.play);
+          } else if (session.evidence()?.realization && error?.refusal?.rejections?.length) {
+            adapter = null;
+            await session.failed(error.refusal.rejections);
           } else if (session.evidence()?.realization && (!closed || closed.startOutcome === 'refused-before-play' || closed.startOutcome === 'not-attempted')) {
             adapter = null;
             await session.lull(null);
