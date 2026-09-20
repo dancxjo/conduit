@@ -8,12 +8,13 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_presentation::{install_geometry_catalogs, robotics_pose2_type};
-use conduit_semantic_catalog::{
-    deterministic_robotics_structured_fixture, install_robotics_structured_catalogs,
-    pose_sample_value, range_sample_value, robotics_motion_request_type, robotics_pose_sample_type,
-    robotics_range_observation_type, robotics_twist_interval_type, twist_interval_value,
-    RoboticsStructuredRefusal, ROBOTICS_BODY_FRAME,
+use conduit_robotics::{
+    deterministic_robotics_structured_fixture, pose_sample_value, range_sample_value,
+    robotics_motion_request_type, robotics_pose_sample_type, robotics_range_observation_type,
+    robotics_twist_interval_type, twist_interval_value, RoboticsStructuredRefusal,
+    ROBOTICS_BODY_FRAME,
 };
+use conduit_semantic_catalog::install_robotics_structured_catalogs;
 
 const SOURCE: &str = include_str!("../../../forms/robotics-diversity/main.conduit");
 

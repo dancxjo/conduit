@@ -1,3 +1,8 @@
+//! Curated assembly and discovery over contracts owned by semantic domain crates.
+//!
+//! Domain meaning belongs with its domain owner. This crate installs those
+//! contracts into authoring catalogs and supplies cross-domain discovery data.
+
 #![no_std]
 
 extern crate alloc;
@@ -252,10 +257,6 @@ mod robotics_hazard;
 pub use robotics_hazard::*;
 mod robotics_input;
 pub use robotics_input::*;
-mod robotics_structured;
-pub use robotics_structured::*;
-mod robotics_structured_realization;
-pub use robotics_structured_realization::*;
 mod navigation;
 pub use navigation::*;
 mod navigation_realization;

@@ -32,9 +32,9 @@ fn specimens() -> [Specimen; 5] {
         },
         Specimen {
             form_name: "robotics-range",
-            type_name: conduit_semantic_catalog::ROBOTICS_RANGE_TYPE,
-            value_type: conduit_semantic_catalog::robotics_range_sample_type(),
-            default_value: conduit_semantic_catalog::robotics_range_sample_example(),
+            type_name: conduit_robotics::ROBOTICS_RANGE_TYPE,
+            value_type: conduit_robotics::robotics_range_sample_type(),
+            default_value: conduit_robotics::robotics_range_sample_example(),
             literal: "{distance: 850mm, frame: \"sensor/forward\", uncertainty: 5mm}",
             field: "distance",
             selected_type: leaf(conduit_core::QUANTITY_INFO_ID),

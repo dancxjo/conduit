@@ -75,7 +75,7 @@ fn portable_navigation_executes_as_one_bounded_production_play() {
         .extend(selector_specs.iter().map(|selector| {
             conduit_std_offers::structured_selector_std_offer(selector, PortTemporal::Value)
         }));
-    let motion = conduit_semantic_catalog::robotics_motion_request_type();
+    let motion = conduit_robotics::robotics_motion_request_type();
     host.advertisement
         .capabilities
         .push(installed_std::test_local_model_io::sink_offer(
