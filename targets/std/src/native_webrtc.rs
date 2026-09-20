@@ -4,7 +4,10 @@
 //! layer. This adapter owns transport lifecycle only; it grants no membership,
 //! Plan, Cord, or effect authority.
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use async_trait::async_trait;
 use bytes::BytesMut;
@@ -14,11 +17,12 @@ use webrtc::{
     peer_connection::{
         PeerConnection, PeerConnectionBuilder, PeerConnectionEventHandler, RTCConfigurationBuilder,
         RTCIceGatheringState, RTCIceServer, RTCIceTransportPolicy, RTCSessionDescription,
+        RTCStatsReportEntry, StatsSelector,
     },
 };
 
 use crate::browser_admission::{
-    WebRtcBootstrapConfiguration, WebRtcIceTransportPolicy, MAX_WEBRTC_DESCRIPTION_BYTES,
+    MAX_WEBRTC_DESCRIPTION_BYTES, WebRtcBootstrapConfiguration, WebRtcIceTransportPolicy,
 };
 
 #[path = "native_webrtc/session.rs"]
@@ -27,6 +31,20 @@ pub use session::{NativeWebRtcSession, NativeWebRtcSessionRefusal};
 
 pub const NATIVE_WEBRTC_IMPLEMENTATION_ID: &str = "std/webrtc-datachannel@1";
 pub const MAXIMUM_NATIVE_WEBRTC_FRAME_BYTES: usize = 128 * 1024;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NativeWebRtcIcePath {
+    Direct,
+    Relayed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeWebRtcInspection {
+    pub implementation_id: &'static str,
+    pub bootstrap_provider_implementation_id: Option<String>,
+    pub transport_policy: WebRtcIceTransportPolicy,
+    pub selected_ice_path: NativeWebRtcIcePath,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NativeWebRtcRefusal {
@@ -75,6 +93,8 @@ pub struct NativeWebRtcEndpoint {
     channels: mpsc::Receiver<Arc<dyn DataChannel>>,
     maximum_frame_bytes: usize,
     operation_timeout: Duration,
+    bootstrap_provider_implementation_id: Option<String>,
+    transport_policy: WebRtcIceTransportPolicy,
 }
 
 impl NativeWebRtcEndpoint {
@@ -217,6 +237,48 @@ impl NativeWebRtcEndpoint {
             .map_err(|_| NativeWebRtcRefusal::Transport)
     }
 
+    /// Returns bounded provenance for the selected path without retaining or
+    /// exposing candidate addresses, ports, credentials, or SDP.
+    pub async fn inspect(&self) -> Result<NativeWebRtcInspection, NativeWebRtcRefusal> {
+        let report = self
+            .peer
+            .get_stats(Instant::now(), StatsSelector::None)
+            .await;
+        let selected_pair_id = &report
+            .transport()
+            .ok_or(NativeWebRtcRefusal::Transport)?
+            .selected_candidate_pair_id;
+        let pair = match report.get(selected_pair_id) {
+            Some(RTCStatsReportEntry::IceCandidatePair(pair)) => pair,
+            _ => return Err(NativeWebRtcRefusal::Transport),
+        };
+        // rtc's pair uses the raw candidate identity while its stats report
+        // namespaces the same identity by local/remote kind. Inspect the
+        // selected local carrier: a relay-only allocation is necessarily the
+        // endpoint's TURN path, while host/srflx/prflx are direct ICE paths.
+        let relayed = report
+            .iter()
+            .find_map(|entry| match entry {
+                RTCStatsReportEntry::LocalCandidate(candidate)
+                    if candidate.stats.id.ends_with(&pair.local_candidate_id) =>
+                {
+                    Some(candidate.candidate_type.to_string() == "relay")
+                }
+                _ => None,
+            })
+            .ok_or(NativeWebRtcRefusal::Transport)?;
+        Ok(NativeWebRtcInspection {
+            implementation_id: NATIVE_WEBRTC_IMPLEMENTATION_ID,
+            bootstrap_provider_implementation_id: self.bootstrap_provider_implementation_id.clone(),
+            transport_policy: self.transport_policy,
+            selected_ice_path: if relayed {
+                NativeWebRtcIcePath::Relayed
+            } else {
+                NativeWebRtcIcePath::Direct
+            },
+        })
+    }
+
     async fn build(
         bootstrap: Option<&WebRtcBootstrapConfiguration>,
         now_millis: u64,
@@ -230,6 +292,11 @@ impl NativeWebRtcEndpoint {
         if operation_timeout.is_zero() {
             return Err(NativeWebRtcRefusal::Bootstrap);
         }
+        let transport_policy = bootstrap
+            .map(|configuration| configuration.transport_policy)
+            .unwrap_or(WebRtcIceTransportPolicy::DirectAndRelay);
+        let bootstrap_provider_implementation_id =
+            bootstrap.map(|configuration| configuration.provider_implementation_id.clone());
         let ice_servers = bootstrap
             .map(|configuration| {
                 configuration
@@ -271,6 +338,8 @@ impl NativeWebRtcEndpoint {
             channels,
             maximum_frame_bytes: MAXIMUM_NATIVE_WEBRTC_FRAME_BYTES,
             operation_timeout,
+            bootstrap_provider_implementation_id,
+            transport_policy,
         })
     }
 
@@ -295,10 +364,10 @@ impl NativeWebRtcEndpoint {
 mod tests {
     use super::*;
     use conduit_core::{
-        bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId,
-        HostId, KindId, LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope,
-        LineSecurity, LineTrafficShape, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
-        PROTOCOL_VERSION,
+        BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId, HostId, KindId,
+        LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope, LineSecurity,
+        LineTrafficShape, LinkBindingId, LinkEndpointId, LinkLimits, PROTOCOL_VERSION, PlanId,
+        bind_active_play,
     };
     use conduit_wire::{
         LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionRole,
@@ -376,6 +445,18 @@ mod tests {
             tokio::join!(offer.endpoint.await_open(), answer.endpoint.await_open());
         offer_open.unwrap();
         answer_open.unwrap();
+
+        let inspection = offer.endpoint.inspect().await.unwrap();
+        assert_eq!(
+            inspection.implementation_id,
+            NATIVE_WEBRTC_IMPLEMENTATION_ID
+        );
+        assert_eq!(inspection.bootstrap_provider_implementation_id, None);
+        assert_eq!(
+            inspection.transport_policy,
+            WebRtcIceTransportPolicy::DirectAndRelay
+        );
+        assert_eq!(inspection.selected_ice_path, NativeWebRtcIcePath::Direct);
 
         offer.endpoint.send(b"ordinary Cord value").await.unwrap();
         let mut output = [0_u8; 64];

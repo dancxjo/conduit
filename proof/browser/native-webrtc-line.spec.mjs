@@ -59,7 +59,19 @@ test("the generic WebRTC DataChannel interoperates between browser and native st
   expect(responses[1]).toMatchObject({
     implementation_id: "std/webrtc-datachannel@1",
     received_bytes: 5,
+    selected_ice_path: "direct",
   });
+  const browserPath = await page.evaluate(async () => {
+    const stats = await globalThis.proofPeer.getStats();
+    for (const entry of stats.values()) {
+      if (entry.type !== "candidate-pair" || !entry.nominated || entry.state !== "succeeded") continue;
+      const local = stats.get(entry.localCandidateId);
+      const remote = stats.get(entry.remoteCandidateId);
+      return local?.candidateType === "relay" || remote?.candidateType === "relay" ? "relayed" : "direct";
+    }
+    return null;
+  });
+  expect(browserPath).toBe("direct");
   await page.evaluate(() => globalThis.proofPeer.close());
   const exit = await Promise.race([
     nativeExit,
