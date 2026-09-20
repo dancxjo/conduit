@@ -338,11 +338,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         0,
         "fully migrated",
     ),
-    (
-        "targets/std/offers/src/copy_file.rs",
-        1,
-        "the structured copy-result presenter awaits its owning semantic contract",
-    ),
+    ("targets/std/offers/src/copy_file.rs", 0, "fully migrated"),
     (
         "targets/std/offers/src/final_normalized_pattern.rs",
         0,
