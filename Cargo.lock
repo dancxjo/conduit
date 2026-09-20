@@ -1253,6 +1253,7 @@ name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-presentation",
 ]
 
 [[package]]
@@ -1402,6 +1403,7 @@ dependencies = [
  "conduit-midi",
  "conduit-net",
  "conduit-presentation",
+ "conduit-robotics",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-text",

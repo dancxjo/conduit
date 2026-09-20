@@ -1,18 +1,22 @@
 //! Deterministic structured robotics vectors and explicit refusal boundaries.
 
-use alloc::{string::String, string::ToString, vec, vec::Vec};
+use alloc::{string::String, string::ToString, vec};
 use conduit_core::{
-    Quantity, QuantityDimension, QuantityUnit, StructuredFieldValue, StructuredInfoRefusal,
-    StructuredInfoType, StructuredInfoValue,
+    Quantity, QuantityDimension, QuantityUnit, StructuredInfoRefusal, StructuredInfoType,
+    StructuredInfoValue,
 };
 
 use crate::{
     robotics_contact_event_type, robotics_contact_phase_type, robotics_motion_request_type,
     robotics_pose_sample_type, robotics_power_telemetry_type, robotics_range_observation_type,
     robotics_range_sample_type, robotics_sample_context_type, robotics_twist_interval_type,
-    MAXIMUM_ROBOTICS_IDENTITY_BYTES,
 };
 use conduit_presentation::{point2_value, robotics_pose2_type, vector2_type, GeometryRefusal};
+
+use crate::structured_value_support::{
+    count_value, quantity_value, record_value, require_exact, require_identity,
+    require_nonnegative, require_uncertainty, text_value, unit_variant,
+};
 
 pub const ROBOTICS_BODY_FRAME: &str = "body";
 pub const MAXIMUM_STRUCTURED_MOTION_INTERVAL_MS: i64 = 60_000;
@@ -209,6 +213,29 @@ pub fn range_sample_value(
     )
 }
 
+pub fn robotics_range_sample_example() -> StructuredInfoValue {
+    record_value(
+        robotics_range_sample_type(),
+        vec![
+            (
+                "distance",
+                quantity_value(Quantity::new(850, QuantityUnit::Millimeter))
+                    .expect("reviewed distance"),
+            ),
+            (
+                "frame",
+                text_value("sensor/forward").expect("reviewed frame"),
+            ),
+            (
+                "uncertainty",
+                quantity_value(Quantity::new(5, QuantityUnit::Millimeter))
+                    .expect("reviewed uncertainty"),
+            ),
+        ],
+    )
+    .expect("reviewed robotics specimen matches its schema")
+}
+
 pub fn contact_event_value(
     source_identity: &str,
     sample_sequence: u64,
@@ -401,103 +428,4 @@ fn coordinate_value(
             ("y", quantity_value(y)?),
         ],
     )
-}
-
-fn require_uncertainty(
-    value: Quantity,
-    dimension: QuantityDimension,
-    canonical: QuantityUnit,
-    field: &'static str,
-) -> Result<(), RoboticsStructuredRefusal> {
-    if require_exact(value, dimension, canonical, field)? < 0 {
-        return Err(RoboticsStructuredRefusal::NegativeUncertainty { field });
-    }
-    Ok(())
-}
-
-fn require_nonnegative(
-    value: Quantity,
-    dimension: QuantityDimension,
-    canonical: QuantityUnit,
-    field: &'static str,
-) -> Result<(), RoboticsStructuredRefusal> {
-    if require_exact(value, dimension, canonical, field)? < 0 {
-        return Err(RoboticsStructuredRefusal::NegativeValue { field });
-    }
-    Ok(())
-}
-
-fn require_exact(
-    value: Quantity,
-    dimension: QuantityDimension,
-    canonical: QuantityUnit,
-    field: &'static str,
-) -> Result<i64, RoboticsStructuredRefusal> {
-    if value.dimension() != dimension {
-        return Err(RoboticsStructuredRefusal::IncompatibleDimension { field });
-    }
-    value
-        .convert(canonical)
-        .map(|value| value.value())
-        .map_err(|_| RoboticsStructuredRefusal::InexactPrecision { field })
-}
-
-fn require_identity(value: &str) -> Result<(), RoboticsStructuredRefusal> {
-    if value.is_empty() {
-        return Err(RoboticsStructuredRefusal::EmptyIdentity);
-    }
-    if value.len() > MAXIMUM_ROBOTICS_IDENTITY_BYTES {
-        return Err(RoboticsStructuredRefusal::IdentityTooLong);
-    }
-    Ok(())
-}
-
-fn text_value(value: &str) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    require_identity(value)?;
-    leaf_value("value/text", value.as_bytes().to_vec())
-}
-
-fn count_value(value: u64) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    leaf_value(
-        conduit_core::COUNT_INFO_ID,
-        conduit_core::encode_count(value).to_vec(),
-    )
-}
-
-fn quantity_value(value: Quantity) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    leaf_value(conduit_core::QUANTITY_INFO_ID, value.encode().to_vec())
-}
-
-fn unit_variant(
-    value_type: StructuredInfoType,
-    tag: &str,
-) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    Ok(StructuredInfoValue::variant(
-        value_type,
-        tag,
-        leaf_value("value/unit", Vec::new())?,
-    )?)
-}
-
-fn leaf_value(
-    kind: &str,
-    bytes: Vec<u8>,
-) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    Ok(StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id(kind))?,
-        bytes,
-    )?)
-}
-
-fn record_value(
-    value_type: StructuredInfoType,
-    fields: Vec<(&str, StructuredInfoValue)>,
-) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    Ok(StructuredInfoValue::record(
-        value_type,
-        fields
-            .into_iter()
-            .map(|(name, value)| StructuredFieldValue::new(name, value))
-            .collect::<Result<Vec<_>, _>>()?,
-    )?)
 }

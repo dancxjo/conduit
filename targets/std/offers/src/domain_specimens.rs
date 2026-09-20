@@ -46,10 +46,10 @@ pub fn vision_std_offers() -> Vec<CapabilityOffer> {
 }
 
 pub fn robotics_structured_deterministic_offers() -> Vec<CapabilityOffer> {
-    conduit_semantic_catalog::robotics_structured_semantic_contracts()
+    conduit_robotics::robotics_structured_semantic_contracts()
         .into_iter()
         .filter(|contract| {
-            contract.kind_id.as_str() != conduit_semantic_catalog::ROBOTICS_EXECUTE_MOTION_KIND
+            contract.kind_id.as_str() != conduit_robotics::ROBOTICS_EXECUTE_MOTION_KIND
         })
         .map(|contract| {
             offer(
@@ -144,10 +144,10 @@ mod tests {
         );
         assert_exact_semantics(
             &robotics,
-            &conduit_semantic_catalog::robotics_structured_semantic_contracts(),
+            &conduit_robotics::robotics_structured_semantic_contracts(),
         );
         assert!(robotics.iter().all(|offer| {
-            offer.kind_id.as_str() != conduit_semantic_catalog::ROBOTICS_EXECUTE_MOTION_KIND
+            offer.kind_id.as_str() != conduit_robotics::ROBOTICS_EXECUTE_MOTION_KIND
                 && offer.authority_requirements.is_empty()
         }));
         assert!(vision.iter().all(|offer| {

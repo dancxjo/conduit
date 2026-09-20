@@ -35,28 +35,24 @@ pub fn vision_proof_offers() -> Vec<CapabilityOffer> {
 
 pub fn robotics_structured_proof_offers() -> Vec<CapabilityOffer> {
     proof_domain_offers(
-        conduit_semantic_catalog::robotics_structured_kind_contracts()
+        conduit_robotics::robotics_structured_kind_contracts()
             .into_iter()
-            .filter(|(kind, _, _)| {
-                kind.as_str() != conduit_semantic_catalog::ROBOTICS_EXECUTE_MOTION_KIND
-            })
+            .filter(|(kind, _, _)| kind.as_str() != conduit_robotics::ROBOTICS_EXECUTE_MOTION_KIND)
             .collect(),
-        conduit_semantic_catalog::ROBOTICS_STRUCTURED_REVISION,
+        conduit_robotics::ROBOTICS_STRUCTURED_REVISION,
     )
 }
 
 pub fn robotics_motion_proof_offer() -> CapabilityOffer {
-    let (kind, inputs, outputs) = conduit_semantic_catalog::robotics_structured_kind_contracts()
+    let (kind, inputs, outputs) = conduit_robotics::robotics_structured_kind_contracts()
         .into_iter()
-        .find(|(kind, _, _)| {
-            kind.as_str() == conduit_semantic_catalog::ROBOTICS_EXECUTE_MOTION_KIND
-        })
+        .find(|(kind, _, _)| kind.as_str() == conduit_robotics::ROBOTICS_EXECUTE_MOTION_KIND)
         .expect("portable motion contract");
     let mut offer = proof_domain_offer(
         kind.clone(),
         inputs,
         outputs,
-        conduit_semantic_catalog::ROBOTICS_STRUCTURED_REVISION,
+        conduit_robotics::ROBOTICS_STRUCTURED_REVISION,
         MOTION_PROOF_OPERATION,
     );
     offer.authority_requirements.push(AuthorityRequirement {
