@@ -1,115 +1,79 @@
-//! Exact refusal for a protected Line profile that ConduitOS cannot yet realize.
+//! ConduitOS admission for the shared protected Line session.
+//!
+//! This adapter supplies only fresh ephemeral key material and finite session
+//! storage. The caller separately owns the carrier, peer/session binding,
+//! rendezvous PSK, admission policy, and any membership or effect authority.
+
+use conduit_protected_line::{
+    IMPLEMENTATION_ID, ProtectedCarrier, ProtectedFrameCarrier, ProtectedLineError,
+    ProtectedSessionPolicy, Role, SessionBinding, establish_protected_session,
+};
+
+use crate::cryptographic_entropy::{
+    CryptographicEntropyBase, CryptographicEntropySource, EntropyRefusal,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ProtectedLineRefusal {
-    pub implementation_id: &'static str,
-    pub code: &'static str,
-    pub detail: &'static str,
+pub enum ConduitOsProtectedLineRefusal {
+    Entropy(EntropyRefusal),
+    Session(ProtectedLineError),
 }
 
-/// ConduitOS has no admitted entropy source or compiled Noise realization yet.
-/// It must not advertise the portable profile merely because its contract types
-/// compile for the target.
-pub const fn require_protected_line() -> Result<(), ProtectedLineRefusal> {
-    Err(ProtectedLineRefusal {
-        implementation_id: conduit_protected_line::IMPLEMENTATION_ID,
-        code: "protected-line-implementation-unavailable",
-        detail: "ConduitOS has no admitted entropy source and Noise session realization",
-    })
+impl ConduitOsProtectedLineRefusal {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Entropy(error) => error.as_str(),
+            Self::Session(_) => "protected-line-session-refused",
+        }
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RelayCandidateRefusal {
-    Candidate(conduit_protected_line::RelayCandidateError),
-    ProtectedLine(ProtectedLineRefusal),
+pub const fn protected_line_implementation_id() -> &'static str {
+    IMPLEMENTATION_ID
 }
 
-/// Consume the shared relay-candidate contract without pretending this image
-/// has the entropy, Noise, TLS, or socket realization needed to execute it.
-pub fn require_relay_candidate(
-    candidate: &conduit_protected_line::RelayCandidateDescriptor,
-    now_millis: u64,
-) -> Result<(), RelayCandidateRefusal> {
-    candidate
-        .validate(now_millis)
-        .map_err(RelayCandidateRefusal::Candidate)?;
-    require_protected_line().map_err(RelayCandidateRefusal::ProtectedLine)
+/// Establish one admitted protected session over an already-admitted carrier.
+///
+/// Exactly one entropy request is consumed. Both the ephemeral key and this
+/// function's PSK copy are volatile-erased before return on success or refusal.
+pub fn establish_conduitos_protected_line<C, S, const REQUESTS: u32>(
+    mut carrier: C,
+    role: Role,
+    binding: &SessionBinding,
+    policy: ProtectedSessionPolicy,
+    mut preshared_key: [u8; 32],
+    entropy: &mut CryptographicEntropyBase<S, REQUESTS>,
+) -> Result<ProtectedCarrier<C>, ConduitOsProtectedLineRefusal>
+where
+    C: ProtectedFrameCarrier,
+    S: CryptographicEntropySource,
+{
+    let mut ephemeral_private_key = [0_u8; 32];
+    if let Err(error) = entropy.fill(&mut ephemeral_private_key) {
+        erase(&mut preshared_key);
+        erase(&mut ephemeral_private_key);
+        return Err(ConduitOsProtectedLineRefusal::Entropy(error));
+    }
+    let session = establish_protected_session(
+        &mut carrier,
+        role,
+        binding,
+        policy,
+        preshared_key,
+        ephemeral_private_key,
+    );
+    erase(&mut preshared_key);
+    erase(&mut ephemeral_private_key);
+    let session = session.map_err(ConduitOsProtectedLineRefusal::Session)?;
+    ProtectedCarrier::new(carrier, session, policy).map_err(ConduitOsProtectedLineRefusal::Session)
+}
+
+fn erase(bytes: &mut [u8]) {
+    for byte in bytes {
+        // SAFETY: every byte is exclusively borrowed and valid for a volatile write.
+        unsafe { core::ptr::write_volatile(byte, 0) };
+    }
 }
 
 #[cfg(test)]
-mod tests {
-    use conduit_protected_line::{
-        EndpointBinding, ProtectedSessionPolicy, RELAY_CANDIDATE_SCHEMA,
-        RELAY_SERVICE_IMPLEMENTATION_ID, RelayCandidateBounds, RelayCandidateDescriptor,
-        RelayCandidateIdentity, RelayCandidateSecrets, RelayEndpointRole, SessionBinding,
-        SessionLimits,
-    };
-
-    #[test]
-    fn conduitos_refuses_instead_of_advertising_false_protection() {
-        let refusal = super::require_protected_line().unwrap_err();
-        assert_eq!(
-            refusal.implementation_id,
-            "conduit.line/noise-nnpsk0-25519-chachapoly-sha256@1"
-        );
-        assert_eq!(refusal.code, "protected-line-implementation-unavailable");
-    }
-
-    #[test]
-    fn conduitos_consumes_the_portable_relay_candidate_then_refuses_truthfully() {
-        let candidate = RelayCandidateDescriptor::new(
-            RelayCandidateIdentity {
-                schema: RELAY_CANDIDATE_SCHEMA.into(),
-                relay_implementation_id: RELAY_SERVICE_IMPLEMENTATION_ID.into(),
-                relay_locator: "wss://relay.example/conduit".into(),
-                relay_server_identity: "relay.example".into(),
-                certificate_binding_sha256: [1; 32],
-                negotiation_id: "negotiation/one".into(),
-                route_id: "route/one".into(),
-                role: RelayEndpointRole::Second,
-                endpoint_binding: "host/conduitos/boot/one".into(),
-                session_binding: SessionBinding {
-                    initiator: EndpointBinding {
-                        host_id: "host/native".into(),
-                        boot_id: "boot/native".into(),
-                    },
-                    responder: EndpointBinding {
-                        host_id: "host/conduitos".into(),
-                        boot_id: "boot/one".into(),
-                    },
-                    negotiation_id: "negotiation/one".into(),
-                    line_session_id: "line/one".into(),
-                    candidate_binding: "route/one".into(),
-                    transport_binding: "relay/wss/certificate/one".into(),
-                },
-                expires_at_millis: 10_000,
-            },
-            RelayCandidateBounds {
-                maximum_protected_frame_bytes: 290,
-                maximum_attempts: 1,
-                attempt_timeout_millis: 2_000,
-                protected_session: ProtectedSessionPolicy {
-                    traffic: SessionLimits {
-                        maximum_payload_bytes: 256,
-                        maximum_frames_per_direction: 8,
-                        maximum_bytes_per_direction: 2_048,
-                    },
-                    maximum_simultaneous_sessions: 1,
-                    maximum_pending_frames_per_session: 1,
-                    handshake_work_units: 2,
-                    handshake_timeout_millis: 2_000,
-                    idle_timeout_millis: 5_000,
-                },
-            },
-            RelayCandidateSecrets::new([7; 32], [8; 32]),
-            1_000,
-        )
-        .unwrap();
-        let refusal = super::require_relay_candidate(&candidate, 1_000).unwrap_err();
-        assert!(matches!(
-            refusal,
-            super::RelayCandidateRefusal::ProtectedLine(reason)
-                if reason.code == "protected-line-implementation-unavailable"
-        ));
-    }
-}
+mod tests;
