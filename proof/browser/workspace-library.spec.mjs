@@ -23,7 +23,7 @@ async function birth(page) {
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
 }
 
-test("five ordinary Forms start together beyond the old aggregate placement ceiling", async ({ page }) => {
+test("six ordinary Forms start together beyond the old aggregate placement ceiling", async ({ page }) => {
   await page.goto(entrance.url);
   for (const title of ["Button Across the Room", "Pocket Theremin", "Firefly Choir"]) {
     await page.getByRole("checkbox", { name: title, exact: true }).check();
@@ -32,7 +32,7 @@ test("five ordinary Forms start together beyond the old aggregate placement ceil
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const state = await current(page);
-  expect(state.initial_forms).toHaveLength(5);
+  expect(state.initial_forms).toHaveLength(6);
   expect(state.refusal).toBeUndefined();
 });
 
@@ -68,7 +68,7 @@ test("Use installs into the same Body; repeated Use preserves Play and removal s
   expect(installed.here_part_id).toBe(initial.here_part_id);
   expect(installed.workload_revision).toBe(1);
   expect(installed.active_play_id).not.toBe(initial.active_play_id);
-  expect(installed.initial_forms).toHaveLength(2);
+  expect(installed.initial_forms).toHaveLength(3);
   const tutorial = page.locator('[data-body-tutorial]');
   await expect(tutorial).toContainText("Invite another Host");
   await tutorial.getByRole("button", { name: "Invite another Host", exact: true }).click();
@@ -142,6 +142,8 @@ test("removing the final Form retains an empty Body that can acquire Forms again
   await openLibrary(page);
   await card(page, "Memory Lantern").getByRole("button", { name: "Remove", exact: true }).click();
   await expect(card(page, "Memory Lantern")).toContainText("Not in your Body");
+  await card(page, "Tutorial").getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(card(page, "Tutorial")).toContainText("Not in your Body");
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   expect((await current(page)).initial_forms).toHaveLength(0);
   expect((await current(page)).active_play_id).toBeUndefined();
@@ -223,7 +225,7 @@ test('a Gallery handoff installs in the retained Body and cannot reinstall a lat
   await expect(page.locator('#surface-title')).toHaveText('Desk Telegraph');
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   expect((await current(page)).body_id).toBe(initial.body_id);
-  expect((await current(page)).initial_forms).toHaveLength(2);
+  expect((await current(page)).initial_forms).toHaveLength(3);
   expect(new URL(page.url()).search).toBe('');
   await openLibrary(page);
   await card(page, 'Desk Telegraph').getByRole('button', { name: 'Remove', exact: true }).click();
@@ -259,6 +261,7 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
     await page.goto(entrance.url);
     await page.getByRole('checkbox', { name: 'Memory Lantern', exact: true }).uncheck();
     await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
+    await page.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
     await page.getByRole('checkbox', { name: title, exact: true }).check();
     await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
     await page.getByRole('button', { name: 'wake body', exact: true }).click();

@@ -11,14 +11,29 @@ test.beforeEach(async ({ page }) => {
 });
 test.afterEach(() => entrance?.child.kill());
 
-test("the legacy chapter Tutorial is absent from the ordinary Body path", async ({ page }) => {
+test("the first Body runs and can remove its resident Tutorial Form without losing its face", async ({ page }) => {
   await page.goto(entrance.url);
-  await expect(page.getByRole("checkbox", { name: "Tutorial", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { name: "Tutorial", exact: true })).toBeChecked();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await expect(page.locator("[data-body-tutorial]")).toBeVisible();
+  const tutorial = page.locator("[data-body-tutorial]");
+  await expect(tutorial).toContainText("Wake this Body");
+  const born = await current(page);
+  await expect(page.getByRole("navigation", { name: "Your forms" }).getByRole("button", { name: "Tutorial", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  const resident = tutorial.locator("[data-body-tutorial-resident] > output");
+  await expect(resident).toContainText("finite Body may remain awake");
+  await expect(resident).toHaveAttribute("data-active-play-id", (await current(page)).active_play_id);
+  await expect(tutorial.locator("[data-body-tutorial-core]")).toBeHidden();
   await page.getByRole("button", { name: "+ Forms", exact: true }).click();
-  await expect(page.getByText("Tutorial", { exact: true })).toHaveCount(0);
+  const card = page.locator('[data-application-key^="library-form-"]').filter({ hasText: /^Tutorial/u });
+  await card.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(card).toContainText("Not in your Body");
+  await page.getByRole("button", { name: "back to the surface", exact: true }).click();
+  await expect(tutorial).toBeHidden();
+  await expect(page.locator("[data-workspace-surface]")).toBeVisible();
+  expect((await current(page)).initial_forms).toHaveLength(born.initial_forms.length - 1);
 });
 
 test("resident Patchbay inspects and begins an exact edit in one browser Body Play", async ({ page }, testInfo) => {

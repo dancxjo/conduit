@@ -272,13 +272,13 @@ pub(super) fn prepare(
         .body_plan_ready(&request.plan, sign(0))
         .and_then(|wake| wake.body_play_started(&request.plan, &play, sign(1)))
         .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
-    let startup = startup::prepare(
+    let started_evidence = startup::project_started_evidence(
         request.body_evidence.as_ref(),
         &request.wake,
         &request.plan,
-        &play,
         &wake_at_start,
     )?;
+    let startup = startup::prepare(started_evidence.as_ref(), &request.plan, &play)?;
     let scheduler = engine::preparation::prepare_body_scheduler(
         &fragments
             .iter()
@@ -288,6 +288,7 @@ pub(super) fn prepare(
         Some(engine::preparation::ApplicationPreparation {
             plan: &request.plan,
             active_play_id: &play.active_play_id,
+            body_evidence: started_evidence.as_ref(),
             source: &request.source,
             foreground_checked_form_id: &request.foreground_checked_form_id,
         }),
