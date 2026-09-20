@@ -109,7 +109,7 @@ export async function verifyOciRelease(output) {
   return { artifactDigest: `sha256:${digest(artifact)}`, manifestDigest: releaseDescriptor.digest };
 }
 
-export async function prepareConduitosExport(releasePath, configPath, proofPath, sourceSha, invocationId) {
+export async function prepareConduitosExport(releasePath, buildManifestPath, configPath, proofPath, sourceSha, invocationId) {
   if (!/^[0-9a-f]{40}$/.test(sourceSha)) throw new Error("source commit is invalid");
   const release = JSON.parse(await boundedFile(releasePath, "ConduitOS release manifest"));
   if (release?.schema !== "conduit.conduitos/creche-release@1"
@@ -120,6 +120,14 @@ export async function prepareConduitosExport(releasePath, configPath, proofPath,
       || release.image_id !== `image:${release.artifact.sha256}`
       || release.boot_claimed !== false || release.physical_proof_claimed !== false) {
     throw new Error("ConduitOS release manifest is not the exact bounded x86_64 product receipt");
+  }
+  const buildManifest = JSON.parse(await boundedFile(buildManifestPath, "ConduitOS build manifest"));
+  if (buildManifest?.schema !== "conduit.host/target-build-manifest@3"
+      || buildManifest.target !== release.target_id
+      || buildManifest.build_id !== release.build_id
+      || buildManifest.image_id !== release.image_id
+      || buildManifest.artifact_role !== "product-host") {
+    throw new Error("ConduitOS build manifest disagrees with the sealed release identity");
   }
   const releaseRoot = resolve(releasePath, "..");
   const artifactPath = join(releaseRoot, release.artifact.path);
@@ -143,7 +151,7 @@ export async function prepareConduitosExport(releasePath, configPath, proofPath,
       invocationId,
     },
     source: { uri: "git+https://github.com/dancxjo/conduit", digest: { sha1: sourceSha } },
-    buildManifestPath: resolve(releasePath), proofReceiptPath: resolve(proofPath),
+    buildManifestPath: resolve(buildManifestPath), proofReceiptPath: resolve(proofPath),
   };
   await writeFile(resolve(configPath), `${canonical(config)}\n`, { flag: "wx" });
   return config;
@@ -220,12 +228,12 @@ function canonical(value) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  const [command, configPath, output, sourceSha, invocationId] = process.argv.slice(2);
+  const [command, configPath, output, sourceSha, invocationId, extra] = process.argv.slice(2);
   if (command === "export" && configPath && output) {
     await exportReleaseToOci(JSON.parse(await readFile(configPath, "utf8")), output);
   } else if (command === "verify" && configPath && !output) {
     await verifyOciRelease(configPath);
-  } else if (command === "prepare-conduitos" && configPath && output && sourceSha && invocationId) {
-    await prepareConduitosExport(configPath, `${output}.config.json`, `${output}.proof.json`, sourceSha, invocationId);
-  } else throw new Error("usage: oci-release-export.mjs export CONFIG OUTPUT | verify OCI_LAYOUT");
+  } else if (command === "prepare-conduitos" && configPath && output && sourceSha && invocationId && extra) {
+    await prepareConduitosExport(configPath, output, `${sourceSha}.config.json`, `${sourceSha}.proof.json`, invocationId, extra);
+  } else throw new Error("usage: oci-release-export.mjs export CONFIG OUTPUT | verify OCI_LAYOUT | prepare-conduitos RELEASE BUILD_MANIFEST OUTPUT_PREFIX SOURCE_SHA INVOCATION_ID");
 }

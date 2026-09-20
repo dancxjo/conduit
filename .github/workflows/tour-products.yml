@@ -794,11 +794,17 @@ jobs:
         with:
           name: conduit-conduitos-releases
           path: target/creche-conduitos-release
+      - name: Download the authoritative x86_64 ConduitOS build manifest
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-conduitos-build-x86_64
+          path: target/creche-conduitos-build/x86_64
       - name: Export and freshly verify the x86_64 release as a non-container OCI layout
         run: |
           rm -rf target/conduitos-x86_64-oci
           node tools/ci/oci-release-export.mjs prepare-conduitos \
             target/creche-conduitos-release/conduitos-x86_64-pc-release.json \
+            target/creche-conduitos-build/x86_64/build-manifest.json \
             target/conduitos-x86_64-oci-input \
             "$CONDUIT_CANDIDATE_SHA" \
             "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

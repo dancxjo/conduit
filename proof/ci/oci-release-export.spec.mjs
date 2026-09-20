@@ -79,6 +79,7 @@ test("the ConduitOS adapter preserves BuildId and ArtifactId without claiming bo
   const artifact = Buffer.from("iso");
   await writeFile(join(root, "conduitos-x86_64-pc.iso"), artifact);
   const releasePath = join(root, "conduitos-x86_64-pc-release.json");
+  const buildManifestPath = join(root, "build-manifest.json");
   await writeFile(releasePath, JSON.stringify({
     schema: "conduit.conduitos/creche-release@1", target_id: "conduitos/x86_64/pc",
     artifact_role: "product-host", image_id: `image:sha256:${sha256(artifact)}`,
@@ -86,9 +87,14 @@ test("the ConduitOS adapter preserves BuildId and ArtifactId without claiming bo
     artifact: { path: "conduitos-x86_64-pc.iso", sha256: `sha256:${sha256(artifact)}` },
     boot_claimed: false, physical_proof_claimed: false,
   }));
+  await writeFile(buildManifestPath, JSON.stringify({
+    schema: "conduit.host/target-build-manifest@3", target: "conduitos/x86_64/pc",
+    artifact_role: "product-host", build_id: "build:exact",
+    image_id: `image:sha256:${sha256(artifact)}`,
+  }));
   const configPath = join(root, "export.config.json");
   const proofPath = join(root, "export.proof.json");
-  const config = await prepareConduitosExport(releasePath, configPath, proofPath, "a".repeat(40), "run/42");
+  const config = await prepareConduitosExport(releasePath, buildManifestPath, configPath, proofPath, "a".repeat(40), "run/42");
   assert.equal(config.artifact.id, `image:sha256:${sha256(artifact)}`);
   assert.equal(config.build.id, "build:exact");
   const proof = JSON.parse(await readFile(proofPath));
