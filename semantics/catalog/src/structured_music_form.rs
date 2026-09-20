@@ -7,9 +7,11 @@ use alloc::{
 };
 use conduit_audio::{MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredConfigurationValue, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FaceStartupParameter,
+    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    SemanticCapabilityContract, StructuredConfigurationValue, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -24,6 +26,58 @@ pub const TIMING_FEEDBACK_TYPE: &str = "TimingFeedback";
 pub const RHYTHM_COMPARE_KIND: &str = "music/rhythm-compare";
 pub const RHYTHM_COMPARE_REVISION: &str = "conduit.std/music-rhythm-compare@1";
 pub const RHYTHM_MAXIMUM_PENDING_BEATS: u16 = 16;
+
+pub fn rhythm_compare_semantic_contract() -> SemanticCapabilityContract {
+    let definition = rhythm_compare_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![
+            startup("target-offset-micros", kind_id("value/scalar"), true),
+            startup("tolerance-micros", kind_id("value/count"), true),
+        ],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: RHYTHM_MAXIMUM_PENDING_BEATS,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
+                * usize::from(RHYTHM_MAXIMUM_PENDING_BEATS)
+                * 3) as u32,
+        },
+    }
+}
+
+pub fn instrument_map_semantic_contract() -> Result<SemanticCapabilityContract, String> {
+    let definition = instrument_map_definition()?;
+    let mapping_kind = instrument_mapping_type()
+        .profile()
+        .map_err(|error| alloc::format!("{error:?}"))?
+        .value_kind()
+        .clone();
+    Ok(SemanticCapabilityContract {
+        startup_parameters: vec![startup("mapping", mapping_kind, false)],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 16,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+        },
+    })
+}
+
+fn startup(name: &str, value_type: KindId, has_default: bool) -> FaceStartupParameter {
+    FaceStartupParameter {
+        name: name.into(),
+        value_type,
+        has_default,
+    }
+}
 
 pub fn beat_reference_type() -> StructuredInfoType {
     let count = leaf("value/count");

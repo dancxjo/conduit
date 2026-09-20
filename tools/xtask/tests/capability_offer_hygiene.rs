@@ -97,6 +97,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
+        "semantics/catalog/src/structured_music_form.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "semantics/catalog/src/job_catalog.rs",
         0,
         "semantic contract owner",
@@ -409,11 +414,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         0,
         "fully migrated",
     ),
-    (
-        "targets/std/offers/src/music.rs",
-        2,
-        "two KindDefinition families do not yet own semantic capacity",
-    ),
+    ("targets/std/offers/src/music.rs", 0, "fully migrated"),
     (
         "targets/std/offers/src/record_delivery.rs",
         0,
