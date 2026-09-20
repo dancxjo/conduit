@@ -48,6 +48,13 @@ impl PointerMechanism {
         }
     }
 
+    pub(crate) const fn base_implementation(self) -> &'static str {
+        match self {
+            Self::UsbHid => crate::keyboard_offer::XHCI_BASE_IMPLEMENTATION,
+            Self::Ps2 => crate::keyboard_offer::I8042_BASE_IMPLEMENTATION,
+        }
+    }
+
     const fn execution_profile(self) -> &'static str {
         match self {
             Self::UsbHid => POINTER_EXECUTION_PROFILE,
@@ -238,6 +245,14 @@ mod tests {
 
     #[test]
     fn exact_device_chain_and_capacities_are_required() {
+        assert_eq!(
+            PointerMechanism::UsbHid.base_implementation(),
+            crate::keyboard_offer::XHCI_BASE_IMPLEMENTATION
+        );
+        assert_ne!(
+            PointerMechanism::UsbHid.base_implementation(),
+            PointerMechanism::UsbHid.implementation()
+        );
         assert_eq!(realization().validate(), Ok(()));
         let mut empty = realization();
         empty.endpoint_id = [0; 32];
