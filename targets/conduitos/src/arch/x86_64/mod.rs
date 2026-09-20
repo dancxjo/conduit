@@ -26,7 +26,14 @@ mod virtio_net;
 mod virtio_net_pci;
 mod xhci;
 
-pub use cpu::{boot_entropy, deterministic_exit, feature_basis};
+pub use cpu::{boot_entropy, deterministic_exit, emergency_halt, feature_basis};
+
+pub const fn emergency_machine_profile() -> crate::machine::EmergencyMachineProfile {
+    crate::machine::EmergencyMachineProfile {
+        halt: crate::machine::EmergencyMachineAvailability::Available,
+        reset: crate::machine::EmergencyMachineAvailability::Available,
+    }
+}
 pub use entropy::RdrandEntropy;
 pub use ftdi_line::{
     FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS, FtdiLineError, FtdiLineReady,

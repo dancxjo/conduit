@@ -26,7 +26,7 @@ use product_registry::{
 
 const SUITES: [&str; 3] = ["esp32", "browser", "conduitos"];
 const ESP32_TARGETS: [&str; 3] = ["wroom", "c3", "s3"];
-const CONDUITOS_X86_PROOFS: [&str; 8] = [
+const CONDUITOS_X86_PROOFS: [&str; 9] = [
     "kernel",
     "xhci",
     "usb",
@@ -35,6 +35,7 @@ const CONDUITOS_X86_PROOFS: [&str; 8] = [
     "front-door",
     "product-journey",
     "rescue",
+    "emergency-halt",
 ];
 const CONDUITOS_ARCHITECTURES: [&str; 4] = ["aarch64", "ia32", "riscv64", "loongarch64"];
 const GLOBAL_PREFIXES: [&str; 5] = [
