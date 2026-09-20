@@ -16,29 +16,20 @@ pub(super) static POINTER: BrowserInstallation = BrowserInstallation {
 };
 
 fn offer() -> conduit_core::CapabilityOffer {
-    let mut offer = crate::browser_pointer::advertisement()
-        .capabilities
-        .into_iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::POINTER_SOURCE_KIND)
-        .expect("existing pointer advertisement owns its exact source");
-    // This installed envelope is smaller than the standalone pointer Host.
-    // Keep its implementation/profile distinct instead of mutating that offer's identity.
-    offer.capability_id = "browser-form-pointer-source@1".into();
-    offer.implementation.implementation_id = "browser/form-pointer-source@1".into();
-    offer.implementation.execution_profile_id = "browser/form-pointer-source@1".into();
-    offer.implementation.artifact_id = "conduit-browser-runtime/form-pointer-source@1".into();
-    offer
-        .resource_requirements
-        .push(conduit_core::ResourceRequirement {
+    crate::browser_pointer::pointer_source_offer(
+        "browser-form-pointer-source@1",
+        "browser/form-pointer-source@1",
+        "browser/form-pointer-source@1",
+        "conduit-browser-runtime/form-pointer-source@1",
+        super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+        vec![conduit_core::ResourceRequirement {
             class_id: super::input::WINDOW_INPUT_RESOURCE_CLASS.into(),
             units: 1,
             content: None,
             protected_role: None,
             compute: None,
-        });
-    offer.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
-    offer.host_operations[0].maximum_output_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
-    offer
+        }],
+    )
 }
 
 fn prepare(
