@@ -507,9 +507,9 @@ browser_safe_not_applicable = "open reusable front is exercised inside the Desk 
 slug = "tour"
 title = "Tutorial"
 entry = "tour"
-workspace_catalog = false
+initial_body_order = 14
 deterministic = { package = "conduit-tour-model", test = "application_form", case = "tour_is_a_checked_host_neutral_form_over_the_application_seam" }
-browser_safe_not_applicable = "retired chapter/exercise compatibility artifact; the Face now owns contextual tutorial guidance"
+browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "the first Body runs and can remove its resident Tutorial Form without losing its face" }
 
 [[forms]]
 slug = "patchbay"
