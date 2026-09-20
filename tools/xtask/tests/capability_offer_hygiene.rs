@@ -419,6 +419,16 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         0,
         "fully migrated",
     ),
+    (
+        "targets/browser/runtime/src/installed_browser/rhythm_state.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/browser/runtime/src/installed_browser/phase_synchronization.rs",
+        0,
+        "fully migrated",
+    ),
     ("targets/std/offers/src/copy_file.rs", 0, "fully migrated"),
     (
         "targets/std/offers/src/final_normalized_pattern.rs",

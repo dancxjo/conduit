@@ -1,8 +1,8 @@
 //! Effect-free browser realization of deterministic phase following.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    ImplementationId, ImplementationOffer,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, ImplementationId,
 };
 
 const PROFILE: &str = "browser/phase-synchronize-bounded@1";
@@ -10,30 +10,19 @@ const IMPLEMENTATION: &str = "browser/kernel-phase-synchronize@1";
 const ARTIFACT: &str = "conduit-browser-runtime/phase-synchronize@1";
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_time::phase_synchronize_kind_definition();
-    CapabilityOffer {
-        capability_id: CapabilityId::from("phase-synchronize"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        startup_parameters: vec![],
-        shorthand: None,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_time::phase_synchronize_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("phase-synchronize"),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
         },
-        host_operations: vec![],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 2,
-            max_queue_bytes: (conduit_time::RHYTHM_STATE_ENCODED_LEN
-                + conduit_time::PULSE_OBSERVATION_ENCODED_LEN) as u32,
-        },
-    }
+    )
+    .build()
 }
 
 fn prepare(
@@ -74,6 +63,17 @@ mod tests {
 
     #[test]
     fn shared_operation_derives_exact_adjusted_state_without_a_host_effect() {
+        let offer = super::offer();
+        let semantic = conduit_time::phase_synchronize_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits, semantic.limits);
         let mut operation = conduit_time::PhaseSynchronizationOperation::new();
         assert_eq!(operation.start(), OperationAction::Await);
         let local = conduit_time::RhythmState {
