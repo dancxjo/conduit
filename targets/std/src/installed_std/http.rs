@@ -1,8 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, PlannedGear,
+    CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    PlannedGear,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
@@ -36,7 +37,7 @@ pub(super) static HTTP_SERVER_FACTORY: InstalledFactory = InstalledFactory {
 };
 
 pub(crate) fn client_offer() -> CapabilityOffer {
-    let contract = conduit_web::http_client_semantics();
+    let contract = conduit_web::http_client_semantics().into_semantic_contract();
     let request_kind = conduit_web::http_request_type()
         .profile()
         .unwrap()
@@ -48,32 +49,27 @@ pub(crate) fn client_offer() -> CapabilityOffer {
         conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
         conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
     );
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("std-http-client-http1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from("std-http-client-http1"),
             execution_profile_id: ExecutionProfileId::from(CLIENT_PROFILE),
             implementation_id: ImplementationId::from(CLIENT_IMPLEMENTATION),
             artifact_id: ArtifactId::from(CLIENT_ARTIFACT),
+            host_operations: vec![operation.clone()],
+            resource_requirements: vec![resource_requirement(CLIENT_RESOURCE, 1)],
+            authority_requirements: vec![authority(
+                CLIENT_AUTHORITY,
+                &operation,
+                request_kind.as_str(),
+            )],
         },
-        host_operations: vec![operation.clone()],
-        resource_requirements: vec![resource_requirement(CLIENT_RESOURCE, 1)],
-        authority_requirements: vec![authority(
-            CLIENT_AUTHORITY,
-            &operation,
-            request_kind.as_str(),
-        )],
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 pub(crate) fn server_offer() -> CapabilityOffer {
-    let contract = conduit_web::http_server_semantics();
+    let contract = conduit_web::http_server_semantics().into_semantic_contract();
     let request_kind = conduit_web::http_request_type()
         .profile()
         .unwrap()
@@ -96,27 +92,22 @@ pub(crate) fn server_offer() -> CapabilityOffer {
         conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
         0,
     );
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("std-http-server-http1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from("std-http-server-http1"),
             execution_profile_id: ExecutionProfileId::from(SERVER_PROFILE),
             implementation_id: ImplementationId::from(SERVER_IMPLEMENTATION),
             artifact_id: ArtifactId::from(SERVER_ARTIFACT),
+            host_operations: vec![accept.clone(), respond.clone()],
+            resource_requirements: vec![resource_requirement(SERVER_RESOURCE, 1)],
+            authority_requirements: vec![
+                authority(SERVER_AUTHORITY, &accept, request_kind.as_str()),
+                authority(SERVER_AUTHORITY, &respond, response_kind.as_str()),
+            ],
         },
-        host_operations: vec![accept.clone(), respond.clone()],
-        resource_requirements: vec![resource_requirement(SERVER_RESOURCE, 1)],
-        authority_requirements: vec![
-            authority(SERVER_AUTHORITY, &accept, request_kind.as_str()),
-            authority(SERVER_AUTHORITY, &respond, response_kind.as_str()),
-        ],
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 fn host_operation(
@@ -389,4 +380,37 @@ fn validate(placement: &PlannedGear, offer: &CapabilityOffer) -> Result<(), Stri
 
 fn fail(code: FailureCode, detail: u16) -> OperationAction {
     OperationAction::Fail(Failure { code, detail })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn installed_http_realizations_preserve_owner_issued_fronts() {
+        for (offer, contract) in [
+            (
+                client_offer(),
+                conduit_web::http_client_semantics().into_semantic_contract(),
+            ),
+            (
+                server_offer(),
+                conduit_web::http_server_semantics().into_semantic_contract(),
+            ),
+        ] {
+            assert_eq!(offer.startup_parameters, contract.startup_parameters);
+            assert_eq!(offer.shorthand, contract.shorthand);
+            assert_eq!(offer.kind_id, contract.kind_id);
+            assert_eq!(
+                offer.kind_contract_revision,
+                contract.kind_contract_revision
+            );
+            assert_eq!(offer.inputs, contract.inputs);
+            assert_eq!(offer.outputs, contract.outputs);
+            assert_eq!(offer.limits, contract.limits);
+            assert!(!offer.host_operations.is_empty());
+            assert_eq!(offer.resource_requirements.len(), 1);
+            assert!(!offer.authority_requirements.is_empty());
+        }
+    }
 }
