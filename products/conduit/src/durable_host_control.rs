@@ -1,7 +1,10 @@
 //! Authenticated local control plane into the durable installed Host owner.
 
 use conduit_body::{BodyConversationContext, SpawnInvitationClaim, SpawnInvitationSecret};
-use conduit_core::{ActivePlayIdentity, HostAdvertisement, Plan};
+use conduit_core::{
+    ActivePlayIdentity, HostAdvertisement, Plan, PoolRealizationEnvelope,
+    PoolRealizationObservation, SignId,
+};
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_std_host::{AdmittedRemoteFragment, StdHost};
@@ -30,6 +33,7 @@ pub(crate) struct DurableHostRuntime {
     host: StdHost,
     remote_fragment: Option<AdmittedRemoteFragment>,
     cancellation_signal: Option<PathBuf>,
+    next_observation_sequence: u64,
 }
 
 impl DurableHostRuntime {
@@ -40,6 +44,7 @@ impl DurableHostRuntime {
             host,
             remote_fragment: None,
             cancellation_signal: None,
+            next_observation_sequence: 0,
         }
     }
 
@@ -73,6 +78,36 @@ impl DurableHostRuntime {
             return Err("body-context-host-identity-changed".into());
         }
         Ok(after)
+    }
+
+    fn observe_local_model_pool(
+        &mut self,
+        realization: &PoolRealizationEnvelope,
+    ) -> Result<PoolRealizationObservation, String> {
+        let sequence = self.next_observation_sequence;
+        self.next_observation_sequence = sequence
+            .checked_add(1)
+            .ok_or_else(|| "local-model observation sequence exhausted".to_string())?;
+        let provider_sign_id = SignId::from(format!(
+            "sign/{}/model-pool/{sequence}/provider",
+            self.host.advertisement().boot_id.as_str()
+        ));
+        let resource_sign_ids = realization
+            .resources
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+                SignId::from(format!(
+                    "sign/{}/model-pool/{sequence}/resource/{index}",
+                    self.host.advertisement().boot_id.as_str()
+                ))
+            })
+            .collect::<Vec<_>>();
+        self.host.observe_local_model_pool_realization(
+            realization,
+            provider_sign_id,
+            &resource_sign_ids,
+        )
     }
 
     fn prepare_remote(
@@ -511,6 +546,11 @@ enum Request {
         expected_offer_generation: u64,
         context: BodyConversationContext,
     },
+    ObserveLocalModelPool {
+        protocol: u16,
+        token: Vec<u8>,
+        realization: PoolRealizationEnvelope,
+    },
     PrepareRemote {
         protocol: u16,
         token: Vec<u8>,
@@ -550,6 +590,10 @@ enum Response {
     BodyContextInstalled {
         protocol: u16,
         advertisement: HostAdvertisement,
+    },
+    LocalModelPoolObserved {
+        protocol: u16,
+        observation: PoolRealizationObservation,
     },
     RemotePrepared {
         protocol: u16,
@@ -770,6 +814,48 @@ pub(crate) fn install_body_context(
     }
 }
 
+#[cfg(unix)]
+pub(crate) fn observe_local_model_pool(
+    state_dir: &Path,
+    realization: PoolRealizationEnvelope,
+) -> Result<PoolRealizationObservation, String> {
+    use std::os::unix::net::UnixStream;
+    let mut token = read_secret(&state_dir.join("control.token"))?;
+    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
+        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+    let mut request = Request::ObserveLocalModelPool {
+        protocol: PROTOCOL,
+        token: token.to_vec(),
+        realization,
+    };
+    write_sensitive_frame(&mut stream, &request)?;
+    stream
+        .shutdown(std::net::Shutdown::Write)
+        .map_err(|error| format!("finish durable Host model-pool observation: {error}"))?;
+    token.fill(0);
+    if let Request::ObserveLocalModelPool { token, .. } = &mut request {
+        token.fill(0);
+    }
+    match read_frame::<_, Response>(&mut stream)? {
+        Response::LocalModelPoolObserved {
+            protocol: PROTOCOL,
+            observation,
+        } => Ok(observation),
+        Response::Refused { code, .. } => Err(format!(
+            "durable Host refused model-pool observation: {code}"
+        )),
+        _ => Err("durable Host returned the wrong model-pool observation response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn observe_local_model_pool(
+    _state_dir: &Path,
+    _realization: PoolRealizationEnvelope,
+) -> Result<PoolRealizationObservation, String> {
+    Err("no reviewed local durable Host control carrier exists on this platform".into())
+}
+
 #[cfg(not(unix))]
 pub(crate) fn install_body_context(
     _state_dir: &Path,
@@ -922,6 +1008,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::Status { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
+        | Request::ObserveLocalModelPool { token, .. }
         | Request::PrepareRemote { token, .. }
         | Request::ExchangeRemote { token, .. }
         | Request::ReleaseRemote { token, .. } => token,
@@ -968,6 +1055,17 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|advertisement| Response::BodyContextInstalled {
                 protocol: PROTOCOL,
                 advertisement,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::ObserveLocalModelPool {
+            protocol,
+            realization,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .observe_local_model_pool(&realization)
+            .map(|observation| Response::LocalModelPoolObserved {
+                protocol: PROTOCOL,
+                observation,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::PrepareRemote {
@@ -1118,8 +1216,9 @@ mod tests {
         Body, BodyConversationContext, HostPresenceClock, HostPresenceClockScale, HostPresenceTable,
     };
     use conduit_core::{
-        process_owned_line_offer_with_limits, BaseImplementationId, BootId, GearId, HostId,
-        LineScope, LineSecurity, LinkLimits, OfferGeneration,
+        process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId, BootId,
+        CapabilityId, GearId, HostId, ImplementationId, LineScope, LineSecurity, LinkLimits,
+        OfferGeneration, PoolRealizationEnvelope,
     };
     use conduit_planner::{PlacementChoice, PlacementChoices};
     use conduit_std_host::{StdHost, StdHostConfig};
@@ -1307,6 +1406,35 @@ mod tests {
             &mut runtime,
         );
         assert!(matches!(response, Response::Refused { ref code, .. } if code == "unauthorized"));
+    }
+
+    #[test]
+    fn durable_observation_request_cannot_invent_a_model_realization() {
+        let mut runtime = runtime();
+        let token = [23_u8; 32];
+        let response = handle(
+            Request::ObserveLocalModelPool {
+                protocol: PROTOCOL,
+                token: token.to_vec(),
+                realization: PoolRealizationEnvelope {
+                    host_id: HostId::from("host/durable-fixture"),
+                    boot_id: BootId::from("boot/durable-fixture"),
+                    offer_generation: OfferGeneration(7),
+                    capability_id: CapabilityId::from("capability/invented-model"),
+                    implementation_id: ImplementationId::from("std/local-model@1"),
+                    artifact_id: ArtifactId::from("model/invented"),
+                    member_capacity: 1,
+                    resources: Vec::new(),
+                },
+            },
+            &token,
+            &mut runtime,
+        );
+        assert!(matches!(
+            response,
+            Response::Refused { ref code, .. }
+                if code == "local-model realization capability is not currently offered"
+        ));
     }
 
     #[test]
