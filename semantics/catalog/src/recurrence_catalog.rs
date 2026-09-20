@@ -6,9 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredVariantCase,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FaceStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
+    StructuredInfoValue, StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -22,6 +23,36 @@ pub const RECURRENCE_RESULT_KIND: &str = "time/recurrence-expansion-result@1";
 pub const RECURRENCE_MAXIMUM_RESULTS: u16 = 8;
 pub const RECURRENCE_MAXIMUM_EXCEPTIONS: u16 = 4;
 pub const RECURRENCE_MAXIMUM_RESOLUTIONS: u16 = 8;
+
+pub fn recurrence_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![FaceStartupParameter {
+            name: "request".into(),
+            value_type: RECURRENCE_REQUEST_TYPE.into(),
+            has_default: false,
+        }],
+        shorthand: None,
+        kind_id: kind_id(RECURRENCE_KIND),
+        kind_contract_revision: KindContractRevision::from(RECURRENCE_REVISION),
+        inputs: vec![],
+        outputs: vec![PortDescriptor {
+            port_id: port_id("occurrences"),
+            value_kind: recurrence_result_type()
+                .profile()
+                .expect("reviewed recurrence result is bounded")
+                .value_kind()
+                .clone(),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Value,
+        }],
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: RECURRENCE_MAXIMUM_RESULTS,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
+                * usize::from(RECURRENCE_MAXIMUM_RESULTS)) as u32,
+        },
+    }
+}
 
 fn leaf(kind: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(kind)).unwrap()

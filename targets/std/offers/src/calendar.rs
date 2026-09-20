@@ -1,8 +1,6 @@
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, ImplementationId, ImplementationOffer,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, ImplementationId, SemanticCapabilityContract,
 };
 
 pub const RECURRENCE_STD_PROFILE: &str = "std/recurrence-kernel@1";
@@ -13,23 +11,9 @@ pub const CALENDAR_PROPOSAL_STD_IMPLEMENTATION: &str = "std/kernel-calendar-prop
 pub const CALENDAR_PROPOSAL_STD_ARTIFACT: &str = "conduit-std-host/calendar-proposal@1";
 
 pub fn recurrence_std_offer() -> CapabilityOffer {
-    let result = conduit_semantic_catalog::recurrence_result_type();
     offer(
+        conduit_semantic_catalog::recurrence_semantic_contract(),
         "time-expand-recurrence",
-        conduit_semantic_catalog::RECURRENCE_KIND,
-        conduit_semantic_catalog::RECURRENCE_REVISION,
-        vec![FaceStartupParameter {
-            name: "request".into(),
-            value_type: conduit_semantic_catalog::RECURRENCE_REQUEST_TYPE.into(),
-            has_default: false,
-        }],
-        vec![PortDescriptor {
-            port_id: port_id("occurrences"),
-            value_kind: result.profile().unwrap().value_kind().clone(),
-            direction: PortDirection::Output,
-            temporal: PortTemporal::Value,
-        }],
-        conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS,
         RECURRENCE_STD_PROFILE,
         RECURRENCE_STD_IMPLEMENTATION,
         RECURRENCE_STD_ARTIFACT,
@@ -37,64 +21,35 @@ pub fn recurrence_std_offer() -> CapabilityOffer {
 }
 
 pub fn calendar_proposal_std_offer() -> CapabilityOffer {
-    let result = conduit_semantic_catalog::calendar_proposal_result_type();
     offer(
+        conduit_semantic_catalog::calendar_proposal_semantic_contract(),
         "calendar-propose-meeting",
-        conduit_semantic_catalog::CALENDAR_PROPOSAL_KIND,
-        conduit_semantic_catalog::CALENDAR_PROPOSAL_REVISION,
-        vec![FaceStartupParameter {
-            name: "request".into(),
-            value_type: conduit_semantic_catalog::CALENDAR_PROPOSAL_REQUEST_TYPE.into(),
-            has_default: false,
-        }],
-        vec![PortDescriptor {
-            port_id: port_id("proposal"),
-            value_kind: result.profile().unwrap().value_kind().clone(),
-            direction: PortDirection::Output,
-            temporal: PortTemporal::Value,
-        }],
-        conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_RESULTS,
         CALENDAR_PROPOSAL_STD_PROFILE,
         CALENDAR_PROPOSAL_STD_IMPLEMENTATION,
         CALENDAR_PROPOSAL_STD_ARTIFACT,
     )
 }
 
-#[allow(clippy::too_many_arguments)]
 fn offer(
+    contract: SemanticCapabilityContract,
     capability: &str,
-    kind: &str,
-    revision: &str,
-    startup_parameters: Vec<FaceStartupParameter>,
-    outputs: Vec<PortDescriptor>,
-    maximum_results: u16,
     execution_profile: &str,
     implementation: &str,
     artifact: &str,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters,
-        shorthand: None,
-        capability_id: CapabilityId::from(capability),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(execution_profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
+            host_operations: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: Vec::new(),
-        outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 4,
-            max_queue_items: maximum_results,
-            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * usize::from(maximum_results))
-                as u32,
-        },
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
