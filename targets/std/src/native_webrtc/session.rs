@@ -1,8 +1,8 @@
 //! Exact #1211 session admission over the native WebRTC transport.
 
 use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
-    SessionMessage, SessionRole, SessionTerminalDisposition, WireError,
+    SessionBinding, SessionMachine, SessionMessage, SessionRole, SessionTerminalDisposition,
+    WireError, decode_session_frame, encode_session_frame_into,
 };
 
 use super::{NativeWebRtcEndpoint, NativeWebRtcRefusal};

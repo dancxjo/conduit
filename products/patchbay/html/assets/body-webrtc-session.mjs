@@ -81,6 +81,18 @@ function gathered(connection) {
   }));
 }
 
+async function selectedIcePath(connection) {
+  const report = await connection.getStats();
+  for (const entry of report.values()) {
+    if (entry.type !== "candidate-pair" || !entry.nominated || entry.state !== "succeeded") continue;
+    const local = report.get(entry.localCandidateId);
+    const remote = report.get(entry.remoteCandidateId);
+    if (local?.candidateType === undefined || remote?.candidateType === undefined) return null;
+    return local.candidateType === "relay" || remote.candidateType === "relay" ? "relayed" : "direct";
+  }
+  return null;
+}
+
 export class BodyWebRtcSession {
   #grant;
   #sendSignal;
@@ -96,6 +108,7 @@ export class BodyWebRtcSession {
   #rejectReady;
   #signalAccepted = false;
   #sessionReady = false;
+  #selectedIcePath = null;
   #terminal = null;
   #terminalDetail = null;
   #offered = null;
@@ -264,6 +277,9 @@ export class BodyWebRtcSession {
         await this.#line.writable(ready.byteLength);
         if (!this.#line.send(ready).accepted) throw new Error("Ready send refused");
       }
+      // Inspection deliberately retains only the path class. Candidate
+      // addresses, ports, SDP, and ephemeral credentials stay transport-local.
+      this.#selectedIcePath = await selectedIcePath(this.#peer);
       this.#sessionReady = true;
       this.#resolveReady(this.state());
       void this.#pump();
@@ -428,6 +444,7 @@ export class BodyWebRtcSession {
       bootstrapProvider: this.#bootstrap.provider,
       bootstrapExpiresAtMillis: this.#bootstrap.expiresAtMillis,
       iceTransportPolicy: this.#bootstrap.policy,
+      selectedIcePath: this.#selectedIcePath,
       line: this.#line?.state() ?? null,
       sessionReady: this.#sessionReady,
       terminalReason: this.#terminal,

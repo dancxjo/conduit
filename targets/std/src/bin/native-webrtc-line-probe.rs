@@ -3,7 +3,7 @@
 use std::io::{BufRead, Write};
 use std::time::Duration;
 
-use conduit_std_host::native_webrtc::NativeWebRtcEndpoint;
+use conduit_std_host::native_webrtc::{NativeWebRtcEndpoint, NativeWebRtcIcePath};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -24,6 +24,7 @@ struct Receipt {
     implementation_id: &'static str,
     received_bytes: usize,
     disposition: &'static str,
+    selected_ice_path: &'static str,
 }
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
@@ -78,6 +79,15 @@ async fn main() -> Result<(), String> {
     if &frame[..acknowledgement] != b"delivered" {
         return Err("browser delivery acknowledgement was not exact".into());
     }
+    let inspection = answer
+        .endpoint
+        .inspect()
+        .await
+        .map_err(|error| format!("inspect selected ICE path: {error:?}"))?;
+    let selected_ice_path = match inspection.selected_ice_path {
+        NativeWebRtcIcePath::Direct => "direct",
+        NativeWebRtcIcePath::Relayed => "relayed",
+    };
     println!(
         "{}",
         serde_json::to_string(&Receipt {
@@ -85,6 +95,7 @@ async fn main() -> Result<(), String> {
             implementation_id: conduit_std_host::native_webrtc::NATIVE_WEBRTC_IMPLEMENTATION_ID,
             received_bytes: received,
             disposition: "line-ready-value-echoed",
+            selected_ice_path,
         })
         .map_err(|error| format!("encode native receipt: {error}"))?
     );
