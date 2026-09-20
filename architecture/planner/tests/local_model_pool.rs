@@ -121,7 +121,7 @@ fn consumer_host(front: &conduit_core::CheckedFace) -> HostAdvertisement {
                 maximum_connections: 4,
                 maximum_authority_grants: 4,
                 maximum_protected_resource_grants: 0,
-                maximum_line_offers: 0,
+                maximum_line_offers: 8,
             },
         }],
     }
@@ -152,6 +152,7 @@ fn requirement() -> BTreeMap<SharedPoolId, SharedPoolPlanningRequirement> {
                 sign_byte_capacity: 1_024,
             },
             admission_authority: authority(),
+            member_sessions_required: false,
         },
     )])
 }
@@ -178,6 +179,99 @@ fn build_plan(hosts: &[HostAdvertisement]) -> conduit_core::Plan {
         &requirement(),
     )
     .unwrap()
+}
+
+fn build_session_plan(
+    hosts: &[HostAdvertisement],
+    lines: &[conduit_core::LineOffer],
+) -> Result<conduit_core::Plan, conduit_planner::PlannerError> {
+    let form = expanded();
+    let placements = default_expanded_placements(&form, hosts).unwrap();
+    let remote_base = conduit_core::BaseImplementationId::from("conduit.base/test-line@1");
+    let mut requirements = requirement();
+    requirements
+        .get_mut(&SharedPoolId::from("model-service/workers"))
+        .unwrap()
+        .member_sessions_required = true;
+    plan_expanded_canonical_with_shared_pools(
+        &form,
+        hosts,
+        &placements,
+        &[
+            conduit_core::BaseImplementationId::from("conduit.base/local@1"),
+            remote_base,
+        ],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 1,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: lines,
+        },
+        &requirements,
+    )
+}
+
+#[test]
+fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
+    let form = expanded();
+    let observer = &form.gears[0];
+    let consumer = consumer_host(&observer.checked_front());
+    let fixtures = conduit_ai::generate_text_base_fixtures();
+    let hosts = vec![
+        consumer.clone(),
+        fixtures[0].advertisement.clone(),
+        fixtures[1].advertisement.clone(),
+    ];
+
+    let missing = build_session_plan(&hosts, &[]).unwrap_err();
+    assert!(matches!(
+        missing,
+        conduit_planner::PlannerError::InvalidSharedPool(message)
+            if message.contains("consumer-to-member") && message.contains("found 0")
+    ));
+
+    let base = conduit_core::BaseImplementationId::from("conduit.base/test-line@1");
+    let mut lines = Vec::new();
+    for (index, worker) in hosts[1..].iter().enumerate() {
+        lines.push(conduit_core::process_owned_line_offer(
+            &format!("line/consumer-worker-{index}"),
+            &format!("binding/consumer-worker-{index}"),
+            base.clone(),
+            &format!("base/consumer-worker-{index}"),
+            &consumer,
+            worker,
+            1,
+            1,
+        ));
+        lines.push(conduit_core::process_owned_line_offer(
+            &format!("line/worker-consumer-{index}"),
+            &format!("binding/worker-consumer-{index}"),
+            base.clone(),
+            &format!("base/worker-consumer-{index}"),
+            worker,
+            &consumer,
+            1,
+            1,
+        ));
+    }
+
+    let plan = build_session_plan(&hosts, &lines).unwrap();
+    assert!(conduit_core::verify_plan(&plan));
+    let pool = &plan.fragments[0].shared_pools[0];
+    assert!(pool.member_sessions_required);
+    assert!(pool
+        .realization_envelope
+        .iter()
+        .all(|realization| realization.admitted_lines.len() == 2));
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
+    assert!(lowered.shared_pools[0].member_sessions_required);
+    assert!(lowered.shared_pools[0]
+        .realizations
+        .iter()
+        .all(|realization| realization.admitted_lines.len() == 2));
 }
 
 fn key(value: u8) -> MemberKey {

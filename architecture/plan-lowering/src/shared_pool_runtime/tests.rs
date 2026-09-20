@@ -24,6 +24,7 @@ fn realization(index: u8) -> PoolRealizationEnvelope {
         artifact_id: ArtifactId::from(format!("worker-{index}/model@sha256")),
         member_capacity: 1,
         resources: vec![],
+        admitted_lines: vec![],
     }
 }
 
@@ -39,6 +40,7 @@ fn pool() -> PlannedSharedPool {
             sign_item_capacity: 16,
             sign_byte_capacity: 2_048,
         },
+        member_sessions_required: false,
         realization_envelope: vec![realization(0), realization(1)],
         selection_policy:
             conduit_core::SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder,

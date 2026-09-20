@@ -156,6 +156,7 @@ fn requirements() -> BTreeMap<SharedPoolId, SharedPoolPlanningRequirement> {
                 sign_byte_capacity: 2_048,
             },
             admission_authority: authority(),
+            member_sessions_required: false,
         },
     )])
 }

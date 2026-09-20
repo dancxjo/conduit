@@ -1425,6 +1425,7 @@ mod tests {
                     artifact_id: ArtifactId::from("model/invented"),
                     member_capacity: 1,
                     resources: Vec::new(),
+                    admitted_lines: Vec::new(),
                 },
             },
             &token,
