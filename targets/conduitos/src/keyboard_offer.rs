@@ -12,6 +12,8 @@ pub const KEYBOARD_IMPLEMENTATION: &str = "conduitos/usb-hid-keyboard@1";
 pub const KEYBOARD_EXECUTION_PROFILE: &str = "conduitos/usb-input-cooperative@1";
 pub const PS2_KEYBOARD_IMPLEMENTATION: &str = "conduitos/ps2-keyboard@1";
 pub const PS2_INPUT_EXECUTION_PROFILE: &str = "conduitos/ps2-input-cooperative@1";
+pub const XHCI_BASE_IMPLEMENTATION: &str = "conduitos.base/xhci@1";
+pub const I8042_BASE_IMPLEMENTATION: &str = "conduitos.base/i8042@1";
 pub const CONTROLLER_RESOURCE: &str = "conduitos.resource/device-controller-instance@1";
 pub const DEVICE_RESOURCE: &str = "conduitos.resource/device-instance@1";
 pub const INTERFACE_RESOURCE: &str = "conduitos.resource/device-interface-instance@1";
@@ -51,6 +53,13 @@ impl KeyboardMechanism {
         match self {
             Self::UsbHid => KEYBOARD_EXECUTION_PROFILE,
             Self::Ps2 => PS2_INPUT_EXECUTION_PROFILE,
+        }
+    }
+
+    pub const fn base_implementation(self) -> &'static str {
+        match self {
+            Self::UsbHid => XHCI_BASE_IMPLEMENTATION,
+            Self::Ps2 => I8042_BASE_IMPLEMENTATION,
         }
     }
 }
@@ -213,7 +222,9 @@ pub(crate) fn append_to_advertisement(
                 &realization.endpoint_id,
             )),
             provider_generation: advertisement.offer_generation.0,
-            implementation_id: BaseImplementationId::from(realization.mechanism.implementation()),
+            implementation_id: BaseImplementationId::from(
+                realization.mechanism.base_implementation(),
+            ),
             mechanism_family: HostBaseKindId::from("conduitos.base/keyboard-input@1"),
             enforcement_class: BaseEnforcementClass::ConduitOsKernelEnforced,
             lifecycle: BaseLifecycle::Ready,
@@ -252,6 +263,14 @@ mod tests {
 
     #[test]
     fn exact_device_chain_and_capacities_are_required() {
+        assert_eq!(
+            KeyboardMechanism::UsbHid.base_implementation(),
+            XHCI_BASE_IMPLEMENTATION
+        );
+        assert_ne!(
+            KeyboardMechanism::UsbHid.base_implementation(),
+            KeyboardMechanism::UsbHid.implementation()
+        );
         assert_eq!(realization().validate(), Ok(()));
         let mut empty = realization();
         empty.endpoint_id = [0; 32];
@@ -308,6 +327,10 @@ mod tests {
             PS2_INPUT_EXECUTION_PROFILE
         );
         assert_eq!(advertisement.bases.len(), 1);
+        assert_eq!(
+            advertisement.bases[0].implementation_id.as_str(),
+            I8042_BASE_IMPLEMENTATION
+        );
         assert_eq!(
             advertisement.bases[0].provider_instance_id.as_str(),
             crate::identity::hex(&realization.endpoint_id)
