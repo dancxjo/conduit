@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FrontStartupParameter, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, PlannedGear,
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -21,35 +21,25 @@ pub(super) static DIRECT: BrowserInstallation = BrowserInstallation {
 };
 
 fn direct_offer() -> CapabilityOffer {
-    let contract = conduit_text::text_morse_semantics();
-    CapabilityOffer {
-        startup_parameters: vec![FrontStartupParameter {
-            name: conduit_text::MORSE_UNIT_MILLIS_KEY.into(),
-            value_type: conduit_core::kind_id("value/count"),
-            has_default: true,
-        }],
-        shorthand: Some((port_id("text"), port_id("pattern"))),
-        capability_id: CapabilityId::from("browser/text-morse-direct@1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_text::text_morse_semantics().into_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("browser/text-morse-direct@1"),
             execution_profile_id: ExecutionProfileId::from("browser/kernel-text-morse-direct@1"),
             implementation_id: ImplementationId::from(DIRECT_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(HOST_OPERATION),
+                target_kind: Some(kind_id("text/morse-pattern")),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_text::MAXIMUM_MORSE_INPUT_BYTES as u32,
+                maximum_output_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
-            target_kind: Some(kind_id("text/morse-pattern")),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_text::MAXIMUM_MORSE_INPUT_BYTES as u32,
-            maximum_output_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 fn prepare(
@@ -90,4 +80,26 @@ pub(super) fn unit_millis(placement: &PlannedGear) -> Result<u16, String> {
                 .contains(value)
         })
         .ok_or_else(|| "text/morse unit duration is missing or invalid".into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn direct_offer_preserves_the_portable_morse_contract() {
+        let offer = direct_offer();
+        let semantic = conduit_text::text_morse_semantics().into_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.shorthand, semantic.shorthand);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits, semantic.limits);
+        assert_eq!(offer.host_operations.len(), 1);
+    }
 }
