@@ -1,6 +1,6 @@
 use crate::{
     ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFace, HostId, ImplementationId,
-    OfferGeneration, PlacementId, ResourceBinding,
+    OfferGeneration, PlacementId, ResourceBinding, ResourceObservation, SignId,
 };
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -88,6 +88,49 @@ pub struct PoolRealizationEnvelope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SharedPoolSelectionPolicy {
     MoreUnreservedThenLessUtilizedThenPlanOrder,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PoolRealizationHealth {
+    Ready,
+    Unavailable,
+}
+
+/// Current provider and resource truth for one exact sealed realization.
+/// This is observation, never stable offer or Plan truth.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PoolRealizationObservation {
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
+    pub capability_id: CapabilityId,
+    pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
+    pub health: PoolRealizationHealth,
+    pub sign_id: SignId,
+    pub resources: Vec<ResourceObservation>,
+}
+
+impl PoolRealizationObservation {
+    pub fn is_current_for(&self, realization: &PoolRealizationEnvelope) -> bool {
+        self.host_id == realization.host_id
+            && self.boot_id == realization.boot_id
+            && self.offer_generation == realization.offer_generation
+            && self.capability_id == realization.capability_id
+            && self.implementation_id == realization.implementation_id
+            && self.artifact_id == realization.artifact_id
+            && !self.sign_id.as_str().is_empty()
+            && realization.resources.iter().all(|binding| {
+                let mut matches = self.resources.iter().filter(|observation| {
+                    observation.host_id == self.host_id
+                        && observation.boot_id == self.boot_id
+                        && observation.offer_generation == self.offer_generation
+                        && observation.pool_id == binding.pool_id
+                        && observation.class_id == binding.class_id
+                });
+                matches.next().is_some() && matches.next().is_none()
+            })
+    }
 }
 
 /// Immutable Plan truth for one bounded shared dynamic population.

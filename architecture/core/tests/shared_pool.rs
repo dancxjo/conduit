@@ -4,8 +4,9 @@ use conduit_core::{
     ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FaceStartupParameter,
     FormIdentity, FragmentId, GearId, HostId, ImplementationId, KindContractRevision, PlacementId,
     PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PoolDeclarationId, PoolMemberLimits,
-    PoolRealizationEnvelope, PortDescriptor, PortDirection, PortTemporal, SharedPoolId,
-    SignStorageBudget, SourceDocumentId, TerminalPolicy,
+    PoolRealizationEnvelope, PoolRealizationHealth, PoolRealizationObservation, PortDescriptor,
+    PortDirection, PortTemporal, SharedPoolId, SignId, SignStorageBudget, SourceDocumentId,
+    TerminalPolicy,
 };
 
 fn member_offer(kind: &str, revision: &str) -> CapabilityOffer {
@@ -177,4 +178,23 @@ fn plan_identity_seals_pool_bound_front_envelope_authority_and_consumers() {
     let mut mutated = baseline;
     mutated.fragments[0].shared_pools[0].maximum_members = 1;
     assert!(!conduit_core::verify_plan(&mutated));
+}
+
+#[test]
+fn pool_observation_is_current_only_for_the_exact_sealed_provider_identity() {
+    let realization = pool().realization_envelope.remove(0);
+    let mut observation = PoolRealizationObservation {
+        host_id: realization.host_id.clone(),
+        boot_id: realization.boot_id.clone(),
+        offer_generation: realization.offer_generation,
+        capability_id: realization.capability_id.clone(),
+        implementation_id: realization.implementation_id.clone(),
+        artifact_id: realization.artifact_id.clone(),
+        health: PoolRealizationHealth::Ready,
+        sign_id: SignId::from("sign/provider-current"),
+        resources: vec![],
+    };
+    assert!(observation.is_current_for(&realization));
+    observation.offer_generation = conduit_core::OfferGeneration(2);
+    assert!(!observation.is_current_for(&realization));
 }
