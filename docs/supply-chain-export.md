@@ -34,7 +34,7 @@ compatible with a Host, or an operation is authorized for a Body.
 Repository and CI development use the internal bounded exporter directly:
 
 ```text
-node tools/ci/oci-release-export.mjs prepare-conduitos RELEASE OUTPUT_PREFIX SOURCE_SHA INVOCATION_ID
+node tools/ci/oci-release-export.mjs prepare-conduitos RELEASE BUILD_MANIFEST OUTPUT_PREFIX SOURCE_SHA INVOCATION_ID
 node tools/ci/oci-release-export.mjs export OUTPUT_PREFIX.config.json OCI_LAYOUT
 node tools/ci/oci-release-export.mjs verify OCI_LAYOUT
 ```
