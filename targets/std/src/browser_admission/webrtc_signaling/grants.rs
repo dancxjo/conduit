@@ -44,6 +44,7 @@ impl BrowserWebRtcRendezvous {
                         grant.source_boot_id.clone()
                     },
                     session_hello: grant.session_hello.clone(),
+                    bootstrap: self.bootstrap.clone(),
                 }
             });
         (total, grant)
@@ -64,7 +65,10 @@ impl BrowserWebRtcRendezvous {
         if !self.negotiations.is_empty() {
             return Err(BrowserWebRtcRendezvousRefusal::InvalidStage);
         }
-        let mut replacement = Self::default();
+        let mut replacement = Self {
+            bootstrap: self.bootstrap.clone(),
+            ..Self::default()
+        };
         let mut hellos = Vec::with_capacity(MAX_WEBRTC_NEGOTIATIONS);
         for binding in bindings {
             hellos.push(replacement.grant(binding)?);

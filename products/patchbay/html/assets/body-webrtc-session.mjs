@@ -37,11 +37,60 @@ function exactHello(value) {
   return Object.freeze([...value]);
 }
 
+export function decodeWebRtcBootstrapConfiguration(value, nowMillis = Date.now()) {
+  if (value === null || value === undefined) {
+    return Object.freeze({ provider: null, expiresAtMillis: null, policy: "all", iceServers: [] });
+  }
+  const bounded = (item) => typeof item === "string" && item.length > 0
+    && encoder.encode(item).length <= 512;
+  if (!bounded(value.provider_implementation_id)
+      || !Number.isSafeInteger(value.issued_at_millis)
+      || !Number.isSafeInteger(value.expires_at_millis)
+      || value.expires_at_millis <= nowMillis
+      || value.expires_at_millis <= value.issued_at_millis
+      || value.expires_at_millis - value.issued_at_millis > 10 * 60 * 1_000
+      || !["direct-and-relay", "relay-only"].includes(value.transport_policy)
+      || !Array.isArray(value.ice_servers) || value.ice_servers.length < 1
+      || value.ice_servers.length > 4) throw new Error("invalid or expired WebRTC bootstrap");
+  const iceServers = value.ice_servers.map((server) => {
+    if (!Array.isArray(server?.urls) || server.urls.length < 1 || server.urls.length > 4
+        || !server.urls.every((url) => bounded(url)
+          && /^(stun|stuns|turn|turns):/.test(url))) throw new Error("invalid WebRTC ICE server");
+    const hasTurn = server.urls.some((url) => /^turns?:/.test(url));
+    const paired = typeof server.username === "string" && typeof server.credential === "string";
+    if ((server.username === null) !== (server.credential === null)
+        || (paired && (!bounded(server.username) || !bounded(server.credential)))
+        || (hasTurn && !paired)) throw new Error("invalid WebRTC ICE credentials");
+    return Object.freeze({
+      urls: Object.freeze([...server.urls]),
+      ...(paired ? { username: server.username, credential: server.credential } : {}),
+    });
+  });
+  return Object.freeze({
+    provider: value.provider_implementation_id,
+    expiresAtMillis: value.expires_at_millis,
+    policy: value.transport_policy === "relay-only" ? "relay" : "all",
+    iceServers: Object.freeze(iceServers),
+  });
+}
+
 function gathered(connection) {
   if (connection.iceGatheringState === "complete") return Promise.resolve();
   return new Promise((resolve) => connection.addEventListener("icegatheringstatechange", () => {
     if (connection.iceGatheringState === "complete") resolve();
   }));
+}
+
+async function selectedIcePath(connection) {
+  const report = await connection.getStats();
+  for (const entry of report.values()) {
+    if (entry.type !== "candidate-pair" || !entry.nominated || entry.state !== "succeeded") continue;
+    const local = report.get(entry.localCandidateId);
+    const remote = report.get(entry.remoteCandidateId);
+    if (local?.candidateType === undefined || remote?.candidateType === undefined) return null;
+    return local.candidateType === "relay" || remote.candidateType === "relay" ? "relayed" : "direct";
+  }
+  return null;
 }
 
 export class BodyWebRtcSession {
@@ -52,12 +101,14 @@ export class BodyWebRtcSession {
   #limits;
   #peer;
   #line;
+  #bootstrap;
   #lineArrival;
   #ready;
   #resolveReady;
   #rejectReady;
   #signalAccepted = false;
   #sessionReady = false;
+  #selectedIcePath = null;
   #terminal = null;
   #terminalDetail = null;
   #offered = null;
@@ -106,7 +157,11 @@ export class BodyWebRtcSession {
     const hello = takeWebRtcSessionOutput(runtime);
     if (hello === null) throw new Error("granted session emitted no Hello");
     this.#hello = Object.freeze([...hello]);
-    this.#peer = new RTCPeerConnection({ iceServers: [] });
+    this.#bootstrap = decodeWebRtcBootstrapConfiguration(grant.bootstrap);
+    this.#peer = new RTCPeerConnection({
+      iceServers: this.#bootstrap.iceServers,
+      iceTransportPolicy: this.#bootstrap.policy,
+    });
     this.#ready = new Promise((resolve, reject) => {
       this.#resolveReady = resolve;
       this.#rejectReady = reject;
@@ -222,6 +277,9 @@ export class BodyWebRtcSession {
         await this.#line.writable(ready.byteLength);
         if (!this.#line.send(ready).accepted) throw new Error("Ready send refused");
       }
+      // Inspection deliberately retains only the path class. Candidate
+      // addresses, ports, SDP, and ephemeral credentials stay transport-local.
+      this.#selectedIcePath = await selectedIcePath(this.#peer);
       this.#sessionReady = true;
       this.#resolveReady(this.state());
       void this.#pump();
@@ -381,6 +439,12 @@ export class BodyWebRtcSession {
       peerHostId: this.#grant.peer_host_id,
       peerBootId: this.#grant.peer_boot_id,
       peerState: this.#peer.connectionState,
+      iceGatheringState: this.#peer.iceGatheringState,
+      iceConnectionState: this.#peer.iceConnectionState,
+      bootstrapProvider: this.#bootstrap.provider,
+      bootstrapExpiresAtMillis: this.#bootstrap.expiresAtMillis,
+      iceTransportPolicy: this.#bootstrap.policy,
+      selectedIcePath: this.#selectedIcePath,
       line: this.#line?.state() ?? null,
       sessionReady: this.#sessionReady,
       terminalReason: this.#terminal,
