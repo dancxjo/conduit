@@ -239,6 +239,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut speech_recognition,
         mut microphone,
         wav_artifact,
+        mut vision,
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
@@ -449,6 +450,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
     let mut image_text_hosts = image_text_operation::prepare_hosts(fragment);
     let mut image_text_record_hosts = image_text_record_operation::prepare_hosts(fragment);
+    let mut vision_request_sequence = 0_u64;
     let mut address_detect_hosts = address_detect_operation::prepare_hosts(fragment);
     #[cfg(any(test, feature = "local-model-proof"))]
     let mut recorded_speech_hosts = recorded_speech_operation::prepare_hosts(fragment)?;
@@ -917,6 +919,54 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete image-text record operation: {error:?}"))?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
+                vision_request_sequence = vision_request_sequence
+                    .checked_add(1)
+                    .ok_or_else(|| "local Vision request sequence exhausted".to_string())?;
+                let run_id = format!(
+                    "{}/node-{}/request-{vision_request_sequence}",
+                    active_play.active_play_id.as_str(),
+                    request.node.0
+                );
+                let encoded = vision
+                    .as_deref_mut()
+                    .ok_or_else(|| "local Vision request has no admitted Base".to_string())?
+                    .execute_motion(input, &run_id);
+                let (disposition, output, failure) = match encoded {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store local Vision motion: {error:?}"))?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map_err(|error| format!("bound local Vision motion: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output), None)
+                    }
+                    Err(_) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: 1,
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete local Vision motion: {error:?}"))?;
                 continue;
             }
             if matches!(
