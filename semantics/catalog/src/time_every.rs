@@ -5,7 +5,8 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, CapabilityLimits, ConfigurationValue, FaceStartupParameter, SemanticCapabilityContract,
+    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
+    SemanticCapabilityContract,
 };
 
 pub fn time_every_contract() -> StandardKindContract {
@@ -41,7 +42,7 @@ pub fn time_every_contract() -> StandardKindContract {
 pub fn time_every_semantic_contract() -> SemanticCapabilityContract {
     let contract = time_every_contract();
     SemanticCapabilityContract {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "freq".into(),
             value_type: kind_id("value/duration"),
             has_default: false,

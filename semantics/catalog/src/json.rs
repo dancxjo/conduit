@@ -3,7 +3,7 @@
 use super::{StandardKindContract, TerminalBehavior};
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use conduit_core::{port_id, FaceStartupParameter, SemanticCapabilityContract};
+use conduit_core::{port_id, FrontStartupParameter, SemanticCapabilityContract};
 
 pub fn json_encode_contract() -> StandardKindContract {
     contract(
@@ -60,7 +60,7 @@ pub fn json_collection_step_semantic_contract() -> SemanticCapabilityContract {
 pub fn json_boolean_summary_semantic_contract() -> SemanticCapabilityContract {
     semantic_contract(
         conduit_web::json_boolean_summary_semantics(),
-        alloc::vec![FaceStartupParameter {
+        alloc::vec![FrontStartupParameter {
             name: "field".into(),
             value_type: conduit_core::kind_id("value/text"),
             has_default: true,
@@ -70,7 +70,7 @@ pub fn json_boolean_summary_semantic_contract() -> SemanticCapabilityContract {
 
 fn semantic_contract(
     contract: conduit_web::PortableKindContract,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
 ) -> SemanticCapabilityContract {
     SemanticCapabilityContract {
         startup_parameters,
