@@ -393,7 +393,7 @@ fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
     let mut generate_profiles = ProfileCatalog::new();
     conduit_ai::install_generate_text_catalog(&mut generate_startup, &mut generate_profiles)
         .unwrap();
-    let generate_source = "form generation (\n prompt: value/text@1 > text: value/text@1\n) {\n model: ai/generate-text\n prompt > model.prompt\n model.text > text\n}\n";
+    let generate_source = "form generation (\n prompt: value/text > text: value/text\n) {\n model: ai/generate-text\n prompt > model.prompt\n model.text > text\n}\n";
     let generate_checked =
         check_syntax_document(&parse_syntax_document(generate_source), &generate_startup).unwrap();
     let generate_authoring = conduit_form::expand_canonical_form_for_authoring(

@@ -1,6 +1,6 @@
 //! Deterministic fixtures and pure workflow assessment over schedule Info.
 
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
@@ -228,12 +228,12 @@ fn unit_variant(
 }
 
 fn unit_value() -> Result<StructuredInfoValue, ScheduleInfoRefusal> {
-    leaf_value("value/unit@1", Vec::new())
+    leaf_value("value/unit", Vec::new())
 }
 
 fn text_value(value: &str) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(conduit_core::kind_id("value/text")).unwrap(),
         value.as_bytes().to_vec(),
     )
     .expect("bounded deterministic text")
@@ -241,8 +241,8 @@ fn text_value(value: &str) -> StructuredInfoValue {
 
 fn count_value(value: u64) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/count@1")).unwrap(),
-        value.to_string().into_bytes(),
+        StructuredInfoType::leaf(conduit_core::kind_id("value/count")).unwrap(),
+        conduit_core::encode_count(value).to_vec(),
     )
     .expect("bounded deterministic count")
 }

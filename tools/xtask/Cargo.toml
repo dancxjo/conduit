@@ -54,6 +54,8 @@ conduit-text = { path = "../../semantics/text" }
 conduitos = { path = "../../targets/conduitos", features = ["hosted-tools"] }
 conduit-net = { path = "../../semantics/net", features = ["form-catalog"] }
 conduit-data = { path = "../../semantics/data" }
+conduit-finance = { path = "../../semantics/finance" }
+conduit-little-seismograph-fixture = { path = "../../forms/little-seismograph/fixture" }
 conduit-language = { path = "../../semantics/language" }
 conduit-tongues = { path = "../../semantics/tongues" }
 conduit-web = { path = "../../semantics/web", default-features = false, features = ["form-catalog"] }

@@ -8,7 +8,7 @@ use conduit_form::{
 };
 
 fn event_type(extra_field: bool) -> StructuredInfoType {
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
     let mut fields = vec![StructuredFieldType::new("pitch", count.clone()).unwrap()];
     if extra_field {
         fields.push(StructuredFieldType::new("velocity", count).unwrap());
@@ -70,7 +70,7 @@ fn ordinary_unregistered_port_kinds_keep_the_existing_exact_vocabulary() {
     let front = checked.forms[0].checked_front();
     let outputs = front.outputs();
     assert_eq!(outputs[0].value_kind.as_str(), "domain/custom@2");
-    assert_eq!(outputs[1].value_kind.as_str(), "value/text@1");
+    assert_eq!(outputs[1].value_kind.as_str(), "value/text");
 }
 
 #[test]

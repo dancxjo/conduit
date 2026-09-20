@@ -12,9 +12,9 @@ use std::collections::BTreeMap;
 
 #[test]
 fn music_and_llm_records_execute_the_same_planned_selector_infrastructure() {
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
-    let text = StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap();
-    let scalar = StructuredInfoType::leaf(KindId::from("value/scalar@1")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
+    let text = StructuredInfoType::leaf(KindId::from("value/text")).unwrap();
+    let scalar = StructuredInfoType::leaf(KindId::from("value/scalar")).unwrap();
 
     let midi = StructuredInfoType::record(
         KindId::from("music/midi-note@1"),

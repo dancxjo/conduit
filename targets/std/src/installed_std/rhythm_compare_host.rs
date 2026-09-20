@@ -153,11 +153,7 @@ fn encode_feedback_into(
     field_text(output, "classification", classification);
     field_i64(output, "delta_micros", delta);
     field_u64(output, "expected_time_micros", beat.expected_time_micros);
-    field_text(
-        output,
-        "observed",
-        if observed.is_some() { "true" } else { "false" },
-    );
+    field_bool(output, "observed", observed.is_some());
     field_u64(output, "observed_time_micros", observed.unwrap_or(0));
     field_text(output, "recovery_state", recovery);
     (output.len() <= MAXIMUM_STRUCTURED_CANONICAL_BYTES)
@@ -211,7 +207,13 @@ fn field_text(output: &mut Vec<u8>, name: &str, value: &str) {
 fn field_u64(output: &mut Vec<u8>, name: &str, value: u64) {
     bytes(output, name.as_bytes());
     output.push(0);
-    decimal_u64(output, value);
+    bytes(output, &conduit_core::encode_count(value));
+}
+
+fn field_bool(output: &mut Vec<u8>, name: &str, value: bool) {
+    bytes(output, name.as_bytes());
+    output.push(0);
+    bytes(output, &conduit_core::InfoBool::new(value).encode());
 }
 
 fn field_i64(output: &mut Vec<u8>, name: &str, value: i64) {
@@ -225,15 +227,6 @@ fn field_i64(output: &mut Vec<u8>, name: &str, value: i64) {
     }
     append_digits(output, value.unsigned_abs());
     let length = u32::try_from(output.len() - start).expect("signed decimal length is finite");
-    output[length_at..length_at + 4].copy_from_slice(&length.to_le_bytes());
-}
-
-fn decimal_u64(output: &mut Vec<u8>, value: u64) {
-    let length_at = output.len();
-    output.extend_from_slice(&0_u32.to_le_bytes());
-    let start = output.len();
-    append_digits(output, value);
-    let length = u32::try_from(output.len() - start).expect("decimal length is finite");
     output[length_at..length_at + 4].copy_from_slice(&length.to_le_bytes());
 }
 
@@ -289,10 +282,14 @@ fn feedback(
             ),
             value_field(
                 "observed",
-                text_leaf(
-                    "value/boolean@1",
-                    if observed.is_some() { "true" } else { "false" },
-                ),
+                StructuredInfoValue::leaf(
+                    StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID))
+                        .unwrap(),
+                    conduit_core::InfoBool::new(observed.is_some())
+                        .encode()
+                        .to_vec(),
+                )
+                .unwrap(),
             ),
             value_field("observed_time_micros", count_leaf(observed.unwrap_or(0))),
             value_field(
@@ -347,9 +344,7 @@ fn take_named_count(bytes: &mut &[u8], name: &str) -> Result<u64, RhythmCompareR
     if take_bytes(bytes)? != name.as_bytes() || take_byte(bytes)? != 0 {
         return Err(RhythmCompareRefusal::MalformedReference);
     }
-    core::str::from_utf8(take_bytes(bytes)?)
-        .map_err(|_| RhythmCompareRefusal::MalformedReference)?
-        .parse()
+    conduit_core::decode_count(take_bytes(bytes)?)
         .map_err(|_| RhythmCompareRefusal::MalformedReference)
 }
 
@@ -395,7 +390,11 @@ fn field<'a>(
 
 #[cfg(test)]
 fn count_leaf(value: u64) -> StructuredInfoValue {
-    text_leaf("value/count@1", &value.to_string())
+    StructuredInfoValue::leaf(
+        StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::COUNT_INFO_ID)).unwrap(),
+        conduit_core::encode_count(value).to_vec(),
+    )
+    .unwrap()
 }
 
 #[cfg(test)]

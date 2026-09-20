@@ -139,12 +139,12 @@ fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
 
 #[cfg(feature = "form-catalog")]
 fn unit_type() -> StructuredInfoType {
-    leaf("value/unit@1")
+    leaf("value/unit")
 }
 
 #[cfg(feature = "form-catalog")]
 fn text_type() -> StructuredInfoType {
-    leaf("value/text@1")
+    leaf("value/text")
 }
 
 #[cfg(feature = "form-catalog")]

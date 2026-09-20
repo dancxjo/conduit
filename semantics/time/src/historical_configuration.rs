@@ -109,7 +109,7 @@ pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
         configuration: vec![
             ConfigurationField {
                 key: "value-profile".to_string(),
-                default_value: ConfigurationValue::Text("value/text@1".to_string()),
+                default_value: ConfigurationValue::Text("value/text".to_string()),
                 validation: ConfigurationRule::TextBytes {
                     maximum: MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES as u32,
                 },

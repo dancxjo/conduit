@@ -9,7 +9,7 @@ use conduit_form::{
 };
 
 fn note_type() -> StructuredInfoType {
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
     StructuredInfoType::record(
         KindId::from("music/note@1"),
         vec![
@@ -21,8 +21,8 @@ fn note_type() -> StructuredInfoType {
 }
 
 fn selector_types() -> (StructuredInfoType, StructuredInfoType, StructuredInfoType) {
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
-    let text = StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
+    let text = StructuredInfoType::leaf(KindId::from("value/text")).unwrap();
     let pitches = StructuredInfoType::collection(count.clone(), Some(3)).unwrap();
     let note = note_type();
     let rest = StructuredInfoType::leaf(KindId::from("music/rest@1")).unwrap();
@@ -84,7 +84,7 @@ fn required_domain_selectors_are_statically_typed_cord_stages() {
     assert_eq!(selector.input_type(), &selector_types().0);
     assert_eq!(
         selector.output_type(),
-        &StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap()
+        &StructuredInfoType::leaf(KindId::from("value/count")).unwrap()
     );
 
     let CheckedCordStage::StructuredSelector { selector, .. } = &cords[1].stages[1] else {
@@ -101,7 +101,7 @@ fn required_domain_selectors_are_statically_typed_cord_stages() {
     };
     assert_eq!(
         selector.output_type(),
-        &StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap()
+        &StructuredInfoType::leaf(KindId::from("value/text")).unwrap()
     );
     assert!(checked.forms[0].gears.is_empty());
 }
@@ -172,7 +172,7 @@ fn expansion_lowers_selector_to_one_exact_ordinary_gear_for_value_and_flow() {
         panic!("checked selector stage remains exact before expansion");
     };
     let (.., feedback) = selector_types();
-    let text = StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap();
+    let text = StructuredInfoType::leaf(KindId::from("value/text")).unwrap();
 
     for temporal in [PortTemporal::Value, PortTemporal::Flow { closes: true }] {
         let mut profile = ProfileCatalog::new();

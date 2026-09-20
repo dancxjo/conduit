@@ -3,7 +3,7 @@ use conduit_core::*;
 #[test]
 fn prepared_shape_validation_refuses_wrong_type_truncation_trailing_data_and_capacity() {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let value = StructuredInfoValue::leaf(ty.clone(), b"true".to_vec())
+    let value = StructuredInfoValue::leaf(ty.clone(), InfoBool::TRUE.encode().to_vec())
         .unwrap()
         .canonical_bytes()
         .unwrap();
@@ -43,7 +43,7 @@ fn prepared_validation_walks_exact_record_members() {
         ty.clone(),
         vec![StructuredFieldValue::new(
             "on",
-            StructuredInfoValue::leaf(leaf, b"false".to_vec()).unwrap(),
+            StructuredInfoValue::leaf(leaf, InfoBool::FALSE.encode().to_vec()).unwrap(),
         )
         .unwrap()],
     )
@@ -70,7 +70,7 @@ fn prepared_validation_accepts_nested_collection_and_selected_variant_only() {
         vec![StructuredVariantCase::new("items", collection.clone()).unwrap()],
     )
     .unwrap();
-    let element = StructuredInfoValue::leaf(leaf, b"true".to_vec()).unwrap();
+    let element = StructuredInfoValue::leaf(leaf, InfoBool::TRUE.encode().to_vec()).unwrap();
     let items =
         StructuredInfoValue::collection(collection, vec![element.clone(), element]).unwrap();
     let value = StructuredInfoValue::variant(ty.clone(), "items", items)

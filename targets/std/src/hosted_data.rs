@@ -7,6 +7,7 @@ use conduit_core::{
     StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_data::*;
+use conduit_finance::*;
 
 pub const FINANCE_PROFILE: &str = "std/finance-kernel-hosted@1";
 pub const FINANCE_ARTIFACT: &str = "conduit-std-host/finance@1";

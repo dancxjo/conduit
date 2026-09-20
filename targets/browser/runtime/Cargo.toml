@@ -22,6 +22,7 @@ conduit-core = { path = "../../../architecture/core" }
 conduit-creche-model = { path = "../../../products/creche/model" }
 conduit-home-model = { path = "../../../products/home/model" }
 conduit-data = { path = "../../../semantics/data" }
+conduit-little-seismograph-fixture = { path = "../../../forms/little-seismograph/fixture" }
 conduit-human = { path = "../../../semantics/human" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-body-fabrication = { path = "../../../fabrication/body" }

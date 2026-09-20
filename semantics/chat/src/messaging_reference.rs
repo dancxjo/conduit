@@ -1,6 +1,6 @@
 //! Deterministic reference fixture and evidence-honest delivery lifecycle.
 
-use alloc::{format, string::ToString, vec, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, StructuredFieldValue, StructuredInfoRefusal,
@@ -186,9 +186,7 @@ pub fn deterministic_submit(
     validate_request(request)?;
     let request_identity = leaf_text(record_field(request, "request_identity")?)?;
     let authority = variant_tag(record_field(request, "authority")?)?;
-    let attempt = leaf_text(record_field(request, "attempt")?)?
-        .parse::<u64>()
-        .map_err(|_| MessagingInfoRefusal::MalformedInfo)?;
+    let attempt = leaf_count(record_field(request, "attempt")?)?;
     let (tag, payload, summary) = if authority != "grant" {
         (
             "refused",
@@ -362,12 +360,12 @@ fn optional_text(
 }
 
 fn unit_value() -> Result<StructuredInfoValue, MessagingInfoRefusal> {
-    leaf_value("value/unit@1", Vec::new())
+    leaf_value("value/unit", Vec::new())
 }
 
 fn text_value(value: &str) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(conduit_core::kind_id("value/text")).unwrap(),
         value.as_bytes().to_vec(),
     )
     .expect("bounded deterministic messaging text")
@@ -375,8 +373,8 @@ fn text_value(value: &str) -> StructuredInfoValue {
 
 fn count_value(value: u64) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/count@1")).unwrap(),
-        value.to_string().into_bytes(),
+        StructuredInfoType::leaf(conduit_core::kind_id("value/count")).unwrap(),
+        conduit_core::encode_count(value).to_vec(),
     )
     .expect("bounded deterministic messaging count")
 }
@@ -424,6 +422,13 @@ fn variant_tag(value: &StructuredInfoValue) -> Result<&str, MessagingInfoRefusal
 
 pub(crate) fn leaf_text(value: &StructuredInfoValue) -> Result<&str, MessagingInfoRefusal> {
     core::str::from_utf8(leaf_bytes(value)?).map_err(|_| MessagingInfoRefusal::MalformedInfo)
+}
+
+fn leaf_count(value: &StructuredInfoValue) -> Result<u64, MessagingInfoRefusal> {
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+        return Err(MessagingInfoRefusal::MalformedInfo);
+    };
+    conduit_core::decode_count(bytes).map_err(|_| MessagingInfoRefusal::MalformedInfo)
 }
 
 fn leaf_bytes(value: &StructuredInfoValue) -> Result<&[u8], MessagingInfoRefusal> {

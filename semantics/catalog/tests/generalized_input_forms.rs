@@ -123,8 +123,8 @@ fn simultaneous_controls_and_pressure_evidence_are_fixed_and_inspectable() {
     assert_eq!(variant_tag(&contacts[1]), "unused");
 
     let pointer_pressure = record_field(&fixture.pointer, "pressure");
-    assert_eq!(leaf_text(record_field(pointer_pressure, "coalesced")), "2");
-    assert_eq!(leaf_text(record_field(pointer_pressure, "dropped")), "1");
+    assert_eq!(leaf_count(record_field(pointer_pressure, "coalesced")), 2);
+    assert_eq!(leaf_count(record_field(pointer_pressure, "dropped")), 1);
     assert_eq!(
         variant_tag(record_field(pointer_pressure, "policy")),
         "coalesce_latest_state"
@@ -256,4 +256,11 @@ fn leaf_text(value: &StructuredInfoValue) -> &str {
         panic!("expected leaf")
     };
     core::str::from_utf8(bytes).unwrap()
+}
+
+fn leaf_count(value: &StructuredInfoValue) -> u64 {
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+        panic!("expected leaf")
+    };
+    conduit_core::decode_count(bytes).unwrap()
 }

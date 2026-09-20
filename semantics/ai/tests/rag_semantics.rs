@@ -149,7 +149,7 @@ fn grounded_results_are_model_derived_and_citation_fenced() {
     };
     let result = GroundedResult {
         provenance: ModelResultProvenance::ModelDerived,
-        answer_kind: "value/text@1".into(),
+        answer_kind: "value/text".into(),
         answer: b"The project began here.".to_vec(),
         disposition: GroundingDisposition::Supported,
         claims: vec![GroundedClaim {
@@ -177,7 +177,7 @@ fn insufficient_and_conflicting_evidence_are_first_class() {
     ] {
         let result = GroundedResult {
             provenance: ModelResultProvenance::ModelDerived,
-            answer_kind: "value/text@1".into(),
+            answer_kind: "value/text".into(),
             answer: b"No supported conclusion.".to_vec(),
             disposition,
             claims: vec![],

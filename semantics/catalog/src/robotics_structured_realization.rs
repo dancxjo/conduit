@@ -454,11 +454,14 @@ fn require_identity(value: &str) -> Result<(), RoboticsStructuredRefusal> {
 
 fn text_value(value: &str) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
     require_identity(value)?;
-    leaf_value("value/text@1", value.as_bytes().to_vec())
+    leaf_value("value/text", value.as_bytes().to_vec())
 }
 
 fn count_value(value: u64) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    leaf_value("value/count@1", value.to_string().into_bytes())
+    leaf_value(
+        conduit_core::COUNT_INFO_ID,
+        conduit_core::encode_count(value).to_vec(),
+    )
 }
 
 fn quantity_value(value: Quantity) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
@@ -472,7 +475,7 @@ fn unit_variant(
     Ok(StructuredInfoValue::variant(
         value_type,
         tag,
-        leaf_value("value/unit@1", Vec::new())?,
+        leaf_value("value/unit", Vec::new())?,
     )?)
 }
 

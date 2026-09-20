@@ -9,7 +9,7 @@ use conduit_net::*;
 
 fn frame(text: &[u8]) -> Vec<u8> {
     let value = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
         text.to_vec(),
     )
     .unwrap();

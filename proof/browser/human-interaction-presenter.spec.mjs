@@ -21,7 +21,7 @@ test("semantic source and local mechanism change independently",async({page})=>{
   await page.evaluate(()=>{const item=globalThis.authoritativeSnapshot.interactions.find(value=>value.semantic_id==="interaction/volume");item.manifestation.scalar="number";globalThis.renderAuthoritative();});
   await expect(page.getByRole("spinbutton",{name:"Volume"})).toHaveValue("500000");
   await page.getByRole("spinbutton",{name:"Volume"}).fill("501000");await page.getByRole("spinbutton",{name:"Volume"}).press("Tab");
-  expect((await page.evaluate(()=>globalThis.proposals.at(-1))).payload.values[0].value_kind).toBe("value/quantity@1");
+  expect((await page.evaluate(()=>globalThis.proposals.at(-1))).payload.values[0].value_kind).toBe("value/quantity");
 });
 
 test("focus draft and reload remain local while authoritative current state reconstructs",async({page})=>{

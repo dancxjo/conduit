@@ -61,8 +61,11 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Fo
         .map_err(FormEditorError::Catalog)?;
     conduit_data::install_measurement_plot_catalog(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
-    conduit_data::install_little_seismograph_fixture_catalog(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
+    conduit_little_seismograph_fixture::install_little_seismograph_fixture_catalog(
+        &mut startup,
+        &mut profile,
+    )
+    .map_err(FormEditorError::Catalog)?;
     Ok((startup, profile))
 }
 
