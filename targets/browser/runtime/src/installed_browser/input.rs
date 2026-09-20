@@ -3,7 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, resource_requirement, HostOperationContractId, HostOperationRequirement, PlannedGear,
+    kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer,
+    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
@@ -30,52 +32,53 @@ pub(super) static BUTTON: BrowserInstallation = BrowserInstallation {
     perform: None,
 };
 
-fn button_offer() -> conduit_core::CapabilityOffer {
-    let mut offer = conduit_semantic_catalog::realization_offer(
-        conduit_semantic_catalog::button_source_contract(),
-        conduit_semantic_catalog::BUTTON_SOURCE_REVISION,
-        conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: BUTTON_IMPLEMENTATION,
-            execution_profile: BUTTON_IMPLEMENTATION,
-            implementation: BUTTON_IMPLEMENTATION,
-            artifact: ARTIFACT,
-        },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(BUTTON_EVENT_OPERATION),
-            target_kind: Some(kind_id("input/button-transition@1")),
-            maximum_in_flight: 1,
-            maximum_input_bytes: 1,
-            maximum_output_bytes: conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
-        }],
-        vec![resource_requirement(WINDOW_INPUT_RESOURCE_CLASS, 1)],
-        Vec::new(),
-    );
-    offer.limits.max_active_instances = super::MAXIMUM_BROWSER_GEARS as u16;
-    offer
+fn button_offer() -> CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        conduit_semantic_catalog::button_source_semantic_contract(),
+        input_realization(
+            BUTTON_IMPLEMENTATION,
+            BUTTON_EVENT_OPERATION,
+            "input/button-transition@1",
+            conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
+        ),
+    )
+    .build()
 }
 
-fn offer() -> conduit_core::CapabilityOffer {
-    let mut offer = conduit_semantic_catalog::realization_offer(
-        conduit_semantic_catalog::keyboard_contract(),
-        conduit_semantic_catalog::KEYBOARD_CONTRACT_REVISION,
-        conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: KEYBOARD_IMPLEMENTATION,
-            execution_profile: KEYBOARD_IMPLEMENTATION,
-            implementation: KEYBOARD_IMPLEMENTATION,
-            artifact: ARTIFACT,
-        },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(KEY_EVENT_OPERATION),
-            target_kind: Some(kind_id(conduit_human::KEY_EVENT_INFO_ID)),
+fn offer() -> CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        conduit_semantic_catalog::keyboard_semantic_contract(),
+        input_realization(
+            KEYBOARD_IMPLEMENTATION,
+            KEY_EVENT_OPERATION,
+            conduit_human::KEY_EVENT_INFO_ID,
+            conduit_human::KEY_EVENT_ENCODED_LEN as u32,
+        ),
+    )
+    .build()
+}
+
+fn input_realization(
+    implementation: &str,
+    operation: &str,
+    target: &str,
+    maximum_output_bytes: u32,
+) -> CapabilityRealization {
+    CapabilityRealization {
+        capability_id: CapabilityId::from(implementation),
+        execution_profile_id: ExecutionProfileId::from(implementation),
+        implementation_id: ImplementationId::from(implementation),
+        artifact_id: ArtifactId::from(ARTIFACT),
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(operation),
+            target_kind: Some(kind_id(target)),
             maximum_in_flight: 1,
             maximum_input_bytes: 1,
-            maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
+            maximum_output_bytes,
         }],
-        vec![resource_requirement(WINDOW_INPUT_RESOURCE_CLASS, 1)],
-        Vec::new(),
-    );
-    offer.limits.max_active_instances = super::MAXIMUM_BROWSER_GEARS as u16;
-    offer
+        resource_requirements: vec![resource_requirement(WINDOW_INPUT_RESOURCE_CLASS, 1)],
+        authority_requirements: Vec::new(),
+    }
 }
 
 fn prepare(
@@ -229,6 +232,33 @@ fn identity_exhausted() -> OperationAction {
 mod tests {
     use super::*;
     use conduit_kernel::{HostOperationOutcome, ValueRef};
+
+    #[test]
+    fn browser_input_realizations_preserve_owner_capacity_and_fronts() {
+        for (offer, contract) in [
+            (
+                offer(),
+                conduit_semantic_catalog::keyboard_semantic_contract(),
+            ),
+            (
+                button_offer(),
+                conduit_semantic_catalog::button_source_semantic_contract(),
+            ),
+        ] {
+            assert_eq!(offer.startup_parameters, contract.startup_parameters);
+            assert_eq!(offer.shorthand, contract.shorthand);
+            assert_eq!(offer.kind_id, contract.kind_id);
+            assert_eq!(
+                offer.kind_contract_revision,
+                contract.kind_contract_revision
+            );
+            assert_eq!(offer.inputs, contract.inputs);
+            assert_eq!(offer.outputs, contract.outputs);
+            assert_eq!(offer.limits, contract.limits);
+            assert_eq!(offer.host_operations.len(), 1);
+            assert_eq!(offer.resource_requirements.len(), 1);
+        }
+    }
 
     #[test]
     fn button_rearms_one_fixed_request_after_each_transition() {

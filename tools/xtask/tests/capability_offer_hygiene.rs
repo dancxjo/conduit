@@ -360,6 +360,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
+        "targets/browser/runtime/src/installed_browser/input.rs",
+        0,
+        "fully migrated",
+    ),
+    (
         "targets/browser/runtime/src/browser_pointer.rs",
         0,
         "fully migrated",
