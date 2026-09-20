@@ -139,11 +139,11 @@ fn build_document_exposes_front_ports_and_info_without_planning() {
     let text = document.lines.join("\n");
     assert!(text.contains("FORM greet"));
     assert!(text.contains("FRONT inputs=1 outputs=1"));
-    assert!(text.contains("PORT name direction=Input info=value/text@1 temporal=Value"));
-    assert!(text.contains("PORT text direction=Output info=value/text@1 temporal=Value"));
+    assert!(text.contains("PORT name direction=Input info=value/text temporal=Value"));
+    assert!(text.contains("PORT text direction=Output info=value/text temporal=Value"));
     assert!(text.contains("kind=text/join"));
     assert!(text.contains("CORD "));
-    assert!(text.contains("info=value/text@1"));
+    assert!(text.contains("info=value/text"));
     assert!(text.contains("BODY not born"));
 }
 

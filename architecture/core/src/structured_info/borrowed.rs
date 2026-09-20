@@ -113,10 +113,14 @@ fn validate_value(
     let mut kind = Cursor::new(type_bytes);
     match (kind.byte()?, value.byte()?) {
         (0, 0) => {
-            checked_name(kind.text()?)?;
-            if value.bytes()?.len() > MAXIMUM_STRUCTURED_LEAF_BYTES {
+            let identity = kind.text()?;
+            checked_name(identity)?;
+            let encoded = value.bytes()?;
+            if encoded.len() > MAXIMUM_STRUCTURED_LEAF_BYTES {
                 return Err(malformed());
             }
+            crate::validate_primitive_info(identity, encoded)
+                .map_err(StructuredInfoRefusal::InvalidPrimitiveLeaf)?;
         }
         (1, 1) => {
             let count = usize::from(kind.u16()?);

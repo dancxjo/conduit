@@ -8,9 +8,9 @@ use sha2::{Digest, Sha256};
 
 use crate::QuantityConversionRefusal;
 
-pub const BOOL_INFO_ID: &str = "value/bool@1";
+pub const BOOL_INFO_ID: &str = "value/bool";
 pub const BOOL_ENCODED_LEN: usize = 1;
-pub const SCALAR_INFO_ID: &str = "value/scalar@1";
+pub const SCALAR_INFO_ID: &str = "value/scalar";
 pub const SCALAR_ENCODED_LEN: usize = 8;
 
 const SEMANTIC_DIGEST_DOMAIN: &[u8] = b"conduit.info.semantic.v1";
@@ -42,7 +42,7 @@ pub enum ScalarArithmeticError {
     Overflow,
 }
 
-/// The exact two-state value carried by `value/bool@1`.
+/// The exact two-state value carried by `value/bool`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InfoBool(bool);
 

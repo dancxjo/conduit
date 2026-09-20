@@ -11,10 +11,10 @@ use conduit_core::{
     RESOURCE_REFERENCE_INFO_ID,
 };
 
-const COUNT: &str = "value/count@1";
-const TEXT: &str = "value/text@1";
-const BYTES: &str = "value/bytes@1";
-const UNIT: &str = "value/unit@1";
+const COUNT: &str = "value/count";
+const TEXT: &str = "value/text";
+const BYTES: &str = "value/bytes";
+const UNIT: &str = "value/unit";
 
 fn leaf(id: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(id)).expect("reviewed HTTP leaf identity is finite")

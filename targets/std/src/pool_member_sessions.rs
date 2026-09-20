@@ -255,13 +255,13 @@ mod tests {
         let consumer_id = PlacementId::from("placement/client");
         let input = PortDescriptor {
             port_id: PortId::from("prompt"),
-            value_kind: KindId::from("value/text@1"),
+            value_kind: KindId::from("value/text"),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
         };
         let output = PortDescriptor {
             port_id: PortId::from("text"),
-            value_kind: KindId::from("value/text@1"),
+            value_kind: KindId::from("value/text"),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         };

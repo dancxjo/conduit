@@ -46,7 +46,7 @@ fn specimens() -> [Specimen; 5] {
             default_value: conduit_semantic_catalog::language_annotation_example(),
             literal: "{end: 11, label: \"noun-phrase\", start: 0, tokens: [\"bright\", \"star\"]}",
             field: "label",
-            selected_type: leaf("value/text@1"),
+            selected_type: leaf("value/text"),
         },
         Specimen {
             form_name: "message-envelope",
@@ -56,7 +56,7 @@ fn specimens() -> [Specimen; 5] {
             literal:
                 "{message_id: \"message/7\", state: delivered(true), subject: \"lesson/feedback\"}",
             field: "subject",
-            selected_type: leaf("value/text@1"),
+            selected_type: leaf("value/text"),
         },
         Specimen {
             form_name: "education-feedback",

@@ -6,7 +6,7 @@ use conduit_core::{
 
 fn store(items: usize, bytes: usize) -> HostedHistoryContent {
     HostedHistoryContent::new(
-        kind_id("value/scalar@1"),
+        kind_id("value/scalar"),
         "controller/events",
         TemporalScale::Milliseconds,
         items,
@@ -28,7 +28,7 @@ fn metadata(seed: u8, bytes: usize) -> (String, TemporalInstant, BoundedResource
         },
         BoundedResourceRef {
             identity: ResourceSemanticIdentity::from_digest([seed; 32]),
-            content_profile: kind_id("value/scalar@1"),
+            content_profile: kind_id("value/scalar"),
             access_class: ResourceClassId::from("conduit.resource/history-value@1"),
             extent: ResourceExtent {
                 bytes: bytes as u64,
@@ -117,7 +117,7 @@ fn profile_clock_extent_and_version_failures_are_distinct_and_atomic() {
     let mut store = store(8, 64);
     append(&mut store, metadata(2, 8), &[2; 8]).unwrap();
     let mut wrong_profile = metadata(3, 8);
-    wrong_profile.2.content_profile = kind_id("value/text@1");
+    wrong_profile.2.content_profile = kind_id("value/text");
     let mut wrong_clock = metadata(3, 8);
     wrong_clock.1.clock_basis = "another/events".into();
     for (entry, expected) in [
@@ -161,7 +161,7 @@ fn clear_reclaims_capacity_without_restarting_sequence_identity() {
 #[test]
 fn exhausted_sequence_cannot_publish_or_retain_content() {
     let mut store = HostedHistoryContent::new(
-        kind_id("value/scalar@1"),
+        kind_id("value/scalar"),
         "controller/events",
         TemporalScale::Milliseconds,
         1,

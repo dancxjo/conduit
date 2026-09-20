@@ -64,7 +64,7 @@ pub fn llm_embodiment_documentary_presentations(
         body_id: body.body_id.as_str().into(),
         perception_value_kind: kind_id("perception/scene-summary@1"),
         state_value_kind: kind_id("robotics/battery-state@1"),
-        expressive_value_kind: kind_id("value/text@1"),
+        expressive_value_kind: kind_id("value/text"),
         protected_effect_kind: kind_id("effect/indicator-set@1"),
         views,
         ambient_host_access: false,
@@ -88,9 +88,9 @@ fn documentary_view(stage: EmbodimentStage, index: usize) -> EmbodiedModelView {
             kind_id("robotics/battery-state@1"),
         ],
         wired_outputs: if authorized {
-            vec![kind_id("llm/proposal-result@1"), kind_id("value/text@1")]
+            vec![kind_id("llm/proposal-result@1"), kind_id("value/text")]
         } else if expressive {
-            vec![kind_id("value/text@1")]
+            vec![kind_id("value/text")]
         } else {
             vec![]
         },

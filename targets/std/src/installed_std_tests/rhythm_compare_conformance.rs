@@ -235,7 +235,7 @@ fn note(time: u64) -> Vec<u8> {
 }
 
 fn record(value_type: StructuredInfoType, values: [(&str, u64); 2]) -> StructuredInfoValue {
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
     StructuredInfoValue::record(
         value_type,
         values
@@ -243,8 +243,11 @@ fn record(value_type: StructuredInfoType, values: [(&str, u64); 2]) -> Structure
             .map(|(name, value)| {
                 StructuredFieldValue::new(
                     name,
-                    StructuredInfoValue::leaf(count.clone(), value.to_string().into_bytes())
-                        .unwrap(),
+                    StructuredInfoValue::leaf(
+                        count.clone(),
+                        conduit_core::encode_count(value).to_vec(),
+                    )
+                    .unwrap(),
                 )
                 .unwrap()
             })

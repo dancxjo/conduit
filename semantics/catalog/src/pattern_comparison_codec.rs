@@ -129,11 +129,7 @@ fn encode_result(
     field_leaf(
         output,
         "matched",
-        if score >= crate::NORMALIZED_SCALE - tolerance {
-            b"true"
-        } else {
-            b"false"
-        },
+        &conduit_core::InfoBool::new(score >= crate::NORMALIZED_SCALE - tolerance).encode(),
     );
     field_leaf(output, "metric", crate::MAXIMUM_ABSOLUTE_METRIC.as_bytes());
     field_u64(output, "score_millionths", score);
@@ -206,23 +202,5 @@ fn field_leaf(output: &mut Vec<u8>, name: &str, value: &[u8]) {
 fn field_u64(output: &mut Vec<u8>, name: &str, value: u64) {
     bytes(output, name.as_bytes());
     output.push(0);
-    let at = output.len();
-    output.extend_from_slice(&0_u32.to_le_bytes());
-    let start = output.len();
-    append_digits(output, value);
-    let length = (output.len() - start) as u32;
-    output[at..at + 4].copy_from_slice(&length.to_le_bytes());
-}
-fn append_digits(output: &mut Vec<u8>, mut value: u64) {
-    let mut digits = [0_u8; 20];
-    let mut cursor = digits.len();
-    loop {
-        cursor -= 1;
-        digits[cursor] = b'0' + (value % 10) as u8;
-        value /= 10;
-        if value == 0 {
-            break;
-        }
-    }
-    output.extend_from_slice(&digits[cursor..]);
+    bytes(output, &conduit_core::encode_count(value));
 }

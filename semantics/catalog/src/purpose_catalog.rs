@@ -16,15 +16,15 @@ pub const PURPOSE_STATE_TYPE: &str = "PurposeState";
 pub const FULFILLMENT_READINESS_TYPE: &str = "FulfillmentReadiness";
 
 fn text() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/text@1")).expect("reviewed text")
+    StructuredInfoType::leaf(kind_id("value/text")).expect("reviewed text")
 }
 
 fn count() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/count@1")).expect("reviewed count")
+    StructuredInfoType::leaf(kind_id("value/count")).expect("reviewed count")
 }
 
 fn unit() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/unit@1")).expect("reviewed unit")
+    StructuredInfoType::leaf(kind_id("value/unit")).expect("reviewed unit")
 }
 
 fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {

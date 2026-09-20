@@ -7,7 +7,7 @@ use conduit_form::{
 
 const TEXT_MORSE_BACK: &str = r#"form text/morse (
     unit-ms: Count = 120
-    text: value/text@1 > pattern: value/morse-pattern@1
+    text: value/text > pattern: value/morse-pattern@1
 ) {
     symbols: text/morse-symbols
     timing: morse/symbols-to-pattern(unit-ms)
@@ -16,7 +16,7 @@ const TEXT_MORSE_BACK: &str = r#"form text/morse (
 "#;
 
 const TEXT_MORSE_SYMBOLS_BACK: &str = r#"form text/morse-symbols (
-    text: value/text@1 > symbols: value/morse-symbols@1
+    text: value/text > symbols: value/morse-symbols@1
 ) {
     characters: text/characters
     lookup: morse/lookup
@@ -27,7 +27,7 @@ const TEXT_MORSE_SYMBOLS_BACK: &str = r#"form text/morse-symbols (
 "#;
 
 const MORSE_TEXT_BACK: &str = r#"form morse/text (
-    pattern: value/morse-pattern@1 > text: value/text@1
+    pattern: value/morse-pattern@1 > text: value/text
 ) {
     symbols: morse/pattern-to-symbols
     decode: morse/symbols-to-text
@@ -156,7 +156,7 @@ mod tests {
         crate::install_text_catalogs(&mut startup, &mut profile).unwrap();
         crate::install_morse_catalogs(&mut startup, &mut profile).unwrap();
         let cyclic_source = r#"form text/morse-symbols (
-    text: value/text@1 > symbols: value/morse-symbols@1
+    text: value/text > symbols: value/morse-symbols@1
 ) {
     again: text/morse-symbols
     text > again > symbols

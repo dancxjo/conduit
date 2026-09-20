@@ -182,16 +182,5 @@ fn count_field(output: &mut Vec<u8>, name: &str, value: u64) {
 }
 
 fn count(output: &mut Vec<u8>, value: u64) {
-    let mut digits = [0_u8; 20];
-    let mut cursor = digits.len();
-    let mut remaining = value;
-    loop {
-        cursor -= 1;
-        digits[cursor] = b'0' + (remaining % 10) as u8;
-        remaining /= 10;
-        if remaining == 0 {
-            break;
-        }
-    }
-    wire_leaf(output, &digits[cursor..]);
+    wire_leaf(output, &conduit_core::encode_count(value));
 }

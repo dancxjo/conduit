@@ -62,13 +62,18 @@ pub fn messaging_delivery_request_view(
         correlation_identity: leaf_text(record_field(request, "correlation_identity")?)?
             .to_string(),
         authority_identity,
-        attempt: leaf_text(record_field(request, "attempt")?)?
-            .parse()
-            .map_err(|_| MessagingInfoRefusal::MalformedInfo)?,
+        attempt: leaf_count(record_field(request, "attempt")?)?,
         body: leaf_text(record_field(message, "body")?)?.to_string(),
         recipients,
         attachment_count,
     })
+}
+
+fn leaf_count(value: &StructuredInfoValue) -> Result<u64, MessagingInfoRefusal> {
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+        return Err(MessagingInfoRefusal::MalformedInfo);
+    };
+    conduit_core::decode_count(bytes).map_err(|_| MessagingInfoRefusal::MalformedInfo)
 }
 
 pub fn messaging_delivery_state_view(

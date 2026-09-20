@@ -60,6 +60,26 @@ fn property(value: &StructuredInfoValue, name: &str) -> String {
     core::str::from_utf8(bytes).unwrap().to_string()
 }
 
+fn property_count(value: &StructuredInfoValue, name: &str) -> u64 {
+    let StructuredInfoValueShape::Record(fields) = value.shape() else {
+        panic!("feedback must be a record")
+    };
+    let StructuredInfoValueShape::Leaf(bytes) = field(fields, name).unwrap().shape() else {
+        panic!("feedback field must be a leaf")
+    };
+    conduit_core::decode_count(bytes).unwrap()
+}
+
+fn property_bool(value: &StructuredInfoValue, name: &str) -> bool {
+    let StructuredInfoValueShape::Record(fields) = value.shape() else {
+        panic!("feedback must be a record")
+    };
+    let StructuredInfoValueShape::Leaf(bytes) = field(fields, name).unwrap().shape() else {
+        panic!("feedback field must be a leaf")
+    };
+    conduit_core::InfoBool::decode(bytes).unwrap().get()
+}
+
 #[test]
 fn exact_vectors_report_early_late_recovery_and_deliberate_displacement() {
     let mut comparison = host(0, 25);
@@ -162,15 +182,15 @@ fn note_off_is_ignored_and_drain_emits_each_missed_beat() {
             .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_OPERATION, b"ignored")
             .unwrap(),
     );
-    assert_eq!(property(&first, "beat"), "1");
+    assert_eq!(property_count(&first, "beat"), 1);
     assert_eq!(property(&first, "classification"), "missed");
-    assert_eq!(property(&first, "observed"), "false");
+    assert!(!property_bool(&first, "observed"));
     let second = decode(
         comparison
             .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_OPERATION, b"ignored")
             .unwrap(),
     );
-    assert_eq!(property(&second, "beat"), "2");
+    assert_eq!(property_count(&second, "beat"), 2);
     assert!(comparison
         .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_OPERATION, b"ignored")
         .unwrap()

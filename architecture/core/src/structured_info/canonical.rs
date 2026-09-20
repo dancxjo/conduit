@@ -201,8 +201,9 @@ fn validate_value_node(
     cursor: &mut Cursor<'_>,
 ) -> Result<(), StructuredInfoRefusal> {
     match (expected.shape(), cursor.byte()?) {
-        (super::StructuredInfoTypeShape::Leaf(_), 0) => {
-            cursor.bytes()?;
+        (super::StructuredInfoTypeShape::Leaf(kind), 0) => {
+            crate::validate_primitive_info(kind.as_str(), cursor.bytes()?)
+                .map_err(StructuredInfoRefusal::InvalidPrimitiveLeaf)?;
         }
         (super::StructuredInfoTypeShape::Collection { element, length }, 1) => {
             if cursor.length()? != usize::from(length) {

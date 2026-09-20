@@ -462,7 +462,7 @@ mod tests {
         assert_eq!(invalid.cords.len(), 1);
         assert!(invalid.cords[0].invalid);
         assert_eq!(invalid.diagnostics[0].code, "CND-FRM-045");
-        assert!(invalid.diagnostics[0].fix.contains("value/text@1"));
+        assert!(invalid.diagnostics[0].fix.contains("value/text"));
         assert!(invalid.diagnostics[0]
             .subjects
             .contains(&"wrong/light.receiving:pattern".to_owned()));

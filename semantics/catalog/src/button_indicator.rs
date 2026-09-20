@@ -62,9 +62,7 @@ impl PreparedButtonTransitionEncoder {
         self.output.extend_from_slice(&0_u32.to_le_bytes());
         encode_text_into(b"sequence", &mut self.output);
         self.output.push(0);
-        let mut digits = [0_u8; 20];
-        let sequence = decimal_bytes(sequence, &mut digits);
-        encode_text_into(sequence, &mut self.output);
+        encode_text_into(&conduit_core::encode_count(sequence), &mut self.output);
         if self.output.len() > BUTTON_TRANSITION_MAXIMUM_BYTES as usize {
             return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
         }
@@ -75,18 +73,6 @@ impl PreparedButtonTransitionEncoder {
 fn encode_text_into(value: &[u8], output: &mut Vec<u8>) {
     output.extend_from_slice(&(value.len() as u32).to_le_bytes());
     output.extend_from_slice(value);
-}
-
-fn decimal_bytes(mut value: u64, buffer: &mut [u8; 20]) -> &[u8] {
-    let mut start = buffer.len();
-    loop {
-        start -= 1;
-        buffer[start] = b'0' + (value % 10) as u8;
-        value /= 10;
-        if value == 0 {
-            return &buffer[start..];
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -202,19 +188,22 @@ pub fn button_transition_value(
     let phase = StructuredInfoValue::variant(
         super::input_button_phase_type(),
         if pressed { "pressed" } else { "released" },
-        leaf("value/unit@1", Vec::new())?,
+        leaf("value/unit", Vec::new())?,
     )?;
     StructuredInfoValue::record(
         input_button_transition_type(),
         vec![
             StructuredFieldValue::new(
                 "button_identity",
-                leaf("value/text@1", button_identity.as_bytes().to_vec())?,
+                leaf("value/text", button_identity.as_bytes().to_vec())?,
             )?,
             StructuredFieldValue::new("phase", phase)?,
             StructuredFieldValue::new(
                 "sequence",
-                leaf("value/count@1", sequence.to_string().into_bytes())?,
+                leaf(
+                    conduit_core::COUNT_INFO_ID,
+                    conduit_core::encode_count(sequence).to_vec(),
+                )?,
             )?,
         ],
     )
@@ -358,7 +347,7 @@ mod tests {
 
     #[test]
     fn unrelated_structured_values_refuse_instead_of_becoming_indicator_state() {
-        let unrelated = leaf("value/text@1", b"pressed").canonical_bytes().unwrap();
+        let unrelated = leaf("value/text", b"pressed").canonical_bytes().unwrap();
         assert_eq!(
             map_button_transition_to_indicator(&unrelated),
             Err(ButtonIndicatorRefusal::WrongType)

@@ -284,7 +284,7 @@ fn native_build_mode_drives_explicit_birth_wake_plan_play_and_lull() {
     assert!(build.contains("FORM current=0 saved=0 checked=0 last-born=not-present"));
     assert!(build.contains("BODY not born — action: BIRTH"));
     assert!(build.contains("kind=text/upper"));
-    assert!(build.contains("info=value/text@1"));
+    assert!(build.contains("info=value/text"));
 
     application.birth_body().unwrap();
     let born_id = application.build_birth.body().unwrap().body_id.clone();

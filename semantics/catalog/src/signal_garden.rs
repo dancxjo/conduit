@@ -1,6 +1,6 @@
 //! Finite, deterministic observation-driven state for Signal Garden compositions.
 
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, Scalar, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal,
     StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape, SCALAR_INFO_ID,
@@ -172,32 +172,29 @@ pub fn decode_garden_clock_observation(
 fn scalar_field(name: &str, value: Scalar) -> Result<StructuredFieldValue, StructuredInfoRefusal> {
     StructuredFieldValue::new(
         name,
-        StructuredInfoValue::leaf(
-            leaf(SCALAR_INFO_ID),
-            value.raw_microunits().to_string().into_bytes(),
-        )?,
+        StructuredInfoValue::leaf(leaf(SCALAR_INFO_ID), value.encode().to_vec())?,
     )
 }
 
 fn count_field(name: &str, value: u64) -> Result<StructuredFieldValue, StructuredInfoRefusal> {
     StructuredFieldValue::new(
         name,
-        StructuredInfoValue::leaf(leaf("value/count@1"), value.to_string().into_bytes())?,
+        StructuredInfoValue::leaf(
+            leaf("value/count"),
+            conduit_core::encode_count(value).to_vec(),
+        )?,
     )
 }
 
 fn scalar_record_field(value: &StructuredInfoValue, name: &str) -> Result<Scalar, ()> {
-    let raw = record_leaf_text(value, name)?
-        .parse::<i64>()
-        .map_err(|_| ())?;
-    Ok(Scalar::from_raw_microunits(raw))
+    Scalar::decode(record_leaf_bytes(value, name)?).map_err(|_| ())
 }
 
 fn count_record_field(value: &StructuredInfoValue, name: &str) -> Result<u64, ()> {
-    record_leaf_text(value, name)?.parse().map_err(|_| ())
+    conduit_core::decode_count(record_leaf_bytes(value, name)?).map_err(|_| ())
 }
 
-fn record_leaf_text<'a>(value: &'a StructuredInfoValue, name: &str) -> Result<&'a str, ()> {
+fn record_leaf_bytes<'a>(value: &'a StructuredInfoValue, name: &str) -> Result<&'a [u8], ()> {
     let StructuredInfoValueShape::Record(fields) = value.shape() else {
         return Err(());
     };
@@ -205,7 +202,7 @@ fn record_leaf_text<'a>(value: &'a StructuredInfoValue, name: &str) -> Result<&'
     let StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
         return Err(());
     };
-    core::str::from_utf8(bytes).map_err(|_| ())
+    Ok(bytes)
 }
 
 fn validate_state(state: GardenState) -> Result<(), GardenEvolutionRefusal> {
@@ -232,7 +229,7 @@ pub fn garden_state_type() -> StructuredInfoType {
         GARDEN_STATE_INFO_ID,
         vec![
             field("activity", leaf(SCALAR_INFO_ID)),
-            field("step", leaf("value/count@1")),
+            field("step", leaf("value/count")),
             field("vitality", leaf(SCALAR_INFO_ID)),
         ],
     )

@@ -33,7 +33,7 @@ use conduit_core::{
     PortDirection, PortTemporal,
 };
 
-pub const TEXT_VALUE_KIND: &str = "value/text@1";
+pub const TEXT_VALUE_KIND: &str = "value/text";
 pub const MAX_TEXT_BYTES: u32 = 256;
 
 pub const TEXT_LITERAL_KIND: &str = "text/literal";

@@ -6,7 +6,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::KindId;
+use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
 
 mod borrowed;
 mod canonical;
@@ -51,6 +51,7 @@ pub enum StructuredInfoRefusal {
     TooDeep,
     TooManyNodes,
     LeafTooLarge,
+    InvalidPrimitiveLeaf(PrimitiveInfoRefusal),
     WrongType,
     WrongCollectionLength,
     WrongRecordFields,
@@ -351,6 +352,11 @@ impl StructuredInfoValue {
         if canonical_value.len() > MAXIMUM_STRUCTURED_LEAF_BYTES {
             return Err(StructuredInfoRefusal::LeafTooLarge);
         }
+        let StructuredInfoTypeNode::Leaf(kind) = &value_type.0 else {
+            unreachable!("leaf shape checked above")
+        };
+        validate_primitive_info(kind.as_str(), &canonical_value)
+            .map_err(StructuredInfoRefusal::InvalidPrimitiveLeaf)?;
         Self::finish(value_type, StructuredInfoValueNode::Leaf(canonical_value))
     }
 

@@ -346,24 +346,41 @@ fn canonical_leaf_literal(
                 )
             });
     }
-    let valid = match kind {
-        "value/text@1" => crate::text_value::parse_quoted_text(literal).is_some(),
-        "value/count@1" => literal.parse::<u64>().is_ok(),
-        "value/bool@1" => matches!(literal, "true" | "false"),
-        "value/scalar@1" => is_scalar_literal(literal),
-        _ => true,
+    let canonical = match kind {
+        "value/unit" if crate::text_value::parse_quoted_text(literal).as_deref() == Some("") => {
+            Some(Vec::new())
+        }
+        "value/text" if crate::text_value::parse_quoted_text(literal).is_some() => {
+            Some(literal.as_bytes().to_vec())
+        }
+        "value/count" => literal
+            .parse::<u64>()
+            .ok()
+            .map(|value| conduit_core::encode_count(value).to_vec()),
+        "value/bool" => match literal {
+            "false" => Some(conduit_core::InfoBool::FALSE.encode().to_vec()),
+            "true" => Some(conduit_core::InfoBool::TRUE.encode().to_vec()),
+            _ => None,
+        },
+        "value/scalar" => parse_scalar_literal(literal).map(|value| value.encode().to_vec()),
+        _ if !matches!(
+            kind,
+            "value/unit" | "value/text" | "value/count" | "value/bool" | "value/scalar"
+        ) =>
+        {
+            Some(literal.as_bytes().to_vec())
+        }
+        _ => None,
     };
-    if valid {
-        Ok(literal.as_bytes().to_vec())
-    } else {
-        Err(structured_diagnostic(
+    canonical.ok_or_else(|| {
+        structured_diagnostic(
             span,
             &format!("literal '{literal}' is incompatible with exact leaf kind '{kind}'"),
-        ))
-    }
+        )
+    })
 }
 
-fn is_scalar_literal(value: &str) -> bool {
+fn parse_scalar_literal(value: &str) -> Option<conduit_core::Scalar> {
     let (negative, value) = value
         .strip_prefix('-')
         .map_or((false, value), |value| (true, value));
@@ -379,32 +396,30 @@ fn is_scalar_literal(value: &str) -> bool {
         })
         || parts.next().is_some()
     {
-        return false;
+        return None;
     }
-    let Some(whole) = parse_decimal_magnitude(whole) else {
-        return false;
-    };
+    let whole = parse_decimal_magnitude(whole)?;
     let fraction_digits = fraction.unwrap_or_default();
     let fraction = if fraction_digits.is_empty() {
         0
-    } else if let Some(value) = parse_decimal_magnitude(fraction_digits) {
-        value
     } else {
-        return false;
+        parse_decimal_magnitude(fraction_digits)?
     };
-    let Some(magnitude) = whole
+    let magnitude = whole
         .checked_mul(conduit_core::Scalar::SCALE as u64)
         .and_then(|whole| {
             whole.checked_add(fraction * 10_u64.pow((6 - fraction_digits.len()) as u32))
-        })
-    else {
-        return false;
-    };
-    if negative {
-        magnitude <= (i64::MAX as u64) + 1
+        })?;
+    let raw = if negative {
+        if magnitude == (i64::MAX as u64) + 1 {
+            i64::MIN
+        } else {
+            -i64::try_from(magnitude).ok()?
+        }
     } else {
-        magnitude <= i64::MAX as u64
-    }
+        i64::try_from(magnitude).ok()?
+    };
+    Some(conduit_core::Scalar::from_raw_microunits(raw))
 }
 
 fn parse_decimal_magnitude(value: &str) -> Option<u64> {
@@ -425,15 +440,15 @@ fn structured_diagnostic(span: Span, detail: &str) -> SyntaxCheckDiagnostic {
 
 #[cfg(test)]
 mod tests {
-    use super::is_scalar_literal;
+    use super::parse_scalar_literal;
 
     #[test]
     fn fixed_six_decimal_scalar_literals_refuse_precision_and_range_overflow() {
-        assert!(is_scalar_literal("0"));
-        assert!(is_scalar_literal("-9223372036854.775808"));
-        assert!(is_scalar_literal("9223372036854.775807"));
-        assert!(!is_scalar_literal("1.0000001"));
-        assert!(!is_scalar_literal("9223372036854.775808"));
-        assert!(!is_scalar_literal("-9223372036854.775809"));
+        assert!(parse_scalar_literal("0").is_some());
+        assert!(parse_scalar_literal("-9223372036854.775808").is_some());
+        assert!(parse_scalar_literal("9223372036854.775807").is_some());
+        assert!(parse_scalar_literal("1.0000001").is_none());
+        assert!(parse_scalar_literal("9223372036854.775808").is_none());
+        assert!(parse_scalar_literal("-9223372036854.775809").is_none());
     }
 }

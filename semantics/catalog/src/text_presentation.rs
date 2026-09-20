@@ -9,7 +9,7 @@ use conduit_core::{
 };
 
 pub const TEXT_PRESENTATION_KIND: &str = "presentation/text";
-pub const TEXT_PRESENTATION_VALUE_KIND: &str = "value/text@1";
+pub const TEXT_PRESENTATION_VALUE_KIND: &str = "value/text";
 pub const TEXT_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-text@1";
 /// Finite per-Play text occurrence budget. Eight admits the golden `hello`
 /// interaction plus a small edit/refusal margin without making the live source
