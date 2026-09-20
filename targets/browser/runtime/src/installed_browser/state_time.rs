@@ -5,8 +5,10 @@ use super::factory::{
 };
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, resource_requirement, wait_host_operation_requirement, ConfigurationValue,
-    PlannedGear, PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
+    kind_id, resource_requirement, wait_host_operation_requirement, ArtifactId, CapabilityId,
+    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ConfigurationValue,
+    ExecutionProfileId, ImplementationId, PlannedGear, PRESENTATION_RESOURCE_CLASS,
+    TIMER_RESOURCE_CLASS,
 };
 use conduit_kernel::{
     BoundedValueRef, CanonicalValue, HostOperationDisposition, HostOperationId, Operation,
@@ -41,21 +43,23 @@ pub(super) static COUNT_PRESENTATION: BrowserInstallation = BrowserInstallation 
     perform: Some(perform_count_presentation),
 };
 
-fn time_every_offer() -> conduit_core::CapabilityOffer {
-    let mut offer = conduit_semantic_catalog::realization_offer(
-        conduit_semantic_catalog::time_every_contract(),
-        conduit_time::TIME_EVERY_CONTRACT_REVISION,
-        identity(TIME_EVERY_IMPLEMENTATION),
-        vec![wait_host_operation_requirement()],
-        vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
-        Vec::new(),
-    );
-    offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
-    offer.startup_parameters[0].has_default = false;
-    offer
+fn time_every_offer() -> CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        conduit_semantic_catalog::time_every_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(TIME_EVERY_IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from(TIME_EVERY_IMPLEMENTATION),
+            implementation_id: ImplementationId::from(TIME_EVERY_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![wait_host_operation_requirement()],
+            resource_requirements: vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
 }
 
-fn state_count_offer() -> conduit_core::CapabilityOffer {
+fn state_count_offer() -> CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
         conduit_semantic_catalog::state_count_contract(),
         conduit_semantic_catalog::STATE_COUNT_CONTRACT_REVISION,
@@ -66,7 +70,7 @@ fn state_count_offer() -> conduit_core::CapabilityOffer {
     )
 }
 
-fn count_presentation_offer() -> conduit_core::CapabilityOffer {
+fn count_presentation_offer() -> CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
         conduit_semantic_catalog::count_presentation_contract(),
         conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
@@ -299,6 +303,24 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
 mod tests {
     use super::*;
     use conduit_kernel::HostOperationOutcome;
+
+    #[test]
+    fn recurring_timer_realization_preserves_owner_issued_front() {
+        let contract = conduit_semantic_catalog::time_every_semantic_contract();
+        let offer = time_every_offer();
+        assert_eq!(offer.startup_parameters, contract.startup_parameters);
+        assert_eq!(offer.shorthand, contract.shorthand);
+        assert_eq!(offer.kind_id, contract.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            contract.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, contract.inputs);
+        assert_eq!(offer.outputs, contract.outputs);
+        assert_eq!(offer.limits, contract.limits);
+        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.resource_requirements.len(), 1);
+    }
 
     #[test]
     fn every_rearms_one_wait_and_emits_tick_five_and_later() {
