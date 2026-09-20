@@ -78,11 +78,11 @@ pub fn run_prove_pico_wifi_bootstrap(
             "  credential source: {}",
             credential_env.unwrap_or("<required --credential-env variable name>")
         );
-        println!("  secret values are never printed or serialized into the Plan");
+        println!("  secret values are never printed or serialized into the plan");
         if matches!(mode, WifiProofMode::R1Full { .. }) {
             println!("  stage 1: live three-peer Plan A to automatic USB Plan B recovery and Lull");
             println!("  operator action: restore real Wi-Fi/network availability");
-            println!("  stage 2: same Body later Wake runs Plan C continuation and Lull");
+            println!("  stage 2: same body later Wake runs Plan C continuation and Lull");
         }
         return Ok(());
     }

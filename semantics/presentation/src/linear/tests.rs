@@ -39,13 +39,13 @@ fn exact_presentation() -> Presentation {
                 identity: "subject/body".into(),
                 role: PresentationRole::Document,
                 label: "Body view".into(),
-                accessibility_name: "Exact Body and Wake view".into(),
+                accessibility_name: "Exact body and Wake view".into(),
             },
             PresentationSubject {
                 identity: "subject/play".into(),
                 role: PresentationRole::Play,
-                label: "Active Play".into(),
-                accessibility_name: "Active Play status".into(),
+                label: "Active play".into(),
+                accessibility_name: "Active play status".into(),
             },
         ],
         vec![PresentationRelationship {
@@ -106,7 +106,7 @@ fn linear_projection_preserves_exact_basis_and_all_nonspatial_content() {
         assert!(output.contains(identity));
     }
     assert!(output.contains(
-        "SUBJECT role=Play id=\"subject/play\" label=\"Active Play\" accessibility=\"Active Play status\""
+        "SUBJECT role=Play id=\"subject/play\" label=\"Active play\" accessibility=\"Active play status\""
     ));
     assert!(output
         .contains("RELATIONSHIP kind=Contains source=\"subject/body\" target=\"subject/play\""));

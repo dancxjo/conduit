@@ -1,7 +1,7 @@
 //! Exact Create 1 Open Interface speaker contract.
 //!
 //! The constants below are pinned to the original Create OI v2 specification,
-//! not the later Create 2 contract. Encoding is mechanism-side; portable Forms
+//! not the later Create 2 contract. Encoding is mechanism-side; portable forms
 //! continue to use `music/play` meaning.
 
 use conduit_core::{

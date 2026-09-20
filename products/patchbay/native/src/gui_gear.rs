@@ -230,7 +230,7 @@ fn draw_ports<D: DrawTarget<Color = Rgb888>>(
             .iter()
             .chain(&layout.gear.outputs)
             .find(|port| port.identity == *identity)
-            .expect("layout Ports come from the Gear");
+            .expect("layout Ports come from the gear");
         let label_x = if port.descriptor.direction == conduit_core::PortDirection::Input {
             point.x + 12
         } else {

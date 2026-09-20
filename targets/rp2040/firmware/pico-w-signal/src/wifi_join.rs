@@ -338,7 +338,7 @@ pub async fn run(
         let _ = sign
             .write_network_failure(error.code(), attachment_identity(runtime))
             .await;
-        // This Play is terminal, but CDC 0 remains an exact-build BOOTSEL
+        // This play is terminal, but CDC 0 remains an exact-build BOOTSEL
         // recovery path across host disconnects.
         loop {
             crate::bootsel::wait_for_request(&mut link).await.ok();

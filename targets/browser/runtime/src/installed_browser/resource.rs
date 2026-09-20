@@ -68,7 +68,7 @@ fn base_offer(publish: bool) -> CapabilityOffer {
     offer
 }
 
-/// Select one exact local durable generation into the Host's planning surface.
+/// Select one exact local durable generation into the host's planning surface.
 /// This does not grant authority; callers must supply the separately admitted grant.
 pub fn advertisement(
     host: HostId,

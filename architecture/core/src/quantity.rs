@@ -281,7 +281,7 @@ impl Quantity {
         self.unit.dimension()
     }
 
-    /// Parses the closed authored Form spelling `<signed-integer><unit>`.
+    /// Parses the closed authored form spelling `<signed-integer><unit>`.
     /// Fractions are deliberately absent: authors choose an exact smaller
     /// reviewed unit instead of relying on hidden rounding.
     pub fn parse_form_literal(literal: &str) -> Result<Self, QuantityLiteralRefusal> {

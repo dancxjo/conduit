@@ -128,7 +128,7 @@ fn project_view(
         body_subject.clone(),
         PresentationRole::Body,
         "Embodied model Body",
-        "Body whose exact Form wiring defines model perception and power",
+        "Body whose exact form wiring defines model perception and power",
     );
     content.subject(
         form.clone(),

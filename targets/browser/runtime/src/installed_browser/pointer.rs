@@ -1,4 +1,4 @@
-//! Existing browser pointer offer installed in the ordinary Form runner.
+//! Existing browser pointer offer installed in the ordinary form runner.
 
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;

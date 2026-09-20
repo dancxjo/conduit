@@ -1,4 +1,4 @@
-//! Shared ordinary Body replanning owner for browser and native Patchbay.
+//! Shared ordinary body replanning owner for browser and native Patchbay.
 
 use conduit_body::{
     BodyPlayIdentity, BodyPresentationSelector, BodyPresenterChainPlan, BodyPresenterTopology,
@@ -177,7 +177,7 @@ impl PresenterControlSession {
     }
 
     /// Retarget the selected Presenter Plans at a fresh immutable projection of
-    /// the same Body/Form subject. Runtime evolution changes Presentation
+    /// the same body/Form subject. Runtime evolution changes Presentation
     /// identity; it does not make the renderer the owner of that evolution.
     pub fn refresh_presentation(
         &mut self,

@@ -154,10 +154,10 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                 parsed.body_entrance = Some(BrowserBodyWorkbenchEntrance::Hosted {
                     plan_id: arguments
                         .next()
-                        .ok_or("--hosted-reader requires exact Plan and implementation IDs")?,
+                        .ok_or("--hosted-reader requires exact plan and implementation IDs")?,
                     implementation_id: arguments
                         .next()
-                        .ok_or("--hosted-reader requires exact Plan and implementation IDs")?,
+                        .ok_or("--hosted-reader requires exact plan and implementation IDs")?,
                 });
             }
             _ => {
@@ -217,7 +217,7 @@ fn main() -> Result<(), String> {
             .with_body_planning_forms(forms)
             .map_err(|error| error.to_string())?
     } else if arguments.body_entrance.is_some() {
-        return Err("a Body reader entrance requires --body-evidence first".into());
+        return Err("a body reader entrance requires --body-evidence first".into());
     } else if arguments.documentary_fixture {
         let snapshot = cross_host_demonstration_snapshot().map_err(|error| error.to_string())?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?

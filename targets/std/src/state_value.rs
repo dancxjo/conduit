@@ -26,7 +26,7 @@ pub struct TypedStateOperation {
 
 impl TypedStateOperation {
     /// Prepare all owned schema/storage before Play. Numeric identities must be
-    /// supplied by the Host's exact lowering tables, never selected at runtime.
+    /// supplied by the host's exact lowering tables, never selected at runtime.
     pub fn prepare(
         placement: &PlannedGear,
         state: &PlannedStateBoundary,

@@ -3,7 +3,7 @@ import { presentBodyPlan } from "./body-plan-inspection.mjs";
 
 const MAX_BODY_EXECUTION_CAPABILITIES = 112;
 
-// Product orchestration only: the admitted WASM instance and shared Host
+// Product orchestration only: the admitted WASM instance and shared host
 // adapters own execution. Claims and reports are self-reported loopback facts.
 export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
   const document = root.ownerDocument;
@@ -16,7 +16,7 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
   stop.type = "button";stop.textContent = "Cancel Body Play";stop.disabled = true;
   const status = document.createElement("p");
   status.id = "body-execution-status";status.setAttribute("role", "status");
-  const idleStatus = "No Body Play started in this coordinator session. Retained history is separate; plan the active Forms first.";
+  const idleStatus = "No Body Play started in this coordinator session. Retained history is separate; plan the active forms first.";
   status.textContent = idleStatus;
   const input = document.createElement("div");
   input.id = "body-execution-input";input.tabIndex = 0;
@@ -25,12 +25,12 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
   const output = document.createElement("div");output.id = "body-execution-output";
   const evidence = document.createElement("pre");evidence.id = "body-execution-evidence";
   const exact = document.createElement("details"), summary = document.createElement("summary");
-  summary.textContent = "Exact Body Play evidence";
+  summary.textContent = "Exact body Play evidence";
   const evidenceScope = document.createElement("p");
-  evidenceScope.textContent = "Kernel event sequences are scoped to this Play and mapped to exact Plan placements. They are not global Sign IDs or causal-parent references. Host reports remain SelfReported.";
+  evidenceScope.textContent = "Kernel event sequences are scoped to this play and mapped to exact plan placements. They are not global Sign IDs or causal-parent references. Host reports remain SelfReported.";
   exact.append(summary, evidenceScope, evidence);
   const selection = document.createElement("details"), selectionTitle = document.createElement("summary");
-  selectionTitle.textContent = "Inspect selected Body Plan";
+  selectionTitle.textContent = "Inspect selected body Plan";
   const planInspection = document.createElement("div");planInspection.id = "body-plan-inspection";
   selection.append(selectionTitle, planInspection);
   section.append(start, stop, status, input, output, selection, exact);root.append(section);
@@ -111,7 +111,7 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
           receipt.active_play_id === play.active_play_id) {
         retainQuiescentPlay = true;
         evidence.textContent = JSON.stringify({ proof_class: "SelfReported", play, quiescence: receipt }, null, 2);
-        status.textContent = `Body Play quiescent · ${play.active_play_id} · same Play remains attached.`;
+        status.textContent = `Body Play quiescent · ${play.active_play_id} · same play remains attached.`;
         update();
         return;
       }
@@ -139,7 +139,7 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
   return Object.freeze({
     capabilityIds() {
       const api = host?.api;
-      if (!api || typeof api.conduit_browser_body_capabilities !== "function" || api.conduit_browser_body_capabilities() < 0) throw new Error("local Body execution capabilities unavailable");
+      if (!api || typeof api.conduit_browser_body_capabilities !== "function" || api.conduit_browser_body_capabilities() < 0) throw new Error("local body execution capabilities unavailable");
       const length = api.conduit_browser_form_output_len(), pointer = api.conduit_browser_form_output_ptr();
       if (!Number.isSafeInteger(length) || length < 1 || length > 16 * 1024) throw new Error("Body capability output bound exceeded");
       const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(api.memory.buffer, pointer, length)));
@@ -151,7 +151,7 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
       planning = snapshot.body_planning;
       if (!planning && !busy) {
         status.textContent = snapshot.body_workbench?.current?.lifecycle?.Awake
-          ? "Retained Body is Awake. This coordinator has no restored execution claim or terminal receipt; inspect and reconcile the prior Play before resuming. No automatic restart is authorized."
+          ? "Retained body is Awake. This coordinator has no restored execution claim or terminal receipt; inspect and reconcile the prior Play before resuming. No automatic restart is authorized."
           : idleStatus;
       }
       update();

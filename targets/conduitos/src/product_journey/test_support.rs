@@ -1,4 +1,4 @@
-//! Shared exact Host/keyboard and native lifecycle fixtures.
+//! Shared exact host/keyboard and native lifecycle fixtures.
 use super::*;
 use crate::{
     keyboard_offer::KeyboardRealization, offer::CpuFeatures, pointer_offer::PointerRealization,

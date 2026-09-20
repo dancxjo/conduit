@@ -1,4 +1,4 @@
-//! One live local Body session that supplies canonical front-door truth.
+//! One live local body session that supplies canonical front-door truth.
 
 use conduit_body::{
     AdmissionChallenge, AdmissionManager, AdmissionSigns, AmbientAdmissionProof,
@@ -349,7 +349,7 @@ impl LocalFrontDoor {
     }
 
     /// Plan the ordinary entrance Form. Replanning is explicit and only
-    /// follows canonical unsatisfied truth; it never mutates an active Plan.
+    /// follows canonical unsatisfied truth; it never mutates an active plan.
     pub fn plan_form(&mut self) -> Result<PlanId, String> {
         let wake = self
             .wake
@@ -375,7 +375,7 @@ impl LocalFrontDoor {
             WakeLifecycle::Playing => {
                 let prior = self
                     .current_plan_id()
-                    .ok_or("playing Wake has no retained Plan")?;
+                    .ok_or("playing Wake has no retained plan")?;
                 wake.became_unsatisfied(
                     prior,
                     SignId::from(format!("patchbay/front-door/unsatisfied/{}", self.revision)),
@@ -408,7 +408,7 @@ impl LocalFrontDoor {
         Ok(plan.plan_id)
     }
 
-    /// Execute the current exact Plan through the installed std Host.
+    /// Execute the current exact plan through the installed std Host.
     pub fn play_plan(&mut self) -> Result<ActivePlayId, String> {
         let wake = self
             .wake
@@ -425,7 +425,7 @@ impl LocalFrontDoor {
             .plan
             .as_ref()
             .map(|document| document.exact.clone())
-            .ok_or("Play requires a current exact Plan")?;
+            .ok_or("Play requires a current exact plan")?;
         let play_identity = bind_active_play(
             &plan.plan_id,
             &advertisement.host_id,
@@ -464,7 +464,7 @@ impl LocalFrontDoor {
 
     pub fn wake_body(&mut self) -> Result<conduit_body::WakeId, String> {
         if self.wake.is_some() {
-            return Err("Body already has a current Wake".into());
+            return Err("Body already has a current wake".into());
         }
         let (body, wake) = self
             .body

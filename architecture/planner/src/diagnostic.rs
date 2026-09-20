@@ -53,7 +53,7 @@ fn classification(error: &PlannerError) -> Option<(&'static str, &'static str)> 
             "selected realization has an incompatible port contract",
         )),
         PlannerError::InvalidFormIdentity(_) => {
-            Some(("CND-PLN-001", "checked Form identity is invalid"))
+            Some(("CND-PLN-001", "checked form identity is invalid"))
         }
         _ => None,
     }

@@ -38,7 +38,7 @@ pub struct ModelCheckpoint {
     pub content: BoundedResourceRef,
 }
 
-/// Host-local execution evidence. Framework and device facts live here, not
+/// host-local execution evidence. Framework and device facts live here, not
 /// in the portable model artifact or signature.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelRuntimeRealization {

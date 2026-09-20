@@ -123,15 +123,15 @@ fn canonical_constituent(
         .expect("the installed ordered-record queue catalog is disjoint");
     let syntax = parse_syntax_document(source);
     assert_eq!(syntax.round_trip(), source);
-    let checked = check_syntax_document(&syntax, &startup).expect("reviewed Form checks");
-    let expanded = expand_canonical_form(&checked, root, &profiles).expect("reviewed Form expands");
+    let checked = check_syntax_document(&syntax, &startup).expect("reviewed form checks");
+    let expanded = expand_canonical_form(&checked, root, &profiles).expect("reviewed form expands");
     let resident = ResidentForm::new(
         expanded.source_document_id.clone(),
         expanded.checked_form_id.clone(),
     );
     let plan = host
         .plan_expanded_local(&expanded)
-        .expect("reviewed Form plans onto the exact std Host offers");
+        .expect("reviewed form plans onto the exact std Host offers");
     (resident, plan)
 }
 

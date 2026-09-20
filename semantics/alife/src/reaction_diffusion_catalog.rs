@@ -1,4 +1,4 @@
-//! Portable Form catalog for bounded reaction-diffusion evolution.
+//! Portable form catalog for bounded reaction-diffusion evolution.
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{

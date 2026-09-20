@@ -130,8 +130,8 @@ pub fn network_join_offer(
     }
 }
 
-/// Semantic source of one volatile credential-bearing join request. The Plan
-/// binds only this Front and an exact authority grant; secret bytes enter only
+/// Semantic source of one volatile credential-bearing join request. The plan
+/// binds only this front and an exact authority grant; secret bytes enter only
 /// as the bounded host-operation result after Play starts.
 pub fn network_credentials_offer(
     capability_id: CapabilityId,

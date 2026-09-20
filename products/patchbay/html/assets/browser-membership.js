@@ -479,7 +479,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
   openSocket(priorCredential !== null, priorCredential !== null);
   function publishMediaResource(mediaEvidence) {
     if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
-      return Promise.reject(new Error("current Body membership is required for media resource truth"));
+      return Promise.reject(new Error("current body membership is required for media resource truth"));
     }
     if (pendingMediaPlan) {
       return Promise.reject(new Error("one media use planning operation is already pending"));
@@ -532,7 +532,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
     });
   }
   function requestOfferEvidence({ capabilityIds = [], resourcePoolIds = [] }) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) throw new Error("current Body membership is required for offer disclosure");
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) throw new Error("current body membership is required for offer disclosure");
     const canonical = values => Array.isArray(values) && values.length > 0 && values.length <= 16 && values.every((value, index) => typeof value === "string" && value.length > 0 && (index === 0 || values[index - 1] < value));
     if ((!canonical(capabilityIds) && capabilityIds.length !== 0) || (!canonical(resourcePoolIds) && resourcePoolIds.length !== 0) || capabilityIds.length + resourcePoolIds.length === 0) throw new Error("offer disclosure selection must be finite and canonical");
     socket.send(encoder.encode(JSON.stringify({kind:"offer-disclosure-request",protocol:1,credential_id:credential.credential_id,body_id:credential.body_id,part_id:credential.part_id,host_id:hostId,boot_id:bootId,request:{stage:"Planning",capability_ids:capabilityIds,resource_pool_ids:resourcePoolIds}})));

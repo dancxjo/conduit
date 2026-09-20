@@ -1,4 +1,4 @@
-//! Ordinary planning of one portable Form with two independent branches.
+//! Ordinary planning of one portable form with two independent branches.
 
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{

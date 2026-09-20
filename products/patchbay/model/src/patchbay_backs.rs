@@ -29,7 +29,7 @@ pub struct GearFrontPresentation {
     pub accessibility_name: String,
     pub kind_id: KindId,
     pub port_subjects: Vec<String>,
-    /// Existing authoritative descriptors from the checked Kind contract.
+    /// Existing authoritative descriptors from the checked kind contract.
     /// Their variants are value intents, never widget types.
     pub controls: Vec<FaceControl>,
 }

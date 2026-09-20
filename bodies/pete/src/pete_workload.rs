@@ -1,4 +1,4 @@
-//! Reviewed ordinary Form worksets for one durable Pete Body.
+//! Reviewed ordinary form worksets for one durable Pete Body.
 
 use conduit_body::{BodyWorkset, BodyWorksetError, ResidentForm};
 use conduit_core::{KindId, PortTemporal};

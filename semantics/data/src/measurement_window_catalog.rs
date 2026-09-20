@@ -1,4 +1,4 @@
-//! Ordinary Form-facing contract for a finite measurement window.
+//! Ordinary form-facing contract for a finite measurement window.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{

@@ -14,7 +14,7 @@ pub struct PatternComparisonOperation {
 }
 
 impl PatternComparisonOperation {
-    /// Construct before Play with the exact Host-admitted input byte bound.
+    /// Construct before Play with the exact host-admitted input byte bound.
     pub fn new(maximum_input_bytes: u32) -> Self {
         Self {
             maximum_input_bytes,

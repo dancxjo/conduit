@@ -1,4 +1,4 @@
-//! Portable microphone clip capture realized through one admitted Host operation.
+//! Portable microphone clip capture realized through one admitted host operation.
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{CapabilityOffer, PlannedGear};

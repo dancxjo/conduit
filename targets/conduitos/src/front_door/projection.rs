@@ -12,8 +12,8 @@ impl FrontDoor {
             PresentationSubject {
                 identity: host.clone(),
                 role: PresentationRole::Host,
-                label: "This Host".into(),
-                accessibility_name: "This Host; current Body none".into(),
+                label: "This host".into(),
+                accessibility_name: "This host; current body none".into(),
             },
             PresentationSubject {
                 identity: form.clone(),
@@ -77,8 +77,8 @@ impl FrontDoor {
                     label: journey
                         .friendly_name
                         .clone()
-                        .unwrap_or_else(|| "Current Body".into()),
-                    accessibility_name: format!("Current Body; {:?}", journey.status),
+                        .unwrap_or_else(|| "Current body".into()),
+                    accessibility_name: format!("Current body; {:?}", journey.status),
                 });
                 relationships.push(PresentationRelationship {
                     source: host.clone(),
@@ -269,7 +269,7 @@ impl FrontDoor {
             },
             PresentationText {
                 subject: form.clone(),
-                text: "IMAGE-embedded checked Form; OPEN permits inspection only".into(),
+                text: "IMAGE-embedded checked form; OPEN permits inspection only".into(),
             },
         ];
         let mut disclosures = vec![

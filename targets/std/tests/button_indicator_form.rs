@@ -173,5 +173,5 @@ fn run_form(source: &str, transitions: usize) {
             None,
         )
         .unwrap_err();
-    assert!(missing.contains("no admitted Host adapter"), "{missing}");
+    assert!(missing.contains("no admitted host adapter"), "{missing}");
 }

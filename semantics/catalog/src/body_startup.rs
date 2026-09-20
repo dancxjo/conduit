@@ -24,15 +24,15 @@ pub fn body_wake_contract(first_only: bool) -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(kind),
         plain_name: if first_only {
-            "First Body wake"
+            "First body wake"
         } else {
             "Body wake"
         }
         .into(),
         summary: if first_only {
-            "Emit true once in the first admitted Play of this Body's first Wake."
+            "Emit true once in the first admitted play of this body's first wake."
         } else {
-            "Emit true once in the first admitted Play of each Body Wake."
+            "Emit true once in the first admitted play of each body Wake."
         }
         .into(),
         inputs: Vec::new(),

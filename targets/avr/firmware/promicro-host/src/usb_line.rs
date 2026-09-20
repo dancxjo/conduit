@@ -17,7 +17,7 @@ pub struct UsbLine {
 }
 
 impl UsbLine {
-    /// Initialize the ATmega32U4 USB CDC mechanism used as the Host Line.
+    /// Initialize the ATmega32U4 USB CDC mechanism used as the host Line.
     ///
     /// The single static allocator is initialized exactly once after ownership
     /// of the USB peripheral and PLL has been acquired.
@@ -47,7 +47,7 @@ impl UsbLine {
             BUS.write(AvrGenericUsbBus::with_suspend_notifier(usb, pll));
             &*BUS.as_ptr()
         };
-        // The Host protocol is already finitely framed, so use the lower-level
+        // The host protocol is already finitely framed, so use the lower-level
         // packet CDC class instead of adding another pair of stream buffers.
         let serial = unsafe {
             SERIAL.write(CdcAcmClass::new(bus, 64));

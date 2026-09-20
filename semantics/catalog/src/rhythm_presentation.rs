@@ -12,7 +12,7 @@ pub fn rhythm_presentation_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(RHYTHM_PRESENTATION_KIND),
         plain_name: "Rhythm presentation".to_string(),
-        summary: "Manifest each exact phase-following state while its Play remains alive."
+        summary: "Manifest each exact phase-following state while its play remains alive."
             .to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("state"),

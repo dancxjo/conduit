@@ -1,6 +1,6 @@
 //! The original Conduit cue, rendered without devices or lifecycle policy.
 //!
-//! This is a bounded DSP score. Creating it does not imply a Body Wake or
+//! This is a bounded DSP score. Creating it does not imply a body Wake or
 //! permission to play audio. The caller owns admission, output pressure, and
 //! cancellation; first-wake State must never be stored in this renderer.
 

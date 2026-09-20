@@ -10,7 +10,7 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 
-/// Install the Kind for a structured type already registered by the caller.
+/// Install the kind for a structured type already registered by the caller.
 /// A catalogue assembles one exact specialization, as with structured literals.
 /// `initial` remains mandatory in authored source; the default initializes only
 /// the configuration-field representation required by ProfileCatalog.
@@ -72,8 +72,8 @@ pub enum StateValueAdmissionError {
     InitialValueExceedsCapacity,
 }
 
-/// Derive State only from the exact authored Kind, Front and typed initializer.
-/// This is not a migration permission or an effect-authority grant. A Host must
+/// Derive State only from the exact authored kind, Front and typed initializer.
+/// This is not a migration permission or an effect-authority grant. A host must
 /// separately admit its storage, lifetime/evidence resources and implementation.
 pub fn derive_state_boundary(
     form: &CheckedForm,

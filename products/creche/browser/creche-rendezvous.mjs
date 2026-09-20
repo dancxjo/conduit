@@ -158,21 +158,21 @@ export async function connectRendezvousHost(code, {
           },
           async installBodyContext(context) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
-            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted body membership");
             requireBodyConversationContext(context, prepared.body_id);
             await send(line, { kind: "body-context", protocol: PROTOCOL, context });
             const installed = await receive(line, signal);
             if (installed?.kind !== "body-context-installed" || installed.protocol !== PROTOCOL
               || installed.body_id !== context.body_id
               || installed.basis_revision !== context.basis.revision) {
-              refuse("BodyContext", "joined Host did not retain the exact current Body context");
+              refuse("BodyContext", "joined Host did not retain the exact current body context");
             }
             bodyContextInstalled = true;
             return Object.freeze(installed);
           },
           async observeLocalModelPool(realization) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
-            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted body membership");
             requirePoolRealization(realization, descriptor.advertisement);
             await send(line, { kind: "observe-local-model-pool", protocol: PROTOCOL, realization });
             const observed = await receive(line, signal);
@@ -181,9 +181,9 @@ export async function connectRendezvousHost(code, {
           },
           async prepareRemote(plan) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
-            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
-            if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current Body conversation context");
-            if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted body membership");
+            if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current body conversation context");
+            if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote play");
             await send(line, { kind: "prepare-remote", protocol: PROTOCOL, plan });
             const prepared = await receive(line, signal);
             requireRemotePrepared(prepared, descriptor.advertisement);
@@ -192,9 +192,9 @@ export async function connectRendezvousHost(code, {
           },
           async preparePoolMember({ plan, selection, consumerPlacementId }) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
-            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
-            if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current Body conversation context");
-            if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted body membership");
+            if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current body conversation context");
+            if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote play");
             if (!plan || selection?.plan_id !== plan.plan_id
               || selection?.disposition !== "Selected"
               || !Number.isSafeInteger(selection?.selected_realization)
@@ -228,11 +228,11 @@ export async function connectRendezvousHost(code, {
           },
           async releaseRemote() {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
-            if (!remotePrepared) refuse("RemotePlayAbsent", "joined Host Line has no remote Play");
+            if (!remotePrepared) refuse("RemotePlayAbsent", "joined Host Line has no remote play");
             await send(line, { kind: "release-remote", protocol: PROTOCOL });
             const released = await receive(line, signal);
             if (released?.kind !== "remote-released" || released.protocol !== PROTOCOL) {
-              refuse("RemoteRelease", "joined Host did not release the exact remote Play");
+              refuse("RemoteRelease", "joined Host did not release the exact remote play");
             }
             remotePrepared = false;
           },
@@ -254,7 +254,7 @@ export async function connectRendezvousHost(code, {
     decoded.session_secret.fill(0);
     await line.close("conduit-refused");
     if (error instanceof CrecheRendezvousRefusal) throw error;
-    refuse("LineFailed", "running Host rendezvous Line failed", error);
+    refuse("LineFailed", "running host rendezvous Line failed", error);
   }
 }
 
@@ -268,7 +268,7 @@ function requireBodyConversationContext(value, bodyId) {
     || !Number.isSafeInteger(value.basis?.revision) || value.basis.revision < 0
     || !Array.isArray(value.hosts) || !Array.isArray(value.active_forms)
     || !Array.isArray(value.lines) || !Array.isArray(value.recent_sign_ids)) {
-    refuse("BodyContext", "Body conversation context is malformed or belongs to another Body");
+    refuse("BodyContext", "Body conversation context is malformed or belongs to another body");
   }
 }
 
@@ -277,7 +277,7 @@ function requireMembershipCredential(value, bodyId, advertisement) {
     || value.body_id !== bodyId || !boundedIdentity(value.part_id)
     || value.host_id !== advertisement.host_id || value.boot_id !== advertisement.boot_id
     || !Number.isSafeInteger(value.issued_at_millis) || value.issued_at_millis < 0) {
-    refuse("MembershipCredential", "admitted membership credential lost the exact Body, Host, or Boot identity");
+    refuse("MembershipCredential", "admitted membership credential lost the exact body, Host, or Boot identity");
   }
 }
 
@@ -302,7 +302,7 @@ function requireRemotePrepared(prepared, advertisement) {
     || frames.some(frame => !Array.isArray(frame) || frame.length < 5 || frame.length > MAXIMUM_FRAME_BYTES
       || frame[0] !== 0x43 || frame[1] !== 0x4e || frame[2] !== 0x44 || frame[3] !== 0x53
       || frame.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255))) {
-    refuse("RemotePreparation", "joined Host returned malformed or stale remote Play truth");
+    refuse("RemotePreparation", "joined Host returned malformed or stale remote play truth");
   }
 }
 
@@ -319,7 +319,7 @@ function requirePoolRealization(realization, advertisement) {
     || realization.resources.some((binding) => !boundedIdentity(binding?.pool_id)
       || !boundedIdentity(binding?.class_id) || !Number.isSafeInteger(binding?.units)
       || binding.units < 1)) {
-    refuse("PoolRealization", "model-pool realization is malformed or stale for this Host");
+    refuse("PoolRealization", "model-pool realization is malformed or stale for this host");
   }
 }
 
@@ -438,11 +438,11 @@ async function receive(line, signal) {
   try {
     const value = JSON.parse(decoder.decode(bytes));
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError();
-    if (value.kind === "refused") refuse(value.code ?? "HostRefused", "running Host refused rendezvous");
+    if (value.kind === "refused") refuse(value.code ?? "HostRefused", "running host refused rendezvous");
     return value;
   } catch (error) {
     if (error instanceof CrecheRendezvousRefusal) throw error;
-    refuse("MalformedFrame", "running Host returned malformed rendezvous evidence", error);
+    refuse("MalformedFrame", "running host returned malformed rendezvous evidence", error);
   }
 }
 
@@ -503,7 +503,7 @@ function requireHostDescriptor(value, lineId) {
     || !boundedIdentity(value.target_id)
     || !/^sha256:[0-9a-f]{64}$/.test(value.image_content_digest)
     || !Array.isArray(value.lines) || !value.lines.includes(lineId)) {
-    refuse("WrongProtocol", "rendezvous response is not a compatible running Host descriptor");
+    refuse("WrongProtocol", "rendezvous response is not a compatible running host descriptor");
   }
   requireAdvertisement(value.advertisement);
 }
@@ -512,7 +512,7 @@ function requireAdvertisement(value) {
   if (!value || typeof value !== "object"
     || !boundedIdentity(value.host_id) || !boundedIdentity(value.boot_id)
     || !Number.isSafeInteger(value.offer_generation) && !Number.isSafeInteger(value.offer_generation?.[0])) {
-    refuse("WrongAdvertisement", "running Host advertisement is missing exact Host, Boot, or generation identity");
+    refuse("WrongAdvertisement", "running host advertisement is missing exact host, Boot, or generation identity");
   }
 }
 
@@ -541,7 +541,7 @@ function requireJoin(value, prepared, advertisement) {
     || value.nonce.some((byte, index) => byte !== prepared.invitation_nonce[index])
     || !Array.isArray(value.signature) || value.signature.length !== 64
     || !Number.isSafeInteger(value.observed_at_millis)) {
-    refuse("WrongJoin", "running Host join proof lost the exact invitation or Boot identity");
+    refuse("WrongJoin", "running host join proof lost the exact invitation or Boot identity");
   }
 }
 

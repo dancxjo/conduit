@@ -48,7 +48,7 @@ pub enum TutorialPresenterRefusal {
 
 /// Build the exact bounded request used to voice the current tutorial state.
 ///
-/// Purpose and readiness come from retained Body evidence. The reviewed policy
+/// Purpose and readiness come from retained body evidence. The reviewed policy
 /// remains separate implementation input, and the returned action is only a
 /// description: an operator must still select and authorize Fulfillment.
 pub fn generative_request(
@@ -75,7 +75,7 @@ pub fn generative_request(
         (
             "body.fulfill",
             "conduit.intent/fulfill@1",
-            "Fulfill this Body",
+            "Fulfill this body",
         )
     } else {
         (
@@ -126,7 +126,7 @@ pub fn presentation(
     presentation_from_evidence(body.evidence(), revision, playback)
 }
 
-/// Project tutorial guidance from an exact retained Body biography at a Host
+/// Project tutorial guidance from an exact retained body biography at a host
 /// boundary. This lets the ordinary resident Tutorial Form consume the same
 /// semantic truth without reaching through a product-owned `WorkspaceBody`.
 pub fn presentation_from_evidence(
@@ -193,7 +193,7 @@ pub fn presentation_from_evidence(
     Ok(view)
 }
 
-/// Derive the tutorial's optional purpose only from retained Body evidence.
+/// Derive the tutorial's optional purpose only from retained body evidence.
 /// No chapter counter, Presenter output, or browser-local interaction can mark
 /// an obligation complete.
 pub fn purpose_state(body: &WorkspaceBody) -> Result<PurposeState, PurposeRefusal> {
@@ -252,16 +252,16 @@ pub fn purpose_state_from_evidence(
         summary: "Teach one real Body lifecycle".into(),
         completion_policy: PurposeCompletionPolicy::ExplicitFulfillmentReadiness,
         obligations: vec![
-            exact_obligation("born", "Be born as one retained Body", born),
-            exact_obligation("wake", "Wake through an admitted Plan and Play", woke),
-            exact_obligation("plan-ready", "Establish an exact current Plan", planned),
-            exact_obligation("play-started", "Start ordinary Form work", played),
+            exact_obligation("born", "Be born as one retained body", born),
+            exact_obligation("wake", "Wake through an admitted plan and Play", woke),
+            exact_obligation("plan-ready", "Establish an exact current plan", planned),
+            exact_obligation("play-started", "Start ordinary form work", played),
             PurposeObligation {
                 obligation_id: "repair-fault".into(),
                 summary: "Repair a real failed Wake".into(),
                 state: repair,
             },
-            exact_obligation("add-host", "Admit another Host", joined),
+            exact_obligation("add-host", "Admit another host", joined),
         ],
     };
     state.validate()?;
@@ -308,7 +308,7 @@ fn guidance(
         return Guidance {
             phase: "repair",
             title: "Inspect the real fault",
-            detail: "This biography contains a failed Wake. Inspect its evidence, then change the actual workset or available Hosts before waking again.",
+            detail: "This biography contains a failed Wake. Inspect its evidence, then change the actual workset or available hosts before waking again.",
             action: "body.inspect-lifecycle",
             label: "Inspect lifecycle evidence",
         };
@@ -316,19 +316,19 @@ fn guidance(
     if matches!(evidence.body.state, BodyState::Lulled) && evidence.wakes.is_empty() {
         return Guidance {
             phase: "wake",
-            title: "Wake this Body",
-            detail: "Birth made one retained Body. Wake admits its first exact Plan and Play without creating another Body.",
+            title: "Wake this body",
+            detail: "Birth made one retained body. Wake admits its first exact plan and Play without creating another body.",
             action: "body.wake",
-            label: "Wake the retained Body",
+            label: "Wake the retained body",
         };
     }
     if matches!(evidence.body.state, BodyState::Lulled) {
         return Guidance {
             phase: "lull",
             title: "Retained rest is not completion",
-            detail: "The Body is lulled: its identity, Forms, and biography remain.",
+            detail: "The body is lulled: its identity, Forms, and biography remain.",
             action: "body.wake",
-            label: "Wake the retained Body",
+            label: "Wake the retained body",
         };
     }
     let another_host_joined = evidence
@@ -340,17 +340,17 @@ fn guidance(
     if evidence.body.workload_revision > 0 && !another_host_joined {
         return Guidance {
             phase: "add-host",
-            title: "Invite another Host",
-            detail: "The workset changed without rebirth. Invite another Host through the same finite Body admission path, then inspect its exact membership and offers.",
+            title: "Invite another host",
+            detail: "The workset changed without rebirth. Invite another host through the same finite Body admission path, then inspect its exact membership and offers.",
             action: "body.invite-host",
-            label: "Invite another Host",
+            label: "Invite another host",
         };
     }
     if evidence.body.workload_revision > 0 {
         return Guidance {
             phase: "revised",
-            title: "One Body, a changed workset",
-            detail: "The workload revision changed without rebirth. The current Plan realizes revised Forms for this same Body.",
+            title: "One body, a changed workset",
+            detail: "The workload revision changed without rebirth. The current plan realizes revised Forms for this same body.",
             action: "body.inspect-lifecycle",
             label: "Inspect the current realization",
         };
@@ -358,10 +358,10 @@ fn guidance(
     if evidence.wakes.len() > 1 {
         return Guidance {
             phase: "continuity",
-            title: "The same Body woke again",
+            title: "The same body woke again",
             detail: "A fresh Wake, Plan, and Play continue one retained biography.",
             action: "body.open-library",
-            label: "Browse this Body's Forms",
+            label: "Browse this body's Forms",
         };
     }
     Guidance {
@@ -373,7 +373,7 @@ fn guidance(
             "Interact more than once. A finite Body may remain awake indefinitely because its instantaneous and retained bounds stay finite."
         },
         action: "body.use-current",
-        label: "Use the current Form",
+        label: "Use the current form",
     }
 }
 

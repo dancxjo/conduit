@@ -85,7 +85,7 @@ fn retains_closed_wakes_across_workload_changes_and_roundtrip() {
     let (awake, wake) = history.body.wake(1, SignId::from("sign/woke")).unwrap();
     history.append_wake(awake.clone(), wake.clone(), 2).unwrap();
     let lulled = wake.lull(SignId::from("sign/lull")).unwrap();
-    // A Wake Lull alone does not assert that the Body retained it.
+    // A wake Lull alone does not assert that the body retained it.
     history
         .append_wake(awake.clone(), lulled.clone(), 3)
         .unwrap();

@@ -164,7 +164,7 @@ fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
     .lower()
     .unwrap();
     assert_eq!(view.revision, 7);
-    assert!(view.nodes.iter().any(|node| node.text == "Wake this Body"));
+    assert!(view.nodes.iter().any(|node| node.text == "Wake this body"));
     assert!(view.actions.iter().any(|action| action.id == "body.wake"));
     assert!(view.nodes.iter().any(|node| {
         node.text.contains("Purpose · exact readiness") && node.text.contains("not ready")
@@ -187,7 +187,7 @@ fn revised_tutorial_uses_the_shared_host_invitation_action() {
     assert!(
         view.nodes
             .iter()
-            .any(|node| node.text == "Invite another Host")
+            .any(|node| node.text == "Invite another host")
     );
     assert!(
         view.actions
@@ -301,7 +301,7 @@ fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
         repaired
             .nodes
             .iter()
-            .any(|node| node.text == "The same Body woke again")
+            .any(|node| node.text == "The same body woke again")
     );
     assert!(
         !repaired
@@ -1129,7 +1129,7 @@ fn library_keeps_reviewed_forms_visible_when_the_body_is_at_capacity() {
         },
         LibraryEntry {
             form: form("another"),
-            title: "Another reviewed Form".into(),
+            title: "Another reviewed form".into(),
             search_text: "candidate".into(),
             availability: LibraryAvailability::Available,
             graceful_fallback: None,
@@ -1140,7 +1140,7 @@ fn library_keeps_reviewed_forms_visible_when_the_body_is_at_capacity() {
     let semantic = library.presentation(&body, 10, "candidate").unwrap();
     let encoded = format!("{semantic:?}");
     assert!(encoded.contains("Body at capacity"));
-    assert!(encoded.contains("Remove a Form before adding another"));
+    assert!(encoded.contains("Remove a form before adding another"));
     let lowered = semantic.lower().unwrap();
     assert!(
         !lowered

@@ -1,4 +1,4 @@
-//! Ordinary Form contracts for transport-neutral typed-record framing.
+//! Ordinary form contracts for transport-neutral typed-record framing.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{

@@ -32,7 +32,7 @@ impl SemanticCheckpoint {
             .iter()
             .find(|form| form.name == view.open_form)
             .map(|form| form.checked_form_id.clone())
-            .ok_or("open checked Form identity is absent")?;
+            .ok_or("open checked form identity is absent")?;
         Ok(Self {
             source: view.source,
             source_revision: view.revision,

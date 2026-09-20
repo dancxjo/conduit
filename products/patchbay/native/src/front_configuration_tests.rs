@@ -236,7 +236,7 @@ fn pointer_hit_prefers_front_control_over_containing_gear_rectangle() {
             viewport: &application.canvas_viewport,
         },
     );
-    // The first control is inside the first Gear rectangle. Later control hit
+    // The first control is inside the first gear rectangle. Later control hit
     // geometry must win over that containing selection target.
     application.cursor_position = (220.0, 170.0);
     application.handle_canvas_press().unwrap();

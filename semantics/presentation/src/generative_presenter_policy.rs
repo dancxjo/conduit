@@ -50,7 +50,7 @@ impl GenerativePresenterBounds {
 pub struct GenerativePresenterPolicy {
     pub template_contract_revision: String,
     /// A replaceable presenter speaks as the supplied Body without acquiring
-    /// that Body's identity, continuity, authority, or stake.
+    /// that body's identity, continuity, authority, or stake.
     pub narrator_role: GenerativeNarratorRole,
     pub instructions: String,
 }
@@ -58,7 +58,7 @@ pub struct GenerativePresenterPolicy {
 /// The narrator's implementation role and the voice it performs are distinct.
 ///
 /// Additional voice modes require an explicit reviewed contract revision; the
-/// first generative Presenter only admits the Body's first-person voice.
+/// first generative Presenter only admits the body's first-person voice.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GenerativeNarratorRole {
     TransientFirstPersonBodyNarrator,

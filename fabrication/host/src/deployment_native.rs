@@ -1,4 +1,4 @@
-//! Reviewed local install/start carrier for one native Body-bound package.
+//! Reviewed local install/start carrier for one native body-bound package.
 
 use crate::{
     BodyBoundArtifactIdentity, CarrierTerminal, DeploymentCarrierDescriptor, DeploymentCarrierKind,

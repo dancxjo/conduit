@@ -1,4 +1,4 @@
-//! Exact source edits initiated by compact controls on a Gear Front.
+//! Exact source edits initiated by compact controls on a gear Front.
 
 use conduit_core::{
     ConfigurationValue, InfoBool, KindId, Quantity, BOOL_INFO_ID, QUANTITY_INFO_ID,

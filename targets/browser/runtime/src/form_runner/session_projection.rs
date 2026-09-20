@@ -1,4 +1,4 @@
-//! Exact pending platform effect descriptions from the active Plan.
+//! Exact pending platform effect descriptions from the active plan.
 use super::*;
 
 impl TourSession {

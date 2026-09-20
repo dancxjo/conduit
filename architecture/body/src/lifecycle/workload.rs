@@ -1,4 +1,4 @@
-//! Bounded Body workload changes and their Body-wide Plan/Play transitions.
+//! Bounded Body workload changes and their body-wide Plan/Play transitions.
 
 use conduit_core::SignId;
 
@@ -105,9 +105,9 @@ impl Wake {
         self.start_play_identity(&play.plan_id, &play.active_play_id, sign_id)
     }
 
-    /// Retires the active Body-wide Plan after the owning Body's exact Form
-    /// workset changes. The Wake survives and must receive one replacement
-    /// Body-wide Plan before another Play can start.
+    /// Retires the active body-wide Plan after the owning body's exact form
+    /// workset changes. The wake survives and must receive one replacement
+    /// body-wide Plan before another play can start.
     pub fn workload_changed(
         &self,
         body: &Body,

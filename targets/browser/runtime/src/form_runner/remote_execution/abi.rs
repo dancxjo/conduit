@@ -1,4 +1,4 @@
-//! Finite production ABI for one browser-owned remote Plan fragment.
+//! Finite production ABI for one browser-owned remote plan fragment.
 
 use super::*;
 use crate::form_runner::engine::{BrowserHostEffect, DriveStatus};
@@ -156,7 +156,7 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
             .first()
             .filter(|first| active_play_id.iter().all(|current| current == *first))
             .cloned()
-            .ok_or_else(|| "remote grants differ on browser Active Play identity".to_string())?;
+            .ok_or_else(|| "remote grants differ on browser Active play identity".to_string())?;
         let execution = RemoteExecution::prepare(
             &start.plan,
             &start.host,
@@ -364,7 +364,7 @@ pub extern "C" fn conduit_browser_remote_exchange(length: u32) -> i32 {
 pub extern "C" fn conduit_browser_remote_drive() -> i32 {
     with_state(|state| {
         if state.pending.is_some() {
-            return Err("remote Host effect is already pending".into());
+            return Err("remote host effect is already pending".into());
         }
         match state.execution.drive()? {
             DriveStatus::Effect(pending) => {

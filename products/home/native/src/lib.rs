@@ -96,14 +96,14 @@ impl NativeHomeController {
     pub fn report_request(&mut self, request: &NativeHomeRequest, outcome: Result<(), &str>) {
         self.notice = match outcome {
             Ok(()) => match request {
-                NativeHomeRequest::OpenTour => "Tour opened on this Host.".into(),
-                NativeHomeRequest::OpenPatchbay => "Patchbay opened on this Host.".into(),
-                NativeHomeRequest::OpenCreche => "Crèche opened on this Host.".into(),
+                NativeHomeRequest::OpenTour => "Tour opened on this host.".into(),
+                NativeHomeRequest::OpenPatchbay => "Patchbay opened on this host.".into(),
+                NativeHomeRequest::OpenCreche => "Crèche opened on this host.".into(),
                 NativeHomeRequest::OpenForm(index) => {
-                    format!("Selected Form {}.", INSTALLED_FORMS[*index])
+                    format!("Selected form {}.", INSTALLED_FORMS[*index])
                 }
                 NativeHomeRequest::RunForm(index) => {
-                    format!("Completed Form {} on this Host.", INSTALLED_FORMS[*index])
+                    format!("Completed Form {} on this host.", INSTALLED_FORMS[*index])
                 }
             },
             Err(error) => format!("Host refused the request: {error}"),

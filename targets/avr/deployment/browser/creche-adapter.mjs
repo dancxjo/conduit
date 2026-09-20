@@ -62,7 +62,7 @@ const declaration = Object.freeze({
     reset_transition: AVR_PRO_MICRO_PROFILE.resetTransition,
   }),
   browser_deployment: "unavailable: exact Caterina reset and fresh-port contract is not implemented",
-  external_carrier: "download Body-bound spore for an explicit external programmer",
+  external_carrier: "download body-bound spore for an explicit external programmer",
   join_behavior: "fresh Boot and exact ATTEST must be observed before a later explicit authenticated admission",
   authenticated_join_implemented: false,
 });

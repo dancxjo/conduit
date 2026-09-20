@@ -12,7 +12,7 @@ impl PatchbayGraph {
     /// Adds one presentation boundary for realization truth already projected
     /// from an admitted recursive Form Back. The flattened Gears and Cords
     /// remain authoritative; this records only how Patchbay may collapse that
-    /// graph behind the checked Front.
+    /// graph behind the checked front.
     pub fn admit_recursive_form(
         &mut self,
         projection: &RecursiveFormGearProjection,

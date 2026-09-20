@@ -72,7 +72,7 @@ impl std::fmt::Display for RendererProjectionError {
                 formatter.write_str("renderer attempted edit is stale, empty, or unbounded")
             }
             Self::GraphBasisMismatch => {
-                formatter.write_str("renderer graph does not describe the open checked Form")
+                formatter.write_str("renderer graph does not describe the open checked form")
             }
             Self::InvalidSoundInspection => {
                 formatter.write_str("renderer sound inspection is invalid or identity-stale")

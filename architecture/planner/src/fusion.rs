@@ -96,7 +96,7 @@ pub fn plan_selected_optimization(
 ) -> Result<OptimizedPlan, PlannerError> {
     if selection.checked_form_id != form.checked_form_id {
         return Err(PlannerError::InvalidFormIdentity(
-            "fusion selection belongs to a different checked Form".to_string(),
+            "fusion selection belongs to a different checked form".to_string(),
         ));
     }
     let mut plan = plan_with_options(
@@ -127,7 +127,7 @@ pub fn plan_selected_optimization(
                     .map(|placement| placement.placement_id.clone())
                     .ok_or_else(|| {
                         PlannerError::InvalidPlanningObservation(
-                            "fusion Gear has no exact Plan placement".to_string(),
+                            "fusion Gear has no exact plan placement".to_string(),
                         )
                     })
             })
@@ -157,7 +157,7 @@ pub fn plan_selected_optimization(
                     .map(|connection| connection.connection_id.clone())
                     .ok_or_else(|| {
                         PlannerError::InvalidPlanningObservation(
-                            "fusion Cord has no exact Plan connection".to_string(),
+                            "fusion Cord has no exact plan connection".to_string(),
                         )
                     })
             })
@@ -187,7 +187,7 @@ pub fn plan_selected_optimization(
     };
     if !optimized.verify() {
         return Err(PlannerError::InvalidPlanningObservation(
-            "fusion explanation does not match the ordinary Plan".to_string(),
+            "fusion explanation does not match the ordinary plan".to_string(),
         ));
     }
     Ok(optimized)
@@ -326,7 +326,7 @@ fn validate_fusion_offer(
             .placements
             .by_gear
             .get(gear_id)
-            .ok_or_else(|| "fusion omits an authored Gear placement".to_string())?;
+            .ok_or_else(|| "fusion omits an authored gear placement".to_string())?;
         if placement.host_id != offer.host_id
             || !form.gears.iter().any(|gear| gear.gear_id == *gear_id)
         {
@@ -367,7 +367,7 @@ fn validate_fusion_offer(
         if !form.connections.iter().any(|connection| {
             connection.source_gear_id == cord.0 && connection.sink_gear_id == cord.1
         }) {
-            return Err("fusion names a Cord absent from the authored Form".to_string());
+            return Err("fusion names a Cord absent from the authored form".to_string());
         }
         if boundaries.iter().any(|boundary| {
             boundary.source_gear_id == cord.0

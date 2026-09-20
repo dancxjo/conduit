@@ -369,7 +369,7 @@ fn run_local_model_pool(
                     plan_id: Some(live.plan_id().into()),
                     active_play_id: Some(live.play_id().into()),
                     asserted_semantic_disposition: Some(format!(
-                        "{} completed operations selected across two exact planned Hosts",
+                        "{} completed operations selected across two exact planned hosts",
                         live.operation_count()
                     )),
                     proof_class: Some("live-hosted-integration".into()),

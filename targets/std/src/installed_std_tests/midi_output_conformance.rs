@@ -37,7 +37,7 @@ fn host() -> StdHost {
     .unwrap()
     .with_fake_output(FakeMidiOutputBehavior::Healthy);
     StdHost::new_with_midi_output(config, StdHostComposition::minimal(), selection)
-        .expect("loopback selection matches exact Host identity")
+        .expect("loopback selection matches exact host identity")
 }
 
 fn form() -> conduit_form::CheckedForm {

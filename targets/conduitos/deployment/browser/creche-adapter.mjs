@@ -79,7 +79,7 @@ function productContribution(profile) {
     intentions: PRODUCT_MODES,
     fabrication_strategies: Object.freeze([{ id: "reviewed-generic-release-download", label: "Reviewed generic ConduitOS product IMAGE" }]),
     carriers: Object.freeze({
-      deployment: Object.freeze([{ id: "conduit-carrier/downloadable-disk-image@1", label: "Download Body-bound ISO" }]),
+      deployment: Object.freeze([{ id: "conduit-carrier/downloadable-disk-image@1", label: "Download body-bound ISO" }]),
       installation: Object.freeze([]), attachment: Object.freeze([]), observation: Object.freeze([
         { id: "conduit-line/serial-text@1", label: "ConduitOS boot serial Line" },
       ]),

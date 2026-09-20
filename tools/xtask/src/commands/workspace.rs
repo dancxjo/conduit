@@ -1,4 +1,4 @@
-//! Repository entrance for retained Body arrival through the browser Host.
+//! Repository entrance for retained body arrival through the browser Host.
 use crate::cli::GlobalOpts;
 use crate::process::{run_step, Step};
 use crate::workspace::workspace_root;
@@ -17,7 +17,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         run_step(
             &Step::new(
                 "demo.workspace.rendezvous-host",
-                "Build the installed Host entrance used by running-Host proof",
+                "Build the installed host entrance used by running-Host proof",
                 "cargo",
                 &["build", "-p", "conduit"],
             ),
@@ -71,7 +71,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     run_step(
         &Step::new(
             "demo.workspace.runtime",
-            "Build the shared Crèche and ordinary Body execution runtime",
+            "Build the shared Crèche and ordinary body execution runtime",
             "cargo",
             &[
                 "build",
@@ -95,7 +95,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     run_step(
         &Step::new(
             "demo.workspace.package",
-            "Stage the exact Body arrival application",
+            "Stage the exact body arrival application",
             "sh",
             &[
                 "products/workspace/tools/stage-workspace-product.sh",
@@ -153,7 +153,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         run_step(
             &Step::new(
                 "demo.workspace.host",
-                "Open the Body arrival experience",
+                "Open the body arrival experience",
                 "cargo",
                 &[
                     "run",

@@ -176,14 +176,14 @@ pub extern "C" fn conduit_tour_reviewed_gallery_view(request_length: usize) -> i
     })
 }
 
-/// Projects the exact checked Form beside its Tour source without planning or
-/// starting a Play.
+/// Projects the exact checked form beside its Tour source without planning or
+/// starting a play.
 #[no_mangle]
 pub extern "C" fn conduit_tour_project_patchbay(source_length: usize, sequence: u64) -> i32 {
     project_patchbay(source_length, sequence, false)
 }
 
-/// Projects the same visible checked Form while retaining distinct recursive
+/// Projects the same visible checked form while retaining distinct recursive
 /// expansion evidence for the comparison lesson.
 #[no_mangle]
 pub extern "C" fn conduit_tour_project_patchbay_recursive(
@@ -249,7 +249,7 @@ pub extern "C" fn conduit_tour_admit_source_interaction(
     })
 }
 
-/// Starts one exact Play from adjacent UTF-8 Host, Boot, and Form source bytes.
+/// Starts one exact play from adjacent UTF-8 Host, Boot, and Form source bytes.
 /// Replacing an unfinished session explicitly cancels its kernel scheduler.
 #[no_mangle]
 pub extern "C" fn conduit_tour_start(
@@ -268,7 +268,7 @@ pub extern "C" fn conduit_tour_start(
     )
 }
 
-/// Starts the same authored Form while selecting reviewed reusable Backs.
+/// Starts the same authored form while selecting reviewed reusable Backs.
 #[no_mangle]
 pub extern "C" fn conduit_tour_start_recursive(
     host_length: usize,
@@ -376,7 +376,7 @@ fn start(
             };
             session.attach_source_interaction(&mut effect, source_interaction);
             write_output(&effect).map_err(|_| ERROR_OUTPUT)?;
-            // A refused proposal must not retire the current Play. Preparation
+            // A refused proposal must not retire the current play. Preparation
             // and effect serialization precede the explicit replacement step.
             SESSION.with(|slot| -> Result<(), i32> {
                 if let Some(previous) = slot.borrow_mut().take() {

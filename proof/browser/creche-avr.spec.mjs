@@ -67,7 +67,7 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
-test("the exact Pro Micro release becomes a Body-bound downloadable spore", async ({ page }) => {
+test("the exact Pro Micro release becomes a body-bound downloadable spore", async ({ page }) => {
   const release = await installReviewedRelease(page);
   await birthBody(page);
   const runner = page.locator(".physical-host-runner");
@@ -149,7 +149,7 @@ test("the exact Pro Micro release becomes a Body-bound downloadable spore", asyn
     body_id: evidence.binding.body_id,
   });
 
-  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await runner.getByRole("button", { name: "Realize selected host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "AbsentProgrammer"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });

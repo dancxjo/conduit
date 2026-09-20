@@ -1,4 +1,4 @@
-//! Durable bounded Patchbay presentation state, separate from authored Form meaning.
+//! Durable bounded Patchbay presentation state, separate from authored form meaning.
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;

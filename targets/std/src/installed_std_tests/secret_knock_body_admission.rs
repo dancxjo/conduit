@@ -111,7 +111,7 @@ fn exact_demands(
                 .capabilities
                 .iter()
                 .find(|offer| offer.capability_id == placement.capability_id)
-                .expect("planned capability remains in exact Host advertisement");
+                .expect("planned capability remains in exact host advertisement");
             placement.resources.iter().map(|binding| {
                 let requirement = offer
                     .resource_requirements

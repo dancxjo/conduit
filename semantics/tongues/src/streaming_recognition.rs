@@ -1,8 +1,8 @@
 //! Conduit Fronts for Tongues streaming recognition.
 //!
 //! Tongues owns the speech event lifecycle, recognition commitment, segmentation,
-//! and barge-in semantics. Conduit owns only the portable Front and the boundary
-//! where one immutable Tongues recognition commit becomes a Body user message.
+//! and barge-in semantics. Conduit owns only the portable front and the boundary
+//! where one immutable Tongues recognition commit becomes a body user message.
 
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,

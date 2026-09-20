@@ -93,7 +93,7 @@ pub fn exact_text_lab_line_loss_outcome(
         browser_text_upper,
         Some(unavailable_line),
     ) {
-        Ok(_) => return Err("lost selected Text Lab Line still produced a Plan".into()),
+        Ok(_) => return Err("lost selected Text Lab Line still produced a plan".into()),
         Err(refusal) => refusal,
     };
     if accepted.plan.plan_id != immutable_plan_id || !conduit_core::verify_plan(&accepted.plan) {

@@ -37,7 +37,7 @@ pub enum SyntaxHighlightRefusal {
 
 /// Classifies exact UTF-8 byte spans without requiring the source to parse.
 ///
-/// This deliberately starts from the Form surface's lossless tokenizer. An
+/// This deliberately starts from the form surface's lossless tokenizer. An
 /// incomplete quote, missing delimiter, or otherwise temporarily invalid edit
 /// can therefore still be highlighted while syntax diagnostics remain a
 /// separate concern.

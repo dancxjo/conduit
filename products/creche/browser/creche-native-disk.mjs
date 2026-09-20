@@ -89,7 +89,7 @@ export function readBodyProvisionedMedia(value) {
     ? trailingOffset
     : findUniqueProvision(bytes);
   if (offset < 0) {
-    throw new TypeError("native media artifact omitted its Body provision trailer");
+    throw new TypeError("native media artifact omitted its body provision trailer");
   }
   const view = new DataView(bytes.buffer, bytes.byteOffset + offset, TRAILER_BYTES);
   const version = view.getUint32(24, true);

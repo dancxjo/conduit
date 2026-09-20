@@ -49,7 +49,7 @@ fn ordinary_form_executes_the_canonical_composition_family() {
     assert_eq!(
         identity,
         (fragment.checked_form_id.clone(), fragment.plan_id.clone()),
-        "presentation metadata does not rewrite checked Form or Plan identity"
+        "presentation metadata does not rewrite checked form or Plan identity"
     );
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),

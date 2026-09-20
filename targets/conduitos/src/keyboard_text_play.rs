@@ -294,7 +294,7 @@ pub fn run_with_presentation(
     mut present: impl FnMut(PresentationFragment),
 ) -> Result<KeyboardTextPlayReport, PreparationError> {
     // ConduitOS admits this fixed-size kernel from its finite boot arena before
-    // the Play starts; scheduler progress itself performs no allocation.
+    // the play starts; scheduler progress itself performs no allocation.
     let mut kernel = Box::new(KeyboardTextKernel::prepare(prepared, events.len())?);
     let mut event_index = 0usize;
     let mut presentations = [None; MAXIMUM_PRESENTATIONS];

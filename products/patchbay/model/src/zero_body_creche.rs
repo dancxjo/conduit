@@ -1,4 +1,4 @@
-//! Shared Crèche draft and explicit Birth handoff for the zero-Body entrance.
+//! Shared Crèche draft and explicit Birth handoff for the zero-body entrance.
 
 use conduit_core::SignId;
 use conduit_creche_model::birth::{BirthDraft, BirthFormChoice, BirthSelection};
@@ -58,7 +58,7 @@ impl ZeroBodyFrontDoor {
                     })
                     .cloned()
                     .ok_or_else(|| {
-                        "Crèche selected a Form outside current reviewed inventory".into()
+                        "Crèche selected a form outside current reviewed inventory".into()
                     })
             })
             .collect::<Result<Vec<_>, String>>()?;

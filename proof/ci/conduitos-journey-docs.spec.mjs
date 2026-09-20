@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const checkpoints = [
-  "front-door-ready", "body-awake", "home-prompt", "home-forms", "home-patchbay-open",
+  "front-door-ready", "body-awake", "home-prompt", "home-forms", "home-play-observed", "home-patchbay-open",
   "home-returned",
   "host-current-offers", "quiescent-awaiting-input",
   "input-continued", "patchbay-current-canvas", "patchbay-edit-requested", "patchbay-presenters-replanned",

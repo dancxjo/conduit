@@ -1,4 +1,4 @@
-//! Exact transitions from an unbodied Host into one live local Body session.
+//! Exact transitions from an unbodied Host into one live local body session.
 
 use conduit_body::{
     AdmissionManager, AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory,
@@ -83,7 +83,7 @@ impl LocalFrontDoor {
             || selection.workset.validate().is_err()
             || selected.len() != selection.workset.len()
         {
-            return Err("Crèche selection evidence does not match reviewed Forms".into());
+            return Err("Crèche selection evidence does not match reviewed forms".into());
         }
         let sign_id = SignId::from(format!("patchbay/creche/born/{revision}"));
         let body = Body::born_with_forms(selection.workset.clone(), revision, sign_id.clone())
@@ -136,7 +136,7 @@ impl LocalFrontDoor {
                     .iter()
                     .find(|form| form.checked_form_id == resident.checked_form_id)
                     .map(|form| form.name.clone())
-                    .ok_or("Body checked Form is absent from its source document")?,
+                    .ok_or("Body checked form is absent from its source document")?,
             ),
             (None, None) => None,
             _ => return Err("Body resident Form and editor presence disagree".into()),

@@ -1,5 +1,5 @@
 # Portable rhythm lesson meaning. Performance may come from any compatible
-# musical source; this Form contains no controller, device, transport, or Host facts.
+# musical source; this form contains no controller, device, transport, or Host facts.
 form rhythm-lesson (
     > performance: music/note-event@1...|
     > reference: BeatReference...|

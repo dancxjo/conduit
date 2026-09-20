@@ -39,7 +39,7 @@ use protocol::{
 use std::collections::BTreeMap;
 
 struct TourSession {
-    /// Logical resource reservations retained for the lifetime of a Body Play.
+    /// Logical resource reservations retained for the lifetime of a body Play.
     _resource_admissions: Option<conduit_core::ResourceAdmissionOwner>,
     cancellation: Option<conduit_kernel::scheduler::HostOperationCancellation>,
     scheduler: engine::TourScheduler,
@@ -242,7 +242,7 @@ impl TourSession {
             TourProgress::Effect(_)
             | TourProgress::Waiting { .. }
             | TourProgress::Cancellation { .. } => {
-                Err("Tour Play requested another Host effect before completion".into())
+                Err("Tour Play requested another host effect before completion".into())
             }
         }
     }

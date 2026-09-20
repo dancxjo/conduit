@@ -50,7 +50,7 @@ impl PatchbayApplication {
         match action {
             GuiAction::TogglePartsView => {
                 if self.build_birth.body().is_none() {
-                    return Err("Birth a Body before opening Parts".into());
+                    return Err("Birth a body before opening Parts".into());
                 }
                 self.parts_open = !self.parts_open;
                 if !self.parts_open {
@@ -63,7 +63,7 @@ impl PatchbayApplication {
                 let body_id = self
                     .build_birth
                     .body()
-                    .ok_or("Birth a Body before spawning a browser Part")?
+                    .ok_or("Birth a body before spawning a browser Part")?
                     .body_id
                     .clone();
                 let target = self
@@ -90,7 +90,7 @@ impl PatchbayApplication {
             GuiAction::InspectPart(part_id) => {
                 let view = self.parts_projection()?.ok_or("Parts view is not open")?;
                 if !view.parts.iter().any(|row| row.details.part_id == part_id) {
-                    return Err("selected Part is not in the current Body projection".into());
+                    return Err("selected Part is not in the current body projection".into());
                 }
                 self.select_front_door_subject(&format!("part/{}", part_id.as_str()))?;
                 self.selected_part = Some(part_id);
@@ -104,7 +104,7 @@ impl PatchbayApplication {
                     .iter()
                     .any(|row| row.candidate_id == candidate_id)
                 {
-                    return Err("selected candidate is not in the current Body projection".into());
+                    return Err("selected candidate is not in the current body projection".into());
                 }
                 self.select_front_door_subject(&format!("candidate/{}", candidate_id.as_str()))?;
                 self.selected_candidate = Some(candidate_id);
@@ -117,7 +117,7 @@ impl PatchbayApplication {
                     .wants_to_join
                     .iter()
                     .find(|row| row.candidate_id == candidate_id)
-                    .ok_or("candidate is not awaiting a Body decision")?;
+                    .ok_or("candidate is not awaiting a body decision")?;
                 if !row.actions.contains(&patchbay_model::PartsAction::Admit) {
                     return Err("candidate cannot be admitted in its current state".into());
                 }
@@ -173,7 +173,7 @@ impl PatchbayApplication {
                     .wants_to_join
                     .iter()
                     .find(|row| row.candidate_id == candidate_id)
-                    .ok_or("candidate is not awaiting a Body decision")?;
+                    .ok_or("candidate is not awaiting a body decision")?;
                 if !row.actions.contains(&patchbay_model::PartsAction::Refuse) {
                     return Err("candidate cannot be refused in its current state".into());
                 }
@@ -212,7 +212,7 @@ impl PatchbayApplication {
                     .parts
                     .iter()
                     .find(|row| row.details.part_id == part_id)
-                    .ok_or("Part is not in the current Body projection")?;
+                    .ok_or("Part is not in the current body projection")?;
                 if row.state == patchbay_model::PartPresentationState::Here {
                     return Err("the Here Part cannot revoke itself from this Patchbay".into());
                 }
@@ -573,7 +573,7 @@ mod tests {
         assert_eq!(
             application
                 .handle_parts_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::F12)),
-            Err("Birth a Body before opening Parts".into())
+            Err("Birth a body before opening Parts".into())
         );
         assert_eq!(
             application.handle_parts_key(&winit::keyboard::Key::Character("p".into())),

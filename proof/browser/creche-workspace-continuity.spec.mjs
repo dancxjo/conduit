@@ -15,7 +15,7 @@ test.afterAll(async () => { if (root) await rm(root, { recursive: true }); });
 test.beforeEach(async () => { entrance = await startStaticProduct(root, "/conduit/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("Crèche respects the live Body owner and returns a retained Body to its Forms", async ({ page, context }) => {
+test("Crèche respects the live Body owner and returns a retained body to its forms", async ({ page, context }) => {
   await page.goto(new URL("workspace/", entrance.url).href);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
@@ -39,7 +39,7 @@ test("Crèche respects the live Body owner and returns a retained Body to its Fo
 });
 
 
-test('the actual Gallery Use link returns to the same Body with the selected Form listening', async ({ page }) => {
+test('the actual Gallery Use link returns to the same body with the selected form listening', async ({ page }) => {
   await page.goto(new URL('workspace/', entrance.url).href);
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
@@ -51,7 +51,7 @@ test('the actual Gallery Use link returns to the same Body with the selected For
   await page.getByRole('button', { name: 'form Gallery', exact: true }).click();
   const entry = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]')
     .filter({ has: page.getByRole('heading', { name: 'Desk Telegraph', exact: true }) });
-  await entry.getByRole('link', { name: 'Use in your Body', exact: true }).click();
+  await entry.getByRole('link', { name: 'Use in your body', exact: true }).click();
   await expect(page.locator('#surface-title')).toHaveText('Desk Telegraph');
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   const arrived = await page.evaluate(() => globalThis.__conduitWorkspace.current());

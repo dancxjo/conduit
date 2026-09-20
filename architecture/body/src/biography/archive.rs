@@ -15,9 +15,9 @@ pub struct BodyBiographyArchivePage {
     pub next_digest: Option<[u8; 32]>,
 }
 
-/// One exact, bounded history segment that has left a Body's active window.
+/// One exact, bounded history segment that has left a body's active window.
 ///
-/// Segments are stored separately from current Body evidence. The active
+/// Segments are stored separately from current body evidence. The active
 /// evidence retains only the cumulative boundary and digest of the newest
 /// segment, so finite active storage does not impose a finite Body lifetime.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -242,7 +242,7 @@ impl BodyBiographyArchiveSegment {
 }
 
 impl BodyBiographyEvidence {
-    /// Seal Body-level workload history after every Wake in the active window
+    /// Seal body-level workload history after every wake in the active window
     /// has already reached the archive. Birth remains resident because it binds
     /// Body identity; the checkpoint carries the exact current workload basis.
     pub fn seal_body_workload_history(

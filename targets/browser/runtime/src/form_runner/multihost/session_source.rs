@@ -11,18 +11,18 @@ impl Session {
         request: u32,
     ) -> Result<Output, String> {
         if active_play_id != self.source_active_play_id.as_str() {
-            return Err("multi-Host timer completion has a stale Play identity".into());
+            return Err("multi-host timer completion has a stale Play identity".into());
         }
         if self.role != Role::Source || self.stage != Stage::Timing {
-            return Err("multi-Host timer completion arrived in the wrong phase".into());
+            return Err("multi-host timer completion arrived in the wrong phase".into());
         }
         let pending = self
             .pending
             .take()
-            .ok_or("multi-Host timer request is missing")?;
+            .ok_or("multi-host timer request is missing")?;
         if pending.request.request.0 != request {
             self.pending = Some(pending);
-            return Err("multi-Host timer completion has a stale request identity".into());
+            return Err("multi-host timer completion has a stale request identity".into());
         }
         engine::complete_host_effect(&mut self.scheduler, &pending)?;
         self.source_offer()
@@ -54,17 +54,17 @@ impl Session {
         bytes: &[u8],
     ) -> Result<Output, String> {
         if active_play_id != self.source_active_play_id.as_str() {
-            return Err("multi-Host input completion has a stale Play identity".into());
+            return Err("multi-host input completion has a stale Play identity".into());
         }
         if self.role != Role::Source || self.stage != Stage::Input {
-            return Err("multi-Host input completion arrived in the wrong phase".into());
+            return Err("multi-host input completion arrived in the wrong phase".into());
         }
         let pending = self
             .pending
             .as_ref()
-            .ok_or("multi-Host input request is missing")?;
+            .ok_or("multi-host input request is missing")?;
         if pending.request.request.0 != request {
-            return Err("multi-Host input completion has a stale request identity".into());
+            return Err("multi-host input completion has a stale request identity".into());
         }
         engine::complete_host_effect_with_output(&mut self.scheduler, pending, bytes)?;
         self.pending = None;
@@ -83,7 +83,7 @@ impl Session {
                 .map_err(debug_error)?
             {
                 if offer.sequence != self.sequence {
-                    return Err("multi-Host egress changed the next ordered sequence".into());
+                    return Err("multi-host egress changed the next ordered sequence".into());
                 }
                 let payload = self
                     .scheduler
@@ -93,10 +93,10 @@ impl Session {
                 if self.deliveries.len()
                     >= usize::from(conduit_net::MAXIMUM_RECORD_DELIVERY_OBSERVATIONS)
                 {
-                    return Err("multi-Host delivery observation bound exhausted".into());
+                    return Err("multi-host delivery observation bound exhausted".into());
                 }
                 if self.deliveries.len() != usize::try_from(offer.sequence).map_err(debug_error)? {
-                    return Err("multi-Host delivery correlation sequence is not contiguous".into());
+                    return Err("multi-host delivery correlation sequence is not contiguous".into());
                 }
                 let correlation = offer.sequence.to_le_bytes();
                 self.retain_line_record(conduit_net::RecordTranscriptDirection::Sent, &payload)?;
@@ -126,7 +126,7 @@ impl Session {
                         .remote_egress_terminal(endpoint, cord)
                         .map_err(debug_error)?
                     {
-                        return Err("multi-Host source egress is not terminal".into());
+                        return Err("multi-host source egress is not terminal".into());
                     }
                     self.stage = Stage::Closing;
                     return Ok(Output::Line {
@@ -136,7 +136,7 @@ impl Session {
                         receipt: None,
                     });
                 }
-                SchedulerStatus::Cancelled => return Err("multi-Host source was cancelled".into()),
+                SchedulerStatus::Cancelled => return Err("multi-host source was cancelled".into()),
             }
             if let Some(request) = self.scheduler.next_host_request_matching(|request| {
                 self.fragment
@@ -167,18 +167,18 @@ impl Session {
                 )? {
                     continue;
                 }
-                return Err("multi-Host synchronous Host effect is unsupported".into());
+                return Err("multi-host synchronous Host effect is unsupported".into());
             }
             if let Some(request) = self.scheduler.next_host_request() {
                 let placement = self
                     .fragment
                     .placements
                     .get(usize::from(request.node.0))
-                    .ok_or("multi-Host input has no planned placement")?;
+                    .ok_or("multi-host input has no planned placement")?;
                 let operation = placement
                     .host_operations
                     .get(usize::from(request.operation.0))
-                    .ok_or("multi-Host input has no planned Host operation")?;
+                    .ok_or("multi-host input has no planned host operation")?;
                 if engine::transforms::complete_transform(
                     &mut self.scheduler,
                     placement,
@@ -199,7 +199,7 @@ impl Session {
                     let duration_millis = u64::from_le_bytes(
                         input
                             .try_into()
-                            .map_err(|_| "multi-Host timer duration is not an exact u64")?,
+                            .map_err(|_| "multi-host timer duration is not an exact u64")?,
                     );
                     let pending = PendingHostEffect {
                         request,
@@ -244,7 +244,7 @@ impl Session {
                             BrowserHostEffect::KeyEvent,
                         ),
                         _ => {
-                            return Err("multi-Host source Host effect is unsupported".into());
+                            return Err("multi-host source Host effect is unsupported".into());
                         }
                     };
                 let pending = PendingHostEffect { request, effect };
@@ -272,7 +272,7 @@ impl Session {
                     plan_projection: Box::new(self.projection.clone()),
                 });
             }
-            return Err("multi-Host source became idle before offering its value".into());
+            return Err("multi-host source became idle before offering its value".into());
         }
     }
 }

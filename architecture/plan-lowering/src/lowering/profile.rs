@@ -4,7 +4,7 @@
 /// package. This is a storage-profile fact, not a semantic or planner limit.
 pub const FIXED_KERNEL_STORAGE_PORTS_PER_NODE: usize = 16;
 
-/// Exact fixed-storage limits selected by a Host before lowering and Play.
+/// Exact fixed-storage limits selected by a host before lowering and Play.
 ///
 /// A constrained Host may select a narrower profile than the backing tables;
 /// lowering then refuses a wider Plan before any kernel state is created.

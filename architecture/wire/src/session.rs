@@ -112,7 +112,7 @@ impl SessionBinding {
         )
     }
 
-    /// Bind one selected dynamic pool operation to the exact Plan fragments,
+    /// Bind one selected dynamic pool operation to the exact plan fragments,
     /// semantic port, and directional Line admitted for that realization.
     #[allow(clippy::too_many_arguments)]
     pub fn from_selected_pool_operation(

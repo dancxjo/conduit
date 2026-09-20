@@ -37,7 +37,7 @@ test("browser verifies the exact RFC 9052 Sign1 vector under caller-owned policy
   1_700_000_000_000), /invalid rendezvous COSE/);
 });
 
-test("running Host rendezvous code resolves one authenticated loopback WebSocket Line", () => {
+test("running host rendezvous code resolves one authenticated loopback WebSocket Line", () => {
   const code = `C1-WS-104D-${"AB".repeat(32)}`;
   const decoded = decodeRendezvousCode(code.toLowerCase());
   assert.equal(decoded.url, "ws://127.0.0.1:4173/conduit");

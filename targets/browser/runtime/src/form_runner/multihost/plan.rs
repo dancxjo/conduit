@@ -62,15 +62,15 @@ fn prepare_with_base(
     let syntax = conduit_form::parse_syntax_document(source);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
-            "parse multi-Host executable-tour Form: {}",
+            "parse multi-host executable-tour Form: {}",
             diagnostic.message
         ));
     }
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check multi-Host executable-tour Form: {error:?}"))?;
+        .map_err(|error| format!("check multi-host executable-tour Form: {error:?}"))?;
     let entry = super::super::executable_entry(&checked)?;
     let form = conduit_form::expand_canonical_form(&checked, &entry, &catalog)
-        .map_err(|error| format!("expand multi-Host executable-tour Form: {error:?}"))?;
+        .map_err(|error| format!("expand multi-host executable-tour Form: {error:?}"))?;
     let firefly_sink_kinds = [
         conduit_time::RHYTHM_STATE_SOURCE_KIND,
         conduit_time::PHASE_SYNCHRONIZE_KIND,
@@ -208,7 +208,7 @@ fn prepare_with_base(
             line_offers: core::slice::from_ref(&line),
         },
     )
-    .map_err(|error| format!("plan multi-Host executable-tour Form: {error:?}"))?;
+    .map_err(|error| format!("plan multi-host executable-tour Form: {error:?}"))?;
     if plan.fragments.len() != 2 {
         return Err("two-browser lesson did not produce exactly two fragments".into());
     }
@@ -226,10 +226,10 @@ pub(super) fn accept(
     sink_boot_id: &str,
 ) -> Result<PreparedPlan, String> {
     if !verify_plan(&plan) {
-        return Err("received multi-Host Plan failed canonical identity verification".into());
+        return Err("received multi-host Plan failed canonical identity verification".into());
     }
     if plan.fragments.len() != 2 {
-        return Err("received multi-Host Plan does not contain exactly two fragments".into());
+        return Err("received multi-host Plan does not contain exactly two fragments".into());
     }
     let mut selected = plan
         .fragments
@@ -238,20 +238,20 @@ pub(super) fn accept(
         .filter_map(|connection| connection.selected_line.as_ref());
     let admitted = selected
         .next()
-        .ok_or_else(|| "received multi-Host Plan has no selected Line".to_string())?;
+        .ok_or_else(|| "received multi-host Plan has no selected Line".to_string())?;
     if selected.any(|candidate| candidate != admitted) {
-        return Err("received multi-Host Plan contains conflicting selected Lines".into());
+        return Err("received multi-host Plan contains conflicting selected Lines".into());
     }
     if admitted.binding.sink.host_id.as_str() != sink_host_id
         || admitted.binding.sink.boot_id.as_str() != sink_boot_id
     {
-        return Err("received multi-Host Plan does not name this exact sink Host and Boot".into());
+        return Err("received multi-host Plan does not name this exact sink Host and Boot".into());
     }
     if admitted.binding.source.host_id == admitted.binding.sink.host_id
         || admitted.binding.source.boot_id == admitted.binding.sink.boot_id
     {
         return Err(
-            "received multi-Host Plan does not retain distinct Host and Boot identities".into(),
+            "received multi-host Plan does not retain distinct Host and Boot identities".into(),
         );
     }
     let source_host = advertisement(
@@ -264,7 +264,7 @@ pub(super) fn accept(
     );
     let line = memory_line(&source_host, &sink_host, admitted.binding.base.as_str())?;
     if admitted != &line.admitted_line() {
-        return Err("received multi-Host Plan changed the exact browser-memory Line".into());
+        return Err("received multi-host Plan changed the exact browser-memory Line".into());
     }
     let source_fragment_count = plan
         .fragments
@@ -277,7 +277,7 @@ pub(super) fn accept(
         .filter(|fragment| fragment.host_id == sink_host.host_id)
         .count();
     if source_fragment_count != 1 || sink_fragment_count != 1 {
-        return Err("received multi-Host Plan changed its exact fragment ownership".into());
+        return Err("received multi-host Plan changed its exact fragment ownership".into());
     }
     Ok(PreparedPlan {
         plan,
@@ -302,7 +302,7 @@ fn memory_line(
 ) -> Result<LineOffer, String> {
     let supported = base == MEMORY_BASE || base == ALTERNATE_MEMORY_BASE;
     if !supported {
-        return Err("browser multi-Host runner does not install the selected Line base".into());
+        return Err("browser multi-host runner does not install the selected Line base".into());
     }
     let alternate = base == ALTERNATE_MEMORY_BASE;
     let line_id = if alternate {

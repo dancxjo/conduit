@@ -82,7 +82,7 @@ impl FormEditor {
         Ok(name)
     }
 
-    /// Duplicates the exact authored Gear statement with a fresh local name.
+    /// Duplicates the exact authored gear statement with a fresh local name.
     pub fn duplicate_gear(
         &mut self,
         offered_revision: u64,
@@ -112,7 +112,7 @@ impl FormEditor {
         Ok(name)
     }
 
-    /// Removes one authored Gear and every authored Cord statement that names it.
+    /// Removes one authored gear and every authored Cord statement that names it.
     pub fn remove_gear(
         &mut self,
         offered_revision: u64,

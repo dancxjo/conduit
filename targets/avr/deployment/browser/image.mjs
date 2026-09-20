@@ -189,7 +189,7 @@ export function validateExternalProgrammerEvidence(evidence, profile, binding) {
   }
   const expectedArtifact = binding?.nativeSpore?.content_id;
   if (typeof expectedArtifact !== "string" || evidence.artifact_sha256 !== expectedArtifact) {
-    refuse("StaleArtifact", "external programmer receipt names a different Body-bound HEX digest");
+    refuse("StaleArtifact", "external programmer receipt names a different body-bound HEX digest");
   }
   if (!Number.isSafeInteger(evidence.programmed_bytes) || evidence.programmed_bytes > APPLICATION_BYTES) {
     refuse("OversizedImage", "external programmer receipt exceeds admitted application flash");
@@ -199,7 +199,7 @@ export function validateExternalProgrammerEvidence(evidence, profile, binding) {
   }
   if (evidence.programmed_bytes !== binding.nativeSpore.programmed_bytes
     || evidence.maximum_address !== binding.nativeSpore.maximum_address) {
-    refuse("StaleArtifact", "external programmer receipt dimensions do not match the exact Body-bound HEX");
+    refuse("StaleArtifact", "external programmer receipt dimensions do not match the exact body-bound HEX");
   }
   return Object.freeze({ ...evidence });
 }

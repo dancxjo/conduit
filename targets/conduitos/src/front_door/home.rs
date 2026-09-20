@@ -95,7 +95,7 @@ impl FrontDoor {
             screen,
             34,
             60,
-            journey.friendly_name.as_deref().unwrap_or("Current Body"),
+            journey.friendly_name.as_deref().unwrap_or("Current body"),
             GraphicsTextRole::Status,
             GraphicsPaintRole::Muted,
         )?;
@@ -221,7 +221,7 @@ impl FrontDoor {
                 for (index, line) in [
                     format!(
                         "Name       {}",
-                        journey.friendly_name.as_deref().unwrap_or("Current Body")
+                        journey.friendly_name.as_deref().unwrap_or("Current body")
                     ),
                     format!(
                         "Wake       {}",

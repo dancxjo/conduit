@@ -247,7 +247,7 @@ impl NativeFileTask {
 
     pub fn plan(&mut self) -> Result<(), String> {
         if self.active.is_some() {
-            return Err("cannot replace a copy Plan while its Play is active".into());
+            return Err("cannot replace a copy Plan while its play is active".into());
         }
         let grants = [
             self.source
@@ -277,7 +277,7 @@ impl NativeFileTask {
         let prepared = self
             .prepared
             .as_ref()
-            .ok_or("copy requires an exact Plan")?;
+            .ok_or("copy requires an exact plan")?;
         let fragment = prepared.fragment.clone();
         let plan_id = prepared.plan.plan_id.clone();
         let mut registry = std::mem::take(&mut self.registry);

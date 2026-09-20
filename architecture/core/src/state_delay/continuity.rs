@@ -7,7 +7,7 @@ use crate::{bind_active_play, ActivePlayIdentity, FormIdentity, KindId};
 
 /// Describes the exact value a replacement must obtain from a retired owner.
 /// This record does not prove retirement, authorize migration, convey grants,
-/// or allow a Host to reconstruct a fresh cell and call it continuation.
+/// or allow a host to reconstruct a fresh cell and call it continuation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RetainedStateProvenance {
     pub source_form: FormIdentity,

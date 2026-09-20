@@ -60,15 +60,15 @@ impl PoolMemberSessions {
                     .iter()
                     .find(|pool| pool.pool_id == selection.pool_id)
             })
-            .ok_or_else(|| "selected shared pool is absent from the Plan".to_string())?;
+            .ok_or_else(|| "selected shared pool is absent from the plan".to_string())?;
         let realization = pool
             .realization_envelope
             .get(usize::from(selection.selected_realization.ok_or_else(
                 || "selected pool realization is absent".to_string(),
             )?))
-            .ok_or_else(|| "selected pool realization is outside the Plan".to_string())?;
+            .ok_or_else(|| "selected pool realization is outside the plan".to_string())?;
         if &realization.host_id != local_host_id {
-            return Err("selected pool realization belongs to another Host".into());
+            return Err("selected pool realization belongs to another host".into());
         }
         let session_count = pool
             .member_front

@@ -1,4 +1,4 @@
-//! Portable Form contracts for bounded calendar-provider interactions.
+//! Portable form contracts for bounded calendar-provider interactions.
 //!
 //! The semantic JSON payloads are validated by the selected realization. They
 //! contain portable calendar meaning only; provider, account, credential,

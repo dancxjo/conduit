@@ -107,7 +107,7 @@ enum HostCommand {
         #[arg(long)]
         boot: bool,
     },
-    /// Prove one Body across native, browser, and headless PROFILE-built Hosts.
+    /// Prove one body across native, browser, and headless PROFILE-built Hosts.
     Capstone {
         #[arg(long, default_value = "target/host-fabrication-capstone")]
         output: PathBuf,
@@ -161,10 +161,10 @@ enum HostCommand {
         library_path: Option<PathBuf>,
         #[arg(long)]
         text: String,
-        /// Run the unchanged portable Form through ordinary std Plan and Play.
+        /// Run the unchanged portable form through ordinary std Plan and Play.
         #[arg(long)]
         plan_play: bool,
-        /// Freshly select this ALSA card for the Plan/Play output.
+        /// Freshly select this ALSA card for the plan/Play output.
         #[arg(
             long,
             requires = "plan_play",
@@ -172,7 +172,7 @@ enum HostCommand {
             requires = "authorize_output"
         )]
         playback_card_id: Option<String>,
-        /// Freshly select this ALSA device number for the Plan/Play output.
+        /// Freshly select this ALSA device number for the plan/Play output.
         #[arg(
             long,
             requires = "plan_play",
@@ -206,7 +206,7 @@ enum HostCommand {
         #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=120))]
         timeout_seconds: u64,
     },
-    /// Run recorded speech through name-gated local House generation in one Plan.
+    /// Run recorded speech through name-gated local House generation in one plan.
     ProveRecordedHouse {
         #[arg(long)]
         whisper_executable: PathBuf,

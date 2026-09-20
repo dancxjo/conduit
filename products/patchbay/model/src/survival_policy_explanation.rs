@@ -67,7 +67,7 @@ pub fn explain_survival_plan_selection(
         "current"
     };
     let summary = format!(
-        "Policy {} revision {} selected {} ordinary Plan {} in {} mode from {} truthful candidates. Profile disposition is {}. Principal tradeoffs: {}. Hard semantics, authority, reservations, and reviewed degradation admission remain mandatory.",
+        "Policy {} revision {} selected {} ordinary plan {} in {} mode from {} truthful candidates. Profile disposition is {}. Principal tradeoffs: {}. Hard semantics, authority, reservations, and reviewed degradation admission remain mandatory.",
         selection.policy_id,
         selection.policy_revision,
         plan_freshness,

@@ -80,7 +80,7 @@ pub(super) fn build() -> Result<LossyAdapterProof, CatalogError> {
         return Err(CatalogError::new(
             "sound-adapter-plan-not-exact",
             format!(
-                "adapter implementation or policy configuration was not sealed into the Plan: implementation={} configuration={:?}",
+                "adapter implementation or policy configuration was not sealed into the plan: implementation={} configuration={:?}",
                 adapter.implementation_id.as_str(),
                 adapter.configuration
             ),

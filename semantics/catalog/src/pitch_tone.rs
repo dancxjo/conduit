@@ -12,7 +12,7 @@ pub const PITCH_TONE_KIND: &str = "sound/pitch-tone";
 pub const PITCH_TONE_REVISION: &str = "conduit.sound/pitch-tone@1";
 
 /// Loudness, envelope, device, and activation policy belong to the selected
-/// Host realization rather than the authored Form.
+/// Host realization rather than the authored form.
 pub fn pitch_tone_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(PITCH_TONE_KIND),

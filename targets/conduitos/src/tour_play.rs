@@ -1,4 +1,4 @@
-//! Exact Plan and production-kernel preparation for the canonical Tour specimen.
+//! Exact plan and production-kernel preparation for the canonical Tour specimen.
 
 use conduit_tour_model::{
     CANONICAL_LITERAL, CANONICAL_RESULT, CANONICAL_SOURCE, CANONICAL_SPECIMEN_ID, TOUR_CHAPTERS,

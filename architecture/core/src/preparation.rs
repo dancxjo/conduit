@@ -1,7 +1,7 @@
-//! Finite all-Host preparation before an exact Plan may start.
+//! Finite all-Host preparation before an exact plan may start.
 //!
 //! This is an admission protocol, not a scheduler or consensus system. Every
-//! selected Host remains authoritative for validating, reserving, starting,
+//! selected host remains authoritative for validating, reserving, starting,
 //! and releasing its own exact fragment.
 
 use alloc::vec::Vec;
@@ -12,7 +12,7 @@ use crate::{
     PlanFragment, PlanId,
 };
 
-/// Maximum selected Hosts admitted by one coordinated preparation attempt.
+/// Maximum selected hosts admitted by one coordinated preparation attempt.
 pub const MAX_PREPARATION_HOSTS: usize = 32;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -73,7 +73,7 @@ pub enum HostPreparationRefusal {
     LocalFailure(FailureReason),
 }
 
-/// One selected Host's independent preparation boundary.
+/// One selected host's independent preparation boundary.
 ///
 /// `prepare_fragment` must either retain the exact fragment and its finite
 /// reservations or leave local state unchanged. It must not start semantic

@@ -1,6 +1,6 @@
 //! Mandatory bounded contact withdrawal below ordinary motion authority.
 //!
-//! This is intentionally not a Gear or recovery policy. A fresh contact edge
+//! This is intentionally not a gear or recovery policy. A fresh contact edge
 //! while a wheel is driving toward that contact may replace the host output
 //! with one short straight reverse. Host or LINE loss cannot prolong or cancel
 //! it; stronger local truth stops it immediately.

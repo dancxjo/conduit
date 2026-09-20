@@ -27,7 +27,7 @@ impl ViewportError {
             Self::ArithmeticOverflow => "Canvas viewport arithmetic overflowed",
             Self::ZoomOutOfBounds => "Canvas zoom reached its finite bound",
             Self::EmptyCanvas => "Canvas viewport has no drawable area",
-            Self::EmptyContent => "The Form has no canvas content to frame",
+            Self::EmptyContent => "The form has no canvas content to frame",
         }
     }
 }

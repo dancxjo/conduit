@@ -321,7 +321,7 @@ fn validate(
         || identity.wake_irq != 27
         || !identity.a3_ordinary_form_claimed
     {
-        return Err(ConduitosError::refusal("stale-or-invalid-aarch64-a3-sign", "A3 Sign does not prove the exact portable Form, Plan, Bases, wake, semantic result, and terminal Play"));
+        return Err(ConduitosError::refusal("stale-or-invalid-aarch64-a3-sign", "A3 Sign does not prove the exact portable form, Plan, Bases, wake, semantic result, and terminal Play"));
     }
     conduit_observatory::validate_snapshot(observatory)
         .map_err(|error| ConduitosError::refusal("invalid-aarch64-observatory", error))?;

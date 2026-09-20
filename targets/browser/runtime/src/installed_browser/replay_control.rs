@@ -222,7 +222,7 @@ impl ReplayControlOperation {
 
     fn next(&mut self) -> RequestId {
         let request = RequestId(self.next_request);
-        // The operation permits only one Host request in flight. Its matching
+        // The operation permits only one host request in flight. Its matching
         // completion retires this identity before the next stage can request
         // another, so two fixed stage identities are reusable for its entire
         // continuous lifetime.

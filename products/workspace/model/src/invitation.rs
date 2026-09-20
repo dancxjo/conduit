@@ -102,7 +102,7 @@ fn action(key: &str, identity: &str, label: &str, available: bool) -> SemanticPr
                 ActionAvailability::Available
             } else {
                 ActionAvailability::Unavailable {
-                    detail: "This Host does not currently offer that transfer mechanism.".into(),
+                    detail: "This host does not currently offer that transfer mechanism.".into(),
                 }
             },
         }),

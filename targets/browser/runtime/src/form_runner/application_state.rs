@@ -1,4 +1,4 @@
-//! Retained shared application models prepared from exact Body Plan truth.
+//! Retained shared application models prepared from exact body Plan truth.
 
 use conduit_body::BodyPlan;
 use conduit_core::{ActivePlayId, PlannedGear};
@@ -99,7 +99,7 @@ fn complete_recursive_comparison(
         || recursive.realization != "recursive"
         || recursive.realization_backs.is_empty()
     {
-        return Err("resident Tour realizations did not preserve the same Form behavior".into());
+        return Err("resident Tour realizations did not preserve the same form behavior".into());
     }
     if !matches!(
         recursive_session.advance()?,
@@ -308,7 +308,7 @@ impl PreparedApplication {
         match application {
             "tutorial" => {
                 let evidence = body_evidence
-                    .ok_or("resident Tutorial requires exact Body biography evidence")?;
+                    .ok_or("resident Tutorial requires exact body biography evidence")?;
                 let revision = u32::try_from(evidence.last_sequence())
                     .map_err(|_| "resident Tutorial presentation revision exhausted")?;
                 let view = conduit_workspace_model::tutorial::presentation_from_evidence(

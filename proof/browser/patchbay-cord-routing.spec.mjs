@@ -22,12 +22,12 @@ async function renderCycleCordFixture(page,snapshot) {
     });
     const owner=port=>presentation.relationships.find(relationship=>relationship.kind==="Contains"&&relationship.target===port.subject.identity)?.source;
     const output=ports.find(port=>port.direction==="outgoing"&&ports.some(candidate=>candidate.direction==="receiving"&&owner(candidate)===owner(port)));
-    if(!output)throw new Error("documentary fixture lacks one Gear with input and output Ports");
+    if(!output)throw new Error("documentary fixture lacks one gear with input and output Ports");
     const input=ports.find(port=>port.direction==="receiving"&&owner(port)===owner(output));
     const gear=owner(output),form=presentation.relationships.find(relationship=>relationship.kind==="Contains"&&relationship.target===gear)?.source;
     if(!input||!gear||!form)throw new Error("documentary fixture cycle ownership is incomplete");
     const semanticIdentity="cord/zz-cycle-proof",subjectIdentity=`cord/${semanticIdentity}`;
-    presentation.subjects.push({identity:subjectIdentity,role:"Cord",label:"Cycle proof Cord",accessibility_name:"Cycle proof Cord returning to the same Gear"});
+    presentation.subjects.push({identity:subjectIdentity,role:"Cord",label:"Cycle proof Cord",accessibility_name:"Cycle proof Cord returning to the same gear"});
     presentation.relationships.push({source:form,target:subjectIdentity,kind:"Contains"},{source:subjectIdentity,target:output.subject.identity,kind:"Connects"},{source:subjectIdentity,target:input.subject.identity,kind:"Connects"});
     presentation.properties.push({subject:subjectIdentity,name:"semantic-id",value:{Identity:semanticIdentity}},{subject:subjectIdentity,name:"source-port",value:{Identity:output.semantic}},{subject:subjectIdentity,name:"sink-port",value:{Identity:input.semantic}},{subject:subjectIdentity,name:"value-kind",value:{Text:"value/text@1"}});
     const {renderFlow}=await import("/assets/flow.js");renderFlow(fixture,{onSelect:()=>{},onClear:()=>{},lens:"world"});

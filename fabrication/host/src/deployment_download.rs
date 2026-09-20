@@ -1,4 +1,4 @@
-//! Installed artifact-only carrier for an already-built Body-bound artifact.
+//! Installed artifact-only carrier for an already-built body-bound artifact.
 
 use crate::{
     BodyBoundArtifactIdentity, CarrierTerminal, DeploymentCarrierDescriptor, DeploymentCarrierKind,
@@ -32,7 +32,7 @@ impl From<DeploymentCarrierRefusal> for ArtifactDownloadRefusal {
     }
 }
 
-/// Copy one exact Body-bound artifact without performing a consequential
+/// Copy one exact body-bound artifact without performing a consequential
 /// realization. The destination is created atomically and never overwritten.
 pub fn download_body_bound_artifact(
     descriptor: &DeploymentCarrierDescriptor,
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn exact_artifact_is_downloaded_without_claiming_boot_or_join() {
-        let bytes = b"exact Body-bound spore";
+        let bytes = b"exact body-bound spore";
         let (descriptor, artifact) = fixture(bytes);
         let root = root("exact");
         fs::create_dir_all(&root).unwrap();

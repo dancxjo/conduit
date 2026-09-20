@@ -1,4 +1,4 @@
-//! Plan-level admission for an explicitly approved same-specialization handoff.
+//! plan-level admission for an explicitly approved same-specialization handoff.
 use conduit_core::{
     state_resource_budget, verify_plan, FormIdentity, Plan, PlanId, RetainedStateProvenance,
     StateId,

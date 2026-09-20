@@ -76,7 +76,7 @@ pub enum PoolMemberSessionDirection {
     Output,
 }
 
-/// Bind one dynamic operation/port session to its immutable Plan-owned pool.
+/// Bind one dynamic operation/port session to its immutable plan-owned pool.
 /// The operation remains runtime identity; this digest does not add a Cord or
 /// authorize a Line outside the pool realization envelope.
 pub fn pool_member_session_connection_id(
@@ -270,7 +270,7 @@ pub struct PoolRealizationEnvelope {
     pub admitted_lines: Vec<AdmittedLine>,
 }
 
-/// Runtime policy sealed by the Plan for choosing among its exact envelope.
+/// Runtime policy sealed by the plan for choosing among its exact envelope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SharedPoolSelectionPolicy {
     MoreUnreservedThenLessUtilizedThenPlanOrder,

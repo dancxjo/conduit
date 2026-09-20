@@ -143,7 +143,7 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(INDICATOR_STATE_PRESENTATION_KIND),
         plain_name: "Indicator state".to_string(),
-        summary: "Manifest one current semantic indicator state through admitted Host machinery."
+        summary: "Manifest one current semantic indicator state through admitted host machinery."
             .to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("state"),

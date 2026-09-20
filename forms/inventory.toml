@@ -9,14 +9,14 @@ title = "Startup Chime"
 entry = "startup_chime"
 initial_body_order = 6
 deterministic = { package = "conduit-browser-runtime", test = "lib", case = "canonical_chime_requests_one_bounded_audio_effect_then_idles_without_graphics", plan_play_evidence = true }
-browser_safe_not_applicable = "requires a retained Body lifecycle and real audio policy; covered by workspace startup acceptance"
+browser_safe_not_applicable = "requires a retained body lifecycle and real audio policy; covered by workspace startup acceptance"
 [[forms]]
 slug = "first-wake-chime"
-title = "First Wake Chime"
+title = "First wake Chime"
 entry = "first_wake_chime"
 initial_body_order = 7
 deterministic = { package = "conduit-browser-runtime", test = "lib", case = "canonical_first_wake_chime_does_not_repeat_after_retained_wake", plan_play_evidence = true }
-browser_safe_not_applicable = "requires a retained Body lifecycle; a standalone Gallery Play cannot invent a Body wake"
+browser_safe_not_applicable = "requires a retained body lifecycle; a standalone Gallery Play cannot invent a body wake"
 [[forms]]
 slug = "addressed-utterance"
 title = "Addressed Utterance"
@@ -33,7 +33,7 @@ slug = "body-chat"
 title = "Body Chat"
 entry = "body-chat"
 deterministic = { package = "conduit-chat", test = "body_chat", case = "canonical_body_chat_is_an_ordinary_checked_form" }
-browser_safe_not_applicable = "the portable Body conversation requires a current Body supervisor and an admitted model realization"
+browser_safe_not_applicable = "the portable body conversation requires a current body supervisor and an admitted model realization"
 [[forms]]
 slug = "house-conversation"
 title = "House Conversation"
@@ -143,7 +143,7 @@ reusable_entries = [
   { entry = "bounded-record-send", title = "Bounded Record Send", composition = { parent = "desk_telegraph", occurrences = ["send"] } },
 ]
 deterministic = { package = "conduit-std-host", test = "desk_telegraph", case = "canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play", plan_play_evidence = true }
-browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form desk-telegraph runs browser-safe" }
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed form desk-telegraph runs browser-safe" }
 [[forms]]
 slug = "generalized-input"
 title = "Generalized Input"
@@ -210,7 +210,7 @@ slug = "memory-lantern"
 title = "Memory Lantern"
 entry = "memory_lantern"
 initial_body_order = 2
-browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form memory-lantern runs browser-safe" }
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed form memory-lantern runs browser-safe" }
 [[forms]]
 slug = "little-seismograph"
 title = "Little Seismograph"
@@ -223,7 +223,7 @@ reusable_entries = [
   { entry = "measurement-plot", title = "Measurement Plot", composition = { parent = "little-seismograph-processing", occurrences = ["plot"] }, deterministic = { package = "conduit-data", test = "measurement_plot", case = "reusable_plot_projection_has_an_exact_checked_form_contract" } },
 ]
 deterministic = { package = "conduit-data", test = "little_seismograph", case = "processing_composes_four_reusable_forms_without_source_copying" }
-browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form little-seismograph runs browser-safe" }
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed form little-seismograph runs browser-safe" }
 [[forms]]
 slug = "normalized-control-measurement"
 title = "Normalized Control Measurement"
@@ -245,7 +245,7 @@ slug = "morse-network"
 title = "Morse Network"
 entry = "morse_network"
 initial_body_order = 1
-browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form morse-network runs browser-safe" }
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed form morse-network runs browser-safe" }
 [[forms]]
 slug = "network-resolution"
 title = "Network Resolution"
@@ -257,7 +257,7 @@ title = "Night Radio"
 entry = "night-radio"
 initial_body_order = 9
 deterministic = { package = "conduit-net", features = ["form-catalog"], test = "typed_record", case = "night_radio_composes_existing_framing_queue_and_presentation" }
-browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form night-radio runs browser-safe" }
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed form night-radio runs browser-safe" }
 [[forms]]
 slug = "normalized-light-intensity"
 title = "Normalized Light Intensity"
@@ -278,13 +278,13 @@ reusable_entries = [
   { entry = "phase-follower", title = "Phase Follower", composition = { parent = "firefly-choir", occurrences = ["follow"] } },
 ]
 deterministic = { package = "conduit-browser-runtime", test = "lib", case = "canonical_firefly_choir_manifests_four_exact_bounded_pulses" }
-browser_safe_not_applicable = "the deterministic browser-runtime oracle exercises the ordinary finite browser kernel; pinned multi-Host convergence proof remains owned by issue 2215"
+browser_safe_not_applicable = "the deterministic browser-runtime oracle exercises the ordinary finite browser kernel; pinned multi-host convergence proof remains owned by issue 2215"
 [[forms]]
 slug = "firefly-line-follower"
 title = "Firefly Line Follower"
 entry = "firefly-line-follower"
 deterministic = { package = "conduit-browser-runtime", test = "lib", case = "two_browser_hosts_exchange_pulses_and_converge_over_one_planned_line" }
-browser_safe_not_applicable = "the deterministic browser multi-Host oracle exercises two exact Host/Boot identities over one ordinary bounded Line"
+browser_safe_not_applicable = "the deterministic browser multi-host oracle exercises two exact host/Boot identities over one ordinary bounded Line"
 [[forms]]
 slug = "phase-synchronization"
 title = "Phase Synchronization"
@@ -509,7 +509,7 @@ title = "Tutorial"
 entry = "tour"
 initial_body_order = 14
 deterministic = { package = "conduit-tour-model", test = "application_form", case = "tour_is_a_checked_host_neutral_form_over_the_application_seam" }
-browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "the first Body runs and can remove its resident Tutorial Form without losing its face" }
+browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "the first body runs and can remove its resident Tutorial Form without losing its face" }
 
 [[forms]]
 slug = "patchbay"

@@ -27,7 +27,7 @@ impl PatchbayApplication {
             .birth(
                 self.form_editor
                     .as_ref()
-                    .ok_or("Birth requires BUILD mode with a Form")?,
+                    .ok_or("Birth requires BUILD mode with a form")?,
                 &origin,
                 sequence,
                 signs,
@@ -37,7 +37,7 @@ impl PatchbayApplication {
             conduit_body::CandidateInventory::new(
                 self.build_birth
                     .body()
-                    .expect("Birth installed the Body")
+                    .expect("Birth installed the body")
                     .body_id
                     .clone(),
             )
@@ -57,7 +57,7 @@ impl PatchbayApplication {
     pub(super) fn plan_play(&mut self) -> Result<(), String> {
         self.plan_play_classified().map_err(|error| match error {
             LifecycleActionError::Unavailable => {
-                "planning is unavailable for the current exact Form and Host offers".into()
+                "planning is unavailable for the current exact form and Host offers".into()
             }
             LifecycleActionError::Failure(error) => error,
         })
@@ -65,13 +65,13 @@ impl PatchbayApplication {
 
     pub(super) fn plan_play_classified(&mut self) -> Result<(), LifecycleActionError> {
         let editor = self.form_editor.as_ref().ok_or_else(|| {
-            LifecycleActionError::Failure("planning requires BUILD mode with a Form".into())
+            LifecycleActionError::Failure("planning requires BUILD mode with a form".into())
         })?;
         self.control
             .request_plan(editor)
             .map_err(|_| LifecycleActionError::Unavailable)?;
         let plan = self.control.plan().cloned().ok_or_else(|| {
-            LifecycleActionError::Failure("planner accepted no exact Plan".into())
+            LifecycleActionError::Failure("planner accepted no exact plan".into())
         })?;
         let sign = self.lifecycle_sign("planned");
         self.build_birth
@@ -84,7 +84,7 @@ impl PatchbayApplication {
     pub(super) fn play_plan(&mut self) -> Result<(), String> {
         self.play_plan_classified().map_err(|error| match error {
             LifecycleActionError::Unavailable => {
-                "Play is unavailable for the current exact Plan and Host offers".into()
+                "Play is unavailable for the current exact plan and Host offers".into()
             }
             LifecycleActionError::Failure(error) => error,
         })
@@ -121,7 +121,7 @@ impl PatchbayApplication {
         next.play_started(&play, sign)
             .map_err(|error| LifecycleActionError::Failure(error.to_string()))?;
         let editor = self.form_editor.as_ref().ok_or_else(|| {
-            LifecycleActionError::Failure("Play requires BUILD mode with a Form".into())
+            LifecycleActionError::Failure("Play requires BUILD mode with a form".into())
         })?;
         self.control
             .run(editor)
@@ -147,7 +147,7 @@ impl PatchbayApplication {
             .control
             .plan()
             .map(|plan| plan.plan_id.clone())
-            .ok_or("unsatisfied transition requires a current Plan")?;
+            .ok_or("unsatisfied transition requires a current plan")?;
         let sign = self.lifecycle_sign("unsatisfied");
         self.build_birth
             .became_unsatisfied(&plan_id, sign)
@@ -156,7 +156,7 @@ impl PatchbayApplication {
 
     pub(super) fn lull_body(&mut self) -> Result<(), String> {
         if self.control.is_running() {
-            return Err("Lull is distinct from stopping an active Play; stop it first".into());
+            return Err("Lull is distinct from stopping an active play; stop it first".into());
         }
         let lulled = self.lifecycle_sign("lulled");
         let retained = self.lifecycle_sign("lull-retained");

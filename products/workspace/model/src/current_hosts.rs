@@ -28,8 +28,8 @@ impl CurrentHostOffers {
         &self.hosts
     }
 
-    /// Observe one exact offer only while its Host/Boot/generation is the
-    /// authenticated current incarnation of an admitted Body Part.
+    /// Observe one exact offer only while its host/Boot/generation is the
+    /// authenticated current incarnation of an admitted body Part.
     pub fn observe(
         &mut self,
         evidence: &BodyBiographyEvidence,

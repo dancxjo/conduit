@@ -2,7 +2,7 @@ use crate::{parser::MAXIMUM_SYSEX_BYTES, MidiMessage, ParsedMidi};
 
 /// Protocol-domain value returned by an admitted MIDI input operation.
 ///
-/// The timestamp is already correlated to the Plan's monotonic-microsecond
+/// The timestamp is already correlated to the plan's monotonic-microsecond
 /// profile. It is not a MIDI wire fact and it does not make this value portable
 /// musical meaning; the explicit input adapter performs that conversion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

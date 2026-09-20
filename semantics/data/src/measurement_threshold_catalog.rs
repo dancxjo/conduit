@@ -1,4 +1,4 @@
-//! Ordinary Form-facing contract for typed hysteresis decisions.
+//! Ordinary form-facing contract for typed hysteresis decisions.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{

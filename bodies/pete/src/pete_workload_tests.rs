@@ -100,7 +100,7 @@ fn authored_meaning_has_no_deployment_role_or_mechanism_facts() {
         ] {
             assert!(
                 !source.contains(forbidden),
-                "authored Form contains {forbidden}"
+                "authored form contains {forbidden}"
             );
         }
     }

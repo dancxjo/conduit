@@ -300,7 +300,7 @@ pub(super) const fn template_name(template: BodyTemplate) -> &'static str {
 
 pub(super) const fn template_description(template: BodyTemplate) -> &'static str {
     match template {
-        BodyTemplate::Minimal => "One native Host: the smallest checked Body starting point.",
+        BodyTemplate::Minimal => "One native Host: the smallest checked body starting point.",
         BodyTemplate::Hosted => "A native application Host plus a prejoined browser page.",
         BodyTemplate::Robot => "A native forebrain plus a Pico W brainstem.",
         BodyTemplate::Distributed => {

@@ -43,7 +43,7 @@ pub(crate) const POINTER_FABRICATION_ID: &str = "browser/pointer-events@1";
 /// The finite human-facing machinery admitted into one browser IMAGE.
 ///
 /// This is deliberately expressed in fabrication identities. The Web API
-/// surface is merely how the Host realizes these selections after Boot.
+/// surface is merely how the host realizes these selections after Boot.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct BrowserMachinery {
     presentation: bool,
@@ -138,7 +138,7 @@ pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
     .selected_fabrication_ids()
 }
 
-/// Exact installed capabilities supported by the local Form/Body executor.
+/// Exact installed capabilities supported by the local form/Body executor.
 /// Membership may additionally advertise implementations for other entrances.
 pub(crate) fn execution_capability_ids() -> Vec<conduit_core::CapabilityId> {
     let machinery = BrowserMachinery::from_selected(&selected_human_machinery())

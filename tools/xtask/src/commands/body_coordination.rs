@@ -68,7 +68,7 @@ pub struct BodyCoordinationArgs {
     #[arg(long)]
     pub admit_parts: bool,
 
-    /// Retain this Host's bounded machine-readable receipt.
+    /// Retain this host's bounded machine-readable receipt.
     #[arg(long)]
     pub evidence_out: Option<PathBuf>,
 
@@ -256,8 +256,8 @@ fn body_truth(
             SignId::from("pete-orinthrop/coordination-plan-ready"),
         )
         .map_err(debug)?;
-    // The current Body lifecycle anchors a distributed Play at its steward
-    // Host. Each fragment still retains its own exact Host/Boot ActivePlay.
+    // The current body lifecycle anchors a distributed Play at its steward
+    // Host. Each fragment still retains its own exact host/Boot ActivePlay.
     let steward_play = bind_active_play(
         &exact.plan.plan_id,
         &exact.forebrain.host_id,

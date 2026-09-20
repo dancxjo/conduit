@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "browser": "pinned Chromium; one worker; zero retries",
             "native": "deterministic semantic and composition tests",
             "linear": "the same ordered biography records",
-            "exact": "the same Body, Sign, record, Plan, Cord, and Line identities",
+            "exact": "the same body, Sign, record, Plan, Cord, and Line identities",
         },
         "close_or_remove": {
             "serialized_evidence_owner": "Body biography evidence",
@@ -76,7 +76,7 @@ fn workbench_entry(
     let workbench = snapshot
         .body_workbench
         .as_ref()
-        .ok_or("fixture did not attach a Body workbench")?;
+        .ok_or("fixture did not attach a body workbench")?;
     let evidence: Value = serde_json::from_slice(&workbench.encoded_evidence)?;
     let history = workbench.history["entries"]
         .as_array()

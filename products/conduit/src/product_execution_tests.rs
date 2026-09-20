@@ -95,7 +95,7 @@ fn two_advertisement_context_reaches_ordinary_planner_placement() {
     };
     let plan = context
         .plan_with_placements(&form, &placements)
-        .expect("ordinary planner accepts explicit placement on the second Host");
+        .expect("ordinary planner accepts explicit placement on the second host");
     assert_eq!(plan.fragments.len(), 1);
     assert_eq!(plan.fragments[0].host_id, second_host);
 }

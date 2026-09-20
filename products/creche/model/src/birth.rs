@@ -11,7 +11,7 @@ pub use actions::BirthActionOutcome;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BirthFormChoice {
     pub title: String,
-    /// Searchable names and required kinds from the checked Form inventory.
+    /// Searchable names and required kinds from the checked form inventory.
     pub search_text: String,
     pub form: ResidentForm,
     /// Current local review refusal. Availability is never inferred from a label.
@@ -55,7 +55,7 @@ pub enum BirthDraftRefusal {
 
 impl BirthDraft {
     /// The caller supplies checked identities and actual local capability review.
-    /// This draft never grants authority, creates a Body, or starts a Play.
+    /// This draft never grants authority, creates a body, or starts a play.
     pub fn new(uuid: String, choices: Vec<BirthFormChoice>) -> Result<Self, BirthDraftRefusal> {
         if choices.is_empty()
             || choices.len() > MAX_BODY_FORMS

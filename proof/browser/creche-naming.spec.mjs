@@ -116,7 +116,7 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   await expect(birth.locator('[data-application-key="body-identities"]')).toContainText("Juniper Signalhouse");
   await expect(birth.locator('[data-application-key="body-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
   const bodyId = await birth.getAttribute("data-body-id");
-  await openCrecheStep(page, "2. First Host");
+  await openCrecheStep(page, "2. First host");
   await expect(page).toHaveURL(/\/creche\/first-host\/$/);
   await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-current", "2");
   await page.goBack();

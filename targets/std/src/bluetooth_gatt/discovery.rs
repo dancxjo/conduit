@@ -243,7 +243,7 @@ async fn inspect_candidate(
 }
 
 /// Ask BlueZ to pair one explicitly selected compatible observation. Pairing
-/// remains a repository-development operation; it does not create a Plan.
+/// remains a repository-development operation; it does not create a plan.
 pub async fn pair_ble_gatt_candidate(
     adapter_name: &str,
     address: [u8; 6],

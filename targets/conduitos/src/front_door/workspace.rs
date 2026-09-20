@@ -1,4 +1,4 @@
-//! Exact Body membership and foreground view, supplied by ProductJourney.
+//! Exact body membership and foreground view, supplied by ProductJourney.
 use super::{Error, FrontDoor};
 use crate::product_journey::{JourneyProjection, WorkspaceProjection};
 use alloc::{format, string::String};
@@ -143,7 +143,7 @@ impl FrontDoor {
             self.selected_subject = self.form_subject.clone();
         }
         self.form_open = false;
-        // A newly admitted Play supersedes an earlier startup/input refusal.
+        // A newly admitted play supersedes an earlier startup/input refusal.
         if journey.status == crate::product_journey::JourneyStatus::QuiescentAwaitingInput {
             self.refusal = None;
         }

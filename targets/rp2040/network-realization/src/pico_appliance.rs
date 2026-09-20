@@ -1,6 +1,6 @@
 //! Truthful finite Host offers for the optional Pico W Hello appliance.
 //!
-//! These are Host implementation facts, not authored Form vocabulary and not
+//! These are Host implementation facts, not authored form vocabulary and not
 //! Conduit-session Line semantics. A composition advertises this family only
 //! after every exact artifact and resource has initialized.
 

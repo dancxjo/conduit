@@ -58,7 +58,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would check Pete's reviewed Forms and target-owned Host profiles without accessing physical devices"
+                "would check Pete's reviewed forms and target-owned Host profiles without accessing physical devices"
             );
         }
         return Ok(());

@@ -1,4 +1,4 @@
-//! Portable Kind contracts and their finite configuration/terminal behavior.
+//! Portable kind contracts and their finite configuration/terminal behavior.
 use alloc::{string::String, vec::Vec};
 use conduit_core::{CapabilityLimits, ConfigurationValue, KindId, PortDescriptor};
 use serde::{Deserialize, Serialize};

@@ -335,7 +335,7 @@ pub trait TimerAdapter {
         None
     }
 
-    /// Returns the admitted Host/Boot-scoped monotonic microsecond reading.
+    /// Returns the admitted host/Boot-scoped monotonic microsecond reading.
     fn monotonic_now_micros(&mut self) -> Option<u64> {
         None
     }
@@ -537,7 +537,7 @@ impl StdHost {
         if fragment.host_id != self.advertisement.host_id
             || fragment.boot_id != self.advertisement.boot_id
         {
-            return Err("Plan fragment is stale for this Host boot".to_string());
+            return Err("Plan fragment is stale for this host boot".to_string());
         }
         let play_sequence = self.next_kernel_play_sequence;
         self.next_kernel_play_sequence = play_sequence
@@ -1145,7 +1145,7 @@ impl StdHost {
     }
 
     /// Executes against one platform-extended advertisement that was already
-    /// published for this exact Host/Boot. Rebuilding from only the generic
+    /// published for this exact host/Boot. Rebuilding from only the generic
     /// composition here would discard admitted platform implementations.
     pub fn from_advertisement(advertisement: HostAdvertisement) -> Result<Self, String> {
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
@@ -1386,7 +1386,7 @@ impl StdHost {
 
     /// Constructs the explicit grant shape for a caller that has independently
     /// authorized this exact selected playback capability. Merely constructing
-    /// or discovering a Host never calls this method.
+    /// or discovering a host never calls this method.
     pub fn playback_authority_grant(
         &self,
         grant_id: &str,
@@ -1398,7 +1398,7 @@ impl StdHost {
         if playback.boot_id != self.advertisement.boot_id
             || playback.offer_generation != self.advertisement.offer_generation
         {
-            return Err("selected playback observation is stale for this Host".into());
+            return Err("selected playback observation is stale for this host".into());
         }
         let capability = self
             .advertisement
@@ -1435,7 +1435,7 @@ impl StdHost {
         if artifact.boot_id != self.advertisement.boot_id
             || artifact.offer_generation != self.advertisement.offer_generation
         {
-            return Err("selected WAV artifact destination is stale for this Host".into());
+            return Err("selected WAV artifact destination is stale for this host".into());
         }
         let capability = self
             .advertisement
@@ -1474,7 +1474,7 @@ impl StdHost {
         if selected.boot_id() != &self.advertisement.boot_id
             || selected.offer_generation() != self.advertisement.offer_generation
         {
-            return Err("selected MIDI output observation is stale for this Host".into());
+            return Err("selected MIDI output observation is stale for this host".into());
         }
         let capability = self
             .advertisement

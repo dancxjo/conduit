@@ -120,7 +120,7 @@ impl NativeWorksetPlay {
                     .scheduler
                     .store_host_value(bytes)
                     .map_err(PlayRefusal::Scheduler)?;
-                // Empty text is still a value on the Flow. Its admitted output
+                // Empty text is still a value on the flow. Its admitted output
                 // envelope stays nonzero, as required by the kernel boundary.
                 BoundedValueRef::new(value, (bytes.len() as u32).max(1))
                     .map_err(|_| PlayRefusal::Kernel)

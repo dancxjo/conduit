@@ -1,5 +1,5 @@
 //! Bounded POSIX CDC provider for the Pico indicator-resource firmware.
-//! This is an acquired local peripheral, not a Conduit Line or a remote Host.
+//! This is an acquired local peripheral, not a Conduit Line or a remote host.
 use std::{
     fmt::Write as _,
     fs::{File, OpenOptions},

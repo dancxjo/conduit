@@ -1,5 +1,5 @@
 # A living local pulse path for the Firefly Choir proving composition. Peer
-# exchange and phase following extend this Form through ordinary Lines; they
+# exchange and phase following extend this form through ordinary Lines; they
 # are not hidden inside this browser-independent authored meaning.
 form firefly-choir {
     clock: time/every(240ms)

@@ -21,7 +21,7 @@ pub struct BrowserCapabilityIntentDescriptor {
 pub const BROWSER_CAPABILITY_INTENTS: &[BrowserCapabilityIntentDescriptor] = &[
     capability_intent(
         "host-contribution/graphical-presentation",
-        "Display this Body",
+        "Display this body",
         "browser/contribution-graphical-presentation@1",
         &["browser/dom", "presentation/graphical"],
     ),

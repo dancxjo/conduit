@@ -339,7 +339,7 @@ impl<'a> Parser<'a> {
                 if completion == FormCompletionPolicy::SemanticCompletion {
                     return Err((
                         FormError::InvalidSyntax(
-                            "a Form may declare semantic completion only once".into(),
+                            "a form may declare semantic completion only once".into(),
                         ),
                         self.span(start, start + text.len()),
                     ));

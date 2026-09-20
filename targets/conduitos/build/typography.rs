@@ -22,7 +22,7 @@ const FONTS: &[(&str, &str)] = &[
     ),
 ];
 // Fixed profile index: label, body, heading, title, code. These are Presenter
-// resources, never part of a portable Presentation or authored Form identity.
+// resources, never part of a portable Presentation or authored form identity.
 const PROFILES: &[(usize, u8)] = &[(0, 14), (0, 16), (0, 20), (0, 24), (1, 14)];
 
 pub fn generate() {

@@ -301,7 +301,7 @@ impl BodyKernel {
                             .text_state_hosts
                             .get_mut(usize::from(request.node.0))
                             .and_then(Option::as_mut)
-                            .ok_or("Body text state has no admitted Host")?
+                            .ok_or("Body text state has no admitted host")?
                             .execute(input);
                         let (disposition, output, failure) = match completion {
                             Ok(encoded) => {
@@ -402,7 +402,7 @@ impl BodyKernel {
                             .typed_record_hosts
                             .get_mut(usize::from(request.node.0))
                             .and_then(Option::as_mut)
-                            .ok_or("Body typed-record codec has no admitted Host")?
+                            .ok_or("Body typed-record codec has no admitted host")?
                             .execute(input);
                         let (disposition, output, failure) = match completion {
                             Ok(encoded) => {
@@ -448,7 +448,7 @@ impl BodyKernel {
                             .image_text_record_hosts
                             .get_mut(usize::from(request.node.0))
                             .and_then(Option::as_mut)
-                            .ok_or("Body image-text record operation has no admitted Host")?
+                            .ok_or("Body image-text record operation has no admitted host")?
                             .execute(input);
                         let (disposition, output, failure) = match completion {
                             Ok(encoded) => {
@@ -498,7 +498,7 @@ impl BodyKernel {
                             .image_text_hosts
                             .get_mut(usize::from(request.node.0))
                             .and_then(Option::as_mut)
-                            .ok_or("Body image-text operation has no admitted Host")?
+                            .ok_or("Body image-text operation has no admitted host")?
                             .execute(operation.contract_id.as_str(), input);
                         let (disposition, output, failure) = match completion {
                             Ok(encoded) => {

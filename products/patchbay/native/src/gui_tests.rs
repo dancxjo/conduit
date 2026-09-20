@@ -298,7 +298,7 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
         flow: LifecycleFlow {
             state_code: "PLAN_READY",
             state_text: "PLAN ready".into(),
-            detail: "Exact Plan admitted; no Play active".into(),
+            detail: "Exact plan admitted; no Play active".into(),
             exact_basis: "body=body/exact wake=wake/exact plan=plan/exact play=none".into(),
             actions: vec![
                 LifecycleFlowAction {

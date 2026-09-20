@@ -1,7 +1,7 @@
-//! Typed, finite control of the current Body Presenter realization.
+//! Typed, finite control of the current body Presenter realization.
 //!
 //! These records are a projection and a replanning request. They do not mutate
-//! a Plan, schedule a renderer, or grant authority.
+//! a plan, schedule a renderer, or grant authority.
 
 use conduit_body::{BodyId, BodyPlan, BodyPlayIdentity};
 use conduit_core::{
@@ -114,7 +114,7 @@ impl core::fmt::Display for PresenterTopologyRefusal {
 impl std::error::Error for PresenterTopologyRefusal {}
 
 impl PresenterTopology {
-    /// Project from the Body-wide Plan selection and exact terminal receipts.
+    /// Project from the body-wide Plan selection and exact terminal receipts.
     pub fn from_body_plan_truth(
         presentation: &Presentation,
         body_plan: &BodyPlan,

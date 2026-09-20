@@ -16,7 +16,7 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
 /// Portable contract definitions paired with their exact semantic revision.
 ///
 /// Revision truth belongs with the contract inventory. Profile construction
-/// must not recover it from any Host's implementation offers.
+/// must not recover it from any host's implementation offers.
 pub(crate) fn supported_nucleus_contracts_with_revisions(
 ) -> Vec<(StandardKindContract, &'static str)> {
     vec![

@@ -1,4 +1,4 @@
-//! Ordinary Form-facing contract for exact measurement summaries.
+//! Ordinary form-facing contract for exact measurement summaries.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{

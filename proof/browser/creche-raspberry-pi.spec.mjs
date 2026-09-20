@@ -82,7 +82,7 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
       architecture: "aarch64",
       os: "raspberry-pi-os-bookworm-64",
       artifact_format: "native-bundle",
-      browser_role: "download Body-bound package only",
+      browser_role: "download body-bound package only",
     },
   });
   expect(evidence.obtainment).toMatchObject({
@@ -134,7 +134,7 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
     },
   });
   expect(nativePackage.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
-  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await runner.getByRole("button", { name: "Realize selected host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "UnavailableCredentials"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });
@@ -218,7 +218,7 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
     },
   });
   expect(nativeImage.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
-  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await runner.getByRole("button", { name: "Realize selected host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "AbsentWriter"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });

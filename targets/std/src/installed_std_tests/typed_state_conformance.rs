@@ -174,7 +174,7 @@ fn run(
             &crate::RunControl::default(),
         )
     };
-    // The Host releases old realization reservations before yielding State.
+    // The host releases old realization reservations before yielding State.
     let reservation = execution_host
         .kernel_resources
         .prepare_and_reserve_with_continuity(advertisement, fragment, continuity)

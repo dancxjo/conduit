@@ -10,7 +10,7 @@ pub(super) fn expected_text(characters: usize) -> String {
 
 pub(super) fn validate(serial: &str) -> Result<Value, ConduitosError> {
     let refusal = || {
-        ConduitosError::refusal("keyboard-repeat-causality-invalid", "every repeated press/release must retain exact Body/Plan/Play and the bounded result through explicit Stop/Lull")
+        ConduitosError::refusal("keyboard-repeat-causality-invalid", "every repeated press/release must retain exact body/Plan/Play and the bounded result through explicit Stop/Lull")
     };
     let records = journey_records::decode(serial)?;
     let quiescent = records

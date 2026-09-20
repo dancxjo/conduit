@@ -15,15 +15,15 @@ export function registerButtonMultiHostTests(openStep) {
     await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     await page.mouse.down();
     await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator on");
-    // Release away from controls whose layout changes when the Play retires,
+    // Release away from controls whose layout changes when the play retires,
     // so the synthetic click cannot select a different laboratory specimen.
     await page.mouse.move(0, 0);
     await page.mouse.up();
-    await expect(status).toContainText("2 delivered cross-Host values");
+    await expect(status).toContainText("2 delivered cross-host values");
     await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
     await expect(runner.locator("textarea")).toHaveValue(source);
     await runner.getByRole("button", { name: "Stop", exact: true }).click();
-    await expect(status).toContainText("cancelled after 2 delivered cross-Host values");
+    await expect(status).toContainText("cancelled after 2 delivered cross-host values");
     const identities = await page.evaluate(() => ({
       source: globalThis.__conduitTourHost.hostId,
       sink: globalThis.__conduitTourPeerHost.hostId,
@@ -47,7 +47,7 @@ export function registerButtonMultiHostTests(openStep) {
     await run.click();
     await expect(status).toContainText("button transition on Host A");
     await runner.getByRole("button", { name: "Hold to control indicator" }).click();
-    await expect(status).toContainText("2 delivered cross-Host values");
+    await expect(status).toContainText("2 delivered cross-host values");
     await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
     await runner.getByRole("button", { name: "Stop", exact: true }).click();
   });

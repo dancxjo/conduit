@@ -2,7 +2,7 @@ use crate::WorkspaceBody;
 use alloc::{format, string::String, vec::Vec};
 
 impl WorkspaceBody {
-    /// A quiet read-only description of the foreground Form's exact Plan.
+    /// A quiet read-only description of the foreground form's exact plan.
     /// Arrows describe only a proved single chain; branches remain explicit.
     pub fn foreground_flow(&self) -> String {
         let Some(partition) = self.realization().and_then(|realization| {

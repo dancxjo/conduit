@@ -150,7 +150,7 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
         })
     ));
     let kernel = report.kernel.expect("kernel report exists");
-    // Execution identity retains the two exact Host-operation bindings, not
+    // Execution identity retains the two exact host-operation bindings, not
     // one unbounded entry per recurring or finite invocation sequence.
     assert_eq!(kernel.identity.lengths(), (2, 0, 1));
     assert_eq!(
@@ -530,7 +530,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         &mut timer,
         &crate::RunControl::default(),
     )
-    .expect_err("an implementation absent from the Plan cannot substitute at runtime");
+    .expect_err("an implementation absent from the plan cannot substitute at runtime");
     assert!(
         error.contains("InvalidFragment"),
         "unexpected rejection: {error}"

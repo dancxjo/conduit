@@ -64,7 +64,7 @@ members = [
 	"products/patchbay/native",
 	"bodies/pete",
 
-	# Exact Host, machine, board, and target-family realizations.
+	# Exact host, machine, board, and target-family realizations.
 	"targets/avr/fabrication",
 	"targets/browser/host",
 	"targets/browser/fabrication",

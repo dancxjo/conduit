@@ -1,4 +1,4 @@
-//! Installed durable Host ownership and its platform-service handoff.
+//! Installed durable host ownership and its platform-service handoff.
 
 use crate::cli::HostServiceCommand;
 use conduit_core::{BootId, HostId, OfferGeneration};
@@ -80,7 +80,7 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             state_dir,
         } => install_and_activate(&manifest, &state_dir).map(|installation| {
             println!(
-                "installed durable Host {} from {}",
+                "installed durable host {} from {}",
                 installation.host_id, installation.release_bundle_sha256
             );
         }),
@@ -149,12 +149,12 @@ fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
     let install_path = state_dir.join("installation.json");
     let mut installation = read_installation(&install_path)?;
     if installation.joined_body_state.is_some() {
-        return Err("durable Host already joined a Body; refusing owner-state replacement".into());
+        return Err("durable host already joined a body; refusing owner-state replacement".into());
     }
     if let Some(current) = &installation.body_state {
         if current.body_id != evidence.body_id.as_str() {
             return Err(format!(
-                "durable Host already owns Body {}; refusing replacement by {}",
+                "durable host already owns Body {}; refusing replacement by {}",
                 current.body_id,
                 evidence.body_id.as_str()
             ));
@@ -172,7 +172,7 @@ fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
         biography_path: retained_path.display().to_string(),
     });
     write_json_atomic(&install_path, &installation)?;
-    println!("durable Host now owns Body {}", evidence.body_id.as_str());
+    println!("durable host now owns Body {}", evidence.body_id.as_str());
     Ok(())
 }
 
@@ -293,7 +293,7 @@ fn release_file_name(file: &ReleaseFile) -> Result<&std::ffi::OsStr, String> {
 fn run(state_dir: &Path) -> Result<(), String> {
     let (status, truth) = prepare_runtime(state_dir)?;
     println!(
-        "durable Host {} boot {} is running",
+        "durable host {} boot {} is running",
         status.host_id, status.boot_id
     );
     let outcome = crate::durable_host_control::serve(state_dir, truth);
@@ -302,7 +302,7 @@ fn run(state_dir: &Path) -> Result<(), String> {
         Ok(()) => outcome,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => outcome,
         Err(error) => Err(format!(
-            "durable Host stopped but its runtime marker could not be retired: {error}"
+            "durable host stopped but its runtime marker could not be retired: {error}"
         )),
     }
 }
@@ -360,7 +360,7 @@ fn running_target_id() -> Result<&'static str, String> {
         ("windows", "x86_64") => Ok("std/x86_64/windows-computer"),
         ("macos", "aarch64") => Ok("std/aarch64/macos-computer"),
         (os, architecture) => Err(format!(
-            "no reviewed durable Host profile is installed for {os}/{architecture}"
+            "no reviewed durable host profile is installed for {os}/{architecture}"
         )),
     }
 }
@@ -372,7 +372,7 @@ fn status(state_dir: &Path, json: bool) -> Result<(), String> {
             println!(
                 "{}",
                 serde_json::to_string(&status)
-                    .map_err(|error| format!("encode durable Host status: {error}"))?
+                    .map_err(|error| format!("encode durable host status: {error}"))?
             );
         } else {
             println!(
@@ -408,16 +408,16 @@ pub(crate) fn body_status(state_dir: &Path, json: bool) -> Result<(), String> {
     let binding = installation
         .body_state
         .as_ref()
-        .ok_or("this installed Host has no current Body")?;
+        .ok_or("this installed host has no current body")?;
     let biography_bytes = bounded_read(Path::new(&binding.biography_path), 2 * 1024 * 1024)?;
     let biography: conduit_body::BodyBiographyEvidence =
         serde_json::from_slice(&biography_bytes)
-            .map_err(|error| format!("retained Body biography: {error}"))?;
+            .map_err(|error| format!("retained body biography: {error}"))?;
     biography
         .validate()
-        .map_err(|error| format!("retained Body biography refused: {error:?}"))?;
+        .map_err(|error| format!("retained body biography refused: {error:?}"))?;
     if biography.body_id.as_str() != binding.body_id {
-        return Err("retained Body biography belongs to another Body".into());
+        return Err("retained body biography belongs to another body".into());
     }
     let runtime = observe_current_runtime(state_dir, &installation)?;
     let present_parts = biography
@@ -449,7 +449,7 @@ pub(crate) fn body_status(state_dir: &Path, json: bool) -> Result<(), String> {
         println!("biography {}", binding.biography_sha256);
         match runtime {
             Some(status) => println!(
-                "current Host {} boot {} offers generation {}",
+                "current host {} boot {} offers generation {}",
                 status.host_id, status.boot_id, status.offer_generation
             ),
             None => println!(
@@ -490,9 +490,9 @@ fn observe_current_runtime(
     let status = {
         let bytes = bounded_read(&runtime, 64 * 1024)?;
         let status: RuntimeStatus = serde_json::from_slice(&bytes)
-            .map_err(|error| format!("durable Host runtime status: {error}"))?;
+            .map_err(|error| format!("durable host runtime status: {error}"))?;
         if status.schema != RUNTIME_SCHEMA || status.host_id != installation.host_id {
-            return Err("durable Host runtime status is stale or belongs to another Host".into());
+            return Err("durable host runtime status is stale or belongs to another host".into());
         }
         status
     };
@@ -505,7 +505,7 @@ fn observe_current_runtime(
         || advertisement.boot_id.as_str() != status.boot_id
         || advertisement.offer_generation.0 != status.offer_generation
     {
-        return Err("durable Host control truth disagrees with its runtime marker".into());
+        return Err("durable host control truth disagrees with its runtime marker".into());
     }
     Ok(Some(status))
 }
@@ -584,15 +584,15 @@ fn read_installation(path: &Path) -> Result<Installation, String> {
                 2 * 1024 * 1024,
             )?) != binding.biography_sha256
         {
-            return Err("retained Body biography identity is invalid or stale".into());
+            return Err("retained body biography identity is invalid or stale".into());
         }
     }
     if value.body_state.is_some() && value.joined_body_state.is_some() {
-        return Err("installed Host cannot own and join different Body state".into());
+        return Err("installed host cannot own and join different Body state".into());
     }
     if let Some(binding) = &value.joined_body_state {
         if !valid_digest(&binding.credential_sha256) {
-            return Err("retained Body membership credential is invalid or stale".into());
+            return Err("retained body membership credential is invalid or stale".into());
         }
         membership::validate(binding, &value)?;
     }
@@ -624,7 +624,7 @@ fn macos_service_definition(
     installation: &Installation,
 ) -> Result<String, String> {
     let state_dir = fs::canonicalize(state_dir)
-        .map_err(|error| format!("resolve durable Host state directory: {error}"))?;
+        .map_err(|error| format!("resolve durable host state directory: {error}"))?;
     let executable = fs::canonicalize(&installation.product_executable)
         .map_err(|error| format!("resolve installed Conduit executable: {error}"))?;
     let executable = xml_text(&executable)?;
@@ -638,9 +638,9 @@ fn macos_service_definition(
 fn xml_text(path: &Path) -> Result<String, String> {
     let value = path
         .to_str()
-        .ok_or_else(|| "durable Host service path is not UTF-8".to_string())?;
+        .ok_or_else(|| "durable host service path is not UTF-8".to_string())?;
     if value.contains(['\n', '\r', '\0']) {
-        return Err("durable Host service path contains a forbidden control character".into());
+        return Err("durable host service path contains a forbidden control character".into());
     }
     Ok(value
         .replace('&', "&amp;")
@@ -656,13 +656,13 @@ fn linux_service_definition(
     installation: &Installation,
 ) -> Result<String, String> {
     let state_dir = fs::canonicalize(state_dir)
-        .map_err(|error| format!("resolve durable Host state directory: {error}"))?;
+        .map_err(|error| format!("resolve durable host state directory: {error}"))?;
     let executable = fs::canonicalize(&installation.product_executable)
         .map_err(|error| format!("resolve installed Conduit executable: {error}"))?;
     let executable = systemd_exec_argument(&executable)?;
     let state_dir = systemd_exec_argument(&state_dir)?;
     Ok(format!(
-        "[Unit]\nDescription=Conduit durable Host\n\n[Service]\nExecStart={executable} host service run --state-dir {state_dir}\nRestart=on-failure\nRestartSec=1s\nUMask=0077\n\n[Install]\nWantedBy=default.target\n"
+        "[Unit]\nDescription=Conduit durable host\n\n[Service]\nExecStart={executable} host service run --state-dir {state_dir}\nRestart=on-failure\nRestartSec=1s\nUMask=0077\n\n[Install]\nWantedBy=default.target\n"
     ))
 }
 
@@ -670,9 +670,9 @@ fn linux_service_definition(
 fn systemd_exec_argument(path: &Path) -> Result<String, String> {
     let value = path
         .to_str()
-        .ok_or_else(|| "durable Host service path is not UTF-8".to_string())?;
+        .ok_or_else(|| "durable host service path is not UTF-8".to_string())?;
     if value.contains(['\n', '\r', '\0']) {
-        return Err("durable Host service path contains a forbidden control character".into());
+        return Err("durable host service path contains a forbidden control character".into());
     }
     // systemd expands percent specifiers even inside quotes. Doubling percent
     // and quoting shell-significant separators keeps the exact installed path.
@@ -696,7 +696,7 @@ fn activate_service(state_dir: &Path) -> Result<(), String> {
         let retire = std::process::Command::new("systemctl")
             .args(["--user", "disable", "--now", "conduit-host.service"])
             .status()
-            .map_err(|error| format!("retire previous durable Host user service: {error}"))?;
+            .map_err(|error| format!("retire previous durable host user service: {error}"))?;
         let second_link = link_linux_user_service(&unit)?;
         if !second_link.status.success() {
             let initial_detail = String::from_utf8_lossy(&first_link.stderr);
@@ -719,7 +719,7 @@ fn activate_service(state_dir: &Path) -> Result<(), String> {
     let start = std::process::Command::new("systemctl")
         .args(["--user", "enable", "--now", "conduit-host.service"])
         .status()
-        .map_err(|error| format!("enable durable Host user service: {error}"))?;
+        .map_err(|error| format!("enable durable host user service: {error}"))?;
     if !start.success() {
         return Err(format!(
             "installation is recoverable at {}, but durable startup failed with {start}",
@@ -735,7 +735,7 @@ fn link_linux_user_service(unit: &Path) -> Result<std::process::Output, String> 
         .args(["--user", "link"])
         .arg(unit)
         .output()
-        .map_err(|error| format!("link durable Host user service: {error}"))
+        .map_err(|error| format!("link durable host user service: {error}"))
 }
 
 #[cfg(target_os = "macos")]
@@ -775,7 +775,7 @@ fn activate_service(state_dir: &Path) -> Result<(), String> {
         .arg(&domain)
         .arg(&installed_plist)
         .status()
-        .map_err(|error| format!("bootstrap durable Host launchd service: {error}"))?;
+        .map_err(|error| format!("bootstrap durable host launchd service: {error}"))?;
     if !bootstrap.success() {
         return Err(format!(
             "installation is recoverable at {}, but launchd bootstrap failed with {bootstrap}",
@@ -786,7 +786,7 @@ fn activate_service(state_dir: &Path) -> Result<(), String> {
         .args(["kickstart", "-k"])
         .arg(&service)
         .status()
-        .map_err(|error| format!("start durable Host launchd service: {error}"))?;
+        .map_err(|error| format!("start durable host launchd service: {error}"))?;
     if !kickstart.success() {
         return Err(format!(
             "installation is recoverable at {}, but launchd start failed with {kickstart}",

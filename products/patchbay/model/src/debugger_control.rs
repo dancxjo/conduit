@@ -68,6 +68,6 @@ impl DebuggerExecutionControl {
         self.breakpoint_subject = None;
         self.suspended_subject = None;
         self.reason =
-            Some("exact Body/Plan/Play execution was replaced; breakpoint was not remapped".into());
+            Some("exact body/Plan/Play execution was replaced; breakpoint was not remapped".into());
     }
 }

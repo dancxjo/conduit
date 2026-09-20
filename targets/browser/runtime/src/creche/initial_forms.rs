@@ -168,7 +168,7 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
         || bundle.forms.is_empty()
         || bundle.forms.len() > conduit_body::MAX_BODY_FORMS
     {
-        return Err("reviewed Form bundle is malformed or over capacity".into());
+        return Err("reviewed form bundle is malformed or over capacity".into());
     }
     let mut checked = Vec::with_capacity(bundle.forms.len());
     let mut names = BTreeSet::new();
@@ -181,14 +181,14 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
                 .as_ref()
                 .is_some_and(|title| title.is_empty() || title.len() > 256)
         {
-            return Err("reviewed Form bundle entry is malformed".into());
+            return Err("reviewed form bundle entry is malformed".into());
         }
         let presentation = match entry.presentation_profile {
             0 => crate::installed_browser::PresentationProfile::Annotation,
             1 => crate::installed_browser::PresentationProfile::Quantity,
             2 => crate::installed_browser::PresentationProfile::NormalizedDurations,
             3 => crate::installed_browser::PresentationProfile::PatternComparison,
-            _ => return Err("reviewed Form has an unsupported presentation profile".into()),
+            _ => return Err("reviewed form has an unsupported presentation profile".into()),
         };
         let document = check_source_for_presentation(&entry.source, presentation)?;
         let expected_entry = entry.entry.unwrap_or_else(|| entry.slug.replace('-', "_"));
@@ -198,7 +198,7 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
             .find(|form| form.name == expected_entry)
             .ok_or_else(|| {
                 format!(
-                    "reviewed Form bundle entry {:?} has mismatched declared entry {:?}",
+                    "reviewed form bundle entry {:?} has mismatched declared entry {:?}",
                     entry.slug, expected_entry
                 )
             })?;
@@ -206,7 +206,7 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
             || !identities.insert(form.checked_form_id.as_str().to_string())
         {
             return Err(format!(
-                "reviewed Form bundle entry {:?} has mismatched or duplicate provenance",
+                "reviewed form bundle entry {:?} has mismatched or duplicate provenance",
                 entry.slug
             ));
         }
@@ -271,12 +271,12 @@ pub(super) fn check_source_for_presentation(
     let syntax = conduit_form::parse_syntax_document(source);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
-            "parse reviewed Form inventory: {}",
+            "parse reviewed form inventory: {}",
             diagnostic.message
         ));
     }
     conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check reviewed Form inventory: {error:?}"))
+        .map_err(|error| format!("check reviewed form inventory: {error:?}"))
 }
 
 fn title(name: &str) -> String {

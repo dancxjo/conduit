@@ -343,7 +343,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         &mut timer,
         &crate::RunControl::default(),
     )
-    .expect("unrelated Form executes under the same Body-wide Play");
+    .expect("unrelated Form executes under the same body-wide Play");
     assert_eq!(
         unrelated_report.kernel.unwrap().post_play_start_allocations,
         0

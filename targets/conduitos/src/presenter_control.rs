@@ -1,4 +1,4 @@
-//! Target-owned realization of the Body's selected Presenter chains.
+//! Target-owned realization of the body's selected Presenter chains.
 
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{

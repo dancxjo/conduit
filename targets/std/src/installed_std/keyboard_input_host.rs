@@ -49,7 +49,7 @@ impl<'a> KeyboardInputHost<'a> {
             return Err("keyboard input request carries unexpected bytes".into());
         }
         if self.adapter.is_none() {
-            return Err("planned keyboard has no admitted Host adapter".into());
+            return Err("planned keyboard has no admitted host adapter".into());
         }
         let pending = match kind {
             InputRequestKind::Keyboard => &mut self.pending_keyboard,
@@ -80,7 +80,7 @@ impl<'a> KeyboardInputHost<'a> {
         let adapter = self
             .adapter
             .as_deref_mut()
-            .ok_or_else(|| "pending keyboard request lost its Host adapter".to_string())?;
+            .ok_or_else(|| "pending keyboard request lost its host adapter".to_string())?;
         match adapter.poll_next() {
             crate::hosted_keyboard::HostedKeyboardPoll::Pending => return Ok(false),
             crate::hosted_keyboard::HostedKeyboardPoll::Event(event) => {

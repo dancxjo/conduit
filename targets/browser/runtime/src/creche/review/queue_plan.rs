@@ -96,7 +96,7 @@ fn authority_grants(
         let host = hosts
             .iter()
             .find(|host| host.host_id == placement.host_id)
-            .ok_or("Workspace placement names no current Host")?;
+            .ok_or("Workspace placement names no current host")?;
         let capability = host
             .capabilities
             .iter()

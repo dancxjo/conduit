@@ -43,7 +43,7 @@ function raspberryPiOsProfile({ id, label, model, machine, manifest }) {
     os: "raspberry-pi-os-bookworm-64",
     package_id: "conduit-host-raspberry-pi@1",
     artifact_format: "native-bundle",
-    browser_role: "download Body-bound package only",
+    browser_role: "download body-bound package only",
     local_helper: "explicit package installer with separately supplied credentials",
     physical_boot_claimed: false,
   }),
@@ -133,7 +133,7 @@ function piOsContribution(profile) { return Object.freeze({
   carriers: Object.freeze({
     deployment: Object.freeze([]),
     installation: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound Raspberry Pi OS ZIP" }),
+      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download body-bound Raspberry Pi OS ZIP" }),
     ]),
     attachment: Object.freeze([]),
     observation: Object.freeze([]),
@@ -154,7 +154,7 @@ function bareMetalDeclaration(profile) { return Object.freeze({
   image_format: "mbr-fat32-sd-image",
   boot_files: Object.freeze(["LICENCE.broadcom", "bootcode.bin", "config.txt", "fixup.dat", "kernel.img", "start.elf"]),
   carrier: "removable-sd-card",
-  browser_role: "download Body-bound SD image spore only",
+  browser_role: "download body-bound SD image spore only",
   local_helper: "explicit removable-media writer with raw block authority",
   browser_raw_block_authority: false,
   physical_flash_boot_uart_human_gated: true,
@@ -170,7 +170,7 @@ function bareMetalContribution(profile) { return Object.freeze({
   ]),
   carriers: Object.freeze({
     deployment: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/removable-sd-download@1", label: "Download Body-bound IMG for explicit local SD writer" }),
+      Object.freeze({ id: "conduit-carrier/removable-sd-download@1", label: "Download body-bound IMG for explicit local SD writer" }),
     ]),
     installation: Object.freeze([]),
     attachment: Object.freeze([]),
@@ -193,7 +193,7 @@ export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_
     note.className = "target-option-note";
     note.textContent = mode === "fabricate-new"
       ? `Conduit downloads the exact reviewed ${profile.target.label} SD image and binds it into a spore. A separate local writer must hold explicit raw block-device authority; this browser does not.`
-      : "This exact bare-metal substrate is fabricated as a new Host; it is not an existing OS installation or an already-running attachment.";
+      : "This exact bare-metal substrate is fabricated as a new host; it is not an existing OS installation or an already-running attachment.";
     return note;
   }
 

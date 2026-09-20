@@ -277,7 +277,7 @@ impl Sink {
         let renderer_fragment = fragment_for(&self.renderer_plan, &identity.host_id)?;
         if renderer_fragment.boot_id != identity.boot_id {
             return Err(CrossHostRendererError::Plan(
-                "renderer adapter identity disagrees with its planned Host/Boot".into(),
+                "renderer adapter identity disagrees with its planned host/Boot".into(),
             ));
         }
         self.execution = Some(

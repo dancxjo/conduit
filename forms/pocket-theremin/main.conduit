@@ -1,5 +1,5 @@
 # A living portable controller-to-pitch Form. Pointer acquisition and visible
-# quantity manifestation are selected Host realizations, not authored APIs.
+# quantity manifestation are selected host realizations, not authored APIs.
 form pocket-theremin {
     controller: input/pointer-source
     normalize: math/normalized-quantity-scalar

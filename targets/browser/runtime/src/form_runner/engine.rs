@@ -132,10 +132,10 @@ pub(super) fn prepare(
     let pending = match drive(&mut scheduler, fragment)? {
         DriveStatus::Effect(pending) => pending,
         DriveStatus::Quiescent => {
-            return Err("Tour Play became quiescent without a planned Host effect".into())
+            return Err("Tour Play became quiescent without a planned host effect".into())
         }
         DriveStatus::SemanticCompleted => {
-            return Err("Tour Play semantically completed without a planned Host effect".into())
+            return Err("Tour Play semantically completed without a planned host effect".into())
         }
         DriveStatus::Waiting { .. } => {
             return Err("initial browser effect is already pending".into())
@@ -148,7 +148,7 @@ pub(super) fn prepare_remote_fragment(
     fragment: &PlanFragment,
 ) -> Result<(TourScheduler, LoweredPlanFragment), String> {
     let lowered = lower_plan_fragment(fragment)
-        .map_err(|error| format!("lower multi-Host executable-tour Plan: {error:?}"))?;
+        .map_err(|error| format!("lower multi-host executable-tour Plan: {error:?}"))?;
     validate_envelope(fragment, &lowered, true)?;
     let scheduler = prepare_scheduler(fragment, &lowered)?;
     Ok((scheduler, lowered))
@@ -224,7 +224,7 @@ fn drive_with_boundary<'a>(
             let operation = placement
                 .host_operations
                 .get(usize::from(request.operation.0))
-                .ok_or_else(|| "browser request has no planned Host operation".to_string())?;
+                .ok_or_else(|| "browser request has no planned host operation".to_string())?;
             if resource_effect::matches(operation.contract_id.as_str()) {
                 if let Some(pending) = resource_effect::begin(scheduler, placement, request)? {
                     return Ok(DriveStatus::Effect(pending));

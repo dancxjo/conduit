@@ -1,8 +1,8 @@
-//! Host-owned admission for one long-lived remote kernel fragment.
+//! host-owned admission for one long-lived remote kernel fragment.
 //!
 //! The generic remote kernel owns execution and Cord lifecycle. `StdHost`
 //! remains the owner of exact capability instances and resource pools, so a
-//! remote fragment cannot bypass the same pre-Play reservation boundary used
+//! remote fragment cannot bypass the same pre-play reservation boundary used
 //! by local execution.
 
 use crate::{kernel_preparation::KernelResourceReservation, InstalledRemoteFragment, StdHost};

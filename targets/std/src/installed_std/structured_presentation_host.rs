@@ -90,7 +90,7 @@ impl StructuredPresentationHost {
         if slot.request.is_some() || input.len() > slot.encoded.capacity() {
             return Err("structured presentation exceeded its admitted capture".into());
         }
-        // The checked Plan and exact Cord already bind this request to `value_kind`;
+        // The checked plan and exact Cord already bind this request to `value_kind`;
         // semantic decoding remains above Play in the typed Presentation projection.
         slot.encoded.extend_from_slice(input);
         slot.request = Some(request);

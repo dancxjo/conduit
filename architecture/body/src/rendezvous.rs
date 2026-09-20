@@ -28,10 +28,10 @@ pub enum RendezvousLineFamily {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RendezvousAuthentication {
-    /// Stable identity of the expected Body-side rendezvous service.
+    /// Stable identity of the expected body-side rendezvous service.
     pub server_identity: String,
     /// SHA-256 identity of reviewed transport authentication material. The
-    /// material itself is carrier-specific and never a durable Body key.
+    /// material itself is carrier-specific and never a durable body key.
     pub transport_binding_sha256: [u8; 32],
 }
 
@@ -58,9 +58,9 @@ pub struct SpawnRendezvousDescriptor {
     pub candidates: Vec<RendezvousCandidate>,
 }
 
-/// Transport-neutral finite candidates for attaching one already-running Host.
+/// Transport-neutral finite candidates for attaching one already-running host.
 ///
-/// Unlike [`SpawnRendezvousDescriptor`], this descriptor precedes a Body
+/// Unlike [`SpawnRendezvousDescriptor`], this descriptor precedes a body
 /// invitation and therefore carries no Body or invitation identity. Its
 /// one-use secret authenticates only this rendezvous session; admission above
 /// the resulting Line remains separate.

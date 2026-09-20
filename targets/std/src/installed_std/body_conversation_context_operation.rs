@@ -151,7 +151,7 @@ impl<'a> BodyConversationContextHost<'a> {
                 value,
             } => {
                 let value =
-                    value.map_err(|error| format!("store current Body context: {error:?}"))?;
+                    value.map_err(|error| format!("store current body context: {error:?}"))?;
                 self.delivered = Some(fingerprint);
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Completed,
@@ -160,7 +160,7 @@ impl<'a> BodyConversationContextHost<'a> {
                             value,
                             conduit_body::MAXIMUM_BODY_CONVERSATION_CONTEXT_BYTES as u32,
                         )
-                        .map_err(|error| format!("bound current Body context: {error:?}"))?,
+                        .map_err(|error| format!("bound current body context: {error:?}"))?,
                     ),
                     failure: None,
                 }
@@ -169,7 +169,7 @@ impl<'a> BodyConversationContextHost<'a> {
         self.pending = None;
         scheduler
             .complete_host_operation(request.node, request.request, outcome)
-            .map_err(|error| format!("complete current Body context: {error:?}"))?;
+            .map_err(|error| format!("complete current body context: {error:?}"))?;
         Ok(true)
     }
 }
@@ -187,7 +187,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.host_operations != offer.host_operations
     {
         return Err(
-            "planned Body conversation context identity does not match installation".into(),
+            "planned body conversation context identity does not match installation".into(),
         );
     }
     Ok(())

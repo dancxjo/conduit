@@ -51,7 +51,7 @@ test("queued keys retain capture focus and held-key releases stay with their pre
   f.close();
 });
 
-test("cancelling one input request does not cancel another Form's request", async () => {
+test("cancelling one input request does not cancel another form's request", async () => {
   const f = setup();
   const controller = new AbortController();
   const cancelled = assert.rejects(f.next("notes", controller.signal), { code: "Cancelled" });

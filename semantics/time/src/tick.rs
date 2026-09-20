@@ -92,7 +92,7 @@ pub fn tick_outputs() -> Vec<PortDescriptor> {
 }
 
 /// The recurring interval source has the same typed value as `time/tick`, but
-/// remains open until its Play is explicitly terminated or its Host input is
+/// remains open until its play is explicitly terminated or its host input is
 /// lost. `time/tick` retains the separate closing, configured-count contract.
 pub fn time_every_outputs() -> Vec<PortDescriptor> {
     vec![PortDescriptor {

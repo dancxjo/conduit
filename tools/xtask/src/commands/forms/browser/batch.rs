@@ -110,7 +110,7 @@ fn materialize(
                         request,
                         duration,
                         "failed",
-                        "browser-safe batch omitted this Form's exact evidence",
+                        "browser-safe batch omitted this form's exact evidence",
                     ),
                     Some(_) if !output.status.success() && all_passed => proof_ref(
                         request,

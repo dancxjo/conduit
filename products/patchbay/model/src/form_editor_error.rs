@@ -33,8 +33,8 @@ impl std::fmt::Display for FormEditorError {
                 f,
                 "stale checked revision {offered} cannot replace current revision {current}"
             ),
-            Self::UnknownForm(name) => write!(f, "checked Form has no reusable form '{name}'"),
-            Self::GraphTooLarge => f.write_str("checked Form graph exceeds its finite item bound"),
+            Self::UnknownForm(name) => write!(f, "checked form has no reusable form '{name}'"),
+            Self::GraphTooLarge => f.write_str("checked form graph exceeds its finite item bound"),
             Self::UnknownPaletteKind(kind) => write!(f, "palette Kind '{kind}' is unavailable"),
             Self::InvalidGearName => f.write_str("generated Gear name is not canonical"),
             Self::UnknownGear(gear) => write!(f, "Gear '{gear}' is not in the open Form"),
@@ -44,7 +44,7 @@ impl std::fmt::Display for FormEditorError {
             Self::DuplicateCord => f.write_str("those Ports already have a Cord"),
             Self::NestedGearEditUnsupported(gear) => write!(
                 f,
-                "Gear '{gear}' is inside a reusable Front; edit that Front rather than its expansion"
+                "Gear '{gear}' is inside a reusable Front; edit that front rather than its expansion"
             ),
             Self::StaleGraphBasis => {
                 f.write_str("the visual edit names a stale expanded Form revision")

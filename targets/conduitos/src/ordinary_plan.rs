@@ -1,4 +1,4 @@
-//! Current Form check, exact boot-scoped planning, and numeric lowering.
+//! Current form check, exact boot-scoped planning, and numeric lowering.
 
 use alloc::{format, vec, vec::Vec};
 
@@ -262,7 +262,7 @@ pub(crate) fn advertisement(
         return Err(PreparationError::OfferMismatch);
     }
     // Planning receives only capability truth whose exact Base provider is
-    // currently ready; co-residence in this Host is not authority.
+    // currently ready; co-residence in this host is not authority.
     for capability in [
         &fixed.capabilities[2],
         &fixed.capabilities[3],

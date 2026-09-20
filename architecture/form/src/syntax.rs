@@ -74,10 +74,10 @@ pub struct FormSyntax {
 /// Authored meaning for what a drained realization means.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum FormCompletionPolicy {
-    /// The Form remains alive and awaits later admitted work.
+    /// The form remains alive and awaits later admitted work.
     #[default]
     Live,
-    /// Draining establishes that this Form's meaning is fulfilled.
+    /// Draining establishes that this form's meaning is fulfilled.
     SemanticCompletion,
 }
 

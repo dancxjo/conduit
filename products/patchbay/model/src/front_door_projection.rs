@@ -82,8 +82,8 @@ fn idle_body_projection(
         session
             .birth_evidence
             .as_ref()
-            .map_or("Current Body", |evidence| evidence.friendly_name.as_str()),
-        "Born Body with no installed Forms",
+            .map_or("Current body", |evidence| evidence.friendly_name.as_str()),
+        "Born Body with no installed forms",
     );
     content.property(
         &body_subject,

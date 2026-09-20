@@ -3,7 +3,7 @@ use crate::{process::Step, proof::ProofClass};
 pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
     Step::typed(
         "prove.recursive-recovery.vertical",
-        "Prove bounded full-profile recovery from a lost direct implementation through an exact cross-Host Back",
+        "Prove bounded full-profile recovery from a lost direct implementation through an exact cross-host Back",
         "cargo",
         &["test", "-p", "conduit-planner", "--test", "distributed_back"],
         None,
@@ -57,7 +57,7 @@ pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
 
 pub const PROVE_DIVERSITY_STEPS: &[Step] = &[Step::typed(
     "prove.diversity.mechanism-and-line-path",
-    "Prove exact mechanism and Line-path diversity through immutable ordinary Plans",
+    "Prove exact mechanism and Line-path diversity through immutable ordinary plans",
     "cargo",
     &["test", "-p", "conduit-planner", "--test", "diversity"],
     None,
@@ -319,7 +319,7 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.body-membership.native-spawn-return",
-        "Prove a Body-spawned browser returns once through its original finite rendezvous",
+        "Prove a body-spawned browser returns once through its original finite rendezvous",
         "cargo",
         &[
             "test",
@@ -754,7 +754,7 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
 pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     Step::typed(
         "prove.patchbay-front-door.semantic",
-        "Prove zero-Body entry, inert OPEN, explicit JOIN/BIRTH, refusal Signs, and post-transition Plan/Play truth",
+        "Prove zero-body entry, inert OPEN, explicit JOIN/BIRTH, refusal Signs, and post-transition Plan/Play truth",
         "cargo",
         &["test", "-p", "patchbay-model", "front_door"],
         None,
@@ -764,7 +764,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.equivalence",
-        "Prove native and browser zero-Body semantic equivalence with deliberate drift refusal",
+        "Prove native and browser zero-body semantic equivalence with deliberate drift refusal",
         "cargo",
         &["test", "-p", "patchbay-model", "renderer_execution_tests"],
         None,
@@ -836,7 +836,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.browser",
-        "Run zero-Body OPEN, explicit lifecycle, exact Program-to-Body FOLLOW, recursive Form Back inspection, disclosure, and finite refusals through one pinned Chromium manifestation",
+        "Run zero-body OPEN, explicit lifecycle, exact Program-to-Body FOLLOW, recursive Form Back inspection, disclosure, and finite refusals through one pinned Chromium manifestation",
         "node",
         &[
             "proof/browser/node_modules/@playwright/test/cli.js",
@@ -853,7 +853,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.live-membership",
-        "Admit a real Chromium Part into the presented Body, observe it offline, preserve the Plan, and replan",
+        "Admit a real Chromium Part into the presented Body, observe it offline, preserve the plan, and replan",
         "node",
         &[
             "proof/browser/node_modules/@playwright/test/cli.js",

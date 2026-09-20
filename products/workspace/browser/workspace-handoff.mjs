@@ -1,7 +1,7 @@
 import { browserHostOperationLimits, createBrowserHostOperations } from "../../../targets/browser/host/assets/browser-host-operations.mjs";
 
 // A Gallery link identifies checked meaning. It neither carries executable code
-// nor creates a Body; the receiver revalidates against its own admitted inventory.
+// nor creates a body; the receiver revalidates against its own admitted inventory.
 export function readWorkspaceHandoff(location, inventory) {
   const parameters = new URLSearchParams(location.search);
   const keys = ['form', 'source_document_id', 'checked_form_id'];
@@ -12,7 +12,7 @@ export function readWorkspaceHandoff(location, inventory) {
   }
   const [name, source, checked] = values.map(entries => entries[0]);
   const form = inventory.forms.find(form => form.name === name && form.source_document_id === source && form.checked_form_id === checked);
-  if (!form) throw new Error('This Gallery Form is unavailable or its checked identity has changed. Your installed Forms are retained.');
+  if (!form) throw new Error('This Gallery Form is unavailable or its checked identity has changed. Your installed forms are retained.');
   return form;
 }
 

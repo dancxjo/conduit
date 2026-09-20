@@ -1,4 +1,4 @@
-//! One exact, deterministic deadline-bounded local Plan profile.
+//! One exact, deterministic deadline-bounded local plan profile.
 //!
 //! The authored requirement contains only semantic timing. Machine and Base
 //! facts enter through [`TimingOffer`], are sealed into [`TimingBasis`] before

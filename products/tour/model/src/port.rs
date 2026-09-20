@@ -1,4 +1,4 @@
-//! Exact ordinary Form-Port adapter for the retained Tour model.
+//! Exact ordinary form-Port adapter for the retained Tour model.
 
 use alloc::vec::Vec;
 use conduit_presentation::{ApplicationEvent, ApplicationView, ApplicationViewRefusal};

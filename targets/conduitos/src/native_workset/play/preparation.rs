@@ -111,7 +111,7 @@ pub(super) fn prepare(
                         .map_err(|_| WorksetRefusal::Plan)?,
                     );
                     // Edit is an ordinary one-input/one-output transform; the
-                    // installed Host binding gives it retained text semantics.
+                    // installed host binding gives it retained text semantics.
                     (
                         Effect::Edit,
                         PlannedOperation::TextEdit(StreamTransformOperation::new(false)),

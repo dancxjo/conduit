@@ -1,4 +1,4 @@
-# A human conversation with one Body. Provider and Presenter choices remain Plan truth.
+# A human conversation with one body. Provider and Presenter choices remain Plan truth.
 form body-chat {
     ui: chat/state(title = "Body Chat", history-label = "Conversation", input-label = "Message", submit-label = "Send", status-label = "Body", maximum-history-items = 16, maximum-message-bytes = 256)
     spread: presentation/tee

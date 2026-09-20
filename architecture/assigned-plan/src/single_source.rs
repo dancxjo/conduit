@@ -2,7 +2,7 @@
 //!
 //! This consumes the same assigned-Plan schema as [`crate::decode_assigned_plan`].
 //! It only admits the shape executed by [`conduit_kernel::SingleSourceExecutor`]:
-//! one node, one output Port, one Host operation, no Cords or remote endpoints,
+//! one node, one output Port, one host operation, no Cords or remote endpoints,
 //! and an exact finite inventory supplied by planning.
 
 use crate::{

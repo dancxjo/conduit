@@ -1,4 +1,4 @@
-//! Atomic admission of Body-owned planned session grants.
+//! Atomic admission of body-owned planned session grants.
 
 use conduit_wire::{encode_session_frame_into, SessionBinding};
 

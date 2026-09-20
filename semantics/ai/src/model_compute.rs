@@ -1,4 +1,4 @@
-//! General Host-side model-compute offers, admission, and lifecycle.
+//! General host-side model-compute offers, admission, and lifecycle.
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::ComputeServiceGuarantee;

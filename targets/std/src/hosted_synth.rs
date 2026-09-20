@@ -1,6 +1,6 @@
 //! Exact semantic profile of the deterministic reference synthesizer.
 
-/// Derives compatibility from the immutable DSP profile sealed into a Plan.
+/// Derives compatibility from the immutable DSP profile sealed into a plan.
 /// This describes synthesis semantics; it neither selects nor opens playback.
 pub fn compatibility_profile(
     profile: conduit_synth::ReferenceSynthProfile,

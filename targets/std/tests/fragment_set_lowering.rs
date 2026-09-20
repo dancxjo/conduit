@@ -1,4 +1,4 @@
-//! Numeric composition proof only; production Body-wide execution is separate.
+//! Numeric composition proof only; production body-wide execution is separate.
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,

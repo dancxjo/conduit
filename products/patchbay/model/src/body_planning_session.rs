@@ -1,4 +1,4 @@
-//! Bounded ordinary Body-wide planning history for the Patchbay product.
+//! Bounded ordinary body-wide planning history for the Patchbay product.
 //!
 //! The session is orchestration, not a second planner or lifecycle. Callers
 //! supply ordinary per-Form Plans; `BodyPlan` seals the exact workset and
@@ -187,7 +187,7 @@ fn expand_workset(
                 .find(|form| form.checked_form_id == resident.checked_form_id)
                 .map(|form| form.name.as_str())
                 .ok_or_else(|| {
-                    BodyPlanningSessionError::InvalidForm("checked Form is absent".into())
+                    BodyPlanningSessionError::InvalidForm("checked form is absent".into())
                 })?;
             let expanded = editor
                 .expand_form(name)
@@ -238,7 +238,7 @@ impl BodyPlanningSession {
         })
     }
 
-    /// Refresh an unstarted proposal. Retiring a running Play needs a separate
+    /// Refresh an unstarted proposal. Retiring a running play needs a separate
     /// attributable lifecycle event; offer availability alone cannot do it.
     pub fn replace_proposal(
         &mut self,
@@ -397,7 +397,7 @@ impl BodyPlanningSession {
     }
 
     pub fn current_plan(&self) -> &BodyPlan {
-        self.plans.last().expect("a planning session has a Plan")
+        self.plans.last().expect("a planning session has a plan")
     }
 
     pub fn plan(&self, plan_id: &PlanId) -> Option<&BodyPlan> {

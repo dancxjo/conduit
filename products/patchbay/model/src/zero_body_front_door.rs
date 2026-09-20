@@ -1,4 +1,4 @@
-//! Truthful Patchbay WORLD state for one Host that bears no Body.
+//! Truthful Patchbay WORLD state for one host that bears no Body.
 
 use conduit_body::{Body, BodyMembership, MembershipProofId, Wake};
 use conduit_core::{BootId, CheckedFormId, HostId, SignId, SourceDocumentId};
@@ -187,7 +187,7 @@ impl FormCandidate {
             .iter()
             .any(|form| &form.checked_form_id == checked_form_id)
         {
-            return Err("checked Form is absent from its exact source document".into());
+            return Err("checked form is absent from its exact source document".into());
         }
         self.checked_form_id = checked_form_id.clone();
         Ok(())
@@ -264,7 +264,7 @@ impl ZeroBodyFrontDoor {
             "Morse Network",
             "forms/morse-network/main.conduit",
             include_str!("../../../../forms/morse-network/main.conduit"),
-            "reviewed Form inventory; opening is inert and BIRTH remains explicit",
+            "reviewed form inventory; opening is inert and BIRTH remains explicit",
             SignId::from("patchbay/front-door/form-available"),
             1,
         )?;
@@ -400,7 +400,7 @@ impl ZeroBodyFrontDoor {
             let checked_form_id = form.checked_form_id.clone();
             return self.open_form(&checked_form_id, revision);
         }
-        Err("OPEN requires a current Body or Form subject".into())
+        Err("OPEN requires a current body or Form subject".into())
     }
 
     pub fn join_open_body(self, revision: u64) -> Result<LocalFrontDoor, String> {

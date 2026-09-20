@@ -77,7 +77,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
   storageManager = globalThis.navigator?.storage,
 } = {}) {
   if (!implementationRegistry.includes(IMPLEMENTATION_ID)) {
-    refuse("ImplementationNotSelected", "browser durable storage was not selected into this Host profile");
+    refuse("ImplementationNotSelected", "browser durable storage was not selected into this host profile");
   }
   if (!indexedDb || typeof indexedDb.open !== "function") {
     refuse("StorageUnavailable", "the selected browser durable-storage API is unavailable");

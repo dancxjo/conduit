@@ -1,8 +1,8 @@
-//! Bounded optional gate between one exact Plan and its first Play.
+//! Bounded optional gate between one exact plan and its first play.
 //!
 //! HOLD is Wake lifecycle state. It retains the immutable Plan, the exact
 //! planning-basis Sign identities, the hold policy, and the explicit release
-//! authority without issuing an active Play identity or invoking a platform.
+//! authority without issuing an active play identity or invoking a platform.
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -90,7 +90,7 @@ impl HoldPolicy {
 /// Exact finite set of planning-basis Signs represented by their Sign IDs.
 ///
 /// The producer must include every current fact whose change can invalidate
-/// the Plan. Release compares this complete set exactly; it never infers
+/// the plan. Release compares this complete set exactly; it never infers
 /// authority or validity from visible Hosts or reachable Lines.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlanningBasis {

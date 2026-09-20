@@ -14,7 +14,7 @@ pub extern "C" fn conduit_browser_body_input_capacity() -> usize {
     BODY_INPUT_BYTES
 }
 
-/// Read-only execution support, distinct from the Host's complete advertisement.
+/// Read-only execution support, distinct from the host's complete advertisement.
 #[no_mangle]
 pub extern "C" fn conduit_browser_body_capabilities() -> i32 {
     clear_output();

@@ -88,7 +88,7 @@ fn validate_form_paths(paths: &BTreeSet<String>, inventory: &str) -> Result<(), 
     let inventory: toml::Value = toml::from_str(inventory).map_err(|error| error.to_string())?;
     let forms = inventory["forms"]
         .as_array()
-        .ok_or("missing reviewed Forms")?;
+        .ok_or("missing reviewed forms")?;
     let mut declared = BTreeSet::new();
     for form in forms {
         let slug = form["slug"].as_str().ok_or("missing Form slug")?;
@@ -97,7 +97,7 @@ fn validate_form_paths(paths: &BTreeSet<String>, inventory: &str) -> Result<(), 
         }
         let path = format!("forms/{slug}/main.conduit");
         if !declared.insert(path.clone()) || !paths.contains(&path) {
-            return Err(format!("missing or duplicate reviewed Form source: {path}"));
+            return Err(format!("missing or duplicate reviewed form source: {path}"));
         }
     }
     for path in paths.iter().filter(|path| path.starts_with("forms/")) {

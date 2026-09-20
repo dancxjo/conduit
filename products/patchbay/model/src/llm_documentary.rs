@@ -58,7 +58,7 @@ pub fn llm_documentary_presentation_with_adapter(
         .basis
         .plan_id
         .clone()
-        .ok_or("documentary Presentation lacks its exact Plan")?;
+        .ok_or("documentary Presentation lacks its exact plan")?;
     let proposals = vec![
         documentary_proposal(
             "proposal/request-light",

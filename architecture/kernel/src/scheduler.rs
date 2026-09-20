@@ -461,10 +461,10 @@ pub enum SchedulerStatus {
         node: NodeId,
     },
     Idle,
-    /// Every Gear has settled and every Cord has drained.
+    /// Every gear has settled and every Cord has drained.
     ///
-    /// This is structural scheduler truth, not a claim that the Form's
-    /// meaning is complete. The Play lifecycle must separately classify a
+    /// This is structural scheduler truth, not a claim that the form's
+    /// meaning is complete. The play lifecycle must separately classify a
     /// drained scheduler as quiescent or semantically completed.
     Drained,
     Cancelled,
@@ -1216,7 +1216,7 @@ where
         self.next_host_request_matching(|_| true)
     }
 
-    /// Selects the next undispatched request accepted by the Host adapter.
+    /// Selects the next undispatched request accepted by the host adapter.
     /// Non-matching requests remain undispatched and retain their exact order
     /// for a later call.
     pub fn next_host_request_matching(

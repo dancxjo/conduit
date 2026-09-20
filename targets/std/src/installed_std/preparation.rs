@@ -99,7 +99,7 @@ pub(super) fn prepare_operations(
 
 /// Initialize an ordinary installed operation before any Play starts. This is
 /// not admission or execution authority. State initialization stays on the
-/// separately validated Play-bound path above, with its exact continuity owner.
+/// separately validated play-bound path above, with its exact continuity owner.
 pub(super) fn prepare_ordinary_operation(
     fragment: &PlanFragment,
     placement_id: &conduit_core::PlacementId,

@@ -78,7 +78,7 @@ pub fn presentation_tee_outputs() -> alloc::vec::Vec<PortDescriptor> {
 
 /// A bounded linear Presenter stage transforms one portable Presentation into
 /// another. A terminal `presentation/renderer` consumes the final value and
-/// produces the Manifestation. The ordinary Plan Cords define ordering.
+/// produces the Manifestation. The ordinary plan Cords define ordering.
 pub fn presenter_stage_inputs() -> alloc::vec::Vec<PortDescriptor> {
     renderer_inputs()
 }
@@ -108,7 +108,7 @@ pub fn presenter_stage_offer(
     }
 }
 
-/// Exact host-owned implementation facts beneath the one portable Front.
+/// Exact host-owned implementation facts beneath the one portable front.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RendererRealizationOffer {
     pub capability_id: CapabilityId,

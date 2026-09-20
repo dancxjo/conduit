@@ -1,4 +1,4 @@
-//! Supervisor-owned, bounded current Body-context feed.
+//! Supervisor-owned, bounded current body-context feed.
 
 use conduit_body::BodyConversationContext;
 use sha2::{Digest, Sha256};

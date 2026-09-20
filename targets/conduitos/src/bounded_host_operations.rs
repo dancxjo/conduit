@@ -1,4 +1,4 @@
-//! Finite semantic host operations shared by ordinary ConduitOS planned Plays.
+//! Finite semantic host operations shared by ordinary ConduitOS planned plays.
 
 use conduit_core::{InfoBool, Scalar};
 use conduit_human::{ChordInfo, ConduitIntlKeymap, KeyEvent, KeymapDisposition, KeymapRefusal};

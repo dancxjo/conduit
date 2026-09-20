@@ -99,7 +99,7 @@ pub extern "C" fn conduit_browser_membership_initialize(host_length: u32, boot_l
     })
 }
 
-/// Parses one exact serialized `AdmissionChallenge`, validates its Host and
+/// Parses one exact serialized `AdmissionChallenge`, validates its host and
 /// Boot against this WASM instance, and returns only its 64-byte signature.
 #[no_mangle]
 pub extern "C" fn conduit_browser_membership_prove(challenge_length: u32) -> i32 {
@@ -134,7 +134,7 @@ pub extern "C" fn conduit_browser_membership_prove(challenge_length: u32) -> i32
 }
 
 /// Signs one canonical return challenge with the same in-memory browser Host
-/// incarnation. It cannot change the Host or Boot named by the challenge.
+/// incarnation. It cannot change the host or Boot named by the challenge.
 #[no_mangle]
 pub extern "C" fn conduit_browser_membership_prove_return(challenge_length: u32) -> i32 {
     clear_output();
@@ -167,7 +167,7 @@ pub extern "C" fn conduit_browser_membership_prove_return(challenge_length: u32)
     })
 }
 
-/// Signs one Body-directed single-use invitation for this exact browser Host,
+/// Signs one body-directed single-use invitation for this exact browser Host,
 /// Boot, and the exported offer generation.
 #[no_mangle]
 pub extern "C" fn conduit_browser_membership_prove_spawn(claim_length: u32) -> i32 {
@@ -214,7 +214,7 @@ pub extern "C" fn conduit_browser_membership_prove_spawn(claim_length: u32) -> i
     })
 }
 
-/// Exports this Host's exact finite browser profile as serialized canonical
+/// Exports this host's exact finite browser profile as serialized canonical
 /// `HostAdvertisement` data. The renderer does not synthesize capabilities.
 #[no_mangle]
 pub extern "C" fn conduit_browser_membership_advertisement() -> i32 {

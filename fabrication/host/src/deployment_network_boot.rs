@@ -1,4 +1,4 @@
-//! Finite HTTP Boot carrier for one already-built Body-bound artifact.
+//! Finite HTTP Boot carrier for one already-built body-bound artifact.
 
 use crate::{
     BodyBoundArtifactIdentity, CarrierTerminal, DeploymentCarrierDescriptor, DeploymentCarrierKind,

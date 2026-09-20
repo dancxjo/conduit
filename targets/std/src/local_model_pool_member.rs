@@ -1,7 +1,7 @@
-//! Host-owned admission for one selected dynamic local-model pool member.
+//! host-owned admission for one selected dynamic local-model pool member.
 //!
 //! The common pool kernel owns selection. This boundary binds that selection
-//! to the std Host's current capability/resource ledger and owns the exact
+//! to the std host's current capability/resource ledger and owns the exact
 //! finite semantic sessions until terminal release.
 
 use crate::{
@@ -50,19 +50,19 @@ impl StdHost {
                     .iter()
                     .find(|pool| pool.pool_id == selection.pool_id)
             })
-            .ok_or_else(|| "selected shared pool is absent from the Plan".to_string())?;
+            .ok_or_else(|| "selected shared pool is absent from the plan".to_string())?;
         let realization = pool
             .realization_envelope
             .get(usize::from(selection.selected_realization.ok_or_else(
                 || "selected pool realization is absent".to_string(),
             )?))
-            .ok_or_else(|| "selected pool realization is outside the Plan".to_string())?;
+            .ok_or_else(|| "selected pool realization is outside the plan".to_string())?;
         let advertisement = self.advertisement().clone();
         if realization.host_id != advertisement.host_id
             || realization.boot_id != advertisement.boot_id
             || realization.offer_generation != advertisement.offer_generation
         {
-            return Err("selected pool realization is stale for this Host".into());
+            return Err("selected pool realization is stale for this host".into());
         }
         let capability = advertisement
             .capabilities

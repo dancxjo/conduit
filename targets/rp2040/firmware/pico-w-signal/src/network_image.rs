@@ -18,7 +18,7 @@ pub const ROUTE_SLOTS: usize = NODES * PORTS;
 pub const ROUTE_TARGETS: usize = generated::GENERATED_ROUTE_TARGETS.len();
 pub const HOST_BINDING_SLOTS: usize = generated::GENERATED_HOST_OPERATIONS.len();
 pub const PENDING_REQUESTS: usize = generated::GENERATED_HOST_OPERATIONS.len();
-// Generated SIGN_ITEMS/SIGN_BYTES are the Plan's mandatory identity-bearing
+// Generated SIGN_ITEMS/SIGN_BYTES are the plan's mandatory identity-bearing
 // Sign budget. The kernel event log has a distinct fixed in-memory profile:
 // its byte charge is target-specific `KernelEvent` storage, not serialized
 // mandatory-Sign identity bytes.

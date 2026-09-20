@@ -268,7 +268,7 @@ fn evidence(output: &Output) -> Result<ExecutionEvidence, String> {
         .lines()
         .find_map(|line| line.split_once(EVIDENCE_MARKER).map(|(_, value)| value))
         .ok_or_else(|| {
-            "deterministic oracle passed without exact Plan/Play evidence".to_string()
+            "deterministic oracle passed without exact plan/Play evidence".to_string()
         })?;
     serde_json::from_str(encoded)
         .map_err(|error| format!("deterministic oracle emitted malformed evidence: {error}"))

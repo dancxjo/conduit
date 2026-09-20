@@ -1,4 +1,4 @@
-//! Portable WORLD projection for the bounded zero-Body entrance state.
+//! Portable WORLD projection for the bounded zero-body entrance state.
 
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
@@ -19,7 +19,7 @@ impl ZeroBodyFrontDoor {
             role: PresentationRole::Host,
             label: "This computer".into(),
             accessibility_name: format!(
-                "This Host {} boot {}; current Body none",
+                "This host {} boot {}; current body none",
                 host.host_id.as_str(),
                 host.boot_id.as_str()
             ),
@@ -46,7 +46,7 @@ impl ZeroBodyFrontDoor {
         ];
         let mut text = vec![PresentationText {
             subject: host_subject.clone(),
-            text: "HOST body=none; OPEN is inert; only JOIN or BIRTH can embody this Host".into(),
+            text: "HOST body=none; OPEN is inert; only JOIN or BIRTH can embody this host".into(),
         }];
         let mut actions = vec![PresentationAction {
             identity: format!("action/creche/{}", host.host_id.as_str()),
@@ -157,7 +157,7 @@ impl ZeroBodyFrontDoor {
             text.push(PresentationText {
                 subject: subject.clone(),
                 text: format!(
-                    "FORM provenance={}; OPEN permits inspection and does not create a Body",
+                    "FORM provenance={}; OPEN permits inspection and does not create a body",
                     form.provenance
                 ),
             });
@@ -182,7 +182,7 @@ impl ZeroBodyFrontDoor {
                         PresentationActionAvailability::Unavailable {
                             reason_code: "authority/not-admitted".into(),
                             explanation:
-                                "No admitted authority can create a Body from this entrance."
+                                "No admitted authority can create a body from this entrance."
                                     .into(),
                         }
                     },
@@ -234,7 +234,7 @@ impl ZeroBodyFrontDoor {
                     &form_subject,
                     PresentationRole::Form,
                     &open_form,
-                    format!("Checked Form {} opened from Form {}", open_form, form.label),
+                    format!("Checked form {} opened from Form {}", open_form, form.label),
                 );
                 content.contains(&subject, &form_subject);
                 content.property(
@@ -250,7 +250,7 @@ impl ZeroBodyFrontDoor {
                 content.line(
                     &form_subject,
                     format!(
-                        "Checked Form {}; OPEN is inert and no Body, Plan, or Play exists",
+                        "Checked form {}; OPEN is inert and no Body, Plan, or Play exists",
                         open_form
                     ),
                 );

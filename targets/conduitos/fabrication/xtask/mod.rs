@@ -140,7 +140,7 @@ enum ConduitosCommand {
     RpiPhysicalProof(RpiPhysicalProofArgs),
     /// Open a visible interactive QEMU session without making proof claims.
     Demo(DemoArgs),
-    /// Prove the normal IMAGE zero-Body front door and long-lived interaction.
+    /// Prove the normal IMAGE zero-body front door and long-lived interaction.
     FrontDoorProof,
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
     JourneyProof,
@@ -154,7 +154,7 @@ enum ConduitosCommand {
     ProveMany(prove_many::ProveManyArgs),
     /// Inventory the portable std nucleus and classify the exact ConduitOS gap.
     StdGap,
-    /// Prove one exact deterministic deadline-bounded local Plan and refusal.
+    /// Prove one exact deterministic deadline-bounded local plan and refusal.
     TimingProfile,
     /// Prove one real bounded xHCI Base and fail-closed controller absence.
     XhciProof(PreparedProofArgs),
@@ -184,7 +184,7 @@ enum ConduitosCommand {
 
 #[derive(Args, Debug, Clone)]
 struct AcceptanceArgs {
-    /// Exact Body-provisioned ConduitOS ISO exported by the Crèche.
+    /// Exact body-provisioned ConduitOS ISO exported by the Crèche.
     #[arg(long)]
     spore: PathBuf,
 }

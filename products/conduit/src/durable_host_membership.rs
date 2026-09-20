@@ -1,4 +1,4 @@
-//! Durable completion and observation of an admitted Body membership.
+//! Durable completion and observation of an admitted body membership.
 
 use super::invitation::{PendingBodyJoin, PortableAdmissionReceipt};
 use super::{
@@ -24,12 +24,12 @@ pub(crate) fn complete_body_join(
     authorize_membership: bool,
 ) -> Result<(), String> {
     if !authorize_membership {
-        return Err("retaining admitted Body membership requires --authorize-membership".into());
+        return Err("retaining admitted body membership requires --authorize-membership".into());
     }
     let install_path = state_dir.join("installation.json");
     let mut installation = read_installation(&install_path)?;
     if installation.body_state.is_some() || installation.joined_body_state.is_some() {
-        return Err("this installed Host already has current Body state".into());
+        return Err("this installed host already has current body state".into());
     }
     let pending_path = state_dir.join("body/pending-join.json");
     let pending: PendingBodyJoin =
@@ -76,7 +76,7 @@ pub(crate) fn retain_rendezvous_membership(
 ) -> Result<(), String> {
     let mut installation = read_installation(&state_dir.join("installation.json"))?;
     if installation.body_state.is_some() || installation.joined_body_state.is_some() {
-        return Err("this installed Host already has current Body state".into());
+        return Err("this installed host already has current body state".into());
     }
     if credential.body_id.as_str() != expected_body_id
         || credential.host_id != expected_advertisement.host_id
@@ -84,7 +84,7 @@ pub(crate) fn retain_rendezvous_membership(
         || credential.host_id.as_str() != installation.host_id
     {
         return Err(
-            "rendezvous admission receipt lost its exact Body, Host, or Boot identity".into(),
+            "rendezvous admission receipt lost its exact body, Host, or Boot identity".into(),
         );
     }
     persist_joined_membership(state_dir, &mut installation, credential)
@@ -113,7 +113,7 @@ fn persist_joined_membership(
     let current_runtime = if runtime_path.exists() {
         let mut runtime: RuntimeStatus =
             serde_json::from_slice(&bounded_read(&runtime_path, 64 * 1024)?)
-                .map_err(|error| format!("durable Host runtime status: {error}"))?;
+                .map_err(|error| format!("durable host runtime status: {error}"))?;
         if runtime.schema != RUNTIME_SCHEMA
             || runtime.host_id != installation.host_id
             || runtime.boot_id != credential.boot_id.as_str()
@@ -163,7 +163,7 @@ pub(super) fn status(
         println!("admitted Part {}", binding.part_id);
         match runtime {
             Some(status) => println!(
-                "current Host {} boot {} offers generation {}",
+                "current host {} boot {} offers generation {}",
                 status.host_id, status.boot_id, status.offer_generation
             ),
             None => println!("Host {} is admitted but offline", installation.host_id),
@@ -181,7 +181,7 @@ pub(super) fn validate(
         || binding.part_id.is_empty()
         || digest(&credential_bytes) != binding.credential_sha256
     {
-        return Err("retained Body membership credential is invalid or stale".into());
+        return Err("retained body membership credential is invalid or stale".into());
     }
     let credential: MembershipCredential = serde_json::from_slice(&credential_bytes)
         .map_err(|error| format!("retained membership credential: {error}"))?;
@@ -189,7 +189,7 @@ pub(super) fn validate(
         || credential.part_id.as_str() != binding.part_id
         || credential.host_id.as_str() != installation.host_id
     {
-        return Err("retained membership credential belongs to another Body or Host".into());
+        return Err("retained membership credential belongs to another body or Host".into());
     }
     Ok(())
 }

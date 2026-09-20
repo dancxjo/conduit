@@ -28,7 +28,7 @@ pub enum SoundStreamRefusal {
     InvalidRelease,
 }
 
-/// Allocation-free accounting for one exact Plan-admitted stream envelope.
+/// Allocation-free accounting for one exact plan-admitted stream envelope.
 ///
 /// This object does not schedule or retain values. It proves whether the
 /// already-admitted finite storage may accept one value before the producer

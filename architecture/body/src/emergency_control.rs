@@ -1,4 +1,4 @@
-//! Bounded authority-reduction requests below ordinary Form interpretation.
+//! Bounded authority-reduction requests below ordinary form interpretation.
 
 use alloc::string::String;
 use conduit_core::{BootId, HostId};
@@ -82,7 +82,7 @@ pub enum EmergencyRefusal {
     AlreadyTriggered,
 }
 
-/// Tiny one-shot admission boundary. Effect execution is supplied by the Host;
+/// Tiny one-shot admission boundary. Effect execution is supplied by the host;
 /// this type cannot Wake, grant authority, change policy, or resume execution.
 pub struct EmergencyControl {
     body_id: BodyId,

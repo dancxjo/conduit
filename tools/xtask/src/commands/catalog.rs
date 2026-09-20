@@ -154,7 +154,7 @@ struct MatrixReport {
 
 pub fn run(args: CatalogArgs, opts: &GlobalOpts) -> Result<(), CatalogError> {
     if opts.dry_run {
-        println!("derive portable catalog and exact Host profile advertisements; emit static coverage without claiming a current Boot");
+        println!("derive portable catalog and exact host profile advertisements; emit static coverage without claiming a current Boot");
         return Ok(());
     }
     if matches!(args.command, CatalogCommand::Sound) {
@@ -233,7 +233,7 @@ fn build_report(
             GapClassification::UnsupportedOnThisMachine,
             GapClassification::DeliberatelyNotApplicable,
         ],
-        catalog_basis: "portable contracts + exact Host/application offers",
+        catalog_basis: "portable contracts + exact host/application offers",
         catalog_inventory_schema: inventory::SCHEMA,
         catalog_digest_algorithm: "sha256-canonical-json",
         catalog_digest: inventory.digest,
@@ -243,7 +243,7 @@ fn build_report(
         current_offer_basis: if snapshot.is_some() {
             "exact validated conduit.observatory.snapshot/v2"
         } else {
-            "not-observed; static profile composition is not current Host/Boot truth"
+            "not-observed; static profile composition is not current host/Boot truth"
         },
         host_profile_count: advertisements.len(),
         matrix_entry_count: entries.len(),

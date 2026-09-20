@@ -1,7 +1,7 @@
 //! Linux BlueZ adapter for the first bounded Conduit BLE GATT Line profile.
 //!
 //! This module owns only platform I/O. Discovery and pairing remain current
-//! platform observations, the shared session machine owns exact Plan/endpoint
+//! platform observations, the shared session machine owns exact plan/endpoint
 //! admission, and the production kernel remains the scheduler.
 
 use bluer::gatt::{remote::Characteristic, CharacteristicReader, CharacteristicWriter};

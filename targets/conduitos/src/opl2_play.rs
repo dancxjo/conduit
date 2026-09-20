@@ -144,7 +144,7 @@ const fn invalid(detail: u16) -> OperationAction {
 #[derive(Clone, Copy)]
 #[expect(
     clippy::large_enum_variant,
-    reason = "fixed pre-Play fixture references avoid heap indirection in the freestanding kernel"
+    reason = "fixed pre-play fixture references avoid heap indirection in the freestanding kernel"
 )]
 enum Opl2Operation {
     Source(SourceOperation),

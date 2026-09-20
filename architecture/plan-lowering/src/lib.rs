@@ -1,6 +1,6 @@
-//! Exact Plan-to-kernel lowering for every current Host.
+//! Exact plan-to-kernel lowering for every current host.
 //!
-//! This package owns only the pre-Play rich-identity to numeric-table boundary
+//! This package owns only the pre-play rich-identity to numeric-table boundary
 //! and fixed kernel storage profiles. It does not own product lifecycle, Host
 //! effects, semantic implementations, planning policy, or scheduling.
 

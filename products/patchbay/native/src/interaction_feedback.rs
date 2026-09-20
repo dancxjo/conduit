@@ -78,7 +78,7 @@ impl PatchbayApplication {
             }
             InteractionDisposition::Refused(PatchbayRefusal::InvalidConfiguration) => {
                 self.publish_refusal(
-                    "Cannot configure: value does not fit this Gear Front type or bounds",
+                    "Cannot configure: value does not fit this gear Front type or bounds",
                 );
                 Ok(())
             }
@@ -92,11 +92,11 @@ impl PatchbayApplication {
                         self.lifecycle_unavailable_reason(invocation.action)
                             .unwrap_or_else(|| match invocation.action {
                                 PatchbayAction::Plan => {
-                                    "Plan unavailable for the current exact Form and Host offers"
+                                    "Plan unavailable for the current exact form and Host offers"
                                         .into()
                                 }
                                 PatchbayAction::Play => {
-                                    "Play unavailable for the current exact Plan and Host offers"
+                                    "Play unavailable for the current exact plan and Host offers"
                                         .into()
                                 }
                                 PatchbayAction::Stop => {

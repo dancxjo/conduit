@@ -2,7 +2,7 @@ import { createTourStage } from "./tour-state.mjs";
 
 const CRECHE_MARKERS = Object.freeze(new Map([
   ["<!-- conduit-physical-host -->", "Add a physical Host in the Crèche"],
-  ["<!-- conduit-first-host -->", "Admit a first Host in the Crèche"],
+  ["<!-- conduit-first-host -->", "Admit a first host in the Crèche"],
   ["<!-- conduit-graduation -->", "Open graduation in the Crèche"],
 ]));
 

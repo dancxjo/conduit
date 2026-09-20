@@ -1,4 +1,4 @@
-//! Portable Form contracts for the bounded paired-latent run.
+//! Portable form contracts for the bounded paired-latent run.
 
 use conduit_core::{
     kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,

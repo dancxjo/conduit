@@ -18,11 +18,11 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
         html,
         "<header><p>Verified evidence projection</p><h1>Three Bodies, one semantic Journey</h1>\
          <p>Journey <code>{}</code> at commit <code>{}</code>. Semantic assertions come from verified receipts; documentary media show what a human could observe.</p>\
-         <nav><a href=\"#by-body\">Follow one Body</a><a href=\"#by-step\">Compare one semantic step</a></nav></header>",
+         <nav><a href=\"#by-body\">Follow one body</a><a href=\"#by-step\">Compare one semantic step</a></nav></header>",
         escape(&index.journey_id),
         escape(&index.git_commit)
     );
-    html.push_str("<section id=\"by-body\"><h2>Follow one Body</h2>");
+    html.push_str("<section id=\"by-body\"><h2>Follow one body</h2>");
     for track in &index.tracks {
         render_track(&mut html, track, &index.semantic_steps);
     }

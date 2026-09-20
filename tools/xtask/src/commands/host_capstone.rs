@@ -392,7 +392,7 @@ fn presentation(
         vec![PresentationSubject {
             identity: "front/main".into(),
             role: PresentationRole::Form,
-            label: "Shared Front".into(),
+            label: "Shared front".into(),
             accessibility_name: "One shared semantic Front".into(),
         }],
         vec![],

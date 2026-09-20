@@ -538,7 +538,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .collect::<Result<Vec<_>, String>>()?;
     if synth_states.iter().any(Option::is_some) {
         let clock_origin_micros = timer.monotonic_now_micros().ok_or_else(|| {
-            "installed music/synth requires the admitted Host/Boot monotonic-microsecond basis"
+            "installed music/synth requires the admitted host/Boot monotonic-microsecond basis"
                 .to_string()
         })?;
         for state in synth_states.iter_mut().flatten() {

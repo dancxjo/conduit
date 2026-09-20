@@ -1,4 +1,4 @@
-//! Ordinary Form-facing tensor port contracts.
+//! Ordinary form-facing tensor port contracts.
 
 use alloc::{
     string::{String, ToString},
