@@ -816,7 +816,7 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
   const browserBundle = await startStaticProduct("target/creche-product/artifacts");
   try {
     await page.goto(`${browserBundle.url}index.html`);
-    await expect(page).toHaveTitle("Conduit browser Host");
+    await expect(page).toHaveTitle("Conduit browser host");
     await expect(page.locator("#status")).toHaveText("Current and independently initialized");
     await expect(page.locator("#identity")).toBeVisible();
     expect(await page.evaluate(() => globalThis.__conduitBrowserHost.hostId)).toMatch(/^browser\//);
@@ -1098,7 +1098,7 @@ test("Form Gallery keeps source discoverable and usable at desktop and phone wid
   for (const viewport of [{ width: 1366, height: 720 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await openStep(page, 0);
-    await page.getByRole("button", { name: "Form Gallery", exact: true }).click();
+    await page.getByRole("button", { name: "form Gallery", exact: true }).click();
     const card = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]')
       .filter({ has: page.getByRole("heading", { name: "Morse Network", exact: true }) });
     await card.getByRole("button", { name: "Open in laboratory", exact: true }).click();
@@ -1132,7 +1132,7 @@ test("the Tour opens with one logical Body premise and keeps Crèche machinery l
   await expect(page).toHaveTitle(/Tour$/);
   await expect(page.locator("#chapter")).toContainText("one logical computer");
   await expect(page.locator("#chapter")).toContainText("one or many physical or virtual computers");
-  await expect(page.locator("#chapter")).toContainText("Gear, Port, Cord, Form");
+  await expect(page.locator("#chapter")).toContainText("gear, port, cord, form");
   await expect(page.locator("#chapter")).not.toContainText(/Crèche/i);
   await expect(page.locator(".body-birth-runner, .first-host-runner, .physical-host-runner, .graduation-runner")).toHaveCount(0);
   await expect(page.locator('[data-application-slot="tour-inventory"]')).toHaveCount(0);
@@ -1992,7 +1992,7 @@ test("the shared physical workflow delegates final admission to its owning Body 
 
 test("the guided arc names each idea after the reader has met the prior one", async ({ page }) => {
   const chapterChecks = [
-    { title: "One Program, Many Computers", anchor: "Patchbay projects checked Form truth" },
+    { title: "One Program, Many Computers", anchor: "Patchbay projects checked form truth" },
     { title: "Fronts, Backs, and implementation", anchor: "open the reviewed Back" },
     { title: "Hosts make Forms real", anchor: "smallest case of a later Body-wide model" },
     { title: "One Form across several Hosts", anchor: "cross-Host Cord is a Line" },
@@ -2264,7 +2264,7 @@ test("Two browser Hosts executes one unchanged Form across independent Hosts", a
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
     "one immutable Plan, two independent Plays, one delivered cross-Host value",
   );
-  await expect(runner.locator(".morse")).toHaveText("hello across one Cord");
+  await expect(runner.locator(".morse")).toHaveText("hello across one cord");
   await expect(runner.locator(".host-a strong")).toHaveText("completed");
   await expect(runner.locator(".host-b strong")).toHaveText("completed");
   const identities = await page.evaluate(() => ({
