@@ -29,8 +29,8 @@ pub use morse_values_into::*;
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FaceStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
 };
 
 pub const TEXT_VALUE_KIND: &str = "value/text";
@@ -62,6 +62,35 @@ pub struct TextKindContract {
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<TextConfigurationField>,
     pub limits: CapabilityLimits,
+}
+
+impl TextKindContract {
+    pub fn into_semantic_contract(self) -> SemanticCapabilityContract {
+        let shorthand = match self.kind_id.as_str() {
+            TEXT_UPPER_KIND | TEXT_JOIN_KIND => Some((
+                self.inputs[0].port_id.clone(),
+                self.outputs[0].port_id.clone(),
+            )),
+            _ => None,
+        };
+        SemanticCapabilityContract {
+            startup_parameters: self
+                .configuration
+                .iter()
+                .map(|field| FaceStartupParameter {
+                    name: field.key.into(),
+                    value_type: kind_id(TEXT_VALUE_KIND),
+                    has_default: false,
+                })
+                .collect(),
+            shorthand,
+            kind_id: self.kind_id,
+            kind_contract_revision: self.kind_contract_revision,
+            inputs: self.inputs,
+            outputs: self.outputs,
+            limits: self.limits,
+        }
+    }
 }
 
 pub fn text_literal_semantics() -> TextKindContract {
