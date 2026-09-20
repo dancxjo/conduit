@@ -9,7 +9,7 @@ use conduit_core::{
 use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    renderer_kind_definition, renderer_offer, Manifestation, ManifestationFailure,
+    renderer_kind_projection, renderer_offer, Manifestation, ManifestationFailure,
     ManifestationLifecycle, Presentation, PresentationRole, RendererRealizationOffer,
     MAX_RENDERER_VALUE_BYTES,
 };
@@ -91,7 +91,7 @@ impl Ssd1306Presenter {
         validate_evidence(&evidence, now_tick)?;
         let mut catalog = ProfileCatalog::new();
         catalog
-            .insert(renderer_kind_definition())
+            .insert(renderer_kind_projection())
             .map_err(|_| Ssd1306PresenterError::Catalog)?;
         let form = parse(FORM, &catalog).map_err(|_| Ssd1306PresenterError::Catalog)?;
         let host = advertisement(&evidence);

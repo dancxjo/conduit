@@ -1,7 +1,7 @@
 //! Host-neutral sound/music semantic waist.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use crate::{
     audio_render_demand_contract, music_input_contract, AUDIO_RENDER_DEMAND_REVISION,
@@ -142,7 +142,7 @@ pub fn music_synth_contract() -> StandardKindContract {
         outputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Output)],
         configuration: music_synth_configuration(),
         limits: audio_limits(),
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -150,7 +150,7 @@ pub fn music_synth_contract() -> StandardKindContract {
     }
 }
 
-pub fn music_synth_configuration() -> Vec<StandardConfigurationField> {
+pub fn music_synth_configuration() -> Vec<KindConfigurationField> {
     vec![
         u64_configuration(SYNTH_MAXIMUM_VOICES_KEY, 8, 8, 16),
         text_one_of_configuration(
@@ -182,11 +182,11 @@ fn u64_configuration(
     default_value: u64,
     minimum: u64,
     maximum: u64,
-) -> StandardConfigurationField {
-    StandardConfigurationField {
+) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::U64(default_value),
-        rule: StandardConfigurationRule::U64Range { minimum, maximum },
+        rule: KindConfigurationRule::U64Range { minimum, maximum },
     }
 }
 
@@ -195,11 +195,11 @@ fn i64_configuration(
     default_value: i64,
     minimum: i64,
     maximum: i64,
-) -> StandardConfigurationField {
-    StandardConfigurationField {
+) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::I64(default_value),
-        rule: StandardConfigurationRule::I64Range { minimum, maximum },
+        rule: KindConfigurationRule::I64Range { minimum, maximum },
     }
 }
 
@@ -207,11 +207,11 @@ fn text_one_of_configuration(
     key: &str,
     default_value: &str,
     values: &[&str],
-) -> StandardConfigurationField {
-    StandardConfigurationField {
+) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::Text(default_value.into()),
-        rule: StandardConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| String::from(*value)).collect(),
         },
     }
@@ -250,7 +250,7 @@ pub fn audio_capture_push_to_talk_contract() -> StandardKindContract {
             AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS,
         )],
         limits: audio_limits(),
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -276,7 +276,7 @@ pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
             ),
         ],
         limits: audio_limits(),
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -351,9 +351,9 @@ fn sink(
         summary: summary.to_string(),
         inputs,
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits,
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,

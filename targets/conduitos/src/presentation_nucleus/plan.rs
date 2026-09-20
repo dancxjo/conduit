@@ -165,12 +165,12 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), PreparationError> {
         })
         .map_err(|_| PreparationError::Catalog)?;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(TEXT_SOURCE_KIND),
             kind_contract_revision: KindIdentity::from("conduitos/fixture-text-source@1"),
             inputs: Vec::new(),
             outputs: text_source_offer().outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| PreparationError::Catalog)?;
     Ok((startup, profile))

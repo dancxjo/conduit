@@ -41,7 +41,7 @@ pub(super) fn install_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
     conduit_language::install_linguistics_catalogs(startup, profile)?;
     let contract = presentation_contract();
     startup.insert(KindSignature {
@@ -49,12 +49,12 @@ pub(super) fn install_catalogs(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())
 }

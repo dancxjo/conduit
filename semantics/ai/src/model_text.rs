@@ -43,6 +43,8 @@ impl ModelTextContract {
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: self.limits,
         }
     }
@@ -172,7 +174,7 @@ pub fn install_model_text_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     for contract in [
         model_result_to_text_contract(),
@@ -184,7 +186,7 @@ pub fn install_model_text_catalog(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,

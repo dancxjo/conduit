@@ -4,7 +4,7 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal, Scalar, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
-use conduit_form::{KindDefinition, ProfileCatalog};
+use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
 
 const KIND: &str = "conduit-test/logic-script";
@@ -140,21 +140,21 @@ pub(super) fn sink_offer() -> CapabilityOffer {
 
 pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(KIND),
             kind_contract_revision: KindIdentity::from(REVISION),
             inputs: Vec::new(),
             outputs: offer().outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("logic script fixture kind is unique");
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(SINK_KIND),
             kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("logic sink fixture kind is unique");
 }

@@ -8,12 +8,12 @@ use conduit_alife::{
 use conduit_core::{
     kind_id, port_id, process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId,
     BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, KindIdentity, LinkLimits,
+    HostProfileId, ImplementationId, ImplementationOffer, Kind, KindIdentity, LinkLimits,
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_with_backs, parse_syntax_document,
-    CanonicalBackCatalog, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -136,11 +136,11 @@ pub fn distributed_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core:
     (expanded, plan)
 }
 
-fn catalogs() -> (StartupCatalog, ProfileCatalog, KindDefinition) {
+fn catalogs() -> (StartupCatalog, ProfileCatalog, Kind) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_alife::install_reaction_diffusion_catalogs(&mut startup, &mut profile).unwrap();
-    let field = profile.get(&kind_id(FIELD)).unwrap().clone();
+    let field = profile.canonical_kind(&kind_id(FIELD)).unwrap().clone();
     let definitions = [
         definition(PREPARE, &[STATE, REQUEST], &[WORK, BOUNDARY]),
         definition(WORKER, &[WORK, BOUNDARY], &[RESULT]),
@@ -158,8 +158,8 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog, KindDefinition) {
     (startup, profile, field)
 }
 
-fn definition(kind: &str, inputs: &[&str], outputs: &[&str]) -> KindDefinition {
-    KindDefinition {
+fn definition(kind: &str, inputs: &[&str], outputs: &[&str]) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
         kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: inputs

@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     education_assessment_type, education_lesson_feedback_type, education_progress_type,
@@ -93,6 +93,8 @@ pub fn education_semantic_contracts() -> Vec<Kind> {
             kind_contract_revision: KindIdentity::from(EDUCATION_REVISION),
             inputs,
             outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: CapabilityLimits {
                 max_active_instances: 4,
                 max_queue_items: 4,
@@ -131,7 +133,7 @@ fn insert_kind(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(kind),
             kind_contract_revision: KindIdentity::from(EDUCATION_REVISION),
             inputs,

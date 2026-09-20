@@ -1,5 +1,5 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
@@ -287,7 +287,7 @@ pub fn robotics_drive_differential_contract() -> StandardKindContract {
             ROBOTICS_MAXIMUM_MOTION_TTL_MS,
         )],
         limits: limits(),
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -339,6 +339,10 @@ pub fn robotics_semantic_contract(kind: &str) -> Option<Kind> {
             kind_contract_revision: revision.into(),
             inputs: contract.inputs,
             outputs: contract.outputs,
+            configuration: contract.configuration,
+            semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+                contract.terminal_behavior
+            )],
             limits: contract.limits,
         })
 }
@@ -348,7 +352,7 @@ fn source_contract(
     name: &str,
     summary: &str,
     outputs: Vec<PortDescriptor>,
-    configuration: Vec<StandardConfigurationField>,
+    configuration: Vec<KindConfigurationField>,
     example: &str,
 ) -> StandardKindContract {
     StandardKindContract {
@@ -359,7 +363,7 @@ fn source_contract(
         outputs,
         configuration,
         limits: limits(),
-        terminal_behavior: TerminalBehavior::SimulatedCurrentObservationEmitsOnce,
+        terminal_behavior: KindTerminalBehavior::SimulatedCurrentObservationEmitsOnce,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -459,7 +463,7 @@ fn u16_value(entries: &[ConfigurationEntry], key: &str, default: u16) -> Result<
         .map_err(|_| "robotics unsigned configuration exceeds u16")
 }
 
-fn availability_field() -> StandardConfigurationField {
+fn availability_field() -> KindConfigurationField {
     text_field(
         ROBOTICS_AVAILABILITY_KEY,
         ROBOTICS_AVAILABILITY_FRESH,
@@ -471,29 +475,29 @@ fn availability_field() -> StandardConfigurationField {
     )
 }
 
-fn text_field(key: &str, default: &str, values: &[&str]) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn text_field(key: &str, default: &str, values: &[&str]) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::Text(default.to_string()),
-        rule: StandardConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).to_string()).collect(),
         },
     }
 }
 
-fn u64_field(key: &str, default: u64, minimum: u64, maximum: u64) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn u64_field(key: &str, default: u64, minimum: u64, maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::U64(default),
-        rule: StandardConfigurationRule::U64Range { minimum, maximum },
+        rule: KindConfigurationRule::U64Range { minimum, maximum },
     }
 }
 
-fn i64_field(key: &str, default: i64, minimum: i64, maximum: i64) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn i64_field(key: &str, default: i64, minimum: i64, maximum: i64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::I64(default),
-        rule: StandardConfigurationRule::I64Range { minimum, maximum },
+        rule: KindConfigurationRule::I64Range { minimum, maximum },
     }
 }
 
@@ -503,11 +507,11 @@ fn quantity_field(
     minimum: i64,
     maximum: i64,
     canonical_unit: QuantityUnit,
-) -> StandardConfigurationField {
-    StandardConfigurationField {
+) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::Quantity(default),
-        rule: StandardConfigurationRule::QuantityRange {
+        rule: KindConfigurationRule::QuantityRange {
             minimum,
             maximum,
             canonical_unit,
@@ -515,7 +519,7 @@ fn quantity_field(
     }
 }
 
-pub(crate) fn configuration_type(field: &StandardConfigurationField) -> &'static str {
+pub(crate) fn configuration_type(field: &KindConfigurationField) -> &'static str {
     match &field.default_value {
         ConfigurationValue::Text(_) => "Text",
         ConfigurationValue::U64(_) => "Count",

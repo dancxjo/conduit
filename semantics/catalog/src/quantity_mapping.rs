@@ -8,7 +8,7 @@ use conduit_core::{
 };
 
 use crate::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 
 pub const QUANTITY_MAP_KIND: &str = "math/map-quantity";
@@ -124,7 +124,7 @@ pub fn quantity_map_contract() -> StandardKindContract {
             max_queue_items: 1,
             max_queue_bytes: QUANTITY_ENCODED_LEN as u32,
         },
-        terminal_behavior: TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+        terminal_behavior: KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -141,6 +141,10 @@ pub fn quantity_map_semantic_contract() -> Kind {
         kind_contract_revision: QUANTITY_MAP_REVISION.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
@@ -151,7 +155,7 @@ pub fn install_quantity_mapping_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     let contract = quantity_map_contract();
@@ -177,7 +181,7 @@ pub fn install_quantity_mapping_catalog(
             .collect(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: KindIdentity::from(QUANTITY_MAP_REVISION),
             inputs: contract.inputs,
@@ -185,15 +189,15 @@ pub fn install_quantity_mapping_catalog(
             configuration: contract
                 .configuration
                 .into_iter()
-                .map(|field| ConfigurationField {
+                .map(|field| KindConfigurationField {
                     key: field.key,
                     default_value: field.default_value,
-                    validation: match field.rule {
-                        StandardConfigurationRule::I64Range { minimum, maximum } => {
-                            ConfigurationRule::I64Range { minimum, maximum }
+                    rule: match field.rule {
+                        KindConfigurationRule::I64Range { minimum, maximum } => {
+                            KindConfigurationRule::I64Range { minimum, maximum }
                         }
-                        StandardConfigurationRule::TextOneOf { values } => {
-                            ConfigurationRule::TextOneOf { values }
+                        KindConfigurationRule::TextOneOf { values } => {
+                            KindConfigurationRule::TextOneOf { values }
                         }
                         _ => unreachable!(),
                     },
@@ -203,19 +207,19 @@ pub fn install_quantity_mapping_catalog(
         .map_err(|error| error.to_string())
 }
 
-fn configuration_fields() -> Vec<StandardConfigurationField> {
-    let number = |key: &str, value: i64| StandardConfigurationField {
+fn configuration_fields() -> Vec<KindConfigurationField> {
+    let number = |key: &str, value: i64| KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::I64(value),
-        rule: StandardConfigurationRule::I64Range {
+        rule: KindConfigurationRule::I64Range {
             minimum: i64::MIN,
             maximum: i64::MAX,
         },
     };
-    let choice = |key: &str, value: &str, values: &[&str]| StandardConfigurationField {
+    let choice = |key: &str, value: &str, values: &[&str]| KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::Text(value.into()),
-        rule: StandardConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).into()).collect(),
         },
     };

@@ -91,21 +91,21 @@ pub fn prepare_not(
     conduit_semantic_catalog::install_logic_catalogs(&mut StartupCatalog::new(), &mut catalog)
         .map_err(|_| LogicNotError::Catalog)?;
     catalog
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: source_offer(input).outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| LogicNotError::Catalog)?;
     catalog
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(SINK_KIND),
             kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| LogicNotError::Catalog)?;
     let form = parse(FORM, &catalog).map_err(|_| LogicNotError::Form)?;

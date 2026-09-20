@@ -1,7 +1,7 @@
 //! Small renderer-neutral presentation composition family.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
@@ -31,10 +31,10 @@ pub fn presentation_icon_contract() -> StandardKindContract {
         "Presentation icon",
         "Resolve one authoritative local icon identity with an exact accessible name.",
         vec![
-            StandardConfigurationField {
+            KindConfigurationField {
                 key: ICON_KEY.to_string(),
                 default_value: ConfigurationValue::Text("conduit-generic-gear".into()),
-                rule: StandardConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: PresentationIconKey::ALL
                         .iter()
                         .map(|value| value.as_str().to_string())
@@ -83,7 +83,7 @@ fn contract(
     kind: &str,
     plain_name: &str,
     summary: &str,
-    configuration: Vec<StandardConfigurationField>,
+    configuration: Vec<KindConfigurationField>,
     has_input: bool,
     example: &str,
 ) -> StandardKindContract {
@@ -104,9 +104,9 @@ fn contract(
             max_queue_bytes: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
         },
         terminal_behavior: if has_input {
-            TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible
+            KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible
         } else {
-            TerminalBehavior::EmitsOnce
+            KindTerminalBehavior::EmitsOnce
         },
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
@@ -124,17 +124,17 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn text_field(key: &str, default: &str) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn text_field(key: &str, default: &str) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::Text(default.into()),
-        rule: StandardConfigurationRule::TextBytes {
+        rule: KindConfigurationRule::TextBytes {
             maximum: MAX_COMPOSITION_NAME_BYTES as u32,
         },
     }
 }
 
-fn name_field(default: &str) -> StandardConfigurationField {
+fn name_field(default: &str) -> KindConfigurationField {
     text_field(ACCESSIBILITY_NAME_KEY, default)
 }
 
@@ -144,7 +144,7 @@ pub fn install_presentation_composition_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     for contract in [
@@ -168,7 +168,7 @@ pub fn install_presentation_composition_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: KindIdentity::from(
                     PRESENTATION_COMPOSITION_CONTRACT_REVISION,
@@ -178,15 +178,15 @@ pub fn install_presentation_composition_catalogs(
                 configuration: contract
                     .configuration
                     .into_iter()
-                    .map(|field| ConfigurationField {
+                    .map(|field| KindConfigurationField {
                         key: field.key,
                         default_value: field.default_value,
-                        validation: match field.rule {
-                            StandardConfigurationRule::TextBytes { maximum } => {
-                                ConfigurationRule::TextBytes { maximum }
+                        rule: match field.rule {
+                            KindConfigurationRule::TextBytes { maximum } => {
+                                KindConfigurationRule::TextBytes { maximum }
                             }
-                            StandardConfigurationRule::TextOneOf { values } => {
-                                ConfigurationRule::TextOneOf { values }
+                            KindConfigurationRule::TextOneOf { values } => {
+                                KindConfigurationRule::TextOneOf { values }
                             }
                             _ => unreachable!(),
                         },

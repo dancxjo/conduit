@@ -16,7 +16,7 @@ use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
     MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle, Presentation,
     PresentationBasis, PresentationRole, PresentationSubject, RendererRealizationOffer,
-    renderer_kind_definition, renderer_offer,
+    renderer_kind_projection, renderer_offer,
 };
 use patchbay_application::{
     PatchbayPresenterMode, PatchbayPresenterStage, PatchbayPresenterTopology,
@@ -279,7 +279,7 @@ fn prepare_stage(
     target: &str,
 ) -> Result<PresenterStage, ()> {
     let mut catalog = ProfileCatalog::new();
-    catalog.insert(renderer_kind_definition()).map_err(|_| ())?;
+    catalog.insert(renderer_kind_projection()).map_err(|_| ())?;
     let form = parse(
         "form conduitos-presenter {\n    renderer: presentation/renderer\n}\n",
         &catalog,

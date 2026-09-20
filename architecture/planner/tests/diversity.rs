@@ -6,7 +6,7 @@ use conduit_core::{
     ImplementationOffer, KindIdentity, LineId, LinkBindingId, LinkEndpointId, OfferGeneration,
     PortDescriptor, PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_planner::{
     classify_diversity, plan_with_options, prove_diverse_replacement,
     select_surviving_diverse_candidate, DiversityCandidate, DiversityRefusal,
@@ -31,8 +31,8 @@ fn port(direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn definition(kind: &str) -> KindDefinition {
-    KindDefinition {
+fn definition(kind: &str) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
         kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: (kind != SOURCE)
@@ -74,7 +74,7 @@ fn checked_form() -> conduit_form::CheckedForm {
     .unwrap()
 }
 
-fn offer(definition: &KindDefinition, part: &str) -> CapabilityOffer {
+fn offer(definition: &KindProjection, part: &str) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
         startup_parameters: vec![],

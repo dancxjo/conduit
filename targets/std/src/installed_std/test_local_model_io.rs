@@ -4,7 +4,7 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueStorage};
 
 const SOURCE_KIND: &str = "conduit-test/local-model-request";
@@ -392,12 +392,12 @@ fn install_offer(
         })
         .expect("test local-model IO startup Kind is unique");
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: offer.kind_id,
             kind_contract_revision: offer.kind_contract_revision,
             inputs: offer.inputs,
             outputs: offer.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("test local-model IO Kind is unique");
 }

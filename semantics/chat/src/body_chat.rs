@@ -14,7 +14,7 @@ use conduit_core::{
     kind_id, port_id, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 #[cfg(feature = "form-catalog")]
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -362,8 +362,8 @@ fn decode_message(bytes: &[u8]) -> Result<&str, BodyChatRefusal> {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn body_chat_prompt_definition() -> KindDefinition {
-    KindDefinition {
+pub fn body_chat_prompt_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(BODY_CHAT_PROMPT_KIND),
         kind_contract_revision: KindIdentity::from(BODY_CHAT_PROMPT_REVISION),
         inputs: vec![
@@ -393,8 +393,8 @@ pub fn body_chat_prompt_definition() -> KindDefinition {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn body_conversation_context_definition() -> KindDefinition {
-    KindDefinition {
+pub fn body_conversation_context_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(BODY_CONVERSATION_CONTEXT_KIND),
         kind_contract_revision: KindIdentity::from(BODY_CONVERSATION_CONTEXT_REVISION),
         inputs: vec![],
@@ -455,7 +455,7 @@ pub fn install_body_chat_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(BODY_CHAT_FORM_KIND),
             kind_contract_revision: KindIdentity::from(BODY_CHAT_FORM_REVISION),
             inputs: vec![],
@@ -491,7 +491,7 @@ pub fn body_conversation_context_semantic_contract() -> Kind {
 }
 
 #[cfg(feature = "form-catalog")]
-fn semantic_contract(definition: KindDefinition, limits: CapabilityLimits) -> Kind {
+fn semantic_contract(definition: KindProjection, limits: CapabilityLimits) -> Kind {
     Kind {
         startup_parameters: vec![],
         shorthand: None,
@@ -499,6 +499,8 @@ fn semantic_contract(definition: KindDefinition, limits: CapabilityLimits) -> Ki
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits,
     }
 }

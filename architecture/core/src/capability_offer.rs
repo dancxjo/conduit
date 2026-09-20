@@ -1,9 +1,10 @@
 use crate::{
     ArtifactId, AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindId, KindIdentity, PortDescriptor, PortId, ResourceRequirement,
+    CheckedFront, ExecutionProfileId, FrontStartupParameter, HostOperationRequirement,
+    ImplementationId, ImplementationOffer, KindConfigurationField, KindId, KindIdentity,
+    KindSemanticLaw, PortDescriptor, PortId, ResourceRequirement,
 };
-use alloc::vec::Vec;
+use alloc::{collections::BTreeSet, vec::Vec};
 
 /// Portable semantic truth from which a host may offer one realization.
 ///
@@ -17,7 +18,57 @@ pub struct Kind {
     pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub configuration: Vec<KindConfigurationField>,
+    pub semantic_laws: Vec<KindSemanticLaw>,
     pub limits: CapabilityLimits,
+}
+
+impl Kind {
+    pub fn checked_front(&self) -> CheckedFront {
+        CheckedFront::new(
+            self.startup_parameters.clone(),
+            self.inputs.clone(),
+            self.outputs.clone(),
+            self.shorthand.clone(),
+        )
+    }
+
+    pub fn validate(&self) -> Result<(), KindValidationError> {
+        if self.kind_id.as_str().is_empty() {
+            return Err(KindValidationError::EmptyId);
+        }
+        if self.kind_contract_revision.as_str().is_empty() {
+            return Err(KindValidationError::EmptyIdentity);
+        }
+        let mut keys = BTreeSet::new();
+        for field in &self.configuration {
+            if !keys.insert(field.key.as_str()) {
+                return Err(KindValidationError::DuplicateConfigurationKey);
+            }
+            let Some(front) = self
+                .startup_parameters
+                .iter()
+                .find(|parameter| parameter.name == field.key)
+            else {
+                return Err(KindValidationError::ConfigurationMissingFromFront);
+            };
+            // Configuration owns the canonical value and rule. The callable
+            // Front independently owns whether authors may omit it.
+            if front.value_type != field.default_value.semantic_kind() {
+                return Err(KindValidationError::ConfigurationFrontMismatch);
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KindValidationError {
+    EmptyId,
+    EmptyIdentity,
+    DuplicateConfigurationKey,
+    ConfigurationMissingFromFront,
+    ConfigurationFrontMismatch,
 }
 
 /// Host-owned identity and requirements for one semantic realization.
@@ -54,12 +105,28 @@ pub struct BackOfferBuilder {
 
 impl BackOfferBuilder {
     pub fn new(contract: Kind, realization: Back) -> Self {
+        if let Err(error) = contract.validate() {
+            panic!(
+                "Back offers require a valid canonical Kind '{}': {error:?}",
+                contract.kind_id.as_str()
+            );
+        }
         let realization_limits = contract.limits.clone();
         Self {
             contract,
             realization,
             realization_limits,
         }
+    }
+
+    pub fn try_new(contract: Kind, realization: Back) -> Result<Self, KindValidationError> {
+        contract.validate()?;
+        let realization_limits = contract.limits.clone();
+        Ok(Self {
+            contract,
+            realization,
+            realization_limits,
+        })
     }
 
     pub fn narrow_capacity(
@@ -120,6 +187,8 @@ mod tests {
                 temporal: PortTemporal::Value,
             }],
             outputs: Vec::new(),
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: CapabilityLimits {
                 max_active_instances: 4,
                 max_queue_items: 8,
@@ -206,5 +275,43 @@ mod tests {
                 expected
             );
         }
+    }
+
+    #[test]
+    fn kind_validation_refuses_duplicate_or_front_mismatched_configuration() {
+        let mut kind = contract();
+        kind.startup_parameters = vec![FrontStartupParameter {
+            name: "count".into(),
+            value_type: kind_id(crate::COUNT_INFO_ID),
+            has_default: true,
+        }];
+        kind.configuration = vec![KindConfigurationField {
+            key: "count".into(),
+            default_value: crate::ConfigurationValue::U64(1),
+            rule: crate::KindConfigurationRule::U64Range {
+                minimum: 1,
+                maximum: 8,
+            },
+        }];
+        assert_eq!(kind.validate(), Ok(()));
+
+        kind.startup_parameters[0].has_default = false;
+        assert_eq!(kind.validate(), Ok(()));
+
+        kind.configuration.push(kind.configuration[0].clone());
+        assert_eq!(
+            kind.validate(),
+            Err(KindValidationError::DuplicateConfigurationKey)
+        );
+        assert_eq!(
+            BackOfferBuilder::try_new(kind.clone(), realization("invalid")).unwrap_err(),
+            KindValidationError::DuplicateConfigurationKey
+        );
+        kind.configuration.pop();
+        kind.startup_parameters[0].value_type = kind_id(crate::TEXT_INFO_ID);
+        assert_eq!(
+            kind.validate(),
+            Err(KindValidationError::ConfigurationFrontMismatch)
+        );
     }
 }

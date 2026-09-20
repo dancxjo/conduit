@@ -95,12 +95,12 @@ pub(super) fn catalogs(
         &conduit_semantic_catalog::pattern_comparison_type(),
     );
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: comparison_presentation.kind_id,
             kind_contract_revision: comparison_presentation.kind_contract_revision,
             inputs: comparison_presentation.inputs,
             outputs: comparison_presentation.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())?;
     conduit_alife::install_lenia_catalogs(&mut startup, &mut profile)?;

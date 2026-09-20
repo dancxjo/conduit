@@ -196,21 +196,21 @@ fn checked(source: &str) -> Result<conduit_form::CheckedForm, PreparationError> 
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut catalog)
         .map_err(|_| PreparationError::FormRejected)?;
     catalog
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(NOTE_SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(NOTE_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: note_source_offer("catalog").outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| PreparationError::FormRejected)?;
     catalog
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(EMPTY_CONTROL_SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(EMPTY_CONTROL_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: empty_control_source_offer("catalog").outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| PreparationError::FormRejected)?;
     conduit_form::parse(source, &catalog).map_err(|_| PreparationError::FormRejected)

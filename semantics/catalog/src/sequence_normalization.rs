@@ -10,7 +10,7 @@ use conduit_core::{
     PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
     StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 pub const NORMALIZED_SEQUENCE_TYPE: &str = "NormalizedDurationSequence";
 pub const NORMALIZE_SEQUENCE_KIND: &str = "sequence/normalize-relative-duration";
@@ -47,8 +47,8 @@ pub fn normalized_duration_sequence_type() -> StructuredInfoType {
     .unwrap()
 }
 
-pub fn normalize_relative_duration_definition() -> KindDefinition {
-    KindDefinition {
+pub fn normalize_relative_duration_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(NORMALIZE_SEQUENCE_KIND),
         kind_contract_revision: KindIdentity::from(NORMALIZE_SEQUENCE_REVISION),
         inputs: vec![value_port(
@@ -61,7 +61,7 @@ pub fn normalize_relative_duration_definition() -> KindDefinition {
             &normalized_duration_sequence_type(),
             PortDirection::Output,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 
@@ -74,6 +74,8 @@ pub fn normalize_relative_duration_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 1,

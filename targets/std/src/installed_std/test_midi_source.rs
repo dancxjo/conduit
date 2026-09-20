@@ -8,7 +8,7 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindDefinition, ProfileCatalog};
+use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId, ValueRef, ValueStorage,
@@ -119,12 +119,12 @@ pub(super) fn offer() -> CapabilityOffer {
 
 pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(KIND),
             kind_contract_revision: KindIdentity::from(REVISION),
             inputs: Vec::new(),
             outputs: outputs(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("test MIDI source kind is unique");
 }

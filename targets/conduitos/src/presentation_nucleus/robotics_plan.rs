@@ -37,12 +37,12 @@ pub fn prepare_robotics(
         .map_err(|_| RoboticsError::Catalog)?;
     for (kind, value_kind) in discard_kinds() {
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: kind_id(kind),
                 kind_contract_revision: KindIdentity::from(SINK_REVISION),
                 inputs: discard_offer(kind, value_kind).inputs,
                 outputs: Vec::new(),
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|_| RoboticsError::Catalog)?;
     }

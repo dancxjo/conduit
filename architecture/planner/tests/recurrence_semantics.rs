@@ -6,7 +6,7 @@ use conduit_core::{
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, CanonicalStartupValue,
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
@@ -71,26 +71,26 @@ fn checked_document() -> (conduit_form::CheckedSyntaxDocument, StructuredInfoVal
     (checked, value)
 }
 
-fn definition(value: &StructuredInfoValue) -> KindDefinition {
+fn definition(value: &StructuredInfoValue) -> KindProjection {
     let profile = value.value_type().profile().unwrap().value_kind().clone();
     let default_value =
         StructuredConfigurationValue::new(profile.clone(), value.canonical_bytes().unwrap())
             .unwrap();
-    KindDefinition {
+    KindProjection {
         kind_id: KindId::from(KIND),
         kind_contract_revision: KindIdentity::from("time/expand-recurrence@1"),
         inputs: vec![],
         outputs: vec![],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "schedule".into(),
             default_value: ConfigurationValue::Structured(default_value),
-            validation: ConfigurationRule::Structured { profile },
+            rule: KindConfigurationRule::Structured { profile },
         }],
     }
 }
 
 fn advertisement(
-    definition: &KindDefinition,
+    definition: &KindProjection,
     startup_parameters: Vec<conduit_core::FrontStartupParameter>,
 ) -> HostAdvertisement {
     HostAdvertisement {

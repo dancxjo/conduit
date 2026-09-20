@@ -48,7 +48,7 @@ pub fn install_json_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::vec::Vec;
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
     for contract in [
         json_encode_semantics(),
         json_decode_semantics(),
@@ -59,12 +59,12 @@ pub fn install_json_catalogs(
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
                 outputs: contract.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|error| error.to_string())?;
     }

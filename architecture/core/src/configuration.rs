@@ -64,10 +64,97 @@ pub enum ConfigurationValue {
     Structured(StructuredConfigurationValue),
 }
 
+impl ConfigurationValue {
+    pub fn semantic_kind(&self) -> KindId {
+        crate::kind_id(match self {
+            Self::Bool(_) => crate::BOOL_INFO_ID,
+            Self::U64(_) => crate::COUNT_INFO_ID,
+            Self::I64(_) => crate::SCALAR_INFO_ID,
+            Self::Text(_) => crate::TEXT_INFO_ID,
+            Self::Quantity(_) => crate::QUANTITY_INFO_ID,
+            Self::Structured(value) => value.profile().as_str(),
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConfigurationEntry {
     pub key: String,
     pub value: ConfigurationValue,
+}
+
+/// One immutable startup field owned by a semantic [`crate::Kind`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KindConfigurationField {
+    pub key: String,
+    pub default_value: ConfigurationValue,
+    pub rule: KindConfigurationRule,
+}
+
+/// Finite validation law for one Kind configuration field.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KindConfigurationRule {
+    Any,
+    U64Range {
+        minimum: u64,
+        maximum: u64,
+    },
+    I64Range {
+        minimum: i64,
+        maximum: i64,
+    },
+    DurationMillis {
+        minimum: u64,
+        maximum: u64,
+    },
+    QuantityRange {
+        minimum: i64,
+        maximum: i64,
+        canonical_unit: crate::QuantityUnit,
+    },
+    TextBytes {
+        maximum: u32,
+    },
+    TextOneOf {
+        values: Vec<String>,
+    },
+    Structured {
+        profile: KindId,
+    },
+}
+
+/// A machine-readable semantic law owned by a Kind.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KindSemanticLaw {
+    Terminal(KindTerminalBehavior),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KindTerminalBehavior {
+    EmitsOnce,
+    EmitsOnceWhenScopeIsEligible,
+    CompletesAfterConfiguredCount,
+    CompletesAfterFixedCount { count: u64 },
+    CompletesWhenInputsClose,
+    MirrorsInputTerminal,
+    RetainsLatestUntilReleased,
+    EmitsCurrentAndCompletesWhenInputCloses,
+    CoupledAtomicFanoutAndMirrorsInputTerminal,
+    CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose,
+    CurrentScalarSelectorCompletesWhenInputsClose,
+    EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+    TrailingDebounceFlushesPendingValueThenCompletesWhenInputCloses,
+    InactivityStateCancelsDeadlineAndCompletesWhenInputCloses,
+    DelaysEachValueInOrderAndDrainsOnInputClosure,
+    LeadingThrottleDropsValuesDuringIntervalAndCompletesWhenInputCloses,
+    SimulatedCurrentObservationEmitsOnce,
+    HostInputEndsOrFailsSource,
+    HostObservationEndsOrFailsSource,
+    EmitsInitialAndTogglesUntilInputCloses,
+    EmitsOneField,
+    EvolvesAfterTicksAndCompletesWhenTickCloses,
+    PresentsEachFieldAndCompletesWhenInputCloses,
+    CompletesAfterDockedRefusedOrDeadline,
 }
 
 #[cfg(test)]

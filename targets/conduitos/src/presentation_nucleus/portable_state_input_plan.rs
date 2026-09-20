@@ -52,12 +52,12 @@ pub fn prepare_portable_state_input(
     let fixtures = fixture_offers();
     for offer in &fixtures {
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: offer.kind_id.clone(),
                 kind_contract_revision: offer.kind_contract_revision.clone(),
                 inputs: offer.inputs.clone(),
                 outputs: offer.outputs.clone(),
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|_| PortableStateInputError::Catalog)?;
     }

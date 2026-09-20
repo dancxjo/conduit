@@ -192,12 +192,12 @@ fn checked_expanded(
         })
         .map_err(|_| PreparationError::FormRejected)?;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(TONE_SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(TONE_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: tone_source_offer("catalog").outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| PreparationError::FormRejected)?;
     let checked = conduit_form::check_syntax_document(&syntax, &startup)

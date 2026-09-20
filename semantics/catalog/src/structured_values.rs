@@ -40,6 +40,8 @@ impl From<StructuredValueContract> for Kind {
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: contract.limits,
         }
     }
@@ -121,7 +123,7 @@ pub fn install_structured_value_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -154,12 +156,12 @@ pub fn install_structured_value_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: literal.kind_id,
             kind_contract_revision: literal.kind_contract_revision,
             inputs: literal.inputs,
             outputs: literal.outputs,
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "value".into(),
                 default_value: ConfigurationValue::Structured(
                     conduit_core::StructuredConfigurationValue::new(
@@ -168,19 +170,19 @@ pub fn install_structured_value_catalogs(
                     )
                     .ok_or_else(|| "structured literal default exceeds its bound".to_string())?,
                 ),
-                validation: ConfigurationRule::Structured {
+                rule: KindConfigurationRule::Structured {
                     profile: type_profile.value_kind().clone(),
                 },
             }],
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: presenter.kind_id,
             kind_contract_revision: presenter.kind_contract_revision,
             inputs: presenter.inputs,
             outputs: presenter.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())
 }

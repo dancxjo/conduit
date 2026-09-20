@@ -1,14 +1,12 @@
 use super::{
     configuration_type, robotics_contracts_with_revisions,
     robotics_hazard_contracts_with_revisions, robotics_input_contracts_with_revisions,
-    StandardConfigurationField, StandardConfigurationRule,
+    KindConfigurationField, KindConfigurationRule,
 };
 use alloc::format;
 use alloc::string::{String, ToString};
 use conduit_core::{ConfigurationValue, KindIdentity};
-use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
-};
+use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
 
 pub fn install_robotics_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -34,32 +32,32 @@ pub fn install_robotics_catalogs(
         let configuration = contract
             .configuration
             .iter()
-            .map(|field| ConfigurationField {
+            .map(|field| KindConfigurationField {
                 key: field.key.clone(),
                 default_value: field.default_value.clone(),
-                validation: match &field.rule {
-                    StandardConfigurationRule::U64Range { minimum, maximum } => {
-                        ConfigurationRule::U64Range {
+                rule: match &field.rule {
+                    KindConfigurationRule::U64Range { minimum, maximum } => {
+                        KindConfigurationRule::U64Range {
                             minimum: *minimum,
                             maximum: *maximum,
                         }
                     }
-                    StandardConfigurationRule::I64Range { minimum, maximum } => {
-                        ConfigurationRule::I64Range {
+                    KindConfigurationRule::I64Range { minimum, maximum } => {
+                        KindConfigurationRule::I64Range {
                             minimum: *minimum,
                             maximum: *maximum,
                         }
                     }
-                    StandardConfigurationRule::TextOneOf { values } => {
-                        ConfigurationRule::TextOneOf {
+                    KindConfigurationRule::TextOneOf { values } => {
+                        KindConfigurationRule::TextOneOf {
                             values: values.clone(),
                         }
                     }
-                    StandardConfigurationRule::QuantityRange {
+                    KindConfigurationRule::QuantityRange {
                         minimum,
                         maximum,
                         canonical_unit,
-                    } => ConfigurationRule::QuantityRange {
+                    } => KindConfigurationRule::QuantityRange {
                         minimum: *minimum,
                         maximum: *maximum,
                         canonical_unit: *canonical_unit,
@@ -69,7 +67,7 @@ pub fn install_robotics_catalogs(
             })
             .collect();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
@@ -81,7 +79,7 @@ pub fn install_robotics_catalogs(
     Ok(())
 }
 
-fn configuration_source(field: &StandardConfigurationField) -> String {
+fn configuration_source(field: &KindConfigurationField) -> String {
     match &field.default_value {
         ConfigurationValue::Text(value) => format!("\"{value}\""),
         ConfigurationValue::U64(value) => value.to_string(),

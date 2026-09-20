@@ -32,6 +32,8 @@ impl From<FlowPressureContract> for Kind {
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: contract.limits,
         }
     }
@@ -119,19 +121,19 @@ pub fn install_flow_pressure_kind(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     startup.insert(KindSignature {
         kind: contract.kind_id.as_str().into(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())
 }

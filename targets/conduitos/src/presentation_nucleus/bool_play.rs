@@ -85,12 +85,12 @@ pub fn prepare_bool(
     conduit_semantic_catalog::install_bool_presentation_catalog(&mut catalog)
         .map_err(|_| BoolPresentationError::Catalog)?;
     catalog
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: source_offer(value).outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| BoolPresentationError::Catalog)?;
     let form = parse(FORM, &catalog).map_err(|_| BoolPresentationError::Form)?;

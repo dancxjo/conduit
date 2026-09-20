@@ -12,7 +12,8 @@ use conduit_core::{
     StructuredConfigurationValue, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 use crate::{
@@ -87,14 +88,14 @@ pub fn install_geometry_catalogs(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(capture_bounded_stroke_kind_definition())
+        .insert(capture_bounded_stroke_kind_projection())
         .map_err(|error| error.to_string())
 }
 
-pub fn capture_bounded_stroke_kind_definition() -> KindDefinition {
+pub fn capture_bounded_stroke_kind_projection() -> KindProjection {
     let point = point2_type();
     let stroke = path2_type(4).expect("four-point stroke bound is reviewed");
-    KindDefinition {
+    KindProjection {
         kind_id: kind_id(CAPTURE_BOUNDED_STROKE_KIND),
         kind_contract_revision: KindIdentity::from(GEOMETRY_REVISION),
         inputs: vec![flow_geometry_port("point", &point, PortDirection::Input)],
@@ -104,7 +105,7 @@ pub fn capture_bounded_stroke_kind_definition() -> KindDefinition {
 }
 
 pub fn capture_bounded_stroke_semantic_contract() -> conduit_core::Kind {
-    let definition = capture_bounded_stroke_kind_definition();
+    let definition = capture_bounded_stroke_kind_projection();
     conduit_core::Kind {
         startup_parameters: vec![],
         shorthand: None,
@@ -112,6 +113,8 @@ pub fn capture_bounded_stroke_semantic_contract() -> conduit_core::Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: conduit_core::CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,
@@ -139,7 +142,7 @@ pub fn install_bounded_stroke_capture_catalog(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(capture_bounded_stroke_kind_definition())
+        .insert(capture_bounded_stroke_kind_projection())
         .map_err(|error| error.to_string())
 }
 
@@ -176,6 +179,8 @@ fn geometry_contract(
         kind_contract_revision: KindIdentity::from(GEOMETRY_REVISION),
         inputs,
         outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,
@@ -215,18 +220,18 @@ fn insert_contract(
     let canonical = default
         .canonical_bytes()
         .map_err(|error| format!("{error:?}"))?;
-    let configuration = vec![ConfigurationField {
+    let configuration = vec![KindConfigurationField {
         key: parameter.name.clone(),
         default_value: ConfigurationValue::Structured(
             StructuredConfigurationValue::new(value_profile.value_kind().clone(), canonical)
                 .ok_or_else(|| "geometry default exceeds structured bound".to_string())?,
         ),
-        validation: ConfigurationRule::Structured {
+        rule: KindConfigurationRule::Structured {
             profile: value_profile.value_kind().clone(),
         },
     }];
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,

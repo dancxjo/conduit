@@ -4,7 +4,7 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal, TIMER_RESOURCE_CLASS,
 };
-use conduit_form::{KindDefinition, ProfileCatalog};
+use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_human::{
     ChordInfo, CoreChordId, KeyEvent, KeyModifiers, KeyTransition, CHORD_ENCODED_LEN,
     CHORD_INFO_ID, KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
@@ -207,12 +207,12 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
         (SINK_KIND, SINK_REVISION, vec![sink_port()], Vec::new()),
     ] {
         catalog
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: kind_id(kind),
                 kind_contract_revision: KindIdentity::from(revision),
                 inputs,
                 outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .expect("test input semantic kind is unique");
     }

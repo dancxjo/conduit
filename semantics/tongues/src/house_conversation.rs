@@ -8,7 +8,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_text::{AddressDetection, ADDRESS_DETECTION_VALUE_KIND};
 use serde::{Deserialize, Serialize};
 
@@ -136,6 +136,8 @@ impl HousePromptContract {
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: self.limits,
         }
     }
@@ -260,7 +262,7 @@ pub fn install_house_conversation_catalog(
     })?;
     let contract = house_prompt_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -279,7 +281,7 @@ pub fn install_house_conversation_form_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(HOUSE_CONVERSATION_FORM_KIND),
             kind_contract_revision: KindIdentity::from(HOUSE_CONVERSATION_FORM_REVISION),
             inputs: vec![

@@ -4,7 +4,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 use serde::{Deserialize, Serialize};
@@ -40,6 +40,8 @@ impl SpeechContract {
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: self.limits,
         }
     }
@@ -122,7 +124,7 @@ pub fn install_speech_commit_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -159,18 +161,18 @@ fn install_contract(
         },
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: if is_synthesis {
-                vec![ConfigurationField {
+                vec![KindConfigurationField {
                     key: "maximum-output-bytes".into(),
                     default_value: conduit_core::ConfigurationValue::U64(u64::from(
                         MAXIMUM_PCM_BYTES,
                     )),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 1,
                         maximum: u64::from(MAXIMUM_PCM_BYTES),
                     },

@@ -9,7 +9,7 @@ use conduit_core::{
     SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 use conduit_planner::{
@@ -53,7 +53,7 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let startup = startup_with_observe();
     let mut profile = ProfileCatalog::new();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("flow/pool-observe"),
             kind_contract_revision: KindIdentity::from("flow/pool-observe@1"),
             inputs: vec![],

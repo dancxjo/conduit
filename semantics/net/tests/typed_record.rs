@@ -10,7 +10,7 @@ fn install_gallery_input_test_catalogs(
 ) {
     use conduit_core::{port_id, ConfigurationValue, PortDescriptor, PortDirection, PortTemporal};
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -21,7 +21,7 @@ fn install_gallery_input_test_catalogs(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("input/keyboard"),
             kind_contract_revision: "conduit.input/keyboard@2".into(),
             inputs: vec![],
@@ -46,7 +46,7 @@ fn install_gallery_input_test_catalogs(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("input/keymap"),
             kind_contract_revision: "conduit.input/keymap@2".into(),
             inputs: vec![PortDescriptor {
@@ -61,10 +61,10 @@ fn install_gallery_input_test_catalogs(
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Flow { closes: false },
             }],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "layout".into(),
                 default_value: ConfigurationValue::Text("conduit-intl".into()),
-                validation: ConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: vec!["conduit-intl".into()],
                 },
             }],
@@ -82,7 +82,7 @@ fn install_gallery_input_test_catalogs(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("text/submit-lines"),
             kind_contract_revision: "conduit.text/submit-lines@1".into(),
             inputs: vec![PortDescriptor {
@@ -97,10 +97,10 @@ fn install_gallery_input_test_catalogs(
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Flow { closes: false },
             }],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "maximum-bytes".into(),
                 default_value: ConfigurationValue::U64(256),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: 256,
                 },
@@ -396,7 +396,7 @@ fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id("presentation/text"),
             kind_contract_revision: "test/presentation-text@1".into(),
             inputs: vec![conduit_core::PortDescriptor {
@@ -463,7 +463,7 @@ fn night_radio_composes_existing_framing_queue_and_presentation() {
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id("presentation/text"),
             kind_contract_revision: "test/presentation-text@1".into(),
             inputs: vec![conduit_core::PortDescriptor {

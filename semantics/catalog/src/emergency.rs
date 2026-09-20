@@ -6,23 +6,21 @@
 //! until separately admitted by the out-of-band emergency control plane.
 
 use crate::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 #[cfg(feature = "form-catalog")]
 use alloc::format;
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
-use alloc::{vec, vec::Vec};
+use alloc::vec;
 use conduit_audio::{AUDIO_PCM_INFO_ID, MAXIMUM_PCM_FRAME_BYTES, PCM_FRAME_HEADER_ENCODED_LEN};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal,
 };
 #[cfg(feature = "form-catalog")]
-use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
-};
+use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
 
 pub const EMERGENCY_KEYWORD_SPOTTER_KIND: &str = "emergency/keyword-spotter";
 pub const EMERGENCY_SEQUENCE_MATCH_KIND: &str = "emergency/sequence-match";
@@ -47,13 +45,13 @@ pub fn emergency_keyword_spotter_contract() -> StandardKindContract {
             EMERGENCY_KEYWORD_OBSERVATION_INFO_ID,
             PortDirection::Output,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 1,
             max_queue_bytes: PCM_FRAME_HEADER_ENCODED_LEN as u32 + MAXIMUM_PCM_FRAME_BYTES,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -77,10 +75,10 @@ pub fn emergency_sequence_match_contract() -> StandardKindContract {
             EMERGENCY_TRIGGER_OBSERVATION_INFO_ID,
             PortDirection::Output,
         )],
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: EMERGENCY_MAXIMUM_WORD_GAP_MILLIS_KEY.to_string(),
             default_value: ConfigurationValue::U64(EMERGENCY_MAXIMUM_WORD_GAP_MILLIS),
-            rule: StandardConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 1,
                 maximum: EMERGENCY_MAXIMUM_WORD_GAP_MILLIS,
             },
@@ -90,7 +88,7 @@ pub fn emergency_sequence_match_contract() -> StandardKindContract {
             max_queue_items: 3,
             max_queue_bytes: 3 * EMERGENCY_KEYWORD_OBSERVATION_MAXIMUM_BYTES,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -127,7 +125,7 @@ pub fn install_emergency_observation_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
@@ -135,12 +133,12 @@ pub fn install_emergency_observation_catalogs(
                 configuration: contract
                     .configuration
                     .iter()
-                    .map(|field| ConfigurationField {
+                    .map(|field| KindConfigurationField {
                         key: field.key.clone(),
                         default_value: field.default_value.clone(),
-                        validation: match field.rule {
-                            StandardConfigurationRule::U64Range { minimum, maximum } => {
-                                ConfigurationRule::U64Range { minimum, maximum }
+                        rule: match field.rule {
+                            KindConfigurationRule::U64Range { minimum, maximum } => {
+                                KindConfigurationRule::U64Range { minimum, maximum }
                             }
                             _ => unreachable!("emergency gears use finite u64 configuration"),
                         },
@@ -153,7 +151,7 @@ pub fn install_emergency_observation_catalogs(
 }
 
 #[cfg(feature = "form-catalog")]
-fn configuration_type(field: &StandardConfigurationField) -> &'static str {
+fn configuration_type(field: &KindConfigurationField) -> &'static str {
     match &field.default_value {
         ConfigurationValue::U64(_) => "Count",
         _ => unreachable!("emergency gears use finite u64 configuration"),
@@ -161,7 +159,7 @@ fn configuration_type(field: &StandardConfigurationField) -> &'static str {
 }
 
 #[cfg(feature = "form-catalog")]
-fn configuration_source(field: &StandardConfigurationField) -> String {
+fn configuration_source(field: &KindConfigurationField) -> String {
     match &field.default_value {
         ConfigurationValue::U64(value) => format!("{value}"),
         _ => unreachable!("emergency gears use finite u64 configuration"),

@@ -5,7 +5,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::{
     REACTION_DIFFUSION_MAXIMUM_STATE_BYTES, REACTION_DIFFUSION_REQUEST_INFO_ID,
@@ -19,19 +19,18 @@ pub fn install_reaction_diffusion_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    let definition = reaction_diffusion_definition();
     startup.insert(KindSignature {
         kind: REACTION_DIFFUSION_EVOLVE_KIND.into(),
         startup_parameters: vec![],
     })?;
     profile
-        .insert(definition)
+        .insert_kind(reaction_diffusion_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
-pub fn reaction_diffusion_definition() -> KindDefinition {
+pub fn reaction_diffusion_definition() -> KindProjection {
     let contract = reaction_diffusion_semantic_contract();
-    KindDefinition {
+    KindProjection {
         kind_id: contract.kind_id,
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
@@ -48,6 +47,8 @@ pub fn reaction_diffusion_semantic_contract() -> Kind {
         kind_contract_revision: KindIdentity::from(REACTION_DIFFUSION_KIND_REVISION),
         inputs: reaction_diffusion_inputs(),
         outputs: reaction_diffusion_outputs(),
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,

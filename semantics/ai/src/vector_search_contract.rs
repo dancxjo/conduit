@@ -168,7 +168,7 @@ pub fn install_vector_search_catalog(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -200,17 +200,17 @@ pub fn install_vector_search_catalog(
             .collect(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: parameters
                 .into_iter()
-                .map(|(key, maximum)| ConfigurationField {
+                .map(|(key, maximum)| KindConfigurationField {
                     key: key.to_string(),
                     default_value: conduit_core::ConfigurationValue::U64(maximum),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 1,
                         maximum,
                     },

@@ -219,9 +219,9 @@ mod tests {
         ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
         OfferGeneration, PROTOCOL_VERSION,
     };
-    use conduit_form::KindDefinition;
+    use conduit_form::KindProjection;
 
-    fn remote_offer(definition: &KindDefinition) -> CapabilityOffer {
+    fn remote_offer(definition: &KindProjection) -> CapabilityOffer {
         let slug = definition.kind_id.as_str().replace('/', "-");
         CapabilityOffer {
             startup_parameters: definition

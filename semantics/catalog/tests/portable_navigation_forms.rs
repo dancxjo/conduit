@@ -319,7 +319,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     (startup, profile)
 }
 
-fn host(selector_definitions: Vec<conduit_form::KindDefinition>) -> HostAdvertisement {
+fn host(selector_definitions: Vec<conduit_form::KindProjection>) -> HostAdvertisement {
     let mut capabilities = navigation_kind_contracts()
         .into_iter()
         .map(|(kind, inputs, outputs)| {

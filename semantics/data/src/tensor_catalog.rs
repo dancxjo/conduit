@@ -5,7 +5,7 @@ use alloc::{
     vec,
 };
 use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::TENSOR_INFO_ID;
 
@@ -26,7 +26,7 @@ pub fn install_tensor_catalogs(
             .map_err(|error| error.to_string())?;
     }
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(TENSOR_FIXTURE_KIND),
             kind_contract_revision: KindIdentity::from(TENSOR_CONTRACT_REVISION),
             inputs: vec![],
@@ -35,7 +35,7 @@ pub fn install_tensor_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(TENSOR_IDENTITY_KIND),
             kind_contract_revision: KindIdentity::from(TENSOR_CONTRACT_REVISION),
             inputs: vec![port("tensor", PortDirection::Input)],

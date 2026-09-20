@@ -6,7 +6,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION, RESOURCE_REFERENCE_INFO_ID,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{
@@ -29,7 +29,7 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn definition(kind: &str, direction: PortDirection) -> KindDefinition {
+fn definition(kind: &str, direction: PortDirection) -> KindProjection {
     let descriptor = port(
         match direction {
             PortDirection::Input => "reference",
@@ -37,7 +37,7 @@ fn definition(kind: &str, direction: PortDirection) -> KindDefinition {
         },
         direction,
     );
-    KindDefinition {
+    KindProjection {
         kind_id: kind_id(kind),
         kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: (direction == PortDirection::Input)
@@ -52,7 +52,7 @@ fn definition(kind: &str, direction: PortDirection) -> KindDefinition {
     }
 }
 
-fn offer(definition: &KindDefinition) -> CapabilityOffer {
+fn offer(definition: &KindProjection) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     let dereferences = definition.kind_id.as_str() == SINK_KIND;
     let host_operations = dereferences

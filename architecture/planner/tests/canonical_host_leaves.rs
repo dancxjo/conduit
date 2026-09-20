@@ -5,8 +5,8 @@ use conduit_core::{
     PROTOCOL_VERSION,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use conduit_planner::{
@@ -55,7 +55,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
 
     let mut profile = ProfileCatalog::new();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("text/source"),
             kind_contract_revision: KindIdentity::from("text/source@1"),
             inputs: vec![],
@@ -64,15 +64,15 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("text/join"),
             kind_contract_revision: KindIdentity::from("text/join@1"),
             inputs: vec![port("text", PortDirection::Input)],
             outputs: vec![port("text", PortDirection::Output)],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "prefix".into(),
                 default_value: ConfigurationValue::U64(1),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: 8,
                 },
@@ -80,7 +80,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("presentation/text"),
             kind_contract_revision: KindIdentity::from("presentation/text@1"),
             inputs: vec![port("text", PortDirection::Input)],
@@ -113,7 +113,7 @@ form welcome {
     expand_canonical_form(&checked, "welcome", &profile).expect("reusable form expands")
 }
 
-fn offer(definition: &KindDefinition) -> CapabilityOffer {
+fn offer(definition: &KindProjection) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
         startup_parameters: definition

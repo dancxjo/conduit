@@ -49,7 +49,7 @@ pub(crate) fn placement(
             kind_id: kind.clone(),
             kind_contract_revision: "resource/snapshot@1".into(),
             execution_profile_id: "browser/resource-snapshot@1".into(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
             host_id: host.clone(),
             boot_id: boot.clone(),
             offer_generation: OfferGeneration(1),

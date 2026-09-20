@@ -216,6 +216,8 @@ pub fn robotics_structured_semantic_contracts() -> Vec<Kind> {
             kind_contract_revision: KindIdentity::from(ROBOTICS_STRUCTURED_REVISION),
             inputs,
             outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 1,

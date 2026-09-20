@@ -176,7 +176,7 @@ pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> 
         (FIXTURE_LAYOUT_KIND, conduit_presentation::LAYOUT_FRAME_KIND),
     ] {
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: kind_id(kind),
                 kind_contract_revision: KindIdentity::from("browser.fixture/presentation-sink@1"),
                 inputs: vec![PortDescriptor {
@@ -186,7 +186,7 @@ pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> 
                     temporal: PortTemporal::Value,
                 }],
                 outputs: Vec::new(),
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|error| format!("install browser fixture sink: {error:?}"))?;
     }
@@ -218,12 +218,12 @@ pub(super) fn text_fixture_catalog() -> Result<conduit_form::ProfileCatalog, Str
     let mut startup = conduit_form::StartupCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)?;
     catalog
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(FIXTURE_TEXT_KIND),
             kind_contract_revision: KindIdentity::from("browser.fixture/text-source@1"),
             inputs: Vec::new(),
             outputs: text_source_offer().outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| format!("install browser text source: {error:?}"))?;
     Ok(catalog)

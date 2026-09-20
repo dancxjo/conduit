@@ -4,7 +4,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, SignId, TemporalInstant, TemporalRelation,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_robotics::{BatteryObservation, ROBOTICS_BATTERY_INFO_ID};
 use serde::Serialize;
 
@@ -316,7 +316,7 @@ pub fn install_pete_situation_catalog(
     })?;
     let contract = pete_situation_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,

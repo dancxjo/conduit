@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredFieldType, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 pub const REMINDER_OCCURRENCE_TYPE: &str = "ReminderOccurrence";
 pub const REMINDER_FIXTURE_KIND: &str = "notification/deterministic-reminder";
@@ -74,7 +74,7 @@ fn insert_kind(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -92,6 +92,8 @@ fn contract(kind: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor
         kind_contract_revision: KindIdentity::from(REMINDER_REVISION),
         inputs,
         outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 4,

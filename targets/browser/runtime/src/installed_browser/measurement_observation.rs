@@ -31,10 +31,10 @@ fn offer() -> conduit_core::CapabilityOffer {
             inputs: definition.inputs,
             outputs: definition.outputs,
             configuration: vec![
-                conduit_semantic_catalog::StandardConfigurationField {
+                conduit_semantic_catalog::KindConfigurationField {
                     key: "clock-basis".into(),
                     default_value: ConfigurationValue::Text("control-occurrence".into()),
-                    rule: conduit_semantic_catalog::StandardConfigurationRule::TextBytes {
+                    rule: conduit_semantic_catalog::KindConfigurationRule::TextBytes {
                         maximum: conduit_data::MAXIMUM_MEASUREMENT_CLOCK_BASIS_BYTES,
                     },
                 },
@@ -44,7 +44,7 @@ fn offer() -> conduit_core::CapabilityOffer {
                 max_queue_items: 1,
                 max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
             },
-            terminal_behavior: conduit_semantic_catalog::TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+            terminal_behavior: conduit_semantic_catalog::KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
             hosted_implementation_required: true,
             browser_manifestation_honest: false,
             pico_manifestation_honest: false,

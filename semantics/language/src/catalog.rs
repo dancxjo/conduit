@@ -11,7 +11,8 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 use crate::{
@@ -62,8 +63,8 @@ pub fn install_linguistics_catalogs(
         .map_err(|error| error.to_string())
 }
 
-pub fn tokenize_four_definition() -> KindDefinition {
-    KindDefinition {
+pub fn tokenize_four_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(TOKENIZE_FOUR_KIND),
         kind_contract_revision: KindIdentity::from(LINGUISTICS_REVISION),
         inputs: vec![],
@@ -72,10 +73,10 @@ pub fn tokenize_four_definition() -> KindDefinition {
             &linguistic_tokens_four_type(),
             PortDirection::Output,
         )],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "text".into(),
             default_value: ConfigurationValue::Text(String::new()),
-            validation: ConfigurationRule::TextBytes {
+            rule: KindConfigurationRule::TextBytes {
                 maximum: MAXIMUM_LINGUISTIC_TEXT_BYTES,
             },
         }],
@@ -95,12 +96,14 @@ pub fn tokenize_four_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: linguistic_limits(),
     }
 }
 
-pub fn annotate_four_definition() -> KindDefinition {
-    KindDefinition {
+pub fn annotate_four_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(ANNOTATE_FOUR_KIND),
         kind_contract_revision: KindIdentity::from(LINGUISTICS_REVISION),
         inputs: vec![port(
@@ -126,6 +129,8 @@ pub fn annotate_four_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: linguistic_limits(),
     }
 }

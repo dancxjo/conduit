@@ -303,7 +303,7 @@ mod tests {
             kind_id: offered.kind_id,
             kind_contract_revision: offered.kind_contract_revision,
             execution_profile_id: offered.implementation.execution_profile_id,
-            configuration: Vec::new(),
+            configuration: Default::default(),
             host_id: "browser/capture".into(),
             boot_id: "browser-boot/capture".into(),
             offer_generation: OfferGeneration(1),

@@ -1,4 +1,4 @@
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -21,13 +21,13 @@ pub fn tick_presentation_contract() -> StandardKindContract {
             temporal: conduit_core::PortTemporal::Flow { closes: false },
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 4,
             max_queue_bytes: 64,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -36,15 +36,15 @@ pub fn tick_presentation_contract() -> StandardKindContract {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn tick_presentation_kind_definition() -> conduit_form::KindDefinition {
-    use conduit_form::KindDefinition;
+pub fn tick_presentation_kind_projection() -> conduit_form::KindProjection {
+    use conduit_form::KindProjection;
     let contract = tick_presentation_contract();
-    KindDefinition {
+    KindProjection {
         kind_id: contract.kind_id,
         kind_contract_revision: KindIdentity::from(TICK_PRESENTATION_CONTRACT_REVISION),
         inputs: contract.inputs,
         outputs: contract.outputs,
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 
@@ -59,6 +59,6 @@ pub fn install_tick_presentation_catalog(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(tick_presentation_kind_definition())
+        .insert(tick_presentation_kind_projection())
         .map_err(|error| error.to_string())
 }

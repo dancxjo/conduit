@@ -5,7 +5,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, Scalar, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
     TIMER_RESOURCE_CLASS,
 };
-use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
+use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId, ValueRef, ValueStorage,
@@ -260,51 +260,51 @@ fn offer(
 
 pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     for definition in [
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: source_offer().outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(LITERAL_KIND),
             kind_contract_revision: KindIdentity::from(LITERAL_REVISION),
             inputs: Vec::new(),
             outputs: literal_offer().outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(SINK_KIND),
             kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
             outputs: Vec::new(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "expected".into(),
                 default_value: ConfigurationValue::U64(EXPECTED_VALUES),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: EXPECTED_VALUES,
                 },
             }],
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(conduit_semantic_catalog::LATEST_KIND),
             kind_contract_revision: KindIdentity::from(
                 conduit_semantic_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
             ),
             inputs: conduit_semantic_catalog::state_latest_scalar_contract().inputs,
             outputs: conduit_semantic_catalog::state_latest_scalar_contract().outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(conduit_semantic_catalog::TEE_KIND),
             kind_contract_revision: KindIdentity::from(
                 conduit_semantic_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
             ),
             inputs: conduit_semantic_catalog::flow_tee_scalar_contract().inputs,
             outputs: conduit_semantic_catalog::flow_tee_scalar_contract().outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         },
     ] {
         catalog

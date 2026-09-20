@@ -54,22 +54,22 @@ pub fn prepare_logic_multi(
     for (kind, value) in sources {
         let offer = source_offer(kind, value);
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: kind_id(kind),
                 kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
                 inputs: Vec::new(),
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|_| LogicMultiError::Catalog)?;
     }
     catalog
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(SINK_KIND),
             kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| LogicMultiError::Catalog)?;
     let operator = match comparison {

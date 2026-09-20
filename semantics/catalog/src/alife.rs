@@ -1,7 +1,7 @@
 //! Portable bounded Lenia meanings.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_alife::{LENIA_MAXIMUM_FIELD_BYTES, MAXIMUM_PRESENTED_FIELDS};
@@ -29,7 +29,7 @@ pub fn orbium_seed_contract() -> StandardKindContract {
             max_queue_items: 4,
             max_queue_bytes: LENIA_MAXIMUM_FIELD_BYTES * 4,
         },
-        terminal_behavior: TerminalBehavior::EmitsOneField,
+        terminal_behavior: KindTerminalBehavior::EmitsOneField,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -51,7 +51,7 @@ pub fn lenia_step_contract() -> StandardKindContract {
             max_queue_items: MAXIMUM_PRESENTED_FIELDS + 1,
             max_queue_bytes: LENIA_MAXIMUM_FIELD_BYTES + 64,
         },
-        terminal_behavior: TerminalBehavior::EvolvesAfterTicksAndCompletesWhenTickCloses,
+        terminal_behavior: KindTerminalBehavior::EvolvesAfterTicksAndCompletesWhenTickCloses,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -75,7 +75,7 @@ pub fn scalar_field_presentation_contract() -> StandardKindContract {
             max_queue_items: MAXIMUM_PRESENTED_FIELDS,
             max_queue_bytes: LENIA_MAXIMUM_FIELD_BYTES * u32::from(MAXIMUM_PRESENTED_FIELDS),
         },
-        terminal_behavior: TerminalBehavior::PresentsEachFieldAndCompletesWhenInputCloses,
+        terminal_behavior: KindTerminalBehavior::PresentsEachFieldAndCompletesWhenInputCloses,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -107,45 +107,49 @@ fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
         kind_contract_revision: revision.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
 
 fn standard_configuration(
-    fields: Vec<conduit_form::ConfigurationField>,
-) -> Vec<StandardConfigurationField> {
+    fields: Vec<conduit_form::KindConfigurationField>,
+) -> Vec<KindConfigurationField> {
     fields
         .into_iter()
-        .map(|field| StandardConfigurationField {
+        .map(|field| KindConfigurationField {
             key: field.key,
             default_value: field.default_value,
-            rule: match field.validation {
-                conduit_form::ConfigurationRule::Any => StandardConfigurationRule::Any,
-                conduit_form::ConfigurationRule::U64Range { minimum, maximum } => {
-                    StandardConfigurationRule::U64Range { minimum, maximum }
+            rule: match field.rule {
+                conduit_form::KindConfigurationRule::Any => KindConfigurationRule::Any,
+                conduit_form::KindConfigurationRule::U64Range { minimum, maximum } => {
+                    KindConfigurationRule::U64Range { minimum, maximum }
                 }
-                conduit_form::ConfigurationRule::I64Range { minimum, maximum } => {
-                    StandardConfigurationRule::I64Range { minimum, maximum }
+                conduit_form::KindConfigurationRule::I64Range { minimum, maximum } => {
+                    KindConfigurationRule::I64Range { minimum, maximum }
                 }
-                conduit_form::ConfigurationRule::DurationMillis { minimum, maximum } => {
-                    StandardConfigurationRule::DurationMillis { minimum, maximum }
+                conduit_form::KindConfigurationRule::DurationMillis { minimum, maximum } => {
+                    KindConfigurationRule::DurationMillis { minimum, maximum }
                 }
-                conduit_form::ConfigurationRule::QuantityRange {
+                conduit_form::KindConfigurationRule::QuantityRange {
                     minimum,
                     maximum,
                     canonical_unit,
-                } => StandardConfigurationRule::QuantityRange {
+                } => KindConfigurationRule::QuantityRange {
                     minimum,
                     maximum,
                     canonical_unit,
                 },
-                conduit_form::ConfigurationRule::TextBytes { maximum } => {
-                    StandardConfigurationRule::TextBytes { maximum }
+                conduit_form::KindConfigurationRule::TextBytes { maximum } => {
+                    KindConfigurationRule::TextBytes { maximum }
                 }
-                conduit_form::ConfigurationRule::TextOneOf { values } => {
-                    StandardConfigurationRule::TextOneOf { values }
+                conduit_form::KindConfigurationRule::TextOneOf { values } => {
+                    KindConfigurationRule::TextOneOf { values }
                 }
-                conduit_form::ConfigurationRule::Structured { .. } => {
+                conduit_form::KindConfigurationRule::Structured { .. } => {
                     unreachable!("Lenia definitions do not use structured configuration")
                 }
             },

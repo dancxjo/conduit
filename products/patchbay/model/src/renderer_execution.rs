@@ -9,7 +9,7 @@ use conduit_core::{
 use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    renderer_kind_definition, renderer_offer, Manifestation, ManifestationError,
+    renderer_kind_projection, renderer_offer, Manifestation, ManifestationError,
     ManifestationFailure, ManifestationLifecycle, Presentation, RendererRealizationOffer,
     MAX_RENDERER_VALUE_BYTES,
 };
@@ -211,7 +211,7 @@ impl RendererExecution {
 fn renderer_form() -> Result<conduit_form::CheckedForm, RendererExecutionError> {
     let mut catalog = ProfileCatalog::new();
     catalog
-        .insert(renderer_kind_definition())
+        .insert(renderer_kind_projection())
         .map_err(|_| RendererExecutionError::InvalidRendererForm)?;
     parse(
         "form patchbay-show {\n    renderer: presentation/renderer\n}\n",

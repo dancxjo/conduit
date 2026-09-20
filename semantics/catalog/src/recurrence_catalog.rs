@@ -12,7 +12,8 @@ use conduit_core::{
     StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const RECURRENCE_REQUEST_TYPE: &str = "RecurrenceExpansion";
@@ -49,6 +50,8 @@ pub fn recurrence_semantic_contract() -> Kind {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: RECURRENCE_MAXIMUM_RESULTS,
@@ -338,7 +341,7 @@ pub fn install_recurrence_catalogs(
         .profile()
         .map_err(|error| alloc::format!("{error:?}"))?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(RECURRENCE_KIND),
             kind_contract_revision: KindIdentity::from(RECURRENCE_REVISION),
             inputs: vec![],
@@ -352,7 +355,7 @@ pub fn install_recurrence_catalogs(
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Value,
             }],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "request".into(),
                 default_value: ConfigurationValue::Structured(
                     conduit_core::StructuredConfigurationValue::new(
@@ -365,7 +368,7 @@ pub fn install_recurrence_catalogs(
                     )
                     .ok_or_else(|| "default recurrence configuration is invalid".to_string())?,
                 ),
-                validation: ConfigurationRule::Structured {
+                rule: KindConfigurationRule::Structured {
                     profile: request_profile.value_kind().clone(),
                 },
             }],

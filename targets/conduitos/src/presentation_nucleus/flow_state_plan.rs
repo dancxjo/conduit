@@ -41,12 +41,12 @@ pub fn prepare_flow_state(
         sink_offer(RIGHT_SINK_KIND),
     ] {
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|_| FlowStateError::Catalog)?;
     }

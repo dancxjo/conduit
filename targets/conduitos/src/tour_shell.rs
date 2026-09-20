@@ -27,7 +27,7 @@ use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
     LayoutRect, MAX_RENDERER_VALUE_BYTES, ManifestationId, Presentation, PresentationBasis,
-    RendererRealizationOffer, renderer_kind_definition, renderer_offer,
+    RendererRealizationOffer, renderer_kind_projection, renderer_offer,
 };
 use conduit_tour_model::{TOUR_WORKSPACE_SUBJECT, TourTransientKind};
 
@@ -191,7 +191,7 @@ impl TourShellPresenter {
         }
         let mut catalog = ProfileCatalog::new();
         catalog
-            .insert(renderer_kind_definition())
+            .insert(renderer_kind_projection())
             .map_err(|_| TourShellError::Catalog)?;
         let form = parse(RENDERER_FORM, &catalog).map_err(|_| TourShellError::Catalog)?;
         let implementation = ImplementationId::from(NATIVE_PRESENTER_IMPLEMENTATION);

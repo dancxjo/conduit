@@ -1,4 +1,4 @@
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -87,13 +87,13 @@ pub fn copy_file_contract() -> StandardKindContract {
             .to_string(),
         inputs: Vec::new(),
         outputs: vec![result_port(PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
             max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         },
-        terminal_behavior: TerminalBehavior::CompletesAfterFixedCount { count: 1 },
+        terminal_behavior: KindTerminalBehavior::CompletesAfterFixedCount { count: 1 },
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -104,19 +104,19 @@ pub fn copy_file_contract() -> StandardKindContract {
 #[cfg(feature = "form-catalog")]
 pub fn install_copy_file_catalog(catalog: &mut conduit_form::ProfileCatalog) -> Result<(), String> {
     for definition in [
-        conduit_form::KindDefinition {
+        conduit_form::KindProjection {
             kind_id: kind_id(COPY_FILE_KIND),
             kind_contract_revision: KindIdentity::from(COPY_FILE_CONTRACT_REVISION),
             inputs: Vec::new(),
             outputs: vec![result_port(PortDirection::Output)],
-            configuration: Vec::new(),
+            configuration: Default::default(),
         },
-        conduit_form::KindDefinition {
+        conduit_form::KindProjection {
             kind_id: kind_id(crate::STRUCTURED_PRESENTATION_KIND),
             kind_contract_revision: KindIdentity::from(crate::STRUCTURED_PRESENTATION_REVISION),
             inputs: vec![result_port(PortDirection::Input)],
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         },
     ] {
         catalog

@@ -29,7 +29,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: source.kind_id.clone(),
             kind_contract_revision: source.kind_contract_revision.clone(),
             inputs: vec![],

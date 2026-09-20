@@ -52,7 +52,7 @@ pub fn install_morse_backs(
         let checked = check_syntax_document(&parse_syntax_document(source), startup)
             .map_err(|error| alloc::format!("check {form_name} Back: {error:?}"))?;
         let definition = profile
-            .get(&conduit_core::kind_id(kind))
+            .canonical_kind(&conduit_core::kind_id(kind))
             .ok_or_else(|| alloc::format!("missing {kind} definition"))?;
         let signature = startup
             .signature(kind)
@@ -126,7 +126,7 @@ mod tests {
         let checked = check_syntax_document(&parse_syntax_document(TEXT_MORSE_BACK), &startup)
             .expect("reviewed Back checks");
         let definition = profile
-            .get(&conduit_core::kind_id(crate::TEXT_MORSE_KIND))
+            .canonical_kind(&conduit_core::kind_id(crate::TEXT_MORSE_KIND))
             .unwrap();
         let mismatched_startup = [conduit_core::FrontStartupParameter {
             name: "tempo".into(),
@@ -163,7 +163,7 @@ mod tests {
         let cyclic = check_syntax_document(&parse_syntax_document(cyclic_source), &startup)
             .expect("cyclic Back checks before expansion");
         let definition = profile
-            .get(&conduit_core::kind_id(crate::TEXT_MORSE_SYMBOLS_KIND))
+            .canonical_kind(&conduit_core::kind_id(crate::TEXT_MORSE_SYMBOLS_KIND))
             .unwrap();
         let signature = startup.signature(crate::TEXT_MORSE_SYMBOLS_KIND).unwrap();
         let canonical_startup = startup.canonical_startup_parameters(signature).unwrap();

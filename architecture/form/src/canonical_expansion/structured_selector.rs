@@ -1,5 +1,5 @@
 use super::*;
-use crate::{ConfigurationField, ConfigurationRule, KindDefinition};
+use crate::{KindConfigurationField, KindConfigurationRule, KindProjection};
 use conduit_core::{
     ConfigurationValue, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
@@ -8,11 +8,11 @@ use conduit_core::{
 pub fn structured_selector_definition(
     selector: &StructuredSelector,
     temporal: PortTemporal,
-) -> KindDefinition {
+) -> KindProjection {
     let kind_id = selector
         .kind_id(temporal)
         .expect("checked selector has a finite semantic identity");
-    KindDefinition {
+    KindProjection {
         kind_id,
         kind_contract_revision: KindIdentity::from("structured-info/selector-operation@1"),
         inputs: vec![PortDescriptor {
@@ -37,14 +37,14 @@ pub fn structured_selector_definition(
             direction: PortDirection::Output,
             temporal,
         }],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "selector".to_string(),
             default_value: ConfigurationValue::Text(
                 selector
                     .canonical_hex()
                     .expect("checked selector has a finite canonical configuration"),
             ),
-            validation: ConfigurationRule::TextBytes {
+            rule: KindConfigurationRule::TextBytes {
                 maximum: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
             },
         }],

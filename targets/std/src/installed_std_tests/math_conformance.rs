@@ -184,12 +184,12 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
     let contract =
         conduit_semantic_catalog::structured_presentation_contract("Quantity", &value_type);
     catalog
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     let syntax = conduit_form::parse_syntax_document(source);

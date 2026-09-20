@@ -1,13 +1,13 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
-use alloc::{vec, vec::Vec};
+use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, BOOL_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
+    PortTemporal, BOOL_INFO_ID,
 };
 
 pub const TIME_DEBOUNCE_KIND: &str = "time/debounce";
@@ -48,10 +48,10 @@ pub fn time_debounce_contract() -> StandardKindContract {
         )],
         configuration: vec![
             duration_field(),
-            StandardConfigurationField {
+            KindConfigurationField {
                 key: "policy".to_string(),
                 default_value: ConfigurationValue::Text(TIME_POLICY_TRAILING.to_string()),
-                rule: StandardConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: vec![TIME_POLICY_TRAILING.to_string()],
                 },
             },
@@ -59,7 +59,7 @@ pub fn time_debounce_contract() -> StandardKindContract {
         ],
         limits: limits(),
         terminal_behavior:
-            TerminalBehavior::TrailingDebounceFlushesPendingValueThenCompletesWhenInputCloses,
+            KindTerminalBehavior::TrailingDebounceFlushesPendingValueThenCompletesWhenInputCloses,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -90,7 +90,7 @@ pub fn time_timeout_contract() -> StandardKindContract {
             maximum_values_field(TIME_TIMEOUT_MAXIMUM_VALUES),
         ],
         limits: limits(),
-        terminal_behavior: TerminalBehavior::InactivityStateCancelsDeadlineAndCompletesWhenInputCloses,
+        terminal_behavior: KindTerminalBehavior::InactivityStateCancelsDeadlineAndCompletesWhenInputCloses,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -107,7 +107,7 @@ pub fn time_delay_contract() -> StandardKindContract {
         outputs: vec![port("out", BOOL_INFO_ID, PortDirection::Output, PortTemporal::Current)],
         configuration: vec![duration_field(), maximum_values_field(TIME_MAXIMUM_VALUES)],
         limits: limits(),
-        terminal_behavior: TerminalBehavior::DelaysEachValueInOrderAndDrainsOnInputClosure,
+        terminal_behavior: KindTerminalBehavior::DelaysEachValueInOrderAndDrainsOnInputClosure,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -124,10 +124,10 @@ pub fn time_throttle_contract() -> StandardKindContract {
         outputs: vec![port("out", BOOL_INFO_ID, PortDirection::Output, PortTemporal::Current)],
         configuration: vec![
             duration_field(),
-            StandardConfigurationField {
+            KindConfigurationField {
                 key: "policy".to_string(),
                 default_value: ConfigurationValue::Text(TIME_POLICY_LEADING.to_string()),
-                rule: StandardConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: vec![TIME_POLICY_LEADING.to_string()],
                 },
             },
@@ -135,7 +135,7 @@ pub fn time_throttle_contract() -> StandardKindContract {
         ],
         limits: limits(),
         terminal_behavior:
-            TerminalBehavior::LeadingThrottleDropsValuesDuringIntervalAndCompletesWhenInputCloses,
+            KindTerminalBehavior::LeadingThrottleDropsValuesDuringIntervalAndCompletesWhenInputCloses,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -160,12 +160,7 @@ pub fn time_throttle_semantic_contract() -> Kind {
 }
 
 fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
-    let mut startup_parameters = super::startup_front(&contract.configuration);
-    for parameter in &mut startup_parameters {
-        if parameter.name == "duration-ms" {
-            parameter.value_type = kind_id("value/duration");
-        }
-    }
+    let startup_parameters = super::startup_front(&contract.configuration);
     Kind {
         startup_parameters,
         shorthand: None,
@@ -173,6 +168,10 @@ fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
         kind_contract_revision: revision.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
@@ -182,10 +181,7 @@ pub fn install_timing_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
     for contract in [
         time_debounce_contract(),
@@ -217,37 +213,8 @@ pub fn install_timing_catalogs(
             TIME_THROTTLE_KIND => TIME_THROTTLE_CONTRACT_REVISION,
             _ => unreachable!("timing catalog loop contains only timing contracts"),
         };
-        let configuration = contract
-            .configuration
-            .into_iter()
-            .map(|field| {
-                let validation = match field.rule {
-                    StandardConfigurationRule::DurationMillis { minimum, maximum } => {
-                        ConfigurationRule::DurationMillis { minimum, maximum }
-                    }
-                    StandardConfigurationRule::U64Range { minimum, maximum } => {
-                        ConfigurationRule::U64Range { minimum, maximum }
-                    }
-                    StandardConfigurationRule::TextOneOf { values } => {
-                        ConfigurationRule::TextOneOf { values }
-                    }
-                    _ => return Err("unsupported timing configuration rule".to_string()),
-                };
-                Ok(ConfigurationField {
-                    key: field.key,
-                    default_value: field.default_value,
-                    validation,
-                })
-            })
-            .collect::<Result<Vec<_>, String>>()?;
         profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(semantic_contract(contract, revision))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -267,22 +234,26 @@ fn port(
     }
 }
 
-fn duration_field() -> StandardConfigurationField {
-    StandardConfigurationField {
+fn duration_field() -> KindConfigurationField {
+    KindConfigurationField {
         key: "duration-ms".to_string(),
-        default_value: ConfigurationValue::U64(100),
-        rule: StandardConfigurationRule::DurationMillis {
+        default_value: ConfigurationValue::Quantity(conduit_core::Quantity::new(
+            100,
+            conduit_core::QuantityUnit::Millisecond,
+        )),
+        rule: KindConfigurationRule::QuantityRange {
             minimum: 0,
-            maximum: TIME_MAXIMUM_DURATION_MS,
+            maximum: TIME_MAXIMUM_DURATION_MS as i64,
+            canonical_unit: conduit_core::QuantityUnit::Millisecond,
         },
     }
 }
 
-fn maximum_values_field(maximum: u64) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn maximum_values_field(maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: "maximum-values".to_string(),
         default_value: ConfigurationValue::U64(maximum),
-        rule: StandardConfigurationRule::U64Range {
+        rule: KindConfigurationRule::U64Range {
             minimum: 1,
             maximum,
         },
@@ -298,12 +269,14 @@ fn limits() -> CapabilityLimits {
 }
 
 #[cfg(feature = "form-catalog")]
-fn configuration_source(field: &StandardConfigurationField) -> alloc::string::String {
+fn configuration_source(field: &KindConfigurationField) -> alloc::string::String {
     match (&*field.key, &field.default_value) {
-        ("duration-ms", ConfigurationValue::U64(value)) => alloc::format!("{value}ms"),
+        (_, ConfigurationValue::Quantity(value)) => {
+            alloc::format!("{}{}", value.value(), value.unit().form_suffix())
+        }
         (_, ConfigurationValue::U64(value)) => value.to_string(),
         (_, ConfigurationValue::Text(value)) => alloc::format!("\"{value}\""),
-        _ => unreachable!("timing contracts use only bounded unsigned and text values"),
+        _ => unreachable!("timing contracts use only bounded Quantity, Count, and Text values"),
     }
 }
 
@@ -329,10 +302,11 @@ mod tests {
         ] {
             assert!(matches!(
                 contract.configuration[0].rule,
-                StandardConfigurationRule::DurationMillis {
+                KindConfigurationRule::QuantityRange {
                     minimum: 0,
-                    maximum: TIME_MAXIMUM_DURATION_MS
-                }
+                    maximum,
+                    canonical_unit: conduit_core::QuantityUnit::Millisecond,
+                } if maximum == TIME_MAXIMUM_DURATION_MS as i64
             ));
         }
     }

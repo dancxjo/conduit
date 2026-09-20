@@ -29,6 +29,8 @@ pub fn speech_commit_std_offer() -> CapabilityOffer {
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: contract.limits,
         },
         Back {

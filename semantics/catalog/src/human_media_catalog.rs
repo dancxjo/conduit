@@ -52,6 +52,8 @@ pub fn media_acquisition_semantic_contract(kind: &str) -> Option<Kind> {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: MAXIMUM_MEDIA_QUEUE_ITEMS,
@@ -68,6 +70,8 @@ pub fn camera_source_semantic_contract() -> Kind {
         kind_contract_revision: KindIdentity::from("conduit.std/camera-source@1"),
         inputs: vec![],
         outputs: vec![camera_frame_port(PortDirection::Output)],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: camera_limits(),
     }
 }
@@ -80,6 +84,8 @@ pub fn camera_frame_sink_semantic_contract() -> Kind {
         kind_contract_revision: KindIdentity::from("conduit.std/camera-frame-sink@1"),
         inputs: vec![camera_frame_port(PortDirection::Input)],
         outputs: vec![],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: camera_limits(),
     }
 }
@@ -119,6 +125,8 @@ pub fn microphone_clip_source_semantic_contract() -> Kind {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -132,7 +140,7 @@ pub fn install_microphone_clip_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     startup.insert(KindSignature {
         kind: MICROPHONE_CLIP_SOURCE_KIND.into(),
@@ -140,7 +148,7 @@ pub fn install_microphone_clip_catalogs(
     })?;
     let contract = microphone_clip_source_semantic_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -155,7 +163,7 @@ pub(crate) fn install_camera_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     for contract in [
         camera_source_semantic_contract(),
@@ -166,7 +174,7 @@ pub(crate) fn install_camera_catalogs(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,

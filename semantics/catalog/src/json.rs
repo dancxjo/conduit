@@ -1,6 +1,6 @@
 //! Portable bounded JSON encode/decode Kind contracts.
 
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use conduit_core::{port_id, FrontStartupParameter, Kind};
@@ -35,10 +35,10 @@ pub fn json_boolean_summary_contract() -> StandardKindContract {
         "Boolean collection summary",
         "Count true, false and total records for an exact Boolean field.",
     );
-    value.configuration.push(super::StandardConfigurationField {
+    value.configuration.push(super::KindConfigurationField {
         key: "field".into(),
         default_value: conduit_core::ConfigurationValue::Text("enabled".into()),
-        rule: super::StandardConfigurationRule::TextBytes {
+        rule: super::KindConfigurationRule::TextBytes {
             maximum: conduit_web::JSON_MAXIMUM_KEY_BYTES as u32,
         },
     });
@@ -79,6 +79,8 @@ fn semantic_contract(
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: contract.limits,
     }
 }
@@ -95,9 +97,9 @@ fn contract(
         summary: summary.to_string(),
         inputs: contract.inputs,
         outputs: contract.outputs,
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: contract.limits,
-        terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,

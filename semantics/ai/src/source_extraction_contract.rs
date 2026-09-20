@@ -179,7 +179,7 @@ pub fn install_source_extraction_catalog(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -201,16 +201,16 @@ pub fn install_source_extraction_catalog(
         ],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: vec![
-                ConfigurationField {
+                KindConfigurationField {
                     key: "profile".into(),
                     default_value: conduit_core::ConfigurationValue::Text("text-utf8".into()),
-                    validation: ConfigurationRule::TextOneOf {
+                    rule: KindConfigurationRule::TextOneOf {
                         values: vec![
                             "text-utf8".into(),
                             "structured-items".into(),
@@ -241,11 +241,11 @@ fn count_parameter(name: &str, maximum: u32) -> conduit_form::StartupParameterSi
 }
 
 #[cfg(feature = "form-catalog")]
-fn count_field(name: &str, maximum: u32) -> conduit_form::ConfigurationField {
-    conduit_form::ConfigurationField {
+fn count_field(name: &str, maximum: u32) -> conduit_form::KindConfigurationField {
+    conduit_form::KindConfigurationField {
         key: name.into(),
         default_value: conduit_core::ConfigurationValue::U64(u64::from(maximum)),
-        validation: conduit_form::ConfigurationRule::U64Range {
+        rule: conduit_form::KindConfigurationRule::U64Range {
             minimum: 1,
             maximum: u64::from(maximum),
         },

@@ -310,7 +310,10 @@ fn default_value_becomes_an_authored_named_argument() {
             &before.expanded_form_id,
             "stable",
             "duration-ms",
-            ConfigurationValue::U64(3),
+            ConfigurationValue::Quantity(conduit_core::Quantity::new(
+                3,
+                conduit_core::QuantityUnit::Millisecond,
+            )),
         )
         .unwrap();
     assert!(editor

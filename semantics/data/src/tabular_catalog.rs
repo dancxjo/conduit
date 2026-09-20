@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     tabular_person_row_type, tabular_query_outcome_type, tabular_query_result_type,
@@ -44,6 +44,8 @@ pub fn tabular_semantic_contracts() -> Vec<Kind> {
         kind_contract_revision: KindIdentity::from(TABULAR_REVISION),
         inputs,
         outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,
@@ -70,7 +72,7 @@ pub fn install_tabular_catalogs(
             })
             .map_err(|error| error.to_string())?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,

@@ -1,5 +1,5 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::ToString;
 use alloc::vec;
@@ -24,10 +24,10 @@ pub fn text_presentation_contract() -> StandardKindContract {
             .to_string(),
         inputs: text_presentation_inputs(),
         outputs: Vec::new(),
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "maximum-values".to_string(),
             default_value: conduit_core::ConfigurationValue::U64(MAX_TEXT_VALUES),
-            rule: StandardConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 1,
                 maximum: MAX_TEXT_VALUES,
             },
@@ -37,7 +37,7 @@ pub fn text_presentation_contract() -> StandardKindContract {
             max_queue_items: 4,
             max_queue_bytes: conduit_text::MAX_TEXT_BYTES,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -56,18 +56,20 @@ pub fn text_presentation_inputs() -> Vec<PortDescriptor> {
 
 #[cfg(feature = "form-catalog")]
 pub fn text_presentation_profile_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
+    use conduit_form::{
+        KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
+    };
     let mut catalog = ProfileCatalog::new();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(TEXT_PRESENTATION_KIND),
             kind_contract_revision: KindIdentity::from(TEXT_PRESENTATION_CONTRACT_REVISION),
             inputs: text_presentation_inputs(),
             outputs: Vec::new(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "maximum-values".to_string(),
                 default_value: conduit_core::ConfigurationValue::U64(MAX_TEXT_VALUES),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: MAX_TEXT_VALUES,
                 },

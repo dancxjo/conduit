@@ -8,7 +8,7 @@ use conduit_human::{
     HumanInteractionProposal, InteractionFamily, InteractionProposalPayload, InteractionValue,
     TEXT_INFO_ID,
 };
-use conduit_semantic_catalog::StandardConfigurationRule;
+use conduit_semantic_catalog::KindConfigurationRule;
 
 use crate::{FormEditor, FormEditorError, PatchbayGraph};
 
@@ -278,7 +278,7 @@ fn proposal_for_configuration(
 
 fn configuration_from_proposal(
     family: &InteractionFamily,
-    rule: &StandardConfigurationRule,
+    rule: &KindConfigurationRule,
     proposal: &HumanInteractionProposal,
 ) -> Result<ConfigurationValue, FormEditorError> {
     let InteractionProposalPayload::Values(values) = &proposal.payload else {
@@ -303,7 +303,7 @@ fn configuration_from_proposal(
             })?;
             if *unit == conduit_core::QuantityUnit::Millionth {
                 Ok(ConfigurationValue::I64(decoded.value()))
-            } else if matches!(rule, StandardConfigurationRule::DurationMillis { .. }) {
+            } else if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
                 decoded
                     .convert(*unit)
                     .and_then(|value| {
@@ -353,29 +353,25 @@ fn configuration_from_proposal(
     }
 }
 
-fn accepts(rule: &StandardConfigurationRule, value: &ConfigurationValue) -> bool {
+fn accepts(rule: &KindConfigurationRule, value: &ConfigurationValue) -> bool {
     match (rule, value) {
-        (StandardConfigurationRule::Any, ConfigurationValue::Bool(_)) => true,
-        (
-            StandardConfigurationRule::U64Range { minimum, maximum },
-            ConfigurationValue::U64(value),
-        )
+        (KindConfigurationRule::Any, ConfigurationValue::Bool(_)) => true,
+        (KindConfigurationRule::U64Range { minimum, maximum }, ConfigurationValue::U64(value))
         | (
-            StandardConfigurationRule::DurationMillis { minimum, maximum },
+            KindConfigurationRule::DurationMillis { minimum, maximum },
             ConfigurationValue::U64(value),
         ) => (*minimum..=*maximum).contains(value),
-        (
-            StandardConfigurationRule::I64Range { minimum, maximum },
-            ConfigurationValue::I64(value),
-        ) => (*minimum..=*maximum).contains(value),
-        (StandardConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
+        (KindConfigurationRule::I64Range { minimum, maximum }, ConfigurationValue::I64(value)) => {
+            (*minimum..=*maximum).contains(value)
+        }
+        (KindConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
             value.len() <= *maximum as usize
         }
-        (StandardConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
+        (KindConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
             values.contains(value)
         }
         (
-            StandardConfigurationRule::QuantityRange {
+            KindConfigurationRule::QuantityRange {
                 minimum,
                 maximum,
                 canonical_unit,
@@ -389,19 +385,19 @@ fn accepts(rule: &StandardConfigurationRule, value: &ConfigurationValue) -> bool
     }
 }
 
-fn configuration_refusal(rule: &StandardConfigurationRule) -> String {
+fn configuration_refusal(rule: &KindConfigurationRule) -> String {
     match rule {
-        StandardConfigurationRule::Any => "expected a Boolean value".into(),
-        StandardConfigurationRule::U64Range { minimum, maximum } => {
+        KindConfigurationRule::Any => "expected a Boolean value".into(),
+        KindConfigurationRule::U64Range { minimum, maximum } => {
             format!("enter a number from {minimum} through {maximum}")
         }
-        StandardConfigurationRule::I64Range { minimum, maximum } => {
+        KindConfigurationRule::I64Range { minimum, maximum } => {
             format!("enter scalar microunits from {minimum} through {maximum}")
         }
-        StandardConfigurationRule::DurationMillis { minimum, maximum } => {
+        KindConfigurationRule::DurationMillis { minimum, maximum } => {
             format!("enter milliseconds from {minimum} through {maximum}")
         }
-        StandardConfigurationRule::QuantityRange {
+        KindConfigurationRule::QuantityRange {
             minimum,
             maximum,
             canonical_unit,
@@ -411,21 +407,24 @@ fn configuration_refusal(rule: &StandardConfigurationRule) -> String {
                 canonical_unit.semantic_id()
             )
         }
-        StandardConfigurationRule::TextBytes { maximum } => {
+        KindConfigurationRule::TextBytes { maximum } => {
             format!("enter at most {maximum} bytes of text")
         }
-        StandardConfigurationRule::TextOneOf { values } => {
+        KindConfigurationRule::TextOneOf { values } => {
             format!("choose one of {}", values.join(", "))
+        }
+        KindConfigurationRule::Structured { profile } => {
+            format!("enter a value with exact profile {}", profile.as_str())
         }
     }
 }
 
 pub(crate) fn configuration_spelling(
-    rule: &StandardConfigurationRule,
+    rule: &KindConfigurationRule,
     value: &ConfigurationValue,
 ) -> String {
     match (rule, value) {
-        (StandardConfigurationRule::DurationMillis { .. }, ConfigurationValue::U64(value)) => {
+        (KindConfigurationRule::DurationMillis { .. }, ConfigurationValue::U64(value)) => {
             format!("{value}ms")
         }
         (_, ConfigurationValue::Bool(value)) => value.to_string(),

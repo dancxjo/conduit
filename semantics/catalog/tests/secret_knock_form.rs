@@ -1,7 +1,7 @@
 use conduit_core::PortTemporal;
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    structured_selector_definition, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    structured_selector_definition, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 
 const SOURCE: &str = include_str!("../../../forms/secret-knock/main.conduit");
@@ -36,12 +36,12 @@ fn canonical_secret_knock_is_a_host_free_composition_of_reusable_forms() {
         &conduit_semantic_catalog::pattern_comparison_type(),
     );
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: presentation.kind_id,
             kind_contract_revision: presentation.kind_contract_revision,
             inputs: presentation.inputs,
             outputs: presentation.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
 

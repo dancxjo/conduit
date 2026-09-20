@@ -5,7 +5,7 @@ use conduit_core::{
     ConfigurationValue, ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear,
     PortDescriptor, PortDirection,
 };
-use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
+use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
 
 pub(super) const TEST_TEXT_SOURCE_KIND: &str = "conduit-test/text-source";
@@ -68,15 +68,15 @@ pub(super) fn offer() -> CapabilityOffer {
 
 pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(TEST_TEXT_SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(TEST_TEXT_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: outputs(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "invalid".into(),
                 default_value: ConfigurationValue::Bool(false),
-                validation: ConfigurationRule::Any,
+                rule: KindConfigurationRule::Any,
             }],
         })
         .expect("test text source kind is unique");

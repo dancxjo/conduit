@@ -1,7 +1,7 @@
 //! Small typed value entrances and result manifestations for finite examples.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
@@ -20,10 +20,10 @@ pub fn scalar_literal_contract() -> StandardKindContract {
         SCALAR_LITERAL_KIND,
         "Scalar literal",
         SCALAR_INFO_ID,
-        StandardConfigurationField {
+        KindConfigurationField {
             key: "value".into(),
             default_value: ConfigurationValue::I64(0),
-            rule: StandardConfigurationRule::I64Range {
+            rule: KindConfigurationRule::I64Range {
                 minimum: i64::MIN,
                 maximum: i64::MAX,
             },
@@ -37,10 +37,10 @@ pub fn bool_literal_contract() -> StandardKindContract {
         BOOL_LITERAL_KIND,
         "Boolean literal",
         BOOL_INFO_ID,
-        StandardConfigurationField {
+        KindConfigurationField {
             key: "value".into(),
             default_value: ConfigurationValue::Bool(false),
-            rule: StandardConfigurationRule::Any,
+            rule: KindConfigurationRule::Any,
         },
         conduit_core::BOOL_ENCODED_LEN as u32,
     )
@@ -68,7 +68,7 @@ fn source(
     kind: &str,
     name: &str,
     value_kind: &str,
-    configuration: StandardConfigurationField,
+    configuration: KindConfigurationField,
     bytes: u32,
 ) -> StandardKindContract {
     StandardKindContract {
@@ -79,7 +79,7 @@ fn source(
         outputs: vec![port("value", value_kind, PortDirection::Output)],
         configuration: vec![configuration],
         limits: limits(bytes),
-        terminal_behavior: TerminalBehavior::EmitsOnce,
+        terminal_behavior: KindTerminalBehavior::EmitsOnce,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -95,9 +95,9 @@ fn presentation(kind: &str, name: &str, value_kind: &str, bytes: u32) -> Standar
             .to_string(),
         inputs: vec![port("value", value_kind, PortDirection::Input)],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(bytes),
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -128,7 +128,7 @@ pub fn install_value_primitive_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     for contract in [
@@ -159,7 +159,7 @@ pub fn install_value_primitive_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: KindIdentity::from(VALUE_PRIMITIVE_CONTRACT_REVISION),
                 inputs: contract.inputs,
@@ -167,14 +167,14 @@ pub fn install_value_primitive_catalogs(
                 configuration: contract
                     .configuration
                     .into_iter()
-                    .map(|field| ConfigurationField {
+                    .map(|field| KindConfigurationField {
                         key: field.key,
                         default_value: field.default_value,
-                        validation: match field.rule {
-                            StandardConfigurationRule::I64Range { minimum, maximum } => {
-                                ConfigurationRule::I64Range { minimum, maximum }
+                        rule: match field.rule {
+                            KindConfigurationRule::I64Range { minimum, maximum } => {
+                                KindConfigurationRule::I64Range { minimum, maximum }
                             }
-                            StandardConfigurationRule::Any => ConfigurationRule::Any,
+                            KindConfigurationRule::Any => KindConfigurationRule::Any,
                             _ => unreachable!(),
                         },
                     })

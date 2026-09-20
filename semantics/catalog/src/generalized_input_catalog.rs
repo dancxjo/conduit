@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     gamepad_state_type, generalized_input_registered_types, input_button_transition_type,
@@ -87,6 +87,8 @@ pub fn pointer_source_semantic_contract() -> Kind {
             &pointer_event_type(),
             PortDirection::Output,
         )],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -103,6 +105,8 @@ fn semantic_contract(kind: &str, outputs: Vec<PortDescriptor>) -> Kind {
         kind_contract_revision: KindIdentity::from(GENERALIZED_INPUT_REVISION),
         inputs: vec![],
         outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 8,
@@ -132,7 +136,7 @@ fn insert_semantic_kind(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,

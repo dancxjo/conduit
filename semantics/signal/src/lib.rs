@@ -210,6 +210,8 @@ pub fn pulse_semantic_contract() -> Kind {
         kind_contract_revision: pulse_contract_revision(),
         inputs: Vec::new(),
         outputs: pulse_outputs(),
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 4,
@@ -228,6 +230,8 @@ pub fn show_semantic_contract() -> Kind {
         kind_contract_revision: show_contract_revision(),
         inputs: show_inputs(),
         outputs: Vec::new(),
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 4,

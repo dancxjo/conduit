@@ -1,5 +1,5 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::ToString;
 use alloc::vec;
@@ -14,18 +14,18 @@ pub fn tick_contract() -> StandardKindContract {
         inputs: Vec::new(),
         outputs: conduit_time::tick_outputs(),
         configuration: vec![
-            StandardConfigurationField {
+            KindConfigurationField {
                 key: "count".to_string(),
                 default_value: ConfigurationValue::U64(4),
-                rule: StandardConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: conduit_time::MAX_TICK_COUNT,
                 },
             },
-            StandardConfigurationField {
+            KindConfigurationField {
                 key: "period-ms".to_string(),
                 default_value: ConfigurationValue::U64(1_000),
-                rule: StandardConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: u64::MAX,
                 },
@@ -36,7 +36,7 @@ pub fn tick_contract() -> StandardKindContract {
             max_queue_items: 4,
             max_queue_bytes: 64,
         },
-        terminal_behavior: TerminalBehavior::CompletesAfterConfiguredCount,
+        terminal_behavior: KindTerminalBehavior::CompletesAfterConfiguredCount,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -53,6 +53,10 @@ pub fn tick_semantic_contract() -> Kind {
         kind_contract_revision: conduit_time::TICK_CONTRACT_REVISION.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }

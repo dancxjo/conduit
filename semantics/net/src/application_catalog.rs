@@ -13,7 +13,7 @@ use conduit_core::{
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_core::{Back, BackOfferBuilder};
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     application_network_registered_types, dns_query_type, dns_result_type,
@@ -53,7 +53,7 @@ pub fn install_application_network_catalogs(
             })
             .map_err(|error| error.to_string())?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: kind_id(kind),
                 kind_contract_revision: KindIdentity::from(APPLICATION_NETWORK_REVISION),
                 inputs,
@@ -191,6 +191,8 @@ fn application_network_contract(
         kind_contract_revision: KindIdentity::from(APPLICATION_NETWORK_REVISION),
         inputs,
         outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 4,

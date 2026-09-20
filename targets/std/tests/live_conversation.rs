@@ -8,7 +8,7 @@ use conduit_core::{
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    KindDefinition, ProfileCatalog, StartupCatalog,
+    KindProjection, ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
 use std::collections::BTreeMap;
@@ -93,7 +93,7 @@ fn canonical_live_conversation_is_one_reviewed_temporal_form() {
     }
 }
 
-fn synthetic_offer(definition: &KindDefinition, host: &str) -> CapabilityOffer {
+fn synthetic_offer(definition: &KindProjection, host: &str) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
         startup_parameters: definition
@@ -135,7 +135,7 @@ fn synthetic_offer(definition: &KindDefinition, host: &str) -> CapabilityOffer {
     }
 }
 
-fn proof_host(name: &str, definitions: &[&KindDefinition]) -> HostAdvertisement {
+fn proof_host(name: &str, definitions: &[&KindProjection]) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(format!("host/live-{name}")),

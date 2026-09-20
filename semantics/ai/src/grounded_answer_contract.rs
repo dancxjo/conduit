@@ -127,7 +127,7 @@ pub fn install_rag_answer_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindDefinition, KindSignature, StartupParameterSignature};
+    use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
 
     startup.insert(KindSignature {
         kind: RAG_ANSWER_KIND.to_string(),
@@ -142,7 +142,7 @@ pub fn install_rag_answer_catalog(
     })?;
     let contract = rag_answer_contract();
     let result = profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -190,22 +190,22 @@ pub fn install_rag_answer_catalog(
 }
 
 #[cfg(feature = "form-catalog")]
-fn text_choice(key: &str, default: &str, values: &[&str]) -> conduit_form::ConfigurationField {
-    conduit_form::ConfigurationField {
+fn text_choice(key: &str, default: &str, values: &[&str]) -> conduit_form::KindConfigurationField {
+    conduit_form::KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::Text(default.into()),
-        validation: conduit_form::ConfigurationRule::TextOneOf {
+        rule: conduit_form::KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).into()).collect(),
         },
     }
 }
 
 #[cfg(feature = "form-catalog")]
-fn count_field(key: &str, maximum: u64) -> conduit_form::ConfigurationField {
-    conduit_form::ConfigurationField {
+fn count_field(key: &str, maximum: u64) -> conduit_form::KindConfigurationField {
+    conduit_form::KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::U64(maximum),
-        validation: conduit_form::ConfigurationRule::U64Range {
+        rule: conduit_form::KindConfigurationRule::U64Range {
             minimum: 1,
             maximum,
         },

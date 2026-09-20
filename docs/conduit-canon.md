@@ -32,13 +32,17 @@ a play advances the plan in bounded steps
 a step may cross into host machinery with a host call
 ```
 
-A `Kind` is the exact semantic contract, including its `KindIdentity`; an
-identity is not merely a human version label. A `Back` is realization truth,
-not another semantic contract. Host backs carry implementation, artifact,
-resource, authority, and host-boundary requirements. Form backs carry the exact
-source and checked form selected during expansion. They share the law “same
-kind and same front,” but remain distinct representations because their
-provenance and admission facts differ.
+A `Kind` is the exact semantic contract: `KindId`, `KindIdentity`, callable
+Front, finite configuration contract, limits, and machine-readable semantic
+laws. An identity is not merely a human version label. `KindProjection` is the
+strictly smaller checker view used while checking authored Forms; it cannot be
+offered by a Host and is not a second Kind identity.
+
+A `Back` is realization truth, not another semantic contract. Host backs carry
+implementation, artifact, resource, authority, and host-boundary requirements.
+Form backs carry the exact source and checked form selected during expansion.
+They share the law “same Kind and same Front,” but remain distinct
+representations because their provenance and admission facts differ.
 
 “Capability” is reserved for possession/authority where that security meaning
 is real, such as `BaseCapability`. A Host advertisement may still serialize a
@@ -94,8 +98,8 @@ CORD   typed semantic connection between compatible ports on gears
 INFO   shaped, typed data carried through cords
 RESOURCE bounded addressable content with explicit lifecycle and sharing obligations
 SIGNAL one particular info semantic or mechanism where explicitly named
-FRONT   stable visible semantic contract of a kind or form, including ports
-BACK   form that implements a front in Conduit terms
+FRONT   stable callable shape of a kind or form, including startup parameters and ports
+BACK    one Host- or Form-backed realization of a kind
 FACE   the body's semantic presentation surface, distinct from a callable front
 
 IMPL   platform-specific realization of a kind

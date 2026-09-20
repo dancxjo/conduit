@@ -17,9 +17,9 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
     source.limits = conduit_semantic_catalog::state_latest_scalar_contract().limits;
     source.outputs[0].temporal = conduit_core::PortTemporal::Flow { closes: true };
     source.terminal_behavior =
-        conduit_semantic_catalog::TerminalBehavior::HostInputEndsOrFailsSource;
+        conduit_semantic_catalog::KindTerminalBehavior::HostInputEndsOrFailsSource;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: source.kind_id.clone(),
             kind_contract_revision: conduit_core::KindIdentity::from("fixture/scalar-flow@1"),
             inputs: source.inputs.clone(),

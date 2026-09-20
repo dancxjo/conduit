@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     flow_coalesce_latest_contract, image_resource_type, install_flow_pressure_kind,
@@ -66,6 +66,8 @@ pub fn vision_semantic_contracts() -> Vec<Kind> {
                 kind_contract_revision: KindIdentity::from(revision),
                 inputs,
                 outputs,
+                configuration: Default::default(),
+                semantic_laws: Default::default(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
@@ -121,7 +123,7 @@ fn insert_kind(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(kind),
             kind_contract_revision: KindIdentity::from(vision_kind_revision(kind)),
             inputs,
