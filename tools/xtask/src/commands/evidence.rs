@@ -26,7 +26,7 @@ enum EvidenceCommand {
     /// Write the canonical exact-commit contract for the three-Body Journey.
     ThreeBodyJourneyContract(ThreeBodyJourneyContractArgs),
     /// Retain native and pinned-browser pixels for one exact Presentation.
-    OneFormTwoFaces(TwoFacesArgs),
+    OneFormTwoFronts(TwoFrontsArgs),
     /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
     LittleLife(EvidenceLittleLifeArgs),
     /// Recompute and validate one evidence manifest and its declared files.
@@ -82,7 +82,7 @@ struct ThreeBodyJourneyContractArgs {
 }
 
 #[derive(Args, Debug)]
-struct TwoFacesArgs {
+struct TwoFrontsArgs {
     /// New directory that will receive the bounded sibling evidence manifest.
     #[arg(long, default_value = "target/journeys/one-form-two-fronts")]
     output: PathBuf,
@@ -179,7 +179,7 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
         EvidenceCommand::ThreeBodyJourneyContract(args) => {
             three_body_journey::write_contract(args.commit, args.output).map_err(Into::into)
         }
-        EvidenceCommand::OneFormTwoFaces(args) => two_fronts::run(args.output),
+        EvidenceCommand::OneFormTwoFronts(args) => two_fronts::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
         EvidenceCommand::Verify(args) => {
             let result = match args.result {
