@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 use alloc::{format, string::ToString, vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal,
+    PortDirection, PortTemporal, SemanticCapabilityContract,
 };
 
 use super::{
@@ -150,6 +150,26 @@ pub fn text_submit_lines_contract() -> StandardKindContract {
     )
 }
 
+pub fn text_edit_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(text_edit_contract(), TEXT_EDIT_REVISION)
+}
+
+pub fn text_submit_lines_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(text_submit_lines_contract(), TEXT_SUBMIT_LINES_REVISION)
+}
+
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindContractRevision::from(revision),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
+    }
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_text_state_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -215,5 +235,22 @@ mod state_tests {
         assert_eq!(state.apply(b"\x08").unwrap(), Some("é".as_bytes()));
         assert_eq!(state.apply(b"bc").unwrap(), Some("ébc".as_bytes()));
         assert_eq!(state.apply(b"d"), Err(TextStateRefusal::CapacityExhausted));
+    }
+
+    #[test]
+    fn semantic_contracts_own_exact_revisions_fronts_and_capacity() {
+        for (contract, revision) in [
+            (text_edit_semantic_contract(), TEXT_EDIT_REVISION),
+            (
+                text_submit_lines_semantic_contract(),
+                TEXT_SUBMIT_LINES_REVISION,
+            ),
+        ] {
+            assert_eq!(contract.kind_contract_revision.as_str(), revision);
+            assert_eq!(contract.startup_parameters.len(), 1);
+            assert_eq!(contract.startup_parameters[0].name, "maximum-bytes");
+            assert!(contract.startup_parameters[0].has_default);
+            assert_eq!(contract.limits.max_queue_bytes, MAXIMUM_EDITED_TEXT_BYTES);
+        }
     }
 }
