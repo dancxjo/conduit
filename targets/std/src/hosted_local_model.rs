@@ -35,6 +35,11 @@ pub enum LocalModelStreamStep {
 pub trait HostedLocalModelAdapter: Send {
     fn offer(&self) -> &conduit_ai::LocalModelOffer;
 
+    /// Refresh provider availability without changing the stable offer.
+    fn current_pool_health(&self) -> conduit_core::PoolRealizationHealth {
+        conduit_core::PoolRealizationHealth::Unavailable
+    }
+
     fn execute(
         &mut self,
         placement: &PlannedGear,

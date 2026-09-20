@@ -4,7 +4,10 @@ use conduit_ai::{
     LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelIdentity,
     LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits, LocalModelOffer,
 };
-use conduit_core::{BootId, HostId, OfferGeneration};
+use conduit_core::{
+    BootId, HostId, OfferGeneration, PoolRealizationEnvelope, PoolRealizationHealth,
+    ResourceBinding, SignId,
+};
 use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
 use std::collections::BTreeMap;
 
@@ -17,6 +20,10 @@ struct FakeLocalModel {
 impl HostedLocalModelAdapter for FakeLocalModel {
     fn offer(&self) -> &LocalModelOffer {
         &self.offer
+    }
+
+    fn current_pool_health(&self) -> PoolRealizationHealth {
+        PoolRealizationHealth::Ready
     }
 
     fn execute(
@@ -229,6 +236,83 @@ fn only_initialized_adapter_capabilities_enter_the_host_advertisement() {
         }),
     )
     .is_err());
+}
+
+#[test]
+fn local_model_pool_observation_binds_current_provider_and_resource_truth() {
+    let host = StdHost::new_with_local_model(
+        config(),
+        StdHostComposition::minimal(),
+        Box::new(FakeLocalModel {
+            offer: offer(vec![LocalModelKindProfile::Generate]),
+            terminal: LocalModelAdapterTerminal::Produced,
+            calls: Vec::new(),
+        }),
+    )
+    .unwrap();
+    let advertisement = host.advertisement();
+    let capability = advertisement
+        .capabilities
+        .iter()
+        .find(|capability| {
+            capability.implementation.implementation_id.as_str()
+                == conduit_ai::LOCAL_MODEL_IMPLEMENTATION
+        })
+        .unwrap();
+    let resources = advertisement
+        .resources
+        .iter()
+        .map(|offer| ResourceBinding {
+            pool_id: offer.pool_id.clone(),
+            class_id: offer.class_id.clone(),
+            units: 1,
+            protected: None,
+            compute: None,
+            content: None,
+        })
+        .collect::<Vec<_>>();
+    let realization = PoolRealizationEnvelope {
+        host_id: advertisement.host_id.clone(),
+        boot_id: advertisement.boot_id.clone(),
+        offer_generation: advertisement.offer_generation,
+        capability_id: capability.capability_id.clone(),
+        implementation_id: capability.implementation.implementation_id.clone(),
+        artifact_id: capability.implementation.artifact_id.clone(),
+        member_capacity: 1,
+        resources,
+    };
+    let resource_sign_ids = realization
+        .resources
+        .iter()
+        .enumerate()
+        .map(|(index, _)| SignId::from(format!("sign/resource/{index}")))
+        .collect::<Vec<_>>();
+    let observation = host
+        .observe_local_model_pool_realization(
+            &realization,
+            SignId::from("sign/provider/current"),
+            &resource_sign_ids,
+        )
+        .unwrap();
+    assert_eq!(observation.health, PoolRealizationHealth::Ready);
+    assert!(observation.is_current_for(&realization));
+    assert_eq!(observation.resources.len(), realization.resources.len());
+    assert!(observation.resources.iter().all(|resource| {
+        resource.unreserved_units > 0
+            && resource.utilized_units == 0
+            && resource.host_id == advertisement.host_id
+            && resource.boot_id == advertisement.boot_id
+    }));
+
+    let mut stale = realization;
+    stale.boot_id = BootId::from("boot/restarted");
+    assert!(host
+        .observe_local_model_pool_realization(
+            &stale,
+            SignId::from("sign/provider/stale"),
+            &resource_sign_ids,
+        )
+        .is_err());
 }
 
 #[test]

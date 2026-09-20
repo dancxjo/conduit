@@ -309,6 +309,23 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
         &self.offer
     }
 
+    fn current_pool_health(&self) -> conduit_core::PoolRealizationHealth {
+        let current = curl_json("/api/tags", None)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<TagsResponse>(&bytes).ok())
+            .is_some_and(|inventory| {
+                inventory.models.iter().any(|candidate| {
+                    model_names_match(&candidate.name, &self.model_name)
+                        && candidate.digest == self.offer.identity.model_content_identity
+                })
+            });
+        if current {
+            conduit_core::PoolRealizationHealth::Ready
+        } else {
+            conduit_core::PoolRealizationHealth::Unavailable
+        }
+    }
+
     fn execute(
         &mut self,
         placement: &PlannedGear,

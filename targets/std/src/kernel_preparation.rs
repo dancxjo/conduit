@@ -6,7 +6,7 @@
 use crate::installed_std::state_storage_profile;
 use conduit_core::{
     resource_binding_satisfies, HostAdvertisement, PlanFragment, PlanId, ResourceBinding,
-    ResourceClassId, ResourcePoolId, PROTOCOL_VERSION,
+    ResourceClassId, ResourceHealth, ResourceObservation, ResourcePoolId, SignId, PROTOCOL_VERSION,
 };
 use conduit_plan_lowering::lowering::lower_plan_fragment_for_profile;
 
@@ -249,6 +249,47 @@ impl KernelResourceLedger {
             })?;
         }
         Ok(())
+    }
+
+    pub(super) fn observe_bindings(
+        &self,
+        advertisement: &HostAdvertisement,
+        bindings: &[ResourceBinding],
+        sign_ids: &[SignId],
+    ) -> Result<Vec<ResourceObservation>, String> {
+        if bindings.len() != sign_ids.len() {
+            return Err(
+                "resource observation Sign width does not match the sealed bindings".into(),
+            );
+        }
+        let mut observations = Vec::with_capacity(bindings.len());
+        for (binding, sign_id) in bindings.iter().zip(sign_ids) {
+            if sign_id.as_str().is_empty() {
+                return Err("resource observation Sign identity is empty".into());
+            }
+            let pool = self
+                .pools
+                .iter()
+                .find(|pool| pool.pool_id == binding.pool_id && pool.class_id == binding.class_id)
+                .ok_or_else(|| {
+                    format!(
+                        "sealed resource pool '{}' is absent from the current Host ledger",
+                        binding.pool_id.as_str()
+                    )
+                })?;
+            observations.push(ResourceObservation {
+                host_id: advertisement.host_id.clone(),
+                boot_id: advertisement.boot_id.clone(),
+                offer_generation: advertisement.offer_generation,
+                pool_id: pool.pool_id.clone(),
+                class_id: pool.class_id.clone(),
+                health: ResourceHealth::Ready,
+                unreserved_units: pool.capacity_units - pool.used_units,
+                utilized_units: pool.used_units,
+                sign_id: sign_id.clone(),
+            });
+        }
+        Ok(observations)
     }
 
     #[cfg(test)]
