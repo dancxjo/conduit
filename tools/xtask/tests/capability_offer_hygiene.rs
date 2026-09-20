@@ -209,6 +209,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
+        "semantics/catalog/src/vision_catalog.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "targets/browser/runtime/src/installed_browser/audio_io.rs",
         0,
         "fully migrated",
@@ -344,6 +349,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     ("targets/std/offers/src/calendar.rs", 0, "fully migrated"),
     ("targets/std/offers/src/model_text.rs", 0, "fully migrated"),
+    ("targets/std/offers/src/vision.rs", 0, "fully migrated"),
     (
         "targets/std/offers/src/quantity_info.rs",
         0,
