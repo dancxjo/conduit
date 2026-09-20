@@ -1,7 +1,9 @@
 //! Exact selected Millionth Quantity leaf to normalized Scalar conversion.
 
 use alloc::vec::Vec;
-use conduit_core::{Quantity, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN};
+use conduit_core::{
+    Quantity, QuantityUnit, Scalar, SemanticCapabilityContract, QUANTITY_ENCODED_LEN,
+};
 
 pub const NORMALIZED_QUANTITY_KIND: &str = "math/normalized-quantity-scalar";
 pub const NORMALIZED_QUANTITY_REVISION: &str = "conduit.std/normalized-quantity-scalar@1";
@@ -19,6 +21,19 @@ pub fn normalized_quantity_contract() -> crate::StandardKindContract {
     contract.outputs[0].value_kind = conduit_core::kind_id(conduit_core::SCALAR_INFO_ID);
     contract.example = "normalize: math/normalized-quantity-scalar".into();
     contract
+}
+
+pub fn normalized_quantity_semantic_contract() -> SemanticCapabilityContract {
+    let contract = normalized_quantity_contract();
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: NORMALIZED_QUANTITY_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
+    }
 }
 
 #[cfg(feature = "form-catalog")]
@@ -155,5 +170,16 @@ mod tests {
                 Err(NormalizedQuantityRefusal::MalformedOrWrongType)
             );
         }
+    }
+
+    #[test]
+    fn semantic_contract_owns_normalized_quantity_identity_and_capacity() {
+        let contract = normalized_quantity_semantic_contract();
+        assert_eq!(
+            contract.kind_contract_revision.as_str(),
+            NORMALIZED_QUANTITY_REVISION
+        );
+        assert!(contract.startup_parameters.is_empty());
+        assert_eq!(contract.limits, normalized_quantity_contract().limits);
     }
 }

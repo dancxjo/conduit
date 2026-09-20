@@ -3,8 +3,8 @@
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN,
-    QUANTITY_INFO_ID, SCALAR_INFO_ID,
+    PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, SemanticCapabilityContract,
+    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
 
 use crate::{
@@ -129,6 +129,19 @@ pub fn quantity_map_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 20, target-maximum = 20000, target-granularity = 1, unit = \"Hz\", range-policy = \"clamp\", quantization = \"nearest\")".into(),
+    }
+}
+
+pub fn quantity_map_semantic_contract() -> SemanticCapabilityContract {
+    let contract = quantity_map_contract();
+    SemanticCapabilityContract {
+        startup_parameters: crate::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: QUANTITY_MAP_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
     }
 }
 
@@ -290,5 +303,23 @@ mod tests {
             invalid.validate(),
             Err(QuantityMappingRefusal::InvalidRange)
         );
+    }
+
+    #[test]
+    fn semantic_contract_owns_mapping_front_revision_and_capacity() {
+        let contract = quantity_map_semantic_contract();
+        assert_eq!(
+            contract.kind_contract_revision.as_str(),
+            QUANTITY_MAP_REVISION
+        );
+        assert_eq!(
+            contract.startup_parameters.len(),
+            configuration_fields().len()
+        );
+        assert!(contract
+            .startup_parameters
+            .iter()
+            .all(|parameter| parameter.has_default));
+        assert_eq!(contract.limits.max_queue_bytes, QUANTITY_ENCODED_LEN as u32);
     }
 }

@@ -2,6 +2,10 @@
 
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
+use conduit_core::{
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationRequirement, ImplementationId,
+};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
     OperationAction, OperationInput, PortId, RequestId,
@@ -20,28 +24,28 @@ pub(super) static NORMALIZE: BrowserInstallation = BrowserInstallation {
     perform: None,
 };
 
-fn offer() -> conduit_core::CapabilityOffer {
-    let contract = conduit_semantic_catalog::normalized_quantity_contract();
+fn offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::normalized_quantity_semantic_contract();
     let target_kind = Some(contract.kind_id.clone());
-    conduit_semantic_catalog::realization_offer(
+    CapabilityOfferBuilder::new(
         contract,
-        conduit_semantic_catalog::NORMALIZED_QUANTITY_REVISION,
-        conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: IMPLEMENTATION,
-            execution_profile: IMPLEMENTATION,
-            implementation: IMPLEMENTATION,
-            artifact: "conduit-browser-runtime/normalized-quantity-scalar@1",
+        CapabilityRealization {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
+            implementation_id: ImplementationId::from(IMPLEMENTATION),
+            artifact_id: ArtifactId::from("conduit-browser-runtime/normalized-quantity-scalar@1"),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HOST_OPERATION.into(),
+                target_kind,
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
+                maximum_output_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: HOST_OPERATION.into(),
-            target_kind,
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
-            maximum_output_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
-        }],
-        Vec::new(),
-        Vec::new(),
     )
+    .build()
 }
 
 fn prepare(

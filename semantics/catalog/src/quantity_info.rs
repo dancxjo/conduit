@@ -6,7 +6,8 @@ use alloc::string::String;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal, Quantity,
-    QuantityUnit, StructuredInfoType, StructuredInfoValue, QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID,
+    QuantityUnit, SemanticCapabilityContract, StructuredInfoType, StructuredInfoValue,
+    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID,
 };
 
 pub const QUANTITY_INFO_WRAP_KIND: &str = "structured-info/wrap-quantity";
@@ -65,6 +66,19 @@ pub fn quantity_info_wrap_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "wrap: structured-info/wrap-quantity".into(),
+    }
+}
+
+pub fn quantity_info_wrap_semantic_contract() -> SemanticCapabilityContract {
+    let contract = quantity_info_wrap_contract();
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: QUANTITY_INFO_WRAP_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
     }
 }
 
@@ -152,5 +166,11 @@ mod tests {
             contract.inputs[0].value_kind,
             contract.outputs[0].value_kind
         );
+        let semantics = quantity_info_wrap_semantic_contract();
+        assert_eq!(
+            semantics.kind_contract_revision.as_str(),
+            QUANTITY_INFO_WRAP_REVISION
+        );
+        assert_eq!(semantics.limits, contract.limits);
     }
 }
