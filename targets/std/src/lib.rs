@@ -136,6 +136,7 @@ pub mod r1_control_input;
 pub mod reaction_diffusion;
 pub mod remote_cord_sessions;
 pub mod ros2_base;
+pub mod shared_pool_runtime;
 pub use reaction_diffusion::*;
 pub mod secure_websocket;
 pub mod sound_recovery;
