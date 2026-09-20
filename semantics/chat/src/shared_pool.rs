@@ -13,7 +13,7 @@ pub const CHAT_PEER_KIND: &str = "chat/peer";
 pub const CHAT_ROOM_KIND: &str = "chat/room";
 pub const FLOW_FAN_KIND: &str = "flow/fan";
 pub const FLOW_MERGE_KIND: &str = "flow/merge";
-pub const CHAT_MESSAGE_KIND: &str = "ChatMessage";
+pub const CHAT_MESSAGE_KIND: &str = "chat/message@1";
 pub const POOL_WEBCHAT_MAXIMUM_PEERS: u16 = 32;
 
 pub fn pool_chat_capabilities() -> [CapabilityOffer; 4] {
@@ -100,6 +100,8 @@ pub fn install_pool_chat_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{KindDefinition, KindSignature, StartupParameterSignature};
+
+    startup.insert_value_kind_alias("ChatMessage", kind_id(CHAT_MESSAGE_KIND))?;
 
     for offer in pool_chat_capabilities().into_iter().skip(1) {
         startup.insert(KindSignature {

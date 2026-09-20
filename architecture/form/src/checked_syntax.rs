@@ -105,6 +105,9 @@ impl StartupCatalog {
         if name.is_empty() {
             return Err("startup value Kind alias must not be empty".into());
         }
+        if self.value_kind_aliases.get(&name) == Some(&value_kind) {
+            return Ok(());
+        }
         if self.value_kind_aliases.contains_key(&name) || self.structured_types.contains_key(&name)
         {
             return Err(format!("duplicate startup value type '{name}'"));

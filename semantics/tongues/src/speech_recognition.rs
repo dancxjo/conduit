@@ -184,6 +184,8 @@ pub fn install_speech_recognition_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
+    startup.insert_value_kind_alias("PcmFrames", kind_id(conduit_audio::AUDIO_PCM_INFO_ID))?;
+    startup.insert_value_kind_alias("ChatMessage", kind_id(crate::CHAT_MESSAGE_VALUE_KIND))?;
     for contract in [
         speech_recognition_contract(),
         speech_clip_recognition_contract(),

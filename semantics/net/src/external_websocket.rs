@@ -39,10 +39,10 @@ pub const URL_VALUE_KIND: &str = "value/net-url@1";
 pub const NET_ADDRESS_VALUE_KIND: &str = "value/net-address@1";
 /// One complete RFC 6455 binary message. Bases must reject text frames,
 /// fragmented values beyond the admitted message bound, and malformed frames.
-pub const WEBSOCKET_MESSAGE_VALUE_KIND: &str = "WebSocketMessage";
+pub const WEBSOCKET_MESSAGE_VALUE_KIND: &str = "value/websocket-message@1";
 pub const BOOLEAN_VALUE_KIND: &str = "Boolean";
-pub const PEER_EVENT_VALUE_KIND: &str = "NetPeerEvent";
-pub const PEER_MESSAGE_VALUE_KIND: &str = "NetPeerMessage";
+pub const PEER_EVENT_VALUE_KIND: &str = "value/net-peer-event@1";
+pub const PEER_MESSAGE_VALUE_KIND: &str = "value/net-peer-message@1";
 
 pub const MAXIMUM_EXTERNAL_WEBSOCKET_PEERS: u16 = 2;
 pub const MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES: u32 = 256;
@@ -236,6 +236,12 @@ pub fn install_external_websocket_catalogs(
         ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
         StartupParameterSignature,
     };
+
+    startup.insert_value_kind_alias("Url", kind_id(URL_VALUE_KIND))?;
+    startup.insert_value_kind_alias("NetAddress", kind_id(NET_ADDRESS_VALUE_KIND))?;
+    startup.insert_value_kind_alias("WebSocketMessage", kind_id(WEBSOCKET_MESSAGE_VALUE_KIND))?;
+    startup.insert_value_kind_alias("NetPeerEvent", kind_id(PEER_EVENT_VALUE_KIND))?;
+    startup.insert_value_kind_alias("NetPeerMessage", kind_id(PEER_MESSAGE_VALUE_KIND))?;
 
     for contract in [
         external_websocket_client_contract(),

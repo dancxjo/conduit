@@ -23,7 +23,7 @@ pub const COMMIT_RECOGNIZED_TURN_REVISION: &str = "conduit.speech/commit-recogni
 pub const COMMITTED_TURN_TO_TEXT_KIND: &str = "speech/committed-turn-to-text";
 pub const COMMITTED_TURN_TO_TEXT_REVISION: &str = "conduit.speech/committed-turn-to-text@1";
 pub const RECOGNITION_EVENT_VALUE_KIND: &str = "speech/recognition-event@1";
-pub const CHAT_MESSAGE_VALUE_KIND: &str = "ChatMessage";
+pub const CHAT_MESSAGE_VALUE_KIND: &str = "chat/message@1";
 
 /// The Conduit transport envelope for one Tongues StreamEvent.
 ///
