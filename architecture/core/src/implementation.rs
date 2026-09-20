@@ -6,7 +6,7 @@ use crate::{
 };
 use alloc::vec::Vec;
 
-/// One exact executable realization offered beneath a semantic capability face.
+/// One exact executable realization offered beneath a semantic capability front.
 ///
 /// These are stable realization facts. Current availability and utilization are
 /// deliberately not part of this value and belong to planner observations.

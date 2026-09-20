@@ -70,7 +70,7 @@ impl TourShellPresenter {
             .find(|state| state.slot == Slot::Inspector)
             .and_then(|state| state.presentation.clone())
             .ok_or(TourShellError::Identity)?;
-        let face = presentation
+        let front = presentation
             .subjects
             .iter()
             .find(|subject| subject.identity.ends_with("/inspection"))
@@ -104,7 +104,7 @@ impl TourShellPresenter {
         let current = self.present_surface(
             Slot::Inspector,
             &revised,
-            &face,
+            &front,
             current_bounds,
             2,
             &inspector_scene(current_bounds, &revised, scroll_offset)?,

@@ -15,14 +15,14 @@ for the clearest demonstration of the system so far.
 
 | Area | Available behavior and evidence | Boundary |
 |---|---|---|
-| **Language and composition** | Canonical `.conduit` parsing, located diagnostics, checking, recursive Forms through Faces/Backs, exact typed Ports, and separate source/checked/expanded identities. Ordinary examples run through planning and the production kernel. | Supported semantics and implementations are finite; a catalog entry does not promise an implementation on every Host. See [Forms](forms/README.md). |
-| **Planning and execution** | One port-aware kernel, explicit fan-out, bounded queues and operations, resource and authority admission, immutable Plans, cancellation, pressure, and correlated Signs. Shared code serves hosted, browser, and embedded paths. | Deadline guarantees belong to specific admitted profiles. General SMP, preemption, and physical real-time guarantees are not established by cooperative execution. |
-| **Body lifecycle** | Zero/one/many initial Forms, durable Part membership, current/offline Host presence, Body-wide workload admission, one current Plan and at most one active Play. Multi-Form execution and workload changes have hosted and browser evidence. | This is implemented, not merely the old #2062 proposal. Quiescence versus semantic completion still needs the runtime correction in [#3006](https://github.com/dancxjo/conduit/issues/3006). |
-| **Tour and browser Hosts** | One seven-page Tour application owns the portable chapter/stage catalog, Form sources, presentation state, and semantic actions used by browser, hosted desktop, and ConduitOS presenters. Browser/WASM execution, embedded Patchbay, independent browser Hosts, and admitted browser operations remain available. | Browser permission, device availability, tab lifetime, and supported profile still apply. Browser, hosted, and emulator proofs establish different environments; none alone establishes physical-media behavior. |
-| **Patchbay** | A resident native projection shows the active Forms on the present Body with exact Plan/Play identities and presenter topology; broader native and browser inspection/editing, bounded Watches, observation replay, and scoped breakpoint/causal-trace support also exist. | Patchbay is a projection over authoritative Body and execution truth, not a second scheduler. Replay is distinct from re-execution, and these features do not establish distributed stop-the-world debugging. |
-| **Crèche and fabrication** | Birth a Body with reviewed Forms, prepare target-native artifacts, inspect membership, and retain Body evidence into Patchbay. Fabrication packages cover hosted computers, browser, ConduitOS, and board families. | Building or downloading an artifact is distinct from installing, booting, admitting a Part, and executing work. Consult each [target](targets/README.md). |
-| **ConduitOS** | Five product targets: x86_64 and IA-32 PC, AArch64 and RISC-V64 virt, and LoongArch64 virt. The x86_64 graphical journey births a Body, runs every Tour exercise across all seven pages, switches resident Forms, opens simplified Patchbay, replans presenters, and exercises keyboard, pointer, timer, and USB Line paths; the other four targets have serial product media. | The illustrated journey is **freestanding-emulator** proof. The physical laptop campaign is open. A target's boot proof does not establish graphics, drivers, or hardware parity. |
-| **Lines and physical Pico work** | Recorded WebSocket/USB CDC execution and one-Body Pico W control, including new-Plan recovery and continuation over an already-admitted fallback Line. | This is bounded, device-specific physical evidence. It does not imply arbitrary discovery, federation, public-Internet security, or a general reconnect policy. |
+| **Language and composition** | Canonical `.conduit` parsing, located diagnostics, checking, recursive forms through fronts/backs, exact typed ports, and separate source/checked/expanded identities. Ordinary examples run through planning and the production kernel. | Supported semantics and implementations are finite; a catalog entry does not promise an implementation on every host. See [forms](forms/README.md). |
+| **Planning and execution** | One port-aware kernel, explicit fan-out, bounded queues and operations, resource and authority admission, immutable plans, cancellation, pressure, and correlated signs. Shared code serves hosted, browser, and embedded paths. | Deadline guarantees belong to specific admitted profiles. General SMP, preemption, and physical real-time guarantees are not established by cooperative execution. |
+| **body lifecycle** | Zero/one/many initial forms, durable part membership, current/offline host presence, body-wide workload admission, one current plan and at most one active play. Multi-form execution and workload changes have hosted and browser evidence. | This is implemented, not merely the old #2062 proposal. Quiescence versus semantic completion still needs the runtime correction in [#3006](https://github.com/dancxjo/conduit/issues/3006). |
+| **Tour and browser hosts** | One seven-page Tour application owns the portable chapter/stage catalog, form sources, presentation state, and semantic actions used by browser, hosted desktop, and ConduitOS presenters. Browser/WASM execution, embedded Patchbay, independent browser hosts, and admitted browser operations remain available. | Browser permission, device availability, tab lifetime, and supported profile still apply. Browser, hosted, and emulator proofs establish different environments; none alone establishes physical-media behavior. |
+| **Patchbay** | A resident native projection shows the active forms on the present body with exact plan/play identities and presenter topology; broader native and browser inspection/editing, bounded Watches, observation replay, and scoped breakpoint/causal-trace support also exist. | Patchbay is a projection over authoritative body and execution truth, not a second scheduler. Replay is distinct from re-execution, and these features do not establish distributed stop-the-world debugging. |
+| **Crèche and fabrication** | Birth a body with reviewed forms, prepare target-native artifacts, inspect membership, and retain body evidence into Patchbay. Fabrication packages cover hosted computers, browser, ConduitOS, and board families. | Building or downloading an artifact is distinct from installing, booting, admitting a part, and executing work. Consult each [target](targets/README.md). |
+| **ConduitOS** | Five product targets: x86_64 and IA-32 PC, AArch64 and RISC-V64 virt, and LoongArch64 virt. The x86_64 graphical journey births a body, runs every Tour exercise across all seven pages, switches resident forms, opens simplified Patchbay, replans presenters, and exercises keyboard, pointer, timer, and USB line paths; the other four targets have serial product media. | The illustrated journey is **freestanding-emulator** proof. The physical laptop campaign is open. A target's boot proof does not establish graphics, drivers, or hardware parity. |
+| **lines and physical Pico work** | Recorded WebSocket/USB CDC execution and one-body Pico W control, including new-plan recovery and continuation over an already-admitted fallback line. | This is bounded, device-specific physical evidence. It does not imply arbitrary discovery, federation, public-Internet security, or a general reconnect policy. |
 | **Standard semantics and local tasks** | Executable text, time, state/flow, logic/math, input, presentation, and other reviewed families; protected local file-copy operations exist. Catalog and target gap reports derive availability from code. | The old “copy a file is disabled” record describes a retired prototype. ConduitOS storage and physical file-copy remain separate unfinished work. |
 
 For implementation owners, start with the [repository map](docs/repository-layout.md)
@@ -36,22 +36,22 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
-- **Startup Forms (#3152):** the optional browser Startup Chime and separate
-  First Wake Chime run through the ordinary planner and kernel. The generic
-  first-wake source uses retained Body biography across later Wakes and fresh
-  Boots; it has no chime-specific flag. Browser proof covers sound-only idle,
+- **Startup forms (#3152):** the optional browser Startup Chime and separate
+  First wake Chime run through the ordinary planner and kernel. The generic
+  first-wake source uses retained body biography across later wakes and fresh
+  boots; it has no chime-specific flag. Browser proof covers sound-only idle,
   denied/unavailable playback, saving Started before effects, and retained
   installation/removal. See [Startup Chime](forms/startup-chime/README.md) for
   the exact lifetime and runnable proof. Deterministic synthesis and browser
   execution do not establish physical speaker or subjective listening acceptance.
 
-- **Body continuity and supporting contracts:** surviving-Part continuity,
-  atomic workload transition, typed failure disposition, bounded Resource
+- **body continuity and supporting contracts:** surviving-part continuity,
+  atomic workload transition, typed failure disposition, bounded resource
   collections, and causal evidence have dedicated implementation and tests.
-  See [Body lifecycle boundaries](docs/architecture/body-lifecycle-waists.md).
+  See [body lifecycle boundaries](docs/architecture/body-lifecycle-waists.md).
 - **Portable bounded navigation (#2232):** finite goal, pose, traversability,
-  route, trajectory, and local-control contracts compose as one ordinary Form.
-  The std Host runs that Form through the production planner and kernel to emit
+  route, trajectory, and local-control contracts compose as one ordinary form.
+  The std host runs that form through the production planner and kernel to emit
   an expiring portable body-motion request. Deterministic routing and control do
   not claim Pete/Create attachment, physical movement, or attended safe-stop
   proof; those belong to the continuous Pete capstone in #2234.
@@ -65,25 +65,25 @@ Their presence is not an additional physical or release acceptance claim:
   presentation implementations. Deterministic model tests and the pinned local
   x86_64 QEMU journey cover every current page and runnable exercise, including
   direct/recursive comparison, standing timer lifecycle, explicit fan-out, and
-  two-Host execution. This source-level record does not claim accepted release,
+  two-host execution. This source-level record does not claim accepted release,
   physical hardware, or unattended human usability evidence.
 - **House speech:** recorded-audio recognition, address detection, model context,
   and conversation components exist. The attended, live named-house speech
   experience remains open in [#2297](https://github.com/dancxjo/conduit/issues/2297).
   Recorded PCM and a model response do not prove a microphone-to-speaker household.
-- **Body Chat:** the checked `body-chat` Form composes portable text interaction,
-  bounded Conduit-owned history, a canonical current-Body projection, and a
+- **body Chat:** the checked `body-chat` form composes portable text interaction,
+  bounded Conduit-owned history, a canonical current-body projection, and a
   replaceable stateless model flow. WebSocket remains an explicit Webchat
   adapter rather than chat semantics. This source-level slice does not yet
-  establish the five-Host, voice, or ConduitOS experiences described in the
-  [Body Chat guide](forms/body-chat/README.md).
-- **Reusable applications:** Forms-as-Gears is implemented, while several
+  establish the five-host, voice, or ConduitOS experiences described in the
+  [body Chat guide](forms/body-chat/README.md).
+- **Reusable applications:** forms-as-gears is implemented, while several
   complete reusable application compositions still have open acceptance work.
   [The roadmap](docs/roadmap.md#reusable-forms) names those remaining slices.
 
 The current `cargo xtask conduitos std-gap` report also identifies missing
 ConduitOS host operations for `math/map-quantity` and
-`structured-info/wrap-quantity`, alongside the missing storage Base for
+`structured-info/wrap-quantity`, alongside the missing storage base for
 `file/copy`. Run the report for the current profile instead of relying on a
 frozen catalog count.
 
@@ -92,15 +92,15 @@ frozen catalog count.
 The major remaining gaps are product integration and breadth of real-world
 proof, as well as specific architectural work:
 
-- Keep idle Forms alive by default until explicit completion or lifecycle
+- Keep idle forms alive by default until explicit completion or lifecycle
   disposition, preserving the same admitted execution across later input.
 - Make the graphical ConduitOS shell a usable set of independently retained
   surfaces with inspection, transients, resizing, scrolling, and clear focus.
-- Boot and qualify a real old laptop, then implement its storage, network,
+- boot and qualify a real old laptop, then implement its storage, network,
   audio, input, and house integration in the staged hardware campaign.
-- Complete a persistent multi-Host House with live speech and supported
+- Complete a persistent multi-host House with live speech and supported
   smart-home adapters. House admission work is currently marked paused.
-- Complete reusable application capstones and the larger Pete robotics Body;
+- Complete reusable application capstones and the larger Pete robotics body;
   deterministic robot motion selection is not physical motion proof.
 - Extend implementation confinement where required. Cooperative admission
   and recorded authority are not proof of hostile-code isolation.

@@ -6,20 +6,20 @@ use conduit_core::CheckedFace;
 
 pub(super) fn check_pool_declarations(
     form: &FormSyntax,
-    face_names: &BTreeSet<String>,
-    form_faces: &BTreeMap<String, CheckedFace>,
+    front_names: &BTreeSet<String>,
+    form_fronts: &BTreeMap<String, CheckedFace>,
 ) -> Result<BTreeSet<String>, SyntaxCheckDiagnostic> {
     let mut pool_names = BTreeSet::new();
     for statement in &form.back {
         let BackStatement::Pool(pool) = statement else {
             continue;
         };
-        if face_names.contains(&pool.name.text) || !pool_names.insert(pool.name.text.clone()) {
+        if front_names.contains(&pool.name.text) || !pool_names.insert(pool.name.text.clone()) {
             return Err(
                 SyntaxCheckError::DuplicateGear(pool.name.text.clone()).diagnostic(pool.span)
             );
         }
-        if !form_faces.contains_key(&pool.member_form.text) {
+        if !form_fronts.contains_key(&pool.member_form.text) {
             return Err(
                 SyntaxCheckError::UnsupportedKind(pool.member_form.text.clone())
                     .diagnostic(pool.member_form.span),
@@ -31,12 +31,12 @@ pub(super) fn check_pool_declarations(
 
 pub(super) fn checked_pool(
     pool: &PoolDeclaration,
-    form_faces: &BTreeMap<String, CheckedFace>,
+    form_fronts: &BTreeMap<String, CheckedFace>,
 ) -> CheckedPoolDeclaration {
     CheckedPoolDeclaration {
         name: pool.name.text.clone(),
         member_form: pool.member_form.text.clone(),
-        member_face: form_faces[&pool.member_form.text].clone(),
+        member_front: form_fronts[&pool.member_form.text].clone(),
         maximum_members: pool.maximum_members,
     }
 }

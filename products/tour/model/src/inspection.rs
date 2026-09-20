@@ -39,7 +39,7 @@ pub(crate) fn fields(
         });
     };
     field("kind", "Kind", contract.kind_id.as_str().into());
-    field("face", "Face", contract.plain_name);
+    field("front", "Front", contract.plain_name);
     field(
         "implementation",
         "Implementation",

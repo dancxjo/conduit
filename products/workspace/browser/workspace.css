@@ -71,6 +71,7 @@ a { color:var(--muted); text-decoration:none; }
 .member-card p { margin:.35rem 0; font-size:.85rem; }
 .membership-panel details { margin-top:1rem; color:var(--muted); }
 .membership-panel pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:18rem; overflow:auto; padding:1rem; background:var(--field); color:var(--ink); font-size:.72rem; }
+.membership-panel [data-application-key="invitation-presentation"] { display:grid; gap:.75rem; }
 .membership-panel label { display:grid; gap:.5rem; color:var(--muted); font-size:.8rem; }
 .membership-panel textarea { min-height:7rem; resize:vertical; padding:.75rem; background:var(--field); color:var(--ink); border:1px solid var(--line); border-radius:.3rem; overflow-wrap:anywhere; }
 .membership-actions { display:flex; gap:.5rem; margin-top:.75rem; }

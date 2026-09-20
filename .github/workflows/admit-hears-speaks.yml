@@ -96,16 +96,16 @@ jobs:
             --commit "$ACCEPTED_SOURCE_SHA" --result complete \
             --proof journey-hears-speaks --suite journey-gallery
           cp -a target/accepted-carrier/site/journeys "$RUNNER_TEMP/gallery"
-          mkdir "$RUNNER_TEMP/two-faces" "$RUNNER_TEMP/little-life"
+          mkdir "$RUNNER_TEMP/two-fronts" "$RUNNER_TEMP/little-life"
           for file in manifest.json native.png native.json browser.png browser.json; do
-            cp "$RUNNER_TEMP/gallery/current/one-form-two-faces/$file" "$RUNNER_TEMP/two-faces/$file"
+            cp "$RUNNER_TEMP/gallery/current/one-form-two-fronts/$file" "$RUNNER_TEMP/two-fronts/$file"
           done
           for file in manifest.json t000.png t001.png t008.png t032.png presentation.txt execution.json; do
             cp "$RUNNER_TEMP/gallery/current/little-life/$file" "$RUNNER_TEMP/little-life/$file"
           done
           cargo xtask evidence gallery --locked \
             --hears-speaks-evidence-root "$RUNNER_TEMP/hears-speaks" \
-            --two-faces-evidence-root "$RUNNER_TEMP/two-faces" \
+            --two-fronts-evidence-root "$RUNNER_TEMP/two-fronts" \
             --little-life-evidence-root "$RUNNER_TEMP/little-life" \
             --site-root "$RUNNER_TEMP/gallery" --commit "$ACCEPTED_SOURCE_SHA"
           cp -a target/accepted-carrier/site "$RUNNER_TEMP/site"

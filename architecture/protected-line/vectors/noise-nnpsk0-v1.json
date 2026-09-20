@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.line/protected-session-vector@1",
+  "implementation_id": "conduit.line/noise-nnpsk0-25519-chachapoly-sha256@1",
+  "protocol": "Noise_NNpsk0_25519_ChaChaPoly_SHA256",
+  "binding": {
+    "initiator_host_id": "host/a",
+    "initiator_boot_id": "boot/a",
+    "responder_host_id": "host/b",
+    "responder_boot_id": "boot/b",
+    "negotiation_id": "negotiation/1",
+    "line_session_id": "line/1",
+    "candidate_binding": "relay/route/7",
+    "transport_binding": "relay/websocket@1"
+  },
+  "limits": {
+    "maximum_payload_bytes": 64,
+    "maximum_frames_per_direction": 8,
+    "maximum_bytes_per_direction": 128
+  },
+  "preshared_key_hex": "0707070707070707070707070707070707070707070707070707070707070707",
+  "initiator_ephemeral_private_key_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+  "responder_ephemeral_private_key_hex": "0202020202020202020202020202020202020202020202020202020202020202",
+  "first_handshake_message_hex": "a4e09292b651c278b9772c569f5fa9bb13d906b46ab68c9df9dc2b4409f8a209aae250303a74433be964231479a03300",
+  "second_handshake_message_hex": "ce8d3ad1ccb633ec7b70c17814a5c76ecd029685050d344745ba05870e587d59ef6c2c50de5ecadd26bdb981b8067d1d",
+  "first_plaintext_utf8": "secret",
+  "first_protected_frame_hex": "434e44500100000000000000000006000000502792e029ce9f8beebba52295bc93563ffe31f3a482"
+}

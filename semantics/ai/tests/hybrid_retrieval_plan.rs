@@ -61,7 +61,7 @@ fn form(policy: &str, temporal: &str) -> String {
 }
 
 #[test]
-fn portable_face_names_four_explicit_paths_and_no_realization_facts() {
+fn portable_front_names_four_explicit_paths_and_no_realization_facts() {
     let contract = hybrid_retrieval_contract();
     assert_eq!(contract.inputs.len(), 4);
     assert!(contract

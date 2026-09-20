@@ -1,4 +1,4 @@
-//! The portable renderer Face and host-supplied realization offer builder.
+//! The portable renderer Front and host-supplied realization offer builder.
 
 use alloc::vec;
 use conduit_core::{
@@ -108,7 +108,7 @@ pub fn presenter_stage_offer(
     }
 }
 
-/// Exact host-owned implementation facts beneath the one portable Face.
+/// Exact host-owned implementation facts beneath the one portable Front.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RendererRealizationOffer {
     pub capability_id: CapabilityId,

@@ -22,7 +22,7 @@ pub(crate) fn default_placements_unvalidated(
                     .iter()
                     .map(move |offer| (host_index, host, offer))
             })
-            .filter(|(_, _, offer)| offer.checked_face() == gear.checked_face())
+            .filter(|(_, _, offer)| offer.checked_front() == gear.checked_front())
             .filter(|(_, host, offer)| {
                 selected_counts
                     .get(&(host.host_id.clone(), offer.capability_id.clone()))

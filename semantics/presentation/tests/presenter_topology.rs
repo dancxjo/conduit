@@ -14,7 +14,7 @@ use conduit_presentation::{
 };
 use std::collections::BTreeMap;
 
-const SOURCE: &str = "form spoken-face {\n normalize: presentation/presenter-stage\n speech: presentation/renderer\n normalize.presentation > speech.presentation\n}\n";
+const SOURCE: &str = "form spoken-front {\n normalize: presentation/presenter-stage\n speech: presentation/renderer\n normalize.presentation > speech.presentation\n}\n";
 
 #[test]
 fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {
@@ -50,14 +50,14 @@ fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("spoken-face/normalize"),
+                GearId::from("spoken-front/normalize"),
                 PlacementChoice {
                     host_id: host.host_id.clone(),
                     capability_id: CapabilityId::from("normalize"),
                 },
             ),
             (
-                GearId::from("spoken-face/speech"),
+                GearId::from("spoken-front/speech"),
                 PlacementChoice {
                     host_id: host.host_id.clone(),
                     capability_id: CapabilityId::from("speech"),
@@ -95,7 +95,7 @@ fn two_renderer_placements_are_two_independently_admitted_chains() {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_definition()).unwrap();
     let form = parse(
-        "form face {\n graphical: presentation/renderer\n speech: presentation/renderer\n}\n",
+        "form front {\n graphical: presentation/renderer\n speech: presentation/renderer\n}\n",
         &catalog,
     )
     .unwrap();
@@ -120,14 +120,14 @@ fn two_renderer_placements_are_two_independently_admitted_chains() {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("face/graphical"),
+                GearId::from("front/graphical"),
                 PlacementChoice {
                     host_id: graphical.host_id.clone(),
                     capability_id: CapabilityId::from("graphical"),
                 },
             ),
             (
-                GearId::from("face/speech"),
+                GearId::from("front/speech"),
                 PlacementChoice {
                     host_id: speech.host_id.clone(),
                     capability_id: CapabilityId::from("speech"),

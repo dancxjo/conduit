@@ -132,13 +132,13 @@ fn build_birth_wake_replan_play_and_lull_use_exact_canonical_values() {
 }
 
 #[test]
-fn build_document_exposes_face_ports_and_info_without_planning() {
+fn build_document_exposes_front_ports_and_info_without_planning() {
     let mut editor = editor(include_str!("../../../../forms/greet/main.conduit"));
     editor.open_back("welcome").unwrap();
     let document = BuildBirthController::new().document(&editor).unwrap();
     let text = document.lines.join("\n");
     assert!(text.contains("FORM greet"));
-    assert!(text.contains("FACE inputs=1 outputs=1"));
+    assert!(text.contains("FRONT inputs=1 outputs=1"));
     assert!(text.contains("PORT name direction=Input info=value/text@1 temporal=Value"));
     assert!(text.contains("PORT text direction=Output info=value/text@1 temporal=Value"));
     assert!(text.contains("kind=text/join"));

@@ -50,7 +50,7 @@ pub fn std_pico_usb_source_advertisement() -> HostAdvertisement {
             .collect(),
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
-            startup_parameters: crate::pulse_face_startup_parameters(),
+            startup_parameters: crate::pulse_front_startup_parameters(),
             shorthand: None,
             capability_id: CapabilityId::from("std-pico-pulse-1"),
             kind_id: crate::pulse_kind(),

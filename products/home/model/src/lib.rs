@@ -388,7 +388,7 @@ impl HomeModel {
         let (verb, argument) = command.split_once(' ').unwrap_or((&command, ""));
         match (verb, argument.trim()) {
             ("help", "") => {
-                self.output = "home · open tour|patchbay|forms|body|prompt|creche · forms · run <installed form> · inspect <installed form>|body · body · hosts/lines/wake (unavailable on this face)".into();
+                self.output = "home · open tour|patchbay|forms|body|prompt|creche · forms · run <installed form> · inspect <installed form>|body · body · hosts/lines/wake (unavailable on this front)".into();
             }
             ("home", "") => {
                 self.view = HomeView::Launcher;
@@ -397,10 +397,10 @@ impl HomeModel {
             ("forms", "") => self.view = HomeView::Forms,
             ("body", "") => self.view = HomeView::Body,
             ("hosts", "") => {
-                self.output = "Host inspection is unavailable on this Home face; open Patchbay for current Host truth.".into();
+                self.output = "Host inspection is unavailable on this Home front; open Patchbay for current Host truth.".into();
             }
             ("lines", "") => {
-                self.output = "Line inspection is unavailable on this Home face; open Patchbay for current Line truth.".into();
+                self.output = "Line inspection is unavailable on this Home front; open Patchbay for current Line truth.".into();
             }
             ("open", "tour") => return HomeAction::OpenTour,
             ("open", "patchbay") => return HomeAction::OpenPatchbay,
@@ -428,7 +428,7 @@ impl HomeModel {
             }
             ("wake", "") => {
                 self.output =
-                    "Wake is unavailable on this Home face; no lifecycle authority is attached."
+                    "Wake is unavailable on this Home front; no lifecycle authority is attached."
                         .into();
             }
             ("", "") => {}

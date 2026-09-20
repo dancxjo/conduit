@@ -2,15 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { acquireBrowserBodyHost } from "../../targets/browser/host/assets/browser-body-host.mjs";
 
-function fixture({ timer = false, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
+function fixture({ timer = false, timerEffects = timer ? 1 : 0, timerDuration = 10_000, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
   const memory = { buffer: new ArrayBuffer(512 * 1024) };
-  let length = 0, starts = 0, cancels = 0, request;
+  let length = 0, starts = 0, cancels = 0, polls = 0, completions = 0, request;
   const output = value => {
     const bytes = new TextEncoder().encode(JSON.stringify(value));
     new Uint8Array(memory.buffer, 0, bytes.length).set(bytes);length = bytes.length;
   };
-  const effect = { host_id: "host", boot_id: "boot", active_play_id: "play", placement_id: "placement", plan_id: "partition", request_sequence: 0,
-    ...(timer ? { effect_kind: "timer", duration_millis: 10_000 } : { effect_kind: "manifestation", presentation_kind: "presentation/text", text }) };
+  const effect = index => ({ host_id: "host", boot_id: "boot", active_play_id: "play", placement_id: `placement-${index}`, plan_id: "partition", request_sequence: index,
+    ...(timerEffects ? { effect_kind: "timer", duration_millis: timerDuration } : { effect_kind: "manifestation", presentation_kind: "presentation/text", text }) });
   const api = {
     memory,
     conduit_browser_form_human_machinery() { output({ schema: "conduit.browser/selected-human-machinery@1", limits: { maximum_gears: 32 }, implementations: [{ id: "browser/dom-presentation@1", revision: 1 }, { id: "browser/pointer-events@1", revision: 1 }] });return 0; },
@@ -19,14 +19,20 @@ function fixture({ timer = false, inputUnits = 0, text = "hello", quiescent = fa
     conduit_browser_body_start(length) {
       starts++;request = JSON.parse(new TextDecoder().decode(new Uint8Array(memory.buffer, 256 * 1024, length)));
       output({ schema: "conduit.browser/body-started@1", play: { active_play_id: "play" }, progress: immediate
-        ? { schema: "conduit.tour/manifestation-receipt@3", disposition: "completed", active_play_id: "play" } : effect });return 0;
+        ? { schema: "conduit.tour/manifestation-receipt@3", disposition: "completed", active_play_id: "play" } : effect(0) });return 0;
     },
     conduit_browser_form_pending_capacity: () => 16,
-    conduit_browser_form_poll_effect() { output({ disposition: "waiting" });return 0; },
+    conduit_browser_form_poll_effect() {
+      output(++polls < timerEffects ? effect(polls) : { disposition: "waiting" });return 0;
+    },
     conduit_browser_form_input_ptr: () => 128 * 1024, conduit_browser_form_input_capacity: () => 64 * 1024,
-    conduit_browser_form_complete_effect() { output(quiescent
-      ? { schema: "conduit.browser/pending-effects@1", disposition: "quiescent_awaiting_input", active_play_id: "play" }
-      : { schema: "conduit.tour/manifestation-receipt@3", disposition: "completed", active_play_id: "play" });return 0; },
+    conduit_browser_form_complete_effect() {
+      completions++;
+      output(quiescent
+        ? { schema: "conduit.browser/pending-effects@1", disposition: "quiescent_awaiting_input", active_play_id: "play" }
+        : completions < timerEffects ? { disposition: "waiting" }
+          : { schema: "conduit.tour/manifestation-receipt@3", disposition: "completed", active_play_id: "play" });return 0;
+    },
     conduit_tour_cancel() { cancels++;output({ schema: "conduit.tour/manifestation-receipt@3", disposition: "cancelled", active_play_id: "play" });return 0; },
   };
   const window = { setTimeout, clearTimeout, performance, crypto };
@@ -40,9 +46,10 @@ function fixture({ timer = false, inputUnits = 0, text = "hello", quiescent = fa
   });
   const resource = inputUnits > 0
     ? { pool_id: "browser/window-input", class_id: "conduit.resource/browser-window-input@1", units: inputUnits }
-    : timer ? { pool_id: "browser/timer", class_id: "conduit.resource/timer-slot@1", units: 1 }
+    : timerEffects ? { pool_id: "browser/timer", class_id: "conduit.resource/timer-slot@1", units: 1 }
       : { pool_id: "browser/presentation", class_id: "conduit.resource/presentation-slot@1", units: 1 };
-  const proposal = { schema: "conduit.patchbay/body-execution-proposal@1", wake: { lifecycle: "AwaitingPlan", plans: [] }, plan: { forms: [{ plan: { fragments: [{ host_id: "host", boot_id: "boot", offer_generation: 1, placements: [{ placement_id: "placement", gear_id: "gear", resources: [resource] }] }] } }] } };
+  const placements = Array.from({ length: timerEffects || 1 }, (_, index) => ({ placement_id: `placement-${index}`, gear_id: `gear-${index}`, resources: [resource] }));
+  const proposal = { schema: "conduit.patchbay/body-execution-proposal@1", wake: { lifecycle: "AwaitingPlan", plans: [] }, plan: { forms: [{ plan: { fragments: [{ host_id: "host", boot_id: "boot", offer_generation: 1, placements }] } }] } };
   return { api, proposal, outputRoot, inputTarget, hostId: "host", bootId: "boot", count: () => ({ starts, cancels }), request: () => request, output };
 }
 
@@ -50,6 +57,16 @@ test("one acquired window-input adapter reports every admitted logical input uni
   const f = fixture({ inputUnits: 16 });
   const owner = acquireBrowserBodyHost(f);
   assert.equal(owner.observations()[0].unreserved_units, 16);
+  owner.close();
+});
+
+test("three admitted timer slots run independently through the page Host", async () => {
+  const f = fixture({ timerEffects: 3, timerDuration: 0 });
+  const owner = acquireBrowserBodyHost(f);
+  assert.equal(owner.observations()[0].unreserved_units, 3);
+  owner.start(1);
+  const receipt = await owner.run();
+  assert.equal(receipt.disposition, "completed");
   owner.close();
 });
 
@@ -89,7 +106,7 @@ test("acquisition reports owned slots without starting a Play or copying offer c
 test("wrong Boot, excessive demand, unsupported pools, and lost slots refuse", () => {
   for (const change of [
     f => { f.bootId = "wrong"; },
-    f => { f.proposal.plan.forms[0].plan.fragments[0].placements[0].resources[0].units = 17; },
+    f => { f.proposal.plan.forms[0].plan.fragments[0].placements[0].resources[0].units = 33; },
     f => { f.proposal.plan.forms[0].plan.fragments[0].placements[0].resources[0].pool_id = "other"; },
   ]) {
     const f = fixture();change(f);

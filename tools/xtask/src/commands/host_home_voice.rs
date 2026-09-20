@@ -59,7 +59,7 @@ pub(super) struct HomeVoiceArgs {
     /// Perform the exact multi-turn shared Home journey instead of one command.
     #[arg(long)]
     complete_journey: bool,
-    /// Retain a strict physical Voice face receipt in this new directory.
+    /// Retain a strict physical Voice front receipt in this new directory.
     #[arg(long)]
     evidence_root: Option<PathBuf>,
     /// Assert that a person is present for this exact capture and playback.
@@ -80,7 +80,7 @@ pub(super) fn run(
     }
     if opts.dry_run {
         if opts.json {
-            println!("{{\"schema\":\"conduit.home/voice-face@1\",\"dry_run\":true}}");
+            println!("{{\"schema\":\"conduit.home/voice-front@1\",\"dry_run\":true}}");
         } else if !opts.quiet {
             println!("would capture one bounded Home command and speak its semantic presentation");
         }
@@ -183,7 +183,7 @@ pub(super) fn run(
     };
 
     let report = serde_json::json!({
-        "schema": "conduit.home/voice-face@1",
+        "schema": "conduit.home/voice-front@1",
         "journey_step_ids": conduit_home_model::JOURNEY_STEP_IDS,
         "physical_scope": "one attended push-to-talk command and its semantic aural playback; deterministic model proof owns the complete shared journey",
         "input": {
@@ -326,7 +326,7 @@ struct PhysicalAcceptance {
 #[derive(Serialize)]
 struct HomeFaceReceipt {
     schema: &'static str,
-    face_id: &'static str,
+    front_id: &'static str,
     proof_class: &'static str,
     step_ids: [&'static str; 8],
     host_id: &'static str,
@@ -352,8 +352,8 @@ fn retain_physical_evidence(
     create_new(&root.join("voice-run.json"), &artifact)?;
     let artifact_sha256 = format!("sha256:{:x}", Sha256::digest(&artifact));
     let receipt = HomeFaceReceipt {
-        schema: "conduit.evidence/home-face@1",
-        face_id: "voice-physical",
+        schema: "conduit.evidence/home-front@1",
+        front_id: "voice-physical",
         proof_class: "attended-physical-voice",
         step_ids: conduit_home_model::JOURNEY_STEP_IDS,
         host_id: "std-piper-playback-proof-host",
@@ -376,7 +376,7 @@ fn retain_physical_evidence(
         },
     };
     create_new(
-        &root.join("home-face-voice-physical.json"),
+        &root.join("home-front-voice-physical.json"),
         &serde_json::to_vec_pretty(&receipt)?,
     )?;
     Ok(())
@@ -409,7 +409,7 @@ mod tests {
         assert_eq!(action, "presentation-changed");
         assert!(spoken.contains("Conduit Prompt"));
         assert!(spoken.contains("open tour|patchbay|forms|body|prompt|creche"));
-        assert!(spoken.contains("unavailable on this face"));
+        assert!(spoken.contains("unavailable on this front"));
         assert!(!spoken.contains("pixel"));
     }
 
@@ -439,14 +439,14 @@ mod tests {
                 .as_nanos()
         ));
         let report = serde_json::json!({
-            "schema":"conduit.home/voice-face@1",
+            "schema":"conduit.home/voice-front@1",
             "journey_step_ids":conduit_home_model::JOURNEY_STEP_IDS,
             "recognized_text_sha256":"sha256:recognized",
             "spoken_text_sha256":"sha256:spoken"
         });
         retain_physical_evidence(&root, &report, "plan/voice", "play/voice", "boot/voice").unwrap();
         let receipt: serde_json::Value = serde_json::from_slice(
-            &std::fs::read(root.join("home-face-voice-physical.json")).unwrap(),
+            &std::fs::read(root.join("home-front-voice-physical.json")).unwrap(),
         )
         .unwrap();
         assert_eq!(

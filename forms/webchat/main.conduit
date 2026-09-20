@@ -1,4 +1,4 @@
-# Explicit external-WebSocket transport faces for the bounded local webchat.
+# Explicit external-WebSocket transport fronts for the bounded local webchat.
 form chat/client (
     url: Url
     > send: WebSocketMessage...|

@@ -112,10 +112,10 @@ mod tests {
         ExperienceTemporalRole,
     };
     use conduit_presentation::{
-        BodySurface, BodySurfaceContext, BodySurfaceFocus, GenerativeNarratorRole,
-        GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest,
-        PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel, PresentationRole,
-        PresentationSubject, PresentationText,
+        Face, FaceContext, FaceFocus, GenerativeNarratorRole, GenerativePresenterBounds,
+        GenerativePresenterPolicy, GenerativePresenterRequest, PresentationBasis,
+        PresentationDisclosure, PresentationDisclosureLevel, PresentationRole, PresentationSubject,
+        PresentationText,
     };
 
     fn at(ticks: u64) -> TemporalInstant {
@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    fn exact_item_trace_retains_epistemic_facets_sources_and_contradiction() {
+    fn exact_item_trace_retains_epistemic_frontts_sources_and_contradiction() {
         let mut experience = experience();
         experience
             .try_admit(item("door-open", "sign/camera/7"))
@@ -243,14 +243,14 @@ mod tests {
             inspect_presented_current_experience(&experience, &presentation, "door-open").unwrap();
         let deterministic =
             conduit_presentation::render_linear_presentation(&presentation).unwrap();
-        let surface = BodySurface {
-            context: BodySurfaceContext::Overview,
-            focus: BodySurfaceFocus::Body,
+        let surface = Face {
+            context: FaceContext::Overview,
+            focus: FaceFocus::Body,
             presentation: presentation.clone(),
             application_actions: vec![],
             operator_actions: vec![],
         };
-        let generative = GenerativePresenterRequest::from_body_surface(
+        let generative = GenerativePresenterRequest::from_face(
             "request/experience/4".into(),
             GenerativePresenterPolicy {
                 template_contract_revision: "experience-presenter/1".into(),

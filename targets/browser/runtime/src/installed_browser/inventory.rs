@@ -133,7 +133,7 @@ mod tests {
         assert!(advertisement.resources.iter().any(|resource| {
             resource.pool_id.as_str() == "browser/timer"
                 && resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS
-                && resource.capacity_units == 1
+                && resource.capacity_units == super::super::MAXIMUM_BROWSER_GEARS as u32
         }));
         for implementation in [
             "browser/window-keyboard@1",

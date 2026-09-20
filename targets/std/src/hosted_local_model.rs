@@ -3,6 +3,7 @@
 use conduit_core::PlannedGear;
 
 mod ollama;
+pub(crate) mod ollama_present;
 mod ollama_stream;
 pub use conduit_ai::{LocalModelKindProfile, MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES};
 pub use ollama::{OllamaDiscovery, OllamaLocalModelAdapter};

@@ -788,7 +788,7 @@ fn execute_image(
         eprintln!("failure artifact error: {error}");
     }
     if result.is_ok() {
-        super::home_face_evidence::retain(&paths.target)?;
+        super::home_front_evidence::retain(&paths.target)?;
     }
     result
 }

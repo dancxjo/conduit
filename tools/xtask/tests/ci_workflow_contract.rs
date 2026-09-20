@@ -357,12 +357,35 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
         "orange-pi-release",
         "raspberry-pi-release",
         "conduitos-releases",
+        "conduitos-oci-provenance",
     ] {
         assert!(stage.contains(&format!("needs.{prerequisite}.result == 'success'")));
     }
     assert!(stage.contains("cargo +1.98.1 xtask host release-catalog"));
     assert!(stage.contains("--root target/creche-release-artifacts"));
     assert!(stage.contains("--generation \"${{ github.run_number }}\""));
+}
+
+#[test]
+fn conduitos_oci_export_is_exact_subject_linked_and_carried_to_pages() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let export = products
+        .split("\n  conduitos-oci-provenance:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  esp32-release-images:\n").next())
+        .expect("locate ConduitOS OCI export job");
+    assert!(export.contains("needs: conduitos-releases"));
+    assert!(export.contains("oci-release-export.mjs prepare-conduitos"));
+    assert!(export.contains("oci-release-export.mjs export"));
+    assert!(export.contains("oci-release-export.mjs verify"));
+    assert!(export.contains("name: conduit-conduitos-x86_64-oci"));
+    assert!(products.contains("target/pages-root/supply-chain/conduitos-x86_64-pc"));
+
+    let deploy = fs::read_to_string(root.join(".github/workflows/tour-pages-deploy.yml"))
+        .expect("read Pages deployment workflow");
+    assert!(deploy.contains("target/pages-site-with-truth/supply-chain/conduitos-x86_64-pc"));
 }
 
 #[test]
@@ -382,15 +405,15 @@ fn hosted_release_jobs_run_the_packaged_tour_and_home_journeys() {
     assert!(releases.contains("conduit-tour-linux-x86_64 --journey"));
     assert!(releases.contains("conduit-tour-windows-x86_64.exe --journey"));
     assert!(releases.contains("cargo +1.98.1 xtask setup linux-release"));
-    assert!(releases.contains("rm -rf target/creche-host-releases/home-face-linux-native"));
+    assert!(releases.contains("rm -rf target/creche-host-releases/home-front-linux-native"));
     assert!(releases.contains(
-        "xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-face-linux-native"
+        "xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-front-linux-native"
     ));
     assert!(releases.contains(
-        "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/creche-host-releases/home-face-windows-native"
+        "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/creche-host-releases/home-front-windows-native"
     ));
     assert!(releases.contains(
-        "conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-face-windows-native"
+        "conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-front-windows-native"
     ));
     assert!(releases.contains("name: conduit-existing-computer-releases-${{ matrix.artifact }}"));
 }
@@ -435,7 +458,7 @@ fn product_descendants_use_explicit_direct_result_admission() {
 }
 
 #[test]
-fn two_faces_evidence_is_pinned_exact_bounded_and_admitted() {
+fn two_fronts_evidence_is_pinned_exact_bounded_and_admitted() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
@@ -454,11 +477,11 @@ fn two_faces_evidence_is_pinned_exact_bounded_and_admitted() {
         "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
     ));
     assert!(evidence.contains(
-        "cargo xtask evidence one-form-two-faces --locked --output \"$RUNNER_TEMP/one-form-two-faces\""
+        "cargo xtask evidence one-form-two-fronts --locked --output \"$RUNNER_TEMP/one-form-two-fronts\""
     ));
-    assert!(evidence.contains("--root \"$RUNNER_TEMP/one-form-two-faces\""));
+    assert!(evidence.contains("--root \"$RUNNER_TEMP/one-form-two-fronts\""));
     assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
-    assert!(evidence.contains("--proof journey-one-form-two-faces"));
+    assert!(evidence.contains("--proof journey-one-form-two-fronts"));
     assert!(evidence.contains("--suite journey-gallery"));
     assert!(evidence.contains("retention-days: 14"));
     assert!(gate.contains("JOURNEY_REQUIRED: ${{ needs.plan.outputs.browser_runtime_required }}"));
@@ -513,9 +536,11 @@ fn sibling_gallery_is_exact_sealed_and_part_of_carrier_admission() {
         .expect("locate stable product gate");
 
     assert!(gallery.contains("needs: [plan, journey-evidence, little-life-evidence]"));
-    assert!(gallery.contains("conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(
+        gallery.contains("conduit-journey-one-form-two-fronts-${{ env.CONDUIT_CANDIDATE_SHA }}")
+    );
     assert!(gallery.contains("conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}"));
-    assert!(gallery.contains("--two-faces-evidence-root"));
+    assert!(gallery.contains("--two-fronts-evidence-root"));
     assert!(gallery.contains("--little-life-evidence-root"));
     assert!(gallery.contains("$RUNNER_TEMP/journey-gallery-carrier"));
     assert!(gallery.contains("seal-pages-carrier.mjs"));

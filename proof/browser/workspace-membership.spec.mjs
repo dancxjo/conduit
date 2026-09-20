@@ -9,15 +9,15 @@ let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("the ordinary Body surface binds and admits one compiler-free reviewed browser Host", async ({ page }) => {
+test("the ordinary Face binds and admits one compiler-free reviewed browser Host", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Firefly Choir", exact: true }).check();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
-  await expect(page.getByLabel("Parts and Hosts").getByRole("button", { name: "Invite another phone", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
+  await expect(page.getByLabel("parts and hosts").getByRole("button", { name: "Invite another phone", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Add a Host", exact: true }).click();
   await expect(page.getByRole("heading", { name: "What should this browser contribute?", exact: true })).toBeVisible();
@@ -116,7 +116,7 @@ test("the ordinary Body surface binds and admits one compiler-free reviewed brow
 
   const authoredForms = await page.evaluate(() => globalThis.__conduitWorkspace.current().initial_forms);
   await page.locator("[data-close-membership]").click();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Refused");
   const replan = await page.evaluate(() => ({
     playback: globalThis.__conduitWorkspace.state(),
@@ -147,6 +147,39 @@ test("the ordinary Body surface binds and admits one compiler-free reviewed brow
   });
   expect(replan.evidence.evidence.body.workset.forms).toEqual(authoredForms);
   expect(replan.evidence.realization).toBeNull();
+
+  await expect(page.locator('[data-application-key="tutorial-guidance"]')).toContainText("Tutorial · repair");
+  await page.getByRole("button", { name: "Inspect lifecycle evidence", exact: true }).click();
+  const inspected = JSON.parse(await page.locator("[data-inspection-content] pre").textContent());
+  expect(inspected.refusal).toMatchObject({
+    code: "ExecutionLineUnavailable",
+    message: "Body proposal selected an admitted Host without a current execution Line",
+  });
+  expect(inspected.body.wakes.at(-1).rejections).toEqual(failedWake.rejections);
+  await page.locator("[data-close-inspection]").click();
+
+  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
+  await page.reload();
+  await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeVisible();
+  const restored = await page.evaluate(() => ({
+    current: globalThis.__conduitWorkspace.current(),
+    evidence: globalThis.__conduitWorkspace.evidence(),
+  }));
+  expect(restored.current.body_id).toBe(replan.evidence.evidence.body.body_id);
+  expect(restored.evidence.current_host_offers).toHaveLength(1);
+  expect(restored.evidence.evidence.membership.parts.filter(part => !part.current)).toHaveLength(1);
+
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  const repaired = await page.evaluate(() => ({
+    current: globalThis.__conduitWorkspace.current(),
+    evidence: globalThis.__conduitWorkspace.evidence(),
+  }));
+  expect(repaired.current.body_id).toBe(restored.current.body_id);
+  expect(repaired.evidence.realization.plan.plan_id).not.toBe(replan.playback.proposal.plan.plan_id);
+  expect(repaired.evidence.evidence.wakes.at(-1).lifecycle).toBe("Playing");
+  await expect(page.locator('[data-application-key="tutorial-guidance"]')).toContainText("Tutorial · continuity");
+  await expect(page.locator('[data-application-key="tutorial-guidance"]')).not.toContainText("Tutorial · repair");
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {
@@ -160,16 +193,19 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   await page.getByRole("checkbox", { name: "Firefly Choir", exact: true }).check();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
 
-  await expect(page.getByRole("button", { name: "Parts / Hosts", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Parts and Hosts", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "parts / hosts", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "parts and hosts", exact: true })).toBeVisible();
   await expect(page.locator(".member-card")).toHaveCount(1);
   await expect(page.locator(".member-card")).toContainText("admitted · present · local Host");
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
 
-  await page.getByLabel("Parts and Hosts").getByRole("button", { name: "Invite another phone", exact: true }).click();
+  await page.getByLabel("parts and hosts").getByRole("button", { name: "Invite another phone", exact: true }).click();
   await expect(page.locator('[data-application-key="invitation-status"]')).toContainText("Single-use Body invitation");
-  const link = (await page.locator('[data-application-key^="invitation-link-"]').allTextContents()).join("");
+  const invitation = page.locator('[data-application-key="invitation-presentation"]');
+  await expect(invitation.locator('[data-application-key="invitation-link"]')).toHaveCount(1);
+  await expect(invitation).toHaveCSS("row-gap", "12px");
+  const link = await invitation.locator('[data-application-key="invitation-link"]').textContent();
   const afterOffer = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
   expect(afterOffer).toEqual(before);
   expect(new URL(link).hash).toContain("body-invitation=");
@@ -244,7 +280,7 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   await joining.close();
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
-  await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
+  await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
   await expect(page.locator(".member-card")).toHaveCount(2);
   const restored = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
   expect(restored.parts.filter(part => part.current)).toHaveLength(1);
@@ -344,7 +380,7 @@ test("an unavailable running Host leaves the current Body and browser Host intac
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
 
-  await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
+  await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
   await page.getByRole("button", { name: "Connect a running Host", exact: true }).click();
   await page.getByLabel("Running Host rendezvous code", { exact: true }).fill("not-a-rendezvous-code");
   await page.getByRole("button", { name: "Connect Host", exact: true }).click();
@@ -370,7 +406,7 @@ test("an already-running Host joins without displacing the browser Host or its B
     await page.getByRole("button", { name: "Birth Body", exact: true }).click();
     const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
 
-    await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
+    await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
     await page.getByRole("button", { name: "Connect a running Host", exact: true }).click();
     await page.getByLabel("Running Host rendezvous code", { exact: true }).fill(code);
     await page.getByRole("button", { name: "Connect Host", exact: true }).click();
@@ -387,7 +423,7 @@ test("an already-running Host joins without displacing the browser Host or its B
     expect(nativeRuntime.body_id).toBe(after.evidence.body_id);
     await page.reload();
     await expectProcessSuccess(running);
-    await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
+    await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
     await expect(page.locator(".member-card")).toHaveCount(2);
     const restored = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
     expect(restored.evidence.membership.parts.filter(part => part.current)).toHaveLength(1);
@@ -412,7 +448,7 @@ test("loss of a joined Host Line removes only its current offers and keeps the B
     await page.getByRole("button", { name: "Birth Body", exact: true }).click();
     const bodyId = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.body_id);
 
-    await page.getByRole("button", { name: "Parts / Hosts", exact: true }).click();
+    await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
     await page.getByRole("button", { name: "Connect a running Host", exact: true }).click();
     await page.getByLabel("Running Host rendezvous code", { exact: true }).fill(code);
     await page.getByRole("button", { name: "Connect Host", exact: true }).click();

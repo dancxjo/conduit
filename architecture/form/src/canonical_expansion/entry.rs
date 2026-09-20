@@ -19,7 +19,7 @@ pub fn expand_canonical_form_with_backs(
     if !authoring.input_bindings.is_empty() || !authoring.output_bindings.is_empty() {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-033",
-            format!("root form '{form_name}' has unbound runtime face ports"),
+            format!("root form '{form_name}' has unbound runtime front ports"),
         ));
     }
     Ok(authoring.expanded)
@@ -81,13 +81,13 @@ pub fn expand_canonical_form_for_authoring_with_backs(
         &mut realization_backs,
         0,
     )?;
-    let face = form.checked_face();
+    let front = form.checked_front();
     let input_bindings = fragment
         .inputs
         .iter()
-        .flat_map(|(face_port, endpoints)| {
+        .flat_map(|(front_port, endpoints)| {
             endpoints.iter().map(|endpoint| AuthoringFaceBinding {
-                face_port_id: conduit_core::PortId::from(face_port.as_str()),
+                front_port_id: conduit_core::PortId::from(front_port.as_str()),
                 gear_id: endpoint.gear_id.clone(),
                 gear_port_id: endpoint.port.port_id.clone(),
             })
@@ -96,8 +96,8 @@ pub fn expand_canonical_form_for_authoring_with_backs(
     let output_bindings = fragment
         .outputs
         .iter()
-        .map(|(face_port, endpoint)| AuthoringFaceBinding {
-            face_port_id: conduit_core::PortId::from(face_port.as_str()),
+        .map(|(front_port, endpoint)| AuthoringFaceBinding {
+            front_port_id: conduit_core::PortId::from(front_port.as_str()),
             gear_id: endpoint.gear_id.clone(),
             gear_port_id: endpoint.port.port_id.clone(),
         })
@@ -147,7 +147,7 @@ pub fn expand_canonical_form_for_authoring_with_backs(
             provenance_digest,
             realization_backs,
         },
-        face,
+        front,
         input_bindings,
         output_bindings,
     })

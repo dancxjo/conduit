@@ -47,6 +47,9 @@ mod installed_browser;
 pub mod membership;
 mod membership_abi;
 pub mod presentation_nucleus;
+#[cfg(feature = "protected-line")]
+mod protected_line_abi;
+mod rendezvous_cbor_abi;
 pub mod resource_snapshot;
 pub use installed_browser::resource::advertisement as snapshot_advertisement;
 #[cfg(any(
@@ -1097,7 +1100,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
         }],
         capabilities: vec![
             CapabilityOffer {
-                startup_parameters: conduit_signal::pulse_face_startup_parameters(),
+                startup_parameters: conduit_signal::pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("pulse-1"),
                 kind_id: kind_id(PULSE_KIND),

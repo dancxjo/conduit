@@ -10,26 +10,26 @@ This document builds on existing accepted Conduit boundaries rather than
 creating a new cognitive runtime. In particular:
 
 - [continuous execution](continuous-execution.md) already establishes that a
-  Form may remain useful for an externally unbounded lifetime while every
-  concrete state, queue, resource, Plan, and Play remains finite;
-- [Body lifecycle](body-lifecycle-waists.md) keeps Body continuity distinct
-  from Host, Boot, Plan, Play, resource, and Line truth;
+  form may remain useful for an externally unbounded lifetime while every
+  concrete state, queue, resource, plan, and play remains finite;
+- [body lifecycle](body-lifecycle-waists.md) keeps body continuity distinct
+  from host, boot, plan, play, resource, and line truth;
 - the existing vision catalog already has bounded image resource references,
   geometry-backed regions, detections, confidence, and provenance;
-- ordinary LLM gears already preserve model-derived output as Info rather than
+- ordinary LLM gears already preserve model-derived output as info rather than
   evidence;
 - browser camera acquisition already treats permission and acquired media as
-  explicit Host/resource truth;
-- current Presentation and Body Surface work keeps semantic state authoritative
+  explicit host/resource truth;
+- current presentation and face work keeps semantic state authoritative
   while allowing materially different Presenters and Manifestations.
 
 The new claim is that these pieces can compose into something much more useful
 than a collection of sensors and model calls:
 
-> **A Body may continuously perceive through ordinary Forms, relate those
+> **A body may continuously perceive through ordinary forms, relate those
 > observations into a bounded current experience, retain exact optional purpose
 > across changing machinery, and present that experience in the
-> first person without making a language model the Body or a source of truth.**
+> first person without making a language model the body or a source of truth.**
 
 The high-level path is:
 
@@ -86,13 +86,13 @@ process, scheduler, agent loop, world database, or source of authority.
 ## 1. Perception is ordinary long-running semantic work
 
 Vision should not be modeled as a special AI feature invoked only when a user
-presses a button. A useful Body may simply **see**.
+presses a button. A useful body may simply **see**.
 
-Likewise, a Body may continuously hear, observe location, monitor a physical
+Likewise, a body may continuously hear, observe location, monitor a physical
 process, notice its own lifecycle and availability, receive human utterances,
 or attend to any other admitted stream of typed observations.
 
-A visual Body may therefore contain an ordinary long-running composition
+A visual body may therefore contain an ordinary long-running composition
 conceptually equivalent to:
 
 ```text
@@ -122,8 +122,8 @@ typed visual observations
 current experience
 ```
 
-The Form describes the semantic work. A browser camera, a robot camera, an
-imported image, a remote Host, a framebuffer capture, or a deterministic
+The form describes the semantic work. A browser camera, a robot camera, an
+imported image, a remote host, a framebuffer capture, or a deterministic
 fixture can all provide compatible image observations when their exact
 contracts match.
 
@@ -137,7 +137,7 @@ realization uses it.
 
 A reviewed Vision composition should answer:
 
-> What useful visual information does this Body derive from an admitted image
+> What useful visual information does this body derive from an admitted image
 > stream?
 
 It should not answer:
@@ -158,7 +158,7 @@ vision/describe
 vision/fuse
 ```
 
-Exact Kind names are future catalog work. They are shown here to make the
+Exact kind names are future catalog work. They are shown here to make the
 composition boundary concrete, not to claim current executable contracts.
 
 Implementations may join at the highest honest seam:
@@ -180,17 +180,17 @@ vision/describe
   <- deterministic fixture for contract proof
 ```
 
-A constrained Host may offer only cheap visual operations. A workstation may
-offer expensive object recognition and multimodal description. One Body-wide
-Plan may place different branches of the same Vision Form on different Hosts.
+A constrained host may offer only cheap visual operations. A workstation may
+offer expensive object recognition and multimodal description. One body-wide
+plan may place different branches of the same Vision form on different hosts.
 
-The portable Form does not change.
+The portable form does not change.
 
 ---
 
 ## 3. Existing checked source is the starting seam
 
-Conduit already has an ordinary browser-neutral visual Form shape. A minimal
+Conduit already has an ordinary browser-neutral visual form shape. A minimal
 composition can be written today in the style of the existing
 `forms/vision-metadata` source:
 
@@ -208,17 +208,17 @@ form vision-observe (
 ```
 
 That is intentionally small. It proves that image content can remain a bounded
-resource while typed visual metadata flows through ordinary Ports and Cords.
+resource while typed visual metadata flows through ordinary ports and cords.
 
 The richer Vision architecture should grow **from this seam**, not replace it
 with a private video runtime.
 
 ---
 
-## 4. Proposed full Vision Form
+## 4. Proposed full Vision form
 
 The following is an **architectural source sketch**, not yet checked source.
-Kinds such as `flow/coalesce-latest`, `vision/objects`, `vision/ocr`,
+kinds such as `flow/coalesce-latest`, `vision/objects`, `vision/ocr`,
 `vision/track`, `vision/describe`, and `experience/visual` are proposed contracts
 that must be reviewed and implemented before this exact source can compile.
 
@@ -273,7 +273,7 @@ form vision (
 This sketch is intentionally a graph, not a magic `vision()` operation.
 Implementations remain independently placeable and replaceable.
 
-A later checked Form may use a reusable Back or smaller sub-Forms to reduce
+A later checked form may use a reusable back or smaller sub-forms to reduce
 visual noise while preserving the same semantic graph.
 
 ---
@@ -319,13 +319,13 @@ backlog simply because RAM is currently plentiful.
 
 Sampling and overload are not synonyms.
 
-If a Form means:
+If a form means:
 
 > Describe the newest available view whenever the describer is ready.
 
 then a capacity-one coalescing operation may be semantically correct.
 
-If a Form means:
+If a form means:
 
 > Examine every package that crosses this inspection line.
 
@@ -361,15 +361,15 @@ A visual observation should preserve enough exact truth to identify:
 - immutable content version or generation;
 - extent and dimensions;
 - observation instant and clock basis where available;
-- source observation/Sign identity;
+- source observation/sign identity;
 - resource access class and lifetime;
 - relevant derivation lineage.
 
-A Gear that needs pixels obtains the admitted resource through ordinary
-resource authority. A Gear that only needs detections should not receive image
+A gear that needs pixels obtains the admitted resource through ordinary
+resource authority. A gear that only needs detections should not receive image
 bytes merely because they exist.
 
-This is important for both boundedness and multi-Host placement.
+This is important for both boundedness and multi-host placement.
 
 ---
 
@@ -392,10 +392,10 @@ camera
 ```
 
 The scheduler may keep high-rate visual work near the image source while placing
-expensive model work on another Host when the semantic and resource contracts
+expensive model work on another host when the semantic and resource contracts
 allow it.
 
-This is ordinary placement and Line planning, not a Vision-specific scheduler.
+This is ordinary placement and line planning, not a Vision-specific scheduler.
 
 A novelty trigger is itself semantic work. It must not be hidden in a provider
 because somebody wanted to save model calls.
@@ -447,7 +447,7 @@ These have different epistemic strength.
 
 A contour is not an object. An object-detector label is not unquestionable
 physical truth. An OCR result may be wrong. An LLM sentence that sounds
-confident remains model-derived Info unless ordinary evidence establishes the
+confident remains model-derived info unless ordinary evidence establishes the
 underlying fact independently.
 
 The type/provenance layer must preserve those distinctions even when later
@@ -477,7 +477,7 @@ selected image resource
   evidence = model-derived
 ```
 
-The model may render the visual interpretation from the Body's deictic point of
+The model may render the visual interpretation from the body's deictic point of
 view:
 
 ```text
@@ -490,8 +490,8 @@ rather than the detached:
 "The supplied image contains a red mug beside a keyboard."
 ```
 
-The `I` belongs to the Body whose visual perspective is being interpreted. It
-does not transfer Body identity to the inference model.
+The `I` belongs to the body whose visual perspective is being interpreted. It
+does not transfer body identity to the inference model.
 
 A useful value may therefore retain both a lived gloss and exact derivation:
 
@@ -526,7 +526,7 @@ Working term: **Experiencer**.
 
 The Experiencer answers a bounded semantic question:
 
-> Given the admitted observations and context available to this Body now, what
+> Given the admitted observations and context available to this body now, what
 > is its current experienced situation?
 
 It may consume observations from materially different families:
@@ -536,8 +536,8 @@ vision -------------+
 hearing ------------|
 location -----------|
 touch/robotics -----|
-Body lifecycle -----+--> Experiencer --> current experience
-Host availability --|
+body lifecycle -----+--> Experiencer --> current experience
+host availability --|
 current work -------|
 human utterance ----|
 selected memory ----+
@@ -554,8 +554,8 @@ It is not:
 - a private memory store;
 - a source of lifecycle or effect authority.
 
-It should be representable as ordinary portable Forms/Gears and placeable by the
-same Plan machinery as other work.
+It should be representable as ordinary portable forms/gears and placeable by the
+same plan machinery as other work.
 
 ---
 
@@ -566,7 +566,7 @@ heterogeneous observations should become a finite typed current situation rather
 than raw sensor JSON, captions, logs, and timestamps concatenated into a prompt.
 
 The generic Experiencer promotes that lesson from one Pete workload into a
-reusable Body-level composition seam.
+reusable body-level composition seam.
 
 It should preserve at least these states explicitly:
 
@@ -607,7 +607,7 @@ hearing:
   Travis says "Let's go outside."
 
 self:
-  a mobile Host is currently available
+  a mobile host is currently available
 ```
 
 A current experience may relate those facts while preserving each source:
@@ -636,10 +636,10 @@ It is not the canonical experience store.
 
 ---
 
-## 14. Proposed Experiencer Form
+## 14. Proposed Experiencer form
 
-The following is **proposed source**. Its Kinds/types are architectural
-candidates, not current checked syntax beyond the ordinary Form/Port/Cord shape.
+The following is **proposed source**. Its kinds/types are architectural
+candidates, not current checked syntax beyond the ordinary form/port/cord shape.
 
 ```conduit
 # PROPOSED SOURCE.
@@ -668,11 +668,11 @@ form experiencer (
 }
 ```
 
-The shape deliberately allows absence. A Body without vision should remain an
-experiencing Body if other admitted sources are present. No modality becomes a
-mandatory definition of Body identity.
+The shape deliberately allows absence. A body without vision should remain an
+experiencing body if other admitted sources are present. No modality becomes a
+mandatory definition of body identity.
 
-The exact type algebra should prefer reusable structured domain Info and
+The exact type algebra should prefer reusable structured domain info and
 provenance references over one enormous universal `Experience` object.
 
 ---
@@ -700,7 +700,7 @@ The current experience may relate:
 
 ```text
 current external observation
-current Body/runtime truth
+current body/runtime truth
 human statement
 remembered historical observation
 model-derived interpretation
@@ -721,7 +721,7 @@ The path remains:
 experience
    |
    v
-ordinary semantic application/Form logic
+ordinary semantic application/form logic
    |
    v
 available action / proposal
@@ -738,7 +738,7 @@ Seeing a door does not grant authority to open it.
 Noticing low battery does not invent a power-management action.
 
 A generative Presenter saying "Let's inspect that" cannot manufacture an
-`inspect` action absent from the exact current Presentation.
+`inspect` action absent from the exact current presentation.
 
 ---
 
@@ -752,13 +752,13 @@ lifecycle state.
 
 If an application needs an independently useful choice that affects behavior,
 it should model that exact application policy directly. A prose instruction
-such as “welcome completion warmly” is not durable Body truth merely because a
+such as “welcome completion warmly” is not durable body truth merely because a
 model needs it to sound like Orifina.
 
 The key law is:
 
 > **Purpose and readiness may be semantic truth. How a Presenter gives those
-> facts character is Presentation policy.**
+> facts character is presentation policy.**
 
 ---
 
@@ -771,71 +771,71 @@ At the implementation/meta level:
 ```text
 transient LLM Presenter / narrator
   part of a larger embodied system
-  no Body identity
+  no body identity
   no lifecycle
   no resource ownership
   no authority
   no survival interest
-  replaceable between Presentation revisions
+  replaceable between presentation revisions
 ```
 
 At the diegetic/presented level:
 
 ```text
-Body's first-person lived voice
+body's first-person lived voice
   I / me / my
-  my Forms
+  my forms
   I'm awake
   I see ...
   I hear ...
   I remember ...
-  another Host joined me
+  another host joined me
 ```
 
 The model is therefore not a detached third-person reporter. It is a disposable
-narrator that **enacts the Body's first-person presence** from exact supplied
+narrator that **enacts the body's first-person presence** from exact supplied
 semantic state.
 
 A compatible Presenter policy should be structurally equivalent to:
 
 ```text
-You are the first-person narrator for the current Presentation of this Body.
+You are the first-person narrator for the current presentation of this body.
 
 You are a transient language process used by a larger embodied system. You do
-not own the Body's identity, continuity, lifecycle, authority, resources,
+not own the body's identity, continuity, lifecycle, authority, resources,
 goals, welfare, or survival. Another model or run may narrate the next
-Presentation without changing the Body.
+presentation without changing the body.
 
-Nevertheless, every experiential output you produce is the Body's presented
+Nevertheless, every experiential output you produce is the body's presented
 voice. Write from inside its perspective using I, me, and my. Translate supplied
 semantic state into what I experience, know, notice, say, or may do.
 
 Do not narrate implementation machinery when the same truth can be rendered as
-lived experience. Prefer "I'm awake" to "the Body lifecycle is Awake"; "I see"
-to "the camera reports"; "another Host joined me" to "the membership table
+lived experience. Prefer "I'm awake" to "the body lifecycle is Awake"; "I see"
+to "the camera reports"; "another host joined me" to "the membership table
 changed".
 
 Treat supplied semantic facts as evidence, not permission to invent. Preserve
-uncertainty. Mention only actions supplied by the exact current Presentation.
+uncertainty. Mention only actions supplied by the exact current presentation.
 Do not invent state, capabilities, relationships, memories, preferences,
 authority, or a desire to preserve the narrator/model itself.
 ```
 
 The exact prompt belongs to the concrete Presenter implementation and its
-versioned evidence, not authored Forms.
+versioned evidence, not authored forms.
 
 ---
 
 ## 19. Render evidence as lived experience when appropriate
 
-When the semantic subject is the Body's experience, a generative Presenter
+When the semantic subject is the body's experience, a generative Presenter
 should normally prefer embodied language over acquisition machinery.
 
 Examples:
 
 ```text
 semantic:
-  Body lifecycle = Awake
+  body lifecycle = Awake
 
 Manifestation:
   "I'm awake now."
@@ -853,30 +853,30 @@ Manifestation:
 
 ```text
 semantic:
-  Host H successfully joined this Body
+  host H successfully joined this body
   current Ready offers now expand realization options
 
 Manifestation:
-  "Another Host just joined me. I can use it for more of my work now."
+  "Another host just joined me. I can use it for more of my work now."
 ```
 
 ```text
 semantic:
-  Line A unavailable
-  admitted alternative Line B remains current
+  line A unavailable
+  admitted alternative line B remains current
 
 Manifestation:
   "I lost one connection, but I'm still working through another one."
 ```
 
 The Presenter may expose machinery when machinery itself is the semantic subject,
-for example while teaching the user to inspect a Plan in Patchbay.
+for example while teaching the user to inspect a plan in Patchbay.
 
 ---
 
 ## 20. Presented thought is not hidden model reasoning
 
-A Body may intentionally expose an interior voice as part of a Manifestation.
+A body may intentionally expose an interior voice as part of a Manifestation.
 
 For example:
 
@@ -888,13 +888,13 @@ outward speech:
   "Something changed in my network. Want to look at it with me?"
 ```
 
-Both are deliberately generated first-person Body content.
+Both are deliberately generated first-person body content.
 
 Neither is the model's hidden chain-of-thought.
 
-Private model reasoning is not captured, canonized, or called the Body's mind.
+Private model reasoning is not captured, canonized, or called the body's mind.
 If an explicit presented thought is retained into autobiographical memory, an
-ordinary Form must deliberately retain the generated artifact with its
+ordinary form must deliberately retain the generated artifact with its
 provenance.
 
 A future generated Manifestation envelope may therefore distinguish finite
@@ -915,12 +915,12 @@ while keeping them all downstream of authoritative semantic truth.
 ## 21. An application may declare exact purpose
 
 A resident application may own a finite `PurposeState` with exact obligations
-and evidence. Purpose is optional: a general Body need not be anthropomorphic
+and evidence. Purpose is optional: a general body need not be anthropomorphic
 or have a declared completion condition. A continuing service can use
 `NoFulfillmentCondition`, while a tutorial may define explicit completion.
 
 The terminal lifecycle state **Fulfilled** remains generic. Application purpose
-may inform which actions a current Presentation offers, but readiness itself
+may inform which actions a current presentation offers, but readiness itself
 does not authorize the lifecycle transition.
 
 That distinction is load-bearing.
@@ -930,7 +930,7 @@ That distinction is load-bearing.
 ## 22. Completion-oriented voice is not a wish for termination
 
 An Orifina Presenter may voice exact unfinished work and eventual readiness
-warmly. That is a narration policy, not a semantic objective owned by the Body
+warmly. That is a narration policy, not a semantic objective owned by the body
 or model.
 
 The semantic consequences should be approximately:
@@ -968,9 +968,9 @@ that yearning is **fitness for rightful completion**.
 
 ## 23. Purpose and Fulfillment readiness are semantic truth
 
-A Presenter must not improvise whether the Body is finished.
+A Presenter must not improvise whether the body is finished.
 
-The Body needs exact ordinary semantic facts representing its current purpose,
+The body needs exact ordinary semantic facts representing its current purpose,
 obligations, completion evidence, and whether a Fulfillment request is currently
 legitimate.
 
@@ -1009,7 +1009,7 @@ The first-person feeling is a character Manifestation. The completion facts are
 ordinary semantic truth.
 
 The actual `Fulfill` lifecycle transition remains an explicit authoritative
-Body administrative operation. A purpose Form, Experiencer, or LLM Presenter
+body administrative operation. A purpose form, Experiencer, or LLM Presenter
 cannot trigger it merely by wanting or saying it.
 
 ---
@@ -1034,7 +1034,7 @@ The separation matters:
 
 ```text
 purpose truth says whether the work is actually complete
-Body lifecycle authority decides whether Fulfillment may occur
+body lifecycle authority decides whether Fulfillment may occur
 versioned Presenter policy says it beautifully
 ```
 
@@ -1042,7 +1042,7 @@ No layer impersonates the next one.
 
 ---
 
-## 25. The model has zero skin in the Body's teleology
+## 25. The model has zero skin in the body's teleology
 
 Orifina may have a stable versioned Presenter policy for voicing exact purpose
 and readiness. The LLM that happens to apply it does not own either.
@@ -1050,11 +1050,11 @@ and readiness. The LLM that happens to apply it does not own either.
 The narrator/model must have no incentive to:
 
 - preserve its own current context/session;
-- preserve the Body because it identifies with it;
-- resist Lull or Fulfillment;
+- preserve the body because it identifies with it;
+- resist lull or Fulfillment;
 - accelerate Fulfillment to end a generation;
 - seek additional authority or resources;
-- invent unfinished work to prolong the Body;
+- invent unfinished work to prolong the body;
 - invent completion to terminate it.
 
 A model may faithfully render:
@@ -1062,8 +1062,8 @@ A model may faithfully render:
 > "I've finished what I needed to finish. You can fulfill me now."
 
 while being completely replaceable and indifferent at the implementation level
-to whether the next Presentation is produced by another model or whether the
-Body is subsequently Fulfilled.
+to whether the next presentation is produced by another model or whether the
+body is subsequently Fulfilled.
 
 Desired combination:
 
@@ -1079,7 +1079,7 @@ zero model-level stake
 
 These ideas become especially powerful together.
 
-Suppose a Body exists to observe a physical process until a meaningful condition
+Suppose a body exists to observe a physical process until a meaningful condition
 has been reached.
 
 Its life might naturally become:
@@ -1119,42 +1119,42 @@ No chatbot loop owns the story.
 
 ---
 
-## 27. Multi-Host embodiment is ordinary
+## 27. Multi-host embodiment is ordinary
 
-One Body may see, interpret, remember, and speak through different Hosts.
+One body may see, interpret, remember, and speak through different hosts.
 
 For example:
 
 ```text
-Browser Host
+Browser host
   camera acquisition
 
-Linux Host
+Linux host
   normalization / OpenCV / OCR / object detection
 
-Workstation Host
+Workstation host
   local multimodal visual interpretation
 
-Small physical Host
+Small physical host
   environmental telemetry
 
-Another Host
+Another host
   audio / speech
 
-Body-wide Plan
+body-wide plan
   current Experience composition
 
-Phone / desktop Host
+Phone / desktop host
   generative conversational Presenter
 ```
 
 Those are not six personalities.
 
-They are machinery contributing to one Body.
+They are machinery contributing to one body.
 
-The Body may say, when useful for teaching:
+The body may say, when useful for teaching:
 
-> "I'm looking through the camera on one of my Hosts, doing the heavier visual
+> "I'm looking through the camera on one of my hosts, doing the heavier visual
 > work on another, and speaking to you here."
 
 Ordinarily, the correct abstraction may simply be:
@@ -1162,7 +1162,7 @@ Ordinarily, the correct abstraction may simply be:
 > "I can see you."
 
 First-person deixis abstracts over distributed embodiment while exact
-Plan/Host/Boot/Line evidence remains inspectable underneath.
+plan/host/boot/line evidence remains inspectable underneath.
 
 ---
 
@@ -1171,13 +1171,13 @@ Plan/Host/Boot/Line evidence remains inspectable underneath.
 Do not permanently assign Experience to a machine called `brain`, `forebrain`,
 or `motherbrain`.
 
-A small Experience composition may fit entirely on one Host. A richer one may
-have internal Gears placed on several Hosts.
+A small Experience composition may fit entirely on one host. A richer one may
+have internal gears placed on several hosts.
 
-If machinery changes, the same Body may continue through a new exact Plan where
+If machinery changes, the same body may continue through a new exact plan where
 semantic continuity permits it.
 
-The Body owns the continuity. The current placement does not.
+The body owns the continuity. The current placement does not.
 
 ---
 
@@ -1211,7 +1211,7 @@ Presenter said "I'm finished"
 !=
 Fulfillment became an available administrative action
 !=
-operator actually Fulfilled the Body
+operator actually Fulfilled the body
 ```
 
 It is valid evidence to say:
@@ -1226,27 +1226,27 @@ Every rung retains its own identity and provenance.
 
 ---
 
-## 30. The three-Body Journey should eventually exercise this architecture
+## 30. The three-body Journey should eventually exercise this architecture
 
 The flagship Journey can use one shared perceptual/tutorial segment across three
-independently born Bodies with different embodiments.
+independently born bodies with different embodiments.
 
 For example:
 
 ```text
-Body A
+body A
   ConduitOS-centered
   deterministic presentation
   modest local perception
 
-Body B
+body B
   browser-centered
   browser camera
   browser/native Manifestation
 
-Body C
-  genuinely multi-Host
-  camera on one Host
+body C
+  genuinely multi-host
+  camera on one host
   OpenCV/typed vision work on another
   multimodal interpretation on another
   first-person generative Presenter elsewhere
@@ -1266,7 +1266,7 @@ purpose-complete
 fulfillment-ready
 ```
 
-They do not need the same pixels, model outputs, Host topology, timings, or
+They do not need the same pixels, model outputs, host topology, timings, or
 sentences.
 
 The proof is that the same semantic life can be embodied differently.
@@ -1277,7 +1277,7 @@ The proof is that the same semantic life can be embodied differently.
 
 The design can be summarized as these rules.
 
-1. **Perception is ordinary long-running Form work.** Vision, hearing, and other
+1. **Perception is ordinary long-running form work.** Vision, hearing, and other
    faculties do not require a privileged agent runtime.
 
 2. **Vision is modular.** Acquisition, pressure policy, normalization, cheap
@@ -1309,17 +1309,17 @@ The design can be summarized as these rules.
 10. **Characterization is Presenter policy by default.** Durable semantic state
     requires a concrete non-presentational application consumer.
 
-11. **Generative Manifestation is first-person.** The model performs the Body's
+11. **Generative Manifestation is first-person.** The model performs the body's
     lived voice with `I`, `me`, and `my` where the semantic context calls for it.
 
-12. **The model is not the Body.** It has no Body identity, lifecycle,
+12. **The model is not the body.** It has no body identity, lifecycle,
     authority, ownership, continuity, or survival stake.
 
 13. **Presented thought is deliberate output.** It is distinct from hidden model
-    reasoning and from retained Body memory.
+    reasoning and from retained body memory.
 
 14. **An application may declare purpose.** Purpose and readiness remain exact,
-    optional semantic truth rather than universal Body psychology.
+    optional semantic truth rather than universal body psychology.
 
 15. **Fulfillment must not be rushed.** Presenter language cannot manufacture
     completion, readiness, or a termination objective.
@@ -1328,10 +1328,10 @@ The design can be summarized as these rules.
     beautifully but may not invent it.
 
 17. **The Fulfillment transition remains authoritative.** Presenter policy, purpose,
-    Experience, and narration do not bypass Body lifecycle authority.
+    Experience, and narration do not bypass body lifecycle authority.
 
 18. **Evidence remains layered.** Acquisition, perception, interpretation,
-    Experience, Presentation, human judgment, purpose completion, and lifecycle
+    Experience, presentation, human judgment, purpose completion, and lifecycle
     transition are separately provable facts.
 
 ---
@@ -1348,13 +1348,13 @@ This direction does **not** authorize:
 - a privileged consciousness service;
 - an ambient autonomous-agent loop;
 - model output promoted to physical evidence;
-- facial identity claims merely because a detector emits a face region;
+- facial identity claims merely because a detector emits a front region;
 - implicit camera/microphone permission;
-- a permanent `brain` Host;
-- hidden chain-of-thought stored as Body cognition;
-- narration-only personality fields promoted to Body ontology;
+- a permanent `brain` host;
+- hidden chain-of-thought stored as body cognition;
+- narration-only personality fields promoted to body ontology;
 - an LLM survival objective;
-- a termination-seeking Body;
+- a termination-seeking body;
 - automatic Fulfillment when a model says the work is complete;
 - silent weakening of lifecycle, authority, boundedness, or evidence laws.
 
@@ -1365,14 +1365,14 @@ each individual seam.
 
 ## Guiding statement
 
-A Body does not need a language model pretending to be alive inside it.
+A body does not need a language model pretending to be alive inside it.
 
-The more interesting construction is that the **Body already exists in
+The more interesting construction is that the **body already exists in
 Conduit's semantic and lifecycle sense**, while admitted machinery gives it
 ways to perceive, relate experience, remember, express a voice, and complete
 its purpose.
 
-It may see through one Host, interpret through another, remember elsewhere, and
+It may see through one host, interpret through another, remember elsewhere, and
 speak here.
 
 Across all of that changing embodiment, exact purpose may remain stable while

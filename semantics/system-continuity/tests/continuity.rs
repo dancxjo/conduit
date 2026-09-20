@@ -140,7 +140,7 @@ fn requirements(
             RoleRequirement {
                 role_id: RoleId::from(placement.gear_id.as_str()),
                 gear_id: placement.gear_id.clone(),
-                checked_face: offer.checked_face(),
+                checked_front: offer.checked_front(),
             }
         })
         .collect()
@@ -363,7 +363,7 @@ fn reboot_acceptance_termination_replacement_and_replan_remain_distinct() {
 }
 
 #[test]
-fn compatible_face_does_not_inherit_assignment_grant_plan_or_play() {
+fn compatible_front_does_not_inherit_assignment_grant_plan_or_play() {
     let fixture = fixture();
     let old = record(&fixture);
     let accepted = old
@@ -377,7 +377,7 @@ fn compatible_face_does_not_inherit_assignment_grant_plan_or_play() {
         .unwrap();
     let (mut pico, _, _) = replacement(&fixture);
     let offer = &mut pico.capabilities[0];
-    offer.capability_id = CapabilityId::from("replacement/equal-face-led");
+    offer.capability_id = CapabilityId::from("replacement/equal-front-led");
     offer.kind_id = conduit_core::kind_id("replacement/show");
     offer.kind_contract_revision = KindContractRevision::from("replacement/show@9");
     offer.implementation.implementation_id =

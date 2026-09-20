@@ -68,7 +68,7 @@ pub struct Manifestation {
     pub active_play_id: ActivePlayId,
     pub play_sequence: u64,
     pub placement_id: PlacementId,
-    pub face_subject: String,
+    pub front_subject: String,
     pub presenter_capability_id: CapabilityId,
     pub presenter_implementation_id: ImplementationId,
     pub presenter_artifact_id: ArtifactId,
@@ -108,7 +108,7 @@ impl Manifestation {
         plan: &Plan,
         active_play: ActivePlayIdentity,
         placement_id: PlacementId,
-        face_subject: String,
+        front_subject: String,
         target_subject: String,
         sign_id: SignId,
     ) -> Result<Self, ManifestationError> {
@@ -129,15 +129,15 @@ impl Manifestation {
         {
             return Err(ManifestationError::StaleIdentity);
         }
-        validate_target(&face_subject)?;
-        validate_face_subject(presentation, &face_subject)?;
+        validate_target(&front_subject)?;
+        validate_front_subject(presentation, &front_subject)?;
         validate_target(&target_subject)?;
         let manifestation_id = bind_manifestation(
             &presentation.identity,
             &plan.plan_id,
             &active_play.active_play_id,
             placement,
-            &face_subject,
+            &front_subject,
             &target_subject,
         );
         let mut manifestation = Self {
@@ -150,7 +150,7 @@ impl Manifestation {
             active_play_id: active_play.active_play_id,
             play_sequence: active_play.play_sequence,
             placement_id: placement.placement_id.clone(),
-            face_subject,
+            front_subject,
             presenter_capability_id: placement.capability_id.clone(),
             presenter_implementation_id: placement.implementation_id.clone(),
             presenter_artifact_id: placement.artifact_id.clone(),
@@ -251,14 +251,14 @@ impl Manifestation {
                     &plan.plan_id,
                     &self.active_play_id,
                     placement,
-                    &self.face_subject,
+                    &self.front_subject,
                     &self.target_subject,
                 )
         {
             return Err(ManifestationError::StaleIdentity);
         }
-        validate_target(&self.face_subject)?;
-        validate_face_subject(presentation, &self.face_subject)?;
+        validate_target(&self.front_subject)?;
+        validate_front_subject(presentation, &self.front_subject)?;
         validate_target(&self.target_subject)?;
         if (self.lifecycle == ManifestationLifecycle::Failed) != self.failure.is_some()
             || !self.valid_signs()
@@ -370,14 +370,14 @@ fn validate_target(value: &str) -> Result<(), ManifestationError> {
     }
 }
 
-fn validate_face_subject(
+fn validate_front_subject(
     presentation: &Presentation,
-    face_subject: &str,
+    front_subject: &str,
 ) -> Result<(), ManifestationError> {
     if presentation
         .subjects
         .iter()
-        .any(|subject| subject.identity == face_subject)
+        .any(|subject| subject.identity == front_subject)
     {
         Ok(())
     } else {
@@ -390,7 +390,7 @@ fn bind_manifestation(
     plan: &PlanId,
     active_play: &ActivePlayId,
     placement: &PlannedGear,
-    face_subject: &str,
+    front_subject: &str,
     target_subject: &str,
 ) -> ManifestationId {
     let mut digest = Sha256::new();
@@ -405,7 +405,7 @@ fn bind_manifestation(
         placement.capability_id.as_str(),
         placement.implementation_id.as_str(),
         placement.artifact_id.as_str(),
-        face_subject,
+        front_subject,
         target_subject,
     ] {
         digest.update((value.len() as u32).to_le_bytes());

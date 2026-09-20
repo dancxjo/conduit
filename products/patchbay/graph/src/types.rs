@@ -34,7 +34,7 @@ impl core::fmt::Display for PatchbayGraphError {
             Self::TooManyPorts => "Patchbay graph exceeds its finite Port bound",
             Self::TooManyCords => "Patchbay graph exceeds its finite Cord bound",
             Self::TooManySubjects => "Patchbay graph exceeds its finite subject bound",
-            Self::TooManyControls => "Patchbay Gear exceeds its finite Face-control bound",
+            Self::TooManyControls => "Patchbay Gear exceeds its finite Front-control bound",
             Self::InvalidConfigurationContract => {
                 "Patchbay Gear configuration differs from its authoritative Kind contract"
             }
@@ -99,7 +99,7 @@ pub struct PatchbayFacePort {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayCompositionBinding {
-    pub face_port: String,
+    pub front_port: String,
     pub internal_port: String,
 }
 
@@ -145,8 +145,8 @@ pub struct PatchbayGraph {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     pub form_name: String,
-    pub face_inputs: Vec<PatchbayFacePort>,
-    pub face_outputs: Vec<PatchbayFacePort>,
+    pub front_inputs: Vec<PatchbayFacePort>,
+    pub front_outputs: Vec<PatchbayFacePort>,
     pub compositions: Vec<PatchbayComposition>,
     pub gears: Vec<PatchbayGear>,
     pub cords: Vec<PatchbayCord>,

@@ -627,6 +627,11 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
             temporal_intent: Some(conduit_ai::TemporalRetrievalIntent::LatestEvidence),
         })
         .map_err(|error| format!("encode local-model interpretation request: {error}"))?
+    } else if placement.outputs[0].value_kind.as_str()
+        == conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND
+    {
+        serde_json::to_vec(&crate::hosted_local_model::ollama_present::proof_request()?)
+            .map_err(|error| format!("encode generative Presenter request: {error}"))?
     } else {
         b"Conduit bounded local model request".to_vec()
     };

@@ -3,10 +3,10 @@
 <title>Conduit browser presentation nucleus proof</title>
 <link rel="stylesheet" href="../../products/shared/browser/conduit.css">
 <p id="result">running</p>
-<main id="nucleus" aria-label="Gear Face"></main>
+<main id="nucleus" aria-label="gear front"></main>
 <section id="controls" aria-label="Bounded controls"></section>
 <section data-application-slot="semantic" aria-label="Semantic mechanisms"></section>
-<section data-application-slot="focus" aria-label="Form and navigation mechanisms"></section>
+<section data-application-slot="focus" aria-label="form and navigation mechanisms"></section>
 <section id="theme-products" aria-label="Shared product theme mechanism"></section>
 <script type="module">
 import {
@@ -68,7 +68,7 @@ try {
   assert(proof.structured.quantityUnit === "ratio/percent", "score retains its quantity unit");
   assert(proof.structured.quantity === 88, "score retains its signed magnitude");
   assert(proof.application.view.revision === 1, "application view revision remains exact");
-  assert(root.dataset.applicationTheme === "conduit.presentation/phosphor@1", "browser Host consumes the shared renderer-neutral theme");
+  assert(root.dataset.applicationTheme === "conduit.presentation/phosphor@1", "browser host consumes the shared renderer-neutral theme");
   const continueButton = root.querySelector("[data-application-action='nucleus.continue']");
   continueButton.click();
   const applicationEvent = proof.application.nextEvent();
@@ -84,7 +84,7 @@ try {
     nodes: [
       { parent: null, component: "shell", action: null, key: "control-shell", text: "" },
       {
-        parent: 0, component: "textarea", action: 0, key: "source", text: "Form source",
+        parent: 0, component: "textarea", action: 0, key: "source", text: "form source",
         value: "gear source", valueCapacity: 65_536,
       },
     ],
@@ -92,7 +92,7 @@ try {
   const controls = manifestApplicationView(controlView, controlRoot, { eventByteCapacity: 40 });
   const source = controlRoot.querySelector("[data-application-key='source']");
   assert(source.value === "gear source", "control value remains distinct from its label");
-  assert(source.getAttribute("aria-label") === "Form source", "control label remains explicit");
+  assert(source.getAttribute("aria-label") === "form source", "control label remains explicit");
   source.value = "gear edited";
   source.dispatchEvent(new Event("input"));
   assert(controls.queuedEventBytes() === controls.nextEvent().encoded.length, "queue reports exact encoded-byte pressure");
@@ -148,7 +148,7 @@ try {
       { parent: 0, component: "success-status", action: null, key: "success", text: "Complete" },
       { parent: 0, component: "failure-status", action: null, key: "failure", text: "Failed" },
       { parent: 0, component: "disclosure", action: null, key: "details", text: "Exact evidence" },
-      { parent: 8, component: "paragraph", action: null, key: "evidence", text: "Plan P7" },
+      { parent: 8, component: "paragraph", action: null, key: "evidence", text: "plan P7" },
       { parent: 0, component: "disclosure", action: null, key: "reviewed", text: "" },
       { parent: 10, component: "summary", action: null, key: "reviewed-summary", text: "Reviewed source" },
     ],
@@ -160,7 +160,7 @@ try {
   const unavailable = semanticRoot.querySelector("[data-application-key=unavailable]");
   ready.click();
   assert(semanticHost.nextEvent("semantic").action === "semantic.run", "ready action dispatches its exact identity");
-  assert(semanticEvents.join(",") === "semantic.run", "Host receives only the exact ready action");
+  assert(semanticEvents.join(",") === "semantic.run", "host receives only the exact ready action");
   assert(busy.disabled && busy.getAttribute("aria-busy") === "true", "busy action is disabled and announced as busy");
   assert(unavailable.disabled && unavailable.dataset.applicationAvailability === "unavailable", "unavailable action remains distinct from busy");
   const manifestation = manifestApplicationView(encodeApplicationView({ ...semanticView, revision: 5 }), document.createElement("section"));
@@ -197,17 +197,17 @@ try {
     nodes: [
       { parent: null, component: "shell", action: null, key: "focus-shell", text: "" },
       { parent: 0, component: "form-field", action: null, key: "source-field", text: "" },
-      { parent: 1, component: "field-label", action: null, key: "source-label", text: "Form source" },
-      { parent: 1, component: "textarea", action: 0, key: "source-control", text: "Form source", value, valueCapacity: 64 },
-      { parent: 1, component: "field-help", action: null, key: "source-help", text: "Enter one bounded Form" },
+      { parent: 1, component: "field-label", action: null, key: "source-label", text: "form source" },
+      { parent: 1, component: "textarea", action: 0, key: "source-control", text: "form source", value, valueCapacity: 64 },
+      { parent: 1, component: "field-help", action: null, key: "source-help", text: "Enter one bounded form" },
       ...(error ? [{ parent: 1, component: "field-error", action: null, key: "source-error", text: error }] : []),
       { parent: 0, component: "navigation", action: null, key: "navigation", text: "Tour pages", value: "page-two", valueCapacity: 16 },
       { parent: error ? 6 : 5, component: "button", action: 1, key: "page-one", text: "Previous" },
       { parent: error ? 6 : 5, component: "button", action: 2, key: "page-two", text: "Next" },
       { parent: 0, component: "stepper", action: null, key: "stepper", text: "Birth steps", value: "2/3", valueCapacity: 11 },
-      { parent: error ? 9 : 8, component: "button", action: 1, key: "step-one", text: "Body" },
-      { parent: error ? 9 : 8, component: "button", action: 2, key: "step-two", text: "Host" },
-      { parent: error ? 9 : 8, component: "button", action: 2, key: "step-three", text: "Play" },
+      { parent: error ? 9 : 8, component: "button", action: 1, key: "step-one", text: "body" },
+      { parent: error ? 9 : 8, component: "button", action: 2, key: "step-two", text: "host" },
+      { parent: error ? 9 : 8, component: "button", action: 2, key: "step-three", text: "play" },
       { parent: 0, component: "progress", action: null, key: "progress", text: "Birth", value: "2/3", valueCapacity: 11 },
     ],
   });

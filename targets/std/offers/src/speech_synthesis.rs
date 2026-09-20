@@ -126,7 +126,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn piper_offer_preserves_portable_speech_face_and_bounds_each_block() {
+    fn piper_offer_preserves_portable_speech_front_and_bounds_each_block() {
         let offer = piper_speech_offer();
         let contract = conduit_tongues::synthesize_contract();
         assert_eq!(offer.kind_id, contract.kind_id);

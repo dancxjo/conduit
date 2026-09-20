@@ -65,7 +65,7 @@ pub struct ConstructionSyntax {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FormSyntax {
     pub name: SpannedText,
-    pub face: FormFace,
+    pub front: FormFace,
     pub completion: FormCompletionPolicy,
     pub back: Vec<BackStatement>,
     pub span: Span,

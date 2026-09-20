@@ -10,7 +10,7 @@ form garden-state-step (
     evolve.next > next
 }
 
-# Contact enrichment is a second exact Face, not an optional or erased input.
+# Contact enrichment is a second exact Front, not an optional or erased input.
 form garden-state-step-contact (
     > prior: GardenState
     > clock: GardenClockObservation

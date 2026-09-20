@@ -17,7 +17,7 @@ function startServer() {
   return { process, lines, url };
 }
 
-test("recursive Form Gears open through stable Faces without changing execution truth", async ({ page }) => {
+test("recursive Form Gears open through stable Fronts without changing execution truth", async ({ page }) => {
   const server = startServer();
   try {
     const url = await server.url;
@@ -34,10 +34,10 @@ test("recursive Form Gears open through stable Faces without changing execution 
     await page.getByRole("button", { name: "Realization", exact: true }).click();
     await expect(page.locator("article", { has: outer }).locator(".faceplate-clue"))
       .toHaveText("recursive");
-    const collapsedNodes = await page.locator(".flow-faceplate").count();
+    const collapsedNodes = await page.locator(".flow-frontplate").count();
     await outer.press("Enter");
     await expect(outer).toHaveAttribute("aria-expanded", "true");
-    expect(await page.locator(".flow-faceplate").count()).toBeGreaterThan(collapsedNodes);
+    expect(await page.locator(".flow-frontplate").count()).toBeGreaterThan(collapsedNodes);
 
     const nested = page.locator('.faceplate-back-control[aria-expanded="false"]').first();
     await expect(nested).toBeVisible();

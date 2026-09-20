@@ -125,7 +125,7 @@ pub fn music_play_midi_offer() -> CapabilityOffer {
 pub fn music_synth_reference_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::music_synth_contract();
     CapabilityOffer {
-        startup_parameters: conduit_semantic_catalog::startup_face(&contract.configuration),
+        startup_parameters: conduit_semantic_catalog::startup_front(&contract.configuration),
         shorthand: None,
         capability_id: CapabilityId::from("music-synth-fixed-q16"),
         kind_id: contract.kind_id,
@@ -231,7 +231,7 @@ pub fn audio_write_wav_artifact_offer() -> CapabilityOffer {
 pub fn audio_convert_pcm_profile_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::audio_convert_pcm_profile_contract();
     CapabilityOffer {
-        startup_parameters: conduit_semantic_catalog::startup_face(&contract.configuration),
+        startup_parameters: conduit_semantic_catalog::startup_front(&contract.configuration),
         shorthand: None,
         capability_id: CapabilityId::from("audio-convert-pcm-profile"),
         kind_id: contract.kind_id,
@@ -268,7 +268,7 @@ pub fn music_input_midi_offer() -> CapabilityOffer {
         maximum_output_bytes: conduit_midi::MIDI_INPUT_OBSERVATION_ENCODED_LEN as u32,
     };
     CapabilityOffer {
-        startup_parameters: conduit_semantic_catalog::startup_face(&contract.configuration),
+        startup_parameters: conduit_semantic_catalog::startup_front(&contract.configuration),
         shorthand: None,
         capability_id: CapabilityId::from("music-input-midi1"),
         kind_id: contract.kind_id,
@@ -394,7 +394,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sound_offers_preserve_portable_faces_and_exact_effects() {
+    fn sound_offers_preserve_portable_fronts_and_exact_effects() {
         let midi = music_play_midi_offer();
         assert_eq!(
             midi.inputs,

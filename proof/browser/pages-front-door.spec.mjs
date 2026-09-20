@@ -32,15 +32,15 @@ test.afterEach(() => entrance?.child.kill());
 
 test("Birth on the front page hands the Lulled Body to an explicit Wake", async ({ page }) => {
   await page.goto(entrance.url);
-  await page.getByRole("link", { name: "Open your Body", exact: true }).click();
+  await page.getByRole("link", { name: "Open your body", exact: true }).click();
   await expect(page).toHaveTitle("Birth your Body · Conduit");
   await expect(page.locator("[data-body-state]")).toHaveText("Crèche");
   await expect(page.locator("[data-workspace-creche]")).toBeVisible();
   await expect(page.getByRole("button", { name: "Birth Body", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await expect(page.locator("[data-body-state]")).toHaveText("lulled");
-  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.keyboard.press("h");
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
@@ -95,7 +95,7 @@ test.skip("Conduit home makes the Body primary while remaining compatibility end
   await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
   await expect(page.getByRole("link", { name: "Follow a real journey" })).toHaveAttribute("href", "/conduit/journeys/");
-  await expect(page.getByRole("link", { name: "Open your Body", exact: true })).toHaveAttribute("href", "/conduit/workspace/");
+  await expect(page.getByRole("link", { name: "Open your body", exact: true })).toHaveAttribute("href", "/conduit/workspace/");
   await expect(page.getByRole("heading", { name: "Start with the Body." })).toBeVisible();
   await expect(page.getByText("With no retained Body, this entrance presents bounded setup.")).toBeVisible();
   await expect(page.getByRole("link", { name: /Your Body/ })).toHaveAttribute("href", "/conduit/workspace/");
@@ -153,7 +153,7 @@ test("the main site exposes exact reviewed Host and ConduitOS releases", async (
     ["Linux x86_64 executable Download", "/conduit/creche/artifacts/conduit-linux-x86_64"],
     ["Windows x86_64 executable Download", "/conduit/creche/artifacts/conduit-windows-x86_64.exe"],
     ["macOS Apple silicon executable Download", "/conduit/creche/artifacts/conduit-macos-aarch64"],
-    ["Browser WASM Host page Open", "/conduit/creche/artifacts/index.html"],
+    ["Browser WASM host page Open", "/conduit/creche/artifacts/index.html"],
     ["PC · x86_64 Q35 · UEFI ISO", "/conduit/creche/artifacts/conduitos-x86_64-pc.iso"],
     ["PC · IA-32 Legacy PC profile ISO", "/conduit/creche/artifacts/conduitos-ia32-pc.iso"],
     ["AArch64 QEMU virt · UEFI ISO", "/conduit/creche/artifacts/conduitos-aarch64-virt.iso"],
@@ -171,7 +171,7 @@ test("published Tour chapter permalinks converge on the tutorial-enabled Body", 
   const home = entrance.url.replace(/\/$/, "");
   const permalinks = [
     "meet-one-gear",
-    "same-face-different-implementation",
+    "same-front-different-implementation",
   ];
 
   for (const slug of permalinks) {
@@ -261,7 +261,7 @@ test("the shared shell follows dark and light preferences without changing appli
         colorScheme === "dark" ? "rgb(147, 210, 247)" : "rgb(23, 54, 77)",
       );
       const focusTarget = path === ""
-        ? page.getByRole("link", { name: "Open your Body" })
+        ? page.getByRole("link", { name: "Open your body" })
         : primaryNavigation.getByRole("link", { name: "Patchbay" });
       await page.keyboard.press("Tab");
       await focusTarget.focus();

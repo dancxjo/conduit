@@ -38,7 +38,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
-                startup_parameters: trigger_face_startup_parameters(),
+                startup_parameters: trigger_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("trigger-1"),
                 kind_id: trigger_kind(),
@@ -60,7 +60,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                 },
             },
             CapabilityOffer {
-                startup_parameters: toggle_face_startup_parameters(),
+                startup_parameters: toggle_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("toggle-1"),
                 kind_id: toggle_kind(),

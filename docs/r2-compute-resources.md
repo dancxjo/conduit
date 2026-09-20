@@ -13,13 +13,13 @@ allocator, scheduler, planner, or execution API.
   minimum service guarantee (`Shared`, `Reserved`, or `Exclusive`), and optional
   topology constraints. The planner admits every minimum before assigning spare
   capacity toward preferences.
-- A sealed Plan records the selected lane count, pool, service guarantee,
+- A sealed plan records the selected lane count, pool, service guarantee,
   architecture-base identity and kind, and any selected stable topology
   group. Current utilization and concrete lane assignment are separate runtime
   facts.
 - A transient lane assignment belongs to an active play and placement. It may
   contain a base-local lane identifier, but that identifier is deliberately
-  absent from Plan identity and serialization.
+  absent from plan identity and serialization.
 
 Optional topology groups can truthfully expose NUMA domains, cache domains, and
 performance classes. An empty topology list means that topology is unknown or
@@ -36,15 +36,15 @@ authority, and neither becomes the Conduit scheduler.
 Implementation identity, architecture-specific artifact identity, compute-pool
 identity, selected reservation, and runtime backend or lane assignment remain
 distinct. The same implementation may therefore advertise different artifacts
-for different architectures while retaining an equal checked face.
+for different architectures while retaining an equal checked front.
 
 ## Proof limits
 
 The deterministic planner tests prove bounded minimum-first allocation, exact
-service and topology selection, hosted/bare-metal contract parity, Plan identity
-sealing, and the exclusion of physical lane identifiers from serialized Plans.
+service and topology selection, hosted/bare-metal contract parity, plan identity
+sealing, and the exclusion of physical lane identifiers from serialized plans.
 They do not claim operating-system scheduling quality, bare-metal interrupt
-behavior, firmware execution, or physical/HIL Sign.
+behavior, firmware execution, or physical/HIL sign.
 
 ## Illustrative applications (not implementation claims)
 
@@ -52,14 +52,14 @@ The examples below explain how the contract can apply; they do not claim
 installed video-transcoding or network-storage implementations.
 
 The realization machinery above contains no AI-specific core concept. The same
-checked-face, offer, observation, hard-requirement, policy, reservation, and Plan
+checked-front, offer, observation, hard-requirement, policy, reservation, and plan
 identities encode the following two examples without changing the planner.
 
 ### Video transcoding: CPU or GPU
 
-An authored operation requests a checked `media/transcode-video` face with exact
+An authored operation requests a checked `media/transcode-video` front with exact
 bounded input/output ports and semantic codec/output limits. Two hosts can offer
-that equal face with different nominal revisions and exact realizations:
+that equal front with different nominal revisions and exact realizations:
 
 | General R2 fact | CPU realization | GPU realization |
 | --- | --- | --- |
@@ -72,16 +72,16 @@ that equal face with different nominal revisions and exact realizations:
 A hard codec/profile or memory requirement removes an incapable realization
 before ranking. With both admitted, explicit policy can prefer locality, fewer
 resource units, a measured throughput class, or a stronger compute-service
-guarantee. The Plan seals the selected host, implementation, artifact, resource
+guarantee. The plan seals the selected host, implementation, artifact, resource
 bindings, semantic limits, and characteristics. It never changes the authored
-face into `CUDA`, `VA-API`, or a device name, and it never seals a transient GPU
+front into `CUDA`, `VA-API`, or a device name, and it never seals a transient GPU
 queue/core identifier.
 
 ### Storage write: local disk or network storage
 
-An authored operation requests a checked `storage/write-object` face with a
+An authored operation requests a checked `storage/write-object` front with a
 finite byte bound and explicit terminal behavior. A local-filesystem base
-and a network-object base can advertise that equal face:
+and a network-object base can advertise that equal front:
 
 | General R2 fact | Local realization | Network realization |
 | --- | --- | --- |
@@ -93,11 +93,11 @@ and a network-object base can advertise that equal face:
 
 A hard no-egress rule or authority allowlist rejects the network realization;
 it cannot win through favorable durability or capacity policy. When both are
-admissible, explicit policy can select one deterministically. The Plan seals the
+admissible, explicit policy can select one deterministically. The plan seals the
 exact resource and authority bindings, but credential bytes, endpoint secrets,
 open file descriptors, sockets, and base request IDs remain outside it.
 
 In both examples, changed observations can produce a newly admitted replacement
-Plan while the old Plan remains immutable. Neither example introduces a media
+plan while the old plan remains immutable. Neither example introduces a media
 planner, storage planner, opaque host score, opportunistic runtime substitution,
 or a second execution kernel.

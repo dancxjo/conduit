@@ -9,7 +9,7 @@ allocator-free state in [`conduit-human`](../semantics/human/src/lib.rs).
 
 An input implementation joins at the highest seam whose facts it can state
 exactly. ConduitOS discovers xHCI, USB, and HID facts because its keyboard
-actually depends on them. The native Patchbay Host receives `winit` physical
+actually depends on them. The native Patchbay host receives `winit` physical
 key codes, so `patchbay-native/winit-keyboard@1` maps those codes directly to
 the same HID Keyboard/Keypad usage-number vocabulary in
 `input/key-event@1`. The vocabulary is portable identity, not a claim that a
@@ -27,10 +27,10 @@ consume a separate projection and do not become the canonical semantic map.
 The shared conformance vectors are byte-identical across the ConduitOS USB
 bridge and native adapter. Both then reuse the exact `conduit-intl` and
 `conduit-core` chord-map state machines below, both owned by `conduit-human`; neither implementation owns a private
-keymap or chord table. The unchanged K6 Form can therefore select either
+keymap or chord table. The unchanged K6 form can therefore select either
 `conduitos/usb-hid-keyboard@1` or `patchbay-native/winit-keyboard@1` while its
-source, checked meaning, Gear/Port identities, and Info types remain unchanged.
-Their Plans retain different Host, Boot, implementation, artifact, and Base
+source, checked meaning, gear/port identities, and info types remain unchanged.
+Their plans retain different host, boot, implementation, artifact, and base
 truth.
 
 ## `input/keymap` and `conduit-intl`
@@ -98,8 +98,8 @@ wanted. Each three-byte `input/key-event@1` value is admitted atomically to its
 `text-keys` and `chord-keys` branches or waits under pressure. It does not copy,
 drop, retry, reinterpret, or broadcast implicitly.
 
-All three Kinds admit at most eight queued values. A std semantic operation
+All three kinds admit at most eight queued values. A std semantic operation
 admits at most sixteen input actions and one in-flight host operation per
-keymap/chord Gear. Compose retains at most one prefix scalar; Unicode entry
+keymap/chord gear. Compose retains at most one prefix scalar; Unicode entry
 retains one scalar accumulator and a six-digit count. Cancellation clears the
-single pending operation, and closing input closes the finite Gear.
+single pending operation, and closing input closes the finite gear.

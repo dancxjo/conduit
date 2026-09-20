@@ -105,7 +105,7 @@ pub enum KernelCompositeStatus {
 pub struct KernelCompositeHost {
     definition: KernelCompositeDefinition,
     children: BTreeMap<HostId, ChildKernel>,
-    faces: BTreeMap<PortId, FaceRoute>,
+    fronts: BTreeMap<PortId, FaceRoute>,
     links: Vec<InternalLink>,
     active_plays: BTreeMap<HostId, ActivePlayId>,
     started: bool,
@@ -119,61 +119,62 @@ impl KernelCompositeHost {
     ) -> Result<Self, KernelCompositeError> {
         let preparation = KernelCompositePreparation::prepare(definition.internal_plan.clone())?;
         let mut child_boundaries = BTreeMap::<HostId, Vec<BoundaryEndpoint>>::new();
-        let mut faces = BTreeMap::new();
-        for face in definition
+        let mut fronts = BTreeMap::new();
+        for front in definition
             .boundary
-            .input_faces
+            .input_fronts
             .iter()
-            .chain(&definition.boundary.output_faces)
+            .chain(&definition.boundary.output_fronts)
         {
-            if faces.contains_key(&face.external_port.port_id) {
+            if fronts.contains_key(&front.external_port.port_id) {
                 return Err(KernelCompositeError::InvalidBoundary(format!(
-                    "duplicate external face '{}'",
-                    face.external_port.port_id.as_str()
+                    "duplicate external front '{}'",
+                    front.external_port.port_id.as_str()
                 )));
             }
             let lowered = preparation
-                .child(&face.internal_child)
-                .ok_or_else(|| KernelCompositeError::StaleChild(face.internal_child.clone()))?;
+                .child(&front.internal_child)
+                .ok_or_else(|| KernelCompositeError::StaleChild(front.internal_child.clone()))?;
             let node = lowered
                 .identity
-                .node_for_placement(&face.internal_placement_id)
-                .ok_or_else(|| invalid_face(&face.external_port.port_id, "missing placement"))?;
+                .node_for_placement(&front.internal_placement_id)
+                .ok_or_else(|| invalid_front(&front.external_port.port_id, "missing placement"))?;
             lowered
                 .identity
-                .port_for_identity(node, face.external_port.direction, &face.internal_port_id)
+                .port_for_identity(node, front.external_port.direction, &front.internal_port_id)
                 .ok_or_else(|| {
-                    invalid_face(&face.external_port.port_id, "missing internal port")
+                    invalid_front(&front.external_port.port_id, "missing internal port")
                 })?;
             let boundary_count = child_boundaries
-                .get(&face.internal_child)
+                .get(&front.internal_child)
                 .map_or(0, Vec::len);
             let endpoint = RemoteEndpointId(
-                u16::try_from(lowered.remote_endpoints.len() + boundary_count)
-                    .map_err(|_| invalid_face(&face.external_port.port_id, "endpoint overflow"))?,
+                u16::try_from(lowered.remote_endpoints.len() + boundary_count).map_err(|_| {
+                    invalid_front(&front.external_port.port_id, "endpoint overflow")
+                })?,
             );
             let cord = conduit_kernel::CordId(
                 u16::try_from(lowered.cords.len() + boundary_count)
-                    .map_err(|_| invalid_face(&face.external_port.port_id, "Cord overflow"))?,
+                    .map_err(|_| invalid_front(&front.external_port.port_id, "Cord overflow"))?,
             );
             child_boundaries
-                .entry(face.internal_child.clone())
+                .entry(front.internal_child.clone())
                 .or_default()
                 .push(BoundaryEndpoint {
-                    external_port_id: face.external_port.port_id.clone(),
-                    internal_port_id: face.internal_port_id.clone(),
+                    external_port_id: front.external_port.port_id.clone(),
+                    internal_port_id: front.internal_port_id.clone(),
                     endpoint,
                     cord,
-                    direction: face.external_port.direction,
-                    value_kind: face.external_port.value_kind.clone(),
+                    direction: front.external_port.direction,
+                    value_kind: front.external_port.value_kind.clone(),
                     item_capacity: definition.external_capability.limits.max_queue_items,
                     byte_capacity: definition.external_capability.limits.max_queue_bytes,
                 });
-            faces.insert(
-                face.external_port.port_id.clone(),
+            fronts.insert(
+                front.external_port.port_id.clone(),
                 FaceRoute {
-                    child: face.internal_child.clone(),
-                    direction: face.external_port.direction,
+                    child: front.internal_child.clone(),
+                    direction: front.external_port.direction,
                 },
             );
         }
@@ -201,7 +202,7 @@ impl KernelCompositeHost {
         Ok(Self {
             definition,
             children,
-            faces,
+            fronts,
             links,
             active_plays: BTreeMap::new(),
             started: false,
@@ -245,7 +246,7 @@ impl KernelCompositeHost {
         value: &ValuePayload,
     ) -> Result<RemoteIngressOutcome, KernelCompositeError> {
         self.require_started()?;
-        let route = self.face(port_id, PortDirection::Input)?.clone();
+        let route = self.front(port_id, PortDirection::Input)?.clone();
         self.children
             .get_mut(&route.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
@@ -255,7 +256,7 @@ impl KernelCompositeHost {
 
     pub fn close_input(&mut self, port_id: &PortId) -> Result<(), KernelCompositeError> {
         self.require_started()?;
-        let route = self.face(port_id, PortDirection::Input)?.clone();
+        let route = self.front(port_id, PortDirection::Input)?.clone();
         self.children
             .get_mut(&route.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
@@ -268,7 +269,7 @@ impl KernelCompositeHost {
         port_id: &PortId,
     ) -> Result<Option<(u64, ValuePayload)>, KernelCompositeError> {
         self.require_started()?;
-        let route = self.face(port_id, PortDirection::Output)?.clone();
+        let route = self.front(port_id, PortDirection::Output)?.clone();
         self.children
             .get_mut(&route.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
@@ -282,7 +283,7 @@ impl KernelCompositeHost {
         sequence: u64,
     ) -> Result<(), KernelCompositeError> {
         self.require_started()?;
-        let route = self.face(port_id, PortDirection::Output)?.clone();
+        let route = self.front(port_id, PortDirection::Output)?.clone();
         self.children
             .get_mut(&route.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
@@ -353,12 +354,12 @@ impl KernelCompositeHost {
             .collect()
     }
 
-    fn face(
+    fn front(
         &self,
         port_id: &PortId,
         direction: PortDirection,
     ) -> Result<&FaceRoute, KernelCompositeError> {
-        self.faces
+        self.fronts
             .get(port_id)
             .filter(|route| route.direction == direction)
             .ok_or_else(|| KernelCompositeError::UnknownFace(port_id.clone()))
@@ -464,8 +465,8 @@ fn internal_links(
         .collect()
 }
 
-fn invalid_face(port_id: &PortId, reason: &str) -> KernelCompositeError {
-    KernelCompositeError::InvalidBoundary(format!("face '{}': {reason}", port_id.as_str()))
+fn invalid_front(port_id: &PortId, reason: &str) -> KernelCompositeError {
+    KernelCompositeError::InvalidBoundary(format!("front '{}': {reason}", port_id.as_str()))
 }
 
 fn execution(child: &HostId, reason: String) -> KernelCompositeError {

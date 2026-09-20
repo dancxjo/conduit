@@ -143,9 +143,9 @@ body:not([data-palette-open="true"]) #palette,body[data-inspector-open="false"] 
 .status-strip { position:fixed; z-index:6; right:.75rem; bottom:6.5rem; margin:0; max-width:min(48rem,calc(100% - 20rem)); background:color-mix(in srgb,var(--conduit-background) 92%,transparent); }
 #front-door-actions { bottom:.75rem; }
 .react-flow__node { min-width:11rem; padding:.8rem 1rem; border:1px solid var(--conduit-structure-primary); border-radius:.55rem; background:var(--conduit-surface); color:var(--conduit-text-primary); font-weight:700; }
-body[data-lens="form"] .flow-faceplate { border-color:var(--conduit-emphasis); }
-body[data-lens="play"] .flow-faceplate { box-shadow:inset 0 0 0 1px var(--conduit-success); }
-body[data-lens="signs"] .flow-faceplate { border-style:double; }
+body[data-lens="form"] .flow-frontplate { border-color:var(--conduit-emphasis); }
+body[data-lens="play"] .flow-frontplate { box-shadow:inset 0 0 0 1px var(--conduit-success); }
+body[data-lens="signs"] .flow-frontplate { border-style:double; }
 
 @media (min-width:1001px) {
   body[data-palette-open="true"] #flow-root { left:26.5rem; width:auto; }

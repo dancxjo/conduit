@@ -125,7 +125,7 @@ fn unchanged_patchbay_meaning_has_distinct_truthful_direct_and_recursive_plans()
 }
 
 #[test]
-fn production_projection_keeps_recursive_forms_behind_stable_face_gears() {
+fn production_projection_keeps_recursive_forms_behind_stable_front_gears() {
     let presentation = crate::recursive_form_demonstration().unwrap();
     let recursive = presentation
         .subjects

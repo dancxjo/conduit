@@ -117,9 +117,9 @@ fn portable_offer(kind: &str) -> Option<CapabilityOffer> {
         contract,
         revision,
         conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: "conduitos/portable-presentation-face",
+            capability: "conduitos/portable-presentation-front",
             execution_profile: CONDUITOS_PRESENTATION_PROFILE,
-            implementation: "conduitos/portable-presentation-face@1",
+            implementation: "conduitos/portable-presentation-front@1",
             artifact: CONDUITOS_PRESENTATION_ARTIFACT,
         },
         host_operations,

@@ -25,8 +25,8 @@ OperationAction
   Fail
 ```
 
-Ports, nodes, cords, requests, and host operations are compact numeric
-identities produced by lowering before Play start. `FixedRoutes` and
+ports, nodes, cords, requests, and host operations are compact numeric
+identities produced by lowering before play start. `FixedRoutes` and
 `FixedHostOperationBindings` are sealed lookup tables: emitting on one output
 cannot broadcast to another output, and an operation cannot invoke an
 unplanned host boundary.
@@ -48,7 +48,7 @@ broadcast through another port.
 Producer completion closes each outbound cord. A sink observes its own input
 port as closed only after that cord's queue drains. Cancellation calls each
 unfinished driver, releases queued and driver-owned stored values, clears the
-ready set, records bounded terminal Sign, and makes later steps report the
+ready set, records bounded terminal sign, and makes later steps report the
 terminal cancelled state.
 
 The required multi-value pressure vector now runs through
@@ -65,9 +65,9 @@ participate in the same preflight/commit transaction as named outputs. A
 separate two-input join vector proves that seeing only one side stages nothing
 and leaves the first cord untouched until both sides can commit. The fixed and
 hosted storage/sign profiles produce identical normalized decisions,
-outputs, closure, join rollback, and cancellation Sign.
+outputs, closure, join rollback, and cancellation sign.
 
-## Host-operation scheduler slice
+## host-operation scheduler slice
 
 A host-enabled scheduler is constructed with a sealed
 `FixedHostOperationBindings` table and a const-generic pending-request array.
@@ -87,9 +87,9 @@ retired identity from being rebound to a later request.
 
 Cancellation clears the fixed pending table and all run-owned values before
 recording the terminal cancellation event. The fixed and hosted profiles match
-for request, completion, decision, output, Sign, and terminal vectors.
+for request, completion, decision, output, sign, and terminal vectors.
 The hosted profile also records its value-slot, per-slot byte-buffer, and
-sign-vector capacities at Play start and proves those capacities are
+sign-vector capacities at play start and proves those capacities are
 unchanged after a complete host-enabled run.
 
 ## Public operation adapter
@@ -118,7 +118,7 @@ tick -> tee.left  -> filter -> show-a
 The tee publishes both named outputs atomically, filter admits two values,
 latest retains and supersedes until closure, and both shows reach terminal
 closure with no stored values or pending requests left. Fixed and hosted
-profiles match outputs, decisions, Sign counts and bytes, closure, and
+profiles match outputs, decisions, sign counts and bytes, closure, and
 terminal state.
 
 ## Deliberate archive reuse

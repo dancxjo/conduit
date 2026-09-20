@@ -192,6 +192,7 @@ impl StdHost {
                         speech_recognition: self.speech_recognition.as_mut(),
                         microphone: self.microphone.as_mut(),
                         wav_artifact: self.wav_artifact.as_ref(),
+                        vision: self.vision.as_mut(),
                     },
                 )
             } else {

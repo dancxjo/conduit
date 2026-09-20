@@ -24,13 +24,13 @@ test.beforeAll(async () => {
 
 test.afterAll(() => entrance?.child.kill());
 
-for (const [name, path] of [["Home", ""], ["Home face", "home/"], ["Body", "workspace/"], ["Crèche compatibility", "creche/"], ["Patchbay", "patchbay/"]]) {
+for (const [name, path] of [["Home", ""], ["Home front", "home/"], ["Body", "workspace/"], ["Crèche compatibility", "creche/"], ["Patchbay", "patchbay/"]]) {
   test(`${name} rendered entrance has WCAG 2.2 AA structure`, async ({ page }) => {
     await page.goto(`${entrance.url}${path}`);
     if (name === "Body") await expect(page.locator("[data-body-tutorial]")).toBeVisible();
     if (name === "Crèche compatibility") await expect(page.locator("[data-workspace-creche]")).toBeVisible();
     if (name === "Patchbay") await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
-    if (name === "Home face") await expect(page.locator("#host-state")).toHaveText("Browser Home is ready.");
+    if (name === "Home front") await expect(page.locator("#host-state")).toHaveText("Browser Home is ready.");
     await expect(page.locator("#conduit-suspense")).toHaveCount(0);
     await expect(page.getByRole("main")).toHaveCount(1);
     expect(await page.getByRole("heading", { level: 1 }).count()).toBeGreaterThan(0);

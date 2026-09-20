@@ -17,7 +17,7 @@ fn proportional_prose_and_monospace_code_have_distinct_metrics() {
 }
 
 #[test]
-fn admitted_unicode_and_secondary_face_have_real_coverage() {
+fn admitted_unicode_and_secondary_front_have_real_coverage() {
     for character in "Crèche café Ω Ж 中 → ● ○".chars() {
         assert!(
             profile::coverage(character, Role::Body) != profile::GlyphCoverage::Replacement,

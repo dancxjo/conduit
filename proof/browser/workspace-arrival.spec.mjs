@@ -19,24 +19,24 @@ test("Birth hands off to a Lulled Body; Wake starts listening Forms and reload p
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   await expect(page.locator("#surface-guidance")).toContainText("Wake it to start its Forms");
   await expect(page.locator("#form-input")).toHaveAttribute("aria-disabled", "true");
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await expect(page.locator("[data-wake-body]")).toBeHidden();
   const identity = () => page.evaluate(() => globalThis.__conduitWorkspace.current());
   const first = await identity();
-  await expect(page.getByRole("navigation", { name: "Your Forms" }).locator("[data-checked-form-id]")).toHaveCount(3);
-  await page.getByRole("navigation", { name: "Your Forms" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Your forms" }).locator("[data-checked-form-id]")).toHaveCount(3);
+  await page.getByRole("navigation", { name: "Your forms" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
   const output = page.locator("[data-form-output] output:visible");
   await page.keyboard.press("h");
   await expect(output).toHaveText("h");
   await page.keyboard.press("i");
   await expect(output).toHaveText("hi");
-  await page.getByRole("navigation", { name: "Your Forms" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
+  await page.getByRole("navigation", { name: "Your forms" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
   await page.keyboard.press("o");
   await page.keyboard.press("k");
   await page.keyboard.press("Enter");
   await expect(output).toHaveText("ok");
-  await page.getByRole("navigation", { name: "Your Forms" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
+  await page.getByRole("navigation", { name: "Your forms" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
   await expect(output).toHaveText("hi");
   await expect(page.locator("[data-flow-label]")).toHaveText("keyboard → keymap → edit → text");
   await page.keyboard.press("Backspace");
@@ -45,7 +45,7 @@ test("Birth hands off to a Lulled Body; Wake starts listening Forms and reload p
   expect((await identity()).plan_id).toBe(first.plan_id);
   await page.screenshot({ path: testInfo.outputPath("workspace-listening.png"), fullPage: true });
 
-  await page.getByRole("navigation", { name: "Your Forms" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
+  await page.getByRole("navigation", { name: "Your forms" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
@@ -60,13 +60,13 @@ test("Birth hands off to a Lulled Body; Wake starts listening Forms and reload p
   await page.keyboard.press("Enter");
   await expect(output).toHaveText("n");
   await page.screenshot({ path: testInfo.outputPath("workspace-returned.png"), fullPage: true });
-  await page.getByRole("button", { name: "Lull Body", exact: true }).click();
+  await page.getByRole("button", { name: "lull body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   expect((await identity()).body_id).toBe(first.body_id);
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
-  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeVisible();
   expect((await identity()).active_play_id).toBeUndefined();
 });
 
@@ -88,10 +88,10 @@ test("a failed started-state save cancels the real Play before dispatching effec
   });
   await page.goto(entrance.url);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Stopped");
   await expect(page.locator("#surface-guidance")).toContainText("Your Body could not be saved");
-  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeDisabled();
   await expect(page.locator("#form-input")).toHaveAttribute("aria-disabled", "true");
   const result = await page.evaluate(() => ({ state: globalThis.__conduitWorkspace.state(), writes: globalThis.__failedBodyWrites }));
   expect(result.writes).toBe(1);
@@ -106,7 +106,7 @@ test("a failed started-state save cancels the real Play before dispatching effec
 test("a second window cannot recover a Body while its first Host is alive", async ({ page, context }) => {
   await page.goto(entrance.url);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const other = await context.newPage();
   await other.goto(entrance.url);
@@ -124,7 +124,7 @@ test("Birth and the listening surface fit a narrow window", async ({ page }, tes
   await expect(page.getByRole("heading", { name: "A Body of your own" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.keyboard.press("h");
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
@@ -140,7 +140,7 @@ test("an intentionally empty Body remains lulled without inventing a Play", asyn
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   await expect(page.getByRole("heading", { name: "No Forms installed", exact: true })).toBeVisible();
   await expect(page.locator("#form-input")).toBeHidden();
-  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeHidden();
+  await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeHidden();
   const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(original.active_play_id).toBeUndefined();
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
@@ -160,10 +160,10 @@ test("contextual tutorial follows the real Body instead of retaining lesson prog
   await expect(tutorial).toContainText('Purpose · exact readiness');
   await expect(tutorial).toContainText('not ready · 5 exact obligation(s) remain');
   await expect(tutorial.getByRole('button', { name: 'Wake the retained Body' })).toBeVisible();
-  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(tutorial).toContainText('finite Body may remain awake');
   await expect(tutorial).toContainText('not ready · 2 exact obligation(s) remain');
-  await page.getByRole('button', { name: 'Lull Body', exact: true }).click();
+  await page.getByRole('button', { name: 'lull body', exact: true }).click();
   await expect(tutorial).toContainText('Retained rest is not completion');
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
@@ -173,14 +173,14 @@ test("contextual tutorial follows the real Body instead of retaining lesson prog
 test("explicit Finish retires work, records provenance, and restores as read-only Fulfilled history", async ({ page }) => {
   await page.goto(entrance.url);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   page.once("dialog", dialog => dialog.accept());
-  await page.getByRole("button", { name: "Finish Body", exact: true }).click();
+  await page.getByRole("button", { name: "Finish body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Fulfilled");
   await expect(page.locator("#surface-guidance")).toContainText("biography remains available");
-  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeHidden();
-  await expect(page.getByRole("button", { name: "Finish Body", exact: true })).toBeHidden();
+  await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Finish body", exact: true })).toBeHidden();
   const terminal = await page.evaluate(() => {
     const snapshot = globalThis.__conduitWorkspace.evidence();
     return { current: globalThis.__conduitWorkspace.current(), record: snapshot.evidence.records.at(-1) };
@@ -224,20 +224,20 @@ test("a sound-only Body renders the original cue through real browser audio and 
   await expect(page.getByRole('checkbox', { name: 'Startup Chime', exact: true })).toBeChecked();
   await page.screenshot({ path: testInfo.outputPath('chime-birth.png'), fullPage: true });
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
-  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Idle');
   const audio = await page.evaluate(() => globalThis.__cueAudio);
   expect(audio.starts).toEqual([{ frames: 57600, sampleRate: 48000, channels: 1, state: 'running' }]);
   expect(audio.ended).toBe(1);
   await expect(page.locator('#form-input')).toBeHidden();
   await expect(page.locator('[data-form-output] output')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Wake Body', exact: true })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'wake body', exact: true })).toBeHidden();
   const evidence = await liveEvidence(page);
   expect(evidence.host_completions.records.map(record => record.disposition)).toEqual(['completed']);
   await page.screenshot({ path: testInfo.outputPath('chime-idle.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Lull Body', exact: true }).click();
+  await page.getByRole('button', { name: 'lull body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
-  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Idle');
   expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(2);
 });
@@ -249,7 +249,7 @@ test("first-wake audio stays silent after reload of the same Body with a fresh B
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
   await page.getByRole('checkbox', { name: 'First Wake Chime', exact: true }).check();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
-  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Idle');
   expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(1);
   const first = await page.evaluate(() => globalThis.__conduitWorkspace.current());
@@ -268,7 +268,7 @@ test("removing the default cue survives reload and a later first-wake installati
   await observeRealAudio(page);
   await page.goto(entrance.url);
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
-  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await expect.poll(() => page.evaluate(() => globalThis.__cueAudio.ended)).toBe(1);
   const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
@@ -282,9 +282,9 @@ test("removing the default cue survives reload and a later first-wake installati
   expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(1);
   expect((await liveEvidence(page)).host_completions.records).toEqual([]);
 
-  await page.getByRole('button', { name: 'Lull Body', exact: true }).click();
+  await page.getByRole('button', { name: 'lull body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
-  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(1);
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
@@ -298,8 +298,8 @@ test("removing the default cue survives reload and a later first-wake installati
   await page.getByRole('button', { name: '+ Forms', exact: true }).click();
   await expect(card('Startup Chime')).toContainText('Not in your Body');
   await expect(card('First Wake Chime')).toContainText('In your Body');
-  await page.getByRole('button', { name: 'Back to the surface', exact: true }).click();
-  await page.getByRole('navigation', { name: 'Your Forms' }).getByRole('button', { name: 'Memory Lantern', exact: true }).click();
+  await page.getByRole('button', { name: 'back to the surface', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Your forms' }).getByRole('button', { name: 'Memory Lantern', exact: true }).click();
   await page.keyboard.press('a');
   await expect(page.locator('[data-form-output] output:visible')).toHaveText('a');
 });
@@ -310,7 +310,7 @@ test("unavailable audio is omitted by default and an explicitly installed cue ca
   await expect(page.getByRole('checkbox', { name: 'Startup Chime', exact: true })).not.toBeChecked();
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).check();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
-  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await page.keyboard.press('a');
   await expect(page.locator('[data-form-output] output:visible')).toHaveText('a');
@@ -328,7 +328,7 @@ test("a suspended real audio context reports denial while the Body keeps listeni
   });
   await page.goto(entrance.url);
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
-  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await page.keyboard.press('b');
   await expect(page.locator('[data-form-output] output:visible')).toHaveText('b');

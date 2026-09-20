@@ -20,14 +20,14 @@ pub(super) fn handle_short_text_key(
     application: &mut PatchbayApplication,
     key: &Key,
 ) -> Result<bool, String> {
-    let Some(mut edit) = application.face_text_edit.take() else {
+    let Some(mut edit) = application.front_text_edit.take() else {
         return Ok(false);
     };
     match key {
         Key::Named(NamedKey::Escape) => application.interaction_status.publish(
             crate::interaction_status::InteractionStatusLevel::Information,
             crate::interaction_status::InteractionStatusCode::Cancelled,
-            "Face text edit cancelled",
+            "Front text edit cancelled",
         ),
         Key::Named(NamedKey::Enter) => {
             application.dispatch_gear_configuration(
@@ -38,16 +38,16 @@ pub(super) fn handle_short_text_key(
         }
         Key::Named(NamedKey::Backspace) => {
             edit.value.pop();
-            application.face_text_edit = Some(edit);
+            application.front_text_edit = Some(edit);
         }
         Key::Character(value)
             if !value.chars().any(char::is_control)
                 && edit.value.len().saturating_add(value.len()) <= edit.maximum_bytes =>
         {
             edit.value.push_str(value);
-            application.face_text_edit = Some(edit);
+            application.front_text_edit = Some(edit);
         }
-        _ => application.face_text_edit = Some(edit),
+        _ => application.front_text_edit = Some(edit),
     }
     Ok(true)
 }
@@ -96,10 +96,10 @@ fn execute(mut application: PatchbayApplication, started: Instant) -> Result<(),
         .as_ref()
         .ok_or("greet graph absent")?;
     require(
-        graph.face_inputs.len() == 1 && graph.face_outputs.len() == 1,
-        "Face Ports absent",
+        graph.front_inputs.len() == 1 && graph.front_outputs.len() == 1,
+        "Front Ports absent",
     )?;
-    steps.push("entered-hello-greet-with-face-ports");
+    steps.push("entered-hello-greet-with-front-ports");
     act(&mut application, GuiAction::OpenBack, &mut interactions)?;
     require(
         application.back_breadcrumb() == "default-welcome",
@@ -139,10 +139,10 @@ fn execute(mut application: PatchbayApplication, started: Instant) -> Result<(),
     require(
         configured_source.contains("Howdy"),
         &format!(
-            "visible Face control did not configure Howdy; status={configured_status:?}; source={configured_source}"
+            "visible Front control did not configure Howdy; status={configured_status:?}; source={configured_source}"
         ),
     )?;
-    steps.push("configured-howdy-through-visible-face-control");
+    steps.push("configured-howdy-through-visible-front-control");
 
     application.handle_palette_key(&Key::Character("/".into()));
     application.handle_palette_key(&Key::Character("uppercase".into()));
@@ -401,7 +401,7 @@ fn observe(application: &mut PatchbayApplication) -> Result<(), String> {
             form_selection: application.navigator_selection,
             form_scroll: application.navigator_scroll,
             exact_identity_open: application.exact_identity_open,
-            face_control_focus: application.face_control_focus,
+            front_control_focus: application.front_control_focus,
             presentation_layout: &application.layout,
             realization_plan: None,
             realization_hosts: &[],

@@ -10,10 +10,10 @@ use conduit_core::{
     PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 
-mod functional_face;
+mod functional_front;
 mod normalized_quantity;
 mod quantity_info;
-pub use functional_face::{realization_offer, RealizationOfferIdentity};
+pub use functional_front::{realization_offer, RealizationOfferIdentity};
 pub use normalized_quantity::*;
 pub use quantity_info::*;
 mod keyboard;
@@ -62,6 +62,8 @@ mod vision_local_cv;
 pub use vision_local_cv::*;
 mod vision_continuous_local;
 pub use vision_continuous_local::*;
+mod vision_local_observation;
+pub use vision_local_observation::*;
 #[cfg(feature = "form-catalog")]
 mod vision_catalog;
 #[cfg(feature = "form-catalog")]
@@ -98,7 +100,7 @@ mod job_catalog;
 pub use job_catalog::*;
 mod palette_metadata;
 mod tick;
-pub use functional_face::startup_face;
+pub use functional_front::startup_front;
 pub use palette_metadata::*;
 pub use tick::*;
 mod tick_presentation;

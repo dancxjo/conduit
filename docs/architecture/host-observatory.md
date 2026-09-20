@@ -1,7 +1,7 @@
-# Host Observatory
+# host Observatory
 
 `conduit-observatory` is a read-only projection over neutral current-model
-reports. It does not open lines, start or cancel Plays, edit forms, grant
+reports. It does not open lines, start or cancel plays, edit forms, grant
 authority, install bases, discover hosts, or maintain fleet membership.
 
 ## Authoritative input
@@ -9,17 +9,17 @@ authority, install bases, discover hosts, or maintain fleet membership.
 One versioned `ObservatorySnapshot` contains:
 
 - exact host advertisements plus separately reported host and capability state;
-- exact boot-scoped Host Base identity, kind, state, and finite capacity,
+- exact boot-scoped host base identity, kind, state, and finite capacity,
   separately from semantic offers and resources;
 - exact directional `LinkBinding` observations and their separately reported
   operational state;
 - verified plans and fragments;
-- boot-scoped active and terminal Play reports;
-- per-Play placement and connection lifecycle, terminal disposition, failure,
+- boot-scoped active and terminal play reports;
+- per-play placement and connection lifecycle, terminal disposition, failure,
   and optional measured pressure;
 - current and retained historical runtime-issued observations with distinct
-  Play, presentation, and Sign identities;
-- optional sealed historical boot provenance tied to one reported Host/Boot,
+  play, presentation, and sign identities;
+- optional sealed historical boot provenance tied to one reported host/boot,
   including adapter, image/build, normalized memory summary, artifacts,
   framebuffer basis, and proof classification;
 - a finite retention capacity, retained item count, and dropped item count.
@@ -29,9 +29,9 @@ reachability from membership, authority from availability, or pressure events
 from planned queue limits.
 
 `validate_snapshot` rejects unsupported schemas, invalid or duplicate plans,
-duplicate hosts/boots/Bases/provenance, Bases or provenance naming unknown
-Host/Boot identities, links whose endpoints lack exact host reports, Plays or
-Signs naming unknown identities, presentation Signs without a Play, invalid
+duplicate hosts/boots/bases/provenance, bases or provenance naming unknown
+host/boot identities, links whose endpoints lack exact host reports, plays or
+signs naming unknown identities, presentation signs without a play, invalid
 framebuffer provenance, and inconsistent retention accounting.
 
 ## Operator path
@@ -56,26 +56,26 @@ runtime work. A tampered host/boot or other unresolved identity fails closed.
 ## Structured representation
 
 The v2 report provides complete table-shaped rows for hosts, capabilities,
-Bases, Lines, plans, fragments, placements, connections, Plays, Play
-placements, Play connections, current/historical Signs, sealed boot
+bases, lines, plans, fragments, placements, connections, plays, play
+placements, play connections, current/historical signs, sealed boot
 provenance, and retention. Text rendering and Patchbay's deterministic linear
 projection use those same rows; no graph canvas or UI state is required.
 
 Capabilities keep kind, contract, execution profile, implementation, limits,
-freshness, support, and availability separate. Plays keep plan, host, boot,
+freshness, support, and availability separate. plays keep plan, host, boot,
 placement, connection, pressure, failure, terminal disposition, presentation,
-and Sign identities separate. Pressure is `unknown` unless an authoritative
+and sign identities separate. Pressure is `unknown` unless an authoritative
 producer supplies measurements.
 
-Host-level `SignGap` counts and snapshot-level retention loss are summed for
+host-level `SignGap` counts and snapshot-level retention loss are summed for
 visibility while remaining separately described in the retention explanation.
 Sealed boot provenance is historical input only. It is not projected as a
-live offer, Base, service, availability fact, or authority source.
+live offer, base, service, availability fact, or authority source.
 
 ## Working on this boundary
 
 The implementation and focused tests live in
 [`architecture/observatory`](../../architecture/observatory/). Use the
 [contribution guide](../../CONTRIBUTING.md) for repository checks. A saved
-snapshot remains historical input; inspecting it never makes its Boot or
+snapshot remains historical input; inspecting it never makes its boot or
 capabilities current.

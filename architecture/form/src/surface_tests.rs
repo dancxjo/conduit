@@ -32,7 +32,7 @@ fn duplicate_completion_declarations_are_rejected() {
 
 #[test]
 fn inline_comments_are_lossless_trivia_across_surface_roles() {
-    let source = "# before definitions\nform peer ( # face opens\n    label: Text = \"channel #7\" # startup\n    input: Text > output: Text # runtime face\n) { # back opens\n    # inside back\n    local = \"value # retained\" # local value\n    gear: text/constant(value = \"gear # retained\") # named gear\n    pool peers: peer(size = 2) # bounded pool\n    input > gear > output # cord\n} # form closes\nhost workstation { # host opens\n    profile = \"host # one\" # host declaration\n} # host closes\nbody household { # body opens\n    member = \"body # one\" # body declaration\n} # body closes\n";
+    let source = "# before definitions\nform peer ( # front opens\n    label: Text = \"channel #7\" # startup\n    input: Text > output: Text # runtime front\n) { # back opens\n    # inside back\n    local = \"value # retained\" # local value\n    gear: text/constant(value = \"gear # retained\") # named gear\n    pool peers: peer(size = 2) # bounded pool\n    input > gear > output # cord\n} # form closes\nhost workstation { # host opens\n    profile = \"host # one\" # host declaration\n} # host closes\nbody household { # body opens\n    member = \"body # one\" # body declaration\n} # body closes\n";
     let document = parse_syntax_document(source);
     assert_eq!(document.round_trip(), source);
     assert!(
@@ -41,14 +41,14 @@ fn inline_comments_are_lossless_trivia_across_surface_roles() {
         document.diagnostics
     );
     assert_eq!(document.forms.len(), 1);
-    assert_eq!(document.forms[0].face.startup_parameters.len(), 1);
-    assert_eq!(document.forms[0].face.runtime_ports.len(), 2);
+    assert_eq!(document.forms[0].front.startup_parameters.len(), 1);
+    assert_eq!(document.forms[0].front.runtime_ports.len(), 2);
     assert_eq!(document.forms[0].back.len(), 4);
     assert_eq!(document.constructions.len(), 2);
     assert_eq!(document.constructions[0].role, ConstructionRole::Host);
     assert_eq!(document.constructions[1].role, ConstructionRole::Body);
     assert_eq!(
-        document.forms[0].face.startup_parameters[0]
+        document.forms[0].front.startup_parameters[0]
             .default
             .as_ref()
             .unwrap()
@@ -147,34 +147,34 @@ fn canonical_clock_form_round_trips_with_named_and_inline_gears() {
 }
 
 #[test]
-fn canonical_face_keeps_startup_values_runtime_ports_and_shorthand_distinct() {
+fn canonical_front_keeps_startup_values_runtime_ports_and_shorthand_distinct() {
     let source = "form badge (\n    title: Text\n    tone: Tone = calm\n    state: $Signal > view: WebFragment\n) {\n    hero: web/hero(title, tone)\n    state > hero.state\n    hero > view\n}\n";
     let document = parse_syntax_document(source);
-    let form = &document.forms().expect("face parses")[0];
+    let form = &document.forms().expect("front parses")[0];
 
     assert_eq!(document.round_trip(), source);
-    assert_eq!(form.face.startup_parameters.len(), 2);
-    assert_eq!(form.face.startup_parameters[0].name.text, "title");
-    assert!(form.face.startup_parameters[0].default.is_none());
+    assert_eq!(form.front.startup_parameters.len(), 2);
+    assert_eq!(form.front.startup_parameters[0].name.text, "title");
+    assert!(form.front.startup_parameters[0].default.is_none());
     assert_eq!(
-        form.face.startup_parameters[1]
+        form.front.startup_parameters[1]
             .default
             .as_ref()
             .expect("tone has a default")
             .text,
         "calm"
     );
-    assert_eq!(form.face.runtime_ports.len(), 2);
+    assert_eq!(form.front.runtime_ports.len(), 2);
     assert_eq!(
-        form.face.runtime_ports[0].direction,
+        form.front.runtime_ports[0].direction,
         RuntimePortDirection::Input
     );
     assert_eq!(
-        form.face.runtime_ports[1].direction,
+        form.front.runtime_ports[1].direction,
         RuntimePortDirection::Output
     );
     let shorthand = form
-        .face
+        .front
         .shorthand
         .as_ref()
         .expect("central pair is recorded");
@@ -187,38 +187,38 @@ fn canonical_face_keeps_startup_values_runtime_ports_and_shorthand_distinct() {
 }
 
 #[test]
-fn canonical_duplex_face_has_auxiliary_ports_without_a_shorthand_path() {
+fn canonical_duplex_front_has_auxiliary_ports_without_a_shorthand_path() {
     let source = include_str!("../../../forms/socket-client/main.conduit");
     let document = parse_syntax_document(source);
-    let form = &document.forms().expect("duplex face parses")[0];
+    let form = &document.forms().expect("duplex front parses")[0];
 
     assert_eq!(document.round_trip(), source);
-    assert_eq!(form.face.startup_parameters.len(), 1);
-    assert_eq!(form.face.runtime_ports.len(), 3);
-    assert_eq!(form.face.runtime_ports[0].name.text, "send");
+    assert_eq!(form.front.startup_parameters.len(), 1);
+    assert_eq!(form.front.runtime_ports.len(), 3);
+    assert_eq!(form.front.runtime_ports[0].name.text, "send");
     assert_eq!(
-        form.face.runtime_ports[0].temporal,
+        form.front.runtime_ports[0].temporal,
         RuntimePortTemporal::Flow { closes: true }
     );
     assert_eq!(
-        form.face.runtime_ports[0].direction,
+        form.front.runtime_ports[0].direction,
         RuntimePortDirection::Input
     );
-    assert_eq!(form.face.runtime_ports[1].name.text, "recv");
+    assert_eq!(form.front.runtime_ports[1].name.text, "recv");
     assert_eq!(
-        form.face.runtime_ports[1].temporal,
+        form.front.runtime_ports[1].temporal,
         RuntimePortTemporal::Flow { closes: true }
     );
     assert_eq!(
-        form.face.runtime_ports[1].direction,
+        form.front.runtime_ports[1].direction,
         RuntimePortDirection::Output
     );
-    assert_eq!(form.face.runtime_ports[2].value_type.text, "Boolean");
+    assert_eq!(form.front.runtime_ports[2].value_type.text, "Boolean");
     assert_eq!(
-        form.face.runtime_ports[2].temporal,
+        form.front.runtime_ports[2].temporal,
         RuntimePortTemporal::Current
     );
-    assert!(form.face.shorthand.is_none());
+    assert!(form.front.shorthand.is_none());
 }
 
 #[test]
@@ -254,7 +254,7 @@ fn canonical_ast_spans_are_exact_utf8_byte_slices() {
     let source = "form café (\n    title: Text = \"héllo\"\n) {\n    card: web/hero(title)\n}\n";
     let document = parse_syntax_document(source);
     let form = &document.forms().expect("utf-8 form parses")[0];
-    let parameter = &form.face.startup_parameters[0];
+    let parameter = &form.front.startup_parameters[0];
     let default = parameter.default.as_ref().expect("default exists");
 
     assert_eq!(&source[form.name.span.start..form.name.span.end], "café");
@@ -272,11 +272,11 @@ fn canonical_negative_corpus_has_stable_diagnostics_and_exact_spans() {
     let cases = [
         (
             "form bad (\n    a: A >> b: B\n) {\n}\n",
-            "malformed face arrows",
+            "malformed front arrows",
         ),
         (
             "form bad (\n    a: A > b: B\n    c: C > d: D\n) {\n}\n",
-            "more than one shorthand face pair",
+            "more than one shorthand front pair",
         ),
         ("form bad {\n    clock:\n}\n", "missing Gear Kind"),
         (
@@ -297,7 +297,7 @@ fn canonical_negative_corpus_has_stable_diagnostics_and_exact_spans() {
         ),
         (
             "form bad (title: Text\n) {\n}\n",
-            "face declarations must follow",
+            "front declarations must follow",
         ),
     ];
 

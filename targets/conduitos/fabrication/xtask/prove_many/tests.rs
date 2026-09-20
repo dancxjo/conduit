@@ -103,8 +103,9 @@ fn one_failure_does_not_erase_a_completed_sibling_result() {
 }
 
 #[test]
-fn timing_sensitive_hid_and_rescue_own_the_qemu_environment() {
+fn timing_sensitive_proofs_own_the_qemu_environment() {
     assert!(X86Proof::Hid.requires_exclusive_environment());
+    assert!(X86Proof::ProductJourney.requires_exclusive_environment());
     assert!(X86Proof::Rescue.requires_exclusive_environment());
     assert!(!X86Proof::Usb.requires_exclusive_environment());
     assert!(may_share_environment(X86Proof::Usb, X86Proof::Xhci));
@@ -112,4 +113,26 @@ fn timing_sensitive_hid_and_rescue_own_the_qemu_environment() {
     assert!(!may_share_environment(X86Proof::Kernel, X86Proof::Hid));
     assert!(!may_share_environment(X86Proof::Rescue, X86Proof::Usb));
     assert!(!may_share_environment(X86Proof::Usb, X86Proof::Rescue));
+}
+
+#[test]
+fn launch_skips_a_blocked_exclusive_proof_to_fill_safe_parallel_capacity() {
+    let pending = VecDeque::from([
+        X86Proof::Hid,
+        X86Proof::Kernel,
+        X86Proof::Keyboard,
+        X86Proof::Rescue,
+    ]);
+    assert_eq!(
+        next_launchable_index(&pending, &[X86Proof::FrontDoor]),
+        Some(1)
+    );
+}
+
+#[test]
+fn running_proofs_are_named_in_launch_order_for_progress_reports() {
+    assert_eq!(
+        proof_names([X86Proof::Kernel, X86Proof::Usb]),
+        "kernel, usb"
+    );
 }

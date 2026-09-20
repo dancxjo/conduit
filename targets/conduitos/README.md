@@ -2,16 +2,16 @@
 
 **[See the current ConduitOS visual journey →](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)**
 
-The narrated gallery shows the actual QEMU graphical product: Tour, Forms,
-Patchbay inspection, pointer interaction, and USB Line delivery and loss. Its
+The narrated gallery shows the actual QEMU graphical product: Tour, forms,
+Patchbay inspection, pointer interaction, and USB line delivery and loss. Its
 checkpoints link to their provenance. This is freestanding emulator
 evidence; physical laptop acceptance is separate.
 
-ConduitOS is Conduit's freestanding Host. The x86_64 PC image is a graphical
+ConduitOS is Conduit's freestanding host. The x86_64 PC image is a graphical
 `no_std`, `no_main` live system. IA-32 PC and AArch64, RISC-V64, and LoongArch64
-virt images offer long-lived serial experiences. Each realizes ordinary Forms
+virt images offer long-lived serial experiences. Each realizes ordinary forms
 through the production `conduit-kernel`, with a checked PROFILE and finite
-Host resources.
+host resources.
 
 ## Try the graphical system
 
@@ -30,29 +30,29 @@ for exploration; the proof commands below validate specific behaviors.
 
 ## First arrival on x86_64
 
-The graphical image opens the Crèche before a Body exists. Edit the suggested
-name, choose a naming tradition, and select the initial Forms. Enter births the
-named Body and requests Wake, exact planning, and Play in order. Each successful
+The graphical image opens the Crèche before a body exists. Edit the suggested
+name, choose a naming tradition, and select the initial forms. Enter births the
+named body and requests wake, exact planning, and play in order. Each successful
 stage has its own lifecycle evidence; a refusal remains visible at the stage
 that could not finish. F2 suggests another name in the Crèche and opens exact
 details after birth. F9 visits the existing Tour.
 
 This development slice offers **Keyboard canvas** and the canonical **Memory
-Lantern**. Their exact Form partitions share one Body Plan and Play. Keyboard
+Lantern**. Their exact form partitions share one body plan and play. Keyboard
 canvas shows recent uppercase output; Memory Lantern retains up to 256 bytes
-of editable text within that Play. F7 Lulls the Body by cancelling its actual
-Play and retaining both included Forms. F8 remains available for Stop alone.
+of editable text within that play. F7 lulls the body by cancelling its actual
+play and retaining both included forms. F8 remains available for Stop alone.
 The screen reports when older canvas output or kernel evidence leaves its
 bounded history.
-Resident Tour and Patchbay Forms and durable Body restoration across a new
-Boot remain open work. The startup sound and reusable first-wake behavior are
+Resident Tour and Patchbay forms and durable body restoration across a new
+boot remain open work. The startup sound and reusable first-wake behavior are
 tracked in [#3152](https://github.com/dancxjo/conduit/issues/3152).
 
 ## Available images
 
 Paths below are relative to `target/conduitos/`.
 
-| Host | Artifact | Experience |
+| host | Artifact | Experience |
 | --- | --- | --- |
 | `conduitos/x86_64/pc` | `live/x86_64-pc/conduitos-x86_64.iso` | Graphical front door, compositor, keyboard and pointer |
 | `conduitos/ia32/pc` | `live/ia32-pc/conduitos-ia32.iso` | Serial product |
@@ -63,14 +63,14 @@ Paths below are relative to `target/conduitos/`.
 `cargo xtask conduitos live-matrix` reports current formats, emulator profiles,
 and exclusions. Raspberry Pi and Orange Pi image fabrication has separate
 board contracts; presence of an image does not establish a usable physical
-Host. See [Raspberry Pi](../raspberry-pi/fabrication/README.md) and
+host. See [Raspberry Pi](../raspberry-pi/fabrication/README.md) and
 [Orange Pi](../orange-pi/README.md).
 
 ## Reproduce and inspect the evidence
 
 | Command | What it checks |
 | --- | --- |
-| `cargo xtask conduitos journey-proof` | Birth two resident Forms, type and switch within one Play, inspect Body/Wake/Plan evidence, then exercise pointer actions and USB Line state with correlated screenshots |
+| `cargo xtask conduitos journey-proof` | Birth two resident forms, type and switch within one play, inspect body/wake/plan evidence, then exercise pointer actions and USB line state with correlated screenshots |
 | `cargo xtask conduitos front-door-proof` | The normal image's initial surface and long-lived interaction |
 | `cargo xtask conduitos prove --arch x86-64 --locked` | Architecture appliance, image reproducibility, fresh boots, kernel execution, and Observatory evidence |
 | `cargo xtask conduitos architecture-matrix --locked` | Architecture backends and their earned proof rungs |
@@ -83,12 +83,12 @@ explains publication and how images correlate with semantic assertions.
 
 The initial Crèche offers Keyboard canvas and Memory Lantern through the same
 shared naming and selection model as the browser. Birth wakes the selected
-workset; Tab foregrounds another resident Form and F7 lulls the Body. The
-ordinary journey types into both Forms, clears and edits Memory again, and
-checks that a held-key release still reaches its original Form after switching.
+workset; Tab foregrounds another resident form and F7 lulls the body. The
+ordinary journey types into both forms, clears and edits Memory again, and
+checks that a held-key release still reaches its original form after switching.
 This is emulator evidence; it does not establish physical input or persistence
 across a machine reboot.
-USB Line attachment and delivery in that journey do not imply Body membership;
+USB line attachment and delivery in that journey do not imply body membership;
 the records explicitly retain `membership: not-requested`.
 
 For device work, `cargo xtask conduitos --help` lists focused xHCI, USB,
@@ -98,8 +98,8 @@ keyboard offer are different steps. These tests use real emulated device
 paths and retain failures and identity changes as distinct results.
 
 `cargo xtask conduitos keyboard-repeat-proof --locked` boots the normal image,
-births a Body and sends 320 keyboard transitions through one Play before
-Stop and Lull. It checks retained identities and the bounded recent-output
+births a body and sends 320 keyboard transitions through one play before
+Stop and lull. It checks retained identities and the bounded recent-output
 window, and retains its receipt and screenshots under
 `target/conduitos/x86_64/keyboard-repeat-*`. The native USB keyboard reuses
 two report buffers and a fixed 64-entry transfer ring across session input;
@@ -116,10 +116,10 @@ cargo xtask conduitos headless-proof target/headless-proof
 ```
 
 The artifact boots without a framebuffer or USB input device. It validates
-its fabricated inventory and finite arena, derives fresh Host/Boot identities,
+its fabricated inventory and finite arena, derives fresh host/boot identities,
 and reports `headless-workload-entry-unavailable`. This is an explicit
 unsupported workload entry: no providers are initialized, no offer is published,
-and no Body, Plan, or Play is invented. Compiled implementation inventory is
+and no body, plan, or play is invented. Compiled implementation inventory is
 reported separately. The boot stops with failure status after that receipt;
 it does not fall back to the graphical demonstration or claim a ready workload.
 
@@ -128,12 +128,12 @@ the same image twice in QEMU and checks exact provenance, fresh identities,
 zero allocation, and the expected unsupported disposition. The retained
 `headless-proof.json`, two serial logs, and ELF symbol inventory live in the
 supplied output directory. Passing this proof establishes that refusal contract,
-not working headless Form execution or physical hardware acceptance. The
+not working headless form execution or physical hardware acceptance. The
 ordinary graphical journey remains `cargo xtask conduitos journey-proof`.
 
 ## Where to contribute
 
-- `src/` owns machine adapters, Host composition, and kernel integration.
+- `src/` owns machine adapters, host composition, and kernel integration.
   Limine-specific types stay in `src/boot/limine.rs`; other code consumes
   boot-neutral observations.
 - `firmware/` owns product linker scripts and boot configuration.
@@ -154,7 +154,7 @@ Use [STATUS](../../STATUS.md) for recorded proof boundaries and the linked
 issues for the current scope of each contribution.
 
 The canonical x86_64 image uses the [default graphical profile](assets/graphical/README.md)
-with proportional UI typography, a distinct code face, deterministic Unicode
+with proportional UI typography, a distinct code front, deterministic Unicode
 fallback, and bounded shell icons. `cargo xtask conduitos graphical-profile-proof`
 boots that exact live ISO and retains its profile receipt and shell screenshots.
 This development capability is separate from stable or physical acceptance.

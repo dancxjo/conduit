@@ -47,7 +47,7 @@ pub fn patchbay_presenter_plans() -> Result<PatchbayPresenterPlans, String> {
 }
 
 /// Production Patchbay input for inspecting the ordinary recursive
-/// realization of the Patchbay presentation Face itself.
+/// realization of the Patchbay presentation Front itself.
 pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentation, String> {
     let proof = patchbay_presenter_plans()?;
     let (startup, profile) = catalogs()?;
@@ -61,11 +61,11 @@ pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentati
     let mut graph = crate::PatchbayGraph::from_expanded(&proof.recursive_expanded)
         .map_err(|error| error.to_string())?;
     for back in &proof.recursive_expanded.realization_backs {
-        let face = reviewed_back_face(back, &startup)?;
+        let front = reviewed_back_front(back, &startup)?;
         let projection = crate::project_recursive_form_gear(
             &proof.recursive_expanded,
             &back.invocation_path,
-            face,
+            front,
             false,
         )
         .map_err(|error| format!("recursive Form projection: {error:?}"))?;
@@ -121,7 +121,7 @@ pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentati
     .map_err(|error| error.to_string())
 }
 
-fn reviewed_back_face(
+fn reviewed_back_front(
     back: &conduit_core::RealizationBack,
     startup: &StartupCatalog,
 ) -> Result<conduit_core::CheckedFace, String> {
@@ -141,11 +141,11 @@ fn reviewed_back_face(
             .iter()
             .find(|form| form.checked_form_id == back.checked_form_id)
         {
-            return Ok(form.checked_face());
+            return Ok(form.checked_front());
         }
     }
     Err(format!(
-        "checked Face for recursive Back {} is absent",
+        "checked Front for recursive Back {} is absent",
         back.kind_id.as_str()
     ))
 }
@@ -164,11 +164,11 @@ fn plan(
                         !host
                             .capabilities
                             .iter()
-                            .any(|offer| offer.checked_face() == gear.checked_face())
+                            .any(|offer| offer.checked_front() == gear.checked_front())
                     })
                     .map(|gear| gear.kind_id.as_str())
                     .collect::<Vec<_>>();
-                format!("{error}; unmatched checked faces={unmatched:?}")
+                format!("{error}; unmatched checked fronts={unmatched:?}")
             },
         )?;
     conduit_planner::plan_expanded_canonical_with_options(

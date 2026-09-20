@@ -32,7 +32,7 @@ mod manifestations;
 use manifestations::{identity_refusals, manifestation_for, mark_replaced};
 
 const FORM_SOURCE: &str =
-    "form shared-face {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
+    "form shared-front {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
 const NATIVE_PROFILE: &str =
     include_str!("../../../../targets/conduitos/profiles/conduitos-native.profile.json");
 const BROWSER_PROFILE: &str =
@@ -130,14 +130,14 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
     let choices = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("shared-face/native"),
+                GearId::from("shared-front/native"),
                 PlacementChoice {
                     host_id: advertisements[0].host_id.clone(),
                     capability_id: CapabilityId::from("presenter/native"),
                 },
             ),
             (
-                GearId::from("shared-face/browser"),
+                GearId::from("shared-front/browser"),
                 PlacementChoice {
                     host_id: advertisements[1].host_id.clone(),
                     capability_id: CapabilityId::from("presenter/browser"),
@@ -175,7 +175,7 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
         manifestation_for(&initial_manifestations, "presenter/native-graphical@1")?;
     require(
         interaction_manifestation.lifecycle == ManifestationLifecycle::Available
-            && interaction_manifestation.face_subject == "face/main"
+            && interaction_manifestation.front_subject == "front/main"
             && interaction_manifestation
                 .validate_against(&initial, &accepted_plan)
                 .is_ok(),
@@ -241,7 +241,7 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
         update: UpdateEvidence {
             source: "manifestation-semantic-action-to-body-truth",
             interaction_manifestation_id,
-            semantic_subject: "face/main".into(),
+            semantic_subject: "front/main".into(),
             semantic_action: "engage".into(),
             sign_id: SignId::from("capstone/body-truth/2"),
             prior_presentation_id: initial.identity.as_str().into(),
@@ -390,15 +390,15 @@ fn presentation(
             sign_ids: vec![SignId::from(sign)],
         },
         vec![PresentationSubject {
-            identity: "face/main".into(),
+            identity: "front/main".into(),
             role: PresentationRole::Form,
-            label: "Shared Face".into(),
-            accessibility_name: "One shared semantic Face".into(),
+            label: "Shared Front".into(),
+            accessibility_name: "One shared semantic Front".into(),
         }],
         vec![],
         vec![],
         vec![PresentationText {
-            subject: "face/main".into(),
+            subject: "front/main".into(),
             text: text.into(),
         }],
     )
@@ -419,7 +419,7 @@ fn realize(
                 plan,
                 bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 1),
                 placement.placement_id.clone(),
-                "face/main".into(),
+                "front/main".into(),
                 format!("{}/surface", fragment.host_id.as_str()),
                 SignId::from(format!(
                     "capstone/{phase}/{}/prepared",
@@ -450,14 +450,14 @@ fn headless_placement_refuses(
     let choices = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("shared-face/native"),
+                GearId::from("shared-front/native"),
                 PlacementChoice {
                     host_id: advertisements[2].host_id.clone(),
                     capability_id: CapabilityId::from("presenter/native"),
                 },
             ),
             (
-                GearId::from("shared-face/browser"),
+                GearId::from("shared-front/browser"),
                 PlacementChoice {
                     host_id: advertisements[1].host_id.clone(),
                     capability_id: CapabilityId::from("presenter/browser"),

@@ -11,7 +11,7 @@ fn pulse_form() -> conduit_form::CheckedForm {
 }
 
 #[test]
-fn one_host_offers_and_plans_distinct_implementations_of_the_same_face() {
+fn one_host_offers_and_plans_distinct_implementations_of_the_same_front() {
     let form = pulse_form();
     let mut host = pico_local_advertisement();
     let original = host
@@ -28,15 +28,15 @@ fn one_host_offers_and_plans_distinct_implementations_of_the_same_face() {
         artifact_id: ArtifactId::from("conduit-signal/pulse-alternate-artifact-v1"),
     };
     assert_eq!(
-        alternate.checked_face(),
-        original.checked_face(),
-        "realization identity does not alter the semantic face"
+        alternate.checked_front(),
+        original.checked_front(),
+        "realization identity does not alter the semantic front"
     );
     host.capabilities.push(alternate.clone());
 
     let gear = &form.gears[0];
     let mut placements = default_placements(&form, std::slice::from_ref(&host))
-        .expect("equal-face realizations are candidates");
+        .expect("equal-front realizations are candidates");
     placements.by_gear.insert(
         gear.gear_id.clone(),
         PlacementChoice {

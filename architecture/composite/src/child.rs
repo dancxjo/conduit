@@ -246,9 +246,9 @@ impl ChildKernel {
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Input)
-            .ok_or_else(|| "unknown composite input face".to_string())?;
+            .ok_or_else(|| "unknown composite input front".to_string())?;
         if boundary.value_kind != value.value_kind {
-            return Err("composite input value kind differs from its exact face".into());
+            return Err("composite input value kind differs from its exact front".into());
         }
         self.scheduler
             .admit_remote_input(boundary.endpoint, boundary.cord, sequence, &value.encoded)
@@ -260,7 +260,7 @@ impl ChildKernel {
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Input)
-            .ok_or_else(|| "unknown composite input face".to_string())?;
+            .ok_or_else(|| "unknown composite input front".to_string())?;
         self.scheduler
             .close_remote_input(boundary.endpoint, boundary.cord)
             .map_err(debug)
@@ -274,7 +274,7 @@ impl ChildKernel {
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Output)
-            .ok_or_else(|| "unknown composite output face".to_string())?;
+            .ok_or_else(|| "unknown composite output front".to_string())?;
         let Some(offer) = self
             .scheduler
             .remote_egress_offer(boundary.endpoint, boundary.cord)
@@ -306,7 +306,7 @@ impl ChildKernel {
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Output)
-            .ok_or_else(|| "unknown composite output face".to_string())?;
+            .ok_or_else(|| "unknown composite output front".to_string())?;
         self.scheduler
             .remote_egress_accept(boundary.endpoint, boundary.cord, sequence)
             .and_then(|()| {

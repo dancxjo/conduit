@@ -1,6 +1,6 @@
 # Salvage S2 exact planning
 
-> Historical S2 planning checkpoint. Lowering, nested Forms, and kernel integration have since landed. The nominal Kind/revision matching and authored Base-preference discussion below are superseded by [checked Face equality](functional-compatibility.md) and the current [canon](../conduit-canon.md).
+> Historical S2 planning checkpoint. Lowering, nested forms, and kernel integration have since landed. The nominal kind/revision matching and authored base-preference discussion below are superseded by [checked front equality](functional-compatibility.md) and the current [canon](../conduit-canon.md).
 > Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
 
 Issue #363 replaces the reboot planner's single-value-kind capability claim
@@ -17,13 +17,13 @@ A `CapabilityOffer` now advertises:
 - the complete ordered input and output `PortDescriptor` contracts; and
 - independent active-instance, queue-item, and queue-byte limits.
 
-`CapabilityLimits.value_kind` no longer exists. Kinds own their ports in the
+`CapabilityLimits.value_kind` no longer exists. kinds own their ports in the
 form catalog. Checking copies the exact contract revision and all ports into
-the checked Gear, and its identity includes the Kind revision, port identity,
+the checked gear, and its identity includes the kind revision, port identity,
 value kind, and direction. Planning accepts a capability only when its kind,
 contract revision, and complete input/output vectors equal the checked
-Gear. It then binds the capability's exact execution profile into the
-planned Gear.
+gear. It then binds the capability's exact execution profile into the
+planned gear.
 
 Every installed `OperationImplementation` declares the contract revision and
 execution profile it realizes. Preparation compares the sealed placement with
@@ -57,7 +57,7 @@ with the top-level plan, and hosted/Observatory reports render them separately.
 A comment-only source edit therefore changes only `SourceDocumentId`; a
 semantic edit changes checked and expanded identity as well.
 
-## Startup, cancellation, terminal, and Sign contracts
+## Startup, cancellation, terminal, and sign contracts
 
 Every fragment now binds an explicit startup dependency graph and a
 deterministic local startup order. Each cord makes its sink a prerequisite of
@@ -66,7 +66,7 @@ emit. The planner rejects cyclic dependency graphs. A remote cord can name a
 placement on another host in the dependency graph; a host checks the ordering
 constraint when both endpoints are local. Remote link readiness is now pinned
 and revalidated as described below; a coordinated cross-host prepared handshake
-remains later Play start integration rather than a claim of this hosted model.
+remains later play start integration rather than a claim of this hosted model.
 
 The first executable policy profile is deliberately narrow:
 
@@ -84,20 +84,20 @@ present. Planning fails if the requirement cannot be represented by the public
 budget types. Preparation fails closed if either capacity is below the exact
 mandatory requirement.
 
-The hosted reboot runtime now allocates the plan's Sign item slots during
+The hosted reboot runtime now allocates the plan's sign item slots during
 preparation. Each recorded event is a bounded numeric index into the fragment's
 sealed expected-sign table, so execution does not clone identity strings or
 grow a hidden per-event allocation. Inspection reconstructs a
 `MandatorySignReport` with expected and recorded descriptors, the bound
 budget, serialized bytes used, the allocation shape, and an explicit overflow
 flag. This mandatory log is independent of the lossy general observation ring:
-terminal Sign remains complete even when that ring reports an
+terminal sign remains complete even when that ring reports an
 `SignGap`. Lowering the same commitments into the S1 kernel's
 `SignSink` remains open integration work.
 
 ## Exact host-operation requirements
 
-Each capability and planned Gear now carries an ordered set of exact
+Each capability and planned gear now carries an ordered set of exact
 `HostOperationRequirement` values. A requirement binds the immutable operation
 contract, an optional target kind, the maximum concurrent requests, and
 independent input/output byte bounds. The first executable profile uses
@@ -114,7 +114,7 @@ fails against current executable truth.
 Before emitting any platform effect, the hosted runtime admits the requested
 contract, exact target, and encoded input size against the plan. An unplanned
 request or oversized input terminates the placement without crossing the host
-boundary. Presentation completion messages are independently bounded; an
+boundary. presentation completion messages are independently bounded; an
 oversized completion is rejected without consuming the pending request, so a
 subsequent conforming completion can settle it. The semantic requirement IDs
 are not yet lowered into the S1 kernel's numeric `FixedHostOperationBindings`;
@@ -147,7 +147,7 @@ recomputes aggregate use across the incoming fragment and every unreleased
 plan. A successful prepare reserves those units; completion or cancellation
 does not release them, while the explicit release transition does.
 
-Resource availability remains separate from authority. An advertised pool
+resource availability remains separate from authority. An advertised pool
 allows planning and reservation only; it does not grant permission to operate
 on an external subject. The authority contract below supplies that proof
 independently. These hosted bindings are also not yet lowered into an S1
@@ -214,7 +214,7 @@ identity and every immutable fact. The deterministic in-memory, frame, and
 datagram fixtures use explicit no-credential and process-owned authority facts;
 those are simulation facts, not credential, socket, browser, firmware, or
 physical proof. Future live lines must supply their real opaque credential
-and authority references. Line configuration, secret material, retry,
+and authority references. line configuration, secret material, retry,
 reconnect, encryption, and session protocols remain outside this compact S2
 binding and require their own later runtime contracts.
 
@@ -262,8 +262,8 @@ sealed, remote cords bind exact current link observations, bound-fact mutation
 changes identity or fails verification, preparation recomputes the executable
 commitments, and deterministic negatives cover every field group. The
 `ConnectionBase` enum remains only a runtime dispatch class derived from a
-`LinkBinding`; it is no longer Sign of remote availability. Planned
-Sign, host-operation, resource, authority, and link commitments are not yet
+`LinkBinding`; it is no longer sign of remote availability. Planned
+sign, host-operation, resource, authority, and link commitments are not yet
 lowered into the S1 kernel stores, which remains explicit integration work
 rather than an unproven S2 plan claim.
 

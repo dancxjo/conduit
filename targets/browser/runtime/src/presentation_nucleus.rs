@@ -56,7 +56,7 @@ const SIGN_ITEMS: usize = 128;
 
 const GRAPHICS_FORM: &str = r#"form browser-graphics-nucleus {
  icon: presentation/icon(icon = "presentation", accessibility-name = "Patchbay")
- frame: presentation/frame(role = "panel", accessibility-name = "Gear Face")
+ frame: presentation/frame(role = "panel", accessibility-name = "Gear Front")
  rect: graphics/rect(style = "stroke")
  text: graphics/text(text = "ready")
  glyph: graphics/icon(icon = "presentation")

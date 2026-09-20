@@ -79,7 +79,7 @@ pub fn fixture(
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_definition()).unwrap();
     let form = parse(
-        "form face {\n    renderer: presentation/renderer\n}\n",
+        "form front {\n    renderer: presentation/renderer\n}\n",
         &catalog,
     )
     .unwrap();
@@ -107,15 +107,15 @@ pub fn fixture(
             sign_ids: vec![SignId::from("presentation/source")],
         },
         vec![PresentationSubject {
-            identity: "face/main".into(),
+            identity: "front/main".into(),
             role: PresentationRole::Form,
             label: "Main".into(),
-            accessibility_name: "Main face".into(),
+            accessibility_name: "Main front".into(),
         }],
         vec![],
         vec![],
         vec![PresentationText {
-            subject: "face/main".into(),
+            subject: "front/main".into(),
             text: "Input route".into(),
         }],
     )
@@ -132,7 +132,7 @@ pub fn fixture(
                 sequence,
             ),
             placement.placement_id.clone(),
-            "face/main".into(),
+            "front/main".into(),
             surface.into(),
             SignId::from(format!("prepared/{surface}")),
         )

@@ -4,7 +4,7 @@ use alloc::{string::String, vec::Vec};
 
 use crate::JOURNEY_STEP_IDS;
 
-pub const HOME_EVIDENCE_INDEX_SCHEMA: &str = "conduit.home/cross-face-evidence-index@1";
+pub const HOME_EVIDENCE_INDEX_SCHEMA: &str = "conduit.home/cross-front-evidence-index@1";
 pub const MAX_HOME_MANIFESTATIONS: usize = 6;
 pub const MAX_ARTIFACTS_PER_MANIFESTATION: usize = 8;
 
@@ -105,24 +105,24 @@ mod tests {
     use super::*;
     use alloc::{format, vec};
 
-    fn evidence(face: &str) -> HomeManifestationEvidence {
+    fn evidence(front: &str) -> HomeManifestationEvidence {
         HomeManifestationEvidence {
-            manifestation_id: format!("home/{face}"),
-            host_id: format!("host/{face}"),
-            boot_id: format!("boot/{face}"),
-            plan_id: format!("plan/{face}"),
-            play_id: format!("play/{face}"),
-            renderer_id: format!("renderer/{face}"),
-            proof_class: format!("proof/{face}"),
-            receipt_id: format!("receipt/{face}"),
-            artifact_ids: vec![format!("artifact/{face}/manifest")],
+            manifestation_id: format!("home/{front}"),
+            host_id: format!("host/{front}"),
+            boot_id: format!("boot/{front}"),
+            plan_id: format!("plan/{front}"),
+            play_id: format!("play/{front}"),
+            renderer_id: format!("renderer/{front}"),
+            proof_class: format!("proof/{front}"),
+            receipt_id: format!("receipt/{front}"),
+            artifact_ids: vec![format!("artifact/{front}/manifest")],
             journey_step_ids: JOURNEY_STEP_IDS.into_iter().map(String::from).collect(),
         }
     }
 
     #[test]
-    fn correlates_shared_steps_without_collapsing_face_evidence() {
-        let faces = [
+    fn correlates_shared_steps_without_collapsing_front_evidence() {
+        let fronts = [
             "conduitos",
             "linux-native",
             "windows-native",
@@ -131,7 +131,7 @@ mod tests {
             "semantic-voice",
         ];
         let index =
-            HomeCrossFaceEvidenceIndex::new(faces.into_iter().map(evidence).collect()).unwrap();
+            HomeCrossFaceEvidenceIndex::new(fronts.into_iter().map(evidence).collect()).unwrap();
 
         assert_eq!(index.schema, HOME_EVIDENCE_INDEX_SCHEMA);
         assert_eq!(index.manifestations.len(), MAX_HOME_MANIFESTATIONS);

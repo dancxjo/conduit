@@ -37,7 +37,7 @@ fn a_text_revision_damages_only_its_retained_surface() {
             vec![],
             vec![],
             vec![PresentationText {
-                subject: "face/main".into(),
+                subject: "front/main".into(),
                 text: text.into(),
             }],
         )
@@ -48,7 +48,7 @@ fn a_text_revision_damages_only_its_retained_surface() {
             &plan,
             active,
             prepared.placement_id.clone(),
-            "face/main".into(),
+            "front/main".into(),
             "surface/main".into(),
             SignId::from("text/prepared"),
         )

@@ -95,7 +95,7 @@ fn inspect_resolves_real_inventory_or_refuses_without_success_action() {
 }
 
 #[test]
-fn category_and_lifecycle_commands_refuse_honestly_on_an_unprivileged_face() {
+fn category_and_lifecycle_commands_refuse_honestly_on_an_unprivileged_front() {
     let mut home = HomeModel::new();
     home.submit_text("hosts", &FORMS);
     let hosts = String::from(home.output());
@@ -108,7 +108,7 @@ fn category_and_lifecycle_commands_refuse_honestly_on_an_unprivileged_face() {
     assert_eq!(home.submit_text("wake", &FORMS), HomeAction::Changed);
     assert_eq!(
         home.output(),
-        "Wake is unavailable on this Home face; no lifecycle authority is attached."
+        "Wake is unavailable on this Home front; no lifecycle authority is attached."
     );
 }
 

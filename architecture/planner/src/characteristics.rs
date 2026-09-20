@@ -53,27 +53,27 @@ pub fn select_realization_with_characteristics_and_signs(
     validate_advertisements(hosts, advertisements)?;
     crate::generic_selection::validate_inputs(requirements, policy, advertisements)?;
 
-    let face_candidates = hosts
+    let front_candidates = hosts
         .iter()
         .flat_map(|host| host.capabilities.iter().map(move |offer| (host, offer)))
-        .filter(|(_, offer)| offer.checked_face() == gear.checked_face())
+        .filter(|(_, offer)| offer.checked_front() == gear.checked_front())
         .collect::<Vec<_>>();
-    if face_candidates.is_empty() {
+    if front_candidates.is_empty() {
         return Err(PlannerError::UnknownCapability(
             gear.kind_id.as_str().to_string(),
         ));
     }
-    if face_candidates.len() > MAXIMUM_REALIZATION_DECISION_RECORDS {
+    if front_candidates.len() > MAXIMUM_REALIZATION_DECISION_RECORDS {
         return Err(PlannerError::PlannerLimitExceeded(format!(
-            "gear '{}' has {} equal-face candidates above the signs bound of {}",
+            "gear '{}' has {} equal-front candidates above the signs bound of {}",
             gear.gear_id.as_str(),
-            face_candidates.len(),
+            front_candidates.len(),
             MAXIMUM_REALIZATION_DECISION_RECORDS
         )));
     }
-    let mut signs = Vec::with_capacity(face_candidates.len());
-    let mut hard_admitted = Vec::with_capacity(face_candidates.len());
-    for (host, offer) in face_candidates {
+    let mut signs = Vec::with_capacity(front_candidates.len());
+    let mut hard_admitted = Vec::with_capacity(front_candidates.len());
+    for (host, offer) in front_candidates {
         let facts = advertisement_for(host, offer, advertisements);
         let rejection = hard_requirement_failure(offer, requirements)
             .map(base_rejection)

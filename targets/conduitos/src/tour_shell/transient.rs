@@ -19,7 +19,7 @@ impl TourShellPresenter {
             return Ok(None);
         };
         if route.surface_id != TRANSIENT_SURFACE
-            || state.face_subject.as_deref() != Some(TourTransientKind::Chooser.subject_identity())
+            || state.front_subject.as_deref() != Some(TourTransientKind::Chooser.subject_identity())
         {
             return Ok(None);
         }

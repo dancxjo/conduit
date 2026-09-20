@@ -77,7 +77,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_portable_face_and_admits_clock_work() {
+    fn offer_preserves_portable_front_and_admits_clock_work() {
         let definition = conduit_semantic_catalog::timed_button_attempt_definition();
         let offer = timed_button_attempt_std_offer();
         assert_eq!(offer.inputs, definition.inputs);

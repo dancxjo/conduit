@@ -1,4 +1,4 @@
-//! Portable four-path hybrid retrieval face and deterministic fusion offer.
+//! Portable four-path hybrid retrieval front and deterministic fusion offer.
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{

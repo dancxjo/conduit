@@ -82,14 +82,14 @@ const CHAPTER_FOUR_STAGES: [TourStage; 2] = [
     TourStage {
         identity: "canonical-form:hello-across",
         mode: TourStageMode::TwoHost,
-        expected_text: Some("hello across one Cord"),
+        expected_text: Some("hello across one cord"),
         expected_manifestations: Some(1),
         expected_timer_completions: None,
     },
     TourStage {
         identity: "canonical-form:hello-across",
         mode: TourStageMode::TwoHostPlan,
-        expected_text: Some("hello across one Cord"),
+        expected_text: Some("hello across one cord"),
         expected_manifestations: Some(1),
         expected_timer_completions: None,
     },
@@ -104,8 +104,8 @@ pub const TOUR_CHAPTERS: [TourChapter; TOUR_CHAPTER_COUNT as usize] = [
         stages: &CHAPTER_ONE_STAGES,
     },
     TourChapter {
-        identity: "faces-and-backs",
-        route: "faces-backs-and-implementation",
+        identity: "fronts-and-backs",
+        route: "fronts-backs-and-implementation",
         companion: "recursive-form",
         stages: &CHAPTER_TWO_STAGES,
     },

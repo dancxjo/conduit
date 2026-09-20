@@ -6,14 +6,14 @@
   <meta name="color-scheme" content="light dark">
   <script>
     const galleryComponentRoute = /\/gallery\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:index\.html)?$/.test(location.pathname);
-    const routedPage = /\/(?:one-program-many-computers|a-form-you-can-run|meet-one-gear|faces-backs-and-implementation|same-face-different-implementation|hosts-make-forms-real|one-form-across-several-hosts|the-body-one-computer-one-machine-or-many|many-forms-one-body-wide-realization|birth-spores-and-the-creche|gallery)\/(?:index\.html)?$/.test(location.pathname);
+    const routedPage = /\/(?:one-program-many-computers|a-form-you-can-run|meet-one-gear|fronts-backs-and-implementation|same-front-different-implementation|hosts-make-forms-real|one-form-across-several-hosts|the-body-one-computer-one-machine-or-many|many-forms-one-body-wide-realization|birth-spores-and-the-creche|gallery)\/(?:index\.html)?$/.test(location.pathname);
     const unslashedEntrance = /\/tour$/.test(location.pathname);
     const tourRoot = new URL(galleryComponentRoute ? "../../" : routedPage ? "../" : unslashedEntrance ? "./tour/" : "./", location.href).href;
     document.write(`<base href="${tourRoot}">`);
   </script>
   <meta name="conduit-creche-url" content="../workspace/">
   <meta name="conduit-application-package" content="./tour.application.json">
-  <title>A Form you can run · Tour</title>
+  <title>A form you can run · Tour</title>
   <style data-conduit-bootstrap>
     html { background:#05070b; } body { margin:0; }
     #conduit-suspense { position:fixed; inset:0; z-index:2147483647; display:grid; place-items:center; padding:2rem; color:#93d2f7; background:#05070b; font:16px/1.5 system-ui,sans-serif; text-align:center; transition:opacity 220ms ease,visibility 220ms step-end; }
@@ -30,7 +30,7 @@
   <div class="tour-workspace">
     <nav class="tour-mode-switcher" aria-label="Tour entrances">
       <button type="button" data-tour-mode="guided" aria-pressed="true">Guided Tour</button>
-      <button type="button" data-tour-mode="gallery" aria-pressed="false">Form Gallery</button>
+      <button type="button" data-tour-mode="gallery" aria-pressed="false">form Gallery</button>
       <button type="button" class="tour-reset-layout" data-conduit-control data-tour-reset-layout>Reset panes</button>
     </nav>
     <nav class="tour-view-switcher" aria-label="Tour workspace views">

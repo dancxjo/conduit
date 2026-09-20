@@ -590,7 +590,7 @@ function compactPatchbayFrame() {
     <div class="tour-flow-root" aria-label="Real Patchbay canvas"></div>
     <ol class="compact-patchbay-text" aria-label="Ordered textual equivalent" hidden></ol>
     <section class="gear-back-expansion" hidden aria-label="Reviewed Form Back topology">
-      <header><strong>Inside this Gear</strong><button type="button" class="close-gear-back">Return to Face</button></header>
+      <header><strong>Inside this Gear</strong><button type="button" class="close-gear-back">Return to Front</button></header>
       <div class="tour-flow-root gear-back-flow" aria-label="Reviewed Form Back Patchbay topology"></div>
     </section>
   </figure>`;
@@ -732,7 +732,7 @@ function toggleGearBack(figure, faceProjection, subjectIdentity) {
   }
   if (back.source_document_id !== faceProjection.source_document_id
     || back.checked_form_id !== faceProjection.checked_form_id) {
-    renderFlowRefusal(expansion.querySelector(".gear-back-flow"), "Reviewed Back changed the requested Face.");
+    renderFlowRefusal(expansion.querySelector(".gear-back-flow"), "Reviewed Back changed the requested Front.");
     return;
   }
   expansion.dataset.subjectIdentity = subjectIdentity;

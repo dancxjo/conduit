@@ -416,7 +416,7 @@ mod tests {
         for stage in 0..=1 {
             let across = run_resident_tour(3, stage).unwrap();
             assert_eq!(across.specimen_id, "canonical-form:hello-across");
-            assert_eq!(across.result, "hello across one Cord");
+            assert_eq!(across.result, "hello across one cord");
             let multi = across.multi_host.unwrap();
             assert_ne!(multi.source_fragment_id, multi.sink_fragment_id);
             assert_ne!(multi.source_active_play_id, multi.sink_active_play_id);

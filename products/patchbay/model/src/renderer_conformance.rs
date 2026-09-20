@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 use crate::{EntranceAction, EntranceLayer, EntranceRefusal, PatchbayEntranceState};
 
 pub const ENTRANCE_EQUIVALENCE_SCHEMA: &str = "conduit.patchbay.entrance-equivalence@2";
-pub const ONE_FORM_TWO_FACES_HOST_ID: &str = "journey/one-form-two-faces/host";
-pub const ONE_FORM_TWO_FACES_BOOT_ID: &str = "journey/one-form-two-faces/boot-1";
+pub const ONE_FORM_TWO_FACES_HOST_ID: &str = "journey/one-form-two-fronts/host";
+pub const ONE_FORM_TWO_FACES_BOOT_ID: &str = "journey/one-form-two-fronts/boot-1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EntranceEquivalenceReport {

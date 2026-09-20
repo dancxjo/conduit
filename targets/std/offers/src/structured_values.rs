@@ -104,7 +104,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offers_preserve_exact_portable_faces() {
+    fn offers_preserve_exact_portable_fronts() {
         let value_type = conduit_semantic_catalog::copy_result_type();
         for (offer, contract) in [
             (

@@ -56,7 +56,7 @@ pub fn install_morse_backs(
             .ok_or_else(|| alloc::format!("missing {kind} definition"))?;
         let signature = startup
             .signature(kind)
-            .ok_or_else(|| alloc::format!("missing {kind} startup Face"))?;
+            .ok_or_else(|| alloc::format!("missing {kind} startup Front"))?;
         backs
             .insert_with_startup(
                 definition,
@@ -120,7 +120,7 @@ mod tests {
     }
 
     #[test]
-    fn startup_face_difference_refuses_back_substitution() {
+    fn startup_front_difference_refuses_back_substitution() {
         let mut startup = StartupCatalog::new();
         let mut profile = ProfileCatalog::new();
         crate::install_text_catalogs(&mut startup, &mut profile).unwrap();

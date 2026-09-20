@@ -454,7 +454,7 @@ fn render_inspect(
         for placement in &fragment.placements {
             writeln!(
                 output,
-                "  gear: {} (face: {} inputs, {} outputs)",
+                "  gear: {} (front: {} inputs, {} outputs)",
                 placement.gear_id.as_str(),
                 placement.inputs.len(),
                 placement.outputs.len()

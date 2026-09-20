@@ -71,6 +71,17 @@ impl HostedLocalModelAdapter for FakeLocalModel {
                 })
                 .unwrap()
             }
+            conduit_ai::LLM_PRESENT_KIND => {
+                let prepared = super::ollama_present::prepare(input).unwrap();
+                super::ollama_present::finish(
+                    prepared,
+                    r#"{"speech":"I am awake.","presented_thought":null,"suggested_action_identities":["body.inspect"]}"#,
+                    &self.offer.identity,
+                    1,
+                    false,
+                )
+                .unwrap()
+            }
             _ => return LocalModelAdapterTerminal::Refused,
         };
         let contract = conduit_ai::llm_contract(placement.kind_id.as_str()).unwrap();
@@ -360,12 +371,13 @@ fn plan_and_play(profile: LocalModelKindProfile) {
 }
 
 #[test]
-fn all_five_l3_profiles_execute_through_ordinary_plan_and_play() {
+fn all_six_l3_profiles_execute_through_ordinary_plan_and_play() {
     plan_and_play(LocalModelKindProfile::Generate);
     plan_and_play(LocalModelKindProfile::ClassifyFiniteLabels);
     plan_and_play(LocalModelKindProfile::ExtractValidatedInfo);
     plan_and_play(LocalModelKindProfile::EmbedFiniteVector);
     plan_and_play(LocalModelKindProfile::InterpretSignEvidence);
+    plan_and_play(LocalModelKindProfile::PresentSemanticFace);
 }
 
 #[cfg(feature = "local-model-proof")]

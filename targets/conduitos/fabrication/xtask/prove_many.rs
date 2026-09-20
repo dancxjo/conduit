@@ -1,10 +1,11 @@
 use std::{
     collections::{BTreeSet, VecDeque},
     fs::{self, File, OpenOptions},
+    io::{self, Write},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use clap::{Args, ValueEnum};
@@ -20,6 +21,7 @@ use artifacts::{failure_names, print_failure_tails, retain_bounded_outputs, Batc
 
 const SCHEMA: &str = "conduit.conduitos.prove-many/v1";
 const MAXIMUM_PROOFS: usize = 8;
+const PROGRESS_INTERVAL: Duration = Duration::from_secs(5 * 60);
 const PREPARED_FILES: &[&str] = &[
     "conduitos",
     "conduitos.iso",
@@ -77,11 +79,12 @@ impl X86Proof {
         )
     }
 
-    /// HID drives a long QMP report sequence and Rescue drives several
-    /// timing-sensitive guest boots. Give each the whole local QEMU environment;
-    /// the other propositions remain safe to overlap within the declared bound.
+    /// HID and Product Journey drive long timing-sensitive QMP sequences, while
+    /// Rescue drives several timing-sensitive guest boots. Give each the whole
+    /// local QEMU environment; the other propositions remain safe to overlap
+    /// within the declared bound.
     fn requires_exclusive_environment(self) -> bool {
-        matches!(self, Self::Hid | Self::Rescue)
+        matches!(self, Self::Hid | Self::ProductJourney | Self::Rescue)
     }
 
     fn arguments(self, evidence_root: &Path) -> Vec<String> {
@@ -179,21 +182,31 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
     })?;
 
     let mut pending = VecDeque::from(proofs);
-    let mut running = Vec::new();
+    let mut running: Vec<RunningProof> = Vec::new();
     let mut results = Vec::new();
     let mut started = 0;
     let mut finished = 0;
     let mut maximum_observed_parallelism = 0;
+    let total = pending.len();
+    let mut last_progress = Instant::now();
+    report_progress(
+        opts,
+        format!(
+            "starting {total} proofs (at most {} concurrent); results: {}",
+            args.max_parallel,
+            output_root.display()
+        ),
+    );
 
     while !pending.is_empty() || !running.is_empty() {
         while running.len() < args.max_parallel {
-            let Some(proof) = pending.front().copied() else {
+            let active: Vec<X86Proof> = running.iter().map(|proof| proof.proof).collect();
+            let Some(index) = next_launchable_index(&pending, &active) else {
                 break;
             };
-            if !may_launch(proof, &running) {
-                break;
-            }
-            pending.pop_front();
+            let proof = pending
+                .remove(index)
+                .expect("launchable pending proof must remain present");
             started += 1;
             let spawned = spawn_proof(
                 proof,
@@ -205,7 +218,19 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
                 &shared_cargo_target,
             );
             match spawned {
-                Ok(proof) => running.push(proof),
+                Ok(proof) => {
+                    let name = proof.proof.as_str();
+                    running.push(proof);
+                    report_progress(
+                        opts,
+                        format!(
+                            "started {name} ({started}/{total} launched; {} active; {} queued)",
+                            running.len(),
+                            pending.len()
+                        ),
+                    );
+                    last_progress = Instant::now();
+                }
                 Err(error) => {
                     stop_running(&mut running);
                     return Err(error);
@@ -278,7 +303,29 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
                     .join(format!("{}.json", proof.proof.as_str())),
                 &result,
             )?;
+            let status = if success { "passed" } else { "failed" };
+            report_progress(
+                opts,
+                format!(
+                    "{status} {} ({finished}/{total} complete; {} active; {} queued)",
+                    result.proof.as_str(),
+                    running.len(),
+                    pending.len()
+                ),
+            );
+            last_progress = Instant::now();
             results.push(result);
+        } else if last_progress.elapsed() >= PROGRESS_INTERVAL {
+            report_progress(
+                opts,
+                format!(
+                    "still running {} ({finished}/{total} complete; {} active; {} queued)",
+                    running_proof_names(&running),
+                    running.len(),
+                    pending.len()
+                ),
+            );
+            last_progress = Instant::now();
         } else {
             thread::sleep(Duration::from_millis(50));
         }
@@ -303,15 +350,44 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
         ));
     }
     if !opts.quiet && !opts.json {
-        println!("ConduitOS x86 proof batch: {}", output_root.display());
+        report_progress(
+            opts,
+            format!(
+                "complete: all {total} proofs passed; results: {}",
+                output_root.display()
+            ),
+        );
     }
     Ok(())
 }
 
-fn may_launch(proof: X86Proof, running: &[RunningProof]) -> bool {
-    running
-        .iter()
-        .all(|running| may_share_environment(proof, running.proof))
+fn report_progress(opts: &GlobalOpts, message: String) {
+    if opts.quiet || opts.json {
+        return;
+    }
+    let mut stdout = io::stdout().lock();
+    let _ = writeln!(stdout, "ConduitOS x86 proof batch: {message}");
+    let _ = stdout.flush();
+}
+
+fn running_proof_names(running: &[RunningProof]) -> String {
+    proof_names(running.iter().map(|proof| proof.proof))
+}
+
+fn proof_names(proofs: impl IntoIterator<Item = X86Proof>) -> String {
+    proofs
+        .into_iter()
+        .map(X86Proof::as_str)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn next_launchable_index(pending: &VecDeque<X86Proof>, active: &[X86Proof]) -> Option<usize> {
+    pending.iter().position(|proof| {
+        active
+            .iter()
+            .all(|running| may_share_environment(*proof, *running))
+    })
 }
 
 fn may_share_environment(left: X86Proof, right: X86Proof) -> bool {

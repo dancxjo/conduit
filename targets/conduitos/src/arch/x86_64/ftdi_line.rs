@@ -44,8 +44,8 @@ impl FtdiLineError {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::WrongDevice => "ftdi-line-device-mismatch",
-            Self::InterfaceAbsent => "ftdi-line-interface-absent",
-            Self::AmbiguousInterface => "ftdi-line-interface-ambiguous",
+            Self::InterfaceAbsent => "ftdi-line-interfront-absent",
+            Self::AmbiguousInterface => "ftdi-line-interfront-ambiguous",
             Self::EndpointAbsent => "ftdi-line-endpoint-absent",
             Self::AmbiguousEndpoint => "ftdi-line-endpoint-ambiguous",
             Self::InvalidEndpoint => "ftdi-line-endpoint-invalid",
@@ -68,7 +68,7 @@ impl FtdiLineError {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FtdiLineReady {
-    pub interface_number: u8,
+    pub interfront_number: u8,
     pub input_endpoint_address: u8,
     pub output_endpoint_address: u8,
     pub input_dci: u8,
@@ -131,7 +131,7 @@ pub fn prepare_ftdi_line(
         dma_physical,
     )?;
     Ok(FtdiLineReady {
-        interface_number: interface.number,
+        interfront_number: interface.number,
         input_endpoint_address: input.address,
         output_endpoint_address: output.address,
         input_dci,
@@ -235,7 +235,7 @@ fn match_ftdi(
         return Err(FtdiLineError::WrongDevice);
     }
     let mut matched = None;
-    for interface in device.interfaces[..usize::from(device.interface_count)]
+    for interface in device.interfaces[..usize::from(device.interfront_count)]
         .iter()
         .copied()
         .filter(|interface| {
@@ -250,7 +250,7 @@ fn match_ftdi(
         }
     }
     let interface = matched.ok_or(FtdiLineError::InterfaceAbsent)?;
-    let interface_index = device.interfaces[..usize::from(device.interface_count)]
+    let interfront_index = device.interfaces[..usize::from(device.interfront_count)]
         .iter()
         .position(|candidate| *candidate == interface)
         .ok_or(FtdiLineError::InterfaceAbsent)? as u8;
@@ -259,7 +259,7 @@ fn match_ftdi(
     for endpoint in device.endpoints[..usize::from(device.endpoint_count)]
         .iter()
         .copied()
-        .filter(|endpoint| endpoint.interface_index == interface_index)
+        .filter(|endpoint| endpoint.interfront_index == interfront_index)
     {
         if !matches!(endpoint.address, 0x81 | 0x02) {
             return Err(FtdiLineError::InvalidEndpoint);

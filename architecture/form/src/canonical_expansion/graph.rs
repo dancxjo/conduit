@@ -1,13 +1,13 @@
 use super::*;
 
-pub(super) fn checked_face_ports<'a>(
+pub(super) fn checked_front_ports<'a>(
     form: &'a CheckedCanonicalForm,
-    runtime_face: &'a conduit_core::CheckedFace,
+    runtime_front: &'a conduit_core::CheckedFace,
 ) -> BTreeMap<&'a str, (&'a crate::RuntimePort, &'a conduit_core::PortDescriptor)> {
-    let descriptors = runtime_face
+    let descriptors = runtime_front
         .inputs()
         .iter()
-        .chain(runtime_face.outputs())
+        .chain(runtime_front.outputs())
         .map(|port| (port.port_id.as_str(), port))
         .collect::<BTreeMap<_, _>>();
     form.runtime_ports
@@ -15,7 +15,7 @@ pub(super) fn checked_face_ports<'a>(
         .map(|port| {
             let descriptor = descriptors
                 .get(port.name.text.as_str())
-                .expect("checked runtime face retains every syntax Port");
+                .expect("checked runtime front retains every syntax Port");
             (port.name.text.as_str(), (port, *descriptor))
         })
         .collect()
@@ -269,9 +269,9 @@ fn parse_duration_millis(literal: &str) -> Option<u64> {
 pub(super) fn resolve_reference(
     reference: &str,
     instances: &BTreeMap<String, Instance>,
-    face_ports: &BTreeMap<&str, (&crate::RuntimePort, &conduit_core::PortDescriptor)>,
+    front_ports: &BTreeMap<&str, (&crate::RuntimePort, &conduit_core::PortDescriptor)>,
 ) -> Result<Stage, CanonicalExpansionDiagnostic> {
-    if let Some((port, descriptor)) = face_ports.get(reference) {
+    if let Some((port, descriptor)) = front_ports.get(reference) {
         return Ok(match port.direction {
             RuntimePortDirection::Input => Stage {
                 input: None,
@@ -297,7 +297,7 @@ pub(super) fn resolve_reference(
     let instance = instances.get(instance_name).ok_or_else(|| {
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-042",
-            format!("cord references unknown gear or face port '{reference}'"),
+            format!("cord references unknown gear or front port '{reference}'"),
         )
     })?;
     stage_for_instance(instance_name, instance, explicit_port)
@@ -330,7 +330,7 @@ pub(super) fn stage_for_instance(
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-044",
             format!(
-                "gear '{instance_name}' has no shorthand face path; name an exact runtime port"
+                "gear '{instance_name}' has no shorthand front path; name an exact runtime port"
             ),
         )
     })?;
@@ -390,26 +390,26 @@ pub(super) fn connect(
             });
         }
         (StageSource::FaceInput(name, value_type, temporal), StageSink::Internal(sink)) => {
-            require_face_contract(&name, &value_type, temporal, &sink.port, true)?;
+            require_front_contract(&name, &value_type, temporal, &sink.port, true)?;
             let endpoints = inputs.entry(name.clone()).or_default();
             if endpoints.iter().any(|endpoint| {
                 endpoint.gear_id == sink.gear_id && endpoint.port.port_id == sink.port.port_id
             }) {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-047",
-                    format!("runtime face input '{name}' repeats one internal binding"),
+                    format!("runtime front input '{name}' repeats one internal binding"),
                 ));
             }
             endpoints.push(sink);
         }
         (StageSource::Internal(source), StageSink::FaceOutput(name, value_type, temporal)) => {
-            require_face_contract(&name, &value_type, temporal, &source.port, false)?;
+            require_front_contract(&name, &value_type, temporal, &source.port, false)?;
             insert_boundary(outputs, name, source)?;
         }
         (StageSource::FaceInput(_, _, _), StageSink::FaceOutput(_, _, _)) => {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-046",
-                "runtime face passthrough must cross an admitted gear".into(),
+                "runtime front passthrough must cross an admitted gear".into(),
             ));
         }
     }
@@ -424,18 +424,18 @@ fn insert_boundary(
     if boundaries.insert(name.clone(), endpoint).is_some() {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-047",
-            format!("runtime face port '{name}' has multiple internal bindings"),
+            format!("runtime front port '{name}' has multiple internal bindings"),
         ));
     }
     Ok(())
 }
 
-fn require_face_contract(
+fn require_front_contract(
     name: &str,
     value_kind: &conduit_core::KindId,
     temporal: conduit_core::PortTemporal,
     actual: &conduit_core::PortDescriptor,
-    face_is_source: bool,
+    front_is_source: bool,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     let reactive_flow_boundary = matches!(
         (temporal, actual.temporal),
@@ -447,7 +447,7 @@ fn require_face_contract(
             conduit_core::PortTemporal::Flow { .. }
         )
     );
-    let finite_flow_into_standing_consumer = face_is_source
+    let finite_flow_into_standing_consumer = front_is_source
         && matches!(
             (temporal, actual.temporal),
             (
@@ -463,7 +463,7 @@ fn require_face_contract(
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-045",
             format!(
-                "runtime face port '{name}' declares '{}' ({temporal:?}) but binds '{}' ({:?})",
+                "runtime front port '{name}' declares '{}' ({temporal:?}) but binds '{}' ({:?})",
                 value_kind.as_str(),
                 actual.value_kind.as_str(),
                 actual.temporal,
@@ -473,7 +473,7 @@ fn require_face_contract(
     Ok(())
 }
 
-pub(super) fn validate_face_bindings(
+pub(super) fn validate_front_bindings(
     form: &CheckedCanonicalForm,
     inputs: &BTreeMap<String, Vec<Endpoint>>,
     outputs: &BTreeMap<String, Endpoint>,
@@ -487,7 +487,7 @@ pub(super) fn validate_face_bindings(
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-048",
                 format!(
-                    "runtime face port '{}' is not bound exactly once in its back",
+                    "runtime front port '{}' is not bound exactly once in its back",
                     port.name.text
                 ),
             ));

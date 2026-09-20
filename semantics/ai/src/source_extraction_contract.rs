@@ -1,4 +1,4 @@
-//! Portable bounded source-extraction face and deterministic realization offer.
+//! Portable bounded source-extraction front and deterministic realization offer.
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{

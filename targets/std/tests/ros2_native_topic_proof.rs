@@ -20,7 +20,7 @@ impl NativeRosTopicProvider for DockerRosProvider<'_> {
     fn publish(
         &mut self,
         topic_name: &str,
-        _interface_type: &str,
+        _interfront_type: &str,
         _qos: RosQos,
         encoded: &[u8],
         origin: &str,

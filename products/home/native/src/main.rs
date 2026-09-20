@@ -25,8 +25,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let receipt = run_native_home_journey()?;
         println!(
-            "HOME JOURNEY COMPLETE face={} revision={} form_plan={} form_play={} patchbay_presentation={} steps={}",
-            receipt.host_face,
+            "HOME JOURNEY COMPLETE front={} revision={} form_plan={} form_play={} patchbay_presentation={} steps={}",
+            receipt.host_front,
             receipt.final_revision,
             receipt.form_plan_id,
             receipt.form_play_id,
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         let receipt = run_native_home_journey()?;
         let path = evidence::retain(&receipt, std::path::Path::new(&arguments[1]))?;
-        println!("HOME FACE EVIDENCE COMPLETE: {}", path.display());
+        println!("HOME FRONT EVIDENCE COMPLETE: {}", path.display());
         return Ok(());
     }
     let event_loop = EventLoop::new()?;

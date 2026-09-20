@@ -447,7 +447,7 @@ jobs:
           - shard: creche-workspace
             specs: proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
-            specs: proof/browser/pages-front-door.spec.mjs proof/browser/home-cross-face.spec.mjs proof/browser/web-accessibility.spec.mjs
+            specs: proof/browser/pages-front-door.spec.mjs proof/browser/home-cross-front.spec.mjs proof/browser/web-accessibility.spec.mjs
     name: browser-admission-${{ matrix.shard }}
     env:
       NPM_CONFIG_AUDIT: "false"
@@ -472,7 +472,7 @@ jobs:
         env:
           BROWSER_PROOF_SPECS: ${{ matrix.specs }}
           CONDUIT_BROWSER_PROOF_SHARD: admission-${{ matrix.shard }}
-          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-face-evidence
+          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-front-evidence
         run: >-
           node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
@@ -484,20 +484,20 @@ jobs:
         if: matrix.shard == 'pages'
         env:
           HOME: /root
-          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-face-evidence
+          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-front-evidence
         run: >-
           node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
-          proof/browser/home-cross-face.spec.mjs
+          proof/browser/home-cross-front.spec.mjs
           --project firefox
           --workers 1
           --retries 0
-      - name: Retain exact browser Home face receipts
+      - name: Retain exact browser Home front receipts
         if: matrix.shard == 'pages'
         uses: ./.github/actions/upload-artifact-retry
         with:
-          name: home-face-browser-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: ${{ runner.temp }}/home-face-evidence
+          name: home-front-browser-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/home-front-evidence
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -598,16 +598,16 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           chmod +x target/creche-host-releases/conduit-home-linux-x86_64
-          rm -rf target/creche-host-releases/home-face-linux-native
-          xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-face-linux-native
+          rm -rf target/creche-host-releases/home-front-linux-native
+          xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-front-linux-native
       - name: Run the packaged Windows Tour journey
         if: matrix.platform == 'windows'
         run: target/creche-host-releases/conduit-tour-windows-x86_64.exe --journey
       - name: Run the packaged Windows Home journey
         if: matrix.platform == 'windows'
         run: |
-          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/creche-host-releases/home-face-windows-native
-          target/creche-host-releases/conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-face-windows-native
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/creche-host-releases/home-front-windows-native
+          target/creche-host-releases/conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-front-windows-native
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-${{ matrix.artifact }}
@@ -781,6 +781,45 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  conduitos-oci-provenance:
+    needs: conduitos-releases
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - name: Download the exact ConduitOS release set
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-conduitos-releases
+          path: target/creche-conduitos-release
+      - name: Download the authoritative x86_64 ConduitOS build manifest
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-conduitos-build-x86_64
+          path: target/creche-conduitos-build/x86_64
+      - name: Export and freshly verify the x86_64 release as a non-container OCI layout
+        run: |
+          rm -rf target/conduitos-x86_64-oci
+          node tools/ci/oci-release-export.mjs prepare-conduitos \
+            target/creche-conduitos-release/conduitos-x86_64-pc-release.json \
+            target/creche-conduitos-build/x86_64/build-manifest.json \
+            target/conduitos-x86_64-oci-input \
+            "$CONDUIT_CANDIDATE_SHA" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          node tools/ci/oci-release-export.mjs export \
+            target/conduitos-x86_64-oci-input.config.json \
+            target/conduitos-x86_64-oci
+          node tools/ci/oci-release-export.mjs verify target/conduitos-x86_64-oci
+      - uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-conduitos-x86_64-oci
+          path: target/conduitos-x86_64-oci
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
   esp32-release-images:
     needs: [plan, standalone-locks]
     if: always() && !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
@@ -849,7 +888,7 @@ jobs:
           retention-days: 7
 
   products-stage:
-    needs: [avr-release, browser-release, browser-runtimes, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
+    needs: [avr-release, browser-release, browser-runtimes, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases, conduitos-oci-provenance]
     if: >-
       always() && !cancelled() &&
       needs.avr-release.result == 'success' &&
@@ -859,7 +898,8 @@ jobs:
       needs.host-releases.result == 'success' &&
       needs.orange-pi-release.result == 'success' &&
       needs.raspberry-pi-release.result == 'success' &&
-      needs.conduitos-releases.result == 'success'
+      needs.conduitos-releases.result == 'success' &&
+      needs.conduitos-oci-provenance.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -908,6 +948,11 @@ jobs:
         with:
           name: conduit-conduitos-releases
           path: target/creche-release-artifacts
+      - name: Download the exact non-container ConduitOS OCI layout
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-conduitos-x86_64-oci
+          path: target/conduitos-x86_64-oci
       - name: Seal the bounded installed release catalog
         run: |
           rm -f target/creche-release-artifacts/release-catalog.json
@@ -927,6 +972,8 @@ jobs:
           cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
           rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product target/home-product
           site/tools/stage-pages-root.sh target/pages-root
+          mkdir -p target/pages-root/supply-chain/conduitos-x86_64-pc
+          cp -a target/conduitos-x86_64-oci/. target/pages-root/supply-chain/conduitos-x86_64-pc/
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
           products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/creche-release-artifacts
@@ -973,7 +1020,7 @@ jobs:
           - shard: creche-machines
             specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
-            specs: proof/browser/pages-front-door.spec.mjs proof/browser/home-cross-face.spec.mjs proof/browser/web-accessibility.spec.mjs
+            specs: proof/browser/pages-front-door.spec.mjs proof/browser/home-cross-front.spec.mjs proof/browser/web-accessibility.spec.mjs
     name: browser-proof-${{ matrix.shard }}
     env:
       NPM_CONFIG_AUDIT: "false"
@@ -1000,7 +1047,7 @@ jobs:
         env:
           BROWSER_PROOF_SPECS: ${{ matrix.specs }}
           CONDUIT_CRECHE_SPORE_OUTPUT: ${{ runner.temp }}/creche-export.iso
-          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-face-evidence
+          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-front-evidence
         run: >-
           node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
@@ -1012,29 +1059,29 @@ jobs:
         if: matrix.shard == 'browser-host'
         env:
           HOME: /root
-          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-face-evidence
+          CONDUIT_HOME_FACE_EVIDENCE_ROOT: ${{ runner.temp }}/home-front-evidence
         run: >-
           node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
-          proof/browser/home-host.spec.mjs proof/browser/home-cross-face.spec.mjs
+          proof/browser/home-host.spec.mjs proof/browser/home-cross-front.spec.mjs
           --project firefox
           --workers 1
           --retries 0
-      - name: Retain the exact Chromium Home face receipt
+      - name: Retain the exact Chromium Home front receipt
         if: matrix.shard == 'pages'
         uses: ./.github/actions/upload-artifact-retry
         with:
-          name: home-face-browser-chromium-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: ${{ runner.temp }}/home-face-evidence
+          name: home-front-browser-chromium-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/home-front-evidence
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
-      - name: Retain the exact Firefox Home face receipt
+      - name: Retain the exact Firefox Home front receipt
         if: matrix.shard == 'browser-host'
         uses: ./.github/actions/upload-artifact-retry
         with:
-          name: home-face-browser-firefox-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: ${{ runner.temp }}/home-face-evidence
+          name: home-front-browser-firefox-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/home-front-evidence
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -1095,20 +1142,20 @@ jobs:
         with:
           cache-on-failure: false
       - name: Retain one Presentation through native and browser renderers
-        run: cargo xtask evidence one-form-two-faces --locked --output "$RUNNER_TEMP/one-form-two-faces"
+        run: cargo xtask evidence one-form-two-fronts --locked --output "$RUNNER_TEMP/one-form-two-fronts"
       - name: Verify the bounded exact-candidate sibling manifest
         run: >-
           cargo xtask evidence verify --locked
-          --root "$RUNNER_TEMP/one-form-two-faces"
+          --root "$RUNNER_TEMP/one-form-two-fronts"
           --commit "$CONDUIT_CANDIDATE_SHA"
           --result complete
-          --proof journey-one-form-two-faces
+          --proof journey-one-form-two-fronts
           --suite journey-gallery
-      - name: Retain the exact One Form, Two Faces evidence
+      - name: Retain the exact One Form, Two Fronts evidence
         uses: ./.github/actions/upload-artifact-retry
         with:
-          name: conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: ${{ runner.temp }}/one-form-two-faces
+          name: conduit-journey-one-form-two-fronts-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/one-form-two-fronts
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -1169,8 +1216,8 @@ jobs:
       - name: Receive the exact sibling journey evidence
         uses: ./.github/actions/download-artifact-retry
         with:
-          name: conduit-journey-one-form-two-faces-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: ${{ runner.temp }}/journey-inputs/one-form-two-faces
+          name: conduit-journey-one-form-two-fronts-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/journey-inputs/one-form-two-fronts
       - uses: ./.github/actions/download-artifact-retry
         with:
           name: conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}
@@ -1178,7 +1225,7 @@ jobs:
       - name: Build and seal the exact sibling journey gallery
         run: |
           cargo xtask evidence gallery --locked \
-            --two-faces-evidence-root "$RUNNER_TEMP/journey-inputs/one-form-two-faces" \
+            --two-fronts-evidence-root "$RUNNER_TEMP/journey-inputs/one-form-two-fronts" \
             --little-life-evidence-root "$RUNNER_TEMP/journey-inputs/little-life" \
             --site-root "$RUNNER_TEMP/journey-gallery-site" \
             --commit "$CONDUIT_CANDIDATE_SHA"

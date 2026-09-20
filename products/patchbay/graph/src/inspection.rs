@@ -4,9 +4,9 @@ use conduit_core::PortDirection;
 
 impl PatchbayGraph {
     pub fn subject_identities(&self) -> impl Iterator<Item = &str> {
-        self.face_inputs
+        self.front_inputs
             .iter()
-            .chain(&self.face_outputs)
+            .chain(&self.front_outputs)
             .map(|port| port.identity.as_str())
             .chain(self.compositions.iter().flat_map(|composition| {
                 core::iter::once(composition.identity.as_str())
@@ -90,9 +90,9 @@ impl PatchbayGraph {
             });
         }
         if let Some(port) = self
-            .face_inputs
+            .front_inputs
             .iter()
-            .chain(&self.face_outputs)
+            .chain(&self.front_outputs)
             .find(|port| port.identity == identity)
         {
             let subject_kind = match port.descriptor.direction {
@@ -103,7 +103,7 @@ impl PatchbayGraph {
                 subject_identity: identity.into(),
                 subject_kind,
                 exact_facts: vec![
-                    format!("Face Port {}", port.descriptor.port_id.as_str()),
+                    format!("Front Port {}", port.descriptor.port_id.as_str()),
                     format!("direction={:?}", port.descriptor.direction),
                     format!("Info {}", port.descriptor.value_kind.as_str()),
                     format!("temporal={:?}", port.descriptor.temporal),

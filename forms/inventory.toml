@@ -131,7 +131,7 @@ slug = "default-welcome"
 title = "Default Welcome"
 entry = "default-welcome"
 reusable_entries = [{ entry = "greet", title = "Greeting", composition = { parent = "default-welcome", occurrences = ["hello"] } }]
-deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "omitted_argument_uses_the_checked_face_default_without_mutating_the_form" }
+deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "omitted_argument_uses_the_checked_front_default_without_mutating_the_form" }
 [[forms]]
 slug = "desk-telegraph"
 title = "Desk Telegraph"
@@ -164,7 +164,7 @@ deterministic = { package = "conduit-std-host", test = "canonical_greet", case =
 slug = "heartbeat-phase-follower"
 title = "Heartbeat Phase Follower"
 entry = "heartbeat-phase-follower"
-deterministic = { package = "conduit-time", test = "rhythm_composition", case = "heartbeat_face_has_runtime_inputs_and_outputs_without_startup_parameters" }
+deterministic = { package = "conduit-time", test = "rhythm_composition", case = "heartbeat_front_has_runtime_inputs_and_outputs_without_startup_parameters" }
 browser_safe_not_applicable = "portable heartbeat phase following has no installed browser realization"
 [[forms]]
 slug = "hello"
@@ -487,21 +487,21 @@ slug = "bounded-record-transcript"
 title = "Bounded Record Transcript"
 entry = "bounded-record-transcript"
 deterministic = { package = "conduit-net", test = "record_transcript", case = "transcript_is_an_ordinary_reusable_closing_flow_form" }
-browser_safe_not_applicable = "open reusable face is exercised inside the Desk Telegraph browser oracle"
+browser_safe_not_applicable = "open reusable front is exercised inside the Desk Telegraph browser oracle"
 
 [[forms]]
 slug = "ordered-record-send-queue"
 title = "Ordered Record Send Queue"
 entry = "ordered-record-send-queue"
 deterministic = { package = "conduit-net", test = "ordered_record_queue", case = "ordered_queue_is_a_reusable_closing_flow_form" }
-browser_safe_not_applicable = "open reusable face is exercised inside the Desk Telegraph browser oracle"
+browser_safe_not_applicable = "open reusable front is exercised inside the Desk Telegraph browser oracle"
 
 [[forms]]
 slug = "record-delivery-status"
 title = "Record Delivery Status"
 entry = "record-delivery-status"
 deterministic = { package = "conduit-net", test = "record_delivery", case = "delivery_projection_is_an_ordinary_reusable_closing_flow_form" }
-browser_safe_not_applicable = "open reusable face is exercised inside the Desk Telegraph browser oracle"
+browser_safe_not_applicable = "open reusable front is exercised inside the Desk Telegraph browser oracle"
 
 [[forms]]
 slug = "tour"
@@ -509,7 +509,7 @@ title = "Tutorial"
 entry = "tour"
 workspace_catalog = false
 deterministic = { package = "conduit-tour-model", test = "application_form", case = "tour_is_a_checked_host_neutral_form_over_the_application_seam" }
-browser_safe_not_applicable = "retired chapter/exercise compatibility artifact; the Body surface now owns contextual tutorial guidance"
+browser_safe_not_applicable = "retired chapter/exercise compatibility artifact; the Face now owns contextual tutorial guidance"
 
 [[forms]]
 slug = "patchbay"

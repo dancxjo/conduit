@@ -33,7 +33,7 @@ pub struct RosQos {
 pub struct RosTopicConfiguration {
     pub mapping: InteropMapping,
     pub topic_name: String,
-    pub interface_type: String,
+    pub interfront_type: String,
     pub qos: RosQos,
     pub origin_parameter: String,
 }
@@ -49,7 +49,7 @@ pub trait NativeRosTopicProvider {
     fn publish(
         &mut self,
         topic_name: &str,
-        interface_type: &str,
+        interfront_type: &str,
         qos: RosQos,
         encoded: &[u8],
         origin: &str,
@@ -77,7 +77,7 @@ pub struct RosMappingInspection {
     pub semantic_kind: conduit_core::KindId,
     pub direction: InteropDirection,
     pub topic_name: String,
-    pub interface_type: String,
+    pub interfront_type: String,
     pub qos: RosQos,
     pub maximum_payload_bytes: u32,
     pub maximum_queued_items: u16,
@@ -102,7 +102,7 @@ impl RosTopicBase {
         .map_err(RosBaseRefusal::Mapping)?;
         for topic in &topics {
             if topic.topic_name.is_empty()
-                || topic.interface_type != ROS_STRING_TYPE
+                || topic.interfront_type != ROS_STRING_TYPE
                 || topic.qos.history_depth == 0
                 || topic.qos.history_depth > topic.mapping.maximum_queued_items
                 || topic.origin_parameter.is_empty()
@@ -126,7 +126,7 @@ impl RosTopicBase {
             semantic_kind: topic.mapping.semantic_kind.clone(),
             direction: topic.mapping.direction,
             topic_name: topic.topic_name.clone(),
-            interface_type: topic.interface_type.clone(),
+            interfront_type: topic.interfront_type.clone(),
             qos: topic.qos,
             maximum_payload_bytes: topic.mapping.maximum_payload_bytes,
             maximum_queued_items: topic.mapping.maximum_queued_items,
@@ -158,7 +158,7 @@ impl RosTopicBase {
     pub fn import_string(
         &mut self,
         mapping_id: &InteropMappingId,
-        interface_type: &str,
+        interfront_type: &str,
         encoded: &[u8],
         authority: &mut RosTopicAuthority,
     ) -> Result<String, RosBaseRefusal> {
@@ -166,7 +166,7 @@ impl RosTopicBase {
             return Err(RosBaseRefusal::Inactive);
         }
         let topic = self.topic(mapping_id, InteropDirection::ExternalToConduit)?;
-        validate_frame(topic, interface_type, encoded)?;
+        validate_frame(topic, interfront_type, encoded)?;
         let lease = authorize(authority, mapping_id, encoded.len())?;
         let decoded = decode_ros_string(encoded)?;
         authority
@@ -203,7 +203,7 @@ impl RosTopicBase {
         provider
             .publish(
                 &topic.topic_name,
-                &topic.interface_type,
+                &topic.interfront_type,
                 topic.qos,
                 &encoded,
                 manifestation.origin.manifestation_id.as_str(),
@@ -236,10 +236,10 @@ impl RosTopicBase {
 
 fn validate_frame(
     topic: &RosTopicConfiguration,
-    interface_type: &str,
+    interfront_type: &str,
     encoded: &[u8],
 ) -> Result<(), RosBaseRefusal> {
-    if interface_type != topic.interface_type {
+    if interfront_type != topic.interfront_type {
         return Err(RosBaseRefusal::WrongType);
     }
     if encoded.len() > topic.mapping.maximum_payload_bytes as usize {

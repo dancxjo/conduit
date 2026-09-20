@@ -57,7 +57,7 @@ fn streaming_generation_is_a_distinct_closing_delta_flow() {
 }
 
 #[test]
-fn machine_readable_semantic_contracts_have_exact_distinct_faces() {
+fn machine_readable_semantic_contracts_have_exact_distinct_fronts() {
     let contracts = llm_semantic_catalog();
     let expected = [
         LLM_GENERATE_KIND,
@@ -224,7 +224,7 @@ fn implementation_controls_and_determinism_claims_stay_outside_portable_semantic
 }
 
 #[test]
-fn exact_revision_and_face_compatibility_rejects_mutation() {
+fn exact_revision_and_front_compatibility_rejects_mutation() {
     let expected = llm_contract(LLM_EMBED_KIND).unwrap();
     let mut mutated = expected.clone();
     mutated.result_payload_kind = conduit_core::kind_id("llm/wrong-result@1");

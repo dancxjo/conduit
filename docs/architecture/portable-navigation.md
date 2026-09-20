@@ -2,11 +2,11 @@
 
 **Status:** development contract for [issue #2232](https://github.com/dancxjo/conduit/issues/2232)
 
-**Canonical Form:** [`forms/bounded-navigation/main.conduit`](../../forms/bounded-navigation/main.conduit)
+**Canonical form:** [`forms/bounded-navigation/main.conduit`](../../forms/bounded-navigation/main.conduit)
 
 Portable navigation is the semantic waist between a spatial goal and bounded
-body-motion intent. It lets a human, model, or another Form propose where a
-Body should go without giving that proposer local-control, actuator, or motor
+body-motion intent. It lets a human, model, or another form propose where a
+body should go without giving that proposer local-control, actuator, or motor
 authority.
 
 ```text
@@ -28,7 +28,7 @@ current pose + goal + finite traversability + explicit current time
      authority + mandatory local safety
                     |
                     v
-             exact actuator Base
+             exact actuator base
 ```
 
 ## Portable contracts
@@ -47,7 +47,7 @@ The following values remain mechanically distinct:
   is evidence from a named source, not universal map truth.
 - `NavigationRouteDecision` is either a bounded route or one exact refusal. A
   route retains its goal and exact planning-input identity; the immutable
-  Conduit Plan and Patchbay retain the selected route-implementation identity.
+  Conduit plan and Patchbay retain the selected route-implementation identity.
 - `NavigationTrajectory` time-parameterizes a route under finite horizon and
   kinematic bounds. An abstract route remains distinct from this temporal
   intent.
@@ -60,14 +60,14 @@ segment, grid, identity, and encoded-value limits are finite. An unknown or
 stale pose cannot be treated as a current pose merely because coordinates were
 observed earlier.
 
-Across typed navigation outcomes and lower Plan/actuator evidence, these
+Across typed navigation outcomes and lower plan/actuator evidence, these
 conditions remain different:
 
 - invalid goal;
 - stale or unavailable pose;
 - unavailable traversability evidence;
 - no route in the admitted finite environment;
-- unavailable local controller, which prevents an exact Plan rather than
+- unavailable local controller, which prevents an exact plan rather than
   becoming a fabricated control value;
 - authority refusal below portable control; and
 - physical-safety inhibition at the actuator realization.
@@ -76,9 +76,9 @@ The last two are lower-layer outcomes. Navigation must not translate either
 one into `no route`, retry it invisibly, or report that a motion request was
 physically realized.
 
-## Ordinary Form work, not a Conduit Plan
+## Ordinary form work, not a Conduit plan
 
-The canonical `bounded-navigation` Form composes three ordinary Kinds:
+The canonical `bounded-navigation` form composes three ordinary kinds:
 
 ```text
 navigation/route-grid4
@@ -93,22 +93,22 @@ navigation/local-control
 
 Variant selection with `unmatched=drop` prevents a refusal from being fed into
 the next stage. The same decision and control values remain visible at the
-Form boundary. Every successful stage is an explicit typed Cord; there is no
+form boundary. Every successful stage is an explicit typed cord; there is no
 callback loop hidden in Pete or Patchbay.
 
 Each invocation computes one bounded decision and control result. A separately
 admitted receding-horizon composition may invoke this work again for newer
-inputs during one Play. That does not mutate the immutable **Conduit Plan**,
-which owns the exact realization of the authored Form on current Hosts, Bases,
+inputs during one play. That does not mutate the immutable **Conduit plan**,
+which owns the exact realization of the authored form on current hosts, bases,
 resources, and authority. Navigation code must not use `PlanId` for route
 identity. Changing the selected route or controller implementation leaves the
-authored goal and the Form's portable Face unchanged.
+authored goal and the form's portable front unchanged.
 
 ## Authority and Create safety boundary
 
-The Form ends at `RoboticsMotionRequest`. Producing that typed value grants no
+The form ends at `RoboticsMotionRequest`. Producing that typed value grants no
 motor authority and performs no physical effect. A model proposal, human
-interaction, valid route, Body membership, or reachable Host cannot fabricate
+interaction, valid route, body membership, or reachable host cannot fabricate
 the capability required by the selected actuator realization.
 
 For Pete's Create realization, the boundary below navigation remains the
@@ -117,7 +117,7 @@ physical drive offer must pass through `LocalCreateDriveSafety`, which checks
 current authority, TTL, safety generation, hazards, provider state, and the
 admitted safety profile before lowering to Create OI wheel commands. It owns
 finite stop work for expiry, authority loss, hazard, cancellation, and provider
-failure. That boundary is not an author-wirable Gear, and this navigation Form
+failure. That boundary is not an author-wirable gear, and this navigation form
 cannot route around it.
 
 Deterministic route and controller evidence may use a non-actuating fixture.
@@ -126,16 +126,16 @@ it does not prove a Create moved or stopped in the physical world.
 
 ## Generic Patchbay observation
 
-Navigation needs no private debugger. The canonical Form exposes each semantic
-stage through ordinary Gears, typed Ports, and Cords. Existing bounded Patchbay
+Navigation needs no private debugger. The canonical form exposes each semantic
+stage through ordinary gears, typed ports, and cords. Existing bounded Patchbay
 Watches can attach to those exact subjects, while the causal timeline follows
 the retained parent sequence through goal, route decision, trajectory, control,
-motion request, and the lower actuator Signs.
+motion request, and the lower actuator signs.
 
 Patchbay presentation remains a read-only projection. It may render the goal,
 pose age and frame, route, selected trajectory segment, control result,
 authority refusal, safety inhibition, and exact actuator outcome only from
-current typed values and retained Signs. Missing telemetry must remain visible;
+current typed values and retained signs. Missing telemetry must remain visible;
 the UI cannot infer a route, freshness, authority, safety clearance, or physical
 success.
 
@@ -144,8 +144,8 @@ success.
 The deterministic proof uses one exact 4 by 4 fixture to establish a finite
 route, trajectory, and expiring body-motion request, plus distinct invalid,
 stale, unavailable, no-route, and controller-refusal cases. A production-kernel
-oracle must correlate its exact Plan and Play rather than treating direct Rust
-evaluation as Form execution.
+oracle must correlate its exact plan and play rather than treating direct Rust
+evaluation as form execution.
 
 Closing #2232 additionally requires a tiny attended Pete movement through the
 same `RoboticsMotionRequest` and #1521 safety/authority boundary. The receipt

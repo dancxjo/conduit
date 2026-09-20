@@ -133,21 +133,21 @@ pub(crate) fn select_realization_matching(
         ));
     }
 
-    let mut face_candidates = Vec::new();
+    let mut front_candidates = Vec::new();
     for host in hosts {
         for offer in &host.capabilities {
-            if offer.checked_face() == gear.checked_face() {
-                face_candidates.push(Candidate { host, offer });
+            if offer.checked_front() == gear.checked_front() {
+                front_candidates.push(Candidate { host, offer });
             }
         }
     }
-    if face_candidates.is_empty() {
+    if front_candidates.is_empty() {
         return Err(PlannerError::UnknownCapability(
             gear.kind_id.as_str().to_string(),
         ));
     }
 
-    let mut admitted = face_candidates
+    let mut admitted = front_candidates
         .into_iter()
         .filter(|candidate| hard_requirement_failure(candidate.offer, requirements).is_none())
         .collect::<Vec<_>>();

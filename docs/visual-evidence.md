@@ -6,8 +6,8 @@ The [current-product truth surface](https://dancxjo.github.io/conduit/current-pr
 names the exact accepted release and publication behind this journey, states
 whether they lag development, and links the latest proof receipts.
 
-Thirty-two real QEMU screenshots show boot, current Host offers, Body and Play lifecycle, a
-hot-plugged Line, Tour, and Patchbay interaction. Each checkpoint explains the
+Thirty-two real QEMU screenshots show boot, current host offers, body and play lifecycle, a
+hot-plugged line, Tour, and Patchbay interaction. Each checkpoint explains the
 action, visible result, concepts, and asserted behavior, with links to the exact
 capture provenance. This is the published accepted journey, not a fresh capture
 from this documentation review. It demonstrates emulator execution; physical
@@ -60,8 +60,8 @@ than 64 outputs, and individual outputs larger than 16 MiB are refused.
 The versioned `conduit.evidence-manifest/v1` envelope binds the exact Git commit,
 proof and suite identities, completion disposition, declared output metadata, byte
 length, and SHA-256 digest. Each output carries a scenario identity and may carry
-the proof step, pinned browser/rendering environment, presentation revision, Plan,
-active Play, manifestation/renderer identities, and the semantic disposition that
+the proof step, pinned browser/rendering environment, presentation revision, plan,
+active play, manifestation/renderer identities, and the semantic disposition that
 was asserted before capture. Wall-clock time is deliberately absent from evidence
 identity.
 
@@ -78,9 +78,9 @@ added through #822.
 Audio exhibits use the same envelope without pretending that sound is a
 screenshot. `cargo xtask host journey-hears-speaks` declares `audio` outputs
 for its input PCM, listenable input WAV, and synthesized output WAV, alongside
-machine-readable recognition, response, and same-Play receipts. Complete
+machine-readable recognition, response, and same-play receipts. Complete
 verification requires that exact six-output set, audio media types, RIFF/WAVE
-framing for both listenable files, and shared Plan/Play provenance. Publication
+framing for both listenable files, and shared plan/play provenance. Publication
 and CI transport remain separate acceptance gates; a local complete manifest
 does not itself make an exhibit current or accepted.
 
@@ -146,25 +146,25 @@ and `current/hears-speaks/` pages with native browser audio controls. Omitting
 that input clears a stale current audio exhibit instead of silently carrying
 it across releases.
 
-The One Form, Two Faces sibling uses a separate four-output manifest. Its
-supported entrance is `cargo xtask evidence one-form-two-faces`, which feeds
-one deterministic front-door Presentation into the native software renderer
+The One form, Two fronts sibling uses a separate four-output manifest. Its
+supported entrance is `cargo xtask evidence one-form-two-fronts`, which feeds
+one deterministic front-door presentation into the native software renderer
 and the pinned Chromium DOM/SVG renderer. It retains `native.png`,
 `native.json`, `browser.png`, and `browser.json`; complete verification requires
-exact renderer and manifestation provenance plus the same Presentation identity,
-revision, and semantic basis across both receipts. The renderer Plans, Plays,
+exact renderer and manifestation provenance plus the same presentation identity,
+revision, and semantic basis across both receipts. The renderer plans, plays,
 Manifestations, and pixels remain deliberately distinct.
 
 The gallery accepts that sibling only through
-`--two-faces-evidence-root <directory>` bound to the same accepted commit as
+`--two-fronts-evidence-root <directory>` bound to the same accepted commit as
 the other inputs. Its side-by-side page states that neither pixel equality,
 physical-display output, nor human perception is established. Omitting the
-input clears stale `current/one-form-two-faces/` content.
+input clears stale `current/one-form-two-fronts/` content.
 
 Little Life uses a separate six-output manifest rather than consuming a
 ConduitOS capture slot. `cargo xtask evidence little-life` retains PNGs at
 generations 0, 1, 8, and 32, the complete 32-generation scalar-field terminal
-transcript, and the ordinary Plan/Play execution report. Generation zero is
+transcript, and the ordinary plan/play execution report. Generation zero is
 the deterministic Orbium seed lowered through the semantic gray8 bitmap
 contract. The later PNGs are derived from the exact cells emitted by the
 installed std scalar-field terminal presentation. They do not claim a native
@@ -198,26 +198,26 @@ new exact commit. Each image links to its provenance page. The prose states the
 same essential result because the images document a rendering; they do not
 define semantic success.
 
-The overview correlates the checked Form graph with the same authoritative
+The overview correlates the checked form graph with the same authoritative
 structure exposed by Patchbay.
 
 [![Current accepted Conduit Patchbay overview](https://dancxjo.github.io/conduit/current/patchbay/overview.png)](https://dancxjo.github.io/conduit/current/patchbay/overview/)
 
-After keyboard selection succeeds through an admitted interaction Play, the
-selected Gear is correlated across the structural list, graph, and inspector.
+After keyboard selection succeeds through an admitted interaction play, the
+selected gear is correlated across the structural list, graph, and inspector.
 
-[![Current accepted Patchbay state with one Gear selected and correlated in the inspector](https://dancxjo.github.io/conduit/current/patchbay/selected-gear.png)](https://dancxjo.github.io/conduit/current/patchbay/selected-gear/)
+[![Current accepted Patchbay state with one gear selected and correlated in the inspector](https://dancxjo.github.io/conduit/current/patchbay/selected-gear.png)](https://dancxjo.github.io/conduit/current/patchbay/selected-gear/)
 
 After an ordinary control invocation succeeds, Patchbay exposes the correlated
-Interaction Plan, Play, and disposition alongside the resulting presentation.
+Interaction plan, play, and disposition alongside the resulting presentation.
 
-[![Current accepted Patchbay state after an interaction Play succeeds](https://dancxjo.github.io/conduit/current/patchbay/interaction.png)](https://dancxjo.github.io/conduit/current/patchbay/interaction/)
+[![Current accepted Patchbay state after an interaction play succeeds](https://dancxjo.github.io/conduit/current/patchbay/interaction.png)](https://dancxjo.github.io/conduit/current/patchbay/interaction/)
 
 After renderer delivery is lost, the UI reports disconnection while retaining
-the last accepted presentation revision and exact Plan rather than inventing a
+the last accepted presentation revision and exact plan rather than inventing a
 new success or erasing the known state.
 
-[![Current accepted Patchbay state retaining its exact Plan after renderer delivery loss](https://dancxjo.github.io/conduit/current/patchbay/disconnected.png)](https://dancxjo.github.io/conduit/current/patchbay/disconnected/)
+[![Current accepted Patchbay state retaining its exact plan after renderer delivery loss](https://dancxjo.github.io/conduit/current/patchbay/disconnected.png)](https://dancxjo.github.io/conduit/current/patchbay/disconnected/)
 
 `cargo xtask evidence docs-verify` rejects missing, duplicated, immutable-commit,
 or ephemeral-artifact references. At publication, the same command additionally
@@ -242,14 +242,14 @@ previous raster as runtime truth.
 
 `cargo xtask conduitos prove --arch x86-64 --evidence-root <directory>` can
 emit one bounded UTF-8 console transcript after the existing x86_64 proof has
-validated its boot Sign, kernel Sign, Observatory snapshot, exact semantic
+validated its boot sign, kernel sign, Observatory snapshot, exact semantic
 presentation, and terminal QEMU debug exit. The ordinary proof remains the
 acceptance authority; capture is not triggered by a sleep or an image timer.
 
 The manifest classifies this artifact as `console-transcript` and records the
 exact commit, x86_64 architecture and accepted P5 rung, `freestanding-emulator`
 proof class, QEMU executable/version and finite machine profile, firmware,
-Host/Boot, Plan/Play, kernel artifact identity/digest, semantic trigger, output
+host/boot, plan/play, kernel artifact identity/digest, semantic trigger, output
 digest, and 256 KiB transcript ceiling. Its physical-evidence field is
 explicitly false. No width or height is invented for a console transcript.
 

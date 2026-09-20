@@ -1,11 +1,11 @@
-# Continuous execution over finite Plays
+# Continuous execution over finite plays
 
-Continuous execution is a semantic/lifecycle property of a Form. It means
-that the Form may remain active for an externally unbounded lifetime while its
-graph, retained state, instantaneous queues, host operations, Signs, and every
-concrete Plan/Play remain finite and admitted before Play start. It is not a
+Continuous execution is a semantic/lifecycle property of a form. It means
+that the form may remain active for an externally unbounded lifetime while its
+graph, retained state, instantaneous queues, host operations, signs, and every
+concrete plan/play remain finite and admitted before play start. It is not a
 special infinite mode, a timer-owned scheduler, or a loop that silently starts
-fresh Plays.
+fresh plays.
 
 ## Vocabulary
 
@@ -13,30 +13,30 @@ The following dispositions are distinct machine-readable results:
 
 | Disposition | Meaning |
 | --- | --- |
-| `Continued` | One finite transition was accepted and the Form remains live. |
-| `Quiescent` | The Form remains live but is awaiting admitted input or work. |
-| `SemanticCompletion` | The Form has completed its meaning; continuation is not expected. |
-| `Lull` | The current Wake ended while the Body/Form identity was retained. |
+| `Continued` | One finite transition was accepted and the form remains live. |
+| `Quiescent` | The form remains live but is awaiting admitted input or work. |
+| `SemanticCompletion` | The form has completed its meaning; continuation is not expected. |
+| `lull` | The current wake ended while the body/form identity was retained. |
 | `Cancelled` | Explicit cancellation ended current work. |
 | `ValueOverflow` | A finite typed value could not represent the next state. |
 | `CapacityExhausted` | An admitted queue, operation, or resource bound was exhausted. |
 | `Failed` | Current work failed for a reason other than capacity. |
 | `HostBootResourceOrLineLost` | Current realization truth was lost. |
 | `PlanRetired` | The immutable realization is no longer current. |
-| `Replanned` | The same Form and retained state continued under a replacement Plan. |
+| `Replanned` | The same form and retained state continued under a replacement plan. |
 
-`Quiescent`, `Lull`, and `SemanticCompletion` are not synonyms. A quiescent
-Form can accept later input in the same active lifetime; Lull ends the current
-Wake but retains the Body; semantic completion ends the Form's work. Likewise,
+`Quiescent`, `lull`, and `SemanticCompletion` are not synonyms. A quiescent
+form can accept later input in the same active lifetime; lull ends the current
+wake but retains the body; semantic completion ends the form's work. Likewise,
 `PlanRetired` and `Replanned` describe realization lifecycle, not semantic
 completion or a new source program.
 
 ## Finite admission and continuation
 
-Each active Play admits a fixed resource envelope before it starts: retained
-value bytes, instantaneous queue slots, host-operation slots, route and Line
-capacity, cancellation/terminal bookkeeping, and mandatory Sign storage. A
-continuous Form may perform arbitrarily many transitions over time, but each
+Each active play admits a fixed resource envelope before it starts: retained
+value bytes, instantaneous queue slots, host-operation slots, route and line
+capacity, cancellation/terminal bookkeeping, and mandatory sign storage. A
+continuous form may perform arbitrarily many transitions over time, but each
 transition uses only that admitted finite workset. No transition counter is a
 semantic limit, and no restart is used to renew a resource or timer budget.
 An admitted queue, slot pool, or hardware ring is ordinarily a simultaneous
@@ -48,21 +48,21 @@ counter that happens to reach the storage capacity.
 The finite-state specimen in `conduit-body` retains one bounded integer and one
 fixed resource envelope. Its caller may provide any number of transitions. A
 value overflow is reported as `ValueOverflow` and does not wrap or fabricate a
-new state. A replacement Plan changes realization identity only; source and
-checked-Form identity plus retained state remain unchanged when continuity is
+new state. A replacement plan changes realization identity only; source and
+checked-form identity plus retained state remain unchanged when continuity is
 admitted. The specimen is a contract proof, not a second scheduler or runtime.
 
 ## Lifecycle and replan rules
 
-1. A Form is authored as continuing meaning; it does not enumerate its future
+1. A form is authored as continuing meaning; it does not enumerate its future
    interactions.
-2. A Wake may hold one immutable Plan and at most one active Play at a time.
-3. A realization loss or Plan retirement ends or invalidates only the affected
-   realization. The Form, checked identity, and retained state survive unless
+2. A wake may hold one immutable plan and at most one active play at a time.
+3. A realization loss or plan retirement ends or invalidates only the affected
+   realization. The form, checked identity, and retained state survive unless
    their own semantics say otherwise.
-4. Replanning creates a new immutable Plan and, when admitted, a new Play. It
-   does not mutate the old Plan or masquerade as a semantic restart.
-5. Lull, cancellation, failure, overflow, capacity exhaustion, and semantic
+4. Replanning creates a new immutable plan and, when admitted, a new play. It
+   does not mutate the old plan or masquerade as a semantic restart.
+5. lull, cancellation, failure, overflow, capacity exhaustion, and semantic
    completion remain distinct results and retain bounded evidence.
 
 The contract therefore supports thermostats, servers, sensor pipelines,
@@ -74,5 +74,5 @@ physical continuity.
 
 No infinite resource reservation; no `universal` or `unsafe` escape hatch; no
 semantically unbounded allocation; no hidden restart loop; no timer-owned
-scheduler; and no conflation of Lull, suspend, replan, or quiescence with
+scheduler; and no conflation of lull, suspend, replan, or quiescence with
 HALT.

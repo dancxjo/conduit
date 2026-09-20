@@ -24,7 +24,7 @@ pub const ROBOTICS_STRUCTURED_REVISION: &str = "conduit.std/robotics-structured@
 
 pub type RoboticsStructuredKindContract = (KindId, Vec<PortDescriptor>, Vec<PortDescriptor>);
 
-/// Exact portable structured-robotics Kinds and typed faces.
+/// Exact portable structured-robotics Kinds and typed fronts.
 pub fn robotics_structured_kind_contracts() -> Vec<RoboticsStructuredKindContract> {
     vec![
         (

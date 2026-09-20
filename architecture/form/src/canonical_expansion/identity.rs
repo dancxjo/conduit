@@ -9,7 +9,7 @@ impl ExpandedCanonicalForm {
             completion: self.completion,
             startup_parameters: vec![],
             runtime_ports: Vec::new(),
-            runtime_face: conduit_core::CheckedFace::new(vec![], vec![], vec![], None),
+            runtime_front: conduit_core::CheckedFace::new(vec![], vec![], vec![], None),
             shorthand: None,
             local_values: Vec::new(),
             pools: Vec::new(),
@@ -224,7 +224,7 @@ pub(super) fn expanded_identity(
         push(&mut canonical, pool.pool_id.as_str());
         push(&mut canonical, pool.declaration_id.as_str());
         push(&mut canonical, &pool.maximum_members.to_string());
-        for parameter in pool.member_face.startup_parameters() {
+        for parameter in pool.member_front.startup_parameters() {
             push(&mut canonical, &parameter.name);
             push(&mut canonical, &parameter.value_type);
             push(
@@ -237,10 +237,10 @@ pub(super) fn expanded_identity(
             );
         }
         for port in pool
-            .member_face
+            .member_front
             .inputs()
             .iter()
-            .chain(pool.member_face.outputs())
+            .chain(pool.member_front.outputs())
         {
             push(&mut canonical, port.port_id.as_str());
             push(&mut canonical, port.value_kind.as_str());

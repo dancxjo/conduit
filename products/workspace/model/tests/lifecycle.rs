@@ -91,18 +91,99 @@ fn tutorial_purpose_is_derived_from_exact_body_evidence_not_a_chapter_counter() 
     ));
 }
 
+#[test]
+fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
+    let mut body = born();
+    let proposal = body
+        .propose(plans(&body), &host(), &boot())
+        .unwrap()
+        .clone();
+    body.fail(
+        &host(),
+        &boot(),
+        vec![conduit_body::WakeRejectionEvidence {
+            reason_code: "execution.line-unavailable".into(),
+            category: "Connectivity".into(),
+            stage: "Body execution".into(),
+            resource: "execution-line".into(),
+            required: 1,
+            available: 0,
+            host_id: host(),
+            boot_id: boot(),
+            plan_id: Some(proposal.plan.plan_id.clone()),
+            checked_form_ids: proposal
+                .plan
+                .forms
+                .iter()
+                .map(|form| form.form.checked_form_id.clone())
+                .collect(),
+        }],
+    )
+    .unwrap();
+
+    let repair = conduit_workspace_model::tutorial::presentation(
+        &body,
+        9,
+        conduit_workspace_model::tutorial::TutorialPlayback::Refused,
+    )
+    .unwrap()
+    .lower()
+    .unwrap();
+    assert!(
+        repair
+            .nodes
+            .iter()
+            .any(|node| node.text == "Inspect the real fault")
+    );
+    assert!(
+        repair
+            .actions
+            .iter()
+            .any(|action| action.id == "body.inspect-lifecycle")
+    );
+
+    start(&mut body);
+    let purpose = conduit_workspace_model::tutorial::purpose_state(&body).unwrap();
+    assert!(purpose.obligations.iter().any(|obligation| {
+        obligation.obligation_id == "repair-fault"
+            && matches!(obligation.state, PurposeObligationState::Satisfied { .. })
+    }));
+    let repaired = conduit_workspace_model::tutorial::presentation(
+        &body,
+        10,
+        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+    )
+    .unwrap()
+    .lower()
+    .unwrap();
+    assert!(
+        repaired
+            .nodes
+            .iter()
+            .any(|node| node.text == "The same Body woke again")
+    );
+    assert!(
+        !repaired
+            .nodes
+            .iter()
+            .any(|node| node.text == "Inspect the real fault")
+    );
+}
+
 fn host() -> HostId {
     "host/here".into()
 }
 
 #[test]
 fn invitation_transfer_methods_share_one_revision_bound_semantic_identity() {
+    let transfer_uri =
+        "https://example.invalid/workspace/#body-invitation=header.payload.signature";
     let semantic = conduit_workspace_model::invitation::InvitationPresentation {
         invitation_id: "invitation/one",
         body_id: "body/one",
         body_name: "Orifina",
         expires_at_millis: 42,
-        transfer_uri: "https://example.invalid/workspace/#body-invitation=opaque",
+        transfer_uri,
         clipboard_available: true,
         share_available: false,
     }
@@ -123,7 +204,13 @@ fn invitation_transfer_methods_share_one_revision_bound_semantic_identity() {
             .iter()
             .any(|action| action.id == "invitation.share")
     );
-    assert!(format!("{semantic:?}").contains("body-invitation=opaque"));
+    let link_nodes: Vec<_> = view
+        .nodes
+        .iter()
+        .filter(|node| node.key == "invitation-link")
+        .collect();
+    assert_eq!(link_nodes.len(), 1);
+    assert_eq!(link_nodes[0].value, transfer_uri);
 }
 
 #[test]

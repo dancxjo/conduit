@@ -265,7 +265,7 @@ impl PatchbayApplication {
                         form_selection: self.navigator_selection.min(forms.len().saturating_sub(1)),
                         form_scroll: self.navigator_scroll.min(forms.len().saturating_sub(1)),
                         exact_identity_open: self.exact_identity_open,
-                        face_control_focus: self.face_control_focus,
+                        front_control_focus: self.front_control_focus,
                         presentation_layout: &self.layout,
                         realization_plan,
                         realization_hosts: &realization_hosts,

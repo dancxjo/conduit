@@ -49,7 +49,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_preserves_portable_face_and_bounded_effect() {
+    fn offer_preserves_portable_front_and_bounded_effect() {
         let contract = conduit_semantic_catalog::keyboard_contract();
         let offer = hosted_keyboard_offer("proof-keyboard", "proof/keyboard@1");
         assert_eq!(offer.kind_id, contract.kind_id);

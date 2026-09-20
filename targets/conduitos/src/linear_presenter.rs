@@ -20,7 +20,7 @@ pub const CAPABILITY: &str = "conduitos/presenter/linear-serial@1";
 pub const BASE_ID: &str = "conduitos/base/pl011-serial/0";
 const RESOURCE_CLASS: &str = "presentation/linear-slot";
 const RESOURCE_ID: &str = "conduitos/presentation/linear/0";
-const FORM: &str = "form face {\n    renderer: presentation/renderer\n}\n";
+const FORM: &str = "form front {\n    renderer: presentation/renderer\n}\n";
 
 #[derive(Debug, Clone)]
 pub struct LinearReceipt {
@@ -137,7 +137,7 @@ impl LinearPresenter {
         if presentation.revision <= self.last_revision {
             return Err(LinearPresenterError::StaleRevision);
         }
-        let face = presentation
+        let front = presentation
             .subjects
             .iter()
             .find(|subject| subject.role == PresentationRole::Host)
@@ -155,7 +155,7 @@ impl LinearPresenter {
             &self.plan,
             active,
             self.placement_id.clone(),
-            face,
+            front,
             self.base_id.clone(),
             SignId::from("conduitos/linear/manifestation-prepared"),
         )

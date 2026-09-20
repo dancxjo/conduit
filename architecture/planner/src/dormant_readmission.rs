@@ -109,7 +109,7 @@ pub fn observe_dormant_candidate(
         .find(|offer| offer.kind_id == gear.kind_id)
         .ok_or(DormantReadmissionRefusal::MissingCurrentCapability)?;
     if offer.kind_contract_revision != gear.kind_contract_revision
-        || offer.checked_face() != gear.checked_face()
+        || offer.checked_front() != gear.checked_front()
     {
         return Err(DormantReadmissionRefusal::IncompatibleContractRevision);
     }

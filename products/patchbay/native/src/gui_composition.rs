@@ -92,7 +92,7 @@ pub(super) fn composition_port_point(
                     .and_then(|binding| {
                         layout.inputs.iter().chain(&layout.outputs).find_map(
                             |(candidate, point)| {
-                                (candidate == &binding.face_port).then_some(*point)
+                                (candidate == &binding.front_port).then_some(*point)
                             },
                         )
                     })

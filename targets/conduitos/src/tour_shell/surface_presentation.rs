@@ -14,7 +14,7 @@ impl TourShellPresenter {
         &mut self,
         slot: Slot,
         presentation: &Presentation,
-        face_subject: &str,
+        front_subject: &str,
         bounds: LayoutRect,
         z: u8,
         scene: &GraphicsScene,
@@ -25,9 +25,9 @@ impl TourShellPresenter {
             .position(|state| state.slot == slot)
             .ok_or(TourShellError::Identity)?;
         if self.surfaces[index]
-            .face_subject
+            .front_subject
             .as_deref()
-            .is_some_and(|current| current != face_subject)
+            .is_some_and(|current| current != front_subject)
         {
             self.dismiss(slot)?;
         }
@@ -81,7 +81,7 @@ impl TourShellPresenter {
             &self.plan,
             active,
             self.surfaces[index].placement_id.clone(),
-            face_subject.into(),
+            front_subject.into(),
             slot.surface().into(),
             SignId::from(format!(
                 "conduitos/shell/{}/prepared/{}",
@@ -112,12 +112,12 @@ impl TourShellPresenter {
             )
             .map_err(TourShellError::Compositor)?
             .clone();
-        self.surfaces[index].face_subject = Some(face_subject.into());
+        self.surfaces[index].front_subject = Some(front_subject.into());
         self.surfaces[index].manifestation_id = Some(receipt.manifestation_id.clone());
         if matches!(slot, Slot::Inspector | Slot::Transient) {
             self.surfaces[index].scroll.configure(
                 bounds.height,
-                if face_subject == TourTransientKind::Chooser.subject_identity() {
+                if front_subject == TourTransientKind::Chooser.subject_identity() {
                     super::chooser_layout::content_height(bounds)
                 } else if slot == Slot::Inspector {
                     fields::project(bounds, presentation, 0, None)?

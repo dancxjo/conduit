@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 fn two_pulse_form() -> conduit_form::CheckedForm {
     parse_with_startup(
         "form realization {\n    first: flow/pulse(count = 2, period-ms = 0, initial = false)\n    second: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
-    .expect("two equal-face gears check")
+    .expect("two equal-front gears check")
 }
 
 fn observations(hosts: &[conduit_core::HostAdvertisement; 2]) -> Vec<ResourceObservation> {

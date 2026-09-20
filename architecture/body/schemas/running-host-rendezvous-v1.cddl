@@ -1,0 +1,38 @@
+; conduit.host/rendezvous-cbor@1
+; RFC 8949 deterministic encoding is required. Only definite-length maps,
+; arrays, text, and byte strings are admitted. Map keys are ascending.
+; The complete canonical item is at most 3656 bytes.
+
+running-host-rendezvous = {
+  0: 1,                         ; profile version
+  1: [1*4 rendezvous-candidate],
+  2: bytes .size 32,            ; one-use bounded rendezvous capability
+  ? 128: extension,
+  ? 129: extension,
+  ? 130: extension,
+  ? 131: extension
+}
+
+rendezvous-candidate = {
+  0: bounded-text,              ; candidate id
+  1: line-family,
+  2: bounded-text,              ; reachability locator
+  3: rendezvous-authentication,
+  4: uint,                      ; expiry in Unix milliseconds
+  5: 1..3,                      ; maximum attempts
+  6: 1..30000                   ; per-attempt timeout milliseconds
+}
+
+rendezvous-authentication = {
+  0: bounded-text,              ; expected peer/server identity
+  1: bytes .size 32             ; SHA-256 transport binding
+}
+
+line-family =
+    0                           ; authenticated TLS stream
+  / 1                           ; end-to-end authenticated Conduit Line
+  / 2                           ; local loopback WebSocket only
+  / 3                           ; attended serial
+
+bounded-text = text .size (1..256)
+extension = bytes .size (0..64)

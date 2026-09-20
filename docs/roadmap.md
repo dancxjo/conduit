@@ -5,7 +5,7 @@ Follow the linked issue for its current state, dependencies, acceptance criteria
 and scope. An open issue is planned or unfinished work, not a claim that someone
 is actively implementing it. Paused work is marked below.
 
-Conduit's direction is one continuing Body running ordinary reusable Forms
+Conduit's direction is one continuing body running ordinary reusable forms
 across the machinery available to it. The near-term task is to make those
 capabilities understandable and useful through real product experiences.
 [Current status](../STATUS.md) describes the implementation; the
@@ -25,7 +25,7 @@ improves everyday interaction:
 | Work | Issue |
 |---|---|
 | Independently retained workspace, status, and inspection surfaces | [#3043](https://github.com/dancxjo/conduit/issues/3043) |
-| Gear Back inspection on its own surface | [#3044](https://github.com/dancxjo/conduit/issues/3044) |
+| gear back inspection on its own surface | [#3044](https://github.com/dancxjo/conduit/issues/3044) |
 | Transient chooser, refusal, and confirmation surfaces | [#3045](https://github.com/dancxjo/conduit/issues/3045) |
 | Explicit resize and relayout lifecycle | [#3046](https://github.com/dancxjo/conduit/issues/3046) |
 | Bounded scrolling and clipping | [#3047](https://github.com/dancxjo/conduit/issues/3047) |
@@ -39,30 +39,30 @@ interaction; it should not invent new application state or runtime semantics.
 
 [Lifecycle default #3006](https://github.com/dancxjo/conduit/issues/3006) makes
 drained work quiescent by default, with semantic completion requiring an
-explicit witness. Later input should resume the same admitted Play and State.
+explicit witness. Later input should resume the same admitted play and state.
 This implements the [continuous-execution contract](architecture/continuous-execution.md)
-through the kernel and Host runners.
+through the kernel and host runners.
 
 ## The House and a physical laptop
 
 [House #2293](https://github.com/dancxjo/conduit/issues/2293) is the concrete
-multi-Host Body experience: the house keeps its identity as browsers, computers,
+multi-host body experience: the house keeps its identity as browsers, computers,
 devices, and services join or leave.
 
 The Tour's two-browser exercise is deliberately not House evidence. It proves
-two ephemeral browser runtimes executing one immutable Plan across a bounded
-in-memory Line. It creates no durable Part membership, trust, authority, Body
+two ephemeral browser runtimes executing one immutable plan across a bounded
+in-memory line. It creates no durable part membership, trust, authority, body
 persistence, or restart/rejoin receipt. House admission proof must retain one
-Body across disappearance and a fresh authenticated return; a transient demo
+body across disappearance and a fresh authenticated return; a transient demo
 peer cannot satisfy that contract.
 
 | Slice | Remaining outcome |
 |---|---|
-| [House admission #2296](https://github.com/dancxjo/conduit/issues/2296) — **paused** | A persistent house admitting additional browser Hosts without rebirth |
+| [House admission #2296](https://github.com/dancxjo/conduit/issues/2296) — **paused** | A persistent house admitting additional browser hosts without rebirth |
 | [Speech #2297](https://github.com/dancxjo/conduit/issues/2297) | Live speech → house-name detection → local Ollama response → speech/presentation; recorded-audio components do not finish this journey |
 | [Matter and BLE #2298](https://github.com/dancxjo/conduit/issues/2298) | Supported local smart-home devices exposed as ordinary capabilities |
 | [Google Home adapter #2299](https://github.com/dancxjo/conduit/issues/2299) | An honest adapter for supported Home/Nest devices |
-| [Physical laptop #2300](https://github.com/dancxjo/conduit/issues/2300) | A real old x86_64 laptop running ConduitOS as a house Host |
+| [Physical laptop #2300](https://github.com/dancxjo/conduit/issues/2300) | A real old x86_64 laptop running ConduitOS as a house host |
 
 The laptop campaign progresses through [boot #2301](https://github.com/dancxjo/conduit/issues/2301),
 [inventory #2302](https://github.com/dancxjo/conduit/issues/2302),
@@ -75,29 +75,29 @@ The laptop campaign progresses through [boot #2301](https://github.com/dancxjo/c
 Each physical result needs its own device evidence; the QEMU gallery does not
 complete these stages.
 
-## Reusable Forms
+## Reusable forms
 
-Forms can now act as Gears through their checked Faces. The remaining work is
+forms can now act as gears through their checked fronts. The remaining work is
 to finish useful compositions and demonstrate reuse outside each namesake app:
 
 - [Pocket Theremin #2217](https://github.com/dancxjo/conduit/issues/2217): input mapping and parameter control.
 - [Constellation Telephone #2219](https://github.com/dancxjo/conduit/issues/2219): stroke capture, transport, and reconstruction.
 - [Signal Garden #2221](https://github.com/dancxjo/conduit/issues/2221): observation, evolving state, and persistence.
 - [Little Seismograph #2223](https://github.com/dancxjo/conduit/issues/2223): measurement windows, thresholds, plots, and bounded history.
-- [Button Across the Room #2224](https://github.com/dancxjo/conduit/issues/2224): a reusable cross-Host button/indicator composition.
+- [Button Across the Room #2224](https://github.com/dancxjo/conduit/issues/2224): a reusable cross-host button/indicator composition.
 - [Night Radio #2225](https://github.com/dancxjo/conduit/issues/2225): routing, classification, logging, plotting, and alerts.
 - [Bench #2226](https://github.com/dancxjo/conduit/issues/2226): device decoding, telemetry, annotation, sessions, and replay.
 
 ## Pete and navigation
 
 [Pete #2229](https://github.com/dancxjo/conduit/issues/2229) is the longer-term
-robotics Body. Its [memory #2231](https://github.com/dancxjo/conduit/issues/2231),
+robotics body. Its [memory #2231](https://github.com/dancxjo/conduit/issues/2231),
 [resident workload #2233](https://github.com/dancxjo/conduit/issues/2233), and
 [continuous physical capstone #2234](https://github.com/dancxjo/conduit/issues/2234)
 slices are **paused**. [Navigation #2232](https://github.com/dancxjo/conduit/issues/2232)
 is complete: [portable goal, path, trajectory, and local-control
 semantics](architecture/portable-navigation.md) now run as an ordinary bounded
-Form through the std production kernel. Pete/Create attachment, attended
+form through the std production kernel. Pete/Create attachment, attended
 movement and safe-stop proof, and the complete live Patchbay causal view remain
 owned by the continuous physical capstone; deterministic navigation proof does
 not finish that physical work.
@@ -118,9 +118,9 @@ helps you choose a place to start without taking on an entire campaign.
 ## Completed milestones and future ideas
 
 The former roadmap, [R1 #361](https://github.com/dancxjo/conduit/issues/361), is
-closed. Its physical Pico and dual-Line recovery evidence remains part of the
-[acceptance history](history/accepted-milestones.md). Multi-Form Body scheduling
-[#2062](https://github.com/dancxjo/conduit/issues/2062), Forms-as-Gears
+closed. Its physical Pico and dual-line recovery evidence remains part of the
+[acceptance history](history/accepted-milestones.md). Multi-form body scheduling
+[#2062](https://github.com/dancxjo/conduit/issues/2062), forms-as-gears
 [#2291](https://github.com/dancxjo/conduit/issues/2291), and the QEMU visual journey
 [#2318](https://github.com/dancxjo/conduit/issues/2318) are also completed milestones,
 not instructions to restart those projects.

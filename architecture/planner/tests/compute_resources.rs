@@ -303,7 +303,7 @@ fn policy_can_prefer_service_without_conflating_implementation_and_artifact() {
             )],
         },
     )
-    .expect("equal-face artifacts remain selectable by compute policy");
+    .expect("equal-front artifacts remain selectable by compute policy");
     assert_eq!(choice.host_id, exclusive.host_id);
     assert_eq!(choice.capability_id.as_str(), "exclusive-compute");
 }

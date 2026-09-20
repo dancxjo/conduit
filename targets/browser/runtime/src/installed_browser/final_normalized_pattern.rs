@@ -68,7 +68,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn offer_is_the_exact_portable_flow_to_value_face() {
+    fn offer_is_the_exact_portable_flow_to_value_front() {
         let contract = conduit_semantic_catalog::final_normalized_pattern_definition();
         let offer = offer();
         assert_eq!(offer.inputs, contract.inputs);

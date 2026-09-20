@@ -44,7 +44,7 @@ impl std::fmt::Display for FormEditorError {
             Self::DuplicateCord => f.write_str("those Ports already have a Cord"),
             Self::NestedGearEditUnsupported(gear) => write!(
                 f,
-                "Gear '{gear}' is inside a reusable Face; edit that Face rather than its expansion"
+                "Gear '{gear}' is inside a reusable Front; edit that Front rather than its expansion"
             ),
             Self::StaleGraphBasis => {
                 f.write_str("the visual edit names a stale expanded Form revision")

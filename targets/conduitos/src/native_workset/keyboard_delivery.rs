@@ -2,7 +2,7 @@
 //!
 //! This implementation receives canonical events from the native input adapter;
 //! it never opens or polls a device. Its two reservations are delivery slots,
-//! not duplicate claims on the physical controller/device/interface/endpoint.
+//! not duplicate claims on the physical controller/device/interfront/endpoint.
 use alloc::{format, vec};
 use conduit_core::{HostAdvertisement, resource_offer, resource_requirement};
 

@@ -79,7 +79,7 @@ fn canonical_secret_knock_is_a_host_free_composition_of_reusable_forms() {
         conduit_semantic_catalog::COMPARE_PATTERN_KIND
     );
     let reusable = expand_canonical_form_for_authoring(&checked, "normalize-durations", &profile)
-        .expect("the canonical normalization Face expands independently");
+        .expect("the canonical normalization Front expands independently");
     assert_eq!(reusable.expanded.gears.len(), 1);
     assert_eq!(
         reusable.expanded.gears[0].kind_id.as_str(),

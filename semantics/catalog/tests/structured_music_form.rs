@@ -108,7 +108,7 @@ fn lesson_types_and_configuration_refuse_before_any_runtime_exists() {
     let error =
         expand_canonical_form_for_authoring(&checked, "rhythm-lesson", &profile).unwrap_err();
     assert_eq!(error.code, "CND-FRM-045");
-    assert!(error.message.contains("runtime face port 'reference'"));
+    assert!(error.message.contains("runtime front port 'reference'"));
 
     let excessive_tolerance =
         LESSON_SOURCE.replace("tolerance-micros = 30000", "tolerance-micros = 1000001");

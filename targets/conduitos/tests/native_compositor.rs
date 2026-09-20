@@ -247,7 +247,7 @@ fn retained_surfaces_update_independently_and_compose_by_geometry_and_z() {
         &plan,
         active,
         manifestation.placement_id.clone(),
-        "face/main".into(),
+        "front/main".into(),
         "surface/overlay".into(),
         SignId::from("prepared/second"),
     )
@@ -394,7 +394,7 @@ fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_definition()).unwrap();
     let form = parse(
-        "form face {\n    renderer: presentation/renderer\n}\n",
+        "form front {\n    renderer: presentation/renderer\n}\n",
         &catalog,
     )
     .unwrap();
@@ -422,15 +422,15 @@ fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
             sign_ids: vec![SignId::from("presentation/source")],
         },
         vec![PresentationSubject {
-            identity: "face/main".into(),
+            identity: "front/main".into(),
             role: PresentationRole::Form,
             label: "Main".into(),
-            accessibility_name: "Main face".into(),
+            accessibility_name: "Main front".into(),
         }],
         vec![],
         vec![],
         vec![PresentationText {
-            subject: "face/main".into(),
+            subject: "front/main".into(),
             text: "Native compositor".into(),
         }],
     )
@@ -442,7 +442,7 @@ fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
         &plan,
         active,
         placement.placement_id.clone(),
-        "face/main".into(),
+        "front/main".into(),
         "surface/main".into(),
         SignId::from("manifestation/prepared"),
     )

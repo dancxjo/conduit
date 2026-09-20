@@ -256,7 +256,7 @@ fn architecture_contract_keeps_replan_and_route_change_language_distinct() {
     let document =
         include_str!("../../../docs/architecture/topology-planning-play-control-loop.md");
     for required in [
-        "A Plan is immutable",
+        "A plan is immutable",
         "PlanningRequested",
         "PlanningRefused",
         "PlanningSucceeded",

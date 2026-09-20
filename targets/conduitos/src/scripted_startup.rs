@@ -16,7 +16,7 @@ pub struct Context {
     pub rescue_matcher: conduitos::local_rescue::LocalRescueMatcher,
     pub xhci_base: [u8; 32],
     pub device_id: [u8; 32],
-    pub interface_id: [u8; 32],
+    pub interfront_id: [u8; 32],
     pub endpoint_id: [u8; 32],
     pub keyboard_limits: [u16; 3],
 }
@@ -33,7 +33,7 @@ pub fn run(context: Context) -> ! {
         mut rescue_matcher,
         xhci_base,
         device_id,
-        interface_id,
+        interfront_id,
         endpoint_id,
         keyboard_limits,
     } = context;
@@ -110,13 +110,13 @@ pub fn run(context: Context) -> ! {
         Err(error) => emit_machine_refusal(error.as_str()),
     };
     let hid_sign = format!(
-        "CONDUIT_HID_SIGN {{\"schema\":\"conduit.conduitos.hid-boot-keyboard/v1\",\"status\":\"transitions-observed\",\"proof_class\":\"freestanding-emulator\",\"controller_base_id\":\"{}\",\"boot_id\":\"{}\",\"device_instance_id\":\"{}\",\"interface_id\":\"{}\",\"endpoint_id\":\"{}\",\"interface_number\":{},\"endpoint_address\":{},\"endpoint_dci\":{},\"endpoint_maximum_packet_size\":{},\"endpoint_interval\":{},\"set_protocol_transfers\":{},\"interrupt_transfers\":{},\"report_bytes\":{},\"report_buffers\":{},\"maximum_outstanding_interrupt_transfers\":{},\"maximum_transitions_per_report\":{},\"transfer_trbs\":{},\"dma_bytes\":{},\"dma_alignment\":{},\"sign_slots\":{},\"interrupt_poll_windows\":{},\"transition_count\":{},\"first_usage_page\":\"keyboard-keypad\",\"first_usage\":{},\"first_state\":\"{}\",\"first_modifiers\":{},\"second_usage_page\":\"keyboard-keypad\",\"second_usage\":{},\"second_state\":\"{}\",\"second_modifiers\":{},\"layout_translation\":false,\"unicode_translation\":false,\"semantic_keyboard_offer\":false}}\n",
+        "CONDUIT_HID_SIGN {{\"schema\":\"conduit.conduitos.hid-boot-keyboard/v1\",\"status\":\"transitions-observed\",\"proof_class\":\"freestanding-emulator\",\"controller_base_id\":\"{}\",\"boot_id\":\"{}\",\"device_instance_id\":\"{}\",\"interfront_id\":\"{}\",\"endpoint_id\":\"{}\",\"interfront_number\":{},\"endpoint_address\":{},\"endpoint_dci\":{},\"endpoint_maximum_packet_size\":{},\"endpoint_interval\":{},\"set_protocol_transfers\":{},\"interrupt_transfers\":{},\"report_bytes\":{},\"report_buffers\":{},\"maximum_outstanding_interrupt_transfers\":{},\"maximum_transitions_per_report\":{},\"transfer_trbs\":{},\"dma_bytes\":{},\"dma_alignment\":{},\"sign_slots\":{},\"interrupt_poll_windows\":{},\"transition_count\":{},\"first_usage_page\":\"keyboard-keypad\",\"first_usage\":{},\"first_state\":\"{}\",\"first_modifiers\":{},\"second_usage_page\":\"keyboard-keypad\",\"second_usage\":{},\"second_state\":\"{}\",\"second_modifiers\":{},\"layout_translation\":false,\"unicode_translation\":false,\"semantic_keyboard_offer\":false}}\n",
         xhci_base_id,
         identity::hex(&identities.boot),
         identity::hex(&device_id),
-        identity::hex(&interface_id),
+        identity::hex(&interfront_id),
         identity::hex(&endpoint_id),
-        hid.interface_number,
+        hid.interfront_number,
         hid.endpoint_address,
         hid.endpoint_dci,
         hid.endpoint_maximum_packet_size,
@@ -151,7 +151,7 @@ pub fn run(context: Context) -> ! {
     arch::early_write(hid_sign.as_bytes());
     arch::early_write(b"CONDUIT_BOOT_STAGE hid-transitions\n");
     let keyboard_sign = format!(
-        "CONDUIT_KEYBOARD_SIGN {{\"schema\":\"conduit.conduitos.keyboard-offer/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"offer_generation\":{},\"kind\":\"input/keyboard\",\"contract_revision\":\"{}\",\"implementation\":\"{}\",\"execution_profile\":\"{}\",\"artifact_build\":\"{}\",\"controller_base_id\":\"{}\",\"device_instance_id\":\"{}\",\"interface_id\":\"{}\",\"endpoint_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"resource_bindings\":{},\"report_buffers\":{},\"transition_slots\":{},\"operation_slots\":{},\"cord_item_capacity\":{},\"cord_byte_capacity\":{},\"event_count\":2,\"first_value\":[{},{},{}],\"second_value\":[{},{},{}],\"semantic_usb_facts\":false,\"layout_translation\":false,\"unicode_translation\":false,\"completed\":{}}}\n",
+        "CONDUIT_KEYBOARD_SIGN {{\"schema\":\"conduit.conduitos.keyboard-offer/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"offer_generation\":{},\"kind\":\"input/keyboard\",\"contract_revision\":\"{}\",\"implementation\":\"{}\",\"execution_profile\":\"{}\",\"artifact_build\":\"{}\",\"controller_base_id\":\"{}\",\"device_instance_id\":\"{}\",\"interfront_id\":\"{}\",\"endpoint_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"resource_bindings\":{},\"report_buffers\":{},\"transition_slots\":{},\"operation_slots\":{},\"cord_item_capacity\":{},\"cord_byte_capacity\":{},\"event_count\":2,\"first_value\":[{},{},{}],\"second_value\":[{},{},{}],\"semantic_usb_facts\":false,\"layout_translation\":false,\"unicode_translation\":false,\"completed\":{}}}\n",
         identity::hex(&identities.host),
         identity::hex(&identities.boot),
         offer.generation,
@@ -161,7 +161,7 @@ pub fn run(context: Context) -> ! {
         fabrication.build_id,
         xhci_base_id,
         identity::hex(&device_id),
-        identity::hex(&interface_id),
+        identity::hex(&interfront_id),
         identity::hex(&endpoint_id),
         keyboard_prepared.plan.plan_id.as_str(),
         keyboard_prepared.active_play.active_play_id.as_str(),

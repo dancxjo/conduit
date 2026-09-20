@@ -49,7 +49,7 @@ fn native_renderer_inspects_its_exact_realization_without_local_state() {
     })
     .unwrap();
     let text = application.presentation_lines().join("\n");
-    assert!(text.contains("RENDERER FACE presentation/renderer inputs=1 outputs=1"));
+    assert!(text.contains("RENDERER FRONT presentation/renderer inputs=1 outputs=1"));
     assert!(text.contains("RENDERER PLACEMENT "));
     assert!(text.contains("implementation=presentation/renderer-wayland@1"));
     assert!(text.contains("artifact=patchbay-native/wayland@1"));
@@ -557,7 +557,7 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
             .graphical_form
             .as_ref()
             .unwrap()
-            .face_inputs
+            .front_inputs
             .len(),
         1
     );
@@ -566,7 +566,7 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
             .graphical_form
             .as_ref()
             .unwrap()
-            .face_outputs
+            .front_outputs
             .len(),
         1
     );

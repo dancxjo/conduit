@@ -6,11 +6,11 @@ Entrance: `cargo xtask check interop-membrane`.
 Conduit may integrate with external ecosystems without absorbing their
 identities or authority. `InteropMembrane` records a finite set of exact,
 directional mappings. Each mapping keeps separate the external resource,
-Conduit Kind/revision, adapter, Base, mapping identity, authority grant, finite
+Conduit kind/revision, adapter, base, mapping identity, authority grant, finite
 payload/queue bounds, delivery contract, and lifecycle behavior.
 
 Import and export are independent mappings. External discovery is only an
-observation submitted to `consider_import`; it creates no Host, Part,
+observation submitted to `consider_import`; it creates no host, part,
 capability, trust, membership, or authority. Unconfigured siblings return
 `Unconfigured`. Payload overflow remains distinct. A mapping whose declared
 delivery or lifecycle truth differs from the external contract refuses before

@@ -14,7 +14,7 @@ fn portable_text_owner_has_no_upward_host_or_semantic_catalog_dependency() {
 }
 
 #[test]
-fn exact_text_identities_faces_configuration_and_bounds_are_stable() {
+fn exact_text_identities_fronts_configuration_and_bounds_are_stable() {
     let literal = conduit_text::text_literal_semantics();
     let upper = conduit_text::text_upper_semantics();
     let join = conduit_text::text_join_semantics();
