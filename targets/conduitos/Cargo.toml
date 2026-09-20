@@ -228,6 +228,7 @@ smoltcp = { version = "0.13.1", optional = true, default-features = false, featu
 patchbay-graph = { path = "../../products/patchbay/graph" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-wire = { path = "../../architecture/wire" }
+ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["form-catalog"] }
 conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text", default-features = false }
