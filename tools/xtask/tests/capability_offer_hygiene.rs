@@ -77,6 +77,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
+        "semantics/data/src/measurement_summary_catalog.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "semantics/catalog/src/structured_selector.rs",
         0,
         "semantic contract owner",
@@ -386,6 +391,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     (
         "targets/browser/runtime/src/installed_browser/measurement_presentation.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/browser/runtime/src/installed_browser/measurement_summary.rs",
         0,
         "fully migrated",
     ),
