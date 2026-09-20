@@ -60,7 +60,7 @@ pub fn generative_request(
     let purpose = purpose_state(body).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
     let readiness =
         derive_fulfillment_readiness(&purpose).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
-    let guidance = guidance(body, playback, &purpose);
+    let guidance = guidance(body.evidence(), playback, &purpose);
     let projection = project_orifina_purpose_presentation(
         body.evidence().body.body_id.clone(),
         purpose.revision,
