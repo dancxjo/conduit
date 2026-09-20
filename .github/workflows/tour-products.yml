@@ -781,6 +781,39 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  conduitos-oci-provenance:
+    needs: conduitos-releases
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - name: Download the exact ConduitOS release set
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-conduitos-releases
+          path: target/creche-conduitos-release
+      - name: Export and freshly verify the x86_64 release as a non-container OCI layout
+        run: |
+          rm -rf target/conduitos-x86_64-oci
+          node tools/ci/oci-release-export.mjs prepare-conduitos \
+            target/creche-conduitos-release/conduitos-x86_64-pc-release.json \
+            target/conduitos-x86_64-oci-input \
+            "$CONDUIT_CANDIDATE_SHA" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          node tools/ci/oci-release-export.mjs export \
+            target/conduitos-x86_64-oci-input.config.json \
+            target/conduitos-x86_64-oci
+          node tools/ci/oci-release-export.mjs verify target/conduitos-x86_64-oci
+      - uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-conduitos-x86_64-oci
+          path: target/conduitos-x86_64-oci
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
   esp32-release-images:
     needs: [plan, standalone-locks]
     if: always() && !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
@@ -849,7 +882,7 @@ jobs:
           retention-days: 7
 
   products-stage:
-    needs: [avr-release, browser-release, browser-runtimes, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
+    needs: [avr-release, browser-release, browser-runtimes, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases, conduitos-oci-provenance]
     if: >-
       always() && !cancelled() &&
       needs.avr-release.result == 'success' &&
@@ -859,7 +892,8 @@ jobs:
       needs.host-releases.result == 'success' &&
       needs.orange-pi-release.result == 'success' &&
       needs.raspberry-pi-release.result == 'success' &&
-      needs.conduitos-releases.result == 'success'
+      needs.conduitos-releases.result == 'success' &&
+      needs.conduitos-oci-provenance.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -908,6 +942,11 @@ jobs:
         with:
           name: conduit-conduitos-releases
           path: target/creche-release-artifacts
+      - name: Download the exact non-container ConduitOS OCI layout
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-conduitos-x86_64-oci
+          path: target/conduitos-x86_64-oci
       - name: Seal the bounded installed release catalog
         run: |
           rm -f target/creche-release-artifacts/release-catalog.json
@@ -927,6 +966,8 @@ jobs:
           cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
           rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product target/home-product
           site/tools/stage-pages-root.sh target/pages-root
+          mkdir -p target/pages-root/supply-chain/conduitos-x86_64-pc
+          cp -a target/conduitos-x86_64-oci/. target/pages-root/supply-chain/conduitos-x86_64-pc/
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
           products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/creche-release-artifacts

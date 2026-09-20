@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-import { writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { buildProductTruth } from "./product-truth.mjs";
 
 const [
@@ -13,11 +15,20 @@ const [
   pagesUrl,
   publicationRunUrl,
   productProofRunUrl,
+  supplyChainRoot,
 ] = process.argv.slice(2);
 
-if (!productProofRunUrl) {
-  throw new Error("usage: emit-current-product-truth.mjs OUTPUT REPOSITORY DEV_SHA SOURCE_SHA MAIN_SHA PR PAGES_URL PUBLICATION_RUN PRODUCT_PROOF_RUN");
+if (!supplyChainRoot) {
+  throw new Error("usage: emit-current-product-truth.mjs OUTPUT REPOSITORY DEV_SHA SOURCE_SHA MAIN_SHA PR PAGES_URL PUBLICATION_RUN PRODUCT_PROOF_RUN SUPPLY_CHAIN_ROOT");
 }
+
+const indexBytes = await readFile(join(supplyChainRoot, "index.json"));
+const index = JSON.parse(indexBytes);
+const releaseDescriptor = index.manifests?.[0];
+if (!/^sha256:[0-9a-f]{64}$/.test(releaseDescriptor?.digest ?? "")) throw new Error("OCI release manifest digest is absent");
+const release = JSON.parse(await readFile(join(supplyChainRoot, "blobs", "sha256", releaseDescriptor.digest.slice(7))));
+const artifactId = release.annotations?.["org.conduit.artifact-id"];
+const buildId = release.annotations?.["org.conduit.build-id"];
 
 const pullRequest = Number(pullRequestText);
 const truth = buildProductTruth({
@@ -36,6 +47,14 @@ const truth = buildProductTruth({
     pages_url: pagesUrl,
     deployment_url: publicationRunUrl,
   },
+  supply_chain: [{
+    artifact_id: artifactId,
+    build_id: buildId,
+    representation: "oci-image-layout@1",
+    manifest_digest: releaseDescriptor.digest,
+    index_digest: `sha256:${createHash("sha256").update(indexBytes).digest("hex")}`,
+    index_url: `${pagesUrl.replace(/\/?$/, "/")}supply-chain/conduitos-x86_64-pc/index.json`,
+  }],
   evidence: [
     {
       surface: "accepted release",
