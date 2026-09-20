@@ -5,6 +5,7 @@ fn browser_offers_preserve_semantic_fronts_but_own_realization_identity() {
     let offers = offers();
     assert_eq!(offers.len(), 13);
     for offer in offers {
+        let kind = offer.kind_id.as_str();
         let canonical = offers::canonical_offer(offer.kind_id.as_str()).unwrap();
         assert_eq!(
             offer.kind_contract_revision,
@@ -21,6 +22,14 @@ fn browser_offers_preserve_semantic_fronts_but_own_realization_identity() {
         assert_eq!(
             offer.implementation.artifact_id.as_str(),
             BROWSER_PRESENTATION_ARTIFACT
+        );
+        assert_eq!(
+            offer.capability_id.as_str(),
+            format!("browser/{kind}-capability@1")
+        );
+        assert_eq!(
+            offer.implementation.implementation_id.as_str(),
+            format!("browser/{kind}-implementation@1")
         );
     }
     let browser_upper = browser_text_upper_offer();
