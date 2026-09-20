@@ -21,6 +21,10 @@ use crate::browser_admission::{
     WebRtcBootstrapConfiguration, WebRtcIceTransportPolicy, MAX_WEBRTC_DESCRIPTION_BYTES,
 };
 
+#[path = "native_webrtc/session.rs"]
+mod session;
+pub use session::{NativeWebRtcSession, NativeWebRtcSessionRefusal};
+
 pub const NATIVE_WEBRTC_IMPLEMENTATION_ID: &str = "std/webrtc-datachannel@1";
 pub const MAXIMUM_NATIVE_WEBRTC_FRAME_BYTES: usize = 128 * 1024;
 
@@ -74,6 +78,9 @@ pub struct NativeWebRtcEndpoint {
 }
 
 impl NativeWebRtcEndpoint {
+    pub const fn maximum_frame_bytes(&self) -> usize {
+        self.maximum_frame_bytes
+    }
     pub async fn offer(
         bootstrap: Option<&WebRtcBootstrapConfiguration>,
         now_millis: u64,
@@ -287,6 +294,75 @@ impl NativeWebRtcEndpoint {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_core::{
+        bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId,
+        HostId, KindId, LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope,
+        LineSecurity, LineTrafficShape, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
+        PROTOCOL_VERSION,
+    };
+    use conduit_wire::{
+        LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionRole,
+    };
+
+    fn binding() -> SessionBinding {
+        let plan_id = PlanId::from("plan/native-webrtc-proof");
+        let source_host = HostId::from("host/native-webrtc-source");
+        let source_boot = BootId::from("boot/native-webrtc-source/1");
+        let sink_host = HostId::from("host/native-webrtc-sink");
+        let sink_boot = BootId::from("boot/native-webrtc-sink/1");
+        SessionBinding {
+            protocol_version: PROTOCOL_VERSION,
+            plan_id: plan_id.clone(),
+            source_fragment_id: FragmentId::from("fragment/native-webrtc-source"),
+            sink_fragment_id: FragmentId::from("fragment/native-webrtc-sink"),
+            source_active_play_id: bind_active_play(&plan_id, &source_host, &source_boot, 0)
+                .active_play_id,
+            sink_active_play_id: bind_active_play(&plan_id, &sink_host, &sink_boot, 0)
+                .active_play_id,
+            connection_id: ConnectionId::from("connection/native-webrtc-proof"),
+            source: SessionEndpointIdentity {
+                host_id: source_host.clone(),
+                boot_id: source_boot.clone(),
+            },
+            sink: SessionEndpointIdentity {
+                host_id: sink_host.clone(),
+                boot_id: sink_boot.clone(),
+            },
+            value_kind: KindId::from("value/native-webrtc-proof@1"),
+            limits: SessionLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: 256,
+                maximum_buffered_bytes: 256,
+            },
+            attachment: LineAttachment {
+                line_id: LineId::from("line/native-webrtc-proof"),
+                link_binding_id: LinkBindingId::from("binding/native-webrtc-proof"),
+                base: BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
+                contract: LineContract {
+                    scope: LineScope::PointToPoint,
+                    traffic_shape: LineTrafficShape::Message,
+                    duplex: LineDuplex::FullDuplex,
+                    ordering: LineOrdering::Ordered,
+                    reliability: LineReliability::Reliable,
+                    continuation: conduit_core::LineContinuation::None,
+                    security: LineSecurity::AuthenticatedEncrypted,
+                },
+                base_instance_id: BaseInstanceId::from("base/native-webrtc-proof"),
+                source_host_id: source_host,
+                source_boot_id: source_boot,
+                source_endpoint_id: LinkEndpointId::from("endpoint/native-webrtc-source"),
+                sink_host_id: sink_host,
+                sink_boot_id: sink_boot,
+                sink_endpoint_id: LinkEndpointId::from("endpoint/native-webrtc-sink"),
+                limits: LinkLimits {
+                    maximum_in_flight_items: 1,
+                    maximum_payload_bytes: 256,
+                    maximum_buffered_bytes: 256,
+                    maximum_frame_bytes: 1_024,
+                },
+            },
+        }
+    }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn native_peers_open_one_bounded_direct_data_channel() {
@@ -314,5 +390,40 @@ mod tests {
         );
         offer.endpoint.close().await.unwrap();
         answer.endpoint.close().await.unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn native_datachannel_carries_the_exact_planned_session_contract() {
+        let timeout = Duration::from_secs(10);
+        let mut offer = NativeWebRtcEndpoint::offer(None, 0, timeout).await.unwrap();
+        let mut answer = NativeWebRtcEndpoint::answer(None, 0, timeout, offer.sdp)
+            .await
+            .unwrap();
+        offer.endpoint.accept_answer(answer.sdp).await.unwrap();
+        let (offer_open, answer_open) =
+            tokio::join!(offer.endpoint.await_open(), answer.endpoint.await_open());
+        offer_open.unwrap();
+        answer_open.unwrap();
+        let exact_binding = binding();
+        let mut source =
+            NativeWebRtcSession::new(offer.endpoint, exact_binding.clone(), SessionRole::Source)
+                .unwrap();
+        let mut sink =
+            NativeWebRtcSession::new(answer.endpoint, exact_binding, SessionRole::Sink).unwrap();
+        let (source_ready, sink_ready) = tokio::join!(source.handshake(), sink.handshake());
+        source_ready.unwrap();
+        sink_ready.unwrap();
+        let mut received = [0_u8; 64];
+        let (offered, delivered) = tokio::join!(
+            source.offer_and_wait_delivery(b"planned Cord value"),
+            sink.receive_and_deliver(&mut received)
+        );
+        assert_eq!(offered.unwrap(), 0);
+        let (sequence, length) = delivered.unwrap();
+        assert_eq!(sequence, 0);
+        assert_eq!(&received[..length], b"planned Cord value");
+        let (source_finished, sink_finished) = tokio::join!(source.finish(), sink.finish());
+        source_finished.unwrap();
+        sink_finished.unwrap();
     }
 }
