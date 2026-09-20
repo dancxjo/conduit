@@ -146,6 +146,17 @@ pub(super) fn execute_proof(
     )
 }
 
+pub(super) fn execute_emergency_halt(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    execute_with_features(
+        ConduitosArch::X86_64,
+        opts,
+        &["native-compositor", "emergency-halt-proof"],
+        None,
+        ArtifactRole::ArchitectureProofAppliance,
+        None,
+    )
+}
+
 fn execute_embedded_profile(
     arch: ConduitosArch,
     source: &str,

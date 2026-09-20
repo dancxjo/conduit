@@ -783,7 +783,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
         &packages,
     )
     .unwrap();
-    assert_eq!(xhci.conduitos_x86_proofs.len(), 8);
+    assert_eq!(xhci.conduitos_x86_proofs.len(), 9);
     assert!(xhci.conduitos_x86_proofs.contains(&"xhci".to_owned()));
     assert!(xhci
         .conduitos_x86_proofs
@@ -817,7 +817,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
         &packages,
     )
     .unwrap();
-    assert_eq!(common.conduitos_x86_proofs.len(), 8);
+    assert_eq!(common.conduitos_x86_proofs.len(), 9);
     assert_eq!(common.conduitos_architectures.len(), 4);
     assert!(common.conduitos_aarch64_product_required);
 }

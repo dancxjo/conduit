@@ -41,29 +41,39 @@ mod scripted_startup;
 extern "C" fn conduitos_start() -> ! {
     match boot::normalize_boot() {
         Ok(record) => {
-            #[cfg(feature = "virtio-net-proof")]
-            run_virtio_net_proof(&record);
-            #[cfg(not(feature = "virtio-net-proof"))]
+            #[cfg(feature = "emergency-halt-proof")]
             {
-                #[cfg(feature = "conduitos-isolation-proof")]
-                run_isolation_proof(&record);
-                let fabrication = &conduitos::fabrication::EMBEDDED_FABRICATION;
-                if let Err(error) = fabrication.validate(record.runtime_arena.length) {
-                    emit_machine_refusal(error.as_str());
-                }
-                initialize_runtime_arena(&record);
-                #[cfg(feature = "native-compositor")]
-                graphical_startup::run(record);
-                #[cfg(not(feature = "native-compositor"))]
+                let _ = record;
+                arch::early_write(b"CONDUIT_EMERGENCY_HALT_SIGN {\"schema\":\"conduit.conduitos/emergency-halt@1\",\"status\":\"requested\",\"proof_class\":\"freestanding-emulator\",\"authority\":\"proof-appliance\",\"operation\":\"conduitos.machine/halt@1\"}\n");
+                arch::emergency_halt();
+            }
+            #[cfg(not(feature = "emergency-halt-proof"))]
+            {
+                #[cfg(feature = "virtio-net-proof")]
+                run_virtio_net_proof(&record);
+                #[cfg(not(feature = "virtio-net-proof"))]
                 {
-                    let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
-                    let identities = conduitos::identity::derive(
-                        entropy,
-                        record.timestamp,
-                        record.image_physical_start,
-                    );
-                    inspect_spore_provision(&record, identities);
-                    headless_startup::run(record);
+                    #[cfg(feature = "conduitos-isolation-proof")]
+                    run_isolation_proof(&record);
+                    let fabrication = &conduitos::fabrication::EMBEDDED_FABRICATION;
+                    if let Err(error) = fabrication.validate(record.runtime_arena.length) {
+                        emit_machine_refusal(error.as_str());
+                    }
+                    initialize_runtime_arena(&record);
+                    #[cfg(feature = "native-compositor")]
+                    graphical_startup::run(record);
+                    #[cfg(not(feature = "native-compositor"))]
+                    {
+                        let entropy =
+                            arch::boot_entropy(record.timestamp, record.image_physical_start);
+                        let identities = conduitos::identity::derive(
+                            entropy,
+                            record.timestamp,
+                            record.image_physical_start,
+                        );
+                        inspect_spore_provision(&record, identities);
+                        headless_startup::run(record);
+                    }
                 }
             }
         }
