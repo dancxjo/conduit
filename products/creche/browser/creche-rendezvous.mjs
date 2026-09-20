@@ -202,12 +202,48 @@ export async function connectRendezvousHost(code, {
             bodyContextInstalled = true;
             return Object.freeze(installed);
           },
+          async observeLocalModelPool(realization) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            requirePoolRealization(realization, descriptor.advertisement);
+            await send(line, { kind: "observe-local-model-pool", protocol: PROTOCOL, realization });
+            const observed = await receive(line, signal);
+            requirePoolObservation(observed, realization);
+            return Object.freeze(observed.observation);
+          },
           async prepareRemote(plan) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
             if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
             if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current Body conversation context");
             if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
             await send(line, { kind: "prepare-remote", protocol: PROTOCOL, plan });
+            const prepared = await receive(line, signal);
+            requireRemotePrepared(prepared, descriptor.advertisement);
+            remotePrepared = true;
+            return Object.freeze(prepared);
+          },
+          async preparePoolMember({ plan, selection, consumerPlacementId }) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current Body conversation context");
+            if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
+            if (!plan || selection?.plan_id !== plan.plan_id
+              || selection?.disposition !== "Selected"
+              || !Number.isSafeInteger(selection?.selected_realization)
+              || selection.selected_realization < 0
+              || !boundedIdentity(selection?.pool_id)
+              || !boundedIdentity(selection?.operation_id)
+              || !boundedIdentity(selection?.sign_id)
+              || !Array.isArray(selection?.observation_sign_ids)
+              || selection.observation_sign_ids.length < 1
+              || selection.observation_sign_ids.some((identity) => !boundedIdentity(identity))
+              || !boundedIdentity(consumerPlacementId)) {
+              refuse("PoolMemberSelection", "pool member preparation lost exact bounded selection truth");
+            }
+            await send(line, {
+              kind: "prepare-pool-member", protocol: PROTOCOL, plan, selection,
+              consumer_placement_id: consumerPlacementId,
+            });
             const prepared = await receive(line, signal);
             requireRemotePrepared(prepared, descriptor.advertisement);
             remotePrepared = true;
@@ -299,6 +335,50 @@ function requireRemotePrepared(prepared, advertisement) {
       || frame[0] !== 0x43 || frame[1] !== 0x4e || frame[2] !== 0x44 || frame[3] !== 0x53
       || frame.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255))) {
     refuse("RemotePreparation", "joined Host returned malformed or stale remote Play truth");
+  }
+}
+
+function requirePoolRealization(realization, advertisement) {
+  const generation = advertisement.offer_generation?.[0] ?? advertisement.offer_generation;
+  if (!realization || realization.host_id !== advertisement.host_id
+    || realization.boot_id !== advertisement.boot_id
+    || realization.offer_generation !== generation
+    || !boundedIdentity(realization.capability_id)
+    || !boundedIdentity(realization.implementation_id)
+    || !boundedIdentity(realization.artifact_id)
+    || !Number.isSafeInteger(realization.member_capacity) || realization.member_capacity < 1
+    || !Array.isArray(realization.resources) || realization.resources.length > 32
+    || realization.resources.some((binding) => !boundedIdentity(binding?.pool_id)
+      || !boundedIdentity(binding?.class_id) || !Number.isSafeInteger(binding?.units)
+      || binding.units < 1)) {
+    refuse("PoolRealization", "model-pool realization is malformed or stale for this Host");
+  }
+}
+
+function requirePoolObservation(value, realization) {
+  const observation = value?.observation;
+  if (value?.kind !== "local-model-pool-observed" || value.protocol !== PROTOCOL
+    || !observation || observation.host_id !== realization.host_id
+    || observation.boot_id !== realization.boot_id
+    || observation.offer_generation !== realization.offer_generation
+    || observation.capability_id !== realization.capability_id
+    || observation.implementation_id !== realization.implementation_id
+    || observation.artifact_id !== realization.artifact_id
+    || !["Ready", "Unavailable"].includes(observation.health)
+    || !boundedIdentity(observation.sign_id)
+    || !Array.isArray(observation.resources)
+    || observation.resources.length !== realization.resources.length
+    || observation.resources.some((resource, index) => {
+      const binding = realization.resources[index];
+      return resource?.host_id !== realization.host_id || resource.boot_id !== realization.boot_id
+        || resource.offer_generation !== realization.offer_generation
+        || resource.pool_id !== binding.pool_id || resource.class_id !== binding.class_id
+        || !["Ready", "Unavailable"].includes(resource.health)
+        || !Number.isSafeInteger(resource.unreserved_units) || resource.unreserved_units < 0
+        || !Number.isSafeInteger(resource.utilized_units) || resource.utilized_units < 0
+        || !boundedIdentity(resource.sign_id);
+    })) {
+    refuse("PoolObservation", "joined Host returned malformed or stale model-pool truth");
   }
 }
 

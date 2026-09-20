@@ -6,7 +6,7 @@
 use crate::installed_std::state_storage_profile;
 use conduit_core::{
     resource_binding_satisfies, HostAdvertisement, PlanFragment, PlanId, ResourceBinding,
-    ResourceClassId, ResourcePoolId, PROTOCOL_VERSION,
+    ResourceClassId, ResourceHealth, ResourceObservation, ResourcePoolId, SignId, PROTOCOL_VERSION,
 };
 use conduit_plan_lowering::lowering::lower_plan_fragment_for_profile;
 
@@ -73,6 +73,91 @@ impl KernelResourceLedger {
         fragment: &PlanFragment,
     ) -> Result<KernelResourceReservation, String> {
         self.prepare_and_reserve_with_continuity(advertisement, fragment, false)
+    }
+
+    /// Reserve one dynamic shared-pool member through the same capability and
+    /// resource ledger as static placements. The Plan has already sealed the
+    /// exact binding vector; this boundary revalidates it against the current
+    /// capability requirements and commits atomically.
+    pub(super) fn reserve_pool_member(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        plan_id: PlanId,
+        capability_id: &conduit_core::CapabilityId,
+        bindings: &[ResourceBinding],
+    ) -> Result<KernelResourceReservation, String> {
+        let capability = advertisement
+            .capabilities
+            .iter()
+            .find(|offer| &offer.capability_id == capability_id)
+            .ok_or_else(|| "pool member capability is no longer offered".to_string())?;
+        if bindings.len() != capability.resource_requirements.len() {
+            return Err("pool member resource binding width changed".into());
+        }
+        for requirement in &capability.resource_requirements {
+            let matches = bindings
+                .iter()
+                .filter(|binding| binding.class_id == requirement.class_id)
+                .collect::<Vec<_>>();
+            if matches.len() != 1 {
+                return Err("pool member resource requirement is not bound exactly once".into());
+            }
+            let binding = matches[0];
+            let offer = advertisement
+                .resources
+                .iter()
+                .find(|offer| {
+                    offer.pool_id == binding.pool_id && offer.class_id == binding.class_id
+                })
+                .ok_or_else(|| "pool member resource binding is no longer offered".to_string())?;
+            if !resource_binding_satisfies(binding, requirement, offer) {
+                return Err(
+                    "pool member resource binding no longer satisfies its capability".into(),
+                );
+            }
+        }
+
+        let mut staged = self.clone();
+        let (_, used) = staged
+            .instances
+            .iter_mut()
+            .find(|(id, _)| id == capability_id)
+            .ok_or_else(|| {
+                "pool member capability is absent from the initialized ledger".to_string()
+            })?;
+        *used = used
+            .checked_add(1)
+            .filter(|total| *total <= capability.limits.max_active_instances)
+            .ok_or_else(|| "pool member active-instance capacity is unavailable".to_string())?;
+        for pool in &mut staged.pools {
+            let requested = requested_units(bindings, &pool.pool_id, &pool.class_id)?;
+            pool.used_units = pool
+                .used_units
+                .checked_add(requested)
+                .filter(|total| *total <= pool.capacity_units)
+                .ok_or_else(|| {
+                    format!(
+                        "pool member resource '{}' capacity is unavailable",
+                        pool.pool_id.as_str()
+                    )
+                })?;
+        }
+        if bindings.iter().any(|binding| {
+            !staged
+                .pools
+                .iter()
+                .any(|pool| pool.pool_id == binding.pool_id && pool.class_id == binding.class_id)
+        }) {
+            return Err(
+                "pool member resource binding is absent from the initialized ledger".into(),
+            );
+        }
+        *self = staged;
+        Ok(KernelResourceReservation {
+            plan_id,
+            bindings: bindings.to_vec(),
+            instances: vec![(capability_id.clone(), 1)],
+        })
     }
 
     pub(super) fn prepare_and_reserve_with_continuity(
@@ -249,6 +334,47 @@ impl KernelResourceLedger {
             })?;
         }
         Ok(())
+    }
+
+    pub(super) fn observe_bindings(
+        &self,
+        advertisement: &HostAdvertisement,
+        bindings: &[ResourceBinding],
+        sign_ids: &[SignId],
+    ) -> Result<Vec<ResourceObservation>, String> {
+        if bindings.len() != sign_ids.len() {
+            return Err(
+                "resource observation Sign width does not match the sealed bindings".into(),
+            );
+        }
+        let mut observations = Vec::with_capacity(bindings.len());
+        for (binding, sign_id) in bindings.iter().zip(sign_ids) {
+            if sign_id.as_str().is_empty() {
+                return Err("resource observation Sign identity is empty".into());
+            }
+            let pool = self
+                .pools
+                .iter()
+                .find(|pool| pool.pool_id == binding.pool_id && pool.class_id == binding.class_id)
+                .ok_or_else(|| {
+                    format!(
+                        "sealed resource pool '{}' is absent from the current Host ledger",
+                        binding.pool_id.as_str()
+                    )
+                })?;
+            observations.push(ResourceObservation {
+                host_id: advertisement.host_id.clone(),
+                boot_id: advertisement.boot_id.clone(),
+                offer_generation: advertisement.offer_generation,
+                pool_id: pool.pool_id.clone(),
+                class_id: pool.class_id.clone(),
+                health: ResourceHealth::Ready,
+                unreserved_units: pool.capacity_units - pool.used_units,
+                utilized_units: pool.used_units,
+                sign_id: sign_id.clone(),
+            });
+        }
+        Ok(observations)
     }
 
     #[cfg(test)]
@@ -436,5 +562,55 @@ mod tests {
             .prepare_and_reserve(&host, &wrong_pool.fragments[0])
             .expect_err("resealed resource-pool lie must fail before reservation");
         assert!(error.contains("not offered"), "{error}");
+    }
+
+    #[test]
+    fn pool_member_reservation_is_atomic_and_releases_exact_capacity() {
+        let host = advertisement(
+            HostId::from("pool-resource-host"),
+            BootId::from("pool-resource-boot"),
+            OfferGeneration(1),
+        );
+        let form = parse(
+            include_str!("../../../proof/fixtures/forms/kernel-multivalue.conduit"),
+            &profile_catalog(),
+        )
+        .expect("multi-value form parses");
+        let plan = plan_local(&form, &host).expect("multi-value plan resolves");
+        let placement = &plan.fragments[0].placements[0];
+        let mut ledger = KernelResourceLedger::new(&host).expect("ledger installs");
+
+        let first = ledger
+            .reserve_pool_member(
+                &host,
+                plan.plan_id.clone(),
+                &placement.capability_id,
+                &placement.resources,
+            )
+            .expect("selected member reserves its exact capability and resources");
+        let overlap = ledger
+            .reserve_pool_member(
+                &host,
+                plan.plan_id.clone(),
+                &placement.capability_id,
+                &placement.resources,
+            )
+            .expect_err("a second member cannot exceed exact capacity");
+        assert!(overlap.contains("active-instance capacity"), "{overlap}");
+
+        ledger
+            .release(first)
+            .expect("member release restores capacity");
+        let replacement = ledger
+            .reserve_pool_member(
+                &host,
+                plan.plan_id.clone(),
+                &placement.capability_id,
+                &placement.resources,
+            )
+            .expect("released capacity admits a later operation");
+        ledger
+            .release(replacement)
+            .expect("replacement release restores capacity");
     }
 }

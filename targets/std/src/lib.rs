@@ -113,6 +113,8 @@ pub use isolated_http_base::provider_main as isolated_http_provider_main;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
+mod local_model_observation;
+mod local_model_pool_member;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
 #[cfg(feature = "local-model-proof")]
@@ -130,12 +132,15 @@ pub mod pico_control_source;
 pub mod pico_spawn;
 pub mod pico_usb_source;
 pub mod pico_wifi_bootstrap;
+pub mod pool_member_sessions;
+pub use local_model_pool_member::AdmittedLocalModelPoolMember;
 pub mod pool_webchat;
 pub mod r1_control;
 pub mod r1_control_input;
 pub mod reaction_diffusion;
 pub mod remote_cord_sessions;
 pub mod ros2_base;
+pub use conduit_plan_lowering::shared_pool_runtime;
 pub use reaction_diffusion::*;
 pub mod secure_websocket;
 pub mod sound_recovery;
@@ -647,6 +652,14 @@ impl StdHost {
                 .capability_offers()
                 .map_err(|error| format!("local-model capabilities: {error:?}"))?,
         );
+        if offer
+            .supported_profiles
+            .contains(&conduit_ai::LocalModelKindProfile::Generate)
+        {
+            advertisement
+                .capabilities
+                .push(hosted_local_model::generate_text_capability_offer(offer)?);
+        }
         advertisement
             .capabilities
             .push(conduit_std_offers::house_prompt_std_offer());

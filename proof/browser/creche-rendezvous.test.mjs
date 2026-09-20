@@ -96,6 +96,22 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
   assert.equal(retained.body_id, credential.body_id);
   assert.equal(retained.part_id, credential.part_id);
   await assert.rejects(() => join.line.retainMembership(credential), { code: "Replay" });
+  const realization = {
+    host_id: "host/test", boot_id: "boot/test", offer_generation: 1,
+    capability_id: "capability/model/generate", implementation_id: "std/local-model@1",
+    artifact_id: "model/sha256-fixture", member_capacity: 1,
+    resources: [{
+      pool_id: "std/local-model-inference-slots", class_id: "ai/local-model-inference-slot",
+      units: 1,
+    }],
+  };
+  const observation = await join.line.observeLocalModelPool(realization);
+  assert.equal(observation.health, "Ready");
+  assert.equal(observation.host_id, realization.host_id);
+  assert.equal(observation.resources[0].unreserved_units, 1);
+  await assert.rejects(() => join.line.observeLocalModelPool({
+    ...realization, boot_id: "boot/stale",
+  }), { code: "PoolRealization" });
   await assert.rejects(() => join.line.prepareRemote({ plan_id: "plan/too-early" }), { code: "BodyContextAbsent" });
   const context = {
     schema: "conduit.body/conversation-context-value@2",
@@ -114,6 +130,23 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
   const installed = await join.line.installBodyContext(context);
   assert.equal(installed.body_id, context.body_id);
   assert.equal(installed.basis_revision, context.basis.revision);
+  await assert.rejects(() => join.line.preparePoolMember({
+    plan: { plan_id: "plan/retained" },
+    selection: { plan_id: "plan/retained", disposition: "CapacityRefused" },
+    consumerPlacementId: "placement/client",
+  }), { code: "PoolMemberSelection" });
+  const poolPrepared = await join.line.preparePoolMember({
+    plan: { plan_id: "plan/pool" },
+    selection: {
+      plan_id: "plan/pool", pool_id: "pool/workers", operation_id: "request/1",
+      selected_realization: 0, observation_sign_ids: ["sign/provider/1"],
+      disposition: "Selected", sign_id: "sign/selection/1",
+    },
+    consumerPlacementId: "placement/client",
+  });
+  assert.equal(poolPrepared.identity.plan_id, "plan/pool");
+  assert.equal(FakeWebSocket.last.sent.at(-1).kind, "prepare-pool-member");
+  await join.line.releaseRemote();
   const remote = await join.line.prepareRemote({ plan_id: "plan/retained" });
   assert.equal(remote.identity.host_id, "host/test");
   assert.equal(remote.identity.boot_id, "boot/test");
@@ -187,7 +220,23 @@ class FakeWebSocket extends EventTarget {
     } : request.kind === "body-context" ? {
       kind: "body-context-installed", protocol: 1,
       body_id: request.context.body_id, basis_revision: request.context.basis.revision,
-    } : request.kind === "prepare-remote" ? {
+    } : request.kind === "observe-local-model-pool" ? {
+      kind: "local-model-pool-observed", protocol: 1,
+      observation: {
+        host_id: request.realization.host_id, boot_id: request.realization.boot_id,
+        offer_generation: request.realization.offer_generation,
+        capability_id: request.realization.capability_id,
+        implementation_id: request.realization.implementation_id,
+        artifact_id: request.realization.artifact_id,
+        health: "Ready", sign_id: "sign/provider/current",
+        resources: request.realization.resources.map((binding, index) => ({
+          host_id: request.realization.host_id, boot_id: request.realization.boot_id,
+          offer_generation: request.realization.offer_generation,
+          pool_id: binding.pool_id, class_id: binding.class_id, health: "Ready",
+          unreserved_units: 1, utilized_units: 0, sign_id: `sign/resource/${index}`,
+        })),
+      },
+    } : request.kind === "prepare-remote" || request.kind === "prepare-pool-member" ? {
       kind: "remote-prepared", protocol: 1,
       identity: {
         host_id: advertisement.host_id, boot_id: advertisement.boot_id,

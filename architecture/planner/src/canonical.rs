@@ -4,10 +4,11 @@ use crate::{
     plan_validated_form_with_connection_limits, ConnectionEndpoints, ConnectionQueueLimits,
     PlacementChoices, PlannerError, PlanningOptions,
 };
-use alloc::collections::BTreeMap;
+use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement, Plan, PlannedSharedPool,
-    PoolMemberLimits, PoolRealizationEnvelope, ResourceBinding, SharedPoolId,
+    AdmittedLine, AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement,
+    LineAvailability, Plan, PlannedGear, PlannedSharedPool, PoolMemberLimits,
+    PoolRealizationEnvelope, ResourceBinding, SharedPoolId, SharedPoolSelectionPolicy,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
@@ -108,6 +109,7 @@ fn plan_default_candidate(
 pub struct SharedPoolPlanningRequirement {
     pub member_limits: PoolMemberLimits,
     pub admission_authority: AuthorityGrant,
+    pub member_sessions_required: bool,
 }
 
 pub fn default_expanded_placements(
@@ -269,6 +271,17 @@ pub fn plan_expanded_canonical_with_shared_pools(
         }
     }
 
+    let placement_lookup = plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .map(|placement| (placement.gear_id.clone(), placement.placement_id.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let planned_gears = plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .collect::<Vec<_>>();
     let mut planned_pools = Vec::with_capacity(form.shared_pools.len());
     for pool in &form.shared_pools {
         let requirement = requirements.get(&pool.pool_id).ok_or_else(|| {
@@ -286,11 +299,6 @@ pub fn plan_expanded_canonical_with_shared_pools(
         }
         let mut candidates = hosts
             .iter()
-            .filter(|host| {
-                plan.fragments.iter().any(|fragment| {
-                    fragment.host_id == host.host_id && fragment.boot_id == host.boot_id
-                })
-            })
             .flat_map(|host| {
                 host.capabilities
                     .iter()
@@ -315,7 +323,7 @@ pub fn plan_expanded_canonical_with_shared_pools(
                 continue;
             }
             let mut member_capacity = capability.limits.max_active_instances.min(needed);
-            let mut resources = Vec::new();
+            let mut matched_resources = Vec::new();
             for resource in &capability.resource_requirements {
                 if resource.units == 0
                     || resource.protected_role.is_some()
@@ -343,17 +351,40 @@ pub fn plan_expanded_canonical_with_shared_pools(
                     .copied()
                     .unwrap_or(0);
                 member_capacity = member_capacity.min((available / resource.units) as u16);
+                matched_resources.push((resource, offer, available));
+            }
+            if member_capacity == 0 {
+                continue;
+            }
+            let mut resources = Vec::with_capacity(matched_resources.len());
+            for (requirement, offer, available) in matched_resources {
+                let compute = requirement
+                    .compute
+                    .as_ref()
+                    .map(|_| {
+                        conduit_core::compute_reservation(
+                            requirement,
+                            offer,
+                            available / u32::from(member_capacity),
+                        )
+                        .ok_or_else(|| {
+                            PlannerError::InvalidSharedPool(format!(
+                            "dynamic member capability '{}' has an unsatisfied compute contract",
+                            capability.capability_id.as_str()
+                        ))
+                        })
+                    })
+                    .transpose()?;
                 resources.push(ResourceBinding {
                     content: None,
                     pool_id: offer.pool_id.clone(),
                     class_id: offer.class_id.clone(),
-                    units: resource.units,
+                    units: compute
+                        .as_ref()
+                        .map_or(requirement.units, |reservation| reservation.selected_lanes),
                     protected: None,
-                    compute: None,
+                    compute,
                 });
-            }
-            if member_capacity == 0 {
-                continue;
             }
             for resource in &resources {
                 let reserved = resource
@@ -369,12 +400,45 @@ pub fn plan_expanded_canonical_with_shared_pools(
                     .expect("resolved pool remains in accounting");
                 *available -= reserved;
             }
+            let consumers = pool
+                .consumers
+                .iter()
+                .map(|gear| {
+                    let placement_id = placement_lookup.get(gear).ok_or_else(|| {
+                        PlannerError::InvalidSharedPool(format!(
+                            "shared pool consumer '{}' has no exact placement",
+                            gear.as_str()
+                        ))
+                    })?;
+                    planned_gears
+                        .iter()
+                        .copied()
+                        .find(|placement| &placement.placement_id == placement_id)
+                        .ok_or_else(|| {
+                            PlannerError::InvalidSharedPool(
+                                "shared pool consumer placement disappeared".into(),
+                            )
+                        })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let admitted_lines = pool_member_lines(
+                host,
+                &pool.member_front,
+                &consumers,
+                bases,
+                options,
+                requirement,
+            )?;
             realization_envelope.push(PoolRealizationEnvelope {
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
+                offer_generation: host.offer_generation,
                 capability_id: capability.capability_id.clone(),
+                implementation_id: capability.implementation.implementation_id.clone(),
+                artifact_id: capability.implementation.artifact_id.clone(),
                 member_capacity,
                 resources,
+                admitted_lines,
             });
             needed -= member_capacity;
         }
@@ -385,12 +449,6 @@ pub fn plan_expanded_canonical_with_shared_pools(
                 pool.maximum_members
             )));
         }
-        let placement_lookup = plan
-            .fragments
-            .iter()
-            .flat_map(|fragment| &fragment.placements)
-            .map(|placement| (placement.gear_id.clone(), placement.placement_id.clone()))
-            .collect::<BTreeMap<_, _>>();
         let consumers = pool
             .consumers
             .iter()
@@ -409,7 +467,10 @@ pub fn plan_expanded_canonical_with_shared_pools(
             member_front: pool.member_front.clone(),
             maximum_members: pool.maximum_members,
             member_limits: requirement.member_limits,
+            member_sessions_required: requirement.member_sessions_required,
             realization_envelope,
+            selection_policy:
+                SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder,
             admission_authority: requirement.admission_authority.grant_id.clone(),
             consumers,
         };
@@ -421,6 +482,68 @@ pub fn plan_expanded_canonical_with_shared_pools(
         })?;
         planned_pools.push(planned);
     }
+    for pool in &planned_pools {
+        if !pool.member_sessions_required {
+            continue;
+        }
+        for realization in &pool.realization_envelope {
+            if plan.fragments.iter().any(|fragment| {
+                fragment.host_id == realization.host_id && fragment.boot_id == realization.boot_id
+            }) {
+                continue;
+            }
+            let host = hosts
+                .iter()
+                .find(|host| {
+                    host.host_id == realization.host_id
+                        && host.boot_id == realization.boot_id
+                        && host.offer_generation == realization.offer_generation
+                })
+                .ok_or_else(|| {
+                    PlannerError::InvalidSharedPool(
+                        "shared pool realization Host disappeared before fragment sealing".into(),
+                    )
+                })?;
+            let expected_sign = vec![
+                conduit_core::ExpectedSign::PlanFragmentReceived,
+                conduit_core::ExpectedSign::PlanTerminal,
+            ];
+            let sign_storage_budget =
+                conduit_core::mandatory_sign_storage_requirement(&expected_sign).ok_or_else(
+                    || PlannerError::SignBudgetOverflow("shared pool participant fragment".into()),
+                )?;
+            plan.fragments.push(conduit_core::PlanFragment {
+                plan_id: conduit_core::PlanId::from(""),
+                fragment_id: conduit_core::FragmentId::from(""),
+                source_document_id: form.source_document_id.clone(),
+                checked_form_id: form.checked_form_id.clone(),
+                expanded_form_id: form.expanded_form_id.clone(),
+                completion_policy: crate::plan_completion_policy(form.completion),
+                realization_backs: form.realization_backs.clone(),
+                host_id: host.host_id.clone(),
+                boot_id: host.boot_id.clone(),
+                offer_generation: host.offer_generation,
+                placements: Vec::new(),
+                execution_regions: Vec::new(),
+                execution_fusions: Vec::new(),
+                states: Vec::new(),
+                connections: Vec::new(),
+                shared_pools: Vec::new(),
+                startup_dependencies: Vec::new(),
+                startup_order: Vec::new(),
+                cancellation_policy:
+                    conduit_core::CancellationPolicy::CancelAllAndRejectLateCompletion,
+                terminal_policy: conduit_core::TerminalPolicy::RequireAllPlacementsAndConnections,
+                expected_terminals: vec![conduit_core::ExpectedTerminal::PlanCompleted],
+                expected_sign,
+                sign_storage_budget,
+                plan_fragments: Vec::new(),
+            });
+        }
+    }
+    plan.fragments.sort_by(|left, right| {
+        (&left.host_id, &left.boot_id).cmp(&(&right.host_id, &right.boot_id))
+    });
     for fragment in &mut plan.fragments {
         fragment.shared_pools = planned_pools.clone();
     }
@@ -457,4 +580,81 @@ fn validate_pool_authority(
         ));
     }
     Ok(())
+}
+
+fn pool_member_lines(
+    member_host: &HostAdvertisement,
+    member_front: &conduit_core::CheckedFace,
+    consumers: &[&PlannedGear],
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    requirement: &SharedPoolPlanningRequirement,
+) -> Result<Vec<AdmittedLine>, PlannerError> {
+    if !requirement.member_sessions_required {
+        return Ok(Vec::new());
+    }
+
+    let mut admitted = Vec::new();
+    let mut identities = BTreeSet::new();
+    for consumer in consumers {
+        if consumer.host_id == member_host.host_id && consumer.boot_id == member_host.boot_id {
+            continue;
+        }
+        let mut directions = Vec::with_capacity(2);
+        if !member_front.inputs().is_empty() {
+            directions.push((
+                &consumer.host_id,
+                &consumer.boot_id,
+                &member_host.host_id,
+                &member_host.boot_id,
+                "consumer-to-member",
+            ));
+        }
+        if !member_front.outputs().is_empty() {
+            directions.push((
+                &member_host.host_id,
+                &member_host.boot_id,
+                &consumer.host_id,
+                &consumer.boot_id,
+                "member-to-consumer",
+            ));
+        }
+        for (source_host, source_boot, sink_host, sink_boot, direction) in directions {
+            let matches = options
+                .line_offers
+                .iter()
+                .filter(|offer| {
+                    offer.binding.source.host_id == *source_host
+                        && offer.binding.source.boot_id == *source_boot
+                        && offer.binding.sink.host_id == *sink_host
+                        && offer.binding.sink.boot_id == *sink_boot
+                        && bases.contains(&offer.binding.base)
+                        && offer.validate_sign_identity()
+                        && offer.availability.availability == LineAvailability::Ready
+                        && offer.binding.limits.maximum_in_flight_items
+                            >= requirement.member_limits.queue_item_capacity
+                        && offer.binding.limits.maximum_payload_bytes
+                            >= requirement.member_limits.queue_byte_capacity
+                        && offer.binding.limits.maximum_buffered_bytes
+                            >= requirement.member_limits.queue_byte_capacity
+                        && offer.binding.limits.maximum_frame_bytes
+                            >= offer.binding.limits.maximum_payload_bytes
+                })
+                .collect::<Vec<_>>();
+            if matches.len() != 1 {
+                return Err(PlannerError::InvalidSharedPool(format!(
+                    "shared pool member session requires one exact ready bounded {direction} Line between '{}@{}' and '{}@{}'; found {}",
+                    source_host.as_str(), source_boot.as_str(), sink_host.as_str(), sink_boot.as_str(), matches.len()
+                )));
+            }
+            let line = matches[0].admitted_line();
+            if !identities.insert((line.line_id.clone(), line.binding.binding_id.clone())) {
+                return Err(PlannerError::InvalidSharedPool(
+                    "shared pool member session repeats an admitted Line identity".into(),
+                ));
+            }
+            admitted.push(line);
+        }
+    }
+    Ok(admitted)
 }

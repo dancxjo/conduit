@@ -33,7 +33,10 @@ pub use profile::{
 };
 use remote::lower_remote_endpoints;
 use shared_pool::lower_shared_pools;
-pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
+pub use shared_pool::{
+    LoweredPoolRealization, LoweredPoolSelectionFacts, LoweredSharedPool,
+    PoolObservationLoweringError,
+};
 
 fn lower_pressure_policy(policy: conduit_core::DeliveryPressurePolicy) -> AssignedPressurePolicy {
     match policy {

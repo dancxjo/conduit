@@ -22,6 +22,7 @@ pub mod forms;
 pub mod host;
 mod host_configuration_prompt;
 pub mod light_switch;
+mod local_model_pool_receipt;
 pub mod messaging_github;
 pub mod midi;
 pub mod ollama_embodiment;
