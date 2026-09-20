@@ -1,0 +1,318 @@
+//! Native std realization of the existing bounded WebRTC DataChannel Base.
+//!
+//! Signaling and ICE configuration are supplied by the admitted rendezvous
+//! layer. This adapter owns transport lifecycle only; it grants no membership,
+//! Plan, Cord, or effect authority.
+
+use std::{sync::Arc, time::Duration};
+
+use async_trait::async_trait;
+use bytes::BytesMut;
+use tokio::{sync::mpsc, time::timeout};
+use webrtc::{
+    data_channel::{DataChannel, DataChannelEvent},
+    peer_connection::{
+        PeerConnection, PeerConnectionBuilder, PeerConnectionEventHandler, RTCConfigurationBuilder,
+        RTCIceGatheringState, RTCIceServer, RTCIceTransportPolicy, RTCSessionDescription,
+    },
+};
+
+use crate::browser_admission::{
+    WebRtcBootstrapConfiguration, WebRtcIceTransportPolicy, MAX_WEBRTC_DESCRIPTION_BYTES,
+};
+
+pub const NATIVE_WEBRTC_IMPLEMENTATION_ID: &str = "std/webrtc-datachannel@1";
+pub const MAXIMUM_NATIVE_WEBRTC_FRAME_BYTES: usize = 128 * 1024;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NativeWebRtcRefusal {
+    Bootstrap,
+    Description,
+    GatheringTimeout,
+    DataChannelTimeout,
+    DataChannelLost,
+    Pressure,
+    Transport,
+}
+
+pub struct NativeWebRtcOffer {
+    pub endpoint: NativeWebRtcEndpoint,
+    pub sdp: String,
+}
+
+pub struct NativeWebRtcAnswer {
+    pub endpoint: NativeWebRtcEndpoint,
+    pub sdp: String,
+}
+
+#[derive(Clone)]
+struct Handler {
+    gathered: mpsc::Sender<()>,
+    channels: mpsc::Sender<Arc<dyn DataChannel>>,
+}
+
+#[async_trait]
+impl PeerConnectionEventHandler for Handler {
+    async fn on_ice_gathering_state_change(&self, state: RTCIceGatheringState) {
+        if state == RTCIceGatheringState::Complete {
+            let _ = self.gathered.try_send(());
+        }
+    }
+
+    async fn on_data_channel(&self, channel: Arc<dyn DataChannel>) {
+        let _ = self.channels.try_send(channel);
+    }
+}
+
+pub struct NativeWebRtcEndpoint {
+    peer: Arc<dyn PeerConnection>,
+    channel: Option<Arc<dyn DataChannel>>,
+    gathered: mpsc::Receiver<()>,
+    channels: mpsc::Receiver<Arc<dyn DataChannel>>,
+    maximum_frame_bytes: usize,
+    operation_timeout: Duration,
+}
+
+impl NativeWebRtcEndpoint {
+    pub async fn offer(
+        bootstrap: Option<&WebRtcBootstrapConfiguration>,
+        now_millis: u64,
+        operation_timeout: Duration,
+    ) -> Result<NativeWebRtcOffer, NativeWebRtcRefusal> {
+        let mut endpoint = Self::build(bootstrap, now_millis, operation_timeout).await?;
+        let channel = endpoint
+            .peer
+            .create_data_channel("conduit-line", None)
+            .await
+            .map_err(|_| NativeWebRtcRefusal::Transport)?;
+        endpoint.channel = Some(channel);
+        let offer = endpoint
+            .peer
+            .create_offer(None)
+            .await
+            .map_err(|_| NativeWebRtcRefusal::Transport)?;
+        endpoint
+            .peer
+            .set_local_description(offer)
+            .await
+            .map_err(|_| NativeWebRtcRefusal::Transport)?;
+        let sdp = endpoint.finish_gathering().await?;
+        Ok(NativeWebRtcOffer { endpoint, sdp })
+    }
+
+    pub async fn answer(
+        bootstrap: Option<&WebRtcBootstrapConfiguration>,
+        now_millis: u64,
+        operation_timeout: Duration,
+        remote_offer_sdp: String,
+    ) -> Result<NativeWebRtcAnswer, NativeWebRtcRefusal> {
+        let mut endpoint = Self::build(bootstrap, now_millis, operation_timeout).await?;
+        let offer = RTCSessionDescription::offer(remote_offer_sdp)
+            .map_err(|_| NativeWebRtcRefusal::Description)?;
+        endpoint
+            .peer
+            .set_remote_description(offer)
+            .await
+            .map_err(|_| NativeWebRtcRefusal::Description)?;
+        let answer = endpoint
+            .peer
+            .create_answer(None)
+            .await
+            .map_err(|_| NativeWebRtcRefusal::Transport)?;
+        endpoint
+            .peer
+            .set_local_description(answer)
+            .await
+            .map_err(|_| NativeWebRtcRefusal::Transport)?;
+        let sdp = endpoint.finish_gathering().await?;
+        Ok(NativeWebRtcAnswer { endpoint, sdp })
+    }
+
+    pub async fn accept_answer(
+        &self,
+        remote_answer_sdp: String,
+    ) -> Result<(), NativeWebRtcRefusal> {
+        if remote_answer_sdp.len() > MAX_WEBRTC_DESCRIPTION_BYTES {
+            return Err(NativeWebRtcRefusal::Description);
+        }
+        let answer = RTCSessionDescription::answer(remote_answer_sdp)
+            .map_err(|_| NativeWebRtcRefusal::Description)?;
+        self.peer
+            .set_remote_description(answer)
+            .await
+            .map_err(|_| NativeWebRtcRefusal::Description)
+    }
+
+    pub async fn await_open(&mut self) -> Result<(), NativeWebRtcRefusal> {
+        if self.channel.is_none() {
+            self.channel = Some(
+                timeout(self.operation_timeout, self.channels.recv())
+                    .await
+                    .map_err(|_| NativeWebRtcRefusal::DataChannelTimeout)?
+                    .ok_or(NativeWebRtcRefusal::DataChannelLost)?,
+            );
+        }
+        let channel = self.channel.as_ref().expect("installed above");
+        loop {
+            match timeout(self.operation_timeout, channel.poll()).await {
+                Err(_) => return Err(NativeWebRtcRefusal::DataChannelTimeout),
+                Ok(Some(DataChannelEvent::OnOpen)) => return Ok(()),
+                Ok(Some(DataChannelEvent::OnError | DataChannelEvent::OnClose)) | Ok(None) => {
+                    return Err(NativeWebRtcRefusal::DataChannelLost);
+                }
+                Ok(Some(_)) => {}
+            }
+        }
+    }
+
+    pub async fn send(&self, frame: &[u8]) -> Result<(), NativeWebRtcRefusal> {
+        if frame.is_empty() || frame.len() > self.maximum_frame_bytes {
+            return Err(NativeWebRtcRefusal::Pressure);
+        }
+        self.channel
+            .as_ref()
+            .ok_or(NativeWebRtcRefusal::DataChannelLost)?
+            .send(BytesMut::from(frame))
+            .await
+            .map_err(|_| NativeWebRtcRefusal::DataChannelLost)
+    }
+
+    pub async fn receive(&self, output: &mut [u8]) -> Result<usize, NativeWebRtcRefusal> {
+        if output.is_empty() || output.len() > self.maximum_frame_bytes {
+            return Err(NativeWebRtcRefusal::Pressure);
+        }
+        let channel = self
+            .channel
+            .as_ref()
+            .ok_or(NativeWebRtcRefusal::DataChannelLost)?;
+        loop {
+            match timeout(self.operation_timeout, channel.poll()).await {
+                Err(_) => return Err(NativeWebRtcRefusal::DataChannelTimeout),
+                Ok(Some(DataChannelEvent::OnMessage(message))) => {
+                    if message.data.len() > output.len() {
+                        return Err(NativeWebRtcRefusal::Pressure);
+                    }
+                    output[..message.data.len()].copy_from_slice(&message.data);
+                    return Ok(message.data.len());
+                }
+                Ok(Some(DataChannelEvent::OnError | DataChannelEvent::OnClose)) | Ok(None) => {
+                    return Err(NativeWebRtcRefusal::DataChannelLost);
+                }
+                Ok(Some(_)) => {}
+            }
+        }
+    }
+
+    pub async fn close(&self) -> Result<(), NativeWebRtcRefusal> {
+        timeout(self.operation_timeout, self.peer.close())
+            .await
+            .map_err(|_| NativeWebRtcRefusal::DataChannelTimeout)?
+            .map_err(|_| NativeWebRtcRefusal::Transport)
+    }
+
+    async fn build(
+        bootstrap: Option<&WebRtcBootstrapConfiguration>,
+        now_millis: u64,
+        operation_timeout: Duration,
+    ) -> Result<Self, NativeWebRtcRefusal> {
+        if let Some(bootstrap) = bootstrap {
+            bootstrap
+                .validate(now_millis)
+                .map_err(|_| NativeWebRtcRefusal::Bootstrap)?;
+        }
+        if operation_timeout.is_zero() {
+            return Err(NativeWebRtcRefusal::Bootstrap);
+        }
+        let ice_servers = bootstrap
+            .map(|configuration| {
+                configuration
+                    .ice_servers
+                    .iter()
+                    .map(|server| RTCIceServer {
+                        urls: server.urls.clone(),
+                        username: server.username.clone().unwrap_or_default(),
+                        credential: server.credential.clone().unwrap_or_default(),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let mut configuration = RTCConfigurationBuilder::new().with_ice_servers(ice_servers);
+        if bootstrap.is_some_and(|configuration| {
+            configuration.transport_policy == WebRtcIceTransportPolicy::RelayOnly
+        }) {
+            configuration = configuration.with_ice_transport_policy(RTCIceTransportPolicy::Relay);
+        }
+        let (gathered_tx, gathered) = mpsc::channel(1);
+        let (channels_tx, channels) = mpsc::channel(1);
+        let peer: Arc<dyn PeerConnection> = Arc::new(
+            PeerConnectionBuilder::new()
+                .with_configuration(configuration.build())
+                .with_handler(Arc::new(Handler {
+                    gathered: gathered_tx,
+                    channels: channels_tx,
+                }))
+                .with_udp_addrs(vec!["0.0.0.0:0"])
+                .with_data_channel_send_buffer_limit(MAXIMUM_NATIVE_WEBRTC_FRAME_BYTES)
+                .build()
+                .await
+                .map_err(|_| NativeWebRtcRefusal::Transport)?,
+        );
+        Ok(Self {
+            peer,
+            channel: None,
+            gathered,
+            channels,
+            maximum_frame_bytes: MAXIMUM_NATIVE_WEBRTC_FRAME_BYTES,
+            operation_timeout,
+        })
+    }
+
+    async fn finish_gathering(&mut self) -> Result<String, NativeWebRtcRefusal> {
+        timeout(self.operation_timeout, self.gathered.recv())
+            .await
+            .map_err(|_| NativeWebRtcRefusal::GatheringTimeout)?
+            .ok_or(NativeWebRtcRefusal::Transport)?;
+        let description = self
+            .peer
+            .local_description()
+            .await
+            .ok_or(NativeWebRtcRefusal::Description)?;
+        if description.sdp.is_empty() || description.sdp.len() > MAX_WEBRTC_DESCRIPTION_BYTES {
+            return Err(NativeWebRtcRefusal::Description);
+        }
+        Ok(description.sdp)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn native_peers_open_one_bounded_direct_data_channel() {
+        let timeout = Duration::from_secs(10);
+        let mut offer = NativeWebRtcEndpoint::offer(None, 0, timeout).await.unwrap();
+        let mut answer = NativeWebRtcEndpoint::answer(None, 0, timeout, offer.sdp)
+            .await
+            .unwrap();
+        offer.endpoint.accept_answer(answer.sdp).await.unwrap();
+        let (offer_open, answer_open) =
+            tokio::join!(offer.endpoint.await_open(), answer.endpoint.await_open());
+        offer_open.unwrap();
+        answer_open.unwrap();
+
+        offer.endpoint.send(b"ordinary Cord value").await.unwrap();
+        let mut output = [0_u8; 64];
+        let length = answer.endpoint.receive(&mut output).await.unwrap();
+        assert_eq!(&output[..length], b"ordinary Cord value");
+        assert_eq!(
+            offer
+                .endpoint
+                .send(&[0; MAXIMUM_NATIVE_WEBRTC_FRAME_BYTES + 1])
+                .await,
+            Err(NativeWebRtcRefusal::Pressure)
+        );
+        offer.endpoint.close().await.unwrap();
+        answer.endpoint.close().await.unwrap();
+    }
+}

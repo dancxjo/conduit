@@ -1,6 +1,6 @@
 //! Atomic admission of Body-owned planned session grants.
 
-use conduit_wire::{SessionBinding, encode_session_frame_into};
+use conduit_wire::{encode_session_frame_into, SessionBinding};
 
 use super::{
     BrowserWebRtcGrant, BrowserWebRtcRendezvous, BrowserWebRtcRendezvousRefusal, BrowserWebRtcRole,
