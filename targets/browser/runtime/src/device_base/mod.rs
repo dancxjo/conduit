@@ -1,9 +1,13 @@
 //! Finite browser device-Base admission. Browser APIs remain in the Host adapter.
 
+use std::{format, vec, vec::Vec};
+
 use conduit_core::{
-    AuthorityContractId, AuthorityGrantId, BaseImplementationId, BaseInstanceId, BootId,
-    CapabilityId, DeviceAssociation, HostId, HostOperationContractId, HostOperationId,
-    OfferGeneration, PlanId, ResourceClassId, ResourceHandleId,
+    resource_offer, AuthorityContractId, AuthorityGrantId, BaseEnforcementClass,
+    BaseImplementationId, BaseInstanceId, BaseLifecycle, BaseProviderEntry, BaseRegistry,
+    BaseRegistryLimits, BaseRegistryRefusal, BootId, CapabilityId, DeviceAssociation,
+    HostAdvertisement, HostBaseId, HostBaseKindId, HostId, HostOperationContractId,
+    HostOperationId, OfferGeneration, PlanId, ResourceClassId, ResourceHandleId,
 };
 
 mod abi;
@@ -104,6 +108,7 @@ pub(crate) struct AcquiredSerialResource {
     pub(crate) class_id: ResourceClassId,
     pub(crate) base_implementation_id: BaseImplementationId,
     pub(crate) base_instance_id: BaseInstanceId,
+    pub(crate) provider_generation: u64,
     pub(crate) configuration: SerialConfiguration,
     pub(crate) transfer_bounds: SerialTransferBounds,
     pub(crate) use_authority_contract: AuthorityContractId,
@@ -130,6 +135,7 @@ pub(crate) struct SerialUseRequirement {
     pub(crate) class_id: ResourceClassId,
     pub(crate) base_implementation_id: BaseImplementationId,
     pub(crate) base_instance_id: BaseInstanceId,
+    pub(crate) provider_generation: u64,
     pub(crate) transfer_bounds: SerialTransferBounds,
 }
 
@@ -210,10 +216,11 @@ pub(crate) struct BrowserSerialSession {
     admitted_reads: u16,
     admitted_writes: u16,
     admitted_signal_operations: u16,
+    registry: BaseRegistry,
 }
 
 impl BrowserSerialSession {
-    pub(crate) const fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             phase: BrowserSerialPhase::OfferAvailable,
             expected_operation: None,
@@ -224,6 +231,14 @@ impl BrowserSerialSession {
             admitted_reads: 0,
             admitted_writes: 0,
             admitted_signal_operations: 0,
+            registry: BaseRegistry::new(BaseRegistryLimits {
+                maximum_bases: 1,
+                maximum_capabilities_per_base: 1,
+                maximum_resources_per_base: 1,
+                maximum_advertised_capabilities: 1,
+                maximum_advertised_resources: 1,
+            })
+            .expect("browser serial registry limits are fixed and valid"),
         }
     }
 
@@ -257,6 +272,13 @@ impl BrowserSerialSession {
         capability_ids: Vec<CapabilityId>,
     ) -> Option<DeviceAssociation> {
         device_projection::current_device_association(&self.phase, capability_ids)
+    }
+
+    pub(crate) fn project_current_base(
+        &self,
+        advertisement: &mut HostAdvertisement,
+    ) -> Result<(), BaseRegistryRefusal> {
+        self.registry.project_ready_into(advertisement)
     }
 
     pub(crate) fn seal_acquisition(
@@ -336,6 +358,7 @@ impl BrowserSerialSession {
                 || resource.class_id.as_str() != SERIAL_RESOURCE_CLASS
                 || resource.base_implementation_id.as_str() != SERIAL_BASE_IMPLEMENTATION
                 || resource.base_instance_id.as_str().is_empty()
+                || resource.provider_generation == 0
                 || resource.configuration != request.configuration
                 || resource.transfer_bounds != request.transfer_bounds
                 || resource.use_authority_contract.as_str() != SERIAL_USE_AUTHORITY
@@ -353,7 +376,28 @@ impl BrowserSerialSession {
         self.expected_offer_generation = None;
         self.phase = match result {
             SerialAcquisitionResult::Acquired(resource) => {
-                BrowserSerialPhase::ResourceTruth(*resource)
+                let resource = *resource;
+                self.registry
+                    .register(BaseProviderEntry {
+                        base_id: HostBaseId::from("browser/base/web-serial"),
+                        provider_instance_id: resource.base_instance_id.clone(),
+                        provider_generation: resource.provider_generation,
+                        implementation_id: resource.base_implementation_id.clone(),
+                        mechanism_family: HostBaseKindId::from("browser.base/web-serial@1"),
+                        enforcement_class: BaseEnforcementClass::Cooperative,
+                        lifecycle: BaseLifecycle::Ready,
+                        capabilities: Vec::new(),
+                        resources: vec![resource_offer(
+                            &format!(
+                                "browser/web-serial/{}/resource",
+                                resource.base_instance_id.as_str()
+                            ),
+                            SERIAL_RESOURCE_CLASS,
+                            1,
+                        )],
+                    })
+                    .map_err(|_| BrowserSerialRefusal::MalformedResource)?;
+                BrowserSerialPhase::ResourceTruth(resource)
             }
             SerialAcquisitionResult::PermissionDenied => {
                 BrowserSerialPhase::Terminal(BrowserSerialTerminal::PermissionDenied)
@@ -394,6 +438,7 @@ impl BrowserSerialSession {
             || requirement.class_id != resource.class_id
             || requirement.base_implementation_id != resource.base_implementation_id
             || requirement.base_instance_id != resource.base_instance_id
+            || requirement.provider_generation != resource.provider_generation
             || requirement.transfer_bounds != resource.transfer_bounds
         {
             return Err(BrowserSerialRefusal::UseRequirementMismatch);
@@ -417,6 +462,9 @@ impl BrowserSerialSession {
     }
 
     pub(crate) fn device_lost(&mut self) -> Result<(), BrowserSerialRefusal> {
+        let resource = current_resource(&self.phase)
+            .ok_or(BrowserSerialRefusal::WrongPhase)?
+            .clone();
         if !matches!(
             self.phase,
             BrowserSerialPhase::ResourceTruth(_)
@@ -426,11 +474,22 @@ impl BrowserSerialSession {
             return Err(BrowserSerialRefusal::WrongPhase);
         }
         self.retained_transfer = None;
+        self.registry
+            .set_lifecycle(
+                &HostBaseId::from("browser/base/web-serial"),
+                &resource.base_instance_id,
+                resource.provider_generation,
+                BaseLifecycle::Lost,
+            )
+            .map_err(|_| BrowserSerialRefusal::WrongPhase)?;
         self.phase = BrowserSerialPhase::Terminal(BrowserSerialTerminal::DeviceLost);
         Ok(())
     }
 
     pub(crate) fn close(&mut self) -> Result<(), BrowserSerialRefusal> {
+        let resource = current_resource(&self.phase)
+            .ok_or(BrowserSerialRefusal::WrongPhase)?
+            .clone();
         if !matches!(
             self.phase,
             BrowserSerialPhase::ResourceTruth(_)
@@ -440,11 +499,20 @@ impl BrowserSerialSession {
             return Err(BrowserSerialRefusal::WrongPhase);
         }
         self.retained_transfer = None;
+        self.registry
+            .set_lifecycle(
+                &HostBaseId::from("browser/base/web-serial"),
+                &resource.base_instance_id,
+                resource.provider_generation,
+                BaseLifecycle::Stopped,
+            )
+            .map_err(|_| BrowserSerialRefusal::WrongPhase)?;
         self.phase = BrowserSerialPhase::Terminal(BrowserSerialTerminal::Closed);
         Ok(())
     }
 
     pub(crate) fn cancel(&mut self) -> Result<(), BrowserSerialRefusal> {
+        let current = current_resource(&self.phase).cloned();
         self.expected_operation = None;
         self.expected_host_id = None;
         self.expected_boot_id = None;
@@ -463,7 +531,26 @@ impl BrowserSerialSession {
             }
             _ => return Err(BrowserSerialRefusal::WrongPhase),
         };
+        if let Some(resource) = current {
+            self.registry
+                .set_lifecycle(
+                    &HostBaseId::from("browser/base/web-serial"),
+                    &resource.base_instance_id,
+                    resource.provider_generation,
+                    BaseLifecycle::Stopped,
+                )
+                .map_err(|_| BrowserSerialRefusal::WrongPhase)?;
+        }
         Ok(())
+    }
+}
+
+pub(super) fn current_resource(phase: &BrowserSerialPhase) -> Option<&AcquiredSerialResource> {
+    match phase {
+        BrowserSerialPhase::ResourceTruth(resource)
+        | BrowserSerialPhase::UsePlanned { resource, .. }
+        | BrowserSerialPhase::UsePlaying { resource, .. } => Some(resource),
+        _ => None,
     }
 }
 
