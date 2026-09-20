@@ -1,8 +1,8 @@
 //! Allocation-free std-kernel realization of final normalized-pattern selection.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
-    ImplementationId, ImplementationOffer,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, ImplementationId,
 };
 
 pub const FINAL_NORMALIZED_PATTERN_STD_PROFILE: &str = "std/final-normalized-pattern-kernel@1";
@@ -12,29 +12,19 @@ pub const FINAL_NORMALIZED_PATTERN_STD_ARTIFACT: &str =
     "conduit-std-host/final-normalized-pattern@1";
 
 pub fn final_normalized_pattern_std_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::final_normalized_pattern_definition();
-    CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
-            name: "maximum-values".into(),
-            value_type: conduit_core::kind_id("value/count"),
-            has_default: true,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from("final-normalized-pattern"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_semantic_catalog::final_normalized_pattern_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("final-normalized-pattern"),
             execution_profile_id: ExecutionProfileId::from(FINAL_NORMALIZED_PATTERN_STD_PROFILE),
             implementation_id: ImplementationId::from(FINAL_NORMALIZED_PATTERN_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(FINAL_NORMALIZED_PATTERN_STD_ARTIFACT),
+            host_operations: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: conduit_semantic_catalog::final_normalized_pattern_limits(),
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]

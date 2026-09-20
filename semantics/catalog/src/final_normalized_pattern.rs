@@ -2,8 +2,8 @@
 
 use alloc::{string::String, string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FaceStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -55,6 +55,23 @@ pub fn final_normalized_pattern_limits() -> CapabilityLimits {
     }
 }
 
+pub fn final_normalized_pattern_semantic_contract() -> SemanticCapabilityContract {
+    let definition = final_normalized_pattern_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![FaceStartupParameter {
+            name: "maximum-values".into(),
+            value_type: kind_id("value/count"),
+            has_default: true,
+        }],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: final_normalized_pattern_limits(),
+    }
+}
+
 pub fn install_final_normalized_pattern_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
@@ -91,5 +108,8 @@ mod tests {
             definition.outputs[0].value_kind
         );
         assert_eq!(definition.configuration.len(), 1);
+        let contract = final_normalized_pattern_semantic_contract();
+        assert_eq!(contract.startup_parameters.len(), 1);
+        assert_eq!(contract.limits, final_normalized_pattern_limits());
     }
 }
