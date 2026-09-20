@@ -12,6 +12,7 @@ use conduit_core::CapabilityLimits;
 #[cfg(feature = "form-catalog")]
 use conduit_core::{
     kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    SemanticCapabilityContract,
 };
 #[cfg(feature = "form-catalog")]
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
@@ -470,5 +471,38 @@ pub fn body_chat_prompt_limits() -> CapabilityLimits {
         max_active_instances: 1,
         max_queue_items: MAXIMUM_BODY_CHAT_HISTORY_ITEMS as u16,
         max_queue_bytes: MAXIMUM_BODY_CHAT_PROMPT_BYTES as u32,
+    }
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn body_chat_prompt_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(body_chat_prompt_definition(), body_chat_prompt_limits())
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn body_conversation_context_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        body_conversation_context_definition(),
+        CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
+        },
+    )
+}
+
+#[cfg(feature = "form-catalog")]
+fn semantic_contract(
+    definition: KindDefinition,
+    limits: CapabilityLimits,
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits,
     }
 }
