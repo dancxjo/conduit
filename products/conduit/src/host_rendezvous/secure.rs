@@ -1,8 +1,8 @@
 //! Opt-in secure network carrier for the shared running-Host session.
 
 use conduit_body::{
-    MAX_RENDEZVOUS_ENVELOPE_BYTES, RendezvousAuthentication, RendezvousCandidate,
-    RendezvousLineFamily, RunningHostRendezvousDescriptor, encode_running_host_rendezvous_text,
+    encode_running_host_rendezvous_text, RendezvousAuthentication, RendezvousCandidate,
+    RendezvousLineFamily, RunningHostRendezvousDescriptor, MAX_RENDEZVOUS_ENVELOPE_BYTES,
 };
 use conduit_std_host::secure_websocket::{
     SecureWebSocketError, SecureWebSocketLine, SecureWebSocketListener,
@@ -11,7 +11,7 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use super::{MAXIMUM_FRAME_BYTES, RendezvousLine, debug, run_session};
+use super::{debug, run_session, RendezvousLine, MAXIMUM_FRAME_BYTES};
 
 pub(crate) struct SecureNetworkOptions {
     pub(crate) bind: Option<String>,
