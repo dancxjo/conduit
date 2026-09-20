@@ -1,8 +1,9 @@
 //! Exact text realization offers owned by the hosted std Host.
 
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, SemanticCapabilityContract,
 };
 
 pub const TEXT_LITERAL_EXECUTION_PROFILE: &str = "conduit.std/text-literal-kernel-hosted@1";
@@ -41,121 +42,85 @@ pub fn text_literal_offer() -> CapabilityOffer {
         TEXT_LITERAL_EXECUTION_PROFILE,
         TEXT_LITERAL_IMPLEMENTATION,
         TEXT_LITERAL_ARTIFACT,
-        vec![FrontStartupParameter {
-            name: "value".into(),
-            value_type: conduit_core::kind_id("value/text"),
-            has_default: false,
-        }],
-        None,
+        Vec::new(),
     )
 }
 
 pub fn text_upper_offer() -> CapabilityOffer {
-    let mut offer = offer(
+    offer(
         conduit_text::text_upper_semantics(),
         TEXT_UPPER_CAPABILITY,
         TEXT_UPPER_EXECUTION_PROFILE,
         TEXT_UPPER_IMPLEMENTATION,
         TEXT_UPPER_ARTIFACT,
-        Vec::new(),
-        Some((port_id("text"), port_id("text"))),
-    );
-    offer.host_operations.push(HostOperationRequirement {
-        contract_id: HostOperationContractId::from(TEXT_UPPER_HOST_OPERATION_CONTRACT),
-        target_kind: Some(kind_id(TEXT_UPPER_HOST_OPERATION_TARGET)),
-        maximum_in_flight: 1,
-        maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
-        maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
-    });
-    offer
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(TEXT_UPPER_HOST_OPERATION_CONTRACT),
+            target_kind: Some(kind_id(TEXT_UPPER_HOST_OPERATION_TARGET)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
+            maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
+        }],
+    )
 }
 
 pub fn text_join_offer() -> CapabilityOffer {
-    let mut offer = offer(
+    offer(
         conduit_text::text_join_semantics(),
         TEXT_JOIN_CAPABILITY,
         TEXT_JOIN_EXECUTION_PROFILE,
         TEXT_JOIN_IMPLEMENTATION,
         TEXT_JOIN_ARTIFACT,
-        vec![FrontStartupParameter {
-            name: "prefix".into(),
-            value_type: conduit_core::kind_id("value/text"),
-            has_default: false,
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(TEXT_JOIN_HOST_OPERATION_CONTRACT),
+            target_kind: Some(kind_id(TEXT_JOIN_HOST_OPERATION_TARGET)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
+            maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
         }],
-        Some((port_id("text"), port_id("text"))),
-    );
-    offer.host_operations.push(HostOperationRequirement {
-        contract_id: HostOperationContractId::from(TEXT_JOIN_HOST_OPERATION_CONTRACT),
-        target_kind: Some(kind_id(TEXT_JOIN_HOST_OPERATION_TARGET)),
-        maximum_in_flight: 1,
-        maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
-        maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
-    });
-    offer
+    )
 }
 
 pub fn text_morse_offer() -> CapabilityOffer {
-    let contract = conduit_text::text_morse_semantics();
-    let mut offer = CapabilityOffer {
-        startup_parameters: vec![FrontStartupParameter {
-            name: conduit_text::MORSE_UNIT_MILLIS_KEY.into(),
-            value_type: conduit_core::kind_id("value/count"),
-            has_default: true,
-        }],
-        shorthand: Some((port_id("text"), port_id("pattern"))),
-        capability_id: CapabilityId::from(TEXT_MORSE_CAPABILITY),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(TEXT_MORSE_EXECUTION_PROFILE),
-            implementation_id: ImplementationId::from(TEXT_MORSE_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(TEXT_MORSE_ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
+    offer_semantic(
+        conduit_text::text_morse_semantics().into_semantic_contract(),
+        TEXT_MORSE_CAPABILITY,
+        TEXT_MORSE_EXECUTION_PROFILE,
+        TEXT_MORSE_IMPLEMENTATION,
+        TEXT_MORSE_ARTIFACT,
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(TEXT_MORSE_HOST_OPERATION_CONTRACT),
             target_kind: Some(kind_id(TEXT_MORSE_HOST_OPERATION_TARGET)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_text::MAXIMUM_MORSE_INPUT_BYTES as u32,
             maximum_output_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
         }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    };
-    offer.limits.max_queue_items = 4;
-    offer.limits.max_queue_bytes = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32 * 4;
-    offer
+    )
 }
 
 pub fn address_detect_offer() -> CapabilityOffer {
-    let mut offer = offer(
+    offer(
         conduit_text::address_detect_semantics(),
         ADDRESS_DETECT_CAPABILITY,
         ADDRESS_DETECT_EXECUTION_PROFILE,
         ADDRESS_DETECT_IMPLEMENTATION,
         ADDRESS_DETECT_ARTIFACT,
-        Vec::new(),
-        None,
-    );
-    offer.host_operations = vec![
-        HostOperationRequirement {
-            contract_id: HostOperationContractId::from(ADDRESS_DETECT_ADDRESSES_OPERATION),
-            target_kind: Some(kind_id(conduit_text::ADDRESS_DETECT_KIND)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_text::MAX_ADDRESS_SET_VALUE_BYTES as u32,
-            maximum_output_bytes: conduit_text::MAX_ADDRESS_DETECTION_VALUE_BYTES as u32,
-        },
-        HostOperationRequirement {
-            contract_id: HostOperationContractId::from(ADDRESS_DETECT_RECOGNIZED_OPERATION),
-            target_kind: Some(kind_id(conduit_text::ADDRESS_DETECT_KIND)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
-            maximum_output_bytes: conduit_text::MAX_ADDRESS_DETECTION_VALUE_BYTES as u32,
-        },
-    ];
-    offer
+        vec![
+            HostOperationRequirement {
+                contract_id: HostOperationContractId::from(ADDRESS_DETECT_ADDRESSES_OPERATION),
+                target_kind: Some(kind_id(conduit_text::ADDRESS_DETECT_KIND)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_text::MAX_ADDRESS_SET_VALUE_BYTES as u32,
+                maximum_output_bytes: conduit_text::MAX_ADDRESS_DETECTION_VALUE_BYTES as u32,
+            },
+            HostOperationRequirement {
+                contract_id: HostOperationContractId::from(ADDRESS_DETECT_RECOGNIZED_OPERATION),
+                target_kind: Some(kind_id(conduit_text::ADDRESS_DETECT_KIND)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
+                maximum_output_bytes: conduit_text::MAX_ADDRESS_DETECTION_VALUE_BYTES as u32,
+            },
+        ],
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -165,27 +130,39 @@ fn offer(
     profile: &str,
     implementation: &str,
     artifact: &str,
-    startup_parameters: Vec<FrontStartupParameter>,
-    shorthand: Option<(conduit_core::PortId, conduit_core::PortId)>,
+    host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters,
-        shorthand,
-        capability_id: CapabilityId::from(capability),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    offer_semantic(
+        contract.into_semantic_contract(),
+        capability,
+        profile,
+        implementation,
+        artifact,
+        host_operations,
+    )
+}
+
+fn offer_semantic(
+    contract: SemanticCapabilityContract,
+    capability: &str,
+    profile: &str,
+    implementation: &str,
+    artifact: &str,
+    host_operations: Vec<HostOperationRequirement>,
+) -> CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
+            host_operations,
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
@@ -203,6 +180,12 @@ mod tests {
                 conduit_text::address_detect_semantics(),
             ),
         ] {
+            let semantic_contract = semantic.clone().into_semantic_contract();
+            assert_eq!(
+                offer.startup_parameters,
+                semantic_contract.startup_parameters
+            );
+            assert_eq!(offer.shorthand, semantic_contract.shorthand);
             assert_eq!(offer.kind_id, semantic.kind_id);
             assert_eq!(
                 offer.kind_contract_revision,
@@ -214,6 +197,12 @@ mod tests {
         }
         let offer = text_morse_offer();
         let semantic = conduit_text::text_morse_semantics();
+        let semantic_contract = semantic.clone().into_semantic_contract();
+        assert_eq!(
+            offer.startup_parameters,
+            semantic_contract.startup_parameters
+        );
+        assert_eq!(offer.shorthand, semantic_contract.shorthand);
         assert_eq!(offer.kind_id, semantic.kind_id);
         assert_eq!(
             offer.kind_contract_revision,
@@ -221,7 +210,6 @@ mod tests {
         );
         assert_eq!(offer.inputs, semantic.inputs);
         assert_eq!(offer.outputs, semantic.outputs);
-        assert!(offer.limits.max_queue_items >= semantic.limits.max_queue_items);
-        assert!(offer.limits.max_queue_bytes >= semantic.limits.max_queue_bytes);
+        assert_eq!(offer.limits, semantic.limits);
     }
 }

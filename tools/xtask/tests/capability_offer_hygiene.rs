@@ -65,6 +65,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     ("semantics/text/src/morse.rs", 0, "semantic contract owner"),
+    ("semantics/text/src/lib.rs", 0, "semantic contract owner"),
     (
         "semantics/catalog/src/structured_selector.rs",
         0,
@@ -460,6 +461,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     ("targets/std/offers/src/text_state.rs", 0, "fully migrated"),
+    ("targets/std/offers/src/text.rs", 0, "fully migrated"),
     (
         "targets/std/offers/src/typed_record.rs",
         0,
