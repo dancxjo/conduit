@@ -89,7 +89,11 @@ fn deterministic_provider_preserves_types_null_and_end_of_results() {
     let status = record_field(&result, "status");
     assert_eq!(variant_tag(status), "complete");
     let completion = variant_payload(status, "complete");
-    assert_eq!(leaf_text(record_field(completion, "emitted_rows")), "3");
+    let StructuredInfoValueShape::Leaf(bytes) = record_field(completion, "emitted_rows").shape()
+    else {
+        panic!("expected count leaf")
+    };
+    assert_eq!(conduit_core::decode_count(bytes).unwrap(), 3);
 }
 
 #[test]

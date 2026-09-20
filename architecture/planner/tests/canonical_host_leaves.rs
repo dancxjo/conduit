@@ -266,6 +266,72 @@ fn explicit_form_completion_reaches_the_exact_plan() {
 }
 
 #[test]
+fn default_queues_fit_selected_offers_but_explicit_excess_still_refuses() {
+    let expanded = expanded();
+    let mut host = host();
+    for offer in &mut host.capabilities {
+        offer.limits.max_queue_items = 1;
+        offer.limits.max_queue_bytes = 32;
+    }
+    let hosts = [host];
+    let placements = default_expanded_placements(&expanded, &hosts).unwrap();
+    let bases = [BaseImplementationId::from("conduit.base/local@1")];
+    let plan = plan_expanded_canonical(&expanded, &hosts, &placements, &bases).unwrap();
+    for cord in plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.connections)
+    {
+        assert_eq!(cord.item_capacity, 1);
+        assert_eq!(cord.byte_capacity, 32);
+    }
+    let empty = BTreeMap::new();
+    let lines = BTreeMap::new();
+    let result = conduit_planner::plan_expanded_canonical_with_options(
+        &expanded,
+        &hosts,
+        &placements,
+        &bases,
+        conduit_planner::PlanningOptions {
+            connection_bases: &empty,
+            line_candidates: &lines,
+            connection_item_capacity: 4,
+            connection_byte_capacity: 64,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    );
+    assert!(matches!(
+        result,
+        Err(PlannerError::QueueRequirementAboveHostLimit(_))
+    ));
+}
+
+#[test]
+fn default_queues_refuse_zero_capacity_as_insufficient_host_limits() {
+    let expanded = expanded();
+    for (items, bytes) in [(0, 64), (4, 0)] {
+        let mut host = host();
+        let placements = default_expanded_placements(&expanded, &[host.clone()]).unwrap();
+        for offer in &mut host.capabilities {
+            offer.limits.max_queue_items = items;
+            offer.limits.max_queue_bytes = bytes;
+        }
+        let result = plan_expanded_canonical(
+            &expanded,
+            &[host],
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+        );
+        assert!(matches!(
+            result,
+            Err(PlannerError::QueueRequirementAboveHostLimit(_))
+        ));
+    }
+}
+
+#[test]
 fn equal_front_and_semantics_with_a_different_name_is_compatible() {
     let expanded = expanded();
     let mut wrong_kind = host();

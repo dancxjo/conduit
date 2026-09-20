@@ -9,7 +9,8 @@ use conduit_std_host::state_value::{RetainedTypedState, TypedStateOperation};
 
 fn planned() -> (Plan, Vec<u8>) {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let value = StructuredInfoValue::leaf(ty.clone(), b"false".to_vec()).unwrap();
+    let value =
+        StructuredInfoValue::leaf(ty.clone(), InfoBool::new(false).encode().to_vec()).unwrap();
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();

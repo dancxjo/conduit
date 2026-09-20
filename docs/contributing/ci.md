@@ -59,8 +59,10 @@ automatically for the same captured commit. Explicit abandonment requires a
 reviewed replacement decision.
 
 The release branch contains everything accumulated in `dev`. Exhaustive proof
-runs there. The x86 gate runs first after classification, pinned tools, and its
-prepared-image build. Other expensive check jobs wait for selected x86 proof;
+runs there. Workspace checks run alongside x86 to report deterministic failures
+without waiting for emulator proof; both remain required by the final check gate.
+The x86 gate runs after classification, pinned tools, and its prepared-image
+build. Other platform check jobs wait for selected x86 proof;
 the product fabrication/browser/carrier pipeline waits for the check suite.
 This deliberately trades some green-run parallelism for early rejection of a
 known failing machine before spending a full release's build budget. A failure

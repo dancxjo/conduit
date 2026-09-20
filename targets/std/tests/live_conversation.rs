@@ -102,10 +102,10 @@ fn synthetic_offer(definition: &KindDefinition, host: &str) -> CapabilityOffer {
             .map(|field| conduit_core::FrontStartupParameter {
                 name: field.key.clone(),
                 value_type: match field.default_value {
-                    ConfigurationValue::Bool(_) => "Boolean",
-                    ConfigurationValue::I64(_) => "Scalar",
-                    ConfigurationValue::U64(_) => "Count",
-                    ConfigurationValue::Text(_) => "Text",
+                    ConfigurationValue::Bool(_) => conduit_core::BOOL_INFO_ID,
+                    ConfigurationValue::I64(_) => conduit_core::SCALAR_INFO_ID,
+                    ConfigurationValue::U64(_) => conduit_core::COUNT_INFO_ID,
+                    ConfigurationValue::Text(_) => conduit_core::TEXT_INFO_ID,
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
                 }
                 .into(),
