@@ -4,9 +4,11 @@ use conduit_core::{
     kind_id, ArtifactId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId,
     CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationContractId, HostProfileId, ImplementationId, KindContractRevision,
-    OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PoolMemberLimits,
-    SharedPoolId, PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
-    SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
+    OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId,
+    PlanningRequestAuthority, PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId,
+    PoolSelectionDisposition, PoolSelectionEvidence, SharedPoolId, SignId, PROTOCOL_VERSION,
+    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
+    SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
@@ -310,6 +312,35 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
             examined_realizations: 2
         })
     );
+    let exhausted = PoolSelectionEvidence {
+        plan_id: plan.plan_id.clone(),
+        pool_id: planned.pool_id.clone(),
+        operation_id: PoolOperationId::from("model-request/4"),
+        selected_realization: None,
+        observation_sign_ids: vec![],
+        disposition: PoolSelectionDisposition::EnvelopeExhausted,
+        sign_id: SignId::from("sign/model-pool-exhausted/4"),
+    };
+    let events = exhausted
+        .exhaustion_replan_events(
+            &plan,
+            HostId::from("host/consumer"),
+            BootId::from("boot/consumer/1"),
+            PlanningRequestAuthority::HostLocal,
+            SignId::from("sign/model-pool-replan-request/4"),
+        )
+        .unwrap();
+    assert!(matches!(
+        &events[0],
+        conduit_core::ControlLoopEvent::PlayBecameUnsatisfied {
+            reason: PlayUnsatisfiedReason::NoAdmittedPoolRealizationReady,
+            ..
+        }
+    ));
+    assert!(matches!(
+        &events[1],
+        conduit_core::ControlLoopEvent::PlanningRequested { .. }
+    ));
 
     let mut replacement_hosts = hosts.clone();
     replacement_hosts[1].boot_id = BootId::from("ai-small-local-boot/2");
