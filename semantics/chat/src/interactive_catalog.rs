@@ -193,7 +193,11 @@ pub fn chat_state_offer() -> CapabilityOffer {
             .iter()
             .map(|(name, value_type)| FaceStartupParameter {
                 name: (*name).into(),
-                value_type: (*value_type).into(),
+                value_type: kind_id(match *value_type {
+                    "Text" => "value/text",
+                    "Count" => "value/count",
+                    exact => exact,
+                }),
                 has_default: true,
             })
             .collect(),
@@ -239,12 +243,12 @@ pub fn chat_submit_offer() -> CapabilityOffer {
         startup_parameters: vec![
             FaceStartupParameter {
                 name: "action".into(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: true,
             },
             FaceStartupParameter {
                 name: "maximum-message-bytes".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             },
         ],

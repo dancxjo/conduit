@@ -295,7 +295,7 @@ fn portable_every_offer(
     revision: &str,
 ) -> conduit_core::CapabilityOffer {
     let mut offer = portable_offer(contract, revision);
-    offer.startup_parameters[0].value_type = "Duration".into();
+    offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
     offer.startup_parameters[0].has_default = false;
     offer.resource_requirements = vec![conduit_core::resource_requirement(
         conduit_core::TIMER_RESOURCE_CLASS,
@@ -311,7 +311,7 @@ fn portable_monotonic_offer(
 ) -> conduit_core::CapabilityOffer {
     let mut offer = portable_offer(contract, revision);
     if duration_startup {
-        offer.startup_parameters[0].value_type = "Duration".into();
+        offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
     }
     offer.resource_requirements = vec![conduit_core::monotonic_timer_resource_requirement()];
     offer

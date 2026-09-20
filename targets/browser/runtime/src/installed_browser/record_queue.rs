@@ -27,12 +27,12 @@ fn offer() -> CapabilityOffer {
         startup_parameters: vec![
             conduit_core::FaceStartupParameter {
                 name: "maximum-items".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             },
             conduit_core::FaceStartupParameter {
                 name: "maximum-frame-bytes".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             },
         ],

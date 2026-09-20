@@ -50,7 +50,7 @@ fn time_every_offer() -> conduit_core::CapabilityOffer {
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         Vec::new(),
     );
-    offer.startup_parameters[0].value_type = "Duration".into();
+    offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
     offer.startup_parameters[0].has_default = false;
     offer
 }

@@ -41,7 +41,7 @@ pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![conduit_core::FaceStartupParameter {
             name: "invalid".into(),
-            value_type: "Boolean".into(),
+            value_type: conduit_core::kind_id("value/bool"),
             has_default: true,
         }],
         shorthand: None,

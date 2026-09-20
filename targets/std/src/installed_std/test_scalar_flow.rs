@@ -230,7 +230,7 @@ fn offer(
         startup_parameters: if identity.kind == SINK_KIND {
             vec![conduit_core::FaceStartupParameter {
                 name: "expected".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             }]
         } else {

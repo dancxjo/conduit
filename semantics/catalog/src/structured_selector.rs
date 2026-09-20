@@ -42,7 +42,7 @@ pub fn structured_selector_contract(
     StructuredSelectorContract {
         startup_parameters: vec![FaceStartupParameter {
             name: "selector".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         shorthand: Some((port_id("input"), port_id("output"))),

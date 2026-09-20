@@ -155,7 +155,7 @@ pub(super) fn expanded_identity(
         push(&mut canonical, gear.kind_contract_revision.as_str());
         for parameter in &gear.startup_parameters {
             push(&mut canonical, &parameter.name);
-            push(&mut canonical, &parameter.value_type);
+            push(&mut canonical, parameter.value_type.as_str());
             push(
                 &mut canonical,
                 if parameter.has_default {
@@ -226,7 +226,7 @@ pub(super) fn expanded_identity(
         push(&mut canonical, &pool.maximum_members.to_string());
         for parameter in pool.member_front.startup_parameters() {
             push(&mut canonical, &parameter.name);
-            push(&mut canonical, &parameter.value_type);
+            push(&mut canonical, parameter.value_type.as_str());
             push(
                 &mut canonical,
                 if parameter.has_default {

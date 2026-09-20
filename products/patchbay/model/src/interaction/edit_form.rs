@@ -119,7 +119,13 @@ pub(super) fn edit_offer() -> CapabilityOffer {
             .into_iter()
             .map(|parameter| FaceStartupParameter {
                 name: parameter.name,
-                value_type: parameter.value_type,
+                value_type: kind_id(match parameter.value_type.as_str() {
+                    "Boolean" => "value/bool",
+                    "Count" => "value/count",
+                    "Scalar" => "value/scalar",
+                    "Text" => "value/text",
+                    exact => exact,
+                }),
                 has_default: false,
             })
             .collect(),

@@ -149,7 +149,7 @@ pub(crate) fn offer_named(
     CapabilityOffer {
         startup_parameters: vec![conduit_core::FaceStartupParameter {
             name: "value".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: true,
         }],
         shorthand: None,

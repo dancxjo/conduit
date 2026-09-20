@@ -46,7 +46,7 @@ fn offer(contract: conduit_text::MorseKindContract, implementation: &str) -> Cap
             .iter()
             .map(|(name, _)| FaceStartupParameter {
                 name: (*name).into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             })
             .collect(),

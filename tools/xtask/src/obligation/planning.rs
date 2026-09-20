@@ -163,7 +163,7 @@ fn source_offer() -> CapabilityOffer {
             .iter()
             .map(|name| FaceStartupParameter {
                 name: (*name).into(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: false,
             })
             .collect(),

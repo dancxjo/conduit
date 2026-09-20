@@ -57,7 +57,7 @@ fn literal_offer() -> CapabilityOffer {
         LITERAL_IMPLEMENTATION,
         vec![FaceStartupParameter {
             name: "value".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         None,
@@ -92,7 +92,7 @@ fn join_offer() -> CapabilityOffer {
         JOIN_IMPLEMENTATION,
         vec![FaceStartupParameter {
             name: "prefix".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         Some((port_id("text"), port_id("text"))),
@@ -111,7 +111,7 @@ fn presentation_offer() -> CapabilityOffer {
     let mut offer = CapabilityOffer {
         startup_parameters: vec![FaceStartupParameter {
             name: "maximum-values".into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         }],
         shorthand: None,

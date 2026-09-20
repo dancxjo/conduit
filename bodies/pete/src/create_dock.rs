@@ -125,7 +125,7 @@ pub fn live_create_dock_advertisement(
     let dock = CapabilityOffer {
         startup_parameters: vec![FaceStartupParameter {
             name: "timeout-ms".into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         }],
         shorthand: None,

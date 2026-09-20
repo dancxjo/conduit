@@ -29,7 +29,7 @@ pub use conduit_semantic_catalog::{
 pub fn trigger_front_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
     vec![conduit_core::FaceStartupParameter {
         name: "count".to_string(),
-        value_type: "Count".to_string(),
+        value_type: conduit_core::kind_id("value/count"),
         has_default: true,
     }]
 }
@@ -37,7 +37,7 @@ pub fn trigger_front_startup_parameters() -> Vec<conduit_core::FaceStartupParame
 pub fn toggle_front_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
     vec![conduit_core::FaceStartupParameter {
         name: "initial".to_string(),
-        value_type: "Boolean".to_string(),
+        value_type: conduit_core::kind_id("value/bool"),
         has_default: true,
     }]
 }

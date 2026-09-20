@@ -100,7 +100,7 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
                 CapabilityOffer {
                     startup_parameters: vec![FaceStartupParameter {
                         name: "maximum-output-bytes".into(),
-                        value_type: "Count".into(),
+                        value_type: conduit_core::kind_id("value/count"),
                         has_default: true,
                     }],
                     shorthand: None,

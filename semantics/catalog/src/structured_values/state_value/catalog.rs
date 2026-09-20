@@ -100,8 +100,11 @@ pub fn derive_state_boundary(
     };
     let value = StructuredInfoValue::from_canonical_bytes(initial.canonical_value())
         .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
-    let contract = state_value_contract(&gear.startup_parameters[0].value_type, value.value_type())
-        .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
+    let contract = state_value_contract(
+        gear.startup_parameters[0].value_type.as_str(),
+        value.value_type(),
+    )
+    .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
     if contract.inputs != gear.inputs
         || contract.outputs != gear.outputs
         || contract.startup_parameters != gear.startup_parameters

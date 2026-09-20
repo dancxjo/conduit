@@ -102,17 +102,17 @@ fn offer() -> CapabilityOffer {
     let definition = conduit_time::historical_timeline_kind_definition();
     CapabilityOffer {
         startup_parameters: [
-            ("value-profile", "Text"),
-            ("clock-basis", "Text"),
-            ("time-scale", "Text"),
-            ("maximum-entries", "Count"),
-            ("maximum-referenced-bytes", "Count"),
-            ("overflow-policy", "Text"),
-            ("first-sequence", "Count"),
+            ("value-profile", "value/text"),
+            ("clock-basis", "value/text"),
+            ("time-scale", "value/text"),
+            ("maximum-entries", "value/count"),
+            ("maximum-referenced-bytes", "value/count"),
+            ("overflow-policy", "value/text"),
+            ("first-sequence", "value/count"),
         ]
         .map(|(name, value_type)| FaceStartupParameter {
             name: name.into(),
-            value_type: value_type.into(),
+            value_type: conduit_core::kind_id(value_type),
             has_default: true,
         })
         .into(),

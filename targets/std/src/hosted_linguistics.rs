@@ -16,7 +16,7 @@ pub fn linguistics_std_offers() -> Vec<CapabilityOffer> {
             conduit_language::tokenize_four_definition(),
             vec![FaceStartupParameter {
                 name: "text".into(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: false,
             }],
         ),

@@ -93,7 +93,7 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
             .iter()
             .map(|field| conduit_core::FaceStartupParameter {
                 name: field.key.clone(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: false,
             })
             .collect(),

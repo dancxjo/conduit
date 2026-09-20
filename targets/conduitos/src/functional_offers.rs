@@ -214,7 +214,7 @@ pub fn text_literal_offer() -> CapabilityOffer {
         "conduitos/kernel-text-literal@1",
         vec![FaceStartupParameter {
             name: "value".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         None,
@@ -238,7 +238,7 @@ pub fn text_join_offer() -> CapabilityOffer {
         "conduitos/kernel-text-join@1",
         vec![FaceStartupParameter {
             name: "prefix".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         Some((TEXT_JOIN_HOST_OPERATION, TEXT_JOIN_HOST_OPERATION_TARGET)),
@@ -250,7 +250,7 @@ pub fn text_morse_offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![FaceStartupParameter {
             name: conduit_text::MORSE_UNIT_MILLIS_KEY.into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         }],
         shorthand: Some((port_id("text"), port_id("pattern"))),
@@ -335,7 +335,7 @@ pub fn morse_composition_offers() -> Vec<CapabilityOffer> {
                 .iter()
                 .map(|(name, _)| FaceStartupParameter {
                     name: (*name).into(),
-                    value_type: "Count".into(),
+                    value_type: conduit_core::kind_id("value/count"),
                     has_default: true,
                 })
                 .collect(),
@@ -410,7 +410,7 @@ pub fn time_every_offer() -> CapabilityOffer {
         vec![wait_host_operation_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
     );
-    offer.startup_parameters[0].value_type = "Duration".into();
+    offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
     offer.startup_parameters[0].has_default = false;
     offer
 }
@@ -714,7 +714,7 @@ fn timing_offer(
         vec![monotonic_timer_host_operation_requirement()],
         vec![monotonic_timer_resource_requirement()],
     );
-    offer.startup_parameters[0].value_type = "Duration".into();
+    offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
     offer
 }
 

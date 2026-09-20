@@ -43,7 +43,7 @@ pub fn record_transcript_std_offer() -> CapabilityOffer {
 fn parameter(name: &str) -> FaceStartupParameter {
     FaceStartupParameter {
         name: name.into(),
-        value_type: "Count".into(),
+        value_type: conduit_core::kind_id("value/count"),
         has_default: true,
     }
 }

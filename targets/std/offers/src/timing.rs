@@ -59,7 +59,7 @@ pub fn time_every_offer() -> CapabilityOffer {
         vec![wait_host_operation_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
     );
-    offer.startup_parameters[0].value_type = "Duration".into();
+    offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
     offer.startup_parameters[0].has_default = false;
     offer
 }
@@ -157,7 +157,7 @@ fn monotonic_offer(
         vec![monotonic_timer_resource_requirement()],
     );
     if duration_startup {
-        offer.startup_parameters[0].value_type = "Duration".into();
+        offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
     }
     offer
 }
@@ -206,11 +206,14 @@ mod tests {
         ] {
             assert_eq!(offer.host_operations.len(), 1);
             assert_eq!(offer.resource_requirements.len(), 1);
-            assert_eq!(offer.startup_parameters[0].value_type, "Duration");
+            assert_eq!(
+                offer.startup_parameters[0].value_type.as_str(),
+                "value/duration"
+            );
         }
         assert_eq!(
-            time_every_offer().startup_parameters[0].value_type,
-            "Duration"
+            time_every_offer().startup_parameters[0].value_type.as_str(),
+            "value/duration"
         );
         assert!(!time_every_offer().startup_parameters[0].has_default);
         assert_eq!(tick_capability_offer().host_operations.len(), 1);

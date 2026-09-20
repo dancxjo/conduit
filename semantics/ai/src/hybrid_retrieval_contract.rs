@@ -79,7 +79,11 @@ pub fn hybrid_retrieval_startup_parameters() -> Vec<FaceStartupParameter> {
     .into_iter()
     .map(|(name, value_type)| FaceStartupParameter {
         name: name.into(),
-        value_type: value_type.into(),
+        value_type: kind_id(match value_type {
+            "Text" => "value/text",
+            "Count" => "value/count",
+            exact => exact,
+        }),
         has_default: true,
     })
     .collect()

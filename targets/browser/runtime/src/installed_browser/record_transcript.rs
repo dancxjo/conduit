@@ -32,7 +32,7 @@ fn offer() -> CapabilityOffer {
         ]
         .map(|name| FaceStartupParameter {
             name: name.into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         })
         .into(),
