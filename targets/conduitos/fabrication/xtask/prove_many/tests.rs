@@ -103,8 +103,9 @@ fn one_failure_does_not_erase_a_completed_sibling_result() {
 }
 
 #[test]
-fn timing_sensitive_hid_and_rescue_own_the_qemu_environment() {
+fn timing_sensitive_proofs_own_the_qemu_environment() {
     assert!(X86Proof::Hid.requires_exclusive_environment());
+    assert!(X86Proof::ProductJourney.requires_exclusive_environment());
     assert!(X86Proof::Rescue.requires_exclusive_environment());
     assert!(!X86Proof::Usb.requires_exclusive_environment());
     assert!(may_share_environment(X86Proof::Usb, X86Proof::Xhci));

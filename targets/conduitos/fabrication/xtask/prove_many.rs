@@ -79,11 +79,12 @@ impl X86Proof {
         )
     }
 
-    /// HID drives a long QMP report sequence and Rescue drives several
-    /// timing-sensitive guest boots. Give each the whole local QEMU environment;
-    /// the other propositions remain safe to overlap within the declared bound.
+    /// HID and Product Journey drive long timing-sensitive QMP sequences, while
+    /// Rescue drives several timing-sensitive guest boots. Give each the whole
+    /// local QEMU environment; the other propositions remain safe to overlap
+    /// within the declared bound.
     fn requires_exclusive_environment(self) -> bool {
-        matches!(self, Self::Hid | Self::Rescue)
+        matches!(self, Self::Hid | Self::ProductJourney | Self::Rescue)
     }
 
     fn arguments(self, evidence_root: &Path) -> Vec<String> {
