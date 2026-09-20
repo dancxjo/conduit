@@ -1,4 +1,4 @@
-//! Acquired indicator resources beneath ordinary admitted Host operations.
+//! Acquired indicator resources beneath ordinary admitted host operations.
 //! These identities describe cooperative provider binding, not hostile-code confinement.
 use conduit_core::{ActivePlayIdentity, BootId, HostId, InfoBool, OfferGeneration, ResourcePoolId};
 use conduit_kernel::RequestId;

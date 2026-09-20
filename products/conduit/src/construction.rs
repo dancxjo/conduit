@@ -11,7 +11,7 @@ use crate::cli::{BodyCommand, HostCommand};
 pub(crate) fn host(command: HostCommand) -> Result<(), String> {
     match command {
         HostCommand::Service { .. } => {
-            Err("durable Host service command was routed through construction".into())
+            Err("durable host service command was routed through construction".into())
         }
         HostCommand::Obtain { .. } => {
             Err("release obtain command was routed through construction".into())
@@ -91,7 +91,7 @@ pub(crate) fn body(command: BodyCommand) -> Result<(), String> {
         | BodyCommand::Accept { .. }
         | BodyCommand::Admit { .. }
         | BodyCommand::CompleteJoin { .. } => {
-            Err("Body invitation operations require installed durable Host state".into())
+            Err("Body invitation operations require installed durable host state".into())
         }
         BodyCommand::Check { source } => {
             let checked = crate::body_product::load(&source)?;

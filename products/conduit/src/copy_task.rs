@@ -168,7 +168,7 @@ pub(crate) fn run(raw_arguments: Vec<String>) -> Result<(), String> {
     } else if matches!(receipt.result, CopyResult::Success { .. }) {
         writeln!(
             stdout,
-            "Next: rerun with --inspect to reveal the Form and exact Plan."
+            "Next: rerun with --inspect to reveal the form and exact plan."
         )
         .map_err(|error| error.to_string())?;
     }

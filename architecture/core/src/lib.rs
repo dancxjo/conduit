@@ -620,7 +620,7 @@ pub struct PlannedConnection {
     #[serde(default)]
     pub selected_line: Option<AdmittedLine>,
     /// Exact ordered permissible Lines. Runtime may select only from this
-    /// immutable set; availability remains outside the Plan as Signs.
+    /// immutable set; availability remains outside the plan as Signs.
     #[serde(default)]
     pub admitted_lines: Vec<AdmittedLine>,
     pub item_capacity: u16,
@@ -678,7 +678,7 @@ pub struct Plan {
     #[serde(default)]
     pub completion_policy: PlanCompletionPolicy,
     /// Exact reusable Forms selected while expanding high-level Kinds.
-    /// Empty means the checked Form reached primitive implementations directly.
+    /// Empty means the checked form reached primitive implementations directly.
     #[serde(default)]
     pub realization_backs: Vec<RealizationBack>,
     pub fragments: Vec<PlanFragment>,

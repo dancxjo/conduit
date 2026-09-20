@@ -1,4 +1,4 @@
-//! Local Body-wide execution through the installed std kernel.
+//! Local body-wide execution through the installed std kernel.
 use crate::{
     hosted_keyboard::HostedKeyboardAdapter, installed_std::body_kernel::BodyKernel, RunControl,
     StdHost, TimerAdapter,
@@ -54,7 +54,7 @@ impl StdHost {
             .map(|partition| {
                 if partition.plan.fragments.len() != 1 {
                     return Err(
-                        "local Body execution requires one local fragment per Form".to_string()
+                        "local body execution requires one local fragment per Form".to_string()
                     );
                 }
                 Ok(&partition.plan.fragments[0])

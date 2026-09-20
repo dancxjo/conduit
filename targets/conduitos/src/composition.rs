@@ -1,4 +1,4 @@
-//! Architecture-neutral ownership loop for an admitted ordinary Plan.
+//! Architecture-neutral ownership loop for an admitted ordinary plan.
 
 use conduit_kernel::scheduler::SchedulerStatus;
 

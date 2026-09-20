@@ -385,7 +385,7 @@ fn validate(run: &A3Run, paths: &Paths) -> Result<(), ConduitosError> {
         || !identity.a3_ordinary_form_claimed
         || !identity.a4_observatory_patchbay_claimed
     {
-        return Err(refusal("stale-or-invalid-ia32-a3-sign", "A3 Signs do not prove the exact portable Form, sealed Plan, finite Bases, real PIT wake, semantic result, and terminal Play"));
+        return Err(refusal("stale-or-invalid-ia32-a3-sign", "A3 Signs do not prove the exact portable form, sealed Plan, finite Bases, real PIT wake, semantic result, and terminal Play"));
     }
     let observatory = &run.observatory;
     conduit_observatory::validate_snapshot(observatory)

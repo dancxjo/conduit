@@ -29,7 +29,7 @@ identity.
 Registry or network failure is only distribution failure. Verification answers
 whether bytes and statements match their digests; separate policy decides
 whether a builder is accepted, a proof class is sufficient, an image is
-compatible with a Host, or an operation is authorized for a Body.
+compatible with a host, or an operation is authorized for a body.
 
 Repository and CI development use the internal bounded exporter directly:
 

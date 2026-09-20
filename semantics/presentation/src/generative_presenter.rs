@@ -172,8 +172,8 @@ mod tests {
             vec![PresentationSubject {
                 identity: "body/current".into(),
                 role: PresentationRole::Body,
-                label: "Current Body".into(),
-                accessibility_name: "Current Body".into(),
+                label: "Current body".into(),
+                accessibility_name: "Current body".into(),
             }],
             vec![],
             vec![],
@@ -249,7 +249,7 @@ mod tests {
             disposition: GeneratedManifestationDisposition::Produced,
             content: vec![GeneratedContentSegment {
                 role: GeneratedContentRole::Speech,
-                bytes: b"I am awake. You can inspect this Body.".to_vec(),
+                bytes: b"I am awake. You can inspect this body.".to_vec(),
             }],
             affordances: vec![GeneratedActionAffordance {
                 action_identity: "patchbay.open".into(),

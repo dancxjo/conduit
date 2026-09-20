@@ -1,4 +1,4 @@
-//! Ordinary Form contract for correlated record-delivery observations.
+//! Ordinary form contract for correlated record-delivery observations.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{

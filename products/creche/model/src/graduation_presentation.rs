@@ -30,7 +30,7 @@ impl GraduationControls {
         let choices_available = self.ready && !self.graduated;
         let mut actions = Vec::new();
         if choices_available {
-            actions.push(action(HOST_PATCHBAY_ACTION, "Host Patchbay on this Body"));
+            actions.push(action(HOST_PATCHBAY_ACTION, "Host Patchbay on this body"));
             actions.push(action(
                 WITHOUT_PATCHBAY_ACTION,
                 "Finish without hosted Patchbay",
@@ -51,7 +51,7 @@ impl GraduationControls {
                         vec![
                             criterion(
                                 "durable-identity",
-                                "Durable Body identity",
+                                "Durable body identity",
                                 self.durable_identity,
                             ),
                             criterion(

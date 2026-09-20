@@ -1,4 +1,4 @@
-//! Strict import boundary for one live multi-Host model-pool receipt.
+//! Strict import boundary for one live multi-host model-pool receipt.
 
 use conduit_core::PoolRealizationEnvelope;
 use serde::Deserialize;
@@ -71,7 +71,7 @@ impl LiveLocalModelPoolReceipt {
             ("Body", &self.body_id),
             ("Wake", &self.wake_id),
             ("source Form", &self.source_document_id),
-            ("checked Form", &self.checked_form_id),
+            ("checked form", &self.checked_form_id),
             ("expanded Form", &self.expanded_form_id),
             ("Plan", &self.plan_id),
             ("Play", &self.play_id),
@@ -105,11 +105,11 @@ impl LiveLocalModelPoolReceipt {
                 return Err("live realizations do not expose the same exact model back".into());
             }
             if !hosts.insert((realization.host_id.clone(), realization.boot_id.clone())) {
-                return Err("live realization envelope repeats a Host/Boot".into());
+                return Err("live realization envelope repeats a host/Boot".into());
             }
         }
         if hosts.len() < 2 {
-            return Err("live receipt does not contain two exact Hosts".into());
+            return Err("live receipt does not contain two exact hosts".into());
         }
         if !(2..=MAXIMUM_OPERATIONS).contains(&self.operations.len()) {
             return Err("live receipt requires two to sixteen completed operations".into());
@@ -125,7 +125,7 @@ impl LiveLocalModelPoolReceipt {
             let realization = self
                 .realization_envelope
                 .get(usize::from(operation.realization))
-                .ok_or_else(|| "live operation selected outside the Plan envelope".to_string())?;
+                .ok_or_else(|| "live operation selected outside the plan envelope".to_string())?;
             if operation.host_id != realization.host_id.as_str()
                 || operation.boot_id != realization.boot_id.as_str()
                 || operation.capability_id != realization.capability_id.as_str()

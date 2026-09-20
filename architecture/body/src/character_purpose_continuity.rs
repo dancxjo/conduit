@@ -1,4 +1,4 @@
-//! Optional durable Body ownership for exact purpose truth.
+//! Optional durable body ownership for exact purpose truth.
 //!
 //! Purpose is attached only when a resident application has a declared
 //! completion contract. It is not a universal Body personality, and readiness
@@ -72,7 +72,7 @@ impl BodyPurpose {
         })
     }
 
-    /// Readiness is current application truth only while the Body can act.
+    /// Readiness is current application truth only while the body can act.
     pub fn active_readiness(
         &self,
         body: &Body,

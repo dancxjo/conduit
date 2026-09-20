@@ -244,7 +244,7 @@ fn selected_observation_signs(
     signs
 }
 
-/// Seals an already admitted exact profile choice through the ordinary Plan path.
+/// Seals an already admitted exact profile choice through the ordinary plan path.
 /// The admission does not grant authority and cannot substitute a different Form.
 pub fn seal_reviewed_service_profile_plan(
     form: &CheckedForm,

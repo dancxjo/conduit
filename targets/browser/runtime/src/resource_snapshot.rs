@@ -1,7 +1,7 @@
 //! Exact bounded records at the browser durable-Resource boundary.
 //!
 //! Preparation consumes planned residence and authority. This codec neither
-//! selects a generation nor schedules storage; the Host executor publishes the
+//! selects a generation nor schedules storage; the host executor publishes the
 //! resulting opaque record and completes the kernel request separately.
 use conduit_core::{
     semantic_digest, AuthorityBinding, BoundedResourceRef, PlannedGear, ResourceAccessMode,

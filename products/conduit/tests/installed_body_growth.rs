@@ -1,4 +1,4 @@
-//! Installed Body growth across independent durable-Host product processes.
+//! Installed body growth across independent durable-Host product processes.
 
 #![cfg(unix)]
 
@@ -89,7 +89,7 @@ fn two_installed_processes_complete_pipeable_body_admission_without_creating_a_p
     assert_eq!(receipt["play_created"], false);
 
     let owner_status = product(&["body", "status", "--state-dir", path(&owner), "--json"]);
-    assert_success(&owner_status, "inspect admitted Body");
+    assert_success(&owner_status, "inspect admitted body");
     let owner_status: Value = serde_json::from_slice(&owner_status.stdout).unwrap();
     assert_eq!(owner_status["body_id"], invitation["claim"]["body_id"]);
     assert_eq!(owner_status["presence"], "current");
@@ -168,7 +168,7 @@ fn wait_for_runtime(state: &Path) {
         thread::sleep(Duration::from_millis(10));
     }
     panic!(
-        "durable Host did not expose current runtime truth at {}",
+        "durable host did not expose current runtime truth at {}",
         state.display()
     );
 }

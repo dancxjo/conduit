@@ -4,7 +4,7 @@ use super::{HostedRawMidiSelection, MidiEndpointDirection, MidiOutputSelection};
 use crate::{StdHost, StdHostComposition, StdHostConfig};
 
 impl StdHost {
-    /// Constructs one Host advertisement for an independently selected raw
+    /// Constructs one host advertisement for an independently selected raw
     /// MIDI source and PCM playback sink. Selection still grants no authority;
     /// the caller must supply both typed grants when planning.
     pub fn new_with_raw_midi_input_and_playback(
@@ -225,7 +225,7 @@ impl StdHost {
         if selected.boot_id() != &self.advertisement.boot_id
             || selected.offer_generation() != self.advertisement.offer_generation
         {
-            return Err("selected MIDI input observation is stale for this Host".into());
+            return Err("selected MIDI input observation is stale for this host".into());
         }
         let capability = self
             .advertisement

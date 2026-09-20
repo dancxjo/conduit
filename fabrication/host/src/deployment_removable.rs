@@ -1,4 +1,4 @@
-//! Consequential whole-device carrier for exact Body-bound boot media.
+//! Consequential whole-device carrier for exact body-bound boot media.
 
 use crate::{
     BodyBoundArtifactIdentity, CarrierTerminal, DeploymentCarrierDescriptor, DeploymentCarrierKind,
@@ -300,7 +300,7 @@ mod tests {
 
     #[test]
     fn exact_confirmed_media_is_written_and_read_back_without_boot_claims() {
-        let bytes = b"exact Body-bound boot image";
+        let bytes = b"exact body-bound boot image";
         let (descriptor, artifact) = fixture(bytes);
         let root = std::env::temp_dir().join(format!("conduit-removable-{}", std::process::id()));
         let _ = fs::remove_dir_all(&root);

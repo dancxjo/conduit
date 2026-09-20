@@ -13,7 +13,7 @@ pub fn tick_presentation_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(TICK_PRESENTATION_KIND),
         plain_name: "Tick presentation".to_string(),
-        summary: "Present each exact typed tick while the Play remains alive.".to_string(),
+        summary: "Present each exact typed tick while the play remains alive.".to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("tick"),
             value_kind: kind_id(conduit_time::TICK_VALUE_KIND),

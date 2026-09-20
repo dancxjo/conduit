@@ -38,7 +38,7 @@ pub struct DeviceIdentityEvidence {
 }
 
 /// Inspectable resource provenance. This is neither a resource grant nor a
-/// replacement for the Host adapter's authoritative acquired-resource state.
+/// replacement for the host adapter's authoritative acquired-resource state.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct DeviceResourceProvenance {
     pub handle_id: ResourceHandleId,
@@ -51,7 +51,7 @@ pub struct DeviceResourceProvenance {
 #[serde(rename_all = "kebab-case")]
 pub enum DeviceTruthDisposition {
     Current,
-    /// Retained inspection/replay provenance, never current Host truth.
+    /// Retained inspection/replay provenance, never current host truth.
     HistoricalLost {
         terminal_sign_id: Option<SignId>,
     },

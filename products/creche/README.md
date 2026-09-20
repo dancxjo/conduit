@@ -1,8 +1,8 @@
 # Crèche compatibility entrance
 
 This retained package is a compatibility entrance. Opening Crèche redirects to
-the Body Workspace, which owns zero-Body bootstrap, reviewed initial workset,
-birth, and the transition to ordinary Body operation.
+the body Workspace, which owns zero-body bootstrap, reviewed initial workset,
+birth, and the transition to ordinary body operation.
 
 - The body Workspace owns zero-body bootstrap and reviewed initial-workset state.
 - `model/` remains for compatibility and target-preparation presentation state.
@@ -25,4 +25,4 @@ adapters supply the checked form inventory and perform authoritative lifecycle
 review after the shared draft requests Birth.
 
 The opening interaction is name → Forms → Birth in Workspace. A successful
-draft action alone does not create a Body, admit a Host, or start execution.
+draft action alone does not create a body, admit a host, or start execution.

@@ -6,7 +6,7 @@ pub const ARTIFACT: &str = "conduit-std-host/indicator-resource@1";
 pub const OPERATION: &str = "conduit.host/indicator-state@1";
 pub const RESOURCE_CLASS: &str = "conduit.resource/indicator-output@1";
 
-/// Publish only when the Host holds the corresponding acquired resource.
+/// Publish only when the host holds the corresponding acquired resource.
 pub fn offer() -> CapabilityOffer {
     realization_offer(
         conduit_semantic_catalog::indicator_state_presentation_contract(),

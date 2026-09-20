@@ -1,4 +1,4 @@
-//! Portable provider-free `rag/answer` front and reviewed Plan configuration.
+//! Portable provider-free `rag/answer` front and reviewed plan configuration.
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{

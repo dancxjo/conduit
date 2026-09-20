@@ -141,7 +141,7 @@ impl BodyChatPromptHost {
                     .state
                     .as_mut()
                     .ok_or_else(|| {
-                        "Body Chat message arrived before current Body context".to_string()
+                        "Body Chat message arrived before current body context".to_string()
                     })?
                     .request(input)
                     .map_err(|error| format!("Body Chat message: {error:?}"))?;
@@ -153,7 +153,7 @@ impl BodyChatPromptHost {
                 self.state
                     .as_mut()
                     .ok_or_else(|| {
-                        "Body Chat response arrived before current Body context".to_string()
+                        "Body Chat response arrived before current body context".to_string()
                     })?
                     .record_response(input)
                     .map_err(|error| format!("Body Chat response: {error:?}"))?;
@@ -191,7 +191,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.outputs != offer.outputs
         || placement.host_operations != offer.host_operations
     {
-        return Err("planned Body Chat prompt identity does not match installation".into());
+        return Err("planned body Chat prompt identity does not match installation".into());
     }
     Ok(())
 }

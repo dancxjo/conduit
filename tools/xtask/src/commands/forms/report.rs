@@ -1,4 +1,4 @@
-//! Side-effect-free projection of checked Form and declared proof availability.
+//! Side-effect-free projection of checked form and declared proof availability.
 
 use super::{
     browser, catalogs, check_one, combined, composition, deterministic, load_inventory, result,

@@ -5,7 +5,7 @@
 The ordinary v1 path is intentionally small:
 
 1. `default_placements` derives functionally valid placement choices from a
-   checked Form and current Host advertisements.
+   checked form and current host advertisements.
 2. `plan` (or `plan_with_options`) validates exact capabilities, resources,
    authority, Lines, queue bounds, and startup order, then seals one immutable
    `Plan`.
@@ -421,7 +421,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             .any(|connection| connection_endpoints(connection) == *endpoints)
         {
             return Err(PlannerError::InvalidConnectionBudget(
-                "per-connection capacity names a Cord absent from the checked Form".to_string(),
+                "per-connection capacity names a Cord absent from the checked form".to_string(),
             ));
         }
     }

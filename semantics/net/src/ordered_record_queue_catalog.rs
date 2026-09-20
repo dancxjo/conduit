@@ -1,4 +1,4 @@
-//! Ordinary Form contract for bounded ordered-record queueing.
+//! Ordinary form contract for bounded ordered-record queueing.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{

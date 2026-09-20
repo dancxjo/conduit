@@ -16,7 +16,7 @@ pub fn pulse_presentation_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(PULSE_PRESENTATION_KIND),
         plain_name: "Pulse presentation".to_string(),
-        summary: "Manifest each exact pulse observation while its Play remains alive.".to_string(),
+        summary: "Manifest each exact pulse observation while its play remains alive.".to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("pulse"),
             value_kind: kind_id(conduit_time::PULSE_OBSERVATION_VALUE_KIND),

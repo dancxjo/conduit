@@ -15,8 +15,8 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
     let body_subject = content.subject_with_identity(
         format!("body/{}", body.body_id.as_str()),
         PresentationRole::Body,
-        "Current Body",
-        format!("Current Body {}", body.body_id.as_str()),
+        "Current body",
+        format!("Current body {}", body.body_id.as_str()),
     );
     identity(content, &body_subject, "body-id", body.body_id.as_str());
     content.property(

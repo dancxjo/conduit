@@ -10,7 +10,7 @@ pub struct NativePatchbayOpening {
     pub presentation_revision: u64,
 }
 
-/// Open Patchbay's canonical zero-Body front door and project its portable
+/// Open Patchbay's canonical zero-body front door and project its portable
 /// Presentation. The interactive application owns window creation separately.
 pub fn open_patchbay_presentation() -> Result<NativePatchbayOpening, String> {
     let session = ZeroBodyFrontDoor::with_identity(

@@ -1,4 +1,4 @@
-//! Explicit policy admission of current Host offer detail for planning use.
+//! Explicit policy admission of current host offer detail for planning use.
 
 use super::{PatchbayHtmlServer, ServerError};
 use conduit_body::{
@@ -80,7 +80,7 @@ impl PatchbayHtmlServer {
             || !matches_admitted_summary(&evidence, self.snapshot.body_host_offer_evidence.as_ref())
         {
             return Err(ServerError::Interaction(
-                "planning offer is not current admitted Host evidence".into(),
+                "planning offer is not current admitted host evidence".into(),
             ));
         }
         let policy = RemoteClaimPolicy {

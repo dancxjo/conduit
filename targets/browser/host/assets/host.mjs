@@ -98,6 +98,6 @@ try {
 } catch (error) {
   suspense.classList.add("failed");
   suspense.setAttribute("aria-busy", "false");
-  suspense.querySelector("h1").textContent = "This Host couldn’t wake up";
+  suspense.querySelector("h1").textContent = "This host couldn’t wake up";
   document.querySelector("#starting-status").textContent = error instanceof Error ? error.message : String(error);
 }

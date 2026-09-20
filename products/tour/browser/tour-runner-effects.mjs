@@ -55,7 +55,7 @@ export function createTourEffectPerformer({ api, runner, humanInput, openHumanIn
       return encoded;
     } else if (progress.effect_kind === "pitch-tone") {
       await tone(progress, signal);
-      runner.playStatus.ordinary(`Played admitted ${progress.hertz} Hz tone; continuing the same Play…`);
+      runner.playStatus.ordinary(`Played admitted ${progress.hertz} Hz tone; continuing the same play…`);
     } else if (progress.effect_kind === "manifestation") {
       runner.querySelector(".morse").textContent =
         progress.text ?? renderMorse(progress.segments);
@@ -79,7 +79,7 @@ export function createTourEffectPerformer({ api, runner, humanInput, openHumanIn
         }
         setIndicator(runner, false);
       }
-      runner.playStatus.ordinary("Observed planned presentation; continuing the same Play…");
+      runner.playStatus.ordinary("Observed planned presentation; continuing the same play…");
     } else {
       throw new Error(`unsupported browser Host effect ${progress.effect_kind}`);
     }

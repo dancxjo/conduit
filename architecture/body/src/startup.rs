@@ -1,10 +1,10 @@
-//! Startup eligibility derived from ordinary retained Body lifecycle evidence.
+//! Startup eligibility derived from ordinary retained body lifecycle evidence.
 //!
 //! This is a projection, not a second once flag or permission to start execution.
-//! The first Play in a Wake is its startup realization. Replacing its Plan does
-//! not replay startup; a later Wake has its own first Play. A Host must retain
+//! The first play in a wake is its startup realization. Replacing its plan does
+//! not replay startup; a later Wake has its own first play. A host must retain
 //! the started lifecycle before exposing startup input to effects and must own
-//! the exact current Play through the ordinary admission boundary.
+//! the exact current play through the ordinary admission boundary.
 
 use conduit_core::{ActivePlayId, SignId};
 
@@ -15,9 +15,9 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StartupScope {
-    /// Once in each Wake, in its first started Play.
+    /// Once in each wake, in its first started Play.
     Wake,
-    /// Once in the Body's first Wake, in that Wake's first started Play.
+    /// Once in the body's first wake, in that wake's first started Play.
     Body,
 }
 
@@ -50,9 +50,9 @@ pub enum BodyStartupRefusal {
 
 impl BodyBiographyEvidence {
     /// Derive eligibility from retained Woke/PlayStarted records, including the
-    /// records preceding the current Plan. The query neither records consumption
+    /// records preceding the current plan. The query neither records consumption
     /// nor claims an effect occurred. The installed source emits at most once
-    /// inside the admitted Play; old Plays cannot be revived from this value.
+    /// inside the admitted play; old Plays cannot be revived from this value.
     pub fn startup_for_play(
         &self,
         plan: &BodyPlan,

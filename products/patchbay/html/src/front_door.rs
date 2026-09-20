@@ -1,4 +1,4 @@
-//! Public HTML entrance backed by one canonical live local Body session.
+//! Public HTML entrance backed by one canonical live local body session.
 
 use crate::RendererSnapshot;
 use conduit_core::{BootId, HostId, SignId};
@@ -27,7 +27,7 @@ pub fn one_form_two_fronts_snapshot() -> Result<RendererSnapshot, String> {
         .form_ids()
         .into_iter()
         .next()
-        .ok_or("two-fronts entrance has no reviewed Form")?;
+        .ok_or("two-fronts entrance has no reviewed form")?;
     session.open_form(&form, session.revision())?;
     snapshot_for_zero_body_front_door(&session)
 }

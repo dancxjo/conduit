@@ -245,7 +245,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         match request {
             Request::Arrive { advertisement } => {
                 if slot.is_some() {
-                    return Err("Workspace already has a Body".into());
+                    return Err("Workspace already has a body".into());
                 }
                 let evidence = crate::creche::workspace_evidence()?;
                 let body = WorkspaceBody::open(evidence).map_err(debug)?;
@@ -271,7 +271,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 advertisement,
             } => {
                 if slot.is_some() {
-                    return Err("Workspace already has a Body".into());
+                    return Err("Workspace already has a body".into());
                 }
                 let fulfilled = matches!(evidence.body.state, BodyState::Fulfilled { .. });
                 let body = if fulfilled {
@@ -291,7 +291,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 if admissions.body_id != body.evidence().body_id {
                     return Err(Refusal::new(
                         "Admission.WrongBody",
-                        "Retained admission state names another Body",
+                        "Retained admission state names another body",
                     ));
                 }
                 let bytes = snapshot_with_offers(&body, offers.hosts())?;
@@ -301,9 +301,9 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 return Ok(bytes);
             }
             Request::OpenAdmitted { evidence, admission, host_id, boot_id, advertisement } => {
-                if slot.is_some() { return Err("Workspace already has a Body".into()); }
+                if slot.is_some() { return Err("Workspace already has a body".into()); }
                 if admission.body_id != evidence.body_id {
-                    return Err(Refusal::new("Admission.WrongBody", "Admission state names another Body"));
+                    return Err(Refusal::new("Admission.WrongBody", "Admission state names another body"));
                 }
                 let body = WorkspaceBody::open_admitted(*evidence, &host_id, &boot_id).map_err(debug)?;
                 let mut offers = CurrentHostOffers::new();
@@ -615,7 +615,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             | Request::Restore { .. }
             | Request::OpenAdmitted { .. }
             | Request::InspectInvitation { .. } => {
-                unreachable!("handled before current Body")
+                unreachable!("handled before current body")
             }
         }
         let bytes = snapshot(&candidate)?;
@@ -723,7 +723,7 @@ fn conversation_context(body: &WorkspaceBody) -> Result<BodyConversationContext,
     let realization = body.realization().ok_or_else(|| {
         Refusal::new(
             "BodyContext.NotAwake",
-            "Body conversation context requires one current Wake/Plan",
+            "Body conversation context requires one current wake/Plan",
         )
     })?;
     if evidence.body.state
@@ -733,7 +733,7 @@ fn conversation_context(body: &WorkspaceBody) -> Result<BodyConversationContext,
     {
         return Err(Refusal::new(
             "BodyContext.NotAwake",
-            "Body conversation context is available only while this Body is awake",
+            "Body conversation context is available only while this body is awake",
         ));
     }
     let hosts = evidence
@@ -798,7 +798,7 @@ fn current_host_offers() -> Vec<HostAdvertisement> {
 fn host_offer_refusal(error: conduit_workspace_model::CurrentHostOfferError) -> Refusal {
     Refusal::new(
         "HostOffer",
-        format!("current Host offer refused: {error:?}"),
+        format!("current host offer refused: {error:?}"),
     )
 }
 
@@ -808,7 +808,7 @@ fn validate_offer_bytes(offers: &CurrentHostOffers) -> Result<(), Refusal> {
     if bytes.len() > HOST_OFFERS_BYTES {
         return Err(Refusal::new(
             "HostOffer.Bound",
-            "current Host offers exceed the Workspace observation bound",
+            "current host offers exceed the Workspace observation bound",
         ));
     }
     Ok(())

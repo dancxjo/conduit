@@ -247,7 +247,7 @@ fn native_document_exposes_both_route_recovery_cases() {
     let text = lines.join("\n");
     assert!(text.contains("PRESENTATION "));
     assert!(text.contains("FORM "));
-    assert!(text.contains("The Play became unsatisfied"));
+    assert!(text.contains("The play became unsatisfied"));
     assert!(text.contains("Replacement Plan"));
     assert!(text.contains("Plan identity did not change"));
     assert!(text.contains("ambient route"));

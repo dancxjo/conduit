@@ -505,7 +505,7 @@ fn verify_little_life(root: &Path, manifest: &Manifest) -> Result<(), String> {
             output.provenance.active_play_id.as_deref().unwrap(),
         );
         if identity.is_some_and(|prior| prior != current) {
-            return Err("Little Life outputs do not share one exact Plan and Play".into());
+            return Err("Little Life outputs do not share one exact plan and Play".into());
         }
         identity = Some(current);
         if let Some(generation) = generation {
@@ -614,7 +614,7 @@ fn verify_little_life_execution(root: &Path, identity: (&str, &str)) -> Result<(
         .get("plans")
         .and_then(Value::as_array)
         .filter(|plans| plans.len() == 1)
-        .ok_or("Little Life execution report must contain exactly one Plan")?;
+        .ok_or("Little Life execution report must contain exactly one plan")?;
     if plans[0].get("plan_id").and_then(Value::as_str) != Some(identity.0) {
         return Err("Little Life execution Plan disagrees with manifest provenance".into());
     }

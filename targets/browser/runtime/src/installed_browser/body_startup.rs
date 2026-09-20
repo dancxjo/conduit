@@ -1,4 +1,4 @@
-//! A finite source initialized from exact retained Body startup evidence.
+//! A finite source initialized from exact retained body startup evidence.
 use super::{
     factory::{validate_placement, BrowserInstallation},
     BrowserOperation,
@@ -54,7 +54,7 @@ fn offer(first: bool) -> CapabilityOffer {
     )
 }
 fn without_body(_: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
-    Err("Body startup sources require an admitted Body lifecycle".into())
+    Err("Body startup sources require an admitted body lifecycle".into())
 }
 
 pub(crate) fn prepare_for_body(

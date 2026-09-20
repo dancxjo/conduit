@@ -74,7 +74,7 @@ impl PreparedButtonIndicatorMapper {
             return Err(ButtonIndicatorRefusal::MissingPhase);
         }
         // The validated exact phase schema has only pressed and released.
-        // Leaf payload semantics remain with their Kind, as in the reference mapper.
+        // Leaf payload semantics remain with their kind, as in the reference mapper.
         match self
             .pressed
             .select_canonical_into(

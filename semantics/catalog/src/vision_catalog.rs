@@ -1,4 +1,4 @@
-//! Canonical portable Form catalog for image metadata.
+//! Canonical portable form catalog for image metadata.
 
 use alloc::{
     string::{String, ToString},

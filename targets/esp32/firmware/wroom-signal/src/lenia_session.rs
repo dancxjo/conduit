@@ -1,4 +1,4 @@
-//! Exact Plan-scoped distributed-Lenia worker session above ESP GATT.
+//! Exact plan-scoped distributed-Lenia worker session above ESP GATT.
 
 use conduit_alife::{
     DistributedLeniaWorker, LENIA_LINE_FRAME_MAX_BYTES, LeniaLineFrameIdentity, LeniaLineFrameView,

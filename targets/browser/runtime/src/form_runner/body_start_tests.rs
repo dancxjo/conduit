@@ -280,7 +280,7 @@ fn canonical_signal_garden_and_unrelated_text_complete_in_one_body_play() {
         match progress {
             TourProgress::Effect(effect) => {
                 let TourHostEffect::Manifestation(value) = *effect else {
-                    panic!("deterministic Garden source must not request a Host effect")
+                    panic!("deterministic Garden source must not request a host effect")
                 };
                 assert_eq!(value.active_play_id, started.play.active_play_id.as_str());
                 assert!(original

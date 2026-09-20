@@ -25,7 +25,7 @@ pub enum SynthProfileError {
     PulseWidth,
 }
 
-/// Immutable exact synthesis facts sealed into one Plan.
+/// Immutable exact synthesis facts sealed into one plan.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ReferenceSynthProfile {
     pub maximum_voices: u8,

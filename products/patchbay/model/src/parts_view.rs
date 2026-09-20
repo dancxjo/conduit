@@ -79,11 +79,11 @@ pub struct PartsTruthExplanation {
 impl PartsTruthExplanation {
     fn canonical() -> Self {
         Self {
-            available: "AVAILABLE means this admitted Part has fresh current Host/Boot presence; it does not mean a Line is Ready or selected.".into(),
-            line_ready: "LINE READY means this exact Line is currently usable; it does not grant authority or place the Line in a Plan.".into(),
+            available: "AVAILABLE means this admitted Part has fresh current host/Boot presence; it does not mean a Line is Ready or selected.".into(),
+            line_ready: "LINE READY means this exact Line is currently usable; it does not grant authority or place the Line in a plan.".into(),
             line_unavailable: "LINE UNAVAILABLE means this exact Line cannot carry traffic; the Parts may remain AVAILABLE and the immutable Plan remains unchanged.".into(),
-            in_plan: "IN PLAN means the immutable Plan selected this exact Part/Host/Boot realization; it does not mean a Play is active.".into(),
-            playing: "PLAYING means an active Play bound to the current Plan includes this Part; loss or stopping does not rewrite that Plan.".into(),
+            in_plan: "IN PLAN means the immutable Plan selected this exact Part/Host/Boot realization; it does not mean a play is active.".into(),
+            playing: "PLAYING means an active play bound to the current plan includes this Part; loss or stopping does not rewrite that plan.".into(),
         }
     }
 }

@@ -668,7 +668,7 @@ pub const FORM_S3_STEPS: &[Step] = &[
     Step::new("check.form.composite-front-mapping-mutation", "test composite_definition_rejects_every_front_mapping_mutation", "cargo", &["test", "-p", "conduit-composite", "composite_definition_rejects_every_front_mapping_mutation"]),
     Step::new("check.form.composite-terminal-failure", "test named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks", "cargo", &["test", "-p", "conduit-composite", "named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks"]),
     Step::new("check.form.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct"]),
-    Step::new("check.form.observatory-current-plan", "test projects exact current Plan truth", "cargo", &["test", "-p", "conduit-observatory", "projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof"]),
+    Step::new("check.form.observatory-current-plan", "test projects exact current plan truth", "cargo", &["test", "-p", "conduit-observatory", "projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof"]),
 ];
 
 pub const BROWSER_CHECK_STEPS: &[Step] = &[

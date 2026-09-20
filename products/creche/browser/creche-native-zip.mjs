@@ -105,7 +105,7 @@ export function readBodyBoundZip(value) {
     modes.set(name, mode);
   }
   if (cursor !== endOffset || !entries.has(PROVISION_PATH)) {
-    throw new TypeError("native ZIP omitted its exact Body provision");
+    throw new TypeError("native ZIP omitted its exact body provision");
   }
   let provision;
   try {

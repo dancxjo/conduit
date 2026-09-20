@@ -226,7 +226,7 @@ fn creche_session(suffix: &str) -> ZeroBodyFrontDoor {
                 "forms/patchbay-front-door/main.conduit",
                 SOURCE,
                 "patchbay-front-door",
-                "reviewed installed Form",
+                "reviewed installed form",
                 SignId::from(format!("creche/{suffix}/form-reviewed")),
                 2,
             )

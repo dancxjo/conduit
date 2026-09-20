@@ -1,4 +1,4 @@
-//! Catalog assembly for checking the reviewed portable Form inventory.
+//! Catalog assembly for checking the reviewed portable form inventory.
 
 pub(super) fn catalogs(
 ) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {

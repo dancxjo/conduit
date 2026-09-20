@@ -47,8 +47,8 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     await expect(birth).toHaveAttribute("data-body-id", /.+/);
     const bodyId = await birth.getAttribute("data-body-id");
     const birthSignId = await birth.getAttribute("data-birth-sign-id");
-    await openCrecheStep(page, "2. First Host");
-    await page.getByRole("button", { name: "Give this Body its first Host", exact: true }).click();
+    await openCrecheStep(page, "2. First host");
+    await page.getByRole("button", { name: "Give this body its first host", exact: true }).click();
     await openCrecheStep(page, "4. Graduate");
     await page.getByRole("button", { name: "Finish without hosted Patchbay", exact: true }).click();
     await page.getByRole("button", { name: "End the Crèche", exact: true }).click();
@@ -92,15 +92,15 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     expect((await snapshot()).body_workbench.body_id).toBe(bodyId);
     await expect(page.locator("#body-summary")).toHaveText(/^Body: /);
     await page.locator("#body-summary").click();
-    await page.getByRole("button", { name: "Join this Body", exact: true }).click();
+    await page.getByRole("button", { name: "Join this body", exact: true }).click();
     await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
     await expect.poll(
       async () => (await snapshot()).body_host_offer_evidence?.stage,
       { message: `Body Host offer evidence was not adopted: ${probe.output()}`, timeout: 10_000 },
     ).toBe("AdmittedMembership");
-    await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
+    await page.getByRole("button", { name: "Request active form evidence", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
-    await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
+    await page.getByRole("button", { name: "Plan active forms on this host", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
     const proposal = await page.request.get(`${url}/api/body-execution-proposal`).then(response => response.json());
     await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
@@ -141,7 +141,7 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     expect(signs.placements.map(binding => binding.placement_id).sort()).toEqual(
       proposal.plan.forms.flatMap(form => form.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id))).sort(),
     );
-    await page.getByText("Inspect selected Body Plan", { exact: true }).click();
+    await page.getByText("Inspect selected body Plan", { exact: true }).click();
     const inspection = page.locator("#body-plan-inspection");
     await expect(inspection).toContainText(proposal.plan.plan_id);
     await expect(inspection).toContainText("not current availability or physical proof");
@@ -174,7 +174,7 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
   }
 });
 
-test("Rosehip House runs reusable bounded measurement processing and history in one Body", async ({ page }) => {
+test("Rosehip House runs reusable bounded measurement processing and history in one body", async ({ page }) => {
   const temporary = await mkdtemp(join(tmpdir(), "conduit-rosehip-measurement-"));
   const processes = [];
   try {
@@ -192,8 +192,8 @@ test("Rosehip House runs reusable bounded measurement processing and history in 
     await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
     const bodyId = await birth.getAttribute("data-body-id");
     expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
-    await openCrecheStep(page, "2. First Host");
-    await page.getByRole("button", { name: "Give this Body its first Host", exact: true }).click();
+    await openCrecheStep(page, "2. First host");
+    await page.getByRole("button", { name: "Give this body its first host", exact: true }).click();
     await openCrecheStep(page, "4. Graduate");
     await page.getByRole("button", { name: "Finish without hosted Patchbay", exact: true }).click();
     await page.getByRole("button", { name: "End the Crèche", exact: true }).click();
@@ -228,13 +228,13 @@ test("Rosehip House runs reusable bounded measurement processing and history in 
     await page.goto(url);
     await expect(page.locator("#body-summary")).toHaveText(/^Body: /);
     await page.locator("#body-summary").click();
-    await page.getByRole("button", { name: "Join this Body", exact: true }).click();
+    await page.getByRole("button", { name: "Join this body", exact: true }).click();
     await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
     const snapshot = () => page.request.get(`${url}/api/snapshot`).then(response => response.json());
     await expect.poll(async () => (await snapshot()).body_host_offer_evidence?.stage, { timeout: 10_000 }).toBe("AdmittedMembership");
-    await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
+    await page.getByRole("button", { name: "Request active form evidence", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
-    await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
+    await page.getByRole("button", { name: "Plan active forms on this host", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
     const proposal = await page.request.get(`${url}/api/body-execution-proposal`).then(response => response.json());
     expect(proposal.plan.body_id).toBe(bodyId);
@@ -270,8 +270,8 @@ test("Rosehip House is born once in Crèche and later admits independent browser
     await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
     const bodyId = await birth.getAttribute("data-body-id");
     expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
-    await openCrecheStep(page, "2. First Host");
-    await page.getByRole("button", { name: "Give this Body its first Host", exact: true }).click();
+    await openCrecheStep(page, "2. First host");
+    await page.getByRole("button", { name: "Give this body its first host", exact: true }).click();
     await openCrecheStep(page, "4. Graduate");
     await page.getByRole("button", { name: "Finish without hosted Patchbay", exact: true }).click();
     await page.getByRole("button", { name: "End the Crèche", exact: true }).click();

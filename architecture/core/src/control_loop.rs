@@ -235,7 +235,7 @@ impl ControlLoopEvent {
     }
 
     /// Checks route observation/selection sign against one exact deployed
-    /// connection. The event may name only a route sealed by that same Plan.
+    /// connection. The event may name only a route sealed by that same plan.
     pub fn validate_route_event(
         &self,
         active_plan_id: &PlanId,
@@ -283,7 +283,7 @@ impl ControlLoopEvent {
 
     /// Checks an unavailable Host observation against one exact immutable
     /// Plan realization. Host, Boot, and offer generation must all be the
-    /// identities sealed by that same Plan.
+    /// identities sealed by that same plan.
     pub fn validate_host_event(&self, active_plan: &Plan) -> Result<(), ControlLoopEventError> {
         self.validate()?;
         if !crate::verify_plan(active_plan) {

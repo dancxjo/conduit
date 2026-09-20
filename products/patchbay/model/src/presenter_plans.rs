@@ -145,7 +145,7 @@ fn reviewed_back_front(
         }
     }
     Err(format!(
-        "checked Front for recursive Back {} is absent",
+        "checked front for recursive Back {} is absent",
         back.kind_id.as_str()
     ))
 }

@@ -121,7 +121,7 @@ pub fn capture_bounded_stroke_semantic_contract() -> conduit_core::SemanticCapab
     }
 }
 
-/// Install only the reviewed four-point path and capture operation into a Host
+/// Install only the reviewed four-point path and capture operation into a host
 /// profile that already owns the canonical `Point2` type.
 pub fn install_bounded_stroke_capture_catalog(
     startup: &mut conduit_form::StartupCatalog,

@@ -1,4 +1,4 @@
-//! One immutable Body-wide Plan over the current exact Form workset.
+//! One immutable body-wide Plan over the current exact form workset.
 
 use alloc::{format, string::String, vec::Vec};
 use conduit_core::{verify_plan, ActivePlayId, PlacementId, Plan, PlanId};
@@ -21,7 +21,7 @@ pub struct BodyPlan {
     pub workload_revision: u64,
     pub workset: BodyWorkset,
     pub forms: Vec<BodyFormPlan>,
-    /// Exact Presenter realizations selected independently of authored Forms.
+    /// Exact Presenter realizations selected independently of authored forms.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub presenter_topologies: Vec<BodyPresenterTopology>,
 }
@@ -32,8 +32,8 @@ pub const MAX_BODY_PRESENTER_STAGES: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BodyPresentationSelector {
-    /// The exact resident Form when the Presentation is Form-scoped. `None`
-    /// selects the Body-scoped Presentation without inventing a source Form.
+    /// The exact resident Form when the Presentation is form-scoped. `None`
+    /// selects the body-scoped Presentation without inventing a source Form.
     pub form: Option<ResidentForm>,
     pub source_placement_id: PlacementId,
 }

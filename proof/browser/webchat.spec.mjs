@@ -213,7 +213,7 @@ test("authored Presentation labels change the generic host without JavaScript ch
   if (oracleServer.process.exitCode === null) oracleServer.process.kill("SIGTERM");
 });
 
-test("Body-directed fragment admits exactly one browser and replay stays refused", async ({ browser }) => {
+test("body-directed fragment admits exactly one browser and replay stays refused", async ({ browser }) => {
   const spawnChat = await startWebchatServer();
   const spawnServer = spawn("target/debug/browser-spawn-probe", [], {
     cwd: new URL("../..", import.meta.url).pathname,
@@ -254,7 +254,7 @@ test("Body-directed fragment admits exactly one browser and replay stays refused
     .not.toBe(await replay.evaluate(() => globalThis.__webchat.admissionCandidate.hostId));
 });
 
-test("one native Body presents three mixed browser Parts without mutating its Plan", async ({ browser }) => {
+test("one native Body presents three mixed browser Parts without mutating its plan", async ({ browser }) => {
   const ambientChat = await startWebchatServer();
   const spawnedChat = await startWebchatServer();
   const picoPort = process.env.CONDUIT_B9_PICO_LINK_PORT;

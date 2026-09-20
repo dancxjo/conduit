@@ -1,4 +1,4 @@
-//! Portable Form-facing Lenia contracts.
+//! Portable form-facing Lenia contracts.
 
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{

@@ -1,4 +1,4 @@
-//! Bounded human-first projection of one Body's durable Signs biography.
+//! Bounded human-first projection of one body's durable Signs biography.
 //!
 //! “History” is product language for `Body / Signs`, not a fourth semantic
 //! Place. The friendly narrative stays subordinate to exact evidence and does

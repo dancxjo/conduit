@@ -329,10 +329,10 @@ pub fn execute_browser_pointer(
     })
 }
 
-/// The portable delivery semantics this Host implementation realizes.
+/// The portable delivery semantics this host implementation realizes.
 ///
 /// Looking this up by exact Info identity keeps the browser adapter from
-/// inventing a Host-private latest-value convention.
+/// inventing a host-private latest-value convention.
 pub fn browser_pointer_delivery_contract() -> Result<DeliveryContract, String> {
     reviewed_delivery_contract(&kind_id(POINTER_EVENT_INFO_ID))
         .ok_or_else(|| format!("no reviewed delivery contract for {POINTER_EVENT_INFO_ID}"))

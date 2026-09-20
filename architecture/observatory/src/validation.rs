@@ -242,7 +242,7 @@ fn validate_plays(
     let mut play_ids = BTreeSet::new();
     for play in &snapshot.plays {
         if !play_ids.insert(play.active_play_id.clone()) {
-            return Err("duplicate active Play identity".to_string());
+            return Err("duplicate active play identity".to_string());
         }
         let plan = snapshot
             .plans
@@ -351,11 +351,11 @@ fn validate_signs(
                 || observation.host_id != play.host_id
                 || observation.boot_id != play.boot_id
             {
-                return Err("observation identity disagrees with its Play".to_string());
+                return Err("observation identity disagrees with its play".to_string());
             }
         }
         if observation.presentation_id.is_some() && observation.active_play_id.is_none() {
-            return Err("presentation Sign has no active Play identity".to_string());
+            return Err("presentation Sign has no active play identity".to_string());
         }
         validate_sign_plan_membership(snapshot, observation)?;
         if !sign_ids.insert(observation.sign_id.clone()) {

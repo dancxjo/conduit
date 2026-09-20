@@ -77,7 +77,7 @@ pub struct LocalityPlanningBasis {
     pub now_ms: u64,
     pub horizon_seconds: u32,
     /// A realization-policy ceiling. `Some(0)` forbids remote transport; this
-    /// remains outside authored Form meaning.
+    /// remains outside authored form meaning.
     pub remote_bytes_per_second_ceiling: Option<u64>,
     pub data_flow: DataFlowObservation,
     pub reductions: Vec<ReductionObservation>,

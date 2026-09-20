@@ -10,6 +10,14 @@ This document exists so that good ideas do not have to become immediate code mer
 
 The archive, the August reboot, and the current implementation are parts of one history. Code may be replaced while an idea survives; an idea may be retained while its first implementation is retired.
 
+## Writing the vocabulary
+
+Ontology terms are common nouns unless they are independently proper names.
+Write “a body has a face,” “a host offers an implementation,” and “a form is
+realized by a plan and play.” Preserve capitalization for actual names such as
+Conduit, ConduitOS, Patchbay, Tour, and Crèche, and for literal code identifiers
+such as `BodyId`, `CheckedFront`, and `Form`.
+
 ## The center
 
 > **forms describe meaning. hosts offer implementations. plans make realization exact.**
@@ -66,7 +74,7 @@ RESOURCE bounded addressable content with explicit lifecycle and sharing obligat
 SIGNAL one particular info semantic or mechanism where explicitly named
 FRONT   stable visible semantic contract of a kind or form, including ports
 BACK   form that implements a front in Conduit terms
-FACE   the Body's semantic presentation surface, distinct from a callable front
+FACE   the body's semantic presentation surface, distinct from a callable front
 
 IMPL   platform-specific realization of a kind
 HOST   running software environment that makes truthful finite offers

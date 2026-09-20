@@ -8,7 +8,7 @@ use conduit_form::CheckedForm;
 
 use crate::{plan, PlacementChoices, PlannerError};
 
-/// Plans normally, then refuses before returning a Plan unless every selected
+/// Plans normally, then refuses before returning a plan unless every selected
 /// binding satisfies its original requirement, allowance, unchanged Host
 /// offer, and current observation. Allowance provenance remains opaque.
 pub fn plan_with_resource_allowances(

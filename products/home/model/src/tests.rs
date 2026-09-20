@@ -29,7 +29,7 @@ fn text_and_voice_share_the_exact_command_path() {
         home.submit_text("run definitely absent", &FORMS),
         HomeAction::Changed
     );
-    assert_eq!(home.output(), "No installed Form named definitely absent.");
+    assert_eq!(home.output(), "No installed form named definitely absent.");
 }
 
 #[test]

@@ -251,7 +251,7 @@ fn performance_class_is_never_inferred_from_candidate_or_host_names() {
         &policy(PerformanceIntent::ThroughputBatch),
         1_000,
     )
-    .expect("the same Hosts have no permanent global rank");
+    .expect("the same hosts have no permanent global rank");
     assert_eq!(interactive.selected_candidate_id, "slow-looking-name");
     assert_eq!(batch.selected_candidate_id, "fast-looking-name");
 }

@@ -32,7 +32,7 @@ pub(super) fn validate_fragment(
             return Err(LoweringError::StateStorageExceeded);
         }
     }
-    // A Host admitted only as a dynamic shared-pool realization still owns a
+    // A host admitted only as a dynamic shared-pool realization still owns a
     // real Plan fragment and fixed pool/session state even though it has no
     // statically placed Gear yet.
     if fragment.placements.is_empty() && fragment.shared_pools.is_empty() {

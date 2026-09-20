@@ -98,7 +98,7 @@ fn seal_manifest(workspace: &Path, root: &Path, execution_path: &Path) -> Result
         .get("plans")
         .and_then(Value::as_array)
         .filter(|plans| plans.len() == 1)
-        .ok_or("Little Life execution must retain exactly one Plan")?;
+        .ok_or("Little Life execution must retain exactly one plan")?;
     let plan_id = text(&plans[0], "plan_id")?;
     let observations = report
         .get("observations")
@@ -112,7 +112,7 @@ fn seal_manifest(workspace: &Path, root: &Path, execution_path: &Path) -> Result
                 .and_then(|kind| kind.get("PlanTerminal"))
                 .is_some()
         })
-        .ok_or("Little Life execution report lacks a Plan terminal")?;
+        .ok_or("Little Life execution report lacks a plan terminal")?;
     let active_play_id = text(terminal, "active_play_id")?;
     if terminal
         .pointer("/kind/PlanTerminal/disposition")

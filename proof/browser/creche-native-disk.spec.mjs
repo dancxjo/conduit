@@ -59,7 +59,7 @@ test("ConduitOS provisioning replaces one reviewed in-image spore region", async
 });
 
 test("missing and malformed native media provisioning remain refusals", async () => {
-  expect(() => readBodyProvisionedMedia(new Uint8Array(8192))).toThrow(/omitted its Body provision/);
+  expect(() => readBodyProvisionedMedia(new Uint8Array(8192))).toThrow(/omitted its body provision/);
   const native = await bindBodyProvisionedMedia({
     prepared: prepared("stale"),
     imageBytes: new Uint8Array(2048),

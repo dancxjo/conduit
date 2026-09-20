@@ -72,7 +72,7 @@ pub extern "C" fn conduit_tour_multi_admit_source_interaction(
     })
 }
 
-/// Checks and plans the ordinary Form once, then starts its source fragment.
+/// Checks and plans the ordinary form once, then starts its source fragment.
 #[no_mangle]
 pub extern "C" fn conduit_tour_multi_start_source(
     source_host_length: usize,
@@ -104,7 +104,7 @@ pub extern "C" fn conduit_tour_multi_start_source(
     }
     let Some(source_interaction) = SOURCE_INTERACTION.with(|slot| slot.borrow_mut().take()) else {
         let _ = write_output(&crate::form_runner::refusal(
-            "source interaction was not admitted before multi-Host parsing".into(),
+            "source interaction was not admitted before multi-host parsing".into(),
         ));
         return ERROR_INTERACTION;
     };
@@ -137,7 +137,7 @@ pub extern "C" fn conduit_tour_multi_start_source(
             })?;
             if verified.proposal_identity != source_interaction.proposal_identity {
                 write_output(&crate::form_runner::refusal(
-                    "source changed after typed multi-Host interaction admission".into(),
+                    "source changed after typed multi-host interaction admission".into(),
                 ))
                 .map_err(|_| ERROR_OUTPUT)?;
                 return Err(ERROR_INTERACTION);
@@ -164,8 +164,8 @@ pub extern "C" fn conduit_tour_multi_start_source(
     })
 }
 
-/// Admits the exact Plan emitted by the source Host and starts only its sink
-/// fragment. This boundary never parses, checks, expands, or replans the Form.
+/// Admits the exact plan emitted by the source Host and starts only its sink
+/// fragment. This boundary never parses, checks, expands, or replans the form.
 #[no_mangle]
 pub extern "C" fn conduit_tour_multi_start_sink(
     sink_host_length: usize,
@@ -189,7 +189,7 @@ pub extern "C" fn conduit_tour_multi_start_sink(
     }
     let Some(source_interaction) = SOURCE_INTERACTION.with(|slot| slot.borrow_mut().take()) else {
         let _ = write_output(&crate::form_runner::refusal(
-            "source interaction was not admitted before exact Plan admission".into(),
+            "source interaction was not admitted before exact plan admission".into(),
         ));
         return ERROR_INTERACTION;
     };
@@ -210,7 +210,7 @@ pub extern "C" fn conduit_tour_multi_start_sink(
             let plan =
                 serde_json::from_slice(&input[sink_boot_end..total_length]).map_err(|_| {
                     let _ = write_output(&crate::form_runner::refusal(
-                        "received multi-Host Plan is not valid bounded JSON".into(),
+                        "received multi-host Plan is not valid bounded JSON".into(),
                     ));
                     ERROR_PREPARE
                 })?;

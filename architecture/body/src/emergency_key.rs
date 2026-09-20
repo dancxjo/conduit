@@ -26,7 +26,7 @@ pub enum EmergencyKeyRefusal {
 }
 
 impl EmergencyKey {
-    /// Select three distinct words from admitted entropy supplied by the Host.
+    /// Select three distinct words from admitted entropy supplied by the host.
     /// There is deliberately no clock, identity, or deterministic fallback.
     pub fn from_admitted_entropy(entropy: [u8; 3]) -> Result<Self, EmergencyKeyRefusal> {
         let count = EMERGENCY_WORDS.len() as u8;

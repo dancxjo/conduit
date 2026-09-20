@@ -75,10 +75,10 @@ pub enum EffectAuthorityDerivationError {
 }
 
 impl EffectAuthority {
-    /// Derives effect authority only from exact facts already sealed into a Plan.
+    /// Derives effect authority only from exact facts already sealed into a plan.
     ///
     /// The connection's nominal value kind is the argument envelope type. More
-    /// elaborate structured profiles must first be carried by the Plan itself;
+    /// elaborate structured profiles must first be carried by the plan itself;
     /// callers cannot supply an out-of-band structural type here.
     pub fn from_plan(
         plan: &Plan,

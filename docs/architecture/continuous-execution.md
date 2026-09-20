@@ -41,7 +41,7 @@ transition uses only that admitted finite workset. No transition counter is a
 semantic limit, and no restart is used to renew a resource or timer budget.
 An admitted queue, slot pool, or hardware ring is ordinarily a simultaneous
 occupancy bound: after an occupant is consumed or retired, that storage is
-reusable in the same Play. It becomes a lifetime-transition bound only when
+reusable in the same play. It becomes a lifetime-transition bound only when
 that cardinality is explicit authored meaning rather than an implementation
 counter that happens to reach the storage capacity.
 

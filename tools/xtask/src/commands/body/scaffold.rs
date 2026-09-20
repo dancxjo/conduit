@@ -341,7 +341,7 @@ fn print_receipt(report: &CreationReport) {
         }
     }
     if !report.host_recipes.is_empty() {
-        println!("\n{}", style("New Host recipes").bold());
+        println!("\n{}", style("New host recipes").bold());
         for recipe in &report.host_recipes {
             println!("  {} {}", style(CHECK).green(), recipe);
         }

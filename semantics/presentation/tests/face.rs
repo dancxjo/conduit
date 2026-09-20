@@ -54,7 +54,7 @@ fn tutorial_view(revision: u32) -> ApplicationView {
                 parent: None,
                 component: ApplicationComponent::Main,
                 key: "tutorial".into(),
-                text: "Learn this Body".into(),
+                text: "Learn this body".into(),
                 value: String::new(),
                 value_capacity: 0,
                 action: None,

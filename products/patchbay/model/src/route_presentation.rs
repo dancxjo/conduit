@@ -158,7 +158,7 @@ impl DistributedRoutePresentation {
     pub fn linear_lines(&self) -> Vec<String> {
         vec![
             format!(
-                "Form source {} checked {}. Plan {} connection {} has one admitted route, {}. {} became unavailable with sign {}. The Play became unsatisfied with sign {}. Planning was requested with sign {} and succeeded with sign {}. Replacement Plan {} superseded prior Plan {} with realization sign {}.",
+                "Form source {} checked {}. Plan {} connection {} has one admitted route, {}. {} became unavailable with sign {}. The play became unsatisfied with sign {}. Planning was requested with sign {} and succeeded with sign {}. Replacement Plan {} superseded prior Plan {} with realization sign {}.",
                 self.source_document_id.as_str(),
                 self.checked_form_id.as_str(),
                 self.new_plan.prior.plan_id.as_str(),
@@ -185,7 +185,7 @@ impl DistributedRoutePresentation {
                 self.same_plan.plan.plan_id.as_str(),
             ),
             format!(
-                "An observed ambient route, {}, was refused because it was not sealed into the active Plan. Observation sign was {}.",
+                "An observed ambient route, {}, was refused because it was not sealed into the active plan. Observation sign was {}.",
                 display_binding(&self.refused.binding_id),
                 self.refused.observation_sign_id.as_str(),
             ),

@@ -171,7 +171,7 @@ export async function bindRp2040BodySpore(imageBytes, prepared, cryptoApi = glob
   parseRp2040Uf2(bytes, 4096);
   const recovered = readRp2040BodySpore(bytes);
   if (JSON.stringify(recovered) !== JSON.stringify(provision)) {
-    refuse("SporeBinding", "RP2040 native Spore did not retain its exact Body bootstrap");
+    refuse("SporeBinding", "RP2040 native Spore did not retain its exact body bootstrap");
   }
   const contentId = await sha256ContentId(bytes, cryptoApi);
   return Object.freeze({

@@ -1,4 +1,4 @@
-//! Exact pre-Play-start lowering from string-identified plan facts into the
+//! Exact pre-play-start lowering from string-identified plan facts into the
 //! numeric tables consumed by `conduit-kernel`.
 
 use alloc::collections::{BTreeMap, BTreeSet};

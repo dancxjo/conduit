@@ -28,7 +28,7 @@ fn host(behavior: FakePlaybackBehavior) -> StdHost {
         behavior,
     );
     StdHost::new_with_playback(config, StdHostComposition::reference(), selection)
-        .expect("fixture selection matches exact Host identity")
+        .expect("fixture selection matches exact host identity")
 }
 
 fn form() -> conduit_form::CheckedForm {

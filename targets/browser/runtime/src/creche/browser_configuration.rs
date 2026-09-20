@@ -221,7 +221,7 @@ pub(super) fn catalog() -> BrowserConfigurationCatalog {
             .collect(),
         semantics: CatalogSemantics {
             selection_means:
-                "include this reviewed structural implementation in the Host PROFILE/IMAGE",
+                "include this reviewed structural implementation in the host PROFILE/IMAGE",
             does_not_create: lifecycle_absences(),
         },
     }

@@ -187,7 +187,7 @@
     }
   ],
   "excluded_paths": [
-    {"prefix": "targets/std/src/bin/", "reason": "repository probes and demo servers are internal proof/development entrances, not installed Host capability implementations"},
+    {"prefix": "targets/std/src/bin/", "reason": "repository probes and demo servers are internal proof/development entrances, not installed host capability implementations"},
     {"suffix": "/tests.rs", "reason": "test-only fixtures"},
     {"suffix": "_tests.rs", "reason": "test-only fixtures"},
     {"path": "targets/std/src/hosted_audio/fake.rs", "reason": "test fake"},

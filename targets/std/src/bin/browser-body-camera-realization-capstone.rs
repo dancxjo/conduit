@@ -1,6 +1,6 @@
 //! Two admitted browser Hosts realizing one semantic camera-frame Cord.
 //!
-//! Realizability depends on exact acquired camera-resource truth. Losing the Host
+//! Realizability depends on exact acquired camera-resource truth. Losing the host
 //! that owns that truth invalidates the dependent realization.
 
 #[path = "browser_webrtc_rendezvous_probe/admission.rs"]
@@ -247,7 +247,7 @@ fn main() -> Result<(), String> {
                                 total: 0,
                                 grant: None,
                             })
-                            .map_err(debug("send empty pre-Plan grant"))?;
+                            .map_err(debug("send empty pre-plan grant"))?;
                         continue;
                     }
                     if generation != 1 {

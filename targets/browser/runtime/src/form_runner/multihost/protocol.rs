@@ -169,18 +169,18 @@ pub(super) struct RecordDeliveryProjection {
 
 pub(super) fn projection(plan: &Plan, play_sequence: u64) -> Result<PlanProjection, String> {
     if plan.fragments.len() != 2 {
-        return Err("multi-Host Plan projection requires exactly two fragments".into());
+        return Err("multi-host Plan projection requires exactly two fragments".into());
     }
     let connection = plan
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.connections)
         .find(|connection| connection.selected_line.is_some())
-        .ok_or_else(|| "multi-Host Plan projection has no selected Line".to_string())?;
+        .ok_or_else(|| "multi-host Plan projection has no selected Line".to_string())?;
     let line = connection
         .selected_line
         .as_ref()
-        .ok_or_else(|| "multi-Host Cord has no exact selected Line".to_string())?;
+        .ok_or_else(|| "multi-host Cord has no exact selected Line".to_string())?;
     let mut hosts = Vec::with_capacity(2);
     for fragment in &plan.fragments {
         let play = bind_active_play(
@@ -213,7 +213,7 @@ pub(super) fn projection(plan: &Plan, play_sequence: u64) -> Result<PlanProjecti
     hosts.sort_by(|left, right| left.label.cmp(right.label));
     Ok(PlanProjection {
         schema: "conduit.tour/plan-projection@1",
-        explanation: "The Form says what; current Host offers constrain what is possible; this immutable Plan says exactly how this Play is realized.",
+        explanation: "The form says what; current host offers constrain what is possible; this immutable Plan says exactly how this play is realized.",
         source_document_id: plan.source_document_id.as_str().into(),
         checked_form_id: plan.checked_form_id.as_str().into(),
         expanded_form_id: plan.expanded_form_id.as_str().into(),

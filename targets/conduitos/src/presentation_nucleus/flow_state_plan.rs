@@ -1,4 +1,4 @@
-//! Exact ordinary Form and Plan preparation for bounded scalar latest/tee.
+//! Exact ordinary form and Plan preparation for bounded scalar latest/tee.
 
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{

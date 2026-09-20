@@ -332,7 +332,7 @@ impl PatchbayHtmlServer {
             }
             if let Some(session) = prepared_zero_body {
                 let current = self.zero_body_front_door.as_ref().ok_or_else(|| {
-                    ServerError::Interaction("zero-Body front-door session is absent".into())
+                    ServerError::Interaction("zero-body front-door session is absent".into())
                 })?;
                 *current.lock().map_err(|_| {
                     ServerError::Interaction("front-door session lock failed".into())

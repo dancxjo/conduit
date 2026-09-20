@@ -76,7 +76,7 @@ impl KernelResourceLedger {
     }
 
     /// Reserve one dynamic shared-pool member through the same capability and
-    /// resource ledger as static placements. The Plan has already sealed the
+    /// resource ledger as static placements. The plan has already sealed the
     /// exact binding vector; this boundary revalidates it against the current
     /// capability requirements and commits atomically.
     pub(super) fn reserve_pool_member(
@@ -189,7 +189,7 @@ impl KernelResourceLedger {
                 return Err("duplicate local workload partition".into());
             }
         }
-        // Staging is pre-Play, finite, and includes all existing reservations.
+        // Staging is pre-play, finite, and includes all existing reservations.
         // A late invalid partition or combined shortage discards the candidate
         // ledger without requiring fallible rollback of the live ledger.
         let mut staged = self.clone();
@@ -358,7 +358,7 @@ impl KernelResourceLedger {
                 .find(|pool| pool.pool_id == binding.pool_id && pool.class_id == binding.class_id)
                 .ok_or_else(|| {
                     format!(
-                        "sealed resource pool '{}' is absent from the current Host ledger",
+                        "sealed resource pool '{}' is absent from the current host ledger",
                         binding.pool_id.as_str()
                     )
                 })?;

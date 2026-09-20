@@ -1,7 +1,7 @@
 use super::*;
 
 /// Membership observers may still hold a biography from before local execution.
-/// Adopt only their exact membership extension; never replace local Body/Wakes.
+/// Adopt only their exact membership extension; never replace local body/Wakes.
 pub(super) fn merge_membership_extension(
     local: &BodyBiographyEvidence,
     remote: &BodyBiographyEvidence,

@@ -1,4 +1,4 @@
-//! Portable presentation of reviewed Forms beside the authoritative Body workset.
+//! Portable presentation of reviewed forms beside the authoritative Body workset.
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{MAX_BODY_FORMS, ResidentForm};
 use conduit_presentation::{
@@ -79,7 +79,7 @@ impl FormLibrary {
     }
 
     /// `revision` is presentation freshness, distinct from Body workload revision.
-    /// Installed state is always projected from this Body, never retained here.
+    /// Installed state is always projected from this body, never retained here.
     pub fn presentation(
         &self,
         body: &WorkspaceBody,
@@ -109,9 +109,9 @@ impl FormLibrary {
             let body_at_capacity = body.evidence().body.workset.len() >= MAX_BODY_FORMS;
             let use_available = available && (installed || !body_at_capacity);
             let unavailable_detail = if !available {
-                "This Form needs capabilities this Host does not offer."
+                "This form needs capabilities this host does not offer."
             } else {
-                "This Body is at its resident Form capacity. Remove a Form before adding another."
+                "This body is at its resident Form capacity. Remove a form before adding another."
             };
             let mut actions = vec![node(
                 &format!("use-{index}"),
@@ -142,13 +142,13 @@ impl FormLibrary {
                 PresentationMechanism::Status {
                     kind: StatusKind::Ordinary,
                     title: if installed {
-                        "In your Body"
+                        "In your body"
                     } else if !available {
                         "Needs capability"
                     } else if body_at_capacity {
                         "Body at capacity"
                     } else {
-                        "Not in your Body"
+                        "Not in your body"
                     }
                     .into(),
                     detail: match &entry.availability {
@@ -166,7 +166,7 @@ impl FormLibrary {
                         title: format!("Text fallback: {}", fallback.title),
                         detail: match &fallback.availability {
                             LibraryAvailability::Available => {
-                                "This fallback has a reviewed realization on the current Host."
+                                "This fallback has a reviewed realization on the current host."
                                     .into()
                             }
                             LibraryAvailability::NeedsCapability(reason) => {
@@ -202,14 +202,14 @@ impl FormLibrary {
                     node(
                         "library-search",
                         PresentationMechanism::FormField(FormField {
-                            label: "Find a Form".into(),
-                            help: "Search the reviewed catalog. Use a Form here, or remove one from your Body.".into(),
+                            label: "Find a form".into(),
+                            help: "Search the reviewed catalog. Use a form here, or remove one from your body.".into(),
                             error: None,
                             value: query.into(),
                             value_capacity: LIBRARY_SEARCH_BYTES as u32,
                             input_action: action(
                                 "library.search",
-                                "Find a Form",
+                                "Find a form",
                                 ApplicationEventKind::Input,
                                 true,
                                 "",

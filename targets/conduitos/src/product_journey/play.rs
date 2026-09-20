@@ -289,8 +289,8 @@ impl ProductJourney {
         }
         self.wake = Some(wake);
         self.play = Some(play.clone());
-        // This Form has no checked completion witness. Its initial structural
-        // drain leaves the admitted Play resident and awaiting later input.
+        // This form has no checked completion witness. Its initial structural
+        // drain leaves the admitted play resident and awaiting later input.
         self.status = JourneyStatus::QuiescentAwaitingInput;
         Ok(())
     }

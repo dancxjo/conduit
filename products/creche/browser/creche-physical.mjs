@@ -595,7 +595,7 @@ function minimalObservationEvidence(observation) {
 function admitObservation(api, join) {
   const encoded = encoder.encode(JSON.stringify(join));
   if (encoded.length === 0 || encoded.length > api.conduit_creche_input_capacity()) {
-    throw new RangeError("join observation exceeds the admitted Body input bound");
+    throw new RangeError("join observation exceeds the admitted body input bound");
   }
   new Uint8Array(api.memory.buffer, api.conduit_creche_input_ptr(), encoded.length).set(encoded);
   const code = api.conduit_creche_admit_physical_spore(encoded.length);

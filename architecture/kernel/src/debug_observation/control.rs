@@ -42,7 +42,7 @@ pub enum DebugControlRefusal {
 /// Validation supplied by the exact execution-bound debugger adapter.
 ///
 /// The scheduler remains the sole owner of suspension and resume. This trait
-/// only proves that a requested exact subject belongs to its current Play.
+/// only proves that a requested exact subject belongs to its current play.
 pub trait DebugRuntimeControl {
     fn validate_breakpoint(
         &self,

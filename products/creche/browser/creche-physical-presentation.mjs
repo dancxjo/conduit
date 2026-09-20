@@ -56,7 +56,7 @@ export function presentPhysicalActions(state) {
   const actions = ["bind", "realize", "observe", "admit", "cancel"];
   const labels = {
     bind: "Bind Body invitation",
-    realize: "Realize selected Host",
+    realize: "Realize selected host",
     observe: "Observe Boot and join",
     admit: "Admit Part and offers",
     cancel: "Cancel current operation",

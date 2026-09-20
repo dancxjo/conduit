@@ -77,7 +77,7 @@ pub(super) fn portable_navigation_lines(
     .map_err(|error| error.to_string())
 }
 
-/// Ordinary zero-Body view. Exact identities remain in the deliberate details
+/// Ordinary zero-body view. Exact identities remain in the deliberate details
 /// view backed by `portable_presentation_lines`.
 pub(super) fn ordinary_front_door_lines(
     presentation: &Presentation,

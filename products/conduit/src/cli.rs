@@ -8,7 +8,7 @@ use std::path::PathBuf;
     name = "conduit",
     about = "Run Forms and grow a living Conduit Body",
     long_about = "Run Forms and grow a living Conduit Body.\n\nUse `conduit body invite` to issue bounded joining authority, `conduit body accept` on an installed machine to prepare its signed admission request, and `conduit body admit` on the owning machine to commit membership and current presence. Use `conduit host obtain` to resolve a reviewed target release. Body binding remains separate from `conduit host carry`, which downloads, launches, writes, or flashes an exact artifact through an explicit carrier. Inspect durable identity and current runtime truth with `conduit host service status`.",
-    after_help = "BODY GROWTH\n  1. conduit body invite --state-dir <OWNER_STATE> > invitation.json\n  2. conduit body accept invitation.json --state-dir <JOINING_STATE> --authorize-join > request.json\n  3. conduit body admit request.json --state-dir <OWNER_STATE> --authorize-admission > receipt.json\n  4. conduit body complete-join receipt.json --state-dir <JOINING_STATE> --authorize-membership\n  5. conduit host obtain <TARGET> --catalog <CATALOG> --catalog-id <ID> --mirror <MIRROR> --cache <CACHE>\n  6. conduit host carry <CARRIER> --help\n\nInvitation, request, and receipt documents are bounded JSON suitable for standard input/output. Admission reports membership and current offers without creating a Plan or Play. Artifact preparation never implies carrier execution, boot, admission, Plan, or Play."
+    after_help = "BODY GROWTH\n  1. conduit body invite --state-dir <OWNER_STATE> > invitation.json\n  2. conduit body accept invitation.json --state-dir <JOINING_STATE> --authorize-join > request.json\n  3. conduit body admit request.json --state-dir <OWNER_STATE> --authorize-admission > receipt.json\n  4. conduit body complete-join receipt.json --state-dir <JOINING_STATE> --authorize-membership\n  5. conduit host obtain <TARGET> --catalog <CATALOG> --catalog-id <ID> --mirror <MIRROR> --cache <CACHE>\n  6. conduit host carry <CARRIER> --help\n\nInvitation, request, and receipt documents are bounded JSON suitable for standard input/output. Admission reports membership and current offers without creating a plan or Play. Artifact preparation never implies carrier execution, boot, admission, Plan, or Play."
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -17,28 +17,28 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
-    /// Enter Conduit Home through the native presentation available on this Host.
+    /// Enter Conduit Home through the native presentation available on this host.
     Home,
-    /// Birth and provision a Body through the browser Crèche.
+    /// Birth and provision a body through the browser Crèche.
     Creche,
-    /// Enter the current Body through the shared Patchbay front door.
+    /// Enter the current body through the shared Patchbay front door.
     Patchbay {
-        /// Select the Host realization used to manifest Patchbay.
+        /// Select the host realization used to manifest Patchbay.
         #[arg(long, value_enum, default_value_t = PatchbayHost::Native)]
         on: PatchbayHost,
         /// Open exact exported Body biography evidence in an external reader.
         #[arg(long)]
         body_evidence: Option<PathBuf>,
-        /// Offer one explicit local Body invitation to this browser Host.
+        /// Offer one explicit local body invitation to this browser Host.
         #[arg(long, requires = "body_evidence")]
         body_invitation: Option<String>,
-        /// Admit a reviewed Form label and canonical source for Body workload changes.
+        /// Admit a reviewed form label and canonical source for Body workload changes.
         #[arg(long, value_names = ["LABEL", "PATH"], num_args = 2, action = clap::ArgAction::Append, requires = "body_evidence")]
         reviewed_form: Vec<OsString>,
     },
-    /// Check, plan, admit, and execute a Form on available local Hosts.
+    /// Check, plan, admit, and execute a form on available local hosts.
     Run {
-        /// Authored Form to execute.
+        /// Authored form to execute.
         form: PathBuf,
         /// Optional exact placement constraints.
         #[arg(long)]
@@ -49,7 +49,7 @@ pub(crate) enum Command {
         /// Exact canonical Body construction source used for Host and Line truth.
         #[arg(long)]
         body: Option<PathBuf>,
-        /// Do not attach standard-input cancellation; wait for the Play's own terminal outcome.
+        /// Do not attach standard-input cancellation; wait for the play's own terminal outcome.
         #[arg(long)]
         await_terminal: bool,
     },
@@ -68,7 +68,7 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: RendezvousRelayCommand,
     },
-    /// Check a Form and render owned diagnostics without executing it.
+    /// Check a form and render owned diagnostics without executing it.
     Check {
         form: PathBuf,
         #[arg(long)]
@@ -155,7 +155,7 @@ pub(crate) enum PatchbayHost {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum HostCommand {
-    /// Install, run, or inspect the durable local Host owner.
+    /// Install, run, or inspect the durable local host owner.
     Service {
         #[command(subcommand)]
         command: HostServiceCommand,
@@ -180,7 +180,7 @@ pub(crate) enum HostCommand {
         #[arg(long, default_value_t = 0)]
         minimum_generation: u64,
     },
-    /// Carry an exact Body-bound artifact without rebuilding it.
+    /// Carry an exact body-bound artifact without rebuilding it.
     Carry {
         #[command(subcommand)]
         command: CarrierCommand,
@@ -196,12 +196,12 @@ pub(crate) enum HostCommand {
         #[arg(long, default_value = "target/host-build")]
         output: PathBuf,
     },
-    /// Offer this already-running local Host to the browser Crèche.
+    /// Offer this already-running local host to the browser Crèche.
     Rendezvous {
-        /// Installed durable Host state owned by the running service.
+        /// Installed durable host state owned by the running service.
         #[arg(long)]
         state_dir: PathBuf,
-        /// Line carrier used to reach this running Host.
+        /// Line carrier used to reach this running host.
         #[arg(long, value_enum, default_value_t = RendezvousCarrier::Websocket)]
         carrier: RendezvousCarrier,
         /// Stop a WebSocket carrier if the code is unused for this many seconds.
@@ -236,26 +236,26 @@ pub(crate) enum CarrierCommand {
         #[arg(required = true, num_args = 1..)]
         descriptors: Vec<PathBuf>,
     },
-    /// Copy the exact artifact without starting or writing a Host.
+    /// Copy the exact artifact without starting or writing a host.
     Download {
         descriptor: PathBuf,
         artifact: PathBuf,
         source: PathBuf,
         destination: PathBuf,
     },
-    /// Install and start an exact Body-bound native Host package locally.
+    /// Install and start an exact body-bound native Host package locally.
     InstallNative {
         descriptor: PathBuf,
         artifact: PathBuf,
         source: PathBuf,
-        /// Durable local Host state retained across service restarts.
+        /// Durable local host state retained across service restarts.
         #[arg(long)]
         state_dir: PathBuf,
         /// Explicitly authorize installation and service start on this machine.
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_install: bool,
     },
-    /// Flash an exact Body-bound RP2040 UF2 to one confirmed BOOTSEL volume.
+    /// Flash an exact body-bound RP2040 UF2 to one confirmed BOOTSEL volume.
     FlashUf2 {
         descriptor: PathBuf,
         artifact: PathBuf,
@@ -277,7 +277,7 @@ pub(crate) enum CarrierCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_launch: bool,
     },
-    /// Serve an exact Body-bound boot image over finite HTTP Boot.
+    /// Serve an exact body-bound boot image over finite HTTP Boot.
     ServeHttpBoot {
         descriptor: PathBuf,
         artifact: PathBuf,
@@ -326,12 +326,12 @@ pub(crate) enum HostServiceCommand {
         #[arg(long)]
         state_dir: PathBuf,
     },
-    /// Run the durable Host in the foreground for a platform service manager.
+    /// Run the durable host in the foreground for a platform service manager.
     Run {
         #[arg(long)]
         state_dir: PathBuf,
     },
-    /// Print the retained Host identity and current runtime status.
+    /// Print the retained host identity and current runtime status.
     Status {
         #[arg(long)]
         state_dir: PathBuf,
@@ -339,7 +339,7 @@ pub(crate) enum HostServiceCommand {
         #[arg(long)]
         json: bool,
     },
-    /// Configure already-local Whisper, Ollama, and Piper providers for this durable Host.
+    /// Configure already-local Whisper, Ollama, and Piper providers for this durable host.
     ConfigureVoice {
         #[arg(long)]
         state_dir: PathBuf,
@@ -369,7 +369,7 @@ pub(crate) enum HostServiceCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_local_voice: bool,
     },
-    /// Make this durable Host retain one exact validated Body biography.
+    /// Make this durable host retain one exact validated Body biography.
     OwnBody {
         /// Exported `conduit.body/biography-evidence@2` document.
         evidence: PathBuf,
@@ -380,53 +380,53 @@ pub(crate) enum HostServiceCommand {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
-    /// Inspect the Body retained by this installed Host.
+    /// Inspect the body retained by this installed host.
     Status {
-        /// Installed durable Host state that owns or has joined the Body.
+        /// Installed durable host state that owns or has joined the body.
         #[arg(long)]
         state_dir: PathBuf,
         /// Emit bounded machine-readable Body, Host, Boot, and biography identity truth.
         #[arg(long)]
         json: bool,
     },
-    /// Issue one bounded invitation from the Body owned by this installed Host.
+    /// Issue one bounded invitation from the body owned by this installed host.
     Invite {
-        /// Installed durable Host state that owns the Body.
+        /// Installed durable host state that owns the body.
         #[arg(long)]
         state_dir: PathBuf,
         /// Invitation lifetime; never exceeds the architectural maximum.
         #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=600))]
         ttl_seconds: u64,
     },
-    /// Accept one bounded invitation on this installed Host and emit an admission request.
+    /// Accept one bounded invitation on this installed host and emit an admission request.
     Accept {
         /// Invitation JSON path, or `-` to read the exact document from standard input.
         invitation: PathBuf,
-        /// Installed durable Host state that will join the invited Body.
+        /// Installed durable host state that will join the invited Body.
         #[arg(long)]
         state_dir: PathBuf,
-        /// Explicitly authorize this Host to request membership in the invited Body.
+        /// Explicitly authorize this host to request membership in the invited Body.
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_join: bool,
     },
-    /// Admit one signed request into the Body owned by this installed Host.
+    /// Admit one signed request into the body owned by this installed host.
     Admit {
         /// Admission-request JSON path, or `-` to read the exact document from standard input.
         request: PathBuf,
-        /// Installed durable Host state that owns the Body.
+        /// Installed durable host state that owns the body.
         #[arg(long)]
         state_dir: PathBuf,
-        /// Explicitly authorize adding the requested Host as a Body Part.
+        /// Explicitly authorize adding the requested Host as a body Part.
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_admission: bool,
     },
-    /// Retain the owner's exact admission receipt as this Host's durable membership.
+    /// Retain the owner's exact admission receipt as this host's durable membership.
     CompleteJoin {
         /// Owner-issued `conduit.body/spawn-admission-receipt@1` document.
         receipt: PathBuf,
         #[arg(long)]
         state_dir: PathBuf,
-        /// Explicitly authorize retaining membership in the admitted Body.
+        /// Explicitly authorize retaining membership in the admitted body.
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_membership: bool,
     },
@@ -473,7 +473,7 @@ mod tests {
             assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
         }
         assert!(help.contains("bounded JSON"));
-        assert!(help.contains("without creating a Plan or Play"));
+        assert!(help.contains("without creating a plan or Play"));
         assert!(help.contains("never implies carrier execution"));
         assert!(!help.contains("xtask"));
     }
@@ -520,7 +520,7 @@ mod tests {
                 "installed",
                 "--json",
             ])
-            .expect("current Body status parses")
+            .expect("current body status parses")
             .command,
             Command::Body {
                 command: BodyCommand::Status { state_dir, json: true }
@@ -705,7 +705,7 @@ mod tests {
             Cli::try_parse_from([
                 "conduit", "host", "service", "own-body", "body.json", "--state-dir", "installed-host",
             ])
-            .expect("durable Body ownership entrance parses")
+            .expect("durable body ownership entrance parses")
             .command,
             Command::Host {
                 command: HostCommand::Service {
@@ -723,7 +723,7 @@ mod tests {
                 "--state-dir",
                 "installed-host",
             ])
-            .expect("durable Host service entrance parses")
+            .expect("durable host service entrance parses")
             .command,
             Command::Host {
                 command: HostCommand::Service {
@@ -765,7 +765,7 @@ mod tests {
                 "installed-host",
                 "--json",
             ])
-            .expect("scriptable durable Host status parses")
+            .expect("scriptable durable host status parses")
             .command,
             Command::Host {
                 command: HostCommand::Service {
@@ -980,7 +980,7 @@ mod tests {
                 "--body-invitation",
                 "ws://127.0.0.1:4173/body",
             ])
-            .expect("explicit local Body invitation parses")
+            .expect("explicit local body invitation parses")
             .command,
             Command::Patchbay { body_invitation: Some(url), .. }
                 if url == "ws://127.0.0.1:4173/body"

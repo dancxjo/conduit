@@ -55,7 +55,7 @@ pub enum Command {
     Body(BodyArgs),
     /// Prove bounded Pete forebrain-motherbrain coordination.
     BodyCoordination(BodyCoordinationArgs),
-    /// Inspect mechanically derived portable Kind coverage by Host profile.
+    /// Inspect mechanically derived portable kind coverage by Host profile.
     Catalog(CatalogArgs),
     /// Execute repository validation check suites.
     Check(CheckArgs),
@@ -67,7 +67,7 @@ pub enum Command {
     Proofs(ProofsArgs),
     /// Verify bounded proof evidence before transport or review.
     Evidence(EvidenceArgs),
-    /// Check and report the explicit reviewed Form inventory.
+    /// Check and report the explicit reviewed form inventory.
     Forms(FormsArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
@@ -77,7 +77,7 @@ pub enum Command {
     Esp32Firmware(Esp32FirmwareArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
     Pico(PicoArgs),
-    /// Target one Host lifecycle or manage exact Host configuration and fabrication.
+    /// Target one host lifecycle or manage exact host configuration and fabrication.
     Host(HostArgs),
     /// Run the complete Pico W local workflow.
     PicoLocal(PicoArgs),
@@ -618,7 +618,7 @@ mod tests {
         ));
 
         let cross_host = Cli::try_parse_from(["xtask", "prove", "llm-cross-host"])
-            .expect("cross-Host LLM proof command parses");
+            .expect("cross-host LLM proof command parses");
         assert!(matches!(
             cross_host.command,
             Command::Prove(args) if args.proof == ProveTarget::LlmCrossHost

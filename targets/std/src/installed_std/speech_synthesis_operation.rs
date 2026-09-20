@@ -237,7 +237,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     let maximum_blocks = maximum_blocks(placement)?;
     Ok(OperationBudget {
-        // The source Text remains live until its first Host completion while
+        // The source Text remains live until its first host completion while
         // that completion stores one output block. The continuation marker is
         // retained for all later pulls.
         value_items: 3,

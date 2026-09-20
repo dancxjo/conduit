@@ -91,7 +91,7 @@ pub fn explain_voyager_capstone(
                         returned.push("dormant equipment capacity".into());
                     }
                     VoyagerScarKind::RecursiveRecovery { semantic_profile } => {
-                        expanded.push(format!("recursive cross-Host graph for {semantic_profile}"));
+                        expanded.push(format!("recursive cross-host graph for {semantic_profile}"));
                         returned.push("lost direct semantic capability".into());
                     }
                     VoyagerScarKind::SurvivalPolicy { policy_id } => {

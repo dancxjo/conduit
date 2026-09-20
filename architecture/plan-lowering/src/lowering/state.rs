@@ -13,7 +13,7 @@ pub struct LoweredState {
     pub contract: PlannedStateBoundary,
 }
 
-/// Structural lowering only. Installation must still validate the authored Kind
+/// Structural lowering only. Installation must still validate the authored kind
 /// contract and exact selected implementation, and consume every State entry.
 pub(super) fn lower_states(
     fragment: &PlanFragment,

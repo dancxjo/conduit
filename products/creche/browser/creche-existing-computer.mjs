@@ -44,7 +44,7 @@ export function createExistingComputerAdapter({ host, profile }) {
       input.maxLength = 96;
       input.placeholder = "C1-WS-… or C1-SERIAL-…";
       input.value = rendezvousCode;
-      input.setAttribute("aria-label", "Running Host rendezvous code");
+      input.setAttribute("aria-label", "Running host rendezvous code");
       input.addEventListener("change", () => {
         rendezvousCode = input.value.trim();
         onChange();
@@ -56,8 +56,8 @@ export function createExistingComputerAdapter({ host, profile }) {
     note.className = "target-option-note";
     if (mode === "install-existing") {
       note.textContent = profile.browser_carrier
-        ? "Download the reviewed browser Host release, bind it into this Body's spore, then load that exact bundle in an isolated browser Host."
-        : "Download the reviewed native Host release and bind it into this Body's spore. Installation and start wait for an explicit native helper; no SSH, credential, address, package-manager, or container authority is assumed.";
+        ? "Download the reviewed browser Host release, bind it into this body's spore, then load that exact bundle in an isolated browser Host."
+        : "Download the reviewed native Host release and bind it into this body's spore. Installation and start wait for an explicit native helper; no SSH, credential, address, package-manager, or container authority is assumed.";
     } else if (mode === "attach-running") {
       note.textContent = "No authenticated already-running connection carrier is implemented for this exact target.";
     } else {
@@ -75,7 +75,7 @@ export function createExistingComputerAdapter({ host, profile }) {
         if (rendezvous.descriptor.target_id !== profile.target_id) {
           rendezvous.cancel();
           rendezvous = null;
-          refuse(profile, mode, "obtain", "WrongTarget", "rendezvous code names a different running Host target");
+          refuse(profile, mode, "obtain", "WrongTarget", "rendezvous code names a different running host target");
         }
         return Object.freeze({
           resultKind: "attachment",
@@ -94,7 +94,7 @@ export function createExistingComputerAdapter({ host, profile }) {
         });
       } catch (error) {
         if (error?.evidence) throw error;
-        refuse(profile, mode, "obtain", error?.code ?? "RendezvousFailed", "running Host rendezvous terminated without a current advertisement", error);
+        refuse(profile, mode, "obtain", error?.code ?? "RendezvousFailed", "running host rendezvous terminated without a current advertisement", error);
       }
     }
     try {
@@ -202,7 +202,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     const session = obtainment?.private?.rendezvous;
     const digest = session?.descriptor?.image_content_digest;
     if (!session || session !== rendezvous || typeof digest !== "string") {
-      refuse(profile, "attach-running", "bind", "StaleRendezvous", "current running Host truth is missing before invitation binding");
+      refuse(profile, "attach-running", "bind", "StaleRendezvous", "current running host truth is missing before invitation binding");
     }
     const entropy = crypto.getRandomValues(new Uint8Array(32));
     const digestBytes = encoder.encode(digest);
@@ -217,13 +217,13 @@ export function createExistingComputerAdapter({ host, profile }) {
         input.set(targetBytes, entropy.length);
         input.set(digestBytes, entropy.length + targetBytes.length);
         const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
-        if (code < 0) throw outputError(host.runtime, "running Host invitation preparation", code);
+        if (code < 0) throw outputError(host.runtime, "running host invitation preparation", code);
         prepared = readOutput(host.runtime);
       }
       if (prepared.target_id !== profile.target_id || prepared.image_content_digest !== digest
         || prepared.output !== profile.output || prepared.fabrication_package_id !== profile.package_id) {
         prepared.invitation_secret?.fill(0);
-        refuse(profile, "attach-running", "bind", "BindingIdentity", "running Host invitation lost its exact target or executable identity");
+        refuse(profile, "attach-running", "bind", "BindingIdentity", "running host invitation lost its exact target or executable identity");
       }
       requireCurrent(signal, "attach-running", "bind", profile);
       return Object.freeze({
@@ -242,7 +242,7 @@ export function createExistingComputerAdapter({ host, profile }) {
       });
     } catch (error) {
       if (error?.evidence) throw error;
-      refuse(profile, "attach-running", "bind", error?.code ?? "BindingFailed", "running Host invitation binding terminated without success", error);
+      refuse(profile, "attach-running", "bind", error?.code ?? "BindingFailed", "running host invitation binding terminated without success", error);
     } finally {
       entropy.fill(0);
     }
@@ -254,7 +254,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     if (mode === "attach-running") {
       const session = obtainment?.private?.rendezvous;
       if (!session || session !== rendezvous) {
-        refuse(profile, mode, "realize", "StaleRendezvous", "running Host rendezvous session is no longer current");
+        refuse(profile, mode, "realize", "StaleRendezvous", "running host rendezvous session is no longer current");
       }
       try {
         rendezvousJoin = await session.invite(binding.prepared);
@@ -272,13 +272,13 @@ export function createExistingComputerAdapter({ host, profile }) {
           }),
         });
       } catch (error) {
-        refuse(profile, mode, "realize", error?.code ?? "InvitationDeliveryFailed", "running Host did not return an invitation-bound join proof", error);
+        refuse(profile, mode, "realize", error?.code ?? "InvitationDeliveryFailed", "running host did not return an invitation-bound join proof", error);
       }
     }
     if (!profile.browser_carrier) {
       const terminal = profile.credentials_required ? "UnavailableCredentials" : "ExplicitInstallerRequired";
       const message = profile.credentials_required
-        ? "the Body-bound package is downloadable, but no explicit Raspberry Pi OS installation credentials were supplied to a local helper"
+        ? "the body-bound package is downloadable, but no explicit Raspberry Pi OS installation credentials were supplied to a local helper"
         : "the native spore is downloadable, but no reviewed native installer/start carrier is implemented";
       refuse(profile, mode, "realize", terminal, message, undefined, {
         spore_id: binding.prepared.spore_id,
@@ -291,17 +291,17 @@ export function createExistingComputerAdapter({ host, profile }) {
     }
     const nativeSpore = binding?.nativeSpore;
     if (!nativeSpore?.bytes || await sha256(nativeSpore.bytes) !== nativeSpore.content_digest) {
-      refuse(profile, mode, "realize", "StaleArtifact", "Body-bound browser ZIP bytes are stale");
+      refuse(profile, mode, "realize", "StaleArtifact", "body-bound browser ZIP bytes are stale");
     }
     let packaged;
     try {
       packaged = readBodyBoundZip(nativeSpore.bytes);
     } catch (error) {
-      refuse(profile, mode, "realize", "StaleArtifact", "Body-bound browser ZIP is malformed", error);
+      refuse(profile, mode, "realize", "StaleArtifact", "body-bound browser ZIP is malformed", error);
     }
     if (packaged.provision.spore.spore_id !== binding.prepared.spore_id
       || packaged.provision.spore.image_content_digest !== binding.prepared.image_content_digest) {
-      refuse(profile, mode, "realize", "StaleArtifact", "Body-bound browser ZIP lost its exact spore or IMAGE identity");
+      refuse(profile, mode, "realize", "StaleArtifact", "body-bound browser ZIP lost its exact spore or IMAGE identity");
     }
     const runtime = packaged.entries.get("runtime.wasm");
     if (!runtime) refuse(profile, mode, "realize", "StaleArtifact", "browser ZIP omitted its exact runtime");
@@ -366,7 +366,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     requireCurrent(signal, mode, "observe", profile);
     if (mode === "attach-running") {
       if (!rendezvousJoin || rendezvousJoin.spore_id !== binding?.prepared?.spore_id) {
-        refuse(profile, mode, "observe", "NoRunningCarrier", "no current invitation-bound running Host observation is available");
+        refuse(profile, mode, "observe", "NoRunningCarrier", "no current invitation-bound running host observation is available");
       }
       const join = Object.freeze({
         spore_id: rendezvousJoin.spore_id,
@@ -383,7 +383,7 @@ export function createExistingComputerAdapter({ host, profile }) {
       return Object.freeze({ join, evidence: Object.freeze({ schema: "conduit.host/rendezvous-spawn-observation@1", ...join }) });
     }
     if (!profile.browser_carrier || !loadedHost) {
-      refuse(profile, mode, "observe", "NoRunningCarrier", "no authenticated running Host carrier is available for observation");
+      refuse(profile, mode, "observe", "NoRunningCarrier", "no authenticated running host carrier is available for observation");
     }
     const { api, hostId, bootId, artifactContentDigest } = loadedHost;
     if (binding?.nativeSpore?.content_digest !== artifactContentDigest) {
@@ -401,12 +401,12 @@ export function createExistingComputerAdapter({ host, profile }) {
     try {
       provision = readBodyBoundZip(binding.nativeSpore.bytes).provision;
     } catch (error) {
-      refuse(profile, mode, "observe", "StaleArtifact", "Body-bound browser ZIP provision is unavailable", error);
+      refuse(profile, mode, "observe", "StaleArtifact", "body-bound browser ZIP provision is unavailable", error);
     }
     if (provision.spore.spore_id !== prepared.spore_id
       || provision.spore.body_id !== prepared.body_id
       || provision.invitation_provision.invitation_id !== prepared.invitation_id) {
-      refuse(profile, mode, "observe", "StaleArtifact", "Body-bound browser ZIP provision lost the pending invitation identity");
+      refuse(profile, mode, "observe", "StaleArtifact", "body-bound browser ZIP provision lost the pending invitation identity");
     }
     const invitation = provision.invitation_provision;
     const envelope = encoder.encode(JSON.stringify({

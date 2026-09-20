@@ -2,7 +2,7 @@
 pub struct RecordedHouseProofReceipt {
     /// Identity of the source document actually checked for this proof run.
     pub executed_source_document_id: String,
-    /// Identity of the exact checked Form actually planned for this proof run.
+    /// Identity of the exact checked form actually planned for this proof run.
     pub executed_checked_form_id: String,
     /// Honest provenance for the semantic topology behind the identities above.
     pub semantic_topology_origin: String,

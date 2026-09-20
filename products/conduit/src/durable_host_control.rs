@@ -1,4 +1,4 @@
-//! Authenticated local control plane into the durable installed Host owner.
+//! Authenticated local control plane into the durable installed host owner.
 
 use conduit_body::{BodyConversationContext, SpawnInvitationClaim, SpawnInvitationSecret};
 use conduit_core::{
@@ -976,7 +976,7 @@ pub(crate) fn signal_remote_cancellation(
             file.sync_all()
         })
         .and_then(|()| fs::rename(&temporary, &destination))
-        .map_err(|error| format!("signal exact remote Play cancellation: {error}"))
+        .map_err(|error| format!("signal exact remote play cancellation: {error}"))
 }
 
 #[cfg(unix)]
@@ -990,12 +990,12 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
             .map_err(|error| format!("remove stale control endpoint: {error}"))?;
     }
     let listener = UnixListener::bind(&socket)
-        .map_err(|error| format!("bind durable Host control endpoint: {error}"))?;
+        .map_err(|error| format!("bind durable host control endpoint: {error}"))?;
     fs::set_permissions(&socket, fs::Permissions::from_mode(0o600))
-        .map_err(|error| format!("restrict durable Host control endpoint: {error}"))?;
+        .map_err(|error| format!("restrict durable host control endpoint: {error}"))?;
     let mut token = read_secret(&state_dir.join("control.token"))?;
     for incoming in listener.incoming() {
-        let mut stream = incoming.map_err(|error| format!("accept local Host control: {error}"))?;
+        let mut stream = incoming.map_err(|error| format!("accept local host control: {error}"))?;
         let response = handle(read_frame(&mut stream)?, &token, &mut runtime);
         write_frame(&mut stream, &response)?;
     }
@@ -1005,7 +1005,7 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
 
 #[cfg(not(unix))]
 pub(crate) fn serve(_state_dir: &Path, _runtime: DurableHostRuntime) -> Result<(), String> {
-    Err("no reviewed local durable Host control carrier exists on this platform".into())
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(unix)]
@@ -1013,7 +1013,7 @@ pub(crate) fn current(state_dir: &Path) -> Result<DurableHostTruth, String> {
     use std::os::unix::net::UnixStream;
     let mut token = read_secret(&state_dir.join("control.token"))?;
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
-        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+        .map_err(|error| format!("connect to durable host service: {error}"))?;
     write_frame(
         &mut stream,
         &Request::Status {
@@ -1023,7 +1023,7 @@ pub(crate) fn current(state_dir: &Path) -> Result<DurableHostTruth, String> {
     )?;
     stream
         .shutdown(std::net::Shutdown::Write)
-        .map_err(|error| format!("finish durable Host status request: {error}"))?;
+        .map_err(|error| format!("finish durable host status request: {error}"))?;
     token.fill(0);
     match read_frame::<_, Response>(&mut stream)? {
         Response::Status {
@@ -1036,14 +1036,14 @@ pub(crate) fn current(state_dir: &Path) -> Result<DurableHostTruth, String> {
             image_content_digest,
             advertisement,
         }),
-        Response::Refused { code, .. } => Err(format!("durable Host refused status: {code}")),
-        _ => Err("durable Host returned the wrong control response".into()),
+        Response::Refused { code, .. } => Err(format!("durable host refused status: {code}")),
+        _ => Err("durable host returned the wrong control response".into()),
     }
 }
 
 #[cfg(not(unix))]
 pub(crate) fn current(_state_dir: &Path) -> Result<DurableHostTruth, String> {
-    Err("no reviewed local durable Host control carrier exists on this platform".into())
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(unix)]
@@ -1056,7 +1056,7 @@ pub(crate) fn join(
     use std::os::unix::net::UnixStream;
     let mut token = read_secret(&state_dir.join("control.token"))?;
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
-        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+        .map_err(|error| format!("connect to durable host service: {error}"))?;
     let mut request = Request::Join {
         protocol: PROTOCOL,
         token: token.to_vec(),
@@ -1068,7 +1068,7 @@ pub(crate) fn join(
     write_sensitive_frame(&mut stream, &request)?;
     stream
         .shutdown(std::net::Shutdown::Write)
-        .map_err(|error| format!("finish durable Host join request: {error}"))?;
+        .map_err(|error| format!("finish durable host join request: {error}"))?;
     token.fill(0);
     if let Request::Join { secret, token, .. } = &mut request {
         secret.fill(0);
@@ -1091,8 +1091,8 @@ pub(crate) fn join(
             signature,
             observed_at_millis,
         }),
-        Response::Refused { code, .. } => Err(format!("durable Host refused join: {code}")),
-        _ => Err("durable Host changed identity while completing rendezvous".into()),
+        Response::Refused { code, .. } => Err(format!("durable host refused join: {code}")),
+        _ => Err("durable host changed identity while completing rendezvous".into()),
     }
 }
 
@@ -1105,7 +1105,7 @@ pub(crate) fn install_body_context(
     use std::os::unix::net::UnixStream;
     let mut token = read_secret(&state_dir.join("control.token"))?;
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
-        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+        .map_err(|error| format!("connect to durable host service: {error}"))?;
     let mut request = Request::InstallBodyContext {
         protocol: PROTOCOL,
         token: token.to_vec(),
@@ -1116,7 +1116,7 @@ pub(crate) fn install_body_context(
     write_sensitive_frame(&mut stream, &request)?;
     stream
         .shutdown(std::net::Shutdown::Write)
-        .map_err(|error| format!("finish durable Host Body context request: {error}"))?;
+        .map_err(|error| format!("finish durable host Body context request: {error}"))?;
     token.fill(0);
     if let Request::InstallBodyContext { token, .. } = &mut request {
         token.fill(0);
@@ -1126,8 +1126,8 @@ pub(crate) fn install_body_context(
             protocol: PROTOCOL,
             advertisement,
         } => Ok(advertisement),
-        Response::Refused { code, .. } => Err(format!("durable Host refused Body context: {code}")),
-        _ => Err("durable Host returned the wrong Body context response".into()),
+        Response::Refused { code, .. } => Err(format!("durable host refused Body context: {code}")),
+        _ => Err("durable host returned the wrong Body context response".into()),
     }
 }
 
@@ -1139,7 +1139,7 @@ pub(crate) fn observe_local_model_pool(
     use std::os::unix::net::UnixStream;
     let mut token = read_secret(&state_dir.join("control.token"))?;
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
-        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+        .map_err(|error| format!("connect to durable host service: {error}"))?;
     let mut request = Request::ObserveLocalModelPool {
         protocol: PROTOCOL,
         token: token.to_vec(),
@@ -1148,7 +1148,7 @@ pub(crate) fn observe_local_model_pool(
     write_sensitive_frame(&mut stream, &request)?;
     stream
         .shutdown(std::net::Shutdown::Write)
-        .map_err(|error| format!("finish durable Host model-pool observation: {error}"))?;
+        .map_err(|error| format!("finish durable host model-pool observation: {error}"))?;
     token.fill(0);
     if let Request::ObserveLocalModelPool { token, .. } = &mut request {
         token.fill(0);
@@ -1159,9 +1159,9 @@ pub(crate) fn observe_local_model_pool(
             observation,
         } => Ok(observation),
         Response::Refused { code, .. } => Err(format!(
-            "durable Host refused model-pool observation: {code}"
+            "durable host refused model-pool observation: {code}"
         )),
-        _ => Err("durable Host returned the wrong model-pool observation response".into()),
+        _ => Err("durable host returned the wrong model-pool observation response".into()),
     }
 }
 
@@ -1170,7 +1170,7 @@ pub(crate) fn observe_local_model_pool(
     _state_dir: &Path,
     _realization: PoolRealizationEnvelope,
 ) -> Result<PoolRealizationObservation, String> {
-    Err("no reviewed local durable Host control carrier exists on this platform".into())
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(not(unix))]
@@ -1179,7 +1179,7 @@ pub(crate) fn install_body_context(
     _expected: &HostAdvertisement,
     _context: BodyConversationContext,
 ) -> Result<HostAdvertisement, String> {
-    Err("no reviewed local durable Host control carrier exists on this platform".into())
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(unix)]
@@ -1191,7 +1191,7 @@ pub(crate) fn prepare_remote(
     use std::os::unix::net::UnixStream;
     let mut token = read_secret(&state_dir.join("control.token"))?;
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
-        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+        .map_err(|error| format!("connect to durable host service: {error}"))?;
     let mut request = Request::PrepareRemote {
         protocol: PROTOCOL,
         token: token.to_vec(),
@@ -1202,7 +1202,7 @@ pub(crate) fn prepare_remote(
     write_sensitive_frame(&mut stream, &request)?;
     stream
         .shutdown(std::net::Shutdown::Write)
-        .map_err(|error| format!("finish durable Host remote preparation: {error}"))?;
+        .map_err(|error| format!("finish durable host remote preparation: {error}"))?;
     token.fill(0);
     if let Request::PrepareRemote { token, .. } = &mut request {
         token.fill(0);
@@ -1217,9 +1217,9 @@ pub(crate) fn prepare_remote(
             hello_frames,
         }),
         Response::Refused { code, .. } => {
-            Err(format!("durable Host refused remote preparation: {code}"))
+            Err(format!("durable host refused remote preparation: {code}"))
         }
-        _ => Err("durable Host returned the wrong remote preparation response".into()),
+        _ => Err("durable host returned the wrong remote preparation response".into()),
     }
 }
 
@@ -1234,7 +1234,7 @@ pub(crate) fn prepare_pool_member(
     use std::os::unix::net::UnixStream;
     let mut token = read_secret(&state_dir.join("control.token"))?;
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
-        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+        .map_err(|error| format!("connect to durable host service: {error}"))?;
     let mut request = Request::PreparePoolMember {
         protocol: PROTOCOL,
         token: token.to_vec(),
@@ -1247,7 +1247,7 @@ pub(crate) fn prepare_pool_member(
     write_sensitive_frame(&mut stream, &request)?;
     stream
         .shutdown(std::net::Shutdown::Write)
-        .map_err(|error| format!("finish durable Host pool member preparation: {error}"))?;
+        .map_err(|error| format!("finish durable host pool member preparation: {error}"))?;
     token.fill(0);
     if let Request::PreparePoolMember { token, .. } = &mut request {
         token.fill(0);
@@ -1262,9 +1262,9 @@ pub(crate) fn prepare_pool_member(
             hello_frames,
         }),
         Response::Refused { code, .. } => Err(format!(
-            "durable Host refused pool member preparation: {code}"
+            "durable host refused pool member preparation: {code}"
         )),
-        _ => Err("durable Host returned the wrong pool member preparation response".into()),
+        _ => Err("durable host returned the wrong pool member preparation response".into()),
     }
 }
 
@@ -1274,7 +1274,7 @@ pub(crate) fn prepare_remote(
     _expected: &HostAdvertisement,
     _plan: Plan,
 ) -> Result<DurableRemotePreparation, String> {
-    Err("no reviewed local durable Host control carrier exists on this platform".into())
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(not(unix))]
@@ -1285,7 +1285,7 @@ pub(crate) fn prepare_pool_member(
     _selection: PoolSelectionEvidence,
     _consumer_placement_id: PlacementId,
 ) -> Result<DurableRemotePreparation, String> {
-    Err("no reviewed local durable Host control carrier exists on this platform".into())
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(unix)]
@@ -1293,7 +1293,7 @@ pub(crate) fn release_remote(state_dir: &Path) -> Result<(), String> {
     use std::os::unix::net::UnixStream;
     let mut token = read_secret(&state_dir.join("control.token"))?;
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
-        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+        .map_err(|error| format!("connect to durable host service: {error}"))?;
     let mut request = Request::ReleaseRemote {
         protocol: PROTOCOL,
         token: token.to_vec(),
@@ -1301,7 +1301,7 @@ pub(crate) fn release_remote(state_dir: &Path) -> Result<(), String> {
     write_sensitive_frame(&mut stream, &request)?;
     stream
         .shutdown(std::net::Shutdown::Write)
-        .map_err(|error| format!("finish durable Host remote release: {error}"))?;
+        .map_err(|error| format!("finish durable host remote release: {error}"))?;
     token.fill(0);
     if let Request::ReleaseRemote { token, .. } = &mut request {
         token.fill(0);
@@ -1309,9 +1309,9 @@ pub(crate) fn release_remote(state_dir: &Path) -> Result<(), String> {
     match read_frame::<_, Response>(&mut stream)? {
         Response::RemoteReleased { protocol: PROTOCOL } => Ok(()),
         Response::Refused { code, .. } => {
-            Err(format!("durable Host refused remote release: {code}"))
+            Err(format!("durable host refused remote release: {code}"))
         }
-        _ => Err("durable Host returned the wrong remote release response".into()),
+        _ => Err("durable host returned the wrong remote release response".into()),
     }
 }
 
@@ -1323,7 +1323,7 @@ pub(crate) fn exchange_remote(
     use std::os::unix::net::UnixStream;
     let mut token = read_secret(&state_dir.join("control.token"))?;
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
-        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+        .map_err(|error| format!("connect to durable host service: {error}"))?;
     let mut request = Request::ExchangeRemote {
         protocol: PROTOCOL,
         token: token.to_vec(),
@@ -1332,7 +1332,7 @@ pub(crate) fn exchange_remote(
     write_sensitive_frame(&mut stream, &request)?;
     stream
         .shutdown(std::net::Shutdown::Write)
-        .map_err(|error| format!("finish durable Host remote exchange: {error}"))?;
+        .map_err(|error| format!("finish durable host remote exchange: {error}"))?;
     token.fill(0);
     if let Request::ExchangeRemote { token, frame, .. } = &mut request {
         token.fill(0);
@@ -1345,9 +1345,9 @@ pub(crate) fn exchange_remote(
             active,
         } => Ok(DurableRemoteExchange { responses, active }),
         Response::Refused { code, .. } => {
-            Err(format!("durable Host refused remote exchange: {code}"))
+            Err(format!("durable host refused remote exchange: {code}"))
         }
-        _ => Err("durable Host returned the wrong remote exchange response".into()),
+        _ => Err("durable host returned the wrong remote exchange response".into()),
     }
 }
 
@@ -1357,12 +1357,12 @@ pub(crate) fn exchange_remote(
     mut frame: Vec<u8>,
 ) -> Result<DurableRemoteExchange, String> {
     frame.fill(0);
-    Err("no reviewed local durable Host control carrier exists on this platform".into())
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(not(unix))]
 pub(crate) fn release_remote(_state_dir: &Path) -> Result<(), String> {
-    Err("no reviewed local durable Host control carrier exists on this platform".into())
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(not(unix))]
@@ -1373,7 +1373,7 @@ pub(crate) fn join(
     mut secret: Vec<u8>,
 ) -> Result<DurableJoinProof, String> {
     secret.fill(0);
-    Err("no reviewed local durable Host control carrier exists on this platform".into())
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRuntime) -> Response {
@@ -1770,7 +1770,7 @@ mod tests {
             ..
         } = response
         else {
-            panic!("current durable Host did not issue join proof")
+            panic!("current durable host did not issue join proof")
         };
         assert_eq!(advertisement, truth.advertisement);
         assert_eq!(signature.len(), 64);

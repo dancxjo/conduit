@@ -305,7 +305,7 @@ test("insufficient serial operation budget refuses before use or reset", async (
   expect(result.evidence).toMatchObject({ phase: "available", terminal: null });
 });
 
-test("stale Body-bound artifact content refuses before serial use", async ({ page }) => {
+test("stale body-bound artifact content refuses before serial use", async ({ page }) => {
   const bytes = Uint8Array.from({ length: 1500 }, (_, index) => index & 0xff);
   bytes[0] = 0xe9;
   new DataView(bytes.buffer).setUint16(12, 5, true);

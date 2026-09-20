@@ -86,7 +86,7 @@ pub fn count_presentation_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(COUNT_PRESENTATION_KIND),
         plain_name: "Count presentation".to_string(),
-        summary: "Present each exact current count observation while its Play remains alive."
+        summary: "Present each exact current count observation while its play remains alive."
             .to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("value"),

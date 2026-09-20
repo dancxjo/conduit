@@ -246,7 +246,7 @@ fn stale_observer_membership_updates_preserve_local_wake_and_resequence_only_new
         admitted.records.last().unwrap().sign_id
     );
 
-    // The observer has not received local Wake history or sequence reassignment.
+    // The observer has not received local wake history or sequence reassignment.
     let left = leave_extension(&admitted);
     server
         .apply_body_membership_evidence(&serde_json::to_vec(&left).unwrap())

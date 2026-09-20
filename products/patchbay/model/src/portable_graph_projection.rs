@@ -474,7 +474,7 @@ fn append_play(
         "play-state",
         &format!("{:?}", play.terminal),
     );
-    text(content, subject, "pressure", "not exposed by this Play");
+    text(content, subject, "pressure", "not exposed by this play");
     for (index, sign) in play
         .signs
         .iter()

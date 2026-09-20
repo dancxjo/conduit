@@ -42,7 +42,7 @@ pub(super) fn build() -> Result<PlanComparison, CatalogError> {
     {
         return Err(CatalogError::new(
             "sound-plan-identity-invariant-failed",
-            "cross-realization Plans did not preserve one Form and distinct Plans",
+            "cross-realization Plans did not preserve one form and distinct Plans",
         ));
     }
     Ok(PlanComparison {

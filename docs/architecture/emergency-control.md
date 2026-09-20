@@ -2,7 +2,7 @@
 
 Emergency control is a small authority-reduction boundary beneath ordinary
 Forms, Plans, Plays, presentation, speech-to-text, and model inference. It is
-not a second lifecycle system. A Host admits an exact `EmergencyPolicy`; local
+not a second lifecycle system. A host admits an exact `EmergencyPolicy`; local
 physical, local acoustic, keyboard-rescue, and authenticated remote adapters
 may then submit boot-scoped `EmergencyRequest` values with their distinct
 provenance.
@@ -40,11 +40,11 @@ The fixed sequence matcher consumes only bounded vocabulary detections. Wrong
 order, unrelated speech, invalid confidence, overflow, stale microphone
 generation, loss, and timeout reset progress or make the path unavailable. A
 successful phrase fires once and remains suppressed until recovery through a
-separate, stronger authority path. Raw audio is not part of the durable Body
+separate, stronger authority path. Raw audio is not part of the durable body
 configuration or emergency outcome.
 
 Keyword spotting and finite sequence matching are also ordinary reusable gear
-semantics with typed audio, observation, and trigger ports. Their ordinary Form
+semantics with typed audio, observation, and trigger ports. Their ordinary form
 outputs are inert observations: they neither admit emergency authority nor
 perform an effect. A safety Host may install the same bounded implementations
 beneath Play for the out-of-band path. Emergency admission and terminal machine

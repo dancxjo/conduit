@@ -1,4 +1,4 @@
-//! Exact VM launch carrier for a verified Body-bound ConduitOS artifact.
+//! Exact VM launch carrier for a verified body-bound ConduitOS artifact.
 
 use crate::{
     BodyBoundArtifactIdentity, CarrierTerminal, DeploymentCarrierDescriptor, DeploymentCarrierKind,
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn exact_artifact_launch_retains_carrier_evidence_without_boot_claims() {
-        let bytes = b"exact Body-bound ConduitOS ISO";
+        let bytes = b"exact body-bound ConduitOS ISO";
         let (descriptor, artifact) = fixture(bytes);
         let root = std::env::temp_dir().join(format!("conduit-vm-launch-{}", std::process::id()));
         let _ = fs::remove_dir_all(&root);

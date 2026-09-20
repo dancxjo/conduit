@@ -21,7 +21,7 @@ pub const MAX_BODY_BIOGRAPHY_WAKES: usize = 8;
 pub const MAX_BODY_FRIENDLY_NAME_BYTES: usize = 64;
 
 /// Machine-readable boundary for exact lifecycle detail compacted out of the
-/// retained window. Current Body truth and all later records remain exact.
+/// retained window. Current body truth and all later records remain exact.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BodyBiographyCompaction {
     pub wakes: u64,
@@ -335,8 +335,8 @@ impl BodyBiographyEvidence {
         Ok(())
     }
 
-    /// Appends exact biography records for Body-level lifecycle changes and
-    /// replaces current Body truth atomically. `events` pairs each event Sign
+    /// Appends exact biography records for body-level lifecycle changes and
+    /// replaces current body truth atomically. `events` pairs each event Sign
     /// with its monotonically increasing biography sequence.
     pub fn append_body_lifecycle_events(
         &mut self,

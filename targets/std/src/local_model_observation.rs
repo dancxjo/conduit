@@ -18,7 +18,7 @@ impl StdHost {
             || realization.boot_id != advertisement.boot_id
             || realization.offer_generation != advertisement.offer_generation
         {
-            return Err("local-model realization is stale for this Host advertisement".into());
+            return Err("local-model realization is stale for this host advertisement".into());
         }
         let capability = advertisement
             .capabilities

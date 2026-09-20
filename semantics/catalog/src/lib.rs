@@ -330,8 +330,8 @@ pub use contract::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
 };
 
-/// User-facing semantic contracts, including portable Kinds without a currently
-/// installed std implementation. This is discovery truth, not a Host offer.
+/// User-facing semantic contracts, including portable kinds without a currently
+/// installed std implementation. This is discovery truth, not a host offer.
 pub fn palette_contracts() -> Vec<StandardKindContract> {
     let mut contracts = supported_nucleus_contracts();
     contracts.extend(patchbay_presentation_contracts());

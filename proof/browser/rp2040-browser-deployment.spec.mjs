@@ -272,7 +272,7 @@ test("target-owned fabrication returns exact attributable bytes through two loca
   expect(result.oversized.code).toBe("ConfigurationBound");
 });
 
-test("one reviewed IMAGE yields distinct directly plantable Body-bound UF2 spores", async ({ page }) => {
+test("one reviewed IMAGE yields distinct directly plantable body-bound UF2 spores", async ({ page }) => {
   await page.goto(`${await startEntrance()}creche/`);
   const result = await page.evaluate(async () => {
     const {

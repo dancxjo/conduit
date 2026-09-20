@@ -54,7 +54,7 @@ pub(in crate::form_runner) struct ApplicationPreparation<'a> {
     pub foreground_checked_form_id: &'a str,
 }
 
-/// Compose already-lowered exact partitions without synthesizing a Plan.
+/// Compose already-lowered exact partitions without synthesizing a plan.
 pub(in crate::form_runner) fn prepare_partition_scheduler(
     partitions: &[(&PlanFragment, &LoweredPlanFragment)],
 ) -> Result<TourScheduler, String> {

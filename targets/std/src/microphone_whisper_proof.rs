@@ -1,4 +1,4 @@
-//! Explicit microphone capture through Whisper in one ordinary Plan/Play.
+//! Explicit microphone capture through Whisper in one ordinary plan/Play.
 
 use crate::hosted_microphone::{AlsaMicrophoneAdapter, MicrophoneCaptureReceipt};
 use crate::hosted_speech_recognition::WhisperSpeechAdapter;

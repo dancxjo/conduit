@@ -1,4 +1,4 @@
-// Host realization of the shared portable Form library presentation.
+// Host realization of the shared portable form library presentation.
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
 export function openWorkspaceLibrary({ panel, session, source, inventory, planningLines, presentationFor, onUse, onRemove, onClose, onFailure }) {
@@ -15,7 +15,7 @@ export function openWorkspaceLibrary({ panel, session, source, inventory, planni
       presentation.nextEvent('workspace-form-library');
       if (busy) return;
       try {
-        if (event.revision !== revision) throw new Error('This Form chooser is stale');
+        if (event.revision !== revision) throw new Error('This form chooser is stale');
         if (event.action === 'library.search' && event.kind === 3) {
           query = decoder.decode(event.value);
           render();

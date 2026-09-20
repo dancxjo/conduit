@@ -1,9 +1,9 @@
-//! Ordinary Host reservation, execution and owned State result handling.
+//! Ordinary host reservation, execution and owned State result handling.
 use super::*;
 pub(crate) mod continuity;
 mod reporting;
 
-/// Explicit acquired adapter inputs for one ordinary Host execution.
+/// Explicit acquired adapter inputs for one ordinary host execution.
 #[derive(Default)]
 pub struct HostedRunAdapters<'a> {
     pub keyboard: Option<&'a mut dyn hosted_keyboard::HostedKeyboardAdapter>,

@@ -40,7 +40,7 @@ The endpoint file is a private deployment wrapper, not a second rendezvous
 protocol. Its `rendezvous` value is the same bounded, versioned base64url
 manifestation of the canonical CBOR/CDDL descriptor consumed by browser, std,
 and ConduitOS. Relay attachment and protected-session metadata remain separate;
-the Host refuses the file if either relabels the shared candidate.
+the host refuses the file if either relabels the shared candidate.
 
 Give `endpoint-first.json` only to the first intended Host and
 `endpoint-second.json` only to the second. Transfer them over an already trusted
@@ -94,7 +94,7 @@ existing finite rendezvous schedule.
 ## Current proof boundary
 
 Repository tests exercise a real TLS relay with two outbound native clients,
-end-to-end protected traffic, the ordinary Host rendezvous session, bounded
+end-to-end protected traffic, the ordinary host rendezvous session, bounded
 pressure/loss, and finite fallback scheduling. Pinned Chromium exercises the
 same candidate contract and browser protected-frame adapter. ConduitOS consumes
 the portable candidate contract but truthfully refuses execution until its

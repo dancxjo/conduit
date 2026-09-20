@@ -14,8 +14,8 @@ export function createGraduationRunner({ host, presentationFor, nextSequence, on
   try {
     state.readiness = call(host.runtime, "conduit_creche_graduation_readiness");
     state.status = state.readiness.ready
-      ? "Ready: choose where this Body's ongoing history can be read."
-      : "Not ready: birth the Body and admit its first current Host before graduating.";
+      ? "Ready: choose where this body's ongoing history can be read."
+      : "Not ready: birth the body and admit its first current host before graduating.";
   } catch (error) {
     state.status = error.message;
     state.outcome = "failure-status";
@@ -62,7 +62,7 @@ function renderGraduation(runner, receipt, api, presentation, state, present) {
   state.outcome = "success-status";
   state.status = evidence.choice === "host-patchbay"
     ? "Graduated: an ordinary immutable Plan places Patchbay on the current browser Host."
-    : "Graduated: no Patchbay was hosted; a compatible reader may project this Body later.";
+    : "Graduated: no Patchbay was hosted; a compatible reader may project this body later.";
   present();
   const rawEvidence = JSON.stringify(evidence, null, 2);
   presentGraduationView(api, presentation, "graduation-evidence", {
@@ -142,9 +142,9 @@ function biographyHeading(kind) {
 function biographyExplanation(kind, facts, biography) {
   if (kind === "Born") {
     const count = facts.initial_workset?.forms?.length ?? 0;
-    return `${biography.friendly_name} began as Body ${biography.body_id} with ${count} initial active Form(s).`;
+    return `${biography.friendly_name} began as Body ${biography.body_id} with ${count} initial active form(s).`;
   }
-  if (kind === "PartAdmitted") return `Part ${facts.part_id} entered this Body's admitted membership.`;
+  if (kind === "PartAdmitted") return `Part ${facts.part_id} entered this body's admitted membership.`;
   if (kind === "HostJoined") return `Part ${facts.part_id} was observed on Host ${facts.host_id}, Boot ${facts.boot_id}.`;
   if (kind === "HostLeft") return `Part ${facts.part_id} left prior Boot ${facts.prior_boot_id} and remains admitted.`;
   if (kind === "PartRevoked") return `Part ${facts.part_id} was removed from Body membership.`;

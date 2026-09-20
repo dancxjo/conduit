@@ -54,7 +54,7 @@ fn patchbay_names_failure_continuing_work_and_distinct_fresh_plan() {
         .contains("historical Plan plan/heterogeneous/old remains immutable"));
     assert!(explanation
         .what_changed
-        .contains("fresh ordinary Plan=plan/heterogeneous/fresh"));
+        .contains("fresh ordinary plan=plan/heterogeneous/fresh"));
     assert_eq!(explanation.automatic_retry_count, 0);
 }
 

@@ -28,7 +28,7 @@ function readOutput(api) {
 }
 
 function refuseUnavailableExecutionLine(proposal, fragment) {
-  const error = new Error("Body proposal selected an admitted Host without a current execution Line");
+  const error = new Error("Body proposal selected an admitted host without a current execution Line");
   error.code = "ExecutionLineUnavailable";
   error.refusal = Object.freeze({
     schema: "conduit.body/wake-refusal@1",
@@ -50,7 +50,7 @@ function refuseUnavailableExecutionLine(proposal, fragment) {
   throw error;
 }
 
-/** Acquire this page Host's local resources before coordinator start admission.
+/** Acquire this page host's local resources before coordinator start admission.
  * The exact proposal is still only a proposal. No WASM Play is started here.
  * One owner per WASM instance prevents duplicate page-side resource ownership.
  */
@@ -232,7 +232,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   };
   const observations = () => {
     assertCurrent();
-    if (startAccepted) throw new Error("browser Body resources are reserved by its Play");
+    if (startAccepted) throw new Error("browser Body resources are reserved by its play");
     return [...demand.keys()].map(class_id => ({
       host_id: hostId, boot_id: bootId, offer_generation: 1,
       pool_id: pools.get(class_id), class_id, health: "Ready",
@@ -339,7 +339,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     evidence() {
       if (terminal) return terminal.kernel_signs ?? null;
       if (!started || closed) return null;
-      if (api.conduit_browser_form_signs() < 0) throw new Error("active Body observation is unavailable");
+      if (api.conduit_browser_form_signs() < 0) throw new Error("active body observation is unavailable");
       return readOutput(api);
     },
     start(playSequence) {

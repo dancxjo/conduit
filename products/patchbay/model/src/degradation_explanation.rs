@@ -69,7 +69,7 @@ impl PatchbayDegradationExplanation {
             },
             |replacement| {
                 format!(
-                    "historical Plan {} remains immutable; fresh ordinary Plan={replacement}",
+                    "historical Plan {} remains immutable; fresh ordinary plan={replacement}",
                     assessment.previous_plan_id.as_str()
                 )
             },

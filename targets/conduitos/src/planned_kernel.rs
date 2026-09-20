@@ -1,4 +1,4 @@
-//! Allocation-independent installation of one already lowered ordinary Plan.
+//! Allocation-independent installation of one already lowered ordinary plan.
 
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{

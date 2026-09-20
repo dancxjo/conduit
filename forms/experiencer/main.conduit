@@ -1,5 +1,5 @@
 # Portable convergence only: sources remain typed and provenance-bearing;
-# this Form owns no acquisition, storage, action, or lifecycle machinery.
+# this form owns no acquisition, storage, action, or lifecycle machinery.
 form experiencer (
     > visual: VisualExperience...|
     > human: ExperienceHumanInput...|

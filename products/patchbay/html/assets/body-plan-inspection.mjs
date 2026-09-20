@@ -12,7 +12,7 @@ export function presentBodyPlan(root, proposal) {
     return node;
   };
   const plan = proposal.plan;
-  paragraph(candidate, `Selected Body Plan ${plan.plan_id} · Body ${plan.body_id} · Wake ${plan.wake_id}`);
+  paragraph(candidate, `Selected body Plan ${plan.plan_id} · Body ${plan.body_id} · Wake ${plan.wake_id}`);
   paragraph(candidate, "Retained selection, not current availability or physical proof. Device and Base associations are not recorded in this proposal; absence here does not prove no Device exists.");
   for (const form of plan.forms) {
     const formNode = details(candidate, `Form ${form.plan.checked_form_id}`);

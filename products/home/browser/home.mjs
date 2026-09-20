@@ -25,7 +25,7 @@ const requestLabels = new Map([
   [4, "Form selected on this Browser Host."],
   [5, "Form completed on this Browser Host."],
   [6, "Inspection requested on this Browser Host."],
-  [7, "Wake requested for this Body."],
+  [7, "Wake requested for this body."],
 ]);
 
 export async function startApplication(context) {

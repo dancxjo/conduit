@@ -19,7 +19,7 @@ export const PHYSICAL_HOST_EVIDENCE_MAXIMA = Object.freeze({
 export const PHYSICAL_HOST_INTENTIONS = Object.freeze([
   Object.freeze({ id: "fabricate-new", label: "Fabricate new machinery", resultKind: "artifact" }),
   Object.freeze({ id: "install-existing", label: "Install on an existing computer", resultKind: "installation" }),
-  Object.freeze({ id: "attach-running", label: "Attach an already running Host", resultKind: "attachment" }),
+  Object.freeze({ id: "attach-running", label: "Attach an already running host", resultKind: "attachment" }),
 ]);
 
 export function createPhysicalHostTargetCatalog({

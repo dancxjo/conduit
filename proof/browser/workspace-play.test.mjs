@@ -5,7 +5,7 @@ import { openWorkspacePlay } from "../../products/workspace/browser/workspace-pl
 const terminal = disposition => ({ schema: "conduit.tour/manifestation-receipt@3",
   disposition, active_play_id: "body-play", terminal_sign_id: `sign/${disposition}` });
 
-test("ordinary Body wake and lull own one exact externally managed voice Form", async () => {
+test("ordinary body wake and lull own one exact externally managed voice Form", async () => {
   const events = [], states = [];
   const proposal = { schema: "conduit.patchbay/body-execution-proposal@1",
     plan: { forms: [{ plan: { plan_id: "plan/local", fragments: [{}] } },
@@ -39,7 +39,7 @@ test("ordinary Body wake and lull own one exact externally managed voice Form", 
   assert.equal(states.at(-1), "Lulled");
 });
 
-test("finishing retires a Play first and publishes one irreversible terminal state", async () => {
+test("finishing retires a play first and publishes one irreversible terminal state", async () => {
   const events = [], states = [];
   let state = "AWAKE";
   const session = {

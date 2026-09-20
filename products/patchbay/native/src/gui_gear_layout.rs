@@ -1,4 +1,4 @@
-//! Finite renderer-local Gear geometry derived from typed graph and presentation layout.
+//! Finite renderer-local gear geometry derived from typed graph and presentation layout.
 
 use crate::{gui::GearLayout, gui_primitives::PixelRect};
 use embedded_graphics::prelude::Point;

@@ -1,4 +1,4 @@
-//! Exact planned native Presenter realization for zero-Body WORLD revisions.
+//! Exact planned native Presenter realization for zero-body WORLD revisions.
 
 #[cfg(test)]
 use alloc::format;

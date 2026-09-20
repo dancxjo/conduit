@@ -99,5 +99,5 @@ fn canonical_firefly_choir_manifests_pulse_five_and_remains_alive() {
             _ => panic!("Firefly Choir did not continue its recurring effect sequence"),
         }
     }
-    panic!("Firefly Choir did not reach pulse five in one Play");
+    panic!("Firefly Choir did not reach pulse five in one play");
 }

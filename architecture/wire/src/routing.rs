@@ -39,7 +39,7 @@ pub struct LineUpdate<'a> {
 /// Deterministic selection over one immutable, ordered, Plan-sealed Line set.
 ///
 /// Signs may change availability, but cannot add candidates, reorder
-/// policy, mutate the Plan, or invoke a planner. The first Ready candidate wins.
+/// policy, mutate the plan, or invoke a planner. The first Ready candidate wins.
 pub struct LineMachine {
     candidates: Vec<LineCandidateState>,
     selected: Option<usize>,
@@ -85,7 +85,7 @@ impl LineMachine {
         self.selected.map(|index| &self.candidates[index].line)
     }
 
-    /// Return the exact selected Plan-sealed Line for session attachment.
+    /// Return the exact selected plan-sealed Line for session attachment.
     pub fn selected_line(&self) -> Option<AdmittedLine> {
         self.selected().cloned()
     }

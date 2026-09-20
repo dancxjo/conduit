@@ -3,7 +3,7 @@ use conduit_core::{
     CapabilityLimits, KindContractRevision, KindId, PortDescriptor, SemanticCapabilityContract,
 };
 
-/// Host-neutral, finite execution meaning for one Kind revision.
+/// Host-neutral, finite execution meaning for one kind revision.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortableKindContract {
     pub kind_id: KindId,

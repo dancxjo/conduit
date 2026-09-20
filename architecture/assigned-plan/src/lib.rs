@@ -1,4 +1,4 @@
-//! Bounded, allocation-free validation for one Host-assigned Plan projection.
+//! Bounded, allocation-free validation for one host-assigned Plan projection.
 
 #![no_std]
 

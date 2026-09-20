@@ -100,7 +100,7 @@ export async function startApplication(application) {
     }
     let saving = Promise.resolve();
     let selected = session.foreground()?.checked_form_id;
-    let playback = { state: 'Lulled', detail: 'Its Forms can wake here.' };
+    let playback = { state: 'Lulled', detail: 'Its forms can wake here.' };
     let play = null;
     let library = null, membership = null, editing = false;
     const tutorialInstalled = () => session.current()?.initial_forms.some(form => form.checked_form_id === tutorialForm.checked_form_id) ?? false;
@@ -159,16 +159,16 @@ export async function startApplication(application) {
       const form = catalog.forms.find(form => form.checked_form_id === selected);
       const evidence = session.evidence();
       const heading = inspection.querySelector('h2');
-      heading.textContent = kind === 'form' ? (form?.title ?? 'This Form') : kind === 'flow' ? 'Inside this Form' : `${body.friendly_name} · ${playback.state}`;
+      heading.textContent = kind === 'form' ? (form?.title ?? 'This form') : kind === 'flow' ? 'Inside this form' : `${body.friendly_name} · ${playback.state}`;
       details.replaceChildren();
       const text = document.createElement('p'); text.className = 'inspection-explanation';
-      text.textContent = kind === 'lifecycle' ? playback.detail : kind === 'flow' ? 'The checked source describes this Form’s meaning. Its exact realization appears below when admitted.' : 'An installed Form in this Body. Opening its surface keeps the current Play.';
+      text.textContent = kind === 'lifecycle' ? playback.detail : kind === 'flow' ? 'The checked source describes this form’s meaning. Its exact realization appears below when admitted.' : 'An installed form in this body. Opening its surface keeps the current play.';
       details.append(text);
       const pre = document.createElement('pre');
       pre.textContent = kind === 'lifecycle' ? JSON.stringify({ body: evidence?.evidence, realization: evidence?.realization, active_observation: play?.evidence(), terminal: playback.terminal, refusal: playback.refusal }, null, 2)
         : kind === 'flow' && evidence?.realization ? JSON.stringify(evidence.realization.plan.forms.find(item => item.form.checked_form_id === selected), null, 2) : (form?.source ?? 'Source unavailable');
       const disclosure = document.createElement('details'), summary = document.createElement('summary');
-      summary.textContent = kind === 'lifecycle' ? 'Exact lifecycle evidence' : kind === 'flow' && evidence?.realization ? 'Exact Plan' : 'Checked source';
+      summary.textContent = kind === 'lifecycle' ? 'Exact lifecycle evidence' : kind === 'flow' && evidence?.realization ? 'Exact plan' : 'Checked source';
       disclosure.append(summary, pre); details.append(disclosure);
       surface.hidden = true; inspection.hidden = false;
       for (const button of strip.querySelectorAll('button')) button.setAttribute('aria-expanded', String(button.dataset.inspect === kind));
@@ -184,7 +184,7 @@ export async function startApplication(application) {
       const partition = session.evidence()?.realization?.plan.forms.find(item => item.form.checked_form_id === selected);
       root.querySelector('#surface-title').textContent = form?.title ?? 'No Forms installed';
       root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, form, partition);
-      root.querySelector('.current-form').textContent = form?.title ?? 'Your Forms';
+      root.querySelector('.current-form').textContent = form?.title ?? 'Your forms';
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
       for (const button of activities.querySelectorAll('[data-checked-form-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedFormId === selected));
       const visible = new Set(partition?.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id)) ?? []);
@@ -208,7 +208,7 @@ export async function startApplication(application) {
         return;
       }
       if (arriving && !joining) {
-        document.title = 'Birth your Body · Conduit';
+        document.title = 'Birth your body · Conduit';
         const slot = nursery.querySelector('[data-creche-content]');
         if (body) {
           slot.replaceChildren(createFirstHostRunner({ host, presentationFor: application.presentationFor, nextSequence: session.nextMembershipSequence, onBodyChanged: bodyChanged }));
@@ -244,7 +244,7 @@ export async function startApplication(application) {
         lullButton.hidden = true;
       }
       if (!body.initial_forms.length) {
-        root.querySelector('#surface-guidance').textContent = 'This Body can remain lulled.';
+        root.querySelector('#surface-guidance').textContent = 'This body can remain lulled.';
         wakeButton.hidden = true;
         lullButton.hidden = true;
       }
@@ -282,7 +282,7 @@ export async function startApplication(application) {
         async prepareExternal(proposal) {
           const distributed = proposal.plan.forms.filter(form => form.plan.fragments.length > 1);
           if (!distributed.length) return null;
-          if (distributed.length !== 1) throw new Error('This Body Plan exceeds the one external Form bound');
+          if (distributed.length !== 1) throw new Error('This body Plan exceeds the one external Form bound');
           const plan = distributed[0].plan;
           const peer = plan.fragments.find(fragment => fragment.host_id !== host.hostId || fragment.boot_id !== host.bootId);
           const joined = peer && membership?.executionLine(peer.host_id, peer.boot_id);
@@ -317,7 +317,7 @@ export async function startApplication(application) {
       showSelected();
     }
     const useForm = async (form, expectedRevision) => {
-      if (editing) throw new Error('A Body transition is already in progress');
+      if (editing) throw new Error('A body transition is already in progress');
       editing = true;
       try {
         const identity = { source_document_id: form.source_document_id, checked_form_id: form.checked_form_id };
@@ -332,7 +332,7 @@ export async function startApplication(application) {
       } finally { editing = false; }
     };
     const removeForm = async (form, expectedRevision) => {
-      if (editing) throw new Error('A Body transition is already in progress');
+      if (editing) throw new Error('A body transition is already in progress');
       editing = true;
       try {
         await play.changeWorkset('Remove', { source_document_id: form.source_document_id, checked_form_id: form.checked_form_id }, expectedRevision);
@@ -349,7 +349,7 @@ export async function startApplication(application) {
     globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
     membership = openWorkspaceMembership({ root, session, host, hostOperations, invitation, presentationFor: application.presentationFor,
       invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
-        ? 'Invite another phone' : 'Invite another Host',
+        ? 'Invite another phone' : 'Invite another host',
       async beforeAdmission() {
         if (['Playing', 'Idle', 'Completed', 'Failed'].includes(playback.state)) await play?.lull();
       },
@@ -359,7 +359,7 @@ export async function startApplication(application) {
     wakeButton.addEventListener('click', () => play?.wake(true).catch(fail));
     lullButton.addEventListener('click', () => play?.lull().catch(fail));
     fulfillButton.addEventListener('click', () => {
-      if (!globalThis.confirm('Finish this Body permanently? Its biography remains available, but it cannot wake or change again.')) return;
+      if (!globalThis.confirm('Finish this body permanently? Its biography remains available, but it cannot wake or change again.')) return;
       play?.fulfill().then(render).catch(fail);
     });
     if (session.current()?.here_part_id && session.current().state !== 'FULFILLED') await session.arrive();

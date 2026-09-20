@@ -1,6 +1,6 @@
 //! Portable robotics contracts required by physical hazard and docking Hosts.
 //!
-//! These are semantic catalog definitions, not std simulation offers. A Host
+//! These are semantic catalog definitions, not std simulation offers. A host
 //! may advertise an implementation only after observing the exact mechanism,
 //! resources, freshness, safety boundary, and authority required by that
 //! implementation.

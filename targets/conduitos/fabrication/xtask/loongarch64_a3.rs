@@ -382,7 +382,7 @@ pub(super) fn validate(
     {
         return Err(refusal(
             "stale-or-invalid-loongarch64-a3-sign",
-            "ordinary Form/Plan/Play proof violates the exact A3 contract",
+            "ordinary form/Plan/Play proof violates the exact A3 contract",
         ));
     }
     Ok(())

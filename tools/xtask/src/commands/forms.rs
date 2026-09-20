@@ -1,4 +1,4 @@
-//! Standing conformance entrance for the explicit reviewed Form inventory.
+//! Standing conformance entrance for the explicit reviewed form inventory.
 
 use crate::cli::GlobalOpts;
 use clap::{Args, Subcommand};
@@ -67,7 +67,7 @@ enum FormsCommand {
         #[arg(long)]
         output: PathBuf,
     },
-    /// Package the full reviewed Form shelf for Workspace discovery.
+    /// Package the full reviewed form shelf for Workspace discovery.
     BundleWorkspaceCatalog {
         /// Exact destination for the bounded reviewed catalog.
         #[arg(long)]
@@ -203,7 +203,7 @@ pub fn run(args: FormsArgs, opts: &GlobalOpts) -> Result<(), String> {
                 .iter()
                 .any(|result| result.status == "failed")
             {
-                return Err("one or more reviewed Forms failed conformance checking".into());
+                return Err("one or more reviewed forms failed conformance checking".into());
             }
         }
         FormsCommand::Run {
@@ -226,7 +226,7 @@ pub fn run(args: FormsArgs, opts: &GlobalOpts) -> Result<(), String> {
                 .iter()
                 .any(|result| result.status == "failed")
             {
-                return Err("one or more reviewed Form proofs failed".into());
+                return Err("one or more reviewed form proofs failed".into());
             }
         }
         FormsCommand::Report { output } => {
@@ -307,13 +307,13 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
                     .find(|candidate| candidate.slug == slug)
                     .ok_or_else(|| {
                         format!(
-                            "reviewed Form '{}' names missing graceful fallback '{slug}'",
+                            "reviewed form '{}' names missing graceful fallback '{slug}'",
                             form.slug
                         )
                     })?;
                 if fallback.graceful_fallback.as_deref() == Some(form.slug.as_str()) {
                     return Err(format!(
-                        "reviewed Forms '{}' and '{slug}' form a graceful fallback cycle",
+                        "reviewed forms '{}' and '{slug}' form a graceful fallback cycle",
                         form.slug
                     ));
                 }
@@ -335,7 +335,7 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
             unavailable_hint: form
                 .browser_safe_not_applicable
                 .as_deref()
-                .unwrap_or("The current admitted Hosts and Bases cannot realize this Form."),
+                .unwrap_or("The current admitted hosts and Bases cannot realize this form."),
             graceful_fallback,
         });
     }

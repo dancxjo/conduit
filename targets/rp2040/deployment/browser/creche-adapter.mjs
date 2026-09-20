@@ -94,7 +94,7 @@ export function createRp2040CrecheTargetAdapter({ host }) {
       explanation.className = "target-option-note";
       explanation.textContent = mode === "install-existing"
         ? "This target adapter does not install onto an existing computer."
-        : "This target adapter does not attach an already running Host without a prepared invitation.";
+        : "This target adapter does not attach an already running host without a prepared invitation.";
       return explanation;
     }
     const label = document.createElement("label");

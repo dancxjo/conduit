@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 
 use crate::{BodyDescription, BodyDescriptionDiagnostic};
 
-/// Encode one Body description as deterministic canonical Conduit construction source.
+/// Encode one body description as deterministic canonical Conduit construction source.
 pub fn canonical_body_description_conduit(
     description: &BodyDescription,
 ) -> Result<String, BodyDescriptionDiagnostic> {

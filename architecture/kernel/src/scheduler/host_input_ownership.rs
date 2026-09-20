@@ -1,4 +1,4 @@
-//! Exact ownership transfer from consumed references to admitted Host input.
+//! Exact ownership transfer from consumed references to admitted host input.
 use super::*;
 
 impl<

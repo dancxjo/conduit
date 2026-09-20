@@ -46,7 +46,7 @@ impl CanonicalBackCatalog {
         self.insert_checked(kind, &[], document, form_name)
     }
 
-    /// Installs a Back only when the whole checked Front is equal, including
+    /// Installs a Back only when the whole checked front is equal, including
     /// exact startup parameter names, types, and default presence.
     pub fn insert_with_startup(
         &mut self,

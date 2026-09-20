@@ -11,8 +11,8 @@ pub(crate) use validation::{validate_predicates, validate_preference};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PlannerFactRef {
-    /// Exact current Host identity. This is realization truth supplied to the
-    /// planner, never authored Form meaning or an aggregate Host score.
+    /// Exact current host identity. This is realization truth supplied to the
+    /// planner, never authored form meaning or an aggregate Host score.
     HostIdentity,
     RealizationCharacteristic(CharacteristicId),
     ResourceUnits(ResourceClassId),

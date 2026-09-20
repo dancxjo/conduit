@@ -80,7 +80,7 @@ pub fn explain_recursive_recovery(
         return Err(RecursiveRecoveryExplanationError::IncoherentEvidence);
     }
     let summary = format!(
-        "Semantic capability {} is unchanged. Preferred direct Plan {} is unavailable; fresh Plan {} exposes {} reviewed Back(s), {} exact Gear placements across {} Hosts, {} admitted Line appearances, {} resource bindings, and {} authority bindings. This is full-profile recursive realization, not fallback=true or automatic migration.",
+        "Semantic capability {} is unchanged. Preferred direct Plan {} is unavailable; fresh Plan {} exposes {} reviewed Back(s), {} exact gear placements across {} Hosts, {} admitted Line appearances, {} resource bindings, and {} authority bindings. This is full-profile recursive realization, not fallback=true or automatic migration.",
         evidence.semantic_profile,
         lost_direct.plan_id.as_str(),
         replacement.plan_id.as_str(),

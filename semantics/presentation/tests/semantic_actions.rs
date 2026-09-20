@@ -13,7 +13,7 @@ fn subject(identity: &str) -> PresentationSubject {
         identity: identity.into(),
         role: PresentationRole::Form,
         label: "Example Form".into(),
-        accessibility_name: "Example checked Form".into(),
+        accessibility_name: "Example checked form".into(),
     }
 }
 
@@ -78,7 +78,7 @@ fn semantic_changes_are_identity_bearing_and_linear_projection_preserves_them() 
             "form/example",
             PresentationActionAvailability::Unavailable {
                 reason_code: "authority/not-admitted".into(),
-                explanation: "No admitted authority can open this Form.".into(),
+                explanation: "No admitted authority can open this form.".into(),
             },
         )],
         vec![PresentationDisclosure {
@@ -107,7 +107,7 @@ fn action_resolution_is_read_only_and_fails_closed() {
                 "form/example",
                 PresentationActionAvailability::Unavailable {
                     reason_code: "authority/not-admitted".into(),
-                    explanation: "No admitted authority can open this Form.".into(),
+                    explanation: "No admitted authority can open this form.".into(),
                 },
             ),
             action(
@@ -115,7 +115,7 @@ fn action_resolution_is_read_only_and_fails_closed() {
                 "form/example",
                 PresentationActionAvailability::Refused {
                     reason_code: "body/already-exists".into(),
-                    explanation: "A Body already exists for this Form.".into(),
+                    explanation: "A body already exists for this form.".into(),
                 },
             ),
         ],

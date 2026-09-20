@@ -1,4 +1,4 @@
-//! Inspection of the Tour's fixed specimen from its portable Kind contracts.
+//! Inspection of the Tour's fixed specimen from its portable kind contracts.
 use alloc::{format, vec::Vec};
 use conduit_presentation::{PresentationRole, PresentationSubject, PresentationText};
 use conduit_semantic_catalog::{

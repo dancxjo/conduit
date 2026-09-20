@@ -1,4 +1,4 @@
-//! Ordinary Form and immutable Plan preparation for portable `state/select`.
+//! Ordinary form and immutable Plan preparation for portable `state/select`.
 
 use alloc::{
     collections::BTreeMap,

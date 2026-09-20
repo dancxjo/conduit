@@ -28,7 +28,7 @@ pub enum RepresentationEnumeration {
     /// empty current, empty candidate, and absent candidate as separate values.
     WithinBudget { representations: u64 },
     /// The complete raw representation set exceeds this analysis allowance.
-    /// This does not prove that semantic reachability is impractical: a Kind
+    /// This does not prove that semantic reachability is impractical: a kind
     /// may restrict that set or admit a stronger symbolic proof.
     ExceedsBudget { maximum_representations: u64 },
 }

@@ -1,4 +1,4 @@
-//! Reviewed presentation profiles select existing exact typed realizations in one Body.
+//! Reviewed presentation profiles select existing exact typed realizations in one body.
 use super::{initial_forms, session};
 
 fn bundle(profile: u8) -> String {

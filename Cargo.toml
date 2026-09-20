@@ -67,7 +67,7 @@ members = [
 	"bodies/pete",
 	"forms/little-seismograph/fixture",
 
-	# Exact Host, machine, board, and target-family realizations.
+	# Exact host, machine, board, and target-family realizations.
 	"targets/avr/fabrication",
 	"targets/browser/host",
 	"targets/browser/fabrication",

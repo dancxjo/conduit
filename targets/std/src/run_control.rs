@@ -83,7 +83,7 @@ impl RunControl {
         self.state.1.notify_all();
     }
 
-    /// Wait for exact runner evidence that this Play reached quiescence.
+    /// Wait for exact runner evidence that this play reached quiescence.
     pub fn wait_until_quiescent(&self, timeout: Duration) -> bool {
         let state = self.state.0.lock().expect("run control lock poisoned");
         if state.quiescent {

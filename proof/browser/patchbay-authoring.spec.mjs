@@ -142,9 +142,9 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     await clickInteraction(page, page.getByRole("button", { name: "WAKE", exact: true }));
     await expect.poll(async () => Boolean((await current(page)).presentation.basis.wake_id)).toBe(true);
     await page.locator("#structured-navigator").evaluate(element => { element.closest("details").open = true; });
-    await clickInteraction(page, page.getByRole("button", { name: "Plan current Form" }));
+    await clickInteraction(page, page.getByRole("button", { name: "Plan current form" }));
     await expect(page.locator("#front-door-feedback")).toContainText("Plan Succeeded");
-    await clickInteraction(page, page.getByRole("button", { name: "Play current Plan" }));
+    await clickInteraction(page, page.getByRole("button", { name: "Play current plan" }));
     await expect(page.locator("#front-door-feedback")).toContainText("Play Succeeded");
     snapshot = await current(page);
     expect(snapshot.presentation.basis.plan_id).toBeTruthy();

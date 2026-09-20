@@ -90,7 +90,7 @@ pub(super) fn append(
                 text.push_str(&preview(value));
             }
         }
-        // Configuration describes the checked Form, not a value observed from
+        // Configuration describes the checked form, not a value observed from
         // execution. Keep it after Port rows so anchors retain their meaning.
         if let Some(value) = contract.controls.iter().find_map(|control| {
             match (control.key.as_str(), &control.value) {

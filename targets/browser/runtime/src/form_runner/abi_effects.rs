@@ -11,7 +11,7 @@ pub extern "C" fn conduit_browser_form_poll_effect() -> i32 {
     progress(|session| session.poll_effect())
 }
 
-/// Read-only exact observation of the current Play; no completion or restart.
+/// Read-only exact observation of the current play; no completion or restart.
 #[no_mangle]
 pub extern "C" fn conduit_browser_form_signs() -> i32 {
     clear_output();
@@ -28,7 +28,7 @@ pub extern "C" fn conduit_browser_form_signs() -> i32 {
     })
 }
 
-/// Input is exact Play identity, placement identity, then optional canonical output.
+/// Input is exact play identity, placement identity, then optional canonical output.
 #[no_mangle]
 pub extern "C" fn conduit_browser_form_complete_effect(
     play_length: usize,

@@ -317,7 +317,7 @@ fn workbench_presentation(
                 conduit_body::BodyState::Awake { .. } => {
                     PresentationActionAvailability::Unavailable {
                         reason_code: "body-awake".into(),
-                        explanation: "Lull the Body before changing its active Form workload."
+                        explanation: "Lull the body before changing its active form workload."
                             .into(),
                     }
                 }
@@ -325,7 +325,7 @@ fn workbench_presentation(
                     PresentationActionAvailability::Unavailable {
                         reason_code: "body-fulfilled".into(),
                         explanation:
-                            "A fulfilled Body retains its biography but cannot change its Form workload."
+                            "A fulfilled Body retains its biography but cannot change its form workload."
                                 .into(),
                     }
                 }
@@ -347,7 +347,7 @@ fn workbench_presentation(
     let mut text = vec![PresentationText {
         subject: body_identity.clone(),
         text: format!(
-            "{} is a durable Body running {} current Form(s) at workload revision {}.",
+            "{} is a durable body running {} current form(s) at workload revision {}.",
             evidence.friendly_name,
             workset.len(),
             evidence.body.workload_revision,
@@ -372,7 +372,7 @@ fn workbench_presentation(
                 identity: host_identity.clone(),
                 role: PresentationRole::Host,
                 label: current.host_id.as_str().into(),
-                accessibility_name: format!("Current Host {}", current.host_id.as_str()),
+                accessibility_name: format!("Current host {}", current.host_id.as_str()),
             });
             relationships.push(PresentationRelationship {
                 source: part_identity.clone(),

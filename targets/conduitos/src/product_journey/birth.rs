@@ -9,7 +9,7 @@ impl ProductJourney {
         self.revision
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
-        // Crèche owns the zero-Body birth selection. It does not need to open a
+        // Crèche owns the zero-body birth selection. It does not need to open a
         // candidate Form first: reviewed inventory plus explicit BirthSelection
         // is the authority-bearing handoff from World into a born Body.
         if self.body.is_none() && self.status != JourneyStatus::World {

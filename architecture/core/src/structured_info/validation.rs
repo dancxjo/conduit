@@ -7,7 +7,7 @@ use super::{
 use alloc::vec::Vec;
 
 /// Retains one checked finite schema and its exact canonical prefix.
-/// Leaf payload meaning remains owned by its Kind; this validates the canonical
+/// Leaf payload meaning remains owned by its kind; this validates the canonical
 /// structured envelope, shape and bounds, not a second leaf-language checker.
 pub struct PreparedStructuredValueValidator {
     value_type: StructuredInfoType,

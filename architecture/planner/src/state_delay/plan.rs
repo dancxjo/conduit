@@ -1,4 +1,4 @@
-//! Bind checked State admission into a fresh immutable ordinary Plan.
+//! Bind checked State admission into a fresh immutable ordinary plan.
 
 use alloc::vec::Vec;
 use conduit_core::{

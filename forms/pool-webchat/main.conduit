@@ -1,5 +1,5 @@
-# Dynamic chat semantics. Line selection belongs to the Plan/host and is
-# deliberately absent from this authored Form.
+# Dynamic chat semantics. Line selection belongs to the plan/host and is
+# deliberately absent from this authored form.
 form chat/peer (
     recv: ChatMessage...| > send: ChatMessage...|
 ) {

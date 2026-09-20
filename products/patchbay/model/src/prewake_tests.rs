@@ -100,7 +100,7 @@ fn invalid_edit_preserves_last_coherent_rehearsal_and_never_runs() {
     let mut prewake = PrewakeController::default();
     prewake.enter(&editor, &environment).unwrap();
     let coherent = prewake.state().clone();
-    editor.replace_source("this is not a Form".into()).unwrap();
+    editor.replace_source("this is not a form".into()).unwrap();
     editor.recheck().unwrap();
     assert_eq!(
         prewake.rehearse(&editor, &environment),

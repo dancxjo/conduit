@@ -1,4 +1,4 @@
-//! Ordinary Form contract for finite typed-record transcript retention.
+//! Ordinary form contract for finite typed-record transcript retention.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{

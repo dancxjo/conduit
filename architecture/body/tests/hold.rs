@@ -249,7 +249,7 @@ fn stale_release_requires_replan_and_persistent_policy_reholds_replacement() {
         )
         .unwrap()
     else {
-        panic!("changed Signs must not start a Play");
+        panic!("changed Signs must not start a play");
     };
     assert_eq!(stale.lifecycle, WakeLifecycle::AwaitingReplacement);
     assert_eq!(stale.plans[0].state, WakePlanState::Invalidated);

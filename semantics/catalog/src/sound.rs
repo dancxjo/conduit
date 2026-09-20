@@ -229,7 +229,7 @@ pub fn audio_play_contract() -> StandardKindContract {
 
 /// One explicitly initiated, finite microphone turn. The semantic contract
 /// describes bounded PCM and push-to-talk lifetime; permission, device,
-/// provider, and UI mechanism remain exact Host realization facts.
+/// provider, and UI mechanism remain exact host realization facts.
 pub fn audio_capture_push_to_talk_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(AUDIO_CAPTURE_PUSH_TO_TALK_KIND),

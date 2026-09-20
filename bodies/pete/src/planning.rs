@@ -18,7 +18,7 @@ use conduit_planner::{
 };
 
 /// Portable canonical Form. It names musical meaning only; Create, OI,
-/// serial, song slots, and speaker resources enter solely through the Plan.
+/// serial, song slots, and speaker resources enter solely through the plan.
 pub const SIMPLE_MELODY_FORM: &str = r#"form simple_melody {
     performance: music/play
 }

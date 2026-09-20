@@ -1,4 +1,4 @@
-//! Portable, authority-checked Body lifecycle administration.
+//! Portable, authority-checked body lifecycle administration.
 
 use alloc::string::String;
 

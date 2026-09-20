@@ -76,7 +76,7 @@ pub fn exact_body_coordination_line_loss(
         Some(unavailable_line),
     )
     .err()
-    .ok_or("unavailable selected coordination Line still produced a Plan")?;
+    .ok_or("unavailable selected coordination Line still produced a plan")?;
     Ok(BodyCoordinationLineLoss {
         plan_id: accepted.plan.plan_id,
         unavailable_line_id: LineId::from(unavailable_line),

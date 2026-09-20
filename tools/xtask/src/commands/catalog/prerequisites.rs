@@ -1,4 +1,4 @@
-//! Mechanical prerequisite classification for one exact Host profile.
+//! Mechanical prerequisite classification for one exact host profile.
 
 use std::collections::BTreeSet;
 

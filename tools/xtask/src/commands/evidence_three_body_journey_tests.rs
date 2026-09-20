@@ -12,7 +12,7 @@ fn contract() -> JourneyContract {
                 step_id: format!("journey.step-{index}"),
                 milestone: Some(*milestone),
                 title: format!("Journey milestone {index}"),
-                what_happened: "The Body advanced through the shared tutorial.".into(),
+                what_happened: "The body advanced through the shared tutorial.".into(),
                 what_conduit_established: "The exact semantic milestone was retained.".into(),
                 concepts: vec!["Body".into(), "biography".into()],
                 required_assertion: milestone.required_assertion().into(),
@@ -193,7 +193,7 @@ fn three_single_host_tracks_do_not_prove_a_distributed_body() {
     let tracks = vec![track(0, 1), track(1, 1), track(2, 1)];
     assert_eq!(
         validate_current(&contract(), &tracks).unwrap_err(),
-        "at least one Body must retain multi-Host, Line, and distributed Plan truth"
+        "at least one body must retain multi-host, Line, and distributed Plan truth"
     );
 }
 
@@ -227,7 +227,7 @@ fn steps_cannot_cite_a_boot_from_another_host_pair() {
     tracks[2].steps[0].provenance.boot_id = Some("boot-2-1".into());
     assert_eq!(
         validate_current(&contract(), &tracks).unwrap_err(),
-        "track-2 step cites a Boot outside its exact Host pair"
+        "track-2 step cites a Boot outside its exact host pair"
     );
 
     let mut contract = contract();
@@ -295,7 +295,7 @@ fn published_index_preserves_semantic_assertions_and_non_claims() {
         "not-physical-proof"
     );
     assert_eq!(value["tracks"].as_array().unwrap().len(), REQUIRED_TRACKS);
-    assert!(page.contains("Follow one Body"));
+    assert!(page.contains("Follow one body"));
     assert!(page.contains("Compare one semantic step"));
     assert!(page.contains("not-physical-proof"));
 }

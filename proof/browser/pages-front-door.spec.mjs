@@ -33,7 +33,7 @@ test.afterEach(() => entrance?.child.kill());
 test("Birth on the front page hands the Lulled Body to an explicit Wake", async ({ page }) => {
   await page.goto(entrance.url);
   await page.getByRole("link", { name: "Open your body", exact: true }).click();
-  await expect(page).toHaveTitle("Birth your Body · Conduit");
+  await expect(page).toHaveTitle("Birth your body · Conduit");
   await expect(page.locator("[data-body-state]")).toHaveText("Crèche");
   await expect(page.locator("[data-workspace-creche]")).toBeVisible();
   await expect(page.getByRole("button", { name: "Birth Body", exact: true })).toBeVisible();
@@ -78,7 +78,7 @@ test("Browser Home enacts the shared journey through the real Patchbay", async (
   ]);
 });
 
-test.skip("Conduit home makes the Body primary while remaining compatibility endpoints stay reachable", async ({ page }) => {
+test.skip("Conduit home makes the body primary while remaining compatibility endpoints stay reachable", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   const tour = `${home}/tour/`;
   const creche = `${home}/creche/`;
@@ -96,11 +96,11 @@ test.skip("Conduit home makes the Body primary while remaining compatibility end
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
   await expect(page.getByRole("link", { name: "Follow a real journey" })).toHaveAttribute("href", "/conduit/journeys/");
   await expect(page.getByRole("link", { name: "Open your body", exact: true })).toHaveAttribute("href", "/conduit/workspace/");
-  await expect(page.getByRole("heading", { name: "Start with the Body." })).toBeVisible();
-  await expect(page.getByText("With no retained Body, this entrance presents bounded setup.")).toBeVisible();
-  await expect(page.getByRole("link", { name: /Your Body/ })).toHaveAttribute("href", "/conduit/workspace/");
-  await expect(page.getByText("The tutorial and zero-Body setup now belong to this Body-centered surface.")).toBeVisible();
-  await expect(page.getByText("zero-Body setup now belong to this Body-centered surface", { exact: false })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Start with the body." })).toBeVisible();
+  await expect(page.getByText("With no retained body, this entrance presents bounded setup.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Your body/ })).toHaveAttribute("href", "/conduit/workspace/");
+  await expect(page.getByText("The tutorial and zero-body setup now belong to this body-centered surface.")).toBeVisible();
+  await expect(page.getByText("zero-body setup now belong to this body-centered surface", { exact: false })).toBeVisible();
   await expect(page.getByRole("link", { name: "standalone Patchbay", exact: true })).toHaveAttribute("href", "/conduit/patchbay/");
   await expect(page.getByRole("link", { name: "Get Conduit" })).toHaveAttribute("href", "#get-conduit");
   await expect(page.getByText("One physical computer")).toBeVisible();
@@ -143,7 +143,7 @@ test.skip("Conduit home makes the Body primary while remaining compatibility end
   await expect(page.locator("body")).toHaveAttribute("data-embodied", "false");
 });
 
-test("the main site exposes exact reviewed Host and ConduitOS releases", async ({ page }) => {
+test("the main site exposes exact reviewed host and ConduitOS releases", async ({ page }) => {
   await page.goto(entrance.url);
   await page.getByRole("link", { name: "Get Conduit" }).click();
   await expect(page).toHaveURL(/#get-conduit$/);

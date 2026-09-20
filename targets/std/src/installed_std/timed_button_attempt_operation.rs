@@ -97,7 +97,7 @@ fn prepare(
 
 pub(super) fn host_maximum(placement: &PlannedGear) -> Result<usize, String> {
     usize::try_from(validate(placement)?.0)
-        .map_err(|_| "pressed-button maximum does not fit this Host".into())
+        .map_err(|_| "pressed-button maximum does not fit this host".into())
 }
 
 pub(super) fn refusal_detail(refusal: super::timed_button_attempt_host::Refusal) -> u16 {

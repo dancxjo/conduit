@@ -71,7 +71,7 @@ pub extern "C" fn conduit_creche_reviewed_inventory(source_length: usize) -> i32
     INPUT.with(|input| {
         let mut input = input.borrow_mut();
         let result = core::str::from_utf8(&input[..source_length])
-            .map_err(|_| "reviewed Form inventory is not UTF-8".to_string())
+            .map_err(|_| "reviewed form inventory is not UTF-8".to_string())
             .and_then(super::initial_forms::reviewed_inventory);
         input[..source_length].fill(0);
         match result {
@@ -118,7 +118,7 @@ pub extern "C" fn conduit_creche_review_initial_workload(
             let selection = core::str::from_utf8(&input[identity_length..forms_end])
                 .map_err(|_| "initial Form selection is not UTF-8".to_string())?;
             let source = core::str::from_utf8(&input[forms_end..total_length])
-                .map_err(|_| "reviewed Form inventory is not UTF-8".to_string())?;
+                .map_err(|_| "reviewed form inventory is not UTF-8".to_string())?;
             let hosts = [super::initial_forms::reviewed_browser_host(
                 source,
                 conduit_core::HostId::from(host),

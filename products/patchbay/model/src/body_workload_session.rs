@@ -1,7 +1,7 @@
 //! Atomic adult Form-workload changes at the ordinary Patchbay boundary.
 //!
-//! This session owns no second Body truth. Each accepted transition delegates
-//! to the Body lifecycle, appends its exact Sign to retained biography
+//! This session owns no second body truth. Each accepted transition delegates
+//! to the body lifecycle, appends its exact Sign to retained biography
 //! evidence, and publishes the resulting bounded evidence document.
 
 use conduit_body::{

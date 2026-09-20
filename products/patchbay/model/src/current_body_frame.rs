@@ -58,8 +58,8 @@ pub struct CurrentBodyHost {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
 pub enum CurrentBodyPhysicalHostSummary {
-    /// Biography evidence records membership and current Host/Boot presence,
-    /// but does not classify a Host as physical.
+    /// Biography evidence records membership and current host/Boot presence,
+    /// but does not classify a host as physical.
     NotEvidenced,
 }
 
@@ -131,13 +131,13 @@ impl CurrentBodyFrame {
         let patchbay_reader = reader(attachment);
         let placement_line = match patchbay_reader {
             CurrentBodyPatchbayReader::HostedByBody { .. } => {
-                "Patchbay is hosted by this Body through its exact graduation placement."
+                "Patchbay is hosted by this body through its exact graduation placement."
             }
             CurrentBodyPatchbayReader::ExternalReadingHostedBody { .. } => {
-                "This external Patchbay is reading a Body that also retained a hosted Patchbay placement."
+                "This external Patchbay is reading a body that also retained a hosted Patchbay placement."
             }
             CurrentBodyPatchbayReader::ExternalReadingUnhostedBody => {
-                "This external Patchbay is reading a Body that graduated without a hosted Patchbay."
+                "This external Patchbay is reading a body that graduated without a hosted Patchbay."
             }
         };
         let lifecycle_label = match lifecycle {
@@ -212,7 +212,7 @@ fn reader(attachment: &PatchbayBodyAttachment) -> CurrentBodyPatchbayReader {
                         hosted_plan_id: graduation
                             .patchbay_plan_id
                             .clone()
-                            .expect("validated hosted graduation has a Plan"),
+                            .expect("validated hosted graduation has a plan"),
                         hosted_implementation_id: graduation
                             .patchbay_implementation_id
                             .clone()

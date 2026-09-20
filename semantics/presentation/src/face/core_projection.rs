@@ -1,4 +1,4 @@
-//! Current execution and operator-action truth for the Face core.
+//! Current execution and operator-action truth for the face core.
 
 use alloc::{format, vec::Vec};
 use conduit_body::{Body, BodyState, Wake};
@@ -26,7 +26,7 @@ pub(super) fn append_execution_truth(
             identity: plan_subject.clone(),
             role: PresentationRole::Plan,
             label: plan.plan_id.as_str().into(),
-            accessibility_name: format!("Current Wake Plan {}", plan.plan_id.as_str()),
+            accessibility_name: format!("Current wake Plan {}", plan.plan_id.as_str()),
         });
         relationships.push(PresentationRelationship {
             source: body_subject.into(),
@@ -51,7 +51,7 @@ pub(super) fn append_execution_truth(
                 identity: play_subject.clone(),
                 role: PresentationRole::Play,
                 label: active_play_id.as_str().into(),
-                accessibility_name: format!("Active Play {}", active_play_id.as_str()),
+                accessibility_name: format!("Active play {}", active_play_id.as_str()),
             });
             relationships.push(PresentationRelationship {
                 source: plan_subject,

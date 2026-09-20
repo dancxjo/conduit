@@ -1,6 +1,6 @@
 //! Portable bounded job semantics.
 //!
-//! An executable is semantic resource Info, not a path or command line. A Host
+//! An executable is semantic resource Info, not a path or command line. A host
 //! must separately admit and bind that reference before realizing the request.
 
 use alloc::{string::String, vec, vec::Vec};

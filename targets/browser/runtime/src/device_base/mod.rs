@@ -1,4 +1,4 @@
-//! Finite browser device-Base admission. Browser APIs remain in the Host adapter.
+//! Finite browser device-Base admission. Browser APIs remain in the host adapter.
 
 use std::{format, vec, vec::Vec};
 

@@ -63,7 +63,7 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
     });
 
     let exact = crate::distributed_house_plan::exact_distributed_spoken_house_plan(&template)
-        .expect("unchanged House Form plans across exact Hosts");
+        .expect("unchanged House Form plans across exact hosts");
     assert_eq!(exact.plan.fragments.len(), 3);
     assert_eq!(exact.lines.len(), 2);
     assert_eq!(exact.plan.checked_form_id.as_str(), exact.checked_form_id);
@@ -396,7 +396,7 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
         crate::InstalledRemoteFragment::prepare(&stale_capture, capture_fragment, 1)
             .err()
             .unwrap(),
-        "remote fragment preparation requires its exact Host and Boot"
+        "remote fragment preparation requires its exact host and Boot"
     );
     let capture_endpoint = runtimes[0].sessions().iter().next().unwrap().endpoint;
     runtimes[0]
@@ -426,7 +426,7 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
             &mut Vec::new(),
             &mut ThreadTimer,
         )
-        .expect("unrelated admitted Form remains runnable after House machinery loss");
+        .expect("unrelated admitted form remains runnable after House machinery loss");
     assert!(matches!(
         unrelated_report
             .observations
@@ -457,7 +457,7 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
             BootId::from("boot/house-capture-replacement"),
             OfferGeneration(2),
         )
-        .expect("fresh capture Host truth produces a new exact Plan");
+        .expect("fresh capture Host truth produces a new exact plan");
     let prior_capture = &exact.hosts[0];
     let replacement_capture = &replacement.hosts[0];
     assert_eq!(replacement_capture.host_id, prior_capture.host_id);
@@ -495,6 +495,6 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
     };
     assert_eq!(
         stale_fragment_refusal,
-        "remote fragment preparation requires its exact Host and Boot"
+        "remote fragment preparation requires its exact host and Boot"
     );
 }

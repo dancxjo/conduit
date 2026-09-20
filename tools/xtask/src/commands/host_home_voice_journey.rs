@@ -256,7 +256,7 @@ fn realize_and_speak(
                 opening.presentation_id
             ))
         }
-        HomeAction::OpenForm(index) => Ok(format!("Selected Form {}.", FORMS[*index])),
+        HomeAction::OpenForm(index) => Ok(format!("Selected form {}.", FORMS[*index])),
         HomeAction::Changed | HomeAction::Unchanged => {
             let view = home
                 .presentation(2, &FORMS)

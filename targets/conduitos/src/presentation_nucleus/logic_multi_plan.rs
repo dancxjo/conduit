@@ -1,4 +1,4 @@
-//! Exact ordinary Form and Plan preparation for bounded multi-input logic.
+//! Exact ordinary form and Plan preparation for bounded multi-input logic.
 
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{

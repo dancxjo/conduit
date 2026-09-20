@@ -203,7 +203,7 @@ fn reviewed_inventory_derives_exact_identities_and_stale_selection_refuses() {
             "morse_network" => include_str!("../../../../../forms/morse-network/main.conduit"),
             "memory_lantern" => include_str!("../../../../../forms/memory-lantern/main.conduit"),
             "desk_telegraph" => include_str!("../../../../../forms/desk-telegraph/main.conduit"),
-            name => panic!("unexpected reviewed Form {name}"),
+            name => panic!("unexpected reviewed form {name}"),
         };
         let individually_checked = super::initial_forms::check_source(canonical).unwrap();
         let individually_checked_form = individually_checked
@@ -383,7 +383,7 @@ fn durable_snapshot_restores_exact_validated_body_truth_but_not_transient_work()
 
     assert!(session::restore_durable(snapshot)
         .unwrap_err()
-        .contains("already has a Body"));
+        .contains("already has a body"));
 }
 
 #[test]

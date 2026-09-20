@@ -2,7 +2,7 @@
 //!
 //! External identity, semantic meaning, mapping, Base, authority, and outward
 //! manifestation remain distinct. Discovery is observation only and never
-//! fabricates a Host, Part, capability, trust, or authority grant.
+//! fabricates a host, Part, capability, trust, or authority grant.
 
 use crate::{
     AuthorityGrantId, BaseInstanceId, ExternalManifestationId, ExternalResourceId,

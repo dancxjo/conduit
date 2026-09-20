@@ -15,13 +15,13 @@ test("shared Crèche birth surface preserves naming, search, and exact selection
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const birth = page.locator(".body-birth-runner");
-  await expect(birth.getByRole("heading", { name: "A Body of your own" })).toBeVisible();
+  await expect(birth.getByRole("heading", { name: "A body of your own" })).toBeVisible();
   await birth.getByLabel("Naming tradition", { exact: true }).selectOption("roman");
   await birth.getByLabel("Friendly Body name", { exact: true }).fill("Juniper");
   await birth.getByRole("checkbox", { name: "Memory Lantern", exact: true }).check();
   const search = birth.getByLabel("Search Forms", { exact: true });
   await search.fill("no-such-form");
-  await expect(birth.locator('[data-application-key="initial-forms"]')).toHaveText("No Forms match your search. — Your selected Forms are still included.");
+  await expect(birth.locator('[data-application-key="initial-forms"]')).toHaveText("No Forms match your search. — Your selected forms are still included.");
   await expect(birth.getByText("Selected: 1", { exact: true })).toBeVisible();
   await search.fill("");
   await expect(birth.getByRole("checkbox", { name: "Memory Lantern", exact: true })).toBeChecked();
@@ -31,8 +31,8 @@ test("shared Crèche birth surface preserves naming, search, and exact selection
   await expect(birth).toHaveAttribute("data-body-id", /\S+/);
   await expect(birth.locator('[data-application-key="body-identities"]')).toContainText("Juniper");
   await page.screenshot({ path: testInfo.outputPath("browser-born.png"), fullPage: true });
-  await birth.getByRole("button", { name: "Continue on this Host", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Give this Body its first Host", exact: true })).toBeVisible();
+  await birth.getByRole("button", { name: "Continue on this host", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Give this body its first host", exact: true })).toBeVisible();
 });
 
 test("Crèche composes, persists, reviews, and births three exact initial Forms", async ({ page }) => {
@@ -80,7 +80,7 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
 
   await birth.getByRole("button", { name: "Review workload" }).click();
   await expect(birth.locator('[data-application-key="review-basis"]')).toContainText(
-    "current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created",
+    "current host OFFER(s); no permission or resource acquired; no Body Plan or Play created",
   );
   await expect(birth.locator('[data-application-key="birth-status"]')).toContainText(
     "Ready to birth with 3 Form(s)",
@@ -204,9 +204,9 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   const bodyId = await birth.getAttribute("data-body-id");
   expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
   await expect(page.locator('.creche-body-context [data-application-component="panel"]')).toContainText("standalone firefly");
-  await openCrecheStep(page, "2. First Host");
+  await openCrecheStep(page, "2. First host");
   await expect(page.locator('[data-application-key="attach-host"]')).toHaveAttribute("data-application-action", "host.attach");
-  await page.getByRole("button", { name: "Give this Body its first Host" }).click();
+  await page.getByRole("button", { name: "Give this body its first host" }).click();
   await expect(page.locator('.first-host-runner [data-application-key="host-status"]')).toHaveAttribute("data-application-component", "success-status");
   await expect(page.locator('.first-host-runner [data-application-key="host-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
   await openCrecheStep(page, "4. Graduate");
@@ -231,7 +231,7 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   expect(responses.some((path) => path.startsWith("/tour/") || path.includes("chapter-"))).toBe(false);
   await page.getByRole("button", { name: "End the Crèche", exact: true }).click();
   await page.getByRole("button", { name: "Finish and clear Crèche", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "A Body of your own" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "A body of your own" })).toBeFocused();
   await expect(page.locator(".creche-options")).not.toHaveAttribute("open");
   const nextBirth = page.locator(".body-birth-runner");
   await reviewAndBirth(page, nextBirth);

@@ -106,7 +106,7 @@ impl ProductExecutionContext {
     ) -> Result<Self, String> {
         if advertisements.is_empty() {
             return Err(
-                "product execution context requires at least one Host advertisement".into(),
+                "product execution context requires at least one host advertisement".into(),
             );
         }
         if advertisements.len() > MAXIMUM_PRODUCT_HOSTS {

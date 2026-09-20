@@ -38,7 +38,7 @@ fn host(
         behavior,
     );
     StdHost::new_with_playback(config, StdHostComposition::reference(), selection)
-        .expect("selection is scoped to the exact Host generation")
+        .expect("selection is scoped to the exact host generation")
 }
 
 fn form() -> conduit_form::CheckedForm {
@@ -163,7 +163,7 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
         plan: plan_b,
     } = outcome
     else {
-        panic!("changed boot and exact endpoint must replace the Plan");
+        panic!("changed boot and exact endpoint must replace the plan");
     };
 
     assert_eq!(plan_a, immutable_plan_a);

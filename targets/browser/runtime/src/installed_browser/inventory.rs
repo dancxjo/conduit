@@ -1,4 +1,4 @@
-//! Machine-readable inventory derived from the browser Host's planning offers.
+//! Machine-readable inventory derived from the browser host's planning offers.
 
 use serde::Serialize;
 

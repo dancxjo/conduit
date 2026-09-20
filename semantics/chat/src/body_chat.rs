@@ -307,7 +307,7 @@ impl BodyChatPromptState {
             let prompt = Prompt {
                 schema: "conduit.body/chat-prompt-value@2",
                 request_identity: &request_identity,
-                instruction: "Answer as this Body, briefly and only from the supplied current Body truth and explicitly labeled conversation history. Never claim an action occurred merely because it was requested.",
+                instruction: "Answer as this body, briefly and only from the supplied current body truth and explicitly labeled conversation history. Never claim an action occurred merely because it was requested.",
                 current_message: message,
                 history: &recent_history,
                 body: &self.model_context,

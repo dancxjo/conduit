@@ -52,7 +52,7 @@ fn canonical_form_is_only_the_semantic_button_to_indicator_chain() {
     ] {
         assert!(
             !source.contains(forbidden),
-            "authored Form leaked {forbidden}"
+            "authored form leaked {forbidden}"
         );
     }
 }

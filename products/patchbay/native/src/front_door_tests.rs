@@ -152,7 +152,7 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
         .cursor
         .focus
         .as_deref()
-        .expect("zero-Body front door has an exact initial Focus");
+        .expect("zero-body front door has an exact initial Focus");
     assert!(presentation.subjects.iter().any(|subject| {
         subject.identity == initial_focus
             && subject.role == conduit_presentation::PresentationRole::Form
@@ -548,7 +548,7 @@ fn unavailable_birth_key_uses_current_action_and_cannot_create_a_body() {
     );
     assert_eq!(
         refusal.text,
-        "BIRTH unavailable while FORM_UNAVAILABLE: Open a checked Form to begin"
+        "BIRTH unavailable while FORM_UNAVAILABLE: Open a checked form to begin"
     );
 }
 

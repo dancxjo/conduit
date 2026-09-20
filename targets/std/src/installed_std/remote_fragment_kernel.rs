@@ -64,7 +64,7 @@ impl InstalledRemoteFragment {
         play_sequence: u64,
     ) -> Result<Self, String> {
         if advertisement.host_id != fragment.host_id || advertisement.boot_id != fragment.boot_id {
-            return Err("remote fragment preparation requires its exact Host and Boot".into());
+            return Err("remote fragment preparation requires its exact host and Boot".into());
         }
         if !supports(fragment) {
             return Err("remote fragment contains an uninstalled std implementation".into());
@@ -224,10 +224,10 @@ impl InstalledRemoteFragment {
             .map_err(|error| format!("read remote std text input: {error:?}"))?;
         if contract == conduit_std_offers::BODY_CONVERSATION_CONTEXT_OPERATION {
             if !input.is_empty() {
-                return Err("remote Body context request carries unexpected bytes".into());
+                return Err("remote body context request carries unexpected bytes".into());
             }
             if self.pending_body_context.replace(request).is_some() {
-                return Err("remote Body context has two pending requests".into());
+                return Err("remote body context has two pending requests".into());
             }
             return Ok(true);
         }
@@ -335,7 +335,7 @@ impl InstalledRemoteFragment {
                 .body_chat_prompt_hosts
                 .get_mut(usize::from(request.node.0))
                 .and_then(Option::as_mut)
-                .ok_or_else(|| "remote Body Chat request has no admitted host".to_string())?
+                .ok_or_else(|| "remote body Chat request has no admitted host".to_string())?
                 .execute(contract, input)?;
             (HostOperationDisposition::Completed, output)
         } else if contract == conduit_std_offers::COMMITTED_TURN_TO_TEXT_OPERATION {
@@ -402,7 +402,7 @@ impl InstalledRemoteFragment {
             return Ok(false);
         };
         let source =
-            source.ok_or_else(|| "remote Body context lost its admitted source".to_string())?;
+            source.ok_or_else(|| "remote body context lost its admitted source".to_string())?;
         let poll = source.poll_after(self.delivered_body_context, |encoded| {
             self.scheduler.store_host_value(encoded)
         });
@@ -427,10 +427,10 @@ impl InstalledRemoteFragment {
                     output: Some(
                         BoundedValueRef::new(
                             value
-                                .map_err(|error| format!("store remote Body context: {error:?}"))?,
+                                .map_err(|error| format!("store remote body context: {error:?}"))?,
                             conduit_body::MAXIMUM_BODY_CONVERSATION_CONTEXT_BYTES as u32,
                         )
-                        .map_err(|error| format!("bound remote Body context: {error:?}"))?,
+                        .map_err(|error| format!("bound remote body context: {error:?}"))?,
                     ),
                     failure: None,
                 }

@@ -37,7 +37,7 @@ pub(super) fn run_resident(source: &str) -> Result<ResidentProof, String> {
         Session::prepare(Role::Source, source_plan, 1, interaction.clone())?;
     let (mut receiver, sink_output) = Session::prepare(Role::Sink, sink_plan, 1, interaction)?;
     if !matches!(sink_output, Output::Waiting { .. }) {
-        return Err("resident Tour second Host did not wait at its exact Line boundary".into());
+        return Err("resident Tour second host did not wait at its exact Line boundary".into());
     }
     let Output::Line {
         frame: value,

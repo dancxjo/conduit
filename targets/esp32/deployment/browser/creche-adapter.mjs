@@ -227,7 +227,7 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
       const prepared = binding.prepared;
       const nativeSpore = binding.nativeSpore;
       if (!nativeSpore?.segments || nativeSpore.spore_id !== prepared.spore_id) {
-        refuse(targetProfile, mode, "realize", "MissingArtifact", "exact Body-bound ESP32 Spore is missing before deployment");
+        refuse(targetProfile, mode, "realize", "MissingArtifact", "exact body-bound ESP32 Spore is missing before deployment");
       }
       const plan = await activeDeployment.sealDeployment({
         deploymentPlanId: `deployment-plan/${prepared.spore_id}`,

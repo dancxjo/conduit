@@ -5,10 +5,10 @@ use crate::{
     LineId, LinkBindingId, LinkEndpointId, SignId,
 };
 
-/// Reserved identity for realization wholly inside one Host process.
+/// Reserved identity for realization wholly inside one host process.
 ///
 /// Local execution is the sole universal Base identity because it denotes the
-/// absence of a cross-Host Line: same-Host Cords are lowered directly into the
+/// absence of a cross-host Line: same-Host Cords are lowered directly into the
 /// one kernel and therefore must never be admitted as offered connectivity.
 pub const LOCAL_BASE_IMPLEMENTATION_ID: &str = "conduit.base/local@1";
 
@@ -158,7 +158,7 @@ pub struct LineOffer {
     pub availability: LineAvailabilitySign,
 }
 
-/// Exact immutable Line facts admitted into a Plan. Availability is excluded:
+/// Exact immutable Line facts admitted into a plan. Availability is excluded:
 /// it remains a current Sign and cannot mutate this identity.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AdmittedLine {
@@ -177,7 +177,7 @@ impl From<&LineOffer> for AdmittedLine {
     }
 }
 
-/// Mutable availability Sign, deliberately outside admitted Plan identity.
+/// Mutable availability Sign, deliberately outside admitted plan identity.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LineAvailabilitySign {
     pub line_id: LineId,

@@ -10,7 +10,7 @@ use conduit_core::{
     PreparedStructuredValueValidator, StructuredInfoRefusal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
-/// Owns every schema, identity, and byte buffer needed by the Play-time encoder.
+/// Owns every schema, identity, and byte buffer needed by the play-time encoder.
 pub struct PreparedLocalVisionMotionEncoder {
     image_validator: PreparedStructuredValueValidator,
     image_type_prefix: Vec<u8>,

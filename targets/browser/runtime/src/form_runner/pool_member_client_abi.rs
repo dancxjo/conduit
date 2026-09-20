@@ -158,7 +158,7 @@ pub extern "C" fn conduit_browser_pool_member_start(length: u32) -> i32 {
                     .iter()
                     .find(|pool| pool.pool_id == start.selection.pool_id)
             })
-            .ok_or_else(|| "selected shared pool is absent from the Plan".to_string())?;
+            .ok_or_else(|| "selected shared pool is absent from the plan".to_string())?;
         let count = pool
             .member_front
             .inputs()

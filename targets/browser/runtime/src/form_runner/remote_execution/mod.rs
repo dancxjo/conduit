@@ -28,7 +28,7 @@ pub(super) struct RemoteOffer {
 }
 
 impl RemoteExecution {
-    /// Wire currently binds a single-Form Play at sequence zero. A Body Play
+    /// Wire currently binds a single-Form Play at sequence zero. A body Play
     /// identity is deliberately not accepted as an interchangeable identity.
     pub(super) fn prepare(
         plan: &Plan,

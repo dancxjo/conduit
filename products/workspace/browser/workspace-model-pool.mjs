@@ -3,9 +3,9 @@ import { openBrowserPoolMemberClient } from "../../../targets/browser/host/asset
 
 /** Bind joined Hosts to one immutable planned worker envelope.
  *
- * This owner gathers current Host-authored observations, delegates selection
+ * This owner gathers current host-authored observations, delegates selection
  * and occupation to the common Rust kernel, then drives the selected member
- * only through its Plan-derived semantic sessions.
+ * only through its plan-derived semantic sessions.
  */
 export function prepareWorkspaceModelPool({
   api, plan, localAdvertisement, joinedHosts, poolId,

@@ -101,7 +101,7 @@ pub fn execute(
     {
         return Err(refusal(
             "physical-a3-sign-invalid",
-            "UART Signs do not prove the exact current-head ordinary Form/Plan/Play",
+            "UART Signs do not prove the exact current-head ordinary form/Plan/Play",
         ));
     }
     let digest = format!("{:x}", Sha256::digest(&transcript));

@@ -1,4 +1,4 @@
-//! Repository-only live local-model proof through ordinary Form, Plan, and Play.
+//! Repository-only live local-model proof through ordinary form, Plan, and Play.
 
 use crate::hosted_local_model::{
     HostedLocalModelAdapter, LocalModelAdapterTerminal, OllamaLocalModelAdapter,

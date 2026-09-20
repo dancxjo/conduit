@@ -65,7 +65,7 @@ struct ThreeBodyJourneyArgs {
     #[arg(long = "track", required = true)]
     tracks: Vec<PathBuf>,
 
-    /// New file that will receive the verified cross-Body index.
+    /// New file that will receive the verified cross-body index.
     #[arg(long, default_value = "target/journeys/three-bodies/index.json")]
     output: PathBuf,
 }
@@ -124,7 +124,7 @@ struct EvidenceGalleryArgs {
     #[arg(long)]
     hears_speaks_evidence_root: Option<PathBuf>,
 
-    /// Optional complete One Form, Two Fronts evidence for the same commit.
+    /// Optional complete One form, Two Fronts evidence for the same commit.
     #[arg(long)]
     two_fronts_evidence_root: Option<PathBuf>,
 

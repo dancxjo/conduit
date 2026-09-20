@@ -35,7 +35,7 @@ impl RebootError {
 /// The admitted local reset mechanism for the interactive x86_64 profile.
 ///
 /// Construction is kept inside the architecture adapter so availability is an
-/// explicit Host-composition fact rather than something authored Forms obtain.
+/// explicit Host-composition fact rather than something authored forms obtain.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RebootBase {
     _private: (),

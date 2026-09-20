@@ -58,7 +58,7 @@ pub struct HostedResourceGeneration {
 }
 
 impl HostedResourceGeneration {
-    /// Pre-Play construction is the only allocation boundary. The Host supplies
+    /// Pre-Play construction is the only allocation boundary. The host supplies
     /// already-admitted bindings; possessing a portable ResourceRef is insufficient.
     pub fn new(
         binding: &ResourceBinding,

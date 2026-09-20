@@ -1,4 +1,4 @@
-//! One bounded renderer-neutral semantic surface for a current Body.
+//! One bounded renderer-neutral semantic surface for a current body.
 
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{Body, BodyState, Wake, WakePlanState};
@@ -127,7 +127,7 @@ pub enum FaceRefusal {
 
 impl Face {
     /// Projects Body truth first, then admits optional resident application
-    /// contributions only from exact Plays in the current Wake.
+    /// contributions only from exact plays in the current wake.
     pub fn project(
         body: &Body,
         wake: Option<&Wake>,
@@ -147,7 +147,7 @@ impl Face {
                 identity: body_subject.clone(),
                 role: PresentationRole::Body,
                 label: "Body".into(),
-                accessibility_name: "Current Body".into(),
+                accessibility_name: "Current body".into(),
             },
             PresentationSubject {
                 identity: context_subject.clone(),

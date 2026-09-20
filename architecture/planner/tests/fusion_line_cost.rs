@@ -311,7 +311,7 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
             line_offers: &[],
         },
     )
-    .expect("fusion explanation wraps the ordinary Plan");
+    .expect("fusion explanation wraps the ordinary plan");
     assert!(optimized.verify());
     assert_eq!(optimized.plan.checked_form_id, fixture.form.checked_form_id);
     assert_eq!(optimized.plan.fragments[0].placements.len(), 3);
@@ -366,7 +366,7 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
             line_offers: &[],
         },
     )
-    .expect("unfused ordinary Plan");
+    .expect("unfused ordinary plan");
     assert_ne!(optimized.plan.plan_id, unfused.plan.plan_id);
     assert_eq!(
         optimized.plan.fragments[0].cancellation_policy,

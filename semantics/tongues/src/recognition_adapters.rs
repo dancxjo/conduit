@@ -2,7 +2,7 @@
 //!
 //! These Gears make temporal conversion visible in the expanded Form and Plan.
 //! Provider mechanics such as Whisper process invocation and PCM resampling remain
-//! realization truth below these portable Fronts.
+//! realization truth below these portable fronts.
 
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
@@ -354,7 +354,7 @@ mod tests {
         }
         let message = crate::committed_user_message(&event)
             .unwrap()
-            .expect("recognition commit crosses the Body turn boundary");
+            .expect("recognition commit crosses the body turn boundary");
         assert_eq!(message.text, "Hello Margret");
     }
 

@@ -101,7 +101,7 @@ impl PatchbayPresentation {
             let action_target = content.subject_with_identity(
                 target.clone(),
                 PresentationRole::Form,
-                "Current Form",
+                "Current form",
                 "Current checked and expanded Form",
             );
             content.contains(&document, &action_target);

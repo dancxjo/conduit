@@ -13,11 +13,11 @@ pub const MAXIMUM_FUSION_OFFERS: usize = 64;
 pub const MAXIMUM_FUSION_MEMBERS: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// A composite implementation advertised by one exact Host incarnation.
+/// A composite implementation advertised by one exact host incarnation.
 ///
 /// This is an additional realization offer, not a replacement for the member
 /// capability offers: every preserved Gear retains its own selected
-/// implementation in the Plan.
+/// implementation in the plan.
 pub struct FusionRealizationOffer {
     pub fusion_id: String,
     pub host_id: HostId,

@@ -1,4 +1,4 @@
-//! Outbound ordinary Host rendezvous above one protected relay Line.
+//! Outbound ordinary host rendezvous above one protected relay Line.
 
 use conduit_body::{
     decode_running_host_rendezvous_text, RendezvousAttemptDecision, RendezvousAttemptJournal,

@@ -39,8 +39,8 @@ pub struct KeyboardTextFormIdentity {
     pub expanded_form_id: conduit_core::ExpandedFormId,
 }
 
-/// Check the IMAGE-embedded platform-neutral Form without selecting a Host,
-/// producing a Plan, or admitting any runtime effect.
+/// Check the IMAGE-embedded platform-neutral Form without selecting a host,
+/// producing a plan, or admitting any runtime effect.
 pub fn checked_form_identity() -> Result<KeyboardTextFormIdentity, PreparationError> {
     let form = checked_expanded_form()?;
     Ok(KeyboardTextFormIdentity {
@@ -223,7 +223,7 @@ pub(crate) fn append_keymap_offer(advertisement: &mut HostAdvertisement, build_i
     keymap.implementation.execution_profile_id = ExecutionProfileId::from(KEYMAP_EXECUTION_PROFILE);
     keymap.implementation.implementation_id = ImplementationId::from(KEYMAP_IMPLEMENTATION);
     keymap.implementation.artifact_id = ArtifactId::from(format!("conduitos-build/{build_id}"));
-    // Keymap transforms an admitted value in memory. Its Host operation has its
+    // Keymap transforms an admitted value in memory. Its host operation has its
     // own planned in-flight bound; it does not use a keyboard controller slot.
     keymap.resource_requirements = vec![resource_requirement(
         "conduit.resource/runtime-memory@1",

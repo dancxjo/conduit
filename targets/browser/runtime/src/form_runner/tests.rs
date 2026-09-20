@@ -81,7 +81,7 @@ fn canonical_button_form_runs_press_and_release_without_device_identity() {
             .position(|pending| {
                 matches!(pending.effect, engine::BrowserHostEffect::ButtonTransition)
             })
-            .expect("same Play must remain armed for another button transition");
+            .expect("same play must remain armed for another button transition");
         let request = session.pending[input_index].request;
         assert_eq!(request.request.0, sequence as u32);
         let placement = session.fragments[0].placements[usize::from(request.node.0)]
@@ -171,7 +171,7 @@ fn morse_keyboard_reacts_to_three_separated_keys_in_one_play() {
             .pending
             .iter()
             .position(|pending| matches!(pending.effect, engine::BrowserHostEffect::KeyEvent))
-            .expect("same Play must remain armed for the next keyboard transition");
+            .expect("same play must remain armed for the next keyboard transition");
         let request = session.pending[key_index].request;
         let placement = session.fragments[0].placements[usize::from(request.node.0)]
             .placement_id

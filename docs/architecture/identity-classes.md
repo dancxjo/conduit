@@ -13,7 +13,7 @@ must choose the identity class before choosing its spelling.
 | Base kind | one reusable platform mechanism family | Meaningful name; an initialized Base has separate boot-local identity and resource truth. |
 | Execution profile | the realization constraints selected by planning | Meaningful profile name; exact limits and characteristics remain structured data. |
 | Implementation | which implementation family realizes a contract | Meaningful implementation name; coexistence requires a genuinely distinct implementation identity, not a source-edit count. |
-| Artifact | the executable lineage selected by a Plan | `ArtifactId` remains distinct from implementation. Release and fabrication receipts bind actual artifact bytes through their content digest; a friendly artifact label must not be described as a digest. |
+| Artifact | the executable lineage selected by a plan | `ArtifactId` remains distinct from implementation. Release and fabrication receipts bind actual artifact bytes through their content digest; a friendly artifact label must not be described as a digest. |
 | Content/access profile | bounded content meaning and permitted access | Canonical semantic identity; content bytes use their owned digest where identity depends on bytes. |
 | Line/base family | one transport or mechanism family | Meaningful family name; exact endpoints, sessions, boot identity, and authority remain separate. |
 | Evidence/report schema | retained bytes interpreted by independent readers | Keep an explicit schema family plus a real wire version or discriminator when old and new bytes can coexist. |

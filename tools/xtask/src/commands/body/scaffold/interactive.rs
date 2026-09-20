@@ -34,7 +34,7 @@ pub(super) fn collect(
     cliclack::intro(style(" Conduit body new ").on_cyan().black())?;
     let name = match supplied_name {
         Some(name) => name.to_owned(),
-        None => cliclack::input("What should this Body be called?")
+        None => cliclack::input("What should this body be called?")
             .placeholder("pete")
             .validate(|value: &String| validate_name(value))
             .interact()?,
@@ -55,15 +55,15 @@ pub(super) fn collect(
 
     let mut recipes = load_host_recipes(root)?;
     let mut pending_recipes = Vec::new();
-    if cliclack::confirm("Add or replace a Host recipe?")
+    if cliclack::confirm("Add or replace a host recipe?")
         .initial_value(false)
         .interact()?
     {
         loop {
-            let mut prompt = cliclack::select("Choose a Host recipe")
+            let mut prompt = cliclack::select("Choose a host recipe")
                 .item(
                     RecipeChoice::Create,
-                    "Create a new Host recipe",
+                    "Create a new host recipe",
                     "choose architecture, Bases, and exact implementations",
                 )
                 .filter_mode();
@@ -132,7 +132,7 @@ pub(super) fn collect(
                     .iter()
                     .any(|assignment| assignment.configuration == pending.selector)
             });
-            if !cliclack::confirm("Add another Host recipe?")
+            if !cliclack::confirm("Add another host recipe?")
                 .initial_value(false)
                 .interact()?
             {
@@ -163,7 +163,7 @@ fn choose_output(
     if recipe.outputs.len() == 1 {
         return Ok(None);
     }
-    let mut prompt = cliclack::select("Choose the Spore output for this Host");
+    let mut prompt = cliclack::select("Choose the Spore output for this host");
     for output in &recipe.outputs {
         prompt = prompt.item(
             output.clone(),
@@ -193,7 +193,7 @@ pub(super) fn confirm_creation(
         writeln!(&mut summary, "{recipe}")?;
     }
     cliclack::note(format!("Review {}", report.body_id), summary.trim_end())?;
-    let confirmed = cliclack::confirm("Create this Body?")
+    let confirmed = cliclack::confirm("Create this body?")
         .initial_value(true)
         .interact()?;
     if !confirmed {

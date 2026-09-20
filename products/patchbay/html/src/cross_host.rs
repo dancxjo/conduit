@@ -65,7 +65,7 @@ pub enum CrossHostRendererError {
 
 impl core::fmt::Display for CrossHostRendererError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(formatter, "cross-Host renderer failed: {self:?}")
+        write!(formatter, "cross-host renderer failed: {self:?}")
     }
 }
 
@@ -195,7 +195,7 @@ fn fragment_for<'a>(
     plan.fragments
         .iter()
         .find(|fragment| &fragment.host_id == host)
-        .ok_or_else(|| CrossHostRendererError::Plan("planned Host fragment missing".into()))
+        .ok_or_else(|| CrossHostRendererError::Plan("planned host fragment missing".into()))
 }
 
 fn lowered_remote(

@@ -112,9 +112,9 @@ impl BodyBiographyEvidence {
             .map(|segment| segment.is_some())
     }
 
-    /// Retain an exact extension of one Wake and its Body lifecycle atomically.
+    /// Retain an exact extension of one wake and its body lifecycle atomically.
     /// Workload changes must already have their own biography records. Execution
-    /// termination is not a Lull: callers must supply that distinct transition.
+    /// termination is not a lull: callers must supply that distinct transition.
     pub fn append_wake(
         &mut self,
         body: Body,

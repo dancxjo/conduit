@@ -13,7 +13,7 @@ export function registerTourGalleryExecutionTests(openStep) {
   };
   const activePlay = (runner) => runner
     .locator('.run-identities [data-application-component="definition"]')
-    .filter({ hasText: "Active Play" })
+    .filter({ hasText: "Active play" })
     .locator("dd");
   const runIdentity = (runner, label) => runner.locator(".run-identities")
     .evaluate((root, key) => {
@@ -24,17 +24,17 @@ export function registerTourGalleryExecutionTests(openStep) {
       return "";
     }, label);
   const captureRunIdentities = async (runner) => {
-    await expect.poll(() => runIdentity(runner, "Checked Form")).not.toBe("");
+    await expect.poll(() => runIdentity(runner, "Checked form")).not.toBe("");
     await expect.poll(() => runIdentity(runner, "Plan")).not.toBe("");
     await expect.poll(async () => ((await activePlay(runner).textContent()) ?? "").trim()).not.toBe("");
     return {
-      checkedFormId: await runIdentity(runner, "Checked Form"),
+      checkedFormId: await runIdentity(runner, "Checked form"),
       planId: await runIdentity(runner, "Plan"),
       playId: ((await activePlay(runner).textContent()) ?? "").trim(),
     };
   };
   const expectSameRunIdentities = async (runner, identities) => {
-    await expect.poll(() => runIdentity(runner, "Checked Form")).toBe(identities.checkedFormId);
+    await expect.poll(() => runIdentity(runner, "Checked form")).toBe(identities.checkedFormId);
     await expect.poll(() => runIdentity(runner, "Plan")).toBe(identities.planId);
     await expect(activePlay(runner)).toHaveText(identities.playId);
   };
@@ -100,7 +100,7 @@ export function registerTourGalleryExecutionTests(openStep) {
     await expectCancelled(runner);
   });
 
-  test("Gallery Morse Network reacts to S/O/S in one Play", async ({ page }) => {
+  test("Gallery Morse Network reacts to S/O/S in one play", async ({ page }) => {
     await openGallery(page);
     const runner = await openForm(page, "Morse Network");
     await runner.getByRole("button", { name: "Run", exact: true }).click();
@@ -126,7 +126,7 @@ export function registerTourGalleryExecutionTests(openStep) {
     await expectCancelled(runner);
   });
 
-  test("Gallery Button Across the Room handles two cycles in one Play", async ({ page }) => {
+  test("Gallery Button Across the Room handles two cycles in one play", async ({ page }) => {
     await openGallery(page);
     const runner = await openForm(page, "Button Across the Room");
     await runner.getByRole("button", { name: "Run", exact: true }).click();

@@ -100,7 +100,7 @@ pub enum BodyBuildDiagnostic {
 
 /// Seal a fresh Body binding around one already-built exact IMAGE.
 ///
-/// Validation derives the IMAGE that the checked Host configuration and
+/// Validation derives the IMAGE that the checked host configuration and
 /// fabrication package require, but it retains the caller-selected bytes and
 /// identity. It does not BUILD a replacement artifact or promote the spore to
 /// deployment, Boot, membership, or readiness truth.
@@ -173,7 +173,7 @@ pub fn seal_prebuilt_body_spore_with_content_digest(
     if &expected_image != image {
         return Err(BodyBuildDiagnostic::SelectedImageMismatch {
             host: host_name.into(),
-            detail: "selected IMAGE does not match the checked Host configuration and package"
+            detail: "selected IMAGE does not match the checked host configuration and package"
                 .into(),
         });
     }
@@ -204,7 +204,7 @@ pub fn seal_prebuilt_body_spore_with_content_digest(
     })
 }
 
-/// Seal a Body binding around one reviewed target-built IMAGE description.
+/// Seal a body binding around one reviewed target-built IMAGE description.
 ///
 /// Unlike [`seal_prebuilt_body_spore_with_content_digest`], this entrance does
 /// not reconstruct a richer product PROFILE from the Crèche's target picker.
@@ -238,7 +238,7 @@ pub fn seal_reviewed_prebuilt_body_spore_with_content_digest(
     {
         return Err(BodyBuildDiagnostic::SelectedImageMismatch {
             host: host_name.into(),
-            detail: "reviewed IMAGE target or bounds do not match the checked Host selection"
+            detail: "reviewed IMAGE target or bounds do not match the checked host selection"
                 .into(),
         });
     }

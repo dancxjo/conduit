@@ -1,9 +1,9 @@
-//! Transitional hosted QEMU acceptance for the normal long-lived zero-Body Crèche arrival.
+//! Transitional hosted QEMU acceptance for the normal long-lived zero-body Crèche arrival.
 //!
 //! Keep the externally selected `front-door` proof slot stable while the native product
 //! entrance is being made genuinely Crèche-first. This proof deliberately does not encode
 //! incidental USB/HID initialization ordering. Its contract is product-facing: the normal
-//! IMAGE reaches a usable zero-Body Crèche, accepts an explicit Crèche interaction without
+//! IMAGE reaches a usable zero-body Crèche, accepts an explicit Crèche interaction without
 //! inventing lifecycle, and remains alive.
 
 use std::{
@@ -120,7 +120,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         {
             return Err(ConduitosError::refusal(
                 "front-door-not-long-lived",
-                "normal IMAGE exited while interacting with the zero-Body Crèche",
+                "normal IMAGE exited while interacting with the zero-body Crèche",
             ));
         }
         Ok(())
@@ -143,19 +143,19 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if !creche_ready {
         return Err(ConduitosError::refusal(
             "creche-arrival-not-ready",
-            "normal IMAGE never established the zero-Body Crèche readiness checkpoint",
+            "normal IMAGE never established the zero-body Crèche readiness checkpoint",
         ));
     }
     if !serial.contains("\"body_id\":null") {
         return Err(ConduitosError::refusal(
             "creche-arrival-invented-body",
-            "normal zero-Body arrival did not project an explicitly absent Body",
+            "normal zero-body arrival did not project an explicitly absent Body",
         ));
     }
     if serial.contains("\"status\":\"form-opened\"") {
         return Err(ConduitosError::refusal(
             "creche-arrival-opened-form",
-            "normal zero-Body arrival opened a Form before explicit Crèche selection",
+            "normal zero-body arrival opened a form before explicit Crèche selection",
         ));
     }
     if !serial.contains("CONDUIT_CRECHE_CHECKPOINT edited") {
@@ -170,7 +170,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     {
         return Err(ConduitosError::refusal(
             "front-door-invented-lifecycle",
-            "normal zero-Body interaction entered proof or Body lifecycle machinery",
+            "normal zero-body interaction entered proof or Body lifecycle machinery",
         ));
     }
 

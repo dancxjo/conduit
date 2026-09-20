@@ -1,4 +1,4 @@
-//! Bounded validation of the Body invitation embedded in native ConduitOS media.
+//! Bounded validation of the body invitation embedded in native ConduitOS media.
 
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Deserializer};

@@ -241,7 +241,7 @@ pub struct SelectedRealizationPlanning<'a> {
 }
 
 /// Selects against fresh resource observations and exact realization facts,
-/// then seals independently supplied authority grants into the ordinary Plan.
+/// then seals independently supplied authority grants into the ordinary plan.
 pub fn plan_selected_realizations_with_characteristics_and_authority(
     form: &CheckedForm,
     options: SelectedRealizationPlanning<'_>,

@@ -1,4 +1,4 @@
-//! Explicit pre-Play input and output fixtures, absent from production builds.
+//! Explicit pre-play input and output fixtures, absent from production builds.
 use super::factory::{BrowserHostResult, BrowserInstallation, BrowserManifestation};
 use super::BrowserOperation;
 use conduit_core::*;
