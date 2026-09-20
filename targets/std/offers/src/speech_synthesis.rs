@@ -1,9 +1,9 @@
 //! Explicitly initialized hosted Piper realization of portable speech synthesis.
 
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer,
+    kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer,
+    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId,
 };
 
 pub const PIPER_SPEECH_PROFILE: &str = "std/piper-s16le-22050-mono-p25@1";
@@ -84,41 +84,32 @@ fn speech_offer(
     } else {
         conduit_tongues::synthesize_contract()
     };
-    CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
-            name: "maximum-output-bytes".into(),
-            value_type: conduit_core::kind_id("value/count"),
-            has_default: true,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from(capability),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract.into_semantic_capability_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(PIPER_SPEECH_OPERATION),
+                target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: if streaming {
+                    conduit_tongues::SPEECH_COMMIT_QUEUE_BYTES
+                } else {
+                    conduit_tongues::MAXIMUM_TEXT_BYTES
+                },
+                maximum_output_bytes: PIPER_PCM_BLOCK_BYTES,
+            }],
+            resource_requirements: requires_process
+                .then(|| resource_requirement(PIPER_PROCESS_RESOURCE_CLASS, 1))
+                .into_iter()
+                .collect(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(PIPER_SPEECH_OPERATION),
-            target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: if streaming {
-                conduit_tongues::SPEECH_COMMIT_QUEUE_BYTES
-            } else {
-                conduit_tongues::MAXIMUM_TEXT_BYTES
-            },
-            maximum_output_bytes: PIPER_PCM_BLOCK_BYTES,
-        }],
-        resource_requirements: requires_process
-            .then(|| resource_requirement(PIPER_PROCESS_RESOURCE_CLASS, 1))
-            .into_iter()
-            .collect(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
