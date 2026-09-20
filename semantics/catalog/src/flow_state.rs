@@ -10,7 +10,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
+    PortDirection, PortTemporal, SemanticCapabilityContract, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 
 pub const STATE_LATEST_SCALAR_CONTRACT_REVISION: &str = "conduit.std/state-latest-scalar@2";
@@ -152,6 +152,46 @@ pub fn state_select_scalar_contract() -> StandardKindContract {
     }
 }
 
+pub fn state_latest_scalar_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        state_latest_scalar_contract(),
+        STATE_LATEST_SCALAR_CONTRACT_REVISION,
+    )
+}
+
+pub fn flow_tee_scalar_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        flow_tee_scalar_contract(),
+        FLOW_TEE_SCALAR_CONTRACT_REVISION,
+    )
+}
+
+pub fn flow_gate_scalar_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        flow_gate_scalar_contract(),
+        FLOW_GATE_SCALAR_CONTRACT_REVISION,
+    )
+}
+
+pub fn state_select_scalar_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        state_select_scalar_contract(),
+        STATE_SELECT_SCALAR_CONTRACT_REVISION,
+    )
+}
+
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindContractRevision::from(revision),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
+    }
+}
+
 fn port(name: &str, direction: PortDirection, temporal: PortTemporal) -> PortDescriptor {
     info_port(name, SCALAR_INFO_ID, direction, temporal)
 }
@@ -183,7 +223,10 @@ pub fn install_flow_state_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, KindSignature};
+    use conduit_form::{
+        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        StartupParameterSignature,
+    };
     for (contract, revision) in [
         (
             state_latest_scalar_contract(),
@@ -204,7 +247,18 @@ pub fn install_flow_state_catalogs(
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
-            startup_parameters: Vec::new(),
+            startup_parameters: contract
+                .configuration
+                .iter()
+                .map(|field| StartupParameterSignature {
+                    name: field.key.clone(),
+                    value_type: "Count".to_string(),
+                    default: match field.default_value {
+                        ConfigurationValue::U64(value) => Some(value.to_string()),
+                        _ => None,
+                    },
+                })
+                .collect(),
         })?;
         let configuration = contract
             .configuration
@@ -266,6 +320,14 @@ mod tests {
             .iter()
             .chain(select.outputs.iter())
             .all(|port| port.value_kind.as_str() == SCALAR_INFO_ID));
+
+        let gate_semantics = flow_gate_scalar_semantic_contract();
+        assert_eq!(gate_semantics.startup_parameters.len(), 1);
+        assert_eq!(
+            gate_semantics.startup_parameters[0].name,
+            "maximum-enable-updates"
+        );
+        assert!(gate_semantics.startup_parameters[0].has_default);
 
         for port in latest
             .inputs

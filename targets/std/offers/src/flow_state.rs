@@ -1,7 +1,10 @@
 //! Hosted std realizations of portable flow/state contracts.
 
-use conduit_core::{kind_id, CapabilityOffer, HostOperationContractId, HostOperationRequirement};
-use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
+use conduit_core::{
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, SemanticCapabilityContract,
+};
 
 pub const STATE_LATEST_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/state-latest-scalar-kernel@2";
 pub const STATE_LATEST_SCALAR_IMPLEMENTATION: &str = "std/kernel-state-latest-scalar@2";
@@ -20,8 +23,7 @@ pub const STATE_SELECT_SCALAR_ARTIFACT: &str = "conduit-std-host/state-select-sc
 
 pub fn state_latest_scalar_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::state_latest_scalar_contract(),
-        conduit_semantic_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::state_latest_scalar_semantic_contract(),
         "state-latest-scalar-v2",
         STATE_LATEST_SCALAR_EXECUTION_PROFILE,
         STATE_LATEST_SCALAR_IMPLEMENTATION,
@@ -32,8 +34,7 @@ pub fn state_latest_scalar_offer() -> CapabilityOffer {
 
 pub fn flow_tee_scalar_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::flow_tee_scalar_contract(),
-        conduit_semantic_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::flow_tee_scalar_semantic_contract(),
         "flow-tee-scalar-v2",
         FLOW_TEE_SCALAR_EXECUTION_PROFILE,
         FLOW_TEE_SCALAR_IMPLEMENTATION,
@@ -44,8 +45,7 @@ pub fn flow_tee_scalar_offer() -> CapabilityOffer {
 
 pub fn flow_gate_scalar_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::flow_gate_scalar_contract(),
-        conduit_semantic_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::flow_gate_scalar_semantic_contract(),
         "flow-gate-scalar-v1",
         FLOW_GATE_SCALAR_EXECUTION_PROFILE,
         FLOW_GATE_SCALAR_IMPLEMENTATION,
@@ -62,8 +62,7 @@ pub fn flow_gate_scalar_offer() -> CapabilityOffer {
 
 pub fn state_select_scalar_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::state_select_scalar_contract(),
-        conduit_semantic_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::state_select_scalar_semantic_contract(),
         "state-select-scalar-v1",
         STATE_SELECT_SCALAR_EXECUTION_PROFILE,
         STATE_SELECT_SCALAR_IMPLEMENTATION,
@@ -73,27 +72,26 @@ pub fn state_select_scalar_offer() -> CapabilityOffer {
 }
 
 fn offer(
-    contract: conduit_semantic_catalog::StandardKindContract,
-    revision: &str,
+    contract: SemanticCapabilityContract,
     capability: &str,
     profile: &str,
     implementation: &str,
     artifact: &str,
     host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    realization_offer(
+    CapabilityOfferBuilder::new(
         contract,
-        revision,
-        RealizationOfferIdentity {
-            capability,
-            execution_profile: profile,
-            implementation,
-            artifact,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
+            execution_profile_id: ExecutionProfileId::from(profile),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(artifact),
+            host_operations,
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        host_operations,
-        Vec::new(),
-        Vec::new(),
     )
+    .build()
 }
 
 #[cfg(test)]
