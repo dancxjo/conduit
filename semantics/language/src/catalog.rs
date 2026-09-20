@@ -6,8 +6,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FaceStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -81,6 +82,23 @@ pub fn tokenize_four_definition() -> KindDefinition {
     }
 }
 
+pub fn tokenize_four_semantic_contract() -> SemanticCapabilityContract {
+    let definition = tokenize_four_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![FaceStartupParameter {
+            name: "text".into(),
+            value_type: kind_id("value/text"),
+            has_default: false,
+        }],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: linguistic_limits(),
+    }
+}
+
 pub fn annotate_four_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(ANNOTATE_FOUR_KIND),
@@ -96,6 +114,27 @@ pub fn annotate_four_definition() -> KindDefinition {
             PortDirection::Output,
         )],
         configuration: vec![],
+    }
+}
+
+pub fn annotate_four_semantic_contract() -> SemanticCapabilityContract {
+    let definition = annotate_four_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: linguistic_limits(),
+    }
+}
+
+fn linguistic_limits() -> CapabilityLimits {
+    CapabilityLimits {
+        max_active_instances: 4,
+        max_queue_items: 1,
+        max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
     }
 }
 
