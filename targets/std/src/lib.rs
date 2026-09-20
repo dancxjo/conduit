@@ -104,6 +104,8 @@ pub mod isolated_base;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub mod isolated_copy_base;
 pub mod microphone_whisper_proof;
+#[cfg(feature = "native-webrtc")]
+pub mod native_webrtc;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub use isolated_copy_base::provider_main as isolated_copy_provider_main;
 #[cfg(all(target_os = "linux", feature = "isolated-http-base"))]

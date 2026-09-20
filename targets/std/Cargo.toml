@@ -13,6 +13,7 @@ isolated-base-proof = ["isolated-file-base"]
 isolated-http-base = ["isolated-file-base"]
 confined-gear = ["dep:wasmi"]
 physical-effect-proof = []
+native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc"]
 
 [dependencies]
 conduit-ai = { path = "../../semantics/ai", features = ["form-catalog"] }
@@ -59,6 +60,10 @@ sha2 = "0.10"
 instant-distance = "=0.6.1"
 ureq = { version = "3.4.0", default-features = false, features = ["rustls"] }
 wasmi = { version = "2.0.0", default-features = false, features = ["std", "validate", "extra-checks"], optional = true }
+async-trait = { version = "0.1", optional = true }
+bytes = { version = "1", optional = true }
+tokio = { version = "1", features = ["io-util", "macros", "rt-multi-thread", "sync", "time"], optional = true }
+webrtc = { version = "0.20.5", optional = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
@@ -67,7 +72,6 @@ libc = "0.2"
 bluer = { version = "0.17.4", features = ["bluetoothd"], optional = true }
 dbus = { version = "0.9.12", features = ["vendored"], optional = true }
 futures = { version = "0.3", optional = true }
-tokio = { version = "1", features = ["io-util", "time"], optional = true }
 uuid = { version = "1", optional = true }
 
 [[bin]]
@@ -99,6 +103,11 @@ required-features = ["isolated-http-base"]
 name = "conduit-physical-effect-proof"
 path = "src/bin/conduit-physical-effect-proof.rs"
 required-features = ["physical-effect-proof"]
+
+[[bin]]
+name = "native-webrtc-line-probe"
+path = "src/bin/native-webrtc-line-probe.rs"
+required-features = ["native-webrtc"]
 
 [dev-dependencies]
 conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
