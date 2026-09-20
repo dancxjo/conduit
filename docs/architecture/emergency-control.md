@@ -38,6 +38,19 @@ beneath Play for the out-of-band path. Emergency admission and terminal machine
 halt/reset deliberately are not callable Form gears, because ordinary work must
 neither acquire shutdown authority nor become able to delay or veto that path.
 
+The std Host composes that out-of-band path through one
+`AcousticEmergencyAdapter`. It pins the durable birth key, exact offline detector
+version, canonical Base-registry microphone provider identity and generation,
+sequence matcher, and Body-scoped `EmergencyControl` before accepting PCM. A
+detector match is still
+inert until the complete configured phrase is observed. The complete phrase can
+only request the reductions admitted by `EmergencyPolicy`; it cannot Wake,
+authenticate, grant authority, resume work, or consult a Form, Plan, Play, model,
+or transcript. Physical mute, provider loss, replacement generation, sequence
+failure, and input overflow make the adapter unavailable and clear partial
+progress. Recovery requires a fresh adapter admitted against current provider
+truth; it is never an implicit retry.
+
 The current source-level contract and deterministic tests do not establish a
 microphone implementation, false-positive threshold, architecture halt/reset
 support beyond the existing x86_64 rescue reset, physical/HIL behavior,

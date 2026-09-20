@@ -1339,6 +1339,7 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-data",
+ "conduit-emergency-keyword-spotter",
  "conduit-finance",
  "conduit-form",
  "conduit-host-fabrication",
