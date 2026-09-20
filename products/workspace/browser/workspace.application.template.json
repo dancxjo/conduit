@@ -222,8 +222,9 @@
       "kind": "module",
       "path": "creche-rendezvous.mjs",
       "maximum_bytes": 32768,
-      "dependencies": []
+      "dependencies": [{ "role": "rendezvous-cbor", "specifier": "./rendezvous-cbor.mjs" }]
     },
+    { "role": "rendezvous-cbor", "kind": "module", "path": "rendezvous-cbor.mjs", "maximum_bytes": 12288, "dependencies": [] },
     {
       "role": "creche-physical",
       "kind": "module",
