@@ -1,6 +1,42 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { connectRendezvousHost, decodeRendezvousCode } from "../../products/creche/browser/creche-rendezvous.mjs";
+import { decodeRendezvousCoseSign1, decodeRendezvousManifestation } from "../../products/creche/browser/rendezvous-cbor.mjs";
+
+test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector", () => {
+  const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-v1.hex", import.meta.url), "utf8").trim();
+  const envelope = `conduit-rendezvous-v1:${Buffer.from(hex, "hex").toString("base64url")}`;
+  const decoded = decodeRendezvousManifestation(envelope, 1_700_000_000_000);
+  assert.equal(decoded.schema, "conduit.host/rendezvous-cbor@1");
+  assert.deepEqual(decoded.candidates.map(({ candidate_id }) => candidate_id),
+    ["candidate/direct", "candidate/relay"]);
+  assert.deepEqual([...decoded.session_secret], new Array(32).fill(0x55));
+});
+
+test("browser verifies the exact RFC 9052 Sign1 vector under caller-owned policy", async () => {
+  const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-sign1-v1.hex", import.meta.url), "utf8").trim();
+  const publicKey = await crypto.subtle.importKey("raw",
+    Buffer.from("ee45ecb9aca01a0abd83ef56dd985c8c874e6e7f4aebcedf20bd8d88c2a0add7", "hex"),
+    "Ed25519", false, ["verify"]);
+  const verified = await decodeRendezvousCoseSign1(Buffer.from(hex, "hex"), async ({
+    keyId, sigStructure, signature,
+  }) => {
+    assert.equal(new TextDecoder().decode(keyId), "operator-signing-key-1");
+    return await crypto.subtle.verify("Ed25519", publicKey, signature, sigStructure)
+      ? "configured test operator" : null;
+  }, 1_700_000_000_000);
+  assert.equal(verified.schema, "conduit.host/rendezvous-cose-sign1@1");
+  assert.equal(verified.attribution, "configured test operator");
+  assert.equal(verified.descriptor.candidates[0].candidate_id, "candidate/relay");
+
+  const altered = Buffer.from(hex, "hex");
+  altered[altered.length - 1] ^= 1;
+  await assert.rejects(() => decodeRendezvousCoseSign1(altered, async ({
+    sigStructure, signature,
+  }) => await crypto.subtle.verify("Ed25519", publicKey, signature, sigStructure),
+  1_700_000_000_000), /invalid rendezvous COSE/);
+});
 
 test("running Host rendezvous code resolves one authenticated loopback WebSocket Line", () => {
   const code = `C1-WS-104D-${"AB".repeat(32)}`;
