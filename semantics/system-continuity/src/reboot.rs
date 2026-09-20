@@ -2,10 +2,11 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
     bind_sign, kind_id, ArtifactId, AuthorityContractId, AuthorityGrantId, AuthorityRequirement,
-    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFront, ExecutionProfileId,
-    HostAdvertisement, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    KindContractRevision, LineId, PortDescriptor, PortDirection, PortId, PortTemporal, SignId,
-    PROTOCOL_VERSION,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, CheckedFront, ExecutionProfileId, HostAdvertisement,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, KindContractRevision,
+    LineId, PortDescriptor, PortDirection, PortId, PortTemporal, SemanticCapabilityContract,
+    SignId, PROTOCOL_VERSION,
 };
 use conduit_observatory::{HostReport, OperationalState};
 use conduit_wire::SessionBinding;
@@ -40,17 +41,37 @@ pub fn delegated_reboot_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: Some((PortId::from("request"), PortId::from("receipt"))),
-        capability_id,
-        kind_id: kind_id(REBOOT_OPERATION),
-        kind_contract_revision: KindContractRevision::from(REBOOT_CONTRACT_REVISION),
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        delegated_reboot_contract(),
+        CapabilityRealization {
+            capability_id,
             execution_profile_id: ExecutionProfileId::from("lifecycle/reboot-bounded@1"),
             implementation_id,
             artifact_id,
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(REBOOT_HOST_OPERATION),
+                target_kind: None,
+                maximum_in_flight: 1,
+                maximum_input_bytes: 0,
+                maximum_output_bytes: 0,
+            }],
+            resource_requirements: vec![],
+            authority_requirements: vec![AuthorityRequirement {
+                contract_id: AuthorityContractId::from(REBOOT_AUTHORITY_CONTRACT),
+                host_operation_contract_id: HostOperationContractId::from(REBOOT_HOST_OPERATION),
+                subject_kind: kind_id("authority/peer"),
+            }],
         },
+    )
+    .build()
+}
+
+fn delegated_reboot_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: Some((PortId::from("request"), PortId::from("receipt"))),
+        kind_id: kind_id(REBOOT_OPERATION),
+        kind_contract_revision: KindContractRevision::from(REBOOT_CONTRACT_REVISION),
         inputs: vec![PortDescriptor {
             port_id: PortId::from("request"),
             value_kind: kind_id("lifecycle/reboot-request"),
@@ -62,19 +83,6 @@ pub fn delegated_reboot_offer(
             value_kind: kind_id("lifecycle/reboot-receipt"),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
-        }],
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(REBOOT_HOST_OPERATION),
-            target_kind: None,
-            maximum_in_flight: 1,
-            maximum_input_bytes: 0,
-            maximum_output_bytes: 0,
-        }],
-        resource_requirements: vec![],
-        authority_requirements: vec![AuthorityRequirement {
-            contract_id: AuthorityContractId::from(REBOOT_AUTHORITY_CONTRACT),
-            host_operation_contract_id: HostOperationContractId::from(REBOOT_HOST_OPERATION),
-            subject_kind: kind_id("authority/peer"),
         }],
         limits: CapabilityLimits {
             max_active_instances: 1,

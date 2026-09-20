@@ -511,6 +511,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
+        "semantics/system-continuity/src/reboot.rs",
+        0,
+        "fully migrated",
+    ),
+    (
         "semantics/presentation/src/contract.rs",
         0,
         "fully migrated",
