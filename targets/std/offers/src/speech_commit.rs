@@ -1,8 +1,9 @@
 //! Bounded installed realization of generated-text speech commitment.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, SemanticCapabilityContract,
 };
 
 pub const SPEECH_COMMIT_STD_PROFILE: &str = "std/speech-commit@1";
@@ -21,28 +22,31 @@ pub fn speech_commit_std_offer() -> CapabilityOffer {
         maximum_input_bytes: conduit_tongues::MAXIMUM_PENDING_SPEECH_BYTES as u32,
         maximum_output_bytes: conduit_tongues::MAXIMUM_ENCODED_SPEAKABLE_SEGMENT_BYTES as u32,
     };
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("std-speech-commit-v1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        SemanticCapabilityContract {
+            startup_parameters: Vec::new(),
+            shorthand: None,
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            limits: contract.limits,
+        },
+        CapabilityRealization {
+            capability_id: CapabilityId::from("std-speech-commit-v1"),
             execution_profile_id: ExecutionProfileId::from(SPEECH_COMMIT_STD_PROFILE),
             implementation_id: ImplementationId::from(SPEECH_COMMIT_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(SPEECH_COMMIT_STD_ARTIFACT),
+            host_operations: vec![
+                control(SPEECH_COMMIT_PUSH_OPERATION),
+                control(SPEECH_COMMIT_NEXT_OPERATION),
+                control(SPEECH_COMMIT_CLOSE_OPERATION),
+            ],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![
-            control(SPEECH_COMMIT_PUSH_OPERATION),
-            control(SPEECH_COMMIT_NEXT_OPERATION),
-            control(SPEECH_COMMIT_CLOSE_OPERATION),
-        ],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
