@@ -30,6 +30,14 @@ successful phrase fires once and remains suppressed until recovery through a
 separate, stronger authority path. Raw audio is not part of the durable Body
 configuration or emergency outcome.
 
+Keyword spotting and finite sequence matching are also ordinary reusable gear
+semantics with typed audio, observation, and trigger ports. Their ordinary Form
+outputs are inert observations: they neither admit emergency authority nor
+perform an effect. A safety Host may install the same bounded implementations
+beneath Play for the out-of-band path. Emergency admission and terminal machine
+halt/reset deliberately are not callable Form gears, because ordinary work must
+neither acquire shutdown authority nor become able to delay or veto that path.
+
 The current source-level contract and deterministic tests do not establish a
 microphone implementation, false-positive threshold, architecture halt/reset
 support beyond the existing x86_64 rescue reset, physical/HIL behavior,
