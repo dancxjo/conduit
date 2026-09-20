@@ -20,6 +20,15 @@ use crate::{
 pub const VISION_FIXTURE_KIND: &str = "vision/deterministic-image";
 pub const VISION_DETECT_KIND: &str = "vision/deterministic-detector";
 pub const VISION_REVISION: &str = "conduit.std/vision-metadata@1";
+pub const VISION_LOCAL_OBJECTS_REVISION: &str = "conduit.semantic/vision-local-objects@2";
+
+pub fn vision_kind_revision(kind: &str) -> &'static str {
+    if kind == crate::VISION_OBJECTS_KIND {
+        VISION_LOCAL_OBJECTS_REVISION
+    } else {
+        VISION_REVISION
+    }
+}
 
 pub type VisionKindContract = (KindId, Vec<PortDescriptor>, Vec<PortDescriptor>);
 
@@ -92,7 +101,7 @@ fn insert_kind(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(VISION_REVISION),
+            kind_contract_revision: KindContractRevision::from(vision_kind_revision(kind)),
             inputs,
             outputs,
             configuration: vec![],

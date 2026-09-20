@@ -601,6 +601,9 @@ impl StdHost {
         advertisement
             .capabilities
             .push(hosted_vision::FiniteHostedVisionBase::motion_offer());
+        advertisement
+            .capabilities
+            .push(hosted_vision::FiniteHostedVisionBase::objects_offer());
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;

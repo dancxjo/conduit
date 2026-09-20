@@ -18,6 +18,7 @@ pub struct ContinuousLocalVisionObservation {
     pub sequence: u64,
     pub motion: Option<MotionRegion>,
     pub components: [Option<PixelRegion>; MAXIMUM_LOCAL_COMPONENTS],
+    pub component_areas: [u32; MAXIMUM_LOCAL_COMPONENTS],
     pub component_count: u8,
     pub observed_component_count: u32,
     pub components_truncated: bool,
@@ -111,7 +112,7 @@ impl ContinuousLocalVision {
             .has_previous
             .then(|| motion(self.width, &self.previous, pixels, minimum_motion_delta))
             .flatten();
-        let (components, component_count, observed_component_count) =
+        let (components, component_areas, component_count, observed_component_count) =
             self.components(pixels, component_threshold, minimum_component_area);
         self.previous.copy_from_slice(pixels);
         self.has_previous = true;
@@ -120,6 +121,7 @@ impl ContinuousLocalVision {
             sequence,
             motion,
             components,
+            component_areas,
             component_count: component_count as u8,
             observed_component_count,
             components_truncated: observed_component_count > component_count as u32,
@@ -131,10 +133,16 @@ impl ContinuousLocalVision {
         pixels: &[u8],
         threshold: u8,
         minimum_area: u32,
-    ) -> ([Option<PixelRegion>; MAXIMUM_LOCAL_COMPONENTS], usize, u32) {
+    ) -> (
+        [Option<PixelRegion>; MAXIMUM_LOCAL_COMPONENTS],
+        [u32; MAXIMUM_LOCAL_COMPONENTS],
+        usize,
+        u32,
+    ) {
         self.visited.fill(false);
         self.queue.clear();
         let mut output = [None; MAXIMUM_LOCAL_COMPONENTS];
+        let mut areas = [0; MAXIMUM_LOCAL_COMPONENTS];
         let mut count = 0usize;
         let mut observed = 0u32;
         for start in 0..pixels.len() {
@@ -175,11 +183,12 @@ impl ContinuousLocalVision {
                         width: (max_x - min_x + 1) as u16,
                         height: (max_y - min_y + 1) as u16,
                     });
+                    areas[count] = area;
                     count += 1;
                 }
             }
         }
-        (output, count, observed)
+        (output, areas, count, observed)
     }
 }
 
@@ -245,6 +254,7 @@ mod tests {
         assert_eq!(final_observation.sequence, 100_000);
         assert_eq!(final_observation.motion.unwrap().changed_pixels, 2);
         assert_eq!(final_observation.component_count, 1);
+        assert_eq!(final_observation.component_areas[0], 2);
         assert_eq!(final_observation.observed_component_count, 1);
         assert!(!final_observation.components_truncated);
     }
@@ -255,6 +265,7 @@ mod tests {
         let pixels = [255, 0, 255, 0, 255, 0, 255, 0, 255, 0];
         let observation = vision.observe(&pixels, 32, 128, 1).unwrap();
         assert_eq!(observation.component_count, 2);
+        assert_eq!(&observation.component_areas[..2], &[1, 1]);
         assert_eq!(observation.observed_component_count, 5);
         assert!(observation.components_truncated);
     }

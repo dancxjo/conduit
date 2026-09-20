@@ -922,7 +922,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete image-text record operation: {error:?}"))?;
                 continue;
             }
-            if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
+            if matches!(
+                contract.as_str(),
+                conduit_std_offers::LOCAL_VISION_MOTION_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION
+            ) {
                 vision_request_sequence = vision_request_sequence
                     .checked_add(1)
                     .ok_or_else(|| "local Vision request sequence exhausted".to_string())?;
@@ -936,20 +940,25 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     ),
                 )
                 .map_err(|_| "local Vision run identity exceeded admitted storage".to_string())?;
-                let encoded = vision
+                let vision = vision
                     .as_deref_mut()
-                    .ok_or_else(|| "local Vision request has no admitted Base".to_string())?
-                    .execute_motion(input, &vision_run_id);
+                    .ok_or_else(|| "local Vision request has no admitted Base".to_string())?;
+                let encoded =
+                    if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
+                        vision.execute_motion(input, &vision_run_id)
+                    } else {
+                        vision.execute_objects(input, &vision_run_id)
+                    };
                 let (disposition, output, failure) = match encoded {
                     Ok(encoded) => {
                         let value = scheduler
                             .store_host_value(encoded)
-                            .map_err(|error| format!("store local Vision motion: {error:?}"))?;
+                            .map_err(|error| format!("store local Vision result: {error:?}"))?;
                         let output = BoundedValueRef::new(
                             value,
                             lowered_operation.binding.maximum_output_bytes,
                         )
-                        .map_err(|error| format!("bound local Vision motion: {error:?}"))?;
+                        .map_err(|error| format!("bound local Vision result: {error:?}"))?;
                         (HostOperationDisposition::Completed, Some(output), None)
                     }
                     Err(_) => (
@@ -972,7 +981,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             failure,
                         },
                     )
-                    .map_err(|error| format!("complete local Vision motion: {error:?}"))?;
+                    .map_err(|error| format!("complete local Vision operation: {error:?}"))?;
                 continue;
             }
             if matches!(
