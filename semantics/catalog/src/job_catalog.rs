@@ -6,8 +6,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -18,6 +19,25 @@ pub const JOB_RUN_KIND: &str = "process/run-bounded";
 pub const JOB_REVISION: &str = "conduit.std/process-job@1";
 pub const JOB_EXECUTABLE_AUTHORITY: &str = "conduit.authority/execute-resource@1";
 
+pub fn job_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+    vec![
+        contract(
+            JOB_FIXTURE_KIND,
+            vec![],
+            vec![port("request", &job_request_type(), PortDirection::Output)],
+        ),
+        contract(
+            JOB_RUN_KIND,
+            vec![port("request", &job_request_type(), PortDirection::Input)],
+            vec![port(
+                "lifecycle",
+                &job_lifecycle_type(),
+                PortDirection::Output,
+            )],
+        ),
+    ]
+}
+
 pub fn install_job_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
@@ -27,48 +47,52 @@ pub fn install_job_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
-    insert_kind(
-        startup,
-        profile,
-        JOB_FIXTURE_KIND,
-        vec![],
-        vec![port("request", &job_request_type(), PortDirection::Output)],
-    )?;
-    insert_kind(
-        startup,
-        profile,
-        JOB_RUN_KIND,
-        vec![port("request", &job_request_type(), PortDirection::Input)],
-        vec![port(
-            "lifecycle",
-            &job_lifecycle_type(),
-            PortDirection::Output,
-        )],
-    )
+    for contract in job_semantic_contracts() {
+        insert_kind(startup, profile, contract)?;
+    }
+    Ok(())
 }
 
 fn insert_kind(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
-    kind: &str,
-    inputs: Vec<PortDescriptor>,
-    outputs: Vec<PortDescriptor>,
+    contract: SemanticCapabilityContract,
 ) -> Result<(), String> {
     startup
         .insert(KindSignature {
-            kind: kind.into(),
+            kind: contract.kind_id.as_str().into(),
             startup_parameters: vec![],
         })
         .map_err(|error| error.to_string())?;
     profile
         .insert(KindDefinition {
-            kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(JOB_REVISION),
-            inputs,
-            outputs,
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
             configuration: vec![],
         })
         .map_err(|error| error.to_string())
+}
+
+fn contract(
+    kind: &str,
+    inputs: Vec<PortDescriptor>,
+    outputs: Vec<PortDescriptor>,
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindContractRevision::from(JOB_REVISION),
+        inputs,
+        outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: 4,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+        },
+    }
 }
 
 fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -> PortDescriptor {
