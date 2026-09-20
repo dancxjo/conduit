@@ -1548,6 +1548,7 @@ dependencies = [
  "conduit-tour-model",
  "conduit-web",
  "conduit-wire",
+ "ed25519-dalek",
  "embedded-io 0.7.1",
  "embedded-tls",
  "embedded-websocket",

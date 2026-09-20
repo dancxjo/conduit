@@ -7,6 +7,11 @@ const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 export function decodeRendezvousManifestation(value, nowMillis = Date.now()) {
   const encoded = value.startsWith(PREFIX) ? value.slice(PREFIX.length) : invalid();
   const bytes = decodeBase64Url(encoded);
+  return decodeRendezvousCbor(bytes, nowMillis);
+}
+
+export function decodeRendezvousCbor(bytes, nowMillis = Date.now()) {
+  if (!(bytes instanceof Uint8Array)) invalid();
   if (bytes.length > MAXIMUM_CBOR_BYTES) invalid();
   const reader = new CanonicalCborReader(bytes);
   const fieldCount = reader.map();
@@ -44,6 +49,67 @@ export function decodeRendezvousManifestation(value, nowMillis = Date.now()) {
     candidates: Object.freeze(candidates),
     session_secret: new Uint8Array(sessionSecret),
   });
+}
+
+export async function decodeRendezvousCoseSign1(bytes, verifier, nowMillis = Date.now()) {
+  if (!(bytes instanceof Uint8Array) || bytes.length > 3_768 || typeof verifier !== "function") invalidCose();
+  const reader = new CanonicalCborReader(bytes);
+  if (reader.tag() !== 18 || reader.array() !== 4) invalidCose();
+  const protectedHeaders = reader.bytes();
+  if (reader.map() !== 0) invalidCose();
+  const payload = reader.bytes();
+  if (payload.length > MAXIMUM_CBOR_BYTES) invalidCose();
+  const signature = reader.bytes();
+  if (signature.length !== 64 || !reader.finished()) invalidCose();
+
+  const headers = new CanonicalCborReader(protectedHeaders);
+  if (headers.map() !== 2) invalidCose();
+  headers.exactUnsigned(1);
+  if (headers.negative() !== -8) invalidCose();
+  headers.exactUnsigned(4);
+  const keyId = headers.bytes();
+  if (keyId.length < 1 || keyId.length > 32 || !headers.finished()) invalidCose();
+
+  const attribution = await verifier(Object.freeze({
+    keyId: new Uint8Array(keyId),
+    sigStructure: encodeSigStructure(protectedHeaders, payload),
+    signature: new Uint8Array(signature),
+  }));
+  if (attribution === null || attribution === undefined || attribution === false) invalidCose();
+  return Object.freeze({
+    schema: "conduit.host/rendezvous-cose-sign1@1",
+    attribution,
+    keyId: new Uint8Array(keyId),
+    descriptor: decodeRendezvousCbor(payload, nowMillis),
+  });
+}
+
+function encodeSigStructure(protectedHeaders, payload) {
+  const context = new TextEncoder().encode("Signature1");
+  return concatBytes(
+    Uint8Array.of(0x84), cborHead(3, context.length), context,
+    cborHead(2, protectedHeaders.length), protectedHeaders,
+    Uint8Array.of(0x40), cborHead(2, payload.length), payload,
+  );
+}
+
+function cborHead(major, value) {
+  if (value < 24) return Uint8Array.of(major << 5 | value);
+  const size = value <= 0xff ? 1 : value <= 0xffff ? 2 : value <= 0xffff_ffff ? 4 : 8;
+  const output = new Uint8Array(size + 1);
+  output[0] = major << 5 | ({ 1: 24, 2: 25, 4: 26, 8: 27 })[size];
+  for (let index = size; index > 0; index -= 1) {
+    output[index] = value % 256;
+    value = Math.floor(value / 256);
+  }
+  return output;
+}
+
+function concatBytes(...parts) {
+  const output = new Uint8Array(parts.reduce((length, part) => length + part.length, 0));
+  let offset = 0;
+  for (const part of parts) { output.set(part, offset); offset += part.length; }
+  return output;
 }
 
 function decodeCandidate(reader) {
@@ -86,6 +152,8 @@ class CanonicalCborReader {
   finished() { return this.offset === this.bytesValue.length; }
   exactUnsigned(expected) { if (this.unsigned() !== expected) invalid(); }
   unsigned() { return this.head(0); }
+  negative() { return -1 - this.head(1); }
+  tag() { return this.head(6); }
   array() { return this.head(4); }
   map() { return this.head(5); }
   bytes() { return this.sequence(2); }
@@ -144,4 +212,8 @@ function decodeBase64Url(value) {
 
 function invalid() {
   throw new TypeError("invalid canonical rendezvous manifestation");
+}
+
+function invalidCose() {
+  throw new TypeError("invalid rendezvous COSE Sign1 envelope");
 }
