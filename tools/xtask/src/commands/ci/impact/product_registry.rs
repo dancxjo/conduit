@@ -45,10 +45,10 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "proof/browser/playwright.config.mjs",
             "proof/browser/static-server.mjs",
             "proof/browser/creche-browser-configuration.spec.mjs",
-            "proof/browser/creche-workload.spec.mjs",
-            "proof/browser/creche-naming.spec.mjs",
-            "proof/browser/creche-body-execution.spec.mjs",
             "proof/browser/workspace-arrival.spec.mjs",
+            "proof/browser/workspace-birth-naming.spec.mjs",
+            "proof/browser/workspace-body-execution.spec.mjs",
+            "proof/browser/creche-lifecycle-ownership.md",
             "proof/browser/workspace-library.spec.mjs",
             "proof/browser/workspace-handoff.test.mjs",
             "proof/browser/creche-workspace-continuity.spec.mjs",
@@ -189,10 +189,10 @@ mod tests {
         let root = crate::workspace::workspace_root().unwrap();
         let packages = super::super::discover(&root).unwrap();
         for path in [
-            "proof/browser/creche-workload.spec.mjs",
-            "proof/browser/creche-naming.spec.mjs",
-            "proof/browser/creche-body-execution.spec.mjs",
             "proof/browser/workspace-arrival.spec.mjs",
+            "proof/browser/workspace-birth-naming.spec.mjs",
+            "proof/browser/workspace-body-execution.spec.mjs",
+            "proof/browser/creche-lifecycle-ownership.md",
             "proof/browser/workspace-library.spec.mjs",
             "proof/browser/workspace-handoff.test.mjs",
             "proof/browser/creche-workspace-continuity.spec.mjs",
