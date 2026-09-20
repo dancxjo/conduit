@@ -443,10 +443,10 @@ jobs:
           candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
   workspace-check:
-    # Selected x86 proof is the early machine gate. A deliberately unselected
-    # dev proof may be skipped; failure/cancellation never admits later work.
-    needs: [classify, conduitos-x86]
-    if: always() && !cancelled() && (needs.conduitos-x86.result == 'success' || !inputs.full_suite && needs.conduitos-x86.result == 'skipped') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.workspace_matrix != '[]')
+    # Report deterministic failures alongside machine proof. The final check
+    # gate still requires both workspace and selected x86 proof to succeed.
+    needs: classify
+    if: always() && !cancelled() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.workspace_matrix != '[]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:

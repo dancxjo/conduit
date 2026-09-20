@@ -7,7 +7,7 @@ macro_rules! package_test_shard {
             $id,
             $description,
             "cargo",
-            &["test", $("-p", $package,)+ $($trailing,)*],
+            &["test", "--no-fail-fast", $("-p", $package,)+ $($trailing,)*],
         );
     };
 }
@@ -268,7 +268,12 @@ mod tests {
     fn every_test_shard_names_packages_with_an_explicit_package_flag() {
         for step in [&FOUNDATION_TEST_STEP, &HOST_TEST_STEP, &PRODUCT_TEST_STEP] {
             assert_eq!(step.args.first(), Some(&"test"), "{} command", step.id);
-            let options = &step.args[1..];
+            assert_eq!(
+                step.args[1], "--no-fail-fast",
+                "{} failure coverage",
+                step.id
+            );
+            let options = &step.args[2..];
             let package_end = options
                 .iter()
                 .position(|argument| *argument == "--features")

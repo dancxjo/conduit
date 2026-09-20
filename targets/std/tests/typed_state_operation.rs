@@ -5,7 +5,8 @@ use conduit_semantic_catalog::state_value::*;
 #[test]
 fn malformed_input_preserves_committed_state_and_is_not_completion() {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let initial = StructuredInfoValue::leaf(ty.clone(), b"false".to_vec()).unwrap();
+    let initial =
+        StructuredInfoValue::leaf(ty.clone(), InfoBool::new(false).encode().to_vec()).unwrap();
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();

@@ -9,7 +9,6 @@ use conduit_core::{
     AdmittedLine, AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement,
     LineAvailability, Plan, PlannedGear, PlannedSharedPool, PoolMemberLimits,
     PoolRealizationEnvelope, ResourceBinding, SharedPoolId, SharedPoolSelectionPolicy,
-    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
@@ -121,28 +120,8 @@ pub fn default_expanded_placements(
     default_placements_unvalidated(&form.gears, hosts)
 }
 
-pub fn plan_expanded_canonical(
-    form: &ExpandedCanonicalForm,
-    hosts: &[HostAdvertisement],
-    placements: &PlacementChoices,
-    bases: &[BaseImplementationId],
-) -> Result<Plan, PlannerError> {
-    plan_expanded_canonical_with_options(
-        form,
-        hosts,
-        placements,
-        bases,
-        PlanningOptions {
-            connection_bases: &BTreeMap::new(),
-            line_candidates: &BTreeMap::new(),
-            connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
-            connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
-            authority_grants: &[],
-            protected_resource_grants: &[],
-            line_offers: &[],
-        },
-    )
-}
+mod default_queues;
+pub use default_queues::plan_expanded_canonical;
 
 pub fn plan_expanded_canonical_with_options(
     form: &ExpandedCanonicalForm,
