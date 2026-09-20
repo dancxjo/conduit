@@ -6,9 +6,9 @@ use crate::{
 };
 use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConfigurationValue, ExecutionProfileId, FrontStartupParameter,
+    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
     HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, OfferGeneration, PROTOCOL_VERSION,
+    OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_robotics::{
     BatteryObservation, ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_BEACON_ENCODED_LEN,
@@ -169,52 +169,36 @@ pub fn live_create_observation_advertisement(
 
 pub(crate) fn observation_offer(channel: CreateObservationChannel) -> CapabilityOffer {
     let (contract, revision, maximum_output_bytes) = contract(channel);
-    CapabilityOffer {
-        startup_parameters: contract
-            .configuration
-            .iter()
-            .map(|field| FrontStartupParameter {
-                name: field.key.clone(),
-                value_type: match field.default_value {
-                    ConfigurationValue::Text(_) => "Text",
-                    ConfigurationValue::U64(_) => "Count",
-                    ConfigurationValue::I64(_) => "Scalar",
-                    _ => unreachable!("robotics configuration is finite text/integer"),
-                }
-                .into(),
-                has_default: true,
-            })
-            .collect(),
-        shorthand: None,
-        capability_id: CapabilityId::from(channel.capability_id()),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(revision),
-        implementation: ImplementationOffer {
+    let semantic = contract.into_semantic_contract(revision);
+    CapabilityOfferBuilder::new(
+        semantic,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(channel.capability_id()),
             execution_profile_id: ExecutionProfileId::from(CREATE_OBSERVATION_PROFILE),
             implementation_id: ImplementationId::from(channel.implementation_id()),
             artifact_id: ArtifactId::from(CREATE_OBSERVATION_ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(channel.operation_id()),
+                target_kind: Some(output_kind(channel)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 0,
+                maximum_output_bytes,
+            }],
+            resource_requirements: vec![
+                resource_requirement(CREATE_DEVICE_RESOURCE, 1),
+                resource_requirement(CREATE_OBSERVATION_RESOURCE, 1),
+                resource_requirement(CREATE_UART_BASE_RESOURCE, 1),
+            ],
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(channel.operation_id()),
-            target_kind: Some(output_kind(channel)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: 0,
-            maximum_output_bytes,
-        }],
-        resource_requirements: vec![
-            resource_requirement(CREATE_DEVICE_RESOURCE, 1),
-            resource_requirement(CREATE_OBSERVATION_RESOURCE, 1),
-            resource_requirement(CREATE_UART_BASE_RESOURCE, 1),
-        ],
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: maximum_output_bytes,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: maximum_output_bytes,
+    })
+    .expect("Create observation capacity narrows portable robotics semantics")
+    .build()
 }
 
 fn contract(

@@ -195,20 +195,16 @@ fn realization_preserves_portable_contract_and_bounds() {
         );
         assert!(realized.authority_requirements.is_empty());
         assert!(realized.capability_id.as_str().contains("conduitos"));
-        assert!(
-            realized
-                .implementation
-                .execution_profile_id
-                .as_str()
-                .starts_with("conduitos/")
-        );
-        assert!(
-            realized
-                .implementation
-                .implementation_id
-                .as_str()
-                .starts_with("conduitos/")
-        );
+        assert!(realized
+            .implementation
+            .execution_profile_id
+            .as_str()
+            .starts_with("conduitos/"));
+        assert!(realized
+            .implementation
+            .implementation_id
+            .as_str()
+            .starts_with("conduitos/"));
     }
 }
 
@@ -359,12 +355,10 @@ fn robotics_realizations_preserve_every_portable_contract_and_bound() {
         assert!(realized.host_operations.is_empty());
         assert!(realized.resource_requirements.is_empty());
         assert!(realized.authority_requirements.is_empty());
-        assert!(
-            realized
-                .capability_id
-                .as_str()
-                .starts_with("conduitos-robotics-")
-        );
+        assert!(realized
+            .capability_id
+            .as_str()
+            .starts_with("conduitos-robotics-"));
         assert_eq!(
             realized.implementation.execution_profile_id.as_str(),
             ROBOTICS_PROFILE
