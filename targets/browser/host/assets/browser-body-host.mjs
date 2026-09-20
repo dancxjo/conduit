@@ -107,7 +107,9 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
   }
   for (const [kind, units] of demand) {
-    if (units > ([PRESENTATION, INPUT, AUDIO_CUE_RESOURCE].includes(kind) ? 16 : 1)) throw new Error("browser Body resource demand exceeds local bounds");
+    const capacity = [PRESENTATION, INPUT, AUDIO_CUE_RESOURCE].includes(kind) ? 16
+      : kind === TIMER ? maximumPlacements : 1;
+    if (units > capacity) throw new Error("browser Body resource demand exceeds local bounds");
   }
   const boot = { host_id: hostId, boot_id: bootId, offer_generation: 1, implementation_registry: machinery.implementations };
   const routing = foregroundForm ? createBodyInputRouting({ forms: proposal.plan.forms, foreground: foregroundForm, maximumPlacements }) : null;
@@ -161,7 +163,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const elements = [];
   let audio = null;
   let pcmAudio = null, pushToTalk = null;
-  let input = null, timer = null, closed = false, started = null, completion = null, startAccepted = false, terminal = null;
+  let input = null, timerSlots = [], clock = false, closed = false, started = null, completion = null, startAccepted = false, terminal = null;
   let startOutcome = "not-attempted";
   const window = outputRoot.ownerDocument.defaultView;
   const tone = createPitchTonePerformer(window);
@@ -193,7 +195,8 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     if (demand.has(TIMER) || demand.has(CLOCK)) {
       if (typeof window.setTimeout !== "function" || typeof window.performance?.now !== "function" ||
           !Number.isFinite(window.performance.now())) throw new Error("browser timer unavailable");
-      timer = { pending: null, cancel: null };
+      timerSlots = Array.from({ length: demand.get(TIMER) ?? 0 }, () => ({ pending: null, cancel: null }));
+      clock = demand.has(CLOCK);
     }
     for (const placement of placements.filter(item => item.resources.some(resource => resource.class_id === PRESENTATION))) {
       if (!machinery.implementations.some(entry => entry.id === "browser/dom-presentation@1")) throw new Error("browser presentation not installed");
@@ -221,11 +224,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       host_id: hostId, boot_id: bootId, offer_generation: 1,
       pool_id: pools.get(class_id), class_id, health: "Ready",
       // Counts come from acquired adapter state, not advertised capacities.
-      unreserved_units: class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : Number(timer !== null),
+      unreserved_units: class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
   };
-  const delay = (duration, signal, timerOwner = timer) => new Promise((resolve, reject) => {
+  const delay = (duration, signal, timerOwner) => new Promise((resolve, reject) => {
     const timer = timerOwner;
     if (!timer || timer.pending !== null || !Number.isSafeInteger(duration) || duration < 0 || duration > 60_000) {
       reject(new Error("browser timer request exceeds acquisition"));return;
@@ -254,9 +257,13 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       return pcmAudio.perform(effect, signal);
     }
     if (effect.effect_kind === "pitch-tone") return tone(effect, signal);
-    if (effect.effect_kind === "timer") return delay(effect.duration_millis, signal);
+    if (effect.effect_kind === "timer") {
+      const availableTimer = timerSlots.find(slot => slot.pending === null);
+      if (!availableTimer) throw new Error("browser timer slot was not acquired");
+      return delay(effect.duration_millis, signal, availableTimer);
+    }
     if (effect.effect_kind === "clock-observation") {
-      if (!timer) throw new Error("browser clock not acquired");
+      if (!clock) throw new Error("browser clock not acquired");
       const bytes = new Uint8Array(8);
       new DataView(bytes.buffer).setBigUint64(0, BigInt(Math.floor(window.performance.now() * 1000)), true);
       return bytes;
@@ -382,7 +389,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       pcmAudio?.close();
       routing?.close();
       input?.close();
-      timer?.cancel?.();
+      for (const timer of timerSlots) timer.cancel?.();
       for (const timer of presentationTimers.values()) timer.cancel?.();
       const status = (startAccepted || startOutcome === "unknown") && !terminal ? api.conduit_tour_cancel() : null;
       try {

@@ -281,7 +281,15 @@ pub(crate) fn advertisement_for_machinery(
             super::MAXIMUM_BROWSER_GEARS as u32,
         ));
     }
-    resources.push(resource_offer("browser/timer", TIMER_RESOURCE_CLASS, 1));
+    // A browser page can keep one timer operation pending for each admitted
+    // Gear. The page-side adapter acquires the same finite number of timeout
+    // owners before Play, so this is an executable offer rather than a
+    // planning-only capacity.
+    resources.push(resource_offer(
+        "browser/timer",
+        TIMER_RESOURCE_CLASS,
+        super::MAXIMUM_BROWSER_GEARS as u32,
+    ));
     super::button_attempt::admit_clock_resource(&mut resources);
     resources.push(resource_offer(
         "browser/named-pattern-storage",
