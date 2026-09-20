@@ -71,6 +71,21 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
+        "semantics/catalog/src/education_catalog.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
+        "semantics/catalog/src/vision_catalog.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
+        "semantics/catalog/src/robotics_structured_catalog.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "semantics/catalog/src/json.rs",
         0,
         "semantic contract owner",
@@ -441,6 +456,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     (
         "targets/std/offers/src/structured_selector.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/domain_specimens.rs",
         0,
         "fully migrated",
     ),
