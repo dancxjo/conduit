@@ -27,8 +27,7 @@ test("Crèche respects the live Body owner and returns a retained Body to its Fo
   await expect.poll(() => new URL(creche.url()).pathname).toBe(new URL("workspace/", entrance.url).pathname);
   await page.close();
   await creche.reload();
-  await expect(creche.getByRole("heading", { name: "Return to your Body", exact: true })).toBeVisible();
-  await creche.getByRole("link", { name: "Open your Body", exact: true }).click();
+  await expect.poll(() => new URL(creche.url()).pathname).toBe(new URL("workspace/", entrance.url).pathname);
   await expect(creche.locator("[data-play-state]")).toHaveText("Playing");
   const returned = await creche.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(returned.body_id).toBe(first.body_id);
@@ -57,7 +56,10 @@ test('the actual Gallery Use link returns to the same Body with the selected For
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   const arrived = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(arrived.body_id).toBe(original.body_id);
-  expect(arrived.initial_forms).toHaveLength(2);
+  expect(arrived.initial_forms).toHaveLength(original.initial_forms.length + 1);
+  for (const retained of original.initial_forms) {
+    expect(arrived.initial_forms).toContainEqual(retained);
+  }
   expect(new URL(page.url()).pathname).toBe(new URL('workspace/', entrance.url).pathname);
   expect(new URL(page.url()).search).toBe('');
   await page.keyboard.type('home'); await page.keyboard.press('Enter');
