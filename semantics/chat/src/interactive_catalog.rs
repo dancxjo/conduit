@@ -7,9 +7,10 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, resource_offer, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, ResourceOffer,
+    CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, FaceStartupParameter, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, ResourceOffer, SemanticCapabilityContract,
 };
 use conduit_presentation::{
     interaction_offer, presentation_tee_offer, renderer_offer, InteractionRealizationOffer,
@@ -158,17 +159,37 @@ fn chat_transport_adapter_offer(
     input_temporal: PortTemporal,
     output_temporal: PortTemporal,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(kind),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from("conduit.chat/transport-text-adapter@1"),
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        chat_transport_adapter_contract(kind, input, output, input_temporal, output_temporal),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(kind),
             execution_profile_id: ExecutionProfileId::from("conduit.chat/transport-text-adapter@1"),
             implementation_id: ImplementationId::from("chat/transport-text-adapter@1"),
             artifact_id: ArtifactId::from("conduit-browser-runtime/chat-transport-text-adapter@1"),
+            host_operations: vec![host_operation(
+                operation,
+                MAXIMUM_CHAT_MESSAGE_BYTES,
+                MAXIMUM_CHAT_MESSAGE_BYTES,
+            )],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
+    )
+    .build()
+}
+
+fn chat_transport_adapter_contract(
+    kind: &str,
+    input: &str,
+    output: &str,
+    input_temporal: PortTemporal,
+    output_temporal: PortTemporal,
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindContractRevision::from("conduit.chat/transport-text-adapter@1"),
         inputs: vec![port("value", input, PortDirection::Input, input_temporal)],
         outputs: vec![port(
             "value",
@@ -176,19 +197,39 @@ fn chat_transport_adapter_offer(
             PortDirection::Output,
             output_temporal,
         )],
-        host_operations: vec![host_operation(
-            operation,
-            MAXIMUM_CHAT_MESSAGE_BYTES,
-            MAXIMUM_CHAT_MESSAGE_BYTES,
-        )],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
         limits: limits(64, MAXIMUM_CHAT_MESSAGE_BYTES * 64),
     }
 }
 
 pub fn chat_state_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        chat_state_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("browser/chat-state"),
+            execution_profile_id: ExecutionProfileId::from("conduit.chat/state-kernel@1"),
+            implementation_id: ImplementationId::from("chat/portable-state@1"),
+            artifact_id: ArtifactId::from("conduit-browser-runtime/chat-state@1"),
+            host_operations: vec![
+                host_operation(
+                    CHAT_STATE_CONNECTION_HOST_OPERATION,
+                    1,
+                    MAX_PRESENTATION_TOTAL_BYTES as u32,
+                ),
+                host_operation(
+                    CHAT_STATE_MESSAGE_HOST_OPERATION,
+                    MAXIMUM_CHAT_MESSAGE_BYTES,
+                    MAX_PRESENTATION_TOTAL_BYTES as u32,
+                ),
+            ],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
+}
+
+fn chat_state_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
         startup_parameters: CHAT_CONFIGURATION_FIELDS
             .iter()
             .map(|(name, value_type)| FaceStartupParameter {
@@ -202,14 +243,8 @@ pub fn chat_state_offer() -> CapabilityOffer {
             })
             .collect(),
         shorthand: None,
-        capability_id: CapabilityId::from("browser/chat-state"),
         kind_id: kind_id(CHAT_STATE_KIND),
         kind_contract_revision: KindContractRevision::from(CHAT_STATE_REVISION),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("conduit.chat/state-kernel@1"),
-            implementation_id: ImplementationId::from("chat/portable-state@1"),
-            artifact_id: ArtifactId::from("conduit-browser-runtime/chat-state@1"),
-        },
         inputs: chat_state_inputs(),
         outputs: vec![port(
             "presentation",
@@ -217,20 +252,6 @@ pub fn chat_state_offer() -> CapabilityOffer {
             PortDirection::Output,
             PortTemporal::Value,
         )],
-        host_operations: vec![
-            host_operation(
-                CHAT_STATE_CONNECTION_HOST_OPERATION,
-                1,
-                MAX_PRESENTATION_TOTAL_BYTES as u32,
-            ),
-            host_operation(
-                CHAT_STATE_MESSAGE_HOST_OPERATION,
-                MAXIMUM_CHAT_MESSAGE_BYTES,
-                MAX_PRESENTATION_TOTAL_BYTES as u32,
-            ),
-        ],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
         limits: limits(
             MAXIMUM_CHAT_HISTORY_ITEMS as u16,
             MAX_PRESENTATION_TOTAL_BYTES as u32 * 2,
@@ -239,7 +260,27 @@ pub fn chat_state_offer() -> CapabilityOffer {
 }
 
 pub fn chat_submit_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        chat_submit_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("browser/chat-submit"),
+            execution_profile_id: ExecutionProfileId::from("conduit.chat/submit-kernel@1"),
+            implementation_id: ImplementationId::from("chat/typed-submit@1"),
+            artifact_id: ArtifactId::from("conduit-browser-runtime/chat-submit@1"),
+            host_operations: vec![host_operation(
+                CHAT_SUBMIT_HOST_OPERATION,
+                MAX_PRESENTATION_INTERACTION_BYTES as u32,
+                MAXIMUM_CHAT_MESSAGE_BYTES,
+            )],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
+}
+
+fn chat_submit_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
         startup_parameters: vec![
             FaceStartupParameter {
                 name: "action".into(),
@@ -253,14 +294,8 @@ pub fn chat_submit_offer() -> CapabilityOffer {
             },
         ],
         shorthand: None,
-        capability_id: CapabilityId::from("browser/chat-submit"),
         kind_id: kind_id(CHAT_SUBMIT_KIND),
         kind_contract_revision: KindContractRevision::from(CHAT_SUBMIT_REVISION),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("conduit.chat/submit-kernel@1"),
-            implementation_id: ImplementationId::from("chat/typed-submit@1"),
-            artifact_id: ArtifactId::from("conduit-browser-runtime/chat-submit@1"),
-        },
         inputs: vec![port(
             "interaction",
             conduit_presentation::PRESENTATION_INTERACTION_VALUE_KIND,
@@ -273,13 +308,6 @@ pub fn chat_submit_offer() -> CapabilityOffer {
             PortDirection::Output,
             PortTemporal::Flow { closes: true },
         )],
-        host_operations: vec![host_operation(
-            CHAT_SUBMIT_HOST_OPERATION,
-            MAX_PRESENTATION_INTERACTION_BYTES as u32,
-            MAXIMUM_CHAT_MESSAGE_BYTES,
-        )],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
         limits: limits(8, MAX_PRESENTATION_INTERACTION_BYTES as u32 * 8),
     }
 }
@@ -367,12 +395,13 @@ pub fn install_browser_chat_catalogs(
             })
             .collect(),
     })?;
+    let state_contract = chat_state_contract();
     profile
         .insert(KindDefinition {
-            kind_id: kind_id(CHAT_STATE_KIND),
-            kind_contract_revision: KindContractRevision::from(CHAT_STATE_REVISION),
-            inputs: chat_state_inputs(),
-            outputs: chat_state_offer().outputs,
+            kind_id: state_contract.kind_id,
+            kind_contract_revision: state_contract.kind_contract_revision,
+            inputs: state_contract.inputs,
+            outputs: state_contract.outputs,
             configuration: CHAT_CONFIGURATION_FIELDS
                 .iter()
                 .map(|(name, value_type)| configuration(name, value_type))
@@ -395,22 +424,22 @@ pub fn install_browser_chat_catalogs(
             },
         ],
     })?;
+    let submit_contract = chat_submit_contract();
     profile
         .insert(KindDefinition {
-            kind_id: kind_id(CHAT_SUBMIT_KIND),
-            kind_contract_revision: KindContractRevision::from(CHAT_SUBMIT_REVISION),
-            inputs: chat_submit_offer().inputs,
-            outputs: chat_submit_offer().outputs,
+            kind_id: submit_contract.kind_id,
+            kind_contract_revision: submit_contract.kind_contract_revision,
+            inputs: submit_contract.inputs,
+            outputs: submit_contract.outputs,
             configuration: vec![
                 configuration("action", "Text"),
                 configuration("maximum-message-bytes", "Count"),
             ],
         })
         .map_err(|error| error.to_string())?;
-    for (kind, operation, input, output, input_temporal, output_temporal) in [
+    for (kind, input, output, input_temporal, output_temporal) in [
         (
             CHAT_FROM_WEBSOCKET_KIND,
-            CHAT_FROM_WEBSOCKET_HOST_OPERATION,
             conduit_net::WEBSOCKET_MESSAGE_VALUE_KIND,
             conduit_text::TEXT_VALUE_KIND,
             PortTemporal::Flow { closes: true },
@@ -418,7 +447,6 @@ pub fn install_browser_chat_catalogs(
         ),
         (
             CHAT_TO_WEBSOCKET_KIND,
-            CHAT_TO_WEBSOCKET_HOST_OPERATION,
             conduit_text::TEXT_VALUE_KIND,
             conduit_net::WEBSOCKET_MESSAGE_VALUE_KIND,
             PortTemporal::Flow { closes: true },
@@ -426,7 +454,6 @@ pub fn install_browser_chat_catalogs(
         ),
         (
             CHAT_CONNECTION_FROM_WEBSOCKET_KIND,
-            CHAT_CONNECTION_FROM_WEBSOCKET_HOST_OPERATION,
             conduit_net::BOOLEAN_VALUE_KIND,
             conduit_core::BOOL_INFO_ID,
             PortTemporal::Current,
@@ -434,7 +461,6 @@ pub fn install_browser_chat_catalogs(
         ),
         (
             CHAT_CURRENT_CONNECTION_KIND,
-            CHAT_CURRENT_CONNECTION_HOST_OPERATION,
             conduit_core::BOOL_INFO_ID,
             conduit_core::BOOL_INFO_ID,
             PortTemporal::Value,
@@ -445,20 +471,14 @@ pub fn install_browser_chat_catalogs(
             kind: kind.into(),
             startup_parameters: Vec::new(),
         })?;
-        let offer = chat_transport_adapter_offer(
-            kind,
-            operation,
-            input,
-            output,
-            input_temporal,
-            output_temporal,
-        );
+        let contract =
+            chat_transport_adapter_contract(kind, input, output, input_temporal, output_temporal);
         profile
             .insert(KindDefinition {
-                kind_id: kind_id(kind),
-                kind_contract_revision: offer.kind_contract_revision,
-                inputs: offer.inputs,
-                outputs: offer.outputs,
+                kind_id: contract.kind_id,
+                kind_contract_revision: contract.kind_contract_revision,
+                inputs: contract.inputs,
+                outputs: contract.outputs,
                 configuration: Vec::new(),
             })
             .map_err(|error| error.to_string())?;
