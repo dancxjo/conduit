@@ -71,6 +71,16 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
+        "semantics/catalog/src/structured_values.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
+        "semantics/catalog/src/flow_pressure.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "semantics/catalog/src/education_catalog.rs",
         0,
         "semantic contract owner",
@@ -461,6 +471,16 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     (
         "targets/std/offers/src/structured_selector.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/structured_values.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/structured_values/flow_pressure.rs",
         0,
         "fully migrated",
     ),

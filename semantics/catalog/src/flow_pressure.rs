@@ -6,7 +6,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, DeliveryPressurePolicy, KindContractRevision, KindId,
-    PortDescriptor, PortDirection, PortTemporal,
+    PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
 };
 
 pub const FLOW_BACKPRESSURE_KIND: &str = "flow/backpressure";
@@ -21,6 +21,20 @@ pub struct FlowPressureContract {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
+}
+
+impl From<FlowPressureContract> for SemanticCapabilityContract {
+    fn from(contract: FlowPressureContract) -> Self {
+        Self {
+            startup_parameters: Vec::new(),
+            shorthand: None,
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            limits: contract.limits,
+        }
+    }
 }
 
 pub fn flow_backpressure_contract(
