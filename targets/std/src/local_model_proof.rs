@@ -21,12 +21,14 @@ pub struct LocalModelLiveProofReceipt {
     pub classify_plan_id: String,
     pub extract_plan_id: String,
     pub interpret_plan_id: String,
+    pub present_plan_id: String,
     pub house_plan_id: String,
     pub implementation_identity: String,
     pub generate_play_completed: bool,
     pub classify_play_completed: bool,
     pub extract_play_completed: bool,
     pub interpret_play_completed: bool,
+    pub present_play_completed: bool,
     pub house_play_completed: bool,
     pub house_response_bytes: u32,
     pub house_response_sha256: String,
@@ -86,6 +88,7 @@ pub fn run(
         LocalModelKindProfile::ClassifyFiniteLabels,
         LocalModelKindProfile::ExtractValidatedInfo,
         LocalModelKindProfile::InterpretSignEvidence,
+        LocalModelKindProfile::PresentSemanticFace,
     ] {
         let contract = conduit_ai::llm_contract(profile.kind()).expect("proof profiles are L0");
         additional_capabilities.extend([
@@ -119,6 +122,7 @@ pub fn run(
     let classify = run_profile(&mut host, LocalModelKindProfile::ClassifyFiniteLabels)?;
     let extract = run_profile(&mut host, LocalModelKindProfile::ExtractValidatedInfo)?;
     let interpret = run_profile(&mut host, LocalModelKindProfile::InterpretSignEvidence)?;
+    let present = run_profile(&mut host, LocalModelKindProfile::PresentSemanticFace)?;
     *generated_text
         .lock()
         .map_err(|_| "local proof response capture lock is poisoned")? = None;
@@ -145,12 +149,14 @@ pub fn run(
         classify_plan_id: classify.0,
         extract_plan_id: extract.0,
         interpret_plan_id: interpret.0,
+        present_plan_id: present.0,
         house_plan_id: house.0,
         implementation_identity: conduit_ai::LOCAL_MODEL_IMPLEMENTATION.into(),
         generate_play_completed: generate.1,
         classify_play_completed: classify.1,
         extract_play_completed: extract.1,
         interpret_play_completed: interpret.1,
+        present_play_completed: present.1,
         house_play_completed: house.1,
         house_response_bytes,
         house_response_sha256,

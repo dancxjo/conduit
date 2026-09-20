@@ -70,31 +70,7 @@ impl GenerativePresenterRequest {
         previous_presentation_identity: Option<String>,
         bounds: GenerativePresenterBounds,
     ) -> Result<Self, GenerativePresenterRefusal> {
-        surface
-            .presentation
-            .validate()
-            .map_err(GenerativePresenterRefusal::InvalidSourcePresentation)?;
-        validate_identity(&request_identity)?;
-        validate_identity(&policy.template_contract_revision)?;
-        if policy.instructions.is_empty() {
-            return Err(GenerativePresenterRefusal::EmptyPolicy);
-        }
-        if policy.instructions.len() > MAX_GENERATIVE_PRESENTER_POLICY_BYTES {
-            return Err(GenerativePresenterRefusal::PolicyTooLarge);
-        }
-        if !bounds.valid() {
-            return Err(GenerativePresenterRefusal::InvalidBounds);
-        }
-        if let Some(previous) = &previous_presentation_identity {
-            validate_identity(previous)?;
-            if bounds.maximum_history_items == 0 {
-                return Err(GenerativePresenterRefusal::InvalidBounds);
-            }
-        }
-        if surface.presentation.content_bytes() > bounds.maximum_input_bytes as usize {
-            return Err(GenerativePresenterRefusal::InputBoundExceeded);
-        }
-        Ok(Self {
+        let request = Self {
             request_identity,
             policy,
             semantic_data: GenerativePresenterInput {
@@ -106,7 +82,48 @@ impl GenerativePresenterRequest {
             },
             previous_presentation_identity,
             bounds,
-        })
+        };
+        request.validate()?;
+        Ok(request)
+    }
+
+    /// Revalidates a request after crossing a serialization or provider boundary.
+    pub fn validate(&self) -> Result<(), GenerativePresenterRefusal> {
+        self.semantic_data
+            .presentation
+            .validate()
+            .map_err(GenerativePresenterRefusal::InvalidSourcePresentation)?;
+        validate_identity(&self.request_identity)?;
+        validate_identity(&self.semantic_data.source_presentation_identity)?;
+        validate_identity(&self.policy.template_contract_revision)?;
+        if self.semantic_data.source_presentation_identity
+            != self.semantic_data.presentation.identity.as_str()
+            || self.semantic_data.source_presentation_revision
+                != self.semantic_data.presentation.revision
+        {
+            return Err(GenerativePresenterRefusal::SourcePresentationMismatch);
+        }
+        if self.policy.instructions.is_empty() {
+            return Err(GenerativePresenterRefusal::EmptyPolicy);
+        }
+        if self.policy.instructions.len() > MAX_GENERATIVE_PRESENTER_POLICY_BYTES {
+            return Err(GenerativePresenterRefusal::PolicyTooLarge);
+        }
+        if !self.bounds.valid() {
+            return Err(GenerativePresenterRefusal::InvalidBounds);
+        }
+        if let Some(previous) = &self.previous_presentation_identity {
+            validate_identity(previous)?;
+            if self.bounds.maximum_history_items == 0 {
+                return Err(GenerativePresenterRefusal::InvalidBounds);
+            }
+        }
+        if self.semantic_data.presentation.content_bytes()
+            > self.bounds.maximum_input_bytes as usize
+        {
+            return Err(GenerativePresenterRefusal::InputBoundExceeded);
+        }
+        Ok(())
     }
 
     pub fn validate_manifestation(
