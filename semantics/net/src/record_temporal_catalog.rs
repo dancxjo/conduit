@@ -2,7 +2,8 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, SemanticCapabilityContract, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
@@ -34,6 +35,33 @@ pub fn record_singleton_stream_definition() -> KindDefinition {
 
 pub fn record_exactly_one_definition() -> KindDefinition {
     definitions()[1].clone()
+}
+
+pub fn record_singleton_stream_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(record_singleton_stream_definition())
+}
+
+pub fn record_exactly_one_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(record_exactly_one_definition())
+}
+
+fn semantic_contract(definition: KindDefinition) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: Some((
+            definition.inputs[0].port_id.clone(),
+            definition.outputs[0].port_id.clone(),
+        )),
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 4,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 4,
+        },
+    }
 }
 
 fn definitions() -> [KindDefinition; 2] {
@@ -112,5 +140,26 @@ mod tests {
             PortTemporal::Flow { closes: true }
         );
         assert_eq!(exactly_one.outputs[0].temporal, PortTemporal::Value);
+    }
+
+    #[test]
+    fn semantic_contracts_own_shorthand_and_capacity() {
+        for contract in [
+            record_singleton_stream_semantic_contract(),
+            record_exactly_one_semantic_contract(),
+        ] {
+            assert_eq!(
+                contract.shorthand,
+                Some((
+                    contract.inputs[0].port_id.clone(),
+                    contract.outputs[0].port_id.clone()
+                ))
+            );
+            assert_eq!(contract.limits.max_queue_items, 4);
+            assert_eq!(
+                contract.limits.max_queue_bytes,
+                MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 4
+            );
+        }
     }
 }

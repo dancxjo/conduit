@@ -3,10 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, PlannedGear, StructuredInfoValue,
-    StructuredInfoValueShape,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, PlannedGear, StructuredInfoValue, StructuredInfoValueShape,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
@@ -22,48 +21,27 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 fn offer() -> CapabilityOffer {
-    let definition = conduit_net::ordered_record_queue_kind_definition();
-    CapabilityOffer {
-        startup_parameters: vec![
-            conduit_core::FrontStartupParameter {
-                name: "maximum-items".into(),
-                value_type: conduit_core::kind_id("value/count"),
-                has_default: true,
-            },
-            conduit_core::FrontStartupParameter {
-                name: "maximum-frame-bytes".into(),
-                value_type: conduit_core::kind_id("value/count"),
-                has_default: true,
-            },
-        ],
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: definition.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_net::ORDERED_RECORD_QUEUE_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    let contract = conduit_net::ordered_record_queue_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from("browser/ordered-record-queue@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-net/ordered-record-queue@1"),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(HOST_OPERATION),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM,
+                maximum_output_bytes: MAXIMUM,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
-            target_kind: Some(definition.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM,
-            maximum_output_bytes: MAXIMUM,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: conduit_net::MAXIMUM_ORDERED_RECORD_QUEUE_ITEMS as u16,
-            max_queue_bytes: MAXIMUM,
-        },
-    }
+    )
+    .build()
 }
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {

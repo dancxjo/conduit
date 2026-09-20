@@ -1,6 +1,6 @@
 use conduit_audio::AUDIO_PCM_INFO_ID;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FaceStartupParameter, KindContractRevision, KindId,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindContractRevision, KindId,
     PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
 };
 use conduit_form::{
@@ -23,7 +23,7 @@ pub const MAXIMUM_AUDIO_FRAMES: u32 = 16_384;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SpeechContract {
-    pub startup_parameters: Vec<FaceStartupParameter>,
+    pub startup_parameters: Vec<FrontStartupParameter>,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
     pub inputs: Vec<PortDescriptor>,
@@ -45,8 +45,8 @@ impl SpeechContract {
     }
 }
 
-fn synthesis_startup_parameters() -> Vec<FaceStartupParameter> {
-    vec![FaceStartupParameter {
+fn synthesis_startup_parameters() -> Vec<FrontStartupParameter> {
+    vec![FrontStartupParameter {
         name: "maximum-output-bytes".into(),
         value_type: kind_id("value/count"),
         has_default: true,
