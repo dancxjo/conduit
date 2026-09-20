@@ -6,9 +6,10 @@ use conduit_core::{
     HostOperationContractId, HostProfileId, ImplementationId, KindContractRevision,
     OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId,
     PlanningRequestAuthority, PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId,
-    PoolSelectionDisposition, PoolSelectionEvidence, SharedPoolId, SignId, PROTOCOL_VERSION,
-    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
-    SHARED_POOL_AUTHORITY_SUBJECT_KIND,
+    PoolRealizationHealth, PoolRealizationObservation, PoolSelectionDisposition,
+    PoolSelectionEvidence, ResourceHealth, ResourceObservation, SharedPoolId, SignId,
+    PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
+    SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
@@ -17,8 +18,7 @@ use conduit_form::{
 use conduit_kernel::{
     shared_pool::{
         admit_selected_pool_member, FixedSharedPool, LoweredObservationHealth,
-        LoweredPoolObservation, LoweredPoolRealization, LoweredPoolResourceRequirement, MemberKey,
-        MemberPlacement, PoolSelectionError, PoolSelectionPolicy,
+        LoweredPoolObservation, MemberKey, PoolSelectionError, PoolSelectionPolicy,
     },
     NodeId,
 };
@@ -197,7 +197,7 @@ struct SelectionReceipt {
     operation_id: &'static str,
     disposition: &'static str,
     realization: Option<u16>,
-    observation_signs: Vec<u16>,
+    observation_signs: Vec<String>,
     planning_requested: bool,
 }
 
@@ -233,6 +233,54 @@ fn retain_receipt(receipt: &DeterministicReceipt<'_>) {
     std::fs::rename(temporary, path).unwrap();
 }
 
+fn current_observations(pool: &conduit_core::PlannedSharedPool) -> Vec<PoolRealizationObservation> {
+    pool.realization_envelope
+        .iter()
+        .enumerate()
+        .map(
+            |(realization_index, realization)| PoolRealizationObservation {
+                host_id: realization.host_id.clone(),
+                boot_id: realization.boot_id.clone(),
+                offer_generation: realization.offer_generation,
+                capability_id: realization.capability_id.clone(),
+                implementation_id: realization.implementation_id.clone(),
+                artifact_id: realization.artifact_id.clone(),
+                health: PoolRealizationHealth::Ready,
+                sign_id: SignId::from(format!("sign/provider/{realization_index}")),
+                resources: realization
+                    .resources
+                    .iter()
+                    .enumerate()
+                    .map(|(resource_index, binding)| ResourceObservation {
+                        host_id: realization.host_id.clone(),
+                        boot_id: realization.boot_id.clone(),
+                        offer_generation: realization.offer_generation,
+                        pool_id: binding.pool_id.clone(),
+                        class_id: binding.class_id.clone(),
+                        health: ResourceHealth::Ready,
+                        unreserved_units: binding.units,
+                        utilized_units: 0,
+                        sign_id: SignId::from(format!(
+                            "sign/resource/{realization_index}/{resource_index}"
+                        )),
+                    })
+                    .collect(),
+            },
+        )
+        .collect()
+}
+
+fn selected_signs(
+    selected: &conduit_kernel::shared_pool::SelectedPoolMember,
+    signs: &[u16],
+    identities: &[SignId],
+) -> Vec<String> {
+    signs[..usize::from(selected.observation_sign_count)]
+        .iter()
+        .map(|index| identities[usize::from(*index)].as_str().to_owned())
+        .collect()
+}
+
 #[test]
 fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     let form = expanded();
@@ -261,58 +309,31 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
 
     let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
     let lowered = &lowered.shared_pools[0];
-    let envelope = lowered
-        .realizations
+    let current = current_observations(planned);
+    let facts = lowered
+        .lower_selection_facts(&current, NodeId(10), 7)
+        .unwrap();
+    let mut stale_current = current.clone();
+    stale_current[0].boot_id = BootId::from("stale-boot");
+    let stale_facts = lowered
+        .lower_selection_facts(&stale_current, NodeId(10), 7)
+        .unwrap();
+    assert!(!stale_facts
+        .observations
         .iter()
-        .map(|realization| LoweredPoolRealization {
-            realization: realization.realization,
-            placement: MemberPlacement {
-                node: NodeId(realization.realization + 10),
-                realization: realization.realization,
-                play: 7,
-            },
-            boot: realization.realization + 20,
-            offer_generation: realization.offer_generation.0,
-            capability: realization.realization + 30,
-            implementation: realization.realization + 40,
-            artifact: realization.realization + 50,
-            member_capacity: realization.member_capacity,
-        })
-        .collect::<Vec<_>>();
-    let requirements = lowered
-        .realizations
-        .iter()
-        .flat_map(|realization| {
-            realization
-                .resources
-                .iter()
-                .enumerate()
-                .map(move |(index, binding)| LoweredPoolResourceRequirement {
-                    realization: realization.realization,
-                    resource: index as u16,
-                    units: binding.units,
-                })
-        })
-        .collect::<Vec<_>>();
-    let observations = requirements
-        .iter()
-        .map(|required| {
-            let realization = envelope[usize::from(required.realization)];
-            LoweredPoolObservation {
-                realization: required.realization,
-                resource: required.resource,
-                boot: realization.boot,
-                offer_generation: realization.offer_generation,
-                capability: realization.capability,
-                implementation: realization.implementation,
-                artifact: realization.artifact,
-                health: LoweredObservationHealth::Ready,
-                unreserved_units: required.units,
-                utilized_units: 0,
-                sign: 100 + required.realization * 10 + required.resource,
-            }
-        })
-        .collect::<Vec<_>>();
+        .any(|observation| observation.realization == 0));
+    let mut duplicate_current = current.clone();
+    duplicate_current.push(current[0].clone());
+    assert_eq!(
+        lowered.lower_selection_facts(&duplicate_current, NodeId(10), 7),
+        Err(
+            conduit_plan_lowering::lowering::PoolObservationLoweringError::DuplicateCurrentObservation
+        )
+    );
+    let envelope = facts.envelope;
+    let requirements = facts.requirements;
+    let observations = facts.observations;
+    let observation_sign_ids = facts.observation_sign_ids;
     let mut pool = FixedSharedPool::<2, 32>::new(lowered.pool, 2, 7, 2).unwrap();
     let mut signs = [0; 8];
     let select = |pool: &mut FixedSharedPool<2, 32>,
@@ -332,11 +353,11 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     };
 
     let first = select(&mut pool, key(1), &observations, &mut signs).unwrap();
-    let first_signs = signs[..usize::from(first.observation_sign_count)].to_vec();
+    let first_signs = selected_signs(&first, &signs, &observation_sign_ids);
     pool.trigger(first.member).unwrap();
     assert_eq!(first.member.placement.realization, 0);
     let second = select(&mut pool, key(2), &observations, &mut signs).unwrap();
-    let second_signs = signs[..usize::from(second.observation_sign_count)].to_vec();
+    let second_signs = selected_signs(&second, &signs, &observation_sign_ids);
     pool.trigger(second.member).unwrap();
     assert_eq!(second.member.placement.realization, 1);
     pool.request_release(second.member).unwrap();
@@ -355,7 +376,7 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
         "failed work is not replayed"
     );
     let later = select(&mut pool, key(3), &lost, &mut signs).unwrap();
-    let later_signs = signs[..usize::from(later.observation_sign_count)].to_vec();
+    let later_signs = selected_signs(&later, &signs, &observation_sign_ids);
     pool.trigger(later.member).unwrap();
     assert_eq!(later.member.key, key(3));
     assert_eq!(later.member.placement.realization, 1);
