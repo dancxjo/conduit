@@ -101,9 +101,11 @@ pub fn admit_selected_pool_member<const SLOTS: usize, const SIGN: usize>(
             current_but_full = true;
             continue;
         }
-        if selected
-            .is_none_or(|current| better(candidate, current, requirements, observations, policy))
-        {
+        let should_select = match selected {
+            Some(current) => better(candidate, current, requirements, observations, policy),
+            None => true,
+        };
+        if should_select {
             selected = Some(candidate);
         }
     }
