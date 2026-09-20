@@ -3,8 +3,8 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
+    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationRequirement, ImplementationId,
     PlannedGear, StructuredInfoValue,
 };
 use conduit_kernel::{
@@ -81,45 +81,42 @@ impl PreparedStrokeCapture {
 }
 
 fn offer() -> CapabilityOffer {
-    let definition = conduit_presentation::capture_bounded_stroke_kind_definition();
-    let kind = definition.kind_id.clone();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: kind.clone(),
-        kind_contract_revision: KindContractRevision::from(conduit_presentation::GEOMETRY_REVISION),
-        implementation: ImplementationOffer {
+    let contract = conduit_presentation::capture_bounded_stroke_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-presentation/bounded-stroke-capture@1"),
+            host_operations: vec![
+                HostOperationRequirement {
+                    contract_id: OPERATIONS[0].into(),
+                    target_kind: Some(target_kind.clone()),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                    maximum_output_bytes: 0,
+                },
+                HostOperationRequirement {
+                    contract_id: OPERATIONS[1].into(),
+                    target_kind: Some(target_kind),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: FINISH_INPUT.len() as u32,
+                    maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                },
+            ],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: vec![
-            HostOperationRequirement {
-                contract_id: OPERATIONS[0].into(),
-                target_kind: Some(kind.clone()),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                maximum_output_bytes: 0,
-            },
-            HostOperationRequirement {
-                contract_id: OPERATIONS[1].into(),
-                target_kind: Some(kind),
-                maximum_in_flight: 1,
-                maximum_input_bytes: FINISH_INPUT.len() as u32,
-                maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            },
-        ],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 2,
-            max_queue_items: MAXIMUM_POINTS as u16,
-            max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 2,
+        max_queue_items: MAXIMUM_POINTS as u16,
+        max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+    })
+    .expect("browser stroke-capture capacity narrows its semantic contract")
+    .build()
 }
 
 fn prepare(
@@ -279,6 +276,24 @@ fn failure(detail: u16) -> Failure {
 mod tests {
     use super::*;
     use conduit_core::{OfferGeneration, Quantity, QuantityUnit};
+
+    #[test]
+    fn browser_stroke_capture_preserves_semantics_and_narrows_capacity() {
+        let offer = offer();
+        let semantic = conduit_presentation::capture_bounded_stroke_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits.max_active_instances, 2);
+        assert_eq!(offer.limits.max_queue_items, MAXIMUM_POINTS as u16);
+        assert!(offer.limits.max_active_instances < semantic.limits.max_active_instances);
+        assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
+    }
 
     fn placement() -> PlannedGear {
         let offered = offer();
