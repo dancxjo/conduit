@@ -5,6 +5,8 @@
 //! occupation to the existing kernel pool, and returns typed evidence. It does
 //! not invoke providers, replay operations, or request replacement planning.
 
+use crate::lowering::{lower_plan_fragment, LoweredSharedPool, PoolObservationLoweringError};
+use alloc::vec::Vec;
 use conduit_core::{
     Plan, PlanId, PoolOperationId, PoolRealizationObservation, PoolSelectionDisposition,
     PoolSelectionEvidence, SharedPoolId, SignId,
@@ -15,9 +17,6 @@ use conduit_kernel::{
         PoolSelectionError, PoolSelectionPolicy,
     },
     NodeId,
-};
-use conduit_plan_lowering::lowering::{
-    lower_plan_fragment, LoweredSharedPool, PoolObservationLoweringError,
 };
 
 const ADMISSION_AUTHORITY_TOKEN: u16 = 0;
