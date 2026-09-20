@@ -350,6 +350,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
+        "targets/browser/runtime/src/installed_browser/quantity_output.rs",
+        0,
+        "fully migrated",
+    ),
+    (
         "targets/browser/runtime/src/installed_browser/structured_selector.rs",
         0,
         "fully migrated",
