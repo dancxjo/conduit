@@ -14,7 +14,7 @@ use conduit_core::{
     PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use conduit_form::{
-    CheckedForm, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
+    CheckedForm, KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
@@ -459,18 +459,18 @@ pub fn profile_catalog() -> ProfileCatalog {
             vec![],
             vec![port(TICK_PORT, PortDirection::Output)],
             vec![
-                ConfigurationField {
+                KindConfigurationField {
                     key: "count".to_string(),
                     default_value: ConfigurationValue::U64(4),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 1,
                         maximum: 4,
                     },
                 },
-                ConfigurationField {
+                KindConfigurationField {
                     key: "period-ms".to_string(),
                     default_value: ConfigurationValue::U64(0),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 0,
                         maximum: u64::MAX,
                     },
@@ -569,9 +569,9 @@ fn definition(
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
-    configuration: Vec<ConfigurationField>,
-) -> KindDefinition {
-    KindDefinition {
+    configuration: Vec<KindConfigurationField>,
+) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
         kind_contract_revision: revision(kind),
         inputs,

@@ -3,12 +3,12 @@ use std::collections::BTreeMap;
 use conduit_core::{
     kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    ImplementationOffer, KindIdentity, LineId, LinkBindingId, LinkEndpointId, OfferGeneration,
-    PortDescriptor, PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
+    ImplementationOffer, Kind, KindIdentity, LineId, LinkBindingId, LinkEndpointId,
+    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, expand_canonical_form_with_backs,
-    parse_syntax_document, CanonicalBackCatalog, KindDefinition, KindSignature, ProfileCatalog,
+    parse_syntax_document, CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog,
 };
 use conduit_planner::{
@@ -51,8 +51,8 @@ fn port(name: &str, value: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn definition(kind: &str, input: Option<&str>, output: Option<&str>) -> KindDefinition {
-    KindDefinition {
+fn definition(kind: &str, input: Option<&str>, output: Option<&str>) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
         kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: input
@@ -67,7 +67,29 @@ fn definition(kind: &str, input: Option<&str>, output: Option<&str>) -> KindDefi
     }
 }
 
-fn catalogs() -> (StartupCatalog, ProfileCatalog, KindDefinition) {
+fn canonical_kind(definition: KindProjection) -> Kind {
+    let shorthand = match (definition.inputs.as_slice(), definition.outputs.as_slice()) {
+        ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
+        _ => None,
+    };
+    Kind {
+        startup_parameters: vec![],
+        shorthand,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: vec![],
+        semantic_laws: vec![],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: 4_096,
+        },
+    }
+}
+
+fn catalogs() -> (StartupCatalog, ProfileCatalog, Kind) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     let mut high = None;
@@ -87,11 +109,11 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog, KindDefinition) {
                 startup_parameters: vec![],
             })
             .unwrap();
-        let item = definition(kind, input, output);
+        let item = canonical_kind(definition(kind, input, output));
         if kind == HIGH {
             high = Some(item.clone());
         }
-        profile.insert(item).unwrap();
+        profile.insert_kind(item).unwrap();
     }
     (startup, profile, high.unwrap())
 }
@@ -130,7 +152,7 @@ fn direct_expanded() -> conduit_form::ExpandedCanonicalForm {
     expand_canonical_form(&user, "distributed", &profile).unwrap()
 }
 
-fn offer(definition: &KindDefinition, part: &str) -> CapabilityOffer {
+fn offer(definition: &KindProjection, part: &str) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
         startup_parameters: vec![],

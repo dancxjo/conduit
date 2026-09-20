@@ -96,7 +96,7 @@ pub fn project_replay_source(timeline: &BoundedHistoricalTimeline) -> ReplaySour
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn replay_source_kind_definition() -> conduit_form::KindDefinition {
+pub fn replay_source_kind_projection() -> conduit_form::KindProjection {
     use conduit_core::{
         kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
         StructuredInfoType,
@@ -113,7 +113,7 @@ pub fn replay_source_kind_definition() -> conduit_form::KindDefinition {
         direction,
         temporal: PortTemporal::Value,
     };
-    conduit_form::KindDefinition {
+    conduit_form::KindProjection {
         kind_id: kind_id(REPLAY_SOURCE_KIND),
         kind_contract_revision: KindIdentity::from(REPLAY_SOURCE_CONTRACT_REVISION),
         inputs: alloc::vec![port(
@@ -131,7 +131,7 @@ pub fn replay_source_kind_definition() -> conduit_form::KindDefinition {
 
 #[cfg(feature = "form-catalog")]
 pub fn replay_source_semantic_contract() -> conduit_core::Kind {
-    let definition = replay_source_kind_definition();
+    let definition = replay_source_kind_projection();
     conduit_core::Kind {
         startup_parameters: alloc::vec![],
         shorthand: None,
@@ -139,6 +139,8 @@ pub fn replay_source_semantic_contract() -> conduit_core::Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: conduit_core::CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 1,

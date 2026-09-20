@@ -87,13 +87,13 @@ pub fn replay_policy_from_configuration(
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
+pub fn replay_control_kind_projection() -> conduit_form::KindProjection {
     use alloc::string::ToString;
     use conduit_core::{
         kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
         StructuredInfoType,
     };
-    use conduit_form::{ConfigurationField, ConfigurationRule};
+    use conduit_form::{KindConfigurationField, KindConfigurationRule};
     let port = |name, value_kind, direction, temporal| PortDescriptor {
         port_id: port_id(name),
         value_kind: StructuredInfoType::leaf(kind_id(value_kind))
@@ -105,7 +105,7 @@ pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
         direction,
         temporal,
     };
-    conduit_form::KindDefinition {
+    conduit_form::KindProjection {
         kind_id: kind_id(crate::REPLAY_CONTROL_KIND),
         kind_contract_revision: KindIdentity::from(crate::REPLAY_CONTROL_CONTRACT_REVISION),
         inputs: alloc::vec![
@@ -143,10 +143,10 @@ pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
             ),
         ],
         configuration: alloc::vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "mode".to_string(),
                 default_value: ConfigurationValue::Text(REPLAY_MODE_ORIGINAL_TIMING.to_string()),
-                validation: ConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: alloc::vec![
                         REPLAY_MODE_STEP.to_string(),
                         REPLAY_MODE_ORIGINAL_TIMING.to_string(),
@@ -154,26 +154,26 @@ pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
                     ],
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "rate-numerator".to_string(),
                 default_value: ConfigurationValue::U64(1),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: u64::from(MAXIMUM_REPLAY_RATE_TERM)
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "rate-denominator".to_string(),
                 default_value: ConfigurationValue::U64(1),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: u64::from(MAXIMUM_REPLAY_RATE_TERM)
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "maximum-duration-seconds".to_string(),
                 default_value: ConfigurationValue::U64(MAXIMUM_REPLAY_DURATION_SECONDS),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: MAXIMUM_REPLAY_DURATION_SECONDS
                 },
@@ -186,7 +186,7 @@ pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
 pub fn replay_control_semantic_contract() -> conduit_core::Kind {
     use conduit_core::{kind_id, CapabilityLimits, FrontStartupParameter};
 
-    let definition = replay_control_kind_definition();
+    let definition = replay_control_kind_projection();
     conduit_core::Kind {
         startup_parameters: [
             ("mode", "value/text"),
@@ -206,6 +206,8 @@ pub fn replay_control_semantic_contract() -> conduit_core::Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 64,

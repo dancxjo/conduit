@@ -95,7 +95,7 @@ impl StdHost {
             kind_id: capability.kind_id.clone(),
             kind_contract_revision: capability.kind_contract_revision.clone(),
             execution_profile_id: capability.implementation.execution_profile_id.clone(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
             offer_generation: advertisement.offer_generation,

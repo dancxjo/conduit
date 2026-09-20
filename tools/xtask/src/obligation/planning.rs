@@ -6,8 +6,8 @@ use conduit_core::{
     KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use std::collections::BTreeMap;
@@ -101,23 +101,23 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
         .map_err(|error| error.to_string())?;
     let mut profiles = ProfileCatalog::new();
     profiles
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
             inputs: vec![],
             outputs: vec![port(PortDirection::Output)],
             configuration: FIELDS
                 .iter()
-                .map(|name| ConfigurationField {
+                .map(|name| KindConfigurationField {
                     key: (*name).into(),
                     default_value: conduit_core::ConfigurationValue::Text(String::new()),
-                    validation: ConfigurationRule::TextBytes { maximum: 256 },
+                    rule: KindConfigurationRule::TextBytes { maximum: 256 },
                 })
                 .collect(),
         })
         .map_err(|error| error.to_string())?;
     profiles
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(EXECUTE_KIND),
             kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
             inputs: vec![port(PortDirection::Input)],

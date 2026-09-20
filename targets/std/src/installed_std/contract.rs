@@ -58,28 +58,30 @@ pub(super) fn parse_tick_configuration(
 #[cfg(test)]
 pub(super) fn test_tick_catalog() -> conduit_form::ProfileCatalog {
     use conduit_core::{kind_id, KindIdentity};
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
+    use conduit_form::{
+        KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
+    };
 
     let mut catalog = ProfileCatalog::new();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(TICK_KIND),
             kind_contract_revision: KindIdentity::from(TICK_CONTRACT_REVISION),
             inputs: Vec::new(),
             outputs: tick_offer().outputs,
             configuration: vec![
-                ConfigurationField {
+                KindConfigurationField {
                     key: "count".to_string(),
                     default_value: ConfigurationValue::U64(4),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 0,
                         maximum: conduit_time::MAX_TICK_COUNT,
                     },
                 },
-                ConfigurationField {
+                KindConfigurationField {
                     key: "period-ms".to_string(),
                     default_value: ConfigurationValue::U64(1_000),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 0,
                         maximum: u64::MAX,
                     },

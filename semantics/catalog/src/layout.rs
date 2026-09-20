@@ -1,7 +1,7 @@
 //! Exact finite layout contracts for portable presenter Backs.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::{
     string::{String, ToString},
@@ -109,7 +109,7 @@ fn contract(
     kind: &str,
     name: &str,
     summary: &str,
-    configuration: Vec<StandardConfigurationField>,
+    configuration: Vec<KindConfigurationField>,
     input: bool,
     example: &str,
 ) -> StandardKindContract {
@@ -130,9 +130,9 @@ fn contract(
             max_queue_bytes: MAX_LAYOUT_FRAME_BYTES as u32,
         },
         terminal_behavior: if input {
-            TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible
+            KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible
         } else {
-            TerminalBehavior::EmitsOnce
+            KindTerminalBehavior::EmitsOnce
         },
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
@@ -149,33 +149,33 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         temporal: PortTemporal::Value,
     }
 }
-fn u16_field(key: &str, default: u64) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn u16_field(key: &str, default: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::U64(default),
-        rule: StandardConfigurationRule::U64Range {
+        rule: KindConfigurationRule::U64Range {
             minimum: 0,
             maximum: u64::from(MAX_LAYOUT_EXTENT),
         },
     }
 }
-fn alignment_field(key: &str) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn alignment_field(key: &str) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::Text("start".into()),
-        rule: StandardConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: vec!["start".to_string(), "center".to_string(), "end".to_string()],
         },
     }
 }
-fn viewport_fields() -> Vec<StandardConfigurationField> {
+fn viewport_fields() -> Vec<KindConfigurationField> {
     vec![
         u16_field(WIDTH_KEY, 960),
         u16_field(HEIGHT_KEY, 540),
-        StandardConfigurationField {
+        KindConfigurationField {
             key: CHILDREN_KEY.to_string(),
             default_value: ConfigurationValue::U64(1),
-            rule: StandardConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 0,
                 maximum: MAX_LAYOUT_CHILDREN as u64,
             },
@@ -191,7 +191,7 @@ pub fn install_layout_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     for contract in [
@@ -225,22 +225,22 @@ pub fn install_layout_catalogs(
         let configuration = contract
             .configuration
             .into_iter()
-            .map(|field| ConfigurationField {
+            .map(|field| KindConfigurationField {
                 key: field.key,
                 default_value: field.default_value,
-                validation: match field.rule {
-                    StandardConfigurationRule::U64Range { minimum, maximum } => {
-                        ConfigurationRule::U64Range { minimum, maximum }
+                rule: match field.rule {
+                    KindConfigurationRule::U64Range { minimum, maximum } => {
+                        KindConfigurationRule::U64Range { minimum, maximum }
                     }
-                    StandardConfigurationRule::TextOneOf { values } => {
-                        ConfigurationRule::TextOneOf { values }
+                    KindConfigurationRule::TextOneOf { values } => {
+                        KindConfigurationRule::TextOneOf { values }
                     }
                     _ => unreachable!(),
                 },
             })
             .collect();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: KindIdentity::from(LAYOUT_CONTRACT_REVISION),
                 inputs: contract.inputs,

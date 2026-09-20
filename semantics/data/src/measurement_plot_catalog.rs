@@ -7,7 +7,7 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 
@@ -44,7 +44,7 @@ pub fn install_measurement_plot_catalog(
         ],
     })?;
     profile
-        .insert(measurement_plot_kind_definition())
+        .insert(measurement_plot_kind_projection())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: MEASUREMENT_PLOT_PRESENTATION_KIND.to_string(),
@@ -55,8 +55,8 @@ pub fn install_measurement_plot_catalog(
         .map_err(|error| error.to_string())
 }
 
-pub fn measurement_plot_presentation_definition() -> KindDefinition {
-    KindDefinition {
+pub fn measurement_plot_presentation_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(MEASUREMENT_PLOT_PRESENTATION_KIND),
         kind_contract_revision: KindIdentity::from(MEASUREMENT_PLOT_PRESENTATION_REVISION),
         inputs: vec![port(
@@ -78,6 +78,8 @@ pub fn measurement_plot_presentation_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -86,8 +88,8 @@ pub fn measurement_plot_presentation_semantic_contract() -> Kind {
     }
 }
 
-pub fn measurement_plot_kind_definition() -> KindDefinition {
-    KindDefinition {
+pub fn measurement_plot_kind_projection() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(MEASUREMENT_PLOT_KIND),
         kind_contract_revision: KindIdentity::from(MEASUREMENT_PLOT_CONTRACT_REVISION),
         inputs: vec![port(
@@ -101,18 +103,18 @@ pub fn measurement_plot_kind_definition() -> KindDefinition {
             PortDirection::Output,
         )],
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "points".to_string(),
                 default_value: ConfigurationValue::U64(8),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: MAXIMUM_MEASUREMENT_PLOT_POINTS as u64,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "when-full".to_string(),
                 default_value: ConfigurationValue::Text("evenly-spaced".to_string()),
-                validation: ConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: vec!["reject".to_string(), "evenly-spaced".to_string()],
                 },
             },
@@ -121,7 +123,7 @@ pub fn measurement_plot_kind_definition() -> KindDefinition {
 }
 
 pub fn measurement_plot_semantic_contract() -> Kind {
-    let definition = measurement_plot_kind_definition();
+    let definition = measurement_plot_kind_projection();
     Kind {
         startup_parameters: vec![
             FrontStartupParameter {
@@ -140,6 +142,8 @@ pub fn measurement_plot_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,

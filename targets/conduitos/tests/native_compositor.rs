@@ -11,7 +11,7 @@ use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
     MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle, Presentation,
     PresentationBasis, PresentationRole, PresentationSubject, PresentationText,
-    RendererRealizationOffer, renderer_kind_definition, renderer_offer,
+    RendererRealizationOffer, renderer_kind_projection, renderer_offer,
 };
 use conduitos::{
     display::DisplayError,
@@ -392,7 +392,7 @@ fn colored_scene(paint: GraphicsPaintRole) -> GraphicsScene {
 
 fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
     let mut catalog = ProfileCatalog::new();
-    catalog.insert(renderer_kind_definition()).unwrap();
+    catalog.insert(renderer_kind_projection()).unwrap();
     let form = parse(
         "form front {\n    renderer: presentation/renderer\n}\n",
         &catalog,

@@ -12,7 +12,8 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const PATTERN_COMPARISON_TYPE: &str = "PatternComparison";
@@ -43,8 +44,8 @@ pub fn pattern_comparison_type() -> StructuredInfoType {
     .unwrap()
 }
 
-pub fn compare_normalized_pattern_definition() -> KindDefinition {
-    KindDefinition {
+pub fn compare_normalized_pattern_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(COMPARE_PATTERN_KIND),
         kind_contract_revision: KindIdentity::from(COMPARE_PATTERN_REVISION),
         inputs: vec![
@@ -62,17 +63,17 @@ pub fn compare_normalized_pattern_definition() -> KindDefinition {
             temporal: PortTemporal::Value,
         }],
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "metric".into(),
                 default_value: ConfigurationValue::Text(MAXIMUM_ABSOLUTE_METRIC.into()),
-                validation: ConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: vec![MAXIMUM_ABSOLUTE_METRIC.into()],
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "tolerance-millionths".into(),
                 default_value: ConfigurationValue::U64(DEFAULT_PATTERN_TOLERANCE),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: crate::NORMALIZED_SCALE,
                 },
@@ -101,6 +102,8 @@ pub fn compare_normalized_pattern_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 2,

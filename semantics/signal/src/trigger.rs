@@ -199,18 +199,18 @@ pub fn decode_trigger_bytes(encoded: &[u8]) -> Result<Trigger, crate::SignalProf
 
 #[cfg(feature = "host-profile")]
 pub(crate) fn extend_profile_catalog(catalog: &mut conduit_form::ProfileCatalog) {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition};
+    use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection};
 
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: trigger_kind(),
             kind_contract_revision: trigger_contract_revision(),
             inputs: Vec::new(),
             outputs: trigger_outputs(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "count".to_string(),
                 default_value: ConfigurationValue::U64(16),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: MAX_SIGNAL_COUNT,
                 },
@@ -220,15 +220,15 @@ pub(crate) fn extend_profile_catalog(catalog: &mut conduit_form::ProfileCatalog)
     conduit_semantic_catalog::install_bool_presentation_catalog(catalog)
         .expect("toggle presentation kind is unique");
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: toggle_kind(),
             kind_contract_revision: toggle_contract_revision(),
             inputs: toggle_inputs(),
             outputs: toggle_outputs(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "initial".to_string(),
                 default_value: ConfigurationValue::Bool(false),
-                validation: ConfigurationRule::Any,
+                rule: KindConfigurationRule::Any,
             }],
         })
         .expect("signal profile kinds are unique");

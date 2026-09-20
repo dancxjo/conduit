@@ -668,7 +668,7 @@ fn timing_offer(
     revision: &str,
     implementation: &str,
 ) -> CapabilityOffer {
-    let mut offer = timing_contract(
+    timing_contract(
         contract,
         revision,
         implementation,
@@ -677,9 +677,7 @@ fn timing_offer(
         "conduitos/timing-nucleus@1",
         vec![monotonic_timer_host_operation_requirement()],
         vec![monotonic_timer_resource_requirement()],
-    );
-    offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
-    offer
+    )
 }
 
 #[allow(clippy::too_many_arguments)]

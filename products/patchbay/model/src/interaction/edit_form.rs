@@ -24,8 +24,8 @@ pub(super) fn edit_signature() -> KindSignature {
     }
 }
 
-pub(super) fn edit_definition() -> KindDefinition {
-    KindDefinition {
+pub(super) fn edit_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(EDIT_KIND),
         kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         inputs: vec![],
@@ -34,23 +34,23 @@ pub(super) fn edit_definition() -> KindDefinition {
     }
 }
 
-fn edit_configuration() -> Vec<ConfigurationField> {
+fn edit_configuration() -> Vec<KindConfigurationField> {
     vec![
         text_field("request"),
         text_field("source"),
-        ConfigurationField {
+        KindConfigurationField {
             key: "revision".into(),
             default_value: ConfigurationValue::U64(0),
-            validation: ConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 0,
                 maximum: u64::MAX,
             },
         },
         text_field("basis"),
-        ConfigurationField {
+        KindConfigurationField {
             key: "operation".into(),
             default_value: ConfigurationValue::Text(String::new()),
-            validation: ConfigurationRule::TextOneOf {
+            rule: KindConfigurationRule::TextOneOf {
                 values: vec![
                     "place-gear".into(),
                     "duplicate-gear".into(),
@@ -65,10 +65,10 @@ fn edit_configuration() -> Vec<ConfigurationField> {
         text_field("primary"),
         text_field("secondary"),
         text_field("key"),
-        ConfigurationField {
+        KindConfigurationField {
             key: "value-type".into(),
             default_value: ConfigurationValue::Text(String::new()),
-            validation: ConfigurationRule::TextOneOf {
+            rule: KindConfigurationRule::TextOneOf {
                 values: vec![
                     "none".into(),
                     "bool".into(),
@@ -79,23 +79,23 @@ fn edit_configuration() -> Vec<ConfigurationField> {
                 ],
             },
         },
-        ConfigurationField {
+        KindConfigurationField {
             key: "bool-value".into(),
             default_value: ConfigurationValue::Bool(false),
-            validation: ConfigurationRule::Any,
+            rule: KindConfigurationRule::Any,
         },
-        ConfigurationField {
+        KindConfigurationField {
             key: "count-value".into(),
             default_value: ConfigurationValue::U64(0),
-            validation: ConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 0,
                 maximum: u64::MAX,
             },
         },
-        ConfigurationField {
+        KindConfigurationField {
             key: "scalar-value".into(),
             default_value: ConfigurationValue::I64(0),
-            validation: ConfigurationRule::I64Range {
+            rule: KindConfigurationRule::I64Range {
                 minimum: i64::MIN,
                 maximum: i64::MAX,
             },
@@ -104,11 +104,11 @@ fn edit_configuration() -> Vec<ConfigurationField> {
     ]
 }
 
-fn text_field(key: &str) -> ConfigurationField {
-    ConfigurationField {
+fn text_field(key: &str) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::Text(String::new()),
-        validation: ConfigurationRule::TextBytes {
+        rule: KindConfigurationRule::TextBytes {
             maximum: MAX_INTERACTION_ID_BYTES as u32,
         },
     }

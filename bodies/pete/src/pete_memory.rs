@@ -9,7 +9,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use serde::{Deserialize, Serialize};
 
 pub const PETE_MEMORY_RETAIN_KIND: &str = "pete/memory-retain";
@@ -318,7 +318,7 @@ pub fn install_pete_memory_catalog(
     })?;
     let contract = pete_memory_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.revision,
             inputs: contract.inputs,

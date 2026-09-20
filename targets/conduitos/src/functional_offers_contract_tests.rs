@@ -127,7 +127,6 @@ fn realization_preserves_portable_contract_and_bounds() {
             portable_monotonic_offer(
                 conduit_semantic_catalog::audio_render_demand_contract(),
                 conduit_semantic_catalog::AUDIO_RENDER_DEMAND_REVISION,
-                false,
             ),
         ),
         (
@@ -135,7 +134,6 @@ fn realization_preserves_portable_contract_and_bounds() {
             portable_monotonic_offer(
                 conduit_semantic_catalog::time_debounce_contract(),
                 conduit_semantic_catalog::TIME_DEBOUNCE_CONTRACT_REVISION,
-                true,
             ),
         ),
         (
@@ -143,7 +141,6 @@ fn realization_preserves_portable_contract_and_bounds() {
             portable_monotonic_offer(
                 conduit_semantic_catalog::time_timeout_contract(),
                 conduit_semantic_catalog::TIME_TIMEOUT_CONTRACT_REVISION,
-                true,
             ),
         ),
         (
@@ -151,7 +148,6 @@ fn realization_preserves_portable_contract_and_bounds() {
             portable_monotonic_offer(
                 conduit_semantic_catalog::time_delay_contract(),
                 conduit_semantic_catalog::TIME_DELAY_CONTRACT_REVISION,
-                true,
             ),
         ),
         (
@@ -159,7 +155,6 @@ fn realization_preserves_portable_contract_and_bounds() {
             portable_monotonic_offer(
                 conduit_semantic_catalog::time_throttle_contract(),
                 conduit_semantic_catalog::TIME_THROTTLE_CONTRACT_REVISION,
-                true,
             ),
         ),
         (music_synth_offer(), portable_music_synth_offer()),
@@ -307,12 +302,8 @@ fn portable_every_offer(
 fn portable_monotonic_offer(
     contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
-    duration_startup: bool,
 ) -> conduit_core::CapabilityOffer {
     let mut offer = portable_offer(contract, revision);
-    if duration_startup {
-        offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
-    }
     offer.resource_requirements = vec![conduit_core::monotonic_timer_resource_requirement()];
     offer
 }

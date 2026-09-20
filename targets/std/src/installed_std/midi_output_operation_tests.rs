@@ -62,7 +62,7 @@ fn fixture() -> (PlannedGear, crate::hosted_midi::HostedMidiSelection) {
             kind_id: offer.kind_id,
             kind_contract_revision: offer.kind_contract_revision,
             execution_profile_id: offer.implementation.execution_profile_id,
-            configuration: Vec::new(),
+            configuration: Default::default(),
             host_id,
             boot_id,
             offer_generation: generation,

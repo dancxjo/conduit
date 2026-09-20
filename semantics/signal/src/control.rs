@@ -99,6 +99,8 @@ pub fn level_input_semantic_contract(maximum_instances: u16) -> Kind {
         kind_contract_revision: level_input_contract_revision(),
         inputs: Vec::new(),
         outputs: level_input_outputs(),
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: maximum_instances,
             max_queue_items: 1,
@@ -134,6 +136,8 @@ pub fn merge_three_signal_semantic_contract() -> Kind {
         kind_contract_revision: merge_three_signal_contract_revision(),
         inputs: merge_three_signal_inputs(),
         outputs: merge_three_signal_outputs(),
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 3,
@@ -143,19 +147,19 @@ pub fn merge_three_signal_semantic_contract() -> Kind {
 }
 
 pub(crate) fn extend_control_profile_catalog(catalog: &mut conduit_form::ProfileCatalog) {
-    use conduit_form::KindDefinition;
+    use conduit_form::KindProjection;
 
     for capability in [
         level_input_capability("catalog/level-input", "catalog/level-input@1", 1),
         merge_three_signal_capability("catalog/merge-three", "catalog/merge-three@1"),
     ] {
         catalog
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: capability.kind_id,
                 kind_contract_revision: capability.kind_contract_revision,
                 inputs: capability.inputs,
                 outputs: capability.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .expect("Signal control profile kinds are unique");
     }

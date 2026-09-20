@@ -63,12 +63,12 @@ pub fn prepare_state_select(
         .map_err(|_| StateSelectError::Catalog)?;
     for offer in source_and_sink_offers(sequence) {
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|_| StateSelectError::Catalog)?;
     }

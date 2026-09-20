@@ -40,6 +40,7 @@ mod value_type;
 pub use back_catalog::*;
 pub use canonical_expansion::*;
 pub use checked_syntax::*;
+pub use conduit_core::{KindConfigurationField, KindConfigurationRule};
 pub use diagnostic::*;
 pub use structured_startup::*;
 pub use syntax::*;
@@ -153,7 +154,7 @@ impl CheckedForm {
             let boundary = nested
                 .form
                 .export_boundary_unvalidated(&nested.export_capability_id)?;
-            let definition = boundary.kind_definition();
+            let definition = boundary.kind_projection();
             if gear.kind_id != definition.kind_id
                 || gear.kind_contract_revision != definition.kind_contract_revision
                 || gear.inputs != definition.inputs
@@ -289,67 +290,46 @@ pub struct CheckedCompositeBoundary {
 }
 
 impl CheckedCompositeBoundary {
-    pub fn kind_definition(&self) -> KindDefinition {
-        KindDefinition {
+    pub fn kind_projection(&self) -> KindProjection {
+        KindProjection {
             kind_id: self.kind_id.clone(),
             kind_contract_revision: self.kind_contract_revision.clone(),
             inputs: self.inputs.clone(),
             outputs: self.outputs.clone(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         }
     }
 }
 
+/// Checker projection of a canonical [`conduit_core::Kind`].
+///
+/// This contains only the semantic fields needed while checking authored Form
+/// source. It is not a second Kind identity and cannot be offered by a Host.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ConfigurationField {
-    pub key: String,
-    pub default_value: ConfigurationValue,
-    pub validation: ConfigurationRule,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ConfigurationRule {
-    Any,
-    U64Range {
-        minimum: u64,
-        maximum: u64,
-    },
-    I64Range {
-        minimum: i64,
-        maximum: i64,
-    },
-    DurationMillis {
-        minimum: u64,
-        maximum: u64,
-    },
-    QuantityRange {
-        minimum: i64,
-        maximum: i64,
-        canonical_unit: conduit_core::QuantityUnit,
-    },
-    TextBytes {
-        maximum: u32,
-    },
-    TextOneOf {
-        values: Vec<String>,
-    },
-    Structured {
-        profile: KindId,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KindDefinition {
+pub struct KindProjection {
     pub kind_id: KindId,
     pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    pub configuration: Vec<ConfigurationField>,
+    pub configuration: Vec<KindConfigurationField>,
+}
+
+impl From<&conduit_core::Kind> for KindProjection {
+    fn from(kind: &conduit_core::Kind) -> Self {
+        Self {
+            kind_id: kind.kind_id.clone(),
+            kind_contract_revision: kind.kind_contract_revision.clone(),
+            inputs: kind.inputs.clone(),
+            outputs: kind.outputs.clone(),
+            configuration: kind.configuration.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProfileCatalog {
-    kinds: BTreeMap<KindId, KindDefinition>,
+    kinds: BTreeMap<KindId, KindProjection>,
+    canonical_kinds: BTreeMap<KindId, conduit_core::Kind>,
 }
 
 impl ProfileCatalog {
@@ -357,7 +337,7 @@ impl ProfileCatalog {
         Self::default()
     }
 
-    pub fn insert(&mut self, definition: KindDefinition) -> Result<(), FormError> {
+    pub fn insert(&mut self, definition: KindProjection) -> Result<(), FormError> {
         if self.kinds.contains_key(&definition.kind_id) {
             return Err(FormError::DuplicateKind(
                 definition.kind_id.as_str().to_string(),
@@ -367,8 +347,22 @@ impl ProfileCatalog {
         Ok(())
     }
 
-    pub fn get(&self, kind_id: &KindId) -> Option<&KindDefinition> {
+    /// Installs canonical Kind truth while retaining the smaller checker view.
+    pub fn insert_kind(&mut self, kind: conduit_core::Kind) -> Result<(), FormError> {
+        kind.validate()
+            .map_err(|error| FormError::InvalidKind(format!("{error:?}")))?;
+        let projection = KindProjection::from(&kind);
+        self.insert(projection)?;
+        self.canonical_kinds.insert(kind.kind_id.clone(), kind);
+        Ok(())
+    }
+
+    pub fn get(&self, kind_id: &KindId) -> Option<&KindProjection> {
         self.kinds.get(kind_id)
+    }
+
+    pub fn canonical_kind(&self, kind_id: &KindId) -> Option<&conduit_core::Kind> {
+        self.canonical_kinds.get(kind_id)
     }
 
     /// Derives the startup names and defaults needed to check canonical source.
@@ -407,7 +401,7 @@ impl ProfileCatalog {
         capability_id: &CapabilityId,
     ) -> Result<CheckedCompositeBoundary, FormError> {
         let boundary = form.export_boundary(capability_id)?;
-        self.insert(boundary.kind_definition())?;
+        self.insert(boundary.kind_projection())?;
         Ok(boundary)
     }
 }
@@ -420,6 +414,7 @@ pub enum FormError {
     MissingBlockEnd,
     DuplicateKind(String),
     InvalidExport(String),
+    InvalidKind(String),
     InvalidIdentity(String),
     InvalidSyntax(String),
 }
@@ -439,6 +434,7 @@ impl core::fmt::Display for FormError {
             Self::MissingBlockEnd => write!(f, "expected closing '}}' at end of form"),
             Self::DuplicateKind(kind) => write!(f, "duplicate profile kind '{kind}'"),
             Self::InvalidExport(message) => write!(f, "invalid export: {message}"),
+            Self::InvalidKind(message) => write!(f, "invalid Kind: {message}"),
             Self::InvalidIdentity(message) => write!(f, "invalid form identity: {message}"),
             Self::InvalidSyntax(message) => write!(f, "invalid canonical form syntax: {message}"),
         }
@@ -692,6 +688,7 @@ fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
         FormError::TokenLimitExceeded => "CND-FRM-015",
         FormError::InvalidIdentity(_) => "CND-FRM-018",
         FormError::InvalidSyntax(_) => "CND-FRM-019",
+        FormError::InvalidKind(_) => "CND-FRM-020",
     };
     FormDiagnostic {
         code,

@@ -1,14 +1,13 @@
 //! Exact portable keyboard text, chord, and typed fan-out contracts.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
     TEXT_PRESENTATION_VALUE_KIND,
 };
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
-use alloc::vec::Vec;
 #[cfg(feature = "form-catalog")]
 use conduit_core::KindIdentity;
 use conduit_core::{
@@ -61,9 +60,9 @@ pub fn key_event_tee_contract() -> StandardKindContract {
                 PortTemporal::Flow { closes: false },
             ),
         ],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(KEY_EVENT_ENCODED_LEN as u32),
-        terminal_behavior: TerminalBehavior::CoupledAtomicFanoutAndMirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::CoupledAtomicFanoutAndMirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -88,15 +87,15 @@ pub fn keymap_contract() -> StandardKindContract {
             PortDirection::Output,
             PortTemporal::Flow { closes: false },
         )],
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "layout".to_string(),
             default_value: ConfigurationValue::Text(CONDUIT_INTL_LAYOUT.to_string()),
-            rule: StandardConfigurationRule::TextOneOf {
+            rule: KindConfigurationRule::TextOneOf {
                 values: vec![CONDUIT_INTL_LAYOUT.to_string()],
             },
         }],
         limits: limits(4),
-        terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -122,15 +121,15 @@ pub fn chords_contract() -> StandardKindContract {
             PortDirection::Output,
             PortTemporal::Flow { closes: false },
         )],
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "map".to_string(),
             default_value: ConfigurationValue::Text(CORE_CHORD_MAP.to_string()),
-            rule: StandardConfigurationRule::TextOneOf {
+            rule: KindConfigurationRule::TextOneOf {
                 values: vec![CORE_CHORD_MAP.to_string()],
             },
         }],
         limits: limits(CHORD_ENCODED_LEN as u32),
-        terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -158,6 +157,10 @@ fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
         kind_contract_revision: revision.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
@@ -190,7 +193,7 @@ pub fn install_input_semantic_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     for (contract, revision) in [
@@ -217,12 +220,12 @@ pub fn install_input_semantic_catalogs(
         let configuration = contract
             .configuration
             .iter()
-            .map(|field| ConfigurationField {
+            .map(|field| KindConfigurationField {
                 key: field.key.clone(),
                 default_value: field.default_value.clone(),
-                validation: match &field.rule {
-                    StandardConfigurationRule::TextOneOf { values } => {
-                        ConfigurationRule::TextOneOf {
+                rule: match &field.rule {
+                    KindConfigurationRule::TextOneOf { values } => {
+                        KindConfigurationRule::TextOneOf {
                             values: values.clone(),
                         }
                     }
@@ -231,7 +234,7 @@ pub fn install_input_semantic_catalogs(
             })
             .collect();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,

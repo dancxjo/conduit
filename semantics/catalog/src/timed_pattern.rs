@@ -10,7 +10,7 @@ use conduit_core::{
     PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
     StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 pub const TIMED_EVENT_SEQUENCE_TYPE: &str = "TimedEventSequence";
 pub const INTERVAL_SEQUENCE_TYPE: &str = "IntervalSequence";
@@ -54,8 +54,8 @@ pub fn interval_sequence_type() -> StructuredInfoType {
     sequence_record_type("time/interval-sequence@1", "intervals", INTERVALS_INFO_ID)
 }
 
-pub fn ordered_event_intervals_definition() -> KindDefinition {
-    KindDefinition {
+pub fn ordered_event_intervals_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(ORDERED_EVENT_INTERVALS_KIND),
         kind_contract_revision: KindIdentity::from(ORDERED_EVENT_INTERVALS_REVISION),
         inputs: vec![value_port(
@@ -68,7 +68,7 @@ pub fn ordered_event_intervals_definition() -> KindDefinition {
             &interval_sequence_type(),
             PortDirection::Output,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 
@@ -81,6 +81,8 @@ pub fn ordered_event_intervals_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 1,

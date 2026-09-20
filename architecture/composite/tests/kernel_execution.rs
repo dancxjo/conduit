@@ -8,7 +8,7 @@ use conduit_core::{
     HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PlannedGear, PortDescriptor,
     PortDirection, ValuePayload, PROTOCOL_VERSION,
 };
-use conduit_form::{parse, KindDefinition, ProfileCatalog};
+use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_kernel::{
     HostedValueStore, Operation, OperationAction, OperationInput, PortId as KernelPortId,
 };
@@ -31,7 +31,7 @@ fn descriptor(name: &str, direction: PortDirection) -> PortDescriptor {
 fn catalog() -> ProfileCatalog {
     let mut catalog = ProfileCatalog::new();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(ECHO_KIND),
             kind_contract_revision: KindIdentity::from("test/kernel-composite-echo@1"),
             inputs: vec![descriptor("in", PortDirection::Input)],

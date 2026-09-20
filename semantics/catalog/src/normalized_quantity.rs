@@ -30,6 +30,10 @@ pub fn normalized_quantity_semantic_contract() -> Kind {
         kind_contract_revision: NORMALIZED_QUANTITY_REVISION.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
@@ -45,12 +49,12 @@ pub fn install_normalized_quantity_catalog(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: NORMALIZED_QUANTITY_REVISION.into(),
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| alloc::format!("{error}"))
 }

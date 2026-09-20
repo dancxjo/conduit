@@ -1,9 +1,9 @@
 //! Canonical Patchbay presentation waist and first subject-specific Backs.
 
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const PATCHBAY_PRESENTATION_KIND: &str = "presentation/patchbay";
@@ -56,13 +56,13 @@ fn contract(kind: &str, name: &str, summary: &str) -> StandardKindContract {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 4,
             max_queue_bytes: MAX_PATCHBAY_PRESENTATION_BYTES,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: kind == PATCHBAY_PRESENTATION_KIND,
         pico_manifestation_honest: false,
@@ -75,20 +75,14 @@ pub fn install_patchbay_presentation_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::KindSignature;
     for contract in patchbay_presentation_contracts() {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(PATCHBAY_PRESENTATION_REVISION),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: Vec::new(),
-            })
+            .insert_kind(contract.into_semantic_contract(PATCHBAY_PRESENTATION_REVISION))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -112,7 +106,7 @@ pub fn install_patchbay_presentation_backs(
         backs
             .insert(
                 profile
-                    .get(&kind.into())
+                    .canonical_kind(&kind.into())
                     .ok_or_else(|| alloc::format!("missing Kind {kind}"))?,
                 &document,
                 kind,

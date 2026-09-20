@@ -41,6 +41,8 @@ pub fn image_text_compose_semantic_contract() -> Kind {
             &image_text_record_type(),
             PortDirection::Output,
         )],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 2,
@@ -67,6 +69,8 @@ pub fn image_text_typed_record_semantic_contract() -> Kind {
             &conduit_net::typed_record_type(),
             PortDirection::Output,
         )],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -80,7 +84,7 @@ pub fn install_image_text_inspection_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     let contract =
         crate::structured_presentation_contract(IMAGE_TEXT_RECORD_TYPE, &image_text_record_type());
@@ -89,7 +93,7 @@ pub fn install_image_text_inspection_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -359,7 +363,7 @@ pub fn install_human_media_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     install_camera_catalogs(startup, profile)?;
 
@@ -379,7 +383,7 @@ pub fn install_human_media_catalogs(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,

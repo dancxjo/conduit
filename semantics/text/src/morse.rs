@@ -67,7 +67,7 @@ pub fn morse_text_semantics() -> MorseKindContract {
         kind_contract_revision: KindIdentity::from(MORSE_TEXT_CONTRACT_REVISION),
         inputs: vec![morse_port(PortDirection::Input)],
         outputs: vec![text_port(PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: morse_limits(),
     }
 }
@@ -102,6 +102,8 @@ impl MorseKindContract {
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: self.limits,
         }
     }
@@ -113,8 +115,7 @@ pub fn install_morse_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
-        StartupParameterSignature,
+        KindConfigurationField, KindConfigurationRule, KindSignature, StartupParameterSignature,
     };
 
     startup.insert(KindSignature {
@@ -129,32 +130,21 @@ pub fn install_morse_catalogs(
         kind: MORSE_TEXT_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
-    let encoder = text_morse_semantics();
+    let mut encoder = text_morse_semantics().into_semantic_contract();
+    encoder.configuration = vec![KindConfigurationField {
+        key: MORSE_UNIT_MILLIS_KEY.into(),
+        default_value: ConfigurationValue::U64(u64::from(DEFAULT_MORSE_UNIT_MILLIS)),
+        rule: KindConfigurationRule::U64Range {
+            minimum: u64::from(MINIMUM_MORSE_UNIT_MILLIS),
+            maximum: u64::from(MAXIMUM_MORSE_UNIT_MILLIS),
+        },
+    }];
     profile
-        .insert(KindDefinition {
-            kind_id: encoder.kind_id,
-            kind_contract_revision: encoder.kind_contract_revision,
-            inputs: encoder.inputs,
-            outputs: encoder.outputs,
-            configuration: vec![ConfigurationField {
-                key: MORSE_UNIT_MILLIS_KEY.into(),
-                default_value: ConfigurationValue::U64(u64::from(DEFAULT_MORSE_UNIT_MILLIS)),
-                validation: ConfigurationRule::U64Range {
-                    minimum: u64::from(MINIMUM_MORSE_UNIT_MILLIS),
-                    maximum: u64::from(MAXIMUM_MORSE_UNIT_MILLIS),
-                },
-            }],
-        })
+        .insert_kind(encoder)
         .map_err(|error| error.to_string())?;
-    let decoder = morse_text_semantics();
+    let decoder = morse_text_semantics().into_semantic_contract();
     profile
-        .insert(KindDefinition {
-            kind_id: decoder.kind_id,
-            kind_contract_revision: decoder.kind_contract_revision,
-            inputs: decoder.inputs,
-            outputs: decoder.outputs,
-            configuration: Vec::new(),
-        })
+        .insert_kind(decoder)
         .map_err(|error| error.to_string())?;
     crate::morse_catalog::install_morse_composition_catalogs(startup, profile)
 }

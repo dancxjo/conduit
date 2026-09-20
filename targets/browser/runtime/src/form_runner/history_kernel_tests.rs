@@ -6,7 +6,7 @@ use conduit_core::{
     ResourceVersionIdentity, StructuredInfoType, TemporalInstant, TemporalScale,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
     KindSignature,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
@@ -24,12 +24,12 @@ fn fragment() -> PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     browser.capabilities.push(sink);
@@ -57,12 +57,12 @@ fn fragment() -> PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: source_offer.kind_id.clone(),
             kind_contract_revision: source_offer.kind_contract_revision.clone(),
             inputs: Vec::new(),
             outputs: source_offer.outputs.clone(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     let mut source_host = browser.clone();

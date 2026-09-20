@@ -10,7 +10,7 @@ use conduit_core::{
     HostProfileId, ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration,
     PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
-use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
+use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use serde::Serialize;
 
 use super::super::CatalogError;
@@ -115,7 +115,7 @@ fn catalog() -> Result<ProfileCatalog, CatalogError> {
     Ok(catalog)
 }
 
-fn source_definition() -> KindDefinition {
+fn source_definition() -> KindProjection {
     definition(
         SOURCE_KIND,
         Vec::new(),
@@ -124,7 +124,7 @@ fn source_definition() -> KindDefinition {
     )
 }
 
-fn adapter_definition() -> KindDefinition {
+fn adapter_definition() -> KindProjection {
     definition(
         ADAPTER_KIND,
         vec![port("notes", MUSIC_NOTE_INFO_ID, PortDirection::Input)],
@@ -137,7 +137,7 @@ fn adapter_definition() -> KindDefinition {
     )
 }
 
-fn sink_definition() -> KindDefinition {
+fn sink_definition() -> KindProjection {
     definition(
         SINK_KIND,
         vec![port("tone", SOUND_TONE_INFO_ID, PortDirection::Input)],
@@ -150,9 +150,9 @@ fn definition(
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
-    configuration: Vec<ConfigurationField>,
-) -> KindDefinition {
-    KindDefinition {
+    configuration: Vec<KindConfigurationField>,
+) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
         kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs,
@@ -170,11 +170,11 @@ fn port(name: &str, info: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn text_policy(key: &str, value: &str) -> ConfigurationField {
-    ConfigurationField {
+fn text_policy(key: &str, value: &str) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::Text(value.into()),
-        validation: ConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: vec![value.into()],
         },
     }

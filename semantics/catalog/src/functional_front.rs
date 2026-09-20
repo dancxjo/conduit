@@ -1,4 +1,4 @@
-use crate::StandardConfigurationField;
+use crate::KindConfigurationField;
 use alloc::vec::Vec;
 use conduit_core::{
     ArtifactId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId, CapabilityOffer,
@@ -33,6 +33,10 @@ pub fn realization_offer(
             kind_contract_revision: KindIdentity::from(revision),
             inputs: contract.inputs,
             outputs: contract.outputs,
+            configuration: contract.configuration,
+            semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+                contract.terminal_behavior
+            )],
             limits: contract.limits,
         },
         Back {
@@ -48,7 +52,7 @@ pub fn realization_offer(
     .build()
 }
 
-pub fn startup_front(fields: &[StandardConfigurationField]) -> Vec<FrontStartupParameter> {
+pub fn startup_front(fields: &[KindConfigurationField]) -> Vec<FrontStartupParameter> {
     fields
         .iter()
         .map(|field| FrontStartupParameter {

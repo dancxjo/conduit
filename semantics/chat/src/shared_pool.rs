@@ -64,6 +64,8 @@ fn pool_chat_contract(
         kind_contract_revision: KindIdentity::from(format!("conduit.{kind}@1")),
         inputs,
         outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: if kind == CHAT_PEER_KIND {
                 POOL_WEBCHAT_MAXIMUM_PEERS
@@ -98,7 +100,7 @@ pub fn install_pool_chat_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature, StartupParameterSignature};
+    use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
 
     startup.insert_value_kind_alias("ChatMessage", kind_id(CHAT_MESSAGE_KIND))?;
 
@@ -112,12 +114,12 @@ pub fn install_pool_chat_catalogs(
             }],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|error| error.to_string())?;
     }

@@ -59,7 +59,10 @@ pub use capability_offer::*;
 pub use characteristic::*;
 pub use completion::*;
 pub use conduit_assigned_plan::*;
-pub use configuration::{ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue};
+pub use configuration::{
+    ConfigurationEntry, ConfigurationValue, KindConfigurationField, KindConfigurationRule,
+    KindSemanticLaw, KindTerminalBehavior, StructuredConfigurationValue,
+};
 pub use consequential_effect::*;
 pub use control_loop::*;
 pub use deadline::*;

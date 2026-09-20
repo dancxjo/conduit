@@ -14,7 +14,7 @@ pub(super) static SINK: BrowserInstallation = BrowserInstallation {
 };
 
 pub(crate) fn offer() -> CapabilityOffer {
-    let mut contract = conduit_time::replay_source_kind_definition();
+    let mut contract = conduit_time::replay_source_kind_projection();
     contract.inputs = vec![contract.outputs.remove(0)];
     contract.inputs[0].direction = PortDirection::Input;
     CapabilityOffer {

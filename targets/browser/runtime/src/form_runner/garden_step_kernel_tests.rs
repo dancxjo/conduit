@@ -7,7 +7,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, Scalar,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
     KindSignature,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
@@ -70,12 +70,12 @@ fn fragment(interactive: bool) -> PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: source.kind_id.clone(),
             kind_contract_revision: source.kind_contract_revision.clone(),
             inputs: Vec::new(),
             outputs: source.outputs.clone(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     let mut source_host = browser.clone();

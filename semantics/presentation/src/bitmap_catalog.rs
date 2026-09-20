@@ -5,7 +5,7 @@ use alloc::{string::ToString, vec, vec::Vec};
 #[cfg(feature = "form-catalog")]
 use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
 #[cfg(feature = "form-catalog")]
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 #[cfg(feature = "form-catalog")]
 use crate::GRAY8_BITMAP_INFO_KIND;
@@ -14,8 +14,8 @@ pub const BITMAP_PRESENTATION_KIND: &str = "presentation/bitmap";
 pub const BITMAP_PRESENTATION_REVISION: &str = "conduit.presentation/bitmap@1";
 
 #[cfg(feature = "form-catalog")]
-pub fn bitmap_presentation_definition() -> KindDefinition {
-    KindDefinition {
+pub fn bitmap_presentation_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(BITMAP_PRESENTATION_KIND),
         kind_contract_revision: KindIdentity::from(BITMAP_PRESENTATION_REVISION),
         inputs: vec![PortDescriptor {
@@ -25,7 +25,7 @@ pub fn bitmap_presentation_definition() -> KindDefinition {
             temporal: PortTemporal::Flow { closes: true },
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 

@@ -1,5 +1,5 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::ToString;
 use alloc::vec;
@@ -18,10 +18,10 @@ pub fn time_every_contract() -> StandardKindContract {
                 .to_string(),
         inputs: Vec::new(),
         outputs: conduit_time::time_every_outputs(),
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "freq".to_string(),
             default_value: ConfigurationValue::Quantity(Quantity::new(1_000, QuantityUnit::Millisecond)),
-            rule: StandardConfigurationRule::QuantityRange {
+            rule: KindConfigurationRule::QuantityRange {
                 minimum: 0,
                 maximum: i64::MAX,
                 canonical_unit: QuantityUnit::Millisecond,
@@ -32,7 +32,7 @@ pub fn time_every_contract() -> StandardKindContract {
             max_queue_items: 4,
             max_queue_bytes: 64,
         },
-        terminal_behavior: TerminalBehavior::HostObservationEndsOrFailsSource,
+        terminal_behavior: KindTerminalBehavior::HostObservationEndsOrFailsSource,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -53,6 +53,10 @@ pub fn time_every_semantic_contract() -> Kind {
         kind_contract_revision: conduit_time::TIME_EVERY_CONTRACT_REVISION.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
@@ -72,7 +76,7 @@ mod tests {
         );
         assert_eq!(
             contract.terminal_behavior,
-            TerminalBehavior::HostObservationEndsOrFailsSource
+            KindTerminalBehavior::HostObservationEndsOrFailsSource
         );
         assert!(contract.browser_manifestation_honest);
         assert!(!contract.pico_manifestation_honest);

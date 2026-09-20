@@ -1,6 +1,6 @@
 //! Terminal manifestation of one already-resolved bounded graphics scene.
 
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
@@ -21,13 +21,13 @@ pub fn graphics_presentation_contract() -> StandardKindContract {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
             max_queue_bytes: conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -45,13 +45,13 @@ pub fn bitmap_presentation_contract() -> StandardKindContract {
                 .to_string(),
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 1,
             max_queue_bytes: conduit_presentation::MAX_GRAY8_BITMAP_BYTES as u32,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -64,19 +64,19 @@ pub fn install_graphics_presentation_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
     let contract = graphics_presentation_contract();
     startup.insert(KindSignature {
         kind: GRAPHICS_PRESENTATION_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: KindIdentity::from(GRAPHICS_PRESENTATION_REVISION),
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())
 }

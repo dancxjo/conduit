@@ -9,7 +9,7 @@ use conduit_core::{
     ResourceObservation, ResourceOffer, ResourcePoolId, ResourceRequirement, SignId,
     PROTOCOL_VERSION,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_planner::{
     observe_dormant_candidate, plan_with_options, prove_dormant_readmission,
     DormantEquipmentHistory, DormantReadmissionRefusal, PlacementChoice, PlacementChoices,
@@ -35,8 +35,8 @@ fn port(direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn definition(kind: &str) -> KindDefinition {
-    KindDefinition {
+fn definition(kind: &str) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
         kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: (kind == SINK)

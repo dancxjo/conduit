@@ -13,7 +13,8 @@ use conduit_core::{
     StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const CALENDAR_PROPOSAL_REQUEST_TYPE: &str = "CalendarMeetingProposalRequest";
@@ -49,6 +50,8 @@ pub fn calendar_proposal_semantic_contract() -> Kind {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: CALENDAR_PROPOSAL_MAXIMUM_RESULTS,
@@ -308,7 +311,7 @@ pub fn install_calendar_proposal_catalogs(
         .map_err(|error| error.to_string())?;
     let request_profile = request.profile().map_err(|error| format!("{error:?}"))?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(CALENDAR_PROPOSAL_KIND),
             kind_contract_revision: KindIdentity::from(CALENDAR_PROPOSAL_REVISION),
             inputs: vec![],
@@ -322,7 +325,7 @@ pub fn install_calendar_proposal_catalogs(
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Value,
             }],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "request".into(),
                 default_value: ConfigurationValue::Structured(
                     conduit_core::StructuredConfigurationValue::new(
@@ -333,7 +336,7 @@ pub fn install_calendar_proposal_catalogs(
                     )
                     .ok_or_else(|| "default calendar request is invalid".to_string())?,
                 ),
-                validation: ConfigurationRule::Structured {
+                rule: KindConfigurationRule::Structured {
                     profile: request_profile.value_kind().clone(),
                 },
             }],

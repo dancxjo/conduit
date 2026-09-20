@@ -1,7 +1,7 @@
 //! Native conformance of the browser envelope using the actual authored Todo.
 use super::*;
 use crate::installed_browser::test_json;
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 use std::collections::BTreeMap;
 const TODO: &str = include_str!("../../../../../forms/todo/main.conduit");
 
@@ -17,12 +17,12 @@ pub(super) fn execute(input: &str, entry: &str) -> Result<String, String> {
             })
             .unwrap();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: offer.kind_id.clone(),
                 kind_contract_revision: offer.kind_contract_revision.clone(),
                 inputs: offer.inputs.clone(),
                 outputs: offer.outputs.clone(),
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .unwrap();
         host.capabilities.push(offer);

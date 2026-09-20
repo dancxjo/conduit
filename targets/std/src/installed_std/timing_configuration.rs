@@ -1,5 +1,5 @@
 use super::operation::OperationBudget;
-use conduit_core::{ConfigurationValue, PlannedGear};
+use conduit_core::{ConfigurationValue, PlannedGear, Quantity, QuantityUnit};
 
 #[derive(Clone, Copy)]
 pub(super) struct TimingConfiguration {
@@ -20,7 +20,9 @@ pub(super) fn parse(
     let mut policy = None;
     for entry in &placement.configuration {
         match (entry.key.as_str(), &entry.value) {
-            ("duration-ms", ConfigurationValue::U64(value)) => duration_ms = Some(*value),
+            ("duration-ms", ConfigurationValue::Quantity(value)) => {
+                duration_ms = Some(quantity_milliseconds(*value)?)
+            }
             ("maximum-values", ConfigurationValue::U64(value)) => maximum_values = Some(*value),
             ("policy", ConfigurationValue::Text(value)) => policy = Some(value.as_str()),
             _ => return Err("timing operation has an invalid configuration field".to_string()),
@@ -63,7 +65,9 @@ pub(super) fn parse_pacing(
     let mut actual_policy = None;
     for entry in &placement.configuration {
         match (entry.key.as_str(), &entry.value) {
-            ("duration-ms", ConfigurationValue::U64(value)) => duration_ms = Some(*value),
+            ("duration-ms", ConfigurationValue::Quantity(value)) => {
+                duration_ms = Some(quantity_milliseconds(*value)?)
+            }
             ("maximum-values", ConfigurationValue::U64(value)) => maximum_values = Some(*value),
             ("policy", ConfigurationValue::Text(value)) => actual_policy = Some(value.as_str()),
             _ => return Err("pacing operation has an invalid configuration field".to_string()),
@@ -86,6 +90,15 @@ pub(super) fn parse_pacing(
         duration_ms,
         maximum_values,
     })
+}
+
+fn quantity_milliseconds(value: Quantity) -> Result<u64, String> {
+    value
+        .convert(QuantityUnit::Millisecond)
+        .map_err(|_| "timing duration must be an exact time quantity".to_string())?
+        .value()
+        .try_into()
+        .map_err(|_| "timing duration must be nonnegative".to_string())
 }
 
 pub(super) fn budget(

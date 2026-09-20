@@ -114,6 +114,8 @@ fn external_websocket_client_contract() -> Kind {
                 PortTemporal::Current,
             ),
         ],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: limits(1),
     }
 }
@@ -185,6 +187,8 @@ fn external_websocket_listener_contract() -> Kind {
                 PortTemporal::Current,
             ),
         ],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: limits(MAXIMUM_EXTERNAL_WEBSOCKET_PEERS),
     }
 }
@@ -232,7 +236,7 @@ pub fn install_external_websocket_catalogs(
 ) -> Result<(), alloc::string::String> {
     use conduit_core::ConfigurationValue;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -259,7 +263,7 @@ pub fn install_external_websocket_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
@@ -267,10 +271,10 @@ pub fn install_external_websocket_catalogs(
                 configuration: contract
                     .startup_parameters
                     .into_iter()
-                    .map(|parameter| ConfigurationField {
+                    .map(|parameter| KindConfigurationField {
                         key: parameter.name,
                         default_value: ConfigurationValue::Text(alloc::string::String::new()),
-                        validation: ConfigurationRule::Any,
+                        rule: KindConfigurationRule::Any,
                     })
                     .collect(),
             })

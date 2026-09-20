@@ -56,7 +56,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
         }],
     })?;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: literal.kind_id,
             kind_contract_revision: conduit_core::KindIdentity::from(
                 conduit_text::TEXT_LITERAL_CONTRACT_REVISION,
@@ -66,10 +66,10 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
             configuration: literal
                 .configuration
                 .into_iter()
-                .map(|field| conduit_form::ConfigurationField {
+                .map(|field| conduit_form::KindConfigurationField {
                     key: field.key.into(),
                     default_value: field.default_value,
-                    validation: conduit_form::ConfigurationRule::TextBytes {
+                    rule: conduit_form::KindConfigurationRule::TextBytes {
                         maximum: field.maximum_text_bytes,
                     },
                 })

@@ -264,7 +264,7 @@ fn fixture_offer(
 }
 
 fn catalogs() -> (conduit_form::StartupCatalog, conduit_form::ProfileCatalog) {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_web::install_http_catalogs(&mut startup, &mut profile).unwrap();
@@ -289,12 +289,12 @@ fn catalogs() -> (conduit_form::StartupCatalog, conduit_form::ProfileCatalog) {
             })
             .unwrap();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .unwrap();
     }

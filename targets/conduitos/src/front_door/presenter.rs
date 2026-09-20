@@ -13,7 +13,7 @@ use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
     LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationId, ManifestationLifecycle,
-    PresentationRole, RendererRealizationOffer, renderer_kind_definition, renderer_offer,
+    PresentationRole, RendererRealizationOffer, renderer_kind_projection, renderer_offer,
 };
 
 use super::{Error as FrontDoorError, FrontDoor};
@@ -84,7 +84,7 @@ impl FrontDoorPresenter {
         }
         let mut catalog = ProfileCatalog::new();
         catalog
-            .insert(renderer_kind_definition())
+            .insert(renderer_kind_projection())
             .map_err(|_| PresenterError::Catalog)?;
         let form = parse(RENDERER_FORM, &catalog).map_err(|_| PresenterError::Catalog)?;
         let implementation_id = ImplementationId::from(NATIVE_PRESENTER_IMPLEMENTATION);

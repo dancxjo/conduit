@@ -8,7 +8,7 @@ use conduit_core::{
     ResourceRequirement, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
     PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
@@ -353,12 +353,12 @@ fn catalogs(value: &StructuredInfoValue) -> Result<(StartupCatalog, ProfileCatal
         value.value_type(),
     );
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: presenter.kind_id,
             kind_contract_revision: presenter.kind_contract_revision,
             inputs: presenter.inputs,
             outputs: presenter.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())?;
     Ok((startup, profile))

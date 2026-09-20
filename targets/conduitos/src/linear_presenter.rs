@@ -12,7 +12,7 @@ use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
     LinearPresentation, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle,
     Presentation, PresentationRole, RendererRealizationOffer, render_linear_presentation,
-    renderer_kind_definition, renderer_offer,
+    renderer_kind_projection, renderer_offer,
 };
 
 pub const IMPLEMENTATION: &str = "presenter/linear-serial@1";
@@ -82,7 +82,7 @@ impl LinearPresenter {
     ) -> Result<Self, LinearPresenterError> {
         let mut catalog = ProfileCatalog::new();
         catalog
-            .insert(renderer_kind_definition())
+            .insert(renderer_kind_projection())
             .map_err(|_| LinearPresenterError::Catalog)?;
         let form = parse(FORM, &catalog).map_err(|_| LinearPresenterError::Catalog)?;
         let implementation_id = ImplementationId::from(implementation);

@@ -10,7 +10,7 @@ use alloc::{
 use conduit_core::*;
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ExpandedCanonicalForm,
-    KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 pub const FRAME_SOURCE: &str = "form frames {\n source: frame/source\n compose: frame/compose\n display: frame/display\n encoder: frame/encoder\n source > compose\n compose > display\n compose > encoder\n}\n";
 pub const FRAME_BYTES: u32 = 262144;
@@ -55,7 +55,7 @@ pub fn frame_resource_plan(
             temporal: PortTemporal::Value,
         };
         let kind = format!("frame/{name}");
-        let definition = KindDefinition {
+        let definition = KindProjection {
             kind_id: kind_id(&kind),
             kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
             inputs: if name == "source" {

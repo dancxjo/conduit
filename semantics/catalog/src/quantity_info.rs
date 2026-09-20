@@ -1,6 +1,6 @@
 //! Explicit conversion from a Quantity into its structured leaf envelope.
 
-use crate::{StandardKindContract, TerminalBehavior};
+use crate::{KindTerminalBehavior, StandardKindContract};
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::{vec, vec::Vec};
@@ -54,14 +54,14 @@ pub fn quantity_info_wrap_contract() -> StandardKindContract {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
             max_queue_bytes: QUANTITY_INFO_MAXIMUM_BYTES as u32,
         },
         terminal_behavior:
-            TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+            KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -78,18 +78,22 @@ pub fn quantity_info_wrap_semantic_contract() -> Kind {
         kind_contract_revision: QUANTITY_INFO_WRAP_REVISION.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
 
-pub fn quantity_presentation_definition() -> conduit_form::KindDefinition {
+pub fn quantity_presentation_definition() -> conduit_form::KindProjection {
     let contract = quantity_presentation_semantic_contract();
-    conduit_form::KindDefinition {
+    conduit_form::KindProjection {
         kind_id: contract.kind_id,
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 
@@ -110,6 +114,8 @@ pub fn quantity_presentation_semantic_contract() -> Kind {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 1,
@@ -129,12 +135,12 @@ pub fn install_quantity_info_catalog(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: conduit_core::KindIdentity::from(QUANTITY_INFO_WRAP_REVISION),
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| alloc::format!("{error}"))?;
     startup.insert(conduit_form::KindSignature {

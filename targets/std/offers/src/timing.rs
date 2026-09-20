@@ -183,7 +183,7 @@ mod tests {
             assert_eq!(offer.resource_requirements.len(), 1);
             assert_eq!(
                 offer.startup_parameters[0].value_type.as_str(),
-                "value/duration"
+                conduit_core::QUANTITY_INFO_ID
             );
         }
         assert_eq!(

@@ -5,7 +5,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 pub const RECORD_DELIVERY_STATUS_KIND: &str = "record/delivery-status";
 pub const RECORD_DELIVERY_STATUS_CONTRACT_REVISION: &str = "conduit.net/record-delivery-status@1";
@@ -25,7 +25,7 @@ pub fn install_record_delivery_status_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(record_delivery_status_kind_definition())
+        .insert(record_delivery_status_kind_projection())
         .map_err(|error| error.to_string())
 }
 
@@ -37,8 +37,8 @@ pub fn delivery_status_type() -> StructuredInfoType {
     leaf("record/delivery-status@1")
 }
 
-pub fn record_delivery_status_kind_definition() -> KindDefinition {
-    KindDefinition {
+pub fn record_delivery_status_kind_projection() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(RECORD_DELIVERY_STATUS_KIND),
         kind_contract_revision: KindIdentity::from(RECORD_DELIVERY_STATUS_CONTRACT_REVISION),
         inputs: vec![port(
@@ -56,7 +56,7 @@ pub fn record_delivery_status_kind_definition() -> KindDefinition {
 }
 
 pub fn record_delivery_status_semantic_contract() -> Kind {
-    let definition = record_delivery_status_kind_definition();
+    let definition = record_delivery_status_kind_projection();
     Kind {
         startup_parameters: vec![],
         shorthand: None,
@@ -64,6 +64,8 @@ pub fn record_delivery_status_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -92,7 +94,7 @@ mod tests {
     #[test]
     fn semantic_contract_owns_delivery_front_and_capacity() {
         let contract = record_delivery_status_semantic_contract();
-        let definition = record_delivery_status_kind_definition();
+        let definition = record_delivery_status_kind_projection();
         assert_eq!(contract.inputs, definition.inputs);
         assert_eq!(contract.outputs, definition.outputs);
         assert_eq!(contract.limits.max_active_instances, 1);

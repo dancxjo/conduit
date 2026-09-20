@@ -20,8 +20,8 @@ use conduit_core::{
     PortTemporal, SourceDocumentId, PROTOCOL_VERSION,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 pub use patchbay_control::PatchbayAction;
@@ -337,7 +337,7 @@ fn signature(kind: &str, fields: &[&str]) -> KindSignature {
     }
 }
 
-fn source_definition(kind: &str) -> KindDefinition {
+fn source_definition(kind: &str) -> KindProjection {
     let fields: &[&str] = if kind == SELECT_KIND {
         &["request", "basis", "subject"]
     } else {
@@ -350,17 +350,17 @@ fn source_definition(kind: &str) -> KindDefinition {
             "target",
         ]
     };
-    KindDefinition {
+    KindProjection {
         kind_id: kind_id(kind),
         kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         inputs: vec![],
         outputs: vec![request_port(PortDirection::Output)],
         configuration: fields
             .iter()
-            .map(|key| ConfigurationField {
+            .map(|key| KindConfigurationField {
                 key: (*key).into(),
                 default_value: ConfigurationValue::Text(String::new()),
-                validation: ConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: MAX_INTERACTION_ID_BYTES as u32,
                 },
             })
@@ -368,8 +368,8 @@ fn source_definition(kind: &str) -> KindDefinition {
     }
 }
 
-fn apply_definition() -> KindDefinition {
-    KindDefinition {
+fn apply_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(APPLY_KIND),
         kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         inputs: vec![request_port(PortDirection::Input)],

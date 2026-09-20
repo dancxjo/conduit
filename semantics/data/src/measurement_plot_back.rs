@@ -1,9 +1,12 @@
 //! Reviewed high-level Front and canonical Back for bounded measurement plotting.
 
 use alloc::{format, string::ToString, vec};
-use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
+use conduit_core::{
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
+};
 use conduit_form::{
-    check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
+    check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
 
@@ -19,12 +22,34 @@ pub fn install_measurement_plot_form_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(measurement_plot_form_definition())
+        .insert_kind(measurement_plot_form_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
-pub fn measurement_plot_form_definition() -> KindDefinition {
-    KindDefinition {
+pub fn measurement_plot_form_semantic_contract() -> Kind {
+    let definition = measurement_plot_form_definition();
+    Kind {
+        startup_parameters: vec![],
+        shorthand: Some((
+            definition.inputs[0].port_id.clone(),
+            definition.outputs[0].port_id.clone(),
+        )),
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: definition.configuration,
+        semantic_laws: vec![],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: crate::MAXIMUM_MEASUREMENT_PLOT_POINTS as u16,
+            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
+}
+
+pub fn measurement_plot_form_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(MEASUREMENT_PLOT_FORM_KIND),
         kind_contract_revision: KindIdentity::from(MEASUREMENT_PLOT_FORM_CONTRACT_REVISION),
         inputs: vec![port(
@@ -58,7 +83,7 @@ pub fn install_measurement_plot_form_back(
     let checked = check_syntax_document(&parse_syntax_document(source), startup)
         .map_err(|error| format!("check bounded measurement plot Back: {error:?}"))?;
     let definition = profile
-        .get(&kind_id(MEASUREMENT_PLOT_FORM_KIND))
+        .canonical_kind(&kind_id(MEASUREMENT_PLOT_FORM_KIND))
         .ok_or_else(|| "missing bounded measurement plot definition".to_string())?;
     backs
         .insert(definition, &checked, "measurement-plot")

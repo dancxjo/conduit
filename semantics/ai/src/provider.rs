@@ -14,7 +14,7 @@ use conduit_core::{
     PortTemporal,
 };
 use conduit_form::{
-    check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
+    check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_web::{
@@ -167,7 +167,7 @@ pub fn install_provider_catalogs(
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(definition)
+            .insert_kind(provider_adapter_semantic_contract(definition))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -179,7 +179,7 @@ pub fn install_provider_back(
     backs: &mut CanonicalBackCatalog,
 ) -> Result<(), String> {
     let source = format!(
-        "form {GENERATE_TEXT_KIND} (\n prompt: {TEXT_VALUE_KIND} > text: {TEXT_VALUE_KIND}\n) {{\n request: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result: {PROVIDER_RESULT_KIND}\n prompt > request.prompt\n request.value > encode.value\n encode.value > envelope.json\n envelope.request > http.request\n http.response > response.response\n response.json > decode.value\n decode.value > result.value\n result.text > text\n}}\n",
+        "form {GENERATE_TEXT_KIND} (\n maximum-input-bytes: Count = 4096\n maximum-context-tokens: Count = 4096\n maximum-output-tokens: Count = 512\n temperature-milli: Count = 0\n prompt: {TEXT_VALUE_KIND} > text: {TEXT_VALUE_KIND}\n) {{\n request: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result: {PROVIDER_RESULT_KIND}\n prompt > request.prompt\n request.value > encode.value\n encode.value > envelope.json\n envelope.request > http.request\n http.response > response.response\n response.json > decode.value\n decode.value > result.value\n result.text > text\n}}\n",
         conduit_web::JSON_ENCODE_KIND,
         conduit_web::HTTP_CLIENT_KIND,
         conduit_web::JSON_DECODE_KIND,
@@ -187,7 +187,7 @@ pub fn install_provider_back(
     let checked = check_syntax_document(&parse_syntax_document(&source), startup)
         .map_err(|error| format!("provider Back check: {} {}", error.code, error.message))?;
     let high = profile
-        .get(&kind_id(GENERATE_TEXT_KIND))
+        .canonical_kind(&kind_id(GENERATE_TEXT_KIND))
         .ok_or_else(|| "portable generate-text definition missing".to_string())?;
     backs
         .insert(high, &checked, GENERATE_TEXT_KIND)
@@ -243,7 +243,7 @@ pub fn provider_http_offer() -> CapabilityOffer {
     .build()
 }
 
-fn provider_definitions() -> Vec<KindDefinition> {
+fn provider_definitions() -> Vec<KindProjection> {
     vec![
         definition(
             PROVIDER_REQUEST_KIND,
@@ -301,8 +301,8 @@ fn definition(
     output_name: &str,
     output_value: &str,
     output_temporal: PortTemporal,
-) -> KindDefinition {
-    KindDefinition {
+) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
         kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: vec![port(
@@ -317,7 +317,7 @@ fn definition(
             PortDirection::Output,
             output_temporal,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 
@@ -335,7 +335,7 @@ fn port(
     }
 }
 
-fn adapter_offer(definition: KindDefinition) -> CapabilityOffer {
+fn adapter_offer(definition: KindProjection) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     BackOfferBuilder::new(
         provider_adapter_semantic_contract(definition),
@@ -352,7 +352,7 @@ fn adapter_offer(definition: KindDefinition) -> CapabilityOffer {
     .build()
 }
 
-fn provider_adapter_semantic_contract(definition: KindDefinition) -> Kind {
+fn provider_adapter_semantic_contract(definition: KindProjection) -> Kind {
     Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
@@ -360,6 +360,8 @@ fn provider_adapter_semantic_contract(definition: KindDefinition) -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,

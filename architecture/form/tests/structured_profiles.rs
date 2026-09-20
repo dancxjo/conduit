@@ -4,7 +4,7 @@ use conduit_core::{
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 
 fn event_type(extra_field: bool) -> StructuredInfoType {
@@ -90,7 +90,7 @@ fn canonical_expansion_checks_the_resolved_profile_not_the_alias() {
     let source = "form source (\n event: MusicEvent >\n) {\n primitive: music/source\n primitive > event\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
 
-    let definition = |value_kind| KindDefinition {
+    let definition = |value_kind| KindProjection {
         kind_id: KindId::from("music/source"),
         kind_contract_revision: KindIdentity::from("music/source@1"),
         inputs: vec![],

@@ -10,7 +10,7 @@ use conduit_core::{
 use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    renderer_kind_definition, renderer_offer, Presentation, PresentationBasis,
+    renderer_kind_projection, renderer_offer, Presentation, PresentationBasis,
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
     PresentationText, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
 };
@@ -20,7 +20,7 @@ pub const DOM_RESOURCE: &str = "conduit.resource/browser-document@1";
 
 pub fn checked_renderer_form() -> conduit_form::CheckedForm {
     let mut catalog = ProfileCatalog::new();
-    catalog.insert(renderer_kind_definition()).unwrap();
+    catalog.insert(renderer_kind_projection()).unwrap();
     parse(
         "form patchbay-show {\n    renderer: presentation/renderer\n}\n",
         &catalog,

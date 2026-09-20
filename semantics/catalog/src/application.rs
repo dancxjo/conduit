@@ -1,7 +1,7 @@
 //! Portable event, retained-state, and semantic-view boundary for applications.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
@@ -49,9 +49,9 @@ pub fn event_source_contract() -> StandardKindContract {
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: false },
         }],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(MAX_APPLICATION_EVENT_ENCODED_BYTES),
-        terminal_behavior: TerminalBehavior::HostInputEndsOrFailsSource,
+        terminal_behavior: KindTerminalBehavior::HostInputEndsOrFailsSource,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -65,8 +65,8 @@ pub fn retained_application_contract() -> StandardKindContract {
         summary: "Apply revision-bound events to finite retained application state and emit semantic views.".into(),
         inputs: vec![PortDescriptor { port_id: port_id(APPLICATION_EVENT_PORT), value_kind: kind_id(APPLICATION_EVENT_INFO_ID), direction: PortDirection::Input, temporal: PortTemporal::Flow { closes: false } }],
         outputs: vec![PortDescriptor { port_id: port_id(APPLICATION_VIEW_PORT), value_kind: kind_id(APPLICATION_VIEW_INFO_ID), direction: PortDirection::Output, temporal: PortTemporal::Flow { closes: false } }],
-        configuration: vec![StandardConfigurationField { key: APPLICATION_ID_CONFIGURATION.into(), default_value: ConfigurationValue::Text("application".into()), rule: StandardConfigurationRule::TextBytes { maximum: 32 } }],
-        limits: limits(MAX_APPLICATION_VIEW_BYTES), terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        configuration: vec![KindConfigurationField { key: APPLICATION_ID_CONFIGURATION.into(), default_value: ConfigurationValue::Text("application".into()), rule: KindConfigurationRule::TextBytes { maximum: 32 } }],
+        limits: limits(MAX_APPLICATION_VIEW_BYTES), terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true, browser_manifestation_honest: true, pico_manifestation_honest: false,
         example: "app: application/retained(application = \"tour\")".into(),
     }
@@ -86,9 +86,9 @@ pub fn view_presentation_contract() -> StandardKindContract {
             temporal: PortTemporal::Flow { closes: false },
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(MAX_APPLICATION_VIEW_BYTES),
-        terminal_behavior: TerminalBehavior::PresentsEachFieldAndCompletesWhenInputCloses,
+        terminal_behavior: KindTerminalBehavior::PresentsEachFieldAndCompletesWhenInputCloses,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -102,7 +102,7 @@ pub fn install_application_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     for contract in application_contracts() {
@@ -122,7 +122,7 @@ pub fn install_application_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: KindIdentity::from(APPLICATION_CONTRACT_REVISION),
                 inputs: contract.inputs,
@@ -130,18 +130,18 @@ pub fn install_application_catalogs(
                 configuration: contract
                     .configuration
                     .into_iter()
-                    .map(|field| ConfigurationField {
+                    .map(|field| KindConfigurationField {
                         key: field.key,
                         default_value: field.default_value,
-                        validation: match field.rule {
-                            StandardConfigurationRule::Any => ConfigurationRule::Any,
-                            StandardConfigurationRule::U64Range { minimum, maximum } => {
-                                ConfigurationRule::U64Range { minimum, maximum }
+                        rule: match field.rule {
+                            KindConfigurationRule::Any => KindConfigurationRule::Any,
+                            KindConfigurationRule::U64Range { minimum, maximum } => {
+                                KindConfigurationRule::U64Range { minimum, maximum }
                             }
-                            StandardConfigurationRule::TextBytes { maximum } => {
-                                ConfigurationRule::TextBytes { maximum }
+                            KindConfigurationRule::TextBytes { maximum } => {
+                                KindConfigurationRule::TextBytes { maximum }
                             }
-                            _ => ConfigurationRule::Any,
+                            _ => KindConfigurationRule::Any,
                         },
                     })
                     .collect(),

@@ -4,7 +4,7 @@ use conduit_core::{
     CheckedFormId, ExpandedFormId, InfoBool, KindId, KindIdentity, Quantity, QuantityUnit,
     SourceDocumentId, BOOL_INFO_ID, QUANTITY_INFO_ID,
 };
-use conduit_form::{parse, ConfigurationField, KindDefinition, ProfileCatalog};
+use conduit_form::{parse, KindConfigurationField, KindProjection, ProfileCatalog};
 use conduit_human::{
     BoundKind, HumanInteractionProposal, InteractionContract, InteractionCurrentState,
     InteractionDomain, InteractionFamily, InteractionOption, InteractionProposalPayload,
@@ -105,12 +105,12 @@ impl InteractionConvergenceApplication {
     pub fn new() -> Result<Self, InteractionConvergenceError> {
         let mut catalog = ProfileCatalog::new();
         catalog
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: KindId::from(CONTROL_SURFACE_KIND),
                 kind_contract_revision: KindIdentity::from(CONTROL_SURFACE_KIND_REVISION),
                 inputs: vec![],
                 outputs: vec![],
-                configuration: Vec::<ConfigurationField>::new(),
+                configuration: Vec::<KindConfigurationField>::new(),
             })
             .map_err(|_| InteractionConvergenceError::Catalog)?;
         let checked = parse(CONTROL_SURFACE_FORM, &catalog)

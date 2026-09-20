@@ -1,7 +1,7 @@
 //! Exact bounded scalar-control contracts and no-std semantic functions.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
@@ -119,7 +119,7 @@ fn contract(
     kind: &str,
     plain_name: &str,
     summary: &str,
-    configuration: alloc::vec::Vec<StandardConfigurationField>,
+    configuration: alloc::vec::Vec<KindConfigurationField>,
     example: &str,
 ) -> StandardKindContract {
     StandardKindContract {
@@ -135,7 +135,7 @@ fn contract(
             max_queue_bytes: SCALAR_ENCODED_LEN as u32,
         },
         terminal_behavior:
-            TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+            KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -143,11 +143,11 @@ fn contract(
     }
 }
 
-fn scalar_field(key: &str, default: i64, minimum: i64, maximum: i64) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn scalar_field(key: &str, default: i64, minimum: i64, maximum: i64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::I64(default),
-        rule: StandardConfigurationRule::I64Range { minimum, maximum },
+        rule: KindConfigurationRule::I64Range { minimum, maximum },
     }
 }
 
@@ -165,7 +165,9 @@ pub fn install_math_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, KindSignature};
+    use conduit_form::{
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    };
     for (contract, revision) in [
         (math_clamp_contract(), MATH_CLAMP_CONTRACT_REVISION),
         (math_scale_contract(), MATH_SCALE_CONTRACT_REVISION),
@@ -189,19 +191,19 @@ pub fn install_math_catalogs(
         let configuration = contract
             .configuration
             .into_iter()
-            .map(|field| ConfigurationField {
+            .map(|field| KindConfigurationField {
                 key: field.key,
                 default_value: field.default_value,
-                validation: match field.rule {
-                    StandardConfigurationRule::I64Range { minimum, maximum } => {
-                        ConfigurationRule::I64Range { minimum, maximum }
+                rule: match field.rule {
+                    KindConfigurationRule::I64Range { minimum, maximum } => {
+                        KindConfigurationRule::I64Range { minimum, maximum }
                     }
                     _ => unreachable!("math configuration has signed finite bounds"),
                 },
             })
             .collect();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,

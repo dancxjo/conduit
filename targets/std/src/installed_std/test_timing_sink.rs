@@ -4,7 +4,7 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal, BOOL_INFO_ID,
 };
-use conduit_form::{KindDefinition, ProfileCatalog};
+use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId, ValueRef, ValueStorage,
@@ -178,12 +178,12 @@ pub(super) fn source_offer() -> CapabilityOffer {
 pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     for offer in [offer(), source_offer()] {
         catalog
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .expect("timing fixture is exact and unique");
     }

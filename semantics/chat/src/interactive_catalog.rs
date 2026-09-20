@@ -196,6 +196,8 @@ fn chat_transport_adapter_contract(
             PortDirection::Output,
             output_temporal,
         )],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: limits(64, MAXIMUM_CHAT_MESSAGE_BYTES * 64),
     }
 }
@@ -251,6 +253,8 @@ fn chat_state_contract() -> Kind {
             PortDirection::Output,
             PortTemporal::Value,
         )],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: limits(
             MAXIMUM_CHAT_HISTORY_ITEMS as u16,
             MAX_PRESENTATION_TOTAL_BYTES as u32 * 2,
@@ -307,6 +311,8 @@ fn chat_submit_contract() -> Kind {
             PortDirection::Output,
             PortTemporal::Flow { closes: true },
         )],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: limits(8, MAX_PRESENTATION_INTERACTION_BYTES as u32 * 8),
     }
 }
@@ -365,7 +371,7 @@ pub fn install_browser_chat_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature, StartupParameterSignature};
+    use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
 
     for kind in [INTERACTION_KIND, PRESENTATION_TEE_KIND, RENDERER_KIND] {
         startup.insert(KindSignature {
@@ -374,13 +380,13 @@ pub fn install_browser_chat_catalogs(
         })?;
     }
     profile
-        .insert(conduit_presentation::interaction_kind_definition())
+        .insert(conduit_presentation::interaction_kind_projection())
         .map_err(|error| error.to_string())?;
     profile
-        .insert(conduit_presentation::presentation_tee_kind_definition())
+        .insert(conduit_presentation::presentation_tee_kind_projection())
         .map_err(|error| error.to_string())?;
     profile
-        .insert(conduit_presentation::renderer_kind_definition())
+        .insert(conduit_presentation::renderer_kind_projection())
         .map_err(|error| error.to_string())?;
 
     startup.insert(KindSignature {
@@ -396,7 +402,7 @@ pub fn install_browser_chat_catalogs(
     })?;
     let state_contract = chat_state_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: state_contract.kind_id,
             kind_contract_revision: state_contract.kind_contract_revision,
             inputs: state_contract.inputs,
@@ -425,7 +431,7 @@ pub fn install_browser_chat_catalogs(
     })?;
     let submit_contract = chat_submit_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: submit_contract.kind_id,
             kind_contract_revision: submit_contract.kind_contract_revision,
             inputs: submit_contract.inputs,
@@ -473,12 +479,12 @@ pub fn install_browser_chat_catalogs(
         let contract =
             chat_transport_adapter_contract(kind, input, output, input_temporal, output_temporal);
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
                 outputs: contract.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|error| error.to_string())?;
     }
@@ -486,29 +492,29 @@ pub fn install_browser_chat_catalogs(
 }
 
 #[cfg(feature = "form-catalog")]
-fn configuration(name: &str, value_type: &str) -> conduit_form::ConfigurationField {
+fn configuration(name: &str, value_type: &str) -> conduit_form::KindConfigurationField {
     use conduit_core::ConfigurationValue;
-    use conduit_form::{ConfigurationField, ConfigurationRule};
+    use conduit_form::{KindConfigurationField, KindConfigurationRule};
     if value_type == "Count" {
         let maximum = if name == "maximum-history-items" {
             MAXIMUM_CHAT_HISTORY_ITEMS as u64
         } else {
             MAXIMUM_CHAT_MESSAGE_BYTES as u64
         };
-        ConfigurationField {
+        KindConfigurationField {
             key: name.into(),
             default_value: ConfigurationValue::U64(maximum),
-            validation: ConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 1,
                 maximum,
             },
         }
     } else {
         let value = default_text(name);
-        ConfigurationField {
+        KindConfigurationField {
             key: name.into(),
             default_value: ConfigurationValue::Text(value.into()),
-            validation: ConfigurationRule::TextBytes { maximum: 256 },
+            rule: KindConfigurationRule::TextBytes { maximum: 256 },
         }
     }
 }

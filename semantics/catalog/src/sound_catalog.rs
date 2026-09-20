@@ -1,10 +1,11 @@
-use super::{configuration_type, sound_contracts_with_revisions, StandardConfigurationRule};
+use super::{configuration_type, sound_contracts_with_revisions};
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use conduit_core::{ConfigurationValue, KindIdentity};
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 /// Installs portable sound semantics and structured instrument authoring contracts.
@@ -43,44 +44,49 @@ fn install_contract(
     let configuration = contract
         .configuration
         .iter()
-        .map(|field| ConfigurationField {
+        .map(|field| KindConfigurationField {
             key: field.key.clone(),
             default_value: field.default_value.clone(),
-            validation: match &field.rule {
-                StandardConfigurationRule::Any => ConfigurationRule::Any,
-                StandardConfigurationRule::U64Range { minimum, maximum } => {
-                    ConfigurationRule::U64Range {
+            rule: match &field.rule {
+                KindConfigurationRule::Any => KindConfigurationRule::Any,
+                KindConfigurationRule::U64Range { minimum, maximum } => {
+                    KindConfigurationRule::U64Range {
                         minimum: *minimum,
                         maximum: *maximum,
                     }
                 }
-                StandardConfigurationRule::I64Range { minimum, maximum } => {
-                    ConfigurationRule::I64Range {
+                KindConfigurationRule::I64Range { minimum, maximum } => {
+                    KindConfigurationRule::I64Range {
                         minimum: *minimum,
                         maximum: *maximum,
                     }
                 }
-                StandardConfigurationRule::DurationMillis { minimum, maximum } => {
-                    ConfigurationRule::DurationMillis {
+                KindConfigurationRule::DurationMillis { minimum, maximum } => {
+                    KindConfigurationRule::DurationMillis {
                         minimum: *minimum,
                         maximum: *maximum,
                     }
                 }
-                StandardConfigurationRule::QuantityRange {
+                KindConfigurationRule::QuantityRange {
                     minimum,
                     maximum,
                     canonical_unit,
-                } => ConfigurationRule::QuantityRange {
+                } => KindConfigurationRule::QuantityRange {
                     minimum: *minimum,
                     maximum: *maximum,
                     canonical_unit: *canonical_unit,
                 },
-                StandardConfigurationRule::TextBytes { maximum } => {
-                    ConfigurationRule::TextBytes { maximum: *maximum }
+                KindConfigurationRule::TextBytes { maximum } => {
+                    KindConfigurationRule::TextBytes { maximum: *maximum }
                 }
-                StandardConfigurationRule::TextOneOf { values } => ConfigurationRule::TextOneOf {
+                KindConfigurationRule::TextOneOf { values } => KindConfigurationRule::TextOneOf {
                     values: values.clone(),
                 },
+                KindConfigurationRule::Structured { profile } => {
+                    KindConfigurationRule::Structured {
+                        profile: profile.clone(),
+                    }
+                }
             },
         })
         .collect::<Vec<_>>();
@@ -97,7 +103,7 @@ fn install_contract(
             .collect(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: KindIdentity::from(revision),
             inputs: contract.inputs,

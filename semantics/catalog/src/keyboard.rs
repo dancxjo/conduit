@@ -1,4 +1,4 @@
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -21,13 +21,13 @@ pub fn keyboard_contract() -> StandardKindContract {
         summary: "Produce a bounded flow of portable key transitions.".to_string(),
         inputs: Vec::new(),
         outputs: keyboard_outputs(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: KEYBOARD_MAX_QUEUE_ITEMS,
             max_queue_bytes: KEYBOARD_MAX_QUEUE_BYTES,
         },
-        terminal_behavior: TerminalBehavior::HostInputEndsOrFailsSource,
+        terminal_behavior: KindTerminalBehavior::HostInputEndsOrFailsSource,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -48,6 +48,10 @@ pub fn keyboard_semantic_contract() -> Kind {
         kind_contract_revision: keyboard_contract_revision(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
@@ -66,7 +70,7 @@ pub fn install_keyboard_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     let contract = keyboard_contract();
     startup.insert(KindSignature {
@@ -74,12 +78,12 @@ pub fn install_keyboard_catalogs(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: keyboard_contract_revision(),
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())
 }

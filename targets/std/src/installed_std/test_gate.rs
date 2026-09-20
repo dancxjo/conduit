@@ -5,7 +5,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, Scalar, BOOL_INFO_ID, SCALAR_ENCODED_LEN,
     SCALAR_INFO_ID, TIMER_RESOURCE_CLASS,
 };
-use conduit_form::{KindDefinition, ProfileCatalog};
+use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId, ValueRef, ValueStorage,
@@ -237,12 +237,12 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
         (slow_sink_offer(), Vec::new()),
         (
             conduit_std_offers::flow_gate_scalar_offer(),
-            vec![conduit_form::ConfigurationField {
+            vec![conduit_form::KindConfigurationField {
                 key: "maximum-enable-updates".into(),
                 default_value: conduit_core::ConfigurationValue::U64(
                     conduit_semantic_catalog::FLOW_STATE_MAXIMUM_VALUES.into(),
                 ),
-                validation: conduit_form::ConfigurationRule::U64Range {
+                rule: conduit_form::KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: conduit_semantic_catalog::FLOW_STATE_MAXIMUM_VALUES.into(),
                 },
@@ -250,7 +250,7 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
         ),
     ] {
         catalog
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,

@@ -13,7 +13,8 @@ use conduit_core::{
     StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const INSTRUMENT_CONTROL_TYPE: &str = "InstrumentControl";
@@ -38,6 +39,8 @@ pub fn rhythm_compare_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: RHYTHM_MAXIMUM_PENDING_BEATS,
@@ -62,6 +65,8 @@ pub fn instrument_map_semantic_contract() -> Result<Kind, String> {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 16,
@@ -211,8 +216,8 @@ pub fn install_structured_music_form_catalogs(
     Ok(())
 }
 
-pub fn rhythm_compare_definition() -> KindDefinition {
-    KindDefinition {
+pub fn rhythm_compare_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(RHYTHM_COMPARE_KIND),
         kind_contract_revision: KindIdentity::from(RHYTHM_COMPARE_REVISION),
         inputs: vec![
@@ -225,18 +230,18 @@ pub fn rhythm_compare_definition() -> KindDefinition {
             PortDirection::Output,
         )],
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "target-offset-micros".into(),
                 default_value: ConfigurationValue::I64(0),
-                validation: ConfigurationRule::I64Range {
+                rule: KindConfigurationRule::I64Range {
                     minimum: -60_000_000,
                     maximum: 60_000_000,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "tolerance-micros".into(),
                 default_value: ConfigurationValue::U64(30_000),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: 1_000_000,
                 },
@@ -245,7 +250,7 @@ pub fn rhythm_compare_definition() -> KindDefinition {
     }
 }
 
-pub fn instrument_map_definition() -> Result<KindDefinition, String> {
+pub fn instrument_map_definition() -> Result<KindProjection, String> {
     let control_kind = instrument_control_type()
         .profile()
         .map_err(|error| alloc::format!("{error:?}"))?
@@ -256,7 +261,7 @@ pub fn instrument_map_definition() -> Result<KindDefinition, String> {
         .map_err(|error| alloc::format!("{error:?}"))?
         .value_kind()
         .clone();
-    Ok(KindDefinition {
+    Ok(KindProjection {
         kind_id: kind_id(INSTRUMENT_MAP_KIND),
         kind_contract_revision: KindIdentity::from(INSTRUMENT_MAP_REVISION),
         inputs: vec![PortDescriptor {
@@ -269,12 +274,12 @@ pub fn instrument_map_definition() -> Result<KindDefinition, String> {
             flow_port("notes", MUSIC_NOTE_INFO_ID, PortDirection::Output),
             flow_port("controls", MUSIC_CONTROL_INFO_ID, PortDirection::Output),
         ],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "mapping".into(),
             default_value: ConfigurationValue::Structured(
                 default_instrument_mapping_configuration()?,
             ),
-            validation: ConfigurationRule::Structured {
+            rule: KindConfigurationRule::Structured {
                 profile: mapping_kind,
             },
         }],

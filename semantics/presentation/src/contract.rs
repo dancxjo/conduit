@@ -187,6 +187,8 @@ fn semantic_contract(
         kind_contract_revision: KindIdentity::from(revision),
         inputs,
         outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: MAX_PRESENTATION_ACTIVE_INSTANCES,
             max_queue_items: MAX_PRESENTATION_QUEUE_ITEMS,
@@ -261,45 +263,45 @@ fn build_offer(
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn renderer_kind_definition() -> conduit_form::KindDefinition {
-    conduit_form::KindDefinition {
+pub fn renderer_kind_projection() -> conduit_form::KindProjection {
+    conduit_form::KindProjection {
         kind_id: kind_id(RENDERER_KIND),
         kind_contract_revision: KindIdentity::from(RENDERER_CONTRACT_REVISION),
         inputs: renderer_inputs(),
         outputs: renderer_outputs(),
-        configuration: alloc::vec::Vec::new(),
+        configuration: Default::default(),
     }
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn interaction_kind_definition() -> conduit_form::KindDefinition {
-    conduit_form::KindDefinition {
+pub fn interaction_kind_projection() -> conduit_form::KindProjection {
+    conduit_form::KindProjection {
         kind_id: kind_id(INTERACTION_KIND),
         kind_contract_revision: KindIdentity::from(INTERACTION_CONTRACT_REVISION),
         inputs: interaction_inputs(),
         outputs: interaction_outputs(),
-        configuration: alloc::vec::Vec::new(),
+        configuration: Default::default(),
     }
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn presentation_tee_kind_definition() -> conduit_form::KindDefinition {
-    conduit_form::KindDefinition {
+pub fn presentation_tee_kind_projection() -> conduit_form::KindProjection {
+    conduit_form::KindProjection {
         kind_id: kind_id(PRESENTATION_TEE_KIND),
         kind_contract_revision: KindIdentity::from(PRESENTATION_TEE_CONTRACT_REVISION),
         inputs: presentation_tee_inputs(),
         outputs: presentation_tee_outputs(),
-        configuration: alloc::vec::Vec::new(),
+        configuration: Default::default(),
     }
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn presenter_stage_kind_definition() -> conduit_form::KindDefinition {
-    conduit_form::KindDefinition {
+pub fn presenter_stage_kind_projection() -> conduit_form::KindProjection {
+    conduit_form::KindProjection {
         kind_id: kind_id(PRESENTER_STAGE_KIND),
         kind_contract_revision: KindIdentity::from(PRESENTER_STAGE_CONTRACT_REVISION),
         inputs: presenter_stage_inputs(),
         outputs: presenter_stage_outputs(),
-        configuration: alloc::vec::Vec::new(),
+        configuration: Default::default(),
     }
 }

@@ -1,7 +1,8 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::*;
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 use conduit_semantic_catalog::state_value::*;
 
@@ -45,15 +46,15 @@ fn fixture(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: source.kind_id.clone(),
             kind_contract_revision: source.kind_contract_revision.clone(),
             inputs: source.inputs.clone(),
             outputs: source.outputs.clone(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: entry.key,
                 default_value: entry.value,
-                validation: ConfigurationRule::TextBytes { maximum: 256 },
+                rule: KindConfigurationRule::TextBytes { maximum: 256 },
             }],
         })
         .unwrap();
@@ -96,15 +97,15 @@ fn fixture(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: vec![],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: expectation_key.into(),
                 default_value: ConfigurationValue::Text(expected),
-                validation: ConfigurationRule::TextBytes { maximum: 256 },
+                rule: KindConfigurationRule::TextBytes { maximum: 256 },
             }],
         })
         .unwrap();

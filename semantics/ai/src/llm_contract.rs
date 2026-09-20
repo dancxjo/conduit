@@ -159,6 +159,8 @@ impl LlmSemanticContract {
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: self.limits,
         }
     }
@@ -307,7 +309,7 @@ pub fn install_llm_semantic_catalog(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -325,7 +327,7 @@ pub fn install_llm_semantic_catalog(
             ],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
@@ -341,11 +343,11 @@ pub fn install_llm_semantic_catalog(
             .map_err(|error| error.to_string())?;
     }
 
-    fn bound(key: &str, maximum: u64) -> ConfigurationField {
-        ConfigurationField {
+    fn bound(key: &str, maximum: u64) -> KindConfigurationField {
+        KindConfigurationField {
             key: key.into(),
             default_value: conduit_core::ConfigurationValue::U64(maximum),
-            validation: ConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 0,
                 maximum,
             },

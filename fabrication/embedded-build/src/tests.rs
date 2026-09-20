@@ -387,7 +387,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 kind_id: KindId::from("test/sink"),
                 kind_contract_revision: KindIdentity::from("test/sink@1"),
                 execution_profile_id: ExecutionProfileId::from("test/sink-fixed@1"),
-                configuration: Vec::new(),
+                configuration: Default::default(),
                 host_id: host_id.clone(),
                 boot_id: boot_id.clone(),
                 offer_generation: OfferGeneration(1),

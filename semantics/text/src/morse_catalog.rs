@@ -165,8 +165,7 @@ pub(crate) fn install_morse_composition_catalogs(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
-        StartupParameterSignature,
+        KindConfigurationField, KindConfigurationRule, KindSignature, StartupParameterSignature,
     };
 
     for contract in [
@@ -194,25 +193,22 @@ pub(crate) fn install_morse_composition_catalogs(
                 })
                 .collect(),
         })?;
-        profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|(key, value)| ConfigurationField {
-                        key: key.to_string(),
-                        default_value: value,
-                        validation: ConfigurationRule::U64Range {
-                            minimum: u64::from(MINIMUM_MORSE_UNIT_MILLIS),
-                            maximum: u64::from(MAXIMUM_MORSE_UNIT_MILLIS),
-                        },
-                    })
-                    .collect(),
+        let configuration = contract
+            .configuration
+            .iter()
+            .map(|(key, value)| KindConfigurationField {
+                key: key.to_string(),
+                default_value: value.clone(),
+                rule: KindConfigurationRule::U64Range {
+                    minimum: u64::from(MINIMUM_MORSE_UNIT_MILLIS),
+                    maximum: u64::from(MAXIMUM_MORSE_UNIT_MILLIS),
+                },
             })
+            .collect();
+        let mut kind = contract.into_semantic_contract();
+        kind.configuration = configuration;
+        profile
+            .insert_kind(kind)
             .map_err(|error| error.to_string())?;
     }
     Ok(())

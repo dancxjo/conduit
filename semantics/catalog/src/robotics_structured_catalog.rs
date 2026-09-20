@@ -6,7 +6,7 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{kind_id, KindIdentity, PortDescriptor};
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use conduit_robotics::{
     robotics_structured_kind_contracts, robotics_structured_registered_types,
@@ -42,7 +42,7 @@ fn insert_kind(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(kind),
             kind_contract_revision: KindIdentity::from(ROBOTICS_STRUCTURED_REVISION),
             inputs,

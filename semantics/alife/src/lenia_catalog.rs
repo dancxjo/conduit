@@ -5,7 +5,7 @@ use conduit_core::{
     kind_id, port_id, ConfigurationValue, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 
@@ -56,13 +56,44 @@ pub fn install_lenia_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(definition)
+            .insert_kind(canonical_lenia_kind(definition))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
 }
 
-pub fn lenia_definitions() -> Vec<KindDefinition> {
+fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
+    let startup_parameters = definition
+        .configuration
+        .iter()
+        .map(|field| conduit_core::FrontStartupParameter {
+            name: field.key.clone(),
+            value_type: field.default_value.semantic_kind(),
+            has_default: true,
+        })
+        .collect();
+    let shorthand = match (definition.inputs.as_slice(), definition.outputs.as_slice()) {
+        ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
+        _ => None,
+    };
+    conduit_core::Kind {
+        startup_parameters,
+        shorthand,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: definition.configuration,
+        semantic_laws: Vec::new(),
+        limits: conduit_core::CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: MAXIMUM_PRESENTED_FIELDS,
+            max_queue_bytes: crate::LENIA_MAXIMUM_FIELD_BYTES,
+        },
+    }
+}
+
+pub fn lenia_definitions() -> Vec<KindProjection> {
     vec![
         orbium_seed_definition(),
         lenia_step_definition(),
@@ -70,8 +101,8 @@ pub fn lenia_definitions() -> Vec<KindDefinition> {
     ]
 }
 
-pub fn orbium_seed_definition() -> KindDefinition {
-    KindDefinition {
+pub fn orbium_seed_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(ORBIUM_SEED_KIND),
         kind_contract_revision: KindIdentity::from(ORBIUM_SEED_REVISION),
         inputs: Vec::new(),
@@ -88,8 +119,8 @@ pub fn orbium_seed_definition() -> KindDefinition {
     }
 }
 
-pub fn lenia_step_definition() -> KindDefinition {
-    KindDefinition {
+pub fn lenia_step_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(LENIA_STEP_KIND),
         kind_contract_revision: KindIdentity::from(LENIA_STEP_REVISION),
         inputs: vec![
@@ -124,8 +155,8 @@ pub fn lenia_step_definition() -> KindDefinition {
     }
 }
 
-pub fn scalar_field_presentation_definition() -> KindDefinition {
-    KindDefinition {
+pub fn scalar_field_presentation_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(SCALAR_FIELD_PRESENTATION_KIND),
         kind_contract_revision: KindIdentity::from(SCALAR_FIELD_PRESENTATION_REVISION),
         inputs: vec![field_port(
@@ -135,10 +166,10 @@ pub fn scalar_field_presentation_definition() -> KindDefinition {
         )],
         outputs: Vec::new(),
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: TITLE_KEY.to_string(),
                 default_value: ConfigurationValue::Text("Scalar field".to_string()),
-                validation: ConfigurationRule::TextBytes { maximum: 64 },
+                rule: KindConfigurationRule::TextBytes { maximum: 64 },
             },
             i64_field(MINIMUM_KEY, 0, 0, 1_000_000),
             i64_field(MAXIMUM_KEY, 1_000_000, 0, 1_000_000),
@@ -155,27 +186,27 @@ fn field_port(name: &str, direction: PortDirection, temporal: PortTemporal) -> P
     }
 }
 
-fn u64_field(key: &str, default: u64, minimum: u64, maximum: u64) -> ConfigurationField {
-    ConfigurationField {
+fn u64_field(key: &str, default: u64, minimum: u64, maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::U64(default),
-        validation: ConfigurationRule::U64Range { minimum, maximum },
+        rule: KindConfigurationRule::U64Range { minimum, maximum },
     }
 }
 
-fn i64_field(key: &str, default: i64, minimum: i64, maximum: i64) -> ConfigurationField {
-    ConfigurationField {
+fn i64_field(key: &str, default: i64, minimum: i64, maximum: i64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::I64(default),
-        validation: ConfigurationRule::I64Range { minimum, maximum },
+        rule: KindConfigurationRule::I64Range { minimum, maximum },
     }
 }
 
-fn text_choice(key: &str, default: &str, values: &[&str]) -> ConfigurationField {
-    ConfigurationField {
+fn text_choice(key: &str, default: &str, values: &[&str]) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::Text(default.to_string()),
-        validation: ConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).to_string()).collect(),
         },
     }

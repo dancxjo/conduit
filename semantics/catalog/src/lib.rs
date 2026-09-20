@@ -327,9 +327,8 @@ pub const RIGHT_PORT: &str = "right";
 pub const ENABLE_PORT: &str = "enable";
 
 mod contract;
-pub use contract::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
-};
+pub use conduit_core::{KindConfigurationField, KindConfigurationRule, KindTerminalBehavior};
+pub use contract::StandardKindContract;
 
 /// User-facing semantic contracts, including portable kinds without a currently
 /// installed std implementation. This is discovery truth, not a host offer.
@@ -346,12 +345,14 @@ pub fn palette_contracts() -> Vec<StandardKindContract> {
 
 #[cfg(feature = "form-catalog")]
 pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
+    use conduit_form::{
+        KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
+    };
 
     let mut catalog = ProfileCatalog::new();
     for (contract, revision) in supported_nucleus_contracts_with_revisions() {
         catalog
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_contract_revision: conduit_core::KindIdentity::from(revision),
                 kind_id: contract.kind_id,
                 inputs: contract.inputs,
@@ -359,34 +360,37 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
                 configuration: contract
                     .configuration
                     .into_iter()
-                    .map(|field| ConfigurationField {
+                    .map(|field| KindConfigurationField {
                         key: field.key,
                         default_value: field.default_value,
-                        validation: match field.rule {
-                            StandardConfigurationRule::Any => ConfigurationRule::Any,
-                            StandardConfigurationRule::U64Range { minimum, maximum } => {
-                                ConfigurationRule::U64Range { minimum, maximum }
+                        rule: match field.rule {
+                            KindConfigurationRule::Any => KindConfigurationRule::Any,
+                            KindConfigurationRule::U64Range { minimum, maximum } => {
+                                KindConfigurationRule::U64Range { minimum, maximum }
                             }
-                            StandardConfigurationRule::I64Range { minimum, maximum } => {
-                                ConfigurationRule::I64Range { minimum, maximum }
+                            KindConfigurationRule::I64Range { minimum, maximum } => {
+                                KindConfigurationRule::I64Range { minimum, maximum }
                             }
-                            StandardConfigurationRule::DurationMillis { minimum, maximum } => {
-                                ConfigurationRule::DurationMillis { minimum, maximum }
+                            KindConfigurationRule::DurationMillis { minimum, maximum } => {
+                                KindConfigurationRule::DurationMillis { minimum, maximum }
                             }
-                            StandardConfigurationRule::QuantityRange {
+                            KindConfigurationRule::QuantityRange {
                                 minimum,
                                 maximum,
                                 canonical_unit,
-                            } => ConfigurationRule::QuantityRange {
+                            } => KindConfigurationRule::QuantityRange {
                                 minimum,
                                 maximum,
                                 canonical_unit,
                             },
-                            StandardConfigurationRule::TextBytes { maximum } => {
-                                ConfigurationRule::TextBytes { maximum }
+                            KindConfigurationRule::TextBytes { maximum } => {
+                                KindConfigurationRule::TextBytes { maximum }
                             }
-                            StandardConfigurationRule::TextOneOf { values } => {
-                                ConfigurationRule::TextOneOf { values }
+                            KindConfigurationRule::TextOneOf { values } => {
+                                KindConfigurationRule::TextOneOf { values }
+                            }
+                            KindConfigurationRule::Structured { profile } => {
+                                KindConfigurationRule::Structured { profile }
                             }
                         },
                     })

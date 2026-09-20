@@ -6,7 +6,7 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    CheckedForm, ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+    CheckedForm, KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 
@@ -46,14 +46,14 @@ pub fn install_state_value_kind(
         }],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "initial".into(),
-                validation: ConfigurationRule::Structured {
+                rule: KindConfigurationRule::Structured {
                     profile: initial.profile().clone(),
                 },
                 default_value: ConfigurationValue::Structured(initial),

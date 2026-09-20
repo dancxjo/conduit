@@ -1,7 +1,7 @@
 //! Host-neutral text catalog descriptions.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::ToString;
 #[cfg(feature = "form-catalog")]
@@ -12,7 +12,7 @@ pub fn text_literal_contract() -> StandardKindContract {
         conduit_text::text_literal_semantics(),
         "Text literal",
         "Emit one bounded immutable UTF-8 startup value.",
-        TerminalBehavior::EmitsOnce,
+        KindTerminalBehavior::EmitsOnce,
         "\"Hello\" > presentation/text",
     )
 }
@@ -22,7 +22,7 @@ pub fn text_upper_contract() -> StandardKindContract {
         conduit_text::text_upper_semantics(),
         "Uppercase text",
         "Uppercase one bounded stream of UTF-8 text values.",
-        TerminalBehavior::MirrorsInputTerminal,
+        KindTerminalBehavior::MirrorsInputTerminal,
         "upper: text/upper",
     )
 }
@@ -32,7 +32,7 @@ pub fn text_join_contract() -> StandardKindContract {
         conduit_text::text_join_semantics(),
         "Prefix text",
         "Prepend one immutable bounded UTF-8 prefix without an implicit separator.",
-        TerminalBehavior::MirrorsInputTerminal,
+        KindTerminalBehavior::MirrorsInputTerminal,
         "join: text/join(\"Hello\")",
     )
 }
@@ -43,7 +43,7 @@ pub fn install_text_pipeline_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     conduit_text::install_text_catalogs(startup, profile)?;
@@ -57,17 +57,17 @@ pub fn install_text_pipeline_catalogs(
     })?;
     let presentation = super::text_presentation_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: presentation.kind_id,
             kind_contract_revision: conduit_core::KindIdentity::from(
                 super::TEXT_PRESENTATION_CONTRACT_REVISION,
             ),
             inputs: presentation.inputs,
             outputs: presentation.outputs,
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "maximum-values".to_string(),
                 default_value: conduit_core::ConfigurationValue::U64(super::MAX_TEXT_VALUES),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: super::MAX_TEXT_VALUES,
                 },
@@ -81,7 +81,7 @@ fn describe(
     contract: conduit_text::TextKindContract,
     plain_name: &str,
     summary: &str,
-    terminal_behavior: TerminalBehavior,
+    terminal_behavior: KindTerminalBehavior,
     example: &str,
 ) -> StandardKindContract {
     StandardKindContract {
@@ -93,10 +93,10 @@ fn describe(
         configuration: contract
             .configuration
             .into_iter()
-            .map(|field| StandardConfigurationField {
+            .map(|field| KindConfigurationField {
                 key: field.key.to_string(),
                 default_value: field.default_value,
-                rule: StandardConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: field.maximum_text_bytes,
                 },
             })

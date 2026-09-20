@@ -8,7 +8,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindSignature, ProfileCatalog, StartupCatalog};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{string::String, vec, vec::Vec};
@@ -43,13 +43,19 @@ pub struct SpeechRecognitionContract {
 
 impl SpeechRecognitionContract {
     pub fn into_semantic_capability_contract(self) -> Kind {
+        let shorthand = match (self.inputs.as_slice(), self.outputs.as_slice()) {
+            ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
+            _ => None,
+        };
         Kind {
             startup_parameters: Vec::new(),
-            shorthand: None,
+            shorthand,
             kind_id: self.kind_id,
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: self.limits,
         }
     }
@@ -199,13 +205,7 @@ pub fn install_speech_recognition_catalog(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: vec![],
-            })
+            .insert_kind(contract.into_semantic_capability_contract())
             .map_err(|error| error.to_string())?;
     }
     crate::install_speech_recognition_adapters(startup, profile)?;

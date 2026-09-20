@@ -88,6 +88,8 @@ impl TextKindContract {
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: self.limits,
         }
     }
@@ -114,7 +116,7 @@ pub fn text_upper_semantics() -> TextKindContract {
         kind_contract_revision: KindIdentity::from(TEXT_UPPER_CONTRACT_REVISION),
         inputs: vec![text_port(PortDirection::Input)],
         outputs: vec![text_port(PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: text_limits(),
     }
 }
@@ -147,7 +149,7 @@ pub fn address_detect_semantics() -> TextKindContract {
             ADDRESS_DETECTION_VALUE_KIND,
             PortDirection::Output,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 2,
@@ -163,7 +165,7 @@ pub fn install_text_catalogs(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -195,7 +197,7 @@ pub fn install_text_catalogs(
         address_detect_semantics(),
     ] {
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
@@ -203,10 +205,10 @@ pub fn install_text_catalogs(
                 configuration: contract
                     .configuration
                     .into_iter()
-                    .map(|field| ConfigurationField {
+                    .map(|field| KindConfigurationField {
                         key: field.key.to_string(),
                         default_value: field.default_value,
-                        validation: ConfigurationRule::TextBytes {
+                        rule: KindConfigurationRule::TextBytes {
                             maximum: field.maximum_text_bytes,
                         },
                     })

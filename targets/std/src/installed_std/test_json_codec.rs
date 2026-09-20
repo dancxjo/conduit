@@ -4,7 +4,7 @@ use conduit_core::{
     CapabilityLimits, CapabilityOffer, ExecutionProfileId, ImplementationId, KindIdentity,
     PlannedGear, PortDescriptor, PortDirection, PortTemporal,
 };
-use conduit_form::{KindDefinition, ProfileCatalog};
+use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId, ValueRef, ValueStorage,
@@ -193,12 +193,12 @@ fn offer(
 pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     for offer in [source_offer(), sink_offer()] {
         catalog
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .unwrap();
     }

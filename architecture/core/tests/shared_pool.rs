@@ -106,7 +106,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
                 kind_id: kind_id("test/pool-consumer"),
                 kind_contract_revision: KindIdentity::from("test/pool-consumer@1"),
                 execution_profile_id: ExecutionProfileId::from("test/pool-consumer-hosted@1"),
-                configuration: Vec::new(),
+                configuration: Default::default(),
                 host_id: HostId::from("browser-host"),
                 boot_id: BootId::from("browser-boot"),
                 offer_generation: conduit_core::OfferGeneration(1),

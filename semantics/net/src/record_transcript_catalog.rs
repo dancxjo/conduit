@@ -6,7 +6,7 @@ use conduit_core::{
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 
@@ -42,14 +42,14 @@ pub fn install_record_transcript_catalog(
         ],
     })?;
     profile
-        .insert(record_transcript_kind_definition())
+        .insert(record_transcript_kind_projection())
         .map_err(|error| error.to_string())
 }
 
-pub fn record_transcript_kind_definition() -> KindDefinition {
+pub fn record_transcript_kind_projection() -> KindProjection {
     let frame = framed_typed_record_type();
     let terminal = terminal_event_type();
-    KindDefinition {
+    KindProjection {
         kind_id: kind_id(RECORD_TRANSCRIPT_KIND),
         kind_contract_revision: KindIdentity::from(RECORD_TRANSCRIPT_CONTRACT_REVISION),
         inputs: vec![
@@ -92,7 +92,7 @@ pub fn record_transcript_kind_definition() -> KindDefinition {
 }
 
 pub fn record_transcript_semantic_contract() -> Kind {
-    let definition = record_transcript_kind_definition();
+    let definition = record_transcript_kind_projection();
     Kind {
         startup_parameters: [
             "maximum-items",
@@ -111,6 +111,8 @@ pub fn record_transcript_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 3,
@@ -132,11 +134,11 @@ fn parameter(name: &str, default: &str) -> StartupParameterSignature {
     }
 }
 
-fn count_field(key: &str, default: u64, minimum: u64, maximum: u64) -> ConfigurationField {
-    ConfigurationField {
+fn count_field(key: &str, default: u64, minimum: u64, maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::U64(default),
-        validation: ConfigurationRule::U64Range { minimum, maximum },
+        rule: KindConfigurationRule::U64Range { minimum, maximum },
     }
 }
 

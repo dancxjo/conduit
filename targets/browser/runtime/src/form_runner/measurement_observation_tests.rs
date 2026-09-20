@@ -5,7 +5,7 @@ use super::engine::{
     DriveStatus,
 };
 use conduit_core::{Quantity, QuantityUnit, StructuredInfoValueShape, TemporalScale};
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical_with_options};
 use std::collections::BTreeMap;
 
@@ -34,12 +34,12 @@ fn fragment() -> conduit_core::PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     let source = format!(
@@ -105,12 +105,12 @@ fn interactive_fragment() -> conduit_core::PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     let source = format!(

@@ -45,6 +45,8 @@ pub fn structured_selector_contract(selector: &StructuredSelector, temporal: Por
             direction: PortDirection::Output,
             temporal,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,
