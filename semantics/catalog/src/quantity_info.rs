@@ -83,11 +83,22 @@ pub fn quantity_info_wrap_semantic_contract() -> SemanticCapabilityContract {
 }
 
 pub fn quantity_presentation_definition() -> conduit_form::KindDefinition {
+    let contract = quantity_presentation_semantic_contract();
     conduit_form::KindDefinition {
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: Vec::new(),
+    }
+}
+
+pub fn quantity_presentation_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
         kind_id: kind_id(QUANTITY_PRESENTATION_KIND),
-        kind_contract_revision: conduit_core::KindContractRevision::from(
-            QUANTITY_PRESENTATION_REVISION,
-        ),
+        kind_contract_revision: QUANTITY_PRESENTATION_REVISION.into(),
         inputs: vec![PortDescriptor {
             port_id: port_id("input"),
             value_kind: wrapped_quantity_type()
@@ -99,7 +110,11 @@ pub fn quantity_presentation_definition() -> conduit_form::KindDefinition {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: 1,
+            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
     }
 }
 
