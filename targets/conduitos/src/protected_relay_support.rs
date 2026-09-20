@@ -10,14 +10,18 @@ use conduit_protected_line::{
     RelayCandidateDescriptor, RelayCandidateError, RelayEndpointRole, RelayEnvelope, Role,
     decode_relay_envelope,
 };
+use conduit_wire::{SessionBinding as WireSessionBinding, SessionRole as WireSessionRole};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    arch::VirtioNetReady,
+    arch::{VirtioNetIdentity, VirtioNetReady},
     bounded_websocket::{BinaryWebSocketIo, MAXIMUM_BINARY_MESSAGE_BYTES, WebSocketError},
     cryptographic_entropy::{CryptographicEntropyBase, CryptographicEntropySource},
     protected_line_support::{
         ConduitOsProtectedLineIo, ConduitOsProtectedLineRefusal, establish_conduitos_protected_line,
+    },
+    protected_wire_session::{
+        ConduitOsWireSession, ConduitOsWireSessionRefusal, NetworkProviderTruth,
     },
     virtio_tcp::VirtioTcpEndpoint,
     virtio_tls::{self, VirtioTlsError, VirtioWebSocketRunError},
@@ -39,6 +43,97 @@ pub enum ConduitOsRelayRefusal<E> {
     Attachment(RelayAttachmentRefusal),
     Protected(ConduitOsProtectedLineRefusal),
     Operation(E),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ConduitOsRelayWireRefusal<E> {
+    Relay(ConduitOsRelayRefusal<WireOperationRefusal<E>>),
+    ProviderMismatch,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum WireOperationRefusal<E> {
+    Session(ConduitOsWireSessionRefusal),
+    Operation(E),
+}
+
+/// Run canonical ordinary Host frames inside the exact protected relay Line.
+///
+/// The selected device must match the Host supervisor's current provider
+/// generation before any network work. The nested session checks that truth
+/// again before every frame and terminally refuses replacement.
+#[allow(clippy::too_many_arguments)]
+pub fn with_conduitos_protected_relay_wire_session<T, E, S, P, const REQUESTS: u32>(
+    device: VirtioNetReady,
+    tcp_seed: u64,
+    tls_seed: [u8; 32],
+    websocket_seed: [u8; 32],
+    endpoint: VirtioTcpEndpoint,
+    pinned_certificate_der: &[u8],
+    maximum_polls: u32,
+    candidate: &RelayCandidateDescriptor,
+    now_millis: u64,
+    entropy: &mut CryptographicEntropyBase<S, REQUESTS>,
+    provider_truth: &P,
+    wire_binding: WireSessionBinding,
+    wire_role: WireSessionRole,
+    operation: impl FnOnce(&mut ConduitOsWireSession<'_, P>) -> Result<T, E>,
+) -> Result<(T, u32), ConduitOsRelayWireRefusal<E>>
+where
+    S: CryptographicEntropySource,
+    P: NetworkProviderTruth,
+{
+    let device_identity = device.identity();
+    let current = provider_truth.current_provider();
+    if current.base_id.is_empty()
+        || !provider_instance_matches_device(current.provider_instance_id, device_identity)
+        || current.provider_generation != device_identity.provider_generation
+        || current.boot_id != device_identity.boot_id
+    {
+        return Err(ConduitOsRelayWireRefusal::ProviderMismatch);
+    }
+    with_conduitos_protected_relay(
+        device,
+        tcp_seed,
+        tls_seed,
+        websocket_seed,
+        endpoint,
+        pinned_certificate_der,
+        maximum_polls,
+        candidate,
+        now_millis,
+        entropy,
+        |protected| {
+            let mut wire =
+                ConduitOsWireSession::new(protected, provider_truth, wire_binding, wire_role)
+                    .map_err(WireOperationRefusal::Session)?;
+            operation(&mut wire).map_err(WireOperationRefusal::Operation)
+        },
+    )
+    .map_err(ConduitOsRelayWireRefusal::Relay)
+}
+
+fn provider_instance_matches_device(instance: &str, device: VirtioNetIdentity) -> bool {
+    let bytes = instance.as_bytes();
+    bytes.len() == 22
+        && &bytes[..4] == b"pci/"
+        && decode_hex(bytes[4]) == Some(device.bus >> 4)
+        && decode_hex(bytes[5]) == Some(device.bus & 0x0f)
+        && bytes[6] == b':'
+        && decode_hex(bytes[7]) == Some(device.device >> 4)
+        && decode_hex(bytes[8]) == Some(device.device & 0x0f)
+        && bytes[9] == b'.'
+        && decode_hex(bytes[10]) == Some(device.function)
+        && &bytes[11..] == b"/virtio-net"
+}
+
+const fn decode_hex(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
