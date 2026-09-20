@@ -5,6 +5,8 @@ use conduit_protected_line::{
     CarrierFailure, EndpointBinding, ProtectedHandshake, ProtectedSessionPolicy, SessionLimits,
 };
 
+#[cfg(feature = "virtio-net-proof")]
+use crate::bounded_websocket::{BinaryWebSocketIo, WebSocketError};
 use crate::cryptographic_entropy::{EntropyProvider, EntropyReceipt};
 
 const PSK: [u8; 32] = [0x31; 32];
@@ -158,4 +160,96 @@ fn entropy_refusal_precedes_any_session_work() {
         refusal,
         ConduitOsProtectedLineRefusal::Entropy(EntropyRefusal::RequestCapacity)
     );
+}
+
+#[cfg(feature = "virtio-net-proof")]
+struct RespondingWebSocket {
+    responder: ProtectedHandshake,
+    response: [u8; 64],
+    response_len: usize,
+    receives: usize,
+}
+
+#[cfg(feature = "virtio-net-proof")]
+impl BinaryWebSocketIo for RespondingWebSocket {
+    fn send_binary(&mut self, payload: &[u8]) -> Result<(), WebSocketError> {
+        self.responder
+            .read_message(payload)
+            .map_err(|_| WebSocketError::UnexpectedFrame)?;
+        self.response_len = self
+            .responder
+            .next_message_bytes()
+            .map_err(|_| WebSocketError::UnexpectedFrame)?;
+        self.responder
+            .write_message(&mut self.response[..self.response_len])
+            .map_err(|_| WebSocketError::UnexpectedFrame)
+    }
+
+    fn receive_binary(&mut self, output: &mut [u8]) -> Result<usize, WebSocketError> {
+        self.receives += 1;
+        output[..self.response_len].copy_from_slice(&self.response[..self.response_len]);
+        Ok(self.response_len)
+    }
+}
+
+#[cfg(feature = "virtio-net-proof")]
+#[test]
+fn bounded_websocket_frames_realize_the_same_protected_handshake() {
+    let binding = binding();
+    let mut websocket = RespondingWebSocket {
+        responder: ProtectedHandshake::new(
+            Role::Responder,
+            &binding,
+            policy().traffic,
+            PSK,
+            [0x53; 32],
+        )
+        .unwrap(),
+        response: [0; 64],
+        response_len: 0,
+        receives: 0,
+    };
+    let carrier = ProtectedWebSocketCarrier {
+        websocket: &mut websocket,
+        maximum_receive_millis: 2_000,
+    };
+    let mut entropy = entropy();
+    let protected = establish_conduitos_protected_line(
+        carrier,
+        Role::Initiator,
+        &binding,
+        policy(),
+        PSK,
+        &mut entropy,
+    )
+    .unwrap();
+    assert_eq!(protected.session().limits(), policy().traffic);
+    assert_eq!(websocket.receives, 1);
+}
+
+#[cfg(feature = "virtio-net-proof")]
+#[test]
+fn websocket_carrier_never_exceeds_the_requested_receive_timeout() {
+    let mut websocket = RespondingWebSocket {
+        responder: ProtectedHandshake::new(
+            Role::Responder,
+            &binding(),
+            policy().traffic,
+            PSK,
+            [0x53; 32],
+        )
+        .unwrap(),
+        response: [0; 64],
+        response_len: 0,
+        receives: 0,
+    };
+    let mut carrier = ProtectedWebSocketCarrier {
+        websocket: &mut websocket,
+        maximum_receive_millis: 2_000,
+    };
+    assert_eq!(
+        carrier.receive_frame(&mut [0; 64], 1_999),
+        Err(CarrierFailure::TimedOut)
+    );
+    assert_eq!(websocket.receives, 0);
 }
